@@ -72,6 +72,17 @@ async function main() {
       assert.equal(res.status, 401, 'capacity snooze without session must be 401');
     }
 
+    // Diagnostics and exports are equally protected before bootstrap.
+    for (const endpoint of [
+      '/api/v1/providers/public-status',
+      '/api/v1/cost/external-claude',
+      '/api/v1/capacity/pace.csv',
+      '/api/v1/cost/observations.csv',
+    ]) {
+      const res = await api(origin, 'GET', endpoint);
+      assert.equal(res.status, 401, `unauthenticated access to ${endpoint} must be denied`);
+    }
+
     // Bootstrap exchange (same as the web client initSession).
     const fragment = new URL(bootstrapUrl).hash.replace(/^#/, '');
     const token = new URLSearchParams(fragment).get('nexus_bootstrap') || '';
@@ -216,7 +227,55 @@ async function main() {
       assert.ok(cleared.data.snoozed_until == null, 'cleared snooze reads back null/absent');
     }
 
-    console.log('capacity E2E: PASS (auth, CSRF, status, history, preferences, ack, snooze)');
+    // 8. TokenBar-inspired read-only diagnostics and explicit-consent endpoints.
+    // Never scan local transcripts in this fixture (it must stay opt-in).
+    {
+      const incidents = await api(origin, 'GET', '/api/v1/providers/public-status');
+      assert.equal(incidents.status, 200, 'authenticated public incident status must be readable');
+      assert.ok(Array.isArray(incidents.data), 'independent public status is an array');
+      for (const incident of incidents.data) {
+        assert.ok(['none', 'minor', 'major', 'critical', 'UNKNOWN'].includes(incident.indicator));
+      }
+
+      const summary = await api(origin, 'GET', '/api/v1/cost/external-claude');
+      assert.equal(summary.status, 200, 'GET reads only previously captured local usage');
+      assert.equal(summary.data.messages, 0, 'GET cannot trigger unconsented transcript scans');
+      assert.equal(summary.data.unattributed, true, 'external usage identity is always unverified');
+      const denied = await api(origin, 'POST', '/api/v1/cost/external-claude', {
+        body: { consent: true },
+      });
+      assert.equal(denied.status, 403, 'manual scan requires CSRF');
+      const noConsent = await api(origin, 'POST', '/api/v1/cost/external-claude', {
+        csrf,
+        body: { consent: false },
+      });
+      assert.equal(noConsent.status, 400, 'manual scan requires per-request consent');
+      const purgeNoCsrf = await api(origin, 'DELETE', '/api/v1/cost/external-claude');
+      assert.equal(purgeNoCsrf.status, 403, 'external metadata deletion requires CSRF');
+      const purge = await api(origin, 'DELETE', '/api/v1/cost/external-claude', { csrf });
+      assert.equal(purge.status, 200, 'authenticated purge must succeed');
+      assert.equal(purge.data.cleared, true);
+    }
+
+    // 9. CSV exports remain authenticated, bounded and scope-free.
+    {
+      for (const [url, head] of [
+        ['/api/v1/capacity/pace.csv', 'provider,profile,quota_group'],
+        ['/api/v1/cost/observations.csv?days=30', 'observed_at,provider,profile'],
+      ]) {
+        const response = await fetch(origin + url, {
+          headers: { Cookie: cookies.join('; '), Origin: originHeader },
+        });
+        assert.equal(response.status, 200, `authenticated CSV export ${url}`);
+        assert.ok((response.headers.get('content-type') || '').startsWith('text/csv'));
+        assert.equal(response.headers.get('cache-control'), 'private, no-store');
+        const body = await response.text();
+        assert.ok(body.startsWith(head), `unexpected CSV heading in ${url}`);
+        assert.equal(body.includes('account_scope'), false, 'CSV must redact scope IDs');
+      }
+    }
+
+    console.log('capacity E2E: PASS (auth, CSRF, quota, incidents, external usage, CSV)');
   } finally {
     await terminateProcess(server);
   }

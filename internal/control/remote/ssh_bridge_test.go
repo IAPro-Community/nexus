@@ -19,8 +19,7 @@ func TestValidateSSHLocationAndFixedBridgeArgs(t *testing.T) {
 			t.Fatalf("valid SSH location %q rejected: %v", location, err)
 		}
 	}
-	for _, location := range []string{"", "-oProxyCommand=bad", "dev box", "host
-bad", "ssh://devbox"} {
+	for _, location := range []string{"", "-oProxyCommand=bad", "dev box", "host\nbad", "ssh://devbox"} {
 		if err := ValidateSSHLocation(location); err == nil {
 			t.Fatalf("invalid SSH location %q accepted", location)
 		}
@@ -104,8 +103,7 @@ func TestSSHBridgeRoundTripPreservesStructuredPayload(t *testing.T) {
 			serverDone <- err
 			return
 		}
-		_, err = responseWriter.Write(append(raw, '
-'))
+		_, err = responseWriter.Write(append(raw, '\n'))
 		serverDone <- err
 	}()
 
@@ -151,8 +149,7 @@ func TestSSHBridgeRoundTripRejectsCorrelationMismatch(t *testing.T) {
 		response, _ := protocol.NewResponse(protocol.RemoteBridgeRuntimeStatusData{RuntimeID: "runtime-1"})
 		response.ID = "wrong-id"
 		raw, _ := json.Marshal(response)
-		_, _ = responseWriter.Write(append(raw, '
-'))
+		_, _ = responseWriter.Write(append(raw, '\n'))
 	}()
 
 	_, err := client.Status(context.Background(), "runtime-1")
@@ -187,8 +184,7 @@ func TestSSHBridgeRoundTripSurfacesStructuredBridgeError(t *testing.T) {
 			Message: "remote execution is disabled on this host",
 		}
 		raw, _ := json.Marshal(response)
-		_, _ = responseWriter.Write(append(raw, '
-'))
+		_, _ = responseWriter.Write(append(raw, '\n'))
 	}()
 
 	_, err := client.Status(context.Background(), "runtime-1")
@@ -223,15 +219,13 @@ func TestSSHBridgeCancellationConsumesTransport(t *testing.T) {
 }
 
 func TestReadBoundedLineAndTailBufferStayBounded(t *testing.T) {
-	reader := bufio.NewReader(strings.NewReader("ok
-"))
+	reader := bufio.NewReader(strings.NewReader("ok\n"))
 	line, err := readBoundedLine(reader, 8)
 	if err != nil || string(line) != "ok" {
 		t.Fatalf("bounded line=%q err=%v", line, err)
 	}
 
-	tooLarge := bufio.NewReader(strings.NewReader(strings.Repeat("x", 9) + "
-"))
+	tooLarge := bufio.NewReader(strings.NewReader(strings.Repeat("x", 9) + "\n"))
 	if _, err := readBoundedLine(tooLarge, 8); err == nil {
 		t.Fatal("oversized line must fail")
 	}

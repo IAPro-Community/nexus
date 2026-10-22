@@ -1,3 +1,7 @@
+import {
+  COMPOSER_FLOW_ENABLED,
+  isExperimentalComposerFlowSurface,
+} from '../../app/composerFlowFlag';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   Gauge,
@@ -163,18 +167,20 @@ export const ProjectRail: React.FC<{
     });
   }, [projects, q, outline.agentsByProject, outline.attentionByProject]);
 
-  const optionalTools = [
-    { id: 'overview', label: t('nav.overview'), icon: Home },
-    { id: 'terminals', label: t('nav.terminals'), icon: TerminalSquare },
-    { id: 'maestro', label: t('nav.maestro'), icon: Sparkles },
-    { id: 'work', label: t('nav.work'), icon: Layers },
-    { id: 'missions', label: t('nav.missions'), icon: Workflow },
-    { id: 'agents', label: t('nav.agents'), icon: TerminalSquare },
-    { id: 'resources', label: t('nav.resources'), icon: Gauge },
-    { id: 'sessions', label: t('nav.sessions'), icon: History },
-    { id: 'projects', label: t('projectManager.desktopsTitle'), icon: LayoutGrid },
-    { id: 'settings', label: t('nav.settings'), icon: Settings },
-  ] as const;
+  const optionalTools = (
+    [
+      { id: 'overview', label: t('nav.overview'), icon: Home },
+      { id: 'terminals', label: t('nav.terminals'), icon: TerminalSquare },
+      { id: 'maestro', label: t('nav.maestro'), icon: Sparkles },
+      { id: 'work', label: t('nav.work'), icon: Layers },
+      { id: 'missions', label: t('nav.missions'), icon: Workflow },
+      { id: 'agents', label: t('nav.agents'), icon: TerminalSquare },
+      { id: 'resources', label: t('nav.resources'), icon: Gauge },
+      { id: 'sessions', label: t('nav.sessions'), icon: History },
+      { id: 'projects', label: t('projectManager.desktopsTitle'), icon: LayoutGrid },
+      { id: 'settings', label: t('nav.settings'), icon: Settings },
+    ] as const
+  ).filter((item) => COMPOSER_FLOW_ENABLED || !isExperimentalComposerFlowSurface(item.id));
 
   const selectProject = useCallback(
     (project: Project) => {
@@ -319,7 +325,9 @@ export const ProjectRail: React.FC<{
                     selected={selected?.id === project.id}
                     expanded={expanded}
                     summary={outline.summaryMap.get(project.id)}
-                    attention={outline.attentionByProject.get(project.id)}
+                    attention={
+                      COMPOSER_FLOW_ENABLED ? outline.attentionByProject.get(project.id) : undefined
+                    }
                     agents={outline.agentsByProject.get(project.id) ?? []}
                     agentsLoading={outline.loadingAgents.has(project.id)}
                     onToggleExpand={() => handleToggleExpand(project.id)}

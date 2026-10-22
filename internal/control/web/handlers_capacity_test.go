@@ -3,6 +3,7 @@ package web
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -81,6 +82,33 @@ func TestCapacityEndpoints(t *testing.T) {
 		}
 		if len(events) != 0 {
 			t.Errorf("expected 0 events, got %d", len(events))
+		}
+	})
+
+	t.Run("GET /api/v1/capacity/pace.csv exports only safe headings", func(t *testing.T) {
+		resp, err := client.Get(srv.URL() + "/api/v1/capacity/pace.csv")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		if ct := resp.Header.Get("Content-Type"); ct != "text/csv; charset=utf-8" {
+			t.Fatalf("incorrect CSV content type: %s", ct)
+		}
+		if resp.Header.Get("Cache-Control") != "private, no-store" {
+			t.Fatal("pace export must disable shared/browser caches")
+		}
+		data, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.HasPrefix(data, []byte("provider,profile,quota_group,window,")) {
+			t.Fatalf("unexpected CSV header: %q", data)
+		}
+		if bytes.Contains(data, []byte("account_scope")) {
+			t.Fatal("scope identifiers must not appear in exported CSV")
 		}
 	})
 

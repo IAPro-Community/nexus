@@ -3,13 +3,12 @@
 ## Objetivo
 
 Nexus Voice adiciona entrada por voz sem acoplar terminal, agentes ou navegação a um fornecedor
-de speech-to-text. A entrega integrada ao candidato `v1.0.0-beta.3` usa APIs
+de speech-to-text. A implementação introduzida na beta.3 continua no source candidato da linha v1 e contempla APIs
 remotas: **Groq / `whisper-large-v3-turbo`** como primeira opção e
 **Cloudflare Workers AI / Whisper** como fallback configurável. xAI/Grok não é
 provider padrão.
 
-A feature faz parte do escopo funcional concluído da V1 beta.3; certificação física de microfone continua
-separada por plataforma.
+A presença no código não substitui certificação física de microfone, permissão do SO e providers STT reais no mesmo SHA em cada plataforma.
 
 ## Fluxos suportados
 

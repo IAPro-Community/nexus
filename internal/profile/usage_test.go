@@ -236,6 +236,29 @@ func codexCacheFixture(t *testing.T, cacheSource model.UsageSource, age time.Dur
 	}
 }
 
+func TestCodexQuotaOlderThanWeeklyWindowIsNotDisplayedAsCurrent(t *testing.T) {
+	codexCacheFixture(t, model.SourceOfficialAPI, 25*24*time.Hour)
+
+	// The persisted evidence remains available for history, but usage/status
+	// cannot display an old 12% weekly value as if it were current.
+	snap := GetUsageSnapshot("codex", "ttl")
+	if snap.Status != model.UsageUnknown {
+		t.Fatalf("25-day-old snapshot status=%s, want UNKNOWN", snap.Status)
+	}
+	if len(snap.Windows) != 0 {
+		t.Fatalf("25-day-old snapshot contains misleading quota windows: %+v", snap.Windows)
+	}
+
+	// A live, isolated Codex rollout can still replace the historical reading.
+	refreshed := RefreshUsageSnapshot("codex", "ttl")
+	if refreshed.Status != model.UsageLive {
+		t.Fatalf("refreshed status=%s, want LIVE", refreshed.Status)
+	}
+	if len(refreshed.Windows) != 1 || refreshed.Windows[0].RemainingPercent == nil || *refreshed.Windows[0].RemainingPercent != 90 {
+		t.Fatalf("refreshed quota = %+v, want current rollout remaining 90%%", refreshed.Windows)
+	}
+}
+
 func TestGetUsageSnapshotReusesFreshOfficialCodexReading(t *testing.T) {
 	codexCacheFixture(t, model.SourceOfficialAPI, 5*time.Second)
 

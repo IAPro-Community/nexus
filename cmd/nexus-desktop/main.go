@@ -8,6 +8,7 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/app"
 	"github.com/IAPro-Community/nexus/internal/desktop"
+	"github.com/IAPro-Community/nexus/internal/hudlink"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -31,6 +32,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Start the linked tray HUD with the Desktop shell and keep both bound to
+	// the same lifecycle (NEXUS_HUD_SPAWN=0 opts out).
+	hudProc, hudErr := hudlink.Spawn()
+	if hudErr != nil {
+		fmt.Fprintf(os.Stderr, "nexus desktop: HUD companion unavailable: %v\n", hudErr)
+	}
+	if hudProc != nil {
+		defer hudProc.Close()
+	}
+
 	windowManager := desktop.NewWindowStateManager("")
 	windowState := windowManager.Load()
 	desktopApp := desktop.NewAppForWindow(nil, windowManager, desktop.DesktopWindowName, desktop.BootstrapInfo{
@@ -39,13 +50,23 @@ func main() {
 		CSRFToken:    backend.Session.CSRFToken,
 	})
 
+	var window application.Window
+
 	native := application.New(application.Options{
 		Name:        "IAPro Nexus",
 		Description: "Autonomous AI Orchestrator and Workspace OS",
+		Icon:        desktop.NexusAppIcon(),
 		Services:    []application.Service{application.NewService(desktopApp)},
 		Assets:      application.AssetOptions{Handler: backend.Handler, DisableLogging: true},
 		SingleInstance: &application.SingleInstanceOptions{
 			UniqueID: desktopSingleInstanceID,
+			OnSecondInstanceLaunch: func(data application.SecondInstanceData) {
+				if window != nil {
+					window.Show()
+					window.Restore()
+					window.Focus()
+				}
+			},
 		},
 		Mac: application.MacOptions{ApplicationShouldTerminateAfterLastWindowClosed: false},
 		Windows: application.WindowsOptions{
@@ -58,13 +79,16 @@ func main() {
 			ApplicationID:                 "com.iapro.nexus.desktop",
 		},
 		OnShutdown: func() {
+			if hudProc != nil {
+				hudProc.Close()
+			}
 			shutdownCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancel()
 			_ = backend.Close(shutdownCtx)
 		},
 	})
 
-	window := native.Window.NewWithOptions(application.WebviewWindowOptions{
+	window = native.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:                       desktop.DesktopWindowName,
 		Title:                      "IAPro Nexus",
 		Width:                      windowState.Width,

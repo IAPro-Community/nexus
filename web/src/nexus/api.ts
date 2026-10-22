@@ -567,9 +567,12 @@ export const nexus = {
       nexus_commit?: string;
       nexus_build_date?: string;
       nexus_latest_version?: string;
+      nexus_latest_sha?: string;
       nexus_update_available?: boolean;
       nexus_update_error?: string;
       nexus_update_instruction?: string;
+      nexus_installer_url?: string;
+      nexus_release_url?: string;
       nexus_installation_method?: string;
       nexus_allows_self_update?: boolean;
       channel?: string;
@@ -932,6 +935,8 @@ export const nexus = {
 
   // Capacity Monitor (revival T6)
   getCapacityStatus: () => request<import('../types').CapacityStatus>('/api/v1/capacity/status'),
+  getPublicServiceStatus: () =>
+    request<import('../types').PublicServiceStatus[]>('/api/v1/providers/public-status'),
   getCapacityHistory: (limit?: number) =>
     request<import('../types').CapacityHistoryEvent[]>(
       `/api/v1/capacity/history?limit=${encodeURIComponent(String(limit ?? 50))}`,
@@ -961,6 +966,17 @@ export const nexus = {
     if (projectId) params.set('project_id', projectId);
     return request<import('../types').CostSummary>(`/api/v1/cost/summary?${params.toString()}`);
   },
+  getExternalClaudeUsage: (days = 7) =>
+    request<import('../types').ExternalClaudeSummary>(
+      `/api/v1/cost/external-claude?days=${days === 30 ? 30 : 7}`,
+    ),
+  scanExternalClaudeUsage: () =>
+    request<import('../types').ExternalClaudeScanResult>('/api/v1/cost/external-claude', {
+      method: 'POST',
+      body: JSON.stringify({ consent: true }),
+    }),
+  clearExternalClaudeUsage: () =>
+    request<{ cleared: boolean }>('/api/v1/cost/external-claude', { method: 'DELETE' }),
   getCostPreferences: () => request<import('../types').CostPreferences>('/api/v1/cost/preferences'),
   putCostPreferences: (prefs: import('../types').CostPreferences) =>
     request<import('../types').CostPreferences>('/api/v1/cost/preferences', {

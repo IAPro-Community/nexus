@@ -6,14 +6,13 @@
 #   ./install.sh --build-from-source [--yes]
 set -euo pipefail
 
-# Closed-beta clients install from the public binaries-only repository.
+# Source code and signed binaries share the same public GitHub repository.
 # NEXUS_RELEASE_REPO overrides it for internal/dev distributions.
-REPO="${NEXUS_RELEASE_REPO:-IAPro-Community/nexus-releases}"
+REPO="${NEXUS_RELEASE_REPO:-IAPro-Community/nexus}"
 GITHUB_URL="https://github.com/${REPO}"
 GITHUB_API="https://api.github.com/repos/${REPO}"
 RELEASE_DOWNLOAD_BASE="${NEXUS_RELEASE_BASE_URL:-${GITHUB_URL}/releases/download}"
-# Source checkouts (--build-from-source) always come from the private source
-# repository, never from the binaries mirror.
+# Source checkouts (--build-from-source) use the public source repository.
 SOURCE_REPO="${NEXUS_SOURCE_REPO:-IAPro-Community/nexus}"
 SOURCE_URL="https://github.com/${SOURCE_REPO}"
 
@@ -272,7 +271,7 @@ want = sys.argv[2]
 arts = m.get('artifacts', {})
 for k, v in arts.items():
     url = unquote(urlparse(v.get('url', '')).path)
-    if url.endswith('/' + want) or url.endswith(want):
+    if url == want or url.endswith('/' + want):
         print(v.get('sha256', ''))
         sys.exit(0)
 key = want.lower().replace('-', '_')
@@ -281,7 +280,7 @@ if key.endswith('.tar.gz'):
 elif '.' in key:
     key = key.rsplit('.', 1)[0]
 for k, v in arts.items():
-    if k == key or key in k or k in key:
+    if k == key:
         print(v.get('sha256', ''))
         sys.exit(0)
 print('', end='')
@@ -291,7 +290,16 @@ print('', end='')
 download_and_verify_archive() {
     local archive_name="$1"
     local version_plain="$2"
-    local release_url="${RELEASE_DOWNLOAD_BASE}/v${version_plain}"
+    # Rolling betas have no immutable per-version release asset tag.
+    local release_tag="v${version_plain}"
+    local expected_channel="stable"
+    case "$version_plain" in
+        *-alpha.*|*-beta.*|*-rc.*)
+            release_tag="channel-beta"
+            expected_channel="beta"
+            ;;
+    esac
+    local release_url="${RELEASE_DOWNLOAD_BASE}/${release_tag}"
     local archive_path="${TMP_DIR}/${archive_name}"
     local manifest_path="${TMP_DIR}/update-manifest.json"
     local sig_path="${TMP_DIR}/update-manifest.sig"
@@ -312,6 +320,20 @@ download_and_verify_archive() {
         return 1
     fi
     if ! verify_manifest_signature "$manifest_path" "$sig_path"; then
+        return 1
+    fi
+    # The channel pointer may have advanced since a version was requested.
+    if ! python3 - "$manifest_path" "$version_plain" "$expected_channel" <<'PY'
+import json, sys
+manifest_path, expected_version, expected_channel = sys.argv[1:]
+with open(manifest_path, encoding='utf-8') as handle:
+    manifest = json.load(handle)
+actual_version = manifest.get('version')
+actual_channel = manifest.get('channel')
+if actual_version != expected_version or actual_channel != expected_channel:
+    raise SystemExit(f'signed manifest version/channel mismatch: expected {expected_version}/{expected_channel}, got {actual_version}/{actual_channel}')
+PY
+    then
         return 1
     fi
     expected="$(extract_sha_from_manifest "$manifest_path" "$archive_name")"

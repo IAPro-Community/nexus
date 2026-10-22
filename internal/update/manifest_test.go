@@ -80,6 +80,35 @@ func TestUpdaterRollbackKeepsCurrentBinaryWhenRestoreFails(t *testing.T) {
 	}
 }
 
+func TestUpdaterApplyManifestRejectsSameVersion(t *testing.T) {
+	dir := t.TempDir()
+	updater := NewUpdater(filepath.Join(dir, "nexus"), dir)
+	content := []byte("same-version-payload")
+	manifest := Manifest{
+		SchemaVersion: 1,
+		Channel:       "beta",
+		Version:       "1.0.0-beta.10",
+		Artifacts: map[string]Artifact{
+			"linux_amd64": {
+				URL:    "https://example.invalid/cli",
+				Size:   int64(len(content)),
+				SHA256: sha256Hex(content),
+			},
+		},
+	}
+	_, err := updater.ApplyManifest(manifest, ManifestPolicy{
+		Channel:        "beta",
+		CurrentVersion: "1.0.0-beta.10",
+		Target:         "linux_amd64",
+	}, content)
+	if err != ErrNoUpdateAvailable {
+		t.Fatalf("same-version update must fail closed, got %v", err)
+	}
+	if _, err := os.Stat(updater.BinaryPath); !os.IsNotExist(err) {
+		t.Fatalf("same-version release must not replace executable: %v", err)
+	}
+}
+
 func TestUpdaterApplyManifestBindsTargetChecksum(t *testing.T) {
 	tempDir := t.TempDir()
 	binPath := filepath.Join(tempDir, "nexus")

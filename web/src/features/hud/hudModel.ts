@@ -123,6 +123,21 @@ export interface HudResponse {
   state?: HudState;
 }
 
+export type NativeHudStatus = 'loading' | 'offline' | 'disabled' | 'ready';
+
+export function resolveNativeHudStatus(
+  enabled: boolean | undefined,
+  hasState: boolean,
+  offline: boolean,
+): NativeHudStatus {
+  if (enabled === false) return 'disabled';
+  // A previous HTTP snapshot is not proof that the native HUD is online.
+  if (offline) return 'offline';
+  if (enabled && hasState) return 'ready';
+  if (enabled === true) return 'offline';
+  return 'loading';
+}
+
 export interface HudPresentationPreferences {
   version: 1;
   enabled: boolean;
@@ -143,7 +158,7 @@ export const HUD_PREFERENCES_KEY = 'iapro:nexus:hud:presentation:v1';
 
 export const defaultHudPreferences: HudPresentationPreferences = {
   version: 1,
-  enabled: true,
+  enabled: false,
   mode: 'AUTO',
   surfaceMode: 'docked',
   dock: 'bottom',
@@ -205,7 +220,7 @@ export const saveHudPreferences = (prefs: HudPresentationPreferences) => {
 
 export type HudCostDisplay = {
   label: string;
-  semantics: 'actual' | 'estimated' | 'known-partial' | 'unknown';
+  semantics: 'reported' | 'estimated' | 'known-partial' | 'unknown';
 };
 
 const formatUSD = (microusd: number) =>
@@ -230,7 +245,9 @@ export const formatHudCost = (cost?: HudCostSummary): HudCostDisplay => {
     cost.unknown_observation_count === 0 &&
     cost.evidence === 'MEASURED'
   ) {
-    return { label: value, semantics: 'actual' };
+    // Provider-reported usage is not proof of an invoiced API charge.
+    // Subscription plans can report equivalent token costs without billing.
+    return { label: value, semantics: 'reported' };
   }
   if (
     cost.unknown_observation_count === 0 &&

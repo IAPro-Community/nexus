@@ -1,45 +1,17 @@
-# IAPro Nexus — Beta Terms (v1.0.0-beta.1)
+# IAPro Nexus — Historical Beta Terms (v1.0.0-beta.1)
 
-Status: draft for owner review before first external distribution.
+> **Historical record, not a current source license.** These terms describe the earlier proprietary beta binary evaluation program. The source candidate prepared for future publication follows [LICENSE](../../LICENSE), as explained in [LICENSING.md](LICENSING.md). They do not by themselves authorize a new public binary release.
 
-## 1. What the beta is
+Status: terms originally drafted for owner review; confirmation of past acceptance and applicable distribution is required. The following conditions must **not** be presented as a verified live download channel.
 
-A free, time-limited evaluation of the proprietary IAPro Nexus binaries
-(Linux, Windows, macOS). The beta initially costs nothing; paid plans
-(Free/Pro/Team) may be introduced later. Nothing in this beta promises
-future pricing.
+## Earlier binary evaluation model
 
-## 2. How you get it
+The historical program contemplated a free, time-limited evaluation of proprietary Nexus beta binaries and a separate distribution channel. Actual availability, entitlement, signature and public URLs must be established from release artifacts, not inferred from these terms.
 
-- Official channel only: signed binaries from the IAPro distribution
-  registry (see `docs/release/BETA_PLAYBOOK.md`). No source repository
-  access, no GitHub access, and no local build are required or provided.
-- Verify the signed channel manifest before installing. Never install a
-  beta binary from an unofficial link.
+## Security and diagnostics
 
-## 3. Your obligations
+Never share credentials, prompts, private code or diagnostic bundles without explicit inspection and approval. Check the [privacy notice](PRIVACY.md) and [security policy](../../SECURITY.md).
 
-- Keep your installation updated to the latest beta while evaluating.
-- Do not share, repost, or mirror beta binaries or download links.
-- Report crashes and defects through the official support channel with a
-  diagnostics bundle you explicitly approve (see Privacy notice).
-- Do not use the beta with data you cannot afford to lose; back up
-  important work.
+## Status of current source
 
-## 4. Telemetry and privacy
-
-- Local telemetry stays on your machine.
-- Product analytics is opt-in, sends only allowlisted aggregate event
-  names (never prompts, code, files, tokens, or paths), and can be
-  disabled at any time. Details: `docs/legal/PRIVACY.md`.
-
-## 5. No warranty, limited liability
-
-Pre-release software, "AS IS", to the maximum extent permitted by law.
-IAPro's aggregate liability for the beta is limited to amounts you paid
-for the beta (zero during the free beta).
-
-## 6. Term and termination
-
-These terms apply until the beta ends or is superseded. IAPro may end or
-suspend the beta, or revoke abusive installations, at any time.
+The public-source licensing proposal is **PolyForm Strict 1.0.0**, not this legacy beta binary agreement. Earlier licenses are not changed retroactively simply by a later source publication. Resolve license provenance with the rights holder before shipping new binaries.

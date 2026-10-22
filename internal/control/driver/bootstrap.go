@@ -22,8 +22,15 @@ func bootstrapProfile(provider string, p model.Profile) (string, error) {
 		return "", err
 	}
 	cfgObj, _ := config.LoadConfig()
-	if err := security.ApplyIsolation(home, security.GetPolicy(cfgObj.IsolationPreset)); err != nil {
-		return "", err
+	policy := security.GetPolicy(cfgObj.IsolationPreset)
+	var isolationErr error
+	if provider == "opencode" {
+		isolationErr = security.ApplyIsolationPreservingConfigDirs(home, policy, "opencode")
+	} else {
+		isolationErr = security.ApplyIsolation(home, policy)
+	}
+	if isolationErr != nil {
+		return "", isolationErr
 	}
 	hostHome := security.FindHostHome()
 	if hostHome == "" {

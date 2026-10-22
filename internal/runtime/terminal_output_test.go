@@ -141,7 +141,7 @@ func TestTerminalInputScrubberCoalescesFragmentedX10AcrossWrites(t *testing.T) {
 	parts := [][]byte{
 		[]byte("choice"),
 		{0x1b}, []byte("[M"), {0x60}, {0x48}, {0x28},
-		[]byte("\x1bOB"), // legitimate application-cursor Down
+		[]byte("\x1bOB"),         // legitimate application-cursor Down
 		[]byte("\x1b[<65;21;3M"), // SGR wheel Down
 		[]byte("\x1b[96;21;3M"),  // URXVT wheel Up
 		[]byte("\x1b[A"),         // legitimate cursor Up

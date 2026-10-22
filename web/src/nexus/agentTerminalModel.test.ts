@@ -58,7 +58,10 @@ describe('Agent terminal model', () => {
     expect(terminalReconnectDelay(8)).toBe(3000);
     expect(TERMINAL_MAX_RECONNECT_ATTEMPTS).toBeGreaterThan(0);
     expect(TERMINAL_CONNECT_TIMEOUT_MS).toBeGreaterThan(0);
-    expect(TERMINAL_CONNECT_TIMEOUT_MS).toBeLessThanOrEqual(15000);
+    // Bounded for UX, but tolerant of Windows attach latency: the timeout
+    // must stay under the E2E lease budget (35s) so a blocked handshake
+    // fails on the client before the capture gives up.
+    expect(TERMINAL_CONNECT_TIMEOUT_MS).toBeLessThanOrEqual(30000);
   });
   it('normalizes a direct-session kickoff prompt exactly once-ready for terminal input', () => {
     expect(normalizeInitialPrompt('  fix the failing tests  ')).toBe('fix the failing tests\n');

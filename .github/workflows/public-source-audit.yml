@@ -1,0 +1,170 @@
+name: Public source history preflight
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - release/v1.0.0
+    paths:
+      - .github/workflows/public-source-audit.yml
+      - scripts/audit-publication.sh
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-source-audit-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  documentation-preflight:
+    name: Documentation contracts and capture provenance
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+
+      - name: Parse browser test harnesses
+        shell: bash
+        run: |
+          node --check web/scripts/docs-capture.mjs
+          node --check web/scripts/e2e-hardening-verify.mjs
+          node --check scripts/verify-feature-catalog.mjs
+          node --check scripts/verify-release-docs.mjs
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+
+      - name: Check frontend formatting and report source-only diffs
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun install --cwd web --frozen-lockfile
+          if ! (cd web && bun run format:check); then
+            (cd web && ./node_modules/.bin/prettier src/features/hud/NexusHud.tsx) > "$RUNNER_TEMP/NexusHud.formatted.tsx"
+            diff -u web/src/features/hud/NexusHud.tsx "$RUNNER_TEMP/NexusHud.formatted.tsx" || true
+            exit 1
+          fi
+
+      - name: Validate 30 capability contracts and dependency notices
+        shell: bash
+        run: |
+          node scripts/verify-feature-catalog.mjs
+          node scripts/verify-release-docs.mjs
+
+      - name: Enforce current capture provenance and Markdown links
+        shell: bash
+        run: node scripts/docs-verify.mjs
+
+  public-history-audit:
+    name: Public refs and secrets review (fail closed)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout full public history without persisted credentials
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fetch branch and tag refs for a conservative history scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-recurse-submodules origin '+refs/heads/*:refs/remotes/origin/*' '+refs/tags/*:refs/tags/*'
+          test "$(git rev-parse --is-shallow-repository)" = false
+
+      - name: Configure pinned Gitleaks scanner
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.14'
+          cache: false
+
+      - name: Install Gitleaks v8.24.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          GOBIN="$RUNNER_TEMP/bin" go install github.com/zricethezav/gitleaks/v8@v8.24.2
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Scan public history and current HEAD without exposing findings
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          history_report="$RUNNER_TEMP/gitleaks-public-history.json"
+          head_report="$RUNNER_TEMP/gitleaks-current-head.json"
+          mkdir -p "$RUNNER_TEMP/nexus-head-snapshot"
+          git archive HEAD | tar -x -C "$RUNNER_TEMP/nexus-head-snapshot"
+          history_status=0
+          gitleaks git --no-banner --redact --log-opts="--all" --report-format=json --report-path="$history_report" . > "$RUNNER_TEMP/history-scan.log" 2>&1 || history_status=$?
+          head_status=0
+          gitleaks dir --no-banner --redact --report-format=json --report-path="$head_report" "$RUNNER_TEMP/nexus-head-snapshot" > "$RUNNER_TEMP/head-scan.log" 2>&1 || head_status=$?
+          HISTORY_SCAN_STATUS="$history_status" HEAD_SCAN_STATUS="$head_status" python3 - <<'PY'
+          import json, os, re
+          from collections import Counter
+          for name, file_name, env in [
+              ('Available Git refs', 'gitleaks-public-history.json', 'HISTORY_SCAN_STATUS'),
+              ('Current HEAD archive', 'gitleaks-current-head.json', 'HEAD_SCAN_STATUS'),
+          ]:
+              path = os.path.join(os.environ['RUNNER_TEMP'], file_name)
+              data = []
+              try:
+                  with open(path, encoding='utf-8') as handle:
+                      data = json.load(handle)
+                  count = len(data) if isinstance(data, list) else 'unknown'
+              except (OSError, ValueError):
+                  count = 'unknown'
+              state = 'PASS' if os.environ[env] == '0' else 'NO-GO'
+              message = f'{name}: {count} potential detections; scanner state {state}'
+              print(message)
+              with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as out:
+                  out.write(f'- {message}\n')
+              if isinstance(data, list):
+                  # Aggregate only classification metadata, never File, Secret, Match or line content.
+                  rules = Counter()
+                  areas = Counter()
+                  allowed_areas = {'DEV', 'TODO', 'docs', 'web', 'internal', 'scripts', '.github', 'README'}
+                  for record in data:
+                      if not isinstance(record, dict):
+                          continue
+                      rule = str(record.get('RuleID') or 'unknown').lower()
+                      rule = rule if re.fullmatch(r'[a-z0-9_-]{1,64}', rule) else 'other'
+                      rules[rule] += 1
+                      raw_path = str(record.get('File') or '').replace(chr(92), '/')
+                      path_parts = [part for part in raw_path.split('/') if part]
+                      area = next((part for part in path_parts if part in allowed_areas), 'other')
+                      areas[area] += 1
+                  for category, summary in (('detection rule', rules), ('source area', areas)):
+                      for label, amount in summary.most_common(12):
+                          item = f'{name} {category}: {label} = {amount}'
+                          print(item)
+                          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as out:
+                              out.write(f'- {item}\n')
+          PY
+          if [ "$history_status" -ne 0 ] || [ "$head_status" -ne 0 ]; then
+            echo 'NO-GO: inspect raw scanner reports only in an appropriately private environment. Rotate confirmed active credentials.' >&2
+            exit 1
+          fi
+          echo 'PASS: automated scans. Human/legal review remains mandatory.'
+
+      - name: Require manual classification of internal history
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          count="$(git log --all --format= --name-only | grep -Eic '(^|/)(DEV/|TODO/|[^/]*\.(env|pem|p12|pfx|key)$|[^/]*(credential|secret)[^/]*)' || true)"
+          printf 'Paths in history requiring manual classification: %s\n' "$count" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$count" -gt 0 ]; then
+            echo 'NO-GO: public history contains internal/sensitive-looking paths; human classification required.' >&2
+            exit 3
+          fi
+          echo 'PASS: no flagged path names in available refs; legal and privacy review still required.' >> "$GITHUB_STEP_SUMMARY"

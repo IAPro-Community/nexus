@@ -6,21 +6,15 @@ Em 5–10 minutos, em um ambiente de desenvolvimento já preparado, você pode
 compilar o candidato, abrir a Web local, adicionar um projeto e iniciar uma AI Session. O exemplo usa o fluxo **Direct**, que não
 exige Composer, Flow ou Mission.
 
-> Estado: o source candidato é **`1.0.0-beta.7`** e integra CLI/Web,
-> Desktop/HUD e os targets Linux amd64, Windows amd64 e macOS arm64. Isso não
-> equivale a release publicada/certificada.
->
-> Ainda não existe GitHub Release pública do Nexus. A tag histórica
-> `v1.0.0-beta.1` no repositório-fonte não contém uma distribuição pública
-> assinada em `IAPro-Community/nexus-releases`.
->
-> Confirme providers locais com `nexus doctor` e
-> `nexus providers status --json`.
+> Estado em 18/10/2026: `release/v1.0.0` com source `1.0.0-beta.10`.
+> A versão **não equivale a v1 estável, instalador público ou plataforma homologada**.
+> O repositório está público; **isso não significa que existam binários certificados**. Veja [release status](release-status.md).
+> License: [PolyForm Strict](../LICENSE), uso não comercial sem alterações/redistribuição.
+> Confirme providers com `nexus doctor` e `nexus providers status --json`.
 
 ## 1. Compile o candidato
 
-Enquanto a primeira release binária pública não for certificada, o caminho
-válido para avaliação de engenharia é compilar o source:
+Para avaliação de desenvolvimento do código público, use a compilação do source. Não presuma que exista binário público certificado:
 
 ```bash
 git clone https://github.com/IAPro-Community/nexus.git
@@ -36,7 +30,7 @@ A instalação binária assinada passa a ser recomendada somente quando
 ## 2. Abra a workstation local
 
 ```bash
-nexus web
+./nexus web
 ```
 
 Abra a URL de bootstrap que o comando mostrar. Ela é local e de curta duração;
@@ -80,3 +74,31 @@ consulte [troubleshooting](operations/troubleshooting.md).
 - [Consultar o modelo mental](product/mental-model.md)
 - [Configurar providers e quota](product/providers-and-usage.md)
 - [Referência da CLI](cli/README.md)
+
+## Primeira execução assistida
+
+Ao abrir a interface, o cadastro do primeiro projeto consulta **somente** os
+endpoints locais já existentes de detecção de provedores e diagnóstico do
+sistema. A verificação não cria contas, modifica arquivos de configuração,
+executa login nem instala ferramentas de terceiros.
+
+- Se houver conta autenticada detectada, escolha uma pasta real em
+  **Procurar** ou **Localizar repositórios** e abra uma AI Session.
+- Se uma CLI estiver instalada, mas ainda não tiver conta pronta, escolha
+  **Adicionar conta**, confirme o perfil e conclua a autenticação através
+  da seção **Uso/Contas**. Esse passo exige intervenção do usuário.
+- Se não houver CLI detectada, instale uma CLI de provedor compatível de
+  uma fonte oficial; o Nexus não baixa executáveis nem solicita tokens
+  automaticamente.
+- Se um diagnóstico não puder ser obtido, o cadastro de projeto continua
+  disponível: falha de detecção não deve impedir trabalhar em um projeto.
+
+Os antigos atalhos de projetos com caminhos absolutos fictícios foram
+removidos: cada projeto deve apontar para uma pasta selecionada no computador
+real. Quota, estimativa de custo, assinatura e fatura são conceitos diferentes;
+a primeira execução não os converte em crédito disponível.
+
+No gerenciador de projetos, a pasta escolhida em **Procurar** agora é
+passada diretamente ao modal de cadastro. Atalhos chamados de templates,
+mas que não geravam estrutura de projeto nem selecionavam diretórios reais,
+foram retirados da interface até existir um mecanismo de scaffolding confiável.

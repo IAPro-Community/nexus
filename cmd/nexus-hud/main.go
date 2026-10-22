@@ -4,11 +4,15 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/app"
+	"github.com/IAPro-Community/nexus/internal/control/web"
 	"github.com/IAPro-Community/nexus/internal/desktop"
+	"github.com/IAPro-Community/nexus/internal/hudlink"
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 )
 
 var hudSingleInstanceID = "com.iapro.nexus.hud"
@@ -24,6 +28,11 @@ func main() {
 		return
 	}
 
+	// Linked mode: started as a companion of a Nexus workspace surface. The
+	// HUD follows its core out (see watchLinkedCore) and stays distinguishable
+	// from a standalone or login-autostart launch.
+	linked := hudlink.Linked(os.Args[1:], os.Getenv)
+
 	backend, err := desktop.OpenSharedBackend("Nexus HUD")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to initialize shared Nexus backend: %v\n", err)
@@ -37,11 +46,17 @@ func main() {
 		SessionToken: backend.Session.ID,
 		CSRFToken:    backend.Session.CSRFToken,
 	})
-	hudController := desktop.NewHUDController(stateManager)
+	// Detached popover is opt-in. Explicit environment wins, but the HUD
+	// settings surface can persist the choice so it survives restarts.
+	detachedRequested := os.Getenv("NEXUS_HUD_DETACHED_POPOVER") == "1" || windowState.DetachedPopover
+	hudController := desktop.NewHUDControllerWithDetachedPopover(stateManager, detachedRequested)
+
+	var window application.Window
 
 	native := application.New(application.Options{
 		Name:        "Nexus HUD",
 		Description: "Nexus operational HUD",
+		Icon:        desktop.NexusAppIcon(),
 		Services: []application.Service{
 			application.NewService(desktopApp),
 			application.NewService(hudController),
@@ -49,6 +64,13 @@ func main() {
 		Assets: application.AssetOptions{Handler: backend.Handler, DisableLogging: true},
 		SingleInstance: &application.SingleInstanceOptions{
 			UniqueID: hudSingleInstanceID,
+			OnSecondInstanceLaunch: func(data application.SecondInstanceData) {
+				if window != nil {
+					window.Show()
+					window.Restore()
+					window.Focus()
+				}
+			},
 		},
 		Mac: application.MacOptions{
 			ActivationPolicy: application.ActivationPolicyAccessory,
@@ -71,30 +93,90 @@ func main() {
 		},
 	})
 
-	window := native.Window.NewWithOptions(application.WebviewWindowOptions{
-		Name:                       desktop.HUDWindowName,
-		Title:                      "Nexus HUD",
-		Width:                      windowState.Width,
-		Height:                     windowState.Height,
-		MinWidth:                   280,
-		MinHeight:                  48,
-		MaxWidth:                   1200,
-		MaxHeight:                  900,
-		URL:                        "/?nativeHud=1",
-		Frameless:                  true,
-		AlwaysOnTop:                windowState.AlwaysOnTop,
-		InitialPosition:            application.WindowXY,
-		X:                          windowState.X,
-		Y:                          windowState.Y,
-		BackgroundType:             application.BackgroundTypeTransparent,
-		BackgroundColour:           application.NewRGBA(15, 17, 23, 0),
-		DefaultContextMenuDisabled: true,
-		HideOnEscape:               windowState.AutoHide,
+	window = native.Window.NewWithOptions(hudWindowOptions(windowState))
+
+	// One factory serves both the startup path and the settings toggle: the
+	// popup is a second native Wails window in this same process. Its WebView
+	// has its own React tree but shares the authenticated Core.
+	createPopup := func() (application.Window, error) {
+		if existing, ok := native.Window.GetByName(desktop.HUDPopupWindowName); ok {
+			return existing, nil
+		}
+		popup := native.Window.NewWithOptions(hudDetachedPopupOptions(stateManager.Load()))
+		popup.OnWindowEvent(events.Common.WindowLostFocus, func(*application.WindowEvent) {
+			// Do not re-enter SetHUDExpanded from a native focus event: Hide()
+			// can itself dispatch further focus and hide notifications.
+			hudController.NotifyHUDPopupHidden()
+			popup.Hide()
+		})
+		popup.OnWindowEvent(events.Common.WindowHide, func(*application.WindowEvent) {
+			// Never Hide() again from WindowHide: avoid reentrant native events.
+			hudController.NotifyHUDPopupHidden()
+		})
+		return popup, nil
+	}
+	hudController.SetDetachedPopupFactory(createPopup)
+	if hudController.GetHUDDetachedPopoverEnabled() {
+		if _, err := createPopup(); err != nil {
+			fmt.Fprintf(os.Stderr, "Nexus HUD popup: %v\n", err)
+		}
+	}
+	desktop.ConfigureNativeTray(native, window, "Nexus HUD", desktop.HUDTrayAppearanceActions{
+		Show:            hudController.ShowHUD,
+		Hide:            hudController.HideHUD,
+		MascotAvailable: hudController.GetHUDDetachedPopoverEnabled(),
+		Select: func(mode string) {
+			if err := hudController.SetHUDAppearance(mode); err != nil {
+				fmt.Fprintf(os.Stderr, "Nexus HUD presentation: %v\n", err)
+			}
+		},
 	})
-	desktop.ConfigureNativeTray(native, window, "Nexus HUD")
+
+	// ServiceStartup can run before the native window exists, which left the
+	// first paint at Wails' 190x48 minimum. Re-apply the persisted geometry
+	// after the first show so custom sizes are honored immediately, without
+	// collapsing an expanded HUD every time it is revealed again.
+	var initialRestore sync.Once
+	window.OnWindowEvent(events.Common.WindowShow, func(*application.WindowEvent) {
+		initialRestore.Do(func() {
+			go hudController.RestoreHUDWindow()
+		})
+	})
+
+	// Only a HUD attached to an external core watches its core: a linked HUD
+	// that embedded its own Core is that Core's process, so there is nothing
+	// to follow.
+	if linked && !backend.OwnsEmbeddedCore() {
+		go watchLinkedCore(native)
+	}
 
 	if err := native.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Nexus HUD Wails v3 error: %v\n", err)
 		os.Exit(1)
+	}
+}
+
+// watchLinkedCore keeps the HUD bound to the Nexus core that launched it:
+// ReadListenState only reports live, healthy loopback cores, so when the
+// companion core stops (or dies hard) the HUD follows within a few probes.
+func watchLinkedCore(app *application.App) {
+	const (
+		startGrace    = 20 * time.Second
+		probeInterval = 3 * time.Second
+		maxFailures   = 4
+	)
+	time.Sleep(startGrace)
+	failures := 0
+	for {
+		time.Sleep(probeInterval)
+		if _, err := web.ReadListenState(); err != nil {
+			failures++
+			if failures >= maxFailures {
+				app.Quit()
+				return
+			}
+			continue
+		}
+		failures = 0
 	}
 }

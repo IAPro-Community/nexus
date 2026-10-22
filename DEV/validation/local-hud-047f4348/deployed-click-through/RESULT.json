@@ -1,0 +1,19 @@
+{
+  "platform": "windows",
+  "timestamp_utc": "2026-10-22T02:30:15Z",
+  "hud_sha256": "e9425d5656ca70df11d7a08e1ad42da82e1f0531964bfadf4d6384d2b84fe736",
+  "commit": "4659ced7706a755003b61466c51a45e3a39df315",
+  "verdict": "PASS",
+  "checks": {
+    "sha_match": true,
+    "hud_bounds": "1688,964,220,60",
+    "foreground_before": "Nexus HUD",
+    "click_point": "1696,972",
+    "click_through_wait_ms": 142,
+    "transparent_corner_click_through": true,
+    "capsule_click_through": false,
+    "click_through_restored": true,
+    "foreground_after": "Nexus ClickTarget",
+    "click_reached_target": true
+  }
+}

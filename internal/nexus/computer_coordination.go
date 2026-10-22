@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/IAPro-Community/nexus/internal/control/computer"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
@@ -336,7 +337,7 @@ func boundComputerCoordinationText(value string, maxBytes int) string {
 		return value
 	}
 	candidate := value[:maxBytes]
-	for !strings.ValidUTF8(candidate) && len(candidate) > 0 {
+	for !utf8.ValidString(candidate) && len(candidate) > 0 {
 		candidate = candidate[:len(candidate)-1]
 	}
 	return candidate + "…"

@@ -2,6 +2,7 @@ package nexus
 
 import (
 	"testing"
+	"time"
 
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
@@ -13,6 +14,7 @@ func liveQuotaViewForResourceTruth() quota.QuotaView {
 		ProviderID: "codex",
 		ProfileID:  "work",
 		Status:     model.UsageLive,
+		FetchedAt:  time.Now(),
 		Windows: []model.UsageWindow{{
 			Kind:             "5h",
 			Group:            "codex",

@@ -2,9 +2,11 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge, Button, Card, InlineAlert, Input, Switch } from '../../design-system';
 import { nexus } from '../../nexus/api';
-import type { CapacityPreferences, CapacityStatus } from '../../types';
+import type { CapacityPreferences, CapacityStatus, PublicServiceStatus } from '../../types';
 import { asArray } from '../../lib/safeArray';
 import styles from './CapacityMonitorSettings.module.scss';
+import { downloadAuthenticatedCsv } from '../../lib/downloadAuthenticatedCsv';
+import { PublicProviderStatus } from './PublicProviderStatus';
 
 const num = (raw: string, fallback: number): number => {
   const parsed = Number.parseFloat(raw);
@@ -15,6 +17,8 @@ export const CapacityMonitorSettings: React.FC = () => {
   const { t } = useTranslation();
   const [prefs, setPrefs] = useState<CapacityPreferences | null>(null);
   const [status, setStatus] = useState<CapacityStatus | null>(null);
+  const [publicStatus, setPublicStatus] = useState<PublicServiceStatus[]>([]);
+  const [publicStatusUnavailable, setPublicStatusUnavailable] = useState(false);
   const [draft, setDraft] = useState({
     warning: '',
     critical: '',
@@ -29,11 +33,36 @@ export const CapacityMonitorSettings: React.FC = () => {
   const [saving, setSaving] = useState(false);
 
   const refresh = useCallback(async () => {
+    // Service incidents are independent of account capacity: a quota API
+    // error must not suppress public incident diagnostics.
+    void nexus
+      .getPublicServiceStatus()
+      .then((rows) => {
+        setPublicStatus(rows);
+        setPublicStatusUnavailable(false);
+      })
+      .catch(() => {
+        setPublicStatus([]);
+        setPublicStatusUnavailable(true);
+      });
     try {
       setError('');
-      const [p, s] = await Promise.all([nexus.getCapacityPreferences(), nexus.getCapacityStatus()]);
+      // Degraded quota reads cannot prevent editing capacity preferences or
+      // viewing independently sourced public incident diagnostics.
+      const [p, s] = await Promise.all([
+        nexus.getCapacityPreferences(),
+        nexus.getCapacityStatus().catch(() => null),
+      ]);
       setPrefs(p);
       setStatus(s);
+      if (s === null) {
+        setError(
+          t(
+            'settings.capacityStatusFailed',
+            'Quota data temporarily unavailable. Preferences are still editable.',
+          ),
+        );
+      }
       setDraft({
         warning: String(p.warning_threshold),
         critical: String(p.critical_threshold),
@@ -46,7 +75,7 @@ export const CapacityMonitorSettings: React.FC = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void refresh();
@@ -100,6 +129,10 @@ export const CapacityMonitorSettings: React.FC = () => {
   if (!prefs) {
     return (
       <Card className={styles.root}>
+        <PublicProviderStatus
+          publicStatus={publicStatus}
+          publicStatusUnavailable={publicStatusUnavailable}
+        />
         {error ? (
           <InlineAlert tone="danger" title={t('common.error', 'Error')}>
             {error}
@@ -121,6 +154,10 @@ export const CapacityMonitorSettings: React.FC = () => {
         <strong>{t('settings.capacity', 'Capacity Monitor')}</strong>
         <p>{t('settings.capacityDescription', 'Proactive quota alerts with hysteresis.')}</p>
       </div>
+      <PublicProviderStatus
+        publicStatus={publicStatus}
+        publicStatusUnavailable={publicStatusUnavailable}
+      />
       {error ? (
         <InlineAlert tone="danger" title={t('common.error', 'Error')}>
           {error}
@@ -245,6 +282,16 @@ export const CapacityMonitorSettings: React.FC = () => {
         />
       </section>
       <div className={styles.actions}>
+        <Button
+          onClick={() =>
+            void downloadAuthenticatedCsv(
+              '/api/v1/capacity/pace.csv',
+              'nexus-capacity-pace.csv',
+            ).catch((err) => setError(err instanceof Error ? err.message : String(err)))
+          }
+        >
+          {t('settings.capacityExportPace', 'Exportar histórico de consumo (CSV)')}
+        </Button>
         <Button tone="brand" onClick={() => void save()} disabled={saving}>
           {saving
             ? t('settings.capacitySaving', 'Saving…')

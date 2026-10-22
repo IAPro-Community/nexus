@@ -37,6 +37,15 @@ async function main() {
       isolatedProjectPath,
     );
 
+    // Web HUD remains opt-in even though native HUD needs the projection API
+    // available by default. Opt in before the project shell boots.
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        'iapro:nexus:hud:presentation:v1',
+        JSON.stringify({ version: 1, enabled: true }),
+      );
+    });
+
     const shellUrl = new URL(`/p/${encodeURIComponent(project.id)}/overview`, apiOrigin);
     await page.goto(shellUrl.toString(), { waitUntil: 'domcontentloaded', timeout: 15000 });
     await page.waitForSelector('.nx-os-shell', { timeout: 10000 });
@@ -85,11 +94,40 @@ async function main() {
       fullPage: true,
     });
 
-    // Expanded state and accessibility.
+    // Compact capsule must remain informative without becoming a dashboard.
     const expand = page.getByRole('button', { name: /expandir nexus hud/i });
+    assert.equal(await expand.getAttribute('aria-expanded'), 'false');
+    await expand.hover();
+    await page.getByRole('tooltip').waitFor({ state: 'visible', timeout: 3000 });
+
+    // The same capsule opens the contextual, accessible provider popover.
     await expand.click();
+    await page.locator('#nexus-hud-popover').waitFor({ state: 'visible' });
+    assert.equal(await page.getByRole('button', { name: /recolher nexus hud/i }).count() > 0, true);
     const expanded = page.locator('section[data-hud-panel][data-expanded="true"]').first();
     await expanded.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Exercise compiled detached-popup styles without claiming native Wails
+    // focus, transparency or mouse hit-testing has been certified.
+    await hud.evaluate((element) => {
+      element.dataset.detachedView = 'popover';
+    });
+    const entrance = await page.locator('#nexus-hud-popover').evaluate((element) => {
+      const animation = getComputedStyle(element);
+      return { name: animation.animationName, duration: animation.animationDuration };
+    });
+    assert.notEqual(entrance.name, 'none', 'detached popup should animate when motion is allowed');
+    assert.equal(entrance.duration, '0.15s', 'popup entrance should be short');
+
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const reduced = await page.locator('#nexus-hud-popover').evaluate((element) => {
+      return getComputedStyle(element).animationName;
+    });
+    assert.equal(reduced, 'none', 'reduced-motion setting must disable popup animation');
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await hud.evaluate((element) => {
+      delete element.dataset.detachedView;
+    });
 
     const axeDesktop = await new AxeBuilder({ page }).exclude('.xterm').analyze();
     const seriousDesktop = axeDesktop.violations.filter((v) =>

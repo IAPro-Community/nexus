@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Activity, Check, Gauge, ShieldAlert } from 'lucide-react';
 import { Badge, EmptyState, Progress, Spinner } from '../design-system';
 import { nexus } from './api';
+import { canManuallySelectResourceAccount } from './resourceSelectionModel';
 import { translateStatus } from '../i18n';
 import { useTranslation } from 'react-i18next';
 import styles from './ResourcePicker.module.scss';
@@ -175,9 +176,7 @@ export const ResourcePicker: React.FC<Props> = ({ agentId, preferProvider, onSel
                   onClick={() => void choose(account)}
                   disabled={
                     !agentId ||
-                    !account.authenticated ||
-                    !account.available ||
-                    account.eligibility?.eligible === false ||
+                    !canManuallySelectResourceAccount(account) ||
                     selecting === account.id
                   }
                   title={account.eligibility?.message || undefined}

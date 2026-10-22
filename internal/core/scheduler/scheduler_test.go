@@ -412,7 +412,7 @@ func TestCodexExhaustedFiveHourLosesToHealthyAccount(t *testing.T) {
 	}
 }
 
-func TestEstimatedQuotaRanksByRemainingWhenNoCurrentEvidence(t *testing.T) {
+func TestFreshEstimatedQuotaRanksByRemainingWhenNoCurrentEvidence(t *testing.T) {
 	dataDir := t.TempDir()
 	cfgDir := t.TempDir()
 	stateDir := t.TempDir()
@@ -437,7 +437,7 @@ func TestEstimatedQuotaRanksByRemainingWhenNoCurrentEvidence(t *testing.T) {
 				ProfileID:  "a-low",
 				Status:     model.UsageEstimated,
 				Source:     model.SourceObservation,
-				FetchedAt:  time.Now().Add(-10 * time.Minute),
+				FetchedAt:  time.Now().Add(-time.Minute),
 				Windows:    []model.UsageWindow{{Kind: "5h", Group: "claude_gpt", RemainingPercent: &low}},
 			},
 		},
@@ -449,7 +449,7 @@ func TestEstimatedQuotaRanksByRemainingWhenNoCurrentEvidence(t *testing.T) {
 				ProfileID:  "z-high",
 				Status:     model.UsageEstimated,
 				Source:     model.SourceObservation,
-				FetchedAt:  time.Now().Add(-10 * time.Minute),
+				FetchedAt:  time.Now().Add(-time.Minute),
 				Windows:    []model.UsageWindow{{Kind: "5h", Group: "claude_gpt", RemainingPercent: &high}},
 			},
 		},
@@ -464,6 +464,49 @@ func TestEstimatedQuotaRanksByRemainingWhenNoCurrentEvidence(t *testing.T) {
 	}
 	if !strings.Contains(res.Reason, "estimated quota") {
 		t.Fatalf("selection must disclose estimated evidence, reason=%q", res.Reason)
+	}
+}
+
+func TestStaleCodexQuotaCannotOutrankExplicitDefault(t *testing.T) {
+	cfg := config.NewDefaultConfig()
+	cfg.Defaults = map[string]string{"codex": "default"}
+	selector := NewSelector(cfg, quota.NewEngine(5*time.Minute), cooldown.NewTracker())
+	low, misleading := 12.0, 100.0
+	candidates := []model.Profile{
+		{Provider: "codex", Name: "default"},
+		{Provider: "codex", Name: "misleading"},
+	}
+	accounts := map[string]model.AccountInfo{
+		"default": {
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Usage: model.UsageSnapshot{
+				ProviderID: "codex", ProfileID: "default",
+				Status: model.UsageEstimated, Source: model.SourceObservation,
+				FetchedAt: time.Now().Add(-25 * 24 * time.Hour),
+				Windows:   []model.UsageWindow{{Kind: "weekly", RemainingPercent: &low}},
+			},
+		},
+		"misleading": {
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Usage: model.UsageSnapshot{
+				ProviderID: "codex", ProfileID: "misleading",
+				Status: model.UsageEstimated, Source: model.SourceObservation,
+				FetchedAt: time.Now().Add(-25 * 24 * time.Hour),
+				Windows:   []model.UsageWindow{{Kind: "weekly", RemainingPercent: &misleading}},
+			},
+		},
+	}
+	res, err := selector.SelectBestProfile(context.Background(), "codex", t.TempDir(), candidates, accounts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.SelectedProfile == nil || res.SelectedProfile.Name != "default" {
+		t.Fatalf("old 100%% estimate must not beat explicit default: %+v", res)
+	}
+	if !strings.Contains(res.Reason, "quota unverified") {
+		t.Fatalf("reason must disclose unverified capacity: %q", res.Reason)
 	}
 }
 

@@ -139,6 +139,8 @@ func (m *Monitor) Tick(ctx context.Context) error {
 	if !held {
 		return nil
 	}
+	// Leader-only bounded retention. Failure here never suppresses canonical quota collection.
+	_, _ = m.deps.Store.PruneCapacityPaceSamples(now.Add(-72 * time.Hour))
 
 	workers := m.deps.MaxConcurrency
 	if workers <= 0 {
@@ -194,15 +196,22 @@ tickLoop:
 	// Tick-only callers (via leaseTTL) observe the same interval, so the
 	// lease always covers the next wait even under backoff.
 	m.refreshIntervalLocked()
-	// Extend our just-acquired lease to the NEW interval: the acquire above
-	// covered the previous cadence, and a shallow-backoff→healthy recovery
-	// would otherwise leave a short TTL over a long sleep, inviting a steal.
+	// Capture the renewed TTL while holding the monitor mutex, but never
+	// perform SQLite I/O under that lock: failure reporting also needs m.mu.
+	renewTTL := m.ttlForInterval(m.lastInterval)
+	m.mu.Unlock()
+	// Extend our just-acquired lease to the NEW interval: a recovered interval
+	// must not let another monitor steal ownership during the next sleep.
 	if held {
-		if err := m.deps.Store.RenewCapacityLease(m.deps.OwnerID, now, m.ttlForInterval(m.lastInterval)); err != nil {
-			m.noteFailure()
+		if err := m.deps.Store.RenewCapacityLease(m.deps.OwnerID, now, renewTTL); err != nil {
+			m.mu.Lock()
+			m.isLeader = false
+			m.failures++
+			m.refreshIntervalLocked()
+			m.mu.Unlock()
+			return fmt.Errorf("renew capacity lease: %w", err)
 		}
 	}
-	m.mu.Unlock()
 	// The pass completed: report cancellation only if it actually landed.
 	if err := ctx.Err(); err != nil {
 		return err
@@ -271,9 +280,22 @@ func (m *Monitor) Status() Status {
 			LastObservedAt: s.UpdatedAt,
 		}
 		if o, ok := byKey[s.Key]; ok {
-			rs.RemainingPercent = o.RemainingPercent
-			rs.ResetDescription = o.ResetDescription
-			rs.LastObservedAt = o.FetchedAt
+			// Keep the in-process monitor projection consistent with the API
+			// for legacy state rows that missed their dimension columns.
+			if rs.QuotaGroup == "" {
+				rs.QuotaGroup = o.QuotaGroup
+			}
+			if rs.WindowKind == "" {
+				rs.WindowKind = o.WindowKind
+			}
+			if s.AccountScope == o.AccountScope {
+				rs.RemainingPercent = o.RemainingPercent
+				rs.ResetDescription = o.ResetDescription
+				rs.LastObservedAt = o.FetchedAt
+			} else {
+				// A new login must not inherit the previous account's state.
+				rs.State = StateUnknown
+			}
 		}
 		st.Resources = append(st.Resources, rs)
 	}
@@ -406,6 +428,22 @@ func (m *Monitor) evaluateProfile(ctx context.Context, prof model.Profile, thres
 			failed = true
 			continue
 		}
+		// Sample only fresh, identity-verified LIVE usage. Cached, estimated or
+		// rate-limited data must not manufacture a consumption trend.
+		if normalizeStatus(snap.Status) == string(model.UsageLive) &&
+			trustedPaceSource(snap.Source) &&
+			scope != "" && w.ResetTime != nil && w.UsedPercent != nil &&
+			!snap.FetchedAt.IsZero() && !snap.FetchedAt.After(now.Add(time.Minute)) &&
+			now.Sub(snap.FetchedAt) <= 10*time.Minute {
+			if err := m.deps.Store.RecordCapacityPaceSample(store.CapacityPaceSample{
+				Provider: prof.Provider, Profile: prof.Name, AccountScope: scope,
+				QuotaGroup: w.Group, WindowKind: w.Kind, ResetAt: *w.ResetTime,
+				ObservedAt: snap.FetchedAt, UsedPercent: *w.UsedPercent,
+				Source: string(snap.Source),
+			}); err != nil {
+				failed = true
+			}
+		}
 		state := StateUnknown
 		reason := "untrusted snapshot status"
 		rec, found, err := m.loadState(key(w.Group, w.Kind))
@@ -475,7 +513,7 @@ func (m *Monitor) persistTransition(ctx context.Context, provider, profile, grou
 	if err := m.deps.Store.UpsertCapacityState(store.CapacityStateRecord{
 		Key:      stateKey(provider, profile, group, window),
 		Provider: provider, Profile: profile,
-		QuotaGroup: "", WindowKind: "",
+		QuotaGroup: group, WindowKind: window,
 		State: string(state), Reason: reason,
 		TransitionedAt: now, UpdatedAt: now,
 		AccountScope: scopeKey(scope),
@@ -543,7 +581,7 @@ func (m *Monitor) persistTransition(ctx context.Context, provider, profile, grou
 		ID: eventID, Fingerprint: fingerprint,
 		EventType: string(eventTypeFor(state)),
 		Provider:  provider, Profile: profile,
-		QuotaGroup: "", WindowKind: "",
+		QuotaGroup: group, WindowKind: window,
 		Severity: string(state), PayloadJSON: string(payload),
 		EmittedAt: now,
 	}); err != nil {

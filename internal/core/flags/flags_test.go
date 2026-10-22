@@ -9,8 +9,8 @@ func TestKillSwitchDefaultsAndOverrides(t *testing.T) {
 	if Enabled(ExperimentalIntelligence) {
 		t.Fatal("experimental intelligence must default off")
 	}
-	if Enabled(HUD) {
-		t.Fatal("experimental HUD must default off")
+	if !Enabled(HUD) {
+		t.Fatal("read-only HUD projection must be available by default for native users")
 	}
 	for _, flag := range []Name{
 		ExecutionWorkspacesV2,
@@ -34,6 +34,11 @@ func TestKillSwitchDefaultsAndOverrides(t *testing.T) {
 	if !Enabled(ExperimentalIntelligence) {
 		t.Fatal("enable override must win")
 	}
+	t.Setenv("NEXUS_DISABLE_HUD", "1")
+	if Enabled(HUD) {
+		t.Fatal("HUD disable kill switch must win")
+	}
+	t.Setenv("NEXUS_DISABLE_HUD", "")
 	t.Setenv("NEXUS_ENABLE_HUD", "1")
 	if !Enabled(HUD) {
 		t.Fatal("HUD enable override must win")

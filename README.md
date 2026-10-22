@@ -12,6 +12,7 @@ execute com isolamento e só conclua quando houver evidência verificável.
 </p>
 
 <p align="center">
+  <a href="docs/TLDR.md">TL;DR</a> ·
   <a href="docs/quick-start.md">Quick Start</a> ·
   <a href="docs/product/how-it-works.md">Como funciona</a> ·
   <a href="docs/README.md">Documentação</a> ·
@@ -21,11 +22,9 @@ execute com isolamento e só conclua quando houver evidência verificável.
 
 ![Visão geral do Nexus v1](docs/assets/diagrams/nexus-v1-overview.svg)
 
-> **Estado da v1:** o source candidato reporta `1.0.0-beta.7`. A última beta
-> pública registrada é `v1.0.0-beta.1` (Linux amd64). O candidato beta.7
-> consolida Linux amd64, Windows amd64 e macOS arm64, mas nenhuma ampliação de
-> suporte é anunciada sem certificação exact-SHA. A verdade autoritativa está em
-> [RELEASE_STATUS](docs/release-status.md).
+> **Estado em 18/10/2026:** o source da branch `release/v1.0.0` declara `1.0.0-beta.10`.
+> **A v1 estável não está homologada nem publicada.** Não inferir releases ou instaladores a partir da versão do código.
+> Consulte [status da release](docs/release-status.md) e [plataformas](docs/operations/platform-support.md).
 
 ## TL;DR
 
@@ -59,24 +58,12 @@ O caminho recomendado para primeiro uso é **Direct**:
 Project → + New → AI Session → Provider → Terminal
 ```
 
-### Release publicada
+### Instalação e disponibilidade
 
-A documentação de instalação usa a última beta publicada indicada pelo
-[status de release](docs/release-status.md). Enquanto a v1
-estável não estiver certificada, não confunda versão do source com release
-publicada.
-
-**Linux amd64 — target suportado da v1**
-
-```bash
-curl -fsSL https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/install.sh -o install.sh
-bash install.sh --version=v1.0.0-beta.1
-nexus doctor
-nexus web
-```
-
-Windows e macOS já estão integrados no candidato `v1.0.0-beta.7`, mas
-continuam não anunciados como suportados até a certificação nativa exact-SHA.
+O código-fonte está público no GitHub, mas sua exposição histórica e os direitos de terceiros ainda exigem auditoria; **o código público não equivale a instalador certificado**.
+Não há neste documento um download de instalador público verificado para a
+versão candidata. A distribuição depende de artefatos reais, assinatura e
+certificação exact-SHA. Veja [instalação](docs/getting-started/installation.md).
 
 ### Compilar do source
 
@@ -103,6 +90,8 @@ Composer, Flow, Mission e Maestro **não são pré-requisitos** para esse caminh
 → [Quick Start completo](docs/quick-start.md)
 
 ## Veja o produto
+
+> **Captura histórica:** a imagem foi produzida em fixture sintética de SHA anterior às últimas modificações visuais. Para homologação, siga [recaptura de evidências](docs/operations/visual-evidence.md).
 
 ![Workspace real do Nexus em fixture sintética](docs/assets/screenshots/workspace-overview.png)
 
@@ -213,8 +202,8 @@ capacidades do Nexus.
 
 ## Nexus HUD
 
-> **Incluído no candidato `v1.0.0-beta.7`.** O HUD não é anunciado como
-> feature multiplataforma certificada até existir evidência nativa same-SHA.
+> **Introduzido na linha beta.7 e integrado ao source beta.10.** O HUD não é
+> anunciado como feature multiplataforma certificada sem evidência nativa do SHA de publicação.
 
 **Seu Nexus, sempre visível.** O Nexus HUD projeta o estado operacional já
 mantido pelo Core — Capacity Monitor, ResourceScheduler, Cost Intelligence,
@@ -285,9 +274,15 @@ incluindo plataformas nativas e demais gates definidos no programa de fechamento
 
 → [Status autoritativo](docs/release-status.md)
 
-## Licença
+## Licença e contribuições
 
-Software proprietário distribuído conforme [LICENSE](LICENSE) e os
-[Beta Terms](docs/legal/BETA_TERMS.md). Consulte também
-[Privacy](docs/legal/PRIVACY.md) e
-[Third-Party Notices](docs/legal/THIRD_PARTY_NOTICES.md).
+O IAPro Nexus está preparado para publicação **source-available** sob a
+[PolyForm Strict License 1.0.0](LICENSE). A licença permite usos não comerciais
+nos fins descritos no texto oficial, mas **não autoriza modificar, redistribuir
+ou comercializar o código**. Não é software open source pela definição da OSI.
+
+Leia o [guia de licenciamento](docs/legal/LICENSING.md), o
+[TL;DR](docs/TLDR.md), os [avisos de terceiros](docs/legal/THIRD_PARTY_NOTICES.md)
+e o [CONTRIBUTING](CONTRIBUTING.md). O repositório de source já está público; a auditoria de histórico e a liberação
+de binários/versão estável continuam sujeitas ao
+[checklist de publicação](docs/PUBLICATION_CHECKLIST.md).

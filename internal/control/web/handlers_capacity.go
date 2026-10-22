@@ -2,7 +2,9 @@ package web
 
 import (
 	"context"
+	"encoding/csv"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -75,6 +77,35 @@ func (h *NexusHandler) handleCapacityHistory(w http.ResponseWriter, r *http.Requ
 }
 
 // handleCapacityPreferences GET|PUT /api/v1/capacity/preferences.
+// handleCapacityPaceCSV exports bounded observed subscription pace history.
+// Account scopes (identity keys) and credentials are deliberately omitted.
+func (h *NexusHandler) handleCapacityPaceCSV(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	if h == nil || h.nexus == nil || h.nexus.Store() == nil {
+		writeError(w, http.StatusServiceUnavailable, "capacity store unavailable")
+		return
+	}
+	samples, err := h.nexus.Store().ListCapacityPaceSamples(time.Now().UTC().Add(-72 * time.Hour))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "capacity pace history unavailable")
+		return
+	}
+	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+	w.Header().Set("Cache-Control", "private, no-store")
+	w.Header().Set("Content-Disposition", "attachment; filename=nexus-capacity-pace.csv")
+	csvWriter := csv.NewWriter(w)
+	_ = csvWriter.Write([]string{"provider", "profile", "quota_group", "window", "reset_at", "observed_at", "used_percent", "source"})
+	for _, s := range samples {
+		_ = csvWriter.Write([]string{sanitizeCSVCell(s.Provider), sanitizeCSVCell(s.Profile), sanitizeCSVCell(s.QuotaGroup),
+			sanitizeCSVCell(s.WindowKind), s.ResetAt.UTC().Format(time.RFC3339),
+			s.ObservedAt.UTC().Format(time.RFC3339), fmt.Sprintf("%.2f", s.UsedPercent), sanitizeCSVCell(s.Source)})
+	}
+	csvWriter.Flush()
+}
+
 func (h *NexusHandler) handleCapacityPreferences(w http.ResponseWriter, r *http.Request) {
 	svc, ok := h.capacityService()
 	if !ok {

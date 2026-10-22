@@ -3,12 +3,14 @@
 package protocol
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net"
 	"os"
-	"time"
 
 	"github.com/Microsoft/go-winio"
+	"golang.org/x/sys/windows"
 )
 
 // Listen creates the local Windows Named Pipe listener for a runtime.
@@ -30,11 +32,16 @@ func Listen(runtimeID string) (net.Listener, error) {
 	return l, nil
 }
 
-// Dial connects to a running Windows Named Pipe endpoint.
-func Dial(runtimeID string) (net.Conn, error) {
-	path := EndpointPath(runtimeID)
-	timeout := 2 * time.Second
-	return winio.DialPipe(path, &timeout)
+func dialEndpoint(ctx context.Context, runtimeID string) (net.Conn, error) {
+	return winio.DialPipeContext(ctx, EndpointPath(runtimeID))
+}
+
+func isRetryableDialError(err error) bool {
+	return errors.Is(err, context.DeadlineExceeded) ||
+		errors.Is(err, os.ErrNotExist) ||
+		errors.Is(err, windows.ERROR_FILE_NOT_FOUND) ||
+		errors.Is(err, windows.ERROR_PATH_NOT_FOUND) ||
+		errors.Is(err, winio.ErrTimeout)
 }
 
 func isOwnedBy(st os.FileInfo, uid int) bool {

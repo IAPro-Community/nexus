@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/IAPro-Community/nexus/internal/control/terminal"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
@@ -25,6 +26,9 @@ func TestDriverRegistryAndCapabilities(t *testing.T) {
 		effCaps := d.EffectiveCaps(ctx, model.Profile{Name: "default"})
 		if effCaps.Process.Status != CapabilitySupported || effCaps.Terminal.Status != CapabilitySupported {
 			t.Errorf("driver %s expected Process and Terminal supported, got %+v", p, effCaps)
+		}
+		if p == "opencode" && effCaps.Terminal.Mechanism != terminal.BackendMechanismForProvider(p) {
+			t.Errorf("OpenCode terminal mechanism = %q, want provider-specific %q", effCaps.Terminal.Mechanism, terminal.BackendMechanismForProvider(p))
 		}
 
 		// Truthful test: Codex and OpenCode without server adapters should NOT claim StructuredEvents supported

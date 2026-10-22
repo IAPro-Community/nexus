@@ -1,0 +1,275 @@
+// Pixel-art Guardian: animated with compositor-only properties, never native
+// window geometry. A smaller mascot window also reduces invisible hit area.
+.mascotRow {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 88px;
+  align-items: center;
+  justify-content: center;
+}
+
+.mascotButton {
+  position: relative;
+  display: grid;
+  width: 92px;
+  height: 96px;
+  padding: 0;
+  flex-shrink: 0;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #dff5ff;
+  cursor: pointer;
+
+  --wails-draggable: no-drag;
+}
+
+.mascotButton:focus-visible {
+  outline: 2px solid #95cbff;
+  outline-offset: 0;
+  border-radius: 18px;
+}
+
+.mascotButton:hover .guardianSprite {
+  transform: translateY(-3px) scale(1.04);
+}
+
+.mascotDragHandle {
+  position: absolute;
+  right: 0;
+  top: 1px;
+  z-index: 2;
+  display: grid;
+  width: 25px;
+  height: 26px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 9px;
+  background: #1e3a5aba;
+  color: #a6bedf;
+  cursor: grab;
+
+  --wails-draggable: drag;
+}
+
+.mascotDragHandle:active {
+  cursor: grabbing;
+}
+
+.mascotDragHandle:focus-visible {
+  outline: 2px solid #9bc3ff;
+}
+
+.guardian {
+  position: relative;
+  display: block;
+  width: 84px;
+  height: 87px;
+  filter: drop-shadow(0 5px 7px #0714238c);
+}
+
+.guardianSprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  shape-rendering: crispEdges;
+  image-rendering: pixelated;
+  animation: guardian-breathe 3.6s ease-in-out infinite;
+  transform-origin: center 80%;
+}
+
+.guardianEyes {
+  animation: guardian-blink 6s steps(1, end) infinite;
+  transform-origin: center 30px;
+}
+
+.guardianAntenna {
+  animation: guardian-antenna 3.6s ease-in-out infinite;
+  transform-origin: 32px 12px;
+}
+
+.guardianSignal {
+  animation: guardian-light 2.4s steps(2, end) infinite;
+}
+
+.guardian[data-mood='working'] .guardianSprite {
+  animation: guardian-work 1.4s ease-in-out infinite;
+}
+
+.guardian[data-mood='working'] .guardianSignal {
+  animation-duration: 0.65s;
+}
+
+.guardian[data-mood='warning'] .guardianSprite {
+  animation: guardian-attention 0.75s ease-in-out 2;
+}
+
+.guardian[data-mood='warning'] .guardianSignal {
+  filter: hue-rotate(230deg) saturate(1.4);
+  animation-duration: 0.45s;
+}
+
+.guardian[data-mood='offline'] {
+  filter: grayscale(0.85) brightness(0.75);
+}
+
+.guardian[data-mood='offline'] .guardianSprite,
+.guardian[data-mood='offline'] .guardianSignal,
+.guardian[data-mood='offline'] .guardianAntenna {
+  animation: none;
+}
+
+.guardianBubble {
+  position: absolute;
+  top: 1px;
+  right: -4px;
+  display: grid;
+  min-width: 51px;
+  height: 21px;
+  padding: 0 4px;
+  place-items: center;
+  border: 2px solid #ffddb2;
+  border-radius: 10px 10px 10px 2px;
+  background: #9d4528;
+  color: #fff6d5;
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1;
+  animation: guardian-bubble-in 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.guardianModeSelector {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.guardianModeButton {
+  padding: 4px 5px;
+  border: 1px solid #47607e;
+  border-radius: 6px;
+  background: #1a2941;
+  color: #d2e3fa;
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.guardianModeButton[data-active='true'] {
+  border-color: #7ca9d9;
+  background: #315074;
+  color: #fff;
+}
+
+.guardianModeButton:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.guardianModeButton:focus-visible {
+  outline: 2px solid #b3d7ff;
+  outline-offset: 1px;
+}
+
+@keyframes guardian-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes guardian-work {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+
+  50% {
+    transform: translateY(-3px) rotate(2deg);
+  }
+}
+
+@keyframes guardian-attention {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-2px);
+  }
+
+  75% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes guardian-antenna {
+  0%,
+  100% {
+    transform: rotate(-5deg);
+  }
+
+  50% {
+    transform: rotate(5deg);
+  }
+}
+
+@keyframes guardian-light {
+  0%,
+  100% {
+    opacity: 0.9;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes guardian-blink {
+  0%,
+  93%,
+  96%,
+  100% {
+    transform: scaleY(1);
+  }
+
+  94%,
+  95% {
+    transform: scaleY(0.18);
+  }
+}
+
+@keyframes guardian-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px) scale(0.8);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guardianSprite,
+  .guardianEyes,
+  .guardianAntenna,
+  .guardianSignal,
+  .guardianBubble {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .mascotButton:hover .guardianSprite {
+    transform: none;
+  }
+}

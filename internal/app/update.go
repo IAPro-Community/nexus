@@ -78,6 +78,8 @@ func updateCmd(args []string) error {
 			fmt.Printf("Update Available:    YES\n")
 			if !res.AllowsSelfUpdate {
 				fmt.Printf("Upgrade Action:      %s\n", res.Instruction)
+			} else if channel != "" {
+				fmt.Printf("Run 'nexus update --channel=%s' to download and apply.\n", channel)
 			} else {
 				fmt.Println("Run 'nexus update' to download and apply.")
 			}
@@ -88,7 +90,21 @@ func updateCmd(args []string) error {
 	}
 
 	check, err := svc.Check(ctx)
-	if err == nil && !check.AllowsSelfUpdate {
+	if err != nil {
+		// The apply path (no explicit subcommand) must fail closed with the
+		// apply contract even when the failure happens during the pre-check.
+		return fmt.Errorf("update could not be applied: update check failed: %w", err)
+	}
+	if !check.UpdateAvailable {
+		if asJSON {
+			b, _ := json.MarshalIndent(check, "", "  ")
+			fmt.Println(string(b))
+		} else {
+			fmt.Printf("Nexus %s is already up to date on the %s channel.\n", check.CurrentVersion, check.Channel)
+		}
+		return nil
+	}
+	if !check.AllowsSelfUpdate {
 		if asJSON {
 			b, _ := json.MarshalIndent(check, "", "  ")
 			fmt.Println(string(b))

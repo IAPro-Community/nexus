@@ -617,6 +617,153 @@ func TestSystemUpdatesUsesSharedNexusUpdateService(t *testing.T) {
 	}
 }
 
+func TestOfficialNexusInstallerLinkAllowlist(t *testing.T) {
+	cases := []struct {
+		url  string
+		want bool
+	}{
+		{"https://github.com/IAPro-Community/nexus/releases/download/channel-beta/nexus-setup-Windows_x86_64.exe", true},
+		{"https://github.com/IAPro-Community/nexus/releases/download/v1.0.0/nexus-installer_Darwin_arm64.pkg", true},
+		{"https://github.com/attacker/nexus/releases/download/v1.0.0/payload.exe", false},
+		{"https://github.com.evil.example/IAPro-Community/nexus/releases/download/v1/payload.exe", false},
+		{"http://github.com/IAPro-Community/nexus/releases/download/v1/payload.exe", false},
+		{"https://example.com/IAPro-Community/nexus/releases/download/v1/payload.exe", false},
+		{"https://github.com@evil.example/IAPro-Community/nexus/releases/download/v1/payload.exe", false},
+		{"https://github.com:444/IAPro-Community/nexus/releases/download/v1/payload.exe", false},
+	}
+	for _, tc := range cases {
+		if got := isOfficialNexusInstallerURL(tc.url); got != tc.want {
+			t.Errorf("isOfficialNexusInstallerURL(%q)=%t, want %t", tc.url, got, tc.want)
+		}
+	}
+}
+
+func TestSystemUpdatesExposesSignedInstallerOnlyFromOfficialRelease(t *testing.T) {
+	prev := checkNexusUpdate
+	url := "https://github.com/IAPro-Community/nexus/releases/download/channel-beta/nexus-setup-Windows_x86_64.exe"
+	checkNexusUpdate = func(_ context.Context) (*update.CheckResult, error) {
+		return &update.CheckResult{
+			CurrentVersion:     "1.0.0-beta.10",
+			LatestVersion:      "1.0.0-beta.11",
+			Channel:            "beta",
+			UpdateAvailable:    true,
+			InstallationMethod: update.MethodDesktop,
+			InstallerArtifact:  &update.Artifact{URL: url, Target: update.TargetNSIS},
+		}, nil
+	}
+	t.Cleanup(func() { checkNexusUpdate = prev })
+
+	client, srv, _ := csrfClient(t)
+	resp, err := client.Get(srv.URL() + "/api/v1/system/updates")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var payload struct {
+		InstallerURL string `json:"nexus_installer_url"`
+		ReleaseURL   string `json:"nexus_release_url"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload.InstallerURL != url {
+		t.Fatalf("official installer missing: %+v", payload)
+	}
+	if payload.ReleaseURL != "https://github.com/IAPro-Community/nexus/releases/tag/channel-beta" {
+		t.Fatalf("invalid official release page: %+v", payload)
+	}
+}
+
+func TestBetaInstallationFindsNewerSignedStableRelease(t *testing.T) {
+	previousBeta := checkNexusUpdate
+	previousStable := checkNexusStableUpdate
+	checkNexusUpdate = func(_ context.Context) (*update.CheckResult, error) {
+		return &update.CheckResult{
+			CurrentVersion:  "1.0.0-beta.10",
+			LatestVersion:   "1.0.0-beta.10",
+			Channel:         "beta",
+			UpdateAvailable: false,
+		}, nil
+	}
+	checkNexusStableUpdate = func(_ context.Context) (*update.CheckResult, error) {
+		return &update.CheckResult{
+			CurrentVersion:     "1.0.0-beta.10",
+			LatestVersion:      "1.0.0",
+			Channel:            "stable",
+			UpdateAvailable:    true,
+			InstallationMethod: update.MethodDesktop,
+			InstallerArtifact: &update.Artifact{
+				URL:    "https://github.com/IAPro-Community/nexus/releases/download/v1.0.0/nexus-installer_Darwin_arm64.pkg",
+				Target: update.TargetPKG,
+			},
+		}, nil
+	}
+	t.Cleanup(func() {
+		checkNexusUpdate = previousBeta
+		checkNexusStableUpdate = previousStable
+	})
+
+	client, srv, _ := csrfClient(t)
+	resp, err := client.Get(srv.URL() + "/api/v1/system/updates")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var payload struct {
+		Channel      string `json:"channel"`
+		Version      string `json:"nexus_latest_version"`
+		Available    bool   `json:"nexus_update_available"`
+		InstallerURL string `json:"nexus_installer_url"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload.Channel != "stable" || payload.Version != "1.0.0" || !payload.Available {
+		t.Fatalf("beta-to-stable upgrade not discovered: %+v", payload)
+	}
+	if payload.InstallerURL == "" {
+		t.Fatal("expected native installer in verified stable release")
+	}
+}
+
+func TestBetaKeepsNewerBetaWithoutConsultingStable(t *testing.T) {
+	previousBeta := checkNexusUpdate
+	previousStable := checkNexusStableUpdate
+	checkNexusUpdate = func(_ context.Context) (*update.CheckResult, error) {
+		return &update.CheckResult{
+			CurrentVersion:  "1.0.0-beta.10",
+			LatestVersion:   "1.0.0-beta.11",
+			Channel:         "beta",
+			UpdateAvailable: true,
+		}, nil
+	}
+	checkNexusStableUpdate = func(_ context.Context) (*update.CheckResult, error) {
+		t.Fatal("stable lookup should not run while beta has a newer release")
+		return nil, nil
+	}
+	t.Cleanup(func() {
+		checkNexusUpdate = previousBeta
+		checkNexusStableUpdate = previousStable
+	})
+
+	client, srv, _ := csrfClient(t)
+	resp, err := client.Get(srv.URL() + "/api/v1/system/updates")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var payload struct {
+		Channel string `json:"channel"`
+		Version string `json:"nexus_latest_version"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload.Channel != "beta" || payload.Version != "1.0.0-beta.11" {
+		t.Fatalf("beta update unexpectedly replaced by stable: %+v", payload)
+	}
+}
+
 func TestProjectEventsAPI(t *testing.T) {
 	client, srv, csrf := csrfClient(t)
 	base := srv.URL()

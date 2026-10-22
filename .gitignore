@@ -52,6 +52,7 @@ profiles/
 .gemini/
 scratch/
 tmp/
+.tmp/
 .worktrees/
 .tempmediaStorage/
 /.omx/
@@ -99,3 +100,4 @@ DEV/validation/baseline/*.status
 
 # RC signing material (private)
 DEV/validation/rc1-secrets/
+DEV/validation/**/isolated-state/

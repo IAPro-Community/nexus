@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -143,6 +144,9 @@ func TestTickExhaustedEmitsExactlyOnce(t *testing.T) {
 	rec, err := s.GetCapacityState("codex|kiver|claude_gpt|5h")
 	if err != nil || rec.State != "EXHAUSTED" {
 		t.Fatalf("state = %+v,%v, want EXHAUSTED", rec, err)
+	}
+	if rec.QuotaGroup != "claude_gpt" || rec.WindowKind != "5h" {
+		t.Fatalf("resource dimension columns lost: %+v", rec)
 	}
 	first := rec.TransitionedAt
 
@@ -821,5 +825,105 @@ func TestScopePropagatesToStoreAndEvents(t *testing.T) {
 	got, ok := counter.events[0].Data["account_scope"]
 	if !ok || got != "codex/acct-1/v3" {
 		t.Fatalf("event account_scope = %v, want codex/acct-1/v3", counter.events[0].Data)
+	}
+}
+
+type leaseRevokingProbe struct {
+	*stubProbe
+	store *store.Store
+}
+
+func (p *leaseRevokingProbe) Probe(ctx context.Context, prof model.Profile) (model.UsageSnapshot, error) {
+	if err := p.store.ReleaseCapacityLease("test-owner"); err != nil {
+		return model.UsageSnapshot{}, err
+	}
+	return p.stubProbe.Probe(ctx, prof)
+}
+
+// A lease can disappear after Acquire and before Renew (process takeover,
+// operator reset or SQLite write conflict). Tick must report that failure,
+// not deadlock trying to take its already-held monitor mutex.
+func TestTickLeaseRenewalFailureDoesNotDeadlock(t *testing.T) {
+	probe := &leaseRevokingProbe{
+		stubProbe: &stubProbe{
+			desc: quota.ProbeDescriptor{ReadOnly: true, Granularity: quota.ProbeGranularityGroup},
+			snap: liveSnapshot(55, model.UsageLive),
+		},
+	}
+	registry := &stubRegistry{probes: map[string]quota.Probe{"codex": probe}}
+	m, st, _ := testMonitor(t,
+		[]model.Profile{{Provider: "codex", Name: "lease-lost"}},
+		registry, nil)
+	probe.store = st
+
+	finished := make(chan error, 1)
+	go func() { finished <- m.Tick(context.Background()) }()
+	select {
+	case err := <-finished:
+		if err == nil || !strings.Contains(err.Error(), "renew capacity lease") {
+			t.Fatalf("expected explicit lease renewal failure, got %v", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("Tick deadlocked after lease renewal failure")
+	}
+	status := m.Status()
+	if status.IsLeader {
+		t.Fatal("monitor still claims leader ownership after losing the lease")
+	}
+	if status.ConsecutiveFailures == 0 {
+		t.Fatal("lease renewal failure was not reflected in diagnostics")
+	}
+}
+
+func TestMonitorStatusPreservesLegacyDimensionsAndIdentity(t *testing.T) {
+	m, st, _ := testMonitor(t, nil, &stubRegistry{probes: map[string]quota.Probe{}}, nil)
+	now := time.Now().UTC()
+	for _, tc := range []struct {
+		profile    string
+		stateScope string
+		obsScope   string
+	}{
+		{"same-account", "verified-a", "verified-a"},
+		{"reauthed-account", "verified-b", "verified-c"},
+	} {
+		key := stateKey("codex", tc.profile, "default", "5h")
+		remaining := 18.0
+		if err := st.UpsertCapacityState(store.CapacityStateRecord{
+			Key: key, Provider: "codex", Profile: tc.profile,
+			State: "CRITICAL", AccountScope: tc.stateScope,
+			TransitionedAt: now, UpdatedAt: now,
+		}); err != nil {
+			t.Fatal(err)
+		}
+		if err := st.UpsertCapacityObservation(store.ObservationRecord{
+			Provider: "codex", Profile: tc.profile,
+			QuotaGroup: "default", WindowKind: "5h",
+			RemainingPercent: &remaining, FetchedAt: now,
+			Status: "LIVE", Source: "OFFICIAL_API",
+			AccountScope: tc.obsScope,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	status := m.Status()
+	if len(status.Resources) != 2 {
+		t.Fatalf("expected two isolated resources, got %+v", status.Resources)
+	}
+	for _, item := range status.Resources {
+		if item.QuotaGroup != "default" || item.WindowKind != "5h" {
+			t.Fatalf("missing legacy dimensions: %+v", item)
+		}
+		switch item.Profile {
+		case "same-account":
+			if item.State != StateCritical || item.RemainingPercent == nil || *item.RemainingPercent != 18 {
+				t.Fatalf("matching identity not projected: %+v", item)
+			}
+		case "reauthed-account":
+			if item.State != StateUnknown || item.RemainingPercent != nil || item.ResetDescription != "" {
+				t.Fatalf("stale identity leaked usage state: %+v", item)
+			}
+		default:
+			t.Fatalf("unexpected profile: %+v", item)
+		}
 	}
 }

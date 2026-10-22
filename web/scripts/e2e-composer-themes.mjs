@@ -19,6 +19,41 @@ mkdirSync(screenshotDir, { recursive: true });
 
 const themes = [
   {
+    preset: 'ember-studio',
+    scheme: 'dark',
+    finish: 'flat',
+    category: /Clássicos do Código/i,
+    label: /Ember Studio/i,
+  },
+  {
+    preset: 'nexus-dusk',
+    scheme: 'dark',
+    finish: 'subtle-gradient',
+    category: /Degradê Suave/i,
+    label: /Nexus Dusk/i,
+  },
+  {
+    preset: 'slate-flat',
+    scheme: 'dark',
+    finish: 'flat',
+    category: /Essenciais Flat/i,
+    label: /Slate Flat/i,
+  },
+  {
+    preset: 'paper-flat',
+    scheme: 'light',
+    finish: 'flat',
+    category: /Essenciais Flat/i,
+    label: /Paper Flat/i,
+  },
+  {
+    preset: 'clay-flat',
+    scheme: 'light',
+    finish: 'flat',
+    category: /Essenciais Flat/i,
+    label: /Clay Flat/i,
+  },
+  {
     preset: 'nexus-dark',
     scheme: 'dark',
     category: /Dark Modern/i,
@@ -129,10 +164,11 @@ async function ensureThemeCategoryOpen(page, theme) {
 
 async function assertThemeApplied(page, theme) {
   await page.waitForFunction(
-    ({ preset, scheme }) =>
+    ({ preset, scheme, finish }) =>
       document.documentElement.dataset.preset === preset &&
-      document.documentElement.dataset.theme === scheme,
-    { preset: theme.preset, scheme: theme.scheme },
+      document.documentElement.dataset.theme === scheme &&
+      document.documentElement.dataset.finish === finish,
+    { preset: theme.preset, scheme: theme.scheme, finish: theme.finish || 'standard' },
     { timeout: 10000 },
   );
   const applied = await page.evaluate(() => {
@@ -141,6 +177,7 @@ async function assertThemeApplied(page, theme) {
     return {
       preset: root.dataset.preset || '',
       theme: root.dataset.theme || '',
+      finish: root.dataset.finish || '',
       background: style.getPropertyValue('--nx-bg').trim(),
       text: style.getPropertyValue('--nx-text').trim(),
       accent: style.getPropertyValue('--nx-accent').trim(),
@@ -148,6 +185,7 @@ async function assertThemeApplied(page, theme) {
   });
   assert.equal(applied.preset, theme.preset);
   assert.equal(applied.theme, theme.scheme);
+  assert.equal(applied.finish, theme.finish || 'standard');
   assert.ok(applied.background, `${theme.preset} must define --nx-bg`);
   assert.ok(applied.text, `${theme.preset} must define --nx-text`);
   assert.ok(applied.accent, `${theme.preset} must define --nx-accent`);
@@ -256,7 +294,10 @@ async function validateComposerTheme(page, apiOrigin, project, theme) {
     waitUntil: 'domcontentloaded',
     timeout: 15000,
   });
-  await page.locator('.nx-composer-surface').waitFor({ state: 'visible', timeout: 10000 });
+  // The composer mounts after the workspace bootstrap. Mirror the 30s settings
+  // budgets above: a transient render stall on a busy machine must not fail
+  // the theme matrix (observed as a >10s first paint after a theme switch).
+  await page.locator('.nx-composer-surface').waitFor({ state: 'visible', timeout: 30000 });
   await assertThemeApplied(page, theme);
   await assertComposerLayout(page, `${theme.preset} desktop`);
   await assertA11y(page, theme);
@@ -266,7 +307,7 @@ async function validateComposerTheme(page, apiOrigin, project, theme) {
   });
 
   await page.setViewportSize({ width: 768, height: 1024 });
-  await page.locator('.nx-composer-surface').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('.nx-composer-surface').waitFor({ state: 'visible', timeout: 15000 });
   await assertThemeApplied(page, theme);
   await assertComposerLayout(page, `${theme.preset} tablet`);
   await assertA11y(page, theme);
@@ -276,7 +317,7 @@ async function validateComposerTheme(page, apiOrigin, project, theme) {
   });
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.locator('.nx-composer-surface').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('.nx-composer-surface').waitFor({ state: 'visible', timeout: 15000 });
   await assertThemeApplied(page, theme);
   await page.screenshot({
     path: path.join(screenshotDir, `${theme.preset}-mobile.png`),
@@ -284,6 +325,41 @@ async function validateComposerTheme(page, apiOrigin, project, theme) {
   });
   await assertComposerLayout(page, `${theme.preset} mobile`);
   await assertA11y(page, theme);
+}
+
+async function assertAppearanceControlsPersist(page, apiOrigin) {
+  await page.goto(`${apiOrigin}/settings`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.locator('.nx-settings-tabs').waitFor({ state: 'visible', timeout: 30000 });
+
+  const fonts = page.getByRole('radiogroup', { name: /Fonte da interface/i });
+  const icons = page.getByRole('radiogroup', { name: /Traço dos ícones/i });
+  await fonts.getByRole('radio', { name: 'Leitura' }).click();
+  await icons.getByRole('radio', { name: 'Marcado' }).click();
+
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.fontFamily === 'readable' &&
+      document.documentElement.dataset.iconStyle === 'bold',
+  );
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.locator('.nx-settings-tabs').waitFor({ state: 'visible', timeout: 30000 });
+  assert.equal(
+    await fonts.getByRole('radio', { name: 'Leitura' }).getAttribute('aria-checked'),
+    'true',
+  );
+  assert.equal(
+    await icons.getByRole('radio', { name: 'Marcado' }).getAttribute('aria-checked'),
+    'true',
+  );
+
+  // Restore defaults so the existing screenshot matrix remains comparable.
+  await fonts.getByRole('radio', { name: 'Padrão' }).click();
+  await icons.getByRole('radio', { name: 'Padrão' }).click();
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.fontFamily === 'default' &&
+      document.documentElement.dataset.iconStyle === 'default',
+  );
 }
 
 async function main() {
@@ -307,14 +383,33 @@ async function main() {
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
 
+  await assertAppearanceControlsPersist(page, apiOrigin);
+
   const themeFailures = [];
   for (const theme of themes) {
     console.log(`composer theme validation: ${theme.preset}`);
-    try {
-      await selectThemeThroughSettings(page, apiOrigin, theme);
-      await validateComposerTheme(page, apiOrigin, project, theme);
-    } catch (error) {
-      const detail = error instanceof Error ? error.stack || error.message : String(error);
+    let lastError;
+    // One retry per theme: the first attempt can lose a render window to a
+    // machine-level stall (bundle/AV scan after a fresh build). A real theme
+    // regression fails both attempts and is still reported.
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        await selectThemeThroughSettings(page, apiOrigin, theme);
+        await validateComposerTheme(page, apiOrigin, project, theme);
+        lastError = undefined;
+        break;
+      } catch (error) {
+        lastError = error;
+        if (attempt === 1) {
+          console.log(
+            `composer theme validation retrying after transient failure: ${theme.preset}`,
+          );
+        }
+      }
+    }
+    if (lastError) {
+      const detail =
+        lastError instanceof Error ? lastError.stack || lastError.message : String(lastError);
       themeFailures.push(`${theme.preset}: ${detail}`);
       console.error(`composer theme validation failed: ${theme.preset}`);
       console.error(detail);

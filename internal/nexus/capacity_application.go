@@ -36,23 +36,24 @@ func (s *CapacityApplicationService) requireStore() (*store.Store, error) {
 
 // CapacityResourceStatus is one monitored resource with triage attached.
 type CapacityResourceStatus struct {
-	Key               string     `json:"key"`
-	Provider          string     `json:"provider"`
-	Profile           string     `json:"profile"`
-	QuotaGroup        string     `json:"quota_group"`
-	WindowKind        string     `json:"window_kind"`
-	State             string     `json:"state"`
-	Fingerprint       string     `json:"fingerprint,omitempty"`
-	Reason            string     `json:"reason,omitempty"`
-	TransitionedAt    time.Time  `json:"transitioned_at"`
-	LastObservedAt    time.Time  `json:"last_observed_at"`
-	RemainingPercent  *float64   `json:"remaining_percent,omitempty"`
-	ResetDescription  string     `json:"reset_description,omitempty"`
-	Source            string     `json:"source,omitempty"`
-	ObservationStatus string     `json:"observation_status,omitempty"`
-	ExpiresAt         *time.Time `json:"expires_at,omitempty"`
-	Acked             bool       `json:"acked"`
-	SnoozedUntil      *time.Time `json:"snoozed_until,omitempty"`
+	Key               string                        `json:"key"`
+	Provider          string                        `json:"provider"`
+	Profile           string                        `json:"profile"`
+	QuotaGroup        string                        `json:"quota_group"`
+	WindowKind        string                        `json:"window_kind"`
+	State             string                        `json:"state"`
+	Fingerprint       string                        `json:"fingerprint,omitempty"`
+	Reason            string                        `json:"reason,omitempty"`
+	TransitionedAt    time.Time                     `json:"transitioned_at"`
+	LastObservedAt    time.Time                     `json:"last_observed_at"`
+	RemainingPercent  *float64                      `json:"remaining_percent,omitempty"`
+	ResetDescription  string                        `json:"reset_description,omitempty"`
+	Source            string                        `json:"source,omitempty"`
+	ObservationStatus string                        `json:"observation_status,omitempty"`
+	ExpiresAt         *time.Time                    `json:"expires_at,omitempty"`
+	Acked             bool                          `json:"acked"`
+	SnoozedUntil      *time.Time                    `json:"snoozed_until,omitempty"`
+	Pace              *capacitymonitor.PaceForecast `json:"pace,omitempty"`
 }
 
 // CapacityStatus is the GET /api/v1/capacity/status projection.
@@ -92,6 +93,9 @@ func (s *CapacityApplicationService) Status(ctx context.Context) (CapacityStatus
 	if err != nil {
 		return CapacityStatus{}, err
 	}
+	// Avoid a global sample cap starving other accounts. Forecast per
+	// verified provider/profile/account/group/window and keep failures advisory.
+	now := time.Now().UTC()
 	for _, rec := range states {
 		rs := CapacityResourceStatus{
 			Key: rec.Key, Provider: rec.Provider, Profile: rec.Profile,
@@ -100,6 +104,25 @@ func (s *CapacityApplicationService) Status(ctx context.Context) (CapacityStatus
 			TransitionedAt: rec.TransitionedAt, LastObservedAt: rec.UpdatedAt,
 		}
 		if o, ok := byKey[rec.Key]; ok {
+			// Historic monitor rows stored empty group/window columns even
+			// though the durable key encoded both. Repair the read projection
+			// without mutating existing state or treating another account as ours.
+			if rs.QuotaGroup == "" {
+				rs.QuotaGroup = o.QuotaGroup
+			}
+			if rs.WindowKind == "" {
+				rs.WindowKind = o.WindowKind
+			}
+			// The quota observation and the state can belong to different
+			// accounts during reauthentication. Never combine their evidence.
+			if rec.AccountScope != o.AccountScope {
+				// The stored state belongs to an earlier identity; keep the
+				// resource visible but fail closed until a fresh evaluation.
+				rs.State = "UNKNOWN"
+				rs.Reason = "account identity changed; awaiting evaluation"
+				out.Resources = append(out.Resources, rs)
+				continue
+			}
 			rs.RemainingPercent = o.RemainingPercent
 			rs.ResetDescription = o.ResetDescription
 			rs.Source = o.Source
@@ -109,12 +132,24 @@ func (s *CapacityApplicationService) Status(ctx context.Context) (CapacityStatus
 				rs.ExpiresAt = &expires
 			}
 			rs.LastObservedAt = o.FetchedAt
-			fp := capacitymonitor.DeriveFingerprint(o.Provider, o.Profile, o.QuotaGroup, o.WindowKind, rec.State,
-				capacitymonitor.ResetCycleKey(nil, o.ExpiresAt))
-			rs.Fingerprint = fp
-			if triage, ok, terr := st.GetCapacityAlertState(fp); terr == nil && ok {
-				rs.Acked = triage.Acked
-				rs.SnoozedUntil = triage.SnoozedUntil
+			if rec.AccountScope != "" && rec.AccountScope == o.AccountScope {
+				if samples, paceErr := st.ListCapacityPaceSamplesForResource(o, now.Add(-24*time.Hour)); paceErr == nil {
+					rs.Pace = capacitymonitor.ForecastForObservation(samples, o, now)
+				}
+			}
+			// Reuse the durable event fingerprint, not one reconstructed
+			// from snapshot expiry: the monitor prioritizes the real reset
+			// time, which can differ from expiry. Do not fabricate an alert
+			// for a state that has never emitted one.
+			lookup := rec
+			lookup.QuotaGroup = o.QuotaGroup
+			lookup.WindowKind = o.WindowKind
+			if fp, fpErr := st.LatestCapacityEventFingerprint(lookup); fpErr == nil {
+				rs.Fingerprint = fp
+				if triage, ok, terr := st.GetCapacityAlertState(fp); terr == nil && ok {
+					rs.Acked = triage.Acked
+					rs.SnoozedUntil = triage.SnoozedUntil
+				}
 			}
 		}
 		out.Resources = append(out.Resources, rs)
@@ -131,9 +166,10 @@ func (s *CapacityApplicationService) Status(ctx context.Context) (CapacityStatus
 	return out, nil
 }
 
-// capacityStateKey mirrors capacitymonitor.stateKey (provider/profile/group/window).
+// capacityStateKey must match capacitymonitor.stateKey's durable "|" separator.
+// A different delimiter silently disconnects states from observations and forecasts.
 func capacityStateKey(provider, profile, group, window string) string {
-	return strings.Join([]string{provider, profile, group, window}, "/")
+	return strings.Join([]string{provider, profile, group, window}, "|")
 }
 
 // CapacityHistoryEvent is one durable alert with triage attached.

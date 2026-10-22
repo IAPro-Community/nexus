@@ -2,7 +2,6 @@ package spec
 
 import (
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -12,10 +11,7 @@ func longCodexProfileHome(t *testing.T) string {
 	return filepath.Join(t.TempDir(), strings.Repeat("profile-segment-", 6), "home")
 }
 
-func TestCodexInteractiveArgsAddsNoDaemonForUnsafeUnixSocket(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("SUN_LEN fallback is Unix-only")
-	}
+func TestCodexInteractiveArgsAddsNoDaemonForUnsafeControlSocket(t *testing.T) {
 	home := longCodexProfileHome(t)
 	got := CodexInteractiveArgs(home, []string{"--yolo"})
 	if len(got) != 2 || got[0] != "--no-daemon" || got[1] != "--yolo" {
@@ -24,9 +20,6 @@ func TestCodexInteractiveArgsAddsNoDaemonForUnsafeUnixSocket(t *testing.T) {
 }
 
 func TestCodexInteractiveArgsPreservesResumeAndExistingNoDaemon(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("SUN_LEN fallback is Unix-only")
-	}
 	home := longCodexProfileHome(t)
 
 	resume := CodexInteractiveArgs(home, []string{"resume", "session-id"})
@@ -41,9 +34,6 @@ func TestCodexInteractiveArgsPreservesResumeAndExistingNoDaemon(t *testing.T) {
 }
 
 func TestCodexInteractiveArgsDoesNotAlterHeadlessSubcommands(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("SUN_LEN fallback is Unix-only")
-	}
 	home := longCodexProfileHome(t)
 	for _, args := range [][]string{
 		{"exec", "fix the API"},
@@ -59,10 +49,7 @@ func TestCodexInteractiveArgsDoesNotAlterHeadlessSubcommands(t *testing.T) {
 }
 
 func TestCodexInteractiveArgsLeavesSafeSocketPathAlone(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("SUN_LEN fallback is Unix-only")
-	}
-	got := CodexInteractiveArgs("/tmp/nx-codex", []string{"--yolo"})
+	got := CodexInteractiveArgs(filepath.FromSlash("/tmp/nx-codex"), []string{"--yolo"})
 	if len(got) != 1 || got[0] != "--yolo" {
 		t.Fatalf("safe path args changed: %#v", got)
 	}

@@ -2,6 +2,7 @@ package quota
 
 import (
 	"strings"
+	"time"
 
 	"github.com/IAPro-Community/nexus/internal/core/model"
 )
@@ -74,6 +75,22 @@ func EvaluateEligibility(in EligibilityInput) Eligibility {
 		out.Reason = ReasonCooldown
 		out.Message = "Conta em cooldown de rate limit"
 		return out
+	}
+
+	// Display history may outlive its routing validity by weeks. Only recent,
+	// attributable observations can drive automatic capacity decisions. A
+	// stale RATE_LIMITED signal must likewise not block an account forever.
+	// Existing synthetic/legacy views without FetchedAt remain handled by
+	// their status gates below, without inventing a new timestamp.
+	if !in.View.FetchedAt.IsZero() && !strings.EqualFold(in.View.Status, string(model.UsageUnsupported)) {
+		age := time.Since(in.View.FetchedAt)
+		if age < -time.Minute || age > DefaultTTL {
+			out.Reason = ReasonUnknownQuota
+			out.Confidence = "UNKNOWN"
+			out.CapacityEvidence = "UNKNOWN"
+			out.Message = "Quota desatualizada; atualize antes de selecionar automaticamente"
+			return out
+		}
 	}
 
 	status := strings.ToUpper(strings.TrimSpace(in.View.Status))

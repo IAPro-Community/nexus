@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func openUpgradeParent(t *testing.T, path string) (projectID, planID string) {
@@ -217,5 +218,63 @@ func TestMissingComposerTurnsRecreated(t *testing.T) {
 		if !cols[c] {
 			t.Fatalf("recreated composer_turns lacks %s", c)
 		}
+	}
+}
+
+// TestTokenBarUsageSchemaRecoversMissingTables covers upgrades from a partial
+// backup that retained version 30 but accidentally omitted new read-only tables.
+// Reopen repairs those structures without resetting canonical cost history.
+func TestTokenBarUsageSchemaRecoversMissingTables(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "partial-tokenbar.db")
+	st, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := t.Context()
+	msg := ExternalClaudeMessage{
+		MessageHash: "preserved-usage",
+		Model:       "claude-test",
+		InputTokens: 42,
+		ObservedAt:  time.Now().UTC(),
+	}
+	if err := st.SaveExternalClaudeBatch(ctx, "LOCAL_DEFAULT_UNVERIFIED", "old-file", 120,
+		[]ExternalClaudeMessage{msg}); err != nil {
+		t.Fatal(err)
+	}
+	for _, table := range []string{"capacity_pace_samples", "external_claude_offsets"} {
+		if _, err := st.DB().Exec("DROP TABLE " + table); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := st.Close(); err != nil {
+		t.Fatal(err)
+	}
+	st, err = Open(path)
+	if err != nil {
+		t.Fatalf("reopen after partial restore: %v", err)
+	}
+	defer st.Close()
+	version, err := st.SchemaVersion()
+	if err != nil || version != 30 {
+		t.Fatalf("schema version = %d, %v, want 30", version, err)
+	}
+	for _, table := range []string{"capacity_pace_samples", "external_claude_messages", "external_claude_offsets"} {
+		var count int
+		if err := st.DB().QueryRow("SELECT COUNT(*) FROM " + table).Scan(&count); err != nil {
+			t.Fatalf("repaired table %s unavailable: %v", table, err)
+		}
+	}
+	for _, index := range []string{"idx_capacity_pace_recent", "idx_external_claude_time"} {
+		var count int
+		if err := st.DB().QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name=?", index).Scan(&count); err != nil || count != 1 {
+			t.Fatalf("restored index %s: count=%d err=%v", index, count, err)
+		}
+	}
+	summary, err := st.SummarizeExternalClaude(ctx, 7)
+	if err != nil || summary.Messages != 1 || summary.InputTokens != 42 {
+		t.Fatalf("existing user-consented usage lost during repair: %+v, %v", summary, err)
+	}
+	if err := st.SaveExternalClaudeBatch(ctx, "LOCAL_DEFAULT_UNVERIFIED", "new-file", 10, nil); err != nil {
+		t.Fatalf("restored offsets unusable: %v", err)
 	}
 }

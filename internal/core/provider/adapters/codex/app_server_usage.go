@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -125,6 +126,17 @@ func (a *Adapter) fetchUsageFromAppServer(ctx context.Context, p model.Profile) 
 
 	resp, err := runAppServerRateLimits(ctx, home)
 	if err != nil {
+		// Only report coarse error categories. RPC errors may contain server
+		// detail that must not be copied into logs, even at debug level.
+		reason := "probe_failure"
+		if errors.Is(err, errTUIBusy) {
+			reason = "interactive_tui_lock"
+		} else if errors.Is(err, context.DeadlineExceeded) {
+			reason = "timeout"
+		} else if errors.Is(err, context.Canceled) {
+			reason = "canceled"
+		}
+		slog.Debug("codex app-server quota unavailable", "provider", string(a.ID()), "profile", p.Name, "reason", reason)
 		return model.UsageSnapshot{}, false
 	}
 
@@ -132,10 +144,13 @@ func (a *Adapter) fetchUsageFromAppServer(ctx context.Context, p model.Profile) 
 	// profile's account. A missing or mismatched accountId means attribution
 	// would rely on trust alone and is refused.
 	if resp.AccountID == nil || strings.TrimSpace(*resp.AccountID) == "" {
+		slog.Debug("codex app-server quota rejected: account identity missing", "profile", p.Name)
 		return model.UsageSnapshot{}, false
 	}
 	got := strings.TrimSpace(*resp.AccountID)
 	if !strings.EqualFold(got, expected) {
+		// Never include either account identifier in the log line.
+		slog.Debug("codex app-server quota rejected: foreign account", "profile", p.Name)
 		return model.UsageSnapshot{}, false
 	}
 
@@ -402,7 +417,7 @@ func appServerEnv(bin, codexHome string) []string {
 		"XDG_STATE_HOME":   filepath.Join(codexHome, ".local", "state"),
 		"PATH":             runtime.EnhancedPATH(filepath.Dir(bin)),
 		"NO_COLOR":         "1",
-	})
+	}, "OPENAI_API_KEY")
 }
 
 func appServerClientVersion() string {

@@ -11,6 +11,7 @@ import { translateStatus } from '../../i18n';
 import { useTranslation } from 'react-i18next';
 import styles from './ProjectOverviewSurface.module.scss';
 import { buildOverviewResume } from './overviewResumeModel';
+import { ProviderReadinessBanner } from './ProviderReadinessBanner';
 
 const tone = (status: string) =>
   status === 'WORKING'
@@ -31,6 +32,7 @@ export const ProjectOverviewSurface: React.FC<{
   onProjectShell: () => void;
   onOpenComposer?: () => void;
   onOpenFlow?: () => void;
+  onOpenResources?: () => void;
   onNewAgent?: () => void;
   onConfigureAgent?: (agent: Agent) => void;
   refreshAgents?: () => Promise<void>;
@@ -47,6 +49,7 @@ export const ProjectOverviewSurface: React.FC<{
   onProjectShell,
   onOpenComposer,
   onOpenFlow,
+  onOpenResources,
   onNewAgent,
   onConfigureAgent,
   refreshAgents,
@@ -189,6 +192,11 @@ export const ProjectOverviewSurface: React.FC<{
             onProjectShell={onProjectShell}
             size="sm"
           />
+          {onOpenResources ? (
+            <Button tone="ghost" onClick={onOpenResources}>
+              Contas de IA
+            </Button>
+          ) : null}
           {onOpenComposer ? (
             <Button tone="ghost" onClick={onOpenComposer}>
               {t('overview.openComposer')}
@@ -201,6 +209,8 @@ export const ProjectOverviewSurface: React.FC<{
           ) : null}
         </div>
       </div>
+
+      {onOpenResources && <ProviderReadinessBanner onOpenAccounts={onOpenResources} />}
 
       <section className={styles.resumePanel} aria-labelledby="overview-resume-title">
         <div className={styles.resumeHeader}>

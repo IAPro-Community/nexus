@@ -68,15 +68,15 @@ func TestResolveRegistryURLPrecedence(t *testing.T) {
 
 func TestDefaultUpdateRegistryURLIsIAPROStable(t *testing.T) {
 	t.Parallel()
-	want := "https://github.com/IAPro-Community/nexus-releases/releases/download/channel-stable/update-manifest.json"
+	want := "https://github.com/IAPro-Community/nexus/releases/download/channel-stable/update-manifest.json"
 	if DefaultUpdateRegistryURL != want {
 		t.Fatalf("DefaultUpdateRegistryURL=%q want %q", DefaultUpdateRegistryURL, want)
 	}
 }
 
-func TestDefaultRegistryNeverPointsAtSourceRepo(t *testing.T) {
+func TestDefaultRegistryPointsAtSourceRepo(t *testing.T) {
 	t.Parallel()
-	if DefaultUpdateRegistryRepo == "IAPro-Community/nexus" {
-		t.Fatal("closed-beta clients must default to the binaries-only repo, never the private source repo")
+	if DefaultUpdateRegistryRepo != "IAPro-Community/nexus" {
+		t.Fatalf("default registry must match the source repo, got %q", DefaultUpdateRegistryRepo)
 	}
 }

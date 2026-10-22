@@ -89,3 +89,48 @@ func TestLoopbackBackendHandlerServesLocalSPAForNavigation(t *testing.T) {
 		t.Fatalf("expected local index document, got %q", got)
 	}
 }
+
+func TestLoopbackBackendHandlerServesStaticAssetsAndFallbackToSPA(t *testing.T) {
+	srv := newStartedTestServer(t)
+	handler, err := NewLoopbackBackendHandler(srv.URL(), fstest.MapFS{
+		"index.html": &fstest.MapFile{Data: []byte("<html>desktop-shell</html>")},
+		"bundle.js":  &fstest.MapFile{Data: []byte("console.log('nexus bundle');")},
+		"bundle.css": &fstest.MapFile{Data: []byte("body { background: #000; }")},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 1. Static asset: bundle.js must NOT return index.html
+	reqJs := httptest.NewRequest(http.MethodGet, "/bundle.js", nil)
+	respJs := httptest.NewRecorder()
+	handler.ServeHTTP(respJs, reqJs)
+	if respJs.Code != http.StatusOK {
+		t.Fatalf("expected bundle.js 200, got %d", respJs.Code)
+	}
+	if got := respJs.Body.String(); got != "console.log('nexus bundle');" {
+		t.Fatalf("expected bundle.js content, got %q", got)
+	}
+
+	// 2. Static asset: bundle.css must NOT return index.html
+	reqCss := httptest.NewRequest(http.MethodGet, "/bundle.css", nil)
+	respCss := httptest.NewRecorder()
+	handler.ServeHTTP(respCss, reqCss)
+	if respCss.Code != http.StatusOK {
+		t.Fatalf("expected bundle.css 200, got %d", respCss.Code)
+	}
+	if got := respCss.Body.String(); got != "body { background: #000; }" {
+		t.Fatalf("expected bundle.css content, got %q", got)
+	}
+
+	// 3. SPA route: /projects must return index.html
+	reqSpa := httptest.NewRequest(http.MethodGet, "/projects", nil)
+	respSpa := httptest.NewRecorder()
+	handler.ServeHTTP(respSpa, reqSpa)
+	if respSpa.Code != http.StatusOK {
+		t.Fatalf("expected /projects SPA fallback 200, got %d", respSpa.Code)
+	}
+	if got := respSpa.Body.String(); got != "<html>desktop-shell</html>" {
+		t.Fatalf("expected index.html for SPA route, got %q", got)
+	}
+}

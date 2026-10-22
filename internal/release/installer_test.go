@@ -504,8 +504,9 @@ func TestPublicLicenseMetadataMatchesLicenseFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasPrefix(string(license), "# IAPro Nexus — Proprietary Beta License") {
-		t.Fatalf("expected the vigente LICENSE file to be the proprietary beta license, got %q", strings.SplitN(string(license), "\n", 2)[0])
+	licenseStr := strings.TrimSpace(string(license))
+	if !strings.HasPrefix(licenseStr, "# PolyForm Strict License 1.0.0") {
+		t.Fatalf("expected the vigente LICENSE file to be PolyForm Strict License 1.0.0, got %q", strings.SplitN(licenseStr, "\n", 2)[0])
 	}
 
 	for _, name := range []string{"README.md", "README.en.md", "README.es.md"} {
@@ -753,5 +754,148 @@ func TestWindowsInstallerAssetNameMatchesNSIS(t *testing.T) {
 	}
 	if !strings.Contains(string(nsi), "OutFile \""+asset+"\"") {
 		t.Fatalf("NSIS OutFile must match installer asset %s", asset)
+	}
+}
+
+func TestNSISPathManagementUsesCompleteSegmentsAndPreservesRegistryType(t *testing.T) {
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	nsiBytes, err := os.ReadFile(filepath.Join(root, "packaging/windows/nexus.nsi"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	nsi := string(nsiBytes)
+
+	for _, required := range []string{
+		"Function AddToUserPath",
+		"StrCmp $2 \"$INSTDIR\" donePath",
+		"Function un.RemoveFromUserPath",
+		"StrCmp $2 \"$INSTDIR\" dropPathSegment",
+		"WriteRegStr HKCU \"Environment\" \"Path\" \"$0\"",
+		"WriteRegExpandStr HKCU \"Environment\" \"Path\" \"$0\"",
+		"UserPathOriginalType",
+	} {
+		if !strings.Contains(nsi, required) {
+			t.Errorf("NSIS PATH management must contain complete-segment/type-preserving contract %q", required)
+		}
+	}
+
+	for _, forbidden := range []string{
+		"Call StrStr",
+		"Call un.StrStr",
+	} {
+		if strings.Contains(nsi, forbidden) {
+			t.Errorf("NSIS PATH management must not use substring matching %q", forbidden)
+		}
+	}
+}
+
+func TestInstallersRequireExactSignedArtifactAndVersionMatch(t *testing.T) {
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"install.ps1", "install.sh"} {
+		data, err := os.ReadFile(filepath.Join(root, path))
+		if err != nil {
+			t.Fatal(err)
+		}
+		script := string(data)
+		if path == "install.sh" {
+			if !strings.Contains(script, "if k == key:") {
+				t.Errorf("%s must resolve normalized artifact keys exactly", path)
+			}
+			if !strings.Contains(script, "if url == want or url.endswith('/' + want):") {
+				t.Errorf("%s must match complete artifact filenames in signed URLs", path)
+			}
+		} else {
+			if !strings.Contains(script, "[string]::Equals($Artifact.Name, $Key, [StringComparison]::OrdinalIgnoreCase)") {
+				t.Errorf("%s must resolve normalized artifact keys exactly", path)
+			}
+			if !strings.Contains(script, "$UrlPath.EndsWith(\"/$ArtifactName\", [StringComparison]::OrdinalIgnoreCase)") {
+				t.Errorf("%s must match complete artifact filenames in signed URLs", path)
+			}
+			for _, fuzzyMatch := range []string{"key in k", "k in key"} {
+				if strings.Contains(script, fuzzyMatch) {
+					t.Errorf("%s must not use fuzzy artifact key matching %q", path, fuzzyMatch)
+				}
+			}
+			if strings.Contains(script, "url.endswith(want)") {
+				t.Errorf("%s must not match artifact URL filenames by partial suffix", path)
+			}
+		}
+	}
+
+	psBytes, err := os.ReadFile(filepath.Join(root, "install.ps1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	powershell := string(psBytes)
+	for _, required := range []string{
+		"ReleaseTag = if ($IsPrerelease) { 'channel-beta' } else { \"v$Version\" }",
+		"ManifestChannel = if ($IsPrerelease) { 'beta' } else { 'stable' }",
+		"Assert-NexusManifestMatchesRequestedRelease",
+		"Test-NexusArtifactSha256 -Expected $Expected -Actual $Actual",
+	} {
+		if !strings.Contains(powershell, required) {
+			t.Errorf("install.ps1 missing exact signed beta/version guard %q", required)
+		}
+	}
+
+	shBytes, err := os.ReadFile(filepath.Join(root, "install.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	shell := string(shBytes)
+	for _, required := range []string{
+		"release_tag=\"channel-beta\"",
+		"expected_channel=\"beta\"",
+		"actual_version != expected_version or actual_channel != expected_channel",
+	} {
+		if !strings.Contains(shell, required) {
+			t.Errorf("install.sh missing exact signed beta/version guard %q", required)
+		}
+	}
+}
+
+func TestNSISDesktopShortcutOwnershipAndPreservation(t *testing.T) {
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	nsiBytes, err := os.ReadFile(filepath.Join(root, "packaging/windows/nexus.nsi"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	nsi := string(nsiBytes)
+
+	for _, required := range []string{
+		`IfFileExists "$DESKTOP\IAPro Nexus.lnk"`,
+		`WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "CreatedDesktopShortcut" 1`,
+		`ReadRegDWORD $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "CreatedDesktopShortcut"`,
+		`skipDeleteDesktopShortcut`,
+	} {
+		if !strings.Contains(nsi, required) {
+			t.Errorf("nexus.nsi missing desktop shortcut ownership/preservation contract %q", required)
+		}
+	}
+
+	lines := strings.Split(nsi, "\n")
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.Contains(trimmed, "RMDir /r") {
+			t.Errorf("Line %d: NSIS uninstaller must not use recursive RMDir /r to preserve user files", i+1)
+		}
+		if trimmed == `Delete "$DESKTOP\IAPro Nexus.lnk"` {
+			prev := ""
+			for j := i - 1; j >= 0 && j >= i-5; j-- {
+				prev += strings.TrimSpace(lines[j]) + " "
+			}
+			if !strings.Contains(prev, "CreatedDesktopShortcut") {
+				t.Errorf("Line %d: Delete \"$DESKTOP\\IAPro Nexus.lnk\" must not be unconditional without CreatedDesktopShortcut verification", i+1)
+			}
+		}
 	}
 }

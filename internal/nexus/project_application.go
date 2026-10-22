@@ -3,6 +3,7 @@ package nexus
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
@@ -49,10 +50,7 @@ func (s *ProjectApplicationService) Create(ctx context.Context, name, path strin
 	if err != nil {
 		return store.Project{}, err
 	}
-	if strings.TrimSpace(path) == "" {
-		return store.Project{}, fmt.Errorf("path is required")
-	}
-	canonical, err := store.CanonicalPath(path)
+	canonical, err := ValidateProjectDirectory(path)
 	if err != nil {
 		return store.Project{}, err
 	}
@@ -133,4 +131,24 @@ func (s *ProjectApplicationService) SaveLayout(ctx context.Context, id, layout s
 		return store.ProjectLayoutRecord{}, err
 	}
 	return st.SaveLayoutWithRevision(id, layout, revision)
+}
+
+// ValidateProjectDirectory is shared by Web, CLI and Desktop project creation.
+// It rejects missing paths and regular files before writing project state.
+func ValidateProjectDirectory(path string) (string, error) {
+	if strings.TrimSpace(path) == "" {
+		return "", fmt.Errorf("path is required")
+	}
+	canonical, err := store.CanonicalPath(path)
+	if err != nil {
+		return "", err
+	}
+	info, err := os.Stat(canonical)
+	if err != nil {
+		return "", fmt.Errorf("project directory unavailable: %w", err)
+	}
+	if !info.IsDir() {
+		return "", fmt.Errorf("project path is not a directory: %s", canonical)
+	}
+	return canonical, nil
 }

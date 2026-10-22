@@ -18,6 +18,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/core/provider/versionprobe"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/core/security"
 	"github.com/IAPro-Community/nexus/internal/runtime"
@@ -69,12 +70,7 @@ func (a *Adapter) Detect(ctx context.Context) model.DetectionResult {
 	if err != nil {
 		return model.DetectionResult{Installed: false, Error: "not found in PATH"}
 	}
-	out, _ := runtime.RunCommandCapture(ctx, bin, []string{"--version"}, os.Environ(), "")
-	return model.DetectionResult{
-		Installed:  true,
-		BinaryPath: bin,
-		Version:    strings.TrimSpace(out),
-	}
+	return versionprobe.Detect(ctx, bin)
 }
 
 func (a *Adapter) Prepare(ctx context.Context, p model.Profile) error {

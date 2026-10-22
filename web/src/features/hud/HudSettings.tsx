@@ -31,8 +31,8 @@ export const HudSettings: React.FC = () => {
           <div>
             <strong>Nexus HUD</strong>
             <small>
-              Projeção operacional compacta. Não altera Capacity Monitor, ResourceScheduler, Agents,
-              Missions ou Cost Intelligence.
+              Cápsula mínima e painel contextual. Não altera Capacity Monitor, ResourceScheduler,
+              Agents, Missions ou Cost Intelligence.
             </small>
           </div>
           <Badge tone="warning">Experimental</Badge>
@@ -44,7 +44,7 @@ export const HudSettings: React.FC = () => {
           description="Mostra o HUD persistente no Nexus Web quando o rollout experimental estiver habilitado."
         />
         <Segmented
-          ariaLabel="Modo do Nexus HUD"
+          ariaLabel="Informação prioritária ao expandir o Nexus HUD"
           value={prefs.mode}
           onChange={(value) => patch({ mode: value as HudMode })}
           options={[

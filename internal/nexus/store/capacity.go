@@ -589,6 +589,23 @@ func (s *Store) ListCapacityEvents(limit int) ([]CapacityEventRecord, error) {
 	return out, rows.Err()
 }
 
+// LatestCapacityEventFingerprint returns only a fingerprint actually emitted
+// for this state transition. Reconstructing the hash from snapshot expiry
+// would be wrong whenever the provider reported a different window reset.
+// Historical events missing group/window dimensions are deliberately not
+// guessed or attributed to another resource.
+func (s *Store) LatestCapacityEventFingerprint(rec CapacityStateRecord) (string, error) {
+	var fingerprint string
+	err := s.db.QueryRow(`
+		SELECT fingerprint FROM capacity_events
+		WHERE provider=? AND profile=? AND quota_group=? AND window_kind=?
+		  AND severity=? AND emitted_at>=?
+		ORDER BY emitted_at DESC LIMIT 1
+	`, rec.Provider, rec.Profile, rec.QuotaGroup, rec.WindowKind, rec.State,
+		formatStoreTime(rec.TransitionedAt)).Scan(&fingerprint)
+	return fingerprint, err
+}
+
 // PutDeliveryReceipt appends one per-channel delivery proof.
 func (s *Store) PutDeliveryReceipt(rec DeliveryReceipt) error {
 	_, err := s.db.Exec(`

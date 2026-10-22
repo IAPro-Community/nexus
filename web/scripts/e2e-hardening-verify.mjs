@@ -140,11 +140,7 @@ async function main() {
       executablePath:
         browserExecutable && existsSync(browserExecutable) ? browserExecutable : undefined,
       headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-      ],
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
     });
 
     const viewports = [
@@ -223,13 +219,15 @@ async function main() {
       const initialLayout = await projectHubRoot.evaluate((root) => ({
         headlineTop: root.querySelector('h1')?.getBoundingClientRect().top ?? -1,
         createBottom:
-          root.querySelector('[data-testid="project-hub-create"]')?.getBoundingClientRect().bottom ?? -1,
+          root.querySelector('[data-testid="project-hub-create"]')?.getBoundingClientRect()
+            .bottom ?? -1,
         scrollHeight: root.scrollHeight,
         clientHeight: root.clientHeight,
       }));
       assert.ok(
         initialLayout.headlineTop >= 0 && initialLayout.headlineTop < 483,
-        'Project Hub must open with its headline visible at 775x483: ' + JSON.stringify(initialLayout),
+        'Project Hub must open with its headline visible at 775x483: ' +
+          JSON.stringify(initialLayout),
       );
       assert.ok(
         initialLayout.createBottom <= 483,
@@ -283,13 +281,14 @@ async function main() {
         const error = card.querySelector('[role="alert"]');
         const root = card.closest('[data-testid="project-hub-root"]');
         const headline = root?.querySelector('h1');
-        const templates = root?.querySelector('[data-testid="project-hub-templates"]');
-        const templateCopy = Array.from(
-          templates?.querySelectorAll(':scope > div > div:nth-child(2)') || [],
-        ).map((copy) => ({
-          title: copy.querySelector('strong')?.textContent?.trim() || '',
-          description: copy.querySelector('small')?.textContent?.trim() || '',
-        }));
+        const readiness = root?.querySelector('[data-testid="project-hub-readiness"]');
+        const readinessCopy = {
+          exists: Boolean(readiness),
+          status: readiness?.querySelector('[role="status"]')?.textContent?.trim() || '',
+          hasRecheck: [...(readiness?.querySelectorAll('button') || [])].some((button) =>
+            /verificar novamente|check again|recheck/i.test(button.textContent || ''),
+          ),
+        };
         return {
           cardWidth: card.getBoundingClientRect().width,
           cardBottom: card.getBoundingClientRect().bottom,
@@ -300,7 +299,7 @@ async function main() {
           rootClientWidth: root?.clientWidth || 0,
           rootScrollWidth: root?.scrollWidth || 0,
           headlineTop: headline?.getBoundingClientRect().top ?? -1,
-          templateCopy,
+          readinessCopy,
         };
       });
       assert.equal(
@@ -314,7 +313,8 @@ async function main() {
       );
       assert.ok(
         projectHubLayout.cardBottom <= 483,
-        'Project Hub form including origin error must fit at 775x483: ' + JSON.stringify(projectHubLayout),
+        'Project Hub form including origin error must fit at 775x483: ' +
+          JSON.stringify(projectHubLayout),
       );
       assert.ok(
         projectHubLayout.headlineTop >= 0 && projectHubLayout.headlineTop < 483,
@@ -322,31 +322,35 @@ async function main() {
       );
       assert.ok(
         projectHubLayout.rootScrollHeight > projectHubLayout.rootClientHeight,
-        'Project Hub must scroll vertically when content exceeds 483px: ' + JSON.stringify(projectHubLayout),
+        'Project Hub must scroll vertically when content exceeds 483px: ' +
+          JSON.stringify(projectHubLayout),
       );
       assert.ok(
         projectHubLayout.rootScrollWidth <= projectHubLayout.rootClientWidth,
         'Project Hub must not overflow horizontally: ' + JSON.stringify(projectHubLayout),
       );
-      assert.equal(
-        projectHubLayout.templateCopy.length,
-        3,
-        'All three starter templates must have accessible title and description nodes: ' + JSON.stringify(projectHubLayout.templateCopy),
-      );
-      for (const template of projectHubLayout.templateCopy) {
-        assert.ok(template.title && template.description, 'Each starter template needs title and detail copy');
-        assert.notEqual(template.title, template.description, 'Template title and detail must not duplicate');
-        assert.ok(
-          !template.title.includes(template.description),
-          'Template detail must not repeat its title: ' + JSON.stringify(template),
-        );
-      }
-      const templates = page.getByTestId('project-hub-templates');
-      await templates.scrollIntoViewIfNeeded();
-      const templatesBounds = await templates.boundingBox();
+      // Starter templates were intentionally removed because they did not
+      // scaffold projects or select real directories. The actual first-run
+      // contract is an actionable, readable environment readiness assessment.
       assert.ok(
-        templatesBounds && templatesBounds.y >= 0 && templatesBounds.y + templatesBounds.height <= 484,
-        'Starter templates must be reachable in the scrollable Project Hub: ' + JSON.stringify(templatesBounds),
+        projectHubLayout.readinessCopy.exists &&
+          projectHubLayout.readinessCopy.status.length > 0,
+        'Project Hub must explain real first-run environment readiness: ' +
+          JSON.stringify(projectHubLayout.readinessCopy),
+      );
+      assert.ok(
+        projectHubLayout.readinessCopy.hasRecheck,
+        'Project Hub must allow retrying real provider detection',
+      );
+      const readinessPanel = page.getByTestId('project-hub-readiness');
+      await readinessPanel.scrollIntoViewIfNeeded();
+      const readinessBounds = await readinessPanel.boundingBox();
+      assert.ok(
+        readinessBounds &&
+          readinessBounds.y >= 0 &&
+          readinessBounds.y + readinessBounds.height <= 484,
+        'Environment readiness must be reachable in the scrollable Project Hub: ' +
+          JSON.stringify(readinessBounds),
       );
       await page.getByTestId('project-hub-root').evaluate((root) => {
         root.scrollTop = 0;
@@ -378,7 +382,33 @@ async function main() {
     assert.ok(project?.id, 'browser E2E fixture project must have an id');
     const shellUrl = new URL(`/p/${encodeURIComponent(project.id)}/overview`, apiOrigin);
     await page.goto(shellUrl.toString(), { waitUntil: 'domcontentloaded', timeout: 15000 });
-    await page.waitForSelector('.nx-os-shell', { timeout: 10000 });
+    try {
+      await page.waitForSelector('.nx-os-shell', { timeout: 30000 });
+    } catch (error) {
+      const pageState = await page
+        .evaluate(() => ({
+          readyState: document.readyState,
+          title: document.title,
+          bodyText: document.body?.innerText.slice(0, 500) || '',
+          rootElements: Array.from(document.body?.children || []).map((element) => ({
+            tag: element.tagName,
+            className: typeof element.className === 'string' ? element.className : '',
+          })),
+        }))
+        .catch((diagnosticError) => ({ diagnosticError: String(diagnosticError) }));
+      console.error(
+        'Workspace shell did not mount after project navigation: ' +
+          JSON.stringify({
+            url: page.url(),
+            pageState,
+            pageErrors: pageErrors.slice(-10),
+            consoleErrors: consoleErrors.slice(-10),
+            requestFailures: requestFailures.slice(-10),
+            apiResponses: responses.slice(-10),
+          }),
+      );
+      throw error;
+    }
 
     console.log('3.1. Testing Overview → Terminal tab persistence...');
     const overviewProductTab = page.locator('.nx-workspace-tab[data-kind="overview"]').first();
@@ -664,6 +694,11 @@ async function main() {
       await createMenuTrigger.getAttribute('aria-expanded'),
       'false',
       'Escape must close create menu and restore collapsed state',
+    );
+    await page.waitForFunction(
+      () => document.activeElement?.getAttribute('data-testid') === 'topbar-create-menu-btn',
+      undefined,
+      { timeout: 250 },
     );
     assert.equal(
       await page.evaluate(

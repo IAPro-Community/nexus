@@ -2,8 +2,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, InlineAlert, Input, Switch } from '../../design-system';
 import { nexus } from '../../nexus/api';
-import type { CostPreferences } from '../../types';
+import type { CostPreferences, ExternalClaudeSummary } from '../../types';
 import styles from './CostIntelligenceSettings.module.scss';
+import { downloadAuthenticatedCsv } from '../../lib/downloadAuthenticatedCsv';
+import { isLocalTranscriptOrigin } from './externalClaudeAvailability';
 
 const numberValue = (raw: string, fallback: number): number => {
   const value = Number.parseFloat(raw);
@@ -34,6 +36,11 @@ export const CostIntelligenceSettings: React.FC = () => {
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [external, setExternal] = useState<ExternalClaudeSummary | null>(null);
+  const [externalBusy, setExternalBusy] = useState(false);
+  const [externalResult, setExternalResult] = useState('');
+  const canScanExternal =
+    typeof window !== 'undefined' && isLocalTranscriptOrigin(window.location.hostname);
   const [error, setError] = useState('');
 
   const applyPreferences = useCallback((next: CostPreferences) => {
@@ -60,6 +67,10 @@ export const CostIntelligenceSettings: React.FC = () => {
 
   useEffect(() => {
     void refresh();
+    void nexus
+      .getExternalClaudeUsage()
+      .then(setExternal)
+      .catch(() => setExternal(null));
   }, [refresh]);
 
   const patch = (next: Partial<CostPreferences>) => {
@@ -122,6 +133,48 @@ export const CostIntelligenceSettings: React.FC = () => {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const clearLocalClaude = async () => {
+    if (
+      !window.confirm(
+        t('settings.externalClaudeConfirmClear', 'Excluir os metadados de uso externo importados?'),
+      )
+    ) {
+      return;
+    }
+    setExternalBusy(true);
+    setExternalResult('');
+    try {
+      await nexus.clearExternalClaudeUsage();
+      setExternal(await nexus.getExternalClaudeUsage());
+      setExternalResult(t('settings.externalClaudeCleared', 'Metadados externos excluídos.'));
+    } catch (err) {
+      setExternalResult(err instanceof Error ? err.message : String(err));
+    } finally {
+      setExternalBusy(false);
+    }
+  };
+
+  // Consent is scoped to this click only. No background scanning is enabled.
+  const scanLocalClaude = async () => {
+    setExternalBusy(true);
+    setExternalResult('');
+    try {
+      const result = await nexus.scanExternalClaudeUsage();
+      setExternal(result.summary);
+      setExternalResult(
+        t('settings.externalClaudeScanResult', {
+          defaultValue:
+            '{{messages}} registros processados nesta leitura. Histórico separado do custo real.',
+          messages: result.scan.messages,
+        }),
+      );
+    } catch (err) {
+      setExternalResult(err instanceof Error ? err.message : String(err));
+    } finally {
+      setExternalBusy(false);
     }
   };
 
@@ -267,7 +320,64 @@ export const CostIntelligenceSettings: React.FC = () => {
         </div>
       </section>
 
+      <section
+        className={styles.section}
+        aria-label={t('settings.externalClaude', 'Uso externo do Claude Code')}
+      >
+        <h3>{t('settings.externalClaude', 'Uso externo do Claude Code')}</h3>
+        <p>
+          {t(
+            'settings.externalClaudeDescription',
+            'Leitura manual dos metadados da máquina que executa o servidor Nexus (não necessariamente este navegador). Não envia prompts, não estima custos da assinatura e não soma os tokens ao ledger.',
+          )}
+        </p>
+        <Button onClick={() => void scanLocalClaude()} disabled={externalBusy || !canScanExternal}>
+          {externalBusy
+            ? t('settings.externalClaudeScanning', 'Lendo registros…')
+            : t('settings.externalClaudeConsent', 'Autorizar uma leitura local agora')}
+        </Button>
+        {!canScanExternal ? (
+          <p className={styles.note}>
+            {t(
+              'settings.externalClaudeLocalOnly',
+              'A importação requer acesso local no computador que executa o Nexus. Em túnel ou rede remota, apenas a consulta e a exclusão dos metadados ficam disponíveis.',
+            )}
+          </p>
+        ) : null}
+        {external ? (
+          <Button onClick={() => void clearLocalClaude()} disabled={externalBusy}>
+            {t('settings.externalClaudeClear', 'Limpar metadados importados')}
+          </Button>
+        ) : null}
+        {external ? (
+          <p className={styles.externalSummary}>
+            {t('settings.externalClaudeObserved', {
+              defaultValue:
+                '{{messages}} mensagens · {{tokens}} tokens observados (fonte externa, não atribuída)',
+              messages: external.messages,
+              tokens:
+                external.input_tokens +
+                external.output_tokens +
+                external.cache_read_tokens +
+                external.cache_write_tokens,
+            })}
+          </p>
+        ) : null}
+        <p role="status" aria-live="polite">
+          {externalResult}
+        </p>
+      </section>
       <div className={styles.actions}>
+        <Button
+          onClick={() =>
+            void downloadAuthenticatedCsv(
+              '/api/v1/cost/observations.csv?days=30',
+              'nexus-cost-observations.csv',
+            ).catch((err) => setError(err instanceof Error ? err.message : String(err)))
+          }
+        >
+          {t('settings.costExport', 'Exportar até 1.000 observações (CSV)')}
+        </Button>
         <Button tone="brand" onClick={() => void save()} disabled={saving}>
           {saving
             ? t('settings.costSaving', 'Saving…')

@@ -259,6 +259,23 @@ export interface ResourceAllocation {
 export type CapacityMonitorState =
   'UNKNOWN' | 'HEALTHY' | 'WARNING' | 'CRITICAL' | 'EXHAUSTED' | 'RECOVERED';
 
+export interface PublicServiceStatus {
+  provider: string;
+  indicator: 'none' | 'minor' | 'major' | 'critical' | 'UNKNOWN';
+  detail?: string;
+  checked_at?: string;
+  stale: boolean;
+}
+
+export interface CapacityPaceForecast {
+  status: 'RISING' | 'RESET_FIRST' | 'STABLE';
+  confidence: 'LOW' | 'MEDIUM' | 'HIGH';
+  samples: number;
+  used_per_hour: number;
+  exhausts_at?: string | null;
+  reset_at: string;
+}
+
 export interface CapacityResourceStatus {
   key: string;
   provider: string;
@@ -272,6 +289,7 @@ export interface CapacityResourceStatus {
   last_observed_at: string;
   remaining_percent?: number | null;
   reset_description?: string;
+  pace?: CapacityPaceForecast;
   acked: boolean;
   snoozed_until?: string | null;
 }
@@ -343,6 +361,22 @@ export interface CostAggregate {
 export interface ProviderCostAggregate extends CostAggregate {
   provider: string;
   profile: string;
+}
+
+export interface ExternalClaudeSummary {
+  source: 'LOCAL_DEFAULT_UNVERIFIED';
+  unattributed: true;
+  messages: number;
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_tokens: number;
+  cache_write_tokens: number;
+  last_observed_at?: string;
+}
+
+export interface ExternalClaudeScanResult {
+  scan: { files: number; messages: number; bytes: number; has_more: boolean; unattributed: true };
+  summary: ExternalClaudeSummary;
 }
 
 export interface CostPreferences {

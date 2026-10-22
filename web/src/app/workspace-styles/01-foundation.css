@@ -1,0 +1,297 @@
+:root {
+  --nx-font-scale: 1;
+  --nx-font:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  --nx-font-mono:
+    "SFMono-Regular", "Cascadia Code", "JetBrains Mono", "Roboto Mono", ui-monospace, monospace;
+  --nx-bg: #080a0f;
+  --nx-bg-elevated: #0c0f15;
+  --nx-surface: #10131a;
+  --nx-surface-2: #151922;
+  --nx-surface-3: #1a1f2b;
+  --nx-border: #202633;
+  --nx-border-strong: #303849;
+  --nx-text: #f1f3f7;
+  --nx-text-soft: #d9dde6;
+  --nx-muted: #8a93a5;
+  /* Secondary labels must remain readable on the dark workspace surface. */
+  --nx-subtle: #8b95a8;
+  --nx-accent: #8b5cf6;
+  --nx-accent-hover: #9f75ff;
+  --nx-accent-soft: rgba(139, 92, 246, 0.14);
+  --nx-accent-text: #bba5ff;
+  --nx-success: #51cf9a;
+  --nx-success-soft: rgba(81, 207, 154, 0.12);
+  --nx-warning: #f3bd67;
+  --nx-warning-soft: rgba(243, 189, 103, 0.12);
+  --nx-danger: #ff9090;
+  --nx-danger-soft: rgba(255, 144, 144, 0.12);
+  --nx-info: #62b4ff;
+  --nx-info-soft: rgba(98, 180, 255, 0.12);
+  --nx-radius: 10px;
+  --nx-radius-sm: 7px;
+  --nx-radius-lg: 14px;
+  /* Canonical spacing scale: 4px base, shared by Web and embedded Desktop UI. */
+  --nx-spacing-0: 0;
+  --nx-spacing-1: 4px;
+  --nx-spacing-2: 8px;
+  --nx-spacing-3: 12px;
+  --nx-spacing-4: 16px;
+  --nx-spacing-5: 20px;
+  --nx-spacing-6: 24px;
+  --nx-spacing-7: 28px;
+  --nx-spacing-8: 32px;
+  --nx-spacing-9: 36px;
+  --nx-spacing-10: 40px;
+  --nx-spacing-11: 44px;
+  --nx-spacing-12: 48px;
+  --nx-spacing-16: 64px;
+  /* Backward-compatible aliases for surfaces using the shorter token name. */
+  --nx-space-0: var(--nx-spacing-0);
+  --nx-space-1: var(--nx-spacing-1);
+  --nx-space-2: var(--nx-spacing-2);
+  --nx-space-3: var(--nx-spacing-3);
+  --nx-space-4: var(--nx-spacing-4);
+  --nx-space-5: var(--nx-spacing-5);
+  --nx-space-6: var(--nx-spacing-6);
+  --nx-space-8: var(--nx-spacing-8);
+  --nx-space-12: var(--nx-spacing-12);
+  --nx-topbar: 46px;
+  --nx-project-nav: 38px;
+  --nx-taskbar: 38px;
+  --nx-rail: 260px;
+  --nx-touch-min: 32px;
+  --nx-safe-top: env(safe-area-inset-top, 0px);
+  --nx-safe-right: env(safe-area-inset-right, 0px);
+  --nx-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --nx-safe-left: env(safe-area-inset-left, 0px);
+  /* Canonical Z-Index Hierarchy Tokens */
+  --nx-z-base: 1;
+  --nx-z-window: 100;
+  --nx-z-window-focus: 500;
+  --nx-z-window-dragging: 1000;
+  --nx-z-rail: 2000;
+  --nx-z-topbar: 3000;
+  --nx-z-popover: 4000;
+  --nx-z-attention: 11000;
+  --nx-z-drawer: 12000;
+  --nx-z-modal-backdrop: 13000;
+  --nx-z-modal: 13010;
+  --nx-z-contextmenu: 14000;
+  --nx-z-toast: 12500;
+  --nx-z-tooltip: 16000;
+  /* Compatibility aliases for legacy surfaces */
+  --color-background: var(--nx-bg);
+  --color-surface: var(--nx-surface);
+  --color-surface-elevated: var(--nx-bg-elevated);
+  --color-border: var(--nx-border);
+  --color-brand-border: color-mix(in srgb, var(--nx-accent) 35%, var(--nx-border));
+  --color-brand: var(--nx-accent);
+  --color-text: var(--nx-text);
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --nx-bg: #f4f6fa;
+  --nx-bg-elevated: #fff;
+  --nx-surface: #fff;
+  --nx-surface-2: #f0f3f8;
+  --nx-surface-3: #e8edf4;
+  --nx-border: #d7dde8;
+  --nx-border-strong: #bcc5d5;
+  --nx-text: #141821;
+  --nx-text-soft: #2d3442;
+  --nx-muted: #5e687b;
+  --nx-subtle: #667085;
+  --nx-success: #166534;
+  --nx-success-soft: rgba(22, 101, 52, 0.1);
+  --nx-warning: #92400e;
+  --nx-warning-soft: rgba(146, 64, 14, 0.1);
+  --nx-danger: #b91c1c;
+  --nx-danger-soft: rgba(185, 28, 28, 0.1);
+  --nx-info: #1d4ed8;
+  --nx-info-soft: rgba(29, 78, 216, 0.1);
+  color-scheme: light;
+}
+:root[data-theme="high-contrast"] {
+  --nx-bg: #000;
+  --nx-bg-elevated: #000;
+  --nx-surface: #050505;
+  --nx-surface-2: #0b0b0b;
+  --nx-surface-3: #111;
+  --nx-border: #8f8f8f;
+  --nx-border-strong: #fff;
+  --nx-text: #fff;
+  --nx-text-soft: #fff;
+  --nx-muted: #e2e2e2;
+  --nx-subtle: #c7c7c7;
+  --nx-accent: #ffff00;
+  --nx-accent-hover: #fff866;
+  --nx-accent-soft: rgba(255, 255, 0, 0.16);
+  --nx-accent-text: #ffff00;
+  --nx-success: #5fff93;
+  --nx-success-soft: rgba(95, 255, 147, 0.18);
+  --nx-warning: #ffd75f;
+  --nx-warning-soft: rgba(255, 215, 95, 0.18);
+  --nx-danger: #ff7676;
+  --nx-danger-soft: rgba(255, 118, 118, 0.18);
+  --nx-info: #75d5ff;
+  --nx-info-soft: rgba(117, 213, 255, 0.18);
+}
+:root[data-accent="blue"] {
+  --nx-accent: #4285ff;
+  --nx-accent-hover: #6399ff;
+  --nx-accent-soft: rgba(66, 133, 255, 0.14);
+  --nx-accent-text: #8db5ff;
+}
+:root[data-accent="cyan"] {
+  --nx-accent: #13b8c8;
+  --nx-accent-hover: #30c9d8;
+  --nx-accent-soft: rgba(19, 184, 200, 0.14);
+  --nx-accent-text: #70dbe5;
+}
+:root[data-density="compact"] {
+  --nx-topbar: 42px;
+  --nx-project-nav: 36px;
+  --nx-taskbar: 36px;
+  --nx-rail: 240px;
+  --nx-density-pad-card: 8px 12px;
+  --nx-density-pad-btn: 3px 8px;
+  --nx-density-btn-h: 28px;
+  --nx-density-row-h: 30px;
+  --nx-density-gap: 6px;
+  --nx-density-font-body: 0.857rem;
+  --nx-density-font-title: 0.929rem;
+}
+:root[data-density="comfortable"] {
+  --nx-topbar: 52px;
+  --nx-project-nav: 44px;
+  --nx-taskbar: 44px;
+  --nx-rail: 280px;
+  --nx-density-pad-card: 16px 20px;
+  --nx-density-pad-btn: 7px 14px;
+  --nx-density-btn-h: 36px;
+  --nx-density-row-h: 44px;
+  --nx-density-gap: 12px;
+  --nx-density-font-body: 0.964rem;
+  --nx-density-font-title: 1.071rem;
+}
+* {
+  box-sizing: border-box;
+}
+html {
+  font-size: calc(87.5% * var(--nx-font-scale, 1));
+}
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  min-height: 100dvh;
+  margin: 0;
+}
+body {
+  overflow: hidden;
+  background: var(--nx-bg);
+  color: var(--nx-text);
+  font-family: var(--nx-font);
+  font-size: 0.929rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+button {
+  color: inherit;
+}
+::selection {
+  background: color-mix(in srgb, var(--nx-accent) 35%, transparent);
+}
+:focus-visible {
+  outline: 2px solid var(--nx-accent);
+  outline-offset: 2px;
+}
+:root[data-reduced-motion="true"] * {
+  scroll-behavior: auto !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--nx-border-strong);
+  border-radius: 999px;
+}
+.xterm .xterm-viewport {
+  overflow-y: auto !important;
+}
+
+.nx-skip-link {
+  position: fixed;
+  z-index: 1000;
+  top: -50px;
+  left: 10px;
+  padding: 8px 14px;
+  border-radius: 7px;
+  background: var(--nx-accent);
+  color: var(--nx-accent-contrast);
+  font-size: 0.929rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.nx-skip-link:focus {
+  top: 8px;
+}
+/* Visually-hidden page headings for screen readers (SPA views whose visual
+   chrome already identifies them, e.g. the terminals host). */
+.nx-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.nx-os-shell {
+  width: 100%;
+  height: 100%;
+  min-height: 100dvh;
+  display: flex;
+  background: var(--nx-bg);
+  overflow: hidden;
+  padding: var(--nx-safe-top) var(--nx-safe-right) var(--nx-safe-bottom) var(--nx-safe-left);
+}
+.nx-os-main {
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) var(--nx-taskbar);
+  overflow: hidden;
+}
+.nx-shell-chrome {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+}
