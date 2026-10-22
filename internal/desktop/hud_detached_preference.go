@@ -1,6 +1,9 @@
 package desktop
 
-import "fmt"
+import (
+	"fmt"
+	"runtime"
+)
 
 // GetHUDDetachedPopoverPreference reports the persisted opt-in for the
 // independent native popup. The popup is what makes the mascot presentation
@@ -61,6 +64,11 @@ func (h *HUDController) SetHUDDetachedPopoverPreference(enabled bool) error {
 // EnsureDetachedPopup creates the popup exactly once through the factory
 // installed by the HUD binary. Startup and the settings toggle share it.
 func (h *HUDController) EnsureDetachedPopup() error {
+	// Runtime toggles must obey the same constraint as startup; Wayland does
+	// not allow portable absolute popup positioning with this Wails backend.
+	if runtime.GOOS == "linux" && hudSession() == "wayland" {
+		return fmt.Errorf("independent Nexus HUD popup is unsupported on Wayland")
+	}
 	if h.GetHUDDetachedPopoverEnabled() {
 		return nil
 	}
