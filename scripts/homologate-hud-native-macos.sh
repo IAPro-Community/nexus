@@ -18,12 +18,13 @@ SHA="$(git -C "$ROOT" rev-parse HEAD)"
 RESULT=INCONCLUSIVE
 REASON=''
 DONE=0
+PRESENTATION=legacy_single_window
 PID=''
 report() {
-  HUD_SHA="$SHA" HUD_RESULT="$RESULT" HUD_REASON="$REASON" HUD_DONE="$DONE" HUD_CYCLES="$CYCLES" HUD_BINARY_SHA="$(shasum -a 256 "$HUD" 2>/dev/null | awk '{print $1}' || true)" \
+  HUD_SHA="$SHA" HUD_RESULT="$RESULT" HUD_REASON="$REASON" HUD_DONE="$DONE" HUD_CYCLES="$CYCLES" HUD_PRESENTATION="$PRESENTATION" HUD_BINARY_SHA="$(shasum -a 256 "$HUD" 2>/dev/null | awk '{print $1}' || true)" \
   python3 - "$OUT/HUD_NATIVE_RESULTS.json" <<'PY'
 import json,os,sys
-data={"sha":os.getenv("HUD_SHA"),"platform":"darwin","type":"native_interactive_mouse",
+data={"sha":os.getenv("HUD_SHA"),"platform":"darwin","presentation":os.getenv("HUD_PRESENTATION"),"type":"native_interactive_mouse",
 "cycles_requested":int(os.getenv("HUD_CYCLES")),"cycles_completed":int(os.getenv("HUD_DONE")),
 "binary_sha256":os.getenv("HUD_BINARY_SHA"),"verdict":os.getenv("HUD_RESULT"),"reason":os.getenv("HUD_REASON"),
 "visual_shadow_review":"NOT_TESTED","transparent_click_through":"NOT_TESTED",
@@ -58,28 +59,38 @@ import AppKit
 import ApplicationServices
 import CoreGraphics
 
-func bounds(pid: Int32) -> String? {
+func bounds(pid: Int32, role: String) -> String? {
     guard let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
             as? [[String: Any]] else { return nil }
     // The always-on-top HUD uses a floating CoreGraphics layer, not necessarily zero.
     let candidates = windows.filter {
         ($0[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == pid
     }
-    for window in candidates {
+    let valid = candidates.compactMap { window -> (name: String, rect: [String: Any], area: Int)? in
         guard let raw = window[kCGWindowBounds as String] as? [String: Any],
-              let x = raw["X"] as? NSNumber, let y = raw["Y"] as? NSNumber,
-              let w = raw["Width"] as? NSNumber, let h = raw["Height"] as? NSNumber else { continue }
-        if w.intValue > 100 && h.intValue > 30 {
-            return "\(x.intValue),\(y.intValue),\(w.intValue),\(h.intValue)"
-        }
+              let w = raw["Width"] as? NSNumber, let h = raw["Height"] as? NSNumber,
+              w.intValue >= 80, h.intValue >= 48 else { return nil }
+        return (window[kCGWindowName as String] as? String ?? "", raw, w.intValue * h.intValue)
     }
-    return nil
+    let selected: (name: String, rect: [String: Any], area: Int)?
+    if role == "popup" {
+        selected = valid.first(where: { $0.name == "Nexus HUD Popup" }) ??
+          (valid.count > 1 ? valid.filter({ $0.area >= 280 * 240 }).max(by: { $0.area < $1.area }) : nil)
+    } else {
+        selected = valid.first(where: { $0.name == "Nexus HUD" }) ??
+          valid.min(by: { $0.area < $1.area })
+    }
+    guard let raw = selected?.rect,
+          let x = raw["X"] as? NSNumber, let y = raw["Y"] as? NSNumber,
+          let w = raw["Width"] as? NSNumber, let h = raw["Height"] as? NSNumber else { return nil }
+    return "\(x.intValue),\(y.intValue),\(w.intValue),\(h.intValue)"
 }
 
 let args = CommandLine.arguments
 guard args.count >= 3 else { exit(2) }
 if args[1] == "bounds" {
-    guard let pid = Int32(args[2]), let result = bounds(pid: pid) else { exit(3) }
+    guard args.count >= 4, let pid = Int32(args[2]),
+          let result = bounds(pid: pid, role: args[3]) else { exit(3) }
     print(result)
 } else if args[1] == "click" {
     guard args.count >= 4, AXIsProcessTrusted(),
@@ -114,7 +125,7 @@ mkdir -p "$NEXUS_DATA_DIR" "$NEXUS_CONFIG_DIR" "$NEXUS_STATE_DIR"
 PID=$!
 read_geometry() {
   local b
-  b="$("$OUT/hud_native_probe" bounds "$PID" 2>/dev/null)" || return 1
+  b="$("$OUT/hud_native_probe" bounds "$PID" capsule 2>/dev/null)" || return 1
   IFS=',' read -r X Y W H <<< "$b"
 }
 wait_geometry() {
@@ -122,7 +133,7 @@ wait_geometry() {
   for i in $(seq 1 40); do
     if read_geometry; then
       if [ "$expanded" = yes ] && (( W >= 300 && H >= 300 )); then return 0; fi
-      if [ "$expanded" = no ] && (( W <= 330 && H <= 100 )); then return 0; fi
+      if [ "$expanded" = no ] && (( W <= 330 && H <= 140 )); then return 0; fi
     fi
     sleep .15
   done
@@ -144,18 +155,67 @@ for i in $(seq 1 100); do
   sleep .2
 done
 if ! read_geometry; then RESULT=BLOCKED; REASON='Cannot inspect native HUD window; check Screen Recording/session access.'; exit 1; fi
+read_popup_geometry() {
+  local b
+  b="$("$OUT/hud_native_probe" bounds "$PID" popup 2>/dev/null)" || return 1
+  IFS=',' read -r PX PY PW PH <<< "$b"
+}
+wait_popup() {
+  local shown="$1"
+  for i in $(seq 1 40); do
+    if read_popup_geometry; then
+      if [ "$shown" = yes ] && (( PW >= 280 && PH >= 240 )); then return 0; fi
+    elif [ "$shown" = no ]; then
+      return 0
+    fi
+    sleep .15
+  done
+  return 1
+}
+capture_popup() {
+  read_popup_geometry
+  local old_x="$X" old_y="$Y" old_w="$W" old_h="$H"
+  X="$PX"; Y="$PY"; W="$PW"; H="$PH"
+  capture "$1"
+  X="$old_x"; Y="$old_y"; W="$old_w"; H="$old_h"
+}
 if ! wait_geometry no; then RESULT=NO_GO; REASON='Native HUD compact geometry invalid.'; exit 1; fi
 if ! capture HUD_BEFORE.png; then RESULT=BLOCKED; REASON='Screen capture denied or unavailable.'; exit 1; fi
 for n in $(seq 1 "$CYCLES"); do
   read_geometry
   if ! click_capsule; then RESULT=BLOCKED; REASON='Accessibility click was not authorized.'; exit 1; fi
-  if ! wait_geometry yes; then RESULT=NO_GO; REASON="HUD failed to expand on cycle $n"; exit 1; fi
   if (( n == 1 )); then
-    if ! capture HUD_EXPANDED.png; then RESULT=BLOCKED; REASON='Screen capture denied or unavailable.'; exit 1; fi
+    for detect in $(seq 1 30); do
+      if read_popup_geometry; then
+        PRESENTATION=detached_popover
+        break
+      fi
+      read_geometry || true
+      if (( W >= 300 && H >= 300 )); then break; fi
+      sleep .15
+    done
   fi
-  click_capsule
-  if ! wait_geometry no; then RESULT=NO_GO; REASON="HUD failed to collapse on cycle $n"; exit 1; fi
+  if [ "$PRESENTATION" = detached_popover ]; then
+    if ! wait_geometry no; then RESULT=NO_GO; REASON="Capsule resized unexpectedly on cycle $n"; exit 1; fi
+    if ! wait_popup yes; then RESULT=NO_GO; REASON="Detached popup failed to open on cycle $n"; exit 1; fi
+    if (( n == 1 )); then
+      if ! capture_popup HUD_EXPANDED.png; then RESULT=BLOCKED; REASON='Screen capture unavailable'; exit 1; fi
+    fi
+    read_popup_geometry
+    if ! "$OUT/hud_native_probe" click "$((PX+PW-36))" "$((PY+36))"; then
+      RESULT=BLOCKED; REASON='Cannot click detached popup native close control'; exit 1
+    fi
+    if ! wait_popup no; then RESULT=NO_GO; REASON="Detached popup failed to close on cycle $n"; exit 1; fi
+    if ! wait_geometry no; then RESULT=NO_GO; REASON="Compact capsule lost on cycle $n"; exit 1; fi
+  else
+    if ! wait_geometry yes; then RESULT=NO_GO; REASON="Legacy HUD failed to expand on cycle $n"; exit 1; fi
+    if (( n == 1 )); then
+      if ! capture HUD_EXPANDED.png; then RESULT=BLOCKED; REASON='Screen capture unavailable'; exit 1; fi
+    fi
+    click_capsule
+    if ! wait_geometry no; then RESULT=NO_GO; REASON="Legacy HUD failed to collapse on cycle $n"; exit 1; fi
+  fi
   DONE="$n"
 done
 RESULT=PASS_FUNCTIONAL_PENDING_VISUAL
-echo "macOS HUD native click cycles: $DONE/$CYCLES; review images in $OUT"
+echo "macOS $PRESENTATION native mouse cycles: $DONE/$CYCLES; review images in $OUT"
