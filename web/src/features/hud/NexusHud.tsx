@@ -592,6 +592,24 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               </div>
             </div>
 
+            {native && (
+              <div className={styles.popupSettingRow}>
+                <button
+                  type="button"
+                  className={styles.popupToggle}
+                  disabled={detachedPending}
+                  aria-pressed={nativeDetached}
+                  title="Cria uma segunda janela nativa para o painel e habilita o modo Mascote."
+                  onClick={toggleDetachedPopover}
+                >
+                  Popup independente: {nativeDetached ? 'Sim' : 'Não'}
+                </button>
+                <span className={styles.popupHint}>
+                  {nativeDetached ? 'Mascote disponível' : 'Necessário para o Mascote'}
+                </span>
+              </div>
+            )}
+
             <div className={styles.sectionCaption}>
               {focus?.active ? 'Conta em execução' : 'Recurso em destaque'}
             </div>
@@ -827,17 +845,6 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               {(onOpenUsage || onOpenNexus) && (
                 <button type="button" onClick={onOpenUsage || onOpenNexus}>
                   Abrir Nexus <ExternalLink size={13} />
-                </button>
-              )}
-              {native && (
-                <button
-                  type="button"
-                  disabled={detachedPending}
-                  aria-pressed={nativeDetached}
-                  title="Cria uma segunda janela nativa para o painel e habilita o modo Mascote."
-                  onClick={toggleDetachedPopover}
-                >
-                  Popup independente: {nativeDetached ? 'Sim' : 'Não'}
                 </button>
               )}
               {native && nativeAutoStart?.supported && (
