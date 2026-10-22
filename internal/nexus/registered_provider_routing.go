@@ -49,6 +49,26 @@ func (n *Nexus) ResolveRegisteredProviderPreference(prompt string) (string, bool
 	return provider, ok, nil
 }
 
+// ResolveExplicitReadOnlyProviderDelegate recognizes a user-owned
+// cross-provider review without authorizing autonomous Mission promotion.
+// Provider registration is the first gate; resource health/auth/quota are
+// checked later by the existing specialist allocator.
+func (n *Nexus) ResolveExplicitReadOnlyProviderDelegate(prompt string) (string, bool, error) {
+	if n == nil || !providerRoutingRequested(prompt) {
+		return "", false, nil
+	}
+	provider, found, err := n.ResolveRegisteredProviderPreference(prompt)
+	if err != nil || !found {
+		return "", false, err
+	}
+	requirements := ClassifyTaskRequirements(prompt)
+	mode, ok := AgentModeForRole(requirements.Role)
+	if !ok || !mode.ReadOnlyByDefault || requirements.RequiresDecomposition {
+		return "", false, nil
+	}
+	return provider, true, nil
+}
+
 func resolveRegisteredProviderPreference(prompt string, registered []string) (string, bool) {
 	// A provider name is routing authority only when the user couples it to an
 	// execution/delegation verb. Incidental prose such as "the Codex docs" must
