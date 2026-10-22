@@ -132,3 +132,26 @@ func TestGuardianTrayModeAndFallback(t *testing.T) {
 		t.Fatal("Wayland cannot force unsupported global popup positioning")
 	}
 }
+
+func TestExplicitBarPreferenceSurvivesMascotDefault(t *testing.T) {
+	manager := NewHUDWindowStateManager(filepath.Join(t.TempDir(), "hud.json"))
+	state := manager.Load()
+	state.Appearance = HUDAppearanceBar
+	state.Width, state.Height = state.CompactWidth, state.CompactHeight
+	state.DetachedPopover = false
+	if err := manager.Save(state); err != nil {
+		t.Fatal(err)
+	}
+	controller := NewHUDControllerWithDetachedPopover(manager, false)
+	if controller.GetHUDAppearance() != HUDAppearanceBar {
+		t.Fatal("explicitly saved BAR must never be replaced with MASCOT")
+	}
+	if manager.Load().DetachedPopover {
+		t.Fatal("explicit opt-out of the independent popup must persist")
+	}
+	restored := compactHUDWindowState(manager.Load())
+	if restored.Width != state.CompactWidth || restored.Height != state.CompactHeight {
+		t.Fatalf("BAR compact geometry must survive a restart: %+v", restored)
+	}
+}
+
