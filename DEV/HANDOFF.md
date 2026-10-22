@@ -1,5 +1,15 @@
 # Handoff
 
+## Handoff — click-through do HUD corrigido @ 047f4348 — 2026-10-21
+
+- Branch `release/v1.0.0`; código `047f4348`, evidência HUD SHA-256 `19c5e299...a1e6a5`.
+- Fix: regiões interativas via `[data-hud-panel]` + watcher nativo 30 ms alternando `WS_EX_TRANSPARENT`; fail-open sem regiões; escopo na janela-cápsula.
+- Prova: `CLICK_THROUGH=PASS` (canto transparente → `Nexus ClickTarget`; cápsula interativa; estado restaurado) em `DEV/validation/local-hud-047f4348/click-through-official/RESULT.json`; 20/20 ciclos e visual carregado OK.
+- Gates verdes: `gofmt`, `go vet`, `go test ./...`, Web quality 97/598, `docs-verify` 192/33.
+- Pendente: click-through do popover destacado (`NOT_TESTED`), confirmação visual humana, assinatura Authenticode, smokes Codex, matriz Linux/macOS.
+- Veredito: `NO_GO_WINDOWS`. Relatório: `DEV/validation/local-hud-047f4348/HOMOLOGATION.md`.
+
+
 ## Handoff — Homologação Windows 7d92b942 — 2026-10-21
 
 - **Branch:** `release/v1.0.0`; código homologado `7d92b9428f5493bab18b2c863532703827e5438f`, HEAD atual `42a6971b` (docs-only, recaptura sintética). Worktree limpo e sincronizado.

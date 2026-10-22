@@ -1,5 +1,14 @@
 # Especificação ativa: IAPro Nexus — Implementação Completa Web + Desktop Multiplataforma
 
+## Estado atualizado — click-through do HUD corrigido @ 047f4348 — 2026-10-21
+
+`release/v1.0.0` em `047f4348` (código). O click-through do HUD foi corrigido: o renderer reporta as regiões interativas (`data-hud-panel`) e um watcher nativo de 30 ms alterna `WS_EX_TRANSPARENT` só fora delas, com fail-open. Evidência real: `CLICK_THROUGH=PASS` (canto transparente atravessa para `Nexus ClickTarget`, cápsula continua interativa) em `DEV/validation/local-hud-047f4348/click-through-official/RESULT.json`.
+
+Gates: `gofmt`, `go vet`, `go test ./...` (Go 1.26.10), Web quality 97/598, `docs-verify` 192/33, HUD 20/20 (`PASS_FUNCTIONAL_PENDING_VISUAL`). HUD SHA-256 `19c5e299...a1e6a5`.
+
+Pendências inalteradas: instalador assinado, 4 gates `NOT_RUN`, Codex interativo, matriz cross-platform, click-through do popover destacado e confirmação visual humana. Veredito de release: `NO_GO_WINDOWS`. Relatório: `DEV/validation/local-hud-047f4348/HOMOLOGATION.md`.
+
+
 ## Estado atualizado — homologação Windows 7d92b942 — 2026-10-21
 
 `release/v1.0.0` em `42a6971b` (docs-only); código homologado `7d92b942`. PR #54 integrado (`c3c518ce`, head `3e140c52`). Gates verdes: `docs-verify` 192/33, contrato de versão, `gofmt`, `go vet`, `go test ./...` (Go 1.26.10), Web quality 96/593, builds Web/HUD e certificação oficial 9 PASS.

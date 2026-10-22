@@ -1,5 +1,15 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-21 — Click-through do HUD nativo (047f4348)
+
+- Defeito de 7d92b942 reproduzido e corrigido: a janela nativa consumia cliques em áreas transparentes porque `pointer-events` do CSS não atravessa o hit-test do SO.
+- Renderer reporta `[data-hud-panel]`; Go converte cursor físico para DIP e alterna `SetIgnoreMouseEvents` (`WS_EX_TRANSPARENT`) a cada 30 ms; zero regiões = fail-open.
+- Evidência real: `CLICK_THROUGH=PASS` em 4 execuções; cápsula continua interativa e o visual não quebrou com `WS_EX_LAYERED` (20/20 ciclos).
+- Harness versionado `scripts/homologate-hud-click-through-windows.ps1` com SHA esperado e exit fail-closed.
+- Gates: `gofmt`/`go vet`/`go test`, Web quality 97/598, `docs-verify` 192/33; docs recapturadas em 047f4348.
+- Veredito: HUD click-through PASS; release segue `NO_GO_WINDOWS` (assinatura, smokes interativos, cross-platform).
+
+
 ## 2026-10-21 — Homologação Windows 1.0.0-beta.10 (release/v1.0.0 @ 7d92b942)
 
 - Remoto baixado: 165 commits acumulados desde `24a2396d`, incluindo o merge `c3c518ce` do PR #54 (`3e140c52`) e a série `hud/guardian` (mascote, bandeja e popover destacado).

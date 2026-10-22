@@ -1,5 +1,18 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-21 — Click-through do HUD corrigido em 047f4348
+
+- **PASS** `gofmt`, `go vet ./...`, `go test -count=1 ./...` (Go 1.26.10).
+- **PASS** Web `npm run quality`: 97 arquivos / 598 testes.
+- **PASS** `docs-verify`: 192 Markdown / 33 assets, manifesto em `047f4348`.
+- **PASS** build HUD `production`, SHA-256 `19c5e299...a1e6a5`.
+- **PASS** click-through real: `RESULT.json` com `verdict: PASS`, canto transparente atravessa, cápsula interativa, estado restaurado.
+- **PASS (funcional)** HUD 20/20 ciclos (`PASS_FUNCTIONAL_PENDING_VISUAL`).
+- **NOT_TESTED** click-through no popover destacado; confirmação visual humana.
+- **BLOCKED_EXTERNAL** assinatura; **NOT_RUN** smokes Codex/multi-conta.
+- Veredito: `NO_GO_WINDOWS`. Relatório: `DEV/validation/local-hud-047f4348/HOMOLOGATION.md`.
+
+
 ## 2026-10-21 — Homologação Windows da release em 7d92b942
 
 - **PASS** `docs-verify`: 192 Markdown / 33 assets, manifesto em `7d92b942`.
