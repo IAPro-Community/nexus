@@ -394,11 +394,10 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       .then(() => {
         setNativeDetached(next);
         setExpanded(false);
-        if (!next) setNativeAppearance((current) => (current === 'MASCOT' ? 'BAR' : current));
         toast.success(
           next
-            ? 'Popup independente ativado. O modo Mascote está disponível.'
-            : 'Popup independente desativado.',
+            ? 'Popup independente ativado.'
+            : 'Popup independente desativado. Mascote permanece disponível.',
         );
       })
       .catch((error: unknown) => {
@@ -616,7 +615,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                   aria-pressed={nativeDetached}
                   title={
                     nativePopupSupported
-                      ? 'Cria uma segunda janela nativa para o painel e habilita o modo Mascote.'
+                      ? 'Exibe detalhes em uma segunda janela; não altera sua preferência por Mascote ou Barra.'
                       : 'Popup independente indisponível nesta sessão Wayland.'
                   }
                   onClick={toggleDetachedPopover}
@@ -627,8 +626,8 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                   {!nativePopupSupported
                     ? 'Indisponível no Wayland'
                     : nativeDetached
-                      ? 'Mascote disponível'
-                      : 'Necessário para o Mascote'}
+                      ? 'Detalhes em janela separada'
+                      : 'Detalhes na mesma janela'}
                 </span>
               </div>
             )}
