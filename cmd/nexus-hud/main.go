@@ -50,6 +50,10 @@ func main() {
 	// settings surface can persist the choice so it survives restarts.
 	detachedRequested := os.Getenv("NEXUS_HUD_DETACHED_POPOVER") == "1" || windowState.DetachedPopover
 	hudController := desktop.NewHUDControllerWithDetachedPopover(stateManager, detachedRequested)
+	// The controller may recover a persisted mascot into BAR when detached
+	// windows are unavailable (notably Wayland). Reload after construction:
+	// using the earlier snapshot would create an undersized BAR webview.
+	windowState = stateManager.Load()
 
 	var window application.Window
 
