@@ -582,7 +582,6 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 {native && (
                   <GuardianModeSelector
                     appearance={nativeAppearance}
-                    detachedAvailable={nativeDetached}
                     pending={appearancePending}
                     onSelect={chooseAppearance}
                   />
@@ -907,7 +906,6 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               {native && (
                 <GuardianModeSelector
                   appearance={nativeAppearance}
-                  detachedAvailable={nativeDetached}
                   pending={appearancePending}
                   onSelect={chooseAppearance}
                 />
