@@ -268,6 +268,15 @@ type HUDController struct {
 	// from the browser. The legacy single-window path remains the fallback.
 	detached bool
 	expanded bool
+
+	// Transparent surfaces must not swallow clicks meant for the window behind
+	// the HUD. The renderer reports the interactive rectangles and the watcher
+	// polls the cursor to toggle native click-through.
+	hitMu       sync.RWMutex
+	hitRegions  []HUDHitRegion
+	hitStop     chan struct{}
+	hitOnce     sync.Once
+	hitIgnoring bool
 }
 
 func NewHUDController(manager *HUDWindowStateManager) *HUDController {
@@ -372,6 +381,7 @@ func (h *HUDController) ServiceStartup(_ context.Context, _ application.ServiceO
 }
 
 func (h *HUDController) ServiceShutdown() error {
+	h.stopHUDHitWatcher()
 	h.closeDetachedHUD()
 	_ = h.CaptureHUDWindowState()
 	h.mu.Lock()

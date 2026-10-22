@@ -50,6 +50,16 @@ export interface HudSizePreset {
   expandedHeight: number;
 }
 
+// Rectangle in CSS pixels (relative to the HUD viewport) that must keep native
+// mouse input. Everything outside these rectangles is a transparent surface and
+// must let the click reach the window behind the HUD.
+export interface HudHitRegion {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 type WailsV3Invoker = (methodName: string, ...args: unknown[]) => Promise<unknown>;
 
 const runtimeInvoker: WailsV3Invoker = async (methodName, ...args) =>
@@ -108,4 +118,6 @@ export const hudV3 = {
   setAutoStartEnabled: (enabled: boolean) =>
     call<void>('HUDController', 'SetHUDAutoStartEnabled', enabled),
   setAutoHide: (enabled: boolean) => call<void>('HUDController', 'SetHUDAutoHide', enabled),
+  setHitRegions: (regions: HudHitRegion[]) =>
+    call<void>('HUDController', 'SetHUDHitRegions', regions),
 };

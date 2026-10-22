@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ThemeProvider } from '../design-system';
 import { initSession } from '../api';
 import { NexusHud } from '../features/hud/NexusHud';
+import { useHudHitRegions } from '../features/hud/useHudHitRegions';
 import { getPlatformBridge, hudV3, isDesktopApp } from '../platform';
 import styles from './DesktopHudApp.module.scss';
 
@@ -17,6 +18,9 @@ export const DesktopHudApp: React.FC = () => {
   const popupView =
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('hudView') === 'popover';
+  // Only the capsule window owns the native click-through watcher. The detached
+  // popover is a second native window with its own focus lifecycle.
+  useHudHitRegions(!popupView);
   const [authenticated, setAuthenticated] = useState(false);
   const [autoStartSupported, setAutoStartSupported] = useState(false);
   const [autoStartEnabled, setAutoStartEnabled] = useState(false);
@@ -26,15 +30,22 @@ export const DesktopHudApp: React.FC = () => {
     if (typeof document === 'undefined') return;
     const doc = document.documentElement;
     const body = document.body;
+    const rootElement = document.getElementById('root');
     const prevDocBg = doc.style.backgroundColor;
     const prevBodyBg = body.style.backgroundColor;
+    const prevRootPointerEvents = rootElement?.style.pointerEvents ?? '';
     doc.style.backgroundColor = 'transparent';
     body.style.backgroundColor = 'transparent';
     doc.dataset.nativeHud = 'true';
     body.dataset.nativeHud = 'true';
+    // The root div spans the whole native window; without this it would be
+    // reported as an interactive region and transparent margins would keep
+    // swallowing clicks.
+    if (rootElement) rootElement.style.pointerEvents = 'none';
     return () => {
       doc.style.backgroundColor = prevDocBg;
       body.style.backgroundColor = prevBodyBg;
+      if (rootElement) rootElement.style.pointerEvents = prevRootPointerEvents;
       delete doc.dataset.nativeHud;
       delete body.dataset.nativeHud;
     };
