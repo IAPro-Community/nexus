@@ -2378,3 +2378,9 @@ exus-hud.exe 8364a942, servidor PID 24184 na 13000, HUD PID 21168 --linked). O e
 
 
 exus-desktop.exe e o HUD instalado foram exercitados no perfil real: desktop anexa ao Core na 13000 e renderiza o workspace; HUD habilita o popup, aplica Mascote (136x112) e volta para Bandeja. Estado final preservado: ppearance: TRAY + detachedPopover: true (HUD oculto, Mascote liberado). Evidência em DEV/validation/mascot-toggle-f789db63/real-profile/ e notas em REAL_PROFILE.md.
+
+## Handoff — sincronização 1.0/1.1 e branches — 2026-10-22
+
+`release/v1.0.0` = `0ac9d8ed` (docs-only sobre `f789db63`); `release/v1.1.0` = `c01cd04a` (sync da 1.0 + correções de build). PRs: #59 HUD fix (mergeable, aguardando review/homologação), #60 mergeado, #57/#58 sincronizados e ainda draft, #55 retargetado para 1.1 mas bloqueado por conflito de arquitetura do HUD (Companion x Guardian Mascot).
+
+Próximo: (1) revisar/mergear #59; (2) decidir o guardião canônico da 1.1 e resolver #55; (3) decidir destino de `fix/beta8-manual-opaque-quota` (não está na 1.0; PR #52 fechado); (4) rodar homologação exact-SHA da 1.0 — Authenticode, smokes interativos, matriz Linux/macOS e CI same-SHA continuam bloqueando o GO. Veredito: `NO_GO_WINDOWS`.

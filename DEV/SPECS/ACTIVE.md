@@ -1,5 +1,11 @@
 # Especificação ativa: IAPro Nexus — Implementação Completa Web + Desktop Multiplataforma
 
+## Estado atualizado — sincronização 1.0/1.1 e branches — 2026-10-22
+
+`release/v1.1.0` = `c01cd04a`, com o hardening da 1.0 incorporado via PR #60. O sync também restaurou a buildabilidade da 1.1 (bloco `var` corrompido em `project_manifest.go`, `strings.ValidUTF8` inexistente, IPv6 entre colchetes no SSH bridge, literais quebrados em testes e `registeredAccountScope` faltando). `release/v1.0.0` = `0ac9d8ed` (docs-only sobre `f789db63`).
+
+PRs abertos: #59 (fix HUD, mergeable, aguardando review/homologação), #57 e #58 (sincronizados com a 1.0, ainda draft; o check "Sanitize self-hosted workspace" fica `queued`), #55 (Companion 1.1, retargetado para 1.1; merge bloqueado por conflito de arquitetura com o Guardian Mascot da 1.0). `fix/beta8-manual-opaque-quota` não está na 1.0 e o PR #52 foi fechado sem merge; destino pendente. Veredito de release permanece `NO_GO_WINDOWS`.
+
 ## Estado atualizado — popup independente/Mascote controlável @ f789db63 — 2026-10-22
 
 `release/v1.0.0` em `f789db63` (código). O modo Mascote deixou de ser inalcançável: o popup independente virou preferência persistida (`HUDWindowState.DetachedPopover`) com toggle no painel do HUD (`Popup independente: Sim/Não`), aplicado em runtime sem reiniciar (segunda janela criada sob demanda; ao habilitar a cápsula volta ao tamanho compacto; ao desabilitar restaura BAR e o painel inline). Evidência real em `DEV/validation/mascot-toggle-f789db63/homologation/RESULT.json` (`PASS`, duas sessões com reinício).

@@ -1792,3 +1792,11 @@ exus-hud.exe 8364a942 (hashes conferem com o build).
 - **PASS** — `nexus-desktop.exe` instalado abriu `IAPro Nexus` `1280x800`, anexou ao Core existente na 13000 e renderizou o workspace real (`DESKTOP_APP.png`).
 - **PASS** — `/api/v1/health` 200 (`1.0.0-beta.10`); rotas protegidas sem sessão retornam 401 `AUTH_REQUIRED`.
 - **NOTA** — o toggle está no rodapé do painel; com muitos provedores é necessário rolar até o fim. Registrado em `real-profile/REAL_PROFILE.md`.
+
+## Sincronização 1.0 → 1.1 e branches — 2026-10-22
+
+- **PASS** — PR #60 (`c01cd04a`): `go build ./...`, `go vet ./...`, `go test -count=1 ./internal/control/remote ./internal/core/flags ./internal/control/registry`, `go test -count=1 ./internal/nexus -run "Manifest|ExecutionTarget|Computer|ManagedExecution"`; web `bun run typecheck`, eslint e `vitest theme.test.ts` 30/30.
+- **PASS** — PR #57 (`3d6d57a2`): `go build ./...`, `go vet ./internal/control/web`, `go test -count=1 ./internal/control/web -run "Worktree|Git"`, web `typecheck`, eslint, prettier e `gitWorktrees.test.ts` 3/3.
+- **PASS** — PR #58 (`87df3429`): web `typecheck`, eslint, prettier e vitest direcionado 56/56.
+- **PASS** — PR #59 (`27f646ea`): `gofmt` limpo, `go vet ./internal/desktop ./internal/executil ./internal/hudlink`, `go test -count=1` nos 3 pacotes; 7 arquivos, +155/−4.
+- **NOT_RUN** — suíte Go completa e quality web completa nos SHAs de sync (CI cobre); homologação exact-SHA da 1.0 continua bloqueada.
