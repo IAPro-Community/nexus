@@ -226,6 +226,12 @@ jobs:
         run: |
           set -o pipefail
           bun run test:e2e:surface 2>&1 | tee "$RUNNER_TEMP/nexus-browser-surface.log"
+      - id: terminal-split-e2e
+        if: always()
+        working-directory: web
+        run: |
+          set -o pipefail
+          bun run test:e2e:terminal-split 2>&1 | tee "$RUNNER_TEMP/nexus-browser-terminal-split.log"
       - id: capacity-e2e
         if: always()
         working-directory: web
@@ -288,6 +294,7 @@ jobs:
         run: |
           test '${{ steps.browser-e2e.outcome }}' = success
           test '${{ steps.surface-e2e.outcome }}' = success
+          test '${{ steps.terminal-split-e2e.outcome }}' = success
           test '${{ steps.capacity-e2e.outcome }}' = success
           test '${{ steps.hud-e2e.outcome }}' = success
           test '${{ steps.composer-spine-e2e.outcome }}' = success
