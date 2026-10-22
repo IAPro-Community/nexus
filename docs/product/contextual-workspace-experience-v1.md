@@ -64,3 +64,7 @@ Nenhum novo PTY, renderer, scheduler, modelo de memória, marketplace, runtime r
 - O botão de submissão impede invocações concorrentes e o diálogo impede fechamento durante a inicialização.
 
 A seleção automática do modelo continua bloqueada até que o Direct obtenha um catálogo confiável de modelos compatíveis por perfil. Não criar lista hardcoded nem tratar nomes de modelos digitados como certificação.
+
+## Split — resize do Project Shell
+
+O `AgentTerminal` já observava mudanças de tamanho do contêiner. O `TerminalPane` do Project Shell agora também observa o contêiner com `ResizeObserver`, agendando o `FitAddon` no próximo frame durante o arraste do Split. Ao desmontar, o observer e o frame pendente são descartados. Continua sendo obrigatório confirmar resize PTY real no browser/ConPTY/macOS.

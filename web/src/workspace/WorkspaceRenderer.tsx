@@ -1147,7 +1147,17 @@ const TerminalsHost: React.FC<{
                   style={{ order: 1 }}
                   onPointerDown={beginSplitResize}
                   onPointerMove={updateSplitResize}
-                  onPointerUp={() => window.dispatchEvent(new Event('resize'))}
+                  onPointerUp={(event) => {
+                    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                      event.currentTarget.releasePointerCapture(event.pointerId);
+                    }
+                    window.dispatchEvent(new Event('resize'));
+                  }}
+                  onPointerCancel={(event) => {
+                    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                      event.currentTarget.releasePointerCapture(event.pointerId);
+                    }
+                  }}
                   onKeyDown={(event) => {
                     const orientation = effectiveSplitOrientation;
                     const increment =

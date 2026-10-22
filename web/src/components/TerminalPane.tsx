@@ -457,6 +457,17 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     if (panel)
       panelObserver?.observe(panel, { attributes: true, attributeFilter: ['data-active'] });
     window.addEventListener('resize', handleWindowResize);
+    // Project Shells used to resize only on window events. Split panes change
+    // their container size without resizing the browser window.
+    let fitFrame: number | undefined;
+    const sizeObserver = new ResizeObserver(() => {
+      if (fitFrame !== undefined || disposed) return;
+      fitFrame = window.requestAnimationFrame(() => {
+        fitFrame = undefined;
+        safeFit();
+      });
+    });
+    if (containerRef.current) sizeObserver.observe(containerRef.current);
 
     return () => {
       disposed = true;
@@ -483,6 +494,8 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
         // ignore
       }
       window.removeEventListener('resize', handleWindowResize);
+      sizeObserver.disconnect();
+      if (fitFrame !== undefined) window.cancelAnimationFrame(fitFrame);
       window.cancelAnimationFrame(initialFit);
       if (flushFrame !== undefined) window.cancelAnimationFrame(flushFrame);
       panelObserver?.disconnect();
