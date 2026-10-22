@@ -79,7 +79,9 @@ export const DirectSessionLauncher: React.FC<{
   const [name, setName] = useState('');
   const [taskKind, setTaskKind] = useState<DirectTaskKind>('coding');
   const [modelOverride, setModelOverride] = useState('');
-  const [preferredProvider, setPreferredProvider] = useState(() => directSchedulerContext(project.resource_policy).preferProvider);
+  const [preferredProvider, setPreferredProvider] = useState(
+    () => directSchedulerContext(project.resource_policy).preferProvider,
+  );
   const [recommendation, setRecommendation] = useState<RecommendationResult | null>(null);
   const [recommendationError, setRecommendationError] = useState(false);
   const manualChoice = useRef(false);
@@ -97,13 +99,15 @@ export const DirectSessionLauncher: React.FC<{
     setModelOverride('');
     setPreferredProvider(directSchedulerContext(project.resource_policy).preferProvider);
     setName('');
+    setError('');
   }, [open, project.id, project.resource_policy]);
 
   useEffect(() => {
     if (!open) return;
     let mounted = true;
     setLoading(true);
-    setError('');
+    // Preserve a recoverable start error: changing filters must not hide the
+    // identity of an Agent whose runtime might already be alive.
     setRecommendation(null);
     setRecommendationError(false);
     const context = directSchedulerContext(project.resource_policy, preferredProvider);

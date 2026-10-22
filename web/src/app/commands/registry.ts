@@ -84,8 +84,9 @@ export function filterCommands(commands: NexusCommand[], query: string): NexusCo
           .filter(Boolean)
           .join(' '),
       );
-      if (!terms.every((term) => termMatches(term, haystack)))
+      if (!terms.every((term) => termMatches(term, haystack))) {
         return { command, index, score: 0 };
+      }
       const exactTerms = terms.every((term) => haystack.includes(term));
       const score = !needle
         ? 1
