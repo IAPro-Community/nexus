@@ -95,3 +95,29 @@ func TestDetachedHUDWindowOptionsStartHiddenWithSeparateRoute(t *testing.T) {
 		t.Fatal("opening the popup must never enlarge the compact capsule")
 	}
 }
+
+func TestGuardianMascotAndTrayNativeWindowContracts(t *testing.T) {
+	state := desktop.HUDWindowState{
+		Width:      desktop.HUDMascotWidth,
+		Height:     desktop.HUDMascotHeight,
+		Appearance: desktop.HUDAppearanceMascot,
+	}
+	mascot := hudWindowOptions(state)
+	if mascot.MinWidth > mascot.Width || mascot.Hidden || !mascot.Frameless {
+		t.Fatalf("mascot window must be small, visible and borderless: %+v", mascot)
+	}
+	if !mascot.Mac.DisableShadow || !mascot.Windows.DisableFramelessWindowDecorations ||
+		!mascot.Linux.WindowIsTranslucent {
+		t.Fatal("mascot must use cross-platform transparent native chrome")
+	}
+	state.Appearance = desktop.HUDAppearanceTray
+	state.Width, state.Height = 220, 60
+	tray := hudWindowOptions(state)
+	if !tray.Hidden || tray.Width != 220 || tray.MinWidth != 80 {
+		t.Fatalf("tray startup must hide capsule and preserve a recoverable full-size bar: %+v", tray)
+	}
+	popup := hudDetachedPopupOptions(state)
+	if !popup.Hidden || popup.Name != desktop.HUDPopupWindowName {
+		t.Fatalf("detached detail window must remain hidden until requested: %+v", popup)
+	}
+}

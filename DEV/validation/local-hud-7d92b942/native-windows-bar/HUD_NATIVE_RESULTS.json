@@ -1,0 +1,16 @@
+{
+  "sha": "7d92b9428f5493bab18b2c863532703827e5438f",
+  "platform": "windows",
+  "type": "native_interactive_mouse",
+  "presentation": "legacy_single_window",
+  "cycles_requested": 20,
+  "cycles_completed": 20,
+  "binary_sha256": "8dab24a7f616fe6fb720dc50d33cd6f6b6802328993614db2d987eafb48dcefb",
+  "screenshot_compact": "HUD_BEFORE.png",
+  "screenshot_expanded": "HUD_EXPANDED.png",
+  "verdict": "PASS_FUNCTIONAL_PENDING_VISUAL",
+  "failure": null,
+  "visual_shadow_review": "NOT_TESTED",
+  "transparent_click_through": "NOT_TESTED",
+  "note": "Geometry and real mouse were tested; visual shadow and click-through require screenshot/manual review."
+}

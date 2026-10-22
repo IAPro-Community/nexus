@@ -152,12 +152,12 @@ func TestServiceApplyRefusesCurrentSignedRelease(t *testing.T) {
 	keyring.AddKey("test-key", pub)
 	svc := NewService(ServiceConfig{
 		RegistryURL: server.URL + "/manifest.json",
-		KeyRing: keyring,
-		CurrentVer: manifest.Version,
-		CurrentSHA: sha[:7],
-		Channel: "beta",
-		Method: MethodStandalone,
-		ExecPath: filepath.Join(t.TempDir(), "nexus"),
+		KeyRing:     keyring,
+		CurrentVer:  manifest.Version,
+		CurrentSHA:  sha[:7],
+		Channel:     "beta",
+		Method:      MethodStandalone,
+		ExecPath:    filepath.Join(t.TempDir(), "nexus"),
 	})
 	if _, err := svc.Apply(context.Background()); !errors.Is(err, ErrNoUpdateAvailable) {
 		t.Fatalf("same SHA must not install again, got %v", err)

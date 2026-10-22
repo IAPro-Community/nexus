@@ -1,0 +1,13 @@
+{
+  "sha": "7d92b9428f5493bab18b2c863532703827e5438f",
+  "platform": "windows",
+  "type": "native_transparent_click_through",
+  "hud_window": { "x": 1688, "y": 964, "width": 220, "height": 60 },
+  "click_point": { "x": 1696, "y": 972, "note": "8px inside the window, outside the pill" },
+  "foreground_before": "Nexus HUD",
+  "foreground_after": "Nexus HUD",
+  "expected_foreground_after": "Nexus ClickTarget",
+  "verdict": "FAIL",
+  "note": "The transparent surface of the HUD window captured the click instead of passing it to the window behind.",
+  "screenshot": "HUD_CLICK_THROUGH.png"
+}

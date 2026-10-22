@@ -17,6 +17,11 @@ import (
 
 const (
 	HUDPopupWindowName       = "Nexus HUD Popup"
+	HUDAppearanceBar         = "BAR"
+	HUDAppearanceMascot      = "MASCOT"
+	HUDAppearanceTray        = "TRAY"
+	HUDMascotWidth           = 108
+	HUDMascotHeight          = 112
 	HUDPlacementTopLeft      = "TOP_LEFT"
 	HUDPlacementTopCenter    = "TOP_CENTER"
 	HUDPlacementTopRight     = "TOP_RIGHT"
@@ -56,9 +61,14 @@ type HUDWindowState struct {
 	ExpandedWidth  int     `json:"expandedWidth"`
 	ExpandedHeight int     `json:"expandedHeight"`
 	Mode           string  `json:"mode"`
+	Appearance     string  `json:"appearance"`
 	Opacity        float64 `json:"opacity"`
 	AlwaysOnTop    bool    `json:"alwaysOnTop"`
 	AutoHide       bool    `json:"autoHide"`
+	// DetachedPopover is the persisted opt-in for the independent native
+	// popup. It is required by the mascot presentation and can be toggled in
+	// the HUD settings without restarting the application.
+	DetachedPopover bool `json:"detachedPopover,omitempty"`
 }
 
 // HUDSizePreset is the native window geometry contract exposed to the HUD
@@ -108,6 +118,7 @@ func defaultHUDWindowState() HUDWindowState {
 		ExpandedWidth:  334,
 		ExpandedHeight: 496,
 		Mode:           "AUTO",
+		Appearance:     HUDAppearanceBar,
 		Opacity:        0.96,
 		AlwaysOnTop:    true,
 	}
@@ -125,7 +136,7 @@ func normalizeHUDWindowState(state HUDWindowState) HUDWindowState {
 	if strings.TrimSpace(state.DisplayID) == "" {
 		state.DisplayID = defaults.DisplayID
 	}
-	if state.Width < 190 || state.Width > 1200 {
+	if state.Width < 80 || state.Width > 1200 {
 		state.Width = defaults.Width
 	}
 	if state.Height < 48 || state.Height > 900 {
@@ -154,6 +165,9 @@ func normalizeHUDWindowState(state HUDWindowState) HUDWindowState {
 	}
 	if strings.TrimSpace(state.Mode) == "" {
 		state.Mode = defaults.Mode
+	}
+	if !validHUDAppearance(state.Appearance) {
+		state.Appearance = defaults.Appearance
 	}
 	return state
 }
@@ -254,10 +268,22 @@ type HUDController struct {
 	manager *HUDWindowStateManager
 	caps    HUDPlatformCapabilities
 	ready   bool
-	// Detached mode is configured at process startup and is never toggled
-	// from the browser. The legacy single-window path remains the fallback.
-	detached bool
-	expanded bool
+	// Detached mode creates a second native window for the expanded panel
+	// (required by the mascot). It can be enabled at startup or toggled by the
+	// user from the HUD settings; the legacy single-window path is the fallback.
+	detachedMu   sync.RWMutex
+	detached     bool
+	popupFactory func() (application.Window, error)
+	expanded     bool
+
+	// Transparent surfaces must not swallow clicks meant for the window behind
+	// the HUD. The renderer reports the interactive rectangles and the watcher
+	// polls the cursor to toggle native click-through.
+	hitMu       sync.RWMutex
+	hitRegions  []HUDHitRegion
+	hitStop     chan struct{}
+	hitOnce     sync.Once
+	hitIgnoring bool
 }
 
 func NewHUDController(manager *HUDWindowStateManager) *HUDController {
@@ -274,11 +300,37 @@ func NewHUDControllerWithDetachedPopover(manager *HUDWindowStateManager, detache
 	if runtime.GOOS == "linux" && hudSession() == "wayland" {
 		detached = false
 	}
+	// If detached mode is disabled (including Wayland), restore a usable bar
+	// instead of rendering 220 DIP content inside a 108 DIP mascot window.
+	if !detached {
+		state := manager.Load()
+		if state.Appearance == HUDAppearanceMascot {
+			state.Appearance = HUDAppearanceBar
+			state.Width, state.Height = state.CompactWidth, state.CompactHeight
+			_ = manager.Save(state)
+		}
+	}
 	return &HUDController{manager: manager, caps: DefaultHUDPlatformCapabilities(), detached: detached}
 }
 
 func (h *HUDController) GetHUDDetachedPopoverEnabled() bool {
+	h.detachedMu.RLock()
+	defer h.detachedMu.RUnlock()
 	return h.detached
+}
+
+func (h *HUDController) setDetachedEnabled(enabled bool) {
+	h.detachedMu.Lock()
+	h.detached = enabled
+	h.detachedMu.Unlock()
+}
+
+// SetDetachedPopupFactory installs the native window factory used when the
+// user enables the independent popup after the application has started.
+func (h *HUDController) SetDetachedPopupFactory(factory func() (application.Window, error)) {
+	h.detachedMu.Lock()
+	h.popupFactory = factory
+	h.detachedMu.Unlock()
 }
 
 func (h *HUDController) GetHUDExpanded() bool {
@@ -291,7 +343,7 @@ func (h *HUDController) GetHUDExpanded() bool {
 // popup (for example Escape). It intentionally does not call Hide again:
 // WindowHide must never recurse into itself.
 func (h *HUDController) NotifyHUDPopupHidden() {
-	if h.detached {
+	if h.GetHUDDetachedPopoverEnabled() {
 		h.setHUDExpandedState(false)
 	}
 }
@@ -305,7 +357,7 @@ func (h *HUDController) setHUDExpandedState(expanded bool) {
 // closeDetachedHUD is called on popup focus loss. It must never collapse or
 // hide the compact capsule, even if auto-hide is configured.
 func (h *HUDController) closeDetachedHUD() {
-	if !h.detached {
+	if !h.GetHUDDetachedPopoverEnabled() {
 		return
 	}
 	h.setHUDExpandedState(false)
@@ -315,7 +367,7 @@ func (h *HUDController) closeDetachedHUD() {
 }
 
 func (h *HUDController) detachedPopupWindow() (application.Window, bool) {
-	if !h.detached {
+	if !h.GetHUDDetachedPopoverEnabled() {
 		return nil, false
 	}
 	app := application.Get()
@@ -352,6 +404,7 @@ func (h *HUDController) ServiceStartup(_ context.Context, _ application.ServiceO
 }
 
 func (h *HUDController) ServiceShutdown() error {
+	h.stopHUDHitWatcher()
 	h.closeDetachedHUD()
 	_ = h.CaptureHUDWindowState()
 	h.mu.Lock()
@@ -425,9 +478,10 @@ func (h *HUDController) SaveHUDWindowState(state HUDWindowState) error {
 // Preserve the bottom-right anchor for custom placements.
 func compactHUDWindowState(state HUDWindowState) HUDWindowState {
 	state = normalizeHUDWindowState(state)
-	state.X += state.Width - state.CompactWidth
-	state.Y += state.Height - state.CompactHeight
-	state.Width, state.Height = state.CompactWidth, state.CompactHeight
+	compactWidth, compactHeight := hudCompactDimensions(state)
+	state.X += state.Width - compactWidth
+	state.Y += state.Height - compactHeight
+	state.Width, state.Height = compactWidth, compactHeight
 	return state
 }
 
@@ -475,7 +529,7 @@ func (h *HUDController) CaptureHUDWindowState() error {
 }
 
 func (h *HUDController) SetHUDExpanded(expanded bool) error {
-	if h.detached {
+	if h.GetHUDDetachedPopoverEnabled() {
 		return h.setHUDDetachedExpanded(expanded)
 	}
 	window, ok := h.nativeWindow()
@@ -526,7 +580,7 @@ func (h *HUDController) GetHUDSizePresets() []HUDSizePreset {
 // SetHUDSizePreset persists and applies a named geometry while keeping the
 // bottom-right anchor stable. It is used by the native HUD settings surface.
 func (h *HUDController) SetHUDSizePreset(preset string, expanded bool) error {
-	if h.detached {
+	if h.GetHUDDetachedPopoverEnabled() {
 		return h.setDetachedHUDSizePreset(preset)
 	}
 	window, ok := h.nativeWindow()
@@ -588,7 +642,7 @@ func (h *HUDController) MoveHUD(dx, dy int) error {
 	if err := h.manager.Save(state); err != nil {
 		return err
 	}
-	if h.detached && h.GetHUDExpanded() {
+	if h.GetHUDDetachedPopoverEnabled() && h.GetHUDExpanded() {
 		return h.positionDetachedHUDPopup(window)
 	}
 	return nil
