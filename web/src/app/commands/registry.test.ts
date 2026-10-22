@@ -102,13 +102,13 @@ describe('typo tolerant quick search', () => {
 
   it('preserves exact matches ahead of typo matches', () => {
     expect(filterCommands([
-      { id: 'typo', kind: 'project', label: 'Progeto', group: 'Projetos', run: () => undefined },
-      { id: 'exact', kind: 'project', label: 'Projeto', group: 'Projetos', run: () => undefined },
+      { id: 'typo', kind: 'project', label: 'Progeto', group: 'Workspace', run: () => undefined },
+      { id: 'exact', kind: 'project', label: 'Projeto', group: 'Workspace', run: () => undefined },
     ], '#projeto').map((item) => item.id)).toEqual(['exact', 'typo']);
   });
 
   it('never fuzzy matches short identifiers or scopes', () => {
-    expect(filterCommands(commands, '#ed')).toEqual([]);
+    expect(filterCommands(commands, '#ex')).toEqual([]);
     expect(filterCommands(commands, '@rvs')).toEqual([]);
     expect(filterCommands(commands, '#')).toHaveLength(1);
   });
