@@ -228,3 +228,42 @@ export function directResourcePolicy(value: string | undefined): string {
   const normalized = policy.trim().toUpperCase();
   return knownResourcePolicies.has(normalized) ? normalized : 'BALANCED';
 }
+
+export interface DirectSchedulerContext {
+  policy: string;
+  preferProvider: string;
+}
+
+/**
+ * Project.resource_policy is an untrusted, historical JSON string. A
+ * PREFER_PROVIDER request without an explicit provider is not a preference.
+ */
+export function directSchedulerContext(
+  value: string | undefined,
+  selectedProvider = '',
+): DirectSchedulerContext {
+  let preferred = '';
+  try {
+    const parsed: unknown = JSON.parse(value || '{}');
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      const config = parsed as Record<string, unknown>;
+      const raw = config.prefer_provider ?? config.preferred_provider ?? config.provider;
+      if (typeof raw === 'string') preferred = raw.trim().toLowerCase();
+    }
+  } catch {
+    // Legacy enum values are handled by directResourcePolicy below.
+  }
+  const override = selectedProvider.trim().toLowerCase();
+  const preferProvider = /^[a-z0-9][a-z0-9_-]{0,63}$/.test(override || preferred)
+    ? override || preferred
+    : '';
+  const configured = directResourcePolicy(value);
+  // The user's explicit preferred provider wins over passive balancing.
+  // Without a provider there is nothing for PREFER_PROVIDER to promote.
+  const policy = preferProvider
+    ? 'PREFER_PROVIDER'
+    : configured === 'PREFER_PROVIDER'
+      ? 'BALANCED'
+      : configured;
+  return { policy, preferProvider };
+}

@@ -812,6 +812,10 @@ export const en = {
     edgesCount_other: '{{count}} edges',
   },
   directSession: {
+    preferProvider: 'Prefer provider (optional)',
+    providerAutomatic: 'Automatic (ResourceScheduler)',
+    recoverableStartError: 'Agent {{agentId}} may have started: {{message}}. Check the Agents panel before retrying.',
+    startedButNotOpened: 'Agent {{agentId}} is running, but could not be opened: {{message}}. Open it from Agents.',
     taskKind: 'Task specialization',
     task: {
       coding: 'Coding',
@@ -2831,6 +2835,10 @@ export const ptBR = {
     edgesCount_other: '{{count}} conexões',
   },
   directSession: {
+    preferProvider: 'Preferir provedor (opcional)',
+    providerAutomatic: 'Automático (ResourceScheduler)',
+    recoverableStartError: 'O agente {{agentId}} pode ter iniciado: {{message}}. Confira em Agentes antes de tentar novamente.',
+    startedButNotOpened: 'O agente {{agentId}} está em execução, mas não foi possível abrir: {{message}}. Abra pela lista de Agentes.',
     taskKind: 'Especialidade da tarefa',
     task: {
       coding: 'Codificação',
@@ -4863,6 +4871,10 @@ export const es = {
     edgesCount_other: '{{count}} conexiones',
   },
   directSession: {
+    preferProvider: 'Preferir proveedor (opcional)',
+    providerAutomatic: 'Automático (ResourceScheduler)',
+    recoverableStartError: 'Es posible que el agente {{agentId}} haya iniciado: {{message}}. Compruébelo en Agentes antes de reintentar.',
+    startedButNotOpened: 'El agente {{agentId}} está ejecutándose, pero no se pudo abrir: {{message}}. Ábralo desde Agentes.',
     taskKind: 'Especialidad de la tarea',
     task: {
       coding: 'Programación',

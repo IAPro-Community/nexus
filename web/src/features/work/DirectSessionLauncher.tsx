@@ -23,9 +23,11 @@ import {
   quotaTruthState,
   recommendedDirectAccountId,
   directResourcePolicy,
+  directSchedulerContext,
 } from './directSessionModel';
 import resourceStyles from '../../nexus/ResourcePicker.module.scss';
 import contextualStyles from './ContextualResourceSelection.module.scss';
+import { DirectSessionSetupError, startDirectSession } from './directSessionLifecycle';
 
 type DirectTaskKind = 'coding' | 'planning' | 'review' | 'security';
 const taskRole: Record<DirectTaskKind, string> = {
@@ -78,9 +80,11 @@ export const DirectSessionLauncher: React.FC<{
   const [name, setName] = useState('');
   const [taskKind, setTaskKind] = useState<DirectTaskKind>('coding');
   const [modelOverride, setModelOverride] = useState('');
+  const [preferredProvider, setPreferredProvider] = useState('');
   const [recommendation, setRecommendation] = useState<RecommendationResult | null>(null);
   const [recommendationError, setRecommendationError] = useState(false);
   const manualChoice = useRef(false);
+  const submitInFlight = useRef(false);
   const [loading, setLoading] = useState(false);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState('');
@@ -90,6 +94,7 @@ export const DirectSessionLauncher: React.FC<{
     manualChoice.current = false;
     setSelectedID('');
     setModelOverride('');
+    setPreferredProvider('');
     setName('');
   }, [open]);
 
@@ -100,7 +105,7 @@ export const DirectSessionLauncher: React.FC<{
     setError('');
     setRecommendation(null);
     setRecommendationError(false);
-    const policy = directResourcePolicy(project.resource_policy);
+    const context = directSchedulerContext(project.resource_policy, preferredProvider);
     void Promise.allSettled([
       nexus.listResources(),
       nexus.recommendResources(
@@ -108,9 +113,10 @@ export const DirectSessionLauncher: React.FC<{
           task_kind: taskKind,
           role: taskRole[taskKind],
           ...(taskKind === 'security' ? { domains: ['security'] } : {}),
+          ...(context.preferProvider ? { prefer_provider: context.preferProvider } : {}),
           source: 'direct_session_launcher',
         },
-        policy,
+        context.policy,
       ),
     ]).then(([resourcesResult, recommendationResult]) => {
       if (!mounted) return;
@@ -147,7 +153,7 @@ export const DirectSessionLauncher: React.FC<{
     return () => {
       mounted = false;
     };
-  }, [open, request?.prompt, taskKind, project.resource_policy]);
+  }, [open, request?.prompt, taskKind, preferredProvider, project.resource_policy]);
 
   const selected = useMemo(
     () => resources.find((resource) => resource.id === selectedID) || null,
@@ -166,30 +172,37 @@ export const DirectSessionLauncher: React.FC<{
   };
 
   const start = async () => {
-    if (!selected || !request || !modelIdValid(modelOverride.trim())) return;
+    if (submitInFlight.current || loading || !selected || !request || !modelIdValid(modelOverride.trim()))
+      return;
+    submitInFlight.current = true;
     setStarting(true);
     setError('');
+    let started: Agent | null = null;
     try {
-      const agent = await nexus.createAgent(
-        project.id,
-        name.trim() || buildDirectAgentName(request.prompt, selected.provider),
-        'developer',
-      );
-      await nexus.selectResource(agent.id, selected.provider, selected.profile, 'MANUAL');
-      await nexus.applyAgentConfig(agent.id, {
+      started = await startDirectSession(nexus, {
+        projectId: project.id,
+        name: name.trim() || buildDirectAgentName(request.prompt, selected.provider),
         provider: selected.provider,
         profile: selected.profile,
-        ...(modelOverride.trim() ? { model: modelOverride.trim() } : {}),
-        isolation: 'project',
+        model: modelOverride.trim() || undefined,
         workspace: project.canonical_path || undefined,
       });
-      await nexus.startAgent(agent.id);
       await refreshAgents();
-      await onStarted(agent, request.prompt);
+      await onStarted(started, request.prompt);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const message = err instanceof Error ? err.message : String(err);
+      if (err instanceof DirectSessionSetupError && err.recovery !== 'deleted') {
+        setError(t('directSession.recoverableStartError', { message, agentId: err.agentId }));
+      } else if (started) {
+        // The runtime is running; never offer to re-create it as a fresh session.
+        setError(t('directSession.startedButNotOpened', { message, agentId: started.id }));
+      } else {
+        setError(message);
+      }
+      await refreshAgents().catch(() => undefined);
     } finally {
+      submitInFlight.current = false;
       setStarting(false);
     }
   };
@@ -203,7 +216,7 @@ export const DirectSessionLauncher: React.FC<{
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={() => { if (!starting) onClose(); }}
       title={
         request?.mode === 'assisted' ? t('directSession.assistedTitle') : t('directSession.title')
       }
@@ -218,6 +231,24 @@ export const DirectSessionLauncher: React.FC<{
         />
 
         <div className={contextualStyles.controls}>
+          <label className={contextualStyles.field}>
+            <span>{t('directSession.preferProvider')}</span>
+            <Select
+              value={preferredProvider}
+              onChange={(provider) => {
+                manualChoice.current = false;
+                setSelectedID('');
+                setPreferredProvider(provider);
+              }}
+              options={[
+                { value: '', label: t('directSession.providerAutomatic') },
+                ...Array.from(new Set(resources.map((item) => item.provider))).sort().map((provider) => ({
+                  value: provider,
+                  label: provider,
+                })),
+              ]}
+            />
+          </label>
           <label className={contextualStyles.field}>
             <span>{t('directSession.taskKind')}</span>
             <Select
@@ -372,7 +403,7 @@ export const DirectSessionLauncher: React.FC<{
           </InlineAlert>
         )}
         <div className="nx-dialog-actions">
-          <Button onClick={onClose}>{t('directSession.cancel')}</Button>
+          <Button disabled={starting} onClick={onClose}>{t('directSession.cancel')}</Button>
           <Button
             tone="brand"
             disabled={

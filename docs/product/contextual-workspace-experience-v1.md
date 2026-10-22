@@ -54,3 +54,13 @@ O Direct Session Launcher passa o tipo de tarefa (`coding`, `planning`, `review`
 ## Não escopo
 
 Nenhum novo PTY, renderer, scheduler, modelo de memória, marketplace, runtime remoto ou sistema de conta é criado. Não há atualização da `release/v1.0.0` nesta branch até os gates e o review do PR serem concluídos.
+
+## Correções de hardening — seleção e criação de agente
+
+- A preferência explícita de provedor é repassada para `requirements.prefer_provider` e ativa `PREFER_PROVIDER` no scheduler existente. O `resource_policy` JSON do Project também pode conter `prefer_provider`. Quando essa política não declara nenhum provedor, o launcher usa `BALANCED` sem inventar afinidade.
+- Se `selectResource` ou `applyAgentConfig` falhar, a criação é desfeita via `deleteAgent`. Falhas no rollback preservam o ID no erro.
+- Se `startAgent` retornar erro, a sessão pode já estar rodando; **não** excluir automaticamente o agente. O usuário é orientado a verificar o painel de Agentes.
+- Falhas de UI/refresh depois de um start bem-sucedido também preservam a sessão.
+- O botão de submissão impede invocações concorrentes e o diálogo impede fechamento durante a inicialização.
+
+A seleção automática do modelo continua bloqueada até que o Direct obtenha um catálogo confiável de modelos compatíveis por perfil. Não criar lista hardcoded nem tratar nomes de modelos digitados como certificação.

@@ -9,6 +9,7 @@ import {
   eligibleDirectResources,
   recommendedDirectAccountId,
   directResourcePolicy,
+  directSchedulerContext,
   quotaTruthState,
 } from './directSessionModel';
 
@@ -204,5 +205,23 @@ describe('project resource policy normalization', () => {
     expect(directResourcePolicy('{}')).toBe('BALANCED');
     expect(directResourcePolicy('{broken')).toBe('BALANCED');
     expect(directResourcePolicy('CUSTOM')).toBe('BALANCED');
+  });
+});
+
+describe('effective Direct scheduler context', () => {
+  it('passes configured provider affinity into the existing scheduler policy', () => {
+    expect(directSchedulerContext('{"policy":"PREFER_PROVIDER","prefer_provider":"codex"}'))
+      .toEqual({ policy: 'PREFER_PROVIDER', preferProvider: 'codex' });
+    expect(directSchedulerContext('{"policy":"BALANCED"}', 'Claude'))
+      .toEqual({ policy: 'PREFER_PROVIDER', preferProvider: 'claude' });
+  });
+  it('does not claim a preference when the policy provides no provider', () => {
+    expect(directSchedulerContext('{"policy":"PREFER_PROVIDER"}'))
+      .toEqual({ policy: 'BALANCED', preferProvider: '' });
+    expect(directSchedulerContext('{}')).toEqual({ policy: 'BALANCED', preferProvider: '' });
+  });
+  it('rejects invalid provider tokens instead of forwarding unchecked affinity', () => {
+    expect(directSchedulerContext('{"prefer_provider":"evil provider"}'))
+      .toEqual({ policy: 'BALANCED', preferProvider: '' });
   });
 });
