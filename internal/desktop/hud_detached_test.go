@@ -76,3 +76,26 @@ func TestDetachedModeKeepsLegacyDefaultAndFailsClosedWithoutWails(t *testing.T) 
 		t.Fatal("native hide must keep the controller collapsed")
 	}
 }
+
+func TestWaylandRejectsRuntimePopupActivation(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("Wayland display sessions exist on Linux")
+	}
+	t.Setenv("XDG_SESSION_TYPE", "wayland")
+	manager := NewHUDWindowStateManager(filepath.Join(t.TempDir(), "hud.json"))
+	controller := NewHUDControllerWithDetachedPopover(manager, false)
+	factoryCalls := 0
+	controller.SetDetachedPopupFactory(func() (application.Window, error) {
+		factoryCalls++
+		return nil, nil
+	})
+	if err := controller.SetHUDDetachedPopoverPreference(true); err == nil {
+		t.Fatal("Wayland must reject on-demand popup activation")
+	}
+	if factoryCalls != 0 {
+		t.Fatal("Wayland must not attempt to create a native detached popup")
+	}
+	if controller.GetHUDDetachedPopoverEnabled() || manager.Load().DetachedPopover {
+		t.Fatal("blocked runtime popup must not persist enabled state")
+	}
+}
