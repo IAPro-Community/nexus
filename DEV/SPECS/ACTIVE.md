@@ -352,3 +352,11 @@ ownership de projeto/agente quando disponível. O lifecycle/process state ainda
 ## Validação Windows Beta 7 — estado 2026-10-07
 
 Project Hub passou na regressão 775×483, e gates web/E2E e smokes Windows passaram no worktree 52f35c04-dirty. Certificação de release aberta: exact-SHA d14154d2 não é HEAD; worktree sujo; signing/update trust root ausentes; a auditoria viva de branches não encontrou ramo Beta 7 novo nem delta de correção/teste pendente para integrar. Ver DEV/validation/current/BETA7_WINDOWS_HOMOLOGATION_20261007.md.
+
+### Implantação — 2026-10-22
+
+955b197f implantado localmente: servidor PID 24184 (HTTP 200, commit 955b197f) e HUD PID 21168 --linked com SHA-256 8364a942...4065, o mesmo artefato que passou no harness do Mascote. O estado do usuário estava em TRAY com o popup desligado; o toggle agora fica disponível no painel. Rollback documentado em DEV/validation/mascot-toggle-f789db63/DEPLOYMENT.md.
+
+### Verificação real — 2026-10-22
+
+Instalação exercitada no perfil do usuário: popup habilitado pelo painel, Mascote aplicado e Bandeja restaurada (eal-profile/RESULT.json PASS); app desktop abriu e anexou ao Core existente. Estado final TRAY + detachedPopover: true.
