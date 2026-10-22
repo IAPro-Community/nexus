@@ -118,3 +118,17 @@ func TestContinuityHopCountAndExcludedLabel(t *testing.T) {
 		t.Fatal("missing current account from exclusion set")
 	}
 }
+
+func TestSelectContinuityTargetAvoidsSharedUpstreamQuota(t *testing.T) {
+	scope := model.AccountScope{ProviderID: "codex", ProfileID: "a", AccountID: "shared", IdentityVersion: "v1"}
+	source := registry.RuntimeSession{ProviderID: "codex", ProfileID: "a", AccountScope: scope}
+	duplicate := continuityTestAccount("codex", "b", 0.90)
+	scope.ProfileID = "b"
+	duplicate.Scope = scope
+	independent := continuityTestAccount("codex", "c", 0.50)
+	independent.Scope = model.AccountScope{ProviderID: "codex", ProfileID: "c", AccountID: "independent", IdentityVersion: "v1"}
+	target, ok := selectContinuityTarget(source, []ProviderAccount{duplicate, independent})
+	if !ok || target.Profile != "c" {
+		t.Fatalf("shared upstream quota is not a fallback target: target=%+v ok=%t", target, ok)
+	}
+}
