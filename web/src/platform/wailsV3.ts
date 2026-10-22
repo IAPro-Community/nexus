@@ -102,6 +102,10 @@ export const hudV3 = {
   getCapabilities: () => call<HudPlatformCapabilities>('HUDController', 'GetHUDCapabilities'),
   getWindowState: () => call<HudWindowState>('HUDController', 'GetHUDWindowState'),
   getDetachedPopoverEnabled: () => call<boolean>('HUDController', 'GetHUDDetachedPopoverEnabled'),
+  getDetachedPopoverPreference: () =>
+    call<boolean>('HUDController', 'GetHUDDetachedPopoverPreference'),
+  setDetachedPopoverPreference: (enabled: boolean) =>
+    call<void>('HUDController', 'SetHUDDetachedPopoverPreference', enabled),
   getExpanded: () => call<boolean>('HUDController', 'GetHUDExpanded'),
   getAppearance: () => call<'BAR' | 'MASCOT' | 'TRAY'>('HUDController', 'GetHUDAppearance'),
   setAppearance: (appearance: 'BAR' | 'MASCOT' | 'TRAY') =>

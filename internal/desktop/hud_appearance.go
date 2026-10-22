@@ -32,7 +32,7 @@ func (h *HUDController) SetHUDAppearance(appearance string) error {
 	if !validHUDAppearance(appearance) {
 		return fmt.Errorf("invalid Nexus HUD appearance %q", appearance)
 	}
-	if appearance == HUDAppearanceMascot && !h.detached {
+	if appearance == HUDAppearanceMascot && !h.GetHUDDetachedPopoverEnabled() {
 		return fmt.Errorf("mascot requires the independent native popup")
 	}
 	window, ok := h.nativeWindow()

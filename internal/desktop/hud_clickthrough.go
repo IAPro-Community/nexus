@@ -95,7 +95,7 @@ func (h *HUDController) watchHUDHitTesting(stop <-chan struct{}) {
 }
 
 func (h *HUDController) applyHUDHitTesting() {
-	if h.detached {
+	if h.GetHUDDetachedPopoverEnabled() {
 		// The detached popover is a second native window with its own focus
 		// lifecycle. Click-through is only proven for the capsule window, so
 		// the split presentation keeps its previous behavior.

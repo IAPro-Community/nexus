@@ -1,5 +1,31 @@
 # Handoff
 
+## Handoff — Archive cleanup verificado no remoto — 2026-10-22
+
+- **Confirmado**: 56 refs `archive/*` + `archived/*` removidos de `origin` (`git ls-remote --heads origin` = 22 heads, 0 archive). A tentativa de 2026-10-21 não havia surtido efeito; reexecutada em 5 lotes e verificada.
+- **Backup intacto**: 69 refs em `refs/backup/archive-20261021/*`, cobrindo os 56 SHAs remotos (0 missing). Tracking local podado.
+- **Restam 22 no remoto**: 15 ativas + 7 `wsl-backup/*`.
+  - Base: `main`, `release/v1.0.0`, `release/v1.1.0`.
+  - Features: `feat/hud-detached-popover`, `feat/nexus-companion-v1.1`, `feat/orca-worktree-visibility-v1`, `feat/v1-contextual-workspace-experience`.
+  - Fixes: `fix/beta7-windows-KIVER-20261007`, `fix/beta8-manual-opaque-quota`, `fix/issue-53-windows-agent-startup`, `fix/release-beta10-windows-closure-20261014`, `fix/v1.0.0-gap-closure-20260930`, `fix/windows-beta10-homologation-20261008`.
+  - Integração/refactor: `integration/v1.0.0-css-and-themes-20261009`, `refactor/v1.0.0-workspace-css-modules-20261009`.
+- **Pendente**: `fix/hud-show-restore-v2` (7dec4b83) é local — push + PR contra `release/v1.0.0`; `wsl-backup/*` removidas só após o merge.
+
+---
+
+## Handoff — Archive Branch Cleanup + HUD Fix Port @ 7dec4b83 — 2026-10-21
+
+- **Remote archive cleanup**: 56 `origin/archive/*` and `origin/archived/*` refs deleted after local backup (69 refs saved to `refs/backup/archive-20261021/*`).
+- **Active branch audit**: 21 non-merged branches inventoried; 13 integrated/superseded branches removed from remote.
+- **HUD fix retarget**: Fixes from `fix/hud-show-restore` (f52dce5c) ported to new branch `fix/hud-show-restore-v2` based on `release/v1.0.0` (ddb99da4).
+- **Key changes**:
+  - `restoreHUDWindowWhenShown()` uses `sync.OnceFunc` to apply persisted geometry on first `WindowShow` event (fixes clipped capsule on first run when ServiceStartup runs before native window exists).
+  - `CommandNoConsole` flag used in `hudlink.Spawn` so GUI child can show its window (CREATE_NO_WINDOW without SW_HIDE).
+- **Branch status**: `fix/hud-show-restore-v2` at 7dec4b83, ready for PR against `release/v1.0.0`.
+- **Pending**: `wsl-backup/*` branches retained until HUD work is merged; scroll fix (dd278d3a) may be cherry-picked separately if browser validation needed.
+
+---
+
 ## Handoff — click-through do HUD corrigido @ 047f4348 — 2026-10-21
 
 - Branch `release/v1.0.0`; código `047f4348`, evidência HUD SHA-256 `19c5e299...a1e6a5`.
@@ -2333,3 +2359,28 @@ Evidência local: UI Automation em Windows 11 `10.0.26200`, binário isolado `ne
 **Fechamento (rebuild `v4`):** `nexus-hud-diag-v4.exe`, SHA-256 `ae64668c16eedbacabc9f91eb0b05a8a3cb6f28f37800ed59a961e4aa5d49674`, instância `com.iapro.nexus.hud.homolog.v4`. `npm run quality` voltou a PASS (93 arquivos/578 testes; Prettier reflow em `NexusHud.tsx`), `go vet`/`go test ./internal/desktop/...` PASS, builds Web/HUD PASS. Smoke: presets `260×70 → 380×560 → 334×496 → 380×560 → 440×640 → 334×496 → 220×60`, alça `24×42`, arraste `-132,-88` px e reinício em `220×60` (`1524,768`). Relatório e capturas em `DEV/validation/local-hud-f6098b8c/native-hud-drag-size/`.
 
 Pendências: Linux/macOS `NOT_TESTED`; `docs-verify` BLOCKED por alterações visuais não commitadas (gate exige SHA imutável); falta validar o SHA final, assinatura, instalador e matriz nativa completa. Não há tag, release ou GO.
+## Handoff — toggle do popup independente/Mascote — 2026-10-22
+
+Worktree `C:\Dev\nexus-hud-validation`, branch `release/v1.0.0`, código `f789db63c8ec9f3498c3822a94ee7c823ec7086c`, `VERSION=1.0.0-beta.10`. HUD homologado: `nexus-hud.exe` SHA-256 `1f3ced07acc02672dd786c3c39cf87a390da9f315e0e654a9e2505f2ab7929de`.
+
+O modo Mascote deixou de ser inalcançável: o popup independente agora é uma preferência persistida (`HUDWindowState.DetachedPopover`) e pode ser ligado/desligado no rodapé do painel do HUD (`Popup independente: Sim/Não`), com efeito imediato — criação sob demanda da segunda janela, restauração do tamanho compacto ao habilitar e volta para a barra ao desabilitar. `main.go` considera `NEXUS_HUD_DETACHED_POPOVER` ou a preferência persistida. O capsule passou a reler o estado nativo no poll de 800 ms para não ficar com aparência/expansão velhas quando a mudança vem do popup.
+
+Evidência: `DEV/validation/mascot-toggle-f789db63/HOMOLOGATION.md` + `homologation/RESULT.json` (PASS) e capturas `MASCOT.png`/`BAR_RESTORED.png`. Harness: `scripts/homologate-hud-mascot-toggle-windows.ps1` (duas sessões, UI Automation real, estado isolado).
+
+Fica aberto: click-through do popover destacado, confirmação visual humana, matriz Linux X11/macOS, assinatura Authenticode/instalador e smokes interativos de Codex/multi-conta. Veredito de release: `NO_GO_WINDOWS`.
+
+### Deploy — 2026-10-22
+
+955b197f está instalado no host (
+exus-hud.exe 8364a942, servidor PID 24184 na 13000, HUD PID 21168 --linked). O estado real do usuário estava em ppearance: TRAY com o popup desligado — ao abrir o painel, o toggle aparece como Popup independente: Não. Rollback em DEV/validation/mascot-toggle-f789db63/DEPLOYMENT.md.
+
+### Instalação verificada no host — 2026-10-22
+
+
+exus-desktop.exe e o HUD instalado foram exercitados no perfil real: desktop anexa ao Core na 13000 e renderiza o workspace; HUD habilita o popup, aplica Mascote (136x112) e volta para Bandeja. Estado final preservado: ppearance: TRAY + detachedPopover: true (HUD oculto, Mascote liberado). Evidência em DEV/validation/mascot-toggle-f789db63/real-profile/ e notas em REAL_PROFILE.md.
+
+## Handoff — sincronização 1.0/1.1 e branches — 2026-10-22
+
+`release/v1.0.0` = `0ac9d8ed` (docs-only sobre `f789db63`); `release/v1.1.0` = `c01cd04a` (sync da 1.0 + correções de build). PRs: #59 HUD fix (mergeable, aguardando review/homologação), #60 mergeado, #57/#58 sincronizados e ainda draft, #55 retargetado para 1.1 mas bloqueado por conflito de arquitetura do HUD (Companion x Guardian Mascot).
+
+Próximo: (1) revisar/mergear #59; (2) decidir o guardião canônico da 1.1 e resolver #55; (3) decidir destino de `fix/beta8-manual-opaque-quota` (não está na 1.0; PR #52 fechado); (4) rodar homologação exact-SHA da 1.0 — Authenticode, smokes interativos, matriz Linux/macOS e CI same-SHA continuam bloqueando o GO. Veredito: `NO_GO_WINDOWS`.
