@@ -85,7 +85,7 @@ export const GuardianModeSelector: React.FC<GuardianModeSelectorProps> = ({
             : mode === 'MASCOT'
               ? detachedAvailable
                 ? 'Exibir mascote flutuante'
-                : 'Ative "Popup independente" nas configurações do HUD para usar o mascote'
+                : 'Para habilitar: inicie o Nexus HUD com NEXUS_HUD_DETACHED_POPOVER=1'
               : 'Ocultar na bandeja (recuperável no ícone do Nexus)'
         }
         disabled={pending || (mode === 'MASCOT' && !detachedAvailable)}
