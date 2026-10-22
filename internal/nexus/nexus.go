@@ -185,6 +185,7 @@ func Default() *Nexus {
 			entitlementService:         entitlement.StaticService{Grants: entitlement.BetaGrants()},
 		}
 		defaultNexus.quotaMonitor = NewQuotaMonitorService(DefaultQuotaDropMonitor(), events.DefaultBus())
+		defaultNexus.wireQuotaContinuity(defaultNexus.quotaMonitor)
 		if st != nil {
 			events.DefaultBus().SetRecorder(func(e events.Event) {
 				projectID, _ := e.Data["project_id"].(string)
