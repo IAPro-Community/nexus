@@ -229,6 +229,10 @@ func (s *QuotaMonitorService) check() {
 		}
 		if remaining, ok := view.BestGroupRemaining(); ok {
 			acc.QuotaRemaining = remaining / 100
+		} else if !acc.RateLimited {
+			// No trustworthy remaining percentage is not zero remaining.
+			// Suppress aggregate fallback notifications and automatic handoff.
+			acc.QuotaTotal = 0
 		}
 		if action := s.monitor.CheckAccount(acc); action != nil &&
 			action.AffectedRuntimeID != "" && action.Kind == string(events.EventQuotaExhausted) {
