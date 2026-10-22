@@ -81,3 +81,53 @@ func TestCanonicalAgentModeRecommendedSkillsAlwaysResolve(t *testing.T) {
 		}
 	}
 }
+
+func TestAgentModeExecutionPreferencesLegacyProviderIsSoft(t *testing.T) {
+	mode, ok := AgentModeForRole("frontend-engineer")
+	if !ok {
+		t.Fatal("frontend-engineer mode missing")
+	}
+	prefs := AgentModeExecutionPreferences(mode, nil)
+	foundLegacy := false
+	for _, target := range prefs.Targets {
+		if target.Legacy {
+			foundLegacy = true
+			if target.Mode != AffinityPrefer {
+				t.Fatalf("legacy provider preference mode=%s want PREFER", target.Mode)
+			}
+		}
+		if target.Mode == AffinityPin {
+			t.Fatalf("specialist preferences must never create PIN: %+v", target)
+		}
+	}
+	if !foundLegacy {
+		t.Fatal("legacy DefaultProvider must remain a low-weight compatibility preference")
+	}
+}
+
+func TestAgentModeExecutionPreferencesRequireCatalogEvidenceForNamedModels(t *testing.T) {
+	mode, _ := AgentModeForRole("frontend-engineer")
+	withoutCatalog := AgentModeExecutionPreferences(mode, nil)
+	for _, target := range withoutCatalog.Targets {
+		if target.Model != "" {
+			t.Fatalf("named model leaked without catalog evidence: %+v", target)
+		}
+	}
+	catalog := NewModelCatalog([]ModelCatalogEntry{{
+		Candidate: ModelCandidate{Provider: "opencode", Model: "kimi"},
+		Source: "test",
+	}})
+	withCatalog := AgentModeExecutionPreferences(mode, catalog)
+	found := false
+	for _, target := range withCatalog.Targets {
+		if target.Model == "kimi" {
+			found = true
+			if target.Mode != AffinityPrefer || !target.RequireCatalogEvidence {
+				t.Fatalf("catalog-backed named model must remain PREFER: %+v", target)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("catalog-backed frontend preference was not projected")
+	}
+}

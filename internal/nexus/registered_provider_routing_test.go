@@ -56,6 +56,31 @@ func TestResolveRegisteredProviderPreferenceSupportsNormalizedSpelling(t *testin
 	}
 }
 
+func TestResolveExplicitReadOnlyProviderDelegateKeepsStickyLeadByDefault(t *testing.T) {
+	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
+	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
+	t.Setenv("AI_CLI_STATE_DIR", t.TempDir())
+	if _, err := profile.Create("codex", "review"); err != nil {
+		t.Fatal(err)
+	}
+	n := &Nexus{}
+	provider, delegated, err := n.ResolveExplicitReadOnlyProviderDelegate("peça ao Codex para revisar isso")
+	if err != nil || !delegated || provider != "codex" {
+		t.Fatalf("expected explicit review delegation to codex, got %q %t %v", provider, delegated, err)
+	}
+	for _, prompt := range []string{
+		"analise a documentação do Codex",
+		"use Codex para implementar uma API",
+		"compare Codex com Claude",
+		"corrija o teste unitário",
+	} {
+		provider, delegated, err = n.ResolveExplicitReadOnlyProviderDelegate(prompt)
+		if err != nil || delegated || provider != "" {
+			t.Fatalf("sticky lead must KEEP %q: provider=%q delegated=%t err=%v", prompt, provider, delegated, err)
+		}
+	}
+}
+
 func TestApplyRegisteredProviderPreferenceToFlowPinsExplicitProvider(t *testing.T) {
 	flow := FlowDefinition{Steps: []FlowStep{{
 		ID:                 "step-1",
