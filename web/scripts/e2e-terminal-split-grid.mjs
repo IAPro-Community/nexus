@@ -20,11 +20,6 @@ const browser = await chromium.launch({
 
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-  // The release enables extra panel scrolling only on the web platform.
-  // Reproduce that specificity in the Split geometry smoke.
-  await page.evaluate(() => {
-    document.documentElement.dataset.nexusPlatform = 'web';
-  });
   for (const { orientation, width, height, ratio } of [
     { orientation: 'vertical', width: 960, height: 480, ratio: 20 },
     { orientation: 'vertical', width: 960, height: 480, ratio: 50 },
@@ -50,6 +45,10 @@ try {
         <div class="divider" role="separator" style="order:1"></div>
       </div>
     `);
+    // setContent replaces documentElement; platform selection belongs after it.
+    await page.evaluate(() => {
+      document.documentElement.dataset.nexusPlatform = 'web';
+    });
     const geometry = await page.evaluate(() => {
       const panes = [...document.querySelectorAll('.splitPane')];
       const separator = document.querySelector('.divider');
