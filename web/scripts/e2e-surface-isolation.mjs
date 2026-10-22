@@ -186,6 +186,34 @@ async function assertIsolation(page, label) {
   return snapshot;
 }
 
+async function assertBrowserPanelCanScroll(page, label) {
+  const result = await page.evaluate(() => {
+    const panel = document.querySelector('.nx-workspace-panel[data-active="true"]');
+    if (!(panel instanceof HTMLElement)) return { error: 'active panel missing' };
+    const platform = document.documentElement.dataset.nexusPlatform;
+    const overflowY = window.getComputedStyle(panel).overflowY;
+    const sentinel = document.createElement('div');
+    sentinel.setAttribute('data-nexus-scroll-probe', '');
+    sentinel.setAttribute('aria-hidden', 'true');
+    sentinel.style.cssText =
+      'position:absolute;left:0;width:1px;height:1px;pointer-events:none;top:' +
+      (panel.clientHeight + 256) +
+      'px';
+    const oldScroll = panel.scrollTop;
+    panel.appendChild(sentinel);
+    panel.scrollTop = 0;
+    panel.scrollTop = 128;
+    const moved = panel.scrollTop;
+    const excess = panel.scrollHeight - panel.clientHeight;
+    sentinel.remove();
+    panel.scrollTop = oldScroll;
+    return { platform, overflowY, moved, excess };
+  });
+  assert.equal(result.platform, 'web', `[${label}] browser platform detection: ${JSON.stringify(result)}`);
+  assert.equal(result.overflowY, 'auto', `[${label}] browser panel scrolling: ${JSON.stringify(result)}`);
+  assert.ok(result.excess > 128 && result.moved > 0, `[${label}] scroll must not be clipped: ${JSON.stringify(result)}`);
+}
+
 async function main() {
   console.log('=== Surface Isolation + Terminal Keep-Alive E2E ===');
   const { server, bootstrapUrl, isolatedProjectPath, isolatedDataDir, getOutput } =
@@ -326,6 +354,7 @@ async function main() {
       for (const target of targets.filter((k) => kinds.includes(k))) {
         await clickProductTab(page, target);
         await assertIsolation(page, `${target}@${vp.width}x${vp.height}`);
+        if (risk) await assertBrowserPanelCanScroll(page, `${target}@${vp.width}x${vp.height}`);
         const shot = path.join(screenshotDir, `e2e_surface_${target}_${vp.width}x${vp.height}.png`);
         await page.screenshot({ path: shot });
       }
