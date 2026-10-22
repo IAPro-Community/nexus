@@ -333,6 +333,48 @@ func TestAttentionDetectorShellQuestionnaireIsNeedsUser(t *testing.T) {
 	}
 }
 
+func TestAttentionDetectorAGYQuestionnaireWithLongTUIMenu(t *testing.T) {
+	detector := NewAttentionDetector("rt-agy-menu", "agy", "default", "/workspace/agy-project", nil)
+	// The question counter can be several rows above the final keyboard
+	// instructions, unlike line-based Codex and Claude prompts.
+	detector.ProcessChunk([]byte("\r\nQuestion 1 of 3\r\nWhich plan should we implement?\r\n1. Small\r\n2. Medium\r\n3. Large\r\nUse arrow keys to move\r\nPress Enter to select\r\n"))
+	if detector.lastKind != AttentionNeedsUser || detector.lastPrompt != PromptKindChoice ||
+		detector.lastState != registry.StateWaiting {
+		t.Fatalf("AGY multiline questionnaire was not detected: kind=%q prompt=%q state=%q",
+			detector.lastKind, detector.lastPrompt, detector.lastState)
+	}
+	// Selection movement must never clear user attention.
+	detector.ObserveOperatorInput([]byte("\x1b[B"))
+	if detector.lastKind != AttentionNeedsUser {
+		t.Fatal("arrow navigation cleared an unanswered AGY question")
+	}
+	detector.ObserveOperatorInput([]byte("\r"))
+	if detector.lastKind != AttentionWorking || detector.lastState != registry.StateRunning ||
+		detector.lastFingerprint != "" {
+		t.Fatal("actual form submission must clear previous AGY attention")
+	}
+}
+
+func TestAttentionDetectorAGYTTYLogMentionDoesNotTriggerQuestion(t *testing.T) {
+	detector := NewAttentionDetector("rt-agy-log", "agy", "default", "/workspace/agy-project", nil)
+	detector.ProcessChunk([]byte("\r\nThe task implements `ask_question` support.\r\nChanges pass all tests.\r\n"))
+	if detector.lastKind == AttentionNeedsUser {
+		t.Fatal("mere AGY API reference should not trigger a user notification")
+	}
+}
+
+func TestAttentionDetectorYNImmediateAnswerClearsAttention(t *testing.T) {
+	detector := NewAttentionDetector("rt-confirm", "codex", "default", "/workspace/project", nil)
+	detector.ProcessChunk([]byte("\r\nDo you want to proceed? [y/N]\r\n"))
+	if detector.lastKind != AttentionNeedsUser {
+		t.Fatal("expected a question")
+	}
+	detector.ObserveOperatorInput([]byte("y"))
+	if detector.lastKind == AttentionNeedsUser || detector.lastFingerprint != "" {
+		t.Fatal("yes/no quick answer did not resolve attention")
+	}
+}
+
 func TestAttentionDetectorNumberedListWithAskIsChoice(t *testing.T) {
 	detector := NewAttentionDetector("rt-choice-ask", "codex", "default", "/workspace/project", nil)
 	detector.ProcessChunk([]byte("\r\nSelect an option:\r\n1. Continue\r\n"))
