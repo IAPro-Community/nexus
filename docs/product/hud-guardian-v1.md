@@ -87,6 +87,30 @@ desconhecida e não consultar os provedores para gerar movimentos.
 - `web/src/features/hud/NexusHud.tsx`: troca de apresentação e popup.
 - `web/src/platform/wailsV3.ts`: ponte Wails.
 
+## Por que o mascote pode não aparecer em uma versão instalada
+
+A branch `release/v1.0.0` **não é** o mesmo objeto que os executáveis
+já publicados. Cada `preview-<sha>` é uma cópia imutável do commit informado
+em sua página; a atualização da branch não recompila automaticamente os
+ZIPs de previews anteriores nem atualiza o canal de release assinada.
+
+Para identificar um pacote, confira `SOURCE_SHA.txt` no ZIP Windows ou
+TAR Linux. No macOS, compare a página da prévia e o SHA de origem de seus
+artefatos; `nexus-hud` é um aplicativo separado de `nexus-desktop`.
+A prévia precisa incluir o commit que acrescentou
+`GuardianMascot.tsx` e `internal/desktop/hud_appearance.go`.
+
+**Onde escolher:** execute `nexus-hud` da compilação atual e abra a
+cápsula. Em Windows/macOS/Linux X11, ative
+**Popup independente** no painel expandido e selecione **Mascote**.
+Também é possível escolher **Guardian: Mascote** no menu de bandeja.
+Wayland mantém o fallback Barra. O Mascote não aparece automaticamente no
+`nexus-desktop` nem na página Web.
+
+A publicação de uma nova prévia não comprova homologação gráfica ou
+assinatura; use apenas pacotes do mesmo SHA e mantenha os gates Windows,
+macOS e Linux antes de promover a versão distribuída.
+
 ## Homologação obrigatória antes de liberar por padrão
 
 1. Windows e macOS: alternar 20 vezes Barra → Mascote → Barra; verificar
