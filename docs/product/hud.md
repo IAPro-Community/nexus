@@ -195,7 +195,7 @@ milestone de UX avançada, desde que:
 
 ## Minimal taskbar capsule (October 2026)
 
-The HUD's compact surface is an always-on-top **capsule above the system taskbar**, not an unsupported injection into Windows Taskbar. Its default window is 220 × 60 DIPs on Desktop; the interactive capsule uses the remaining width (about 174 × 43 pixels in the default preset) next to a 24 px drag grip. It uses the official Nexus icon, one highlighted provider and its limiting-window remaining percentage.
+The HUD's compact surface is an always-on-top **capsule above the system taskbar**, not an unsupported injection into Windows Taskbar. New desktop installations display the animated Guardian Mascot in a 108 × 112 DIP window. Users may select the legacy 220 × 60 DIP bar (whose capsule uses about 174 × 43 pixels next to a 24 px drag grip) or the tray-only mode. It uses the official Nexus icon, one highlighted provider and its limiting-window remaining percentage.
 
 The capsule is intentionally a **projection**, not a control plane:
 - When a running Agent or Mission identifies a provider/profile, this is the account in execution. Otherwise the highlighted measurable account is labeled *Recurso em destaque*, **never** *Conta ativa*.
