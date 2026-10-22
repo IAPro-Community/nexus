@@ -59,6 +59,10 @@ func main() {
 	}
 
 	var window application.Window
+	// Native attention monitoring must not depend on WebView visibility or
+	// requestAnimationFrame/timers when the HUD is in tray-only mode.
+	notificationCtx, stopNotifications := context.WithCancel(context.Background())
+	defer stopNotifications()
 
 	native := application.New(application.Options{
 		Name:        "Nexus HUD",
@@ -93,6 +97,7 @@ func main() {
 			ApplicationID:                 "com.iapro.nexus.hud",
 		},
 		OnShutdown: func() {
+			stopNotifications()
 			_ = hudController.CaptureHUDWindowState()
 			shutdownCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancel()
@@ -158,6 +163,10 @@ func main() {
 	if linked && !backend.OwnsEmbeddedCore() {
 		go watchLinkedCore(native)
 	}
+
+	// All supervised Codex/Claude/OpenCode/AGY sessions are read via the
+	// canonical registry, even when the frontend WebView is throttled.
+	go newHUDAttentionMonitor().run(notificationCtx)
 
 	if err := native.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Nexus HUD Wails v3 error: %v\n", err)
