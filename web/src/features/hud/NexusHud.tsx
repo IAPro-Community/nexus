@@ -568,6 +568,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             key={isDetachedPopup ? `popup-${popupPresentation}` : 'inline-popover'}
             id="nexus-hud-popover"
             className={styles.popover}
+            data-hud-hit-area={isDetachedPopup ? undefined : 'true'}
             role={isDetachedPopup ? 'dialog' : undefined}
             aria-label="Resumo do Nexus HUD"
           >
@@ -929,6 +930,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             key={isDetachedPopup ? `diagnostic-${popupPresentation}` : 'inline-diagnostic'}
             id="nexus-hud-popover"
             className={styles.popover}
+            data-hud-hit-area={isDetachedPopup ? undefined : 'true'}
             role={isDetachedPopup ? 'dialog' : undefined}
             aria-label="Diagnóstico do Nexus HUD"
           >
@@ -1001,6 +1003,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             <button
               type="button"
               className={styles.mascotButton}
+              data-hud-hit-area="true"
               aria-label={mascotAccessibleLabel}
               aria-expanded={expanded}
               aria-haspopup="dialog"
@@ -1017,6 +1020,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             <button
               type="button"
               className={styles.mascotDragHandle}
+              data-hud-hit-area="true"
               data-hud-drag-handle="true"
               aria-label={t('hud.dragLabel')}
               title={t('hud.dragTitle')}
@@ -1033,6 +1037,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               <button
                 type="button"
                 className={styles.nativeDragHandle}
+                data-hud-hit-area="true"
                 data-hud-drag-handle="true"
                 aria-label={t('hud.dragLabel')}
                 title={t('hud.dragTitle')}
@@ -1044,6 +1049,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             <button
               type="button"
               className={styles.capsule}
+              data-hud-hit-area="true"
               data-tone={tone}
               data-evidence={quotaEvidence}
               aria-label={capsuleAccessibleLabel}
@@ -1057,6 +1063,11 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               <span className={styles.providerName}>{mainLabel}</span>
               <span className={styles.percent}>{currentPercent}</span>
               <span className={styles.capacityRing} aria-hidden="true" />
+              {runtimeAttention.length > 0 && (
+                <span className={styles.runtimeAttentionBadge} aria-hidden="true">
+                  {runtimeAttention.length > 9 ? '9+' : runtimeAttention.length}
+                </span>
+              )}
               {expanded ? (
                 <ChevronDown size={12} className={styles.chevron} aria-hidden="true" />
               ) : (

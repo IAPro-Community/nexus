@@ -46,8 +46,8 @@ export function hudRegionFromCandidate(candidate: HudHitCandidate): HudHitRegion
  * none` in CSS is not enough: the rectangles reported here are the only areas
  * where the native window may swallow the click.
  *
- * Elements can opt out with `data-hud-hit="ignore"` (decorative overlays that
- * must never capture input).
+ * Visible interactive controls opt in with `data-hud-hit-area`. Decorative
+ * overlays can opt out with `data-hud-hit="ignore"`.
  */
 export function collectHudHitRegions(root: ParentNode): HudHitRegion[] {
   const regions: HudHitRegion[] = [];
@@ -56,10 +56,11 @@ export function collectHudHitRegions(root: ParentNode): HudHitRegion[] {
   const view = doc.defaultView ?? (typeof window === 'undefined' ? undefined : window);
   if (!view) return regions;
 
-  // Only surfaces that explicitly declare themselves interactive are reported.
-  // Layout chrome (html, body, #root) spans the whole native window and must
-  // stay transparent, otherwise every pixel would keep swallowing clicks.
-  for (const node of Array.from(root.querySelectorAll<HTMLElement>('[data-hud-panel]'))) {
+  // The panel itself stretches to the viewport in native mode, so its
+  // bounding rect would make the entire transparent native window absorb
+  // clicks. Only visible interactive surfaces opt in to native hit-testing.
+  // The popover opts in only for the legacy *same-window* presentation.
+  for (const node of Array.from(root.querySelectorAll<HTMLElement>('[data-hud-hit-area]'))) {
     const style = view.getComputedStyle(node);
     const region = hudRegionFromCandidate({
       ignore: node.dataset.hudHit === IGNORE_ATTRIBUTE,

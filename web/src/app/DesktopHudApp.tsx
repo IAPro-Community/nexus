@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { ThemeProvider } from '../design-system';
 import { initSession } from '../api';
 import { NexusHud } from '../features/hud/NexusHud';
+import type { HudRuntimeAttention } from '../features/hud/hudModel';
+import { hudAttentionRoute } from '../features/hud/attentionNavigation';
 import { useHudHitRegions } from '../features/hud/useHudHitRegions';
 import { getPlatformBridge, hudV3, isDesktopApp } from '../platform';
 import styles from './DesktopHudApp.module.scss';
@@ -118,6 +120,16 @@ export const DesktopHudApp: React.FC = () => {
     })();
   };
 
+  const openRuntimeAttention = (attention: HudRuntimeAttention) => {
+    void (async () => {
+      const bridge = getPlatformBridge();
+      const bootstrap = await bridge.getBootstrapInfo?.();
+      if (!bootstrap?.serverUrl) return;
+      const target = new URL(hudAttentionRoute(attention), bootstrap.serverUrl);
+      await bridge.openExternal(target.toString());
+    })();
+  };
+
   return (
     <ThemeProvider>
       <main className={styles.root}>
@@ -134,6 +146,7 @@ export const DesktopHudApp: React.FC = () => {
             native
             nativeView={popupView ? 'popover' : 'capsule'}
             onOpenNexus={openNexus}
+            onOpenRuntime={openRuntimeAttention}
             nativeAutoStart={{
               supported: autoStartSupported,
               enabled: autoStartEnabled,

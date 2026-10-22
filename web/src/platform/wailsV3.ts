@@ -107,6 +107,8 @@ export const hudV3 = {
   setDetachedPopoverPreference: (enabled: boolean) =>
     call<void>('HUDController', 'SetHUDDetachedPopoverPreference', enabled),
   getExpanded: () => call<boolean>('HUDController', 'GetHUDExpanded'),
+  notifyRuntimeAttention: (runtimeId: string, fingerprint: string) =>
+    call<void>('HUDController', 'NotifyRuntimeAttention', runtimeId, fingerprint),
   getAppearance: () => call<'BAR' | 'MASCOT' | 'TRAY'>('HUDController', 'GetHUDAppearance'),
   setAppearance: (appearance: 'BAR' | 'MASCOT' | 'TRAY') =>
     call<void>('HUDController', 'SetHUDAppearance', appearance),

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { hudRegionFromCandidate, type HudHitCandidate } from './hudHitRegions';
+import {
+  collectHudHitRegions,
+  hudRegionFromCandidate,
+  type HudHitCandidate,
+} from './hudHitRegions';
 
 const base: HudHitCandidate = {
   ignore: false,
@@ -43,5 +47,70 @@ describe('hudRegionFromCandidate', () => {
 
   it('treats an empty opacity as fully visible', () => {
     expect(hudRegionFromCandidate({ ...base, opacity: '' })).not.toBeNull();
+  });
+});
+
+describe('native click-through surface collection', () => {
+  it('selects explicit controls instead of the full transparent panel rectangle', () => {
+    let queried = '';
+    const control = {
+      dataset: {},
+      getBoundingClientRect: () => ({
+        left: 40,
+        top: 8,
+        width: 172,
+        height: 43,
+        right: 212,
+        bottom: 51,
+      }),
+    };
+    const root = {
+      ownerDocument: {
+        defaultView: {
+          getComputedStyle: () => ({
+            pointerEvents: 'auto',
+            display: 'block',
+            visibility: 'visible',
+            opacity: '1',
+          }),
+        },
+      },
+      querySelectorAll: (selector: string) => {
+        queried = selector;
+        return [control];
+      },
+    } as unknown as ParentNode;
+    expect(collectHudHitRegions(root)).toEqual([{ x: 40, y: 8, width: 172, height: 43 }]);
+    expect(queried).toBe('[data-hud-hit-area]');
+  });
+
+  it('filters decorative or invisible control rectangles, never the backdrop', () => {
+    const fakeNodes = [
+      {
+        dataset: { hudHit: 'ignore' },
+        getBoundingClientRect: () => ({
+          left: 0,
+          top: 0,
+          width: 500,
+          height: 500,
+          right: 500,
+          bottom: 500,
+        }),
+      },
+    ];
+    const root = {
+      ownerDocument: {
+        defaultView: {
+          getComputedStyle: () => ({
+            pointerEvents: 'auto',
+            display: 'block',
+            visibility: 'visible',
+            opacity: '1',
+          }),
+        },
+      },
+      querySelectorAll: () => fakeNodes,
+    } as unknown as ParentNode;
+    expect(collectHudHitRegions(root)).toEqual([]);
   });
 });

@@ -1,6 +1,9 @@
 package desktop
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 func TestHUDPointerWithinRegionsFailsOpenWithoutRegions(t *testing.T) {
 	if !hudPointerWithinRegionsDip(10, 10, 100, 100, nil) {
@@ -47,5 +50,28 @@ func TestHUDPointerWithinRegionsSupportsMultipleRegions(t *testing.T) {
 	}
 	if hudPointerWithinRegionsDip(60, 60, 0, 0, regions) {
 		t.Fatal("gap between regions is a transparent surface")
+	}
+}
+
+func TestHUDHitRegionInputRejectsNonFiniteCoordinates(t *testing.T) {
+	controller := NewHUDController(nil)
+	defer controller.stopHUDHitWatcher()
+	if err := controller.SetHUDHitRegions([]HUDHitRegion{
+		{X: 1, Y: 2, Width: 32, Height: 44},
+		{X: math.NaN(), Y: 0, Width: 20, Height: 20},
+		{X: 0, Y: math.Inf(1), Width: 20, Height: 20},
+		{X: 0, Y: 0, Width: math.Inf(1), Height: 20},
+		{X: 0, Y: 0, Width: 200000, Height: 20},
+		{X: 0, Y: 0, Width: -10, Height: 20},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	controller.hitMu.RLock()
+	defer controller.hitMu.RUnlock()
+	if len(controller.hitRegions) != 1 {
+		t.Fatalf("malformed geometry must not enter native hit testing: %+v", controller.hitRegions)
+	}
+	if controller.hitRegions[0].Width != 32 {
+		t.Fatal("valid native input rectangle was discarded")
 	}
 }

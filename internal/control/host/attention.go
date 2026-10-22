@@ -67,6 +67,7 @@ var (
 		regexp.MustCompile(`(?i)select all that apply`),
 		regexp.MustCompile(`(?i)press\s+(?:space|espaço).{0,40}toggle`),
 		regexp.MustCompile(`(?i)space to (?:select|toggle)`),
+		regexp.MustCompile(`(?i)^press (?:enter|return) to (?:select|confirm)\b`),
 	}
 
 	// Numbered bullets alone are agent narration, not a choice prompt.
@@ -255,6 +256,11 @@ func (d *AttentionDetector) ProcessChunk(chunk []byte) {
 
 	cleanText := stripANSIKeepNewlines(d.buffer.String())
 	recentLines := recentUsefulLines(cleanText, 2)
+	// AGY's ask_question UI redraws the prompt, options and key hints on
+	// separate TUI lines, frequently with the actual question outside the
+	// last two rows. Expand *only* the explicit questionnaire recognizer.
+	// Do not broaden generic free-text/? detection (false positive risk).
+	questionnaireLines := recentUsefulLines(cleanText, 14)
 	lastLine := ""
 	if len(recentLines) > 0 {
 		lastLine = recentLines[len(recentLines)-1]
@@ -268,7 +274,7 @@ func (d *AttentionDetector) ProcessChunk(chunk []byte) {
 	dynamicTitle := ""
 
 	if shellQuestionnaire && !heuristic {
-		if ctx, pk := classifyQuestionnaire(recentLines); ctx != "" && pk != PromptKindNone {
+		if ctx, pk := classifyQuestionnaire(questionnaireLines); ctx != "" && pk != PromptKindNone {
 			state = registry.StateWaiting
 			reason = "QUESTION"
 			kind = AttentionNeedsUser
@@ -319,7 +325,14 @@ func (d *AttentionDetector) ProcessChunk(chunk []byte) {
 		}
 
 		if reason == "" {
-			if ctx, pk := classifyNeedsUser(recentLines); ctx != "" && pk != PromptKindNone {
+			if ctx, pk := classifyQuestionnaire(questionnaireLines); ctx != "" && pk != PromptKindNone {
+				state = registry.StateWaiting
+				reason = "QUESTION"
+				kind = AttentionNeedsUser
+				promptKind = pk
+				attentionCtx = truncateRunes(ctx, 200)
+				dynamicTitle = d.projectName + " · " + truncateRunes(attentionCtx, 72)
+			} else if ctx, pk := classifyNeedsUser(recentLines); ctx != "" && pk != PromptKindNone {
 				state = registry.StateWaiting
 				reason = "QUESTION"
 				kind = AttentionNeedsUser
@@ -452,19 +465,87 @@ func (d *AttentionDetector) applyOSCTitleLocked(title string) {
 	}
 }
 
+// ObserveOperatorInput clears an observed prompt only after the supervised
+// terminal actually receives a submission key. Arrow navigation and normal
+// typing do not dismiss a live ask_question form. The next PTY repaint may
+// immediately establish a NEW wait; no timer-based guesswork is involved.
+func (d *AttentionDetector) ObserveOperatorInput(data []byte) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.lastKind != AttentionNeedsUser || len(data) == 0 {
+		return
+	}
+	submitted := false
+	for _, c := range data {
+		if c == '\r' || c == '\n' {
+			submitted = true
+			break
+		}
+	}
+	// Yes/no prompts often accept a single keystroke without Enter.
+	if !submitted && d.lastPrompt == PromptKindYN && len(data) == 1 {
+		submitted = data[0] == 'y' || data[0] == 'Y' ||
+			data[0] == 'n' || data[0] == 'N'
+	}
+	if !submitted {
+		return
+	}
+	d.buffer.Reset() // Old screen/scrollback must not resurrect a resolved wait.
+	d.lastState = registry.StateRunning
+	d.lastReason = "USER_RESPONDED"
+	d.lastKind = AttentionWorking
+	d.lastPrompt = PromptKindNone
+	d.lastFingerprint = ""
+	d.lastTitle = d.projectName + " · " + strings.ToUpper(d.providerID)
+	d.lastUpdateAt = time.Now()
+	_ = d.ownerRegistry().UpdateAttentionMeta(d.runtimeID, registry.AttentionUpdate{
+		State: registry.StateRunning, Reason: d.lastReason, Kind: d.lastKind,
+		PromptKind: PromptKindNone, Fingerprint: "", Context: "",
+		ProjectID: d.projectID, ProjectName: d.projectName,
+		DynamicTitle: d.lastTitle,
+	})
+	if d.onAttention != nil {
+		d.onAttention(d.lastReason, "", d.lastTitle, registry.StateRunning)
+	}
+}
+
 func classifyQuestionnaire(lines []string) (context string, promptKind string) {
 	if len(lines) == 0 {
 		return "", PromptKindNone
 	}
-	for i := len(lines) - 1; i >= 0; i-- {
+	// A questionnaire must be visible in the CURRENT terminal repaint,
+	// not merely mentioned in a long log or older scrollback. In the
+	// fallback PTY path we require an interactive marker within the final
+	// 6 useful lines (question counter, selection instructions, or footer).
+	// Generic text "ask_question" alone is not a sufficient signal.
+	latest := len(lines) - 1
+	for i := latest; i >= 0 && latest-i < 6; i-- {
 		line := strings.TrimSpace(lines[i])
 		if line == "" || isChromeLine(line) || isGarbageAttentionText(line) {
 			continue
 		}
 		for _, p := range questionnairePatterns {
-			if p.MatchString(line) {
-				return line, PromptKindChoice
+			if !p.MatchString(line) {
+				continue
 			}
+			// Avoid treating generated prose, code blocks and terminal
+			// logs that only *mention* ask_question as live prompts.
+			if strings.Contains(line, "`") || strings.Contains(line, "|") {
+				continue
+			}
+			// Prefer the actual numbered question over a "Select all"
+			// footer. Both are bounded, sanitized display metadata.
+			for j := i; j >= 0 && i-j < 8; j-- {
+				candidate := strings.TrimSpace(lines[j])
+				if candidate == "" || isGarbageAttentionText(candidate) {
+					continue
+				}
+				if strings.HasPrefix(strings.ToLower(candidate), "question ") ||
+					strings.HasPrefix(strings.ToLower(candidate), "pergunta ") {
+					return candidate, PromptKindChoice
+				}
+			}
+			return line, PromptKindChoice
 		}
 	}
 	return "", PromptKindNone

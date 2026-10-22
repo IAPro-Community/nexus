@@ -125,7 +125,7 @@ function Wait-Geometry([IntPtr]$Handle, [bool]$Expanded) {
         $b = [NexusHUDNativeMouseProbe]::Bounds($Handle)
         if ($b.Count -eq 4) {
             if ($Expanded -and $b[2] -ge 300 -and $b[3] -ge 300) { return ,$b }
-            if (-not $Expanded -and $b[2] -le 330 -and $b[3] -le 100) { return ,$b }
+            if (-not $Expanded -and $b[2] -le 330 -and $b[3] -le 140) { return ,$b }
         }
         Start-Sleep -Milliseconds 120
     }
@@ -187,6 +187,25 @@ try {
         $x = $b[0] + [int]($b[2]*0.68)
         $y = $b[1] + $b[3] - 27
         [NexusHUDNativeMouseProbe]::Click($handle, $x, $y)
+        if (-not $Detached -and $i -eq 0) {
+            # Current installs may start with Mascot + detached popup enabled.
+            # Detect the actual native presentation instead of assuming that
+            # the old single-window capsule grows on click.
+            $detectUntil = [DateTime]::UtcNow.AddSeconds(3)
+            while ([DateTime]::UtcNow -lt $detectUntil) {
+                $openedPopup = [NexusHUDNativeMouseProbe]::FindNamed($proc.Id, 'Nexus HUD Popup')
+                if ($openedPopup -ne [IntPtr]::Zero) {
+                    $Detached = $true
+                    $result.presentation = 'detached_popover'
+                    break
+                }
+                $possibleExpanded = [NexusHUDNativeMouseProbe]::Bounds($handle)
+                if ($possibleExpanded.Count -eq 4 -and $possibleExpanded[2] -ge 300 -and $possibleExpanded[3] -ge 300) {
+                    break
+                }
+                Start-Sleep -Milliseconds 120
+            }
+        }
         if ($Detached) {
             # The capsule must stay compact; a distinct Wails HWND hosts
             # the detail panel instead of resizing the capsule itself.
