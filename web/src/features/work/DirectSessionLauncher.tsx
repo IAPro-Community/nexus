@@ -87,11 +87,13 @@ export const DirectSessionLauncher: React.FC<{
   const [loading, setLoading] = useState(false);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState('');
+  const [needsAgentRecovery, setNeedsAgentRecovery] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     manualChoice.current = false;
     setSelectedID('');
+    setNeedsAgentRecovery(false);
     setModelOverride('');
     setPreferredProvider(directSchedulerContext(project.resource_policy).preferProvider);
     setName('');
@@ -120,6 +122,7 @@ export const DirectSessionLauncher: React.FC<{
     ]).then(([resourcesResult, recommendationResult]) => {
       if (!mounted) return;
       if (resourcesResult.status !== 'fulfilled') {
+        setRecommendationError(true);
         setError(String(resourcesResult.reason));
         setResources([]);
         setSelectedID('');
@@ -173,6 +176,7 @@ export const DirectSessionLauncher: React.FC<{
   const start = async () => {
     if (
       submitInFlight.current ||
+      needsAgentRecovery ||
       loading ||
       !selected ||
       !request ||
@@ -198,9 +202,11 @@ export const DirectSessionLauncher: React.FC<{
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       if (err instanceof DirectSessionSetupError && err.recovery !== 'deleted') {
+        setNeedsAgentRecovery(true);
         setError(t('directSession.recoverableStartError', { message, agentId: err.agentId }));
       } else if (started) {
         // The runtime is running; never offer to re-create it as a fresh session.
+        setNeedsAgentRecovery(true);
         setError(t('directSession.startedButNotOpened', { message, agentId: started.id }));
       } else {
         setError(message);
@@ -419,6 +425,7 @@ export const DirectSessionLauncher: React.FC<{
             tone="brand"
             disabled={
               !selected ||
+              needsAgentRecovery ||
               starting ||
               loading ||
               !name.trim() ||
