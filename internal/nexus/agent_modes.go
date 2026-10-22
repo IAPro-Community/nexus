@@ -8,19 +8,19 @@ import (
 )
 
 type TargetPreference struct {
-	Backend                string `json:"backend,omitempty"`
-	Model                  string `json:"model,omitempty"`
+	Backend                string       `json:"backend,omitempty"`
+	Model                  string       `json:"model,omitempty"`
 	Mode                   AffinityMode `json:"mode"`
-	Weight                 int `json:"weight,omitempty"`
-	RequireCatalogEvidence bool `json:"require_catalog_evidence,omitempty"`
-	Legacy                 bool `json:"legacy,omitempty"`
+	Weight                 int          `json:"weight,omitempty"`
+	RequireCatalogEvidence bool         `json:"require_catalog_evidence,omitempty"`
+	Legacy                 bool         `json:"legacy,omitempty"`
 }
 
 type SpecialistExecutionPreferences struct {
 	Targets             []TargetPreference `json:"targets,omitempty"`
-	DesiredModelTraits  map[string]string `json:"desired_model_traits,omitempty"`
-	CostPreference      string `json:"cost_preference,omitempty"`
-	ReasoningPreference string `json:"reasoning_preference,omitempty"`
+	DesiredModelTraits  map[string]string  `json:"desired_model_traits,omitempty"`
+	CostPreference      string             `json:"cost_preference,omitempty"`
+	ReasoningPreference string             `json:"reasoning_preference,omitempty"`
 }
 
 // AgentMode is a product preset over the existing persistent Agent/AgentSpec
@@ -29,14 +29,14 @@ type SpecialistExecutionPreferences struct {
 // boundaries. ReadOnlyByDefault is an execution-policy signal for surfaces that
 // launch this specialist autonomously outside an explicit implementation assignment.
 type AgentMode struct {
-	ID                   string                 `json:"id"`
-	Role                 string                 `json:"role"`
-	DefaultProvider      string                 `json:"default_provider,omitempty"`
-	DefaultExecutionMode string                 `json:"default_execution_mode"`
-	RecommendedSkillIDs  []string               `json:"recommended_skill_ids,omitempty"`
-	ReadOnlyByDefault    bool                   `json:"read_only_by_default,omitempty"`
+	ID                   string                         `json:"id"`
+	Role                 string                         `json:"role"`
+	DefaultProvider      string                         `json:"default_provider,omitempty"`
+	DefaultExecutionMode string                         `json:"default_execution_mode"`
+	RecommendedSkillIDs  []string                       `json:"recommended_skill_ids,omitempty"`
+	ReadOnlyByDefault    bool                           `json:"read_only_by_default,omitempty"`
 	ExecutionPreferences SpecialistExecutionPreferences `json:"execution_preferences,omitempty"`
-	AgentSpec            intelligence.AgentSpec `json:"agent_spec"`
+	AgentSpec            intelligence.AgentSpec         `json:"agent_spec"`
 }
 
 var canonicalAgentModes = []AgentMode{
