@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -42,27 +43,124 @@ func TestChannelForVersionClassifiesPrereleases(t *testing.T) {
 	}
 }
 
-func TestRollingBetaSHADetection(t *testing.T) {
+// comparisonTransport intercepts only GitHub's public ancestry lookup.
+type comparisonTransport func(*http.Request) (*http.Response, error)
+
+func (fn comparisonTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	return fn(req)
+}
+
+func TestRollingBetaRequiresStrictCommitAncestry(t *testing.T) {
+	current := strings.Repeat("b", 40)
 	signed := strings.Repeat("a", 40)
-	cases := []struct {
-		name, current, signed string
-		want bool
+	for _, tc := range []struct {
+		name, status, body string
+		want               bool
 	}{
-		{"same short SHA", "aaaaaaa", signed, false},
-		{"different odd-length short SHA", "bbbbbbb", signed, true},
-		{"different full SHA", strings.Repeat("b", 40), signed, true},
-		{"unknown local commit", "unknown", signed, false},
-		{"dev build", "dev", signed, false},
-		{"short garbage", "not_a_sha", signed, false},
-		{"no signed SHA", "bbbbbbb", "", false},
-		{"short manifest SHA", "bbbbbbb", "abcdef1", false},
-	}
-	for _, tc := range cases {
+		{"new descendant", "ok", `{"status":"ahead","ahead_by":2,"behind_by":0}`, true},
+		{"old ancestor", "ok", `{"status":"behind","ahead_by":0,"behind_by":2}`, false},
+		{"diverged branch", "ok", `{"status":"diverged","ahead_by":2,"behind_by":1}`, false},
+		{"identical commit", "ok", `{"status":"identical","ahead_by":0,"behind_by":0}`, false},
+		{"ambiguous ahead", "ok", `{"status":"ahead","ahead_by":1,"behind_by":1}`, false},
+		{"invalid JSON", "ok", `{`, false},
+		{"API failure", "unavailable", `{"status":"ahead","ahead_by":1,"behind_by":0}`, false},
+	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := isNewerSignedBetaSHA(tc.current, tc.signed); got != tc.want {
-				t.Errorf("isNewerSignedBetaSHA(%q, %q)=%t, want %t", tc.current, tc.signed, got, tc.want)
+			client := &http.Client{Transport: comparisonTransport(func(req *http.Request) (*http.Response, error) {
+				if req.URL.Host != "api.github.com" ||
+					!strings.Contains(req.URL.Path, "/compare/"+current+"..."+signed) {
+					t.Errorf("unexpected ancestry destination %q", req.URL.String())
+				}
+				status := http.StatusOK
+				if tc.status == "unavailable" {
+					status = http.StatusServiceUnavailable
+				}
+				return &http.Response{
+					StatusCode: status,
+					Body:       io.NopCloser(strings.NewReader(tc.body)),
+					Header:     make(http.Header),
+				}, nil
+			})}
+			service := NewService(ServiceConfig{HTTPClient: client})
+			got := service.isNewerSignedBetaCommit(context.Background(), current, signed)
+			if got != tc.want {
+				t.Fatalf("isNewerSignedBetaCommit = %t, want %t", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestRollingBetaRejectsUnknownAndIdenticalSHAsWithoutNetwork(t *testing.T) {
+	signed := strings.Repeat("a", 40)
+	svc := NewService(ServiceConfig{HTTPClient: &http.Client{Transport: comparisonTransport(
+		func(*http.Request) (*http.Response, error) {
+			t.Fatal("SHA validation must not contact GitHub")
+			return nil, fmt.Errorf("unexpected request")
+		},
+	)}})
+	for _, tc := range []struct {
+		current, signed string
+	}{
+		{"aaaaaaa", signed},
+		{signed, signed},
+		{"dev", signed},
+		{"unknown", signed},
+		{"garbage", signed},
+		{"abc", signed},
+		{strings.Repeat("b", 40), "abcdef1"},
+		{strings.Repeat("b", 40), ""},
+	} {
+		if svc.isNewerSignedBetaCommit(context.Background(), tc.current, tc.signed) {
+			t.Fatalf("unverifiable same-version SHA must not trigger an update: %+v", tc)
+		}
+	}
+}
+
+func TestServiceApplyRefusesCurrentSignedRelease(t *testing.T) {
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target := fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH)
+	binary := []byte("same-build")
+	sum := sha256.Sum256(binary)
+	sha := strings.Repeat("a", 40)
+	manifest := Manifest{
+		SchemaVersion: 1,
+		Channel:       "beta",
+		Version:       "1.0.0-beta.10",
+		SourceSHA:     sha,
+		KeyID:         "test-key",
+		Artifacts: map[string]Artifact{
+			target: {URL: "https://example.invalid/binary", Size: int64(len(binary)), SHA256: hex.EncodeToString(sum[:])},
+		},
+	}
+	body, err := json.Marshal(manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	signature := hex.EncodeToString(ed25519.Sign(priv, body))
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/manifest.json" {
+			t.Fatalf("no artifact should be downloaded for an existing release: %s", r.URL.Path)
+		}
+		w.Header().Set("X-Signature-Ed25519", signature)
+		_, _ = w.Write(body)
+	}))
+	defer server.Close()
+	keyring := NewKeyRing()
+	keyring.AddKey("test-key", pub)
+	svc := NewService(ServiceConfig{
+		RegistryURL: server.URL + "/manifest.json",
+		KeyRing:     keyring,
+		CurrentVer:  manifest.Version,
+		CurrentSHA:  sha[:7],
+		Channel:     "beta",
+		Method:      MethodStandalone,
+		ExecPath:    filepath.Join(t.TempDir(), "nexus"),
+	})
+	if _, err := svc.Apply(context.Background()); !errors.Is(err, ErrNoUpdateAvailable) {
+		t.Fatalf("same SHA must not install again, got %v", err)
 	}
 }
 

@@ -1,5 +1,33 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-21 — Click-through do HUD corrigido em 047f4348
+
+- **PASS** `gofmt`, `go vet ./...`, `go test -count=1 ./...` (Go 1.26.10).
+- **PASS** Web `npm run quality`: 97 arquivos / 598 testes.
+- **PASS** `docs-verify`: 192 Markdown / 33 assets, manifesto em `047f4348`.
+- **PASS** build HUD `production`, SHA-256 `19c5e299...a1e6a5`.
+- **PASS** click-through real: `RESULT.json` com `verdict: PASS`, canto transparente atravessa, cápsula interativa, estado restaurado.
+- **PASS (funcional)** HUD 20/20 ciclos (`PASS_FUNCTIONAL_PENDING_VISUAL`).
+- **NOT_TESTED** click-through no popover destacado; confirmação visual humana.
+- **BLOCKED_EXTERNAL** assinatura; **NOT_RUN** smokes Codex/multi-conta.
+- Veredito: `NO_GO_WINDOWS`. Relatório: `DEV/validation/local-hud-047f4348/HOMOLOGATION.md`.
+
+
+## 2026-10-21 — Homologação Windows da release em 7d92b942
+
+- **PASS** `docs-verify`: 192 Markdown / 33 assets, manifesto em `7d92b942`.
+- **PASS** `verify-version-contract`, `gofmt` (após correção), `go vet ./...`.
+- **PASS** `go test -count=1 ./...` com Go `1.26.10` (via `GOTOOLCHAIN`); `internal/app` 88,9 s.
+- **PASS** Web `npm run quality`: 96 arquivos / 593 testes, typecheck, ESLint, Stylelint, Prettier.
+- **PASS** build Web e build nativo do HUD (`production`), binário SHA-256 `8dab24a7f616fe6fb720dc50d33cd6f6b6802328993614db2d987eafb48dcefb`.
+- **PASS** certificação oficial `scripts/certify-windows-first-run.ps1` em `7d92b942`: 9 gates PASS, 4 NOT_RUN, exit 0, `automated_result: PASS`.
+- **PASS (funcional)** HUD nativo: 20/20 ciclos em janela única e 20/20 em popover destacado (`PASS_FUNCTIONAL_PENDING_VISUAL`).
+- **FAIL** click-through do HUD: clique em área transparente (`1696,972`) manteve `Nexus HUD` em foreground em vez da janela alvo. Evidência em `DEV/validation/local-hud-7d92b942/click-through/`.
+- **INCONCLUSIVO** matriz HUD cross-platform: sem Linux X11 e macOS no mesmo SHA; agregador recusa emitir veredito.
+- **BLOCKED_EXTERNAL** instalador assinado: `native-signing` com 0 secrets, sem certificado local, `signtool`/`makensis` ausentes.
+- **NOT_RUN** `desktop-wails-first-run`, sessão Codex interativa e cenário multi-conta.
+- Veredito: `NO_GO_WINDOWS`. Relatório: `DEV/validation/local-hud-7d92b942/HOMOLOGATION.md`.
+
 ## 2026-10-17 — Correção e Verificação do Backend Compartilhado Desktop (76587c39)
 
 - `internal/control/web/desktop_attach.go`: PASS. Corrigido o `NewLoopbackBackendHandler` para servir arquivos estáticos embutidos (`bundle.js`, `bundle.css`, chunks) em vez de retornar incondicionalmente `index.html`.
@@ -1735,3 +1763,32 @@ Worktree `C:\Dev\nexus-hud-validation`, base `f6098b8c684a97bf7e8e56804109ca491c
 ## Frontend gate — 2026-10-17T18:34:42Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
+
+## HUD nativo — toggle do popup independente/Mascote — 2026-10-22
+
+Código `f789db63c8ec9f3498c3822a94ee7c823ec7086c`; HUD `nexus-hud.exe` SHA-256 `1f3ced07acc02672dd786c3c39cf87a390da9f315e0e654a9e2505f2ab7929de`. Dossiê: `DEV/validation/mascot-toggle-f789db63/HOMOLOGATION.md`.
+
+- **PASS** — `gofmt` limpo, `go vet ./...`, `go test -count=1 ./...` (Go 1.26.10), Web `npm run quality` 97 arquivos/599 testes, build Web e build HUD `production`.
+- **PASS** — UI Automation em Windows 11 `10.0.26200` (escala 100%), estado isolado, duas sessões no mesmo diretório:
+  - sessão A: `Popup independente: Não` e `Mascote` desabilitado → habilitar → `DetachedPopover=true`, popup criado oculto, cápsula restaurada `220x60` → expandir → popup visível `334x496` com a cápsula ainda `220x60` → `Mascote` habilitado → `Appearance=MASCOT`, cápsula `136x112` renderizando o mascote, popup oculto;
+  - sessão B (reinício): abre em `MASCOT` `136x112` com popup habilitado e oculto → abrir pelo mascote → `Popup independente: Sim` → desabilitar → `Appearance=BAR`, cápsula `220x60`, popup oculto → painel inline volta a abrir com `Popup independente: Não`.
+- **PASS (herdado)** — click-through da janela única permanece no dossiê `local-hud-047f4348`; o watcher segue desativado em modo detached.
+- **NOT_TESTED** — click-through do popover destacado, confirmação visual humana das capturas e matriz Linux X11/macOS.
+- **BLOCKED** — assinatura Authenticode/instalador e smokes interativos de Codex/multi-conta. Veredito de release: **NO_GO_WINDOWS**.
+
+### Implantação local — 2026-10-22
+
+- **PASS** — 955b197f instalado em %LOCALAPPDATA%\Programs\IAPro Nexus; 
+exus.exe/i.exe 8cd64d5, 
+exus-desktop.exe 72b3cc50, 
+exus-hud.exe 8364a942 (hashes conferem com o build).
+- **PASS** — servidor PID 24184, http://127.0.0.1:13000/ HTTP 200, ersion --json com commit 955b197f, Go 1.26.10, 1.0.0-beta.10; HUD PID 21168 --linked.
+- **PASS** — harness do Mascote no artefato exato (8364a942, commit 955b197f): deployed-artifact/RESULT.json com erdict: PASS e ailed_checks: [].
+- Backup: %TEMP%\nexus-backup-20261022-003138. Detalhes/rollback: DEV/validation/mascot-toggle-f789db63/DEPLOYMENT.md.
+
+### Verificação no perfil real do host — 2026-10-22
+
+- **PASS** — binário instalado (8364a942) no perfil do usuário: painel → `Popup independente: Não` → habilitado (detachedPopover: true, popup criado oculto, cápsula `220x60`) → popup `334x496` → `Mascote` habilitado e aplicado (`136x112`) → `Bandeja` restaurada (`appearance: TRAY`, HUD e popup ocultos). Evidência: `DEV/validation/mascot-toggle-f789db63/real-profile/RESULT.json` (PASS).
+- **PASS** — `nexus-desktop.exe` instalado abriu `IAPro Nexus` `1280x800`, anexou ao Core existente na 13000 e renderizou o workspace real (`DESKTOP_APP.png`).
+- **PASS** — `/api/v1/health` 200 (`1.0.0-beta.10`); rotas protegidas sem sessão retornam 401 `AUTH_REQUIRED`.
+- **NOTA** — o toggle está no rodapé do painel; com muitos provedores é necessário rolar até o fim. Registrado em `real-profile/REAL_PROFILE.md`.

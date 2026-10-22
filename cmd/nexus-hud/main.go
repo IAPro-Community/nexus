@@ -46,9 +46,9 @@ func main() {
 		SessionToken: backend.Session.ID,
 		CSRFToken:    backend.Session.CSRFToken,
 	})
-	// Detached popover is opt-in until real native input/focus tests pass on
-	// Windows, macOS and Linux X11. Wayland retains the legacy single window.
-	detachedRequested := os.Getenv("NEXUS_HUD_DETACHED_POPOVER") == "1"
+	// Detached popover is opt-in. Explicit environment wins, but the HUD
+	// settings surface can persist the choice so it survives restarts.
+	detachedRequested := os.Getenv("NEXUS_HUD_DETACHED_POPOVER") == "1" || windowState.DetachedPopover
 	hudController := desktop.NewHUDControllerWithDetachedPopover(stateManager, detachedRequested)
 
 	var window application.Window
@@ -94,20 +94,43 @@ func main() {
 	})
 
 	window = native.Window.NewWithOptions(hudWindowOptions(windowState))
-	if hudController.GetHUDDetachedPopoverEnabled() {
-		// The popup is a second native Wails window in this same process. Its
-		// WebView has its own React tree but shares the authenticated Core.
-		popup := native.Window.NewWithOptions(hudDetachedPopupOptions(windowState))
+
+	// One factory serves both the startup path and the settings toggle: the
+	// popup is a second native Wails window in this same process. Its WebView
+	// has its own React tree but shares the authenticated Core.
+	createPopup := func() (application.Window, error) {
+		if existing, ok := native.Window.GetByName(desktop.HUDPopupWindowName); ok {
+			return existing, nil
+		}
+		popup := native.Window.NewWithOptions(hudDetachedPopupOptions(stateManager.Load()))
 		popup.OnWindowEvent(events.Common.WindowLostFocus, func(*application.WindowEvent) {
-			// Outside click dismisses only the popup, not the capsule.
-			_ = hudController.SetHUDExpanded(false)
+			// Do not re-enter SetHUDExpanded from a native focus event: Hide()
+			// can itself dispatch further focus and hide notifications.
+			hudController.NotifyHUDPopupHidden()
+			popup.Hide()
 		})
 		popup.OnWindowEvent(events.Common.WindowHide, func(*application.WindowEvent) {
 			// Never Hide() again from WindowHide: avoid reentrant native events.
 			hudController.NotifyHUDPopupHidden()
 		})
+		return popup, nil
 	}
-	desktop.ConfigureNativeTray(native, window, "Nexus HUD")
+	hudController.SetDetachedPopupFactory(createPopup)
+	if hudController.GetHUDDetachedPopoverEnabled() {
+		if _, err := createPopup(); err != nil {
+			fmt.Fprintf(os.Stderr, "Nexus HUD popup: %v\n", err)
+		}
+	}
+	desktop.ConfigureNativeTray(native, window, "Nexus HUD", desktop.HUDTrayAppearanceActions{
+		Show:            hudController.ShowHUD,
+		Hide:            hudController.HideHUD,
+		MascotAvailable: hudController.GetHUDDetachedPopoverEnabled(),
+		Select: func(mode string) {
+			if err := hudController.SetHUDAppearance(mode); err != nil {
+				fmt.Fprintf(os.Stderr, "Nexus HUD presentation: %v\n", err)
+			}
+		},
+	})
 
 	// ServiceStartup can run before the native window exists, which left the
 	// first paint at Wails' 190x48 minimum. Re-apply the persisted geometry

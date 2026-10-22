@@ -9,10 +9,10 @@ import (
 
 func TestHUDWindowOptionsTransparentChromeAcrossPlatforms(t *testing.T) {
 	state := desktop.HUDWindowState{
-		X: 171,
-		Y: 319,
-		Width: 260,
-		Height: 70,
+		X:           171,
+		Y:           319,
+		Width:       260,
+		Height:      70,
 		AlwaysOnTop: true,
 	}
 	got := hudWindowOptions(state)
@@ -44,12 +44,12 @@ func TestHUDWindowOptionsTransparentChromeAcrossPlatforms(t *testing.T) {
 
 func TestHUDWindowOptionsPreserveUserChoices(t *testing.T) {
 	state := desktop.HUDWindowState{
-		X: 500,
-		Y: 200,
-		Width: 320,
-		Height: 84,
+		X:           500,
+		Y:           200,
+		Width:       320,
+		Height:      84,
 		AlwaysOnTop: false,
-		AutoHide: true,
+		AutoHide:    true,
 	}
 	got := hudWindowOptions(state)
 	if got.AlwaysOnTop || !got.HideOnEscape || got.Width != 320 || got.Height != 84 {
@@ -62,15 +62,15 @@ func TestHUDWindowOptionsPreserveUserChoices(t *testing.T) {
 
 func TestDetachedHUDWindowOptionsStartHiddenWithSeparateRoute(t *testing.T) {
 	state := desktop.HUDWindowState{
-		X: 900,
-		Y: 700,
-		Width: 220,
-		Height: 60,
-		CompactWidth: 220,
-		CompactHeight: 60,
-		ExpandedWidth: 380,
+		X:              900,
+		Y:              700,
+		Width:          220,
+		Height:         60,
+		CompactWidth:   220,
+		CompactHeight:  60,
+		ExpandedWidth:  380,
 		ExpandedHeight: 560,
-		AlwaysOnTop: true,
+		AlwaysOnTop:    true,
 	}
 	capsule := hudWindowOptions(state)
 	popup := hudDetachedPopupOptions(state)
@@ -93,5 +93,31 @@ func TestDetachedHUDWindowOptionsStartHiddenWithSeparateRoute(t *testing.T) {
 	}
 	if capsule.Width != 220 || capsule.Height != 60 {
 		t.Fatal("opening the popup must never enlarge the compact capsule")
+	}
+}
+
+func TestGuardianMascotAndTrayNativeWindowContracts(t *testing.T) {
+	state := desktop.HUDWindowState{
+		Width:      desktop.HUDMascotWidth,
+		Height:     desktop.HUDMascotHeight,
+		Appearance: desktop.HUDAppearanceMascot,
+	}
+	mascot := hudWindowOptions(state)
+	if mascot.MinWidth > mascot.Width || mascot.Hidden || !mascot.Frameless {
+		t.Fatalf("mascot window must be small, visible and borderless: %+v", mascot)
+	}
+	if !mascot.Mac.DisableShadow || !mascot.Windows.DisableFramelessWindowDecorations ||
+		!mascot.Linux.WindowIsTranslucent {
+		t.Fatal("mascot must use cross-platform transparent native chrome")
+	}
+	state.Appearance = desktop.HUDAppearanceTray
+	state.Width, state.Height = 220, 60
+	tray := hudWindowOptions(state)
+	if !tray.Hidden || tray.Width != 220 || tray.MinWidth != 80 {
+		t.Fatalf("tray startup must hide capsule and preserve a recoverable full-size bar: %+v", tray)
+	}
+	popup := hudDetachedPopupOptions(state)
+	if !popup.Hidden || popup.Name != desktop.HUDPopupWindowName {
+		t.Fatalf("detached detail window must remain hidden until requested: %+v", popup)
 	}
 }

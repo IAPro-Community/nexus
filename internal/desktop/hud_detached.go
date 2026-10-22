@@ -100,9 +100,10 @@ func (h *HUDController) setDetachedHUDSizePreset(preset string) error {
 	state.ExpandedWidth, state.ExpandedHeight = selected.ExpandedWidth, selected.ExpandedHeight
 	state.X, state.Y = capsule.Position()
 	oldWidth, oldHeight := capsule.Size()
-	state.X += oldWidth - selected.CompactWidth
-	state.Y += oldHeight - selected.CompactHeight
-	state.Width, state.Height = selected.CompactWidth, selected.CompactHeight
+	compactWidth, compactHeight := hudCompactDimensions(state)
+	state.X += oldWidth - compactWidth
+	state.Y += oldHeight - compactHeight
+	state.Width, state.Height = compactWidth, compactHeight
 	if screen := h.screenForState(state, capsule); screen != nil {
 		state = clampHUDWindowStateToWorkArea(state, screen.WorkArea)
 		state.DisplayID = screen.ID

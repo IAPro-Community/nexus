@@ -1,8 +1,8 @@
 # HUD nativo: janela de popup independente (experimento)
 
-**Estado:** implementação opt-in em `feat/hud-detached-popover`.
-Não declarar homologado ou substituir a cápsula atual antes de testes
-interativos no Windows, macOS e Linux X11.
+**Estado:** implementação opt-in integrada à `release/v1.0.0` via PR #56.
+O código está integrado, mas o comportamento gráfico **não está homologado**
+para Windows, macOS e Linux X11; a opção permanece desativada por padrão.
 
 ## Objetivo
 
@@ -86,6 +86,21 @@ Os scripts Linux/macOS `homologate-hud-native-*.sh` continuam cobrindo
 a geometria **legada**, não certificam automaticamente o popup separado;
 adaptações equivalentes e execução nativa permanecem obrigatórias.
 
-**Critério de merge:** sem GO nativo, manter PR em Draft. A
-implementação não corrige, por si só, click-through de pixels
-transparentes no Windows/WebView2 ou GTK/Wayland.
+## Auditoria da apresentação e animações
+
+- A janela de detalhes pré-renderiza o conteúdo em sua WebView oculta, sem
+  esperar o primeiro intervalo de sincronização, evitando uma tela em branco
+  quando `Show()` abre o popup.
+- A entrada do painel usa somente `opacity` e `transform` por 150 ms;
+  a janela nativa não é redimensionada para simular uma animação.
+- `prefers-reduced-motion: reduce` desativa a animação; o HUD web/legado
+  mantém as transições existentes.
+- Os estados de rendering são cobertos por `hudPresentation.test.ts`.
+- Nenhum mascote animado, spritesheet ou animação de personagem foi incluído
+  nesta mudança. A animação implementada é do **painel**, não do mascote.
+- Ainda são obrigatórias capturas sequenciais e testes de foco/clique em
+  sessões gráficas reais. O CI não comprova que a animação roda sem flicker.
+
+O popup separado reduz a área clicável invisível da cápsula, mas não
+implementa automaticamente click-through por pixel no WebView2 ou GTK/Wayland.
+Não declarar GO nativo sem homologação do mesmo SHA.

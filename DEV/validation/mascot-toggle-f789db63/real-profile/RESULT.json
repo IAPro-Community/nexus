@@ -1,0 +1,31 @@
+{
+  "verdict": "PASS",
+  "checks": {
+    "capsule_start": "1592,902,220x60",
+    "toggle_visible_in_viewport": true,
+    "toggle_rect": "1581,829,129x27",
+    "toggle_before": "Popup independente: Não",
+    "panel_open": "1478,466,334x496",
+    "toggle_action": "click@1646,842",
+    "state_detached_on": true,
+    "popup_created": true,
+    "popup_hidden": true,
+    "capsule_after_enable": "1592,902,220x60",
+    "popup_visible": true,
+    "capsule_kept_compact": true,
+    "popup_bounds": "1478,398,334x496",
+    "mascot_found": true,
+    "mascot_enabled": true,
+    "mascot_action": "click@1672,446",
+    "state_mascot": true,
+    "capsule_mascot": "1704,850,136x112",
+    "capsule_is_mascot": true,
+    "reopen_action": "click@1772,906",
+    "bandeja_action": "click@1750,384",
+    "state_restored_tray": true,
+    "hud_hidden_after_restore": true,
+    "popup_hidden_after_restore": true,
+    "final_state": "{\"displayId\":\"65537\",\"displayScale\":1,\"placement\":\"CUSTOM\",\"x\":1620,\"y\":902,\"width\":220,\"height\":60,\"compactWidth\":220,\"compactHeight\":60,\"expandedWidth\":334,\"expandedHeight\":496,\"mode\":\"AUTO\",\"appearance\":\"TRAY\",\"opacity\":0.96,\"alwaysOnTop\":true,\"autoHide\":false,\"detachedPopover\":true}",
+    "failed": []
+  }
+}
