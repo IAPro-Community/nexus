@@ -3,7 +3,11 @@ package desktop
 import (
 	"path/filepath"
 	"runtime"
+	"sync"
 	"testing"
+
+	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 )
 
 func TestHUDWindowStateManagerDefaultsAndPersistence(t *testing.T) {
@@ -179,5 +183,97 @@ func TestHUDControllerSizePresetRequiresNativeWindow(t *testing.T) {
 	}
 	if err := controller.MoveHUD(10, 10); err == nil {
 		t.Fatal("moves without a native window must fail closed")
+	}
+}
+
+// fakeHUDWindow embeds the Wails interface so the regression test only has to
+// implement the handful of methods RestoreHUDWindow actually calls.
+type fakeHUDWindow struct {
+	application.Window
+	mu           sync.Mutex
+	handlers     map[events.WindowEventType]func(*application.WindowEvent)
+	sizeCalls    int
+	positionCall int
+	lastWidth    int
+	lastHeight   int
+	lastX        int
+	lastY        int
+}
+
+func newFakeHUDWindow() *fakeHUDWindow {
+	return &fakeHUDWindow{handlers: map[events.WindowEventType]func(*application.WindowEvent){}}
+}
+
+func (w *fakeHUDWindow) OnWindowEvent(eventType events.WindowEventType, callback func(*application.WindowEvent)) func() {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.handlers[eventType] = callback
+	return func() {}
+}
+
+func (w *fakeHUDWindow) emit(eventType events.WindowEventType) {
+	w.mu.Lock()
+	handler := w.handlers[eventType]
+	w.mu.Unlock()
+	if handler != nil {
+		handler(nil)
+	}
+}
+
+func (w *fakeHUDWindow) Size() (int, int) { return w.lastWidth, w.lastHeight }
+
+func (w *fakeHUDWindow) Position() (int, int) { return w.lastX, w.lastY }
+
+func (w *fakeHUDWindow) SetSize(width, height int) application.Window {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.sizeCalls++
+	w.lastWidth, w.lastHeight = width, height
+	return w
+}
+
+func (w *fakeHUDWindow) SetPosition(x, y int) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.positionCall++
+	w.lastX, w.lastY = x, y
+}
+
+func (w *fakeHUDWindow) SetAlwaysOnTop(bool) application.Window { return w }
+
+// Regression: ServiceStartup runs before the native window exists on Windows,
+// so restore must also be wired to WindowShow. It must run exactly once even
+// when the window emits show events repeatedly.
+func TestRestoreHUDWindowOnShowAppliesPersistedGeometryOnce(t *testing.T) {
+	manager := NewHUDWindowStateManager(filepath.Join(t.TempDir(), "hud.json"))
+	if err := manager.Save(HUDWindowState{
+		DisplayID: "current", Placement: HUDPlacementCustom,
+		X: 300, Y: 200, Width: 220, Height: 60,
+		Mode: "AUTO", Opacity: 0.96, AlwaysOnTop: true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	controller := NewHUDController(manager)
+	window := newFakeHUDWindow()
+
+	controller.restoreHUDWindowWhenShown(window)
+	if window.sizeCalls != 0 {
+		t.Fatalf("restore must not run before the show event, calls=%d", window.sizeCalls)
+	}
+
+	window.emit(events.Common.WindowShow)
+	if window.sizeCalls != 1 {
+		t.Fatalf("show event must apply geometry once, calls=%d", window.sizeCalls)
+	}
+	if window.lastWidth != 220 || window.lastHeight != 60 {
+		t.Fatalf("persisted expanded size must restore compact: %dx%d", window.lastWidth, window.lastHeight)
+	}
+	if window.lastX != 300 || window.lastY != 200 {
+		t.Fatalf("custom position lost: %d,%d", window.lastX, window.lastY)
+	}
+
+	window.emit(events.Common.WindowShow)
+	if window.sizeCalls != 1 {
+		t.Fatalf("repeated show events must not re-apply stale geometry, calls=%d", window.sizeCalls)
 	}
 }

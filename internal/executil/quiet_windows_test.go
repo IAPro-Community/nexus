@@ -53,6 +53,19 @@ func TestCommandCapturesOutputWithoutChangingResult(t *testing.T) {
 	}
 }
 
+// Regression: STARTF_USESHOWWINDOW/SW_HIDE makes the first ShowWindow call of
+// a GUI child start hidden. The linked HUD spawn must suppress the console
+// without requesting a hidden first window.
+func TestCommandNoConsoleKeepsConsoleHiddenWithoutSwHide(t *testing.T) {
+	cmd := CommandNoConsole("cmd.exe")
+	if cmd.SysProcAttr == nil || cmd.SysProcAttr.CreationFlags&createNoWindow == 0 {
+		t.Fatal("expected CREATE_NO_WINDOW")
+	}
+	if cmd.SysProcAttr.HideWindow {
+		t.Fatal("CommandNoConsole must not set STARTF_USESHOWWINDOW/SW_HIDE")
+	}
+}
+
 func TestHideWindowPreservesInteractiveConsoleFlags(t *testing.T) {
 	cmd := exec.Command("cmd.exe")
 	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x00000200}
