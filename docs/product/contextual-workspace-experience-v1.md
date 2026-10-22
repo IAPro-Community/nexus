@@ -72,3 +72,7 @@ O `AgentTerminal` já observava mudanças de tamanho do contêiner. O `TerminalP
 ## Busca contextual — tolerância a digitação
 
 A Command Palette preserva os prefixos `#`, `@`, `$`, `>` e coloca correspondências exatas à frente. Palavras com quatro ou mais caracteres permitem uma omissão, inserção, substituição ou transposição adjacente; IDs curtos e caminhos mantêm busca estrita. Mudanças na coleção de comandos não podem disparar um item com índice desatualizado, e IME em composição não executa a seleção com Enter.
+
+## Smoke visual isolado de CSS
+
+O comando `npm run test:e2e:terminal-split` exercita o **grid real de estilos** em Chromium, com a regra absoluta legada e as regras `TerminalSplit.module.scss`: ordem primário/divisor/secundário, ausência de sobreposição, painel oculto fora do grid e orientação vertical/horizontal. É um gate geométrico de regressão que não substitui o E2E real do Nexus com PTY/ConPTY e resize via WebSocket. Requer Playwright Chromium disponível.

@@ -21,6 +21,7 @@
     "test:e2e": "node scripts/e2e-hardening-verify.mjs",
     "test:e2e:composer": "node scripts/e2e-composer-workspace.mjs",
     "test:e2e:surface": "node scripts/e2e-surface-isolation.mjs",
+    "test:e2e:terminal-split": "node scripts/e2e-terminal-split-grid.mjs",
     "test:e2e:capacity": "node scripts/e2e-capacity.mjs",
     "test:e2e:hud": "node scripts/e2e-hud.mjs",
     "test:a11y": "node scripts/e2e-hardening-verify.mjs",
