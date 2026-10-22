@@ -193,7 +193,9 @@ export const BranchSwitcherModal: React.FC<BranchSwitcherModalProps> = ({
                       onClick={() => handleCheckout(branch, false)}
                       disabled={switching || isActive || Boolean(occupied)}
                       title={
-                        occupied ? t('git.branchInWorktreePath', { path: occupied.path }) : undefined
+                        occupied
+                          ? t('git.branchInWorktreePath', { path: occupied.path })
+                          : undefined
                       }
                     >
                       <div className="nx-branch-item-name">

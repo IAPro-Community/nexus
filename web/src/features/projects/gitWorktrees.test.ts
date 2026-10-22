@@ -30,6 +30,8 @@ describe('linked Git worktree visibility', () => {
   });
 
   it('does not reserve a branch for a detached worktree', () => {
-    expect(linkedWorktreeForBranch([{ ...linked, detached: true, branch: '' }], 'feature/a')).toBeUndefined();
+    expect(
+      linkedWorktreeForBranch([{ ...linked, detached: true, branch: '' }], 'feature/a'),
+    ).toBeUndefined();
   });
 });

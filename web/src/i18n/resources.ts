@@ -1533,7 +1533,8 @@ export const en = {
     switchedSuccess: '✓ Switched to branch {{branch}}',
     branchesAriaLabel: 'Branches',
     linkedWorktrees: 'Linked worktrees',
-    worktreeReadOnlyHint: 'Worktrees created by Nexus or other tools. Manage them in Git; this panel is read-only.',
+    worktreeReadOnlyHint:
+      'Worktrees created by Nexus or other tools. Manage them in Git; this panel is read-only.',
     branchInWorktree: 'In another worktree',
     branchInWorktreePath: 'This branch is checked out at {{path}}',
     detachedHead: 'Detached HEAD',
@@ -3534,7 +3535,8 @@ export const ptBR = {
     switchedSuccess: '✓ Alternado para branch {{branch}}',
     branchesAriaLabel: 'Branches',
     linkedWorktrees: 'Worktrees vinculados',
-    worktreeReadOnlyHint: 'Worktrees do Nexus ou de outras ferramentas. Gerencie pelo Git; aqui a consulta é somente leitura.',
+    worktreeReadOnlyHint:
+      'Worktrees do Nexus ou de outras ferramentas. Gerencie pelo Git; aqui a consulta é somente leitura.',
     branchInWorktree: 'Em outro worktree',
     branchInWorktreePath: 'Esta branch está em uso em {{path}}',
     detachedHead: 'HEAD destacado',
@@ -5542,7 +5544,8 @@ export const es = {
     switchedSuccess: '✓ Cambiado a la rama {{branch}}',
     branchesAriaLabel: 'Branches',
     linkedWorktrees: 'Worktrees vinculados',
-    worktreeReadOnlyHint: 'Worktrees de Nexus u otras herramientas. Adminístrelos desde Git; aquí solo se muestran.',
+    worktreeReadOnlyHint:
+      'Worktrees de Nexus u otras herramientas. Adminístrelos desde Git; aquí solo se muestran.',
     branchInWorktree: 'En otro worktree',
     branchInWorktreePath: 'Esta rama se utiliza en {{path}}',
     detachedHead: 'HEAD separado',
