@@ -161,10 +161,12 @@ func (s *Service) PerformContextHandoff(ctx context.Context, sourceRuntimeID, ta
 		ProjectName: source.ProjectName,
 		ProviderID:  targetProvider,
 		ProfileID:   targetProfile,
+		AccountScope: info.AccountScope,
 		Workspace:   source.Workspace,
 		Args:        extraArgs,
 		Model:       targetModel,
 		Standalone:  false,
+		Labels:      cloneRuntimeLabels(source.Labels),
 	})
 	if err != nil {
 		// Rollback source state on target launch failure
