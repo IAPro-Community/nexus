@@ -17,45 +17,23 @@ As escolhas são gravadas em `hud-window-state.json` por
 `HUDController.SetHUDAppearance`; `Mode`, que controla a prioridade
 das informações exibidas, permanece independente.
 
-## Opt-in e fallback
+## Apresentação padrão, preferências e Wayland
 
-O popup independente permanece **opt-in** enquanto não houver
-homologação nativa completa. É possível ativá-lo diretamente no painel
-expandido, pela opção **Popup independente: Sim**. Essa preferência persiste
-sem precisar reiniciar. Após a ativação, o seletor **Barra / Mascote / Bandeja**
-fica disponível.
+**O Mascote é padrão na instalação nova**, sem variáveis de ambiente.
+O detalhe em segunda janela também é a configuração inicial preferida em
+Windows, macOS e Linux X11. A aparência (Mascote, Barra, Bandeja) pode
+ser alterada no popup ou no menu nativo da bandeja e persiste no arquivo
+`hud-window-state.json`. Uma escolha explícita anterior do usuário por
+Barra ou Bandeja continua sendo respeitada.
 
-O menu da bandeja também permite escolher **Guardian: Mascote** em Windows,
-macOS e Linux X11, ativando o popup independente sob demanda. Wayland mantém
-a Barra e desabilita a opção de popup independente.
+**Popup independente é preferência de layout, não pré-requisito do Mascote.**
+O usuário pode desativá-lo sem perder o personagem. O Linux Wayland usa
+a expansão dentro da própria janela, porque o compositor pode impedir
+posicionar uma segunda janela com coordenadas globais. O Mascote permanece
+como apresentação padrão também no Wayland.
 
-Para testes e automação ainda é possível usar a variável de ambiente:
-
-```bash
-NEXUS_HUD_DETACHED_POPOVER=1 ./cmd/nexus-hud/build/bin/nexus-hud
-```
-
-Em PowerShell:
-
-```powershell
-$env:NEXUS_HUD_DETACHED_POPOVER = '1'
-.\cmd\nexus-hud\build\bin\nexus-hud.exe
-```
-
-No painel expandido, os controles **Barra / Mascote / Bandeja**
-alteram a escolha imediatamente e persistem após reinício. A bandeja
-nativa disponibiliza um caminho de recuperação quando a interface está
-oculta, inclusive após escolher **Somente bandeja**.
-
-O modo Mascote **não pode ser selecionado** sem o popup independente.
-Quando esta opção não estiver habilitada (ou quando a sessão for
-Linux Wayland), uma aparência de Mascote salva anteriormente é
-convertida para Barra para não abrir uma janela larga cortada.
-
-A Bandeja pode ser selecionada mesmo no HUD clássico. Após ocultar,
-é possível recuperar o HUD clicando no ícone da bandeja ou escolhendo
-**Mostrar**. O programa continua em modo Bandeja no próximo boot
-até que outra aparência seja escolhida.
+O menu nativo permite recuperar a janela quando está oculta na Bandeja;
+a seleção de uma aparência diferente não exige reinicialização.
 
 ## Animações de caráter exclusivamente visual
 
@@ -100,12 +78,11 @@ artefatos; `nexus-hud` é um aplicativo separado de `nexus-desktop`.
 A prévia precisa incluir o commit que acrescentou
 `GuardianMascot.tsx` e `internal/desktop/hud_appearance.go`.
 
-**Onde escolher:** execute `nexus-hud` da compilação atual e abra a
-cápsula. Em Windows/macOS/Linux X11, ative
-**Popup independente** no painel expandido e selecione **Mascote**.
-Também é possível escolher **Guardian: Mascote** no menu de bandeja.
-Wayland mantém o fallback Barra. O Mascote não aparece automaticamente no
-`nexus-desktop` nem na página Web.
+**Onde escolher:** execute o `nexus-hud` compilado a partir do
+commit atualizado. O Mascote aparece por padrão. Clique nele para abrir
+detalhes e use os controles Barra / Mascote / Bandeja. A bandeja também
+oferece diretamente as três apresentações. No Wayland o painel abre na
+mesma janela; o personagem não é substituído pela Barra automaticamente.
 
 A publicação de uma nova prévia não comprova homologação gráfica ou
 assinatura; use apenas pacotes do mesmo SHA e mantenha os gates Windows,
