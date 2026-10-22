@@ -50,6 +50,7 @@ export interface NexusHudProps {
   native?: boolean;
   nativeView?: 'capsule' | 'popover';
   onOpenNexus?: () => void;
+  onOpenRuntime?: (attention: import('./hudModel').HudRuntimeAttention) => void;
   onOpenUsage?: () => void;
   onOpenAgents?: () => void;
   onOpenMissions?: () => void;
@@ -72,6 +73,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   native = false,
   nativeView = 'capsule',
   onOpenNexus,
+  onOpenRuntime,
   onOpenUsage,
   onOpenAgents,
   onOpenMissions,
@@ -137,14 +139,14 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   useEffect(() => {
     void refresh();
     const onVisible = () => {
-      if (document.visibilityState === 'visible') void refresh();
+      if (native || document.visibilityState === 'visible') void refresh();
     };
     const onFocus = () => void refresh();
     document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('focus', onFocus);
     const timer = window.setInterval(
       () => {
-        if (document.visibilityState === 'visible') void refresh();
+        if (native || document.visibilityState === 'visible') void refresh();
       },
       Math.max(MIN_REFRESH_MS, response?.state?.system.cache_ttl_millis || MIN_REFRESH_MS),
     );
@@ -153,7 +155,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       window.removeEventListener('focus', onFocus);
       window.clearInterval(timer);
     };
-  }, [refresh, response?.state?.system.cache_ttl_millis]);
+  }, [refresh, response?.state?.system.cache_ttl_millis, native]);
 
   useEffect(() => {
     if (!native) return;
@@ -312,10 +314,14 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const activeAgents = state?.agents.filter(isWorkingAgent) || [];
   const currentMission = state ? hudVisibleMission(state.missions) : undefined;
   const activeMission = currentMission?.needs_user ? currentMission : undefined;
-  const isAttention = Boolean(alert || activeMission);
+  const runtimeAttention = state?.runtime_attention || [];
+  // Terminal waits have already been classified by the canonical runtime
+  // registry. This view only presents them; it never scrapes raw PTY output.
+  const attentionCount = runtimeAttention.length + (activeMission ? 1 : 0);
+  const isAttention = Boolean(alert || activeMission || runtimeAttention.length);
   const displayTone = offline
     ? 'unknown'
-    : activeMission || alert?.severity.toUpperCase() === 'WARNING'
+    : activeMission || runtimeAttention.length > 0 || alert?.severity.toUpperCase() === 'WARNING'
       ? 'warning'
       : focus?.tone || (alert ? 'warning' : 'unknown');
   const displayPercent = hudPercentageFor(focus?.provider, offline);
@@ -523,7 +529,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       : `${currentPercent} restante, ${evidenceCopy}`;
   const capsuleAccessibleLabel = `${expanded ? 'Recolher' : 'Expandir'} Nexus HUD. ${mainLabel}, ${capsuleCapacityCopy}`;
   const mascotAccessibleLabel = isAttention
-    ? `${capsuleAccessibleLabel}. Atenção necessária.`
+    ? `${capsuleAccessibleLabel}. ${attentionCount || 1} intervenção(ões) pendente(s).`
     : capsuleAccessibleLabel;
   const nativeTitle = `${mainLabel}: ${currentPercent} · ${focus?.provider?.limiting_window?.reset_description || 'Renovação desconhecida'}`;
   const tone = waiting ? 'unknown' : displayTone;
@@ -630,6 +636,42 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                       : 'Detalhes na mesma janela'}
                 </span>
               </div>
+            )}
+
+            {runtimeAttention.length > 0 && (
+              <section className={styles.runtimeAttention} aria-label="Terminais aguardando você">
+                <strong>
+                  <AlertTriangle size={14} aria-hidden="true" />
+                  {runtimeAttention.length} terminal(is) aguardando sua ação
+                </strong>
+                <ul>
+                  {runtimeAttention.slice(0, 8).map((item) => (
+                    <li key={item.runtime_id}>
+                      <span>
+                        <b>{item.provider || 'Agente'}</b>
+                        {' · '}
+                        {prefs.privacyMode ? 'Projeto reservado' : item.project_name || 'Projeto'}
+                        {' — '}
+                        {item.reason === 'APPROVAL'
+                          ? 'Aprovação necessária'
+                          : item.prompt_kind === 'choice'
+                            ? 'Escolha necessária'
+                            : 'Resposta necessária'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => (onOpenRuntime ? onOpenRuntime(item) : onOpenNexus?.())}
+                        disabled={!onOpenRuntime && !onOpenNexus}
+                      >
+                        Abrir terminal
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                {runtimeAttention.length > 8 && (
+                  <small>Mais {runtimeAttention.length - 8} solicitações no Nexus.</small>
+                )}
+              </section>
             )}
 
             <div className={styles.sectionCaption}>
@@ -966,6 +1008,11 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               onClick={() => setExpandedState(!expanded)}
             >
               <GuardianMascot mood={guardianState} attention={isAttention} />
+              {runtimeAttention.length > 0 && (
+                <span className={styles.runtimeAttentionBadge} aria-hidden="true">
+                  {runtimeAttention.length > 9 ? '9+' : runtimeAttention.length}
+                </span>
+              )}
             </button>
             <button
               type="button"
