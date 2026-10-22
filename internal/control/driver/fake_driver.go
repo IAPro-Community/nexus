@@ -19,7 +19,7 @@ func NewFakeDriver() *FakeDriver { return &FakeDriver{} }
 func (d *FakeDriver) ProviderID() string { return "fake" }
 
 func (d *FakeDriver) Detect(ctx context.Context) (model.DetectionResult, error) {
-	binary, err := resolveSystemShell()
+	binary, err := resolveSystemShell(ctx)
 	if err != nil {
 		return model.DetectionResult{Installed: false, Error: err.Error()}, nil
 	}
@@ -105,7 +105,7 @@ func (d *FakeDriver) Capabilities(ctx context.Context, p model.Profile) ControlC
 }
 
 func (d *FakeDriver) BuildCommand(ctx context.Context, p model.Profile, extraArgs []string) (string, []string, []string, error) {
-	binary, err := resolveSystemShell()
+	binary, err := resolveSystemShell(ctx)
 	if err != nil {
 		return "", nil, nil, err
 	}

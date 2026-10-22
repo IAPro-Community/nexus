@@ -95,6 +95,12 @@ func OpenSharedBackend(surfaceName string) (*SharedBackend, error) {
 	}, nil
 }
 
+// OwnsEmbeddedCore reports whether this surface started its own embedded Core
+// instead of attaching to an existing loopback Web Core.
+func (b *SharedBackend) OwnsEmbeddedCore() bool {
+	return b != nil && b.core != nil
+}
+
 // Close only stops a Core owned by this presentation. Attached Web Core
 // processes are never terminated by the Desktop/HUD surface.
 func (b *SharedBackend) Close(ctx context.Context) error {

@@ -18,7 +18,8 @@ type hudResponse struct {
 // domains. The handler never starts provider probes, schedulers, Agents, or
 // Missions. When the rollout flag is disabled it returns a stable envelope so
 // clients can hide the experimental surface without treating the state as an
-// operational failure.
+// operational failure. The projection API defaults on for native HUD;
+// the Web widget has an independent, user-controlled visibility preference.
 func (h *NexusHandler) handleHUDState(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")

@@ -156,6 +156,24 @@ func FindHostHome() string {
 
 // ApplyIsolation links allowed files and cleans disallowed links from a profile home.
 func ApplyIsolation(profileHome string, policy Policy) error {
+	return applyIsolation(profileHome, policy, nil)
+}
+
+// ApplyIsolationPreservingConfigDirs applies the isolation policy while
+// preserving named, populated profile-owned directories below ~/.config.
+// Empty or missing directories still receive the host config through the
+// normal sharing policy.
+func ApplyIsolationPreservingConfigDirs(profileHome string, policy Policy, configDirs ...string) error {
+	preservedConfigDirs := make(map[string]struct{}, len(configDirs))
+	for _, name := range configDirs {
+		if name != "" && filepath.Base(name) == name {
+			preservedConfigDirs[name] = struct{}{}
+		}
+	}
+	return applyIsolation(profileHome, policy, preservedConfigDirs)
+}
+
+func applyIsolation(profileHome string, policy Policy, preservedConfigDirs map[string]struct{}) error {
 	hostHome := FindHostHome()
 	if hostHome == "" || profileHome == "" || hostHome == profileHome {
 		return nil
@@ -194,6 +212,16 @@ func ApplyIsolation(profileHome string, policy Policy) error {
 				}
 				src := filepath.Join(hostConfig, e.Name())
 				dst := filepath.Join(profileConfig, e.Name())
+				if _, preserve := preservedConfigDirs[e.Name()]; preserve {
+					// Provider config trees may contain large dependencies. Seed an
+					// empty directory once, then preserve its profile-owned contents
+					// on later launches instead of copying them before IPC startup.
+					if existing, statErr := os.Lstat(dst); statErr == nil && existing.IsDir() && existing.Mode()&os.ModeSymlink == 0 {
+						if entries, readErr := os.ReadDir(dst); readErr == nil && len(entries) > 0 {
+							continue
+						}
+					}
+				}
 				_ = SafeLinkOrCopy(src, dst)
 			}
 		}

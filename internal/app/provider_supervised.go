@@ -95,6 +95,10 @@ func executeProviderSupervised(provName, explicitProfile string, args []string, 
 	}
 
 	cfg, _ := config.LoadConfig()
+	// The TTY default is supervised. The selection must use the same fresh
+	// identity-scoped evidence as the direct launcher, not September cache.
+	// Explicit profile launches remain immediate.
+	refreshCodexLaunchQuota(context.Background(), provName, explicitProfile, candidates, accounts)
 	selector := scheduler.NewSelector(cfg, quotaEngine, cooldown.NewTracker())
 	workspace := mustWorkingDirectory()
 	session, selected, err := launchWithBusyFailover(

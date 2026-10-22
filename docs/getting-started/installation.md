@@ -1,9 +1,6 @@
 # Instalação nativa por release assinada
 
-A release estável Nexus v1 ainda não foi publicada. A última beta pública
-registrada é **v1.0.0-beta.1 / Linux amd64**. O candidato seguinte
-**v1.0.0-beta.7** integra Linux amd64, Windows amd64 e macOS arm64; suporte
-público depende da certificação exact-SHA correspondente.
+A release estável Nexus v1 **ainda não foi homologada nem publicada**. O source `release/v1.0.0` declara `1.0.0-beta.10` na linha beta.10. Plataformas e instaladores exigem validação e assinatura no SHA exato; o registro anterior de `v1.0.0-beta.1` é histórico, não confirmação de URL ativa.
 
 | Quero… | Documento |
 | --- | --- |
@@ -12,55 +9,16 @@ público depende da certificação exact-SHA correspondente.
 | Compilar o source como desenvolvedor | [Build](../../BUILD.md) |
 | Ver a matriz de suporte | [Suporte de plataformas](../operations/platform-support.md) |
 
-## Release pública atualmente documentada
+## Instalação binária
 
-A documentação pública mantém `v1.0.0-beta.1` como última beta publicada
-registrada. A versão do source candidato pode ser superior e não implica que o
-mesmo tag já esteja distribuído.
+**Nenhum endereço de download de artefato foi validado nesta revisão.** Antes de seguir um link de instalação, confirme a existência da release, a plataforma, o SHA, o checksum e a assinatura no canal oficial. Não execute um `curl | bash` inventado ou baseado em tag histórica.
 
-Enquanto a linha pública for beta, use uma tag explícita. O valor `latest`
-não deve ser usado como sinônimo de “beta mais nova”.
-
-## Linux amd64
-
-Baixe o instalador da própria release e pine a mesma versão:
-
-```bash
-curl -fsSL \
-  https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/install.sh \
-  -o install.sh
-
-bash install.sh --version=v1.0.0-beta.1
-nexus doctor
-nexus web
-```
-
-Pré-requisitos:
-
-- Linux amd64;
-- `curl` ou `wget`;
-- `tar`;
-- `sha256sum` ou `shasum`;
-- Python 3 com `cryptography` para Ed25519;
-- WebKitGTK apenas para o Desktop Linux.
-
-Parâmetros principais:
-
-```text
---no-desktop
---no-path
---install-dir=<path>
---with-maestro
---version=vX.Y.Z
-```
-
-`NEXUS_INSTALL_DIR` é o equivalente por ambiente. `NEXUS_RELEASE_REPO` e
-`NEXUS_RELEASE_BASE_URL` existem para distribuição interna/certificação.
+O caminho para quem pretende compilar o source público está em [Desenvolvimento a partir do source](#desenvolvimento-a-partir-do-source). Uma versão binária documentada será disponibilizada somente após os gates exigidos em [Suporte de plataformas](../operations/platform-support.md).
 
 ## Windows e macOS
 
 O trabalho anteriormente planejado para a linha 1.1 foi incorporado à própria
-**v1.0 enquanto ela ainda está em beta**. O candidato `v1.0.0-beta.7` inclui
+**v1.0 enquanto ela ainda está em beta**. O candidato candidato da linha v1 inclui
 Linux + Windows + macOS no source. A publicação dos artefatos nativos continua
 bloqueada até o mesmo SHA concluir a certificação correspondente.
 
@@ -72,7 +30,7 @@ O caminho de distribuição passa a ser o instalador NSIS assinado:
 nexus-setup-Windows_x86_64.exe
 ```
 
-Windows amd64 faz parte do candidato `v1.0.0-beta.7`. A certificação exige
+Windows amd64 faz parte do candidato candidato da linha v1. A certificação exige
 Authenticode válido, timestamp, build Wails nativo, ConPTY/Named Pipe E2E e
 smoke completo de install/version/doctor/uninstall. O NSIS instala também o
 `nexus-hud.exe`, certificado e assinado no mesmo SHA. `install.ps1`
@@ -87,7 +45,7 @@ O caminho de distribuição passa a ser o pacote notarizado:
 nexus-installer_Darwin_arm64.pkg
 ```
 
-macOS arm64 faz parte do candidato `v1.0.0-beta.7`. A certificação exige
+macOS arm64 faz parte do candidato candidato da linha v1. A certificação exige
 Developer ID, notarização Apple, stapling, Gatekeeper, build Wails nativo,
 PTY/socket E2E e smoke completo de install/version/doctor/uninstall. O pacote
 instala o CLI em
@@ -148,19 +106,7 @@ suportar troca de canal.
 
 ## Desinstalação
 
-```bash
-curl -fsSL \
-  https://github.com/IAPro-Community/nexus-releases/releases/download/v1.0.0-beta.1/uninstall.sh \
-  -o uninstall.sh
-
-bash uninstall.sh
-```
-
-Por padrão, os dados do usuário são preservados. Para removê-los também:
-
-```bash
-bash uninstall.sh --purge-data
-```
+O método depende do pacote que foi efetivamente instalado. Use o desinstalador fornecido e verificado com aquele release; **não use URLs presumidas de versões anteriores**. Consulte a documentação da distribuição certificada antes de remover dados.
 
 ## Desenvolvimento a partir do source
 
@@ -193,7 +139,7 @@ No Docker, probes de Desktop e runtimes nativos podem aparecer como N/A.
 [Primeiro projeto](first-project.md)
 
 
-## Homologação do candidato beta.4
+## Homologação do candidato da linha v1
 
 Enquanto o GitHub Actions estiver indisponível por créditos, execute a
 homologação automatizável localmente:
@@ -209,5 +155,5 @@ No Windows:
 ```
 
 A evidência é gravada por SHA em
-`DEV/validation/local-beta/1.0.0-beta.7/<sha>/<plataforma>/`. O script também gera a
+`DEV/validation/local-beta/<VERSION>/<SHA>/<plataforma>/`. O script também gera a
 lista de checks manuais que não podem ser simulados com segurança.

@@ -1,5 +1,116 @@
 # Handoff
 
+## Handoff — Archive cleanup verificado no remoto — 2026-10-22
+
+- **Confirmado**: 56 refs `archive/*` + `archived/*` removidos de `origin` (`git ls-remote --heads origin` = 22 heads, 0 archive). A tentativa de 2026-10-21 não havia surtido efeito; reexecutada em 5 lotes e verificada.
+- **Backup intacto**: 69 refs em `refs/backup/archive-20261021/*`, cobrindo os 56 SHAs remotos (0 missing). Tracking local podado.
+- **Restam 22 no remoto**: 15 ativas + 7 `wsl-backup/*`.
+  - Base: `main`, `release/v1.0.0`, `release/v1.1.0`.
+  - Features: `feat/hud-detached-popover`, `feat/nexus-companion-v1.1`, `feat/orca-worktree-visibility-v1`, `feat/v1-contextual-workspace-experience`.
+  - Fixes: `fix/beta7-windows-KIVER-20261007`, `fix/beta8-manual-opaque-quota`, `fix/issue-53-windows-agent-startup`, `fix/release-beta10-windows-closure-20261014`, `fix/v1.0.0-gap-closure-20260930`, `fix/windows-beta10-homologation-20261008`.
+  - Integração/refactor: `integration/v1.0.0-css-and-themes-20261009`, `refactor/v1.0.0-workspace-css-modules-20261009`.
+- **Pendente**: `fix/hud-show-restore-v2` (7dec4b83) é local — push + PR contra `release/v1.0.0`; `wsl-backup/*` removidas só após o merge.
+
+---
+
+## Handoff — Archive Branch Cleanup + HUD Fix Port @ 7dec4b83 — 2026-10-21
+
+- **Remote archive cleanup**: 56 `origin/archive/*` and `origin/archived/*` refs deleted after local backup (69 refs saved to `refs/backup/archive-20261021/*`).
+- **Active branch audit**: 21 non-merged branches inventoried; 13 integrated/superseded branches removed from remote.
+- **HUD fix retarget**: Fixes from `fix/hud-show-restore` (f52dce5c) ported to new branch `fix/hud-show-restore-v2` based on `release/v1.0.0` (ddb99da4).
+- **Key changes**:
+  - `restoreHUDWindowWhenShown()` uses `sync.OnceFunc` to apply persisted geometry on first `WindowShow` event (fixes clipped capsule on first run when ServiceStartup runs before native window exists).
+  - `CommandNoConsole` flag used in `hudlink.Spawn` so GUI child can show its window (CREATE_NO_WINDOW without SW_HIDE).
+- **Branch status**: `fix/hud-show-restore-v2` at 7dec4b83, ready for PR against `release/v1.0.0`.
+- **Pending**: `wsl-backup/*` branches retained until HUD work is merged; scroll fix (dd278d3a) may be cherry-picked separately if browser validation needed.
+
+---
+
+## Handoff — click-through do HUD corrigido @ 047f4348 — 2026-10-21
+
+- Branch `release/v1.0.0`; código `047f4348`, evidência HUD SHA-256 `19c5e299...a1e6a5`.
+- Fix: regiões interativas via `[data-hud-panel]` + watcher nativo 30 ms alternando `WS_EX_TRANSPARENT`; fail-open sem regiões; escopo na janela-cápsula.
+- Prova: `CLICK_THROUGH=PASS` (canto transparente → `Nexus ClickTarget`; cápsula interativa; estado restaurado) em `DEV/validation/local-hud-047f4348/click-through-official/RESULT.json`; 20/20 ciclos e visual carregado OK.
+- Gates verdes: `gofmt`, `go vet`, `go test ./...`, Web quality 97/598, `docs-verify` 192/33.
+- Pendente: click-through do popover destacado (`NOT_TESTED`), confirmação visual humana, assinatura Authenticode, smokes Codex, matriz Linux/macOS.
+- Veredito: `NO_GO_WINDOWS`. Relatório: `DEV/validation/local-hud-047f4348/HOMOLOGATION.md`.
+
+
+## Handoff — Homologação Windows 7d92b942 — 2026-10-21
+
+- **Branch:** `release/v1.0.0`; código homologado `7d92b9428f5493bab18b2c863532703827e5438f`, HEAD atual `42a6971b` (docs-only, recaptura sintética). Worktree limpo e sincronizado.
+- **PR #54:** integrado via merge `c3c518ce`; `3e140c52` é ancestral do HEAD. O binário instalado no host (`%LOCALAPPDATA%\Programs\IAPro Nexus\nexus.exe`, commit `3e140c52`) está coerente com o código da release.
+- **Correções desta passagem (commit `7d92b942`):** `gofmt` em 5 arquivos, Stylelint em `_hudGuardian.scss` e contrato fail-closed de `nexus update`.
+- **Gates verdes:** `docs-verify` (192/33), contrato de versão, `gofmt`, `go vet`, `go test ./...` com Go `1.26.10`, Web quality (96/593), builds Web/HUD, certificação oficial 9 PASS.
+- **HUD:** 20/20 ciclos em janela única e 20/20 em popover destacado; visual carregado sem clipping. **Click-through FAIL** (área transparente captura o clique) → gate visual do HUD em NO_GO.
+- **Bloqueios:** certificado Authenticode (`native-signing` com 0 secrets, sem `signtool`/`makensis`), sessão Codex real, 4–5 contas, desktop first-run manual.
+- **Próximo passo:** obter PFX + senha no environment `native-signing` (ou instalar certificado/NSIS no host), corrigir o click-through do HUD e refazer a captura de evidência no SHA final. Relatório: `DEV/validation/local-hud-7d92b942/HOMOLOGATION.md`.
+
+## Handoff — PR #54 aprovado e instalado no host — 2026-10-21
+
+- **PR:** #54 `fix(agents): make clean Windows startup reliable`, head `3e140c52`, base `release/v1.0.0` em `f6098b8c`; issue #53.
+- **Review:** aprovado no GitHub por `kivervinicius` com evidência local: `go vet` (6 pacotes), `go test -count=1 -timeout=20m ./...` exit 0 em perfil isolado, builds `cmd/nexus` + `cmd/nexus-desktop`, e smoke de instalação.
+- **Instalação:** `%LOCALAPPDATA%\Programs\IAPro Nexus\nexus.exe`/`ai.exe` com SHA-256 `4cb4a311537d61f9e917fdb3058227786ede4509dfc2bca1ad8a363349ae61ed`; `nexus-desktop.exe` atualizado; backup em `%TEMP%\nexus-backup-pr54-20261021\`. `version --json` = `1.0.0-beta.10` / `3e140c52`; HTTP 200 em `127.0.0.1:13000`.
+- **CI:** certificações nativas `skipped` e `Sanitize self-hosted workspace` `queued`; não há gate verde remoto. Nenhum merge, commit, push, tag ou release foi feito localmente.
+- **Não instalado:** o slice de HUD continua isolado em `.tmp/homolog/bin/nexus-hud-diag-v4.exe`; `nexus-hud.exe` instalado segue o build de 18/10/2026.
+
+## Estado atual — homologação e certificação independente 1.0.0 — 2026-10-20
+
+- **Branch:** `release/v1.0.0`, SHA inicial `88094c2406c4f50ff4506bd9d8f63fce0428d328`, HEAD final homologado `7b152ea64e1e0757ee71ec02a77ec8127fbaf4e8`.
+- **Status da Branch:** Todos os commits de correção foram enviados via fast-forward para `origin/release/v1.0.0`. O worktree está limpo e sincronizado.
+- **Binários Instalados no Host:**
+  - `/home/desenvolvedor/.local/bin/nexus` (v1.0.0-beta.10, commit `7b152ea6`)
+  - `/home/desenvolvedor/.local/bin/nexus-desktop` (v1.0.0-beta.10, commit `7b152ea6`)
+  - `/home/desenvolvedor/.local/bin/nexus-hud` (v1.0.0-beta.10, commit `7b152ea6`)
+  - Dados do usuário, banco de dados SQLite (`~/.local/share/nexus/nexus.db`) e configurações foram preservados integralmente.
+- **Resultados e Dossiê:**
+  - Veredito: **CONDITIONAL GO (GO_LINUX / Multiplataforma para Artefatos Nativos / PENDÊNCIA AMBIENTAL DE CI PARA GORELEASER/DEB)**.
+  - Tarball Linux gerado: `dist/beta/nexus-linux-amd64-v1.0.0-beta.10.tar.gz` (SHA-256: `5f6a384f17a56a1117bda0e3836b48b52b94b0d036ab0da4d1c73459e0afd6f7`).
+  - Dossiê detalhado e capturas nativas arquivados em `/projetos/LINUX_HOMOLOGATION/` e compactados em `/projetos/LINUX_HOMOLOGATION_EVIDENCE_7b152ea6.zip`.
+- **Próximas ações para o Maestro:**
+  - Revisar o dossiê final e commits integrados na `release/v1.0.0`.
+  - Disparar o pipeline com supply chain autenticado para geração oficial de assinaturas Ed25519 e pacotes assinados caso decida publicar a release pública.
+
+## Estado atual — homologação e correções Linux 1.0.0 — 2026-10-20 (candidato intermediário)
+
+- **Branch:** `release/v1.0.0`, SHA inicial `88094c2406c4f50ff4506bd9d8f63fce0428d328`, HEAD final homologado `be36af6f2378ef0c7b7a3a787fc55217de2367b8`.
+- **Status do Repositório:** 5 commits locais adicionados à `release/v1.0.0`, sem push ao remoto, worktree limpo:
+  1. `e9959a49`: `fix(desktop/hud): ensure transparent HUD background, fix composerFlowFlag test types, and apply code formatting`
+  2. `c77cff5e`: `fix(docs): support cross-platform path assertions in docs-capture`
+  3. `2c8b2fdb`: `docs(assets): refresh documentation screenshots and manifest for linux homologation`
+  4. `96cc789c`: `style(web): remove redundant background-color in globals.scss`
+  5. `be36af6f`: `docs(assets): re-sync visual assets and manifest with globals.scss fix`
+- **Resultados da Homologação Linux:**
+  - Veredito: **CONDITIONAL GO (GO_LINUX para Artefatos Nativos / PENDÊNCIA AMBIENTAL DE CI PARA GORELEASER/DEB)**.
+  - Todos os componentes nativos (CLI, Desktop Wails, HUD Wails com cantos transparentes, Primeiro Uso em sandbox, Terminais/PTY, Vitest 573 testes, Typecheck, Go race preflight, Go vet, Go test backend) aprovados com evidências completas.
+  - Dossiê detalhado e capturas nativas arquivados em `/projetos/LINUX_HOMOLOGATION/` e compactados em `/projetos/LINUX_HOMOLOGATION_EVIDENCE_be36af6f.zip` (SHA-256: `85c6d94f51d847e2d72dabe3bece949bdf196736948c2744dcdcf4f7d7489652`).
+- **Próximas ações para o Maestro:**
+  - Revisar o dossiê e commits locais (`git log -n 5`, `git show`).
+  - Quando desejado, autorizar o push para `origin/release/v1.0.0`.
+  - Executar o workflow de CI no GitHub Actions (`.github/workflows/ci.yml`) para geração oficial dos pacotes DEB/RPM via GoReleaser no ambiente com permissões de supply chain.
+
+## Estado atual — homologação e correções Windows 1.0.0 — 2026-10-19
+
+- Branch: `release/v1.0.0`, HEAD remoto `560a83b20c62611734e934d980b5725c3ef24cf1`.
+- Homologação Windows concluída com veredito auditado e todos os 10 passos executados em pasta isolada de evidências (`DEV/validation/windows-first-run/560a83b20c62611734e934d980b5725c3ef24cf1/`).
+- Correções aplicadas no código local:
+  1. `web/src/features/hud/NexusHud.tsx`: corrigido `'known-partial'` (TS2551). `bun run --cwd web quality:full` agora passa com 100% de sucesso.
+  2. `install.ps1`: corrigido crash de `Test-Path ""` com `-InstallDir` e garantida compatibilidade com StrictMode no PowerShell 5.1.
+  3. `uninstall.ps1`: compatibilidade StrictMode no PowerShell 5.1 (teste de unidade de desinstalação agora passa no PS 5.1 nativo).
+  4. `internal/nexus/capacity_lifecycle_test.go`: formatado com `gofmt -w` (0 arquivos Go pendentes de formatação).
+  5. Frontend: 5 arquivos formatados com Prettier (`bun run --cwd web format`).
+  6. Documentação: executado `docs:capture` e atualizado `docs/assets/screenshots/manifest.json`.
+- Próxima ação para o Maestro:
+  - Revisar as alterações locais (`git diff`).
+  - Caso aprove, autorizar a criação de commit e publicação da release com os artefatos assinados.
+
+## Estado atual — homologação Windows beta.10 — 2026-10-17 (continuação)
+
+Branch elease/v1.0.0, HEAD 984c2b0f (984c2b0fdbd7b4c4b4917c9de7f1a4d2a60a4b17); remoto origin/release/v1.0.0 em $(6552f3d0b834bf94026e3ce9bd415f826fa57df7.Substring(0,12)). Três commits novos foram criados após o SHA-base 5d5aea9211b5154e96b036c519a61de9723593b1; seis commits locais estão acima do remoto, ainda sem push.
+
+Correção do timeout Go: os fixtures Git falhavam quando TEMP era profundamente aninhado. scripts/homologate-beta.ps1 agora cria TEMP curto na raiz da unidade do checkout (commit 32dc7fa5). Três testes de integração passaram com D:\nxt; go test -count=1 -v ./... passou com Go 1.26.9 e TEMP/TMP/GOTMPDIR curtos, exit 0 em 414,8s. Golangci-lint canônico v2.12.2 passou no limite de 5 min, 0 issues. Os commits adicionais são 976e3b53 (sincronização a11y) e 984c2b0f (regressões PATH).
+
+O harness completo ainda precisa ser executado no SHA final limpo. Antes disso, executar o refresh oficial de documentação após os commits de código e capturas. Veredito atual NO_GO_WINDOWS: NSIS/assinatura e smokes interativos/HUD seguem bloqueados ou não verificados; o SHA congelado anterior teve falhas que só foram corrigidas no worktree posterior. Não publicar nem criar tag.
 ## Estado atual — homologação Windows beta.7 — 2026-10-08
 
 Código validado: `release/v1.0.0` em `d840797bbd975a5c7edc54ebe23f3dfef56ff947`, `VERSION=1.0.0-beta.7`. Os gates automatizados locais Windows passaram: Go fmt/vet/lint/security/testes, Bun frozen install + `quality:full`, oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD. Smokes isolados Desktop/WebView2 (9 s) e HUD (8 s) passaram. Relatório: `DEV/validation/BETA7_WINDOWS_FINAL_20261008.md`; evidências/hash: `DEV/validation/local-beta/1.0.0-beta.7/d840797bbd975a5c7edc54ebe23f3dfef56ff947/windows-AMD64/`.
@@ -2236,3 +2347,34 @@ Project Hub validado em 775×483. Gate web completo, oito suítes Playwright e b
 Não declarar fechamento: o SHA pedido era d14154d2490dfdd3966c7fddc990a1d9127edd39; release/v1.0.0 e origin estão em 52f35c04181b85379219ab55fc3192c63a5440a8 e o worktree está dirty. Binários NotSigned e sem update trust root. O run Actions 37666126714 não foi revalidado (API anônima 404), e o instalador final não foi recompilado. A tag remota Beta 7 está ausente.
 
 A auditoria ao vivo não encontrou branch Beta 7 nova; a branch KIVER é ancestral da release. Quatro branches de terminal/testes com commits exclusivos permanecem para triagem. Nenhuma integração, commit, push, tag ou publicação foi feita. A certificação oficial precisa ocorrer num SHA imutável após seleção das mudanças e fechamento do runner/signing Windows.
+
+## Handoff — HUD nativo arraste/tamanhos — 2026-10-21
+
+Worktree `C:\Dev\nexus-hud-validation`, branch `release/v1.0.0`, base `f6098b8c684a97bf7e8e56804109ca491c78cfa2`, `VERSION=1.0.0-beta.10`, sem commit/push.
+
+O HUD nativo agora permite mover a janela por uma alça de arraste dedicada de 24 px (o corpo da cápsula continua abrindo/fechando o popover) e por setas (16 px; `Shift` = 64 px). O popover ganhou presets `Compacto` 220×60/334×496, `Confortável` 260×70/380×560 e `Grande` 320×84/440×640, persistidos em `hud-window-state.json`, com âncora inferior direita preservada. O primeiro show reaplica a geometria persistida, corrigindo o paint inicial em 190×48.
+
+Evidência local: UI Automation em Windows 11 `10.0.26200`, binário isolado `nexus-hud-diag-v3`; sequência de presets `220×60 → 334×496 → 380×560 → 440×640 → 334×496 → 220×60`; arraste `-144,-108` px; seta `+16` px; `Shift`+seta `+64` px; reinício em `260×70` na posição persistida. Testes direcionados: Go HUD PASS, Vitest 37/37, tsc/ESLint/Stylelint/Prettier PASS, builds Web/HUD PASS.
+
+**Fechamento (rebuild `v4`):** `nexus-hud-diag-v4.exe`, SHA-256 `ae64668c16eedbacabc9f91eb0b05a8a3cb6f28f37800ed59a961e4aa5d49674`, instância `com.iapro.nexus.hud.homolog.v4`. `npm run quality` voltou a PASS (93 arquivos/578 testes; Prettier reflow em `NexusHud.tsx`), `go vet`/`go test ./internal/desktop/...` PASS, builds Web/HUD PASS. Smoke: presets `260×70 → 380×560 → 334×496 → 380×560 → 440×640 → 334×496 → 220×60`, alça `24×42`, arraste `-132,-88` px e reinício em `220×60` (`1524,768`). Relatório e capturas em `DEV/validation/local-hud-f6098b8c/native-hud-drag-size/`.
+
+Pendências: Linux/macOS `NOT_TESTED`; `docs-verify` BLOCKED por alterações visuais não commitadas (gate exige SHA imutável); falta validar o SHA final, assinatura, instalador e matriz nativa completa. Não há tag, release ou GO.
+## Handoff — toggle do popup independente/Mascote — 2026-10-22
+
+Worktree `C:\Dev\nexus-hud-validation`, branch `release/v1.0.0`, código `f789db63c8ec9f3498c3822a94ee7c823ec7086c`, `VERSION=1.0.0-beta.10`. HUD homologado: `nexus-hud.exe` SHA-256 `1f3ced07acc02672dd786c3c39cf87a390da9f315e0e654a9e2505f2ab7929de`.
+
+O modo Mascote deixou de ser inalcançável: o popup independente agora é uma preferência persistida (`HUDWindowState.DetachedPopover`) e pode ser ligado/desligado no rodapé do painel do HUD (`Popup independente: Sim/Não`), com efeito imediato — criação sob demanda da segunda janela, restauração do tamanho compacto ao habilitar e volta para a barra ao desabilitar. `main.go` considera `NEXUS_HUD_DETACHED_POPOVER` ou a preferência persistida. O capsule passou a reler o estado nativo no poll de 800 ms para não ficar com aparência/expansão velhas quando a mudança vem do popup.
+
+Evidência: `DEV/validation/mascot-toggle-f789db63/HOMOLOGATION.md` + `homologation/RESULT.json` (PASS) e capturas `MASCOT.png`/`BAR_RESTORED.png`. Harness: `scripts/homologate-hud-mascot-toggle-windows.ps1` (duas sessões, UI Automation real, estado isolado).
+
+Fica aberto: click-through do popover destacado, confirmação visual humana, matriz Linux X11/macOS, assinatura Authenticode/instalador e smokes interativos de Codex/multi-conta. Veredito de release: `NO_GO_WINDOWS`.
+
+### Deploy — 2026-10-22
+
+955b197f está instalado no host (
+exus-hud.exe 8364a942, servidor PID 24184 na 13000, HUD PID 21168 --linked). O estado real do usuário estava em ppearance: TRAY com o popup desligado — ao abrir o painel, o toggle aparece como Popup independente: Não. Rollback em DEV/validation/mascot-toggle-f789db63/DEPLOYMENT.md.
+
+### Instalação verificada no host — 2026-10-22
+
+
+exus-desktop.exe e o HUD instalado foram exercitados no perfil real: desktop anexa ao Core na 13000 e renderiza o workspace; HUD habilita o popup, aplica Mascote (136x112) e volta para Bandeja. Estado final preservado: ppearance: TRAY + detachedPopover: true (HUD oculto, Mascote liberado). Evidência em DEV/validation/mascot-toggle-f789db63/real-profile/ e notas em REAL_PROFILE.md.

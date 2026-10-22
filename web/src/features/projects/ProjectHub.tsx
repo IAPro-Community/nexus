@@ -1,24 +1,25 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   FolderGit2,
   Plus,
   Sparkles,
-  Layers,
-  Zap,
-  Bot,
-  ArrowRight,
   FolderOpen,
   RefreshCw,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 import { Button, Card, Input, IconButton } from '../../design-system';
-import { nexus } from '../../nexus/api';
-import type { Project } from '../../types';
+import { nexus, type SystemDoctorReport } from '../../nexus/api';
+import type { Project, ProviderAccount, ProviderInfo } from '../../types';
 import { useTranslation } from 'react-i18next';
 import { DirectoryBrowserModal } from './DirectoryBrowserModal';
 import { ProjectScanModal } from './ProjectScanModal';
 import { selectProjectDirectory } from './projectDirectoryPicker';
 import { getRepositoryPathPlaceholderKey } from './repositoryPathPlaceholder';
 import styles from './ProjectHub.module.scss';
+import { RegisterProviderModal } from '../usage/RegisterProviderModal';
+import { AccountLoginModal } from '../usage/AccountLoginModal';
+import { deriveFirstRunReadiness, OFFICIAL_PROVIDER_INSTALL_GUIDES } from './firstRunReadiness';
 
 export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = ({ onCreated }) => {
   const { t } = useTranslation();
@@ -31,6 +32,70 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
   const [error, setError] = useState('');
   const [dirPickerOpen, setDirPickerOpen] = useState(false);
   const [scanModalOpen, setScanModalOpen] = useState(false);
+  const [accountModalOpen, setAccountModalOpen] = useState(false);
+  const [loginAccount, setLoginAccount] = useState<ProviderAccount | null>(null);
+  const [loginBusy, setLoginBusy] = useState(false);
+  const [setupError, setSetupError] = useState('');
+  const [providers, setProviders] = useState<ProviderInfo[]>([]);
+  const [doctor, setDoctor] = useState<SystemDoctorReport | null>(null);
+  const [detectionState, setDetectionState] = useState<'checking' | 'loaded' | 'unavailable'>(
+    'checking',
+  );
+
+  // Read-only detection; never create profiles, install third-party tools,
+  // inspect transcript contents or modify a user's existing authentication.
+  const detectEnvironment = useCallback(async () => {
+    setDetectionState('checking');
+    const [providersResult, doctorResult] = await Promise.allSettled([
+      nexus.listProviderInstallations(),
+      nexus.getSystemDoctor(),
+    ]);
+    if (providersResult.status === 'fulfilled') {
+      setProviders(providersResult.value);
+      setDetectionState('loaded');
+    } else {
+      setDetectionState('unavailable');
+    }
+    setDoctor(doctorResult.status === 'fulfilled' ? doctorResult.value : null);
+  }, []);
+
+  useEffect(() => {
+    void detectEnvironment();
+  }, [detectEnvironment]);
+
+  // Do not manufacture account identity from a discovered CLI. Read the backend ledger.
+  const openExistingLogin = async (provider?: string, profile?: string) => {
+    setSetupError('');
+    setLoginBusy(true);
+    try {
+      const data = await nexus.listResources();
+      const matches = (data.accounts || []).filter(
+        (account) => !provider || account.provider === provider,
+      );
+      const account = profile
+        ? matches.find((item) => item.profile === profile)
+        : matches.find((item) => !item.authenticated) || matches[0];
+      if (account) {
+        setLoginAccount(account);
+      } else {
+        setSetupError(
+          'Ainda não foi possível localizar esse perfil em Uso/Contas. ' +
+            'Verifique novamente ou use nexus profiles no terminal para identificar o perfil.',
+        );
+      }
+    } catch (err) {
+      setSetupError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoginBusy(false);
+    }
+  };
+
+  const readiness = deriveFirstRunReadiness(providers, detectionState);
+  const desktopPrerequisite = doctor?.checks.find(
+    (check) =>
+      (check.id === 'platform.webview2' || check.id === 'platform.webkitgtk') &&
+      (check.status === 'WARN' || check.status === 'FAIL'),
+  );
 
   const create = async (customPath?: string, customName?: string) => {
     const targetPath = (customPath || path).trim();
@@ -83,7 +148,7 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
           <p>{t('projects.intro')}</p>
         </div>
 
-        {/* Primary Local Repo Input */}
+        {/* A project is chosen from a real local directory; never invent a path. */}
         <Card className={styles.create} data-testid="project-hub-create">
           <div className="nx-work-card-icon">
             <FolderGit2 size={20} />
@@ -144,53 +209,64 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
           </Button>
         </Card>
 
-        {/* Starter Templates */}
-        <div className={styles.templates}>
-          <span className={styles.templatesHeading}>{t('projectManager.templatesTitle')}</span>
-          <div className={styles.templatesGrid} data-testid="project-hub-templates">
-            <div
-              className={styles.templateCard}
-              onClick={() => create('/projetos/saas-app', 'Fullstack SaaS App')}
-            >
-              <div className={styles.templateIcon}>
-                <Layers size={16} />
-              </div>
-              <div className={styles.templateCopy}>
-                <strong>{t('projectManager.templateFullstack')}</strong>
-                <small>{t('projectManager.templateFullstackDescription')}</small>
-              </div>
-              <ArrowRight size={13} className={styles.templateArrow} />
-            </div>
-
-            <div
-              className={styles.templateCard}
-              onClick={() => create('/projetos/api-service', 'Core API Service')}
-            >
-              <div className={styles.templateIcon}>
-                <Zap size={16} />
-              </div>
-              <div className={styles.templateCopy}>
-                <strong>{t('projectManager.templateApi')}</strong>
-                <small>{t('projectManager.templateApiDescription')}</small>
-              </div>
-              <ArrowRight size={13} className={styles.templateArrow} />
-            </div>
-
-            <div
-              className={styles.templateCard}
-              onClick={() => create('/projetos/cli-tool', 'Developer CLI Tool')}
-            >
-              <div className={styles.templateIcon}>
-                <Bot size={16} />
-              </div>
-              <div className={styles.templateCopy}>
-                <strong>{t('projectManager.templateCli')}</strong>
-                <small>{t('projectManager.templateCliDescription')}</small>
-              </div>
-              <ArrowRight size={13} className={styles.templateArrow} />
-            </div>
+        {/* Show a truthful, unobtrusive setup assessment before the first project. */}
+        <Card className={styles.readiness} data-testid="project-hub-readiness">
+          <div className={styles.readinessHeader}>
+            <span className={styles.readinessTitle}>
+              {readiness.status === 'ready' ? (
+                <CheckCircle2 size={17} aria-hidden="true" />
+              ) : (
+                <AlertCircle size={17} aria-hidden="true" />
+              )}
+              Ambiente de execução
+            </span>
+            <Button size="sm" tone="ghost" onClick={() => void detectEnvironment()}>
+              <RefreshCw size={13} aria-hidden="true" />
+              Verificar novamente
+            </Button>
           </div>
-        </div>
+          <div role="status" aria-live="polite" className={styles.readinessMessage}>
+            <strong>{readiness.title}</strong>
+            <p>{readiness.description}</p>
+          </div>
+          {readiness.status === 'needs-account' && readiness.suggestedProvider && (
+            <Button size="sm" tone="brand" onClick={() => setAccountModalOpen(true)}>
+              <Plus size={14} aria-hidden="true" />
+              Adicionar conta {readiness.suggestedProvider}
+            </Button>
+          )}
+          {readiness.status === 'needs-login' && (
+            <Button
+              size="sm"
+              tone="brand"
+              disabled={loginBusy}
+              onClick={() => void openExistingLogin(readiness.suggestedProvider)}
+            >
+              Concluir login da conta existente
+            </Button>
+          )}
+          {readiness.status === 'needs-provider' && (
+            <div className={styles.installGuides}>
+              <span>Instalação oficial:</span>
+              {OFFICIAL_PROVIDER_INSTALL_GUIDES.map((guide) => (
+                <a key={guide.label} href={guide.href} target="_blank" rel="noopener noreferrer">
+                  {guide.label}
+                </a>
+              ))}
+            </div>
+          )}
+          {setupError && (
+            <p role="alert" className={styles.readinessWarning}>
+              {setupError}
+            </p>
+          )}
+          {desktopPrerequisite && (
+            <p className={styles.readinessWarning}>
+              Desktop: dependência nativa ainda não confirmada. O terminal e o navegador podem
+              continuar disponíveis; consulte o diagnóstico do sistema.
+            </p>
+          )}
+        </Card>
 
         <div className={styles.tip}>
           <Sparkles size={15} />
@@ -209,6 +285,22 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
         open={scanModalOpen}
         onClose={() => setScanModalOpen(false)}
         onProjectImported={(proj) => onCreated(proj)}
+      />
+
+      <RegisterProviderModal
+        isOpen={accountModalOpen}
+        initialProvider={readiness.suggestedProvider}
+        onClose={() => setAccountModalOpen(false)}
+        onRegistered={async (provider, profile) => {
+          await detectEnvironment();
+          await openExistingLogin(provider, profile);
+        }}
+      />
+      <AccountLoginModal
+        account={loginAccount}
+        isOpen={Boolean(loginAccount)}
+        onClose={() => setLoginAccount(null)}
+        onLoginSuccess={detectEnvironment}
       />
     </>
   );

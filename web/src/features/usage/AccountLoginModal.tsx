@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Button, Dialog } from '../../design-system';
 import { nexus } from '../../nexus/api';
 import type { ProviderAccount } from '../../types';
+import { isProviderLoginVerified } from './providerLoginVerification';
 import styles from './AccountLoginModal.module.scss';
 
 export interface AccountLoginModalProps {
@@ -31,9 +32,7 @@ export const AccountLoginModal: React.FC<AccountLoginModalProps> = ({
   const provider = account.provider || 'codex';
   const profile = account.profile || 'default';
   const isOpencode = provider.toLowerCase() === 'opencode';
-  const cliCommand = isOpencode
-    ? `nexus login ${provider} ${profile}`
-    : `nexus login ${provider} ${profile}`;
+  const cliCommand = `nexus login ${provider} ${profile}`;
 
   const activeProvider =
     account.quota_view?.account ||
@@ -74,9 +73,17 @@ export const AccountLoginModal: React.FC<AccountLoginModalProps> = ({
   const handleVerify = async () => {
     setVerifying(true);
     try {
-      await nexus.refreshResources(provider, profile);
+      const updated = await nexus.refreshResources(provider, profile);
+      if (!isProviderLoginVerified(updated.accounts || [], provider, profile)) {
+        toast.error(
+          'Login ainda não confirmado para esta conta. Conclua o login oficial e tente novamente.',
+        );
+        return;
+      }
       await onLoginSuccess();
-      toast.success(t('usage.refreshSuccess', 'Cota e autenticação verificadas com sucesso!'));
+      toast.success(
+        'Autenticação confirmada. A disponibilidade de cota é verificada separadamente.',
+      );
       onClose();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
@@ -86,17 +93,11 @@ export const AccountLoginModal: React.FC<AccountLoginModalProps> = ({
   };
 
   const handleTerminalLogin = () => {
-    if (onStartTerminalLogin) {
-      onStartTerminalLogin(provider, profile);
-      onClose();
-    } else {
-      window.dispatchEvent(
-        new CustomEvent('nexus:terminal-launch', {
-          detail: { provider, profile, args: ['login'], title: `Login · ${provider}:${profile}` },
-        }),
-      );
-      onClose();
-    }
+    if (!onStartTerminalLogin) return;
+    // The project shell opens separately; the user controls the official login.
+    void navigator.clipboard?.writeText(cliCommand).catch(() => undefined);
+    onStartTerminalLogin(provider, profile);
+    onClose();
   };
 
   const dialogTitle = isOpencode
@@ -188,29 +189,31 @@ export const AccountLoginModal: React.FC<AccountLoginModalProps> = ({
         </div>
 
         <div className={styles.actionsCard}>
-          <div className={styles.terminalOption}>
-            <div className={styles.optionCopy}>
-              <strong>
+          {onStartTerminalLogin && (
+            <div className={styles.terminalOption}>
+              <div className={styles.optionCopy}>
+                <strong>
+                  {isOpencode
+                    ? t('usage.opencodeTerminalAction', 'Gerenciar Provedores no Terminal')
+                    : t('usage.loginTerminalAction')}
+                </strong>
+                <small>
+                  {isOpencode
+                    ? t(
+                        'usage.opencodeTerminalDesc',
+                        'Abre o terminal interativo para configurar ou alternar provedores e chaves.',
+                      )
+                    : t('usage.loginTerminalDesc')}
+                </small>
+              </div>
+              <Button tone="brand" size="sm" onClick={handleTerminalLogin}>
+                <Terminal size={14} />
                 {isOpencode
-                  ? t('usage.opencodeTerminalAction', 'Gerenciar Provedores no Terminal')
+                  ? t('usage.opencodeTerminalButton', 'Abrir Provedores')
                   : t('usage.loginTerminalAction')}
-              </strong>
-              <small>
-                {isOpencode
-                  ? t(
-                      'usage.opencodeTerminalDesc',
-                      'Abre o terminal interativo para configurar ou alternar provedores e chaves.',
-                    )
-                  : t('usage.loginTerminalDesc')}
-              </small>
+              </Button>
             </div>
-            <Button tone="brand" size="sm" onClick={handleTerminalLogin}>
-              <Terminal size={14} />
-              {isOpencode
-                ? t('usage.opencodeTerminalButton', 'Abrir Provedores')
-                : t('usage.loginTerminalAction')}
-            </Button>
-          </div>
+          )}
 
           <div className={styles.cliOption}>
             <span className={styles.cliLabel}>

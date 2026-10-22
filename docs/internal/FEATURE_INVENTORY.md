@@ -1,6 +1,6 @@
 # Inventário funcional
 
-> Fonte de verdade da documentação pública. Inventário produzido em 2026-09-13
+> **Inventário histórico (13/09/2026).** A fonte de verdade atual é [features.json](../reference/features.json) e a [matriz pública](../reference/feature-matrix.md). Esta tabela antiga não deve ser usada para certificar status ou assumir cobertura completa. Inventário originalmente produzido em 2026-09-13
 > a partir de implementação, rotas, help da CLI, testes e documentação
 > canônica. “Experimental” significa que o código/contrato existe, mas a
 > evidência operacional completa não deve ser inferida.

@@ -1,6 +1,9 @@
 package originpolicy
 
-import "testing"
+import (
+	"net/url"
+	"testing"
+)
 
 func TestValidateRequiresExactRequestTarget(t *testing.T) {
 	cases := []struct {
@@ -31,6 +34,13 @@ func TestValidateRequiresExactRequestTarget(t *testing.T) {
 		{"127.0.0.1:9090", "wails://attacker", false},
 		{"192.168.1.10:9090", "wails://wails", false},
 		{"8.8.8.8:9090", "wails://wails", false},
+		// Wails v3 serves the native WebView from wails://localhost.
+		{"localhost:9090", "wails://localhost", true},
+		{"127.0.0.1:9090", "wails://localhost", true},
+		{"192.168.1.10:9090", "wails://localhost", false},
+		{"8.8.8.8:9090", "wails://localhost", false},
+		{"localhost:9090", "wails://localhost.evil.com", false},
+		{"localhost:9090", "wails://localhost.attacker", false},
 	}
 	for _, tc := range cases {
 		if got := Validate(tc.host, tc.origin); got != tc.ok {
@@ -68,11 +78,54 @@ func TestIsTrustedDesktopRequest(t *testing.T) {
 		// Non-loopback host must be rejected even with valid desktop origin header
 		{"192.168.1.10:13000", "wails://wails", "", false},
 		{"8.8.8.8:13000", "wails://wails", "", false},
+		// Wails v3 native WebView sends Host: localhost with an empty Origin and
+		// a wails://localhost Referer (observed on macOS WKWebView).
+		{"localhost:13000", "", "wails://localhost/index.html", true},
+		{"localhost:13000", "wails://localhost", "", true},
+		{"localhost:13000", "", "wails://localhost.evil.com/index.html", false},
+		{"localhost:13000", "wails://localhost.attacker", "", false},
+		{"192.168.1.10:13000", "", "wails://localhost/index.html", false},
 	}
 
 	for _, tc := range cases {
 		if got := IsTrustedDesktopRequest(tc.host, tc.origin, tc.referer); got != tc.want {
 			t.Fatalf("host=%q origin=%q referer=%q got=%v want=%v", tc.host, tc.origin, tc.referer, got, tc.want)
 		}
+	}
+}
+
+// TestIsDesktopOriginSchemeMatrix locks the scheme/host matrix so that adding
+// wails://localhost does not accidentally trust browser-reachable http(s)
+// origins such as https://localhost.
+func TestIsDesktopOriginSchemeMatrix(t *testing.T) {
+	cases := []struct {
+		raw  string
+		want bool
+	}{
+		{"wails://wails", true},
+		{"wails://wails.localhost", true},
+		{"wails://localhost", true},
+		{"wails://LOCALHOST.", true},
+		{"http://wails.localhost", true},
+		{"https://wails.localhost", true},
+		{"http://localhost", false},
+		{"https://localhost", false},
+		{"http://localhost:5173", false},
+		{"wails://localhost.evil.com", false},
+		{"wails://evillocalhost", false},
+		{"file://localhost", false},
+		{"", false},
+	}
+	for _, tc := range cases {
+		u, err := url.Parse(tc.raw)
+		if err != nil {
+			t.Fatalf("parse %q: %v", tc.raw, err)
+		}
+		if got := IsDesktopOrigin(u); got != tc.want {
+			t.Fatalf("IsDesktopOrigin(%q) got=%v want=%v", tc.raw, got, tc.want)
+		}
+	}
+	if IsDesktopOrigin(nil) {
+		t.Fatal("IsDesktopOrigin(nil) must be false")
 	}
 }

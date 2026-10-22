@@ -3,9 +3,6 @@ import {
   Accessibility,
   ArrowUpCircle,
   Bell,
-  Check,
-  ChevronDown,
-  ChevronRight,
   Gauge,
   Globe,
   MonitorCog,
@@ -17,22 +14,16 @@ import {
   Sparkles,
   Type,
 } from 'lucide-react';
+import { Badge, Button, Card, InlineAlert, Input, Segmented, Switch } from '../../design-system';
 import {
-  Badge,
-  Button,
-  Card,
-  ChoiceGroup,
-  ChoiceOption,
-  InlineAlert,
-  Input,
-  Segmented,
-  Switch,
-  THEME_PRESETS,
-  getThemePresetPalette,
+  useTheme,
+  type ThemeDensity,
+  type ThemeFontFamily,
+  type ThemeIconStyle,
 } from '../../design-system';
-import { useTheme, type ThemeDensity, type ThemePresetKey } from '../../design-system';
 import { useWorkspace } from '../../workspace/WorkspaceProvider';
 import { nexus } from '../../nexus/api';
+import { getPlatformBridge } from '../../platform';
 import type { IntelligenceMode, IntelligenceStatus, ProviderAccount } from '../../types';
 import { useTranslation } from 'react-i18next';
 import { asArray } from '../../lib/safeArray';
@@ -54,6 +45,7 @@ import { HudSettings } from '../hud/HudSettings';
 import { VoiceSettings } from '../voice/VoiceSettings';
 import type { SystemDoctorReport } from '../../nexus/api';
 import styles from './SettingsSurface.module.scss';
+import { ThemeAccordionSelector } from './ThemeAccordionSelector';
 
 type SettingsTab =
   | 'appearance'
@@ -106,9 +98,12 @@ export const SettingsSurface: React.FC<{
   const [updateInfo, setUpdateInfo] = useState<{
     nexus_version: string;
     nexus_latest_version?: string;
+    nexus_latest_sha?: string;
     nexus_update_available?: boolean;
     nexus_update_error?: string;
     nexus_update_instruction?: string;
+    nexus_installer_url?: string;
+    nexus_release_url?: string;
     nexus_allows_self_update?: boolean;
     channel?: string;
     installation_method?: string;
@@ -201,6 +196,20 @@ export const SettingsSurface: React.FC<{
     void checkDoctor();
     void loadIntelligence();
   }, []);
+
+  const handleDownloadNexus = async () => {
+    if (!updateInfo?.nexus_update_available) return;
+    const url = updateInfo.nexus_installer_url || updateInfo.nexus_release_url;
+    if (!url || !url.startsWith('https://github.com/IAPro-Community/nexus/releases/')) {
+      setUpdateError('O link oficial desta atualização ainda não está disponível.');
+      return;
+    }
+    try {
+      await getPlatformBridge().openExternal(url);
+    } catch (error) {
+      setUpdateError(error instanceof Error ? error.message : String(error));
+    }
+  };
 
   const handleUpdate = async () => {
     setUpdating(true);
@@ -416,6 +425,68 @@ export const SettingsSurface: React.FC<{
 
             <Card className="nx-settings-card">
               <div className="nx-settings-card__title">
+                <Type size={17} />
+                <div>
+                  <strong>{t('settings.fontFamily', 'Fonte da interface')}</strong>
+                  <small>
+                    {t(
+                      'settings.fontFamilyDescription',
+                      'Independentemente do tema; terminal mantém sua própria tipografia.',
+                    )}
+                  </small>
+                </div>
+              </div>
+              <Segmented
+                ariaLabel={t('settings.fontFamily', 'Fonte da interface')}
+                value={theme.fontFamily}
+                onChange={(value) => theme.setFontFamily(value as ThemeFontFamily)}
+                options={[
+                  {
+                    value: 'default',
+                    label: t('settings.fontDefault', 'Padrão'),
+                  },
+                  {
+                    value: 'system',
+                    label: t('settings.fontSystem', 'Sistema'),
+                  },
+                  {
+                    value: 'readable',
+                    label: t('settings.fontReadable', 'Leitura'),
+                  },
+                ]}
+              />
+            </Card>
+
+            <Card className="nx-settings-card">
+              <div className="nx-settings-card__title">
+                <PanelsTopLeft size={17} />
+                <div>
+                  <strong>{t('settings.iconStyle', 'Traço dos ícones')}</strong>
+                  <small>
+                    {t(
+                      'settings.iconStyleDescription',
+                      'Ajusta a espessura dos ícones Lucide sem trocar os símbolos.',
+                    )}
+                  </small>
+                </div>
+              </div>
+              <Segmented
+                ariaLabel={t('settings.iconStyle', 'Traço dos ícones')}
+                value={theme.iconStyle}
+                onChange={(value) => theme.setIconStyle(value as ThemeIconStyle)}
+                options={[
+                  { value: 'light', label: t('settings.iconLight', 'Fino') },
+                  {
+                    value: 'default',
+                    label: t('settings.iconDefault', 'Padrão'),
+                  },
+                  { value: 'bold', label: t('settings.iconBold', 'Marcado') },
+                ]}
+              />
+            </Card>
+
+            <Card className="nx-settings-card">
+              <div className="nx-settings-card__title">
                 <MonitorCog size={17} />
                 <div>
                   <strong>{t('settings.workspace')}</strong>
@@ -540,6 +611,14 @@ export const SettingsSurface: React.FC<{
                       </Badge>
                     </div>
                   )}
+                  {updateInfo.nexus_update_available &&
+                    updateInfo.nexus_latest_sha &&
+                    updateInfo.nexus_version === updateInfo.nexus_latest_version && (
+                      <div className={styles.infoRow}>
+                        <span>Nova compilação assinada:</span>
+                        <Badge tone="info">{updateInfo.nexus_latest_sha.slice(0, 8)}</Badge>
+                      </div>
+                    )}
                   {updateInfo.channel && (
                     <div className={styles.infoRow}>
                       <span>Canal de Lançamento:</span>
@@ -605,7 +684,9 @@ export const SettingsSurface: React.FC<{
                     : t('maestroControl.updateMaestroSame', {
                         version: updateResult.maestro_version,
                       })}{' '}
-                  {t('maestroControl.nexusBinaryNote', { version: updateResult.nexus_version })}
+                  {t('maestroControl.nexusBinaryNote', {
+                    version: updateResult.nexus_version,
+                  })}
                 </InlineAlert>
               )}
               <div className={styles.btnGroup}>
@@ -613,10 +694,24 @@ export const SettingsSurface: React.FC<{
                   <RefreshCw size={14} className={checkingUpdates ? 'nx-spin' : ''} />
                   {checkingUpdates ? 'Verificando…' : 'Verificar Atualizações Agora'}
                 </Button>
-                <Button tone="brand" onClick={handleUpdate} disabled={updating}>
-                  <RefreshCw size={14} className={updating ? 'nx-spin' : ''} />
-                  {updating ? t('settings.updating') : t('settings.update')}
-                </Button>
+                {updateInfo?.nexus_update_available && (
+                  <Button
+                    tone="brand"
+                    onClick={() => void handleDownloadNexus()}
+                    disabled={checkingUpdates || updating}
+                  >
+                    <ArrowUpCircle size={14} />
+                    {updateInfo.nexus_installer_url
+                      ? 'Baixar instalador oficial do Nexus'
+                      : 'Ver release oficial do Nexus'}
+                  </Button>
+                )}
+                {updateInfo?.maestro_available && (
+                  <Button onClick={handleUpdate} disabled={updating}>
+                    <RefreshCw size={14} className={updating ? 'nx-spin' : ''} />
+                    {updating ? t('settings.updating') : 'Atualizar Maestro'}
+                  </Button>
+                )}
               </div>
             </Card>
             <SystemDiagnosticsCard
@@ -645,7 +740,10 @@ export const SettingsSurface: React.FC<{
               ariaLabel="Intelligence mode"
               value={intelligenceDraft.mode}
               onChange={(value) =>
-                setIntelligenceDraft((prev) => ({ ...prev, mode: value as IntelligenceMode }))
+                setIntelligenceDraft((prev) => ({
+                  ...prev,
+                  mode: value as IntelligenceMode,
+                }))
               }
               options={[
                 { value: 'OFF', label: 'Off' },
@@ -674,21 +772,30 @@ export const SettingsSurface: React.FC<{
                 <Input
                   value={intelligenceDraft.base_url || ''}
                   onChange={(value) =>
-                    setIntelligenceDraft((prev) => ({ ...prev, base_url: value }))
+                    setIntelligenceDraft((prev) => ({
+                      ...prev,
+                      base_url: value,
+                    }))
                   }
                   placeholder="Base URL (OpenAI-compatible)"
                 />
                 <Input
                   value={intelligenceDraft.api_key_env || ''}
                   onChange={(value) =>
-                    setIntelligenceDraft((prev) => ({ ...prev, api_key_env: value }))
+                    setIntelligenceDraft((prev) => ({
+                      ...prev,
+                      api_key_env: value,
+                    }))
                   }
                   placeholder="Environment variable containing API key"
                 />
                 <Input
                   value={intelligenceDraft.api_key_file || ''}
                   onChange={(value) =>
-                    setIntelligenceDraft((prev) => ({ ...prev, api_key_file: value }))
+                    setIntelligenceDraft((prev) => ({
+                      ...prev,
+                      api_key_file: value,
+                    }))
                   }
                   placeholder="Or secret file path"
                 />
@@ -787,152 +894,6 @@ export const SettingsSurface: React.FC<{
         {activeTab === 'computer' && <ComputerControlSettings projectId={projectId} />}
         {activeTab === 'remote' && <RemoteAccessTab projectId={projectId} />}
       </div>
-    </div>
-  );
-};
-
-interface ThemeCategory {
-  id: string;
-  title: string;
-  description: string;
-  presets: ThemePresetKey[];
-}
-
-const THEME_CATEGORIES: ThemeCategory[] = [
-  {
-    id: 'dark-modern',
-    title: 'Dark Modern',
-    description: 'Paletas escuras premium, alto contraste de código e atmosfera imersiva.',
-    presets: [
-      'nexus-dark',
-      'night',
-      'midnight',
-      'dracula',
-      'graphite-focus',
-      'vasco-noir',
-      'aurora-ops',
-      'obsidian',
-    ],
-  },
-  {
-    id: 'light-clean',
-    title: 'Light Clean',
-    description: 'Interfaces diurnas, excelente legibilidade e visual limpo.',
-    presets: ['nexus-light', 'nord-light', 'solarized-light'],
-  },
-  {
-    id: 'classic-code',
-    title: 'Clássicos do Código',
-    description: 'Esquemas consagrados por gerações de editores de texto.',
-    presets: ['monokai', 'nord', 'solarized-dark'],
-  },
-  {
-    id: 'accessibility',
-    title: 'Acessibilidade Extrema',
-    description: 'Contraste máximo e certificação WCAG 2.2 AA para visualização sem fadiga.',
-    presets: ['high-contrast-dark', 'high-contrast-light'],
-  },
-];
-
-const ThemeAccordionSelector: React.FC<{ theme: ReturnType<typeof useTheme> }> = ({ theme }) => {
-  const { t } = useTranslation();
-  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>(() => {
-    // Abre por padrão a categoria onde o preset ativo se encontra
-    const active = theme.preset || 'nexus-dark';
-    const found = THEME_CATEGORIES.find((cat) => cat.presets.includes(active));
-    return { [found ? found.id : 'dark-modern']: true };
-  });
-
-  const toggleCategory = (catId: string) => {
-    setOpenCategories((curr) => ({ ...curr, [catId]: !curr[catId] }));
-  };
-
-  return (
-    <div className={`nx-theme-accordion-container ${styles.accordionContainer}`}>
-      {/* Grupos de Categorias em Accordion WAI-ARIA */}
-      {THEME_CATEGORIES.map((cat) => {
-        const isOpen = Boolean(openCategories[cat.id]);
-        const headerId = `theme-cat-hdr-${cat.id}`;
-        const panelId = `theme-cat-panel-${cat.id}`;
-
-        return (
-          <div key={cat.id} className={`nx-theme-cat-group ${styles.themeGroup}`}>
-            <button
-              type="button"
-              id={headerId}
-              aria-expanded={isOpen}
-              aria-controls={panelId}
-              onClick={() => toggleCategory(cat.id)}
-              className={`nx-theme-accordion-hdr ${styles.themeHeader}`}
-            >
-              <div className={styles.themeHeaderLeft}>
-                {isOpen ? (
-                  <ChevronDown size={15} color="var(--nx-accent)" />
-                ) : (
-                  <ChevronRight size={15} color="var(--nx-muted)" />
-                )}
-                <div>
-                  <div className={styles.themeTitle}>{cat.title}</div>
-                  <div className={styles.themeDesc}>{cat.description}</div>
-                </div>
-              </div>
-              <span className={`nx-badge ${styles.themeBadge}`} data-tone="brand">
-                {cat.presets.length} temas
-              </span>
-            </button>
-
-            {/* Painel do Accordion com Grid de Presets */}
-            {isOpen && (
-              <div
-                id={panelId}
-                role="region"
-                aria-labelledby={headerId}
-                className={styles.themePanel}
-              >
-                <ChoiceGroup
-                  className={styles.presetGrid}
-                  ariaLabel={`${cat.title}: ${t('settings.themePresets', 'Temas visuais')}`}
-                >
-                  {cat.presets.map((presetKey) => {
-                    const preset = THEME_PRESETS[presetKey];
-                    if (!preset) return null;
-                    const isSelected = theme.preset === presetKey && !theme.isCustomized;
-                    const palette = getThemePresetPalette(preset);
-
-                    return (
-                      <ChoiceOption
-                        key={presetKey}
-                        selected={isSelected}
-                        onSelect={() => theme.setPreset(presetKey as ThemePresetKey)}
-                        className={styles.themePresetItem}
-                      >
-                        <span className={styles.themePresetName} data-selected={isSelected}>
-                          <span>{preset.name}</span>
-                          {isSelected && <Check size={14} color="var(--nx-accent)" />}
-                        </span>
-
-                        {/* Amostras de Cores (Swatches) */}
-                        <span className={styles.themeSwatches} aria-hidden="true">
-                          <span
-                            title={`Fundo: ${palette.bg}`}
-                            className={styles.themeSwatchBg}
-                            style={{ background: palette.bg }}
-                          />
-                          <span
-                            title={`Acento: ${palette.accent}`}
-                            className={styles.themeSwatchAccent}
-                            style={{ background: palette.accent }}
-                          />
-                        </span>
-                      </ChoiceOption>
-                    );
-                  })}
-                </ChoiceGroup>
-              </div>
-            )}
-          </div>
-        );
-      })}
     </div>
   );
 };

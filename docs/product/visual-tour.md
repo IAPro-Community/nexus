@@ -1,5 +1,7 @@
 # Tour visual
 
+> **Atenção:** o manifesto de screenshots foi gerado em um SHA anterior às mudanças recentes na UI. As imagens abaixo são **referências históricas de fixture sintética**, não certificação da beta.10 atual. Veja [recaptura](../operations/visual-evidence.md) antes de anunciar equivalência visual ou release GO.
+
 As imagens abaixo são capturas automatizadas do Nexus em uma fixture sintética
 isolada. O manifesto registra o commit, a superfície, a classificação dos dados
 e o cenário de cada evidência. Nenhum projeto, path, provider ou credencial de

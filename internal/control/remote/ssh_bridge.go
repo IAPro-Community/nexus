@@ -2,7 +2,6 @@ package remote
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -18,12 +17,12 @@ import (
 )
 
 const (
-	remoteBridgeBinary       = "nexus"
-	remoteBridgeMaxResponse  = 1024 * 1024
-	remoteBridgeStderrLimit  = 32 * 1024
+	remoteBridgeBinary      = "nexus"
+	remoteBridgeMaxResponse = 1024 * 1024
+	remoteBridgeStderrLimit = 32 * 1024
 )
 
-var sshLocationPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:@%+\[\]-]{0,239}$`)
+var sshLocationPattern = regexp.MustCompile(`^(\[[0-9A-Fa-f:.]{1,239}\]|[A-Za-z0-9][A-Za-z0-9._:@%+\[\]-]{0,239})$`)
 
 type BridgeError struct {
 	Code    string

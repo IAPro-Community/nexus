@@ -1,3 +1,9 @@
+# Aviso atual de homologação da linha v1
+
+> **20/10/2026 — documentação, não certificação:** a branch `release/v1.0.0` declara `1.0.0-beta.10`. A branch continua recebendo alterações, logo evidências de SHAs anteriores não certificam o HEAD atual. O repositório de código está público, mas **não há aqui prova de release v1 estável**. Ver [matriz](reference/feature-matrix.md), [gates](operations/platform-support.md) e [checklist](PUBLICATION_CHECKLIST.md).
+
+## Registros históricos de validação (não aplicar ao HEAD sem nova evidência)
+
 # Status público da release do Nexus v1
 
 Atualizado em 8 de outubro de 2026.

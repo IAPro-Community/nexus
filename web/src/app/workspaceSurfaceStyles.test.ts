@@ -1,7 +1,7 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { readWorkspaceStyles } from './workspaceStylesTestUtils';
 
-const styles = readFileSync(new URL('./workspace-os.css', import.meta.url), 'utf8');
+const styles = readWorkspaceStyles();
 
 describe('workspace surface layering and responsive resource layout', () => {
   it('keeps attention surfaces above desktop windows and below modal layers', () => {

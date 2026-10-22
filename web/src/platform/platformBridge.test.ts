@@ -3,7 +3,7 @@ import { WebBridge } from './webBridge';
 import { DesktopBridge } from './desktopBridge';
 import { initPlatformBridge, getPlatformBridge } from './index';
 import { safeExternalUrl } from './externalUrl';
-import { setWailsV3InvokerForTests } from './wailsV3';
+import { hudV3, setWailsV3InvokerForTests } from './wailsV3';
 
 describe('PlatformBridge', () => {
   beforeEach(() => {
@@ -46,6 +46,125 @@ describe('PlatformBridge', () => {
     expect(bridge.kind).toBe('desktop');
     expect(bridge.getCapabilities().native).toBe(true);
     expect(bridge.getCapabilities().filePicker).toBe(false);
+  });
+
+  it('routes native HUD click transitions through the Wails HUDController binding', async () => {
+    const changes: boolean[] = [];
+    setWailsV3InvokerForTests(async (method, ...args) => {
+      expect(method).toBe(
+        'github.com/IAPro-Community/nexus/internal/desktop.HUDController.SetHUDExpanded',
+      );
+      expect(args).toHaveLength(1);
+      changes.push(args[0] as boolean);
+      return undefined;
+    });
+
+    await hudV3.setExpanded(true);
+    await hudV3.setExpanded(false);
+    expect(changes).toEqual([true, false]);
+  });
+
+  it('routes native HUD size presets and keyboard moves through the controller', async () => {
+    const calls: Array<{ method: string; args: unknown[] }> = [];
+    setWailsV3InvokerForTests(async (method, ...args) => {
+      calls.push({ method, args });
+      if (method.endsWith('.GetHUDSizePresets')) {
+        return [
+          {
+            id: 'compact',
+            label: 'Compacto',
+            compactWidth: 220,
+            compactHeight: 60,
+            expandedWidth: 334,
+            expandedHeight: 496,
+          },
+        ];
+      }
+      return undefined;
+    });
+
+    await expect(hudV3.getSizePresets()).resolves.toHaveLength(1);
+    await hudV3.setSizePreset('comfortable', true);
+    await hudV3.move(-16, 16);
+    expect(calls).toEqual([
+      {
+        method: 'github.com/IAPro-Community/nexus/internal/desktop.HUDController.GetHUDSizePresets',
+        args: [],
+      },
+      {
+        method: 'github.com/IAPro-Community/nexus/internal/desktop.HUDController.SetHUDSizePreset',
+        args: ['comfortable', true],
+      },
+      {
+        method: 'github.com/IAPro-Community/nexus/internal/desktop.HUDController.MoveHUD',
+        args: [-16, 16],
+      },
+    ]);
+  });
+
+  it('reads detached HUD mode and visibility from the shared Wails controller', async () => {
+    const calls: string[] = [];
+    setWailsV3InvokerForTests(async (method) => {
+      calls.push(method);
+      if (method.endsWith('.GetHUDDetachedPopoverEnabled')) return true;
+      if (method.endsWith('.GetHUDExpanded')) return false;
+      throw new Error(`unexpected method ${method}`);
+    });
+    await expect(hudV3.getDetachedPopoverEnabled()).resolves.toBe(true);
+    await expect(hudV3.getExpanded()).resolves.toBe(false);
+    expect(calls).toEqual([
+      'github.com/IAPro-Community/nexus/internal/desktop.HUDController.GetHUDDetachedPopoverEnabled',
+      'github.com/IAPro-Community/nexus/internal/desktop.HUDController.GetHUDExpanded',
+    ]);
+  });
+
+  it('reads and toggles the persisted detached popover preference', async () => {
+    const calls: Array<{ method: string; args: unknown[] }> = [];
+    setWailsV3InvokerForTests(async (method, ...args) => {
+      calls.push({ method, args });
+      if (method.endsWith('.GetHUDDetachedPopoverPreference')) return false;
+      return undefined;
+    });
+    await expect(hudV3.getDetachedPopoverPreference()).resolves.toBe(false);
+    await hudV3.setDetachedPopoverPreference(true);
+    expect(calls).toEqual([
+      {
+        method:
+          'github.com/IAPro-Community/nexus/internal/desktop.HUDController.GetHUDDetachedPopoverPreference',
+        args: [],
+      },
+      {
+        method:
+          'github.com/IAPro-Community/nexus/internal/desktop.HUDController.SetHUDDetachedPopoverPreference',
+        args: [true],
+      },
+    ]);
+  });
+
+  it('routes BAR, MASCOT and TRAY to the persistent native controller', async () => {
+    const calls: Array<{ method: string; args: unknown[] }> = [];
+    setWailsV3InvokerForTests(async (method, ...args) => {
+      calls.push({ method, args });
+      if (method.endsWith('.GetHUDAppearance')) return 'MASCOT';
+      return undefined;
+    });
+    await expect(hudV3.getAppearance()).resolves.toBe('MASCOT');
+    await hudV3.setAppearance('BAR');
+    await hudV3.setAppearance('TRAY');
+    expect(calls).toEqual([
+      {
+        method: 'github.com/IAPro-Community/nexus/internal/desktop.HUDController.GetHUDAppearance',
+        args: [],
+      },
+      {
+        method: 'github.com/IAPro-Community/nexus/internal/desktop.HUDController.SetHUDAppearance',
+        args: ['BAR'],
+      },
+      {
+        method: 'github.com/IAPro-Community/nexus/internal/desktop.HUDController.SetHUDAppearance',
+        args: ['TRAY'],
+      },
+    ]);
   });
 
   it('selectDirectory delegates to the Wails v3 App service', async () => {

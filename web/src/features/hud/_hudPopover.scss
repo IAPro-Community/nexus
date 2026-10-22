@@ -1,0 +1,324 @@
+.popoverHeader,
+.brand,
+.headerActions,
+.accountTop,
+.accountTitle,
+.accountMeta,
+.accountLine,
+.accountIdentity,
+.notice,
+.footerActions,
+.quickLink,
+.cta {
+  display: flex;
+  align-items: center;
+}
+
+.popoverHeader,
+.accountTop {
+  justify-content: space-between;
+}
+
+.brand {
+  gap: 8px;
+  font-size: 16px;
+  letter-spacing: -0.02em;
+}
+
+.brand.nativeBrandDrag {
+  --wails-draggable: drag;
+  cursor: grab;
+}
+
+.brand.nativeBrandDrag:active {
+  cursor: grabbing;
+}
+
+.dragGrip {
+  flex-shrink: 0;
+  color: var(--hud-muted);
+}
+
+.headerActions {
+  gap: 4px;
+}
+
+.iconButton,
+.dragHandle {
+  display: grid;
+  width: 29px;
+  height: 29px;
+  flex-shrink: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--hud-muted);
+  cursor: pointer;
+}
+
+.iconButton:hover,
+.iconButton:focus-visible,
+.dragHandle:hover,
+.dragHandle:focus-visible {
+  background: #30415a;
+  color: var(--hud-text);
+  outline: 2px solid #7998c6;
+}
+
+.sectionCaption {
+  color: var(--hud-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.accountCard {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid #344860;
+  border-radius: 12px;
+  background: #101d2edb;
+}
+
+.accountTop {
+  gap: 7px;
+  font-size: 12px;
+}
+
+.accountTop strong,
+.accountLine strong {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.accountTitle {
+  min-width: 0;
+  gap: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statusDot {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--hud-tone);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--hud-tone) 65%, transparent);
+}
+
+.track,
+.smallTrack {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #2c3a50;
+}
+
+.track > .fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--hud-tone);
+  transition: width 160ms ease;
+}
+
+.accountMeta {
+  justify-content: space-between;
+  gap: 6px;
+  color: var(--hud-muted);
+  font-size: 10px;
+}
+
+.evidence {
+  margin: 0;
+  color: #8e9fb9;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+
+.accounts {
+  display: grid;
+  gap: 8px;
+}
+
+.accountLine {
+  min-height: 34px;
+  gap: 9px;
+  padding: 7px 8px;
+  border: 1px solid #34475e;
+  border-radius: 9px;
+  background: #26364d94;
+  font-size: 11px;
+}
+
+.accountIdentity {
+  min-width: 0;
+  max-width: 145px;
+  flex: 1;
+  gap: 6px;
+  color: #dce6f7;
+}
+
+.accountIdentity span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.smallTrack {
+  width: 57px;
+  height: 4px;
+  flex-shrink: 0;
+}
+
+.smallTrack > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #6999ed;
+}
+
+.notice,
+.recommendation {
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid #354a63;
+  border-radius: 11px;
+  background: #253850;
+}
+
+.notice[data-tone='warning'] {
+  border-color: #9d794a;
+  background: #49351f88;
+}
+
+.notice > svg {
+  flex-shrink: 0;
+  color: var(--hud-tone);
+}
+
+.notice > div {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 3px;
+}
+
+.notice strong,
+.recommendation strong {
+  font-size: 11px;
+}
+
+.notice span,
+.recommendation span,
+.recommendation small {
+  color: var(--hud-muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.recommendation {
+  display: grid;
+}
+
+.cta {
+  justify-content: center;
+  gap: 7px;
+  padding: 8px;
+  border: 1px solid #7994b9;
+  border-radius: 10px;
+  background: #34465f;
+  color: var(--hud-text);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.textLink,
+.quickLink,
+.footerActions button {
+  border: 0;
+  background: transparent;
+  color: #bfd5f3;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.quickLink {
+  justify-content: space-between;
+  padding: 0;
+  text-align: left;
+}
+
+.footerActions {
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--hud-line);
+}
+
+.footerActions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 0;
+}
+
+.footerActions button:disabled,
+.quickLink:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.textLink:focus-visible,
+.quickLink:focus-visible,
+.footerActions button:focus-visible,
+.cta:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid #83a9ec;
+  outline-offset: 2px;
+}
+
+.dragHandle {
+  touch-action: none;
+}
+
+.accountCard[data-evidence='estimated'] .track > .fill {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--hud-tone) 0,
+    var(--hud-tone) 6px,
+    #7b91aa 6px,
+    #7b91aa 9px
+  );
+}
+
+.missionPreview {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid #354a63;
+  border-radius: 11px;
+  background: #253850;
+}
+
+.missionPreview > div {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 3px;
+}
+
+.missionPreview strong {
+  font-size: 11px;
+}
+
+.missionPreview span,
+.missionPreview small {
+  color: var(--hud-muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}

@@ -11,11 +11,18 @@ import {
   toggleMaximize,
   updateSurface,
   listSurfaces,
+  listStacks,
+  surfaceViewId,
   type WorkspaceDirection,
   type WorkspaceModel,
   type WorkspaceSurface,
 } from './model';
 import { WorkspaceLayoutService } from '../services/WorkspaceLayoutService';
+import {
+  COMPOSER_FLOW_ENABLED,
+  isExperimentalComposerFlowSurface,
+  withoutExperimentalComposerFlow,
+} from '../app/composerFlowFlag';
 import type { WorkspacePresentationState } from './presentation';
 
 interface WorkspaceContextValue {
@@ -119,16 +126,27 @@ export const WorkspaceProvider: React.FC<{
   const layoutService = useMemo(() => new WorkspaceLayoutService(projectId), [projectId]);
   const fallback = useMemo(() => createWorkspace(defaultSurface(projectId)), [projectId]);
   const initialPersisted = useMemo(() => {
-    if (!initialLayout) return layoutService.load(fallback);
-    try {
-      return layoutService.migrateAndNormalize(JSON.parse(initialLayout), fallback);
-    } catch {
-      return layoutService.load(fallback);
+    let loaded;
+    if (!initialLayout) {
+      loaded = layoutService.load(fallback);
+    } else {
+      try {
+        loaded = layoutService.migrateAndNormalize(JSON.parse(initialLayout), fallback);
+      } catch {
+        loaded = layoutService.load(fallback);
+      }
     }
-  }, [fallback, initialLayout, layoutService]);
+    if (COMPOSER_FLOW_ENABLED) return loaded;
+    const model = withoutExperimentalComposerFlow(loaded.model, defaultSurface(projectId));
+    return {
+      ...loaded,
+      model,
+      openSurfaceIds: listSurfaces(model.root).map(surfaceViewId),
+      activeSurfaceId: listStacks(model.root)[0]?.activeId,
+    };
+  }, [fallback, initialLayout, layoutService, projectId]);
   const revisionRef = useRef<number>(initialRevision || initialPersisted.revision || 1);
   const [presentation, setPresentation] = React.useState(initialPersisted.presentation);
-  const hydratedLayoutRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     if (typeof initialRevision === 'number' && initialRevision > 0) {
@@ -137,6 +155,14 @@ export const WorkspaceProvider: React.FC<{
   }, [initialRevision]);
 
   const [model, dispatch] = useReducer(reducer, initialPersisted.model);
+
+  // The reducer already initializes from the persisted layout of the first
+  // render. Replacing the model for that same layout would discard surfaces
+  // opened by children during that commit — for example the deep-linked
+  // terminal surface applied by the route sync — and leave the URL and the
+  // active tab out of sync. Replace only for layouts that arrive after
+  // hydration (a later project reload pushing a new saved layout).
+  const hydratedLayoutRef = useRef<string | undefined>(initialLayout);
 
   useEffect(() => {
     if (!initialLayout || hydratedLayoutRef.current === initialLayout) return;
@@ -181,8 +207,14 @@ export const WorkspaceProvider: React.FC<{
   const value = useMemo<WorkspaceContextValue>(
     () => ({
       model,
-      open: (surface, stackId) => dispatch({ type: 'open', surface, stackId }),
-      ensure: (surface, stackId) => dispatch({ type: 'ensure', surface, stackId }),
+      open: (surface, stackId) => {
+        if (!COMPOSER_FLOW_ENABLED && isExperimentalComposerFlowSurface(surface.type)) return;
+        dispatch({ type: 'open', surface, stackId });
+      },
+      ensure: (surface, stackId) => {
+        if (!COMPOSER_FLOW_ENABLED && isExperimentalComposerFlowSurface(surface.type)) return;
+        dispatch({ type: 'ensure', surface, stackId });
+      },
       activate: (surfaceId) => dispatch({ type: 'activate', surfaceId }),
       close: (surfaceId) => {
         const surface = listSurfaces(model.root).find(
@@ -197,8 +229,10 @@ export const WorkspaceProvider: React.FC<{
         dispatch({ type: 'close', surfaceId });
       },
       updateSurface: (surfaceId, patch) => dispatch({ type: 'updateSurface', surfaceId, patch }),
-      split: (relativeSurfaceId, surface, direction) =>
-        dispatch({ type: 'split', relativeSurfaceId, surface, direction }),
+      split: (relativeSurfaceId, surface, direction) => {
+        if (!COMPOSER_FLOW_ENABLED && isExperimentalComposerFlowSurface(surface.type)) return;
+        dispatch({ type: 'split', relativeSurfaceId, surface, direction });
+      },
       move: (surfaceId, targetStackId) => dispatch({ type: 'move', surfaceId, targetStackId }),
       resize: (splitId, ratio) => dispatch({ type: 'resize', splitId, ratio }),
       maximize: (surfaceId) => dispatch({ type: 'maximize', surfaceId }),

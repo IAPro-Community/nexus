@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ThemeProvider } from '../design-system';
 import { initSession } from '../api';
 import { NexusHud } from '../features/hud/NexusHud';
+import { useHudHitRegions } from '../features/hud/useHudHitRegions';
 import { getPlatformBridge, hudV3, isDesktopApp } from '../platform';
 import styles from './DesktopHudApp.module.scss';
 
@@ -11,11 +13,43 @@ export const isDesktopHudApp = () => {
 };
 
 export const DesktopHudApp: React.FC = () => {
+  const { t } = useTranslation();
   const [ready, setReady] = useState(false);
+  const popupView =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('hudView') === 'popover';
+  // Only the capsule window owns the native click-through watcher. The detached
+  // popover is a second native window with its own focus lifecycle.
+  useHudHitRegions(!popupView);
   const [authenticated, setAuthenticated] = useState(false);
   const [autoStartSupported, setAutoStartSupported] = useState(false);
   const [autoStartEnabled, setAutoStartEnabled] = useState(false);
   const [autoStartPending, setAutoStartPending] = useState(false);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const doc = document.documentElement;
+    const body = document.body;
+    const rootElement = document.getElementById('root');
+    const prevDocBg = doc.style.backgroundColor;
+    const prevBodyBg = body.style.backgroundColor;
+    const prevRootPointerEvents = rootElement?.style.pointerEvents ?? '';
+    doc.style.backgroundColor = 'transparent';
+    body.style.backgroundColor = 'transparent';
+    doc.dataset.nativeHud = 'true';
+    body.dataset.nativeHud = 'true';
+    // The root div spans the whole native window; without this it would be
+    // reported as an interactive region and transparent margins would keep
+    // swallowing clicks.
+    if (rootElement) rootElement.style.pointerEvents = 'none';
+    return () => {
+      doc.style.backgroundColor = prevDocBg;
+      body.style.backgroundColor = prevBodyBg;
+      if (rootElement) rootElement.style.pointerEvents = prevRootPointerEvents;
+      delete doc.dataset.nativeHud;
+      delete body.dataset.nativeHud;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -33,6 +67,10 @@ export const DesktopHudApp: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // The popup has no persistent geometry of its own: recording the
+    // capsule's state whenever the popup loses focus would turn a normal
+    // open/close gesture into an unintended placement change.
+    if (popupView) return;
     const capture = () => {
       void hudV3.captureWindowState().catch(() => undefined);
     };
@@ -42,7 +80,7 @@ export const DesktopHudApp: React.FC = () => {
       window.removeEventListener('blur', capture);
       window.removeEventListener('beforeunload', capture);
     };
-  }, []);
+  }, [popupView]);
 
   useEffect(() => {
     let active = true;
@@ -80,28 +118,30 @@ export const DesktopHudApp: React.FC = () => {
     })();
   };
 
-  if (!ready) return <div className={styles.status}>Nexus HUD</div>;
-  if (!authenticated) {
-    return (
-      <div className={styles.status} role="alert">
-        HUD offline · não foi possível anexar à sessão local do Nexus.
-      </div>
-    );
-  }
-
   return (
     <ThemeProvider>
       <main className={styles.root}>
-        <NexusHud
-          native
-          onOpenNexus={openNexus}
-          nativeAutoStart={{
-            supported: autoStartSupported,
-            enabled: autoStartEnabled,
-            pending: autoStartPending,
-            onToggle: toggleAutoStart,
-          }}
-        />
+        {!ready ? (
+          <div className={styles.status} role="status">
+            {t('common.loading')} Nexus HUD
+          </div>
+        ) : !authenticated ? (
+          <div className={styles.status} role="alert">
+            {t('common.hudUnavailable')}
+          </div>
+        ) : (
+          <NexusHud
+            native
+            nativeView={popupView ? 'popover' : 'capsule'}
+            onOpenNexus={openNexus}
+            nativeAutoStart={{
+              supported: autoStartSupported,
+              enabled: autoStartEnabled,
+              pending: autoStartPending,
+              onToggle: toggleAutoStart,
+            }}
+          />
+        )}
       </main>
     </ThemeProvider>
   );

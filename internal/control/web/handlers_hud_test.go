@@ -27,6 +27,20 @@ func TestHUDStateFeatureFlagFailsClosed(t *testing.T) {
 	}
 }
 
+func TestHUDStateDefaultsOnButDoesNotInventProjection(t *testing.T) {
+	t.Setenv("NEXUS_DISABLE_HUD", "")
+	t.Setenv("NEXUS_ENABLE_HUD", "")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/hud", nil)
+	rec := httptest.NewRecorder()
+	(&NexusHandler{}).handleHUDState(rec, req)
+	// Enabled read-only projection requires a real HUDApplicationService.
+	// Missing service must fail closed, not return an invented empty snapshot.
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status=%d, want 503 while projection is unavailable", rec.Code)
+	}
+}
+
 func TestHUDStateRejectsMutationMethods(t *testing.T) {
 	t.Setenv("NEXUS_DISABLE_HUD", "1")
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/hud", nil)

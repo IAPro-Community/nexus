@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/nexus/capacitymonitor"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
@@ -74,5 +75,147 @@ func TestStartCapacityMonitorEnabledWithoutBackground(t *testing.T) {
 	n.StartCapacityMonitor(ctx)
 	if n.CapacityMonitorRunning() {
 		t.Fatal("enabled alone must not start the loop without background opt-in")
+	}
+}
+
+func TestCapacityStatusJoinsCanonicalKeyAndProtectsAccountScope(t *testing.T) {
+	st, err := store.Open(filepath.Join(t.TempDir(), "capacity-projection.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	now := time.Now().UTC().Truncate(time.Minute)
+	reset := now.Add(2 * time.Hour)
+	for _, tc := range []struct {
+		profile    string
+		stateScope string
+		obsScope   string
+		remaining  float64
+	}{
+		{"account-a", "verified/a", "verified/a", 30},
+		{"account-b", "verified/b", "verified/c", 12},
+	} {
+		used := 100 - tc.remaining
+		if err := st.UpsertCapacityObservation(store.ObservationRecord{
+			Provider: "codex", Profile: tc.profile, QuotaGroup: "default",
+			WindowKind: "5h", Status: "LIVE", Source: "OFFICIAL_API",
+			UsedPercent: &used, RemainingPercent: &tc.remaining, FetchedAt: now,
+			ExpiresAt: reset, ResetDescription: "2 hours", AccountScope: tc.obsScope,
+		}); err != nil {
+			t.Fatal(err)
+		}
+		// Reproduce the persisted legacy state with blank metadata but a
+		// canonical pipe-delimited key and an identity-specific scope.
+		if err := st.UpsertCapacityState(store.CapacityStateRecord{
+			Key: "codex|" + tc.profile + "|default|5h", Provider: "codex",
+			Profile: tc.profile, State: "WARNING",
+			TransitionedAt: now, UpdatedAt: now, AccountScope: tc.stateScope,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for i, percent := range []float64{20, 40, 70} {
+		if err := st.RecordCapacityPaceSample(store.CapacityPaceSample{
+			Provider: "codex", Profile: "account-a", AccountScope: "verified/a",
+			QuotaGroup: "default", WindowKind: "5h", ResetAt: reset,
+			ObservedAt:  now.Add(-time.Duration(20-i*10) * time.Minute),
+			UsedPercent: percent, Source: "OFFICIAL_API",
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	status, err := NewCapacityApplicationService(st).Status(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(status.Resources) != 2 {
+		t.Fatalf("resources=%d, expected two separate accounts", len(status.Resources))
+	}
+	for _, resource := range status.Resources {
+		if resource.QuotaGroup != "default" || resource.WindowKind != "5h" {
+			t.Fatalf("lost group/window metadata for %s: %+v", resource.Profile, resource)
+		}
+		switch resource.Profile {
+		case "account-a":
+			if resource.RemainingPercent == nil || *resource.RemainingPercent != 30 ||
+				resource.Pace == nil || resource.Pace.Status != "RISING" ||
+				resource.ObservationStatus != "LIVE" {
+				t.Fatalf("matching observation/forecast not projected: %+v", resource)
+			}
+		case "account-b":
+			if resource.State != "UNKNOWN" || resource.Fingerprint != "" ||
+				resource.RemainingPercent != nil || resource.Pace != nil ||
+				resource.ObservationStatus != "" || resource.Source != "" {
+				t.Fatalf("different identity leaked capacity evidence: %+v", resource)
+			}
+		default:
+			t.Fatalf("unexpected account: %+v", resource)
+		}
+	}
+}
+
+func TestCapacityStatusUsesActualEmittedFingerprint(t *testing.T) {
+	st, err := store.Open(filepath.Join(t.TempDir(), "capacity-alert-fingerprint.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+
+	now := time.Now().UTC().Truncate(time.Second)
+	windowReset := now.Add(time.Hour)
+	expiry := now.Add(3 * time.Hour)
+	remaining := 12.0
+	key := "codex|work|default|5h"
+	state := store.CapacityStateRecord{
+		Key: key, Provider: "codex", Profile: "work",
+		QuotaGroup: "default", WindowKind: "5h",
+		State: "CRITICAL", AccountScope: "verified/account-a",
+		TransitionedAt: now, UpdatedAt: now,
+	}
+	if err := st.UpsertCapacityState(state); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.UpsertCapacityObservation(store.ObservationRecord{
+		Provider: "codex", Profile: "work", QuotaGroup: "default",
+		WindowKind: "5h", Status: "LIVE", Source: "OFFICIAL_API",
+		RemainingPercent: &remaining, FetchedAt: now,
+		ExpiresAt: expiry, AccountScope: "verified/account-a",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	fingerprint := capacitymonitor.DeriveFingerprint(
+		"codex", "work", "default", "5h", "CRITICAL",
+		capacitymonitor.ResetCycleKey(&windowReset, expiry),
+	)
+	if err := st.PutCapacityEvent(store.CapacityEventRecord{
+		ID: "real-event", Fingerprint: fingerprint, Provider: "codex",
+		Profile: "work", QuotaGroup: "default", WindowKind: "5h",
+		Severity: "CRITICAL", EmittedAt: now, PayloadJSON: "{}",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.PutCapacityAlertState(store.AlertState{
+		Fingerprint: fingerprint, Acked: true, UpdatedAt: now,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	result, err := NewCapacityApplicationService(st).Status(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Resources) != 1 || result.Resources[0].Fingerprint != fingerprint ||
+		!result.Resources[0].Acked {
+		t.Fatalf("actual fingerprint/triage missing from capacity status: %+v", result)
+	}
+	// A no-event resource must not expose an invented alert fingerprint.
+	if _, err := st.DB().Exec("DELETE FROM capacity_events"); err != nil {
+		t.Fatal(err)
+	}
+	result, err = NewCapacityApplicationService(st).Status(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Resources[0].Fingerprint != "" || result.Resources[0].Acked {
+		t.Fatalf("fabricated event fingerprint without durable alert: %+v", result.Resources[0])
 	}
 }

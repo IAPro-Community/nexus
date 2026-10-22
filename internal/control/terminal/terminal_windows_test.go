@@ -133,10 +133,10 @@ func TestWindowsBackendInterruptWritesETXToProviderInput(t *testing.T) {
 	}
 }
 
-func TestWindowsBackendDefaultsToStandardPipes(t *testing.T) {
+func TestWindowsBackendUnknownProviderDefaultsToStandardPipes(t *testing.T) {
 	unsetenv(t, "AI_CLI_ENABLE_CONPTY")
 	unsetenv(t, "AI_CLI_DISABLE_CONPTY")
-	backend := NewBackendForProvider("opencode")
+	backend := NewBackendForProvider("gemini")
 	cmd := exec.Command("cmd.exe")
 	if err := backend.Start(cmd, 24, 80); err != nil {
 		t.Fatalf("failed to start Windows backend: %v", err)
@@ -184,84 +184,97 @@ func TestWindowsBackendDefaultsToStandardPipes(t *testing.T) {
 	}
 }
 
-func TestWindowsBackendUsesConPTYForCodexAndForwardsArrowInputByDefault(t *testing.T) {
-	unsetenv(t, "AI_CLI_ENABLE_CONPTY")
-	unsetenv(t, "AI_CLI_DISABLE_CONPTY")
-	backend := NewBackendForProvider("codex")
-	cmd := exec.Command(
-		"powershell.exe",
-		"-NoLogo",
-		"-NoProfile",
-		"-Command",
-		"[Console]::WriteLine('NEXUS_STDIN_REDIRECTED=' + [Console]::IsInputRedirected); $key = [Console]::ReadKey($true); [Console]::WriteLine('NEXUS_KEY=' + $key.Key)",
-	)
-	if err := backend.Start(cmd, 24, 80); err != nil {
-		t.Fatalf("failed to start Codex-policy terminal backend: %v", err)
+func TestWindowsBackendUsesConPTYForInteractiveProvidersAndForwardsArrowInputByDefault(t *testing.T) {
+	providers := []struct {
+		id                 string
+		automaticMechanism string
+	}{
+		{id: "codex", automaticMechanism: "automatic for supervised Codex"},
+		{id: "agy", automaticMechanism: "automatic for supervised AGY"},
+		{id: "opencode", automaticMechanism: "automatic for supervised OpenCode"},
+		{id: "shell", automaticMechanism: "automatic for interactive Shell"},
 	}
-	defer backend.Close()
-	if !strings.HasPrefix(backend.Mechanism(), "ConPTY") {
-		t.Fatalf("Codex backend mechanism = %q, want ConPTY by default", backend.Mechanism())
-	}
-	if got := BackendMechanismForProvider("codex"); !strings.Contains(got, "automatic for supervised Codex") {
-		t.Fatalf("Codex capability mechanism = %q, want provider-specific ConPTY policy", got)
-	}
+	for _, provider := range providers {
+		t.Run(provider.id, func(t *testing.T) {
+			unsetenv(t, "AI_CLI_ENABLE_CONPTY")
+			unsetenv(t, "AI_CLI_DISABLE_CONPTY")
+			backend := NewBackendForProvider(provider.id)
+			cmd := exec.Command(
+				"powershell.exe",
+				"-NoLogo",
+				"-NoProfile",
+				"-Command",
+				"[Console]::WriteLine('NEXUS_STDIN_REDIRECTED=' + [Console]::IsInputRedirected); $key = [Console]::ReadKey($true); [Console]::WriteLine('NEXUS_KEY=' + $key.Key)",
+			)
+			if err := backend.Start(cmd, 24, 80); err != nil {
+				t.Fatalf("failed to start %s-policy terminal backend: %v", provider.id, err)
+			}
+			defer backend.Close()
+			if !strings.HasPrefix(backend.Mechanism(), "ConPTY") {
+				t.Fatalf("%s backend mechanism = %q, want ConPTY by default", provider.id, backend.Mechanism())
+			}
+			if got := BackendMechanismForProvider(provider.id); !strings.Contains(got, provider.automaticMechanism) {
+				t.Fatalf("%s capability mechanism = %q, want provider-specific ConPTY policy", provider.id, got)
+			}
 
-	if _, err := backend.Write([]byte("\x1b[B")); err != nil {
-		t.Fatalf("failed to send Down Arrow through ConPTY: %v", err)
-	}
+			if _, err := backend.Write([]byte("\x1b[B")); err != nil {
+				t.Fatalf("failed to send Down Arrow through %s ConPTY: %v", provider.id, err)
+			}
 
-	type readResult struct {
-		data []byte
-		err  error
-	}
-	reads := make(chan readResult, 8)
-	stopReader := make(chan struct{})
-	defer close(stopReader)
-	go func() {
-		buf := make([]byte, 4096)
-		for {
-			n, err := backend.Read(buf)
-			if n > 0 {
-				chunk := append([]byte(nil), buf[:n]...)
+			type readResult struct {
+				data []byte
+				err  error
+			}
+			reads := make(chan readResult, 8)
+			stopReader := make(chan struct{})
+			defer close(stopReader)
+			go func() {
+				buf := make([]byte, 4096)
+				for {
+					n, err := backend.Read(buf)
+					if n > 0 {
+						chunk := append([]byte(nil), buf[:n]...)
+						select {
+						case reads <- readResult{data: chunk}:
+						case <-stopReader:
+							return
+						}
+					}
+					if err != nil {
+						select {
+						case reads <- readResult{err: err}:
+						case <-stopReader:
+						}
+						return
+					}
+				}
+			}()
+
+			timeout := time.NewTimer(10 * time.Second)
+			defer timeout.Stop()
+			var out strings.Builder
+		readLoop:
+			for !strings.Contains(out.String(), "NEXUS_STDIN_REDIRECTED=False") || !strings.Contains(out.String(), "NEXUS_KEY=DownArrow") {
 				select {
-				case reads <- readResult{data: chunk}:
-				case <-stopReader:
-					return
+				case result := <-reads:
+					out.Write(result.data)
+					if result.err != nil {
+						break readLoop
+					}
+				case <-timeout.C:
+					break readLoop
 				}
 			}
-			if err != nil {
-				select {
-				case reads <- readResult{err: err}:
-				case <-stopReader:
-				}
-				return
+			if !strings.Contains(out.String(), "NEXUS_STDIN_REDIRECTED=False") {
+				t.Fatalf("%s ConPTY child did not receive a console stdin: %q", provider.id, out.String())
 			}
-		}
-	}()
-
-	timeout := time.NewTimer(10 * time.Second)
-	defer timeout.Stop()
-	var out strings.Builder
-readLoop:
-	for !strings.Contains(out.String(), "NEXUS_STDIN_REDIRECTED=False") || !strings.Contains(out.String(), "NEXUS_KEY=DownArrow") {
-		select {
-		case result := <-reads:
-			out.Write(result.data)
-			if result.err != nil {
-				break readLoop
+			if !strings.Contains(out.String(), "NEXUS_KEY=DownArrow") {
+				t.Fatalf("%s ConPTY did not translate Down Arrow input, output=%q", provider.id, out.String())
 			}
-		case <-timeout.C:
-			break readLoop
-		}
-	}
-	if !strings.Contains(out.String(), "NEXUS_STDIN_REDIRECTED=False") {
-		t.Fatalf("Codex ConPTY child did not receive a console stdin: %q", out.String())
-	}
-	if !strings.Contains(out.String(), "NEXUS_KEY=DownArrow") {
-		t.Fatalf("ConPTY did not translate Down Arrow input, output=%q", out.String())
-	}
-	if err := backend.Wait(); err != nil {
-		t.Fatalf("interactive PowerShell child failed: %v", err)
+			if err := backend.Wait(); err != nil {
+				t.Fatalf("interactive PowerShell child for %s failed: %v", provider.id, err)
+			}
+		})
 	}
 }
 

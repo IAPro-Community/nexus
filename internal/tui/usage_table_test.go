@@ -13,6 +13,48 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+func TestCodexAutoRefreshRejectsWeekOldQuota(t *testing.T) {
+	now := time.Now()
+	cases := []struct {
+		name string
+		snap model.UsageSnapshot
+		want bool
+	}{
+		{name: "no reading", snap: model.UsageSnapshot{Status: model.UsageUnknown}, want: true},
+		{name: "fresh live reading", snap: model.UsageSnapshot{Status: model.UsageLive, FetchedAt: now.Add(-time.Minute)}, want: false},
+		{name: "fresh cached reading", snap: model.UsageSnapshot{Status: model.UsageCached, FetchedAt: now.Add(-time.Minute)}, want: false},
+		{name: "old but deceptively cached", snap: model.UsageSnapshot{Status: model.UsageCached, FetchedAt: now.Add(-25 * 24 * time.Hour)}, want: true},
+		{name: "old estimated observation", snap: model.UsageSnapshot{Status: model.UsageEstimated, FetchedAt: now.Add(-20 * time.Minute)}, want: true},
+		{name: "future clock skew", snap: model.UsageSnapshot{Status: model.UsageLive, FetchedAt: now.Add(3 * time.Minute)}, want: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := codexNeedsAutoRefresh(tc.snap, now); got != tc.want {
+				t.Fatalf("auto refresh = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestCodexAutoRefreshThrottleKeepsAccountIdentity(t *testing.T) {
+	now := time.Now()
+	if claimCodexAutoRefresh("agy", "ignore", now) {
+		t.Fatal("only Codex should use this scheduled probe")
+	}
+	if !claimCodexAutoRefresh("codex", "throttle-account-1", now) {
+		t.Fatal("first Codex probe should be admitted")
+	}
+	if claimCodexAutoRefresh("codex", "throttle-account-1", now.Add(time.Minute)) {
+		t.Fatal("same account should be throttled")
+	}
+	if !claimCodexAutoRefresh("codex", "throttle-account-2", now.Add(time.Minute)) {
+		t.Fatal("different account must have an independent refresh slot")
+	}
+	if !claimCodexAutoRefresh("codex", "throttle-account-1", now.Add(codexAutoRefreshInterval)) {
+		t.Fatal("probe should retry after the cooldown")
+	}
+}
+
 func TestFilterUsageRowsFindsAcrossIdentityAndGroup(t *testing.T) {
 	rows := []UsageTableRow{{Provider: "agy", Profile: "work", Account: "work@example.com", Group: "Gemini Models"}, {Provider: "codex", Profile: "personal", Group: "GPT Models"}}
 	if got := filterUsageRows(rows, "gemini"); len(got) != 1 || got[0].Profile != "work" {
@@ -1057,5 +1099,72 @@ func TestRenderAccountCellsFreshNoSuffix(t *testing.T) {
 	statusCell := cells[len(cells)-1]
 	if strings.Contains(statusCell, "h\u00e1") {
 		t.Fatalf("fresh STATUS should not have age suffix, got %q", statusCell)
+	}
+}
+
+func TestUsageTableTriggersBackgroundRefreshOnInitialCachedLoad(t *testing.T) {
+	options := UnifiedUsageOptions{
+		Rows:           []UsageTableRow{{Provider: "codex", Profile: "kivergmail", Status: "SEM DADOS"}},
+		ProfilesToLoad: []model.Profile{{Provider: "codex", Name: "kivergmail"}},
+	}
+	tbl := newUnifiedUsageModel(options)
+	updated, cmd := tbl.Update(quotasLoadedMsg{
+		rows:     options.Rows,
+		accounts: map[string]model.AccountInfo{},
+		silent:   false,
+	})
+	next := updated.(usageTableModel)
+	if cmd == nil {
+		t.Fatal("initial cached list must schedule an asynchronous live refresh")
+	}
+	if !strings.Contains(next.statusMsg, "segundo plano") {
+		t.Fatalf("missing refresh in-progress label: %q", next.statusMsg)
+	}
+
+	updated, cmd = next.Update(quotasLoadedMsg{
+		rows:     options.Rows,
+		accounts: map[string]model.AccountInfo{},
+		silent:   true,
+	})
+	if cmd != nil {
+		t.Fatal("silent cache polling must not launch repeated app-servers")
+	}
+	_ = updated
+}
+
+func TestUsageTableReprobesCodexAfterLockCanBeReleased(t *testing.T) {
+	tbl := newUnifiedUsageModel(UnifiedUsageOptions{
+		Rows:           []UsageTableRow{{Provider: "codex", Profile: "personal", Status: "SEM DADOS"}},
+		ProfilesToLoad: []model.Profile{{Provider: "codex", Name: "personal"}},
+	})
+	loaded, cmd := tbl.Update(quotasLoadedMsg{
+		rows:   []UsageTableRow{{Provider: "codex", Profile: "personal", Status: "SEM DADOS"}},
+		silent: false,
+	})
+	if cmd == nil {
+		t.Fatal("initial load should start a nonblocking provider probe")
+	}
+	m := loaded.(usageTableModel)
+	if m.lastCodexProbe.IsZero() {
+		t.Fatal("initial probe timestamp must be captured")
+	}
+	first := m.lastCodexProbe
+	m.loadingQuotas = false
+	next, tickCmd := m.Update(quotaPollTickMsg{})
+	if tickCmd == nil {
+		t.Fatal("quota poll must keep scheduling itself")
+	}
+	m = next.(usageTableModel)
+	if !m.lastCodexProbe.Equal(first) {
+		t.Fatal("polling before the cooldown must not start new Codex app-server probes")
+	}
+	m.lastCodexProbe = time.Now().Add(-6 * time.Minute)
+	next, tickCmd = m.Update(quotaPollTickMsg{})
+	if tickCmd == nil {
+		t.Fatal("stale poll must schedule Codex re-probing")
+	}
+	m = next.(usageTableModel)
+	if time.Since(m.lastCodexProbe) > time.Minute {
+		t.Fatal("refresh scheduling timestamp did not advance")
 	}
 }

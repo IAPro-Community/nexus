@@ -24,7 +24,7 @@ plataforma, provider ou release.
 
 Capturas automatizadas da aplicação em fixture sintética isolada.
 
-O [manifesto](screenshots/manifest.json) registra cenário e origem. Essas
+O [manifesto](screenshots/manifest.json) registra cenário e origem. Até recaptura exata do candidato, as imagens são históricas; veja [evidência visual](../operations/visual-evidence.md). Essas
 capturas demonstram uma superfície específica e também não substituem a matriz
 de plataforma.
 

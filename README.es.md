@@ -1,9 +1,6 @@
 # IAPro Nexus
 
-> **Estado de release:** el candidato de source es `1.0.0-beta.7` e integra
-> Linux amd64, Windows amd64 y macOS arm64. Todavía **no existe una GitHub
-> Release pública**; la tag histórica `v1.0.0-beta.1` no equivale a una
-> distribución binaria publicada.
+> **Estado (18/10/2026):** el source de `release/v1.0.0` declara `1.0.0-beta.10`. **v1 estable aún no está homologada ni publicada.** No suponga URLs de instaladores a partir de tags antiguas.
 
 **Una estación de trabajo local para operar coding agents.**
 
@@ -19,17 +16,7 @@ IAPro Nexus es una estación de trabajo local para trabajar con coding agents. O
 
 ## Empieza en minutos
 
-El candidato actual `1.0.0-beta.7` integra Linux amd64, Windows amd64 y
-macOS arm64 en el source, pero la certificación sigue ligada a evidencia
-exact-SHA por plataforma.
-
-Actualmente no hay una GitHub Release pública ni en el repositorio fuente ni en
-`IAPro-Community/nexus-releases`. No construyas URLs de instalación usando la
-tag histórica `v1.0.0-beta.1`.
-
-Para evaluación de ingeniería, compila el source. La instalación binaria
-firmada será el camino recomendado sólo después de que exista una release
-publicada.
+El candidato actual `1.0.0-beta.10` integra plataformas en el código, pero el soporte público depende de pruebas nativas del SHA exacto. El repositorio de source ya es público; la auditoría de historial, licencias y secretos continúa pendiente. No se garantiza un instalador público sin verificar artefactos firmados reales.
 
 ### Desarrolladores (compilar desde el código)
 
@@ -73,4 +60,6 @@ La [integración con Maestro](docs/product/maestro.md) es opcional para el camin
 
 ## Comunidad
 
-[Seguridad](SECURITY.md) · [Soporte](SUPPORT.md) · [Gobernanza](GOVERNANCE.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Licencia Beta](LICENSE)
+[TL;DR](docs/TLDR.md) · [Documentación](docs/README.md) · [Seguridad](SECURITY.md) · [Soporte](SUPPORT.md) · [Gobernanza](GOVERNANCE.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [PolyForm Strict](LICENSE)
+
+**Licencia:** source-available, usos no comerciales permitidos; no permite modificaciones ni redistribución. No es open source reconocido por la OSI. Vea [guía de licenciamiento](docs/legal/LICENSING.md).

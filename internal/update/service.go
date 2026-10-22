@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -27,6 +28,7 @@ type Service struct {
 	registryURL string
 	httpClient  *http.Client
 	currentVer  string
+	currentSHA  string
 	channel     string
 	execPath    string
 	method      InstallationMethod
@@ -43,6 +45,7 @@ type ServiceConfig struct {
 	RegistryURL string
 	KeyRing     *KeyRing
 	CurrentVer  string
+	CurrentSHA  string
 	Channel     string
 	ExecPath    string
 	Method      InstallationMethod
@@ -54,6 +57,7 @@ type ServiceConfig struct {
 type CheckResult struct {
 	CurrentVersion     string             `json:"current_version"`
 	LatestVersion      string             `json:"latest_version"`
+	LatestSHA          string             `json:"latest_sha,omitempty"`
 	Channel            string             `json:"channel"`
 	InstallationMethod InstallationMethod `json:"installation_method"`
 	UpdateAvailable    bool               `json:"update_available"`
@@ -62,6 +66,7 @@ type CheckResult struct {
 	Changelog          string             `json:"changelog,omitempty"`
 	Target             string             `json:"target,omitempty"`
 	TargetArtifact     *Artifact          `json:"target_artifact,omitempty"`
+	InstallerArtifact  *Artifact          `json:"installer_artifact,omitempty"`
 	ActiveWork         bool               `json:"active_work"`
 	ActiveWorkReason   string             `json:"active_work_reason,omitempty"`
 }
@@ -71,6 +76,10 @@ func NewService(cfg ServiceConfig) *Service {
 	ver := cfg.CurrentVer
 	if ver == "" {
 		ver = buildinfo.Version
+	}
+	currentSHA := cfg.CurrentSHA
+	if currentSHA == "" {
+		currentSHA = buildinfo.Commit
 	}
 	ch := cfg.Channel
 	if ch == "" {
@@ -101,6 +110,7 @@ func NewService(cfg ServiceConfig) *Service {
 		registryURL: regURL,
 		httpClient:  client,
 		currentVer:  ver,
+		currentSHA:  currentSHA,
 		channel:     ch,
 		execPath:    execP,
 		method:      meth,
@@ -147,6 +157,7 @@ func (s *Service) Check(ctx context.Context) (*CheckResult, error) {
 	}
 
 	res.LatestVersion = manifest.Version
+	res.LatestSHA = manifest.SourceSHA
 	res.Changelog = manifest.Changelog
 
 	policy := ManifestPolicy{
@@ -164,13 +175,83 @@ func (s *Service) Check(ctx context.Context) (*CheckResult, error) {
 		return res, fmt.Errorf("manifest validation failed: %w", err)
 	}
 
-	if compareVersions(manifest.Version, s.currentVer) > 0 {
+	if compareVersions(manifest.Version, s.currentVer) > 0 ||
+		(s.channel == "beta" && compareVersions(manifest.Version, s.currentVer) == 0 &&
+			s.isNewerSignedBetaCommit(ctx, s.currentSHA, manifest.SourceSHA)) {
 		res.UpdateAvailable = true
 		art := manifest.Artifacts[target]
 		res.TargetArtifact = &art
+
+		// Native Desktop/HUD upgrades must go through their platform installer.
+		// The primary goos_goarch artifact is the CLI and must not replace a
+		// running GUI executable. These optional package entries are only
+		// considered after the full signed manifest has been verified.
+		var installerKey string
+		switch runtime.GOOS {
+		case "windows":
+			installerKey = target + "_nsis"
+		case "darwin":
+			installerKey = target + "_pkg"
+		case "linux":
+			installerKey = target + "_deb"
+		}
+		if installer, ok := manifest.Artifacts[installerKey]; ok &&
+			installer.ExtractAction() == "manual" && installer.URL != "" &&
+			installer.Size > 0 && len(installer.SHA256) == 64 {
+			if _, err := hex.DecodeString(installer.SHA256); err == nil {
+				res.InstallerArtifact = &installer
+			}
+		}
 	}
 
 	return res, nil
+}
+
+// isNewerSignedBetaCommit only accepts a same-version beta when the signed
+// source commit is a strict descendant of the running binary's commit.
+// Hash inequality alone does not establish release order. A failed GitHub
+// ancestry lookup fails closed: users can still upgrade via a greater SemVer.
+func (s *Service) isNewerSignedBetaCommit(ctx context.Context, current, signed string) bool {
+	current = strings.ToLower(strings.TrimSpace(current))
+	signed = strings.ToLower(strings.TrimSpace(signed))
+	// Git SHA-1 repository: GitHub's compare endpoint requires full, signed
+	// target identity; the embedded source may use a shortened commit ID.
+	if len(current) < 7 || len(current) > 40 || len(signed) != 40 {
+		return false
+	}
+	for _, sha := range []string{current, signed} {
+		for _, digit := range sha {
+			if !strings.ContainsRune("0123456789abcdef", digit) {
+				return false
+			}
+		}
+	}
+	if strings.HasPrefix(signed, current) {
+		return false
+	}
+	endpoint := "https://api.github.com/repos/IAPro-Community/nexus/compare/" + current + "..." + signed
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return false
+	}
+	request.Header.Set("Accept", "application/vnd.github+json")
+	response, err := s.httpClient.Do(request)
+	if err != nil {
+		return false
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return false
+	}
+	var result struct {
+		Status   string `json:"status"`
+		AheadBy  int    `json:"ahead_by"`
+		BehindBy int    `json:"behind_by"`
+	}
+	if err := json.NewDecoder(io.LimitReader(response.Body, 16<<10)).Decode(&result); err != nil {
+		return false
+	}
+	return result.Status == "ahead" && result.AheadBy > 0 && result.BehindBy == 0
 }
 
 // Apply downloads, verifies, and installs the update when permitted by InstallationMethod.
@@ -204,6 +285,14 @@ func (s *Service) Apply(ctx context.Context) (*Receipt, error) {
 
 	if err := manifest.Validate(policy); err != nil {
 		return nil, fmt.Errorf("manifest policy rejected: %w", err)
+	}
+	// Apply must enforce the same update eligibility as Check. Otherwise
+	// running "nexus update" directly could replace a newer build with an
+	// older signed beta carrying an unchanged semantic version.
+	versionOrder := compareVersions(manifest.Version, s.currentVer)
+	if versionOrder <= 0 && !(versionOrder == 0 && s.channel == "beta" &&
+		s.isNewerSignedBetaCommit(ctx, s.currentSHA, manifest.SourceSHA)) {
+		return nil, ErrNoUpdateAvailable
 	}
 
 	art, ok := manifest.Artifacts[target]

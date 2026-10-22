@@ -73,3 +73,11 @@ por step do GitHub Actions.
 Somente promova a release estável quando o status autoritativo mudar com
 evidência correspondente. Até lá, documentação do source candidato não deve ser
 interpretada como anúncio de GA.
+
+## Auditoria de exposição do source já público
+
+Com todos os refs acessíveis localmente, execute `git fetch --all --tags --prune` e `bash scripts/audit-publication.sh`. O script usa Gitleaks, e falha quando existem paths internos a classificar. Um PASS automático não dispensa a revisão humana de histórico, dados pessoais, licenças ou dependências. Nunca envie relatórios brutos de segredos para CI ou issues.
+
+## Evidência visual
+
+Recapturar [screenshots](visual-evidence.md) no SHA congelado antes de usar imagens como prova de funcionamento do Desktop/HUD. Não inserir manualmente um SHA novo em um manifesto antigo.

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/url"
 	"os/exec"
 	"strings"
 	"time"
@@ -118,7 +119,9 @@ func (h *NexusHandler) handleSystemUpdates(w http.ResponseWriter, r *http.Reques
 	latestMaestroVer := maestroVer
 	updateAvailable := false
 	if npmPath, err := exec.LookPath("npm"); err == nil {
-		cmd := exec.Command(npmPath, "view", "@iapro/orquestrador-maestro-cli", "version")
+		npmCtx, cancelNpm := context.WithTimeout(r.Context(), 4*time.Second)
+		defer cancelNpm()
+		cmd := exec.CommandContext(npmCtx, npmPath, "view", "@iapro/orquestrador-maestro-cli", "version")
 		executil.HideConsoleWindow(cmd)
 		if out, err := cmd.Output(); err == nil {
 			latestMaestroVer = strings.TrimSpace(string(out))
@@ -131,21 +134,48 @@ func (h *NexusHandler) handleSystemUpdates(w http.ResponseWriter, r *http.Reques
 	nexusUpdateCtx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 	nexusCheck, nexusErr := checkNexusUpdate(nexusUpdateCtx)
+	if nexusCheck != nil && nexusCheck.Channel == "beta" && !nexusCheck.UpdateAvailable {
+		// A beta should discover the signed stable channel once v1.0.0 ships.
+		// Do not replace a newer beta with an older stable release.
+		stableCheck, stableErr := checkNexusStableUpdate(nexusUpdateCtx)
+		if stableErr == nil && stableCheck != nil && stableCheck.UpdateAvailable {
+			nexusCheck, nexusErr = stableCheck, nil
+		}
+	}
 	nexusLatestVersion := buildinfo.Version
+	var nexusLatestSHA string
 	nexusUpdateAvailable := false
 	nexusInstallationMethod := update.MethodUnknown
 	nexusAllowsSelfUpdate := false
 	nexusChannel := "stable"
 	var nexusUpdateInstruction string
 	var nexusUpdateError string
+	var nexusInstallerURL string
+	var nexusReleaseURL string
 	if nexusCheck != nil {
 		nexusLatestVersion = nexusCheck.LatestVersion
+		nexusLatestSHA = nexusCheck.LatestSHA
 		nexusUpdateAvailable = nexusCheck.UpdateAvailable
 		nexusInstallationMethod = nexusCheck.InstallationMethod
 		nexusAllowsSelfUpdate = nexusCheck.AllowsSelfUpdate
 		nexusUpdateInstruction = nexusCheck.Instruction
+		if nexusCheck.Channel == "stable" && strings.Contains(buildinfo.Version, "-beta.") &&
+			nexusCheck.InstallationMethod == update.MethodStandalone {
+			nexusUpdateInstruction = "nexus update --channel=stable"
+		}
 		if nexusCheck.Channel != "" {
 			nexusChannel = nexusCheck.Channel
+		}
+		if nexusCheck.UpdateAvailable {
+			// Only advertise links after the signed manifest validates. Downloads
+			// outside the public canonical repository are not presented as an
+			// "official installer", even when a custom registry was configured.
+			nexusReleaseURL = "https://github.com/IAPro-Community/nexus/releases/tag/" +
+				update.ChannelPointerTag(nexusChannel)
+			if nexusCheck.InstallerArtifact != nil &&
+				isOfficialNexusInstallerURL(nexusCheck.InstallerArtifact.URL) {
+				nexusInstallerURL = nexusCheck.InstallerArtifact.URL
+			}
 		}
 	}
 	if nexusErr != nil {
@@ -157,9 +187,12 @@ func (h *NexusHandler) handleSystemUpdates(w http.ResponseWriter, r *http.Reques
 		"nexus_commit":              buildinfo.Commit,
 		"nexus_build_date":          buildinfo.BuildDate,
 		"nexus_latest_version":      nexusLatestVersion,
+		"nexus_latest_sha":          nexusLatestSHA,
 		"nexus_update_available":    nexusUpdateAvailable,
 		"nexus_update_error":        nexusUpdateError,
 		"nexus_update_instruction":  nexusUpdateInstruction,
+		"nexus_installer_url":       nexusInstallerURL,
+		"nexus_release_url":         nexusReleaseURL,
 		"channel":                   nexusChannel,
 		"installation_method":       nexusInstallationMethod,
 		"allows_self_update":        nexusAllowsSelfUpdate,
@@ -170,6 +203,18 @@ func (h *NexusHandler) handleSystemUpdates(w http.ResponseWriter, r *http.Reques
 		"maestro_available":         mStatus.Available,
 		"update_available":          updateAvailable,
 	})
+}
+
+// isOfficialNexusInstallerURL prevents the native app's external-link action
+// from representing a third-party URL as a verified official package.
+func isOfficialNexusInstallerURL(raw string) bool {
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme != "https" || !strings.EqualFold(u.Hostname(), "github.com") ||
+		u.Port() != "" || u.User != nil {
+		return false
+	}
+	return strings.HasPrefix(u.EscapedPath(), "/IAPro-Community/nexus/releases/download/") &&
+		!strings.HasSuffix(u.Path, "/")
 }
 
 // performSystemUpdate is the explicit Maestro library updater. Tests stub this

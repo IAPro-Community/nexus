@@ -13,8 +13,11 @@ estender o Nexus.
 
 | Quero… | Comece em |
 | --- | --- |
+| visão de 30 segundos e comandos | [TL;DR](TLDR.md) |
+| entender restrições da licença | [Licenciamento](legal/LICENSING.md) |
 | testar em 5–10 minutos | [Quick Start](quick-start.md) |
 | entender o produto inteiro | [Como o Nexus funciona](product/how-it-works.md) |
+| verificar 30 recursos com código/testes | [Matriz de funcionalidades](reference/feature-matrix.md) |
 | abrir uma sessão agora | [Direct](product/direct.md) |
 | transformar uma ideia em plano | [Composer](product/composer.md) |
 | revisar dependências e execução | [Flow](product/flow.md) |
@@ -32,6 +35,7 @@ estender o Nexus.
 
 ### 1. Primeiro uso
 
+- [TL;DR](TLDR.md)
 - [Quick Start](quick-start.md)
 - [Getting Started](getting-started/README.md)
 - [Instalação nativa](getting-started/installation.md)
@@ -53,7 +57,13 @@ estender o Nexus.
 - [Conductor](product/conductor.md)
 - [Autonomous delivery](product/autonomous-delivery.md)
 - [Maestro](product/maestro.md)
-- [Providers e usage](product/providers-and-usage.md)
+- [Providers, contas, quota e custo](product/providers-and-usage.md)
+- [Terminais e diagnóstico de teclado](product/terminals.md)
+- [Troca de contas e handoff](product/account-switching.md)
+- [HUD](product/hud.md)
+- [Acesso remoto seguro](product/remote-access.md)
+- [Temas](product/themes.md)
+- [Voz e acessibilidade](product/voice-accessibility.md)
 - [Superfícies](product/surfaces.md)
 - [Tour visual](product/visual-tour.md)
 
@@ -78,14 +88,18 @@ estender o Nexus.
 - [Operação e suporte](operations/README.md)
 - [Troubleshooting](operations/troubleshooting.md)
 - [Suporte de plataformas](operations/platform-support.md)
+- [Recaptura e evidências visuais](operations/visual-evidence.md)
 - [Release](operations/release.md)
 - [Segurança](security.pt-BR.md)
+- [Registro de manutenibilidade](engineering/MAINTAINABILITY_REGISTER.md)
 
 ### 5. Referência
 
 - [CLI](cli/README.md)
 - [Configuração](reference/configuration.md)
 - [Matriz de funcionalidades](reference/feature-matrix.md)
+- [Catálogo rastreável](reference/features.json)
+- [Referência do catálogo](reference/README.md)
 - [Glossário](GLOSSARY.md)
 - [FAQ](faq.md)
 - [O que mudou](whats-new.md)
@@ -159,3 +173,10 @@ Para evitar confusão:
 
 Consulte [STYLE_GUIDE.md](STYLE_GUIDE.md). Regra principal: **fato verificável
 antes de marketing**.
+
+## Publicação e licença
+
+O source está preparado para a [PolyForm Strict 1.0.0](../LICENSE),
+com usos não comerciais permitidos e sem autorização geral para alterações
+ou redistribuição. Consulte [licenciamento](legal/LICENSING.md) e
+[checklist de abertura](PUBLICATION_CHECKLIST.md). **Não anunciar como open source**.

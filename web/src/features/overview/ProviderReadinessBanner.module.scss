@@ -1,0 +1,39 @@
+.banner {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+  border: 1px solid var(--nx-border);
+}
+
+.copy {
+  display: grid;
+  gap: 4px;
+
+  strong {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--nx-text);
+  }
+
+  p {
+    margin: 0;
+    line-height: 1.5;
+    color: var(--nx-muted);
+    overflow-wrap: anywhere;
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+
+  a {
+    font-size: 0.85rem;
+    color: var(--nx-accent-text);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+}

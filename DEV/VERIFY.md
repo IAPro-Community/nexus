@@ -1,5 +1,94 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-21 — Click-through do HUD corrigido em 047f4348
+
+- **PASS** `gofmt`, `go vet ./...`, `go test -count=1 ./...` (Go 1.26.10).
+- **PASS** Web `npm run quality`: 97 arquivos / 598 testes.
+- **PASS** `docs-verify`: 192 Markdown / 33 assets, manifesto em `047f4348`.
+- **PASS** build HUD `production`, SHA-256 `19c5e299...a1e6a5`.
+- **PASS** click-through real: `RESULT.json` com `verdict: PASS`, canto transparente atravessa, cápsula interativa, estado restaurado.
+- **PASS (funcional)** HUD 20/20 ciclos (`PASS_FUNCTIONAL_PENDING_VISUAL`).
+- **NOT_TESTED** click-through no popover destacado; confirmação visual humana.
+- **BLOCKED_EXTERNAL** assinatura; **NOT_RUN** smokes Codex/multi-conta.
+- Veredito: `NO_GO_WINDOWS`. Relatório: `DEV/validation/local-hud-047f4348/HOMOLOGATION.md`.
+
+
+## 2026-10-21 — Homologação Windows da release em 7d92b942
+
+- **PASS** `docs-verify`: 192 Markdown / 33 assets, manifesto em `7d92b942`.
+- **PASS** `verify-version-contract`, `gofmt` (após correção), `go vet ./...`.
+- **PASS** `go test -count=1 ./...` com Go `1.26.10` (via `GOTOOLCHAIN`); `internal/app` 88,9 s.
+- **PASS** Web `npm run quality`: 96 arquivos / 593 testes, typecheck, ESLint, Stylelint, Prettier.
+- **PASS** build Web e build nativo do HUD (`production`), binário SHA-256 `8dab24a7f616fe6fb720dc50d33cd6f6b6802328993614db2d987eafb48dcefb`.
+- **PASS** certificação oficial `scripts/certify-windows-first-run.ps1` em `7d92b942`: 9 gates PASS, 4 NOT_RUN, exit 0, `automated_result: PASS`.
+- **PASS (funcional)** HUD nativo: 20/20 ciclos em janela única e 20/20 em popover destacado (`PASS_FUNCTIONAL_PENDING_VISUAL`).
+- **FAIL** click-through do HUD: clique em área transparente (`1696,972`) manteve `Nexus HUD` em foreground em vez da janela alvo. Evidência em `DEV/validation/local-hud-7d92b942/click-through/`.
+- **INCONCLUSIVO** matriz HUD cross-platform: sem Linux X11 e macOS no mesmo SHA; agregador recusa emitir veredito.
+- **BLOCKED_EXTERNAL** instalador assinado: `native-signing` com 0 secrets, sem certificado local, `signtool`/`makensis` ausentes.
+- **NOT_RUN** `desktop-wails-first-run`, sessão Codex interativa e cenário multi-conta.
+- Veredito: `NO_GO_WINDOWS`. Relatório: `DEV/validation/local-hud-7d92b942/HOMOLOGATION.md`.
+
+## 2026-10-17 — Correção e Verificação do Backend Compartilhado Desktop (76587c39)
+
+- `internal/control/web/desktop_attach.go`: PASS. Corrigido o `NewLoopbackBackendHandler` para servir arquivos estáticos embutidos (`bundle.js`, `bundle.css`, chunks) em vez de retornar incondicionalmente `index.html`.
+- `internal/control/web/desktop_attach_test.go`: PASS. Novo teste TDD `TestLoopbackBackendHandlerServesStaticAssetsAndFallbackToSPA` valida que assets estáticos nunca realizam fallback indevido para HTML e que rotas SPA continuam caindo no `index.html`.
+- `go test -v -run "TestLoopbackBackendHandler.*" ./internal/control/web`: PASS.
+- `gofmt -w` e `go vet ./...`: PASS (código 0).
+- Binários recompilados e reinstalados em `%LOCALAPPDATA%\Programs\IAPro Nexus`.
+- Desktop validado em execução com PID e controlador WebView2 ativo.
+
+## 2026-10-17 — Validação E2E Web + Desktop e Correção no NexusDemoApp (87216d26)
+
+- `web/src/app/NexusDemoApp.tsx`: PASS. Resolvido o erro `useWorkspacePresentation must be used inside WorkspacePresentationProvider` ao envolver o `<DemoCoordinator>` no `<WorkspacePresentationProvider>`.
+- `bun run --cwd web typecheck` & `bun run --cwd web lint`: PASS (código 0, zero erros de tipagem ou lint).
+- `bun run --cwd web test`: PASS (89 arquivos de teste, 553 testes aprovados sem falhas).
+- Suíte E2E do Navegador (Web / Playwright):
+  - `test:e2e:composer`: PASS.
+  - `test:e2e:surface`: PASS (isolamento de abas e keep-alive de terminais).
+  - `test:e2e:capacity`: PASS.
+  - `test:e2e:hud`: PASS.
+  - `test:e2e:composer-spine` & `test:e2e:composer-vague-spine`: PASS.
+  - `test:e2e:composer-themes`: PASS (20 temas validados).
+  - `test:e2e:hardening`: PASS (WCAG 2.1 AA a11y, 7 breakpoints responsivos, deep links).
+- Suíte E2E do Desktop (Wails v3 + WebView2 via CDP):
+  - Todas as rotas inspecionadas e validadas: `/projects`, `/settings`, `/updates`, `/welcome`, `/demo`.
+  - Todas as APIs de backend retornando 200 no contexto do shell Desktop.
+  - Evidências salvas em `DEV/validation/local-beta/1.0.0-beta.10/85c5b9589ec19663023fcddb18d0539742367b40/windows-AMD64/desktop-native/`.
+- Commit `87216d26` integrado por fast-forward na branch canônica `release/v1.0.0`.
+
+## 2026-10-17 — Continuidade de homologação Windows beta.10
+
+- `bun run --cwd web quality:full`: PASS no worktree baseado em
+  `5d5aea9211b5154e96b036c519a61de9723593b1`; 89 arquivos/553 testes e build.
+- `bun run --cwd web test:a11y`: PASS em três execuções após espera limitada
+  de 250 ms por foco; asserção preservada. Esta alteração de teste ainda não
+  está commitada e não certifica o SHA-base.
+- `pwsh -File scripts/test-uninstall-windows.ps1`: PASS com TEMP/TMP em D:;
+  coordenadas beta, mismatch de manifesto, digest, path segments, variável de
+  ambiente, preservação de dados e diretórios desconhecidos.
+- `go test -count=1 ./internal/release ./internal/update/...`: PASS. `go run
+  ./scripts/verify-version-contract.go .`, `node --check` e `git diff --check`:
+  PASS.
+- Falhas obrigatórias mantidas: `go test -count=1 ./...` exit 1 no timeout
+  padrão de 10 min em `internal/nexus`; golangci-lint exit 4 em duas expirações
+  de `go/packages`; browser `test:a11y` falhou uma vez no SHA-base.
+- NSIS lifecycle/signing, HUD visual matrix, Codex interativo, updater A→B,
+  CI exact-SHA e Linux nativo permanecem BLOCKED/UNVERIFIED. Relatório completo
+  e logs: `DEV/validation/local-beta/1.0.0-beta.10/5d5aea9211b5154e96b036c519a61de9723593b1/windows-AMD64/`.
+- Veredito `NO_GO_WINDOWS`; sem commit, push ou publicação nesta atualização.
+
+## 2026-10-15 — Homologação Windows beta.10 no SHA exato, instalação local e smoke Desktop/HUD
+
+- PASS — cadeia local completa (mesmos scripts do CI) no SHA `c5cf076a96934f83c8dd9fffec6e957db881e637`: frontend (format/typecheck/lint/styles/test/build), Go (vet/golangci/govulncheck/test), control/runtime E2E, agent-interop, browser E2E (hardening/a11y/visual, composer, surface, capacity, hud, spine, vague-spine, composer-themes 20/20), smokes doctor/providers/usage + regressão OpenCode e builds Wails v3 Desktop/HUD; veredito `PASS automated Windows beta homologation: 1.0.0-beta.10 @ c5cf076a`. Evidência em `DEV/validation/local-beta/1.0.0-beta.10/c5cf076a96934f83c8dd9fffec6e957db881e637/windows-AMD64/` e `%TEMP%\opencode\local-gate-c5cf076a.log`.
+- PASS — correção do flake do gate `composer-themes`: o × de fechar aba deixou de ser um `<button>` filho do `role=tablist` (Axe `aria-required-children` critical) e virou span decorativo `aria-hidden` nos dois strips, preservando fechamento por teclado via `Delete` e menu de contexto (mesmo diálogo de confirmação); reprodução determinística RED→GREEN no estado exato da falha.
+- PASS — captura oficial de docs refeita no SHA (`source_sha=c5cf076a`); `docs-verify` 179 Markdown/33 assets; artefatos regenerados commitados em `b462e844`.
+- PASS — instalação local via `install.ps1 -BuildFromSource`: CLI `1.0.0-beta.10` commit `c5cf076a` em `%LOCALAPPDATA%\Programs\IAPro Nexus` (+ alias `ai.exe`), PATH do usuário atualizado e `doctor` executado no install.
+- PASS — Desktop e HUD (builds Wails v3 da própria cadeia; SHA-256 conferidos na cópia: `4a6aea46…`/`c1d26699…`) copiados para o diretório de instalação com atalhos no Desktop e Start Menu.
+- PASS — smoke nativo: `nexus-desktop.exe` vivo após 9s com janela `IAPro Nexus` e 6 processos WebView2; `nexus-hud.exe` vivo após 9s com janela `Nexus HUD` e 6 WebView2; ambos encerrados sem processos residuais.
+- LIMITAÇÃO PRÉ-EXISTENTE — em runs de fixture o PUT de layout nunca é disparado (GET retorna `{}`/rev 0), tornando a persistência de abas timing-dependent nesses runs; fora do escopo desta certificação e documentado no commit `b462e844`.
+- NÃO EXECUTADO — `MANUAL_CHECKS.md` (smokes nativos interativos: teclado Codex, Mission/promoção, quota/certify, HUD autostart) aguardam sessão interativa do usuário.
+- NO TAG / NO PUBLISH — somente commits na branch `fix/release-beta10-windows-closure-20261014`, todos com `[skip ci]`; `release/v1.0.0` intocada.
+
 ## 2026-10-07 — Continuidade Windows WebView2 e branch audit
 
 - PASS — go fmt ./..., go vet ./..., govulncheck ./..., golangci-lint run ./... e go test -count=1 ./... no Windows AMD64 após mudanças Go.
@@ -1586,7 +1675,120 @@ Parecer e limitações: [`DEV/validation/CURRENT_CODE_REVIEW.md`](validation/CUR
 - UNVERIFIED — the attempted supervised Codex smoke timed out during IPC
   handshake; no runtime remained registered afterward.
 
+## Fechamento beta.10 Windows — 2026-10-16
+
+Ciclo de correção e certificação da instalação local (branch
+`fix/release-beta10-windows-closure-20261014`), fechado sem alterar
+`release/v1.0.0` e sem merge/tag/publicação.
+
+- Picker de diretório (`6c14b57e`): `GET /api/v1/fs/browse` sem path devolve
+  200 com default seguro (`defaultBrowsePath`: cwd só quando dentro de uma
+  raiz permitida, senão home) e bookmarks expõem apenas raízes permitidas —
+  sem bookmark apontando para `/`. Coberto por e2e RED→GREEN e 15/15 unit.
+- HUD vinculado ao core (`baf91839` + manifesto `37434c6d`): spawn com
+  `--linked` quando o core sobe; opt-out `NEXUS_HUD_SPAWN=0`; hard-kill do
+  core mata o HUD (watchdog). Verificado ao vivo: HUD parent = PID do core.
+- Fechamento de terminal ConPTY com bound de 2s no `Wait()` do rPipe
+  (`aa854590`).
+- PS 5.1 + stderr nativo: banner do `bun run` vira NativeCommandError
+  terminante sob `ErrorActionPreference=Stop`. Corrigido no script da cadeia
+  (`36445f10`, `Invoke-NativeLogged`) e depois no próprio instalador
+  (`996659f4`, `Invoke-NativeBuild`): `bun install`, `bun run build`,
+  `go build` (cache frio imprime `go: downloading` em stderr) e
+  `git fetch/checkout`. `$LASTEXITCODE` permanece a única fonte de verdade
+  dos checks (provado empiricamente em PS 5.1).
+- Flake da cadeia #5 (`36445f10`, fase Go tests):
+  `TestEvidenceBundleRequiresAndProjectsCanonicalProof` degradou identidade
+  sob saturação. Causa-raiz provada por digest: `IdentityDigest:4eab7424…` =
+  `sha256("git\0INCOMPLETE\0git identity command timed out")` =
+  `incompleteGitIdentity()` (deadline de 5s do child git, comportamento
+  conservador intencional do produto). Correção apenas no teste (`30e2e6f3`):
+  retry tolerante exclusivamente ao digest constante de deadline-loss, teto
+  5 tentativas + backoff, qualquer outra incompletude falha imediato.
+  Repro controlada com git falso (`degrade-once` → PASS com retry;
+  `degrade-always` → FAIL estrito com digest idêntico).
+- Cadeia local de homologação #6 (`38968218`) e #7 (`996659f4`): **PASS
+  18/18** — veredito `PASS automated Windows beta homologation:
+  1.0.0-beta.10 @ 996659f4134f2f3f26007c69afd387b2d6905f77` (~18 min cada).
+  Evidência: `DEV/validation/local-beta/1.0.0-beta.10/996659f4134f2f3f26007c69afd387b2d6905f77/windows-AMD64/`.
+- Reinstalação ao vivo pós-cadeia: `install.ps1 -BuildFromSource -Yes` com
+  EAP=Stop completa (exit 0); Desktop e HUD copiados dos builds da cadeia;
+  core relançado (`web --no-open`) spawnou o HUD `--linked` (parent = core).
+- Live check da API contra o core instalado: bootstrap 200 com cookies
+  `ai_control_session`/`ai_control_device`; `GET /api/v1/fs/browse` sem path
+  200; `current_path` = diretório de lançamento (cwd dentro de raiz
+  permitida, conforme contrato de `defaultBrowsePath`); bookmarks
+  `Home → C:\Users\kiver`, `Documents → C:\Users\kiver\Documents`, nenhum
+  apontando para raiz do sistema.
+- Passagem headless somente leitura sobre o `MANUAL_CHECKS.md` executada
+  contra o core vivo (2026-10-16, nenhuma mutação): `GET /api/v1/providers`,
+  `/api/v1/execution-roles`, `/api/v1/hud`, `/api/v1/voice/settings`,
+  `/api/v1/capacity/status`, `/api/v1/cost/summary` e `/api/v1/projects`
+  todos 200. Item 16 confirmado ao vivo (opencode `INSTALLED_UNREGISTERED`
+  visível sem perfil); item 15 com OpenCode listado como provider próprio
+  independente do AGY; roles build/investigate/review presentes (item 17);
+  voz N/A (`enabled=false`, sem chave Groq — item 22). Itens 1 e 10-12
+  cobertos pelos testes da cadeia #7 (CSI/setas byte-level, delegation
+  fail-closed, budget gate, isolamento). Detalhe:
+  `%TEMP%\opencode\MANUAL_CHECKS_HEADLESS_RESULT.md`.
+- Ícones do tray fixados na área de notificação (fora do overflow):
+  `IsPromoted=1` em `HKCU:\Control Panel\NotifyIconSettings` para os dois
+  binários de produção (`nexus-desktop.exe` e `nexus-hud.exe`), mecanismo
+  real do Windows; a promoção se concretiza quando o ícone volta a se
+  registrar (relançamento do HUD/Desktop ou novo login).
+- Autostart do HUD ativado no formato exato do toggle do produto
+  (Wails v3 `Autostart.Enable()`): valor `nexus-hud` sob
+  `HKCU:\Software\Microsoft\Windows\CurrentVersion\Run` apontando para
+  `nexus-hud.exe` entre aspas, sem argumentos (igual ao `Enable()`
+  padrão). O toggle nativo do HUD reconhece a entrada e pode desligá-la.
+- UNVERIFIED (por design, interativo) — itens do `MANUAL_CHECKS.md` que
+  exigem sessão nativa real (prompt em provider, admissão de Mission com
+  Agent pinado, Certify/enforcement) permanecem a cargo do operador.
+
+## HUD nativo — arraste e presets de tamanho — 2026-10-21
+
+Worktree `C:\Dev\nexus-hud-validation`, base `f6098b8c684a97bf7e8e56804109ca491c78cfa2`, sem commit/push.
+
+- **PASS** — `tsc --noEmit`, ESLint, Prettier e Stylelint nos arquivos do HUD; Vitest direcionado 37/37; `go test -count=1 ./internal/desktop -run HUD`; build Web e build Go do `nexus-hud`.
+- **PASS** — UI Automation em Windows 11 `10.0.26200`, binário isolado `nexus-hud-diag-v3` (execução anterior): presets medidos `220×60 → 334×496 → 380×560 → 440×640 → 334×496 → 220×60`; nomes acessíveis `Compacto`, `Confortável`, `Grande` e `Arrastar HUD. Use as setas para mover.`; arraste real `-144,-108` px; seta direita `+16` px; `Shift`+seta `+64` px.
+- **PASS** — persistência: após escolher `comfortable` e recolher, o estado ficou `260×70`; após reiniciar o HUD no mesmo diretório de dados, abriu em `260×70` na posição persistida (`1516,866`).
+- **PASS** — primeiro paint: com estado limpo, o HUD abriu em `220×60` no canto inferior direito, sem o antigo mínimo `190×48`.
+- **PASS** — rebuild final (`nexus-hud-diag-v4.exe`, SHA-256 `ae64668c16eedbacabc9f91eb0b05a8a3cb6f28f37800ed59a961e4aa5d49674`): `npm run quality` no `web/` passou com 93 arquivos/578 testes após reflow de Prettier em `NexusHud.tsx`; `go vet ./internal/desktop ./cmd/nexus-hud` e `go test -count=1 ./internal/desktop/...` PASS; build Web e build Go do HUD PASS.
+- **PASS** — UI Automation no build final: presets medidos `260×70 → 380×560 → 334×496 → 380×560 → 440×640 → 334×496 → 220×60`; alça acessível `24×42` com nome `Arrastar HUD. Use as setas para mover.`; arraste real `-132,-88` px (pedido `-144,-96`); reinício abriu em `220×60` na posição persistida `1524,768`.
+- **PASS** — teclado (setas `+16` px, `Shift`+seta `+64` px) validado no build `v3`; não repetido no rebuild `v4` porque o caminho de teclado não mudou.
+- **NOT_TESTED** — Linux e macOS do HUD nativo neste slice.
+- **BLOCKED** — `node scripts/docs-verify.mjs` falha por alterações visuais não commitadas em `web/src`/`internal/desktop`; o gate exige SHA imutável. Nenhum GO, tag ou release.
+
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-10-08T11:33:39Z
+## Frontend gate — 2026-10-17T18:34:42Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
+
+## HUD nativo — toggle do popup independente/Mascote — 2026-10-22
+
+Código `f789db63c8ec9f3498c3822a94ee7c823ec7086c`; HUD `nexus-hud.exe` SHA-256 `1f3ced07acc02672dd786c3c39cf87a390da9f315e0e654a9e2505f2ab7929de`. Dossiê: `DEV/validation/mascot-toggle-f789db63/HOMOLOGATION.md`.
+
+- **PASS** — `gofmt` limpo, `go vet ./...`, `go test -count=1 ./...` (Go 1.26.10), Web `npm run quality` 97 arquivos/599 testes, build Web e build HUD `production`.
+- **PASS** — UI Automation em Windows 11 `10.0.26200` (escala 100%), estado isolado, duas sessões no mesmo diretório:
+  - sessão A: `Popup independente: Não` e `Mascote` desabilitado → habilitar → `DetachedPopover=true`, popup criado oculto, cápsula restaurada `220x60` → expandir → popup visível `334x496` com a cápsula ainda `220x60` → `Mascote` habilitado → `Appearance=MASCOT`, cápsula `136x112` renderizando o mascote, popup oculto;
+  - sessão B (reinício): abre em `MASCOT` `136x112` com popup habilitado e oculto → abrir pelo mascote → `Popup independente: Sim` → desabilitar → `Appearance=BAR`, cápsula `220x60`, popup oculto → painel inline volta a abrir com `Popup independente: Não`.
+- **PASS (herdado)** — click-through da janela única permanece no dossiê `local-hud-047f4348`; o watcher segue desativado em modo detached.
+- **NOT_TESTED** — click-through do popover destacado, confirmação visual humana das capturas e matriz Linux X11/macOS.
+- **BLOCKED** — assinatura Authenticode/instalador e smokes interativos de Codex/multi-conta. Veredito de release: **NO_GO_WINDOWS**.
+
+### Implantação local — 2026-10-22
+
+- **PASS** — 955b197f instalado em %LOCALAPPDATA%\Programs\IAPro Nexus; 
+exus.exe/i.exe 8cd64d5, 
+exus-desktop.exe 72b3cc50, 
+exus-hud.exe 8364a942 (hashes conferem com o build).
+- **PASS** — servidor PID 24184, http://127.0.0.1:13000/ HTTP 200, ersion --json com commit 955b197f, Go 1.26.10, 1.0.0-beta.10; HUD PID 21168 --linked.
+- **PASS** — harness do Mascote no artefato exato (8364a942, commit 955b197f): deployed-artifact/RESULT.json com erdict: PASS e ailed_checks: [].
+- Backup: %TEMP%\nexus-backup-20261022-003138. Detalhes/rollback: DEV/validation/mascot-toggle-f789db63/DEPLOYMENT.md.
+
+### Verificação no perfil real do host — 2026-10-22
+
+- **PASS** — binário instalado (8364a942) no perfil do usuário: painel → `Popup independente: Não` → habilitado (detachedPopover: true, popup criado oculto, cápsula `220x60`) → popup `334x496` → `Mascote` habilitado e aplicado (`136x112`) → `Bandeja` restaurada (`appearance: TRAY`, HUD e popup ocultos). Evidência: `DEV/validation/mascot-toggle-f789db63/real-profile/RESULT.json` (PASS).
+- **PASS** — `nexus-desktop.exe` instalado abriu `IAPro Nexus` `1280x800`, anexou ao Core existente na 13000 e renderizou o workspace real (`DESKTOP_APP.png`).
+- **PASS** — `/api/v1/health` 200 (`1.0.0-beta.10`); rotas protegidas sem sessão retornam 401 `AUTH_REQUIRED`.
+- **NOTA** — o toggle está no rodapé do painel; com muitos provedores é necessário rolar até o fim. Registrado em `real-profile/REAL_PROFILE.md`.

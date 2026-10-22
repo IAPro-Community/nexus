@@ -1,6 +1,251 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
-## 2026-10-07 — Smoke Windows WebView2 e auditoria de branches
+## 2026-10-22 — Archive Branch Cleanup (verificado no remoto)
+
+- **Estado verificado**: 56 refs `archive/*` (55) e `archived/*` (1) **removidos de `origin`** em 2026-10-22. `git ls-remote --heads origin` = **22 heads**, 0 archive; tracking local podado (`fetch --prune`).
+- **Backup preservado**: 69 refs em `refs/backup/archive-20261021/*`; verificação SHA a SHA confirmou cobertura de todos os 56 refs remotos (0 missing).
+- **Achado**: a tentativa de 2026-10-21 não havia surtido efeito no remoto `IAPro-Community/nexus`; a exclusão foi reexecutada em 5 lotes (`git push origin --delete`).
+- **Branches restantes**: 15 ativas (`main`, `release/v1.0.0`, `release/v1.1.0`, 4 feat, 6 fix, 2 integration/refactor) + 7 temporárias `wsl-backup/*`.
+- **Pendente**: `fix/hud-show-restore-v2` (7dec4b83) ainda é local — push + PR contra `release/v1.0.0`; `wsl-backup/*` só saem após o merge do HUD.
+
+---
+
+## 2026-10-21 — Archive Branch Cleanup + HUD Fix Port (7dec4b83)
+
+- **Remote archive cleanup**: 56 `origin/archive/*` e `origin/archived/*` refs removidos após backup local (69 refs em `refs/backup/archive-20261021/*`) — confirmação efetiva em 2026-10-22.
+- **Active branch audit**: 21 non-merged branches inventariadas; 13 integradas/superseded removidas do remoto.
+- **HUD fix retarget**: Fixes from `fix/hud-show-restore` (f52dce5c) ported to new branch `fix/hud-show-restore-v2` based on `release/v1.0.0` (ddb99da4).
+- **Key changes**:
+  - `restoreHUDWindowWhenShown()` uses `sync.OnceFunc` to apply persisted geometry on first `WindowShow` event (fixes clipped capsule on first run when ServiceStartup runs before native window exists).
+  - `CommandNoConsole` flag used in `hudlink.Spawn` so GUI child can show its window (CREATE_NO_WINDOW without SW_HIDE).
+- **Branch status**: `fix/hud-show-restore-v2` at 7dec4b83, ready for PR against `release/v1.0.0`.
+- **Pending**: `wsl-backup/*` branches retained until HUD work is merged; scroll fix (dd278d3a) may be cherry-picked separately if browser validation needed.
+
+---
+
+## 2026-10-21 — Click-through do HUD nativo (047f4348)
+
+- Defeito de 7d92b942 reproduzido e corrigido: a janela nativa consumia cliques em áreas transparentes porque `pointer-events` do CSS não atravessa o hit-test do SO.
+- Renderer reporta `[data-hud-panel]`; Go converte cursor físico para DIP e alterna `SetIgnoreMouseEvents` (`WS_EX_TRANSPARENT`) a cada 30 ms; zero regiões = fail-open.
+- Evidência real: `CLICK_THROUGH=PASS` em 4 execuções; cápsula continua interativa e o visual não quebrou com `WS_EX_LAYERED` (20/20 ciclos).
+- Harness versionado `scripts/homologate-hud-click-through-windows.ps1` com SHA esperado e exit fail-closed.
+- Gates: `gofmt`/`go vet`/`go test`, Web quality 97/598, `docs-verify` 192/33; docs recapturadas em 047f4348.
+- Veredito: HUD click-through PASS; release segue `NO_GO_WINDOWS` (assinatura, smokes interativos, cross-platform).
+
+
+## 2026-10-21 — Homologação Windows 1.0.0-beta.10 (release/v1.0.0 @ 7d92b942)
+
+- Remoto baixado: 165 commits acumulados desde `24a2396d`, incluindo o merge `c3c518ce` do PR #54 (`3e140c52`) e a série `hud/guardian` (mascote, bandeja e popover destacado).
+- PR #54 confirmado no histórico da release: `3e140c52` é ancestral de `7d92b942`; marcadores `ApplyIsolationPreservingConfigDirs`, `agent_mode_id`, `Prefer PATHEXT` e `codexAppServerSocketPathBudgetBytes` presentes.
+- Três gates vermelhos encontrados e corrigidos no commit `7d92b942`: `gofmt` em 5 arquivos, 2 erros de Stylelint em `_hudGuardian.scss` e mensagem fail-closed de `nexus update` no fluxo de apply. `go test ./internal/app` voltou a passar.
+- Toolchain canônica: o certificador passou a exigir Go `1.26.10`; baixado via `GOTOOLCHAIN=go1.26.10`. Com ele, `go test ./...` PASS e certificação 9/9 PASS.
+- HUD nativo: 20/20 ciclos em janela única e 20/20 em popover destacado; capturas com UI carregada mostram pill `220×60` e painel `334×496` arredondados, sem clipping.
+- Defeito aberto: click-through **FAIL** — clique na área transparente do HUD não atravessa para a janela atrás. Evidência em `DEV/validation/local-hud-7d92b942/click-through/`.
+- CI remoto continua vermelho por infraestrutura: download do Chromium falha com `ERR_TLS_CERT_ALTNAME_INVALID` em `cdn.playwright.dev`.
+- Veredito mantido: `NO_GO_WINDOWS` (assinatura, Codex real, multi-conta e click-through pendentes). Relatório: `DEV/validation/local-hud-7d92b942/HOMOLOGATION.md`.
+
+## 2026-10-21 — Homologação macOS 1.0.0-beta.10 (release/v1.0.0 @ 24a2396d)
+
+- Host Intel (macOS 26.6.2, x86_64); branch `release/v1.0.0` com SHA local igual ao remoto (`24a2396de246efe07e1bdfde73e03bfc5febb29c`); build por `scripts/build-wails-v3-macos-app.sh` (6 args) + `NEXUS_NATIVE_LDFLAGS`.
+- Commits `2ce38c1d` (origem `wails://localhost`), `dd8963e3` (socket curto), `3127f938` (bundle irmão do HUD), `c5263928` (caminho canônico no teste) e `6f4bba5d` (este registro), com push fast-forward em `release/v1.0.0`; sem tag, release, merge ou force-push.
+- Quatro defeitos comprovados e corrigidos no worktree (não commitados): origem `wails://localhost` aceita só no scheme `wails` (eliminou 403 em todo o Desktop, baseline com 380 respostas 403); fallback de socket curto `/tmp/nexus-<uid>` (limite 103 bytes, 0700, owner-check); resolução do bundle irmão do HUD; teste de FS comparando caminho canônico.
+- PASS — `version-contract`, `go vet`, `go test -count=1 ./...` (69s), 7 gates de frontend (93 arquivos / 578 testes), `govulncheck` sem vulnerabilidades.
+- PASS — execução nativa: projeto criado pela UI (`prj_06GNX0FY9SJNBV4DECR4AMSNNR`, `main`), PTY real (`shell-06GNXD55EBMQEB4RRSDM2W6HDR`) com `codex-cli 0.156.1` e `codex login status` = `Logged in using ChatGPT`, HUD 220×60 `layer=3` iniciado pelo Desktop (`--linked`), sessões recuperadas após restart, trace 102/102 eventos em 5 estágios.
+- Veredito: `CONDITIONAL_GO_MACOS` local amd64; distribuição `NO_GO` (sem Developer ID, `spctl` rejeitado, sem notarização, arm64 não testado). Dossiê em `~/Developer/Nexus-Homologation/evidence/` + ZIP sanitizado; issues abertas em `evidence/OPEN_ISSUES.md` (conta Codex sem saída, `gemini` presente mas `installed:false`, artefatos `.tmp/homolog` no histórico, deployment target 26.0/10.13, trust root de update vazio).
+
+## 2026-10-21 — PR #54 revisado, aprovado e instalado no host
+
+- PR #54 (`fix/issue-53-windows-agent-startup`, head `3e140c52`, base `f6098b8c`) revisado em worktree isolado `C:\Dev\nexus-pr54`, sem merge, commit ou push.
+- Evidência executada: `go vet` nos seis pacotes afetados PASS; `go test -count=1 -timeout=20m ./...` PASS (exit 0) com `USERPROFILE`/`HOME`/`TEMP` isolados; builds Windows amd64 de `cmd/nexus` e `cmd/nexus-desktop` PASS; `version --json` = `1.0.0-beta.10` / `3e140c52`.
+- Review de aprovação publicado no GitHub (`APPROVED`, `kivervinicius`) com as ressalvas de CI: certificações nativas `skipped` e `Sanitize self-hosted workspace` `queued`; smoke interativo de Codex/OpenCode não repetido para não consumir credenciais reais.
+- Instalação: `%LOCALAPPDATA%\Programs\IAPro Nexus\nexus.exe` + `ai.exe` (SHA-256 `4cb4a311537d61f9e917fdb3058227786ede4509dfc2bca1ad8a363349ae61ed`) e `nexus-desktop.exe`; backup anterior em `%TEMP%\nexus-backup-pr54-20261021\`. Servidor reiniciado (PID novo) com HTTP 200 em `127.0.0.1:13000` e `nexus ps --json` vazio antes da troca.
+- `nexus-hud.exe` instalado **não** foi trocado; o slice de HUD segue como evidência isolada em `.tmp/homolog/bin/nexus-hud-diag-v4.exe`.
+
+## 2026-10-20 — Homologação Independente Integral e Fechamento Multiplataforma (Linux & Windows)
+
+- **Missão:** Homologação integral e independente do Nexus 1.0.0 na branch `release/v1.0.0` com certificação contínua de gates no Linux e GitHub Actions Windows runner.
+- **SHA Inicial da Sessão:** `63548e4f97240022372cad2653769296763972d1`
+- **SHA Candidato Final:** `7b152ea64e1e0757ee71ec02a77ec8127fbaf4e8`
+- **Problemas Demonstrados e Corrigidos Diretamente na Branch:**
+  1. `internal/app/codex_launch_preflight.go:121`: shadowing da struct `type candidate struct` pela variável de loop `candidate := range toProbe`, impedindo compilação (Commit `d82f632f`).
+  2. `scripts/certify-windows-first-run.ps1` e `scripts/certify-tokenbar-integration.*`: falha ao extrair nome de branch em checkout detached HEAD no runner CI do GitHub Actions (Commit `ee17c618`).
+  3. `internal/nexus/resource_discovery_truth_test.go`: falha de expiração de quota do Codex por ausência de `FetchedAt: time.Now()` (Commit `c42d9deb`).
+  4. 7 arquivos Go de commits remotos não formatados e shadowing do pacote `model` em `internal/tui/usage_table_test.go` (Commit `e30381aa`).
+  5. `govulncheck` falhando no Go 1.25.14 por vulnerabilidade recente da biblioteca padrão Go `net/http` (GO-2026-6617 / CVE-2026-6617): fixado Go 1.26.9 para checagens de vulnerabilidades stdlib no `homologate-beta.ps1`, `homologate-beta.sh` e workflow CI Windows (Commit `ee66763a`).
+  6. `scripts/certify-windows-first-run.ps1`: verificação de toolchain rejeitando Go 1.26.9 no Windows: alinhada regex para permitir `\bgo1\.(25\.14|26\.9)\b` (Commit `bef76691`).
+  7. `internal/release/installer_test.go:508`: falha de `TestPublicLicenseMetadataMatchesLicenseFile` decorrente da migração para PolyForm Strict 1.0.0: alinhada expectativa do teste e suporte resiliente a quebras de linha CRLF (Commit `7b152ea6`).
+- **Verificação de Gates:**
+  - `go run ./scripts/verify-version-contract.go .`: PASS (1.0.0-beta.10).
+  - `gofmt -l .`: PASS (0 divergências).
+  - `go vet ./...`: PASS (0 erros).
+  - `govulncheck`: PASS (0 vulnerabilidades).
+  - Frontend quality (`npm run quality:full`): PASS (Vitest 573 testes, typecheck, lint, styles, build).
+  - Browser E2E (`surface`, `capacity`, `composer-themes` em 20 temas e múltiplos viewports): PASS.
+  - Binários locais do host atualizados em `/home/desenvolvedor/.local/bin/` (`nexus`, `nexus-desktop`, `nexus-hud`).
+  - Dossiê e arquivo de evidências compactado: `/projetos/LINUX_HOMOLOGATION_EVIDENCE_7b152ea6.zip`.
+
+## 2026-10-20 — Homologação Nativa Linux 1.0.0 e Remediação dos Bloqueadores
+
+- **Missão:** Homologação integral do IAPro Nexus 1.0.0 nativo no Linux (Ubuntu 25.10 x86_64, Wayland/XWayland, GTK3, WebKit2GTK 4.1), branch `release/v1.0.0`.
+- **SHA Inicial de Referência:** `88094c2406c4f50ff4506bd9d8f63fce0428d328`
+- **SHA Final Homologado:** `be36af6f2378ef0c7b7a3a787fc55217de2367b8`
+- **Diagnóstico das Causas Raiz e Problemas Identificados no SHA Inicial:**
+  1. `web/src/app/composerFlowFlag.test.ts:39-40`: Erro TS2554 (`Expected 4-5 arguments, but got 3`). `splitWithSurface` exigia o 4º argumento de direção (`WorkspaceDirection`).
+  2. Formatação Prettier desatualizada em 7 arquivos de componentes/estilos da interface (`WelcomeModal.tsx`, `ProjectHub.tsx`, etc.).
+  3. Manifesto visual de documentação desatualizado (`docs/assets/screenshots/manifest.json`) em relação aos componentes modificados, causando falha em `scripts/docs-verify.mjs`.
+  4. HUD Wails com cantos pretos retangulares opacos sobre a área de trabalho devido a `body { background-color: var(--nx-surface-0); }` no CSS global sem suporte a canal alfa na janela Wails do HUD.
+- **Ações e Correções Implementadas:**
+  1. `web/src/app/composerFlowFlag.test.ts`: Fornecido o 4º argumento `'horizontal'` nas chamadas de `splitWithSurface` (Commit `e9959a49`).
+  2. Frontend: Executado `bun run format` cobrindo 100% dos arquivos TypeScript, SCSS e JSON (Commit `e9959a49`).
+  3. `web/src/app/DesktopHudApp.tsx` e `web/src/styles/globals.scss`: Adicionado efeito para definir `documentElement` e `body` com `background: transparent !important` e atributo `data-native-hud="true"` (Commits `e9959a49` e `96cc789c`). HUD nativo re-testado com transparência real dos cantos arredondados confirmada.
+  4. `web/scripts/docs-capture.mjs`: Adaptado para validação multiplataforma de caminhos no Linux (`/NexusDemo/workspace`) e fallback gracioso de superfícies experimentais (Commit `c77cff5e`).
+  5. Capturas e Manifesto: Reexecutado `bun run docs:capture`, gerando todas as 11 imagens VIS-001 a VIS-011 e vídeo WebM, sincronizando o manifesto com o HEAD (Commits `2c8b2fdb` e `be36af6f`).
+- **Verificação e Evidências:**
+  - `bun run typecheck`: PASS (0 erros).
+  - `bun run format:check`: PASS (100% formatado).
+  - `bun run lint` e `bun run lint:styles`: PASS (0 avisos/erros).
+  - Vitest: 93 arquivos, 573 testes PASS (0 falhas).
+  - `node scripts/docs-verify.mjs`: PASS (186 arquivos Markdown, 33 ativos verificados).
+  - `go vet ./...` e `go test -race`: PASS.
+  - Testes de Backend Go (`internal/app`, `internal/nexus/promotion`, `internal/runtime`, `internal/nexus/store`, `internal/control/...`, `internal/core/...`): 100% PASS.
+  - Binários compilados e testados: CLI (`./nexus`), Desktop Wails (`nexus-desktop`), HUD Wails (`nexus-hud`), Tarball Beta (`nexus-linux-amd64-v1.0.0-beta.10.tar.gz`).
+  - Dossiê completo e capturas nativas arquivados em `/projetos/LINUX_HOMOLOGATION/` e `/projetos/LINUX_HOMOLOGATION_EVIDENCE_be36af6f.zip`.
+
+
+- **Missão:** Execução da homologação independente e rigorosa do Nexus 1.0.0 no Windows 11 (`release/v1.0.0`, commit base `560a83b20c62611734e934d980b5725c3ef24cf1`).
+- **Investigação e Diagnóstico das Causas Raiz:**
+  1. `web/src/features/hud/NexusHud.tsx:533`: erro TS2551 no typecheck (`Property 'known-partial' does not exist on type...`). O objeto `costEvidenceLabel` declarava a chave `'known-part'` enquanto `HudCostDisplay.semantics` define `'known-partial'`.
+  2. `install.ps1:204`: crash ao receber `-InstallDir` no Windows. Quando `$InstallDir` é passado, `$LegacyTargetDir` era inicializado como string vazia `""`. Na linha 204, `Test-Path $LegacyTargetDir` recebia string vazia, disparando `ParameterArgumentValidationErrorEmptyStringNotAllowed` no PowerShell com `$ErrorActionPreference = 'Stop'`.
+  3. `install.ps1:30` e `uninstall.ps1:10`: no PowerShell 5.1 padrão com `Set-StrictMode -Version Latest`, a leitura de `$IsWindows` causava exceção terminante por variável não definida (`VariableIsUndefined`).
+  4. `install.ps1` e `uninstall.ps1`: codificação de arquivos sem UTF-8 BOM fazia com que caracteres multi-byte (`✓`, `⚠️`) corrompessem o parser AST do PowerShell 5.1.
+  5. `internal/nexus/capacity_lifecycle_test.go:121`: desalinhamento no struct literal apontado por `gofmt -l`.
+  6. Arquivos React/TS do commit `560a83b2`: 5 arquivos sem formatação Prettier (`hudMiniModel.ts`, `hudModel.test.ts`, `firstRunReadiness.ts`, `ProjectHub.tsx`, `RegisterProviderModal.tsx`).
+  7. Documentação: manifesto visual desatualizado em relação às novas telas do Nexus.
+- **Ações e Correções Implementadas:**
+  1. `web/src/features/hud/NexusHud.tsx`: alinhada chave `'known-partial': 'Parcial'` em `costEvidenceLabel`.
+  2. `install.ps1`: adicionada verificação `(-not [string]::IsNullOrWhiteSpace($LegacyTargetDir))` antes de invocar `Test-Path $LegacyTargetDir`.
+  3. `install.ps1` e `uninstall.ps1`: alterada checagem para `Test-Path Variable:IsWindows` para compatibilidade total com StrictMode no PowerShell 5.1 e salvos com UTF-8 BOM.
+  4. `internal/nexus/capacity_lifecycle_test.go`: executado `gofmt -w` (100% dos arquivos Go do repo agora passam em `gofmt -l`).
+  5. Frontend: executado `bun run --cwd web format` formatando os 5 arquivos TS/TSX com Prettier.
+  6. Documentação: executado `bun run --cwd web docs:capture` gerando novos screenshots e atualizando `docs/assets/screenshots/manifest.json`.
+- **Verificação e Evidências:**
+  - `bun run --cwd web quality:full`: PASS (100% aprovado cobrindo `check:styles`, `format:check`, `lint`, `lint:styles`, `typecheck`, 565 testes Vitest e `build`).
+  - Testes Go: `./internal/control/web`, `./internal/nexus/...`, `./internal/doctor/...` 100% PASS (565s).
+  - Testes de terminal e ConPTY: `internal/control/terminal`, `internal/control/host`, `internal/runtime` 100% PASS.
+  - Testes de desktop/HUD: `internal/desktop/...` 100% PASS.
+  - Teste de desinstalação: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-uninstall-windows.ps1` PASS no PowerShell 5.1 nativo.
+  - Teste de instalação com `-InstallDir`: `install.ps1 -BuildFromSource -InstallDir <custom-dir> -Yes` PASS.
+  - Pacote de evidências completo gerado em `DEV/validation/windows-first-run/560a83b20c62611734e934d980b5725c3ef24cf1/` e compactado em `nexus-windows-homologation-560a83b2.zip`.
+
+- Investigação e Diagnóstico das Causas Raiz:
+  1. **ConPTY Desabilitado para o Provedor Shell no Windows**:
+     - No Windows, `shouldUseConPTY(providerID)` em `internal/control/terminal/terminal_windows.go` restringia o pseudo-console ConPTY exclusivamente aos provedores `"codex"` e `"agy"`.
+     - Ao abrir o Project Shell (`provider_id: "shell"`), a execução de `cmd.exe` ou `powershell.exe` recaía no fallback de pipes anônimos padrão (`isConPTY = false`, `cmd.Stdin = childIn`).
+     - Em pipes anônimos no Windows, o `cmd.exe` opera em buffer de linha bloqueado e não realiza eco de caracteres conforme o usuário digita. Como o xterm.js não utiliza eco local (aguarda eco de saída VT do PTY), a tela permanecia totalmente estática durante a digitação de cada tecla individual. No `powershell.exe`, o `PSReadLine` falhava pela ausência de console handle (`[Console]::ReadKey` lançava exceção por redirecionamento de stdin).
+  2. **Foco Roubado pelo Contêiner da Janela Mosaico/Desktop**:
+     - No modo mosaico/desktop (`web/src/workspace/WorkspaceRenderer.tsx`), a janela era renderizada como `<section id="nx-window-..." tabIndex={-1}>`.
+     - Ao clicar no corpo da janela, bordas, padding ou cabeçalho, o navegador atribuía o foco à própria `<section>` (`activeElement = SECTION`).
+     - Como a `<section>` retinha o foco, os eventos de teclado não atingiam a `textarea.xterm-helper-textarea` do xterm, impedindo completamente qualquer caractere digitado de ser enviado ao WebSocket.
+     - No `TerminalPane.tsx`, o manipulador de lease não focava o terminal ao receber `role === 'CONTROL'`, e cliques no contêiner raiz do painel não repassavam o foco para a textarea.
+- Soluções Implementadas:
+  1. **Backend ConPTY (`internal/control/terminal/terminal_windows.go`)**:
+     - Habilitado suporte automático a ConPTY para o provedor `"shell"` no Windows 10/11:
+       ```go
+       case strings.EqualFold(strings.TrimSpace(providerID), "shell"):
+           return "Windows ConPTY (automatic for interactive Shell)"
+       ```
+       e `shouldUseConPTY` incluindo `"shell"`.
+     - Atualizado teste de regressão estrito TDD `TestWindowsBackendUsesConPTYForInteractiveProvidersAndForwardsArrowInputByDefault` em `internal/control/terminal/terminal_windows_test.go` para validar ConPTY no `"shell"` com leitura interativa de teclas via `powershell.exe`.
+  2. **Frontend Foco e Eco (`WorkspaceRenderer.tsx`, `TerminalPane.tsx`, `AgentTerminal.tsx`)**:
+     - Em `WorkspaceRenderer.tsx`: adicionado manipulador `onPointerDownCapture` e `onFocus` na `nx-desktop-window` que delega imediatamente o foco para `.xterm-helper-textarea` sempre que a janela é focada ou clicada fora de controles interativos.
+     - Atualizado `restoreDesktopView` para focar diretamente o terminal restaurado.
+     - Em `TerminalPane.tsx` e `AgentTerminal.tsx`: adicionado `onPointerDown` no elemento raiz para delegar o foco para `termRef.current?.focus()`, e adicionado `window.requestAnimationFrame(() => term.focus())` ao receber a mensagem de lease `role === 'CONTROL'`.
+- Verificação e Evidências:
+  - Teste unitário e de integração Go: `TestWindowsBackendUsesConPTYForInteractiveProvidersAndForwardsArrowInputByDefault` aprovado (0.69s).
+  - Teste automatizado Playwright (`test-terminal-focus.mjs`):
+    - Clique na barra de título da janela: foco em `xterm-helper-textarea`, comando `dir` executado com sucesso (`Contains "dir": true`).
+    - Clique na borda/corpo da janela: foco delegado automaticamente para `xterm-helper-textarea`, comando `whoami` executado com sucesso (`Contains "whoami": true`).
+    - Eco caractere por caractere sem Enter: caracteres exibidos instantaneamente na tela (`Does terminal show "test1234" BEFORE Enter pressed? true`).
+  - Suíte completa de testes de frontend: 89 arquivos de teste e 553 testes aprovados (`vitest run`).
+  - Typecheck TypeScript (`tsc --noEmit`), ESLint (`eslint src`), Prettier (`prettier --check`) e `go vet ./...` 100% aprovados.
+  - E2E Surface Isolation + Keep-Alive (`e2e-surface-isolation.mjs`): todos os passos e 6 viewports aprovados.
+
+
+- Causa Raiz do "Não tá rodando" / "Não subiu":
+  1. **SingleInstance sem Restauração de Janela**:
+     - No Wails v3 (`cmd/nexus-desktop/main.go` e `cmd/nexus-hud/main.go`), `SingleInstanceOptions` possuía apenas `UniqueID`. Quando o aplicativo era minimizado para a bandeja do sistema (System Tray) através do hook de fechamento `window.Hide()`, ou quando uma instância em segundo plano já existia, qualquer nova tentativa de abrir o executável via clique no atalho detectava a instância preexistente e encerrava silenciosamente com exit code 0.
+     - Como não havia o callback `OnSecondInstanceLaunch`, a janela em segundo plano/bandeja não recebia evento para ser exibida (`window.Show()`), restaurada (`window.Restore()`) nem focada (`window.Focus()`). Para o usuário, clicar no atalho parecia não ter efeito nenhum.
+  2. **Caminho da Área de Trabalho com OneDrive Ativo**:
+     - No Windows com sincronização de Desktop habilitada no OneDrive, a Área de Trabalho real do usuário fica em `D:\OneDrive\Desktop` (obtida via `[Environment]::GetFolderPath('Desktop')`), e não no caminho estático legado `C:\Users\kiver\Desktop`.
+     - O atalho no Desktop do usuário estava vazio ou apontando para um caminho inacessível.
+- Solução Aplicada:
+  - Adicionado manipulador `OnSecondInstanceLaunch` em `cmd/nexus-desktop/main.go` e `cmd/nexus-hud/main.go` capturando a referência da janela e executando `window.Show()`, `window.Restore()` e `window.Focus()`.
+  - Recompilados todos os binários de produção (`nexus.exe`, `ai.exe`, `nexus-desktop.exe`, `nexus-hud.exe`) com ldflags canônicos de release.
+  - Reinstalado o ambiente local em `C:\Users\kiver\AppData\Local\Programs\IAPro Nexus`.
+  - Recriados os atalhos tanto na Área de Trabalho real do usuário (`D:\OneDrive\Desktop\IAPro Nexus.lnk`) quanto no Menu Iniciar (`C:\Users\kiver\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\IAPro Nexus.lnk`).
+  - Verificada a inicialização do executável nativo com handle de janela válido e WebView2 inicializado com sucesso.
+
+## 2026-10-17 — Correção Crítica da Tela Preta no Desktop Nativo (76587c39)
+
+- Causa Raiz Investigada e Descoberta:
+  - Ao abrir o Nexus Desktop em um sistema onde o `nexus web` já estava em execução (ou com `listen.json` presente), o Wails anexa ao Web Core existente através do `desktop.OpenSharedBackend` via `NewLoopbackBackendHandler`.
+  - O `NewLoopbackBackendHandler` em `internal/control/web/desktop_attach.go` interceptava incondicionalmente qualquer requisição HTTP GET que não iniciasse por `/api/` e retornava o conteúdo de `index.html`.
+  - Consequência: requisições estáticas para `/bundle.js`, `/bundle.css`, `/chunks/*.js` e ícones recebiam o documento HTML (`<!DOCTYPE html>...`) em vez do código Javascript e folhas de estilo compiladas. O browser lançava `SyntaxError` ao tentar interpretar o HTML como módulo JS, abortando a montagem do React e deixando a janela do Wails preta (na cor de fundo padrão `#0f1117`).
+- Correção Implementada:
+  - Atualizado `NewLoopbackBackendHandler` para instanciar um `http.FileServer` em `assets`.
+  - A requisição GET verifica primeiro se o arquivo estático existe nos assets embutidos (`assets.Open(cleanPath)`). Em caso positivo, entrega o arquivo real com headers de não-cache e mime-type correto (`bundle.js`, `bundle.css`, etc.).
+  - Apenas rotas inexistentes no bundle estático (rotas de navegação SPA como `/projects`, `/settings`, `/p/:id/*`) realizam fallback para `index.html`.
+  - Criado teste de regressão estrito TDD `TestLoopbackBackendHandlerServesStaticAssetsAndFallbackToSPA` em `internal/control/web/desktop_attach_test.go` comprovando que `/bundle.js` e `/bundle.css` nunca mais retornam `index.html`.
+  - Commit `76587c39` integrado e enviado por fast-forward para a branch `release/v1.0.0`.
+  - Executáveis recompilados e reinstalados no ambiente local do usuário (`%LOCALAPPDATA%\Programs\IAPro Nexus`).
+
+## 2026-10-17 — Testes E2E Completos (Web + Desktop) e Correção de Contexto no NexusDemoApp (87216d26)
+
+- Correção em `web/src/app/NexusDemoApp.tsx`:
+  - O `<NexusDemoApp>` continha `<WorkspaceProvider>`, mas não envolvia `<DemoCoordinator>` com `<WorkspacePresentationProvider>`, disparando `Error: useWorkspacePresentation must be used inside WorkspacePresentationProvider` no ErrorBoundary da rota `/demo`.
+  - Adicionado `<WorkspacePresentationProvider projectId={project.id}>`, eliminando a quebra de renderização na rota `/demo`.
+  - Validação estática: `bun run --cwd web typecheck` (zero erros), `bun run --cwd web lint` (zero warnings/erros).
+  - Testes unitários do frontend: 89 arquivos de teste e 553 testes aprovados (`vitest run`).
+  - Commit `87216d26` integrado com push fast-forward à branch canônica `release/v1.0.0`.
+- Bateria de Testes E2E no Navegador (Web / Playwright):
+  - 100% dos testes E2E de navegador aprovados:
+    - `test:e2e:composer`: criação, edição, persistência e visualização de workspace.
+    - `test:e2e:surface`: isolamento estrito entre abas/janelas e keep-alive de terminais PTY.
+    - `test:e2e:capacity`: indicadores de cota, limites e alertas de capacidade.
+    - `test:e2e:hud`: conectividade e estado do HUD.
+    - `test:e2e:composer-spine` & `test:e2e:composer-vague-spine`: fluxo de execução e refinamento de intenção.
+    - `test:e2e:composer-themes`: validação dos 20 temas de cores e contrastes.
+    - `test:e2e:hardening`: auditoria de acessibilidade (axe-core WCAG 2.1 AA), 7 breakpoints responsivos (390px mobile a 1440px desktop), deep-links e navegação por teclado.
+- Bateria de Testes E2E no Desktop (Wails v3 + WebView2 via CDP):
+  - Suíte E2E automatizada via Chrome DevTools Protocol (`desktop-e2e-all-features.mjs`) no WebView2 nativo:
+    - `/projects` (Project Hub): montagem com sucesso e renderização da lista de projetos e onboarding.
+    - `/settings` (Settings): painel de configurações, preferências e diagnósticos.
+    - `/updates` (Updates): checagem de integridade de updates e canais de distribuição.
+    - `/welcome` (Welcome Tour): fluxo de boas-vindas e introdução ao Nexus.
+    - `/demo` (Demo Workspace): espaço de demonstração orquestrada totalmente funcional.
+    - Validação de APIs de Backend no contexto Desktop: `/api/v1/session` (200), `/api/v1/projects` (200), `/api/v1/workspaces` (200), `/api/v1/providers` (200), `/api/v1/capacity/status` (200).
+    - Capturas de evidência salvas em `DEV/validation/.../desktop-native/`: `desktop-e2e-project-hub.png`, `desktop-e2e-settings.png`, `desktop-e2e-updates.png`, `desktop-e2e-welcome.png`, `desktop-e2e-demo-workspace.png` e manifesto JSON `desktop-e2e-results.json`.
+
+## 2026-10-17 — Correção NSIS Desktop Shortcut Ownership e Homologação Windows 1.0.0-beta.10
+
+- Correção do achado estático P1 em `packaging/windows/nexus.nsi`:
+  - `CreateShortcut "$DESKTOP\IAPro Nexus.lnk"` passa a checar existência prévia (`IfFileExists "$DESKTOP\IAPro Nexus.lnk" skipDesktop`), impedindo sobrescrita de atalhos pré-existentes ou customizados pelo usuário.
+  - O instalador registra a propriedade do atalho via `WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\IAPro Nexus" "CreatedDesktopShortcut" 1`.
+  - O desinstalador (`Section "Uninstall"`) verifica `CreatedDesktopShortcut` antes de remover, evitando a exclusão arbitrária de atalhos não criados pelo instalador.
+  - Implementado teste de regressão estrito `TestNSISDesktopShortcutOwnershipAndPreservation` em `internal/release/installer_test.go`, cobrindo também a proibição de deleção recursiva arbitrária (`RMDir /r`) no desinstalador.
+  - Commit `85c5b958` integrado com push fast-forward à branch canônica `release/v1.0.0`.
+- Diagnóstico CDP do Nexus Desktop (WebView2):
+  - Executado o binário instrumentado `nexus-desktop-cdp-diagnostic-3a58699d.exe` na porta loopback 9334 com perfil descartável em `D:\nxdesktop-cdp-3a58699d` e `NEXUS_HUD_SPAWN=0`.
+  - A ferramenta Playwright CDP confirmou que a interface carregou `http://wails.localhost/projects`, com `document.readyState` em `complete`, componente Project Hub (`data-testid="project-hub-root"`) montado com texto *"Seu espaço de desenvolvimento com IA começa com um Projeto."*, todas as APIs de backend retornando HTTP 200 e zero erros de console/runtime.
+  - Captura `desktop-cdp-webview.png` comprovou visual e layout íntegros. O sintoma inicial de "tela preta" foi esclarecido: tratava-se de sobreposição do modal de segurança do Windows Firewall para o runtime em conjunto com o background escuro padrão do shell Wails, sem qualquer defeito funcional no produto.
+- Correção de Procedimento do Nexus HUD:
+  - Confirmado que a reprovação inicial de expansão do HUD decorreu de falso negativo do procedimento (perfil descartável sem a flag experimental).
+  - Com `NEXUS_ENABLE_HUD=1` habilitada estritamente no processo descartável em D:, a transição de `data-expanded="false"` para `data-expanded="true"` e a exibição do popover redimensionado para 334×496 foram comprovadas via CDP (`hud-cdp-diagnostic.json`, `hud-cdp-expanded.png`). Status corrigido para PASS em `3a58699d` e `85c5b958`.
+- Homologação Automatizada do SHA Final:
+  - Executado `.\scripts\homologate-beta.ps1 -ExpectedSha 85c5b9589ec19663023fcddb18d0539742367b40` com Go 1.26.9, Bun 1.3.9, Node 24.21.0 em ambiente isolado em D:, sem `-SkipDesktop` e sem `-AllowDirty`.
+  - Todos os gates automatizados aprovaram (PowerShell syntax, Bun frozen-lockfile, Vitest 553 testes, frontend build, gofmt, vet, golangci-lint, govulncheck, full Go uncached suite, control/runtime E2E, interop, acessibilidade, testes visuais e builds CLI/Desktop/HUD).
+  - Veredito final: **NO_GO_WINDOWS** mantido por pendências externas intransponíveis localmente (falta de makensis/signtool de produção, assinatura Authenticode, ciclo de updater assinado A→B e sessão interativa autenticada). Nenhuma publicação pública, tag ou release foi gerada.
+
 
 - Isolados perfis Wails Desktop/HUD em LOCALAPPDATA, com IDs de instância de smoke separados dos IDs de distribuição. Workflow passa a compilar executáveis próprios e exige diretórios WebView2 criados.
 - Validação Windows: go fmt, vet, govulncheck, golangci-lint e go test completo passaram. Desktop Wails e controller WebView2 ativos por 9s; HUD ativo por 8s; ambos criaram perfil separado. Workflow YAML e PowerShell parseados.
@@ -5214,3 +5459,59 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Nenhuma branch nova foi criada. `fix/beta7-windows-KIVER-20261007` continua em `d14154d2`, ancestral do candidato, sem integração pendente.
 - A tag `v1.0.0-beta.7` continua ausente. `gh` não está instalado e o Actions API não autenticado retornou 404; CI pós-push não foi confirmado. Nenhum release público foi publicado.
 - A sincronização documental posterior foi enviada por fast-forward de `f1928d0f` para `5a08a1807c4489395dca86ed198f268ea676d2e4`; `git ls-remote` confirmou esse HEAD antes do registro final de status. O código homologado `d840797b` permanece ancestral, a árvore está limpa e não há gate Linux nesta rodada.
+
+## Continuação de homologação Windows beta.10 — 2026-10-17
+
+- Reavaliado o timeout Go: o limite padrão de 10 min da package expirou no começo de `TestAskAgentStoppedUsesStartAndAskWithoutCreatingAgent`, com stack SQLite em `FlushFileBuffers`; o teste corrente tinha 0s, então a stack não prova bloqueio de 10 min nessa chamada. Diagnóstico separado foi encerrado após 65 testes, sem resultado final.
+- Ajustada somente a sincronização do E2E de foco: espera máxima de 250 ms e asserção original intacta. `test:a11y` passou três repetições; `quality:full` passou, 89 arquivos/553 testes.
+- Ampliados fixtures PowerShell de PATH para caixa diferente/barra final/variável; smoke isolado passou. `go test -count=1 ./internal/release ./internal/update/...`, contrato de versão, `node --check` e `git diff --check` passaram.
+- Auditoria de workflow: job nativo Windows atual usa Go 1.26.9; Go 1.25.14 pertence aos jobs Linux/compile guard. Node local 22.23.3 nas repetições, workflow beta10 fixa 22.14.0.
+- Revisão NSIS encontrou risco P1 de propriedade do atalho Desktop; não alterado sem `makensis.exe` para teste runtime. NSIS lifecycle, assinatura, updater A→B, HUD visual, Codex interativo, CI exact-SHA e Linux nativo continuam sem evidência.
+- Evidências e relatório atualizados no SHA-base `5d5aea9211b5154e96b036c519a61de9723593b1`; worktree permanece dirty, commits locais não enviados. Veredito `NO_GO_WINDOWS`.
+
+- 2026-10-17: investiguei aquisição de NSIS portátil pela origem oficial para remover o bloqueio sem instalação administrativa. O diretório oficial listava ZIP, mas sem checksum publicado; o endpoint direto retornou HTML de bloqueio, detectado antes de extração. Arquivo inválido removido e tentativa documentada em `nsis-portable-acquisition.log`; ciclo NSIS permanece BLOCKED.
+
+- 2026-10-17: retestei golangci-lint pelo comando pinned do harness, go run .../v2@v2.12.2, Go 1.26.9. O diagnóstico canônico retornou 0 issues (exit 0); repetição exata do limite oficial de 5 min também passou após cache isolado em D:. Ignorei explicitamente uma tentativa inicial com binário global v1.64.5/Go 1.25.14, que não corresponde ao harness.
+
+- 2026-10-17: diagnostiquei o timeout Go. Três testes de integração de delivery falharam com `fatal: '' too big` por TEMP profundamente aninhado. Os três passaram em D:\nxt; internal/nexus completo passou (292,3s) e go test -count=1 -v ./... passou em 414,8s. Ajustei homologate-beta.ps1 para criar TEMP curto na raiz da unidade do checkout. Tudo em D:, sem mexer em env persistente; correção ainda não commitada e requer harness limpo no novo SHA.
+
+- 2026-10-17: commits locais: `32dc7fa5` corrige temp Windows curto no harness; `976e3b53` sincroniza restauração de foco sem relaxar assert; `984c2b0f` amplia regressões de PATH. HEAD `984c2b0fdbd7b4c4b4917c9de7f1a4d2a60a4b17`; origin permaneceu `6552f3d0b834`. Refresh documental oficial e harness final ainda pendentes.
+
+## HUD nativo: arraste e presets de tamanho — 2026-10-21
+
+- Worktree `C:\Dev\nexus-hud-validation`, branch `release/v1.0.0`, base `f6098b8c684a97bf7e8e56804109ca491c78cfa2`, `VERSION=1.0.0-beta.10`; nenhum commit, push, merge, tag ou release.
+- Causa do bloqueio de arraste: o CSS nativo forçava `--wails-draggable: no-drag` na cápsula e em todos os filhos para preservar o clique de abrir/fechar. A solução separa as intenções: clique no corpo, arraste por alça dedicada de 24 px e pelo cabeçalho do popover.
+- Backend: `HUDWindowState` ganhou dimensões compacta/expandida, `GetHUDSizePresets`, `SetHUDSizePreset` e `MoveHUD`; presets `compact` 220×60/334×496, `comfortable` 260×70/380×560 e `large` 320×84/440×640. A troca preserva a âncora inferior direita e persiste em `hud-window-state.json`.
+- Primeiro paint: `RestoreHUDWindow` agora roda no primeiro `WindowShow` (via `sync.Once`), corrigindo a janela inicial de 190×48 que cortava a cápsula.
+- Frontend: controles de tamanho extraídos para `HudSizeControls.tsx`, rótulos localizados em pt-BR/en/es, alça de arraste com `aria-label` e movimento por setas (16 px; `Shift` = 64 px), toast de erro traduzido.
+- PASS — `tsc --noEmit`, ESLint, Stylelint e Prettier nos arquivos alterados; Vitest direcionado 37/37; `go test -count=1 ./internal/desktop -run HUD`; build Web e build Go do HUD.
+- PASS — UI Automation no Windows 11 `10.0.26200`, binário isolado `nexus-hud-diag-v3`, sequência real `220×60 → 334×496 → 380×560 → 440×640 → 334×496 → 220×60`; arraste `-144,-108` px; seta direita `+16` px; `Shift`+seta `+64` px; reinício abriu em `260×70` na posição persistida.
+- PASS — rebuild final `nexus-hud-diag-v4.exe` (SHA-256 `ae64668c16eedbacabc9f91eb0b05a8a3cb6f28f37800ed59a961e4aa5d49674`) após remover regra morta de popover e reforçar `availablePresets`: Prettier exigiu reflow de `NexusHud.tsx`, `npm run quality` voltou a passar (93 arquivos/578 testes), `go vet`/`go test ./internal/desktop/...` PASS, builds Web/HUD PASS.
+- PASS — UI Automation no rebuild final: presets `260×70 → 380×560 → 334×496 → 380×560 → 440×640 → 334×496 → 220×60`; alça `24×42`; arraste `-132,-88` px (pedido `-144,-96`); reinício abriu em `220×60` na posição persistida `1524,768`.
+- PASS — capturas nativas e JSON de automação em `.tmp/native-hud-uia-v4/`, `.tmp/native-hud-uia-v3/` e `.tmp/homolog/` (artefatos locais, não versionados).
+- BLOCKED — `docs-verify` continua `FAIL` por alterações visuais não commitadas no worktree (política do gate exige SHA imutável); nenhuma alegação de GO. Linux/macOS do HUD nativo permanecem `NOT_TESTED`.
+## HUD nativo: toggle do popup independente e Mascote — 2026-10-22
+
+- Código 789db63 na elease/v1.0.0, VERSION=1.0.0-beta.10; HUD 
+exus-hud.exe SHA-256 `1f3ced07acc02672dd786c3c39cf87a390da9f315e0e654a9e2505f2ab7929de`.
+- Causa do "Mascote desativado": o modo exigia o popup nativo independente e o popup só era criado com `NEXUS_HUD_DETACHED_POPOVER=1`; nenhum caminho de produção definia a variável, então o botão ficava permanentemente desabilitado.
+- Backend: `HUDWindowState.DetachedPopover` persistido; `Get/SetHUDDetachedPopoverPreference` aplica em runtime via factory de janela (`EnsureDetachedPopup`), sem reiniciar; ao habilitar, a cápsula volta ao tamanho compacto mantendo a âncora inferior direita; desabilitar restaura BAR, tamanho compacto e esconde o popup; falha fechada quando a janela não pode ser criada. `main.go` usa `env || preferência persistida`.
+- Frontend: botão `Popup independente: Sim/Não` no rodapé do painel (cápsula e popup), com estado pendente e toast; poll de 800 ms do capsule passou a reler `getDetachedPopoverEnabled` para não manter expansão/detached velhos depois de mudanças feitas no popup.
+- PASS — `gofmt`, `go vet ./...`, `go test -count=1 ./...` (Go 1.26.10), Web `npm run quality` 97 arquivos/599 testes, build Web e build HUD `production`.
+- PASS — harness real de UI Automation em duas sessões (`scripts/homologate-hud-mascot-toggle-windows.ps1`): habilitar no painel → popup criado oculto → expandir → Mascote habilitado → aplicado; reinício restaura MASCOT + popup; desabilitar no popup → BAR + cápsula 220x60 + popup oculto; painel inline volta a abrir. `RESULT.json` em `DEV/validation/mascot-toggle-f789db63/homologation/`.
+- NOT_TESTED — click-through na segunda janela (popover destacado) e confirmação visual humana; INCONCLUSIVO — matriz Linux X11/macOS; BLOCKED — assinatura/instalador e smokes interativos. Veredito de release continua `NO_GO_WINDOWS`.
+
+### Implantação local do toggle — 2026-10-22
+
+- 955b197f instalado em %LOCALAPPDATA%\Programs\IAPro Nexus (backup em %TEMP%\nexus-backup-20261022-003138): 
+exus.exe/i.exe 8cd64d5, 
+exus-desktop.exe 72b3cc50, 
+exus-hud.exe 8364a942.
+- Servidor PID 24184 com HTTP 200 e commit 955b197f; HUD PID 21168 --linked. Harness do Mascote PASS no artefato exato (deployed-artifact/RESULT.json). Registro completo em DEV/validation/mascot-toggle-f789db63/DEPLOYMENT.md.
+
+### Instalação verificada no host — 2026-10-22
+
+- Perfil real: toggle habilitado no painel, popup criado, Mascote aplicado e Bandeja restaurada — eal-profile/RESULT.json PASS. Estado final ppearance: TRAY + detachedPopover: true.
+- 
+exus-desktop.exe instalado abriu a janela IAPro Nexus e anexou ao Core existente (127.0.0.1:13000), renderizando o workspace real.
+- Achado: o toggle fica no rodapé de um painel rolável; em perfis com muitos provedores exige rolagem. Documentado em DEV/validation/mascot-toggle-f789db63/REAL_PROFILE.md.

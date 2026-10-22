@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -35,6 +36,12 @@ type TerminalMessage struct {
 	Size  int    `json:"size,omitempty"`
 }
 
+func traceDocsCaptureTerminalStage(stage string) {
+	if os.Getenv("NEXUS_DOCS_CAPTURE") == "1" {
+		log.Printf("nexus_docs_capture_terminal_stage=%s", stage)
+	}
+}
+
 type TerminalHub struct {
 	auth     *AuthManager
 	registry *registry.Registry
@@ -54,40 +61,118 @@ func NewTerminalHub(auth *AuthManager, registries ...*registry.Registry) *Termin
 	}
 }
 
+// attachDialBudget bounds how long HandleWebSocket waits for the runtime's
+// control pipe before answering 404. The launch handshake routinely needs
+// multiple attempts over a couple of seconds to reach the pipe on a loaded
+// machine, so a single short budget turned a live-but-slow host into a
+// spurious 404 ("Unexpected response code: 404") that broke the terminal
+// reconnect. The budget stays comfortably inside the frontend's
+// TERMINAL_CONNECT_TIMEOUT_MS (30s) and the capture's lease timer (35s).
+const attachDialBudget = 15 * time.Second
+
+// dialAttachControl dials the runtime control pipe with the same patience the
+// launch handshake uses: short per-attempt deadlines retried inside one bounded
+// budget. Fast-fail stays intact because HostLive re-checks the host process
+// (and its generation) after every attempt — a genuinely dead runtime still
+// 404s within a single ~500ms attempt instead of burning the whole budget.
+func dialAttachControl(sess registry.RuntimeSession, runtimeID string) (*protocol.Client, error) {
+	return dialAttachControlBudget(sess, runtimeID, attachDialBudget)
+}
+
+func dialAttachControlBudget(
+	sess registry.RuntimeSession,
+	runtimeID string,
+	budget time.Duration,
+) (*protocol.Client, error) {
+	started := time.Now()
+	deadline := started.Add(budget)
+	attempt := 0
+	for {
+		attempt++
+		attemptCtx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+		client, err := protocol.NewClientContext(attemptCtx, runtimeID)
+		cancel()
+		if err == nil {
+			if os.Getenv("NEXUS_DOCS_CAPTURE") == "1" {
+				log.Printf(
+					"nexus_docs_capture_diagnostic=pipe_dial_ready attempts=%d elapsed=%s",
+					attempt,
+					time.Since(started),
+				)
+			}
+			return client, nil
+		}
+		if os.Getenv("NEXUS_DOCS_CAPTURE") == "1" {
+			log.Printf("nexus_docs_capture_diagnostic=pipe_dial_attempt attempt=%d err=%q", attempt, err.Error())
+		}
+		if !sess.HostLive() {
+			return nil, err
+		}
+		if time.Now().After(deadline) {
+			return nil, fmt.Errorf("control pipe did not accept within %s (%d attempts): %w", budget, attempt, err)
+		}
+		<-time.After(30 * time.Millisecond)
+	}
+}
+
 func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, agentID string, runtimeID string) {
+	traceDocsCaptureTerminalStage("request")
 	if h.auth != nil && h.auth.AuthenticateRequest(r) == nil {
 		http.Error(w, "authentication required", http.StatusUnauthorized)
 		return
 	}
+	traceDocsCaptureTerminalStage("authenticated")
 
 	reg := h.registry
 	sess, exists := reg.Get(runtimeID)
 	if !exists {
+		traceDocsCaptureTerminalStage("runtime-missing")
 		writeError(w, http.StatusNotFound, "runtime not found")
 		return
 	}
+	traceDocsCaptureTerminalStage("runtime-found")
 	if !sess.HostLive() {
 		// Do not upgrade: a "connected" WebSocket into a dead host leaves the
 		// UI on a black xterm with no recover action (especially window chrome).
 		writeError(w, http.StatusNotFound, "runtime host is not running")
 		return
 	}
+	traceDocsCaptureTerminalStage("host-live")
+
+	// Dial the control endpoint BEFORE the attach validation. A live
+	// PID/STARTING row is not enough on Windows when the named pipe was never
+	// created or its host is gone; prefer a fast HTTP 404 over a WebSocket
+	// error overlay ("Runtime do Agente desconectado"). Dialing first keeps
+	// the cheap liveness proof ahead of the multi-second binary identity
+	// checks, so a dead host fails fast instead of burning the client's lease
+	// budget on validation.
+	traceDocsCaptureTerminalStage("pipe-dial-start")
+	client, err := dialAttachControl(sess, runtimeID)
+	if err != nil {
+		traceDocsCaptureTerminalStage("pipe-dial-failed")
+		if os.Getenv("NEXUS_DOCS_CAPTURE") == "1" {
+			log.Printf("nexus_docs_capture_diagnostic=pipe_dial_error %s", err.Error())
+		}
+		writeError(w, http.StatusNotFound, "runtime host is not running ("+err.Error()+")")
+		return
+	}
+	traceDocsCaptureTerminalStage("pipe-connected")
+
+	compatibilityStarted := time.Now()
+	traceDocsCaptureTerminalStage("attach-validation-start")
 	if err := registry.ValidateAttachCompatibility(sess); err != nil {
 		// Preserve the process for explicit user cleanup, but make the runtime
 		// non-attachable and actionable instead of opening a silent black TTY.
+		_ = client.Close()
 		_ = reg.UpdateState(runtimeID, registry.StateStale)
 		writeError(w, http.StatusConflict, "runtime is incompatible with the current Nexus binary; recreate the session with nexus codex --yolo")
 		return
 	}
-
-	// Dial the control endpoint before upgrading. A live PID/STARTING row is
-	// not enough on Windows when the named pipe was never created; prefer HTTP
-	// 404 over a WebSocket error overlay ("Runtime do Agente desconectado").
-	client, err := protocol.NewClient(runtimeID)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "runtime host is not running ("+err.Error()+")")
-		return
+	if os.Getenv("NEXUS_DOCS_CAPTURE") == "1" {
+		log.Printf("nexus_docs_capture_diagnostic=attach_validation_elapsed=%s", time.Since(compatibilityStarted))
 	}
+	traceDocsCaptureTerminalStage("attach-validation-finished")
+	traceDocsCaptureTerminalStage("attach-compatible")
 
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -96,6 +181,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	}
 	defer ws.Close()
 	defer client.Close()
+	traceDocsCaptureTerminalStage("websocket-upgraded")
 
 	var wsMu sync.Mutex
 	safeWriteJSON := func(v any) error {
@@ -120,6 +206,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	defer stop()
 
 	// Attach to host
+	traceDocsCaptureTerminalStage("attach-command-start")
 	resp, err := client.Send(protocol.CmdAttach, nil)
 	if err != nil {
 		// Same as NewClient: attach timeout is not proof the child exited.
@@ -130,6 +217,7 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 		return
 	}
 	_ = client.ClearDeadline()
+	traceDocsCaptureTerminalStage("attach-command-complete")
 
 	rawConn := client.RawConn()
 	resizeRequests := make(chan [2]int, 1)
@@ -158,12 +246,19 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	// left the UI read-only even though no other writer held the lease.
 	effectiveRole := role
 	if role == "CONTROL" {
+		traceDocsCaptureTerminalStage("lease-acquire-pipe-start")
 		_ = sendAttachedCommandWithRetry(rawConn, 3)
+		traceDocsCaptureTerminalStage("lease-acquire-pipe-finished")
 	}
-	_ = safeWriteJSON(TerminalMessage{
+	traceDocsCaptureTerminalStage("lease-websocket-write-start")
+	if err := safeWriteJSON(TerminalMessage{
 		Type: "lease",
 		Role: effectiveRole,
-	})
+	}); err != nil {
+		traceDocsCaptureTerminalStage("lease-write-failed")
+	} else {
+		traceDocsCaptureTerminalStage("lease-sent")
+	}
 	if nexusruntime.TerminalTraceEnabled() {
 		_ = safeWriteJSON(TerminalMessage{Type: "trace_config", Data: "enabled"})
 	}

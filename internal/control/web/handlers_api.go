@@ -520,6 +520,9 @@ func (h *APIHandler) handleProviders(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := make([]ProviderView, len(selectedDrivers))
+	// List profiles once to avoid N concurrent filesystem scans per provider.
+	// Failure leaves registration UNKNOWN instead of inventing unregistered.
+	registeredProfiles, profilesErr := profile.List()
 	var wg sync.WaitGroup
 	for i, d := range selectedDrivers {
 		wg.Add(1)
@@ -537,24 +540,40 @@ func (h *APIHandler) handleProviders(w http.ResponseWriter, r *http.Request) {
 				Capabilities: caps,
 				BinaryPath:   det.BinaryPath,
 			}
-			if det.Installed {
-				res[idx].RegistrationState = string(coreprovider.InstalledUnregistered)
-			}
-			if ps, listErr := profile.List(); listErr == nil {
-				for _, registered := range ps {
-					if registered.Provider == drv.ProviderID() {
-						if profile.GetAccountInfo(registered.Provider, registered.Name).Authenticated {
-							res[idx].RegistrationState = string(coreprovider.RegisteredAuthenticated)
-							continue
-						}
-						res[idx].RegistrationState = string(coreprovider.PendingAuth)
-					}
-				}
+			if profilesErr == nil {
+				res[idx].RegistrationState = providerRegistrationState(
+					drv.ProviderID(), det.Installed, registeredProfiles,
+					func(p model.Profile) bool {
+						return profile.GetAccountInfo(p.Provider, p.Name).Authenticated
+					},
+				)
 			}
 		}(i, d)
 	}
 	wg.Wait()
 	writeJSON(w, http.StatusOK, res)
+}
+
+// providerRegistrationState reports only confirmed account readiness. A pending
+// profile cannot overwrite a previously detected authenticated profile.
+// Disabled profiles and CLIs missing on the machine do not count as ready.
+func providerRegistrationState(
+	providerID string, installed bool, profiles []model.Profile, authenticated func(model.Profile) bool,
+) string {
+	if !installed {
+		return ""
+	}
+	state := string(coreprovider.InstalledUnregistered)
+	for _, registered := range profiles {
+		if registered.Provider != providerID || registered.Disabled {
+			continue
+		}
+		if authenticated(registered) {
+			return string(coreprovider.RegisteredAuthenticated)
+		}
+		state = string(coreprovider.PendingAuth)
+	}
+	return state
 }
 
 // Profiles Handler

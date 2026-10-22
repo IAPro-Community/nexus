@@ -16,6 +16,23 @@ function Require-Command([string]$Name) {
   }
 }
 
+# Windows PowerShell 5.1 turns stderr records of a native command into
+# terminating errors when they cross 2>&1 while ErrorActionPreference is Stop;
+# pwsh 7 streams them as plain text. Run native gates through this helper so
+# the captured log always gets the output and the exit code stays the single
+# source of truth in both shells.
+$script:LastNativeExit = 0
+function Invoke-NativeLogged([string]$LogPath, [scriptblock]$Run) {
+  $Saved = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try {
+    & $Run 2>&1 | ForEach-Object { $_.ToString() } | Tee-Object -FilePath $LogPath -Append
+    $script:LastNativeExit = $LASTEXITCODE
+  } finally {
+    $ErrorActionPreference = $Saved
+  }
+}
+
 Require-Command git
 Require-Command go
 Require-Command bun
@@ -25,8 +42,8 @@ if ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64') {
 }
 
 $GoVersionText = (go version).Trim()
-if ($GoVersionText -notmatch '\bgo1\.25\.14\b') {
-  throw "Windows beta homologation requires Go 1.25.14 to match CI; got: $GoVersionText"
+if ($GoVersionText -notmatch '\bgo1\.26\.10\b') {
+  throw "Windows beta homologation requires Go 1.26.10 to match canonical CI; got: $GoVersionText"
 }
 
 $BunVersion = (bun --version).Trim()
@@ -83,6 +100,7 @@ $PowerShellSyntaxLog = Join-Path $Out 'powershell-syntax.log'
 foreach ($ScriptPath in @(
   'install.ps1',
   'uninstall.ps1',
+  'scripts/test-uninstall-windows.ps1',
   'scripts/homologate-beta.ps1',
   'scripts/refresh-beta-docs-windows.ps1'
 )) {
@@ -101,19 +119,27 @@ foreach ($ScriptPath in @(
   "PASS $ScriptPath" | Tee-Object -FilePath $PowerShellSyntaxLog -Append
 }
 
+Write-Host "==> Windows uninstaller isolation smoke"
+Invoke-NativeLogged (Join-Path $Out 'uninstall-windows-smoke.log') {
+  pwsh -NoProfile -File scripts/test-uninstall-windows.ps1
+}
+if ($script:LastNativeExit -ne 0) {
+  throw "Windows uninstaller isolation smoke failed (exit=$script:LastNativeExit)"
+}
+
 Write-Host "==> documentation"
-bun scripts/docs-verify.mjs 2>&1 | Tee-Object -FilePath (Join-Path $Out 'docs-verify.log')
-if ($LASTEXITCODE -ne 0) { throw "documentation verification failed" }
+Invoke-NativeLogged (Join-Path $Out 'docs-verify.log') { bun scripts/docs-verify.mjs }
+if ($script:LastNativeExit -ne 0) { throw "documentation verification failed (exit=$script:LastNativeExit)" }
 
 Write-Host "==> frontend dependencies"
-bun install --cwd web --frozen-lockfile 2>&1 | Tee-Object -FilePath (Join-Path $Out 'bun-install.log')
-if ($LASTEXITCODE -ne 0) { throw "bun install failed" }
+Invoke-NativeLogged (Join-Path $Out 'bun-install.log') { bun install --cwd web --frozen-lockfile }
+if ($script:LastNativeExit -ne 0) { throw "bun install failed" }
 
 Write-Host "==> Playwright Chromium"
 Push-Location web
 try {
-  bun x playwright install chromium 2>&1 | Tee-Object -FilePath (Join-Path $Out 'playwright-chromium.log')
-  if ($LASTEXITCODE -ne 0) { throw "Playwright Chromium installation failed" }
+  Invoke-NativeLogged (Join-Path $Out 'playwright-chromium.log') { bun x playwright install chromium }
+  if ($script:LastNativeExit -ne 0) { throw "Playwright Chromium installation failed" }
 } finally {
   Pop-Location
 }
@@ -122,8 +148,8 @@ Write-Host "==> frontend quality"
 $FrontendLog = Join-Path $Out 'frontend.log'
 foreach ($Task in @('format:check','typecheck','lint','lint:styles','check:styles','test','build','verify')) {
   "--- bun run $Task" | Tee-Object -FilePath $FrontendLog -Append
-  bun run --cwd web $Task 2>&1 | Tee-Object -FilePath $FrontendLog -Append
-  if ($LASTEXITCODE -ne 0) { throw "frontend task failed: $Task" }
+  Invoke-NativeLogged $FrontendLog { bun run --cwd web $Task }
+  if ($script:LastNativeExit -ne 0) { throw "frontend task failed: $Task" }
 }
 
 Write-Host "==> Go formatting"
@@ -137,24 +163,31 @@ foreach ($GoFile in $TrackedGoFiles) {
   if ($Result) { $Unformatted += $Result }
 }
 if ($Unformatted) {
-  $Unformatted | Sort-Object -Unique | Set-Content (Join-Path $Out 'gofmt-fail.txt')
-  throw "gofmt required"
+  $Unformatted = @($Unformatted | Sort-Object -Unique)
+  $Unformatted | Set-Content (Join-Path $Out 'gofmt-fail.txt')
+  # The public CI log may safely reveal repository-relative Go source paths.
+  # Without these paths, a failed formatting gate cannot be remediated from
+  # the Actions result alone; never print source contents or credentials.
+  foreach ($UnformattedFile in $Unformatted) {
+    Write-Host "[GOFMT_REQUIRED] $UnformattedFile"
+  }
+  throw "gofmt required for $($Unformatted.Count) tracked Go file(s); see gofmt-fail.txt"
 }
 
 Write-Host "==> Go vet"
-go vet ./... 2>&1 | Tee-Object -FilePath (Join-Path $Out 'go-vet.log')
-if ($LASTEXITCODE -ne 0) { throw "go vet failed" }
+Invoke-NativeLogged (Join-Path $Out 'go-vet.log') { go vet ./... }
+if ($script:LastNativeExit -ne 0) { throw "go vet failed" }
 
 Write-Host "==> Go lint (pinned)"
-go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run --timeout=5m ./... 2>&1 | Tee-Object -FilePath (Join-Path $Out 'golangci-lint.log')
-if ($LASTEXITCODE -ne 0) { throw "golangci-lint failed" }
+Invoke-NativeLogged (Join-Path $Out 'golangci-lint.log') { go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run --timeout=5m ./... }
+if ($script:LastNativeExit -ne 0) { throw "golangci-lint failed" }
 
 Write-Host "==> Go security (pinned)"
 $SavedGoToolchain = [Environment]::GetEnvironmentVariable('GOTOOLCHAIN', 'Process')
-$env:GOTOOLCHAIN = 'local'
+$env:GOTOOLCHAIN = 'go1.26.10'
 try {
-  go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./... 2>&1 | Tee-Object -FilePath (Join-Path $Out 'govulncheck.log')
-  if ($LASTEXITCODE -ne 0) { throw "govulncheck failed" }
+  Invoke-NativeLogged (Join-Path $Out 'govulncheck.log') { go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./... }
+  if ($script:LastNativeExit -ne 0) { throw "govulncheck failed" }
 } finally {
   if ($null -eq $SavedGoToolchain) {
     Remove-Item Env:GOTOOLCHAIN -ErrorAction SilentlyContinue
@@ -164,12 +197,12 @@ try {
 }
 
 Write-Host "==> Version contract"
-go run ./scripts/verify-version-contract.go . 2>&1 | Tee-Object -FilePath (Join-Path $Out 'version-contract.log')
-if ($LASTEXITCODE -ne 0) { throw "version contract failed" }
+Invoke-NativeLogged (Join-Path $Out 'version-contract.log') { go run ./scripts/verify-version-contract.go . }
+if ($script:LastNativeExit -ne 0) { throw "version contract failed" }
 
 Write-Host "==> provider-native Mission/terminal regression preflight"
-go test -count=1 ./internal/app ./internal/nexus/promotion ./internal/runtime 2>&1 | Tee-Object -FilePath (Join-Path $Out 'regression-interactive-terminal.log')
-if ($LASTEXITCODE -ne 0) { throw "provider-native Mission/terminal regression tests failed" }
+Invoke-NativeLogged (Join-Path $Out 'regression-interactive-terminal.log') { go test -count=1 ./internal/app ./internal/nexus/promotion ./internal/runtime }
+if ($script:LastNativeExit -ne 0) { throw "provider-native Mission/terminal regression tests failed" }
 
 Write-Host "==> Go tests"
 # Unit/integration tests must not inherit the developer's real Nexus profile,
@@ -181,7 +214,7 @@ New-Item -ItemType Directory -Force -Path $TestHome | Out-Null
 
 $SavedEnv = @{}
 foreach ($Name in @(
-  'HOME','USERPROFILE','TEMP','TMP','APPDATA','LOCALAPPDATA','XDG_CONFIG_HOME','XDG_DATA_HOME','XDG_CACHE_HOME',
+  'HOME','USERPROFILE','TEMP','TMP','GOTMPDIR','APPDATA','LOCALAPPDATA','XDG_CONFIG_HOME','XDG_DATA_HOME','XDG_CACHE_HOME',
   'NEXUS_DATA_DIR','AI_MANAGER_DATA_DIR','AI_CLI_DATA_DIR',
   'NEXUS_CONFIG_DIR','AI_MANAGER_CONFIG_DIR','AI_CLI_CONFIG_DIR',
   'NEXUS_STATE_DIR','AI_MANAGER_STATE_DIR','AI_CLI_STATE_DIR','CODEX_HOME',
@@ -197,16 +230,20 @@ foreach ($Name in @(
 $ExistingGoPath = (go env GOPATH).Trim()
 $ExistingGoModCache = (go env GOMODCACHE).Trim()
 $ExistingGoCache = (go env GOCACHE).Trim()
-$ExistingTemp = $SavedEnv['TEMP']
-if ([string]::IsNullOrWhiteSpace($ExistingTemp)) {
-  $ExistingTemp = [IO.Path]::GetTempPath()
+# Keep temporary Git fixtures on the checkout drive but close to its root.
+# Nesting below an existing TEMP path (or the evidence directory) can make
+# Windows Git fixture paths too long before the test has a chance to run.
+$TestTempRoot = [IO.Path]::GetPathRoot($PSScriptRoot)
+if ([string]::IsNullOrWhiteSpace($TestTempRoot)) {
+  throw "Could not resolve the checkout drive for isolated Go test temporary files: $PSScriptRoot"
 }
-$TestTemp = Join-Path $ExistingTemp ("nx-{0}-{1}" -f $ShortSha, $PID)
+$TestTemp = Join-Path $TestTempRoot ("nx-{0}-{1}" -f $ShortSha, $PID)
 
 $env:HOME = $TestHome
 $env:USERPROFILE = $TestHome
 $env:TEMP = $TestTemp
 $env:TMP = $env:TEMP
+$env:GOTMPDIR = $env:TEMP
 $env:APPDATA = Join-Path $TestHome 'AppData/Roaming'
 $env:LOCALAPPDATA = Join-Path $TestHome 'AppData/Local'
 $env:XDG_CONFIG_HOME = Join-Path $TestHome '.config'
@@ -243,11 +280,14 @@ $env:AI_CLI_STATE_DIR = Join-Path $TestHome 'nexus-state'
 $env:GOPATH = $ExistingGoPath
 $env:GOMODCACHE = $ExistingGoModCache
 $env:GOCACHE = $ExistingGoCache
+if ($env:TEMP -ne $env:TMP -or $env:TEMP -ne $env:GOTMPDIR) {
+  throw "Go tests require TEMP, TMP, and GOTMPDIR to resolve to the same isolated directory; got TEMP=$env:TEMP TMP=$env:TMP GOTMPDIR=$env:GOTMPDIR"
+}
 
 $GoTestExit = 1
 try {
-  go test -count=1 -v ./... 2>&1 | Tee-Object -FilePath $GoTestLog
-  $GoTestExit = $LASTEXITCODE
+  Invoke-NativeLogged $GoTestLog { go test -count=1 -v ./... }
+  $GoTestExit = $script:LastNativeExit
 } finally {
   foreach ($Name in $SavedEnv.Keys) {
     $Value = $SavedEnv[$Name]
@@ -285,20 +325,20 @@ if ($GoTestExit -ne 0) {
 
 
 Write-Host "==> control/runtime E2E"
-go test -count=1 ./internal/control/terminal/... ./internal/control/protocol/... ./internal/control/host/... ./internal/control/web/... 2>&1 | Tee-Object -FilePath (Join-Path $Out 'control-e2e.log')
-if ($LASTEXITCODE -ne 0) { throw "control/runtime E2E failed" }
+Invoke-NativeLogged (Join-Path $Out 'control-e2e.log') { go test -count=1 ./internal/control/terminal/... ./internal/control/protocol/... ./internal/control/host/... ./internal/control/web/... }
+if ($script:LastNativeExit -ne 0) { throw "control/runtime E2E failed" }
 
 Write-Host "==> Agent Interop / OpenCode Projection regressions"
-go test -count=1 ./internal/core/provider/agentprojection/opencode ./internal/control/launcher ./internal/control/web ./internal/nexus ./internal/nexus/store 2>&1 | Tee-Object -FilePath (Join-Path $Out 'agent-interop.log')
-if ($LASTEXITCODE -ne 0) { throw "Agent Interop/OpenCode Projection regressions failed" }
+Invoke-NativeLogged (Join-Path $Out 'agent-interop.log') { go test -count=1 ./internal/core/provider/agentprojection/opencode ./internal/control/launcher ./internal/control/web ./internal/nexus ./internal/nexus/store }
+if ($script:LastNativeExit -ne 0) { throw "Agent Interop/OpenCode Projection regressions failed" }
 
 Write-Host "==> build CLI"
 $Commit = $ShortSha
 $BuildDate = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
 $Module = 'github.com/IAPro-Community/nexus'
 $Ldflags = "-s -w -X $Module/internal/buildinfo.Version=$Version -X $Module/internal/buildinfo.Commit=$Commit -X $Module/internal/buildinfo.BuildDate=$BuildDate -X $Module/internal/update.ProductionTrustRootHex=$BuildPublicKey"
-go build -trimpath -buildvcs=false -ldflags $Ldflags -o nexus.exe ./cmd/nexus 2>&1 | Tee-Object -FilePath (Join-Path $Out 'build-cli.log')
-if ($LASTEXITCODE -ne 0) { throw "CLI build failed" }
+Invoke-NativeLogged (Join-Path $Out 'build-cli.log') { go build -trimpath -buildvcs=false -ldflags $Ldflags -o nexus.exe ./cmd/nexus }
+if ($script:LastNativeExit -ne 0) { throw "CLI build failed" }
 
 & .\nexus.exe version --json | Tee-Object -FilePath (Join-Path $Out 'version.json')
 $VersionJson = Get-Content (Join-Path $Out 'version.json') -Raw | ConvertFrom-Json
@@ -321,8 +361,8 @@ try {
     'test:visual'
   )) {
     $E2ELog = Join-Path $Out ("{0}.log" -f ($Task -replace ':','-'))
-    bun run --cwd web $Task 2>&1 | Tee-Object -FilePath $E2ELog
-    if ($LASTEXITCODE -ne 0) { throw "browser E2E failed: $Task" }
+    Invoke-NativeLogged $E2ELog { bun run --cwd web $Task }
+    if ($script:LastNativeExit -ne 0) { throw "browser E2E failed: $Task" }
   }
 } finally {
   if ($null -eq $SavedSkipBuild) {
@@ -352,8 +392,8 @@ if (Get-Command opencode -ErrorAction SilentlyContinue) {
 
 if (-not $SkipDesktop) {
   Write-Host "==> Windows Wails v3 Desktop + HUD build"
-  bun run --cwd web build
-  if ($LASTEXITCODE -ne 0) { throw "frontend build for Wails v3 failed" }
+  Invoke-NativeLogged (Join-Path $Out 'wails-frontend-build.log') { bun run --cwd web build }
+  if ($script:LastNativeExit -ne 0) { throw "frontend build for Wails v3 failed" }
 
   New-Item -ItemType Directory -Path "cmd/nexus-desktop/build/bin" -Force | Out-Null
   New-Item -ItemType Directory -Path "cmd/nexus-hud/build/bin" -Force | Out-Null

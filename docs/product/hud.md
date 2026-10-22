@@ -1,9 +1,6 @@
 # Nexus HUD
 
-> M1 Web/Linux foi integrado à `main`. A evolução nativa continua na branch
-> `feat/hud-cross-platform-completion` com um gate explícito: nenhuma nova
-> feature funcional do HUD é considerada DONE antes de atingir paridade
-> certificada entre Linux, Windows e macOS.
+> **Estado atual:** implementação do HUD está na linha `release/v1.0.0`. As referências a M1 e branches anteriores abaixo são histórico de design, não o estado de entrega. A certificação do HUD desktop exige execução nativa no mesmo SHA em Linux, Windows e macOS; veja [suporte de plataformas](../operations/platform-support.md).
 >
 > O Nexus HUD é uma superfície de apresentação. Ele não é um segundo Capacity
 > Monitor, scheduler, cost engine, runtime de Agents ou MissionRunner.
@@ -113,8 +110,7 @@ A implementação deve reutilizar enums/estados canônicos sempre que existirem.
 
 ## Desktop process model
 
-O projeto usa Wails v2.15.0. Wails v2 oferece uma janela por aplicação; portanto
-um HUD realmente independente não deve ser simulado dentro da janela principal.
+No milestone M1 histórico, o projeto usava Wails v2.15.0, que disponibilizava uma janela por aplicação. O HUD foi isolado em um processo de apresentação independente. A release 1.0 atual já usa Wails v3, mantendo o shell nativo independente.
 
 A estratégia do M1 é um shell Wails leve `nexus-hud`:
 
@@ -125,8 +121,7 @@ A estratégia do M1 é um shell Wails leve `nexus-hud`:
 - usa o lease já existente do Capacity Monitor caso seja necessário iniciar um
   Core local na ausência de outro processo.
 
-Uma migração futura para Wails v3 pode consolidar janelas no mesmo processo sem
-alterar o contrato `HUD Projection`.
+A migração para Wails v3 foi incorporada sem duplicar o contrato `HUD Projection`. Uma eventual consolidação de janelas é uma decisão de produto posterior.
 
 ## Plataformas
 
@@ -142,7 +137,7 @@ Estado após o merge do M1:
 | Windows Desktop HUD | gate nativo obrigatório na frente cross-platform |
 | macOS Desktop HUD | gate nativo obrigatório na frente cross-platform |
 
-A branch de cross-platform roda Windows e macOS no mesmo ciclo da implementação.
+A implementação cross-platform integra o source candidato; execução certificada depende dos gates por plataforma e SHA.
 Cross-compilation não altera esses estados e nenhum recurso novo de produto deve
 passar à frente da paridade nativa.
 
@@ -190,11 +185,163 @@ milestone de UX avançada, desde que:
 ## Limitações conhecidas do M1
 
 - Windows e macOS continuam `UNVERIFIED` até execução nativa same-SHA.
-- Wails v2 informa dimensões/tela atual, mas não ID estável, work area ou scale
-  factor; o M1 faz clamp seguro para recuperar janelas off-screen, sem promover
-  isso a suporte completo de multi-monitor/DPI.
+- No M1 histórico (Wails v2), work area, ID estável de display e scale factor eram limitados. A release atual em Wails v3 expõe esses dados; suporte completo de multi-monitor/DPI ainda requer smoke nativo no SHA vigente.
 - always-on-top/posicionamento absoluto no Wayland depende do compositor e deve
   ser capability-detected.
 - tray/menu bar só vira claim quando houver implementação e teste nativos.
 - PWA é melhoria não bloqueante até existir decisão específica baseada no Web
   atual.
+
+
+## Minimal taskbar capsule (October 2026)
+
+The HUD's compact surface is an always-on-top **capsule above the system taskbar**, not an unsupported injection into Windows Taskbar. Its default window is 220 × 60 DIPs on Desktop; the interactive capsule uses the remaining width (about 174 × 43 pixels in the default preset) next to a 24 px drag grip. It uses the official Nexus icon, one highlighted provider and its limiting-window remaining percentage.
+
+The capsule is intentionally a **projection**, not a control plane:
+- When a running Agent or Mission identifies a provider/profile, this is the account in execution. Otherwise the highlighted measurable account is labeled *Recurso em destaque*, **never** *Conta ativa*.
+- Unknown or offline quota uses an em dash, a neutral ring and an explanation; neither means 0% or unlimited.
+- Displayed warning severity originates in the Capacity Monitor. Provider alternatives are informational and sorted for readability, **not** treated as the ResourceScheduler's recommendation.
+- If there is an active canonical ResourceScheduler recommendation it may be shown with a link to the existing Usage surface. The HUD never performs a silent account switch.
+- Subscription capacity, API costs and per-request tokens are different resource channels; the capsule does not derive one from another.
+
+Behaviors:
+1. **Idle**: branded capsule, one highlighted provider and remaining capacity.
+2. **Hover (Web)**: short non-interactive tooltip with window and renewal evidence.
+3. **Click**: popover with highlighted resource, up to three alternatives, interventions and optional canonical recommendation.
+4. **Warning/critical**: colored ring, capacity events and acknowledge/snooze via existing endpoints.
+5. **Unknown/offline**: neutral ring, unknown remaining quota and last observed connection when available.
+
+Desktop Wails v3 has a transparent independent native window and native tray recovery. The window starts anchored above the taskbar, and resizing to the selected expanded preset keeps its bottom-right edge anchored. **Rich hover content on Native is not yet feature-equivalent with Web**: native currently exposes a standard tooltip, since a separate temporary hover window needs capability-specific implementation and testing. This limitation must not be described as full parity.
+
+Native validation requires exact-SHA Windows/Linux/macOS smoke, taskbar positioning, DPI/multi-monitor, window restoration, tray recovery, and click-through tests for transparent empty regions. Browser E2E should capture compact, hover and expanded states and run accessibility checks. No production release claim follows from merely committing the UI.
+
+## Arraste e presets de tamanho do HUD nativo (2026-10-21)
+
+O HUD nativo separa duas intenções: **clique** abre ou fecha o resumo; **arraste** move a janela. Para não transformar um clique com pequena oscilação em arraste, a cápsula continua com `--wails-draggable: no-drag` e recebe uma alça dedicada de 24 px com ícone de grip. O cabeçalho do popover também é uma região arrastável. A alça aceita foco e setas: 16 px por pressionamento, 64 px com `Shift`, sempre limitada à work area do monitor.
+
+Os tamanhos são presets explícitos, não dimensões inventadas pela UI:
+
+| Preset | Janela compacta | Janela expandida |
+| --- | --- | --- |
+| `compact` (Compacto) | 220 × 60 | 334 × 496 |
+| `comfortable` (Confortável) | 260 × 70 | 380 × 560 |
+| `large` (Grande) | 320 × 84 | 440 × 640 |
+
+Ao trocar de preset, a borda inferior direita é preservada, o estado é salvo em `hud-window-state.json` e o primeiro show reaplica a geometria persistida. Isso corrige o primeiro paint em 190 × 48 (mínimo do Wails) que cortava a cápsula. Os rótulos e o texto de tamanho atual são localizados em pt-BR, inglês e espanhol; os controles ficam no popover nativo.
+
+**Evidência local, não certificação de release:** Windows 11 `10.0.26200`, scale 100%, binário de homologação isolado construído no worktree sobre `f6098b8c684a97bf7e8e56804109ca491c78cfa2`. A UI Automation encontrou os botões acessíveis `Compacto`, `Confortável`, `Grande` e `Arrastar HUD. Use as setas para mover.`; a sequência real mediu `220×60 → 334×496 → 380×560 → 440×640 → 334×496 → 220×60`. O arraste moveu a janela em `-144,-108` px, as setas moveram `+16` px e `Shift`+seta `+64` px, e após reiniciar o HUD abriu em `260×70` na posição persistida.
+
+**Limites:** Linux e macOS permanecem `NOT_TESTED` para este slice; não há tag, assinatura ou alegação de GO. O redimensionamento livre pelas bordas não é um preset certificado; use os três presets para uma geometria suportada. O HUD Web não recebe esses controles nativos.
+
+## Correções de estabilidade do HUD compacto (18/10/2026)
+
+- Restauração força a janela nativa de volta a 220×60 DIPs, preservando a âncora inferior direita do monitor. Isso evita a reabertura invisível de uma janela expandida após reiniciar.
+- Expansão/recolhimento consulta a dimensão **real** da janela nativa, não apenas a última dimensão persistida.
+- O provider só pode ser denominado *Conta em execução* quando provider **e** profile correspondem à identidade de Agent em execução; nomes de provider isolados não identificam contas múltiplas.
+- Missions não terminais voltam a aparecer na visão expandida. Intervenções humanas têm prioridade e histórico terminado não substitui execução corrente.
+- Percentuais `ESTIMATED` são marcados com `~` e indicador tracejado; `CACHED` é identificado como cache; origem não confiável/sem dados usa `—`.
+- Testes unitários cobrem identidade incompleta, evidência de quota, Missions ativas/terminadas e restauração de geometria antiga/expandida.
+
+A validação Windows anteriormente executada permanece como evidência histórica para os SHAs testados. **Estes novos commits não herdam homologação Windows exata**: os gates, o smoke real do HUD, a restauração após reinicialização e as evidências visuais precisam ser executados novamente no HEAD final. Não publicar tag ou release com base apenas no registro anterior.
+
+
+> **Cost evidence:** `PROVIDER_REPORTED` means a value present in the
+> provider's usage telemetry, **not** an invoice or proof of a charge.
+> The HUD labels this evidence `reported`. `API_EQUIVALENT_ESTIMATE`
+> and `INFERRED` remain estimates; no subscription token valuation is
+> merged into confirmed billing. An offline native HUD is never marked
+> ready solely because a previous snapshot remains in memory.
+
+## Incidente: cápsula nativa sem popup (2026-10-20)
+
+**Causa reproduzível por inspeção do contrato:** o Core respondia `enabled:false`
+porque `flags.HUD` era desligado por padrão, embora `nexus-hud` fosse instalado
+sem `NEXUS_ENABLE_HUD=1`. A apresentação nativa interpretava `disabled/offline`
+como `waiting` e o clique somente executava refresh; `SetHUDExpanded` nunca
+era chamado. O E2E Web ativava a flag artificialmente, mascarando o problema.
+
+**Política corrigida:**
+- A projeção de leitura (autenticada, sem probes de provider) agora está habilitada
+  por padrão para permitir o HUD nativo pronto para uso.
+- `NEXUS_DISABLE_HUD=1` mantém o kill switch de backend prioritário, sem contorno
+  pela UI; no estado desativado, a cápsula nativa deve abrir um diagnóstico.
+- O widget Web continua **opt-in** por preferência local; API ativa não significa
+  widget Web obrigatório.
+- O clique chama `SetHUDExpanded` e só considera a expansão concluída depois do
+  sucesso da chamada Wails. Falhas registram erro e não fingem popup aberto.
+- Se a projeção estiver desativada/offline, a janela pode ser expandida e mostrar
+  detalhes de indisponibilidade, atualizar e abrir o Nexus, sem falsificar quota.
+
+**Gates obrigatórios antes do GO:** executar o **mesmo SHA** do Core e HUD nativo
+atualizados; a mera atualização do frontend enquanto um Core antigo estiver rodando
+não corrige o retorno `enabled:false`. No Windows e Linux, verificar em sessão
+gráfica interativa, com `NEXUS_ENABLE_HUD` e `NEXUS_DISABLE_HUD` não definidos:
+
+1. A cápsula abre ao clicar, com cerca de **334 × 496 DIPs** para o popover.
+2. Segundo clique ou botão de fechar recolhe para **220 × 60 DIPs**.
+3. Com duas contas no mesmo provider, a conta em execução só é exibida se
+   `provider+profile` estiverem verificados.
+4. Com perda de conexão ao Core, o clique abre um diagnóstico (não ignora o evento).
+5. Com `NEXUS_DISABLE_HUD=1` no Core, o diagnóstico informa a indisponibilidade;
+   o kill switch não é ignorado.
+6. Validar posição junto à barra de tarefas, DPI, dois monitores e reinício.
+7. Arquivar screenshot da cápsula e popup, gravação do clique e evidência de
+   `aria-expanded=true`, API `enabled` e geometria nativa, sempre no mesmo SHA.
+
+**Não há paridade pixel-perfect certificada com o mockup.** O hover no HUD nativo
+continua simples, e o E2E Web não substitui teste do clique real Wails/GTK/WebView2.
+A correção de código não equivale a homologação nativa até os gates acima passarem.
+
+## Contrato de moldura nativa — Windows, macOS e Linux (21/10/2026)
+
+A cápsula nativa deve ter transparência visual real **sem a sombra retangular
+projetada pelo sistema operacional**. A sombra arredondada do componente CSS
+continua pertencendo à apresentação da cápsula.
+
+- Windows (Wails v3 / WebView2): `Windows.DisableFramelessWindowDecorations=true`
+  remove a sombra e os cantos DWM da janela frameless.
+- macOS (Wails v3 / WKWebView): `Mac.DisableShadow=true` desativa a sombra
+  `NSWindow`; `Mac.CornerType=MacWindowCornerTypeSquare` impede que o formato
+  dos cantos da janela imponha uma moldura nativa ao conteúdo transparente.
+- Linux (Wails v3 / GTK): `Frameless=true` e
+  `BackgroundTypeTransparent` já eram usados. O contrato agora declara também
+  `Linux.WindowIsTranslucent=true`, mas a biblioteca Wails beta.25 não fornece
+  um `DisableShadow` equivalente; a sombra externa continua sob controle
+  do tema e do compositor, especialmente em X11 e Wayland.
+- Os três sistemas mantêm `Frameless=true`,
+  `BackgroundTypeTransparent`, fundo RGBA com alpha 0, tamanhos persistidos e
+  `AlwaysOnTop` conforme preferência do usuário, quando o gerenciador de janelas
+  suporta esse comportamento.
+- O código centraliza essas opções em `cmd/nexus-hud/window_options.go`.
+  `cmd/nexus-hud/window_options_test.go` protege esse contrato, executado nos
+  gates nativos Windows e macOS, além do gate de contrato no CI Linux.
+  Esses testes verificam opções de criação de janela, não pixels renderizados.
+
+**Limite de escopo:** remover sombra/moldura visual **não equivale** a permitir
+cliques através de todos os pixels transparentes da WebView. Também não torna a
+janela livremente redimensionável; o contrato existente oferece arraste por alça
+e presets de tamanho. Hit-testing nativo por região é uma melhoria separada, que
+não deve ser simulada com CSS nem anunciada como pronta.
+
+**Aceitação visual obrigatória no mesmo SHA, antes de GO:**
+
+1. No Windows 10/11, capturar cápsula compacta e popup aberto; verificar
+   ausência de sombra quadrada, halo da janela e retângulo opaco.
+2. No macOS arm64, repetir as capturas em sessão gráfica real; verificar ausência
+   da sombra retangular do NSWindow, cantos nativos aparentes e flashes opacos.
+3. Em ambos: mover pelo handle, aplicar presets, abrir/recolher popup, alternar
+   foco, reiniciar e confirmar geometria/posição e ausência de regressões.
+4. Registrar explicitamente áreas transparentes que ainda bloqueiam clique no
+   desktop: **falha conhecida de input, não aprovação de click-through**.
+5. Linux: repetir os testes de sombra, transparência, alça de arraste e
+   popup no X11 e Wayland quando disponíveis; distinguir GTK3/GTK4, tema
+   GNOME/KDE e capacidade do compositor. O smoke Xvfb/CI verifica inicialização,
+   mas não comprova ausência de sombra ou click-through no desktop real.
+6. Relacionar screenshots, logs, build e resultado ao SHA exato da release.
+   Go unit PASS ou smoke de processo vivo não substituem comparação visual.
+
+Sem evidências nativas para **Windows, macOS e Linux** no mesmo SHA, a
+**paridade visual cross-platform** permanece `UNVERIFIED`. No Linux, a sombra
+gerada pelo compositor ou tema GTK não é controlada pelas flags Windows/macOS;
+se o retângulo persistir, o caminho é um adaptador GTK/compositor específico
+ou redesign da superfície, não alegar correção por flag.

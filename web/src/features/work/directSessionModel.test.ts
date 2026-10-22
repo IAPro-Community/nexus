@@ -21,14 +21,34 @@ describe('direct session model', () => {
     expect(buildDirectAgentName('', 'claude')).toBe('Claude · Direct Session');
   });
 
-  it('only offers authenticated and available resources and prefers the requested provider', () => {
+  it('offers operational manual resources, including opaque quota, and prefers the requested provider', () => {
     const accounts = [
       { id: '1', provider: 'codex', profile: 'work', authenticated: true, available: true },
       { id: '2', provider: 'claude', profile: 'personal', authenticated: true, available: true },
       { id: '3', provider: 'codex', profile: 'blocked', authenticated: true, available: false },
       { id: '4', provider: 'gemini', profile: 'anon', authenticated: false, available: true },
+      {
+        id: '5',
+        provider: 'opencode',
+        profile: 'manual',
+        authenticated: true,
+        available: false,
+        eligibility: { eligible: true, reason: 'UNSUPPORTED_QUOTA', confidence: 'UNSUPPORTED' },
+      },
+      {
+        id: '6',
+        provider: 'agy',
+        profile: 'cooldown',
+        authenticated: true,
+        available: false,
+        eligibility: { eligible: false, reason: 'COOLDOWN', confidence: 'UNKNOWN' },
+      },
     ];
-    expect(eligibleDirectResources(accounts, 'claude').map((item) => item.id)).toEqual(['2', '1']);
+    expect(eligibleDirectResources(accounts, 'claude').map((item) => item.id)).toEqual([
+      '2',
+      '1',
+      '5',
+    ]);
   });
 
   it('prefers the account display name and skips duplicate provider chips', () => {

@@ -13,8 +13,13 @@ import {
   Spinner,
 } from '../../design-system';
 import { nexus } from '../../nexus/api';
+import { OFFICIAL_PROVIDER_INSTALL_GUIDES } from '../projects/firstRunReadiness';
 import type { ProviderInfo } from '../../types';
 import styles from './RegisterProviderModal.module.scss';
+import {
+  preferredRegistrationProvider,
+  requiresExplicitAdditionalProfileName,
+} from './registerProviderModel';
 
 export interface RegisterProviderModalProps {
   isOpen: boolean;
@@ -43,17 +48,8 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
     try {
       const list = await nexus.listProviderInstallations();
       setProviders(list || []);
-      if (list && list.length > 0) {
-        if (initialProvider && list.some((p) => p.id === initialProvider)) {
-          setSelectedProvider(initialProvider);
-        } else {
-          // Default to first installed or unregistered
-          const preferred =
-            list.find((p) => p.installed && p.registration_state !== 'REGISTERED_AUTHENTICATED') ||
-            list[0];
-          setSelectedProvider(preferred.id);
-        }
-      }
+      // An unavailable CLI must never be the default registration target.
+      setSelectedProvider(preferredRegistrationProvider(list || [], initialProvider));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -73,10 +69,19 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
 
   if (!isOpen) return null;
 
+  const selectedRegistration = providers.find((p) => p.id === selectedProvider);
+  const requiresName = requiresExplicitAdditionalProfileName(selectedRegistration, profileName);
+
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!selectedProvider) {
-      setError(t('usage.selectProviderRequired', 'Selecione um provedor'));
+    if (!selectedProvider || !providers.some((p) => p.id === selectedProvider && p.installed)) {
+      setError(t('usage.selectProviderRequired', 'Selecione um provedor instalado'));
+      return;
+    }
+    if (requiresName) {
+      setError(
+        'Este provedor já possui um perfil. Conclua o login em Uso/Contas ou informe um nome diferente para adicionar outra conta.',
+      );
       return;
     }
     const cleanProfile = profileName.trim() || selectedProvider;
@@ -85,8 +90,15 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
     try {
       await nexus.registerProvider(selectedProvider, cleanProfile);
       toast.success(t('usage.registerSuccess', 'Perfil registrado com sucesso!'));
-      await onRegistered(selectedProvider, cleanProfile);
       onClose();
+      try {
+        await onRegistered(selectedProvider, cleanProfile);
+      } catch (followUpError) {
+        toast.error(
+          'Perfil registrado, mas não foi possível abrir o próximo passo: ' +
+            (followUpError instanceof Error ? followUpError.message : String(followUpError)),
+        );
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -114,6 +126,24 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
 
         {loading ? <Spinner label={t('common.loading', 'Carregando provedores…')} /> : null}
 
+        {!loading && providers.every((provider) => !provider.installed) && (
+          <div className={styles.intro}>
+            Nenhuma CLI compatível está disponível para cadastro. Instale uma ferramenta oficial e
+            volte para verificar o ambiente:{' '}
+            {OFFICIAL_PROVIDER_INSTALL_GUIDES.map((guide) => (
+              <a
+                key={guide.label}
+                href={guide.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ marginRight: 10 }}
+              >
+                {guide.label}
+              </a>
+            ))}
+          </div>
+        )}
+
         {error ? <p className={styles.error}>{error}</p> : null}
 
         {!loading && providers.length === 0 ? (
@@ -135,7 +165,9 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
                   key={prov.id}
                   className={styles.providerItem}
                   selected={isSelected}
-                  onSelect={() => setSelectedProvider(prov.id)}
+                  onSelect={() => {
+                    if (prov.installed) setSelectedProvider(prov.id);
+                  }}
                 >
                   <span className={styles.providerInfo}>
                     <span className={styles.providerHeader}>
@@ -143,7 +175,7 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
                       {getRegistrationBadge(prov)}
                     </span>
                     <span className={styles.providerMeta}>
-                      <span>{prov.version || 'v1.0'}</span>
+                      <span>{prov.version || 'Versão indisponível'}</span>
                       {prov.binary_path ? <code>{prov.binary_path}</code> : null}
                     </span>
                   </span>
@@ -156,6 +188,13 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
               );
             })}
           </ChoiceGroup>
+        ) : null}
+
+        {requiresName ? (
+          <p className={styles.intro}>
+            Já existe um perfil deste provedor. Para adicionar outra conta, informe um nome de
+            perfil diferente; para continuar com a conta atual, conclua o login em Uso/Contas.
+          </p>
         ) : null}
 
         <div className={styles.formGroup}>
@@ -176,7 +215,15 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
 
         <div className={styles.footerActions}>
           <Button onClick={onClose}>{t('common.cancel', 'Cancelar')}</Button>
-          <Button type="submit" tone="brand" disabled={submitting || !selectedProvider}>
+          <Button
+            type="submit"
+            tone="brand"
+            disabled={
+              submitting ||
+              requiresName ||
+              !providers.some((p) => p.id === selectedProvider && p.installed)
+            }
+          >
             <Plus size={14} />
             {submitting ? t('usage.registering') : t('usage.registerProvider', 'Registrar')}
           </Button>

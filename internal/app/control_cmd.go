@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -32,6 +33,7 @@ import (
 	providerspec "github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/core/scheduler"
+	"github.com/IAPro-Community/nexus/internal/hudlink"
 	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/IAPro-Community/nexus/internal/nexus/promotion"
 	"github.com/IAPro-Community/nexus/internal/profile"
@@ -180,11 +182,43 @@ func controlWebCmd(args []string) error {
 		return err
 	}
 
+	// The tray-resident HUD is a companion of the workspace core: started
+	// together and stopped together. It is skipped for remote/LAN servers and
+	// can be disabled with NEXUS_HUD_SPAWN=0.
+	var hudMu sync.Mutex
+	var hudProc *hudlink.Process
+	stopHUDCompanion := func() {
+		hudMu.Lock()
+		proc := hudProc
+		hudProc = nil
+		hudMu.Unlock()
+		if proc != nil {
+			proc.Close()
+		}
+	}
+	startHUDCompanion := func() {
+		if remote || !isLoopbackHost(host) {
+			return
+		}
+		proc, spawnErr := hudlink.Spawn()
+		if spawnErr != nil {
+			fmt.Fprintf(os.Stderr, "nexus web: HUD companion unavailable: %v\n", spawnErr)
+			return
+		}
+		if proc == nil {
+			return
+		}
+		hudMu.Lock()
+		hudProc = proc
+		hudMu.Unlock()
+	}
+
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigChan
 		fmt.Println("\nShutting down Nexus Control Center...")
+		stopHUDCompanion()
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
 		_ = core.Stop(ctx)
@@ -198,6 +232,7 @@ func controlWebCmd(args []string) error {
 		fmt.Printf("URL:       %s\n", core.URL())
 		fmt.Println("Press Ctrl+C to stop the Web Control Center.")
 		fmt.Printf("Reopen from any terminal: %s web open\n", progName())
+		startHUDCompanion()
 
 		if !noOpen {
 			time.Sleep(200 * time.Millisecond)
@@ -205,7 +240,19 @@ func controlWebCmd(args []string) error {
 		}
 	}()
 
-	return core.Start(context.Background())
+	runErr := core.Start(context.Background())
+	stopHUDCompanion()
+	return runErr
+}
+
+// isLoopbackHost reports whether the resolved bind host stays on this machine,
+// which the linked HUD companion requires to attach over loopback.
+func isLoopbackHost(host string) bool {
+	switch strings.ToLower(strings.TrimSpace(host)) {
+	case "", "127.0.0.1", "localhost", "::1":
+		return true
+	}
+	return false
 }
 
 func controlWebReopenCmd(printOnly bool) error {

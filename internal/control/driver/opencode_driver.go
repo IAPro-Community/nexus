@@ -63,7 +63,7 @@ func (d *OpenCodeDriver) EffectiveCaps(ctx context.Context, p model.Profile) Eff
 		Terminal: CapabilityEvidence{
 			Status:          CapabilitySupported,
 			ProviderVersion: version,
-			Mechanism:       terminal.BackendMechanism(),
+			Mechanism:       terminal.BackendMechanismForProvider(d.ProviderID()),
 			Tested:          true,
 		},
 		Attach: CapabilityEvidence{

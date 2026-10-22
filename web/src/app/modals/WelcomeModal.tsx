@@ -14,16 +14,26 @@ import {
 } from 'lucide-react';
 import { Dialog, Button, Badge } from '../../design-system';
 import { nexus } from '../../nexus/api';
+import {
+  deriveFirstRunReadiness,
+  OFFICIAL_PROVIDER_INSTALL_GUIDES,
+} from '../../features/projects/firstRunReadiness';
+import type { ProviderInfo } from '../../types';
 import styles from './WelcomeModal.module.scss';
 
 export const WelcomeModal: React.FC<{
   open: boolean;
   onClose: () => void;
   onStartTour: () => void;
-}> = ({ open, onClose, onStartTour }) => {
+  onOpenAccounts: () => void;
+}> = ({ open, onClose, onStartTour, onOpenAccounts }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'overview' | 'quickstart' | 'shortcuts' | 'system'>(
-    'overview',
+    'quickstart',
+  );
+  const [providers, setProviders] = useState<ProviderInfo[]>([]);
+  const [detectionState, setDetectionState] = useState<'checking' | 'loaded' | 'unavailable'>(
+    'checking',
   );
   const [sysInfo, setSysInfo] = useState<{
     nexus_version: string;
@@ -33,13 +43,27 @@ export const WelcomeModal: React.FC<{
   } | null>(null);
 
   useEffect(() => {
-    if (open) {
-      nexus
-        .getSystemUpdates()
-        .then(setSysInfo)
-        .catch(() => undefined);
-    }
+    if (!open) return;
+    let mounted = true;
+    setDetectionState('checking');
+    void Promise.allSettled([nexus.getSystemUpdates(), nexus.listProviderInstallations()]).then(
+      ([updates, detected]) => {
+        if (!mounted) return;
+        if (updates.status === 'fulfilled') setSysInfo(updates.value);
+        if (detected.status === 'fulfilled') {
+          setProviders(detected.value);
+          setDetectionState('loaded');
+        } else {
+          setDetectionState('unavailable');
+        }
+      },
+    );
+    return () => {
+      mounted = false;
+    };
   }, [open]);
+
+  const readiness = deriveFirstRunReadiness(providers, detectionState);
 
   return (
     <Dialog open={open} onClose={onClose} title={t('welcome.title')}>
@@ -99,6 +123,39 @@ export const WelcomeModal: React.FC<{
           {activeTab === 'quickstart' && (
             <div className="nx-welcome-panel">
               <h4>{t('welcome.quickstartTitle')}</h4>
+              <div className="nx-system-versions-card" role="status" aria-live="polite">
+                <strong>{readiness.title}</strong>
+                <p>{readiness.description}</p>
+                {readiness.status === 'needs-provider' && (
+                  <p>
+                    Instalação oficial:{' '}
+                    {OFFICIAL_PROVIDER_INSTALL_GUIDES.map((guide) => (
+                      <a
+                        key={guide.label}
+                        href={guide.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ marginRight: 12 }}
+                      >
+                        {guide.label}
+                      </a>
+                    ))}
+                  </p>
+                )}
+                <Button
+                  size="sm"
+                  tone="brand"
+                  onClick={() => {
+                    onClose();
+                    onOpenAccounts();
+                  }}
+                >
+                  {readiness.status === 'ready'
+                    ? 'Gerenciar contas de IA'
+                    : 'Configurar contas de IA'}
+                  <ArrowRight size={13} />
+                </Button>
+              </div>
               <div className="nx-quickstart-grid">
                 <div className="nx-quickstart-step">
                   <div className="nx-step-badge">
@@ -174,6 +231,22 @@ export const WelcomeModal: React.FC<{
           {activeTab === 'system' && (
             <div className="nx-welcome-panel">
               <h4>{t('welcome.systemTitle')}</h4>
+              <div className="nx-system-versions-card" role="status" aria-live="polite">
+                <strong>{readiness.title}</strong>
+                <p>{readiness.description}</p>
+                {readiness.status === 'needs-login' && (
+                  <Button
+                    size="sm"
+                    tone="brand"
+                    onClick={() => {
+                      onClose();
+                      onOpenAccounts();
+                    }}
+                  >
+                    Concluir login em Uso/Contas
+                  </Button>
+                )}
+              </div>
               <div className="nx-system-versions-card">
                 <div className="nx-version-row">
                   <span>{t('welcome.nexusVer')}</span>

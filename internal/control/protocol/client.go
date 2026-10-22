@@ -20,7 +20,14 @@ type Client struct {
 
 // NewClient connects to the specified runtime ID.
 func NewClient(runtimeID string) (*Client, error) {
-	conn, err := Dial(runtimeID)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultDialTimeout)
+	defer cancel()
+	return NewClientContext(ctx, runtimeID)
+}
+
+// NewClientContext connects to the specified runtime ID until ctx expires.
+func NewClientContext(ctx context.Context, runtimeID string) (*Client, error) {
+	conn, err := DialContext(ctx, runtimeID)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +169,12 @@ func (c *Client) Reader() *bufio.Reader {
 
 // Ping checks if the SessionHost is alive.
 func (c *Client) Ping() error {
-	_, err := c.Send(CmdPing, nil)
+	return c.PingContext(context.Background())
+}
+
+// PingContext checks if the SessionHost is alive with cancellation support.
+func (c *Client) PingContext(ctx context.Context) error {
+	_, err := c.SendContext(ctx, CmdPing, nil)
 	return err
 }
 
@@ -177,6 +189,20 @@ func (c *Client) Status() (StatusData, error) {
 		return StatusData{}, err
 	}
 	return st, nil
+}
+
+// PingStatusContext checks readiness and returns the minimal process identity
+// carried by the same ping response for startup registration.
+func (c *Client) PingStatusContext(ctx context.Context) (StatusData, error) {
+	resp, err := c.SendContext(ctx, CmdPing, nil)
+	if err != nil {
+		return StatusData{}, err
+	}
+	var status StatusData
+	if err := json.Unmarshal(resp.Data, &status); err != nil {
+		return StatusData{}, err
+	}
+	return status, nil
 }
 
 // Events fetches a bounded, redacted event history without attaching to the

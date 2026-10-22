@@ -95,6 +95,52 @@
   white-space: nowrap;
 }
 
+.readiness {
+  width: min(580px, 94vw);
+  display: grid;
+  gap: 10px;
+}
+
+.readinessHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.readinessTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--nx-text);
+}
+
+.readinessMessage {
+  display: grid;
+  gap: 4px;
+
+  strong {
+    font-size: 0.9rem;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--nx-muted);
+  }
+}
+
+.readinessWarning {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--nx-warning);
+}
+
 .tip {
   max-width: 620px;
   display: flex;
@@ -102,79 +148,6 @@
   gap: 8px;
   color: var(--nx-subtle);
   font-size: 0.857rem;
-}
-
-.templates {
-  width: min(580px, 94vw);
-  display: grid;
-  gap: 8px;
-}
-
-.templatesHeading {
-  font-size: 0.857rem;
-  font-weight: 700;
-  color: var(--nx-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.templatesGrid {
-  display: grid;
-  gap: 8px;
-}
-
-.templateCopy {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.templateCard {
-  display: grid;
-  grid-template-columns: 32px minmax(0, 1fr) 20px;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--nx-border);
-  border-radius: 8px;
-  background: var(--nx-bg-elevated);
-  cursor: pointer;
-  transition: all 0.12s;
-
-  &:hover {
-    border-color: var(--nx-accent);
-    background: var(--nx-surface-2);
-    transform: translateX(3px);
-
-    .templateArrow {
-      color: var(--nx-accent-text);
-      transform: translateX(2px);
-    }
-  }
-
-  strong {
-    font-size: 0.929rem;
-  }
-
-  small {
-    color: var(--nx-muted);
-    font-size: 0.821rem;
-  }
-}
-
-.templateIcon {
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  border-radius: 6px;
-  background: var(--nx-accent-soft);
-  color: var(--nx-accent-text);
-}
-
-.templateArrow {
-  color: var(--nx-subtle);
-  transition: transform 0.12s;
 }
 
 @media (max-height: 600px) {
@@ -214,15 +187,33 @@
     font-size: 0.8rem;
     line-height: 1.25;
   }
-
-  .templateCard {
-    padding: 4px 8px;
-  }
 }
 
 @media (max-width: 720px) {
   .root {
     align-content: start;
     padding: 24px 16px;
+  }
+
+  .readinessHeader {
+    align-items: flex-start;
+  }
+}
+
+.installGuides {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.83rem;
+
+  span {
+    color: var(--nx-muted);
+  }
+
+  a {
+    color: var(--nx-accent-text);
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 }

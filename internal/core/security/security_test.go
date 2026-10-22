@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/IAPro-Community/nexus/internal/core/model"
 )
@@ -203,5 +204,154 @@ func TestIsolationPolicies(t *testing.T) {
 	}
 	if _, err := os.Lstat(filepath.Join(profileStrict, ".ssh")); err == nil {
 		t.Errorf("strict preset MUST NOT share ~/.ssh")
+	}
+}
+
+func TestApplyIsolationPreservesProfileOwnedConfigDirectory(t *testing.T) {
+	hostHome := t.TempDir()
+	t.Setenv("AI_REAL_HOME", hostHome)
+
+	hostConfig := filepath.Join(hostHome, ".config", "opencode")
+	if err := os.MkdirAll(filepath.Join(hostConfig, "node_modules", "large-plugin"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(hostConfig, "opencode.json"), []byte(`{"plugin":"host"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(hostConfig, "node_modules", "large-plugin", "index.js"), []byte("host plugin"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	hostOtherConfig := filepath.Join(hostHome, ".config", "other-tool")
+	if err := os.MkdirAll(hostOtherConfig, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(hostOtherConfig, "settings.json"), []byte(`{"theme":"host"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	profileHome := t.TempDir()
+	profileConfig := filepath.Join(profileHome, ".config", "opencode")
+	if err := os.MkdirAll(profileConfig, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(profileHome, ".config", "other-tool"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	profileConfigFile := filepath.Join(profileConfig, "opencode.json")
+	wantConfig := []byte(`{"plugin":"profile"}`)
+	if err := os.WriteFile(profileConfigFile, wantConfig, 0600); err != nil {
+		t.Fatal(err)
+	}
+	wantModTime := time.Date(2026, time.January, 2, 3, 4, 5, 0, time.UTC)
+	if err := os.Chtimes(profileConfigFile, wantModTime, wantModTime); err != nil {
+		t.Fatal(err)
+	}
+
+	for range 2 {
+		if err := ApplyIsolationPreservingConfigDirs(profileHome, GetPolicy(model.IsolationDeveloper), "opencode"); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	gotConfig, err := os.ReadFile(profileConfigFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(gotConfig) != string(wantConfig) {
+		t.Fatalf("profile config overwritten: got %q, want %q", gotConfig, wantConfig)
+	}
+	info, err := os.Stat(profileConfigFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !info.ModTime().Equal(wantModTime) {
+		t.Fatalf("profile config modification time changed: got %s, want %s", info.ModTime(), wantModTime)
+	}
+	if _, err := os.Stat(filepath.Join(profileConfig, "node_modules", "large-plugin", "index.js")); !os.IsNotExist(err) {
+		t.Fatalf("host-only config tree was copied into profile; stat error = %v", err)
+	}
+	dirInfo, err := os.Lstat(profileConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dirInfo.Mode()&os.ModeSymlink != 0 {
+		t.Fatal("profile-owned config directory was replaced by a link")
+	}
+	otherConfig, err := os.ReadFile(filepath.Join(profileHome, ".config", "other-tool", "settings.json"))
+	if err != nil {
+		t.Fatalf("non-preserved host config was not synchronized: %v", err)
+	}
+	if string(otherConfig) != `{"theme":"host"}` {
+		t.Fatalf("non-preserved host config = %q, want host settings", otherConfig)
+	}
+}
+
+func TestApplyIsolationSeedsEmptyPreservedConfigDirectoryOnce(t *testing.T) {
+	hostHome := t.TempDir()
+	t.Setenv("AI_REAL_HOME", hostHome)
+	hostConfig := filepath.Join(hostHome, ".config", "opencode")
+	if err := os.MkdirAll(hostConfig, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(hostConfig, "opencode.json"), []byte(`{"plugin":"host"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	profileHome := t.TempDir()
+	profileConfig := filepath.Join(profileHome, ".config", "opencode")
+	if err := os.MkdirAll(profileConfig, 0700); err != nil {
+		t.Fatal(err)
+	}
+	policy := GetPolicy(model.IsolationDeveloper)
+	if err := ApplyIsolationPreservingConfigDirs(profileHome, policy, "opencode"); err != nil {
+		t.Fatal(err)
+	}
+	seededConfig := filepath.Join(profileConfig, "opencode.json")
+	seeded, err := os.ReadFile(seededConfig)
+	if err != nil {
+		t.Fatalf("empty profile config was not seeded: %v", err)
+	}
+	if string(seeded) != `{"plugin":"host"}` {
+		t.Fatalf("seeded config = %q, want host config", seeded)
+	}
+
+	wantProfileConfig := []byte(`{"plugin":"profile"}`)
+	if err := os.WriteFile(seededConfig, wantProfileConfig, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := ApplyIsolationPreservingConfigDirs(profileHome, policy, "opencode"); err != nil {
+		t.Fatal(err)
+	}
+	gotProfileConfig, err := os.ReadFile(seededConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(gotProfileConfig) != string(wantProfileConfig) {
+		t.Fatalf("profile config overwritten after initial seed: got %q, want %q", gotProfileConfig, wantProfileConfig)
+	}
+}
+
+func TestApplyIsolationSharesMissingConfigDirectory(t *testing.T) {
+	hostHome := t.TempDir()
+	t.Setenv("AI_REAL_HOME", hostHome)
+	hostConfig := filepath.Join(hostHome, ".config", "opencode")
+	if err := os.MkdirAll(hostConfig, 0700); err != nil {
+		t.Fatal(err)
+	}
+	want := []byte(`{"plugin":"shared"}`)
+	if err := os.WriteFile(filepath.Join(hostConfig, "opencode.json"), want, 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	profileHome := t.TempDir()
+	if err := ApplyIsolation(profileHome, GetPolicy(model.IsolationDeveloper)); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(profileHome, ".config", "opencode", "opencode.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(want) {
+		t.Fatalf("shared config = %q, want %q", got, want)
 	}
 }

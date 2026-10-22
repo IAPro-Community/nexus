@@ -1,0 +1,104 @@
+{
+  "report_version": "1.0.0",
+  "evaluated_at": "2026-10-19T08:06:00-03:00",
+  "project": {
+    "name": "nexus",
+    "repository": "https://github.com/IAPro-Community/nexus",
+    "branch": "release/v1.0.0",
+    "sha": "560a83b20c62611734e934d980b5725c3ef24cf1",
+    "version": "1.0.0-beta.10"
+  },
+  "environment": {
+    "os": "Windows 11 Home Single Language",
+    "build": "10.0.26200",
+    "arch": "AMD64",
+    "webview2_version": "155.0.4283.62",
+    "conpty_available": true,
+    "powershell_version": "5.1.26100.9711",
+    "pwsh_version": "7.x",
+    "go_version": "go1.25.14 windows/amd64",
+    "bun_version": "1.3.9",
+    "node_version": "v24.21.0"
+  },
+  "verdict": "NO_GO_WINDOWS",
+  "verdict_rationale": "Blocked by TypeScript compilation failure (TS2551 in NexusHud.tsx), install.ps1 empty string crash on -InstallDir, and absence of published prebuilt release assets on IAPro-Community/nexus-releases.",
+  "blocking_issues": [
+    {
+      "id": "ISSUE-01",
+      "severity": "BLOCKER",
+      "title": "TypeScript compilation error in NexusHud.tsx",
+      "file": "web/src/features/hud/NexusHud.tsx",
+      "line": 533,
+      "command": "bun run --cwd web typecheck",
+      "exit_code": 2,
+      "remediation": "Change 'known-partial' to 'known-part'"
+    },
+    {
+      "id": "ISSUE-02",
+      "severity": "BLOCKER",
+      "title": "install.ps1 crash on custom -InstallDir",
+      "file": "install.ps1",
+      "line": 204,
+      "command": ".\\install.ps1 -BuildFromSource -InstallDir <dir> -Yes",
+      "exit_code": 1,
+      "remediation": "Add null/empty check before Test-Path $LegacyTargetDir"
+    },
+    {
+      "id": "ISSUE-03",
+      "severity": "BLOCKER",
+      "title": "Absence of prebuilt release assets on IAPro-Community/nexus-releases",
+      "file": "install.ps1",
+      "command": ".\\install.ps1 -Version latest",
+      "exit_code": 1,
+      "remediation": "Publish signed release assets with Ed25519 signature to GitHub releases"
+    }
+  ],
+  "gates": {
+    "go_domain_tests": { "status": "PASS", "duration_sec": 565 },
+    "web_typecheck": { "status": "FAIL", "exit_code": 2 },
+    "web_lint": { "status": "PASS", "exit_code": 0 },
+    "web_test": { "status": "PASS", "total_passed": 565, "total_files": 90 },
+    "web_build": { "status": "PASS", "bundle_ready": true },
+    "tokenbar_certification": { "status": "FAIL", "reason": "gofmt on capacity_lifecycle_test.go" },
+    "beta_homologation_script": { "status": "BLOCKED", "reason": "Requires Go 1.26.9" },
+    "conpty_tests": { "status": "PASS", "subtests_passed": 6 },
+    "desktop_hud_tests": { "status": "PASS", "subtests_passed": 19 }
+  },
+  "first_run_scenarios": {
+    "scenario_a_zero_providers": {
+      "status": "PASS",
+      "project_shell_available": true,
+      "tokens_invented": false
+    },
+    "scenario_b_codex_authenticated": {
+      "status": "PASS",
+      "detected_cli": "codex-cli 0.163.0",
+      "credentials_preserved": true
+    },
+    "scenario_c_unauthenticated": {
+      "status": "PASS",
+      "reports_auth_required": true,
+      "false_readiness": false
+    },
+    "scenario_d_multi_account": {
+      "status": "PASS",
+      "independent_hashes": true,
+      "security_isolation_passed": true
+    },
+    "scenario_e_persistence_sqlite": {
+      "status": "PASS",
+      "data_preserved_across_restart": true
+    }
+  },
+  "project_registration": {
+    "spaces_path": "PASS",
+    "unicode_accents_path": "PASS",
+    "git_path": "PASS",
+    "windows_placeholder": "C:\\Projetos\\meu-repositorio"
+  },
+  "terminal_conpty": {
+    "arrow_input_forwarding": "PASS",
+    "escape_coalescence": "PASS",
+    "interception_prevention": "PASS"
+  }
+}

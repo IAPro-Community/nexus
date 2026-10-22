@@ -1,6 +1,9 @@
 package quota
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestEvaluateEligibilityGates(t *testing.T) {
 	live := QuotaView{Status: "LIVE", Available: true}
@@ -14,6 +17,36 @@ func TestEvaluateEligibilityGates(t *testing.T) {
 		{
 			name: "live ok",
 			in:   EligibilityInput{View: live, Authenticated: true, Health: "healthy"},
+			want: ReasonOK,
+			ok:   true,
+		},
+		{
+			name: "outdated estimated capacity cannot steer automatic routing",
+			in: EligibilityInput{
+				View:          QuotaView{Status: "ESTIMATED", Available: true, FetchedAt: time.Now().Add(-25 * 24 * time.Hour)},
+				Authenticated: true,
+				Health:        "healthy",
+			},
+			want: ReasonUnknownQuota,
+			ok:   false,
+		},
+		{
+			name: "outdated official rate limit is no longer a current block",
+			in: EligibilityInput{
+				View:          QuotaView{Status: "RATE_LIMITED", Available: false, FetchedAt: time.Now().Add(-25 * 24 * time.Hour), AvailReasons: AvailReasons{RateLimited: true}},
+				Authenticated: true,
+				Health:        "healthy",
+			},
+			want: ReasonUnknownQuota,
+			ok:   false,
+		},
+		{
+			name: "fresh estimate still eligible when all other gates pass",
+			in: EligibilityInput{
+				View:          QuotaView{Status: "ESTIMATED", Available: true, FetchedAt: time.Now().Add(-1 * time.Minute)},
+				Authenticated: true,
+				Health:        "healthy",
+			},
 			want: ReasonOK,
 			ok:   true,
 		},

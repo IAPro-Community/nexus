@@ -1,5 +1,6 @@
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { Network } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button, EmptyState } from '../design-system';
 import { recoverOrStartAgent } from '../nexus/agentRecover';
 import { isLiveRuntimeState, runtimeIdFromRecoverResult } from '../nexus/agentTerminalModel';
@@ -28,6 +29,7 @@ import { surfaceViewId } from '../workspace/model';
 import { useWorkspacePresentation } from '../workspace/WorkspacePresentationProvider';
 import { SurfaceLoadingFallback } from './SurfaceLoadingFallback';
 import { mapDurableActivity } from './activityModel';
+import { COMPOSER_FLOW_ENABLED, isExperimentalComposerFlowSurface } from './composerFlowFlag';
 
 // Lazy-loaded Surfaces to isolate heavy dependencies (xterm.js, DAG canvas, settings)
 const ProjectManagerSurface = React.lazy(() =>
@@ -187,6 +189,15 @@ export const WorkspaceSurfaceHost: React.FC<{
   const config = (target: Agent) => openSurface(agentConfigSurface(target.id, target.name));
 
   const renderSurfaceContent = () => {
+    if (!COMPOSER_FLOW_ENABLED && isExperimentalComposerFlowSurface(surface.type)) {
+      return (
+        <EmptyState
+          title={t('surfaces.unavailable', 'Feature unavailable')}
+          hint={t('surfaces.experimentalDisabled', 'Composer and Flow are under validation.')}
+          action={<Button onClick={() => open('overview')}>{t('surfaces.openOverview')}</Button>}
+        />
+      );
+    }
     if (surface.type === 'projects') {
       return (
         <ProjectManagerSurface
@@ -207,15 +218,16 @@ export const WorkspaceSurfaceHost: React.FC<{
           project={project}
           agents={agents}
           runtimes={runtimes}
-          flowRuns={flowRuns}
+          flowRuns={COMPOSER_FLOW_ENABLED ? flowRuns : []}
           onOpenAgent={(agent, runtimeId) => terminal(agent, '', runtimeId || '')}
           refreshAgents={refreshAgents}
           onNewAgent={() => window.dispatchEvent(new CustomEvent('nexus:new-agent'))}
           onConfigureAgent={config}
           onNewAISession={() => window.dispatchEvent(new CustomEvent('nexus:new-ai-session'))}
           onProjectShell={() => window.dispatchEvent(new CustomEvent('nexus:project-shell'))}
-          onOpenComposer={() => open('work')}
-          onOpenFlow={() => open('missions')}
+          onOpenComposer={COMPOSER_FLOW_ENABLED ? () => open('work') : undefined}
+          onOpenFlow={COMPOSER_FLOW_ENABLED ? () => open('missions') : undefined}
+          onOpenResources={() => open('resources')}
           onOpenSettings={() => open('settings')}
         />
       );
@@ -428,7 +440,39 @@ export const WorkspaceSurfaceHost: React.FC<{
     }
 
     if (surface.type === 'resources') {
-      return <UsageSurface />;
+      const openProviderShell = (provider: string, profile: string, login: boolean) => {
+        const command = login
+          ? `nexus login ${provider} ${profile}`
+          : `nexus ${provider}:${profile}`;
+        if (!login) {
+          void navigator.clipboard?.writeText(command).catch(() => undefined);
+        }
+        void nexus
+          .startProjectShell(project.id)
+          .then((result) => {
+            openSurface(
+              projectShellSurface(
+                project.id,
+                result.runtime.runtime_id,
+                `${login ? 'Login' : 'Provider'} · ${provider}:${profile}`,
+              ),
+            );
+            toast.info(
+              `Execute ${command} no terminal. Copie o comando manualmente se necessário.`,
+            );
+          })
+          .catch((err) => {
+            toast.error(err instanceof Error ? err.message : String(err));
+          });
+      };
+      return (
+        <UsageSurface
+          onStartTerminalLogin={(provider, profile) => openProviderShell(provider, profile, true)}
+          onOpenProviderTerminal={(provider, profile) =>
+            openProviderShell(provider, profile, false)
+          }
+        />
+      );
     }
 
     if (surface.type === 'maestro') {

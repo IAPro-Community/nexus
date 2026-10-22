@@ -207,14 +207,14 @@ func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Stop may have cancelled a startup while StartTunnel was fetching or
+	// Stop may have canceled a startup while StartTunnel was fetching or
 	// launching cloudflared. Never publish a process after that cancellation.
 	tm.mu.Lock()
 	if err := ctx.Err(); err != nil {
 		tm.starting = false
 		tm.mu.Unlock()
 		_ = tunnel.Stop()
-		writeError(w, http.StatusConflict, "tunnel startup cancelled")
+		writeError(w, http.StatusConflict, "tunnel startup canceled")
 		return
 	}
 	// Arm auth fail-closed before readiness. Register the tunnel under the

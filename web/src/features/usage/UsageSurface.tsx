@@ -48,7 +48,10 @@ const monitorSeverityRank = (state: string): number => {
   }
 };
 
-export const UsageSurface: React.FC = () => {
+export const UsageSurface: React.FC<{
+  onStartTerminalLogin?: (provider: string, profile: string) => void;
+  onOpenProviderTerminal?: (provider: string, profile: string) => void;
+}> = ({ onStartTerminalLogin, onOpenProviderTerminal }) => {
   const { t } = useTranslation();
   const [accounts, setAccounts] = useState<ProviderAccount[]>([]);
   const [policy, setPolicy] = useState('BALANCED');
@@ -432,6 +435,7 @@ export const UsageSurface: React.FC = () => {
                           onRefreshNeeded={() => refresh(account.provider, account.profile)}
                           onCapacityChange={() => void load()}
                           onRequestLogin={(acc) => setLoginAccount(acc)}
+                          onOpenTerminal={onOpenProviderTerminal}
                           onRequestExplain={() => setShowExplain(true)}
                           onAddProfile={(prov) => {
                             setAddAccountTargetProvider(prov);
@@ -452,6 +456,7 @@ export const UsageSurface: React.FC = () => {
                   result={recommend}
                   error={recommendError}
                   onRequestExplain={() => setShowExplain(true)}
+                  onOpenTerminal={onOpenProviderTerminal}
                 />
                 <UsagePolicyPanel policy={policy} />
               </aside>
@@ -464,6 +469,7 @@ export const UsageSurface: React.FC = () => {
         account={loginAccount}
         isOpen={Boolean(loginAccount)}
         onClose={() => setLoginAccount(null)}
+        onStartTerminalLogin={onStartTerminalLogin}
         onLoginSuccess={async () => {
           await refresh();
         }}
@@ -477,10 +483,20 @@ export const UsageSurface: React.FC = () => {
           setAddAccountTargetProvider('');
         }}
         onRegistered={async (prov, name) => {
-          await refresh();
-          // Prompt login if new account needs it
-          const newlyAdded = accounts.find((a) => a.provider === prov && a.profile === name);
-          if (newlyAdded) setLoginAccount(newlyAdded);
+          // Use the fresh server response rather than the stale render closure.
+          try {
+            const latest = await nexus.listResources();
+            applyPayload(latest);
+            void loadInstalledProviders();
+            const newlyAdded = (latest.accounts || []).find(
+              (a) => a.provider === prov && a.profile === name,
+            );
+            if (newlyAdded && !newlyAdded.authenticated) setLoginAccount(newlyAdded);
+          } catch {
+            setError(
+              'Conta registrada, mas ainda não foi possível consultar o estado do login. Atualize a lista para continuar.',
+            );
+          }
         }}
       />
 

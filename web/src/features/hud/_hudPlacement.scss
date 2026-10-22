@@ -1,0 +1,106 @@
+.root[data-surface='docked'] .dragHandle {
+  display: none;
+}
+
+.root:not([data-native='true'])[data-dock='top'] .panel {
+  flex-direction: column-reverse;
+}
+
+.root:not([data-native='true'])[data-dock='top'] .hoverCard {
+  top: calc(100% + 10px);
+  bottom: auto;
+}
+
+.root[data-native='true'] {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 8px;
+}
+
+.root[data-native='true'] .panel {
+  width: 100%;
+  max-width: 100%;
+}
+
+.root[data-native='true'] .capsuleRow {
+  width: 100%;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.root[data-native='true'] .capsule {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  flex: 1;
+
+  --wails-draggable: no-drag;
+}
+
+.root[data-native='true'] .capsule * {
+  --wails-draggable: no-drag;
+}
+
+.root[data-native='true'] .popover {
+  width: 100%;
+  max-width: 100%;
+  max-height: calc(100vh - 68px);
+}
+
+.root[data-native='true'] .hoverCard {
+  display: none;
+}
+
+// Detached panel is its own Wails window. The compact capsule is not drawn
+// here, so the popover can use the viewport without reserving 60px below it.
+.root[data-detached-view='popover'] .popover {
+  width: 100%;
+  max-width: 100%;
+  max-height: calc(100vh - 16px);
+
+  // Only animate composited properties. Do not animate the native window's
+  // geometry: it would resize a large invisible hit-testing rectangle.
+  animation: hud-popup-enter 150ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  transform-origin: 90% 90%;
+}
+
+@keyframes hud-popup-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 520px) {
+  .root:not([data-native='true']) {
+    right: 10px;
+    bottom: 10px;
+  }
+  .popover {
+    width: min(316px, calc(100vw - 20px));
+    max-height: 60vh;
+  }
+  .capsule {
+    height: 42px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .capsule,
+  .track > .fill,
+  .hoverCard {
+    transition: none;
+  }
+
+  .root[data-detached-view='popover'] .popover {
+    animation: none;
+  }
+}

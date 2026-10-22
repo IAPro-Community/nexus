@@ -85,7 +85,18 @@ if (existsSync(manifestPath)) {
     if (!item.id) errors.push('visual manifest item has no id');
     else if (itemById.has(item.id)) errors.push(`visual manifest duplicate id: ${item.id}`);
     else itemById.set(item.id, item);
-    if (item.status !== 'PASS') errors.push(`visual manifest item is not PASS: ${item.id || '(unknown)'}`);
+    const historicalNative = item.id === 'VIS-011' &&
+      item.status === 'HISTORICAL' &&
+      item.source_sha !== manifest.source_sha;
+    if (item.status !== 'PASS' && !historicalNative) {
+      errors.push(`visual manifest item is not verified: ${item.id || '(unknown)'}`);
+    }
+    if (item.id !== 'VIS-011' && item.source_sha !== manifest.source_sha) {
+      errors.push(`visual capture has a different source SHA: ${item.id || '(unknown)'}`);
+    }
+    if (item.id === 'VIS-011' && item.source_sha !== manifest.source_sha && !historicalNative) {
+      errors.push('historical Desktop capture cannot be marked PASS');
+    }
     for (const field of ['surface', 'scenario', 'viewport', 'capture_command', 'source_sha', 'data_classification']) {
       if (!item[field]) errors.push(`visual manifest item ${item.id || '(unknown)'} missing ${field}`);
     }
@@ -111,13 +122,26 @@ if (existsSync(manifestPath)) {
     errors.push('visual manifest has invalid source_sha');
   }
   if (manifest.source_sha) {
-    const visualPaths = ['web/src', 'web/public', 'cmd/nexus-desktop', 'internal/desktop', 'web/scripts'];
+    const visualPaths = [
+      'web/src',
+      'web/public',
+      'cmd/nexus-desktop',
+      'internal/desktop',
+      'web/scripts/docs-capture.mjs',
+      'web/scripts/maestro-visual-verify.mjs',
+      'web/scripts/task-preparation-visual-verify.mjs',
+    ];
     const diff = spawnSync('git', ['diff', '--name-only', `${manifest.source_sha}..HEAD`, '--', ...visualPaths], {
       cwd: root,
       encoding: 'utf8',
     });
-    if (diff.status === 0 && (diff.stdout || '').trim()) {
-      errors.push(`visual manifest is stale after visual changes since ${manifest.source_sha}: ${(diff.stdout || '').trim().replace(/\n/g, ', ')}`);
+    if (diff.status !== 0) {
+      errors.push(
+        'visual manifest provenance cannot be verified; fetch full Git history ' +
+        '(checkout fetch-depth: 0) and retry source SHA ' + manifest.source_sha,
+      );
+    } else if ((diff.stdout || '').trim()) {
+      errors.push(`visual manifest is stale after visual changes since ${manifest.source_sha}: ${(diff.stdout || '').trim().replace(/\\n/g, ', ')}`);
     }
     // A manifest is evidence for an immutable candidate.  Comparing only
     // against HEAD would incorrectly pass while visual files are dirty in
@@ -147,6 +171,10 @@ for (const file of ['README.md', 'README.en.md', 'README.es.md']) {
     if (!text.includes(phrase)) errors.push(`${file} missing required phrase: ${phrase}`);
   }
 }
+const catalogGate = spawnSync(process.execPath, [path.join(root, 'scripts/verify-feature-catalog.mjs')], { cwd: root, encoding: 'utf8' });
+if (catalogGate.status !== 0) errors.push('feature catalog gate failed: ' + (catalogGate.stderr || catalogGate.stdout || 'unknown error').trim());
+const releaseDocsGate = spawnSync(process.execPath, [path.join(root, 'scripts/verify-release-docs.mjs')], { cwd: root, encoding: 'utf8' });
+if (releaseDocsGate.status !== 0) errors.push('release docs contract gate failed: ' + (releaseDocsGate.stderr || releaseDocsGate.stdout || 'unknown error').trim());
 if (errors.length) {
   console.error(errors.map((error) => `✗ ${error}`).join('\n'));
   process.exitCode = 1;

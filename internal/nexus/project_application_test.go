@@ -3,6 +3,8 @@ package nexus
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -40,5 +42,29 @@ func TestProjectApplicationServiceRejectsCanceledContext(t *testing.T) {
 
 	if _, err := service.List(ctx); !errors.Is(err, context.Canceled) {
 		t.Fatalf("list error = %v, want context canceled", err)
+	}
+}
+
+func TestProjectApplicationServiceRejectsInvalidDirectories(t *testing.T) {
+	n := openTestNexus(t)
+	service := NewProjectApplicationService(n)
+	root := t.TempDir()
+	missing := filepath.Join(root, "not-created")
+	if _, err := service.Create(context.Background(), "Missing", missing); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("missing directory error = %v, want os.ErrNotExist", err)
+	}
+	file := filepath.Join(root, "regular-file.txt")
+	if err := os.WriteFile(file, []byte("test"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Create(context.Background(), "File", file); err == nil {
+		t.Fatal("project registration accepted a regular file as a directory")
+	}
+	projects, err := service.List(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(projects) != 0 {
+		t.Fatalf("invalid paths persisted project records: %+v", projects)
 	}
 }

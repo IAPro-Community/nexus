@@ -1,0 +1,451 @@
+.nx-workspace-host {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      circle at 80% 0%,
+      color-mix(in srgb, var(--nx-accent) 5%, transparent),
+      transparent 36%
+    ),
+    var(--nx-bg);
+}
+.nx-workspace {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  padding: 6px;
+  gap: 0;
+}
+.nx-workspace--maximized,
+.nx-workspace--compact {
+  padding: 0;
+}
+.nx-workspace-split {
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  display: flex;
+}
+.nx-workspace-split[data-direction="vertical"] {
+  flex-direction: column;
+}
+.nx-workspace-split__pane {
+  min-width: 0;
+  min-height: 0;
+  flex-grow: 1;
+  overflow: hidden;
+}
+.nx-workspace-splitter {
+  flex: 0 0 6px;
+  display: grid;
+  place-items: center;
+  color: transparent;
+  cursor: col-resize;
+  touch-action: none;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+.nx-workspace-split[data-direction="vertical"] > .nx-workspace-splitter {
+  cursor: row-resize;
+}
+.nx-workspace-splitter:hover,
+.nx-workspace-splitter:focus {
+  background: var(--nx-accent-soft);
+  color: var(--nx-accent-text);
+}
+.nx-workspace-stack {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 36px minmax(0, 1fr);
+  border: 1px solid var(--nx-border);
+  border-radius: 9px;
+  background: var(--nx-bg-elevated);
+  overflow: hidden;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+}
+.nx-workspace-stack__tabs {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--nx-border);
+  background: var(--nx-surface);
+}
+.nx-workspace-tabs {
+  min-width: 0;
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+}
+.nx-workspace-tab {
+  min-width: 90px;
+  max-width: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 11px;
+  border: 0;
+  border-right: 1px solid var(--nx-border);
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: var(--nx-muted);
+  font-size: 0.857rem;
+  font-weight: 550;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+.nx-workspace-tab > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nx-workspace-tab[data-active="true"] {
+  background: var(--nx-bg-elevated);
+  color: var(--nx-text);
+  box-shadow: inset 0 -2px var(--nx-accent);
+}
+/* Tab + close-affordance wrapper. role=tablist may own only tabs, so the ×
+   is a decorative mouse-only affordance (aria-hidden, not focusable); the
+   keyboard close path is Delete on the tab or its context menu. */
+.nx-workspace-tab__item {
+  display: flex;
+  align-items: stretch;
+  border-right: 1px solid var(--nx-border);
+}
+.nx-workspace-tab__item > .nx-workspace-tab {
+  flex: 1 1 auto;
+  border-right: 0;
+}
+.nx-workspace-tab__item > .nx-workspace-tab__close {
+  align-self: center;
+  margin-right: 6px;
+}
+.nx-workspace-tab__close {
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  border-radius: 4px;
+  color: var(--nx-subtle);
+  cursor: pointer;
+}
+.nx-workspace-tab__close:hover {
+  background: var(--nx-danger-soft);
+  color: var(--nx-danger);
+}
+.nx-workspace-tab__attention-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--nx-warning);
+  box-shadow: 0 0 6px var(--nx-warning);
+  flex-shrink: 0;
+}
+.nx-workspace-tab[data-attention="true"] {
+  border-color: color-mix(in srgb, var(--nx-warning) 30%, var(--nx-border));
+}
+.nx-workspace-stack__actions {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  border-left: 1px solid var(--nx-border);
+  background: var(--nx-surface);
+}
+.nx-workspace-stack__body {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.nx-workspace-panel {
+  position: absolute;
+  inset: 0;
+  min-width: 0;
+  min-height: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.nx-workspace-panel[data-active="true"] {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* 1366x768 laptops: preserve usable workspace area without shrinking controls below
+   their keyboard and pointer-friendly hit targets. */
+@media (min-width: 821px) and (max-width: 1366px) and (max-height: 820px) {
+  .nx-topbar {
+    gap: 8px;
+    padding-inline: 10px;
+  }
+
+  .nx-project-rail__brand {
+    padding-inline: 10px;
+  }
+
+  .nx-rail-section-header {
+    padding-inline: 8px;
+  }
+
+  .nx-rail-item-btn {
+    min-height: 32px;
+    padding-inline: 8px;
+  }
+
+  .nx-rail-tool-btn {
+    min-height: 32px;
+  }
+
+  .nx-workspace-stack {
+    grid-template-rows: 32px minmax(0, 1fr);
+  }
+
+  .nx-workspace-tab {
+    min-width: 76px;
+    gap: 5px;
+    padding-inline: 8px;
+  }
+
+  .nx-workspace-taskbar {
+    padding-inline: 8px;
+  }
+
+  .nx-workspace-taskbar button {
+    min-height: 32px;
+    padding-inline: 8px;
+  }
+}
+
+.nx-workspace-taskbar {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-top: 1px solid var(--nx-border);
+  background: var(--nx-bg-elevated);
+  overflow-x: auto;
+}
+.nx-workspace-taskbar button {
+  height: 30px;
+  max-width: 170px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--nx-muted);
+  font-size: 0.821rem;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.nx-workspace-taskbar button:hover,
+.nx-workspace-taskbar button[data-active="true"] {
+  border-color: var(--nx-border);
+  background: var(--nx-surface-2);
+  color: var(--nx-text);
+}
+.nx-workspace-taskbar span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nx-popout-shell {
+  width: 100vw;
+  height: 100vh;
+  background: var(--nx-bg);
+}
+.nx-button,
+.nx-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--nx-border-strong);
+  border-radius: 7px;
+  background: var(--nx-surface-2);
+  color: var(--nx-text-soft);
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s;
+}
+.nx-button {
+  min-height: var(--nx-density-btn-h, 34px);
+  padding: var(--nx-density-pad-btn, 0 14px);
+  font-size: var(--nx-density-font-body, 0.893rem);
+  font-weight: 650;
+}
+.nx-button[data-size="sm"] {
+  min-height: max(26px, var(--nx-density-btn-h, 28px));
+  padding: var(--nx-density-pad-btn, 0 9px);
+  font-size: calc(var(--nx-density-font-body, 0.893rem) - 0.071rem);
+}
+.nx-icon-button {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background: transparent;
+  color: var(--nx-muted);
+}
+.nx-button:hover:not(:disabled),
+.nx-icon-button:hover:not(:disabled) {
+  border-color: var(--nx-border-strong);
+  background: var(--nx-surface-3);
+  color: var(--nx-text);
+}
+.nx-button[data-tone="brand"] {
+  border-color: var(--nx-accent-text);
+  background: var(--nx-accent-text);
+  color: var(--nx-bg);
+}
+.nx-button[data-tone="brand"]:hover:not(:disabled) {
+  background: var(--nx-accent-hover);
+}
+.nx-button[data-tone="danger"] {
+  border-color: color-mix(in srgb, var(--nx-danger) 55%, var(--nx-border));
+  background: var(--nx-danger-soft);
+  color: var(--nx-danger);
+}
+.nx-button[data-tone="warning"] {
+  border-color: color-mix(in srgb, var(--nx-warning) 55%, var(--nx-border));
+  background: var(--nx-warning-soft);
+  color: var(--nx-warning);
+}
+.nx-button[data-tone="ghost"],
+.nx-icon-button[data-tone="ghost"] {
+  border-color: transparent;
+  background: transparent;
+}
+.nx-button:disabled,
+.nx-icon-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.nx-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 3px 8px;
+  border: 1px solid var(--nx-border);
+  border-radius: 999px;
+  background: var(--nx-surface-2);
+  color: var(--nx-muted);
+  font-size: 0.786rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.nx-badge[data-tone="brand"] {
+  border-color: color-mix(in srgb, var(--nx-accent) 38%, var(--nx-border));
+  background: var(--nx-accent-soft);
+  color: var(--nx-accent-text);
+}
+.nx-badge[data-tone="success"] {
+  border-color: color-mix(in srgb, var(--nx-success) 38%, var(--nx-border));
+  background: var(--nx-success-soft);
+  color: var(--nx-success);
+}
+.nx-badge[data-tone="warning"] {
+  border-color: color-mix(in srgb, var(--nx-warning) 38%, var(--nx-border));
+  background: var(--nx-warning-soft);
+  color: var(--nx-warning);
+}
+.nx-badge[data-tone="danger"] {
+  border-color: color-mix(in srgb, var(--nx-danger) 38%, var(--nx-border));
+  background: var(--nx-danger-soft);
+  color: var(--nx-danger);
+}
+.nx-badge[data-tone="info"] {
+  border-color: color-mix(in srgb, var(--nx-info) 38%, var(--nx-border));
+  background: var(--nx-info-soft);
+  color: var(--nx-info);
+}
+.nx-card {
+  min-width: 0;
+  padding: var(--nx-density-pad-card, 14px);
+  gap: var(--nx-density-gap, 10px);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  background: color-mix(in srgb, var(--nx-surface) 97%, transparent);
+}
+.nx-card[data-interactive="true"] {
+  cursor: pointer;
+}
+.nx-card[data-interactive="true"]:hover {
+  border-color: color-mix(in srgb, var(--nx-accent) 35%, var(--nx-border));
+  background: var(--nx-surface-2);
+}
+.nx-input,
+.nx-textarea,
+.nx-select {
+  width: 100%;
+  border: 1px solid var(--nx-border);
+  border-radius: 7px;
+  background: var(--nx-bg-elevated);
+  color: var(--nx-text-soft);
+  font-size: 0.929rem;
+  outline: 0;
+}
+.nx-input,
+.nx-select {
+  min-height: 36px;
+  padding: 0 10px;
+}
+.nx-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 28px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a93a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  cursor: pointer;
+}
+.nx-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.nx-textarea {
+  padding: 10px;
+  resize: vertical;
+  line-height: 1.55;
+}
+.nx-input::placeholder,
+.nx-textarea::placeholder {
+  color: var(--nx-subtle);
+}
+.nx-input:focus,
+.nx-textarea:focus,
+.nx-select:focus,
+.nx-select:focus-visible {
+  border-color: var(--nx-accent);
+  box-shadow: 0 0 0 2px var(--nx-accent-soft);
+}
+.nx-input[data-mono="true"] {
+  font-family: var(--nx-font-mono);
+  font-size: 0.857rem;
+}
+.nx-select-wrap {
+  display: grid;
+  gap: 6px;
+  color: var(--nx-muted);
+  font-size: 0.857rem;
+}
+.nx-select-container {
+  display: inline-block;
+  width: 100%;
+}
