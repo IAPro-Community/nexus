@@ -67,6 +67,7 @@ var (
 		regexp.MustCompile(`(?i)select all that apply`),
 		regexp.MustCompile(`(?i)press\s+(?:space|espaço).{0,40}toggle`),
 		regexp.MustCompile(`(?i)space to (?:select|toggle)`),
+		regexp.MustCompile(`(?i)^press (?:enter|return) to (?:select|confirm)\b`),
 	}
 
 	// Numbered bullets alone are agent narration, not a choice prompt.
