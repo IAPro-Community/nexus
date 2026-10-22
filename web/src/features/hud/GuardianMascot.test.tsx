@@ -23,7 +23,6 @@ describe('Nexus Guardian pixel mascot', () => {
     const html = renderToStaticMarkup(
       <GuardianModeSelector
         appearance="MASCOT"
-        detachedAvailable
         pending={false}
         onSelect={(mode) => selected.push(mode)}
       />,
@@ -35,16 +34,15 @@ describe('Nexus Guardian pixel mascot', () => {
     expect(selected).toEqual([]);
   });
 
-  it('disables the mascot switch when detached popup is not supported', () => {
+  it('keeps mascot selectable without an independent popup', () => {
     const html = renderToStaticMarkup(
       <GuardianModeSelector
         appearance="BAR"
-        detachedAvailable={false}
         pending={false}
         onSelect={() => undefined}
       />,
     );
-    expect(html).toMatch(/Ative &quot;Popup independente&quot; nas configurações do HUD/);
-    expect(html).toContain('disabled=""');
+    expect(html).toContain('Exibir mascote flutuante');
+    expect(html).not.toContain('disabled=""');
   });
 });
