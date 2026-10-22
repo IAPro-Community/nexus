@@ -111,6 +111,10 @@ A publicação de uma nova prévia não comprova homologação gráfica ou
 assinatura; use apenas pacotes do mesmo SHA e mantenha os gates Windows,
 macOS e Linux antes de promover a versão distribuída.
 
+O workflow `unsigned-preview.yml` exige opt-in explícito e roda as suítes
+Go/frontend antes de publicar. Em caso de reprovação não há novos binários:
+a última prévia permanece anterior ao Guardian.
+
 ## Homologação obrigatória antes de liberar por padrão
 
 1. Windows e macOS: alternar 20 vezes Barra → Mascote → Barra; verificar
