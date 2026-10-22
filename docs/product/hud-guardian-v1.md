@@ -19,8 +19,17 @@ das informações exibidas, permanece independente.
 
 ## Opt-in e fallback
 
-A versão atual mantém o popup independente **opt-in** enquanto não houver
-homologação nativa completa:
+O popup independente permanece **opt-in** enquanto não houver
+homologação nativa completa. É possível ativá-lo diretamente no painel
+expandido, pela opção **Popup independente: Sim**. Essa preferência persiste
+sem precisar reiniciar. Após a ativação, o seletor **Barra / Mascote / Bandeja**
+fica disponível.
+
+O menu da bandeja também permite escolher **Guardian: Mascote** em Windows,
+macOS e Linux X11, ativando o popup independente sob demanda. Wayland mantém
+a Barra e desabilita a opção de popup independente.
+
+Para testes e automação ainda é possível usar a variável de ambiente:
 
 ```bash
 NEXUS_HUD_DETACHED_POPOVER=1 ./cmd/nexus-hud/build/bin/nexus-hud
@@ -34,7 +43,9 @@ $env:NEXUS_HUD_DETACHED_POPOVER = '1'
 ```
 
 No painel expandido, os controles **Barra / Mascote / Bandeja**
-alteram a escolha imediatamente e persistem após reinício.
+alteram a escolha imediatamente e persistem após reinício. A bandeja
+nativa disponibiliza um caminho de recuperação quando a interface está
+oculta, inclusive após escolher **Somente bandeja**.
 
 O modo Mascote **não pode ser selecionado** sem o popup independente.
 Quando esta opção não estiver habilitada (ou quando a sessão for
@@ -91,7 +102,11 @@ desconhecida e não consultar os provedores para gerar movimentos.
    offline e `prefers-reduced-motion`; não aceitar flicker, popup em branco
    ou disparos infinitos de avisos.
 6. Click-through: clicar em pontos vazios do retângulo nativo com outro
-   aplicativo atrás. Se o Wails/WebView2 bloquear o clique, registrar NO_GO.
+   aplicativo atrás. O Windows possui um watcher experimental de regiões
+   interativas na cápsula, inclusive no modo popup independente, mas sua
+   eficácia ainda exige vídeo/capturas reais em monitor/DPI diferentes.
+   macOS e Linux ainda carecem de um adaptador de hit-test equivalente.
+   Se o WebView/Wails bloquear o clique, registrar NO_GO.
 7. Executar testes Go/TS, lint, formatação, build e os verificadores nativos
    no **mesmo SHA**. Não reutilizar capturas de commits anteriores.
 
