@@ -356,3 +356,7 @@ Project Hub passou na regressão 775×483, e gates web/E2E e smokes Windows pass
 ### Implantação — 2026-10-22
 
 955b197f implantado localmente: servidor PID 24184 (HTTP 200, commit 955b197f) e HUD PID 21168 --linked com SHA-256 8364a942...4065, o mesmo artefato que passou no harness do Mascote. O estado do usuário estava em TRAY com o popup desligado; o toggle agora fica disponível no painel. Rollback documentado em DEV/validation/mascot-toggle-f789db63/DEPLOYMENT.md.
+
+### Verificação real — 2026-10-22
+
+Instalação exercitada no perfil do usuário: popup habilitado pelo painel, Mascote aplicado e Bandeja restaurada (eal-profile/RESULT.json PASS); app desktop abriu e anexou ao Core existente. Estado final TRAY + detachedPopover: true.

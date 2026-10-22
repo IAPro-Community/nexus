@@ -1785,3 +1785,10 @@ exus-hud.exe 8364a942 (hashes conferem com o build).
 - **PASS** — servidor PID 24184, http://127.0.0.1:13000/ HTTP 200, ersion --json com commit 955b197f, Go 1.26.10, 1.0.0-beta.10; HUD PID 21168 --linked.
 - **PASS** — harness do Mascote no artefato exato (8364a942, commit 955b197f): deployed-artifact/RESULT.json com erdict: PASS e ailed_checks: [].
 - Backup: %TEMP%\nexus-backup-20261022-003138. Detalhes/rollback: DEV/validation/mascot-toggle-f789db63/DEPLOYMENT.md.
+
+### Verificação no perfil real do host — 2026-10-22
+
+- **PASS** — binário instalado (8364a942) no perfil do usuário: painel → `Popup independente: Não` → habilitado (detachedPopover: true, popup criado oculto, cápsula `220x60`) → popup `334x496` → `Mascote` habilitado e aplicado (`136x112`) → `Bandeja` restaurada (`appearance: TRAY`, HUD e popup ocultos). Evidência: `DEV/validation/mascot-toggle-f789db63/real-profile/RESULT.json` (PASS).
+- **PASS** — `nexus-desktop.exe` instalado abriu `IAPro Nexus` `1280x800`, anexou ao Core existente na 13000 e renderizou o workspace real (`DESKTOP_APP.png`).
+- **PASS** — `/api/v1/health` 200 (`1.0.0-beta.10`); rotas protegidas sem sessão retornam 401 `AUTH_REQUIRED`.
+- **NOTA** — o toggle está no rodapé do painel; com muitos provedores é necessário rolar até o fim. Registrado em `real-profile/REAL_PROFILE.md`.

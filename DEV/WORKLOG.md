@@ -5508,3 +5508,10 @@ exus.exe/i.exe 8cd64d5,
 exus-desktop.exe 72b3cc50, 
 exus-hud.exe 8364a942.
 - Servidor PID 24184 com HTTP 200 e commit 955b197f; HUD PID 21168 --linked. Harness do Mascote PASS no artefato exato (deployed-artifact/RESULT.json). Registro completo em DEV/validation/mascot-toggle-f789db63/DEPLOYMENT.md.
+
+### Instalação verificada no host — 2026-10-22
+
+- Perfil real: toggle habilitado no painel, popup criado, Mascote aplicado e Bandeja restaurada — eal-profile/RESULT.json PASS. Estado final ppearance: TRAY + detachedPopover: true.
+- 
+exus-desktop.exe instalado abriu a janela IAPro Nexus e anexou ao Core existente (127.0.0.1:13000), renderizando o workspace real.
+- Achado: o toggle fica no rodapé de um painel rolável; em perfis com muitos provedores exige rolagem. Documentado em DEV/validation/mascot-toggle-f789db63/REAL_PROFILE.md.
