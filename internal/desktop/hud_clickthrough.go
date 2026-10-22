@@ -2,6 +2,7 @@ package desktop
 
 import (
 	"log"
+	"math"
 	"os"
 	"time"
 )
@@ -44,7 +45,14 @@ func (h *HUDController) SetHUDHitRegions(regions []HUDHitRegion) error {
 	}
 	clean := make([]HUDHitRegion, 0, len(regions))
 	for _, region := range regions {
-		if region.Width <= 0 || region.Height <= 0 {
+		// Malformed coordinates must never make the entire Guardian
+		// unclickable. The renderer is trusted for layout, not arithmetic.
+		if region.Width <= 0 || region.Height <= 0 ||
+			region.Width > 16384 || region.Height > 16384 ||
+			math.IsNaN(region.X) || math.IsNaN(region.Y) ||
+			math.IsNaN(region.Width) || math.IsNaN(region.Height) ||
+			math.IsInf(region.X, 0) || math.IsInf(region.Y, 0) ||
+			math.IsInf(region.Width, 0) || math.IsInf(region.Height, 0) {
 			continue
 		}
 		clean = append(clean, region)
