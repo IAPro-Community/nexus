@@ -81,6 +81,18 @@ export interface HudAlert {
   last_observed_at: string;
 }
 
+export interface HudRuntimeAttention {
+  runtime_id: string;
+  agent_id?: string;
+  project_id?: string;
+  project_name?: string;
+  provider: string;
+  reason: string;
+  prompt_kind: 'yn' | 'choice' | 'free_text' | string;
+  fingerprint: string;
+  updated_at: string;
+}
+
 export interface HudCostKindTotal {
   kind: 'PROVIDER_REPORTED' | 'API_EQUIVALENT_ESTIMATE' | 'INFERRED' | 'UNKNOWN' | string;
   microusd: number;
@@ -105,6 +117,7 @@ export interface HudState {
   agents: HudAgent[];
   missions: HudMission[];
   alerts: HudAlert[];
+  runtime_attention?: HudRuntimeAttention[];
   cost?: HudCostSummary;
   primary: { kind: string; id?: string };
   system: {
