@@ -20,9 +20,14 @@ const browser = await chromium.launch({
 
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-  for (const { orientation, width, height } of [
-    { orientation: 'vertical', width: 960, height: 480 },
-    { orientation: 'horizontal', width: 480, height: 720 },
+  for (const { orientation, width, height, ratio } of [
+    { orientation: 'vertical', width: 960, height: 480, ratio: 20 },
+    { orientation: 'vertical', width: 960, height: 480, ratio: 50 },
+    { orientation: 'vertical', width: 960, height: 480, ratio: 80 },
+    { orientation: 'horizontal', width: 480, height: 720, ratio: 20 },
+    { orientation: 'horizontal', width: 480, height: 720, ratio: 50 },
+    { orientation: 'horizontal', width: 480, height: 720, ratio: 80 },
+    { orientation: 'horizontal', width: 360, height: 640, ratio: 50 },
   ]) {
     await page.setContent(`
       <style>
@@ -31,7 +36,7 @@ try {
         ${split}
       </style>
       <div class="splitPanels" data-orientation="${orientation}"
-           style="width:${width}px; height:${height}px; --nx-terminal-split-ratio: 50%">
+           style="width:${width}px; height:${height}px; --nx-terminal-split-ratio: ${ratio}%">
         <div class="nx-workspace-panel splitPane" data-active="true"
              style="order:0">Primary PTY</div>
         <div class="nx-workspace-panel splitPane" data-active="true"
@@ -61,17 +66,17 @@ try {
     assert.equal(geometry.secondaryPosition, 'relative', 'secondary cannot inherit absolute Tabs positioning');
     assert.equal(geometry.hiddenDisplay, 'none', 'third PTY cannot occupy a grid track');
     if (orientation === 'vertical') {
-      assert.ok(primary.width > 150 && secondary.width > 150, 'both PTYs need usable widths');
+      assert.ok(primary.width > 50 && secondary.width > 50, 'both PTYs need usable widths');
       assert.ok(primary.x + primary.width <= divider.x + 1, 'primary cannot overlap the divider');
       assert.ok(divider.x + divider.width <= secondary.x + 1, 'secondary cannot overlap the divider');
       assert.ok(Math.abs(primary.y - secondary.y) <= 1, 'panes must sit in the same grid row');
     } else {
-      assert.ok(primary.height > 150 && secondary.height > 150, 'both PTYs need usable heights');
+      assert.ok(primary.height > 50 && secondary.height > 50, 'both PTYs need usable heights');
       assert.ok(primary.y + primary.height <= divider.y + 1, 'primary cannot overlap the divider');
       assert.ok(divider.y + divider.height <= secondary.y + 1, 'secondary cannot overlap the divider');
       assert.ok(Math.abs(primary.x - secondary.x) <= 1, 'panes must sit in the same grid column');
     }
-    console.log(`PASS terminal split ${orientation} layout`);
+    console.log(`PASS terminal split ${orientation} ${ratio}% (${width}x${height})`);
   }
   await page.close();
 } finally {
