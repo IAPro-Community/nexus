@@ -1,5 +1,13 @@
 # Especificação ativa: IAPro Nexus — Implementação Completa Web + Desktop Multiplataforma
 
+## Estado atualizado — popup independente/Mascote controlável @ f789db63 — 2026-10-22
+
+`release/v1.0.0` em `f789db63` (código). O modo Mascote deixou de ser inalcançável: o popup independente virou preferência persistida (`HUDWindowState.DetachedPopover`) com toggle no painel do HUD (`Popup independente: Sim/Não`), aplicado em runtime sem reiniciar (segunda janela criada sob demanda; ao habilitar a cápsula volta ao tamanho compacto; ao desabilitar restaura BAR e o painel inline). Evidência real em `DEV/validation/mascot-toggle-f789db63/homologation/RESULT.json` (`PASS`, duas sessões com reinício).
+
+Gates: `gofmt`, `go vet`, `go test -count=1 ./...` (Go 1.26.10), Web quality 97/599, build Web e build HUD. HUD SHA-256 `1f3ced07...7929de`.
+
+Pendências inalteradas: click-through do popover destacado, confirmação visual humana, instalador assinado, 4 gates `NOT_RUN`, Codex interativo e matriz cross-platform. Veredito de release: `NO_GO_WINDOWS`. Relatório: `DEV/validation/mascot-toggle-f789db63/HOMOLOGATION.md`.
+
 ## Estado atualizado — click-through do HUD corrigido @ 047f4348 — 2026-10-21
 
 `release/v1.0.0` em `047f4348` (código). O click-through do HUD foi corrigido: o renderer reporta as regiões interativas (`data-hud-panel`) e um watcher nativo de 30 ms alterna `WS_EX_TRANSPARENT` só fora delas, com fail-open. Evidência real: `CLICK_THROUGH=PASS` (canto transparente atravessa para `Nexus ClickTarget`, cápsula continua interativa) em `DEV/validation/local-hud-047f4348/click-through-official/RESULT.json`.

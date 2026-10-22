@@ -1,5 +1,28 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-22 — Archive Branch Cleanup (verificado no remoto)
+
+- **Estado verificado**: 56 refs `archive/*` (55) e `archived/*` (1) **removidos de `origin`** em 2026-10-22. `git ls-remote --heads origin` = **22 heads**, 0 archive; tracking local podado (`fetch --prune`).
+- **Backup preservado**: 69 refs em `refs/backup/archive-20261021/*`; verificação SHA a SHA confirmou cobertura de todos os 56 refs remotos (0 missing).
+- **Achado**: a tentativa de 2026-10-21 não havia surtido efeito no remoto `IAPro-Community/nexus`; a exclusão foi reexecutada em 5 lotes (`git push origin --delete`).
+- **Branches restantes**: 15 ativas (`main`, `release/v1.0.0`, `release/v1.1.0`, 4 feat, 6 fix, 2 integration/refactor) + 7 temporárias `wsl-backup/*`.
+- **Pendente**: `fix/hud-show-restore-v2` (7dec4b83) ainda é local — push + PR contra `release/v1.0.0`; `wsl-backup/*` só saem após o merge do HUD.
+
+---
+
+## 2026-10-21 — Archive Branch Cleanup + HUD Fix Port (7dec4b83)
+
+- **Remote archive cleanup**: 56 `origin/archive/*` e `origin/archived/*` refs removidos após backup local (69 refs em `refs/backup/archive-20261021/*`) — confirmação efetiva em 2026-10-22.
+- **Active branch audit**: 21 non-merged branches inventariadas; 13 integradas/superseded removidas do remoto.
+- **HUD fix retarget**: Fixes from `fix/hud-show-restore` (f52dce5c) ported to new branch `fix/hud-show-restore-v2` based on `release/v1.0.0` (ddb99da4).
+- **Key changes**:
+  - `restoreHUDWindowWhenShown()` uses `sync.OnceFunc` to apply persisted geometry on first `WindowShow` event (fixes clipped capsule on first run when ServiceStartup runs before native window exists).
+  - `CommandNoConsole` flag used in `hudlink.Spawn` so GUI child can show its window (CREATE_NO_WINDOW without SW_HIDE).
+- **Branch status**: `fix/hud-show-restore-v2` at 7dec4b83, ready for PR against `release/v1.0.0`.
+- **Pending**: `wsl-backup/*` branches retained until HUD work is merged; scroll fix (dd278d3a) may be cherry-picked separately if browser validation needed.
+
+---
+
 ## 2026-10-21 — Click-through do HUD nativo (047f4348)
 
 - Defeito de 7d92b942 reproduzido e corrigido: a janela nativa consumia cliques em áreas transparentes porque `pointer-events` do CSS não atravessa o hit-test do SO.
@@ -5467,3 +5490,13 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - PASS — UI Automation no rebuild final: presets `260×70 → 380×560 → 334×496 → 380×560 → 440×640 → 334×496 → 220×60`; alça `24×42`; arraste `-132,-88` px (pedido `-144,-96`); reinício abriu em `220×60` na posição persistida `1524,768`.
 - PASS — capturas nativas e JSON de automação em `.tmp/native-hud-uia-v4/`, `.tmp/native-hud-uia-v3/` e `.tmp/homolog/` (artefatos locais, não versionados).
 - BLOCKED — `docs-verify` continua `FAIL` por alterações visuais não commitadas no worktree (política do gate exige SHA imutável); nenhuma alegação de GO. Linux/macOS do HUD nativo permanecem `NOT_TESTED`.
+## HUD nativo: toggle do popup independente e Mascote — 2026-10-22
+
+- Código 789db63 na elease/v1.0.0, VERSION=1.0.0-beta.10; HUD 
+exus-hud.exe SHA-256 `1f3ced07acc02672dd786c3c39cf87a390da9f315e0e654a9e2505f2ab7929de`.
+- Causa do "Mascote desativado": o modo exigia o popup nativo independente e o popup só era criado com `NEXUS_HUD_DETACHED_POPOVER=1`; nenhum caminho de produção definia a variável, então o botão ficava permanentemente desabilitado.
+- Backend: `HUDWindowState.DetachedPopover` persistido; `Get/SetHUDDetachedPopoverPreference` aplica em runtime via factory de janela (`EnsureDetachedPopup`), sem reiniciar; ao habilitar, a cápsula volta ao tamanho compacto mantendo a âncora inferior direita; desabilitar restaura BAR, tamanho compacto e esconde o popup; falha fechada quando a janela não pode ser criada. `main.go` usa `env || preferência persistida`.
+- Frontend: botão `Popup independente: Sim/Não` no rodapé do painel (cápsula e popup), com estado pendente e toast; poll de 800 ms do capsule passou a reler `getDetachedPopoverEnabled` para não manter expansão/detached velhos depois de mudanças feitas no popup.
+- PASS — `gofmt`, `go vet ./...`, `go test -count=1 ./...` (Go 1.26.10), Web `npm run quality` 97 arquivos/599 testes, build Web e build HUD `production`.
+- PASS — harness real de UI Automation em duas sessões (`scripts/homologate-hud-mascot-toggle-windows.ps1`): habilitar no painel → popup criado oculto → expandir → Mascote habilitado → aplicado; reinício restaura MASCOT + popup; desabilitar no popup → BAR + cápsula 220x60 + popup oculto; painel inline volta a abrir. `RESULT.json` em `DEV/validation/mascot-toggle-f789db63/homologation/`.
+- NOT_TESTED — click-through na segunda janela (popover destacado) e confirmação visual humana; INCONCLUSIVO — matriz Linux X11/macOS; BLOCKED — assinatura/instalador e smokes interativos. Veredito de release continua `NO_GO_WINDOWS`.

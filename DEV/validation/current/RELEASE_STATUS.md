@@ -1,5 +1,14 @@
 # Current release status
 
+> **Atualizacao 2026-10-22:** popup independente e Mascote controlaveis em
+> `f789db63` (HUD SHA-256 `1f3ced07...7929de`). O modo Mascote era
+> inalcancavel porque o popup so existia com `NEXUS_HUD_DETACHED_POPOVER=1`;
+> agora ha um toggle persistido no painel, aplicado em runtime. Evidencia real
+> em `DEV/validation/mascot-toggle-f789db63/homologation/RESULT.json` (PASS,
+> duas sessoes com reinicio). Gates verdes (`gofmt`, `go vet`, `go test ./...`,
+> Web quality 97/599). O veredito segue **NO_GO_WINDOWS** por assinatura e
+> smokes interativos.
+
 > **Atualizacao 2026-10-21 (2):** click-through do HUD corrigido e provado em
 > `047f4348` (HUD SHA-256 `19c5e299...a1e6a5`): clique na area transparente
 > atravessa para a janela atras e a capsula continua interativa. Gates verdes
@@ -25,17 +34,19 @@
 
 CURRENT_CANDIDATE_VERSION: 1.0.0-beta.10
 CURRENT_CANDIDATE_BRANCH: release/v1.0.0
-CURRENT_CANDIDATE_CODE_SHA: 047f43481dfdcd6f2f77072cc2002ea8ee5209df
-CURRENT_CANDIDATE_DOCS_HEAD: pending docs/evidence commit after 047f4348
+CURRENT_CANDIDATE_CODE_SHA: f789db63c8ec9f3498c3822a94ee7c823ec7086c
+CURRENT_CANDIDATE_DOCS_HEAD: pending docs/evidence commit after f789db63
 CURRENT_CANDIDATE_NATIVE_GATES: PASS_AUTOMATED_EXACT_SHA (9 PASS, 4 NOT_RUN)
 CURRENT_CANDIDATE_DISTRIBUTION: NO-GO (sem certificado Authenticode; native-signing com 0 secrets)
 CURRENT_CANDIDATE_CI: RED_BY_INFRA (Playwright CDN TLS) + runs anteriores cancelados por push
 CURRENT_CANDIDATE_HUD_NATIVE_WINDOWS: FUNCTIONAL_PASS_20_20 / CLICK_THROUGH_PASS
+CURRENT_CANDIDATE_HUD_MASCOT_TOGGLE: PASS_EXACT_SHA (f789db63, HUD 1f3ced07)
 CURRENT_CANDIDATE_HUD_CROSS_PLATFORM: INCONCLUSIVE (sem Linux X11 e macOS no mesmo SHA)
 LOCAL_WINDOWS_BETA10_REFERENCE_SHA: 047f43481dfdcd6f2f77072cc2002ea8ee5209df (integral)
 LOCAL_WINDOWS_BETA10_AUTOMATED_GATES: PASS_ON_REFERENCE_SHA_ONLY
 LOCAL_WINDOWS_BETA10_MANUAL_PROVIDER_SMOKES: NOT_RUN
 LOCAL_WINDOWS_BETA10_EVIDENCE: DEV/validation/local-hud-047f4348/HOMOLOGATION.md
+LATEST_HUD_MASCOT_EVIDENCE: DEV/validation/mascot-toggle-f789db63/HOMOLOGATION.md
 CURRENT_RELEASE_HEAD_WINDOWS_EXACT_SHA_GATES: PASS (certify-windows-first-run, Go 1.26.10)
 PREVIOUS_VALIDATION_RECORDS: HISTORICAL_ONLY
 

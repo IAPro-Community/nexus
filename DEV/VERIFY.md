@@ -1763,3 +1763,15 @@ Worktree `C:\Dev\nexus-hud-validation`, base `f6098b8c684a97bf7e8e56804109ca491c
 ## Frontend gate — 2026-10-17T18:34:42Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
+
+## HUD nativo — toggle do popup independente/Mascote — 2026-10-22
+
+Código `f789db63c8ec9f3498c3822a94ee7c823ec7086c`; HUD `nexus-hud.exe` SHA-256 `1f3ced07acc02672dd786c3c39cf87a390da9f315e0e654a9e2505f2ab7929de`. Dossiê: `DEV/validation/mascot-toggle-f789db63/HOMOLOGATION.md`.
+
+- **PASS** — `gofmt` limpo, `go vet ./...`, `go test -count=1 ./...` (Go 1.26.10), Web `npm run quality` 97 arquivos/599 testes, build Web e build HUD `production`.
+- **PASS** — UI Automation em Windows 11 `10.0.26200` (escala 100%), estado isolado, duas sessões no mesmo diretório:
+  - sessão A: `Popup independente: Não` e `Mascote` desabilitado → habilitar → `DetachedPopover=true`, popup criado oculto, cápsula restaurada `220x60` → expandir → popup visível `334x496` com a cápsula ainda `220x60` → `Mascote` habilitado → `Appearance=MASCOT`, cápsula `136x112` renderizando o mascote, popup oculto;
+  - sessão B (reinício): abre em `MASCOT` `136x112` com popup habilitado e oculto → abrir pelo mascote → `Popup independente: Sim` → desabilitar → `Appearance=BAR`, cápsula `220x60`, popup oculto → painel inline volta a abrir com `Popup independente: Não`.
+- **PASS (herdado)** — click-through da janela única permanece no dossiê `local-hud-047f4348`; o watcher segue desativado em modo detached.
+- **NOT_TESTED** — click-through do popover destacado, confirmação visual humana das capturas e matriz Linux X11/macOS.
+- **BLOCKED** — assinatura Authenticode/instalador e smokes interativos de Codex/multi-conta. Veredito de release: **NO_GO_WINDOWS**.
