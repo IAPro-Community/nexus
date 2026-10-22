@@ -349,8 +349,10 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 
 	shadow := promotion.NewLineShadow()
 	pendingPromotion := ""
-	interactiveLead := webInteractiveLeadEnabled(sess) &&
-		!strings.EqualFold(string(webInteractiveDelegationMode(sess)), string(nexus.DelegationOff))
+	// Explicitly enabled Web Lead interception supports user-owned read-only
+	// delegation even when autonomous Mission promotion is OFF. Ordinary Web
+	// terminal sessions without this label remain byte-transparent.
+	interactiveLead := webInteractiveLeadEnabled(sess)
 	if !interactiveLead {
 		shadow.SetEnabled(false)
 	}
@@ -430,6 +432,20 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 		for _, line := range event.Submissions {
 			if promotion.IsImmediateSubmitLine(line) {
 				_ = writeAttachedTerminalInput(rawConn, "\r")
+				continue
+			}
+			if webInteractiveDelegationMode(sess) == nexus.DelegationOff {
+				provider, delegated, delegateErr := h.nexus.ResolveExplicitReadOnlyProviderDelegate(line)
+				if delegateErr != nil || !delegated {
+					_ = writeAttachedTerminalInput(rawConn, "\r")
+					continue
+				}
+				_ = writeAttachedTerminalInput(rawConn, clearLineSequence(sess.ProviderID))
+				_ = safeWriteJSON(TerminalMessage{
+					Type: "promotion", Role: "DELEGATED",
+					Data: fmt.Sprintf("Delegando revisão explícita para %s sem Mission.", provider),
+				})
+				go runPromotedSingleTurnDelegate(h.nexus, sess, line, provider)
 				continue
 			}
 			decideCtx, cancelDecision := context.WithTimeout(r.Context(), promotion.InteractiveDecisionTimeout)
