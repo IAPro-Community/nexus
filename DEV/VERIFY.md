@@ -1775,3 +1775,13 @@ Código `f789db63c8ec9f3498c3822a94ee7c823ec7086c`; HUD `nexus-hud.exe` SHA-256 
 - **PASS (herdado)** — click-through da janela única permanece no dossiê `local-hud-047f4348`; o watcher segue desativado em modo detached.
 - **NOT_TESTED** — click-through do popover destacado, confirmação visual humana das capturas e matriz Linux X11/macOS.
 - **BLOCKED** — assinatura Authenticode/instalador e smokes interativos de Codex/multi-conta. Veredito de release: **NO_GO_WINDOWS**.
+
+### Implantação local — 2026-10-22
+
+- **PASS** — 955b197f instalado em %LOCALAPPDATA%\Programs\IAPro Nexus; 
+exus.exe/i.exe 8cd64d5, 
+exus-desktop.exe 72b3cc50, 
+exus-hud.exe 8364a942 (hashes conferem com o build).
+- **PASS** — servidor PID 24184, http://127.0.0.1:13000/ HTTP 200, ersion --json com commit 955b197f, Go 1.26.10, 1.0.0-beta.10; HUD PID 21168 --linked.
+- **PASS** — harness do Mascote no artefato exato (8364a942, commit 955b197f): deployed-artifact/RESULT.json com erdict: PASS e ailed_checks: [].
+- Backup: %TEMP%\nexus-backup-20261022-003138. Detalhes/rollback: DEV/validation/mascot-toggle-f789db63/DEPLOYMENT.md.

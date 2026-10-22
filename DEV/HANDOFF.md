@@ -2368,3 +2368,8 @@ O modo Mascote deixou de ser inalcançável: o popup independente agora é uma p
 Evidência: `DEV/validation/mascot-toggle-f789db63/HOMOLOGATION.md` + `homologation/RESULT.json` (PASS) e capturas `MASCOT.png`/`BAR_RESTORED.png`. Harness: `scripts/homologate-hud-mascot-toggle-windows.ps1` (duas sessões, UI Automation real, estado isolado).
 
 Fica aberto: click-through do popover destacado, confirmação visual humana, matriz Linux X11/macOS, assinatura Authenticode/instalador e smokes interativos de Codex/multi-conta. Veredito de release: `NO_GO_WINDOWS`.
+
+### Deploy — 2026-10-22
+
+955b197f está instalado no host (
+exus-hud.exe 8364a942, servidor PID 24184 na 13000, HUD PID 21168 --linked). O estado real do usuário estava em ppearance: TRAY com o popup desligado — ao abrir o painel, o toggle aparece como Popup independente: Não. Rollback em DEV/validation/mascot-toggle-f789db63/DEPLOYMENT.md.
