@@ -319,6 +319,23 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   // registry. This view only presents them; it never scrapes raw PTY output.
   const attentionCount = runtimeAttention.length + (activeMission ? 1 : 0);
   const isAttention = Boolean(alert || activeMission || runtimeAttention.length);
+  const notifiedAttention = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    // Only the standalone capsule owns native notifications. The detail
+    // popup and the minimized Nexus workspace must not issue duplicates.
+    if (!native || isDetachedPopup || offline) return;
+    const pending = state?.runtime_attention || [];
+    const currentKeys = new Set(pending.map((item) => `${item.runtime_id}:${item.fingerprint}`));
+    for (const item of pending) {
+      const key = `${item.runtime_id}:${item.fingerprint}`;
+      if (!item.fingerprint || notifiedAttention.current.has(key)) continue;
+      void hudV3.notifyRuntimeAttention(item.runtime_id, item.fingerprint).catch(() => undefined);
+    }
+    // Reopening the same prompt after it was genuinely cleared is a new
+    // attention transition; backend OS delivery is throttled per fingerprint.
+    notifiedAttention.current = currentKeys;
+  }, [native, isDetachedPopup, offline, state?.runtime_attention]);
+
   const displayTone = offline
     ? 'unknown'
     : activeMission || runtimeAttention.length > 0 || alert?.severity.toUpperCase() === 'WARNING'
@@ -1057,6 +1074,11 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               <span className={styles.providerName}>{mainLabel}</span>
               <span className={styles.percent}>{currentPercent}</span>
               <span className={styles.capacityRing} aria-hidden="true" />
+              {runtimeAttention.length > 0 && (
+                <span className={styles.runtimeAttentionBadge} aria-hidden="true">
+                  {runtimeAttention.length > 9 ? '9+' : runtimeAttention.length}
+                </span>
+              )}
               {expanded ? (
                 <ChevronDown size={12} className={styles.chevron} aria-hidden="true" />
               ) : (
