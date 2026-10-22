@@ -46,3 +46,14 @@ func NewService(deps Dependencies) *Service {
 func defaultService() *Service {
 	return NewService(Dependencies{})
 }
+
+func cloneRuntimeLabels(labels map[string]string) map[string]string {
+	if len(labels) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(labels))
+	for key, value := range labels {
+		out[key] = value
+	}
+	return out
+}
