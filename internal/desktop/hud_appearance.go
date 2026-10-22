@@ -32,9 +32,8 @@ func (h *HUDController) SetHUDAppearance(appearance string) error {
 	if !validHUDAppearance(appearance) {
 		return fmt.Errorf("invalid Nexus HUD appearance %q", appearance)
 	}
-	if appearance == HUDAppearanceMascot && !h.GetHUDDetachedPopoverEnabled() {
-		return fmt.Errorf("mascot requires the independent native popup")
-	}
+	// Presentation and expansion strategy are independent. The Mascot works
+	// with the detached detail window or the single-window fallback (Wayland).
 	window, ok := h.nativeWindow()
 	if !ok {
 		return fmt.Errorf("native Nexus HUD window is unavailable")

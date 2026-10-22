@@ -107,20 +107,21 @@ func NewHUDWindowStateManager(filePath string) *HUDWindowStateManager {
 
 func defaultHUDWindowState() HUDWindowState {
 	return HUDWindowState{
-		DisplayID:      "current",
-		Placement:      HUDPlacementBottomRight,
-		X:              24,
-		Y:              24,
-		Width:          220,
-		Height:         60,
-		CompactWidth:   220,
-		CompactHeight:  60,
-		ExpandedWidth:  334,
-		ExpandedHeight: 496,
-		Mode:           "AUTO",
-		Appearance:     HUDAppearanceBar,
-		Opacity:        0.96,
-		AlwaysOnTop:    true,
+		DisplayID:       "current",
+		Placement:       HUDPlacementBottomRight,
+		X:               24,
+		Y:               24,
+		Width:           HUDMascotWidth,
+		Height:          HUDMascotHeight,
+		CompactWidth:    220,
+		CompactHeight:   60,
+		ExpandedWidth:   334,
+		ExpandedHeight:  496,
+		Mode:            "AUTO",
+		Appearance:      HUDAppearanceMascot,
+		Opacity:         0.96,
+		AlwaysOnTop:     true,
+		DetachedPopover: true,
 	}
 }
 
@@ -300,16 +301,9 @@ func NewHUDControllerWithDetachedPopover(manager *HUDWindowStateManager, detache
 	if runtime.GOOS == "linux" && hudSession() == "wayland" {
 		detached = false
 	}
-	// If detached mode is disabled (including Wayland), restore a usable bar
-	// instead of rendering 220 DIP content inside a 108 DIP mascot window.
-	if !detached {
-		state := manager.Load()
-		if state.Appearance == HUDAppearanceMascot {
-			state.Appearance = HUDAppearanceBar
-			state.Width, state.Height = state.CompactWidth, state.CompactHeight
-			_ = manager.Save(state)
-		}
-	}
+	// Appearance is independent of popup strategy. Even on Wayland, a
+	// mascot can open its details using the legacy in-window expansion.
+	// Never overwrite a user-selected mascot with BAR as a side effect.
 	return &HUDController{manager: manager, caps: DefaultHUDPlatformCapabilities(), detached: detached}
 }
 
@@ -538,7 +532,7 @@ func (h *HUDController) SetHUDExpanded(expanded bool) error {
 		return fmt.Errorf("native Nexus HUD window is unavailable")
 	}
 	state := h.manager.Load()
-	targetWidth, targetHeight := state.CompactWidth, state.CompactHeight
+	targetWidth, targetHeight := hudCompactDimensions(state)
 	if expanded {
 		targetWidth, targetHeight = state.ExpandedWidth, state.ExpandedHeight
 	}
@@ -594,7 +588,7 @@ func (h *HUDController) SetHUDSizePreset(preset string, expanded bool) error {
 	state := h.manager.Load()
 	state.CompactWidth, state.CompactHeight = selected.CompactWidth, selected.CompactHeight
 	state.ExpandedWidth, state.ExpandedHeight = selected.ExpandedWidth, selected.ExpandedHeight
-	targetWidth, targetHeight := selected.CompactWidth, selected.CompactHeight
+	targetWidth, targetHeight := hudCompactDimensions(state)
 	if expanded {
 		targetWidth, targetHeight = selected.ExpandedWidth, selected.ExpandedHeight
 	}

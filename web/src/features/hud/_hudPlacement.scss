@@ -50,6 +50,13 @@
   max-height: calc(100vh - 68px);
 }
 
+// Linux Wayland and users who disable the second popup keep the Mascot,
+// but show details in the same native window. Reserve the taller character
+// footprint so the scrollable content is not clipped under it.
+.root[data-native='true'] .panel[data-appearance='MASCOT'] .popover {
+  max-height: calc(100vh - 140px);
+}
+
 .root[data-native='true'] .hoverCard {
   display: none;
 }

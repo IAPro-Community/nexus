@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/core/flags"
 	"github.com/IAPro-Community/nexus/internal/nexus"
 )
@@ -38,6 +39,12 @@ func (h *NexusHandler) handleHUDState(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, err.Error())
 		return
 	}
+	// Read the shared runtime registry on every HUD request, OUTSIDE the
+	// cached capacity/cost projection. A new Codex/Claude/OpenCode approval
+	// must not be delayed by a stale HUD snapshot or focused project filter.
+	state.RuntimeAttention = nexus.BuildHUDRuntimeAttention(
+		registry.DefaultRegistry().List(), strings.TrimSpace(r.URL.Query().Get("project_id")),
+	)
 	writeJSON(w, http.StatusOK, hudResponse{
 		Enabled: true,
 		Rollout: "experimental",

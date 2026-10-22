@@ -1,0 +1,31 @@
+{
+  "platform": "windows",
+  "hud_source": "installed",
+  "verdict": "PASS",
+  "checks": {
+    "state_before": "{\"displayId\":\"65537\",\"displayScale\":1,\"placement\":\"CUSTOM\",\"x\":1700,\"y\":922,\"width\":220,\"height\":60,\"compactWidth\":220,\"compactHeight\":60,\"expandedWidth\":334,\"expandedHeight\":496,\"mode\":\"AUTO\",\"appearance\":\"BAR\",\"opacity\":0.96,\"alwaysOnTop\":true,\"autoHide\":false}",
+    "hud_shown": true,
+    "inline_toggle_text": "Popup independente: Não",
+    "inline_toggle_in_viewport": true,
+    "inline_toggle_rect": "1618,560,149x27",
+    "inline_bounds": "1586,486,334x496",
+    "enabled_from_inline": true,
+    "capsule_compact_after_enable": true,
+    "popup_toggle_text": "Popup independente: Sim",
+    "popup_toggle_in_viewport": true,
+    "popup_toggle_rect": "1618,490,147x27",
+    "popup_bounds": "1586,418,334x496",
+    "disabled_from_popup": true,
+    "inline_reopened": true,
+    "inline_toggle_after_disable": "Popup independente: Não",
+    "re_enabled": true,
+    "mascot_state": true,
+    "capsule_mascot": "136x112",
+    "capsule_is_mascot": true,
+    "tray_restored": true,
+    "hud_hidden": true,
+    "popup_hidden": true,
+    "final_state": "{\"displayId\":\"65537\",\"displayScale\":1,\"placement\":\"CUSTOM\",\"x\":1700,\"y\":922,\"width\":220,\"height\":60,\"compactWidth\":220,\"compactHeight\":60,\"expandedWidth\":334,\"expandedHeight\":496,\"mode\":\"AUTO\",\"appearance\":\"TRAY\",\"opacity\":0.96,\"alwaysOnTop\":true,\"autoHide\":false,\"detachedPopover\":true}",
+    "failed_checks": []
+  }
+}

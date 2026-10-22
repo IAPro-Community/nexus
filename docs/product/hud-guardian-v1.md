@@ -17,34 +17,23 @@ As escolhas são gravadas em `hud-window-state.json` por
 `HUDController.SetHUDAppearance`; `Mode`, que controla a prioridade
 das informações exibidas, permanece independente.
 
-## Opt-in e fallback
+## Apresentação padrão, preferências e Wayland
 
-A versão atual mantém o popup independente **opt-in** enquanto não houver
-homologação nativa completa:
+**O Mascote é padrão na instalação nova**, sem variáveis de ambiente.
+O detalhe em segunda janela também é a configuração inicial preferida em
+Windows, macOS e Linux X11. A aparência (Mascote, Barra, Bandeja) pode
+ser alterada no popup ou no menu nativo da bandeja e persiste no arquivo
+`hud-window-state.json`. Uma escolha explícita anterior do usuário por
+Barra ou Bandeja continua sendo respeitada.
 
-```bash
-NEXUS_HUD_DETACHED_POPOVER=1 ./cmd/nexus-hud/build/bin/nexus-hud
-```
+**Popup independente é preferência de layout, não pré-requisito do Mascote.**
+O usuário pode desativá-lo sem perder o personagem. O Linux Wayland usa
+a expansão dentro da própria janela, porque o compositor pode impedir
+posicionar uma segunda janela com coordenadas globais. O Mascote permanece
+como apresentação padrão também no Wayland.
 
-Em PowerShell:
-
-```powershell
-$env:NEXUS_HUD_DETACHED_POPOVER = '1'
-.\cmd\nexus-hud\build\bin\nexus-hud.exe
-```
-
-No painel expandido, os controles **Barra / Mascote / Bandeja**
-alteram a escolha imediatamente e persistem após reinício.
-
-O modo Mascote **não pode ser selecionado** sem o popup independente.
-Quando esta opção não estiver habilitada (ou quando a sessão for
-Linux Wayland), uma aparência de Mascote salva anteriormente é
-convertida para Barra para não abrir uma janela larga cortada.
-
-A Bandeja pode ser selecionada mesmo no HUD clássico. Após ocultar,
-é possível recuperar o HUD clicando no ícone da bandeja ou escolhendo
-**Mostrar**. O programa continua em modo Bandeja no próximo boot
-até que outra aparência seja escolhida.
+O menu nativo permite recuperar a janela quando está oculta na Bandeja;
+a seleção de uma aparência diferente não exige reinicialização.
 
 ## Animações de caráter exclusivamente visual
 
@@ -76,6 +65,33 @@ desconhecida e não consultar os provedores para gerar movimentos.
 - `web/src/features/hud/NexusHud.tsx`: troca de apresentação e popup.
 - `web/src/platform/wailsV3.ts`: ponte Wails.
 
+## Por que o mascote pode não aparecer em uma versão instalada
+
+A branch `release/v1.0.0` **não é** o mesmo objeto que os executáveis
+já publicados. Cada `preview-<sha>` é uma cópia imutável do commit informado
+em sua página; a atualização da branch não recompila automaticamente os
+ZIPs de previews anteriores nem atualiza o canal de release assinada.
+
+Para identificar um pacote, confira `SOURCE_SHA.txt` no ZIP Windows ou
+TAR Linux. No macOS, compare a página da prévia e o SHA de origem de seus
+artefatos; `nexus-hud` é um aplicativo separado de `nexus-desktop`.
+A prévia precisa incluir o commit que acrescentou
+`GuardianMascot.tsx` e `internal/desktop/hud_appearance.go`.
+
+**Onde escolher:** execute o `nexus-hud` compilado a partir do
+commit atualizado. O Mascote aparece por padrão. Clique nele para abrir
+detalhes e use os controles Barra / Mascote / Bandeja. A bandeja também
+oferece diretamente as três apresentações. No Wayland o painel abre na
+mesma janela; o personagem não é substituído pela Barra automaticamente.
+
+A publicação de uma nova prévia não comprova homologação gráfica ou
+assinatura; use apenas pacotes do mesmo SHA e mantenha os gates Windows,
+macOS e Linux antes de promover a versão distribuída.
+
+O workflow `unsigned-preview.yml` exige opt-in explícito e roda as suítes
+Go/frontend antes de publicar. Em caso de reprovação não há novos binários:
+a última prévia permanece anterior ao Guardian.
+
 ## Homologação obrigatória antes de liberar por padrão
 
 1. Windows e macOS: alternar 20 vezes Barra → Mascote → Barra; verificar
@@ -91,7 +107,11 @@ desconhecida e não consultar os provedores para gerar movimentos.
    offline e `prefers-reduced-motion`; não aceitar flicker, popup em branco
    ou disparos infinitos de avisos.
 6. Click-through: clicar em pontos vazios do retângulo nativo com outro
-   aplicativo atrás. Se o Wails/WebView2 bloquear o clique, registrar NO_GO.
+   aplicativo atrás. O Windows possui um watcher experimental de regiões
+   interativas na cápsula, inclusive no modo popup independente, mas sua
+   eficácia ainda exige vídeo/capturas reais em monitor/DPI diferentes.
+   macOS e Linux ainda carecem de um adaptador de hit-test equivalente.
+   Se o WebView/Wails bloquear o clique, registrar NO_GO.
 7. Executar testes Go/TS, lint, formatação, build e os verificadores nativos
    no **mesmo SHA**. Não reutilizar capturas de commits anteriores.
 

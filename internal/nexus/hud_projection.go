@@ -141,6 +141,7 @@ type HUDState struct {
 	Agents         []HUDAgent         `json:"agents"`
 	Missions       []HUDMission       `json:"missions"`
 	Alerts         []HUDAlert         `json:"alerts"`
+	RuntimeAttention []HUDRuntimeAttention `json:"runtime_attention"`
 	Cost           *HUDCostSummary    `json:"cost,omitempty"`
 	Primary        HUDPrimary         `json:"primary"`
 	System         HUDSystemState     `json:"system"`
@@ -317,6 +318,7 @@ func BuildHUDProjection(input HUDProjectionInput) HUDState {
 		Agents:      buildHUDAgents(input.Agents, input.AgentDetails),
 		Missions:    buildHUDMissions(input.Runs, input.ProjectID),
 		Alerts:      buildHUDAlerts(input.Capacity),
+		RuntimeAttention: []HUDRuntimeAttention{},
 		System:      input.System,
 	}
 	if state.System.CacheTTLMillis == 0 {

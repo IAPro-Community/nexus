@@ -8,8 +8,11 @@ import (
 
 func TestHUDAppearanceNormalizationAndPersistence(t *testing.T) {
 	manager := NewHUDWindowStateManager(filepath.Join(t.TempDir(), "hud.json"))
-	if got := manager.Load().Appearance; got != HUDAppearanceBar {
-		t.Fatalf("new installs should use the original bar: %s", got)
+	if got := manager.Load().Appearance; got != HUDAppearanceMascot {
+		t.Fatalf("new installs must display the Guardian Mascot: %s", got)
+	}
+	if !manager.Load().DetachedPopover {
+		t.Fatal("new installations should prefer the detached popup automatically")
 	}
 	state := manager.Load()
 	state.Appearance = HUDAppearanceMascot
@@ -28,8 +31,8 @@ func TestHUDAppearanceNormalizationAndPersistence(t *testing.T) {
 		if err := manager.Save(state); err != nil {
 			t.Fatal(err)
 		}
-		if actual := manager.Load().Appearance; actual != HUDAppearanceBar {
-			t.Fatalf("%q must recover to bar: %q", invalid, actual)
+		if actual := manager.Load().Appearance; actual != HUDAppearanceMascot {
+			t.Fatalf("%q must recover to the Guardian default: %q", invalid, actual)
 		}
 	}
 }
@@ -55,14 +58,14 @@ func TestGuardianCompactFootprintPreservesScreenAnchor(t *testing.T) {
 func TestDetachedPopoverPreferencePersistsAndFailsClosed(t *testing.T) {
 	manager := NewHUDWindowStateManager(filepath.Join(t.TempDir(), "hud.json"))
 	controller := NewHUDController(manager)
-	if controller.GetHUDDetachedPopoverPreference() {
-		t.Fatal("the independent popup must start disabled on a fresh install")
+	if !controller.GetHUDDetachedPopoverPreference() {
+		t.Fatal("the independent popup should be preferred without an environment variable")
 	}
 	if err := controller.SetHUDDetachedPopoverPreference(true); err == nil {
 		t.Fatal("enabling without a native window factory must fail closed")
 	}
-	if controller.GetHUDDetachedPopoverEnabled() || manager.Load().DetachedPopover {
-		t.Fatal("a failed enable must not persist or change the HUD")
+	if controller.GetHUDDetachedPopoverEnabled() || !manager.Load().DetachedPopover {
+		t.Fatal("failed native enable must not change the persisted default")
 	}
 
 	state := manager.Load()
@@ -83,11 +86,11 @@ func TestDetachedPopoverPreferencePersistsAndFailsClosed(t *testing.T) {
 	if got.DetachedPopover {
 		t.Fatal("disabling must persist the opt-out")
 	}
-	if got.Appearance != HUDAppearanceBar {
-		t.Fatalf("disabling must restore the bar, got %q", got.Appearance)
+	if got.Appearance != HUDAppearanceMascot {
+		t.Fatalf("disabling the popup must preserve the chosen Mascot, got %q", got.Appearance)
 	}
-	if got.Width != got.CompactWidth || got.Height != got.CompactHeight {
-		t.Fatalf("disabling must restore compact geometry: %+v", got)
+	if got.Width != HUDMascotWidth || got.Height != HUDMascotHeight {
+		t.Fatalf("single-window Mascot must remain compact: %+v", got)
 	}
 }
 
@@ -121,11 +124,34 @@ func TestGuardianTrayModeAndFallback(t *testing.T) {
 	if legacy.GetHUDDetachedPopoverEnabled() {
 		t.Fatal("legacy fallback must not enable a second native window")
 	}
-	if manager.Load().Appearance != HUDAppearanceBar {
-		t.Fatal("legacy fallback must recover to a visible full-sized bar")
+	if manager.Load().Appearance != HUDAppearanceMascot {
+		t.Fatal("single-window fallback must preserve the Mascot choice")
 	}
 	if runtime.GOOS == "linux" && hudSession() == "wayland" &&
 		NewHUDControllerWithDetachedPopover(manager, true).GetHUDDetachedPopoverEnabled() {
 		t.Fatal("Wayland cannot force unsupported global popup positioning")
 	}
 }
+
+func TestExplicitBarPreferenceSurvivesMascotDefault(t *testing.T) {
+	manager := NewHUDWindowStateManager(filepath.Join(t.TempDir(), "hud.json"))
+	state := manager.Load()
+	state.Appearance = HUDAppearanceBar
+	state.Width, state.Height = state.CompactWidth, state.CompactHeight
+	state.DetachedPopover = false
+	if err := manager.Save(state); err != nil {
+		t.Fatal(err)
+	}
+	controller := NewHUDControllerWithDetachedPopover(manager, false)
+	if controller.GetHUDAppearance() != HUDAppearanceBar {
+		t.Fatal("explicitly saved BAR must never be replaced with MASCOT")
+	}
+	if manager.Load().DetachedPopover {
+		t.Fatal("explicit opt-out of the independent popup must persist")
+	}
+	restored := compactHUDWindowState(manager.Load())
+	if restored.Width != state.CompactWidth || restored.Height != state.CompactHeight {
+		t.Fatalf("BAR compact geometry must survive a restart: %+v", restored)
+	}
+}
+

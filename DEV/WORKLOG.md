@@ -5515,3 +5515,20 @@ exus-hud.exe 8364a942.
 - 
 exus-desktop.exe instalado abriu a janela IAPro Nexus e anexou ao Core existente (127.0.0.1:13000), renderizando o workspace real.
 - Achado: o toggle fica no rodapé de um painel rolável; em perfis com muitos provedores exige rolagem. Documentado em DEV/validation/mascot-toggle-f789db63/REAL_PROFILE.md.
+
+## Limpeza de branches e sincronização 1.0/1.1 — 2026-10-22
+
+- Remoto `IAPro-Community/nexus`: 56 refs `archive/*`/`archived/*` removidas em 5 lotes após backup SHA-a-SHA; 69 refs preservadas em `refs/backup/archive-20261021/*` (0 SHAs faltantes). `git fetch --prune` executado. Restaram 22 heads.
+- Fix HUD portado para base limpa: `fix/hud-show-restore-v2` @ `27f646ea` (7 arquivos, +155/−4) a partir de `ddb99da4`. Inclui `restoreHUDWindowWhenShown` no primeiro `WindowShow`, `executil.CommandNoConsole` (CREATE_NO_WINDOW sem SW_HIDE), uso no `hudlink.Spawn` e testes de regressão. PR #59 aberto contra `release/v1.0.0`; mergeable, sem conflito.
+- PR #60 `sync/release-v1.0.0-into-v1.1.0-20261022` @ `c01cd04a` aberto e mergeado em `release/v1.1.0`. Conflitos resolvidos: flags (HUD true + flags 1.1), registry (ambos os testes), TerminalPane (input inicial + foco), theme.test (Night + piso 20), SettingsSurface (ThemeAccordionSelector da 1.0).
+- Achado crítico: `release/v1.1.0` não compilava desde ~03/10. Corrigido no sync: `project_manifest.go` com bloco `var` corrompido por merge anterior, `strings.ValidUTF8` inexistente em `computer_coordination.go`, `sshLocationPattern` sem IPv6 entre colchetes, literais escapados quebrados em `ssh_bridge_test.go`, `registeredAccountScope` faltando no launch gerenciado e imports em testes.
+- `feat/orca-worktree-visibility-v1` (#57) e `feat/v1-contextual-workspace-experience` (#58): merge de `release/v1.0.0` @ `0ac9d8ed` sem conflitos, prettier aplicado, gates verdes, push feito.
+- `feat/nexus-companion-v1.1` (#55): base retargetada para `release/v1.1.0`. Merge com a 1.1 conflita em 3 arquivos de HUD porque o Companion e o Guardian Mascot são implementações paralelas; merge abortado e decisão registrada no PR. Permanece draft.
+- `fix/beta8-manual-opaque-quota`: commit `edcd2ab4` não está na 1.0 e o PR #52 foi fechado sem merge. Branch mantida; destino (1.0 x 1.1) pendente de decisão.
+- Evidência: PRs #57/#58 com mergeable=true; #59 mergeable=true; #60 mergeado. Checks "Sanitize self-hosted workspace" ficam `queued` (runner self-hosted), por isso #57/#58 aparecem `unstable`.
+
+### Toggle do popup movido para o topo — 2026-10-22
+
+- `NexusHud.tsx`: o botão `Popup independente` saiu do rodapé e virou `.popupSettingRow` logo abaixo do cabeçalho, com dica `Mascote disponível`/`Necessário para o Mascote`; estilos em `_hudPopover.scss`.
+- Motivo: em perfis com vários provedores o rodapé de `496` DIP ficava fora da janela e o controle só era alcançável rolando.
+- Rebuild web + HUD + servidor + desktop, manifesto visual recapturado em `7eca10d4`, harness PASS em `9b78fb10`, implantado e verificado no perfil real (`TRAY` + popup habilitado).

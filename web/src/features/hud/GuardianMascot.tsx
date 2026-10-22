@@ -55,7 +55,6 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({ mood, attention 
 
 interface GuardianModeSelectorProps {
   appearance: HudAppearance;
-  detachedAvailable: boolean;
   pending: boolean;
   onSelect: (next: HudAppearance) => void;
 }
@@ -63,7 +62,6 @@ interface GuardianModeSelectorProps {
 /** Tiny, keyboard-accessible controls that also fit a 334 DIP native popup. */
 export const GuardianModeSelector: React.FC<GuardianModeSelectorProps> = ({
   appearance,
-  detachedAvailable,
   pending,
   onSelect,
 }) => (
@@ -83,12 +81,10 @@ export const GuardianModeSelector: React.FC<GuardianModeSelectorProps> = ({
           mode === 'BAR'
             ? 'Exibir barra'
             : mode === 'MASCOT'
-              ? detachedAvailable
-                ? 'Exibir mascote flutuante'
-                : 'Ative "Popup independente" nas configurações do HUD para usar o mascote'
+              ? 'Exibir mascote flutuante'
               : 'Ocultar na bandeja (recuperável no ícone do Nexus)'
         }
-        disabled={pending || (mode === 'MASCOT' && !detachedAvailable)}
+        disabled={pending}
         onClick={() => onSelect(mode)}
       >
         {mode === 'BAR' ? 'Barra' : mode === 'MASCOT' ? 'Mascote' : 'Bandeja'}

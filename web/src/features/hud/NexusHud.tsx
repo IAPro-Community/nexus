@@ -50,6 +50,7 @@ export interface NexusHudProps {
   native?: boolean;
   nativeView?: 'capsule' | 'popover';
   onOpenNexus?: () => void;
+  onOpenRuntime?: (attention: import('./hudModel').HudRuntimeAttention) => void;
   onOpenUsage?: () => void;
   onOpenAgents?: () => void;
   onOpenMissions?: () => void;
@@ -72,6 +73,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   native = false,
   nativeView = 'capsule',
   onOpenNexus,
+  onOpenRuntime,
   onOpenUsage,
   onOpenAgents,
   onOpenMissions,
@@ -87,6 +89,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const [appearanceReady, setAppearanceReady] = useState(false);
   const [appearancePending, setAppearancePending] = useState(false);
   const [detachedPending, setDetachedPending] = useState(false);
+  const [nativePopupSupported, setNativePopupSupported] = useState(true);
   const isDetachedPopup = native && nativeView === 'popover';
   const showPopoverContent = shouldRenderHudPopover(expanded, native, nativeView, nativeDetached);
   const [popupPresentation, setPopupPresentation] = useState(0);
@@ -136,14 +139,14 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   useEffect(() => {
     void refresh();
     const onVisible = () => {
-      if (document.visibilityState === 'visible') void refresh();
+      if (native || document.visibilityState === 'visible') void refresh();
     };
     const onFocus = () => void refresh();
     document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('focus', onFocus);
     const timer = window.setInterval(
       () => {
-        if (document.visibilityState === 'visible') void refresh();
+        if (native || document.visibilityState === 'visible') void refresh();
       },
       Math.max(MIN_REFRESH_MS, response?.state?.system.cache_ttl_millis || MIN_REFRESH_MS),
     );
@@ -152,7 +155,23 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       window.removeEventListener('focus', onFocus);
       window.clearInterval(timer);
     };
-  }, [refresh, response?.state?.system.cache_ttl_millis]);
+  }, [refresh, response?.state?.system.cache_ttl_millis, native]);
+
+  useEffect(() => {
+    if (!native) return;
+    let active = true;
+    void hudV3
+      .getCapabilities()
+      .then((caps) => {
+        if (active) {
+          setNativePopupSupported(!(caps.platform === 'linux' && caps.session === 'wayland'));
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [native]);
 
   useEffect(() => {
     const sync = () => setPrefs(loadHudPreferences());
@@ -295,10 +314,14 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const activeAgents = state?.agents.filter(isWorkingAgent) || [];
   const currentMission = state ? hudVisibleMission(state.missions) : undefined;
   const activeMission = currentMission?.needs_user ? currentMission : undefined;
-  const isAttention = Boolean(alert || activeMission);
+  const runtimeAttention = state?.runtime_attention || [];
+  // Terminal waits have already been classified by the canonical runtime
+  // registry. This view only presents them; it never scrapes raw PTY output.
+  const attentionCount = runtimeAttention.length + (activeMission ? 1 : 0);
+  const isAttention = Boolean(alert || activeMission || runtimeAttention.length);
   const displayTone = offline
     ? 'unknown'
-    : activeMission || alert?.severity.toUpperCase() === 'WARNING'
+    : activeMission || runtimeAttention.length > 0 || alert?.severity.toUpperCase() === 'WARNING'
       ? 'warning'
       : focus?.tone || (alert ? 'warning' : 'unknown');
   const displayPercent = hudPercentageFor(focus?.provider, offline);
@@ -353,7 +376,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   };
 
   const chooseAppearance = (next: HudAppearance) => {
-    if (!native || appearancePending || (next === 'MASCOT' && !nativeDetached)) return;
+    if (!native || appearancePending) return;
     setAppearancePending(true);
     void hudV3
       .setAppearance(next)
@@ -369,7 +392,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   };
 
   const toggleDetachedPopover = () => {
-    if (!native || detachedPending) return;
+    if (!native || detachedPending || !nativePopupSupported) return;
     const next = !nativeDetached;
     setDetachedPending(true);
     void hudV3
@@ -377,11 +400,10 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       .then(() => {
         setNativeDetached(next);
         setExpanded(false);
-        if (!next) setNativeAppearance((current) => (current === 'MASCOT' ? 'BAR' : current));
         toast.success(
           next
-            ? 'Popup independente ativado. O modo Mascote está disponível.'
-            : 'Popup independente desativado.',
+            ? 'Popup independente ativado.'
+            : 'Popup independente desativado. Mascote permanece disponível.',
         );
       })
       .catch((error: unknown) => {
@@ -507,13 +529,12 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       : `${currentPercent} restante, ${evidenceCopy}`;
   const capsuleAccessibleLabel = `${expanded ? 'Recolher' : 'Expandir'} Nexus HUD. ${mainLabel}, ${capsuleCapacityCopy}`;
   const mascotAccessibleLabel = isAttention
-    ? `${capsuleAccessibleLabel}. Atenção necessária.`
+    ? `${capsuleAccessibleLabel}. ${attentionCount || 1} intervenção(ões) pendente(s).`
     : capsuleAccessibleLabel;
   const nativeTitle = `${mainLabel}: ${currentPercent} · ${focus?.provider?.limiting_window?.reset_description || 'Renovação desconhecida'}`;
   const tone = waiting ? 'unknown' : displayTone;
   const guardianState = guardianMood(offline || waiting, isAttention, activeAgents.length);
-  const showGuardianMascot =
-    native && nativeDetached && !isDetachedPopup && nativeAppearance === 'MASCOT';
+  const showGuardianMascot = native && !isDetachedPopup && nativeAppearance === 'MASCOT';
   const floatingStyle =
     !native && prefs.surfaceMode === 'floating'
       ? ({
@@ -566,7 +587,6 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 {native && (
                   <GuardianModeSelector
                     appearance={nativeAppearance}
-                    detachedAvailable={nativeDetached}
                     pending={appearancePending}
                     onSelect={chooseAppearance}
                   />
@@ -591,6 +611,68 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 </button>
               </div>
             </div>
+
+            {native && (
+              <div className={styles.popupSettingRow}>
+                <button
+                  type="button"
+                  className={styles.popupToggle}
+                  disabled={detachedPending || !nativePopupSupported}
+                  aria-pressed={nativeDetached}
+                  title={
+                    nativePopupSupported
+                      ? 'Exibe detalhes em uma segunda janela; não altera sua preferência por Mascote ou Barra.'
+                      : 'Popup independente indisponível nesta sessão Wayland.'
+                  }
+                  onClick={toggleDetachedPopover}
+                >
+                  Popup independente: {nativeDetached ? 'Sim' : 'Não'}
+                </button>
+                <span className={styles.popupHint}>
+                  {!nativePopupSupported
+                    ? 'Indisponível no Wayland'
+                    : nativeDetached
+                      ? 'Detalhes em janela separada'
+                      : 'Detalhes na mesma janela'}
+                </span>
+              </div>
+            )}
+
+            {runtimeAttention.length > 0 && (
+              <section className={styles.runtimeAttention} aria-label="Terminais aguardando você">
+                <strong>
+                  <AlertTriangle size={14} aria-hidden="true" />
+                  {runtimeAttention.length} terminal(is) aguardando sua ação
+                </strong>
+                <ul>
+                  {runtimeAttention.slice(0, 8).map((item) => (
+                    <li key={item.runtime_id}>
+                      <span>
+                        <b>{item.provider || 'Agente'}</b>
+                        {' · '}
+                        {prefs.privacyMode ? 'Projeto reservado' : item.project_name || 'Projeto'}
+                        {' — '}
+                        {item.reason === 'APPROVAL'
+                          ? 'Aprovação necessária'
+                          : item.prompt_kind === 'choice'
+                            ? 'Escolha necessária'
+                            : 'Resposta necessária'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => (onOpenRuntime ? onOpenRuntime(item) : onOpenNexus?.())}
+                        disabled={!onOpenRuntime && !onOpenNexus}
+                      >
+                        Abrir terminal
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                {runtimeAttention.length > 8 && (
+                  <small>Mais {runtimeAttention.length - 8} solicitações no Nexus.</small>
+                )}
+              </section>
+            )}
 
             <div className={styles.sectionCaption}>
               {focus?.active ? 'Conta em execução' : 'Recurso em destaque'}
@@ -829,17 +911,6 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                   Abrir Nexus <ExternalLink size={13} />
                 </button>
               )}
-              {native && (
-                <button
-                  type="button"
-                  disabled={detachedPending}
-                  aria-pressed={nativeDetached}
-                  title="Cria uma segunda janela nativa para o painel e habilita o modo Mascote."
-                  onClick={toggleDetachedPopover}
-                >
-                  Popup independente: {nativeDetached ? 'Sim' : 'Não'}
-                </button>
-              )}
               {native && nativeAutoStart?.supported && (
                 <button
                   type="button"
@@ -876,7 +947,6 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               {native && (
                 <GuardianModeSelector
                   appearance={nativeAppearance}
-                  detachedAvailable={nativeDetached}
                   pending={appearancePending}
                   onSelect={chooseAppearance}
                 />
@@ -938,6 +1008,11 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               onClick={() => setExpandedState(!expanded)}
             >
               <GuardianMascot mood={guardianState} attention={isAttention} />
+              {runtimeAttention.length > 0 && (
+                <span className={styles.runtimeAttentionBadge} aria-hidden="true">
+                  {runtimeAttention.length > 9 ? '9+' : runtimeAttention.length}
+                </span>
+              )}
             </button>
             <button
               type="button"
