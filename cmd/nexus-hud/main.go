@@ -128,8 +128,17 @@ func main() {
 	desktop.ConfigureNativeTray(native, window, "Nexus HUD", desktop.HUDTrayAppearanceActions{
 		Show:            hudController.ShowHUD,
 		Hide:            hudController.HideHUD,
-		MascotAvailable: hudController.GetHUDDetachedPopoverEnabled(),
+		// The menu is constructed once, but popup opt-in can change while
+		// running. Offer Mascot on globally positionable desktops and create
+		// its popup only when the user selects it.
+		MascotAvailable: hudController.GetHUDCapabilities().GlobalPositioning,
 		Select: func(mode string) {
+			if mode == desktop.HUDAppearanceMascot && !hudController.GetHUDDetachedPopoverEnabled() {
+				if err := hudController.SetHUDDetachedPopoverPreference(true); err != nil {
+					fmt.Fprintf(os.Stderr, "Nexus HUD popup activation: %v\n", err)
+					return
+				}
+			}
 			if err := hudController.SetHUDAppearance(mode); err != nil {
 				fmt.Fprintf(os.Stderr, "Nexus HUD presentation: %v\n", err)
 			}
