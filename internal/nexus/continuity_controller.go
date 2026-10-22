@@ -204,6 +204,12 @@ func selectContinuityTarget(source registry.RuntimeSession, accounts []ProviderA
 		if _, blocked := excluded[key]; blocked {
 			continue
 		}
+		// Multiple profiles may resolve to the same upstream capacity. Moving
+		// from codex:A to codex:B cannot recover a shared exhausted quota.
+		if source.AccountScope.Verifiable() && account.Scope.Verifiable() &&
+			source.AccountScope.Key() == account.Scope.Key() {
+			continue
+		}
 		candidates = append(candidates, account)
 	}
 
