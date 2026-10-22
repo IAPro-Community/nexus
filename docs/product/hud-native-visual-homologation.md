@@ -26,6 +26,10 @@ Após executar o build nativo da release, no PowerShell, a partir da raiz:
 
 O script usa Win32 para clique físico e medição de dimensões. As screenshots
 incluem margem externa, permitindo observar a sombra que denuncia o retângulo.
+No primeiro ciclo, identifica automaticamente se a apresentação usa janela
+única ou popup independente. O Mascote atual utiliza cerca de 108 × 112 DIPs;
+não reprovar a altura do personagem usando o limite antigo de 100 DIPs.
+`-Detached` continua disponível quando é necessário **exigir** popup separado.
 
 ## Linux X11
 
@@ -34,6 +38,9 @@ Após compilar com make build-hud-wails, numa sessão X11 **real**:
     bash scripts/homologate-hud-native-linux.sh "$PWD/cmd/nexus-hud/build/bin/nexus-hud" "$PWD/hud-evidence/linux-x11" 20
 
 Exige xdotool, ImageMagick (import), python3 e sha256sum.
+A rotina identifica a janela compacta e, quando for aberto, o popup independente
+como duas janelas X11 diferentes; o relatório inclui `presentation` para que
+a evidência não confunda o Mascote com a Barra antiga.
 Uma sessão Wayland retorna BLOCKED, não PASS; deve ter revisão separada,
 adequada ao compositor. Xvfb não substitui evidência de transparência no
 desktop de produção.
@@ -49,12 +56,17 @@ Execute:
 Pode ser necessário conceder permissões de Acessibilidade e Gravação da Tela
 ao terminal que está executando o script; sem elas o teste permanece BLOCKED.
 Exige swiftc e screencapture, já presentes num ambiente de desenvolvimento
-macOS configurado.
+macOS configurado. O CoreGraphics detecta a superfície compacta e compara a
+janela de detalhes separadamente, quando houver. Problemas de enumeração de
+janelas (por exemplo, permissão de gravação de tela ausente) devem ser
+registrados como `BLOCKED`, nunca interpretados como aprovação visual.
 
 ## Resultados esperados
 
 Cada script cria HUD_NATIVE_RESULTS.json, HUD_BEFORE.png, HUD_EXPANDED.png e
-logs privados. O máximo automático é PASS_FUNCTIONAL_PENDING_VISUAL, porque
+logs privados. O campo `presentation` distingue `legacy_single_window` de
+`detached_popover`; ele deve corresponder ao modo realmente exercitado.
+O máximo automático é PASS_FUNCTIONAL_PENDING_VISUAL, porque
 capturar uma imagem não comprova ausência de sombra nem click-through.
 
 A revisão visual real deve verificar: sombra retangular, fundo opaco,
