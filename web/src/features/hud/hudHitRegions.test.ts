@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { collectHudHitRegions, hudRegionFromCandidate, type HudHitCandidate } from './hudHitRegions';
+import {
+  collectHudHitRegions,
+  hudRegionFromCandidate,
+  type HudHitCandidate,
+} from './hudHitRegions';
 
 const base: HudHitCandidate = {
   ignore: false,
@@ -76,9 +80,7 @@ describe('native click-through surface collection', () => {
         return [control];
       },
     } as unknown as ParentNode;
-    expect(collectHudHitRegions(root)).toEqual([
-      { x: 40, y: 8, width: 172, height: 43 },
-    ]);
+    expect(collectHudHitRegions(root)).toEqual([{ x: 40, y: 8, width: 172, height: 43 }]);
     expect(queried).toBe('[data-hud-hit-area]');
   });
 
@@ -86,7 +88,14 @@ describe('native click-through surface collection', () => {
     const fakeNodes = [
       {
         dataset: { hudHit: 'ignore' },
-        getBoundingClientRect: () => ({ left: 0, top: 0, width: 500, height: 500, right: 500, bottom: 500 }),
+        getBoundingClientRect: () => ({
+          left: 0,
+          top: 0,
+          width: 500,
+          height: 500,
+          right: 500,
+          bottom: 500,
+        }),
       },
     ];
     const root = {
