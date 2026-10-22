@@ -1,41 +1,32 @@
 # HUD nativo: janela de popup independente (experimento)
 
-**Estado:** implementação opt-in integrada à `release/v1.0.0` via PR #56.
-O código está integrado, mas o comportamento gráfico **não está homologado**
-para Windows, macOS e Linux X11; a opção permanece desativada por padrão.
+**Estado:** integração na `release/v1.0.0` via PR #56.
+A nova instalação inicia em **Mascote**, sem variável de ambiente.
+A segunda janela é padrão em sessões Windows, macOS e Linux X11,
+mas permanece configurável pelo usuário no próprio HUD. Em Wayland,
+o Mascote abre o painel na mesma janela, sem tentar posicionamento
+global de um popup separado.
 
 ## Objetivo
 
-O Nexus HUD mantém uma cápsula pequena (por padrão 220 x 60 DIPs)
-e exibe os detalhes em uma segunda janela Wails v3, inicialmente
-oculta (por padrão 334 x 496 DIPs). O popup tem WebView/React próprios,
-mas usa o mesmo Core autenticado; não duplica API, sessão de quotas,
-probes de providers ou mecanismos de roteamento.
+O Nexus Guardian mantém um Mascote 2D de 108 x 112 DIPs por padrão.
+O usuário pode escolher Barra (220 x 60 DIPs no preset Compacto)
+ou Bandeja. Quando permitido pelo sistema, os detalhes são exibidos
+em janela Wails separada, com WebView/React próprios e Core compartilhado.
+O popup começa oculto e surge apenas mediante interação.
 
-### Ativação reversível
+### Configuração reversível e persistida
 
-Configure **somente no processo de teste**:
-
-```bash
-NEXUS_HUD_DETACHED_POPOVER=1 ./cmd/nexus-hud/build/bin/nexus-hud
-```
-
-Windows PowerShell, em sessão de homologação:
-
-```powershell
-$env:NEXUS_HUD_DETACHED_POPOVER = '1'
-.\cmd\nexus-hud\build\bin\nexus-hud.exe
-```
-
-O modo continua **desligado por padrão**. Remover a variável restaura
-a expansão legada na mesma janela. Linux Wayland utiliza sempre o modo
-legado: sem posicionamento global confiável, o popup separado poderia
-aparecer fora da área visível.
+Use **Barra / Mascote / Bandeja** no painel ou no menu da bandeja.
+A opção **Popup independente** controla apenas se os detalhes aparecem
+numa segunda janela; ela não ativa nem desativa o Mascote.
+As preferências sobrevivem à reinicialização. Não é necessário configurar
+`NEXUS_HUD_DETACHED_POPOVER`.
 
 ## Componentes
 
-- `cmd/nexus-hud/main.go` cria a cápsula habitual e, somente quando
-  opt-in, uma segunda janela `Nexus HUD Popup`, com rota
+- `cmd/nexus-hud/main.go` cria a apresentação escolhida e, por padrão
+  em sistemas compatíveis, uma segunda janela `Nexus HUD Popup`, com rota
   `/?nativeHud=1&hudView=popover` e `Hidden=true`.
 - `cmd/nexus-hud/window_options.go` compartilha o contrato de
   transparência, moldura, sombras e escala das opções Wails.
@@ -65,8 +56,8 @@ aparecer fora da área visível.
 5. Registrar screenshots reais das duas janelas, sombreamento
    e bloqueio de cliques nas regiões transparentes. Dois
    retângulos transparentes não significam click-through perfeito.
-6. Em Linux Wayland, verificar que a variável não força o modo
-   separado; manter a cápsula legada.
+6. Em Linux Wayland, confirmar que o Mascote continua disponível e
+   seu painel expande na mesma janela, sem posicionamento global.
 
 No Windows, o script nativo já possui um gate interativo específico:
 
@@ -96,8 +87,8 @@ adaptações equivalentes e execução nativa permanecem obrigatórias.
 - `prefers-reduced-motion: reduce` desativa a animação; o HUD web/legado
   mantém as transições existentes.
 - Os estados de rendering são cobertos por `hudPresentation.test.ts`.
-- Nenhum mascote animado, spritesheet ou animação de personagem foi incluído
-  nesta mudança. A animação implementada é do **painel**, não do mascote.
+- O Mascote 2D possui estados ocioso, trabalhando, atenção e offline,
+  com `prefers-reduced-motion` para respeitar acessibilidade.
 - Ainda são obrigatórias capturas sequenciais e testes de foco/clique em
   sessões gráficas reais. O CI não comprova que a animação roda sem flicker.
 
