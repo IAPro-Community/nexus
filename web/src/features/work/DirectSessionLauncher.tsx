@@ -310,6 +310,13 @@ export const DirectSessionLauncher: React.FC<{
               : t('directSession.schedulerNoCandidate')}
           </p>
         )}
+        {recommendation?.recommended && recommendation.recommended.pros.length > 0 && (
+          <ul className={contextualStyles.reasons} aria-label={t('directSession.schedulerReasons')}>
+            {recommendation.recommended.pros.slice(0, 2).map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        )}
         {!modelIdValid(modelOverride.trim()) && (
           <InlineAlert tone="warning">{t('directSession.invalidModel')}</InlineAlert>
         )}

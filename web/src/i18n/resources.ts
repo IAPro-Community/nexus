@@ -812,6 +812,7 @@ export const en = {
     edgesCount_other: '{{count}} edges',
   },
   directSession: {
+    schedulerReasons: 'Why this account was recommended',
     preferProvider: 'Prefer provider (optional)',
     providerAutomatic: 'Automatic (ResourceScheduler)',
     recoverableStartError: 'Agent {{agentId}} may have started: {{message}}. Check the Agents panel before retrying.',
@@ -2835,6 +2836,7 @@ export const ptBR = {
     edgesCount_other: '{{count}} conexões',
   },
   directSession: {
+    schedulerReasons: 'Por que esta conta foi recomendada',
     preferProvider: 'Preferir provedor (opcional)',
     providerAutomatic: 'Automático (ResourceScheduler)',
     recoverableStartError: 'O agente {{agentId}} pode ter iniciado: {{message}}. Confira em Agentes antes de tentar novamente.',
@@ -4871,6 +4873,7 @@ export const es = {
     edgesCount_other: '{{count}} conexiones',
   },
   directSession: {
+    schedulerReasons: 'Por qué se recomendó esta cuenta',
     preferProvider: 'Preferir proveedor (opcional)',
     providerAutomatic: 'Automático (ResourceScheduler)',
     recoverableStartError: 'Es posible que el agente {{agentId}} haya iniciado: {{message}}. Compruébelo en Agentes antes de reintentar.',
