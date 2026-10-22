@@ -5,7 +5,9 @@ import { GuardianMascot, GuardianModeSelector } from './GuardianMascot';
 
 describe('Nexus Guardian pixel mascot', () => {
   it('renders a standalone vector sprite with a working mood', () => {
-    const html = renderToStaticMarkup(<GuardianMascot mood="working" attention={false} />);
+    const html = renderToStaticMarkup(
+      <GuardianMascot mood="working" attention={false} />,
+    );
     expect(html).toContain('data-mood="working"');
     expect(html).toContain('viewBox="0 0 64 64"');
     expect(html).toContain('shape-rendering="crispEdges"');
@@ -13,7 +15,9 @@ describe('Nexus Guardian pixel mascot', () => {
   });
 
   it('only shows a readable speech bubble for observed attention', () => {
-    const html = renderToStaticMarkup(<GuardianMascot mood="warning" attention />);
+    const html = renderToStaticMarkup(
+      <GuardianMascot mood="warning" attention />,
+    );
     expect(html).toContain('Atenção!');
     expect(html).toContain('data-mood="warning"');
   });
