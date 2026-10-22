@@ -1,5 +1,20 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-21 — Homologação Windows da release em 7d92b942
+
+- **PASS** `docs-verify`: 192 Markdown / 33 assets, manifesto em `7d92b942`.
+- **PASS** `verify-version-contract`, `gofmt` (após correção), `go vet ./...`.
+- **PASS** `go test -count=1 ./...` com Go `1.26.10` (via `GOTOOLCHAIN`); `internal/app` 88,9 s.
+- **PASS** Web `npm run quality`: 96 arquivos / 593 testes, typecheck, ESLint, Stylelint, Prettier.
+- **PASS** build Web e build nativo do HUD (`production`), binário SHA-256 `8dab24a7f616fe6fb720dc50d33cd6f6b6802328993614db2d987eafb48dcefb`.
+- **PASS** certificação oficial `scripts/certify-windows-first-run.ps1` em `7d92b942`: 9 gates PASS, 4 NOT_RUN, exit 0, `automated_result: PASS`.
+- **PASS (funcional)** HUD nativo: 20/20 ciclos em janela única e 20/20 em popover destacado (`PASS_FUNCTIONAL_PENDING_VISUAL`).
+- **FAIL** click-through do HUD: clique em área transparente (`1696,972`) manteve `Nexus HUD` em foreground em vez da janela alvo. Evidência em `DEV/validation/local-hud-7d92b942/click-through/`.
+- **INCONCLUSIVO** matriz HUD cross-platform: sem Linux X11 e macOS no mesmo SHA; agregador recusa emitir veredito.
+- **BLOCKED_EXTERNAL** instalador assinado: `native-signing` com 0 secrets, sem certificado local, `signtool`/`makensis` ausentes.
+- **NOT_RUN** `desktop-wails-first-run`, sessão Codex interativa e cenário multi-conta.
+- Veredito: `NO_GO_WINDOWS`. Relatório: `DEV/validation/local-hud-7d92b942/HOMOLOGATION.md`.
+
 ## 2026-10-17 — Correção e Verificação do Backend Compartilhado Desktop (76587c39)
 
 - `internal/control/web/desktop_attach.go`: PASS. Corrigido o `NewLoopbackBackendHandler` para servir arquivos estáticos embutidos (`bundle.js`, `bundle.css`, chunks) em vez de retornar incondicionalmente `index.html`.

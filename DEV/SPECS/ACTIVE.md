@@ -1,5 +1,13 @@
 # Especificação ativa: IAPro Nexus — Implementação Completa Web + Desktop Multiplataforma
 
+## Estado atualizado — homologação Windows 7d92b942 — 2026-10-21
+
+`release/v1.0.0` em `42a6971b` (docs-only); código homologado `7d92b942`. PR #54 integrado (`c3c518ce`, head `3e140c52`). Gates verdes: `docs-verify` 192/33, contrato de versão, `gofmt`, `go vet`, `go test ./...` (Go 1.26.10), Web quality 96/593, builds Web/HUD e certificação oficial 9 PASS.
+
+HUD nativo: 20/20 ciclos em janela única e 20/20 em popover destacado; visual carregado sem clipping. **Click-through FAIL**: a área transparente consome o clique em vez de repassá-lo à janela atrás — `docs/product/hud-native-visual-homologation.md` classifica isso como NO_GO.
+
+Pendências externas: certificado Authenticode (`native-signing` com 0 secrets), NSIS/`signtool`, sessão Codex real, 4–5 contas autenticadas e desktop first-run manual. Veredito permanece `NO_GO_WINDOWS`. Relatório: `DEV/validation/local-hud-7d92b942/HOMOLOGATION.md`.
+
 ## Estado atualizado — homologação beta.10 — 2026-10-17
 
 HEAD local `984c2b0fdbd7b4c4b4917c9de7f1a4d2a60a4b17` na `release/v1.0.0`; remoto `6552f3d0b834`. Três commits de remediação locais, sem push. Temp curto corrigiu os erros de worktree Git; suíte Go integral passou em 414,8s, exit 0. Golangci-lint pinned v2.12.2 passou em 5 min. Ainda faltam refresh oficial no SHA final, harness clean exact-SHA, NSIS, assinatura, Codex interativo, HUD e demais evidências externas. Veredito continua `NO_GO_WINDOWS`.

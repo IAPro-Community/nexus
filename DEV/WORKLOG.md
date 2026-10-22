@@ -1,5 +1,16 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-21 — Homologação Windows 1.0.0-beta.10 (release/v1.0.0 @ 7d92b942)
+
+- Remoto baixado: 165 commits acumulados desde `24a2396d`, incluindo o merge `c3c518ce` do PR #54 (`3e140c52`) e a série `hud/guardian` (mascote, bandeja e popover destacado).
+- PR #54 confirmado no histórico da release: `3e140c52` é ancestral de `7d92b942`; marcadores `ApplyIsolationPreservingConfigDirs`, `agent_mode_id`, `Prefer PATHEXT` e `codexAppServerSocketPathBudgetBytes` presentes.
+- Três gates vermelhos encontrados e corrigidos no commit `7d92b942`: `gofmt` em 5 arquivos, 2 erros de Stylelint em `_hudGuardian.scss` e mensagem fail-closed de `nexus update` no fluxo de apply. `go test ./internal/app` voltou a passar.
+- Toolchain canônica: o certificador passou a exigir Go `1.26.10`; baixado via `GOTOOLCHAIN=go1.26.10`. Com ele, `go test ./...` PASS e certificação 9/9 PASS.
+- HUD nativo: 20/20 ciclos em janela única e 20/20 em popover destacado; capturas com UI carregada mostram pill `220×60` e painel `334×496` arredondados, sem clipping.
+- Defeito aberto: click-through **FAIL** — clique na área transparente do HUD não atravessa para a janela atrás. Evidência em `DEV/validation/local-hud-7d92b942/click-through/`.
+- CI remoto continua vermelho por infraestrutura: download do Chromium falha com `ERR_TLS_CERT_ALTNAME_INVALID` em `cdn.playwright.dev`.
+- Veredito mantido: `NO_GO_WINDOWS` (assinatura, Codex real, multi-conta e click-through pendentes). Relatório: `DEV/validation/local-hud-7d92b942/HOMOLOGATION.md`.
+
 ## 2026-10-21 — Homologação macOS 1.0.0-beta.10 (release/v1.0.0 @ 24a2396d)
 
 - Host Intel (macOS 26.6.2, x86_64); branch `release/v1.0.0` com SHA local igual ao remoto (`24a2396de246efe07e1bdfde73e03bfc5febb29c`); build por `scripts/build-wails-v3-macos-app.sh` (6 args) + `NEXUS_NATIVE_LDFLAGS`.

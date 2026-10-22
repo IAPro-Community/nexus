@@ -1,5 +1,11 @@
 # Current release status
 
+> **Atualizacao 2026-10-21:** codigo homologado em `7d92b942` (HEAD de docs
+> `42a6971b`), PR #54 integrado. Gates automatizados PASS (9/9), mas o
+> veredito segue **NO_GO_WINDOWS**: falta instalador assinado, smokes
+> interativos de Codex e o click-through do HUD falhou. Detalhes em
+> `DEV/validation/local-hud-7d92b942/HOMOLOGATION.md`.
+
 > **Estado canônico para a beta.10 (2026-10-08):** código de PR #45
 > e PR #46 conciliado na PR #47, aguardando incorporação à branch
 > `release/v1.0.0` e execução dos gates no SHA final.
@@ -11,14 +17,18 @@
 
 CURRENT_CANDIDATE_VERSION: 1.0.0-beta.10
 CURRENT_CANDIDATE_BRANCH: release/v1.0.0
-CURRENT_CANDIDATE_NATIVE_GATES: PENDING_EXACT_SHA
-CURRENT_CANDIDATE_DISTRIBUTION: NO-GO
-CURRENT_CANDIDATE_CI: QUEUED_ON_SELF_HOSTED_RUNNER_AT_LAST_CHECK
-LOCAL_WINDOWS_BETA10_REFERENCE_SHA: cd5302f96edf1d1b857e2fe77dd3ca033996995f (separate homologation branch)
+CURRENT_CANDIDATE_CODE_SHA: 7d92b9428f5493bab18b2c863532703827e5438f
+CURRENT_CANDIDATE_DOCS_HEAD: 42a6971b (docs-only, recaptura sintética)
+CURRENT_CANDIDATE_NATIVE_GATES: PASS_AUTOMATED_EXACT_SHA (9 PASS, 4 NOT_RUN)
+CURRENT_CANDIDATE_DISTRIBUTION: NO-GO (sem certificado Authenticode; native-signing com 0 secrets)
+CURRENT_CANDIDATE_CI: RED_BY_INFRA (Playwright CDN TLS) + runs anteriores cancelados por push
+CURRENT_CANDIDATE_HUD_NATIVE_WINDOWS: FUNCTIONAL_PASS_20_20 / CLICK_THROUGH_FAIL
+CURRENT_CANDIDATE_HUD_CROSS_PLATFORM: INCONCLUSIVE (sem Linux X11 e macOS no mesmo SHA)
+LOCAL_WINDOWS_BETA10_REFERENCE_SHA: 7d92b9428f5493bab18b2c863532703827e5438f (integral)
 LOCAL_WINDOWS_BETA10_AUTOMATED_GATES: PASS_ON_REFERENCE_SHA_ONLY
 LOCAL_WINDOWS_BETA10_MANUAL_PROVIDER_SMOKES: NOT_RUN
-LOCAL_WINDOWS_BETA10_EVIDENCE: DEV/validation/local-beta/1.0.0-beta.10/cd5302f96edf1d1b857e2fe77dd3ca033996995f/windows-AMD64/
-CURRENT_RELEASE_HEAD_WINDOWS_EXACT_SHA_GATES: NOT_RUN
+LOCAL_WINDOWS_BETA10_EVIDENCE: DEV/validation/local-hud-7d92b942/HOMOLOGATION.md
+CURRENT_RELEASE_HEAD_WINDOWS_EXACT_SHA_GATES: PASS (certify-windows-first-run, Go 1.26.10)
 PREVIOUS_VALIDATION_RECORDS: HISTORICAL_ONLY
 
 ## Legacy Windows beta.7 baseline (historical)

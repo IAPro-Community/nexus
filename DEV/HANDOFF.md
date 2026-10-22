@@ -1,5 +1,15 @@
 # Handoff
 
+## Handoff — Homologação Windows 7d92b942 — 2026-10-21
+
+- **Branch:** `release/v1.0.0`; código homologado `7d92b9428f5493bab18b2c863532703827e5438f`, HEAD atual `42a6971b` (docs-only, recaptura sintética). Worktree limpo e sincronizado.
+- **PR #54:** integrado via merge `c3c518ce`; `3e140c52` é ancestral do HEAD. O binário instalado no host (`%LOCALAPPDATA%\Programs\IAPro Nexus\nexus.exe`, commit `3e140c52`) está coerente com o código da release.
+- **Correções desta passagem (commit `7d92b942`):** `gofmt` em 5 arquivos, Stylelint em `_hudGuardian.scss` e contrato fail-closed de `nexus update`.
+- **Gates verdes:** `docs-verify` (192/33), contrato de versão, `gofmt`, `go vet`, `go test ./...` com Go `1.26.10`, Web quality (96/593), builds Web/HUD, certificação oficial 9 PASS.
+- **HUD:** 20/20 ciclos em janela única e 20/20 em popover destacado; visual carregado sem clipping. **Click-through FAIL** (área transparente captura o clique) → gate visual do HUD em NO_GO.
+- **Bloqueios:** certificado Authenticode (`native-signing` com 0 secrets, sem `signtool`/`makensis`), sessão Codex real, 4–5 contas, desktop first-run manual.
+- **Próximo passo:** obter PFX + senha no environment `native-signing` (ou instalar certificado/NSIS no host), corrigir o click-through do HUD e refazer a captura de evidência no SHA final. Relatório: `DEV/validation/local-hud-7d92b942/HOMOLOGATION.md`.
+
 ## Handoff — PR #54 aprovado e instalado no host — 2026-10-21
 
 - **PR:** #54 `fix(agents): make clean Windows startup reliable`, head `3e140c52`, base `release/v1.0.0` em `f6098b8c`; issue #53.
