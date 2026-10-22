@@ -49,6 +49,8 @@ LOCAL_WINDOWS_BETA10_EVIDENCE: DEV/validation/local-hud-047f4348/HOMOLOGATION.md
 LATEST_HUD_MASCOT_EVIDENCE: DEV/validation/mascot-toggle-f789db63/HOMOLOGATION.md
 LOCAL_HUD_DEPLOY: 955b197f installed on 2026-10-22 (server PID 24184, HTTP 200; HUD PID 21168 --linked) - see DEV/validation/mascot-toggle-f789db63/DEPLOYMENT.md
 LOCAL_HUD_REAL_PROFILE: PASS (toggle + mascot + tray restore in the user's own profile) - DEV/validation/mascot-toggle-f789db63/real-profile/REAL_PROFILE.md
+CURRENT_CANDIDATE_COMMIT: 8d100e96
+LOCAL_HUD_TOP_TOGGLE: PASS (toggle first-fold in inline panel and popup; installed build 9b78fb10) - DEV/validation/mascot-toggle-8d100e96/
 CURRENT_RELEASE_HEAD_WINDOWS_EXACT_SHA_GATES: PASS (certify-windows-first-run, Go 1.26.10)
 PREVIOUS_VALIDATION_RECORDS: HISTORICAL_ONLY
 

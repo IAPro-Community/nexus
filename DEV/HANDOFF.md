@@ -2384,3 +2384,7 @@ exus-desktop.exe e o HUD instalado foram exercitados no perfil real: desktop ane
 `release/v1.0.0` = `0ac9d8ed` (docs-only sobre `f789db63`); `release/v1.1.0` = `c01cd04a` (sync da 1.0 + correções de build). PRs: #59 HUD fix (mergeable, aguardando review/homologação), #60 mergeado, #57/#58 sincronizados e ainda draft, #55 retargetado para 1.1 mas bloqueado por conflito de arquitetura do HUD (Companion x Guardian Mascot).
 
 Próximo: (1) revisar/mergear #59; (2) decidir o guardião canônico da 1.1 e resolver #55; (3) decidir destino de `fix/beta8-manual-opaque-quota` (não está na 1.0; PR #52 fechado); (4) rodar homologação exact-SHA da 1.0 — Authenticode, smokes interativos, matriz Linux/macOS e CI same-SHA continuam bloqueando o GO. Veredito: `NO_GO_WINDOWS`.
+
+### Toggle do popup no topo — 2026-10-22
+
+O controle `Popup independente` agora fica imediatamente abaixo do cabeçalho do painel (inline e popup), sem rolagem. Instalado em `%LOCALAPPDATA%\Programs\IAPro Nexus` no commit `8d100e96` (servidor PID `15516`, HUD PID `8304 --linked`, `nexus-hud.exe` `9b78fb10`). Estado do usuário: `appearance: TRAY` + `detachedPopover: true`. Evidência em `DEV/validation/mascot-toggle-8d100e96/` (harness PASS + perfil real PASS). Backup/rollback em `DEPLOYMENT.md`.

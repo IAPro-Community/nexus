@@ -366,3 +366,7 @@ Project Hub passou na regressão 775×483, e gates web/E2E e smokes Windows pass
 ### Verificação real — 2026-10-22
 
 Instalação exercitada no perfil do usuário: popup habilitado pelo painel, Mascote aplicado e Bandeja restaurada (eal-profile/RESULT.json PASS); app desktop abriu e anexou ao Core existente. Estado final TRAY + detachedPopover: true.
+
+### Entrega atual — 2026-10-22
+
+Toggle do popup independente no topo do painel (inline e popup), validado por harness no build `9b78fb10` (commit `8d100e96`) e no perfil real; implantado localmente. Pendências inalteradas: assinatura/instalador, smokes interativos de Codex/multi-conta, confirmação visual humana e matriz Linux/macOS.

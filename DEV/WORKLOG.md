@@ -5526,3 +5526,9 @@ exus-desktop.exe instalado abriu a janela IAPro Nexus e anexou ao Core existente
 - `feat/nexus-companion-v1.1` (#55): base retargetada para `release/v1.1.0`. Merge com a 1.1 conflita em 3 arquivos de HUD porque o Companion e o Guardian Mascot são implementações paralelas; merge abortado e decisão registrada no PR. Permanece draft.
 - `fix/beta8-manual-opaque-quota`: commit `edcd2ab4` não está na 1.0 e o PR #52 foi fechado sem merge. Branch mantida; destino (1.0 x 1.1) pendente de decisão.
 - Evidência: PRs #57/#58 com mergeable=true; #59 mergeable=true; #60 mergeado. Checks "Sanitize self-hosted workspace" ficam `queued` (runner self-hosted), por isso #57/#58 aparecem `unstable`.
+
+### Toggle do popup movido para o topo — 2026-10-22
+
+- `NexusHud.tsx`: o botão `Popup independente` saiu do rodapé e virou `.popupSettingRow` logo abaixo do cabeçalho, com dica `Mascote disponível`/`Necessário para o Mascote`; estilos em `_hudPopover.scss`.
+- Motivo: em perfis com vários provedores o rodapé de `496` DIP ficava fora da janela e o controle só era alcançável rolando.
+- Rebuild web + HUD + servidor + desktop, manifesto visual recapturado em `7eca10d4`, harness PASS em `9b78fb10`, implantado e verificado no perfil real (`TRAY` + popup habilitado).
