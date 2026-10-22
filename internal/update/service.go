@@ -290,8 +290,13 @@ func (s *Service) Apply(ctx context.Context) (*Receipt, error) {
 	// running "nexus update" directly could replace a newer build with an
 	// older signed beta carrying an unchanged semantic version.
 	versionOrder := compareVersions(manifest.Version, s.currentVer)
-	if versionOrder <= 0 && !(versionOrder == 0 && s.channel == "beta" &&
-		s.isNewerSignedBetaCommit(ctx, s.currentSHA, manifest.SourceSHA)) {
+	// A lower version must never be installed. The same semantic version is
+	// eligible only for a newer signed beta commit on the beta channel.
+	if versionOrder < 0 {
+		return nil, ErrNoUpdateAvailable
+	}
+	if versionOrder == 0 && (s.channel != "beta" ||
+		!s.isNewerSignedBetaCommit(ctx, s.currentSHA, manifest.SourceSHA)) {
 		return nil, ErrNoUpdateAvailable
 	}
 
