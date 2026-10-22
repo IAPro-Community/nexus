@@ -10,7 +10,7 @@ func TestHUDWindowStateManagerDefaultsAndPersistence(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "hud.json")
 	manager := NewHUDWindowStateManager(path)
 	initial := manager.Load()
-	if initial.Placement != HUDPlacementBottomRight || initial.Width < 190 || !initial.AlwaysOnTop {
+	if initial.Placement != HUDPlacementBottomRight || initial.Width != HUDMascotWidth || initial.Height != HUDMascotHeight || initial.Appearance != HUDAppearanceMascot || !initial.AlwaysOnTop {
 		t.Fatalf("unexpected defaults: %+v", initial)
 	}
 
@@ -36,7 +36,7 @@ func TestNormalizeHUDWindowStateDefersPositionClampUntilScreenIsKnown(t *testing
 	if got.Placement != HUDPlacementBottomRight || got.X != -100 || got.Y != -50 {
 		t.Fatalf("normalization must preserve coordinates until work-area clamp: %+v", got)
 	}
-	if got.Width != 220 || got.Height != 60 || got.Opacity != 0.96 {
+	if got.Width != HUDMascotWidth || got.Height != HUDMascotHeight || got.Opacity != 0.96 {
 		t.Fatalf("unsafe size/opacity normalization: %+v", got)
 	}
 }
@@ -88,9 +88,9 @@ func TestCompactHUDWindowStatePreservesBottomRightAnchor(t *testing.T) {
 		name string
 		in   HUDWindowState
 	}{
-		{"expanded", HUDWindowState{Placement: HUDPlacementCustom, X: 100, Y: 200, Width: 334, Height: 496}},
-		{"legacy", HUDWindowState{Placement: HUDPlacementCustom, X: 80, Y: 90, Width: 430, Height: 64}},
-		{"compact", HUDWindowState{Placement: HUDPlacementCustom, X: 600, Y: 800, Width: 220, Height: 60}},
+		{"expanded", HUDWindowState{Appearance: HUDAppearanceBar, Placement: HUDPlacementCustom, X: 100, Y: 200, Width: 334, Height: 496}},
+		{"legacy", HUDWindowState{Appearance: HUDAppearanceBar, Placement: HUDPlacementCustom, X: 80, Y: 90, Width: 430, Height: 64}},
+		{"compact", HUDWindowState{Appearance: HUDAppearanceBar, Placement: HUDPlacementCustom, X: 600, Y: 800, Width: 220, Height: 60}},
 	}
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
@@ -115,7 +115,7 @@ func TestCompactHUDWindowStateUsesConfiguredCompactDimensions(t *testing.T) {
 		X: 100, Y: 200, Width: 380, Height: 560,
 		CompactWidth: 260, CompactHeight: 70,
 		ExpandedWidth: 380, ExpandedHeight: 560,
-		Mode: "AUTO", Opacity: 0.96,
+		Mode: "AUTO", Appearance: HUDAppearanceBar, Opacity: 0.96,
 	}
 	got := compactHUDWindowState(in)
 	if got.Width != 260 || got.Height != 70 {
