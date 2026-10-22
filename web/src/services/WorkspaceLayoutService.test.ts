@@ -101,7 +101,12 @@ describe('WorkspaceLayoutService', () => {
   it('restores two-pane terminal proportions for the same project', () => {
     const initial = service.load(fallback);
     const presentation = setTerminalSplitRatio(
-      { ...createPresentationState('SPLIT'), splitOrientation: 'horizontal', splitPrimaryViewId: 'view:pty-a', splitSecondaryViewId: 'view:pty-b' },
+      {
+        ...createPresentationState('SPLIT'),
+        splitOrientation: 'horizontal',
+        splitPrimaryViewId: 'view:pty-a',
+        splitSecondaryViewId: 'view:pty-b',
+      },
       0.65,
     );
     service.save({ ...initial, presentation });

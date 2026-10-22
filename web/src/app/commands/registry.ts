@@ -12,13 +12,25 @@ export interface NexusCommand {
 }
 
 const normalizeSearch = (value: string): string =>
-  value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().trim();
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase()
+    .trim();
 
 export function filterCommands(commands: NexusCommand[], query: string): NexusCommand[] {
   const value = query.trim();
   const prefix = value[0];
   const kind: NexusCommandKind | null =
-    prefix === '#' ? 'project' : prefix === '@' ? 'agent' : prefix === '>' ? 'action' : prefix === '$' ? 'resource' : null;
+    prefix === '#'
+      ? 'project'
+      : prefix === '@'
+        ? 'agent'
+        : prefix === '>'
+          ? 'action'
+          : prefix === '$'
+            ? 'resource'
+            : null;
   const needle = normalizeSearch(kind ? value.slice(1) : value);
   const terms = needle.split(/\s+/).filter(Boolean);
   return commands
@@ -27,7 +39,8 @@ export function filterCommands(commands: NexusCommand[], query: string): NexusCo
       const label = normalizeSearch(command.label);
       const haystack = normalizeSearch(
         [command.label, command.group, command.description, ...(command.keywords ?? [])]
-          .filter(Boolean).join(' '),
+          .filter(Boolean)
+          .join(' '),
       );
       if (!terms.every((term) => haystack.includes(term))) return { command, index, score: 0 };
       const score = !needle

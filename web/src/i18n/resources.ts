@@ -813,13 +813,21 @@ export const en = {
   },
   directSession: {
     taskKind: 'Task specialization',
-    task: { coding: 'Coding', planning: 'Planning', review: 'Code review', security: 'Security review' },
+    task: {
+      coding: 'Coding',
+      planning: 'Planning',
+      review: 'Code review',
+      security: 'Security review',
+    },
     modelOverride: 'Model (optional)',
     providerDefaultModel: 'Provider default model',
-    modelHint: 'The account is ranked by ResourceScheduler. Model names are manual overrides and must be supported by the selected provider.',
+    modelHint:
+      'The account is ranked by ResourceScheduler. Model names are manual overrides and must be supported by the selected provider.',
     recommendationUnavailable: 'Scheduler recommendation unavailable. Select an account manually.',
-    schedulerExplained: 'ResourceScheduler recommends {{provider}} (policy: {{policy}}). You may override the account.',
-    schedulerNoCandidate: 'No eligible account recommended for this task. Select an eligible account explicitly.',
+    schedulerExplained:
+      'ResourceScheduler recommends {{provider}} (policy: {{policy}}). You may override the account.',
+    schedulerNoCandidate:
+      'No eligible account recommended for this task. Select an eligible account explicitly.',
     recommended: 'Recommended',
     schedulerRank: 'Rank #{{rank}}',
     invalidModel: 'Use a model identifier of at most 128 characters, without spaces.',
@@ -2824,13 +2832,22 @@ export const ptBR = {
   },
   directSession: {
     taskKind: 'Especialidade da tarefa',
-    task: { coding: 'Codificação', planning: 'Planejamento', review: 'Revisão de código', security: 'Revisão de segurança' },
+    task: {
+      coding: 'Codificação',
+      planning: 'Planejamento',
+      review: 'Revisão de código',
+      security: 'Revisão de segurança',
+    },
     modelOverride: 'Modelo (opcional)',
     providerDefaultModel: 'Modelo padrão do provedor',
-    modelHint: 'O ResourceScheduler classifica contas. O modelo é uma escolha manual e precisa ser aceito pelo provedor selecionado.',
-    recommendationUnavailable: 'Recomendação do scheduler indisponível. Escolha uma conta manualmente.',
-    schedulerExplained: 'O ResourceScheduler recomenda {{provider}} (política: {{policy}}). Você pode alterar a conta.',
-    schedulerNoCandidate: 'Nenhuma conta elegível recomendada para esta tarefa. Escolha uma conta explicitamente.',
+    modelHint:
+      'O ResourceScheduler classifica contas. O modelo é uma escolha manual e precisa ser aceito pelo provedor selecionado.',
+    recommendationUnavailable:
+      'Recomendação do scheduler indisponível. Escolha uma conta manualmente.',
+    schedulerExplained:
+      'O ResourceScheduler recomenda {{provider}} (política: {{policy}}). Você pode alterar a conta.',
+    schedulerNoCandidate:
+      'Nenhuma conta elegível recomendada para esta tarefa. Escolha uma conta explicitamente.',
     recommended: 'Recomendado',
     schedulerRank: 'Posição #{{rank}}',
     invalidModel: 'Informe um identificador de modelo de até 128 caracteres, sem espaços.',
@@ -4847,13 +4864,22 @@ export const es = {
   },
   directSession: {
     taskKind: 'Especialidad de la tarea',
-    task: { coding: 'Programación', planning: 'Planificación', review: 'Revisión de código', security: 'Revisión de seguridad' },
+    task: {
+      coding: 'Programación',
+      planning: 'Planificación',
+      review: 'Revisión de código',
+      security: 'Revisión de seguridad',
+    },
     modelOverride: 'Modelo (opcional)',
     providerDefaultModel: 'Modelo predeterminado del proveedor',
-    modelHint: 'ResourceScheduler clasifica cuentas. El modelo es una elección manual y debe ser compatible con el proveedor.',
-    recommendationUnavailable: 'Recomendación del scheduler no disponible. Seleccione una cuenta manualmente.',
-    schedulerExplained: 'ResourceScheduler recomienda {{provider}} (política: {{policy}}). Puede cambiar de cuenta.',
-    schedulerNoCandidate: 'Ninguna cuenta elegible recomendada. Seleccione una cuenta explícitamente.',
+    modelHint:
+      'ResourceScheduler clasifica cuentas. El modelo es una elección manual y debe ser compatible con el proveedor.',
+    recommendationUnavailable:
+      'Recomendación del scheduler no disponible. Seleccione una cuenta manualmente.',
+    schedulerExplained:
+      'ResourceScheduler recomienda {{provider}} (política: {{policy}}). Puede cambiar de cuenta.',
+    schedulerNoCandidate:
+      'Ninguna cuenta elegible recomendada. Seleccione una cuenta explícitamente.',
     recommended: 'Recomendado',
     schedulerRank: 'Posición #{{rank}}',
     invalidModel: 'Escriba un identificador de modelo de hasta 128 caracteres, sin espacios.',

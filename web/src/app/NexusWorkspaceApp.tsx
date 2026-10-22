@@ -744,31 +744,31 @@ const WorkspaceCoordinator: React.FC<{
       },
       ...(listSurfaces(workspace.model.root).filter(isPtySurface).length >= 2
         ? [
-      {
-        id: 'split-terminals-vertical',
-        kind: 'action' as const,
-        label: t('workspace.splitSideBySide'),
-        group: t('commands.scopeActions'),
-        keywords: ['split', 'vertical', 'side by side', 'terminais'],
-        run: () => {
-          presentation.setSplitOrientation('vertical');
-          presentation.setMode('SPLIT');
-          openKind('terminals');
-        },
-      },
-      {
-        id: 'split-terminals-horizontal',
-        kind: 'action' as const,
-        label: t('workspace.splitStacked'),
-        group: t('commands.scopeActions'),
-        keywords: ['split', 'horizontal', 'stacked', 'terminais'],
-        run: () => {
-          presentation.setSplitOrientation('horizontal');
-          presentation.setMode('SPLIT');
-          openKind('terminals');
-        },
-      },
-        ]
+            {
+              id: 'split-terminals-vertical',
+              kind: 'action' as const,
+              label: t('workspace.splitSideBySide'),
+              group: t('commands.scopeActions'),
+              keywords: ['split', 'vertical', 'side by side', 'terminais'],
+              run: () => {
+                presentation.setSplitOrientation('vertical');
+                presentation.setMode('SPLIT');
+                openKind('terminals');
+              },
+            },
+            {
+              id: 'split-terminals-horizontal',
+              kind: 'action' as const,
+              label: t('workspace.splitStacked'),
+              group: t('commands.scopeActions'),
+              keywords: ['split', 'horizontal', 'stacked', 'terminais'],
+              run: () => {
+                presentation.setSplitOrientation('horizontal');
+                presentation.setMode('SPLIT');
+                openKind('terminals');
+              },
+            },
+          ]
         : []),
       {
         id: 'resources',

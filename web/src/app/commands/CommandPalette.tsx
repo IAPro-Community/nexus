@@ -50,10 +50,18 @@ export const CommandPalette: React.FC<{
           autoFocus
         />
         <div className={styles.hints} aria-label={t('commands.searchScopes')}>
-          <span><kbd>#</kbd> {t('commands.scopeProjects')}</span>
-          <span><kbd>@</kbd> {t('commands.scopeAgents')}</span>
-          <span><kbd>$</kbd> {t('commands.scopeResources')}</span>
-          <span><kbd>&gt;</kbd> {t('commands.scopeActions')}</span>
+          <span>
+            <kbd>#</kbd> {t('commands.scopeProjects')}
+          </span>
+          <span>
+            <kbd>@</kbd> {t('commands.scopeAgents')}
+          </span>
+          <span>
+            <kbd>$</kbd> {t('commands.scopeResources')}
+          </span>
+          <span>
+            <kbd>&gt;</kbd> {t('commands.scopeActions')}
+          </span>
         </div>
         <div className="nx-command-list" role="listbox" aria-label={t('commands.available')}>
           {filtered.map((command, index) => (

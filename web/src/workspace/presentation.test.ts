@@ -441,7 +441,11 @@ describe('workspace presentation', () => {
 describe('persistent PTY split mode', () => {
   it('migrates older layouts without losing terminal modes', () => {
     const old = createPresentationState('TABS');
-    const migrated = migratePresentationState({ ...old, splitRatio: undefined, splitOrientation: undefined });
+    const migrated = migratePresentationState({
+      ...old,
+      splitRatio: undefined,
+      splitOrientation: undefined,
+    });
     expect(migrated.mode).toBe('TABS');
     expect(migrated.splitRatio).toBe(0.5);
     expect(migrated.splitOrientation).toBe('vertical');
@@ -458,17 +462,24 @@ describe('persistent PTY split mode', () => {
     expect(restored.splitRatio).toBe(0.72);
     expect(restored.splitPrimaryViewId).toBe('view:b');
     expect(resolveTerminalSplitViews(restored, ['view:a', 'view:b'])).toEqual({
-      primary: 'view:b', secondary: 'view:a',
+      primary: 'view:b',
+      secondary: 'view:a',
     });
     expect(normalizeTerminalSplitRatio(9)).toBe(0.8);
     expect(normalizeTerminalSplitRatio(Number.NaN)).toBe(0.5);
   });
   it('never displays missing or duplicate PTY view IDs', () => {
-    const state = { ...createPresentationState('SPLIT'), activePtyViewId: 'b', splitSecondaryViewId: 'b' };
+    const state = {
+      ...createPresentationState('SPLIT'),
+      activePtyViewId: 'b',
+      splitSecondaryViewId: 'b',
+    };
     expect(resolveTerminalSplitViews(state, ['a', 'b'])).toEqual({ primary: 'b', secondary: 'a' });
     expect(resolveTerminalSplitViews(state, ['a'])).toEqual({ primary: 'a', secondary: '' });
     const stable = { ...state, splitPrimaryViewId: 'a', splitSecondaryViewId: 'b' };
-    expect(resolveTerminalSplitViews({ ...stable, activePtyViewId: 'b' }, ['a', 'b']))
-      .toEqual({ primary: 'a', secondary: 'b' });
+    expect(resolveTerminalSplitViews({ ...stable, activePtyViewId: 'b' }, ['a', 'b'])).toEqual({
+      primary: 'a',
+      secondary: 'b',
+    });
   });
 });

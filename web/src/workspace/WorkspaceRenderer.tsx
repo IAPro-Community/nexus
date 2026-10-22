@@ -693,7 +693,9 @@ const TerminalsHost: React.FC<{
     '';
   const windowed = isWindowedPresentationMode(presentation.state.mode);
   const compactSplit = useCompactViewport();
-  const effectiveSplitOrientation = compactSplit ? 'horizontal' : presentation.state.splitOrientation;
+  const effectiveSplitOrientation = compactSplit
+    ? 'horizontal'
+    : presentation.state.splitOrientation;
   const splitMode = presentation.state.mode === 'SPLIT' && ptySurfaces.length > 1;
   const splitViews = resolveTerminalSplitViews(
     presentation.state,
@@ -863,14 +865,26 @@ const TerminalsHost: React.FC<{
             </button>
           </div>
           {splitMode && (
-            <div className={splitStyles.orientation} role="group" aria-label={t('workspace.splitOrientation')}>
-              <button type="button" aria-pressed={effectiveSplitOrientation === 'vertical'}
+            <div
+              className={splitStyles.orientation}
+              role="group"
+              aria-label={t('workspace.splitOrientation')}
+            >
+              <button
+                type="button"
+                aria-pressed={effectiveSplitOrientation === 'vertical'}
                 disabled={compactSplit}
-                title={t('workspace.splitSideBySide')} onClick={() => presentation.setSplitOrientation('vertical')}>
+                title={t('workspace.splitSideBySide')}
+                onClick={() => presentation.setSplitOrientation('vertical')}
+              >
                 <Columns2 size={15} />
               </button>
-              <button type="button" aria-pressed={effectiveSplitOrientation === 'horizontal'}
-                title={t('workspace.splitStacked')} onClick={() => presentation.setSplitOrientation('horizontal')}>
+              <button
+                type="button"
+                aria-pressed={effectiveSplitOrientation === 'horizontal'}
+                title={t('workspace.splitStacked')}
+                onClick={() => presentation.setSplitOrientation('horizontal')}
+              >
                 <Rows2 size={15} />
               </button>
             </div>
@@ -1071,14 +1085,25 @@ const TerminalsHost: React.FC<{
             </div>
             <div
               ref={splitRef}
-              className={splitMode ? `nx-terminals-inner-panels ${splitStyles.splitPanels}` : 'nx-terminals-inner-panels'}
+              className={
+                splitMode
+                  ? `nx-terminals-inner-panels ${splitStyles.splitPanels}`
+                  : 'nx-terminals-inner-panels'
+              }
               data-orientation={splitMode ? effectiveSplitOrientation : undefined}
-              style={splitMode ? ({ '--nx-terminal-split-ratio': `${Math.round(presentation.state.splitRatio * 100)}%` } as React.CSSProperties) : undefined}
+              style={
+                splitMode
+                  ? ({
+                      '--nx-terminal-split-ratio': `${Math.round(presentation.state.splitRatio * 100)}%`,
+                    } as React.CSSProperties)
+                  : undefined
+              }
             >
               {ptySurfaces.map((surface) => {
                 const ptyActive = focusedPtyId === surface.id;
                 const isSplitPrimary = splitMode && surfaceViewId(surface) === splitViews.primary;
-                const isSplitSecondary = splitMode && surfaceViewId(surface) === splitViews.secondary;
+                const isSplitSecondary =
+                  splitMode && surfaceViewId(surface) === splitViews.secondary;
                 const visible = splitMode ? isSplitPrimary || isSplitSecondary : ptyActive;
                 return (
                   <div
@@ -1088,11 +1113,19 @@ const TerminalsHost: React.FC<{
                     aria-labelledby={`nx-pty-tab-${surface.id}`}
                     hidden={!visible || undefined}
                     inert={!visible || undefined}
-                    className={splitMode ? `nx-workspace-panel ${splitStyles.splitPane}` : 'nx-workspace-panel'}
+                    className={
+                      splitMode
+                        ? `nx-workspace-panel ${splitStyles.splitPane}`
+                        : 'nx-workspace-panel'
+                    }
                     style={splitMode && visible ? { order: isSplitPrimary ? 0 : 2 } : undefined}
                     data-active={visible ? 'true' : 'false'}
                     onPointerDownCapture={() => {
-                      if (splitMode && visible && presentation.state.activePtyViewId !== surfaceViewId(surface)) {
+                      if (
+                        splitMode &&
+                        visible &&
+                        presentation.state.activePtyViewId !== surfaceViewId(surface)
+                      ) {
                         presentation.setActivePty(surfaceViewId(surface));
                       }
                     }}
@@ -1117,9 +1150,18 @@ const TerminalsHost: React.FC<{
                   onPointerUp={() => window.dispatchEvent(new Event('resize'))}
                   onKeyDown={(event) => {
                     const orientation = effectiveSplitOrientation;
-                    const increment = orientation === 'vertical'
-                      ? (event.key === 'ArrowRight' ? 0.05 : event.key === 'ArrowLeft' ? -0.05 : 0)
-                      : (event.key === 'ArrowDown' ? 0.05 : event.key === 'ArrowUp' ? -0.05 : 0);
+                    const increment =
+                      orientation === 'vertical'
+                        ? event.key === 'ArrowRight'
+                          ? 0.05
+                          : event.key === 'ArrowLeft'
+                            ? -0.05
+                            : 0
+                        : event.key === 'ArrowDown'
+                          ? 0.05
+                          : event.key === 'ArrowUp'
+                            ? -0.05
+                            : 0;
                     if (!increment) return;
                     event.preventDefault();
                     presentation.setSplitRatio(presentation.state.splitRatio + increment);
@@ -1146,13 +1188,16 @@ const TerminalsHost: React.FC<{
                         },
                       },
                       ...(splitMode && surfaceViewId(tabMenu.surface) !== splitViews.primary
-                        ? ([{
-                            type: 'item',
-                            id: 'split-secondary',
-                            label: t('workspace.showInSecondPane'),
-                            icon: <Columns2 size={13} />,
-                            onSelect: () => presentation.setSplitSecondary(surfaceViewId(tabMenu.surface)),
-                          }] satisfies ContextMenuItem[])
+                        ? ([
+                            {
+                              type: 'item',
+                              id: 'split-secondary',
+                              label: t('workspace.showInSecondPane'),
+                              icon: <Columns2 size={13} />,
+                              onSelect: () =>
+                                presentation.setSplitSecondary(surfaceViewId(tabMenu.surface)),
+                            },
+                          ] satisfies ContextMenuItem[])
                         : []),
                       ...(tabMenu.surface.closable !== false && onRequestClose
                         ? ([

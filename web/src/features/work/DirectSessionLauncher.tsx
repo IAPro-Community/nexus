@@ -34,7 +34,8 @@ const taskRole: Record<DirectTaskKind, string> = {
   review: 'reviewer',
   security: 'reviewer',
 };
-const modelIdValid = (value: string) => !value || (value.length <= 128 && /^[\w./:+-]+$/.test(value));
+const modelIdValid = (value: string) =>
+  !value || (value.length <= 128 && /^[\w./:+-]+$/.test(value));
 
 interface DirectResource {
   id: string;
@@ -122,9 +123,8 @@ export const DirectSessionLauncher: React.FC<{
           (resourcesResult.value.accounts || []) as DirectResource[],
         );
         setResources(eligible);
-        const ranked = recommendationResult.status === 'fulfilled'
-          ? recommendationResult.value
-          : null;
+        const ranked =
+          recommendationResult.status === 'fulfilled' ? recommendationResult.value : null;
         const suggested = recommendedDirectAccountId(eligible, ranked);
         setRecommendation(ranked);
         setRecommendationError(recommendationResult.status !== 'fulfilled');
@@ -135,7 +135,11 @@ export const DirectSessionLauncher: React.FC<{
         );
         if (suggested && !manualChoice.current) {
           const preferred = eligible.find((account) => account.id === suggested);
-          if (preferred) setName((previous) => previous.trim() || buildDirectAgentName(request?.prompt || '', preferred.provider));
+          if (preferred)
+            setName(
+              (previous) =>
+                previous.trim() || buildDirectAgentName(request?.prompt || '', preferred.provider),
+            );
         }
       }
       setLoading(false);
@@ -249,7 +253,8 @@ export const DirectSessionLauncher: React.FC<{
             {recommendation.recommended
               ? t('directSession.schedulerExplained', {
                   policy: recommendation.policy,
-                  provider: recommendation.recommended.account.display_name ||
+                  provider:
+                    recommendation.recommended.account.display_name ||
                     recommendation.recommended.account.provider,
                 })
               : t('directSession.schedulerNoCandidate')}
@@ -315,7 +320,9 @@ export const DirectSessionLauncher: React.FC<{
                             <Badge tone="success">{t('directSession.recommended')}</Badge>
                           )}
                           {candidate && (
-                            <Badge>{t('directSession.schedulerRank', { rank: candidate.rank })}</Badge>
+                            <Badge>
+                              {t('directSession.schedulerRank', { rank: candidate.rank })}
+                            </Badge>
                           )}
                           <Badge
                             tone={
@@ -368,7 +375,13 @@ export const DirectSessionLauncher: React.FC<{
           <Button onClick={onClose}>{t('directSession.cancel')}</Button>
           <Button
             tone="brand"
-            disabled={!selected || starting || loading || !name.trim() || !modelIdValid(modelOverride.trim())}
+            disabled={
+              !selected ||
+              starting ||
+              loading ||
+              !name.trim() ||
+              !modelIdValid(modelOverride.trim())
+            }
             onClick={() => void start()}
           >
             <Play size={14} /> {starting ? t('directSession.starting') : t('directSession.start')}

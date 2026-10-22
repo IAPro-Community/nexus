@@ -215,11 +215,12 @@ export function directResourcePolicy(value: string | undefined): string {
       const parsed: unknown = JSON.parse(raw);
       if (!parsed || typeof parsed !== 'object') return 'BALANCED';
       const data = parsed as Record<string, unknown>;
-      policy = typeof data.policy === 'string'
-        ? data.policy
-        : typeof data.scheduler_policy === 'string'
-          ? data.scheduler_policy
-          : 'BALANCED';
+      policy =
+        typeof data.policy === 'string'
+          ? data.policy
+          : typeof data.scheduler_policy === 'string'
+            ? data.scheduler_policy
+            : 'BALANCED';
     } catch {
       return 'BALANCED';
     }
