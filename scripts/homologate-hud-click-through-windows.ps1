@@ -66,6 +66,11 @@ public static class HudClickThrough {
     [DllImport("user32.dll")] private static extern int GetClassName(IntPtr h, StringBuilder text, int len);
     [DllImport("user32.dll")] private static extern int GetWindowLong(IntPtr h, int index);
     [DllImport("user32.dll")] private static extern bool BringWindowToTop(IntPtr h);
+    [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
+    private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+    private const uint SWP_NOMOVE = 0x0002;
+    private const uint SWP_NOSIZE = 0x0001;
+    private const uint SWP_NOACTIVATE = 0x0010;
 
     public static IntPtr FindMain(int pid) {
         IntPtr best = IntPtr.Zero; int bestArea = 0;
@@ -114,6 +119,9 @@ public static class HudClickThrough {
     }
     public static bool Focus(IntPtr h) { return SetForegroundWindow(h); }
     public static bool Raise(IntPtr h) { return BringWindowToTop(h); }
+    public static bool PinTopmost(IntPtr h) {
+        return SetWindowPos(h, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    }
     public static IntPtr Foreground() { return GetForegroundWindow(); }
 }
 '@
@@ -230,10 +238,13 @@ try {
     Start-Sleep -Milliseconds 400
 
     # The target must sit directly behind the HUD, otherwise a passing click
-    # lands on whatever window happens to be in between.
+    # lands on whatever window happens to be in between. Both are pinned as
+    # topmost, in order, so an always-on-top browser cannot steal the click.
+    [HudClickThrough]::PinTopmost($hTarget) | Out-Null
     [HudClickThrough]::Focus($hTarget) | Out-Null
     [HudClickThrough]::Raise($hTarget) | Out-Null
     Start-Sleep -Milliseconds 500
+    [HudClickThrough]::PinTopmost($hHud) | Out-Null
     [HudClickThrough]::Focus($hHud) | Out-Null
     [HudClickThrough]::Raise($hHud) | Out-Null
     Start-Sleep -Milliseconds 500

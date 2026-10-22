@@ -50,7 +50,14 @@ O click-through deixou de ser bloqueio do HUD. O veredito de release **não** mu
 
 Antes da correção, o mesmo teste produzia `CLICK_THROUGH=FAIL` com `foreground_after=Nexus HUD` (`DEV/validation/local-hud-7d92b942/click-through/RESULT.json`).
 
-Harness versionado: `scripts/homologate-hud-click-through-windows.ps1` (pwsh 7, SHA esperado opcional, exit code fail-closed).
+Harness versionado: `scripts/homologate-hud-click-through-windows.ps1` (pwsh 7, SHA esperado opcional, exit code fail-closed). O alvo é fixado como topmost e o HUD é elevado em seguida, para que um navegador sempre-no-topo não intercepte o clique que atravessa.
+
+## Implantação local
+
+`DEPLOYMENT.md` registra a instalação em `%LOCALAPPDATA%\Programs\IAPro Nexus` a partir de `4659ced7`: hashes instalados conferem com o build, servidor responde HTTP 200 na `13000` com `1.0.0-beta.10` / commit `4659ced`, e o click-through foi provado no binário instalado (`deployed-click-through/RESULT.json`, `PASS`, HUD SHA-256 `e9425d56...fe736`). Backup dos binários anteriores em `%TEMP%\nexus-backup-20261021-232756`.
+
+Observação: em `--linked` o HUD inicia com a janela oculta e é exibido pela aplicação/bandeja; o binário anterior apresenta o mesmo comportamento neste host.
+
 
 ## HUD nativo — função e visual
 
