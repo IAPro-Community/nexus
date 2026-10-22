@@ -20,6 +20,11 @@ const browser = await chromium.launch({
 
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  // The release enables extra panel scrolling only on the web platform.
+  // Reproduce that specificity in the Split geometry smoke.
+  await page.evaluate(() => {
+    document.documentElement.dataset.nexusPlatform = 'web';
+  });
   for (const { orientation, width, height, ratio } of [
     { orientation: 'vertical', width: 960, height: 480, ratio: 20 },
     { orientation: 'vertical', width: 960, height: 480, ratio: 50 },
@@ -59,12 +64,20 @@ try {
         primaryPosition: getComputedStyle(panes[0]).position,
         secondaryPosition: getComputedStyle(panes[1]).position,
         hiddenDisplay: getComputedStyle(panes[2]).display,
+        primaryOverflow: getComputedStyle(panes[0]).overflow,
+        secondaryOverflow: getComputedStyle(panes[1]).overflow,
+        primaryGutter: getComputedStyle(panes[0]).scrollbarGutter,
+        secondaryGutter: getComputedStyle(panes[1]).scrollbarGutter,
       };
     });
     const { primary, secondary, divider } = geometry;
     assert.equal(geometry.primaryPosition, 'relative', 'primary cannot inherit absolute Tabs positioning');
     assert.equal(geometry.secondaryPosition, 'relative', 'secondary cannot inherit absolute Tabs positioning');
     assert.equal(geometry.hiddenDisplay, 'none', 'third PTY cannot occupy a grid track');
+    assert.equal(geometry.primaryOverflow, 'hidden', 'web Split primary must not inherit page scrollbars');
+    assert.equal(geometry.secondaryOverflow, 'hidden', 'web Split secondary must not inherit page scrollbars');
+    assert.equal(geometry.primaryGutter, 'auto', 'web Split primary cannot reserve scrollbar gutter');
+    assert.equal(geometry.secondaryGutter, 'auto', 'web Split secondary cannot reserve scrollbar gutter');
     if (orientation === 'vertical') {
       assert.ok(primary.width > 50 && secondary.width > 50, 'both PTYs need usable widths');
       assert.ok(primary.x + primary.width <= divider.x + 1, 'primary cannot overlap the divider');

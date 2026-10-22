@@ -78,3 +78,7 @@ A Command Palette preserva os prefixos `#`, `@`, `$`, `>` e coloca correspondên
 O comando `npm run test:e2e:terminal-split` exercita o **grid real de estilos** em Chromium, com a regra absoluta legada e as regras `TerminalSplit.module.scss`: ordem primário/divisor/secundário, ausência de sobreposição, painel oculto fora do grid e orientação vertical/horizontal. É um gate geométrico de regressão que não substitui o E2E real do Nexus com PTY/ConPTY e resize via WebSocket. Requer Playwright Chromium disponível.
 
 A recomendação de conta exibe até dois motivos de pontuação vindos do backend, sem calcular scores fictícios no frontend.
+
+### Web platform scroll specificity (release regression)
+
+The release web workspace uses `:root[data-nexus-platform="web"] .nx-workspace-panel[data-active="true"]` to make ordinary browser panels scrollable. Split terminals must not inherit its scrollbars or `scrollbar-gutter: stable`. A more-specific grid-child rule keeps both PTYs at `overflow: hidden` and `scrollbar-gutter: auto`, while retaining web scrolling on non-Split panels. The Chromium geometry gate now asserts these computed styles for both orientations.

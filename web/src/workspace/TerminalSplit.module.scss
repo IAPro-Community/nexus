@@ -58,6 +58,14 @@
   display: none;
 }
 
+/* The web-only workspace rule enables scrolling on every active panel.
+   A Split PTY is a fixed grid cell; the terminal owns its viewport and must
+   not inherit an extra scrollbar or reserved scrollbar gutter. */
+.splitPanels.splitPanels > .splitPane.splitPane[data-active='true'] {
+  overflow: hidden;
+  scrollbar-gutter: auto;
+}
+
 .divider {
   min-width: 6px;
   min-height: 6px;
