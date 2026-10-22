@@ -672,9 +672,58 @@ func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error
 // prompt lines pass through the promotion policy; control sequences and
 // bracketed paste are never interpreted as prompt text.
 func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session registry.RuntimeSession, agentID string) error {
-	if n != nil {
-		defer func() { _ = n.ReleaseInteractiveLeadRuntime(context.Background(), agentID, runtimeID) }()
+	currentID := runtimeID
+	current := session
+	for {
+		err := attachInteractiveLeadRuntimeOnce(currentID, n, current, agentID)
+		if n != nil {
+			_ = n.ReleaseInteractiveLeadRuntime(context.Background(), agentID, currentID)
+		}
+		if err != nil {
+			return err
+		}
+		next, ok := waitForContinuityReplacement(n, currentID, agentID)
+		if !ok {
+			return nil
+		}
+		fmt.Fprintf(os.Stderr, "\r\n[nexus] Continuidade: runtime %s substituído por %s (%s:%s). Reanexando…\r\n", currentID, next.RuntimeID, next.ProviderID, next.ProfileID)
+		currentID = next.RuntimeID
+		current = next
 	}
+}
+
+func waitForContinuityReplacement(n *nexus.Nexus, oldRuntimeID, agentID string) (registry.RuntimeSession, bool) {
+	if n == nil {
+		return registry.RuntimeSession{}, false
+	}
+	reg := n.RuntimeRegistry()
+	old, ok := reg.Get(oldRuntimeID)
+	if !ok || old.Labels == nil || old.Labels["nexus.continuity_pending"] != "true" {
+		return registry.RuntimeSession{}, false
+	}
+	deadline := time.Now().Add(8 * time.Second)
+	for time.Now().Before(deadline) {
+		for _, candidate := range reg.List() {
+			if candidate.ParentRuntimeID != oldRuntimeID {
+				continue
+			}
+			if agentID != "" && candidate.AgentID != agentID {
+				continue
+			}
+			if candidate.Labels == nil || candidate.Labels["nexus.continuity_replaces_runtime"] != oldRuntimeID {
+				continue
+			}
+			switch candidate.State {
+			case registry.StateRunning, registry.StateWaiting, registry.StateStarting:
+				return candidate, true
+			}
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	return registry.RuntimeSession{}, false
+}
+
+func attachInteractiveLeadRuntimeOnce(runtimeID string, n *nexus.Nexus, session registry.RuntimeSession, agentID string) error {
 	if n == nil || session.ProjectID == "" || agentID == "" {
 		return attachRuntime(runtimeID)
 	}
