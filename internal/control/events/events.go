@@ -16,6 +16,7 @@ const (
 	EventRuntimeStarted                 EventType = "RUNTIME_STARTED"
 	EventRuntimeStopped                 EventType = "RUNTIME_STOPPED"
 	EventRuntimeFailed                  EventType = "RUNTIME_FAILED"
+	EventRuntimeReplaced                EventType = "RUNTIME_REPLACED"
 	EventSessionStarted                 EventType = "SESSION_STARTED"
 	EventSessionResumed                 EventType = "SESSION_RESUMED"
 	EventSessionEnded                   EventType = "SESSION_ENDED"
