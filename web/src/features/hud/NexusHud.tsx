@@ -370,7 +370,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   };
 
   const chooseAppearance = (next: HudAppearance) => {
-    if (!native || appearancePending || (next === 'MASCOT' && !nativeDetached)) return;
+    if (!native || appearancePending) return;
     setAppearancePending(true);
     void hudV3
       .setAppearance(next)
@@ -529,8 +529,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const nativeTitle = `${mainLabel}: ${currentPercent} · ${focus?.provider?.limiting_window?.reset_description || 'Renovação desconhecida'}`;
   const tone = waiting ? 'unknown' : displayTone;
   const guardianState = guardianMood(offline || waiting, isAttention, activeAgents.length);
-  const showGuardianMascot =
-    native && nativeDetached && !isDetachedPopup && nativeAppearance === 'MASCOT';
+  const showGuardianMascot = native && !isDetachedPopup && nativeAppearance === 'MASCOT';
   const floatingStyle =
     !native && prefs.surfaceMode === 'floating'
       ? ({
