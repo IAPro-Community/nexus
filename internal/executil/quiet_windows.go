@@ -32,3 +32,15 @@ func HideConsoleWindow(cmd *exec.Cmd) {
 		cmd.SysProcAttr.CreationFlags |= createNoWindow
 	}
 }
+
+// hideConsoleOnly keeps CREATE_NO_WINDOW (no console flash) but deliberately
+// omits STARTF_USESHOWWINDOW/SW_HIDE so a GUI child can show its main window.
+func hideConsoleOnly(cmd *exec.Cmd) {
+	if cmd == nil {
+		return
+	}
+	if cmd.SysProcAttr == nil {
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+	}
+	cmd.SysProcAttr.CreationFlags |= createNoWindow
+}

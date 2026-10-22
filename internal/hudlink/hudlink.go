@@ -116,7 +116,7 @@ func Linked(args []string, getenv func(string) string) bool {
 }
 
 func linkedCommand(path string) *exec.Cmd {
-	cmd := executil.Command(path, "--linked")
+	cmd := executil.CommandNoConsole(path, "--linked")
 	cmd.Env = append(os.Environ(), LinkedEnv+"=1")
 	return cmd
 }
