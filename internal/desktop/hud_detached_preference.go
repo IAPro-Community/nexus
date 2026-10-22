@@ -15,8 +15,8 @@ func (h *HUDController) GetHUDDetachedPopoverPreference() bool {
 // SetHUDDetachedPopoverPreference persists and applies the user's choice.
 //
 // Enabling builds the second native window on demand, without a restart.
-// Disabling hides it and restores the compact bar, so the capsule can never
-// keep mascot geometry without a popup behind it. Both paths fail closed: if
+// Disabling hides it and switches to single-window expansion without changing
+// whether the user selected Mascot or Bar. Both paths fail closed: if
 // the window cannot be created, the preference is not persisted and the HUD
 // stays exactly as it was.
 func (h *HUDController) SetHUDDetachedPopoverPreference(enabled bool) error {
@@ -30,9 +30,6 @@ func (h *HUDController) SetHUDDetachedPopoverPreference(enabled bool) error {
 	}
 
 	state := h.manager.Load()
-	if !enabled && state.Appearance == HUDAppearanceMascot {
-		state.Appearance = HUDAppearanceBar
-	}
 	state.DetachedPopover = enabled
 	// The legacy path grows the single window into the panel. Switching to the
 	// independent popup must shrink the capsule back, keeping its bottom-right
