@@ -46,14 +46,17 @@ func main() {
 		SessionToken: backend.Session.ID,
 		CSRFToken:    backend.Session.CSRFToken,
 	})
-	// Detached popover is opt-in. Explicit environment wins, but the HUD
-	// settings surface can persist the choice so it survives restarts.
-	detachedRequested := os.Getenv("NEXUS_HUD_DETACHED_POPOVER") == "1" || windowState.DetachedPopover
-	hudController := desktop.NewHUDControllerWithDetachedPopover(stateManager, detachedRequested)
-	// The controller may recover a persisted mascot into BAR when detached
-	// windows are unavailable (notably Wayland). Reload after construction:
-	// using the earlier snapshot would create an undersized BAR webview.
+	// A fresh installation starts with Guardian Mascot and an independent
+	// popup. Existing user choices are persisted; no environment variable
+	// is required to activate the presentation.
+	hudController := desktop.NewHUDControllerWithDetachedPopover(stateManager, windowState.DetachedPopover)
+	// Wayland uses single-window expansion but keeps the mascot appearance.
 	windowState = stateManager.Load()
+	if windowState.Appearance == desktop.HUDAppearanceMascot {
+		// Match initial Wails dimensions to the mascot, avoiding a frame of
+		// the old 220x60 bar when loading a pre-Guardian saved state.
+		windowState.Width, windowState.Height = desktop.HUDMascotWidth, desktop.HUDMascotHeight
+	}
 
 	var window application.Window
 
@@ -128,17 +131,10 @@ func main() {
 	desktop.ConfigureNativeTray(native, window, "Nexus HUD", desktop.HUDTrayAppearanceActions{
 		Show:            hudController.ShowHUD,
 		Hide:            hudController.HideHUD,
-		// The menu is constructed once, but popup opt-in can change while
-		// running. Offer Mascot on globally positionable desktops and create
-		// its popup only when the user selects it.
-		MascotAvailable: hudController.GetHUDCapabilities().GlobalPositioning,
+		// The Mascot works with either a detached popup (preferred) or the
+		// single-window fallback on Wayland, without extra configuration.
+		MascotAvailable: true,
 		Select: func(mode string) {
-			if mode == desktop.HUDAppearanceMascot && !hudController.GetHUDDetachedPopoverEnabled() {
-				if err := hudController.SetHUDDetachedPopoverPreference(true); err != nil {
-					fmt.Fprintf(os.Stderr, "Nexus HUD popup activation: %v\n", err)
-					return
-				}
-			}
 			if err := hudController.SetHUDAppearance(mode); err != nil {
 				fmt.Fprintf(os.Stderr, "Nexus HUD presentation: %v\n", err)
 			}
