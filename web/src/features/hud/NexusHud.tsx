@@ -87,6 +87,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const [appearanceReady, setAppearanceReady] = useState(false);
   const [appearancePending, setAppearancePending] = useState(false);
   const [detachedPending, setDetachedPending] = useState(false);
+  const [nativePopupSupported, setNativePopupSupported] = useState(true);
   const isDetachedPopup = native && nativeView === 'popover';
   const showPopoverContent = shouldRenderHudPopover(expanded, native, nativeView, nativeDetached);
   const [popupPresentation, setPopupPresentation] = useState(0);
@@ -153,6 +154,22 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       window.clearInterval(timer);
     };
   }, [refresh, response?.state?.system.cache_ttl_millis]);
+
+  useEffect(() => {
+    if (!native) return;
+    let active = true;
+    void hudV3
+      .getCapabilities()
+      .then((caps) => {
+        if (active) {
+          setNativePopupSupported(!(caps.platform === 'linux' && caps.session === 'wayland'));
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [native]);
 
   useEffect(() => {
     const sync = () => setPrefs(loadHudPreferences());
@@ -369,7 +386,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   };
 
   const toggleDetachedPopover = () => {
-    if (!native || detachedPending) return;
+    if (!native || detachedPending || !nativePopupSupported) return;
     const next = !nativeDetached;
     setDetachedPending(true);
     void hudV3
@@ -597,15 +614,23 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 <button
                   type="button"
                   className={styles.popupToggle}
-                  disabled={detachedPending}
+                  disabled={detachedPending || !nativePopupSupported}
                   aria-pressed={nativeDetached}
-                  title="Cria uma segunda janela nativa para o painel e habilita o modo Mascote."
+                  title={
+                    nativePopupSupported
+                      ? 'Cria uma segunda janela nativa para o painel e habilita o modo Mascote.'
+                      : 'Popup independente indisponível nesta sessão Wayland.'
+                  }
                   onClick={toggleDetachedPopover}
                 >
                   Popup independente: {nativeDetached ? 'Sim' : 'Não'}
                 </button>
                 <span className={styles.popupHint}>
-                  {nativeDetached ? 'Mascote disponível' : 'Necessário para o Mascote'}
+                  {!nativePopupSupported
+                    ? 'Indisponível no Wayland'
+                    : nativeDetached
+                      ? 'Mascote disponível'
+                      : 'Necessário para o Mascote'}
                 </span>
               </div>
             )}
