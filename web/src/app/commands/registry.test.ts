@@ -86,3 +86,30 @@ describe('contextual quick-search prefixes', () => {
     ]);
   });
 });
+
+describe('typo tolerant quick search', () => {
+  const commands: NexusCommand[] = [
+    { id: 'review', kind: 'agent', label: 'Revisão de código', group: 'Agentes', run: () => undefined },
+    { id: 'resource', kind: 'resource', label: 'Contas de acesso', group: 'Recursos', run: () => undefined },
+    { id: 'project', kind: 'project', label: 'Educação municipal', group: 'Projetos', run: () => undefined },
+  ];
+
+  it('tolerates one character omission and adjacent swaps for long words', () => {
+    expect(filterCommands(commands, '@reviaso').map((entry) => entry.id)).toEqual(['review']);
+    expect(filterCommands(commands, '#educaco').map((entry) => entry.id)).toEqual(['project']);
+    expect(filterCommands(commands, '$conats').map((entry) => entry.id)).toEqual(['resource']);
+  });
+
+  it('preserves exact matches ahead of typo matches', () => {
+    expect(filterCommands([
+      { id: 'typo', kind: 'project', label: 'Progeto', group: 'Projetos', run: () => undefined },
+      { id: 'exact', kind: 'project', label: 'Projeto', group: 'Projetos', run: () => undefined },
+    ], '#projeto').map((item) => item.id)).toEqual(['exact', 'typo']);
+  });
+
+  it('never fuzzy matches short identifiers or scopes', () => {
+    expect(filterCommands(commands, '#ed')).toEqual([]);
+    expect(filterCommands(commands, '@rvs')).toEqual([]);
+    expect(filterCommands(commands, '#')).toHaveLength(1);
+  });
+});

@@ -14,6 +14,9 @@ export const CommandPalette: React.FC<{
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
   const filtered = useMemo(() => filterCommands(commands, query), [commands, query]);
+  // Commands can change while the palette is open (agent removal, project
+  // switch). Never execute a stale index from the previous result set.
+  const safeActive = Math.min(active, Math.max(0, filtered.length - 1));
   useEffect(() => {
     if (open) {
       setQuery('');
@@ -39,7 +42,7 @@ export const CommandPalette: React.FC<{
             setActive((value) => Math.max(0, value - 1));
           } else if (event.key === 'Enter') {
             event.preventDefault();
-            execute(filtered[active]);
+            if (!event.nativeEvent.isComposing) execute(filtered[safeActive]);
           }
         }}
       >
@@ -68,8 +71,8 @@ export const CommandPalette: React.FC<{
             <button
               type="button"
               role="option"
-              aria-selected={index === active}
-              data-active={index === active ? 'true' : 'false'}
+              aria-selected={index === safeActive}
+              data-active={index === safeActive ? 'true' : 'false'}
               key={command.id}
               onMouseEnter={() => setActive(index)}
               onClick={() => execute(command)}
@@ -83,7 +86,7 @@ export const CommandPalette: React.FC<{
               </span>
               <span className="nx-command-meta">
                 {command.shortcut || command.group}
-                {index === active && <CornerDownLeft size={12} />}
+                {index === safeActive && <CornerDownLeft size={12} />}
               </span>
             </button>
           ))}

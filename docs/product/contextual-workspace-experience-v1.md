@@ -68,3 +68,7 @@ A seleção automática do modelo continua bloqueada até que o Direct obtenha u
 ## Split — resize do Project Shell
 
 O `AgentTerminal` já observava mudanças de tamanho do contêiner. O `TerminalPane` do Project Shell agora também observa o contêiner com `ResizeObserver`, agendando o `FitAddon` no próximo frame durante o arraste do Split. Ao desmontar, o observer e o frame pendente são descartados. Continua sendo obrigatório confirmar resize PTY real no browser/ConPTY/macOS.
+
+## Busca contextual — tolerância a digitação
+
+A Command Palette preserva os prefixos `#`, `@`, `$`, `>` e coloca correspondências exatas à frente. Palavras com quatro ou mais caracteres permitem uma omissão, inserção, substituição ou transposição adjacente; IDs curtos e caminhos mantêm busca estrita. Mudanças na coleção de comandos não podem disparar um item com índice desatualizado, e IME em composição não executa a seleção com Enter.
