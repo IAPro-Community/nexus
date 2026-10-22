@@ -86,6 +86,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const [nativeAppearance, setNativeAppearance] = useState<HudAppearance>('BAR');
   const [appearanceReady, setAppearanceReady] = useState(false);
   const [appearancePending, setAppearancePending] = useState(false);
+  const [detachedPending, setDetachedPending] = useState(false);
   const isDetachedPopup = native && nativeView === 'popover';
   const showPopoverContent = shouldRenderHudPopover(expanded, native, nativeView, nativeDetached);
   const [popupPresentation, setPopupPresentation] = useState(0);
@@ -172,7 +173,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     if (!native) return;
     let active = true;
     let detachedMode = false;
-    const syncExpanded = () => {
+    const syncState = () => {
       // Appearance is authoritative in the native controller, not localStorage:
       // capsule and popup run in distinct WebViews with distinct React trees.
       void hudV3
@@ -181,35 +182,43 @@ export const NexusHud: React.FC<NexusHudProps> = ({
           if (active) setNativeAppearance(normalizeHudAppearance(value));
         })
         .catch(() => undefined);
-      // The single-window HUD owns its expansion in React. Polling the
-      // detached-only backend field would incorrectly collapse legacy users.
-      if (!detachedMode) return;
+      // The popup opt-in can change from the other WebView, so it is re-read on
+      // every tick. Otherwise the capsule would keep stale expansion semantics.
       void hudV3
-        .getExpanded()
-        .then((value) => {
-          if (active && !nativeExpansionPending.current) setExpanded(Boolean(value));
+        .getDetachedPopoverEnabled()
+        .then((enabled) => {
+          if (!active) return;
+          const next = Boolean(enabled);
+          if (next !== detachedMode) {
+            detachedMode = next;
+            setNativeDetached(next);
+            // Leaving the popup mode must never keep a stale open panel inside
+            // the compact capsule.
+            if (!next) setExpanded(false);
+          }
+          // The single-window HUD owns its expansion in React. Polling the
+          // detached-only backend field would incorrectly collapse legacy users.
+          if (!detachedMode) return;
+          void hudV3
+            .getExpanded()
+            .then((value) => {
+              if (active && !nativeExpansionPending.current) setExpanded(Boolean(value));
+            })
+            .catch(() => undefined);
         })
         .catch(() => undefined);
     };
-    void hudV3
-      .getDetachedPopoverEnabled()
-      .then((enabled) => {
-        if (!active) return;
-        detachedMode = Boolean(enabled);
-        setNativeDetached(detachedMode);
-        if (detachedMode) syncExpanded();
-      })
-      .catch(() => undefined);
+    syncState();
     // The capsule and popup are independent React trees. Read the controller's
     // authoritative state to recover after blur, Escape, and native hide.
     const timer = window.setInterval(() => {
-      if (active) syncExpanded();
+      if (active) syncState();
     }, 800);
-    window.addEventListener('focus', syncExpanded);
+    window.addEventListener('focus', syncState);
     return () => {
       active = false;
       window.clearInterval(timer);
-      window.removeEventListener('focus', syncExpanded);
+      window.removeEventListener('focus', syncState);
     };
   }, [native]);
 
@@ -325,6 +334,13 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       .then(() => {
         setNativeExpansionError(null);
         setExpanded(value);
+        // The popup setting can change from the other WebView (the detached
+        // popover). Re-read it so this tree never suppresses the inline panel
+        // while the native controller is back on the legacy single window.
+        void hudV3
+          .getDetachedPopoverEnabled()
+          .then(setNativeDetached)
+          .catch(() => undefined);
       })
       .catch((error: unknown) => {
         setNativeExpansionError('Falha ao expandir a janela nativa');
@@ -350,6 +366,29 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         toast.error('Não foi possível alterar a apresentação do Guardian.');
       })
       .finally(() => setAppearancePending(false));
+  };
+
+  const toggleDetachedPopover = () => {
+    if (!native || detachedPending) return;
+    const next = !nativeDetached;
+    setDetachedPending(true);
+    void hudV3
+      .setDetachedPopoverPreference(next)
+      .then(() => {
+        setNativeDetached(next);
+        setExpanded(false);
+        if (!next) setNativeAppearance((current) => (current === 'MASCOT' ? 'BAR' : current));
+        toast.success(
+          next
+            ? 'Popup independente ativado. O modo Mascote está disponível.'
+            : 'Popup independente desativado.',
+        );
+      })
+      .catch((error: unknown) => {
+        console.error('Nexus HUD detached popover toggle failed:', error);
+        toast.error('Não foi possível alterar o popup independente do HUD.');
+      })
+      .finally(() => setDetachedPending(false));
   };
 
   const applySize = (preset: string) => {
@@ -788,6 +827,17 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               {(onOpenUsage || onOpenNexus) && (
                 <button type="button" onClick={onOpenUsage || onOpenNexus}>
                   Abrir Nexus <ExternalLink size={13} />
+                </button>
+              )}
+              {native && (
+                <button
+                  type="button"
+                  disabled={detachedPending}
+                  aria-pressed={nativeDetached}
+                  title="Cria uma segunda janela nativa para o painel e habilita o modo Mascote."
+                  onClick={toggleDetachedPopover}
+                >
+                  Popup independente: {nativeDetached ? 'Sim' : 'Não'}
                 </button>
               )}
               {native && nativeAutoStart?.supported && (

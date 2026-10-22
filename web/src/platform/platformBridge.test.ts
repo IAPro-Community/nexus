@@ -118,6 +118,29 @@ describe('PlatformBridge', () => {
     ]);
   });
 
+  it('reads and toggles the persisted detached popover preference', async () => {
+    const calls: Array<{ method: string; args: unknown[] }> = [];
+    setWailsV3InvokerForTests(async (method, ...args) => {
+      calls.push({ method, args });
+      if (method.endsWith('.GetHUDDetachedPopoverPreference')) return false;
+      return undefined;
+    });
+    await expect(hudV3.getDetachedPopoverPreference()).resolves.toBe(false);
+    await hudV3.setDetachedPopoverPreference(true);
+    expect(calls).toEqual([
+      {
+        method:
+          'github.com/IAPro-Community/nexus/internal/desktop.HUDController.GetHUDDetachedPopoverPreference',
+        args: [],
+      },
+      {
+        method:
+          'github.com/IAPro-Community/nexus/internal/desktop.HUDController.SetHUDDetachedPopoverPreference',
+        args: [true],
+      },
+    ]);
+  });
+
   it('routes BAR, MASCOT and TRAY to the persistent native controller', async () => {
     const calls: Array<{ method: string; args: unknown[] }> = [];
     setWailsV3InvokerForTests(async (method, ...args) => {

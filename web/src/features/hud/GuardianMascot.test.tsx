@@ -44,7 +44,7 @@ describe('Nexus Guardian pixel mascot', () => {
         onSelect={() => undefined}
       />,
     );
-    expect(html).toMatch(/Mascote requer popup independente/);
+    expect(html).toMatch(/Ative &quot;Popup independente&quot; nas configurações do HUD/);
     expect(html).toContain('disabled=""');
   });
 });
