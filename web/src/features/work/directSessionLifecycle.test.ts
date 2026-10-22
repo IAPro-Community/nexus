@@ -16,14 +16,14 @@ const input = {
   workspace: '/repo',
 };
 
-function operations(): DirectSessionOperations & Record<string, any> {
+function operations() {
   return {
     createAgent: vi.fn().mockResolvedValue(agent),
     selectResource: vi.fn().mockResolvedValue({}),
     applyAgentConfig: vi.fn().mockResolvedValue({}),
     startAgent: vi.fn().mockResolvedValue({}),
     deleteAgent: vi.fn().mockResolvedValue({}),
-  };
+  } satisfies DirectSessionOperations;
 }
 
 describe('Direct session transactional setup', () => {
@@ -31,9 +31,15 @@ describe('Direct session transactional setup', () => {
     const api = operations();
     await expect(startDirectSession(api, input)).resolves.toBe(agent);
     expect(api.selectResource).toHaveBeenCalledWith('agent-a', 'codex', 'work', 'MANUAL');
-    expect(api.applyAgentConfig).toHaveBeenCalledWith('agent-a', expect.objectContaining({
-      provider: 'codex', profile: 'work', model: 'example-model', isolation: 'project',
-    }));
+    expect(api.applyAgentConfig).toHaveBeenCalledWith(
+      'agent-a',
+      expect.objectContaining({
+        provider: 'codex',
+        profile: 'work',
+        model: 'example-model',
+        isolation: 'project',
+      }),
+    );
     expect(api.startAgent).toHaveBeenCalledWith('agent-a');
     expect(api.deleteAgent).not.toHaveBeenCalled();
   });
@@ -43,7 +49,8 @@ describe('Direct session transactional setup', () => {
       const api = operations();
       api[step].mockRejectedValue(new Error('config unavailable'));
       await expect(startDirectSession(api, input)).rejects.toMatchObject({
-        agentId: 'agent-a', recovery: 'deleted',
+        agentId: 'agent-a',
+        recovery: 'deleted',
       });
       expect(api.deleteAgent).toHaveBeenCalledWith('agent-a');
       expect(api.startAgent).not.toHaveBeenCalled();
@@ -54,14 +61,16 @@ describe('Direct session transactional setup', () => {
     api.selectResource.mockRejectedValue(new Error('selection rejected'));
     api.deleteAgent.mockRejectedValue(new Error('cannot delete'));
     await expect(startDirectSession(api, input)).rejects.toMatchObject({
-      agentId: 'agent-a', recovery: 'cleanup-failed',
+      agentId: 'agent-a',
+      recovery: 'cleanup-failed',
     });
   });
   it('never deletes a runtime when its start response is uncertain', async () => {
     const api = operations();
     api.startAgent.mockRejectedValue(new Error('network timeout'));
     await expect(startDirectSession(api, input)).rejects.toMatchObject({
-      agentId: 'agent-a', recovery: 'start-uncertain',
+      agentId: 'agent-a',
+      recovery: 'start-uncertain',
     });
     expect(api.deleteAgent).not.toHaveBeenCalled();
   });

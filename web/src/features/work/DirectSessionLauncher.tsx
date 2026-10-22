@@ -22,7 +22,6 @@ import {
   eligibleDirectResources,
   quotaTruthState,
   recommendedDirectAccountId,
-  directResourcePolicy,
   directSchedulerContext,
 } from './directSessionModel';
 import resourceStyles from '../../nexus/ResourcePicker.module.scss';
@@ -80,7 +79,7 @@ export const DirectSessionLauncher: React.FC<{
   const [name, setName] = useState('');
   const [taskKind, setTaskKind] = useState<DirectTaskKind>('coding');
   const [modelOverride, setModelOverride] = useState('');
-  const [preferredProvider, setPreferredProvider] = useState('');
+  const [preferredProvider, setPreferredProvider] = useState(() => directSchedulerContext(project.resource_policy).preferProvider);
   const [recommendation, setRecommendation] = useState<RecommendationResult | null>(null);
   const [recommendationError, setRecommendationError] = useState(false);
   const manualChoice = useRef(false);
@@ -94,9 +93,9 @@ export const DirectSessionLauncher: React.FC<{
     manualChoice.current = false;
     setSelectedID('');
     setModelOverride('');
-    setPreferredProvider('');
+    setPreferredProvider(directSchedulerContext(project.resource_policy).preferProvider);
     setName('');
-  }, [open]);
+  }, [open, project.id, project.resource_policy]);
 
   useEffect(() => {
     if (!open) return;
@@ -172,7 +171,13 @@ export const DirectSessionLauncher: React.FC<{
   };
 
   const start = async () => {
-    if (submitInFlight.current || loading || !selected || !request || !modelIdValid(modelOverride.trim()))
+    if (
+      submitInFlight.current ||
+      loading ||
+      !selected ||
+      !request ||
+      !modelIdValid(modelOverride.trim())
+    )
       return;
     submitInFlight.current = true;
     setStarting(true);
@@ -216,7 +221,9 @@ export const DirectSessionLauncher: React.FC<{
   return (
     <Dialog
       open={open}
-      onClose={() => { if (!starting) onClose(); }}
+      onClose={() => {
+        if (!starting) onClose();
+      }}
       title={
         request?.mode === 'assisted' ? t('directSession.assistedTitle') : t('directSession.title')
       }
@@ -242,10 +249,12 @@ export const DirectSessionLauncher: React.FC<{
               }}
               options={[
                 { value: '', label: t('directSession.providerAutomatic') },
-                ...Array.from(new Set(resources.map((item) => item.provider))).sort().map((provider) => ({
-                  value: provider,
-                  label: provider,
-                })),
+                ...Array.from(new Set(resources.map((item) => item.provider)))
+                  .sort()
+                  .map((provider) => ({
+                    value: provider,
+                    label: provider,
+                  })),
               ]}
             />
           </label>
@@ -403,7 +412,9 @@ export const DirectSessionLauncher: React.FC<{
           </InlineAlert>
         )}
         <div className="nx-dialog-actions">
-          <Button disabled={starting} onClick={onClose}>{t('directSession.cancel')}</Button>
+          <Button disabled={starting} onClick={onClose}>
+            {t('directSession.cancel')}
+          </Button>
           <Button
             tone="brand"
             disabled={
