@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"io"
 	"testing"
 
 	"github.com/IAPro-Community/nexus/internal/control/registry"
@@ -90,5 +91,32 @@ func TestWebTerminalPromotionInputRequiresExplicitMode(t *testing.T) {
 	})
 	if direct.Len() != 0 || promotion.String() != "test\r" {
 		t.Fatalf("interactive promotion dispatch mismatch: direct=%q promoted=%q", direct.String(), promotion.String())
+	}
+}
+
+func TestWriteAttachedTerminalInputPreservesBytesWithoutRPCFraming(t *testing.T) {
+	var out bytes.Buffer
+	for _, chunk := range []string{"echo __NEXUS_DOCS_TERMINAL_OK__", "\r", "\x1b[A", "\x03"} {
+		if err := writeAttachedTerminalInput(&out, chunk); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got, want := out.String(), "echo __NEXUS_DOCS_TERMINAL_OK__\r\x1b[A\x03"; got != want {
+		t.Fatalf("terminal input changed: got %q want %q", got, want)
+	}
+	if bytes.Contains(out.Bytes(), []byte(`"command":"input"`)) {
+		t.Fatal("browser input must never be wrapped as CmdInput JSON")
+	}
+}
+
+type shortTerminalWriter struct{}
+
+func (shortTerminalWriter) Write(data []byte) (int, error) {
+	return len(data) - 1, nil
+}
+
+func TestWriteAttachedTerminalInputRejectsShortWrite(t *testing.T) {
+	if got := writeAttachedTerminalInput(shortTerminalWriter{}, "hello"); got != io.ErrShortWrite {
+		t.Fatalf("short write must be reported, got %v", got)
 	}
 }
