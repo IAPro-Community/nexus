@@ -95,12 +95,9 @@ func (h *HUDController) watchHUDHitTesting(stop <-chan struct{}) {
 }
 
 func (h *HUDController) applyHUDHitTesting() {
-	if h.GetHUDDetachedPopoverEnabled() {
-		// The detached popover is a second native window with its own focus
-		// lifecycle. Click-through is only proven for the capsule window, so
-		// the split presentation keeps its previous behavior.
-		return
-	}
+	// The watcher always owns the compact capsule window, never the second
+	// popup. Splitting the detail panel must not disable click-through for
+	// the transparent margins of the capsule or pixel Guardian surface.
 	window, ok := h.nativeWindow()
 	if !ok || !window.IsVisible() {
 		return
