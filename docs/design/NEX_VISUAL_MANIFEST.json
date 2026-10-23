@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "1.0",
+  "identity": {
+    "name": "NEX",
+    "brand": "IAPro Nexus",
+    "approval_date": "2026-10-23",
+    "status": "OFFICIAL_VISUAL_DIRECTION",
+    "default_view": "FRONT",
+    "visual_style": "retro-futuristic 32-bit-inspired pixel art",
+    "is_brand_logo": false,
+    "product_line": "1.0"
+  },
+  "source_of_truth": {
+    "normative_contract": "docs/design/NEX_32BIT_VISUAL_CONTRACT.md",
+    "compact_runtime_component": "web/src/features/hud/NexPixelSprite.tsx",
+    "runtime_states": [
+      "idle",
+      "working",
+      "warning",
+      "offline"
+    ],
+    "runtime_export_script": "web/scripts/export-nex-art.mjs"
+  },
+  "references": [
+    {
+      "id": "front",
+      "file": "docs/design/assets/nex/nex-character-reference.svg",
+      "kind": "auxiliary_vector_drawing",
+      "pose": "front",
+      "status": "VERSIONED",
+      "normative_for": [
+        "frontal_anatomy",
+        "silhouette",
+        "module_count"
+      ]
+    },
+    {
+      "id": "expressions",
+      "file": "docs/design/assets/nex/nex-expression-states.svg",
+      "kind": "auxiliary_vector_drawing",
+      "status": "VERSIONED",
+      "normative_for": [
+        "facial_variations",
+        "status_distinction"
+      ]
+    },
+    {
+      "id": "scales",
+      "file": "docs/design/assets/nex/nex-scales-layout.svg",
+      "kind": "illustrative_scale_guide",
+      "status": "VERSIONED",
+      "normative_for": [
+        "usage_hierarchy",
+        "scale_consistency"
+      ]
+    },
+    {
+      "id": "approved_high_fidelity_concept",
+      "file": null,
+      "kind": "original_concept_raster",
+      "status": "AWAITING_BINARY_INGEST",
+      "note": "The prior approved AI-generated art board is not stored in the repository yet; never claim these auxiliary SVGs are pixel-perfect copies."
+    }
+  ],
+  "anatomy": {
+    "head_proportion": "oversized",
+    "head_shape": "round",
+    "visor": {
+      "shape": "rounded",
+      "base_color": "#030B21"
+    },
+    "eye_color": "#31D5FF",
+    "vertical_fin_count": 2,
+    "ear_coupling_count": 2,
+    "reactor_core_count": 1,
+    "orbital_module_count": 4,
+    "orbital_module_layout": "two lateral, two lower",
+    "orbital_ring": true,
+    "body": "compact floating non-humanoid",
+    "neutral_pose": "front",
+    "prohibited": [
+      "realistic legs",
+      "human arms or fingers",
+      "mouth or nose",
+      "different orbiter count",
+      "provider logos on body",
+      "permanent 3/4 default"
+    ]
+  },
+  "palette": {
+    "navy": "#0A1830",
+    "visor": "#030B21",
+    "brand_blue": "#3B72E1",
+    "emissive_cyan": "#31D5FF",
+    "highlight": "#DFFFFF",
+    "white_metal": "#F2F8FF",
+    "steel_shadow": "#AAC4E2",
+    "warning": "#FF8A45",
+    "offline": "#71839D"
+  },
+  "variants": {
+    "compact": {
+      "status": "IMPLEMENTED_IN_SOURCE",
+      "reference": "web/src/features/hud/NexPixelSprite.tsx",
+      "viewBox": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "usage": [
+        "native HUD"
+      ]
+    },
+    "standard": {
+      "status": "STYLE_APPROVED_ARTIFACT_NOT_PUBLISHED",
+      "usage": [
+        "product UI",
+        "onboarding",
+        "docs"
+      ]
+    },
+    "hero": {
+      "status": "STYLE_APPROVED_ARTIFACT_NOT_PUBLISHED",
+      "usage": [
+        "site",
+        "marketing"
+      ]
+    }
+  },
+  "operational_policy": {
+    "no_fake_progress": true,
+    "no_fake_success": true,
+    "reduced_motion_supported": true,
+    "hardware_independence": true,
+    "only_bind_implemented_moods": [
+      "idle",
+      "working",
+      "warning",
+      "offline"
+    ],
+    "concept_only_moods": [
+      "curious",
+      "thinking",
+      "routing",
+      "success",
+      "blink"
+    ]
+  },
+  "validation": {
+    "script": "scripts/verify-nex-visual.mjs",
+    "checklist": "docs/design/NEX_VISUAL_REVIEW_CHECKLIST.md",
+    "requires_human_visual_review": true,
+    "release_native_certification_separate": true
+  }
+}
