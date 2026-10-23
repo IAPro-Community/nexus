@@ -357,18 +357,38 @@
 }
 
 @keyframes nex-reactor-idle {
-  0%, 100% { opacity: 0.86; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.86;
+  }
+
+  50% {
+    opacity: 1;
+  }
 }
 
 @keyframes nex-reactor-work {
-  0%, 100% { transform: scale(1); opacity: 0.85; }
-  50% { transform: scale(1.06); opacity: 1; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
 }
 
 @keyframes nex-module-glow {
-  0%, 100% { opacity: 0.94; }
-  50% { opacity: 0.75; }
+  0%,
+  100% {
+    opacity: 0.94;
+  }
+
+  50% {
+    opacity: 0.75;
+  }
 }
 
 @keyframes guardian-bubble-in {
