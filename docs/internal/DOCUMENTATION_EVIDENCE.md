@@ -38,6 +38,21 @@ revisáveis. Ele existe para impedir documentação inventada.
 | Diagramas v1 são conceituais e versionados | `docs/assets/diagrams/` | revisão documental | [Assets](../assets/README.md) |
 | Update/release possuem verificação de integridade | update/release/installers | release/update negative tests | [Release](../operations/release.md) |
 
+## Reconciliação beta.10 — rastreabilidade de 22/10/2026
+
+| Afirmação verificável no source | Código | Teste versionado | Documento |
+| --- | --- | --- | --- |
+| O browser fornece scroll interno ao painel ativo | `web/src/app/workspace-styles/03-workspace-layout.css` | `web/src/app/workspaceSurfaceStyles.test.ts`, `web/scripts/e2e-surface-isolation.mjs` | [Modularização](../architecture/WORKSPACE_STYLES_MODULARIZATION.md) |
+| O Web terminal escreve bytes de entrada no attach stream | `internal/control/web/handler_terminal.go` | `internal/control/web/handler_terminal_input_test.go` | [Terminal](../product/terminals.md) |
+| OFF mantém a Mission desativada, mas aceita revisão explícita como DELEGATE | `internal/nexus/registered_provider_routing.go`, `internal/app/control_cmd.go` | `internal/nexus/registered_provider_routing_test.go` | [Controle interativo](../product/interactive-control.md) |
+| Quota observada pode solicitar handoff supervisionado | `internal/nexus/continuity_controller.go`, `internal/nexus/quota_monitor_service.go` | `internal/nexus/continuity_controller_test.go` | [Continuidade](../architecture/session-continuity.md) |
+| Recurso/modelo só é identificado com evidência observada | `internal/nexus/execution_target.go` | `internal/nexus/execution_target_test.go` | [Routing](../architecture/resource-routing.md) |
+| Desktop deve servir JS/CSS antes do fallback SPA | `internal/control/web/desktop_attach.go` | `internal/control/web/desktop_attach_test.go` | [Desktop](../desktop/overview.md) |
+
+O [registro da intervenção](../../DEV/validation/current/BETA10_GAP_CLOSURE_20261022.md)
+fixa o SHA de código auditado, o run Windows que falhou e os gates que ainda
+não têm prova de execução. A presença dos testes não confirma que executaram.
+
 ## Convenções
 
 - **Disponível**: implementação e contrato verificáveis presentes.
