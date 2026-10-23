@@ -104,6 +104,14 @@
   animation-duration: 0.85s;
 }
 
+.nexShadow {
+  opacity: 0.72;
+}
+
+.guardianBody {
+  transform-origin: 64px 92px;
+}
+
 .nexReactor {
   transform-origin: 64px 99px;
   animation: nex-reactor-idle 3.6s ease-in-out infinite;
