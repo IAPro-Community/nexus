@@ -193,6 +193,12 @@ milestone de UX avançada, desde que:
   atual.
 
 
+## NEX — identidade oficial do Companion visual
+
+Na linha 1.0, o **NEX Compact** é o mascote oficial e frontal em pixel art 32-bit-inspired. Ele substitui somente a arte genérica anterior dentro da apresentação nativa **MASCOT**, preservando os modos BAR/MASCOT/TRAY, o Core e todos os contratos operacionais. `idle`, `working`, `warning` e `offline` seguem derivados da projeção real; nenhuma animação é evidência de conclusão de tarefa.
+
+Veja [identidade visual oficial](../design/NEX_32BIT_VISUAL_CONTRACT.md) e [guia do HUD nativo](hud-guardian-v1.md). O código-fonte da arte não certifica sozinho uma release ou plataforma.
+
 ## Minimal taskbar capsule (October 2026)
 
 The HUD's compact surface is an always-on-top **capsule above the system taskbar**, not an unsupported injection into Windows Taskbar. New desktop installations display the animated Guardian Mascot in a 108 × 112 DIP window. Users may select the legacy 220 × 60 DIP bar (whose capsule uses about 174 × 43 pixels next to a 24 px drag grip) or the tray-only mode. It uses the official Nexus icon, one highlighted provider and its limiting-window remaining percentage.
