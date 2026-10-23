@@ -17,6 +17,10 @@ describe('Nexus Guardian pixel mascot', () => {
     const html = renderMascot('working');
     expect(html).toContain('data-mood="working"');
     expect(html).toContain('viewBox="0 0 64 64"');
+    expect(html).toContain('data-nex-art="16bit-v1"');
+    expect(html).toContain('data-nex-part="visor"');
+    expect(html).toContain('data-nex-part="reactor"');
+    expect(html).toContain('data-nex-part="orbit"');
     expect(html).toContain('shape-rendering="crispEdges"');
     expect(html).not.toContain('Atenção!');
   });
@@ -25,6 +29,16 @@ describe('Nexus Guardian pixel mascot', () => {
     const html = renderMascot('warning', true);
     expect(html).toContain('Atenção!');
     expect(html).toContain('data-mood="warning"');
+    expect(html).toContain('#FF8A45');
+  });
+
+  it('keeps distinct focused and offline faces without claiming successful work', () => {
+    const working = renderMascot('working');
+    const offline = renderMascot('offline');
+    expect(working).toContain('data-nex-part="expression"');
+    expect(working).toContain('#3DD6FF');
+    expect(offline).toContain('#8094B5');
+    expect(offline).not.toContain('Atenção!');
   });
 
   it('provides three accessible native presentation controls', () => {
