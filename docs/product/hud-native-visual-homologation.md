@@ -56,7 +56,15 @@ Execute:
 Pode ser necessário conceder permissões de Acessibilidade e Gravação da Tela
 ao terminal que está executando o script; sem elas o teste permanece BLOCKED.
 Exige swiftc e screencapture, já presentes num ambiente de desenvolvimento
-macOS configurado. O CoreGraphics detecta a superfície compacta e compara a
+macOS configurado.
+
+O hit-test Quartz do Mascote está **desativado por padrão**. Para exercitar
+o adaptador experimental, exporte `NEXUS_HUD_MAC_CLICKTHROUGH=1` **somente
+na sessão de homologação** antes de executar o script, e valide com um
+aplicativo real atrás do HUD, tanto em Retina quanto em múltiplos monitores.
+A ausência dessa variável mantém a semântica anterior. A existência do
+adaptador não equivale a PASS e o resultado permanece NO_GO até revisão
+real com SHA/binário atestados. O CoreGraphics detecta a superfície compacta e compara a
 janela de detalhes separadamente, quando houver. Problemas de enumeração de
 janelas (por exemplo, permissão de gravação de tela ausente) devem ser
 registrados como `BLOCKED`, nunca interpretados como aprovação visual.
