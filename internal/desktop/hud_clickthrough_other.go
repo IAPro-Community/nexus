@@ -1,11 +1,11 @@
-//go:build !windows
+//go:build !windows && !darwin
 
 package desktop
 
 import "github.com/wailsapp/wails/v3/pkg/application"
 
-// Click-through is only certified on Windows. Other platforms keep their
-// current native behavior until they have equivalent exact-SHA evidence.
+// Linux does not implement Wails SetIgnoreMouseEvents. Keep its
+// native input handling intact until an X11 input-shape adapter is certified.
 func hudHitTestingSupported() bool { return false }
 
 func hudPointerWithinRegions(_ application.Window, _ []HUDHitRegion) bool { return true }
