@@ -6,8 +6,8 @@ import (
 )
 
 // GetHUDDetachedPopoverPreference reports the persisted opt-in for the
-// independent native popup. The popup is what makes the mascot presentation
-// available, so the setting is separate from the runtime capability.
+// independent native popup. The Mascot works with either the detached popup
+// or the single-window fallback; preference and capability stay separate.
 func (h *HUDController) GetHUDDetachedPopoverPreference() bool {
 	return h.manager.Load().DetachedPopover
 }
@@ -20,13 +20,11 @@ func (h *HUDController) GetHUDDetachedPopoverPreference() bool {
 // the window cannot be created, the preference is not persisted and the HUD
 // stays exactly as it was.
 func (h *HUDController) SetHUDDetachedPopoverPreference(enabled bool) error {
-	if enabled {
+	wasEnabled := h.GetHUDDetachedPopoverEnabled()
+	if enabled && !wasEnabled {
 		if err := h.EnsureDetachedPopup(); err != nil {
 			return err
 		}
-	} else {
-		h.closeDetachedHUD()
-		h.setDetachedEnabled(false)
 	}
 
 	state := h.manager.Load()
@@ -48,11 +46,17 @@ func (h *HUDController) SetHUDDetachedPopoverPreference(enabled bool) error {
 		state.Width, state.Height = hudCompactDimensions(state)
 	}
 	if err := h.manager.Save(state); err != nil {
-		if enabled {
+		if enabled && !wasEnabled {
 			h.closeDetachedHUD()
 			h.setDetachedEnabled(false)
 		}
 		return err
+	}
+	// Do not discard a working popup or its in-memory state until persistence
+	// succeeds. A disk error must leave the current presentation recoverable.
+	if !enabled {
+		h.closeDetachedHUD()
+		h.setDetachedEnabled(false)
 	}
 	// Both directions return to a compact capsule before exposing the new
 	// expansion strategy. Prevent stale legacy expansion state from being
