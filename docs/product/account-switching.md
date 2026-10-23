@@ -19,6 +19,23 @@ O Nexus diferencia **trocar o profile de uma mesma CLI** de **transferir context
 - Proibir transição silenciosa de PIN ou mistura de credenciais.
 - `UNKNOWN` para quota/identidade não vira evidência de disponibilidade.
 
+## Failover automático de quota no source beta.10
+
+`ContinuityController` é invocado pelo monitor apenas após uma observação
+confiável de **quota esgotada**, associada a um runtime. A ordem de seleção é
+outra conta elegível do mesmo provider, depois um provider alternativo.
+Perfis que compartilham a mesma conta upstream (`AccountScope` verificado)
+**não** representam capacidade independente. A operação limita saltos,
+registra a substituição e preserva o lineage do Agent.
+
+Esse caminho é uma tentativa supervisionada de continuidade, não uma garantia
+de que todos os providers preservem histórico, ferramentas em andamento ou
+estado nativo do terminal. Leituras ausentes/UNKNOWN não autorizam failover;
+replay de efeitos colaterais permanece proibido sem prova de segurança.
+
+Leia o [contrato técnico](../architecture/session-continuity.md) para estados,
+eventos e testes. A execução nativa real no SHA da release segue pendente.
+
 ## Diagnóstico
 
 ```bash
