@@ -1,5 +1,38 @@
 # Changelog
 
+## 1.0.0-beta.10 — adendo de source — 2026-10-22 (não homologado)
+
+Esta atualização documenta a reconciliação de 27 commits entre
+`622aa933` e `e98c711` na `release/v1.0.0`, sem criar outra beta ou tag.
+
+### Código integrado
+
+- Scroll interno dos painéis Web, preservando o layout nativo do Desktop.
+- Entrega correta de JS/CSS no attach do Desktop antes do fallback SPA.
+- Entrada do terminal Web/Windows por bytes diretos no stream anexado,
+  sem envelopar cada tecla como `CmdInput` RPC.
+- `STICKY_LEAD` com exceção restrita de `DELEGATE` explícito e read-only
+  em `OFF`, sem autorizar Mission automática (TTY e Lead interativo Web).
+- `ContinuityController` acionado por quota observada, preferência por
+  outra conta do mesmo provider, exclusão de capacidade upstream compartilhada,
+  hop limit, eventos de substituição e reattach do Lead.
+- `ExecutionTarget`, `CapacityDomain`, `ModelCatalog` e preferências de
+  especialistas sem converter preferências em `PIN` ou inventar modelos.
+
+### Documentação e validação
+
+- Guias de terminal, continuidade, routing, Desktop e eventos atualizados.
+- Matriz funcional regenerada com **36** recursos rastreáveis no source.
+- Referência de código: `e98c711e86ffd578111cfca454513722198bacbe`.
+- [Homologação Windows exact-SHA #39870167188](https://github.com/IAPro-Community/nexus/actions/runs/39870167188): **FAIL** em `format:check` (`GuardianMascot.test.tsx`); `docs-verify` passou no run anterior.
+- Correção de estilo registrada posteriormente no commit `43c48376`;
+  sem afirmar resultado de nova CI para o HEAD dos documentos.
+- Registro de evidência e gates: [reconciliação beta.10](DEV/validation/current/BETA10_GAP_CLOSURE_20261022.md).
+
+**Decisão:** código presente, sem certificação nativa same-SHA; release ainda
+**NO-GO**. Não distribuir como stable v1 por este adendo.
+
+
 ## 1.0.0 — 2026-09-23 — Nexus v1
 
 > Esta seção descreve o **source final candidato**. A tag/release pública só pode
