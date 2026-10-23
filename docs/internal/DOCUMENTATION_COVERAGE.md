@@ -1,6 +1,6 @@
 # Cobertura documental — Nexus 1.0
 
-> Revisão estrutural de 20/10/2026. A cobertura é **mapeamento de arquivos**, não certificação de comportamento ou segurança. A antiga medição de setembro foi substituída pela fonte auditável [features.json](../reference/features.json).
+> Revisão estrutural de 20/10/2026; adendo de rastreabilidade em 22/10/2026. A cobertura é **mapeamento de arquivos**, não certificação de comportamento ou segurança. A antiga medição de setembro foi substituída pela fonte auditável [features.json](../reference/features.json).
 
 ## Fontes de verdade
 
@@ -25,6 +25,13 @@ node scripts/docs-verify.mjs
 ```
 
 O verificador de docs executa também o gate do catálogo. `--write` regenera apenas o bloco da matriz, nunca afirma `PASS` de teste/plataforma. Adições funcionais sem entrada de catálogo são defeitos de processo e devem aparecer no code review; detecção automática de novas features não é perfeita só com filesystem.
+
+O catálogo v1 passou de **30 para 36** entradas rastreáveis, incluindo seis
+capacidades da reconciliação beta.10: scroll Web, entrada PTY/ConPTY, revisão
+explícita com STICKY_LEAD, continuidade por quota, ExecutionTarget/ModelCatalog
+e entrega de assets no Desktop. A matriz pública foi regenerada a partir do JSON.
+Esses registros continuam com `SOURCE_TEST_PRESENT_NOT_RUN` e
+`PENDING_EXACT_SHA`; não são PASS.
 
 ## Lacunas técnicas e gates externos
 
