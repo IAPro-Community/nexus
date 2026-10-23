@@ -63,7 +63,7 @@ describe('NEX official 32-bit pixel mascot', () => {
     const html = renderSelector('MASCOT', (mode) => {
       selected.push(mode);
     });
-    expect(html).toContain('aria-label="Apresentação nativa do Guardian"');
+    expect(html).toContain('aria-label="Apresentação nativa do NEX"');
     expect(html).toContain('Mascote');
     expect(html).toContain('Bandeja');
     expect(html).toContain('aria-pressed="true"');
