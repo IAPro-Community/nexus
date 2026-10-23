@@ -10,10 +10,10 @@ import (
 
 func TestRuntimeFailureEventMetadataClassifiesWithoutLeakingOutput(t *testing.T) {
 	tests := []struct {
-		name       string
-		output     string
-		wantKind   model.FailureKind
-		wantRetry  string
+		name      string
+		output    string
+		wantKind  model.FailureKind
+		wantRetry string
 	}{
 		{name: "rate limit", output: "HTTP 429 Too Many Requests. Try again in 37 minutes.", wantKind: model.FailureRateLimit, wantRetry: "37m0s"},
 		{name: "quota exhausted", output: "Insufficient credits", wantKind: model.FailureQuota},
