@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1170 540" role="img" aria-label="Referência de desenho do mascote oficial NEX, pixel art futurista, pose frontal">
+<defs>
+  <linearGradient id="shell" x1="0" y1="0" x2=".83" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".48" stop-color="#DFECFC"/><stop offset="1" stop-color="#7499CB"/></linearGradient>
+  <linearGradient id="screen" x1="0" y1="0" x2=".8" y2="1"><stop offset="0" stop-color="#1E4778"/><stop offset=".3" stop-color="#0A1830"/><stop offset="1" stop-color="#030B21"/></linearGradient>
+  <radialGradient id="core"><stop offset="0" stop-color="#EFFFFF"/><stop offset=".42" stop-color="#31D5FF"/><stop offset="1" stop-color="#0759C1"/></radialGradient>
+  <filter id="glow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs><style>text{font-family:system-ui,'DejaVu Sans',sans-serif;fill:#E8F5FF} .muted{fill:#91B8E5} .small{font-size:16px} .tiny{font-size:12px} .title{font-size:34px;font-weight:800;letter-spacing:2px} .heading{font-size:20px;font-weight:700} .mono{font-family:monospace}</style><rect width="1170" height="540" rx="20" fill="#080E1B"/><path d="M0 54H1170 M0 488H1170" stroke="#255A9D" opacity=".45"/>
+<text class="title" x="35" y="51">NEX / ESCALAS &amp; ZONAS DE SEGURANÇA</text>
+<text x="36" y="83" class="small muted">DESENHO ÓPTICO EM CADA TAMANHO · NÃO AMPLIAR E CHAMAR DE HERO</text>
+<rect x="100" y="111" width="245" height="360" rx="16" fill="#0B182C" stroke="#2B68AF" stroke-width="2"/><g transform="translate(145 154) scale(0.31)"><g data-nex-figure="front" data-state="idle">
+ <!-- Back orbit -->
+ <ellipse cx="160" cy="279" rx="140" ry="37" fill="none" stroke="#1C61BF" stroke-width="9" opacity=".35" filter="url(#glow)"/>
+ <path d="M23 279q137-73 274 0" fill="none" stroke="#1B70E7" stroke-width="4"/>
+ <!-- Vertical fins -->
+ <path d="M78 81L82 16l11 0 23 71z M204 87l23-71h11l4 65z" fill="#112C5D" stroke="#4E92F3" stroke-width="6"/>
+ <path d="M87 72l2-48 17 54z M214 78l17-54 2 48z" fill="#61E3FF" opacity=".92"/>
+ <!-- Torso -->
+ <path d="M123 207h74l24 24-10 56-30 33h-42l-30-33-10-56z" fill="#091A39" stroke="#0C2E61" stroke-width="6"/>
+ <path d="M130 214h60l20 23-7 43-25 29h-36l-25-29-7-43z" fill="url(#shell)" stroke="#A5C4EC" stroke-width="4"/>
+ <path d="M142 217h36l9 19h-54z" fill="#F8FCFF"/>
+ <!-- Reactor -->
+ <circle cx="160" cy="267" r="31" fill="#071B3D" stroke="#3B72E1" stroke-width="7"/>
+ <circle cx="160" cy="267" r="23" fill="url(#core)" stroke="#B4E9FF" stroke-width="5"/>
+ <circle cx="154" cy="262" r="8" fill="#F0FFFF" opacity=".92"/>
+ <!-- Ear shells -->
+ <g><circle cx="49" cy="148" r="37" fill="#102F65" stroke="#DCE9FB" stroke-width="11"/><circle cx="49" cy="148" r="24" fill="#15498D" stroke="#5284CB" stroke-width="6"/><circle cx="49" cy="148" r="13" fill="url(#core)"/></g>
+ <g><circle cx="271" cy="148" r="37" fill="#102F65" stroke="#DCE9FB" stroke-width="11"/><circle cx="271" cy="148" r="24" fill="#15498D" stroke="#5284CB" stroke-width="6"/><circle cx="271" cy="148" r="13" fill="url(#core)"/></g>
+ <!-- Canonical big rounded helmet, symmetrical -->
+ <path d="M100 53q60-27 120 0l26 31 12 49-9 48-34 30q-55 18-110 0l-34-30-9-48 12-49z" fill="url(#shell)" stroke="#0C2955" stroke-width="8"/>
+ <path d="M112 72q48-17 96 0l20 20 10 41-10 40-24 18q-44 9-88 0l-24-18-10-40 10-41z" fill="url(#screen)" stroke="#5C85BA" stroke-width="7"/>
+ <path d="M108 82q32-19 64-15l-17 8q-23-2-47 12z" fill="#91B6E8" opacity=".38"/>
+ <path d="M192 70l13 4 8 10-10-2z" fill="#A6DCFF" opacity=".58"/>
+ <!-- Eye / mood layer -->
+ <g data-nex-part="eyes"><g fill="none" stroke="#31D5FF" stroke-width="9" stroke-linecap="round"><path d="M117 138q16-30 32 0 M172 138q16-30 32 0"/></g><path d="M130 123l6-4 M187 123l6-4" stroke="#DBFFFF" stroke-width="2" opacity=".5"/></g>
+ <!-- Four disconnected orbiting modules, two lateral / two bottom -->
+ <g data-nex-module="1"><circle cx="48" cy="243" r="18" fill="#0A2252" stroke="#ECF8FF" stroke-width="7"/><circle cx="48" cy="243" r="8" fill="#31D5FF" stroke="#225C9C" stroke-width="4"/></g><g data-nex-module="2"><circle cx="272" cy="243" r="18" fill="#0A2252" stroke="#ECF8FF" stroke-width="7"/><circle cx="272" cy="243" r="8" fill="#31D5FF" stroke="#225C9C" stroke-width="4"/></g><g data-nex-module="3"><circle cx="84" cy="306" r="18" fill="#0A2252" stroke="#ECF8FF" stroke-width="7"/><circle cx="84" cy="306" r="8" fill="#31D5FF" stroke="#225C9C" stroke-width="4"/></g><g data-nex-module="4"><circle cx="236" cy="306" r="18" fill="#0A2252" stroke="#ECF8FF" stroke-width="7"/><circle cx="236" cy="306" r="8" fill="#31D5FF" stroke="#225C9C" stroke-width="4"/></g>
+ <!-- Lower orbital arc -->
+ <path d="M23 279q137 90 274 0" fill="none" stroke="#30BFFF" stroke-width="5"/>
+ <path d="M67 312h14 M243 312h14" stroke="#DFFFFF" stroke-width="4"/>
+ </g></g><text class="heading" x="121" y="421">COMPACT</text><text class="tiny muted" x="121" y="448">64 base · HUD / 32–96px</text><rect x="372" y="111" width="320" height="360" rx="16" fill="#0B182C" stroke="#2B68AF" stroke-width="2"/><g transform="translate(417 125) scale(0.67)"><g data-nex-figure="front" data-state="idle">
+ <!-- Back orbit -->
+ <ellipse cx="160" cy="279" rx="140" ry="37" fill="none" stroke="#1C61BF" stroke-width="9" opacity=".35" filter="url(#glow)"/>
+ <path d="M23 279q137-73 274 0" fill="none" stroke="#1B70E7" stroke-width="4"/>
+ <!-- Vertical fins -->
+ <path d="M78 81L82 16l11 0 23 71z M204 87l23-71h11l4 65z" fill="#112C5D" stroke="#4E92F3" stroke-width="6"/>
+ <path d="M87 72l2-48 17 54z M214 78l17-54 2 48z" fill="#61E3FF" opacity=".92"/>
+ <!-- Torso -->
+ <path d="M123 207h74l24 24-10 56-30 33h-42l-30-33-10-56z" fill="#091A39" stroke="#0C2E61" stroke-width="6"/>
+ <path d="M130 214h60l20 23-7 43-25 29h-36l-25-29-7-43z" fill="url(#shell)" stroke="#A5C4EC" stroke-width="4"/>
+ <path d="M142 217h36l9 19h-54z" fill="#F8FCFF"/>
+ <!-- Reactor -->
+ <circle cx="160" cy="267" r="31" fill="#071B3D" stroke="#3B72E1" stroke-width="7"/>
+ <circle cx="160" cy="267" r="23" fill="url(#core)" stroke="#B4E9FF" stroke-width="5"/>
+ <circle cx="154" cy="262" r="8" fill="#F0FFFF" opacity=".92"/>
+ <!-- Ear shells -->
+ <g><circle cx="49" cy="148" r="37" fill="#102F65" stroke="#DCE9FB" stroke-width="11"/><circle cx="49" cy="148" r="24" fill="#15498D" stroke="#5284CB" stroke-width="6"/><circle cx="49" cy="148" r="13" fill="url(#core)"/></g>
+ <g><circle cx="271" cy="148" r="37" fill="#102F65" stroke="#DCE9FB" stroke-width="11"/><circle cx="271" cy="148" r="24" fill="#15498D" stroke="#5284CB" stroke-width="6"/><circle cx="271" cy="148" r="13" fill="url(#core)"/></g>
+ <!-- Canonical big rounded helmet, symmetrical -->
+ <path d="M100 53q60-27 120 0l26 31 12 49-9 48-34 30q-55 18-110 0l-34-30-9-48 12-49z" fill="url(#shell)" stroke="#0C2955" stroke-width="8"/>
+ <path d="M112 72q48-17 96 0l20 20 10 41-10 40-24 18q-44 9-88 0l-24-18-10-40 10-41z" fill="url(#screen)" stroke="#5C85BA" stroke-width="7"/>
+ <path d="M108 82q32-19 64-15l-17 8q-23-2-47 12z" fill="#91B6E8" opacity=".38"/>
+ <path d="M192 70l13 4 8 10-10-2z" fill="#A6DCFF" opacity=".58"/>
+ <!-- Eye / mood layer -->
+ <g data-nex-part="eyes"><g fill="none" stroke="#31D5FF" stroke-width="9" stroke-linecap="round"><path d="M117 138q16-30 32 0 M172 138q16-30 32 0"/></g><path d="M130 123l6-4 M187 123l6-4" stroke="#DBFFFF" stroke-width="2" opacity=".5"/></g>
+ <!-- Four disconnected orbiting modules, two lateral / two bottom -->
+ <g data-nex-module="1"><circle cx="48" cy="243" r="18" fill="#0A2252" stroke="#ECF8FF" stroke-width="7"/><circle cx="48" cy="243" r="8" fill="#31D5FF" stroke="#225C9C" stroke-width="4"/></g><g data-nex-module="2"><circle cx="272" cy="243" r="18" fill="#0A2252" stroke="#ECF8FF" stroke-width="7"/><circle cx="272" cy="243" r="8" fill="#31D5FF" stroke="#225C9C" stroke-width="4"/></g><g data-nex-module="3"><circle cx="84" cy="306" r="18" fill="#0A2252" stroke="#ECF8FF" stroke-width="7"/><circle cx="84" cy="306" r="8" fill="#31D5FF" stroke="#225C9C" stroke-width="4"/></g><g data-nex-module="4"><circle cx="236" cy="306" r="18" fill="#0A2252" stroke="#ECF8FF" stroke-width="7"/><circle cx="236" cy="306" r="8" fill="#31D5FF" stroke="#225C9C" stroke-width="4"/></g>
+ <!-- Lower orbital arc -->
+ <path d="M23 279q137 90 274 0" fill="none" stroke="#30BFFF" stroke-width="5"/>
+ <path d="M67 312h14 M243 312h14" stroke="#DFFFFF" stroke-width="4"/>
+ </g></g><text class="heading" x="393" y="421">STANDARD</text><text class="tiny muted" x="393" y="448">128 base · PRODUTO / 128px</text><rect x="751" y="111" width="330" height="360" rx="16" fill="#0B182C" stroke="#2B68AF" stroke-width="2"/><g transform="translate(796 112) scale(0.99)"><g data-nex-figure="front" data-state="idle">
+ <!-- Back orbit -->
+ <ellipse cx="160" cy="279" rx="140" ry="37" fill="none" stroke="#1C61BF" stroke-width="9" opacity=".35" filter="url(#glow)"/>
+ <path d="M23 279q137-73 274 0" fill="none" stroke="#1B70E7" stroke-width="4"/>
+ <!-- Vertical fins -->
+ <path d="M78 81L82 16l11 0 23 71z M204 87l23-71h11l4 65z" fill="#112C5D" stroke="#4E92F3" stroke-width="6"/>
+ <path d="M87 72l2-48 17 54z M214 78l17-54 2 48z" fill="#61E3FF" opacity=".92"/>
+ <!-- Torso -->
+ <path d="M123 207h74l24 24-10 56-30 33h-42l-30-33-10-56z" fill="#091A39" stroke="#0C2E61" stroke-width="6"/>
+ <path d="M130 214h60l20 23-7 43-25 29h-36l-25-29-7-43z" fill="url(#shell)" stroke="#A5C4EC" stroke-width="4"/>
+ <path d="M142 217h36l9 19h-54z" fill="#F8FCFF"/>
+ <!-- Reactor -->
+ <circle cx="160" cy="267" r="31" fill="#071B3D" stroke="#3B72E1" stroke-width="7"/>
+ <circle cx="160" cy="267" r="23" fill="url(#core)" stroke="#B4E9FF" stroke-width="5"/>
+ <circle cx="154" cy="262" r="8" fill="#F0FFFF" opacity=".92"/>
+ <!-- Ear shells -->
+ <g><circle cx="49" cy="148" r="37" fill="#102F65" stroke="#DCE9FB" stroke-width="11"/><circle cx="49" cy="148" r="24" fill="#15498D" stroke="#5284CB" stroke-width="6"/><circle cx="49" cy="148" r="13" fill="url(#core)"/></g>
+ <g><circle cx="271" cy="148" r="37" fill="#102F65" stroke="#DCE9FB" stroke-width="11"/><circle cx="271" cy="148" r="24" fill="#15498D" stroke="#5284CB" stroke-width="6"/><circle cx="271" cy="148" r="13" fill="url(#core)"/></g>
+ <!-- Canonical big rounded helmet, symmetrical -->
+ <path d="M100 53q60-27 120 0l26 31 12 49-9 48-34 30q-55 18-110 0l-34-30-9-48 12-49z" fill="url(#shell)" stroke="#0C2955" stroke-width="8"/>
+ <path d="M112 72q48-17 96 0l20 20 10 41-10 40-24 18q-44 9-88 0l-24-18-10-40 10-41z" fill="url(#screen)" stroke="#5C85BA" stroke-width="7"/>
+ <path d="M108 82q32-19 64-15l-17 8q-23-2-47 12z" fill="#91B6E8" opacity=".38"/>
+ <path d="M192 70l13 4 8 10-10-2z" fill="#A6DCFF" opacity=".58"/>
+ <!-- Eye / mood layer -->
+ <g data-nex-part="eyes"><g fill="none" stroke="#31D5FF" stroke-width="9" stroke-linecap="round"><path d="M117 138q16-30 32 0 M172 138q16-30 32 0"/></g><path d="M130 123l6-4 M187 123l6-4" stroke="#DBFFFF" stroke-width="2" opacity=".5"/></g>
+ <!-- Four disconnected orbiting modules, two lateral / two bottom -->
+ <g data-nex-module="1"><circle cx="48" cy="243" r="18" fill="#0A2252" stroke="#ECF8FF" stroke-width="7"/><circle cx="48" cy="243" r="8" fill="#31D5FF" stroke="#225C9C" stroke-width="4"/></g><g data-nex-module="2"><circle cx="272" cy="243" r="18" fill="#0A2252" stroke="#ECF8FF" stroke-width="7"/><circle cx="272" cy="243" r="8" fill="#31D5FF" stroke="#225C9C" stroke-width="4"/></g><g data-nex-module="3"><circle cx="84" cy="306" r="18" fill="#0A2252" stroke="#ECF8FF" stroke-width="7"/><circle cx="84" cy="306" r="8" fill="#31D5FF" stroke="#225C9C" stroke-width="4"/></g><g data-nex-module="4"><circle cx="236" cy="306" r="18" fill="#0A2252" stroke="#ECF8FF" stroke-width="7"/><circle cx="236" cy="306" r="8" fill="#31D5FF" stroke="#225C9C" stroke-width="4"/></g>
+ <!-- Lower orbital arc -->
+ <path d="M23 279q137 90 274 0" fill="none" stroke="#30BFFF" stroke-width="5"/>
+ <path d="M67 312h14 M243 312h14" stroke="#DFFFFF" stroke-width="4"/>
+ </g></g><text class="heading" x="772" y="421">HERO</text><text class="tiny muted" x="772" y="448">256 base · SITE / 256px+</text>
+<text x="35" y="515" class="tiny muted">Master compacto atual: NexPixelSprite.tsx (128×128 viewBox). Tamanhos aqui são exemplos de aplicação visual, não exports liberados.</text>
+</svg>
