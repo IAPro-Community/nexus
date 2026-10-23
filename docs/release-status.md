@@ -11,7 +11,7 @@ continuidade por quota, ExecutionTarget/ModelCatalog e assets do Desktop.
 Esta atualização documental ocorreu **depois** do SHA de código citado;
 portanto o HEAD com os documentos exige testes novos e não herda seus resultados.
 
-- [Ledger por recurso, teste e código](../DEV/validation/current/BETA10_GAP_CLOSURE_20261022.md).
+- Ledger por recurso, teste e código: `DEV/validation/current/BETA10_GAP_CLOSURE_20261022.md` (arquivo interno de engenharia, não uma página pública).
 - [Run Windows exact-SHA #39870167188](https://github.com/IAPro-Community/nexus/actions/runs/39870167188): **FAIL**, bloqueado por
   `bun run format:check` em `web/src/features/hud/GuardianMascot.test.tsx`.
 - Naquele run, o gate documental reportou **193 Markdown e 33 assets**
