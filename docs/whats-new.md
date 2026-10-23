@@ -13,7 +13,7 @@ supervisionado por quota e projeções `ExecutionTarget`/`CapacityDomain`/
 possuem aprovação integrada/nativa same-SHA. O run Windows executado contra
 o commit `e98c711` falhou em `format:check`; veja
 [status](release-status.md) e
-[ledger de engenharia](../DEV/validation/current/BETA10_GAP_CLOSURE_20261022.md).
+ledger interno de engenharia (`DEV/validation/current/BETA10_GAP_CLOSURE_20261022.md`).
 
 
 ## Fechamento do Nexus v1 — source candidato
