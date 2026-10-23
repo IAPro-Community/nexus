@@ -7,7 +7,7 @@ ResourceScheduler, Agents, Missions ou Cost Intelligence. É uma apresentação
 alternativa dos dados existentes, com três escolhas persistidas no backend:
 
 - **Barra:** cápsula tradicional, com alça de arraste e tamanhos existentes.
-- **Mascote:** pequeno personagem robótico 2D em pixel art vetorial, dentro de
+- **Mascote:** NEX, personagem autoral 2D em pixel art vetorial 16 bits (visor expressivo, duas aletas, núcleo luminoso e módulos orbitais), dentro de
   uma superfície nativa aproximada de 108 × 112 DIPs. Clicar abre o popup de
   detalhes, enquanto uma alça separada permite arrastar a janela.
 - **Bandeja:** oculta a cápsula; o processo continua ativo. O menu
@@ -37,7 +37,7 @@ a seleção de uma aparência diferente não exige reinicialização.
 
 ## Animações de caráter exclusivamente visual
 
-O personagem é desenhado em SVG com pixels geométricos e CSS Modules.
+O NEX utiliza o sprite canônico em `web/src/features/hud/NexPixelSprite.tsx`, desenhado em SVG com pixels geométricos e CSS Modules. O antigo robô retangular genérico foi substituído na camada visual; o componente de integração `GuardianMascot.tsx`, suas props, a apresentação BAR/MASCOT/TRAY e o Core são preservados.
 Não depende de vídeos, assets externos, WebGL ou URLs remotas.
 
 | Estado | Fonte | Comportamento |
@@ -58,7 +58,8 @@ desconhecida e não consultar os provedores para gerar movimentos.
 - `internal/desktop/hud_window.go`: restauração, geometria e persistência.
 - `cmd/nexus-hud/window_options.go`: janela compacta, transparência e início
   oculto quando configurado para Bandeja.
-- `web/src/features/hud/GuardianMascot.tsx`: personagem e controles.
+- `web/src/features/hud/GuardianMascot.tsx`: integração do personagem e controles.
+- `web/src/features/hud/NexPixelSprite.tsx`: arte autoral de NEX 16 bits, renderizada internamente.
 - `web/src/features/hud/_hudGuardian.scss`: movimentos e acessibilidade.
 - `web/src/features/hud/guardianModel.ts`: seleção do estado a partir de
   telemetria já existente.
@@ -124,3 +125,9 @@ a última prévia permanece anterior ao Guardian.
 **Estado de certificação:** implementação de código, testes e documentação
 não substituem execução gráfica real. Não há declaração de GO cross-platform
 nem liberação automática do novo modo nesta etapa.
+
+## Revisão visual NEX 16 bits (23/10/2026)
+
+A atualização do desenho é exclusivamente de apresentação: ela não adiciona novos moods nem modifica os estados canônicos `idle`, `working`, `warning` e `offline`. O símbolo/logo institucional do Nexus permanece inalterado. O sprite preserva `viewBox=64x64`, a janela nativa e a área clicável anteriores; atenção operacional continua indicada pelo balão e atributos acessíveis da integração.
+
+**Gate pendente:** avaliar fidelidade visual em escala nativa, legibilidade em temas e DPI diferentes, animação com `prefers-reduced-motion`, transparência e hit-testing em Windows/macOS/Linux, mais build frontend e smoke gráfico no mesmo SHA. Uma revisão do SVG isolado não comprova certificação de release.
