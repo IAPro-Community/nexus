@@ -669,9 +669,19 @@ const WorkspaceCoordinator: React.FC<{
         keywords: ['fleet', 'workers', 'terminals'],
         run: () => openKind('agents'),
       },
+      ...data.projects.map((entry) => ({
+        id: `switch-project-${entry.id}`,
+        kind: 'project' as const,
+        label: entry.name || entry.id,
+        group: t('commands.scopeProjects'),
+        description: entry.canonical_path,
+        keywords: [entry.id, entry.canonical_path || '', 'switch', 'workspace'],
+        run: () => setProject(entry),
+      })),
       ...data.agents.flatMap((agent) => [
         {
           id: `terminal-${agent.id}`,
+          kind: 'agent' as const,
           label: t('commands.open', { name: `${agent.name} terminal` }),
           group: t('nav.agents'),
           keywords: ['terminal', agent.role],
@@ -679,6 +689,7 @@ const WorkspaceCoordinator: React.FC<{
         },
         {
           id: `config-${agent.id}`,
+          kind: 'agent' as const,
           label: t('commands.configure', { name: agent.name }),
           group: t('nav.agents'),
           keywords: ['settings', agent.role],
@@ -724,7 +735,44 @@ const WorkspaceCoordinator: React.FC<{
           ]
         : []),
       {
+        id: 'resource-chooser',
+        kind: 'resource' as const,
+        label: t('commands.chooseAccountModel'),
+        group: t('commands.scopeResources'),
+        keywords: ['account', 'profile', 'model', 'scheduler', 'ai'],
+        run: openNewAISession,
+      },
+      ...(listSurfaces(workspace.model.root).filter(isPtySurface).length >= 2
+        ? [
+            {
+              id: 'split-terminals-vertical',
+              kind: 'action' as const,
+              label: t('workspace.splitSideBySide'),
+              group: t('commands.scopeActions'),
+              keywords: ['split', 'vertical', 'side by side', 'terminais'],
+              run: () => {
+                presentation.setSplitOrientation('vertical');
+                presentation.setMode('SPLIT');
+                openKind('terminals');
+              },
+            },
+            {
+              id: 'split-terminals-horizontal',
+              kind: 'action' as const,
+              label: t('workspace.splitStacked'),
+              group: t('commands.scopeActions'),
+              keywords: ['split', 'horizontal', 'stacked', 'terminais'],
+              run: () => {
+                presentation.setSplitOrientation('horizontal');
+                presentation.setMode('SPLIT');
+                openKind('terminals');
+              },
+            },
+          ]
+        : []),
+      {
         id: 'resources',
+        kind: 'resource' as const,
         label: t('commands.open', { name: t('nav.resources') }),
         group: 'Nexus',
         keywords: ['quota', 'provider', 'accounts'],
@@ -863,6 +911,9 @@ const WorkspaceCoordinator: React.FC<{
     ],
     [
       data.agents,
+      data.projects,
+      setProject,
+      workspace.model.root,
       executionRoles,
       activeAgentRuntimeId,
       flowRuns,

@@ -763,6 +763,9 @@ export const nexus = {
       role: string;
       current_provider?: string;
       prefer_provider?: string;
+      domains?: string[];
+      estimated_complexity?: string;
+      source?: string;
     },
     policy?: string,
   ) =>

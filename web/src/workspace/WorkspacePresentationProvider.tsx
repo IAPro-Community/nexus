@@ -11,6 +11,10 @@ import {
   resizeMosaicWindow,
   restoreDesktopWindow,
   setActivePtyView,
+  setTerminalSplitOrientation,
+  setTerminalSplitRatio,
+  setTerminalSplitSecondary,
+  setTerminalSplitPrimary,
   setPresentationCanvas,
   setPresentationMode,
   syncDesktopWindows,
@@ -19,6 +23,7 @@ import {
   toggleZenMode,
   setZenMode,
   type MosaicResizeEdge,
+  type TerminalSplitOrientation,
   type WorkspacePresentationMode,
   type WorkspacePresentationState,
 } from './presentation';
@@ -37,6 +42,10 @@ interface ContextValue {
   sync: (surfaces: WorkspaceSurface[]) => void;
   focus: (viewId: string) => void;
   setActivePty: (viewId: string) => void;
+  setSplitOrientation: (orientation: TerminalSplitOrientation) => void;
+  setSplitRatio: (ratio: number) => void;
+  setSplitSecondary: (viewId: string) => void;
+  setSplitPrimary: (viewId: string) => void;
   move: (viewId: string, x: number, y: number) => void;
   commitMove: (
     viewId: string,
@@ -70,6 +79,10 @@ type Action =
   | { type: 'sync'; surfaces: WorkspaceSurface[] }
   | { type: 'focus'; viewId: string }
   | { type: 'setActivePty'; viewId: string }
+  | { type: 'splitOrientation'; orientation: TerminalSplitOrientation }
+  | { type: 'splitRatio'; ratio: number }
+  | { type: 'splitSecondary'; viewId: string }
+  | { type: 'splitPrimary'; viewId: string }
   | { type: 'move'; viewId: string; x: number; y: number }
   | {
       type: 'commitMove';
@@ -145,6 +158,14 @@ function reducer(state: WorkspacePresentationState, action: Action): WorkspacePr
       return focusDesktopWindow(state, action.viewId);
     case 'setActivePty':
       return setActivePtyView(state, action.viewId);
+    case 'splitOrientation':
+      return setTerminalSplitOrientation(state, action.orientation);
+    case 'splitRatio':
+      return setTerminalSplitRatio(state, action.ratio);
+    case 'splitSecondary':
+      return setTerminalSplitSecondary(state, action.viewId);
+    case 'splitPrimary':
+      return setTerminalSplitPrimary(state, action.viewId);
     case 'move':
       return moveDesktopWindow(state, action.viewId, action.x, action.y);
     case 'commitMove':
@@ -202,6 +223,10 @@ export const WorkspacePresentationProvider: React.FC<{
       sync: (surfaces) => dispatch({ type: 'sync', surfaces }),
       focus: (viewId) => dispatch({ type: 'focus', viewId }),
       setActivePty: (viewId) => dispatch({ type: 'setActivePty', viewId }),
+      setSplitOrientation: (orientation) => dispatch({ type: 'splitOrientation', orientation }),
+      setSplitRatio: (ratio) => dispatch({ type: 'splitRatio', ratio }),
+      setSplitSecondary: (viewId) => dispatch({ type: 'splitSecondary', viewId }),
+      setSplitPrimary: (viewId) => dispatch({ type: 'splitPrimary', viewId }),
       move: (viewId, x, y) => dispatch({ type: 'move', viewId, x, y }),
       commitMove: (viewId, origin, pointer) =>
         dispatch({ type: 'commitMove', viewId, origin, pointer }),
