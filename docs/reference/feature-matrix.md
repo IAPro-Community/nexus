@@ -37,6 +37,12 @@
 | api-local | [API local](../api/README.md) | `api`, `web`, `desktop` | internal | SOURCE_TEST_PRESENT_NOT_RUN | PENDING_EXACT_SHA |
 | cli | [CLI e automação](../cli/README.md) | `cli`, `core` | implemented | SOURCE_TEST_PRESENT_NOT_RUN | PENDING_EXACT_SHA |
 | installer | [Instalação e desinstalação](../getting-started/installation.md) | `cli`, `desktop` | experimental | SOURCE_TEST_PRESENT_NOT_RUN | PENDING_EXACT_SHA |
+| browser-panel-scroll | [Rolagem do workspace Web](../architecture/WORKSPACE_STYLES_MODULARIZATION.md) | `web` | experimental | SOURCE_TEST_PRESENT_NOT_RUN | PENDING_EXACT_SHA |
+| windows-terminal-input | [Transporte de entrada Web para PTY/ConPTY](../product/terminals.md) | `core`, `web`, `desktop` | experimental | SOURCE_TEST_PRESENT_NOT_RUN | PENDING_EXACT_SHA |
+| sticky-lead-explicit-review | [STICKY_LEAD: revisão explícita sem Mission](../product/interactive-control.md) | `core`, `cli`, `web` | experimental | SOURCE_TEST_PRESENT_NOT_RUN | PENDING_EXACT_SHA |
+| runtime-quota-continuity | [Continuidade por esgotamento de quota](../architecture/session-continuity.md) | `core`, `cli` | experimental | SOURCE_TEST_PRESENT_NOT_RUN | PENDING_EXACT_SHA |
+| execution-target-catalog | [ExecutionTarget, CapacityDomain e ModelCatalog](../architecture/resource-routing.md) | `core` | experimental | SOURCE_TEST_PRESENT_NOT_RUN | PENDING_EXACT_SHA |
+| desktop-static-assets | [Entrega de assets no attach Desktop](../desktop/overview.md) | `desktop`, `core` | experimental | SOURCE_TEST_PRESENT_NOT_RUN | PENDING_EXACT_SHA |
 <!-- FEATURE_CATALOG_END -->
 
 ## Interpretação
