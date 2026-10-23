@@ -1,0 +1,46 @@
+name: Publish Nexus documentation
+on:
+  push:
+    branches:
+      - release/v1.0.0
+      - docs/nexus-1.0-portal-20261022
+    paths:
+      - 'docs/**'
+      - 'docs-site/**'
+      - '.github/workflows/docs-site.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: nexus-docs-pages
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        working-directory: docs-site
+        run: npm install --no-audit --no-fund
+      - name: Validate documentation catalog
+        working-directory: docs-site
+        run: npm run check:docs
+      - name: Build documentation
+        working-directory: docs-site
+        run: npm run build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: docs-site/build
+      - name: Publish GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
