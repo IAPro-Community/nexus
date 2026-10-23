@@ -31,7 +31,9 @@
     "quality:full": "npm run quality && npm run build",
     "test:e2e:composer-spine": "node scripts/e2e-composer-execution-spine.mjs",
     "test:e2e:composer-vague-spine": "node scripts/e2e-composer-vague-execution-spine.mjs",
-    "test:e2e:composer-themes": "node scripts/e2e-composer-themes.mjs"
+    "test:e2e:composer-themes": "node scripts/e2e-composer-themes.mjs",
+    "art:nex": "node scripts/export-nex-art.mjs",
+    "art:nex:check": "node scripts/export-nex-art.mjs --check"
   },
   "dependencies": {
     "@assistant-ui/react": "^0.15.20",
