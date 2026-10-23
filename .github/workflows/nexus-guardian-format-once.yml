@@ -1,0 +1,71 @@
+# One-shot, exact-branch remediation: format only files reported by the
+# beta.10 Windows gate. This workflow removes itself after committing.
+name: Nexus Guardian one-shot format repair
+on:
+  push:
+    branches:
+      - release/v1.0.0
+    paths:
+      - .github/workflows/nexus-guardian-format-once.yml
+permissions:
+  contents: write
+jobs:
+  format:
+    if: github.repository == 'IAPro-Community/nexus' && github.ref == 'refs/heads/release/v1.0.0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: Format exact failing Go files
+        shell: bash
+        run: |
+          set -euo pipefail
+          gofmt -w \
+            cmd/nexus-hud/main.go \
+            internal/control/handoff/context.go \
+            internal/desktop/hud_appearance_test.go \
+            internal/nexus/agent_modes_test.go \
+            internal/nexus/continuity_controller.go \
+            internal/nexus/execution_target_test.go \
+            internal/nexus/execution_target.go \
+            internal/nexus/hud_projection.go
+          git diff --check
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Format exact failing Guardian test
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm exec --yes --package=prettier@3.9.6 -- prettier --write web/src/features/hud/GuardianMascot.test.tsx
+          npm exec --yes --package=prettier@3.9.6 -- prettier --check web/src/features/hud/GuardianMascot.test.tsx
+          git diff --check
+      - name: Commit only confirmed format corrections and retire job
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -- .github/workflows/nexus-guardian-format-once.yml
+          git add -- \
+            cmd/nexus-hud/main.go \
+            internal/control/handoff/context.go \
+            internal/desktop/hud_appearance_test.go \
+            internal/nexus/agent_modes_test.go \
+            internal/nexus/continuity_controller.go \
+            internal/nexus/execution_target_test.go \
+            internal/nexus/execution_target.go \
+            internal/nexus/hud_projection.go \
+            web/src/features/hud/GuardianMascot.test.tsx
+          git diff --cached --check
+          git diff --cached --stat
+          git commit -m "style(guardian): apply pinned Go and Prettier format; retire one-shot repair"
+          # Never force push. Abort if another actor moved the release HEAD.
+          git push origin HEAD:refs/heads/release/v1.0.0
