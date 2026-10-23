@@ -42,6 +42,10 @@ func (h *HUDController) SetHUDDetachedPopoverPreference(enabled bool) error {
 		}
 		return err
 	}
+	// Both directions return to a compact capsule before exposing the new
+	// expansion strategy. Prevent a stale legacy expanded state from being
+	// mistaken for an already open detached popup.
+	h.setHUDExpandedState(false)
 	if window, ok := h.nativeWindow(); ok {
 		currentWidth, currentHeight := window.Size()
 		if currentWidth != state.Width || currentHeight != state.Height {
