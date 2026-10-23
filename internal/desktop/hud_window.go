@@ -458,6 +458,9 @@ func (h *HUDController) SaveHUDWindowState(state HUDWindowState) error {
 			state.DisplayID = screen.ID
 			state.DisplayScale = screen.ScaleFactor
 		}
+		if !h.GetHUDCapabilities().GlobalPositioning {
+			state.X, state.Y = window.Position()
+		}
 		window.SetSize(state.Width, state.Height)
 		if h.GetHUDCapabilities().GlobalPositioning {
 			window.SetPosition(state.X, state.Y)
@@ -465,6 +468,15 @@ func (h *HUDController) SaveHUDWindowState(state HUDWindowState) error {
 		window.SetAlwaysOnTop(state.AlwaysOnTop)
 	}
 	return h.manager.Save(state)
+}
+
+// hudResizeAnchor moves the bottom-right anchor only when the compositor
+// supports global positioning. Wayland fallback keeps the actual origin.
+func hudResizeAnchor(x, y, oldWidth, oldHeight, newWidth, newHeight int, movable bool) (int, int) {
+	if !movable {
+		return x, y
+	}
+	return x + oldWidth - newWidth, y + oldHeight - newHeight
 }
 
 // The React HUD initializes collapsed. Persisted expanded geometry must never
@@ -489,13 +501,16 @@ func (h *HUDController) RestoreHUDWindow() {
 	if screen != nil {
 		// Named placements are resolved against the usable screen area, not
 		// absolute desktop coordinates. This keeps the capsule above taskbars.
-		if state.Placement == HUDPlacementBottomRight {
+		if state.Placement == HUDPlacementBottomRight && h.GetHUDCapabilities().GlobalPositioning {
 			state.X = screen.WorkArea.X + screen.WorkArea.Width - state.Width - 12
 			state.Y = screen.WorkArea.Y + screen.WorkArea.Height - state.Height - 8
 		}
 		state = clampHUDWindowStateToWorkArea(state, screen.WorkArea)
 		state.DisplayID = screen.ID
 		state.DisplayScale = screen.ScaleFactor
+		if !h.GetHUDCapabilities().GlobalPositioning {
+			state.X, state.Y = window.Position()
+		}
 		_ = h.manager.Save(state)
 	}
 	window.SetSize(state.Width, state.Height)
@@ -518,6 +533,9 @@ func (h *HUDController) CaptureHUDWindowState() error {
 		state = clampHUDWindowStateToWorkArea(state, screen.WorkArea)
 		state.DisplayID = screen.ID
 		state.DisplayScale = screen.ScaleFactor
+	}
+	if !h.GetHUDCapabilities().GlobalPositioning {
+		state.X, state.Y = window.Position()
 	}
 	return h.manager.Save(state)
 }
@@ -545,8 +563,7 @@ func (h *HUDController) SetHUDExpanded(expanded bool) error {
 		state.X, state.Y = window.Position()
 		oldWidth, oldHeight = window.Size()
 	}
-	state.X += oldWidth - targetWidth
-	state.Y += oldHeight - targetHeight
+	state.X, state.Y = hudResizeAnchor(state.X, state.Y, oldWidth, oldHeight, targetWidth, targetHeight, h.GetHUDCapabilities().GlobalPositioning)
 	state.Width, state.Height = targetWidth, targetHeight
 	if ok {
 		if screen := h.screenForState(state, window); screen != nil {
@@ -600,13 +617,15 @@ func (h *HUDController) SetHUDSizePreset(preset string, expanded bool) error {
 	}
 	state.X, state.Y = window.Position()
 	oldWidth, oldHeight := window.Size()
-	state.X += oldWidth - targetWidth
-	state.Y += oldHeight - targetHeight
+	state.X, state.Y = hudResizeAnchor(state.X, state.Y, oldWidth, oldHeight, targetWidth, targetHeight, h.GetHUDCapabilities().GlobalPositioning)
 	state.Width, state.Height = targetWidth, targetHeight
 	if screen := h.screenForState(state, window); screen != nil {
 		state = clampHUDWindowStateToWorkArea(state, screen.WorkArea)
 		state.DisplayID = screen.ID
 		state.DisplayScale = screen.ScaleFactor
+	}
+	if !h.GetHUDCapabilities().GlobalPositioning {
+		state.X, state.Y = window.Position()
 	}
 	window.SetSize(state.Width, state.Height)
 	if h.GetHUDCapabilities().GlobalPositioning {
