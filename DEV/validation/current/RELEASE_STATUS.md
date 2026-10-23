@@ -1,5 +1,19 @@
 ﻿# Current release status
 
+> **Atualização de documentação — 2026-10-22 (referência de source, não
+> certificação do HEAD documental):** a reconciliação de código em
+> `release/v1.0.0` está presente em `e98c711e86ffd578111cfca454513722198bacbe`
+> (27 commits sobre `622aa933`). O workflow Windows exact-SHA
+> [#39870167188](https://github.com/IAPro-Community/nexus/actions/runs/39870167188)
+> **falhou** no Prettier (`web/src/features/hud/GuardianMascot.test.tsx`),
+> após `docs-verify` passar com 193 Markdown/33 assets. A CI
+> [#39870167164](https://github.com/IAPro-Community/nexus/actions/runs/39870167164)
+> foi cancelada. O ajuste de formatação entrou depois em `43c48376`, e os
+> commits desta documentação avançaram novamente o HEAD. **NO-GO até
+> reconfirmar todos os gates no SHA final.** Contratos, artefatos e tarefas:
+> [BETA10_GAP_CLOSURE_20261022.md](BETA10_GAP_CLOSURE_20261022.md).
+
+
 > **Atualizacao 2026-10-22:** popup independente e Mascote controlaveis em
 > `f789db63` (HUD SHA-256 `1f3ced07...7929de`). O modo Mascote era
 > inalcancavel porque o popup so existia com `NEXUS_HUD_DETACHED_POPOVER=1`;
