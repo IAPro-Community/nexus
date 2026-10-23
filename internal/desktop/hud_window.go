@@ -560,7 +560,13 @@ func (h *HUDController) SetHUDExpanded(expanded bool) error {
 		}
 	}
 	state.Placement = HUDPlacementCustom
-	return h.manager.Save(state)
+	if err := h.manager.Save(state); err != nil {
+		return err
+	}
+	// The native controller's expanded state is authoritative for focus and
+	// auto-hide behavior, including the Wayland single-window fallback.
+	h.setHUDExpandedState(expanded)
+	return nil
 }
 
 // GetHUDSizePresets returns the supported native window geometries. The
@@ -607,7 +613,11 @@ func (h *HUDController) SetHUDSizePreset(preset string, expanded bool) error {
 		window.SetPosition(state.X, state.Y)
 	}
 	state.Placement = HUDPlacementCustom
-	return h.manager.Save(state)
+	if err := h.manager.Save(state); err != nil {
+		return err
+	}
+	h.setHUDExpandedState(expanded)
+	return nil
 }
 
 // MoveHUD moves the native window by a keyboard-sized delta and clamps it to
