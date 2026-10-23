@@ -32,6 +32,34 @@ Setas/CSI/SS3 e sequências de mouse devem chegar intactas ao processo. O Nexus 
 
 Antes de certificar uma versão, testar: setas, scroll, cliques, `Ctrl+C`, `Esc`, colagem Unicode, Enter, resize, reconexão, prompt de aprovação e menus nativos do Codex.
 
+## Alterações do transporte Web/Windows e rolagem (22/10/2026)
+
+Na implementação beta.10, o WebSocket do terminal envia bytes de entrada ao
+stream anexado da sessão pela função `writeAttachedTerminalInput`, sem criar
+uma moldura `CmdInput` a cada tecla. O `SessionHost` continua sendo a
+fronteira de autorização de writer e normalização de PTY/ConPTY.
+
+O payload de `Esc`, CSI/SS3, Unicode, Enter e `Ctrl+C` não deve ser
+remontado ou confundido com JSON de controle. Foram adicionados testes para
+preservação de bytes e escrita curta em
+`internal/control/web/handler_terminal_input_test.go`. Esses testes **não
+substituem** uma sessão real do Codex no Windows.
+
+A interface Web distingue `data-nexus-platform="web"` no elemento raiz e
+permite scroll nos painéis ativos quando o conteúdo ultrapassa o viewport.
+A alteração fica em `web/src/app/workspace-styles/03-workspace-layout.css`;
+o Desktop Wails mantém o layout nativo. Testes estáticos e uma verificação de
+rolagem com viewport móvel/laptop foram adicionados em
+`web/src/app/workspaceSurfaceStyles.test.ts` e
+`web/scripts/e2e-surface-isolation.mjs`. É preciso executar o E2E e
+verificar zoom/teclado/scroll reais antes de declarar correção homologada.
+
+Em `STICKY_LEAD` com `OFF`, existe a exceção de um pedido de revisão
+**explicitamente direcionado** a outro provider registrado, sem Mission.
+Consulte [controle interativo](interactive-control.md) e
+[roteamento](../architecture/agent-routing.md); a detecção da submissão é
+uma fronteira sensível a regressões de TUI, ainda pendente de homologação.
+
 ## Recuperação segura
 
 Se setas começarem a inserir `[A`, `OA` ou caracteres de mouse, siga o diagnóstico; não apague a sessão ou dados de perfil como primeira medida:
