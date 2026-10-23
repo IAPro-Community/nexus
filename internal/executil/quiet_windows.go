@@ -32,3 +32,15 @@ func HideConsoleWindow(cmd *exec.Cmd) {
 		cmd.SysProcAttr.CreationFlags |= createNoWindow
 	}
 }
+
+// hideConsoleOnly avoids STARTF_USESHOWWINDOW/SW_HIDE. A GUI child's first
+// ShowWindow call must not inherit a forced hidden startup state.
+func hideConsoleOnly(cmd *exec.Cmd) {
+	if cmd == nil {
+		return
+	}
+	if cmd.SysProcAttr == nil {
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+	}
+	cmd.SysProcAttr.CreationFlags |= createNoWindow
+}
