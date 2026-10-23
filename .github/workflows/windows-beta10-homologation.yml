@@ -116,11 +116,17 @@ jobs:
         shell: pwsh
         run: .\scripts\certify-windows-first-run.ps1 -ExpectedSha $env:TARGET_SHA -OutputDirectory (Join-Path $env:RUNNER_TEMP 'nexus-first-run')
 
+      - name: Verify public documentation links before expensive screenshot capture
+        shell: pwsh
+        run: bun scripts/docs-verify.mjs
+
       - name: Install Playwright Chromium for visual evidence
         shell: pwsh
         run: bun run --cwd web playwright install chromium
 
       - name: Capture visual evidence for this integrated source SHA
+        id: docs_capture
+        continue-on-error: true
         shell: pwsh
         run: bun run --cwd web docs:capture
 
@@ -167,3 +173,11 @@ jobs:
             docs/assets/demos/*.webm
           if-no-files-found: warn
           retention-days: 3
+
+      - name: Enforce exact-SHA capture gate after collecting all diagnostics
+        if: always()
+        shell: pwsh
+        run: |
+          if ('${{ steps.docs_capture.outcome }}' -ne 'success') {
+            throw 'Documentation capture failed for this source SHA'
+          }
