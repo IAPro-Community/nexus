@@ -84,6 +84,7 @@ func TestWaylandRejectsRuntimePopupActivation(t *testing.T) {
 	t.Setenv("XDG_SESSION_TYPE", "wayland")
 	manager := NewHUDWindowStateManager(filepath.Join(t.TempDir(), "hud.json"))
 	controller := NewHUDControllerWithDetachedPopover(manager, false)
+	persistedPreference := manager.Load().DetachedPopover
 	factoryCalls := 0
 	controller.SetDetachedPopupFactory(func() (application.Window, error) {
 		factoryCalls++
@@ -95,7 +96,10 @@ func TestWaylandRejectsRuntimePopupActivation(t *testing.T) {
 	if factoryCalls != 0 {
 		t.Fatal("Wayland must not attempt to create a native detached popup")
 	}
-	if controller.GetHUDDetachedPopoverEnabled() || manager.Load().DetachedPopover {
-		t.Fatal("blocked runtime popup must not persist enabled state")
+	if controller.GetHUDDetachedPopoverEnabled() {
+		t.Fatal("blocked Wayland popup must not become active")
+	}
+	if manager.Load().DetachedPopover != persistedPreference {
+		t.Fatal("rejected runtime popup activation must preserve the existing preference")
 	}
 }
