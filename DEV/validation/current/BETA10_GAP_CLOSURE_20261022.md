@@ -56,6 +56,26 @@ formatação pontual no commit `43c48376bc39c55d2bc888b23ee03b163831a011`.
 Esse commit **não é evidência de que o Prettier passou**: é necessário
 reexecutar a pipeline após integrar todas as mudanças documentais.
 
+## Complemento de merge seletivo: classificação de falhas
+
+A revisão posterior detectou que a branch histórica
+`fix/v1.0.0-gap-closure-20260930` continua divergente e não pode ser
+mesclada integralmente: há mudanças já incorporadas no release, arquivos
+refatorados após o ponto de origem e pelo menos um uso de
+`watchRuntimeFailures` sem implementação localizada na branch histórica.
+
+A parte preservável foi isolada em
+`fix/v1.0.0-runtime-failure-evidence-20261022`:
+`SessionHost` passa a publicar `failure_kind` tipado e a descrição sanitizada
+quando um runtime falha, com teste para rate limit, quota, autenticação, rede,
+falha desconhecida, cooldown e ausência de vazamento de output.
+O listener automatizado para eventos `RUNTIME_FAILED` **não** foi copiado
+da branch antiga e segue fora deste merge; não inferir novo failover
+automático a partir desse enriquecimento de eventos.
+
+A integração via pull request deve ser validada no SHA efetivamente mergeado,
+com `go test` do pacote host e os gates completos; um merge não é PASS nativo.
+
 ## Gates para sair de NO-GO
 
 1. Congelar um único HEAD após os commits de documentação. Registrar `GIT_SHA`
