@@ -10,3 +10,6 @@ func HideConsoleWindow(*exec.Cmd) {}
 
 // HideWindow is a no-op outside Windows.
 func HideWindow(*exec.Cmd) {}
+
+// No console window to suppress on Unix.
+func hideConsoleOnly(*exec.Cmd) {}
