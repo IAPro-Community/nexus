@@ -110,8 +110,14 @@ a última prévia permanece anterior ao Guardian.
    aplicativo atrás. O Windows possui um watcher experimental de regiões
    interativas na cápsula, inclusive no modo popup independente, mas sua
    eficácia ainda exige vídeo/capturas reais em monitor/DPI diferentes.
-   macOS e Linux ainda carecem de um adaptador de hit-test equivalente.
-   Se o WebView/Wails bloquear o clique, registrar NO_GO.
+   No macOS, o adaptador Quartz fica experimental e **desativado por
+   padrão** (opt-in `NEXUS_HUD_MAC_CLICKTHROUGH=1`), porque ainda precisa
+   de validação com Retina, múltiplos monitores e clique real atrás da janela.
+   O Linux continua sem click-through nativo: Wails não implementa
+   `SetIgnoreMouseEvents` nessa plataforma. Em X11 será necessário
+   um adaptador de regiões de entrada do compositor/GTK; em Wayland, validar
+   um fallback limitado sem prometer coordenadas globais.
+   Qualquer bloqueio de clique no WebView continua NO_GO.
 7. Executar testes Go/TS, lint, formatação, build e os verificadores nativos
    no **mesmo SHA**. Não reutilizar capturas de commits anteriores.
 
