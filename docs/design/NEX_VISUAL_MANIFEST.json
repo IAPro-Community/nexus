@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "schema_version": "1.0",
   "identity": {
     "name": "NEX",
@@ -153,5 +152,7 @@
     "checklist": "docs/design/NEX_VISUAL_REVIEW_CHECKLIST.md",
     "requires_human_visual_review": true,
     "release_native_certification_separate": true
-  }
+  },
+  "manifest_kind": "nex-visual-manifest",
+  "last_contract_revision": "2026-10-23"
 }
