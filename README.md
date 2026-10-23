@@ -200,6 +200,14 @@ O [Orquestrador Maestro](https://github.com/IAPro-Community/Orquestrador-Maestro
 é opcional. Sem ele, Direct, Agents, Composer, Flow e Mission continuam sendo
 capacidades do Nexus.
 
+## Mascote oficial: NEX
+
+O mascote oficial do IAPro Nexus é **NEX**: robô frontal, flutuante, com visor expressivo, núcleo luminoso e quatro módulos orbitais, em **pixel art retrofuturista 32-bit-inspired**. A arte Compact da linha v1 está integrada à apresentação nativa Mascote do HUD, preservando o logotipo Nexus como marca principal.
+
+O componente `NexPixelSprite.tsx` é a fonte editável do desenho; o build web também exporta SVGs estáticos (`/nex/nex-{idle,working,warning,offline}.svg`) a partir da mesma arte para documentação e divulgação. A versão visual **Standard/Hero** permanece uma evolução de asset, não uma funcionalidade prometida na v1.
+
+→ [Direção visual oficial de NEX](docs/design/NEX_32BIT_VISUAL_CONTRACT.md) · [HUD / status e homologação](docs/product/hud-guardian-v1.md)
+
 ## Nexus HUD
 
 > **Introduzido na linha beta.7 e integrado ao source beta.10.** O HUD não é
