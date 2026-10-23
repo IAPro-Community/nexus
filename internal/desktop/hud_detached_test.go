@@ -103,3 +103,23 @@ func TestWaylandRejectsRuntimePopupActivation(t *testing.T) {
 		t.Fatal("rejected runtime popup activation must preserve the existing preference")
 	}
 }
+
+func TestDetachedPreferenceSaveFailurePreservesRuntimeState(t *testing.T) {
+	if runtime.GOOS == "linux" {
+		t.Setenv("XDG_SESSION_TYPE", "x11")
+	}
+	// Using a directory as the settings file fails reliably on all platforms,
+	// including elevated Windows runners.
+	manager := NewHUDWindowStateManager(t.TempDir())
+	controller := NewHUDControllerWithDetachedPopover(manager, true)
+	if !controller.GetHUDDetachedPopoverEnabled() {
+		t.Fatal("test setup requires an active detached popup strategy")
+	}
+	controller.setHUDExpandedState(true)
+	if err := controller.SetHUDDetachedPopoverPreference(false); err == nil {
+		t.Fatal("persistence failure must be returned to the caller")
+	}
+	if !controller.GetHUDDetachedPopoverEnabled() || !controller.GetHUDExpanded() {
+		t.Fatal("a failed write must not silently disable an active popup")
+	}
+}
