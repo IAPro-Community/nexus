@@ -20,3 +20,11 @@ func CommandContext(ctx context.Context, name string, args ...string) *exec.Cmd 
 	HideConsoleWindow(cmd)
 	return cmd
 }
+
+// CommandNoConsole hides an unwanted child console without requesting that a
+// GUI child's own first top-level window start hidden. Use only for GUI apps.
+func CommandNoConsole(name string, args ...string) *exec.Cmd {
+	cmd := exec.Command(name, args...)
+	hideConsoleOnly(cmd)
+	return cmd
+}
