@@ -16,6 +16,9 @@ type NexPixelSpriteProps = {
  * this silhouette; the reference illustration is NOT a sprite sheet.
  */
 export const NexPixelSprite: React.FC<NexPixelSpriteProps> = ({ mood }) => {
+  const gradientPrefix = React.useId().replace(/:/g, '_');
+  const shell = `url(#${gradientPrefix}-shell)`;
+  const glass = `url(#${gradientPrefix}-glass)`;
   const offline = mood === 'offline';
   const warning = mood === 'warning';
   const accent = offline ? '#71839D' : warning ? '#FF8A45' : '#31D5FF';
@@ -32,13 +35,13 @@ export const NexPixelSprite: React.FC<NexPixelSpriteProps> = ({ mood }) => {
       focusable="false"
     >
       <defs>
-        <linearGradient id="nex-shell-32" x1="0" x2="0.95" y1="0" y2="1">
+        <linearGradient id={`${gradientPrefix}-shell`} x1="0" x2="0.95" y1="0" y2="1">
           <stop offset="0" stopColor="#FFFFFF" />
           <stop offset="0.34" stopColor="#E5F2FF" />
           <stop offset="0.7" stopColor="#AAC4E2" />
           <stop offset="1" stopColor="#5C83BB" />
         </linearGradient>
-        <linearGradient id="nex-glass-32" x1="0" x2="0.8" y1="0" y2="1">
+        <linearGradient id={`${gradientPrefix}-glass`} x1="0" x2="0.8" y1="0" y2="1">
           <stop offset="0" stopColor="#15365C" />
           <stop offset="0.3" stopColor="#081B38" />
           <stop offset="1" stopColor="#030B21" />
@@ -74,7 +77,7 @@ export const NexPixelSprite: React.FC<NexPixelSpriteProps> = ({ mood }) => {
         {[21, 107].map((x) => (
           <g key={x} transform={`translate(${x} 55)`}>
             <path d="M-11-15h22v4h4v22h-4v4h-22v-4h-4v-22h4z" fill="#071834" />
-            <path d="M-10-13h20v4h4v18h-4v4h-20v-4h-4V-9h4z" fill="url(#nex-shell-32)" />
+            <path d="M-10-13h20v4h4v18h-4v4h-20v-4h-4V-9h4z" fill={shell} />
             <path d="M-8-9h16v4h3V5H8v4H-8V5h-3V-5h3z" fill="#4A76AD" />
             <path d="M-6-8H6v4h3v8H6v4H-6V4h-3v-8h3z" fill="#062C6F" />
             <path d="M-4-6H4v3h3v6H4v3h-8V3h-3v-6h3z" fill={offline ? '#607A9B' : '#137BE6'} />
@@ -87,7 +90,7 @@ export const NexPixelSprite: React.FC<NexPixelSpriteProps> = ({ mood }) => {
       {/* Three-dimensional, symmetrical compact body, not a stick figure. */}
       <g className={styles.guardianBody} data-nex-part="torso">
         <path d="M49 82h30v3h7v11h-3v11h-6v7H51v-7h-6V96h-3V85h7z" fill="#06182F" />
-        <path d="M50 84h28v3h6v9h-3v11h-6v5H53v-5h-6V96h-3v-9h6z" fill="url(#nex-shell-32)" />
+        <path d="M50 84h28v3h6v9h-3v11h-6v5H53v-5h-6V96h-3v-9h6z" fill={shell} />
         <path d="M51 85h26v2H51z" fill="#FAFDFF" />
         <path d="M47 90h5v14h-5zM76 90h5v14h-5z" fill="#6C9AC9" />
         <path d="M55 109h18v2H55z" fill="#779EC9" />
@@ -109,12 +112,12 @@ export const NexPixelSprite: React.FC<NexPixelSpriteProps> = ({ mood }) => {
       {/* Heroic large round helmet: fixed frontal view and distinct dark visor. */}
       <g data-nex-part="helmet">
         <path d="M45 24h38v3h9v4h6v6h4v9h2v20h-2v8h-4v7h-7v5H37v-5h-7v-7h-4v-8h-2V46h2v-9h4v-6h6v-4h9z" fill="#091B39" />
-        <path d="M45 26h38v3h9v4h5v6h4v9h2v16h-2v8h-4v7h-7v5H38v-5h-7v-7h-4v-8h-2V48h2v-9h4v-6h5v-4h9z" fill="url(#nex-shell-32)" />
+        <path d="M45 26h38v3h9v4h5v6h4v9h2v16h-2v8h-4v7h-7v5H38v-5h-7v-7h-4v-8h-2V48h2v-9h4v-6h5v-4h9z" fill={shell} />
         <path d="M45 27h38v3h8v4h5v6h3v6H29v-6h3v-6h5v-4h8z" fill="#F2F8FF" />
         <path d="M47 29h34v2h8v2H39v-2h8z" fill="#FFFFFF" />
         <path d="M34 42h3v-5h6v-3h42v3h6v5h3v4H34z" fill="#CDDEF3" />
         <path d="M43 35h42v3h6v5h3v24h-3v6h-7v3H44v-3h-7v-6h-3V43h3v-5h6z" fill="#37517A" />
-        <path d="M44 38h40v3h6v4h2v21h-3v5h-6v3H45v-3h-6v-5h-3V45h2v-4h6z" fill="url(#nex-glass-32)" />
+        <path d="M44 38h40v3h6v4h2v21h-3v5h-6v3H45v-3h-6v-5h-3V45h2v-4h6z" fill={glass} />
         <path d="M43 41h7v2h-7zM51 39h20v2H51zM75 40h8v2h-8z" fill="#5A80B4" opacity=".75" />
         <path d="M38 48h2v12h-2zM88 50h2v9h-2z" fill="#22436F" />
         <path d="M40 73h7v3h34v-3h7v3h-6v3H46v-3h-6z" fill="#9EBBDE" />
