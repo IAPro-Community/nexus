@@ -14,7 +14,7 @@ existing clients. They are grouped by the current taxonomy:
 | Family | Current identifiers | Durable correlation |
 | --- | --- | --- |
 | Process | `PROCESS_STARTED`, `PROCESS_EXITED` | runtime ID by default |
-| Runtime | `RUNTIME_STARTED`, `RUNTIME_STOPPED`, `RUNTIME_FAILED` | optional lineage ID; runtime ID by default |
+| Runtime | `RUNTIME_STARTED`, `RUNTIME_STOPPED`, `RUNTIME_FAILED`, `RUNTIME_REPLACED` | optional lineage ID; runtime ID by default |
 | Session/agent | `SESSION_STARTED`, `SESSION_RESUMED`, `SESSION_ENDED`, `AGENT_WORKING`, `AGENT_WAITING` | runtime ID by default |
 | Tool/approval | `TOOL_STARTED`, `TOOL_FINISHED`, `APPROVAL_REQUIRED`, `APPROVED`, `REJECTED` | runtime ID by default |
 | Quota/failover | `RATE_LIMITED`, `QUOTA_LOW`, `QUOTA_EXHAUSTED`, `QUOTA_FAILOVER_*`, `QUOTA_MONITOR_*` | MissionRun ID for automated failover; otherwise runtime/empty |
@@ -27,6 +27,14 @@ changing the event ID or the runtime subscription key. MissionRun lifecycle
 and failover use the run ID. Both account and context handoff use the lineage ID. The
 durable projection stores the field through migration `0015_event_correlation`;
 legacy rows remain valid with an empty value.
+
+A partir do source beta.10 de 22/10/2026, `RUNTIME_REPLACED` é emitido
+quando um handoff supervisionado completa a substituição de runtime. Seu
+payload inclui IDs de origem/destino, motivo, provider/profile, agente e modo
+de continuidade. O evento registra a troca; ele não certifica o estado do
+provider nem sucesso de um smoke nativo. O par
+`QUOTA_FAILOVER_REQUESTED`/`QUOTA_FAILOVER_COMPLETED` ou
+`QUOTA_FAILOVER_FAILED` descreve o resultado da tentativa.
 
 ## Timeline rules
 
