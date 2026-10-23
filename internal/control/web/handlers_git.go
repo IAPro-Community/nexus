@@ -15,14 +15,16 @@ import (
 
 // ProjectGitBranchesResponse is returned by GET /api/v1/projects/:id/git/branches
 type ProjectGitBranchesResponse struct {
-	ProjectID      string   `json:"project_id"`
-	CanonicalPath  string   `json:"canonical_path"`
-	CurrentBranch  string   `json:"current_branch"`
-	DefaultBranch  string   `json:"default_branch"`
-	Branches       []string `json:"branches"`
-	RemoteBranches []string `json:"remote_branches"`
-	IsClean        bool     `json:"is_clean"`
-	ModifiedCount  int      `json:"modified_count"`
+	ProjectID          string               `json:"project_id"`
+	CanonicalPath      string               `json:"canonical_path"`
+	CurrentBranch      string               `json:"current_branch"`
+	DefaultBranch      string               `json:"default_branch"`
+	Branches           []string             `json:"branches"`
+	RemoteBranches     []string             `json:"remote_branches"`
+	IsClean            bool                 `json:"is_clean"`
+	ModifiedCount      int                  `json:"modified_count"`
+	Worktrees          []ProjectGitWorktree `json:"worktrees"`
+	WorktreesAvailable bool                 `json:"worktrees_available"`
 }
 
 // handleProjectGitBranches GET /api/v1/projects/{projectID}/git/branches
@@ -100,15 +102,22 @@ func (h *NexusHandler) handleProjectGitBranches(w http.ResponseWriter, r *http.R
 		}
 	}
 
+	worktrees, worktreesErr := listProjectGitWorktrees(r.Context(), dir)
+	if worktrees == nil {
+		worktrees = []ProjectGitWorktree{}
+	}
+
 	resp := ProjectGitBranchesResponse{
-		ProjectID:      proj.ID,
-		CanonicalPath:  proj.CanonicalPath,
-		CurrentBranch:  current,
-		DefaultBranch:  proj.DefaultBranch,
-		Branches:       branches,
-		RemoteBranches: remoteBranches,
-		IsClean:        isClean,
-		ModifiedCount:  modifiedCount,
+		ProjectID:          proj.ID,
+		CanonicalPath:      proj.CanonicalPath,
+		CurrentBranch:      current,
+		DefaultBranch:      proj.DefaultBranch,
+		Branches:           branches,
+		RemoteBranches:     remoteBranches,
+		IsClean:            isClean,
+		ModifiedCount:      modifiedCount,
+		Worktrees:          worktrees,
+		WorktreesAvailable: worktreesErr == nil,
 	}
 	writeJSON(w, http.StatusOK, resp)
 }

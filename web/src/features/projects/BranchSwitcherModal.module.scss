@@ -1,0 +1,68 @@
+.worktreeSection {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--nx-border);
+}
+
+.worktreeHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  color: var(--nx-text);
+  font-size: 0.82rem;
+}
+
+.worktreeHint {
+  margin: 0;
+  color: var(--nx-muted);
+  font-size: 0.73rem;
+  line-height: 1.45;
+}
+
+.worktreeList {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.worktreeRow {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm, 6px);
+  background: var(--nx-surface);
+}
+
+.worktreeBranch {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--nx-text);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.worktreePath {
+  display: block;
+  color: var(--nx-muted);
+  font-size: 0.69rem;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.occupiedBadge {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--nx-warning-soft);
+  color: var(--nx-warning);
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
