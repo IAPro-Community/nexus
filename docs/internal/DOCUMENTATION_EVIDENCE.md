@@ -49,7 +49,7 @@ revisáveis. Ele existe para impedir documentação inventada.
 | Recurso/modelo só é identificado com evidência observada | `internal/nexus/execution_target.go` | `internal/nexus/execution_target_test.go` | [Routing](../architecture/resource-routing.md) |
 | Desktop deve servir JS/CSS antes do fallback SPA | `internal/control/web/desktop_attach.go` | `internal/control/web/desktop_attach_test.go` | [Desktop](../desktop/overview.md) |
 
-O [registro da intervenção](../../DEV/validation/current/BETA10_GAP_CLOSURE_20261022.md)
+O registro de intervenção `DEV/validation/current/BETA10_GAP_CLOSURE_20261022.md`
 fixa o SHA de código auditado, o run Windows que falhou e os gates que ainda
 não têm prova de execução. A presença dos testes não confirma que executaram.
 
