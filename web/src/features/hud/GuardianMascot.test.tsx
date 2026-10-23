@@ -7,7 +7,10 @@ import type { GuardianMood, HudAppearance } from './guardianModel';
 const renderMascot = (mood: GuardianMood, attention = false) =>
   renderToStaticMarkup(React.createElement(GuardianMascot, { mood, attention }));
 
-const renderSelector = (appearance: HudAppearance, onSelect: (next: HudAppearance) => void) => {
+const renderSelector = (
+  appearance: HudAppearance,
+  onSelect: (next: HudAppearance) => void,
+) => {
   const props = { appearance, pending: false, onSelect };
   return renderToStaticMarkup(React.createElement(GuardianModeSelector, props));
 };
