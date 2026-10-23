@@ -53,6 +53,16 @@ func TestCommandCapturesOutputWithoutChangingResult(t *testing.T) {
 	}
 }
 
+func TestCommandNoConsoleShowsGuiChildWithoutConsoleFlash(t *testing.T) {
+	cmd := CommandNoConsole("nexus-hud.exe", "--linked")
+	if cmd.SysProcAttr == nil || cmd.SysProcAttr.CreationFlags&createNoWindow == 0 {
+		t.Fatal("linked GUI companion must not flash a Windows console")
+	}
+	if cmd.SysProcAttr.HideWindow {
+		t.Fatal("GUI child must not inherit SW_HIDE for its first ShowWindow")
+	}
+}
+
 func TestHideWindowPreservesInteractiveConsoleFlags(t *testing.T) {
 	cmd := exec.Command("cmd.exe")
 	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x00000200}
