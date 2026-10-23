@@ -9,7 +9,7 @@ interface GuardianMascotProps {
 }
 
 /**
- * Canonical NEX 16-bit sprite, preserving the existing HUD projection contract:
+ * Official front-facing NEX 32-bit-inspired sprite, preserving the existing HUD projection contract:
  * crisp at every display scale, no network asset, WebGL or video decoder.
  * The animation is presentation-only and never fabricates telemetry.
  */
@@ -35,7 +35,7 @@ export const GuardianModeSelector: React.FC<GuardianModeSelectorProps> = ({
   <div
     className={styles.guardianModeSelector}
     role="group"
-    aria-label="Apresentação nativa do Guardian"
+    aria-label="Apresentação nativa do NEX"
   >
     {(['BAR', 'MASCOT', 'TRAY'] as const).map((mode) => (
       <button
