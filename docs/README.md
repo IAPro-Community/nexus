@@ -17,7 +17,7 @@ estender o Nexus.
 | entender restrições da licença | [Licenciamento](legal/LICENSING.md) |
 | testar em 5–10 minutos | [Quick Start](quick-start.md) |
 | entender o produto inteiro | [Como o Nexus funciona](product/how-it-works.md) |
-| verificar 30 recursos com código/testes | [Matriz de funcionalidades](reference/feature-matrix.md) |
+| verificar 36 recursos com código/testes | [Matriz de funcionalidades](reference/feature-matrix.md) |
 | abrir uma sessão agora | [Direct](product/direct.md) |
 | transformar uma ideia em plano | [Composer](product/composer.md) |
 | revisar dependências e execução | [Flow](product/flow.md) |
@@ -60,6 +60,7 @@ estender o Nexus.
 - [Providers, contas, quota e custo](product/providers-and-usage.md)
 - [Terminais e diagnóstico de teclado](product/terminals.md)
 - [Troca de contas e handoff](product/account-switching.md)
+- [Controle interativo e STICKY_LEAD](product/interactive-control.md)
 - [HUD](product/hud.md)
 - [Acesso remoto seguro](product/remote-access.md)
 - [Temas](product/themes.md)
@@ -76,11 +77,12 @@ estender o Nexus.
 - [Mission Teams](architecture/mission-teams.md)
 - [Runtime supervisionado](architecture/runtime-lifecycle.md)
 - [Provider contract](architecture/provider-contract.md)
-- [Resource routing](architecture/resource-routing.md)
+- [Resource routing e ExecutionTarget](architecture/resource-routing.md)
 - [Agent routing](architecture/agent-routing.md)
 - [Persistência](architecture/persistence.md)
 - [Eventos](architecture/events.md)
-- [Continuidade](architecture/session-continuity.md)
+- [Continuidade supervisionada](architecture/session-continuity.md)
+- [Modularização de estilos e scroll Web](architecture/WORKSPACE_STYLES_MODULARIZATION.md)
 - [ADRs](architecture/)
 
 ### 4. Operação
