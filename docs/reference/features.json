@@ -576,6 +576,114 @@
       "limits": "Somente distribuir binários após gates exact-SHA",
       "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
       "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "browser-panel-scroll",
+      "name": "Rolagem do workspace Web",
+      "surfaces": [
+        "web"
+      ],
+      "status": "experimental",
+      "implementation": "web/src/app/workspace-styles/03-workspace-layout.css",
+      "tests": [
+        "web/src/app/workspaceSurfaceStyles.test.ts"
+      ],
+      "documentation": "docs/architecture/WORKSPACE_STYLES_MODULARIZATION.md",
+      "requires": "Navegador identificado e painel ativo",
+      "limits": "Teste E2E e zoom/scroll reais no mesmo SHA ainda pendentes",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "windows-terminal-input",
+      "name": "Transporte de entrada Web para PTY/ConPTY",
+      "surfaces": [
+        "core",
+        "web",
+        "desktop"
+      ],
+      "status": "experimental",
+      "implementation": "internal/control/web/handler_terminal.go",
+      "tests": [
+        "internal/control/web/handler_terminal_input_test.go"
+      ],
+      "documentation": "docs/product/terminals.md",
+      "requires": "Runtime supervisionado com writer autorizado",
+      "limits": "Sem certificação nativa Codex/ConPTY do SHA atual",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "sticky-lead-explicit-review",
+      "name": "STICKY_LEAD: revisão explícita sem Mission",
+      "surfaces": [
+        "core",
+        "cli",
+        "web"
+      ],
+      "status": "experimental",
+      "implementation": "internal/nexus/registered_provider_routing.go",
+      "tests": [
+        "internal/nexus/registered_provider_routing_test.go"
+      ],
+      "documentation": "docs/product/interactive-control.md",
+      "requires": "Pedido explícito de revisão read-only e provider registrado",
+      "limits": "Sem garantia técnica de isolamento read-only ou smoke de seletor nativo",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "runtime-quota-continuity",
+      "name": "Continuidade por esgotamento de quota",
+      "surfaces": [
+        "core",
+        "cli"
+      ],
+      "status": "experimental",
+      "implementation": "internal/nexus/continuity_controller.go",
+      "tests": [
+        "internal/nexus/continuity_controller_test.go"
+      ],
+      "documentation": "docs/architecture/session-continuity.md",
+      "requires": "Evento observado de quota esgotada e runtime supervisionado",
+      "limits": "Handoff real entre contas/providers exige verificação same-SHA",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "execution-target-catalog",
+      "name": "ExecutionTarget, CapacityDomain e ModelCatalog",
+      "surfaces": [
+        "core"
+      ],
+      "status": "experimental",
+      "implementation": "internal/nexus/execution_target.go",
+      "tests": [
+        "internal/nexus/execution_target_test.go"
+      ],
+      "documentation": "docs/architecture/resource-routing.md",
+      "requires": "Modelos observados e contas elegíveis",
+      "limits": "Projeções no core não garantem descoberta de modelos em todos os providers",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
+    },
+    {
+      "id": "desktop-static-assets",
+      "name": "Entrega de assets no attach Desktop",
+      "surfaces": [
+        "desktop",
+        "core"
+      ],
+      "status": "experimental",
+      "implementation": "internal/control/web/desktop_attach.go",
+      "tests": [
+        "internal/control/web/desktop_attach_test.go"
+      ],
+      "documentation": "docs/desktop/overview.md",
+      "requires": "Desktop attach à sessão Web Core",
+      "limits": "Teste de HTTP/SPA presente; smoke nativo Windows ainda pendente",
+      "evidence": "SOURCE_TEST_PRESENT_NOT_RUN",
+      "nativeCertification": "PENDING_EXACT_SHA"
     }
   ]
 }
