@@ -386,7 +386,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       })
       .catch((error: unknown) => {
         console.error('Nexus HUD Guardian appearance failed:', error);
-        toast.error('Não foi possível alterar a apresentação do Guardian.');
+        toast.error('Não foi possível alterar a apresentação do NEX.');
       })
       .finally(() => setAppearancePending(false));
   };

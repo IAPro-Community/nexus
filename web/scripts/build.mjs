@@ -105,6 +105,15 @@ if (collectedStyles.length > 0) {
 }
 
 await cp(resolve(webDir, 'index.html'), resolve(distDir, 'index.html'));
+// Produce site/docs-ready NEX SVGs from the same React master as the native HUD.
+const nexArt = spawnSync(process.execPath, [resolve(webDir, 'scripts/export-nex-art.mjs')], {
+  cwd: webDir,
+  stdio: 'inherit',
+});
+if (nexArt.status !== 0) {
+  throw new Error(`NEX asset generation failed (exit: ${nexArt.status ?? 'unknown'})`);
+}
+
 const publicDir = resolve(webDir, 'public');
 if (existsSync(publicDir)) {
   await cp(publicDir, distDir, { recursive: true });
