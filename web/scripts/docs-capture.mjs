@@ -393,7 +393,9 @@ try {
   let reconnectMarkerOutputReceived = false;
   // Windows ConPTY may split the server's echoed command into one-character
   // WebSocket output frames. Verify the marker across successive *server*
-  // output frames from the reconnect socket, never from frames sent by xterm.
+  // output frames after reconnect begins. The app can legitimately reuse an
+  // existing WebSocket, so do not require a newly-created socket here. Never
+  // count frames sent by xterm or the terminal DOM as server output.
   let reconnectServerOutputTail = '';
   page.on('response', (response) => {
     const pathname = new URL(response.url()).pathname.toLowerCase();
@@ -443,7 +445,7 @@ try {
           resolveTerminalControl();
           if (isReconnectSocket) reconnectControlLeaseReceived = true;
         }
-        if (isReconnectSocket && frame.type === 'output' && typeof frame.data === 'string') {
+        if (trackReconnectSocket && frame.type === 'output' && typeof frame.data === 'string') {
           reconnectServerOutputTail = (reconnectServerOutputTail + frame.data).slice(-8192);
           if (reconnectServerOutputTail.includes(reconnectMarker)) {
             reconnectMarkerOutputReceived = true;
