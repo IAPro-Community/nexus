@@ -44,14 +44,16 @@ func (h *HUDController) SetHUDAppearance(appearance string) error {
 	state.X, state.Y = window.Position()
 	state.Appearance = appearance
 	targetWidth, targetHeight := hudCompactDimensions(state)
-	state.X += oldWidth - targetWidth
-	state.Y += oldHeight - targetHeight
+	state.X, state.Y = hudResizeAnchor(state.X, state.Y, oldWidth, oldHeight, targetWidth, targetHeight, h.GetHUDCapabilities().GlobalPositioning)
 	state.Width, state.Height = targetWidth, targetHeight
 	if screen := h.screenForState(state, window); screen != nil {
 		state = clampHUDWindowStateToWorkArea(state, screen.WorkArea)
 		state.DisplayID, state.DisplayScale = screen.ID, screen.ScaleFactor
 	}
 	state.Placement = HUDPlacementCustom
+	if !h.GetHUDCapabilities().GlobalPositioning {
+		state.X, state.Y = window.Position()
+	}
 	if err := h.manager.Save(state); err != nil {
 		return err
 	}
