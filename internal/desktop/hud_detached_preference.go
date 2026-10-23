@@ -31,10 +31,22 @@ func (h *HUDController) SetHUDDetachedPopoverPreference(enabled bool) error {
 
 	state := h.manager.Load()
 	state.DetachedPopover = enabled
-	// The legacy path grows the single window into the panel. Switching to the
-	// independent popup must shrink the capsule back, keeping its bottom-right
-	// anchor, otherwise the transparent expanded window would stay behind.
-	state.Width, state.Height = hudCompactDimensions(state)
+	// Preserve the actual bottom-right anchor before changing the native size.
+	// Saving only compact dimensions with the old expanded coordinates would
+	// move the Guardian after a restart.
+	window, hasWindow := h.nativeWindow()
+	if hasWindow {
+		state.X, state.Y = window.Position()
+		state.Width, state.Height = window.Size()
+		state = compactHUDWindowState(state)
+		if screen := h.screenForState(state, window); screen != nil {
+			state = clampHUDWindowStateToWorkArea(state, screen.WorkArea)
+			state.DisplayID, state.DisplayScale = screen.ID, screen.ScaleFactor
+		}
+		state.Placement = HUDPlacementCustom
+	} else {
+		state.Width, state.Height = hudCompactDimensions(state)
+	}
 	if err := h.manager.Save(state); err != nil {
 		if enabled {
 			h.closeDetachedHUD()
@@ -43,20 +55,13 @@ func (h *HUDController) SetHUDDetachedPopoverPreference(enabled bool) error {
 		return err
 	}
 	// Both directions return to a compact capsule before exposing the new
-	// expansion strategy. Prevent a stale legacy expanded state from being
+	// expansion strategy. Prevent stale legacy expansion state from being
 	// mistaken for an already open detached popup.
 	h.setHUDExpandedState(false)
-	if window, ok := h.nativeWindow(); ok {
-		currentWidth, currentHeight := window.Size()
-		if currentWidth != state.Width || currentHeight != state.Height {
-			positionX, positionY := window.Position()
-			window.SetSize(state.Width, state.Height)
-			if h.GetHUDCapabilities().GlobalPositioning {
-				window.SetPosition(
-					positionX+currentWidth-state.Width,
-					positionY+currentHeight-state.Height,
-				)
-			}
+	if hasWindow {
+		window.SetSize(state.Width, state.Height)
+		if h.GetHUDCapabilities().GlobalPositioning {
+			window.SetPosition(state.X, state.Y)
 		}
 	}
 	return nil
