@@ -54,6 +54,52 @@ As animações CSS são de apresentação, não barras de progresso de execuçã
 
 A implementação atual usa componentes visuais CSS/SVG, sem WebGL ou rede; favorece `prefers-reduced-motion: reduce`, renderização pixelada e mantém o texto acessível no controle pai. O HUD conserva BAR/MASCOT/TRAY, ponte nativa, preferências e geometria.
 
+
+## Atlas visual versionado para humanos e outras IAs
+
+**A identidade do NEX é oficial; a homologação das versões executáveis continua independente.** As referências a seguir ficam no próprio repositório e devem ser analisadas antes de modificar o NEX, produzir novas poses ou criar ilustrações para o site.
+
+### Referência principal — anatomia frontal
+
+![NEX frontal com anotação da anatomia canônica](assets/nex/nex-character-reference.svg)
+
+A vista frontal é a representação institucional padrão. As aletas, o visor, o reator e os quatro módulos orbitais constituem a assinatura física do personagem; não são efeitos ocasionais.
+
+### Expressões e estados
+
+![NEX nas expressões permitidas e conceituais](assets/nex/nex-expression-states.svg)
+
+A linha 1.0 só deve vincular `idle`, `working`, `warning` e `offline` aos eventos reais. Outras expressões podem orientar ilustrações, mas **não autorizam inventar estados operacionais**.
+
+### Variações de escala
+
+![NEX em usos Compact, Standard e Hero](assets/nex/nex-scales-layout.svg)
+
+O Compact usado pelo HUD é uma fonte React/SVG própria. As representações acima são *estudos de aplicação*, e não a publicação de masters Standard/Hero.
+
+### Hierarquia de autoridade e resolução de conflitos
+
+1. Este **contrato** determina anatomia, pose, paleta, linguagem e proibições.
+2. `web/src/features/hud/NexPixelSprite.tsx` é a fonte executável do NEX **Compact**, não uma autoridade para redesenhar o personagem ou limitar a arte Hero.
+3. As [referências desenhadas versionadas](assets/nex/README.md) orientam criação por humanos e IAs, mas **não são recortes perfeitos** das imagens conceituais geradas anteriormente.
+4. Os quatro SVGs que o build exporta em `web/public/nex/` representam os estados do Compact e não devem ser promovidos a arte Hero.
+5. A **prancha raster de alta fidelidade aprovada na conversa** ainda requer incorporação binária e registro de origem/hash. Seu status no manifesto é `AWAITING_BINARY_INGEST`, portanto não se deve afirmar que esse PNG já está versionado.
+6. Se o código divergir do desenho normativo, registrar a divergência e corrigir a implementação após revisão visual. **Não** reescrever o contrato automaticamente a partir de um resultado acidental do sprite ou de uma geração de IA.
+
+### Instrumentação para evitar deriva
+
+- [Manifesto machine-readable](NEX_VISUAL_MANIFEST.json) — identidade, invariantes, variantes, estados operacionais e localização dos assets; destinado a IAs e scripts.
+- [Handoff/prompt para outra IA](NEX_AI_GENERATION_GUIDE.md) — instruções explícitas e resolução de conflitos.
+- [Checklist de revisão visual](NEX_VISUAL_REVIEW_CHECKLIST.md) — aceite humano de fidelidade, animação, DPI, HUD e release.
+- `node scripts/verify-nex-visual.mjs` — verificação estrutural rápida dos caminhos, contrato, anatomia básica e integridade dos arquivos. **Não mede similaridade perceptual**, não renderiza o mascote nem certifica um binário.
+- Alterações propostas devem mostrar **antes/depois lado a lado** e identificar o SHA utilizado. Não usar imagens temporárias, URLs de chat ou desenhos gerados sem registro de aprovação como arte canônica.
+
+### Regras específicas para geração de novas artes
+
+Não criar diferentes personagens para Compact, Standard e Hero. Alterações de expressão não podem trocar a forma da cabeça, adicionar membros humanos, alterar a contagem de módulos ou alterar a pose frontal como default. Cada nova ilustração deve declarar: uso previsto, vista, resolução, estados (se aplicável), master/fonte, relação com o contrato, proveniência/licença e resultado da checklist. Recriar por texto isoladamente, ignorando as referências visuais, **não comprova paridade**.
+
+---
+
 ## Governança da arte e consistência
 
 - `NexPixelSprite.tsx` é a fonte editável de NEX Compact, inclusive as variações por mood. Ajustes de anatomia devem atualizar testes.
