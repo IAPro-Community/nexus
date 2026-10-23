@@ -2,6 +2,32 @@
 
 > **20/10/2026 — documentação, não certificação:** a branch `release/v1.0.0` declara `1.0.0-beta.10`. A branch continua recebendo alterações, logo evidências de SHAs anteriores não certificam o HEAD atual. O repositório de código está público, mas **não há aqui prova de release v1 estável**. Ver [matriz](reference/feature-matrix.md), [gates](operations/platform-support.md) e [checklist](PUBLICATION_CHECKLIST.md).
 
+## Reconciliação beta.10 em 22/10/2026 — código e evidência separadas
+
+A branch `release/v1.0.0` recebeu 27 commits de fechamento entre
+`622aa933` e `e98c711e86ffd578111cfca454513722198bacbe`. Eles incluem
+scroll Web, entrada do terminal Windows, STICKY_LEAD com delegação explícita,
+continuidade por quota, ExecutionTarget/ModelCatalog e assets do Desktop.
+Esta atualização documental ocorreu **depois** do SHA de código citado;
+portanto o HEAD com os documentos exige testes novos e não herda seus resultados.
+
+- [Ledger por recurso, teste e código](../DEV/validation/current/BETA10_GAP_CLOSURE_20261022.md).
+- [Run Windows exact-SHA #39870167188](https://github.com/IAPro-Community/nexus/actions/runs/39870167188): **FAIL**, bloqueado por
+  `bun run format:check` em `web/src/features/hud/GuardianMascot.test.tsx`.
+- Naquele run, o gate documental reportou **193 Markdown e 33 assets**
+  verificados; isso não é um teste funcional do novo código.
+- [CI geral #39870167164](https://github.com/IAPro-Community/nexus/actions/runs/39870167164): **CANCELLED**.
+- Correção pontual de Prettier: commit `43c48376`, ainda dependente de
+  confirmação nos gates do HEAD final.
+- O catálogo foi ampliado para [36 recursos](reference/feature-matrix.md),
+  todos com evidência/certificação conservadoras até testes same-SHA.
+- O manifesto visual em `docs/assets/screenshots/manifest.json` aponta para
+  source anterior (`9407f18b`); **não** demonstra o comportamento dessa revisão.
+
+**Veredito atual desta revisão documental: NO-GO**, até CI, E2E Web,
+smoke de PTY/ConPTY e Desktop, failover real e certificação por plataforma.
+Os resultados mais antigos abaixo permanecem exclusivamente históricos.
+
 ## Registros históricos de validação (não aplicar ao HEAD sem nova evidência)
 
 # Status público da release do Nexus v1
