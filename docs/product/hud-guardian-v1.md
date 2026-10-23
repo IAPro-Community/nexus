@@ -1,4 +1,4 @@
-# Nexus Guardian — apresentação nativa do HUD na release 1.0
+# NEX — mascote oficial do Nexus no HUD nativo da release 1.0
 
 ## Implementação
 
@@ -7,7 +7,7 @@ ResourceScheduler, Agents, Missions ou Cost Intelligence. É uma apresentação
 alternativa dos dados existentes, com três escolhas persistidas no backend:
 
 - **Barra:** cápsula tradicional, com alça de arraste e tamanhos existentes.
-- **Mascote:** NEX, personagem autoral 2D em pixel art vetorial 16 bits (visor expressivo, duas aletas, núcleo luminoso e módulos orbitais), dentro de
+- **Mascote:** NEX, mascote oficial frontal em pixel art vetorial 32-bit-inspired (visor expressivo, duas aletas, núcleo luminoso e módulos orbitais), dentro de
   uma superfície nativa aproximada de 108 × 112 DIPs. Clicar abre o popup de
   detalhes, enquanto uma alça separada permite arrastar a janela.
 - **Bandeja:** oculta a cápsula; o processo continua ativo. O menu
@@ -59,7 +59,7 @@ desconhecida e não consultar os provedores para gerar movimentos.
 - `cmd/nexus-hud/window_options.go`: janela compacta, transparência e início
   oculto quando configurado para Bandeja.
 - `web/src/features/hud/GuardianMascot.tsx`: integração do personagem e controles.
-- `web/src/features/hud/NexPixelSprite.tsx`: arte autoral de NEX 16 bits, renderizada internamente.
+- `web/src/features/hud/NexPixelSprite.tsx`: arte canônica Compact de NEX 32-bit-inspired, renderizada internamente.
 - `web/src/features/hud/_hudGuardian.scss`: movimentos e acessibilidade.
 - `web/src/features/hud/guardianModel.ts`: seleção do estado a partir de
   telemetria já existente.
@@ -126,8 +126,10 @@ a última prévia permanece anterior ao Guardian.
 não substituem execução gráfica real. Não há declaração de GO cross-platform
 nem liberação automática do novo modo nesta etapa.
 
-## Revisão visual NEX 16 bits (23/10/2026)
+## Identidade oficial NEX 32 bits (23/10/2026)
 
-A atualização do desenho é exclusivamente de apresentação: ela não adiciona novos moods nem modifica os estados canônicos `idle`, `working`, `warning` e `offline`. O símbolo/logo institucional do Nexus permanece inalterado. O sprite preserva `viewBox=64x64`, a janela nativa e a área clicável anteriores; atenção operacional continua indicada pelo balão e atributos acessíveis da integração.
+A atualização do desenho é exclusivamente de apresentação: ela não adiciona novos moods nem modifica os estados canônicos `idle`, `working`, `warning` e `offline`. O símbolo/logo institucional do Nexus permanece inalterado. O sprite usa `viewBox=128x128` dentro da área existente de exibição (aproximadamente 92px), mantendo a janela nativa e a área clicável anteriores; atenção operacional continua indicada pelo balão e atributos acessíveis da integração.
+
+A aprovação visual estabelece NEX frontal como mascote oficial. O logotipo institucional permanece inalterado; ver [contrato visual](../design/NEX_32BIT_VISUAL_CONTRACT.md). O asset Compact é código-fonte editável, e Standard/Hero são derivados visuais previstos, não artefatos já disponíveis.
 
 **Gate pendente:** avaliar fidelidade visual em escala nativa, legibilidade em temas e DPI diferentes, animação com `prefers-reduced-motion`, transparência e hit-testing em Windows/macOS/Linux, mais build frontend e smoke gráfico no mesmo SHA. Uma revisão do SVG isolado não comprova certificação de release.
