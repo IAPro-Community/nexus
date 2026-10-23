@@ -55,6 +55,9 @@ func (h *HUDController) SetHUDAppearance(appearance string) error {
 	if err := h.manager.Save(state); err != nil {
 		return err
 	}
+	// Switching presentations always closes the previous details panel,
+	// including the single-window fallback where no detached popup exists.
+	h.setHUDExpandedState(false)
 	window.SetSize(state.Width, state.Height)
 	if h.GetHUDCapabilities().GlobalPositioning {
 		window.SetPosition(state.X, state.Y)
