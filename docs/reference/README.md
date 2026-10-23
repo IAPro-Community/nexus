@@ -1,6 +1,6 @@
 # Catálogo funcional rastreável
 
-[features.json](features.json) descreve 30 capacidades do source com identificador, superfícies, status, arquivo de implementação, arquivo de teste, documento canônico, requisitos, limites e estados de evidência. A [matriz](feature-matrix.md) é gerada do JSON, não editada manualmente.
+[features.json](features.json) descreve 36 capacidades do source com identificador, superfícies, status, arquivo de implementação, arquivo de teste, documento canônico, requisitos, limites e estados de evidência. A [matriz](feature-matrix.md) é gerada do JSON, não editada manualmente.
 
 ```bash
 node scripts/verify-feature-catalog.mjs --write
