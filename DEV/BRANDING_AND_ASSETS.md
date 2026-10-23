@@ -41,6 +41,21 @@ Todos os assets foram derivados do master oficial (`assets/brand/source-logo.png
 
 ---
 
+## 2.1 Mascote oficial: NEX (Pixel Art 32-bit)
+
+Em 23/10/2026, a direção de produto oficializou o **NEX** como **único mascote central** do IAPro Nexus. Isso **não substitui** o logotipo/ícone institucional, os ícones de sistema, o favicon ou o tema visual do produto.
+
+- Pose oficial: **frontal**, cabeça grande, visor navy arredondado, olhos ciano, duas aletas, acoplamentos circulares, corpo flutuante, núcleo de energia e quatro módulos orbitais com anel de luz azul.
+- Implementação ativa no HUD: **NEX Compact** renderizado pelo arquivo `web/src/features/hud/NexPixelSprite.tsx`, SVG vetorial de 128x128 unidades pensado para uso pequeno na janela nativa.
+- Reaproveitamento previsto: **NEX Standard** para produto/documentação e **NEX Hero** para site/marketing, ambos respeitando a mesma anatomia; não declarar esses dois exports como publicados enquanto não houver master correspondente.
+- Estados atuais do HUD: `idle`, `working`, `warning`, `offline`, com animações apenas visuais e sem criar telemetria.
+- Ilustrações geradas durante a concepção não são automaticamente sprite sheets editáveis. Arte oficial de produção tem fonte versionada e regras verificáveis.
+
+Fonte normativa: [NEX — contrato visual oficial](../docs/design/NEX_32BIT_VISUAL_CONTRACT.md).
+A aprovação da identidade **não** altera o status de homologação da release 1.0 ou das plataformas nativas.
+
+---
+
 ## 3. Script Automatizado de Geração
 
 Os assets são gerados de forma reproduzível via script Python:
