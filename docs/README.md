@@ -24,6 +24,7 @@ estender o Nexus.
 | executar trabalho longo/multi-Agent | [Missions](product/missions.md) |
 | entender comunicação entre Agents | [Coordenação entre Agents](product/agent-coordination.md) |
 | ver telas reais | [Tour visual](product/visual-tour.md) |
+| consultar identidade, desenhos e referências do mascote NEX | [NEX — direção oficial](design/NEX_32BIT_VISUAL_CONTRACT.md) |
 | instalar | [Getting Started](getting-started/README.md) |
 | operar/diagnosticar | [Operação](operations/README.md) |
 | usar a CLI | [Referência da CLI](cli/README.md) |
