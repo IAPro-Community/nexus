@@ -52,6 +52,8 @@ Em 23/10/2026, a direção de produto oficializou o **NEX** como **único mascot
 - Ilustrações geradas durante a concepção não são automaticamente sprite sheets editáveis. Arte oficial de produção tem fonte versionada e regras verificáveis.
 
 Fonte normativa: [NEX — contrato visual oficial](../docs/design/NEX_32BIT_VISUAL_CONTRACT.md).
+
+Referências desenhadas versionadas: [anatomia frontal](../docs/design/assets/nex/nex-character-reference.svg), [expressões](../docs/design/assets/nex/nex-expression-states.svg), [escala](../docs/design/assets/nex/nex-scales-layout.svg). Controle para outras IAs: [manifesto visual](../docs/design/NEX_VISUAL_MANIFEST.json), [guia de geração](../docs/design/NEX_AI_GENERATION_GUIDE.md), [checklist](../docs/design/NEX_VISUAL_REVIEW_CHECKLIST.md). As referências SVG são auxiliares e a prancha raster original de alta fidelidade permanece pendente de ingestão binária, conforme manifesto.
 A aprovação da identidade **não** altera o status de homologação da release 1.0 ou das plataformas nativas.
 
 ---

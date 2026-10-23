@@ -108,3 +108,16 @@ type(scope): description
 Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
 Scopes: terminal, chat, flow, agents, providers, quota, workspace, settings, web, go, infra, security, ui, deps, release
 ```
+
+---
+
+## 6. Mascote oficial NEX — paridade visual obrigatória
+
+Em qualquer tarefa sobre **mascote, HUD Guardian, onboarding com NEX, sprites, animações, ilustrações de docs ou arte do site**:
+
+1. Leia [contrato visual de NEX](docs/design/NEX_32BIT_VISUAL_CONTRACT.md), [manifesto de máquina](docs/design/NEX_VISUAL_MANIFEST.json) e [pranchas](docs/design/assets/nex/README.md) **antes** de gerar/modificar artes.
+2. Use [guia de handoff para IA](docs/design/NEX_AI_GENERATION_GUIDE.md) e [checklist](docs/design/NEX_VISUAL_REVIEW_CHECKLIST.md). Sem inspeção do material, **não alegue fidelidade ou identidade oficial**.
+3. NEX é **um único robô frontal, 32-bit-inspired**, com duas aletas, dois acoplamentos laterais, um núcleo circular e quatro módulos orbitais destacados (dois laterais, dois inferiores). Não trocar por mascote genérico, nem alterar a marca Nexus.
+4. Preserve o Core, os estados observados `idle/working/warning/offline`, a acessibilidade e o modo sem animações; não inferir sucesso ou progresso.
+5. Para código ou documentação que altera NEX, execute `node scripts/verify-nex-visual.mjs`, anexe antes/depois e registre divergências, além dos gates habituais.
+6. Standard/Hero ainda não têm masters de produção; **não** descrever pranchas auxiliares como arte raster original aprovada nem como screenshot real.
