@@ -36,6 +36,26 @@ provider nem sucesso de um smoke nativo. O par
 `QUOTA_FAILOVER_REQUESTED`/`QUOTA_FAILOVER_COMPLETED` ou
 `QUOTA_FAILOVER_FAILED` descreve o resultado da tentativa.
 
+## Classificação de falhas de runtime (reconciliação 22/10/2026)
+
+Quando um processo supervisionado termina com estado `FAILED`, o
+`SessionHost` enriquece os eventos `PROCESS_EXITED` e `RUNTIME_FAILED`
+com os campos opcionais `failure_kind` e `failure_message`, emitidos pelo
+classificador em `internal/core/classifier`. `retry_after` só aparece
+quando o classificador dispõe de duração positiva.
+
+A classificação interpreta o resultado do processo e o buffer de saída, mas
+**não copia logs ou credenciais** para os eventos: publica apenas mensagens
+canônicas do classificador. Encerramentos normais/solicitados continuam
+`RUNTIME_STOPPED` e não recebem causa de falha.
+
+Esse enriquecimento é **diagnóstico**, não autorização para reexecutar uma
+ação, iniciar outra conta ou acionar automaticamente o controlador de
+continuidade. A escuta e admissibilidade de `RUNTIME_FAILED` não estão
+certificadas neste incremento. Código:
+`internal/control/host/host.go`; testes:
+`internal/control/host/runtime_failure_event_test.go`.
+
 ## Timeline rules
 
 1. Every event keeps its concrete `runtime_id` when one exists.
