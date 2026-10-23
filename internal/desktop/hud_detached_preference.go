@@ -42,6 +42,9 @@ func (h *HUDController) SetHUDDetachedPopoverPreference(enabled bool) error {
 			state.DisplayID, state.DisplayScale = screen.ID, screen.ScaleFactor
 		}
 		state.Placement = HUDPlacementCustom
+		if !h.GetHUDCapabilities().GlobalPositioning {
+			state.X, state.Y = window.Position()
+		}
 	} else {
 		state.Width, state.Height = hudCompactDimensions(state)
 	}
