@@ -87,8 +87,8 @@ func TestMerged0021FreshCoversBothHalves(t *testing.T) {
 		}
 	}
 	v, err := s.SchemaVersion()
-	if err != nil || v != 26 {
-		t.Fatalf("schema version = %d,%v, want 26 (0021 remains fused; 0022-0025 add cost, schedule diagnostics, and Composer context manifest; 0026 adds runtime execution-role bindings)", v, err)
+	if err != nil || v != 28 {
+		t.Fatalf("schema version = %d,%v, want 28 (0021 remains fused; 0022-0025 add cost, schedule diagnostics, and Composer context manifest; 0026 adds runtime execution-role bindings; 0027 adds agent projection receipts; 0028 adds execution-role enforcement evidence)", v, err)
 	}
 }
 

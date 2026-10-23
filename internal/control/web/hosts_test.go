@@ -115,6 +115,106 @@ func TestHostsEntryWithCustomHostname(t *testing.T) {
 	}
 }
 
+func TestHostsEntryMatch(t *testing.T) {
+	cases := []struct {
+		name     string
+		line     string
+		ip       string
+		hostname string
+		want     bool
+	}{
+		{"space separator", "127.0.0.1 localhost", "127.0.0.1", "localhost", true},
+		{"tab separator", "127.0.0.1\tlocalhost", "127.0.0.1", "localhost", true},
+		{"several spaces", "127.0.0.1    localhost", "127.0.0.1", "localhost", true},
+		{"extra aliases", "127.0.0.1 localhost myhost", "127.0.0.1", "localhost", true},
+		{"alias is second", "127.0.0.1 myhost localhost", "127.0.0.1", "localhost", true},
+		{"inline comment", "127.0.0.1 localhost # loopback", "127.0.0.1", "localhost", true},
+		{"different ip", "127.0.1.1 localhost", "127.0.0.1", "localhost", false},
+		{"different hostname", "127.0.0.1 ip6-localhost", "127.0.0.1", "localhost", false},
+		{"prefix must not match", "127.0.0.1 localhost2", "127.0.0.1", "localhost", false},
+		{"comment line", "# 127.0.0.1 localhost", "127.0.0.1", "localhost", false},
+		{"address only", "127.0.0.1", "127.0.0.1", "localhost", false},
+		{"empty line", "", "127.0.0.1", "localhost", false},
+		{"case insensitive", "127.0.0.1 LOCALHOST", "127.0.0.1", "localhost", true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := hostsEntryMatch(tc.line, tc.ip, tc.hostname); got != tc.want {
+				t.Errorf("hostsEntryMatch(%q, %q, %q) = %v, want %v",
+					tc.line, tc.ip, tc.hostname, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestStripHostnameFromLine(t *testing.T) {
+	cases := []struct {
+		name     string
+		line     string
+		hostname string
+		want     string
+		wantKeep bool
+	}{
+		{"sole alias dropped", "127.0.0.1 nexus.dev", "nexus.dev", "", false},
+		{"sole alias with tab dropped", "127.0.0.1\tnexus.dev", "nexus.dev", "", false},
+		{"keeps other aliases", "127.0.0.1 nexus.dev myhost", "nexus.dev", "127.0.0.1\tmyhost", true},
+		{"keeps first alias", "127.0.0.1 myhost nexus.dev", "nexus.dev", "127.0.0.1\tmyhost", true},
+		{"unrelated line untouched", "127.0.1.1 myhost", "nexus.dev", "127.0.1.1 myhost", true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, keep := stripHostnameFromLine(tc.line, "127.0.0.1", tc.hostname)
+			if got != tc.want || keep != tc.wantKeep {
+				t.Errorf("stripHostnameFromLine(%q, %q) = (%q, %v), want (%q, %v)",
+					tc.line, tc.hostname, got, keep, tc.want, tc.wantKeep)
+			}
+		})
+	}
+}
+
+func TestApplyHostsChangeIsIdempotent(t *testing.T) {
+	base := []string{
+		"# comment",
+		"127.0.0.1 localhost",
+		"::1 localhost ip6-localhost",
+	}
+	added := applyHostsChange(base, "nexus.dev", "127.0.0.1", true)
+	if !hostsEntryPresent(added, "127.0.0.1", "nexus.dev") {
+		t.Fatalf("entry missing after add: %v", added)
+	}
+	if !hostsEntryPresent(added, "127.0.0.1", "localhost") {
+		t.Fatalf("existing alias lost after add: %v", added)
+	}
+
+	// Adding again must not duplicate the entry.
+	twice := applyHostsChange(added, "nexus.dev", "127.0.0.1", true)
+	count := 0
+	for _, line := range twice {
+		if hostsEntryMatch(line, "127.0.0.1", "nexus.dev") {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Fatalf("entry duplicated or lost after second add: %v", twice)
+	}
+
+	removed := applyHostsChange(added, "nexus.dev", "127.0.0.1", false)
+	if hostsEntryPresent(removed, "127.0.0.1", "nexus.dev") {
+		t.Fatalf("entry still present after remove: %v", removed)
+	}
+	if !hostsEntryPresent(removed, "127.0.0.1", "localhost") {
+		t.Fatalf("unrelated alias lost after remove: %v", removed)
+	}
+}
+
+func TestApplyHostsChangeKeepsSharedLine(t *testing.T) {
+	base := []string{"127.0.0.1 localhost nexus.dev"}
+	got := applyHostsChange(base, "nexus.dev", "127.0.0.1", false)
+	if len(got) != 1 || got[0] != "127.0.0.1\tlocalhost" {
+		t.Fatalf("shared line not preserved: %v", got)
+	}
+}
+
 func TestHostsFileBackupNotNeeded(t *testing.T) {
 	dir := t.TempDir()
 	content := "127.0.0.1\tlocalhost\n::1\t\tlocalhost\n"
