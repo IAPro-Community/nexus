@@ -87,3 +87,19 @@ Run `cd web && npm run quality:full && npm run test:e2e:composer-themes`; run `g
 - Static gate: exact legacy CSS source parity proven during extraction; CI/build/runtime validation still pending.
 - Not yet complete: full Bun/Playwright/WebView2 build and visual certification.
 - Unchanged execution paths: Windows Go runtime, Codex PTY/ConPTY behavior, routing, tunnel, signing, mobile and main; the release branch was updated directly.
+
+## Adendo: rolagem Web após modularização — 22/10/2026
+
+Ao contrário da extração mecânica documentada acima, a alteração posterior
+em `web/src/app/workspace-styles/03-workspace-layout.css` **é uma mudança
+semântica deliberada**: o browser permite rolagem dentro do workspace e do
+painel ativo quando a altura do conteúdo excede o espaço disponível.
+
+`web/src/index.tsx` registra a plataforma em
+`document.documentElement.dataset.nexusPlatform`; a regra CSS é restrita
+a `data-nexus-platform="web"` para preservar a composição do Desktop.
+O teste `web/src/app/workspaceSurfaceStyles.test.ts` verifica a presença das
+regras e `web/scripts/e2e-surface-isolation.mjs` contém uma prova de
+scroll na viewport mobile/laptop. **Esses testes não foram certificados no
+SHA da intervenção**; recaptura com zoom, navegação e conteúdo real ainda é
+gate de liberação. Histórico visual do manifesto anterior é referencial.
