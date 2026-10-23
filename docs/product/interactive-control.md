@@ -12,9 +12,13 @@ semantics.
 CLI shortcuts (`nexus codex`, `nexus agy`, …) therefore use
 **STICKY_LEAD by default on an interactive supervised TTY**: Nexus binds a
 persistent Lead identity/context for continuity, while keeping
-`nexus.delegation_mode=OFF`. OFF bypasses LineShadow/Promoter entirely, so
-ordinary prompts, Enter, slash commands, selectors and control sequences remain
-byte-transparent and provider-owned.
+`nexus.delegation_mode=OFF`. OFF desativa a **promoção automática de Missions**. Na revisão beta.10,
+o caminho STICKY_LEAD da CLI usa `LineShadow` para observar a submissão de
+linhas e detectar um pedido explicitamente direcionado a outro provider
+registrado para um turno de revisão read-only. Prompts comuns continuam no
+Lead (`KEEP`); a exceção só pode produzir `DELEGATE`, sem Mission. Essa
+captura não deve reinterpretar comandos/menus nativos. A transparência de
+teclado ainda requer smoke com providers reais no SHA da release.
 
 The implicit STICKY_LEAD binding is best-effort. If Nexus cannot prepare or bind
 its metadata after the provider runtime has started, it falls back to the same
@@ -34,10 +38,12 @@ content. CSI and SS3 navigation sequences must reach the provider atomically;
 focus/CPR metadata may be scrubbed, but Nexus must not translate arrow keys into
 text or reinterpret provider-native selectors.
 
-Web/Desktop promotion requires both an explicitly bound Lead and a delegation
-mode other than `OFF`. The `nexus.interactive_lead=true` label alone is not
-Mission authorization. Missing/false Lead labels or `delegation_mode=OFF`
-keep the terminal byte-transparent even when the runtime is supervised.
+Web/Desktop interactive Lead interception requires
+`nexus.interactive_lead=true`; an absent/false label keeps the normal terminal
+path free of Lead promotion. With the label, `delegation_mode=OFF` permits
+only the same explicit read-only `DELEGATE` exception and never authorizes
+Mission creation. `ASK`/`AUTO` are separate opt-in modes. Native provider
+input is still subject to terminal escape/keyboard regression gates.
 
 Provider-native commands such as `/status`, `/model`, `:...` and interactive
 question/selector flows remain provider-owned. Nexus orchestration is invoked
@@ -51,3 +57,16 @@ The old `ai` aliases are not part of the supervised control contract.
 The terminal input path is covered by focused tests for CSI/SS3 navigation,
 split escape sequences, STICKY_LEAD defaults and explicit Lead opt-out. Real Codex/Antigravity selector
 smokes remain required release evidence.
+
+## Limites e testes da exceção em OFF (22/10/2026)
+
+- Código: `internal/nexus/registered_provider_routing.go`,
+  `internal/app/control_cmd.go`, `internal/control/web/handler_terminal.go`.
+- Testes: `internal/nexus/registered_provider_routing_test.go`,
+  `internal/control/web/handler_terminal_input_test.go`.
+- Comportamentos que devem ser confirmados: menção comum a provider não delega;
+  revisão explícita registrada delega uma vez; escrita/implementação não é
+  tratada como revisão read-only; comandos `/status` e seletor `Esc`/`Enter`
+  não são desviados; falha de roteamento não cria Mission nem repete efeitos.
+- **Estado:** implementação presente, sem homologação de teclado/TUI nativo
+  no SHA do fechamento. Veja [status](../release-status.md).
