@@ -181,3 +181,15 @@ func TestHUDControllerSizePresetRequiresNativeWindow(t *testing.T) {
 		t.Fatal("moves without a native window must fail closed")
 	}
 }
+
+func TestHUDResizeAnchorRespectsUnsupportedGlobalPositioning(t *testing.T) {
+	const originalX, originalY = 500, 350
+	movedX, movedY := hudResizeAnchor(originalX, originalY, 108, 112, 334, 496, true)
+	if movedX != 274 || movedY != -34 {
+		t.Fatalf("movable HUD must preserve bottom-right anchor, got (%d,%d)", movedX, movedY)
+	}
+	waylandX, waylandY := hudResizeAnchor(originalX, originalY, 108, 112, 334, 496, false)
+	if waylandX != originalX || waylandY != originalY {
+		t.Fatalf("non-positionable compositor must preserve native origin, got (%d,%d)", waylandX, waylandY)
+	}
+}
