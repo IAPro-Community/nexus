@@ -24,6 +24,8 @@ export const NexPixelSprite: React.FC<NexPixelSpriteProps> = ({ mood }) => {
   const accent = offline ? '#71839D' : warning ? '#FF8A45' : '#31D5FF';
   const glint = offline ? '#A5B4C8' : warning ? '#FFE2A3' : '#DFFFFF';
 
+  // Intentional pixel geometry: preserve individual path coordinates without autoformat reflow.
+  // prettier-ignore
   return (
     <svg
       className={styles.guardianSprite}
