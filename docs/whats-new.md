@@ -1,5 +1,21 @@
 # O que mudou recentemente
 
+## 22/10/2026 — reconciliação técnica beta.10
+
+No source da `release/v1.0.0` foram reunidas correções de scroll Web, entrega
+de assets no Desktop, entrada do terminal Windows via stream PTY, exceção
+explícita de revisão `DELEGATE` em STICKY_LEAD com Mission `OFF`, failover
+supervisionado por quota e projeções `ExecutionTarget`/`CapacityDomain`/
+`ModelCatalog`. Os respectivos contratos e testes têm links no
+[catálogo de 36 recursos](reference/feature-matrix.md).
+
+**Estado:** essas alterações são código de um candidato em beta e ainda não
+possuem aprovação integrada/nativa same-SHA. O run Windows executado contra
+o commit `e98c711` falhou em `format:check`; veja
+[status](release-status.md) e
+[ledger de engenharia](../DEV/validation/current/BETA10_GAP_CLOSURE_20261022.md).
+
+
 ## Fechamento do Nexus v1 — source candidato
 
 A linha de fechamento da v1 consolidou o fluxo completo:
