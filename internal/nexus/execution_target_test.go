@@ -103,7 +103,7 @@ func TestBuildExecutionTargetsHonorsExplicitCapacityDomainEvidence(t *testing.T)
 func TestSpecialistPreferenceDoesNotOverrideExplicitPin(t *testing.T) {
 	catalog := NewModelCatalog([]ModelCatalogEntry{{
 		Candidate: ModelCandidate{Provider: "opencode", Model: "kimi"},
-		Source: "test",
+		Source:    "test",
 	}})
 	affinity := RuntimeAffinityPolicy{
 		Provider: AffinityPreference{Mode: AffinityPin, Value: "codex"},
@@ -118,7 +118,7 @@ func TestSpecialistPreferenceDoesNotOverrideExplicitPin(t *testing.T) {
 func TestSpecialistPreferenceUsesCatalogBackedModelWhenAutomatic(t *testing.T) {
 	catalog := NewModelCatalog([]ModelCatalogEntry{{
 		Candidate: ModelCandidate{Provider: "opencode", Model: "kimi"},
-		Source: "test",
+		Source:    "test",
 	}})
 	got := applySpecialistExecutionPreferences(
 		TaskRequirements{Role: "frontend-engineer"},

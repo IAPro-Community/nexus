@@ -134,8 +134,8 @@ func main() {
 		}
 	}
 	desktop.ConfigureNativeTray(native, window, "Nexus HUD", desktop.HUDTrayAppearanceActions{
-		Show:            hudController.ShowHUD,
-		Hide:            hudController.HideHUD,
+		Show: hudController.ShowHUD,
+		Hide: hudController.HideHUD,
 		// The Mascot works with either a detached popup (preferred) or the
 		// single-window fallback on Wayland, without extra configuration.
 		MascotAvailable: true,

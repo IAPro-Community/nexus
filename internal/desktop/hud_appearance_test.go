@@ -154,4 +154,3 @@ func TestExplicitBarPreferenceSurvivesMascotDefault(t *testing.T) {
 		t.Fatalf("BAR compact geometry must survive a restart: %+v", restored)
 	}
 }
-

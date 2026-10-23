@@ -134,17 +134,17 @@ type HUDSystemState struct {
 }
 
 type HUDState struct {
-	GeneratedAt    time.Time          `json:"generated_at"`
-	ProjectID      string             `json:"project_id,omitempty"`
-	Providers      []HUDProvider      `json:"providers"`
-	Recommendation *HUDRecommendation `json:"recommendation,omitempty"`
-	Agents         []HUDAgent         `json:"agents"`
-	Missions       []HUDMission       `json:"missions"`
-	Alerts         []HUDAlert         `json:"alerts"`
+	GeneratedAt      time.Time             `json:"generated_at"`
+	ProjectID        string                `json:"project_id,omitempty"`
+	Providers        []HUDProvider         `json:"providers"`
+	Recommendation   *HUDRecommendation    `json:"recommendation,omitempty"`
+	Agents           []HUDAgent            `json:"agents"`
+	Missions         []HUDMission          `json:"missions"`
+	Alerts           []HUDAlert            `json:"alerts"`
 	RuntimeAttention []HUDRuntimeAttention `json:"runtime_attention"`
-	Cost           *HUDCostSummary    `json:"cost,omitempty"`
-	Primary        HUDPrimary         `json:"primary"`
-	System         HUDSystemState     `json:"system"`
+	Cost             *HUDCostSummary       `json:"cost,omitempty"`
+	Primary          HUDPrimary            `json:"primary"`
+	System           HUDSystemState        `json:"system"`
 }
 
 type HUDProjectionInput struct {
@@ -312,14 +312,14 @@ func BuildHUDProjection(input HUDProjectionInput) HUDState {
 		generatedAt = time.Now().UTC()
 	}
 	state := HUDState{
-		GeneratedAt: generatedAt,
-		ProjectID:   strings.TrimSpace(input.ProjectID),
-		Providers:   buildHUDProviders(input.Accounts, input.Capacity),
-		Agents:      buildHUDAgents(input.Agents, input.AgentDetails),
-		Missions:    buildHUDMissions(input.Runs, input.ProjectID),
-		Alerts:      buildHUDAlerts(input.Capacity),
+		GeneratedAt:      generatedAt,
+		ProjectID:        strings.TrimSpace(input.ProjectID),
+		Providers:        buildHUDProviders(input.Accounts, input.Capacity),
+		Agents:           buildHUDAgents(input.Agents, input.AgentDetails),
+		Missions:         buildHUDMissions(input.Runs, input.ProjectID),
+		Alerts:           buildHUDAlerts(input.Capacity),
 		RuntimeAttention: []HUDRuntimeAttention{},
-		System:      input.System,
+		System:           input.System,
 	}
 	if state.System.CacheTTLMillis == 0 {
 		state.System.CacheTTLMillis = hudProjectionCacheTTL.Milliseconds()

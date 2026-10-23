@@ -106,9 +106,9 @@ func (c *ContinuityController) ContinueRuntime(ctx context.Context, runtimeID st
 		events.EventQuotaFailoverRequested,
 		fmt.Sprintf("Continuity requested for %s:%s -> %s:%s", source.ProviderID, source.ProfileID, target.Provider, target.Profile),
 		map[string]any{
-			"reason":           string(reason),
-			"target_provider":  target.Provider,
-			"target_profile":   target.Profile,
+			"reason":            string(reason),
+			"target_provider":   target.Provider,
+			"target_profile":    target.Profile,
 			"source_runtime_id": source.RuntimeID,
 		},
 	))

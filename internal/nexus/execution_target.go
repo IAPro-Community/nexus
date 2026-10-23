@@ -14,11 +14,11 @@ import (
 type CapacityDomainID string
 
 type CapacityDomain struct {
-	ID              CapacityDomainID
-	Provider        string
-	AccountScope    model.AccountScope
-	Evidence        string
-	CapacityGroup   string
+	ID            CapacityDomainID
+	Provider      string
+	AccountScope  model.AccountScope
+	Evidence      string
+	CapacityGroup string
 }
 
 type ModelCatalogEntry struct {

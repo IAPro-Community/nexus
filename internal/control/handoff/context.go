@@ -155,18 +155,18 @@ func (s *Service) PerformContextHandoff(ctx context.Context, sourceRuntimeID, ta
 	lineageID := fmt.Sprintf("lin-ctx-%s", ids.NewRuntimeID())
 
 	newSession, err := s.launcher.Launch(ctx, launcher.LaunchOptions{
-		RuntimeID:   newRuntimeID,
-		AgentID:     source.AgentID,
-		ProjectID:   source.ProjectID,
-		ProjectName: source.ProjectName,
-		ProviderID:  targetProvider,
-		ProfileID:   targetProfile,
+		RuntimeID:    newRuntimeID,
+		AgentID:      source.AgentID,
+		ProjectID:    source.ProjectID,
+		ProjectName:  source.ProjectName,
+		ProviderID:   targetProvider,
+		ProfileID:    targetProfile,
 		AccountScope: info.AccountScope,
-		Workspace:   source.Workspace,
-		Args:        extraArgs,
-		Model:       targetModel,
-		Standalone:  false,
-		Labels:      cloneRuntimeLabels(source.Labels),
+		Workspace:    source.Workspace,
+		Args:         extraArgs,
+		Model:        targetModel,
+		Standalone:   false,
+		Labels:       cloneRuntimeLabels(source.Labels),
 	})
 	if err != nil {
 		// Rollback source state on target launch failure

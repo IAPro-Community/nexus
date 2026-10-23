@@ -115,7 +115,7 @@ func TestAgentModeExecutionPreferencesRequireCatalogEvidenceForNamedModels(t *te
 	}
 	catalog := NewModelCatalog([]ModelCatalogEntry{{
 		Candidate: ModelCandidate{Provider: "opencode", Model: "kimi"},
-		Source: "test",
+		Source:    "test",
 	}})
 	withCatalog := AgentModeExecutionPreferences(mode, catalog)
 	found := false
