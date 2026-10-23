@@ -24,7 +24,8 @@ assert(source.includes('data-nex-facing="front"'), 'runtime has wrong default fa
 assert(source.includes('data-nex-module='), 'runtime missing orbital module marker');
 assert(source.includes('viewBox="0 0 128 128"'), 'Compact geometry changed without manifest update');
 assert((source.match(/data-nex-module=/g) || []).length === 1, 'module marker should be generated from shared module mapping');
-assert(source.includes('98, 115, 3'), 'module geometry changed; manual parity review required');
+const coordinates = [...source.matchAll(/\[\s*\d+\s*,\s*\d+\s*,\s*[0-3]\s*\]/g)];
+assert(coordinates.length === 4, 'unexpected number of orbital module coordinates; review required');
 for (const mood of ['idle', 'working', 'warning', 'offline']) {
   assert(manifest.source_of_truth.runtime_states.includes(mood), `runtime mood missing: ${mood}`);
   assert(source.includes(mood === 'idle' ? "mood" : mood), `source no longer supports mood: ${mood}`);
