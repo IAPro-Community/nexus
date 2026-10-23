@@ -384,6 +384,7 @@ func (h *HUDController) ServiceStartup(_ context.Context, _ application.ServiceO
 	h.ready = true
 	h.mu.Unlock()
 	if window, ok := h.nativeWindow(); ok {
+		h.restoreHUDWindowWhenShown(window)
 		window.OnWindowEvent(events.Common.WindowLostFocus, func(_ *application.WindowEvent) {
 			// Switching focus from capsule to its detached popup must not
 			// make the capsule disappear.
@@ -496,6 +497,19 @@ func (h *HUDController) RestoreHUDWindow() {
 	if !ok {
 		return
 	}
+	h.restoreHUDWindow(window)
+}
+
+// restoreHUDWindowWhenShown re-applies persisted geometry once the native
+// window is ready to receive size/position. Never override later user moves.
+func (h *HUDController) restoreHUDWindowWhenShown(window application.Window) {
+	restore := sync.OnceFunc(func() { h.restoreHUDWindow(window) })
+	window.OnWindowEvent(events.Common.WindowShow, func(_ *application.WindowEvent) {
+		restore()
+	})
+}
+
+func (h *HUDController) restoreHUDWindow(window application.Window) {
 	state := compactHUDWindowState(h.manager.Load())
 	screen := h.screenForState(state, window)
 	if screen != nil {
