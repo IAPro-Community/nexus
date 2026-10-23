@@ -9,6 +9,14 @@
 > substituem a documentação pública nem o
 > [status corrente de release](validation/current/RELEASE_STATUS.md).
 
+## Fechamento beta.10 — 22/10/2026
+
+- [Reconciliação de código, documentação e evidências](validation/current/BETA10_GAP_CLOSURE_20261022.md):
+  delta de 27 commits, contratos públicos, seis recursos adicionados ao catálogo,
+  CI/Windows exact-SHA, falha de formatação e lista de gates pendentes.
+- [Changelog público](../CHANGELOG.md) e [status de release](../docs/release-status.md)
+  não significam aprovação de plataforma; a certificação depende de um HEAD congelado.
+
 ## Contratos públicos v1
 
 - [Como o Nexus funciona](../docs/product/how-it-works.md)
