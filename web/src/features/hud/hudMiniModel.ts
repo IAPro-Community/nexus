@@ -1,4 +1,5 @@
 import { isWorkingAgent, type HudMission, type HudProvider, type HudState } from './hudModel';
+import { asArray } from '../../lib/safeArray';
 
 export type HudTone = 'normal' | 'warning' | 'critical' | 'unknown';
 
@@ -47,10 +48,13 @@ const findProvider = (providers: HudProvider[], provider?: string, profile?: str
 };
 
 export const selectHudFocus = (state: HudState, offline = false): HudFocus => {
-  const agents = state.agents.filter(isWorkingAgent);
-  const mission = hudVisibleMission(state.missions);
+  const providers = asArray<HudProvider>(state.providers);
+  const agents = asArray<HudState['agents'][number]>(state.agents).filter(isWorkingAgent);
+  const missions = asArray<HudMission>(state.missions);
+  const alerts = asArray<HudState['alerts'][number]>(state.alerts);
+  const mission = hudVisibleMission(missions);
   const executingAccounts = agents
-    .map((agent) => findProvider(state.providers, agent.provider, agent.profile))
+    .map((agent) => findProvider(providers, agent.provider, agent.profile))
     .filter((provider): provider is HudProvider => provider !== undefined);
   const distinctAccounts = new Set(
     executingAccounts.map((provider) =>
@@ -61,20 +65,20 @@ export const selectHudFocus = (state: HudState, offline = false): HudFocus => {
   // "active account". Use the neutral highlighted-account presentation.
   const exact = distinctAccounts.size === 1 ? executingAccounts[0] : undefined;
   const missionProvider = mission
-    ? findProvider(state.providers, mission.provider, mission.profile)
+    ? findProvider(providers, mission.provider, mission.profile)
     : undefined;
   // Without runtime identity the first available measured resource is only a
   // highlighted account, NEVER asserted to be the active routing target.
   const fallback =
-    state.providers.find(
+    providers.find(
       (provider) => usableRemaining(provider) !== null && provider.availability === 'AVAILABLE',
     ) ||
-    state.providers.find((provider) => usableRemaining(provider) !== null) ||
-    state.providers[0];
+    providers.find((provider) => usableRemaining(provider) !== null) ||
+    providers[0];
   const provider = exact || missionProvider || fallback;
   const remaining = hudRemaining(provider, offline);
   const stateName = provider?.capacity_state?.toUpperCase();
-  const alert = state.alerts.some(
+  const alert = alerts.some(
     (item) =>
       item.provider?.toLowerCase() === provider?.provider.toLowerCase() &&
       (!item.profile || item.profile.toLowerCase() === provider?.profile.toLowerCase()) &&
@@ -132,7 +136,7 @@ export const hudVisibleMission = (missions: HudMission[]): HudMission | undefine
   );
 
 export const hudOtherAccounts = (state: HudState, focused?: HudProvider) =>
-  state.providers
+  asArray<HudProvider>(state.providers)
     .filter((account) => account !== focused)
     .sort((a, b) => {
       const aRemaining = usableRemaining(a);

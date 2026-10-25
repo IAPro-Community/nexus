@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { EyeOff, PanelsTopLeft, ShieldCheck } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Badge, Card, Segmented, Switch } from '../../design-system';
 import {
   loadHudPreferences,
@@ -9,6 +10,7 @@ import {
 } from './hudModel';
 
 export const HudSettings: React.FC = () => {
+  const { t } = useTranslation();
   const [prefs, setPrefs] = useState<HudPresentationPreferences>(() => loadHudPreferences());
 
   useEffect(() => {
@@ -121,6 +123,12 @@ export const HudSettings: React.FC = () => {
           checked={prefs.showCost}
           onChange={(showCost) => patch({ showCost })}
           label="Cost Intelligence"
+        />
+        <Switch
+          checked={prefs.companionMotion}
+          onChange={(companionMotion) => patch({ companionMotion })}
+          label={t('hud.companion.motion')}
+          description={t('hud.companion.motionDescription')}
         />
       </Card>
 

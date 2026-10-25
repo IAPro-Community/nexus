@@ -1,12 +1,76 @@
 package desktop
 
 import (
+	"errors"
 	"path/filepath"
 	"runtime"
 	"testing"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
+
+type fakeDetachedPopupPresenter struct {
+	operations []string
+}
+
+func (f *fakeDetachedPopupPresenter) Show() application.Window {
+	f.operations = append(f.operations, "show")
+	return nil
+}
+
+func (f *fakeDetachedPopupPresenter) Hide() application.Window {
+	f.operations = append(f.operations, "hide")
+	return nil
+}
+
+func (f *fakeDetachedPopupPresenter) Focus() {
+	f.operations = append(f.operations, "focus")
+}
+
+func TestDetachedPopupPresentationShowsBeforeApplyingNativeGeometry(t *testing.T) {
+	popup := &fakeDetachedPopupPresenter{}
+
+	err := presentDetachedHUDPopup(popup, func() error {
+		if len(popup.operations) != 1 || popup.operations[0] != "show" {
+			t.Fatalf("popup must be realized before geometry is applied, got %v", popup.operations)
+		}
+		popup.operations = append(popup.operations, "geometry")
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("presentation should succeed: %v", err)
+	}
+
+	want := []string{"show", "geometry", "focus"}
+	if len(popup.operations) != len(want) {
+		t.Fatalf("unexpected popup presentation operations: %v", popup.operations)
+	}
+	for index := range want {
+		if popup.operations[index] != want[index] {
+			t.Fatalf("unexpected popup presentation operations: %v", popup.operations)
+		}
+	}
+}
+
+func TestDetachedPopupPresentationHidesWhenGeometryFails(t *testing.T) {
+	popup := &fakeDetachedPopupPresenter{}
+	wantErr := errors.New("native positioning failed")
+
+	err := presentDetachedHUDPopup(popup, func() error { return wantErr })
+
+	if !errors.Is(err, wantErr) {
+		t.Fatalf("expected geometry error %v, got %v", wantErr, err)
+	}
+	want := []string{"show", "hide"}
+	if len(popup.operations) != len(want) {
+		t.Fatalf("popup should be hidden after geometry failure, got %v", popup.operations)
+	}
+	for index := range want {
+		if popup.operations[index] != want[index] {
+			t.Fatalf("popup should be hidden after geometry failure, got %v", popup.operations)
+		}
+	}
+}
 
 func TestDetachedPopupGeometryPreservesCapsuleAnchor(t *testing.T) {
 	state := defaultHUDWindowState()

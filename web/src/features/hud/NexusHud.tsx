@@ -18,11 +18,13 @@ import { toast } from 'sonner';
 import { nexus } from '../../nexus/api';
 import { hudV3 } from '../../platform';
 import type { HudSizePreset } from '../../platform';
-import type { CapacityResourceStatus } from '../../types';
+import type { AttentionGroup, CapacityResourceStatus } from '../../types';
 import {
   formatHudCost,
   isWorkingAgent,
   loadHudPreferences,
+  normalizeAttentionGroup,
+  normalizeHudResponse,
   resolveNativeHudStatus,
   saveHudPreferences,
   type HudPresentationPreferences,
@@ -37,9 +39,22 @@ import {
   selectHudFocus,
 } from './hudMiniModel';
 import { HudSizeControls } from './HudSizeControls';
-import { GuardianMascot, GuardianModeSelector } from './GuardianMascot';
-import { guardianMood, normalizeHudAppearance, type HudAppearance } from './guardianModel';
-import { shouldRenderHudPopover } from './hudPresentation';
+import { GuardianModeSelector } from './GuardianModeSelector';
+import { normalizeHudAppearance, type HudAppearance } from './guardianModel';
+import {
+  companionMood,
+  nextCompanionBubble,
+  projectCompanionAttention,
+  readCompanionSnoozes,
+  snoozeCompanionAttention,
+  type CompanionAttention,
+} from './companionModel';
+import { GuardianMascot } from './GuardianMascot';
+import {
+  shouldRenderHudCompactControl,
+  shouldRenderHudMascot,
+  shouldRenderHudPopover,
+} from './hudPresentation';
 import styles from './NexusHud.module.scss';
 
 const MIN_REFRESH_MS = 15_000;
@@ -54,6 +69,7 @@ export interface NexusHudProps {
   onOpenUsage?: () => void;
   onOpenAgents?: () => void;
   onOpenMissions?: () => void;
+  onOpenCompanionAttention?: (item: CompanionAttention) => void;
   onOpenSettings?: () => void;
   nativeAutoStart?: {
     supported: boolean;
@@ -68,6 +84,20 @@ const clampFloatingPosition = (x: number, y: number) => ({
   y: Math.max(8, Math.min(y, Math.max(8, window.innerHeight - 64))),
 });
 
+const formatSource = (source?: string): string => {
+  if (!source || source.toUpperCase() === 'NONE') return '';
+  switch (source.toUpperCase()) {
+    case 'CLI_OUTPUT':
+      return 'CLI';
+    case 'OFFICIAL_API':
+      return 'API';
+    case 'OBSERVATION':
+      return 'Sessão';
+    default:
+      return source;
+  }
+};
+
 export const NexusHud: React.FC<NexusHudProps> = ({
   projectId,
   native = false,
@@ -77,15 +107,28 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   onOpenUsage,
   onOpenAgents,
   onOpenMissions,
+  onOpenCompanionAttention,
   onOpenSettings,
   nativeAutoStart,
 }) => {
   const { t } = useTranslation();
   const [prefs, setPrefs] = useState<HudPresentationPreferences>(() => loadHudPreferences());
   const [response, setResponse] = useState<HudResponse | null>(null);
+  const [attentionGroup, setAttentionGroup] = useState<AttentionGroup | undefined>();
+  const [companionSnoozes, setCompanionSnoozes] = useState<Record<string, number>>(() => {
+    try {
+      return readCompanionSnoozes(window.localStorage);
+    } catch {
+      return {};
+    }
+  });
+  const [dismissedCompanionBubbles, setDismissedCompanionBubbles] = useState<
+    Record<string, boolean>
+  >({});
+  const [nativeBubbleReadyId, setNativeBubbleReadyId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [nativeDetached, setNativeDetached] = useState(false);
-  const [nativeAppearance, setNativeAppearance] = useState<HudAppearance>('BAR');
+  const [nativeAppearance, setNativeAppearance] = useState<HudAppearance>('MASCOT');
   const [appearanceReady, setAppearanceReady] = useState(false);
   const [appearancePending, setAppearancePending] = useState(false);
   const [detachedPending, setDetachedPending] = useState(false);
@@ -98,6 +141,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const [paceWarning, setPaceWarning] = useState<CapacityResourceStatus | null>(null);
   const [alertActionPending, setAlertActionPending] = useState(false);
   const requestInFlight = useRef<Promise<void> | null>(null);
+  const attentionRequestSequence = useRef(0);
   const dragState = useRef<{ pointerId: number; x: number; y: number } | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
   const nativeExpansionPending = useRef(false);
@@ -110,8 +154,22 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     if (requestInFlight.current) return requestInFlight.current;
     const task = nexus
       .getHUDState(projectId)
-      .then((next) => {
+      .then((rawNext) => {
+        const next = normalizeHudResponse(rawNext);
         setResponse(next);
+        const attentionRequest = ++attentionRequestSequence.current;
+        void nexus
+          .getAttention()
+          .then((group) => {
+            if (attentionRequest === attentionRequestSequence.current) {
+              setAttentionGroup(normalizeAttentionGroup(group));
+            }
+          })
+          .catch(() => {
+            if (attentionRequest === attentionRequestSequence.current) {
+              setAttentionGroup(undefined);
+            }
+          });
         setOffline(false);
         setLastSuccessAt(Date.now());
         // Presentation reads existing capacity state; it never probes providers.
@@ -291,6 +349,73 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   }, [expanded, native]);
 
   const state = response?.state;
+  const companionAttention = useMemo(
+    () => projectCompanionAttention(state, attentionGroup),
+    [state, attentionGroup],
+  );
+  const companionBubble = useMemo(
+    () =>
+      nextCompanionBubble(
+        companionAttention,
+        companionSnoozes,
+        Date.now(),
+        dismissedCompanionBubbles,
+      ),
+    [companionAttention, companionSnoozes, dismissedCompanionBubbles],
+  );
+  const dismissCompanionBubble = useCallback((itemId: string) => {
+    setDismissedCompanionBubbles((current) => {
+      const next = { ...current, [itemId]: true };
+      const ids = Object.keys(next);
+      if (ids.length > 80) {
+        for (const id of ids.slice(0, ids.length - 80)) delete next[id];
+      }
+      return next;
+    });
+  }, []);
+  const nativeBubbleRequested = Boolean(
+    native &&
+    nativeView === 'capsule' &&
+    appearanceReady &&
+    nativeAppearance === 'MASCOT' &&
+    !expanded &&
+    companionBubble,
+  );
+  const companionBubbleId = companionBubble?.id;
+
+  useEffect(() => {
+    if (!nativeBubbleRequested || !companionBubbleId) return;
+    const bubbleId = companionBubbleId;
+    let active = true;
+    void hudV3
+      .setBubbleVisible(true)
+      .then(() => {
+        if (active) setNativeBubbleReadyId(bubbleId);
+      })
+      .catch((error: unknown) => {
+        if (active) setNativeBubbleReadyId(null);
+        console.error('Nexus HUD Companion bubble resize failed:', error);
+      });
+    return () => {
+      active = false;
+      setNativeBubbleReadyId((current) => (current === bubbleId ? null : current));
+      void hudV3.setBubbleVisible(false).catch(() => undefined);
+    };
+  }, [nativeBubbleRequested, companionBubbleId]);
+
+  const visibleCompanionBubble =
+    native && nativeView === 'capsule'
+      ? nativeBubbleReadyId === companionBubble?.id
+        ? companionBubble
+        : undefined
+      : companionBubble;
+
+  const visibleCompanionBubbleId = visibleCompanionBubble?.id;
+  useEffect(() => {
+    if (!visibleCompanionBubbleId) return;
+    const timer = window.setTimeout(() => dismissCompanionBubble(visibleCompanionBubbleId), 8500);
+    return () => window.clearTimeout(timer);
+  }, [visibleCompanionBubbleId, dismissCompanionBubble]);
   const focus = useMemo(() => (state ? selectHudFocus(state, offline) : null), [state, offline]);
   const otherAccounts = useMemo(
     () => (state ? hudOtherAccounts(state, focus?.provider) : []),
@@ -317,8 +442,8 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const runtimeAttention = state?.runtime_attention || [];
   // Terminal waits have already been classified by the canonical runtime
   // registry. This view only presents them; it never scrapes raw PTY output.
-  const attentionCount = runtimeAttention.length + (activeMission ? 1 : 0);
-  const isAttention = Boolean(alert || activeMission || runtimeAttention.length);
+  const attentionCount = companionAttention.length;
+  const isAttention = companionAttention.length > 0;
   const displayTone = offline
     ? 'unknown'
     : activeMission || runtimeAttention.length > 0 || alert?.severity.toUpperCase() === 'WARNING'
@@ -446,18 +571,60 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     });
   };
 
-  const handleAlert = async (action: 'ack' | 'snooze') => {
-    if (!alert?.fingerprint || alertActionPending) return;
+  const handleAlert = async (action: 'ack' | 'snooze', fingerprint?: string) => {
+    const targetAlert = fingerprint
+      ? state?.alerts.find((item) => item.fingerprint === fingerprint)
+      : alert;
+    if (!targetAlert?.fingerprint || alertActionPending) return;
     setAlertActionPending(true);
     try {
-      if (action === 'ack') await nexus.ackCapacityAlert(alert.fingerprint);
-      else await nexus.snoozeCapacityAlert(alert.fingerprint);
+      if (action === 'ack') await nexus.ackCapacityAlert(targetAlert.fingerprint);
+      else await nexus.snoozeCapacityAlert(targetAlert.fingerprint);
       toast.success(action === 'ack' ? 'Alerta reconhecido' : 'Alerta adiado');
       await refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : String(error));
     } finally {
       setAlertActionPending(false);
+    }
+  };
+
+  const openCompanionAttention = (item: CompanionAttention) => {
+    dismissCompanionBubble(item.id);
+    const runtime = runtimeAttention.find((candidate) => candidate.runtime_id === item.recordId);
+    if (runtime && onOpenRuntime) {
+      onOpenRuntime(runtime);
+      return;
+    }
+    if (onOpenCompanionAttention) {
+      onOpenCompanionAttention(item);
+      return;
+    }
+    if (item.target === 'missions') {
+      if (onOpenMissions) onOpenMissions();
+      else onOpenNexus?.();
+    } else if (item.target === 'agents') {
+      if (onOpenAgents) onOpenAgents();
+      else onOpenNexus?.();
+    } else if (item.target === 'usage') {
+      if (onOpenUsage) onOpenUsage();
+      else onOpenNexus?.();
+    } else onOpenNexus?.();
+  };
+
+  const snoozeCompanionItem = (item: CompanionAttention) => {
+    dismissCompanionBubble(item.id);
+    if (item.target === 'usage' && item.recordId) {
+      void handleAlert('snooze', item.recordId);
+      return;
+    }
+    const now = Date.now();
+    const next = { ...companionSnoozes, [item.id]: now + 60 * 60 * 1000 };
+    setCompanionSnoozes(next);
+    try {
+      snoozeCompanionAttention(window.localStorage, item.id, now);
+    } catch {
+      // The current window still honors the snooze when browser storage is unavailable.
     }
   };
 
@@ -528,13 +695,16 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       ? 'capacidade não confirmada'
       : `${currentPercent} restante, ${evidenceCopy}`;
   const capsuleAccessibleLabel = `${expanded ? 'Recolher' : 'Expandir'} Nexus HUD. ${mainLabel}, ${capsuleCapacityCopy}`;
-  const mascotAccessibleLabel = isAttention
-    ? `${capsuleAccessibleLabel}. ${attentionCount || 1} intervenção(ões) pendente(s).`
-    : capsuleAccessibleLabel;
   const nativeTitle = `${mainLabel}: ${currentPercent} · ${focus?.provider?.limiting_window?.reset_description || 'Renovação desconhecida'}`;
   const tone = waiting ? 'unknown' : displayTone;
-  const guardianState = guardianMood(offline || waiting, isAttention, activeAgents.length);
-  const showGuardianMascot = native && !isDetachedPopup && nativeAppearance === 'MASCOT';
+  const guardianState = companionMood(state, companionAttention, offline || waiting);
+  const showGuardianMascot = shouldRenderHudMascot(
+    native,
+    nativeView,
+    nativeAppearance,
+    expanded,
+    nativeDetached,
+  );
   const floatingStyle =
     !native && prefs.surfaceMode === 'floating'
       ? ({
@@ -561,7 +731,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         data-expanded={expanded ? 'true' : 'false'}
         data-tone={tone}
         data-size={native ? sizePreset || 'custom' : undefined}
-        data-appearance={showGuardianMascot ? 'MASCOT' : 'BAR'}
+        data-appearance={native ? nativeAppearance : 'BAR'}
       >
         {showPopoverContent && state && !waiting && (
           <div
@@ -613,7 +783,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               </div>
             </div>
 
-            {native && (
+            {native && nativePopupSupported && (
               <div className={styles.popupSettingRow}>
                 <button
                   type="button"
@@ -639,39 +809,40 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               </div>
             )}
 
-            {runtimeAttention.length > 0 && (
-              <section className={styles.runtimeAttention} aria-label="Terminais aguardando você">
+            {companionAttention.length > 0 && (
+              <section
+                className={styles.runtimeAttention}
+                aria-label={t('hud.companion.pendingCount', { count: companionAttention.length })}
+                data-companion-attention-list
+              >
                 <strong>
                   <AlertTriangle size={14} aria-hidden="true" />
-                  {runtimeAttention.length} terminal(is) aguardando sua ação
+                  {t('hud.companion.pendingCount', { count: companionAttention.length })}
                 </strong>
                 <ul>
-                  {runtimeAttention.slice(0, 8).map((item) => (
-                    <li key={item.runtime_id}>
+                  {companionAttention.slice(0, 8).map((item) => (
+                    <li key={item.id}>
                       <span>
-                        <b>{item.provider || 'Agente'}</b>
-                        {' · '}
-                        {prefs.privacyMode ? 'Projeto reservado' : item.project_name || 'Projeto'}
-                        {' — '}
-                        {item.reason === 'APPROVAL'
-                          ? 'Aprovação necessária'
-                          : item.prompt_kind === 'choice'
-                            ? 'Escolha necessária'
-                            : 'Resposta necessária'}
+                        <b>{t(item.titleKey)}</b>
+                        <br />
+                        <small>{t(item.detailKey)}</small>
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => (onOpenRuntime ? onOpenRuntime(item) : onOpenNexus?.())}
-                        disabled={!onOpenRuntime && !onOpenNexus}
-                      >
-                        Abrir terminal
-                      </button>
+                      <div className={styles.companionAttentionActions}>
+                        <button type="button" onClick={() => openCompanionAttention(item)}>
+                          {t('hud.companion.open')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => snoozeCompanionItem(item)}
+                          disabled={alertActionPending && item.target === 'usage'}
+                        >
+                          {t('hud.companion.snooze')}
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
-                {runtimeAttention.length > 8 && (
-                  <small>Mais {runtimeAttention.length - 8} solicitações no Nexus.</small>
-                )}
+                {companionAttention.length > 8 && <small>{companionAttention.length - 8}</small>}
               </section>
             )}
 
@@ -702,20 +873,29 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                   <div className={styles.fill} style={{ width: `${focus.remaining}%` }} />
                 )}
               </div>
-              <div className={styles.accountMeta}>
-                <span>
-                  Janela{' '}
-                  {focus?.provider?.limiting_window?.label ||
-                    focus?.provider?.limiting_window?.kind ||
-                    'desconhecida'}
-                </span>
-                <span>
-                  {focus?.provider?.limiting_window?.reset_description || 'Renovação não informada'}
-                </span>
-              </div>
+              {focus?.provider?.limiting_window &&
+              focus.provider.limiting_window.kind &&
+              focus.provider.limiting_window.kind.toLowerCase() !== 'unknown' ? (
+                <div className={styles.accountMeta}>
+                  <span>
+                    Janela{' '}
+                    {focus.provider.limiting_window.label || focus.provider.limiting_window.kind}
+                  </span>
+                  {focus.provider.limiting_window.reset_description && (
+                    <span>{focus.provider.limiting_window.reset_description}</span>
+                  )}
+                </div>
+              ) : focus?.remaining === null || focus?.remaining === undefined ? (
+                <div className={styles.accountMeta}>
+                  <span>Aguardando leitura de quota</span>
+                </div>
+              ) : null}
               <div className={styles.evidence}>
-                {focus?.provider?.source || 'Fonte não informada'} · {evidenceCopy}
-                {focus?.provider?.last_updated
+                {(() => {
+                  const src = formatSource(focus?.provider?.source);
+                  return src ? `${src} · ${evidenceCopy}` : evidenceCopy;
+                })()}
+                {focus?.provider?.last_updated && focus?.remaining !== null
                   ? ` · ${new Intl.DateTimeFormat(undefined, {
                       dateStyle: 'short',
                       timeStyle: 'short',
@@ -727,7 +907,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
             {prefs.showCapacity && showDetails('CAPACITY') && otherAccounts.length > 0 && (
               <div className={styles.accounts}>
                 <div className={styles.sectionCaption}>Outras contas</div>
-                {otherAccounts.slice(0, 3).map((provider) => {
+                {otherAccounts.slice(0, 5).map((provider) => {
                   const remaining = hudRemaining(provider, offline);
                   return (
                     <div
@@ -748,9 +928,9 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                     </div>
                   );
                 })}
-                {otherAccounts.length > 3 && (
+                {otherAccounts.length > 5 && (
                   <span className={styles.evidence}>
-                    +{otherAccounts.length - 3} contas em Usage
+                    +{otherAccounts.length - 5} contas em Usage
                   </span>
                 )}
               </div>
@@ -1000,95 +1180,84 @@ export const NexusHud: React.FC<NexusHudProps> = ({
 
         {showGuardianMascot && (
           <div className={styles.mascotRow}>
-            <button
-              type="button"
-              className={styles.mascotButton}
-              data-hud-hit-area="true"
-              aria-label={mascotAccessibleLabel}
-              aria-expanded={expanded}
-              aria-haspopup="dialog"
-              title={nativeTitle}
-              onClick={() => setExpandedState(!expanded)}
-            >
-              <GuardianMascot mood={guardianState} attention={isAttention} />
-              {runtimeAttention.length > 0 && (
-                <span className={styles.runtimeAttentionBadge} aria-hidden="true">
-                  {runtimeAttention.length > 9 ? '9+' : runtimeAttention.length}
-                </span>
-              )}
-            </button>
-            <button
-              type="button"
-              className={styles.mascotDragHandle}
-              data-hud-hit-area="true"
-              data-hud-drag-handle="true"
-              aria-label={t('hud.dragLabel')}
-              title={t('hud.dragTitle')}
-              onKeyDown={onNativeDragKeys}
-            >
-              <GripHorizontal size={13} aria-hidden="true" />
-            </button>
+            <GuardianMascot
+              mood={guardianState}
+              count={attentionCount}
+              expanded={expanded}
+              motion={prefs.companionMotion}
+              bubble={visibleCompanionBubble}
+              popoverId={nativeDetached ? undefined : 'nexus-hud-popover'}
+              native
+              onExpand={() => {
+                if (visibleCompanionBubbleId) dismissCompanionBubble(visibleCompanionBubbleId);
+                setExpandedState(!expanded);
+              }}
+              onOpenAttention={openCompanionAttention}
+              onSnooze={snoozeCompanionItem}
+              onMoveKeys={onNativeDragKeys}
+            />
           </div>
         )}
 
-        {!isDetachedPopup && !showGuardianMascot && (
-          <div className={styles.capsuleRow}>
-            {native && (
+        {shouldRenderHudCompactControl(native, nativeView, expanded, nativeDetached) &&
+          !showGuardianMascot && (
+            <div className={styles.capsuleRow}>
+              {native && (
+                <button
+                  type="button"
+                  className={styles.nativeDragHandle}
+                  data-hud-hit-area="true"
+                  data-hud-drag-handle="true"
+                  aria-label={t('hud.dragLabel')}
+                  title={t('hud.dragTitle')}
+                  onKeyDown={onNativeDragKeys}
+                >
+                  <GripHorizontal size={14} aria-hidden="true" />
+                </button>
+              )}
               <button
                 type="button"
-                className={styles.nativeDragHandle}
+                className={styles.capsule}
                 data-hud-hit-area="true"
-                data-hud-drag-handle="true"
-                aria-label={t('hud.dragLabel')}
-                title={t('hud.dragTitle')}
-                onKeyDown={onNativeDragKeys}
+                data-tone={tone}
+                data-evidence={quotaEvidence}
+                aria-label={capsuleAccessibleLabel}
+                aria-expanded={expanded}
+                aria-controls={showPopoverContent ? 'nexus-hud-popover' : undefined}
+                aria-haspopup={nativeDetached ? 'dialog' : undefined}
+                title={native ? nativeExpansionError || nativeTitle : undefined}
+                onClick={() => setExpandedState(!expanded)}
               >
-                <GripHorizontal size={14} aria-hidden="true" />
+                <img className={styles.logo} src="/nexus-icon.svg" alt="" width={24} height={24} />
+                <span className={styles.providerName}>{mainLabel}</span>
+                <span className={styles.percent}>{currentPercent}</span>
+                <span className={styles.capacityRing} aria-hidden="true" />
+                {attentionCount > 0 && (
+                  <span className={styles.runtimeAttentionBadge} aria-hidden="true">
+                    {attentionCount > 9 ? '9+' : attentionCount}
+                  </span>
+                )}
+                {expanded ? (
+                  <ChevronDown size={12} className={styles.chevron} aria-hidden="true" />
+                ) : (
+                  <ChevronUp size={12} className={styles.chevron} aria-hidden="true" />
+                )}
               </button>
-            )}
-            <button
-              type="button"
-              className={styles.capsule}
-              data-hud-hit-area="true"
-              data-tone={tone}
-              data-evidence={quotaEvidence}
-              aria-label={capsuleAccessibleLabel}
-              aria-expanded={expanded}
-              aria-controls={showPopoverContent ? 'nexus-hud-popover' : undefined}
-              aria-haspopup={nativeDetached ? 'dialog' : undefined}
-              title={native ? nativeExpansionError || nativeTitle : undefined}
-              onClick={() => setExpandedState(!expanded)}
-            >
-              <img className={styles.logo} src="/nexus-icon.svg" alt="" width={24} height={24} />
-              <span className={styles.providerName}>{mainLabel}</span>
-              <span className={styles.percent}>{currentPercent}</span>
-              <span className={styles.capacityRing} aria-hidden="true" />
-              {runtimeAttention.length > 0 && (
-                <span className={styles.runtimeAttentionBadge} aria-hidden="true">
-                  {runtimeAttention.length > 9 ? '9+' : runtimeAttention.length}
-                </span>
+              {!native && prefs.surfaceMode === 'floating' && (
+                <button
+                  type="button"
+                  className={styles.dragHandle}
+                  aria-label="Mover Nexus HUD com as setas ou arrastando"
+                  onPointerDown={onDragDown}
+                  onPointerMove={onDragMove}
+                  onPointerUp={onDragUp}
+                  onKeyDown={onDragKeys}
+                >
+                  <GripHorizontal size={14} />
+                </button>
               )}
-              {expanded ? (
-                <ChevronDown size={12} className={styles.chevron} aria-hidden="true" />
-              ) : (
-                <ChevronUp size={12} className={styles.chevron} aria-hidden="true" />
-              )}
-            </button>
-            {!native && prefs.surfaceMode === 'floating' && (
-              <button
-                type="button"
-                className={styles.dragHandle}
-                aria-label="Mover Nexus HUD com as setas ou arrastando"
-                onPointerDown={onDragDown}
-                onPointerMove={onDragMove}
-                onPointerUp={onDragUp}
-                onKeyDown={onDragKeys}
-              >
-                <GripHorizontal size={14} />
-              </button>
-            )}
-          </div>
-        )}
+            </div>
+          )}
 
         {!expanded && !native && (
           <div className={styles.hoverCard} role="tooltip">

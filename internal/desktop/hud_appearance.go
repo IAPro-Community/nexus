@@ -13,11 +13,29 @@ func validHUDAppearance(value string) bool {
 	}
 }
 
-func hudCompactDimensions(state HUDWindowState) (int, int) {
-	if state.Appearance == HUDAppearanceMascot {
+func hudMascotDimensions(state HUDWindowState) (int, int) {
+	switch {
+	case state.CompactWidth >= 320:
+		return HUDMascotLargeWidth, HUDMascotLargeHeight
+	case state.CompactWidth >= 260:
+		return HUDMascotComfortWidth, HUDMascotComfortHeight
+	default:
 		return HUDMascotWidth, HUDMascotHeight
 	}
+}
+
+func hudCompactDimensions(state HUDWindowState) (int, int) {
+	if state.Appearance == HUDAppearanceMascot {
+		return hudMascotDimensions(state)
+	}
 	return state.CompactWidth, state.CompactHeight
+}
+
+func hudBubbleDimensions(state HUDWindowState, visible bool) (int, int) {
+	if visible {
+		return HUDCompanionBubbleWidth, HUDCompanionBubbleHeight
+	}
+	return hudMascotDimensions(state)
 }
 
 // GetHUDAppearance is served from the single persisted Wails controller.

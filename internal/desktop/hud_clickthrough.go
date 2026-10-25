@@ -31,6 +31,10 @@ type HUDHitRegion struct {
 	Height float64 `json:"height"`
 }
 
+type hudInputRect struct {
+	X, Y, Width, Height int
+}
+
 const (
 	hudHitPollInterval = 30 * time.Millisecond
 	hudHitRegionLimit  = 512
@@ -49,6 +53,7 @@ func (h *HUDController) SetHUDHitRegions(regions []HUDHitRegion) error {
 		// unclickable. The renderer is trusted for layout, not arithmetic.
 		if region.Width <= 0 || region.Height <= 0 ||
 			region.Width > 16384 || region.Height > 16384 ||
+			math.Abs(region.X) > 16384 || math.Abs(region.Y) > 16384 ||
 			math.IsNaN(region.X) || math.IsNaN(region.Y) ||
 			math.IsNaN(region.Width) || math.IsNaN(region.Height) ||
 			math.IsInf(region.X, 0) || math.IsInf(region.Y, 0) ||
@@ -60,9 +65,38 @@ func (h *HUDController) SetHUDHitRegions(regions []HUDHitRegion) error {
 	h.hitMu.Lock()
 	h.hitRegions = clean
 	h.hitMu.Unlock()
+	if window, ok := h.nativeWindow(); ok {
+		applyHUDHitRegions(window, clean)
+	}
 	hudDebugf("hud-hit: received %d interactive regions", len(clean))
 	h.startHUDHitWatcher()
 	return nil
+}
+
+func hudRegionsToInputRectangles(regions []HUDHitRegion) []hudInputRect {
+	result := make([]hudInputRect, 0, len(regions))
+	for _, region := range regions {
+		if region.Width <= 0 || region.Height <= 0 ||
+			region.Width > 16384 || region.Height > 16384 ||
+			math.Abs(region.X) > 16384 || math.Abs(region.Y) > 16384 ||
+			math.IsNaN(region.X) || math.IsNaN(region.Y) ||
+			math.IsNaN(region.Width) || math.IsNaN(region.Height) ||
+			math.IsInf(region.X, 0) || math.IsInf(region.Y, 0) ||
+			math.IsInf(region.Width, 0) || math.IsInf(region.Height, 0) {
+			continue
+		}
+		left := int(math.Floor(region.X))
+		top := int(math.Floor(region.Y))
+		right := int(math.Ceil(region.X + region.Width))
+		bottom := int(math.Ceil(region.Y + region.Height))
+		if right <= left || bottom <= top {
+			continue
+		}
+		result = append(result, hudInputRect{
+			X: left, Y: top, Width: right - left, Height: bottom - top,
+		})
+	}
+	return result
 }
 
 func (h *HUDController) startHUDHitWatcher() {
@@ -85,6 +119,9 @@ func (h *HUDController) stopHUDHitWatcher() {
 	h.hitMu.Unlock()
 	if stop != nil {
 		close(stop)
+	}
+	if window, ok := h.nativeWindow(); ok {
+		resetHUDHitRegions(window)
 	}
 }
 

@@ -87,6 +87,27 @@ func TestHUDPlatformCapabilitiesKeepRuntimeBackedClaimsFailClosed(t *testing.T) 
 	}
 }
 
+func TestHUDSessionHonorsExplicitGDKBackend(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("GDK backend selection is specific to Linux desktop sessions")
+	}
+	t.Setenv("XDG_SESSION_TYPE", "wayland")
+	t.Setenv("WAYLAND_DISPLAY", "wayland-0")
+	t.Setenv("DISPLAY", ":0")
+	t.Setenv("GDK_BACKEND", "x11")
+
+	caps := DefaultHUDPlatformCapabilities()
+	if caps.Session != "x11" || !caps.GlobalPositioning {
+		t.Fatalf("explicit X11 backend must enable global HUD positioning, got %+v", caps)
+	}
+
+	t.Setenv("GDK_BACKEND", "wayland")
+	caps = DefaultHUDPlatformCapabilities()
+	if caps.Session != "wayland" || caps.GlobalPositioning {
+		t.Fatalf("explicit Wayland backend must keep global HUD positioning disabled, got %+v", caps)
+	}
+}
+
 func TestCompactHUDWindowStatePreservesBottomRightAnchor(t *testing.T) {
 	cases := []struct {
 		name string
@@ -266,6 +287,10 @@ func TestRestoreHUDWindowOnShowAppliesPersistedGeometryOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 	controller := NewHUDController(manager)
+	// This test covers the show-event restoration contract. Select the
+	// position-capable path explicitly so it is independent of the host's
+	// Wayland/X11 session; Wayland capability behavior has separate coverage.
+	controller.caps.GlobalPositioning = true
 	window := newFakeHUDWindow()
 
 	controller.restoreHUDWindowWhenShown(window)

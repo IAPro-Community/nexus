@@ -1,4 +1,4 @@
-//go:build !windows && !darwin
+//go:build !windows && !darwin && !(linux && cgo && gtk3)
 
 package desktop
 
@@ -9,3 +9,7 @@ import "github.com/wailsapp/wails/v3/pkg/application"
 func hudHitTestingSupported() bool { return false }
 
 func hudPointerWithinRegions(_ application.Window, _ []HUDHitRegion) bool { return true }
+
+func applyHUDHitRegions(_ application.Window, _ []HUDHitRegion) {}
+
+func resetHUDHitRegions(_ application.Window) {}

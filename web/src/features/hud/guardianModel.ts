@@ -1,8 +1,8 @@
 export type HudAppearance = 'BAR' | 'MASCOT' | 'TRAY';
-export type GuardianMood = 'idle' | 'working' | 'warning' | 'offline';
+export type GuardianMood = 'idle' | 'working' | 'warning' | 'critical' | 'offline';
 
 export function normalizeHudAppearance(value: unknown): HudAppearance {
-  return value === 'BAR' || value === 'MASCOT' || value === 'TRAY' ? value : 'BAR';
+  return value === 'BAR' || value === 'MASCOT' || value === 'TRAY' ? value : 'MASCOT';
 }
 
 /** Present only canonical HUD evidence, never infer an alarm from stale quota. */

@@ -55,6 +55,73 @@ func TestGuardianCompactFootprintPreservesScreenAnchor(t *testing.T) {
 	}
 }
 
+func TestCompanionCompactGeometryFitsSpriteAndTaskCapsule(t *testing.T) {
+	state := defaultHUDWindowState()
+	state.Appearance = HUDAppearanceMascot
+
+	width, height := hudCompactDimensions(state)
+	if width != 224 || height != 158 {
+		t.Fatalf("companion footprint = %dx%d, want 224x158 for the sprite and task capsule", width, height)
+	}
+}
+
+func TestCompanionBubbleUsesTransientGeometry(t *testing.T) {
+	state := defaultHUDWindowState()
+	state.Appearance = HUDAppearanceMascot
+	width, height := hudBubbleDimensions(state, true)
+	if width != 310 || height != 245 {
+		t.Fatalf("companion bubble geometry = %dx%d, want 310x245", width, height)
+	}
+	width, height = hudBubbleDimensions(state, false)
+	if width != HUDMascotWidth || height != HUDMascotHeight {
+		t.Fatalf("closing the transient bubble must restore the mascot geometry, got %dx%d", width, height)
+	}
+}
+
+func TestHUDBubbleFailsClosedOutsideMascotMode(t *testing.T) {
+	manager := NewHUDWindowStateManager(filepath.Join(t.TempDir(), "hud.json"))
+	state := manager.Load()
+	state.Appearance = HUDAppearanceBar
+	if err := manager.Save(state); err != nil {
+		t.Fatal(err)
+	}
+	controller := NewHUDController(manager)
+	if err := controller.SetHUDBubbleVisible(true); err == nil {
+		t.Fatal("showing a Companion bubble outside Mascot mode must fail closed")
+	}
+
+	controller.setHUDExpandedState(true)
+	if err := controller.SetHUDBubbleVisible(false); err != nil {
+		t.Fatalf("hiding a bubble while the HUD is expanded must be harmless: %v", err)
+	}
+}
+
+func TestGuardianMascotScalingPresets(t *testing.T) {
+	state := defaultHUDWindowState()
+	state.Appearance = HUDAppearanceMascot
+
+	// Compact preset (CompactWidth 220)
+	state.CompactWidth = 220
+	w, h := hudCompactDimensions(state)
+	if w != HUDMascotWidth || h != HUDMascotHeight {
+		t.Fatalf("compact preset mascot size = %dx%d, want %dx%d", w, h, HUDMascotWidth, HUDMascotHeight)
+	}
+
+	// Comfortable preset (CompactWidth 260)
+	state.CompactWidth = 260
+	w, h = hudCompactDimensions(state)
+	if w != HUDMascotComfortWidth || h != HUDMascotComfortHeight {
+		t.Fatalf("comfortable preset mascot size = %dx%d, want %dx%d", w, h, HUDMascotComfortWidth, HUDMascotComfortHeight)
+	}
+
+	// Large preset (CompactWidth 320)
+	state.CompactWidth = 320
+	w, h = hudCompactDimensions(state)
+	if w != HUDMascotLargeWidth || h != HUDMascotLargeHeight {
+		t.Fatalf("large preset mascot size = %dx%d, want %dx%d", w, h, HUDMascotLargeWidth, HUDMascotLargeHeight)
+	}
+}
+
 func TestDetachedPopoverPreferencePersistsAndFailsClosed(t *testing.T) {
 	manager := NewHUDWindowStateManager(filepath.Join(t.TempDir(), "hud.json"))
 	controller := NewHUDController(manager)

@@ -63,6 +63,7 @@ func TestHUDHitRegionInputRejectsNonFiniteCoordinates(t *testing.T) {
 		{X: 0, Y: 0, Width: math.Inf(1), Height: 20},
 		{X: 0, Y: 0, Width: 200000, Height: 20},
 		{X: 0, Y: 0, Width: -10, Height: 20},
+		{X: 20000, Y: 0, Width: 20, Height: 20},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -73,5 +74,25 @@ func TestHUDHitRegionInputRejectsNonFiniteCoordinates(t *testing.T) {
 	}
 	if controller.hitRegions[0].Width != 32 {
 		t.Fatal("valid native input rectangle was discarded")
+	}
+}
+
+func TestHUDHitRegionsConvertToEnclosingNativeRectangles(t *testing.T) {
+	regions := []HUDHitRegion{
+		{X: 10.25, Y: 20.5, Width: 30.5, Height: 40.25},
+		{X: -0.25, Y: 4.1, Width: 1.1, Height: 2.1},
+	}
+	want := []hudInputRect{
+		{X: 10, Y: 20, Width: 31, Height: 41},
+		{X: -1, Y: 4, Width: 2, Height: 3},
+	}
+	got := hudRegionsToInputRectangles(regions)
+	if len(got) != len(want) {
+		t.Fatalf("hudRegionsToInputRectangles() returned %d rectangles, want %d: %+v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("rectangle %d = %+v, want %+v", i, got[i], want[i])
+		}
 	}
 }

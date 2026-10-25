@@ -1,3 +1,6 @@
+import { asArray } from '../../lib/safeArray';
+import type { AttentionGroup } from '../../types';
+
 export type HudMode = 'AUTO' | 'CAPACITY' | 'RESOURCE' | 'AGENT' | 'MISSION' | 'ALERT' | 'MINIMAL';
 
 export type HudSurfaceMode = 'docked' | 'floating';
@@ -136,6 +139,48 @@ export interface HudResponse {
   state?: HudState;
 }
 
+/** Normalize nullable Go slices once at the desktop HUD network boundary. */
+export function normalizeHudResponse(response: HudResponse): HudResponse {
+  if (!response.state) return { ...response, state: undefined };
+  return {
+    ...response,
+    state: {
+      ...response.state,
+      providers: asArray(response.state.providers),
+      agents: asArray(response.state.agents),
+      missions: asArray(response.state.missions),
+      alerts: asArray(response.state.alerts),
+      runtime_attention: asArray(response.state.runtime_attention),
+      system: {
+        capacity: response.state.system?.capacity || 'UNKNOWN',
+        resources: response.state.system?.resources || 'UNKNOWN',
+        agents: response.state.system?.agents || 'UNKNOWN',
+        missions: response.state.system?.missions || 'UNKNOWN',
+        cost: response.state.system?.cost || 'UNKNOWN',
+        cache_ttl_millis: response.state.system?.cache_ttl_millis || 15_000,
+      },
+    },
+  };
+}
+
+export function normalizeAttentionGroup(
+  group: AttentionGroup | undefined,
+): AttentionGroup | undefined {
+  if (!group) return undefined;
+  const needsYou = asArray<AttentionGroup['needs_you'][number]>(group.needs_you);
+  return {
+    ...group,
+    needs_you: needsYou,
+    completed: asArray(group.completed),
+    failed: asArray(group.failed),
+    all_items: asArray(group.all_items),
+    total_needs:
+      typeof group.total_needs === 'number' && Number.isFinite(group.total_needs)
+        ? group.total_needs
+        : needsYou.length,
+  };
+}
+
 export type NativeHudStatus = 'loading' | 'offline' | 'disabled' | 'ready';
 
 export function resolveNativeHudStatus(
@@ -163,6 +208,7 @@ export interface HudPresentationPreferences {
   showMissions: boolean;
   showCost: boolean;
   showRecommendation: boolean;
+  companionMotion: boolean;
   privacyMode: boolean;
   floatingPosition: { x: number; y: number };
 }
@@ -181,6 +227,7 @@ export const defaultHudPreferences: HudPresentationPreferences = {
   showMissions: true,
   showCost: true,
   showRecommendation: true,
+  companionMotion: true,
   privacyMode: false,
   floatingPosition: { x: 24, y: 24 },
 };
@@ -202,6 +249,10 @@ export const normalizeHudPreferences = (
   ...(raw || {}),
   version: 1,
   mode: raw?.mode && modes.has(raw.mode) ? raw.mode : defaultHudPreferences.mode,
+  companionMotion:
+    typeof raw?.companionMotion === 'boolean'
+      ? raw.companionMotion
+      : defaultHudPreferences.companionMotion,
   surfaceMode:
     raw?.surfaceMode === 'floating' || raw?.surfaceMode === 'docked'
       ? raw.surfaceMode

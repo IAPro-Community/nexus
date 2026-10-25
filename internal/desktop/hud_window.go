@@ -20,8 +20,14 @@ const (
 	HUDAppearanceBar         = "BAR"
 	HUDAppearanceMascot      = "MASCOT"
 	HUDAppearanceTray        = "TRAY"
-	HUDMascotWidth           = 108
-	HUDMascotHeight          = 112
+	HUDMascotWidth           = 224
+	HUDMascotHeight          = 158
+	HUDMascotComfortWidth    = 260
+	HUDMascotComfortHeight   = 182
+	HUDMascotLargeWidth      = 320
+	HUDMascotLargeHeight     = 210
+	HUDCompanionBubbleWidth  = 310
+	HUDCompanionBubbleHeight = 245
 	HUDPlacementTopLeft      = "TOP_LEFT"
 	HUDPlacementTopCenter    = "TOP_CENTER"
 	HUDPlacementTopRight     = "TOP_RIGHT"
@@ -235,6 +241,13 @@ func (m *HUDWindowStateManager) Save(state HUDWindowState) error {
 }
 
 func hudSession() string {
+	// A Wayland login can still run this GTK/Wails window through XWayland.
+	// When GTK has one explicit backend, use it for window capabilities rather
+	// than the compositor session reported by the login manager.
+	switch backend := strings.ToLower(strings.TrimSpace(os.Getenv("GDK_BACKEND"))); backend {
+	case "x11", "wayland":
+		return backend
+	}
 	session := strings.ToLower(strings.TrimSpace(os.Getenv("XDG_SESSION_TYPE")))
 	if session == "" && strings.TrimSpace(os.Getenv("WAYLAND_DISPLAY")) != "" {
 		session = "wayland"
@@ -697,6 +710,51 @@ func resolveHUDSizePreset(preset string) (HUDSizePreset, bool) {
 func (h *HUDController) SetHUDAutoHide(enabled bool) error {
 	state := h.manager.Load()
 	state.AutoHide = enabled
+	return h.manager.Save(state)
+}
+
+// SetHUDBubbleVisible reserves temporary space for the native Companion
+// attention bubble. The configured compact size is derived from the selected
+// preset and is restored when the bubble closes; the temporary geometry never
+// becomes a new size preference.
+func (h *HUDController) SetHUDBubbleVisible(visible bool) error {
+	state := h.manager.Load()
+	if !visible && h.GetHUDExpanded() {
+		return nil
+	}
+	if !visible && state.Appearance != HUDAppearanceMascot {
+		return nil
+	}
+	if visible && (state.Appearance != HUDAppearanceMascot || h.GetHUDExpanded()) {
+		return fmt.Errorf("native Companion bubble requires a collapsed Mascot HUD")
+	}
+	window, ok := h.nativeWindow()
+	if !ok {
+		return fmt.Errorf("native Nexus HUD window is unavailable")
+	}
+
+	targetWidth, targetHeight := hudBubbleDimensions(state, visible)
+	state.X, state.Y = window.Position()
+	oldWidth, oldHeight := window.Size()
+	state.X, state.Y = hudResizeAnchor(
+		state.X,
+		state.Y,
+		oldWidth,
+		oldHeight,
+		targetWidth,
+		targetHeight,
+		h.GetHUDCapabilities().GlobalPositioning,
+	)
+	state.Width, state.Height = targetWidth, targetHeight
+	if screen := h.screenForState(state, window); screen != nil {
+		state = clampHUDWindowStateToWorkArea(state, screen.WorkArea)
+		state.DisplayID, state.DisplayScale = screen.ID, screen.ScaleFactor
+	}
+	window.SetSize(state.Width, state.Height)
+	if h.GetHUDCapabilities().GlobalPositioning {
+		window.SetPosition(state.X, state.Y)
+	}
+	state.Placement = HUDPlacementCustom
 	return h.manager.Save(state)
 }
 

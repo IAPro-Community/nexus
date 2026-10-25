@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
@@ -397,14 +398,42 @@ func loadHUDQuotaSnapshots() ([]ProviderAccount, error) {
 	}
 	accounts := make([]ProviderAccount, 0, len(profiles))
 	for _, p := range profiles {
+		acc := profile.GetAccountInfo(p.Provider, p.Name)
 		snapshot := profile.PeekUsageSnapshot(p.Provider, p.Name)
-		view := quota.BuildQuotaView(snapshot, snapshot.Account, "")
+		accountEmail := acc.Email
+		if accountEmail == "" {
+			accountEmail = snapshot.Account
+		}
+		view := quota.BuildQuotaView(snapshot, accountEmail, acc.Plan)
+		// For HUD display, if snapshot holds historical/session rollout windows that
+		// have not yet passed their reset window, present them as ESTIMATED instead
+		// of hiding active capacity behind an empty UNKNOWN placeholder.
+		if len(snapshot.Windows) > 0 && (len(view.ModelGroups) == 0 || (len(view.ModelGroups) == 1 && len(view.ModelGroups[0].Windows) > 0 && view.ModelGroups[0].Windows[0].Kind == "unknown")) {
+			now := time.Now()
+			active := false
+			for _, w := range snapshot.Windows {
+				if w.ResetTime == nil || w.ResetTime.After(now) {
+					active = true
+					break
+				}
+			}
+			if active {
+				view = quota.BuildQuotaViewFromDetails(p.Provider, p.Name, accountEmail, acc.Plan, string(model.UsageEstimated), snapshot.ModelName, snapshot.Windows)
+				view.Source = string(snapshot.Source)
+				view.Status = string(model.UsageEstimated)
+				view.FetchedAt = snapshot.FetchedAt
+			}
+		}
+		healthStr := string(acc.Health)
+		if healthStr == "" {
+			healthStr = "unknown"
+		}
 		accounts = append(accounts, ProviderAccount{
 			ID:           p.Provider + ":" + p.Name,
 			Provider:     p.Provider,
 			Profile:      p.Name,
 			DisplayName:  p.Provider + " (" + p.Name + ")",
-			Health:       "unknown",
+			Health:       healthStr,
 			Available:    view.IsAvailable(),
 			AvailReasons: &view.AvailReasons,
 			QuotaView:    &view,
@@ -483,14 +512,18 @@ func buildHUDProviders(accounts []ProviderAccount, capacity CapacityStatus) []HU
 		}
 
 		qv := account.QuotaView
-		item.Source = qv.Source
-		item.Freshness = nonEmptyUpper(qv.Status)
+		if qv.Source != "" && !strings.EqualFold(qv.Source, "NONE") {
+			item.Source = qv.Source
+		}
+		if qv.Status != "" && !strings.EqualFold(qv.Status, "UNKNOWN") {
+			item.Freshness = nonEmptyUpper(qv.Status)
+		}
 		item.Availability = availabilityFromAccount(account, qv.AvailReasons.UnknownQuota)
 		if !qv.FetchedAt.IsZero() {
 			fetched := qv.FetchedAt
 			item.LastUpdated = &fetched
 		}
-		item.Windows = item.Windows[:0]
+		var validWindows []HUDWindow
 		for _, group := range qv.ModelGroups {
 			for _, window := range group.Windows {
 				remaining := window.Remaining
@@ -498,16 +531,21 @@ func buildHUDProviders(accounts []ProviderAccount, capacity CapacityStatus) []HU
 				if strings.ToLower(window.Kind) != "unknown" && nonEmptyUpper(window.Status) != "UNKNOWN" {
 					remainingPtr = &remaining
 				}
-				item.Windows = append(item.Windows, HUDWindow{
-					Group:            group.Name,
-					Kind:             window.Kind,
-					Label:            window.Label,
-					RemainingPercent: remainingPtr,
-					ResetDescription: window.ResetDesc,
-					ResetAt:          window.ResetTime,
-					Status:           nonEmptyUpper(window.Status),
-				})
+				if remainingPtr != nil || (window.Kind != "" && strings.ToLower(window.Kind) != "unknown") {
+					validWindows = append(validWindows, HUDWindow{
+						Group:            group.Name,
+						Kind:             window.Kind,
+						Label:            window.Label,
+						RemainingPercent: remainingPtr,
+						ResetDescription: window.ResetDesc,
+						ResetAt:          window.ResetTime,
+						Status:           nonEmptyUpper(window.Status),
+					})
+				}
 			}
+		}
+		if len(validWindows) > 0 {
+			item.Windows = validWindows
 		}
 		if pct, kind := qv.Bottleneck(); kind != "" {
 			limiting := HUDWindow{Kind: kind, RemainingPercent: &pct, Status: nonEmptyUpper(qv.Status)}

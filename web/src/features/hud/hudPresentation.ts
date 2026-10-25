@@ -11,3 +11,25 @@ export function shouldRenderHudPopover(
   if (nativeView === 'popover') return true;
   return expanded && !detached;
 }
+
+/** Keep the mascot in a compact native capsule but give a single-window fallback all expanded space. */
+export function shouldRenderHudMascot(
+  native: boolean,
+  nativeView: 'capsule' | 'popover',
+  appearance: 'BAR' | 'MASCOT' | 'TRAY',
+  expanded: boolean,
+  detached: boolean,
+): boolean {
+  return native && nativeView === 'capsule' && appearance === 'MASCOT' && (!expanded || detached);
+}
+
+/** The mascot/bar compact control stays visible while a detached popup is open. */
+export function shouldRenderHudCompactControl(
+  native: boolean,
+  nativeView: 'capsule' | 'popover',
+  expanded: boolean,
+  detached: boolean,
+): boolean {
+  if (nativeView === 'popover') return false;
+  return !native || !expanded || detached;
+}

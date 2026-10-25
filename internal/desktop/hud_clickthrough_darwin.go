@@ -38,6 +38,10 @@ func hudHitTestingSupported() bool {
 	return os.Getenv("NEXUS_HUD_MAC_CLICKTHROUGH") == "1"
 }
 
+func applyHUDHitRegions(_ application.Window, _ []HUDHitRegion) {}
+
+func resetHUDHitRegions(_ application.Window) {}
+
 func hudPointerWithinRegions(window application.Window, regions []HUDHitRegion) bool {
 	var x, y C.double
 	if C.nexusHUDCursorPoint(&x, &y) == 0 {

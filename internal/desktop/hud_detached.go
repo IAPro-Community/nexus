@@ -68,14 +68,31 @@ func (h *HUDController) setHUDDetachedExpanded(expanded bool) error {
 		popup.Hide()
 		return nil
 	}
-	if err := h.positionDetachedHUDPopup(capsule); err != nil {
-		return err
-	}
 	// Set this before focusing the popup: the capsule's WindowLostFocus
 	// handler must not auto-hide the capsule during the transition.
 	h.setHUDExpandedState(true)
+	if err := presentDetachedHUDPopup(popup, func() error {
+		return h.positionDetachedHUDPopup(capsule)
+	}); err != nil {
+		h.setHUDExpandedState(false)
+		return err
+	}
+	return nil
+}
+
+// presentDetachedHUDPopup realizes a lazily created native window before
+// applying its geometry. Wails' SetSize queries fullscreen state, which needs
+// a valid GDK surface and is unavailable before the first Show on GTK.
+func presentDetachedHUDPopup(popup interface {
+	Show() application.Window
+	Hide() application.Window
+	Focus()
+}, applyGeometry func() error) error {
 	popup.Show()
-	popup.Restore()
+	if err := applyGeometry(); err != nil {
+		popup.Hide()
+		return err
+	}
 	popup.Focus()
 	return nil
 }

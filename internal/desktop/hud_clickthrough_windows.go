@@ -32,6 +32,10 @@ func hudCursorPosition() (int, int, bool) {
 
 func hudHitTestingSupported() bool { return true }
 
+func applyHUDHitRegions(_ application.Window, _ []HUDHitRegion) {}
+
+func resetHUDHitRegions(_ application.Window) {}
+
 // hudPointerWithinRegions reads the global cursor position (physical pixels)
 // and compares it against the window geometry (DIPs) plus the renderer-reported
 // CSS rectangles.

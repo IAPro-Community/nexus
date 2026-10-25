@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   defaultHudPreferences,
   formatHudCost,
+  normalizeAttentionGroup,
+  normalizeHudResponse,
   normalizeHudPreferences,
   providerCapacityLabel,
   resolveNativeHudStatus,
@@ -103,5 +105,44 @@ describe('HUD presentation model', () => {
     expect(normalized.surfaceMode).toBe('docked');
     expect(normalized.version).toBe(1);
     expect(defaultHudPreferences.enabled).toBe(false);
+    expect(defaultHudPreferences.companionMotion).toBe(true);
+    expect(
+      normalizeHudPreferences({ ...defaultHudPreferences, companionMotion: false }).companionMotion,
+    ).toBe(false);
+  });
+
+  it('normalizes nullable Go arrays at the native HUD boundary', () => {
+    const response = normalizeHudResponse({
+      enabled: true,
+      rollout: 'experimental',
+      state: {
+        generated_at: '',
+        providers: null,
+        agents: null,
+        missions: null,
+        alerts: null,
+        runtime_attention: null,
+        primary: { kind: 'NONE' },
+        system: null,
+      },
+    } as never);
+    expect(response.state?.providers).toEqual([]);
+    expect(response.state?.agents).toEqual([]);
+    expect(response.state?.missions).toEqual([]);
+    expect(response.state?.alerts).toEqual([]);
+    expect(response.state?.runtime_attention).toEqual([]);
+    expect(response.state?.system.cache_ttl_millis).toBe(15000);
+  });
+
+  it('normalizes nullable Attention Center arrays without losing its count', () => {
+    expect(
+      normalizeAttentionGroup({
+        needs_you: null,
+        completed: null,
+        failed: null,
+        all_items: null,
+        total_needs: null,
+      } as never),
+    ).toEqual({ needs_you: [], completed: [], failed: [], all_items: [], total_needs: 0 });
   });
 });
