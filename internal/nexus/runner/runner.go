@@ -359,6 +359,12 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 			verificationCommands = pkg.VerificationRequirements
 		}
 		if run.Contract.RequireVerification && len(verificationCommands) == 0 {
+			if pkg.ReplayProhibited && pkg.DispatchState == DispatchCompleted {
+				failure := "Verification is required but no verification commands are configured. The completed provider dispatch was preserved."
+				pkg.ErrorMessage = failure
+				r.blockNeedsHuman(run, pkg, "COMPLETED_DISPATCH_VERIFICATION_FAILED", failure, "Configure or repair the verification requirements, then retry verification. The provider will not be executed again.", nil)
+				break
+			}
 			if terminalErr := r.markRemediation(run, pkg, StateCompiling, "Verification is required but no verification commands are configured."); terminalErr != nil {
 				run.UpdatedAt = time.Now().UTC()
 				_ = r.saveRun(ctx, run)
@@ -387,6 +393,12 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 				pkg.FinishedAt = &now
 			}
 		} else {
+			if pkg.ReplayProhibited && pkg.DispatchState == DispatchCompleted {
+				failure := verificationFailureContext(results)
+				pkg.ErrorMessage = failure
+				r.blockNeedsHuman(run, pkg, "COMPLETED_DISPATCH_VERIFICATION_FAILED", failure, "Review or repair the workspace, then retry verification. The completed provider dispatch will not be replayed.", nil)
+				break
+			}
 			// A verification failure is evidence that the current execution
 			// strategy did not satisfy the task. Re-enter allocation so the Nexus
 			// runtime router can apply a different model/resource strategy on the
@@ -500,6 +512,9 @@ func interventionOptions(reasonCode string, pkg *PackageRun) []InterventionOptio
 	packageID := ""
 	if pkg != nil {
 		packageID = pkg.PackageID
+		if pkg.ReplayProhibited && pkg.DispatchState == DispatchCompleted {
+			return []InterventionOption{{ID: "verify-completed-without-replay", Operation: InterventionVerifyCompletedWithoutReplay, Label: "Verify completed work without replay", PackageID: packageID}}
+		}
 	}
 	switch reasonCode {
 	case "DISPATCH_OUTCOME_UNKNOWN":
@@ -852,6 +867,11 @@ func (r *MissionRunner) resolveIntervention(ctx context.Context, runID, interven
 	if err := applyInterventionOption(pkg, option); err != nil {
 		return nil, false, err
 	}
+	if (option.Operation == InterventionRetrySafePackage || option.Operation == InterventionReplanPackage) && !packageDependenciesVerified(run, pkg) {
+		// Queue the resumed package behind its dependencies. refreshDependencyStates
+		// will make it runnable again after every prerequisite reaches VERIFIED.
+		pkg.State = StatePending
+	}
 
 	now := time.Now().UTC()
 	run.NeedsHuman.Resolved = true
@@ -909,6 +929,25 @@ func packageForIntervention(run *MissionRun, option InterventionOption) *Package
 	return nil
 }
 
+func packageDependenciesVerified(run *MissionRun, pkg *PackageRun) bool {
+	if run == nil || pkg == nil {
+		return false
+	}
+	if len(pkg.Dependencies) == 0 {
+		return true
+	}
+	states := make(map[string]State, len(run.PackageRuns))
+	for _, candidate := range run.PackageRuns {
+		states[candidate.PackageID] = candidate.State
+	}
+	for _, dependencyID := range pkg.Dependencies {
+		if states[dependencyID] != StateVerified {
+			return false
+		}
+	}
+	return true
+}
+
 func applyInterventionOption(pkg *PackageRun, option InterventionOption) error {
 	if pkg == nil {
 		return fmt.Errorf("%w: intervention package is missing", ErrInvalidInterventionOption)
@@ -928,18 +967,34 @@ func applyInterventionOption(pkg *PackageRun, option InterventionOption) error {
 		pkg.ErrorMessage = ""
 		pkg.FailureKind = model.FailureNone
 		pkg.ResultSummary = "External outcome explicitly confirmed by a human; package verification is still required."
+	case InterventionVerifyCompletedWithoutReplay:
+		if (pkg.State != StateExecuting && pkg.State != StateTesting) || !pkg.ReplayProhibited || pkg.DispatchState != DispatchCompleted || strings.TrimSpace(pkg.DispatchID) == "" || strings.TrimSpace(pkg.AssignedRuntime) == "" {
+			return fmt.Errorf("%w: package %s has no completed dispatch eligible for verification", ErrInterventionPolicyDenied, pkg.PackageID)
+		}
+		// Preserve the dispatch identity and runtime evidence. A new provider
+		// execution could repeat side effects that already happened.
+		pkg.State = StateTesting
+		pkg.WorkReceipt = nil
+		pkg.FinishedAt = nil
+		pkg.ErrorMessage = ""
+		pkg.FailureKind = model.FailureNone
+		pkg.ResultSummary = "Verifying completed work without replaying the provider dispatch."
 	case InterventionRetrySafePackage:
-		if pkg.State == StateVerified || (pkg.DispatchState != DispatchNone && pkg.DispatchState != DispatchFailedBeforeDispatch) {
+		if pkg.State == StateVerified || pkg.ReplayProhibited || (pkg.DispatchState != DispatchNone && pkg.DispatchState != DispatchFailedBeforeDispatch) {
 			return fmt.Errorf("%w: package %s is not proven safe to retry", ErrInterventionPolicyDenied, pkg.PackageID)
 		}
 		resetDispatch(pkg)
-		pkg.State = StateExecuting
+		pkg.PromptVersionID = ""
+		pkg.CompiledPrompt = ""
+		pkg.State = StateAllocating
 	case InterventionReplanPackage:
-		if pkg.State == StateVerified || pkg.DispatchState == DispatchIntent || pkg.DispatchState == DispatchUnknownExternalOutcome || pkg.DispatchState == DispatchFailed {
+		if pkg.State == StateVerified || pkg.ReplayProhibited || pkg.DispatchState == DispatchIntent || pkg.DispatchState == DispatchUnknownExternalOutcome || pkg.DispatchState == DispatchFailed {
 			return fmt.Errorf("%w: package %s requires external outcome reconciliation before replanning", ErrInterventionPolicyDenied, pkg.PackageID)
 		}
 		resetDispatch(pkg)
-		pkg.State = StateExecuting
+		pkg.PromptVersionID = ""
+		pkg.CompiledPrompt = ""
+		pkg.State = StateAllocating
 	default:
 		return fmt.Errorf("%w: unsupported operation %s", ErrInvalidInterventionOption, option.Operation)
 	}
@@ -1063,6 +1118,7 @@ func (r *MissionRunner) executeOne(ctx context.Context, run *MissionRun, pkg *Pa
 	pkg.FailureKind = model.FailureNone
 
 	if reason := strings.TrimSpace(outcome.CoordinationUnsafeReason); reason != "" {
+		pkg.ReplayProhibited = true
 		r.blockNeedsHuman(run, pkg, "UNSAFE_COORDINATION_AFTER_SIDE_EFFECT", reason,
 			"An Agent requested coordination after mutating its workspace. Review the changes before any replay or continuation.",
 			[]string{"Inspect workspace changes", "Keep or revert partial work", "Resume with an explicit plan"})
@@ -1070,6 +1126,7 @@ func (r *MissionRunner) executeOne(ctx context.Context, run *MissionRun, pkg *Pa
 	}
 	if len(outcome.CoordinationRequests) > 0 {
 		if !outcome.CoordinationReplaySafe {
+			pkg.ReplayProhibited = true
 			r.blockNeedsHuman(run, pkg, "COORDINATION_REPLAY_UNPROVEN",
 				"Agent requested coordination without positive proof that replay is side-effect safe.",
 				"Review the partial execution before allowing the package to run again.",
@@ -1198,6 +1255,7 @@ func (r *MissionRunner) executeParallelGroup(ctx context.Context, run *MissionRu
 		pkg.FailureKind = model.FailureNone
 
 		if reason := strings.TrimSpace(res.outcome.CoordinationUnsafeReason); reason != "" {
+			pkg.ReplayProhibited = true
 			r.blockNeedsHuman(run, pkg, "UNSAFE_COORDINATION_AFTER_SIDE_EFFECT", reason,
 				"An Agent requested coordination after mutating its workspace. Review the changes before any replay or continuation.",
 				[]string{"Inspect workspace changes", "Keep or revert partial work", "Resume with an explicit plan"})
@@ -1208,6 +1266,7 @@ func (r *MissionRunner) executeParallelGroup(ctx context.Context, run *MissionRu
 		}
 		if len(res.outcome.CoordinationRequests) > 0 {
 			if !res.outcome.CoordinationReplaySafe {
+				pkg.ReplayProhibited = true
 				r.blockNeedsHuman(run, pkg, "COORDINATION_REPLAY_UNPROVEN",
 					"Agent requested coordination without positive proof that replay is side-effect safe.",
 					"Review the partial execution before allowing the package to run again.",

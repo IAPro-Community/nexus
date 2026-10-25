@@ -3,6 +3,8 @@ package gemini
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,6 +13,8 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/classifier"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/authcopy"
+	"github.com/IAPro-Community/nexus/internal/core/provider/oauthutil"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/core/security"
 	"github.com/IAPro-Community/nexus/internal/runtime"
@@ -73,10 +77,90 @@ func (a *Adapter) Prepare(ctx context.Context, p model.Profile) error {
 			return err
 		}
 	}
+	if err := ensureOAuthAuthSettings(home); err != nil {
+		return err
+	}
 
 	cfgObj, _ := config.LoadConfig()
 	policy := security.GetPolicy(cfgObj.IsolationPreset)
 	return security.ApplyIsolation(home, policy)
+}
+
+// ensureOAuthAuthSettings selects Gemini OAuth for an imported session only
+// when the profile does not already choose an authentication method.
+func ensureOAuthAuthSettings(home string) error {
+	credentialsPath := filepath.Join(home, ".gemini", "oauth_creds.json")
+	credentials, err := os.ReadFile(credentialsPath)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if !validHostGeminiAuthAt(credentials, credentialsPath) {
+		return nil
+	}
+
+	settingsPath := filepath.Join(home, ".gemini", "settings.json")
+	settings := make(map[string]json.RawMessage)
+	settingsData, err := os.ReadFile(settingsPath)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if len(settingsData) > 0 {
+		if err := json.Unmarshal(settingsData, &settings); err != nil {
+			return fmt.Errorf("read Gemini settings: %w", err)
+		}
+	}
+	if settings == nil {
+		settings = make(map[string]json.RawMessage)
+	}
+
+	securitySettings := make(map[string]json.RawMessage)
+	if raw := settings["security"]; len(raw) > 0 {
+		if err := json.Unmarshal(raw, &securitySettings); err != nil {
+			return fmt.Errorf("read Gemini security settings: %w", err)
+		}
+	}
+	if securitySettings == nil {
+		securitySettings = make(map[string]json.RawMessage)
+	}
+	authSettings := make(map[string]json.RawMessage)
+	if raw := securitySettings["auth"]; len(raw) > 0 {
+		if err := json.Unmarshal(raw, &authSettings); err != nil {
+			return fmt.Errorf("read Gemini auth settings: %w", err)
+		}
+	}
+	if authSettings == nil {
+		authSettings = make(map[string]json.RawMessage)
+	}
+
+	var selectedType string
+	if raw := authSettings["selectedType"]; len(raw) > 0 {
+		if err := json.Unmarshal(raw, &selectedType); err != nil {
+			return fmt.Errorf("read Gemini selected auth type: %w", err)
+		}
+	}
+	if strings.TrimSpace(selectedType) != "" {
+		return nil
+	}
+
+	authSettings["selectedType"] = json.RawMessage(`"oauth-personal"`)
+	authData, err := json.Marshal(authSettings)
+	if err != nil {
+		return err
+	}
+	securitySettings["auth"] = authData
+	securityData, err := json.Marshal(securitySettings)
+	if err != nil {
+		return err
+	}
+	settings["security"] = securityData
+	updated, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return err
+	}
+	return oauthutil.AtomicWriteFile(settingsPath, updated, 0600)
 }
 
 func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (model.Failure, error) {
@@ -120,6 +204,60 @@ func (a *Adapter) Logout(ctx context.Context, p model.Profile) error {
 	return nil
 }
 
+// ImportHostAuth copies Gemini CLI's OAuth credential file into an isolated
+// Nexus profile. It does not copy Gemini history or project files.
+func (a *Adapter) ImportHostAuth(ctx context.Context, p model.Profile) (bool, error) {
+	hostHome := security.FindHostHome()
+	if hostHome == "" {
+		return false, nil
+	}
+	home, err := config.ProfileHome(string(a.ID()), p.Name)
+	if err != nil {
+		return false, err
+	}
+	if err := a.Prepare(ctx, p); err != nil {
+		return false, err
+	}
+	source := filepath.Join(hostHome, ".gemini", "oauth_creds.json")
+	destination := filepath.Join(home, ".gemini", "oauth_creds.json")
+	validate := func(data []byte) bool { return validHostGeminiAuthAt(data, source) }
+	copied, err := authcopy.CopyValidatedFile(source, destination, validate)
+	if err != nil || !copied {
+		return copied, err
+	}
+	if !a.InspectAuth(ctx, p).Authenticated {
+		return false, errors.New("host Gemini session could not be verified in the Nexus profile")
+	}
+	return true, nil
+}
+
+func validHostGeminiAuthAt(data []byte, source string) bool {
+	var credentials geminiOAuthCredentials
+	if json.Unmarshal(data, &credentials) != nil {
+		return false
+	}
+	accessToken := strings.TrimSpace(credentials.AccessToken)
+	refreshToken := strings.TrimSpace(credentials.RefreshToken)
+	if accessToken == "" && refreshToken == "" {
+		return false
+	}
+	if len(credentials.ExpiryDate) > 0 && string(credentials.ExpiryDate) != "null" {
+		expiry, ok := parseExpiryDate(credentials.ExpiryDate)
+		if !ok {
+			return false
+		}
+		if !time.Now().Before(expiry) && refreshToken == "" {
+			return false
+		}
+	}
+	if source != "" && refreshToken != "" {
+		if revoked, reason := oauthutil.IsRevoked(filepath.Dir(source)); revoked && reason == hashGeminiRefreshToken(refreshToken) {
+			return false
+		}
+	}
+	return true
+}
+
 func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.AccountInfo {
 	root, err := config.ProfileRoot(string(a.ID()), p.Name)
 	if err != nil {
@@ -142,14 +280,26 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 
 	credsFile := filepath.Join(home, ".gemini", "oauth_creds.json")
 	if data, err := os.ReadFile(credsFile); err == nil {
-		var cData struct {
-			Email string `json:"email"`
-		}
-		if json.Unmarshal(data, &cData) == nil && cData.Email != "" {
-			info.Email = cData.Email
-			info.Authenticated = true
-			info.Status = "Authenticated"
-			info.Health = model.HealthHealthy
+		var credentials geminiOAuthCredentials
+		if json.Unmarshal(data, &credentials) == nil && validHostGeminiAuthAt(data, "") {
+			accessToken := strings.TrimSpace(credentials.AccessToken)
+			refreshToken := strings.TrimSpace(credentials.RefreshToken)
+			revoked := false
+			if refreshToken != "" {
+				if sentinel, reason := oauthutil.IsRevoked(filepath.Dir(credsFile)); sentinel && reason == hashGeminiRefreshToken(refreshToken) {
+					revoked = true
+				}
+			}
+			if !revoked {
+				info.Email = resolveGeminiEmail(home, credentials.IDToken)
+				info.Authenticated = true
+				info.Status = "Authenticated"
+				info.Health = model.HealthHealthy
+				if accessToken == "" || tokenNeedsRefresh(credentials, time.Now()) {
+					info.Status = "Session needs refresh"
+					info.Health = model.HealthDegraded
+				}
+			}
 		}
 	}
 

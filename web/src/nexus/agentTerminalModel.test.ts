@@ -111,6 +111,14 @@ describe('Agent terminal model', () => {
     });
     expect(terminalAttachFailure('  ')).toEqual({ kind: 'generic' });
   });
+  it('classifies a runtime created by another Nexus binary as requiring recreation', () => {
+    expect(
+      terminalAttachFailure(
+        'runtime binary fingerprint does not match the current Nexus binary',
+        'RUNTIME_ATTACH_INCOMPATIBLE',
+      ),
+    ).toEqual({ kind: 'runtime_incompatible' });
+  });
   it('shows recover overlay only for real failures or explicit recovering', () => {
     expect(shouldShowTerminalRecoverOverlay({ connection: 'CONNECTED', recovering: false })).toBe(
       false,

@@ -48,6 +48,38 @@ func captureStdout(f func() error) (string, error) {
 	return buf.String(), copyErr
 }
 
+func TestRunTreatsColonInTaskGoalAsGoalNotProvider(t *testing.T) {
+	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
+	t.Setenv("NEXUS_CONFIG_DIR", t.TempDir())
+
+	err := runCmd([]string{"Create NEXUS_RUNTIME_HOMOLOGATION.txt with exactly one line: NEXUS_CODEX_RUNTIME_OK"})
+	if err == nil || !strings.Contains(err.Error(), "nenhum projeto ativo") {
+		t.Fatalf("task goal containing a colon must enter the Nexus task pipeline, got %v", err)
+	}
+}
+
+func TestRunProviderInvocationRecognizesOnlyProviderForms(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		want bool
+	}{
+		{name: "provider", args: []string{"codex"}, want: true},
+		{name: "provider profile", args: []string{"codex:work"}, want: true},
+		{name: "task punctuation", args: []string{"Create a file: verify its contents"}},
+		{name: "provider word in task", args: []string{"codex: explain this error"}},
+		{name: "unknown provider prefix", args: []string{"unknown:profile"}},
+		{name: "empty arguments"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := isRunProviderInvocation(test.args); got != test.want {
+				t.Fatalf("isRunProviderInvocation(%#v) = %v, want %v", test.args, got, test.want)
+			}
+		})
+	}
+}
+
 func TestUpdateCheckFailsClosedWhenRegistryUnavailable(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "registry unavailable", http.StatusInternalServerError)
@@ -149,6 +181,50 @@ func TestHelpDocumentsDispatchedCommandFamilies(t *testing.T) {
 		if !strings.Contains(out, " "+command) {
 			t.Errorf("help does not document dispatched command %q", command)
 		}
+	}
+}
+
+func TestResolveLoginTargetDefaultsProfileToProvider(t *testing.T) {
+	cases := []struct {
+		name         string
+		args         []string
+		wantProvider string
+		wantProfile  string
+		wantError    bool
+	}{
+		{name: "provider default", args: []string{"codex"}, wantProvider: "codex", wantProfile: "codex"},
+		{name: "explicit profile", args: []string{"codex", "work"}, wantProvider: "codex", wantProfile: "work"},
+		{name: "missing provider", wantError: true},
+		{name: "too many arguments", args: []string{"codex", "work", "extra"}, wantError: true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			provider, profile, err := resolveLoginTarget(tc.args)
+			if (err != nil) != tc.wantError {
+				t.Fatalf("resolveLoginTarget(%v) error = %v, wantError=%t", tc.args, err, tc.wantError)
+			}
+			if err == nil && (provider != tc.wantProvider || profile != tc.wantProfile) {
+				t.Fatalf("resolveLoginTarget(%v) = %q:%q, want %q:%q", tc.args, provider, profile, tc.wantProvider, tc.wantProfile)
+			}
+		})
+	}
+}
+
+func TestLoginCommandAcceptsOmittedDefaultProfileName(t *testing.T) {
+	_, testOut := setupTestEnvironment(t)
+	if _, err := profile.Create("codex", "codex"); err != nil {
+		t.Fatalf("create provider-named default profile: %v", err)
+	}
+	if err := Run([]string{"login", "codex"}); err != nil {
+		t.Fatalf("login command with provider only: %v", err)
+	}
+	output, err := os.ReadFile(testOut)
+	if err != nil {
+		t.Fatalf("read fake provider invocation: %v", err)
+	}
+	if !strings.Contains(string(output), "provider=codex") || !strings.Contains(string(output), "arg=login") {
+		t.Fatalf("provider login invocation = %q, want Codex official login", output)
 	}
 }
 

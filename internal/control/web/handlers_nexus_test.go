@@ -7,11 +7,15 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/driver"
 	"github.com/IAPro-Community/nexus/internal/nexus"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 	"github.com/IAPro-Community/nexus/internal/update"
 )
@@ -39,6 +43,277 @@ func newTestClient(t *testing.T) (*http.Client, *Server) {
 	return client, srv
 }
 
+type interventionRestartExecutor struct {
+	blockFirstAllocation bool
+	allocationStarted    chan struct{}
+	effects              *atomic.Int32
+}
+
+func (e *interventionRestartExecutor) Allocate(ctx context.Context, _ *runner.MissionRun, _ *runner.PackageRun) (runner.AllocationResult, error) {
+	if e.blockFirstAllocation {
+		close(e.allocationStarted)
+		<-ctx.Done()
+		return runner.AllocationResult{}, ctx.Err()
+	}
+	return runner.AllocationResult{AgentID: "agent-restart-e2e", Workspace: "."}, nil
+}
+
+func (*interventionRestartExecutor) Compile(context.Context, *runner.MissionRun, *runner.PackageRun) (runner.PromptArtifact, error) {
+	return runner.PromptArtifact{VersionID: "prompt-restart-e2e", Content: "continue safely"}, nil
+}
+
+func (e *interventionRestartExecutor) Execute(context.Context, *runner.MissionRun, *runner.PackageRun, string) (runner.ExecutionResult, error) {
+	e.effects.Add(1)
+	return runner.ExecutionResult{RuntimeID: "runtime-restart-e2e"}, nil
+}
+
+func (*interventionRestartExecutor) Review(context.Context, *runner.MissionRun, *runner.PackageRun) (runner.ReviewVerdict, error) {
+	return runner.ReviewVerdict{Approved: true, ReviewerAgentID: "reviewer-restart-e2e", ReviewedAt: time.Now().UTC()}, nil
+}
+
+func newInterventionRouteServer(auth *AuthManager, service *nexus.Nexus) *httptest.Server {
+	handler := &NexusHandler{
+		auth:  auth,
+		nexus: service,
+		runs:  nexus.NewRunApplicationService(service),
+	}
+	server := &Server{auth: auth}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/runs/", server.routeRun(handler))
+	return httptest.NewServer(mux)
+}
+
+func requestResolveIntervention(t *testing.T, client *http.Client, baseURL, sessionID, csrfToken, runID string) *http.Response {
+	t.Helper()
+	body := strings.NewReader(`{"intervention_id":"intervention-http-restart","version":3,"option_id":"replan-package","resolved_by":"test-user"}`)
+	req, err := http.NewRequest(http.MethodPost, baseURL+"/api/v1/runs/"+runID+"/resolve-intervention", body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer "+sessionID)
+	req.Header.Set("X-CSRF-Token", csrfToken)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("POST resolve intervention: %v", err)
+	}
+	return resp
+}
+
+func TestResolveInterventionHTTPDecisionSurvivesServerRestartExactlyOnce(t *testing.T) {
+	ctx := context.Background()
+	dbPath := filepath.Join(t.TempDir(), "nexus.db")
+	st, err := store.Open(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "HTTP restart", CanonicalPath: t.TempDir()})
+	if err != nil {
+		_ = st.Close()
+		t.Fatal(err)
+	}
+	plan, err := st.CreateWorkPlan(store.WorkPlan{ProjectID: project.ID, Title: "HTTP restart plan"})
+	if err != nil {
+		_ = st.Close()
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	contract := runner.DefaultAutonomyContract()
+	contract.RequireVerification = false
+	contract.MaxTotalIterations = 20
+	run := &runner.MissionRun{
+		ID: "run-http-restart", PlanID: plan.ID, PlanRevision: plan.CurrentRevision, ProjectID: project.ID,
+		State: runner.StateBlockedNeedsUser, Contract: contract, StartedAt: now, UpdatedAt: now,
+		PackageRuns: []runner.PackageRun{{
+			ID: "pkg-http-restart", PackageID: "pkg-http-restart", State: runner.StateFailed,
+			DispatchState: runner.DispatchFailedBeforeDispatch,
+		}},
+		NeedsHuman: &runner.HumanIntervention{
+			ID: "intervention-http-restart", Version: 3, MissionID: "run-http-restart",
+			TaskID: "pkg-http-restart", Timestamp: now,
+			Options: []runner.InterventionOption{{ID: "replan-package", Operation: runner.InterventionReplanPackage, PackageID: "pkg-http-restart"}},
+		},
+	}
+	payload, err := json.Marshal(run)
+	if err != nil {
+		_ = st.Close()
+		t.Fatal(err)
+	}
+	if err := st.UpsertMissionRun(store.MissionRunRecord{
+		ID: run.ID, PlanID: run.PlanID, ProjectID: run.ProjectID, State: string(run.State),
+		PayloadJSON: string(payload), CreatedAt: now, UpdatedAt: now,
+	}); err != nil {
+		_ = st.Close()
+		t.Fatal(err)
+	}
+
+	var effects atomic.Int32
+	firstExecutor := &interventionRestartExecutor{blockFirstAllocation: true, allocationStarted: make(chan struct{}), effects: &effects}
+	firstService := nexus.NewWithStoreAndExecutor(st, firstExecutor)
+	t.Cleanup(firstService.Shutdown)
+	authDir := t.TempDir()
+	firstAuth, _, err := NewAuthManagerWithStore("127.0.0.1", "0", authDir)
+	if err != nil {
+		firstService.Shutdown()
+		t.Fatal(err)
+	}
+	session, err := firstAuth.CreateSession()
+	if err != nil {
+		firstService.Shutdown()
+		t.Fatal(err)
+	}
+	firstAuth.SetDesktopSession(session)
+	firstServer := newInterventionRouteServer(firstAuth, firstService)
+	t.Cleanup(firstServer.Close)
+	client := firstServer.Client()
+	response := requestResolveIntervention(t, client, firstServer.URL, session.ID, session.CSRFToken, run.ID)
+	if response.StatusCode != http.StatusOK {
+		response.Body.Close()
+		firstServer.Close()
+		firstService.Shutdown()
+		t.Fatalf("resolve status=%d, want %d", response.StatusCode, http.StatusOK)
+	}
+	response.Body.Close()
+	select {
+	case <-firstExecutor.allocationStarted:
+	case <-time.After(2 * time.Second):
+		firstServer.Close()
+		firstService.Shutdown()
+		t.Fatal("first worker did not stop at the pre-dispatch allocation barrier")
+	}
+	if got := effects.Load(); got != 0 {
+		firstServer.Close()
+		firstService.Shutdown()
+		t.Fatalf("external side effects before simulated restart=%d, want 0", got)
+	}
+
+	duplicate := requestResolveIntervention(t, client, firstServer.URL, session.ID, session.CSRFToken, run.ID)
+	if duplicate.StatusCode != http.StatusOK {
+		duplicate.Body.Close()
+		firstServer.Close()
+		firstService.Shutdown()
+		t.Fatalf("duplicate resolution status=%d, want %d", duplicate.StatusCode, http.StatusOK)
+	}
+	duplicate.Body.Close()
+	events, err := st.ListMissionRunEvents(run.ID)
+	if err != nil || len(events) != 2 {
+		firstServer.Close()
+		firstService.Shutdown()
+		t.Fatalf("durable resolution outbox events=%d err=%v, want exactly 2", len(events), err)
+	}
+	for _, event := range events {
+		if event.IdempotencyKey == "" || (event.EventType != "human_intervention.resolved" && event.EventType != "mission.resume_requested") {
+			firstServer.Close()
+			firstService.Shutdown()
+			t.Fatalf("unexpected intervention outbox event: %+v", event)
+		}
+	}
+
+	firstServer.Close()
+	preRestart, err := firstService.Runner().GetRun(ctx, run.ID)
+	if err != nil {
+		firstService.Shutdown()
+		t.Fatal(err)
+	}
+	if preRestart.State != runner.StateExecuting || len(preRestart.PackageRuns) != 1 || preRestart.PackageRuns[0].State != runner.StateAllocating || preRestart.ResumeRequest == nil || preRestart.ResumeRequest.Status != "STARTED" {
+		firstService.Shutdown()
+		t.Fatalf("restart checkpoint=%+v, want durable EXECUTING with package ALLOCATING and resume STARTED", preRestart)
+	}
+	if preRestart.NeedsHuman == nil || preRestart.NeedsHuman.Resolution == nil {
+		firstService.Shutdown()
+		t.Fatalf("human resolution was not durable at restart checkpoint: %+v", preRestart.NeedsHuman)
+	}
+	for _, event := range events {
+		if event.IdempotencyKey != preRestart.NeedsHuman.Resolution.IdempotencyKey {
+			firstService.Shutdown()
+			t.Fatalf("outbox event %s key=%q differs from resolution key=%q", event.EventType, event.IdempotencyKey, preRestart.NeedsHuman.Resolution.IdempotencyKey)
+		}
+	}
+	stopCtx, stopCancel := context.WithTimeout(ctx, 2*time.Second)
+	if err := firstService.ShutdownContext(stopCtx); err != nil {
+		stopCancel()
+		t.Fatal(err)
+	}
+	stopCancel()
+
+	reopened, err := store.Open(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondExecutor := &interventionRestartExecutor{effects: &effects}
+	secondService := nexus.NewWithStoreAndExecutor(reopened, secondExecutor)
+	t.Cleanup(secondService.Shutdown)
+	secondAuth, _, err := NewAuthManagerWithStore("127.0.0.1", "0", authDir)
+	if err != nil {
+		secondService.Shutdown()
+		t.Fatal(err)
+	}
+	persistedAfterRestart, err := secondService.Runner().GetRun(ctx, run.ID)
+	if err != nil {
+		secondService.Shutdown()
+		t.Fatal(err)
+	}
+	if persistedAfterRestart.State != runner.StateExecuting || len(persistedAfterRestart.PackageRuns) != 1 || persistedAfterRestart.PackageRuns[0].State != runner.StateAllocating || persistedAfterRestart.ResumeRequest == nil || persistedAfterRestart.ResumeRequest.Status != "STARTED" {
+		secondService.Shutdown()
+		t.Fatalf("reopened checkpoint=%+v, want EXECUTING with package ALLOCATING and resume STARTED", persistedAfterRestart)
+	}
+	secondServer := newInterventionRouteServer(secondAuth, secondService)
+	t.Cleanup(secondServer.Close)
+	if err := secondService.RecoverMissionRuns(ctx); err != nil {
+		secondServer.Close()
+		secondService.Shutdown()
+		t.Fatalf("recover mission after restart: %v", err)
+	}
+	waitCtx, waitCancel := context.WithTimeout(ctx, 5*time.Second)
+	final, err := secondService.WaitMissionWorker(waitCtx, run.ID)
+	waitCancel()
+	if err != nil {
+		secondServer.Close()
+		secondService.Shutdown()
+		t.Fatalf("wait for recovered mission: %v", err)
+	}
+	if final.State != runner.StateCompletedVerified || final.ResumeRequest == nil || final.ResumeRequest.Status != "COMPLETED" {
+		secondServer.Close()
+		secondService.Shutdown()
+		t.Fatalf("recovered mission did not reach verified terminal state: %+v", final)
+	}
+	if got := effects.Load(); got != 1 {
+		secondServer.Close()
+		secondService.Shutdown()
+		t.Fatalf("external execution count after restart=%d, want exactly 1", got)
+	}
+	events, err = reopened.ListMissionRunEvents(run.ID)
+	if err != nil || len(events) != 2 {
+		secondServer.Close()
+		secondService.Shutdown()
+		t.Fatalf("outbox events after restart=%d err=%v, want exactly 2", len(events), err)
+	}
+	getRequest, err := http.NewRequest(http.MethodGet, secondServer.URL+"/api/v1/runs/"+run.ID, nil)
+	if err != nil {
+		secondServer.Close()
+		secondService.Shutdown()
+		t.Fatal(err)
+	}
+	getRequest.Header.Set("Authorization", "Bearer "+session.ID)
+	getResponse, err := secondServer.Client().Do(getRequest)
+	if err != nil {
+		secondServer.Close()
+		secondService.Shutdown()
+		t.Fatalf("GET recovered mission from restarted server: %v", err)
+	}
+	var serverFinal runner.MissionRun
+	decodeErr := json.NewDecoder(getResponse.Body).Decode(&serverFinal)
+	getResponse.Body.Close()
+	secondServer.Close()
+	if decodeErr != nil || getResponse.StatusCode != http.StatusOK || serverFinal.State != runner.StateCompletedVerified {
+		secondService.Shutdown()
+		t.Fatalf("restarted server response status=%d state=%s decode_err=%v", getResponse.StatusCode, serverFinal.State, decodeErr)
+	}
+	if err := secondService.ShutdownContext(ctx); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // csrfClient returns an authenticated client plus the CSRF token.
 func csrfClient(t *testing.T) (*http.Client, *Server, string) {
 	t.Helper()
@@ -57,6 +332,59 @@ func csrfClient(t *testing.T) (*http.Client, *Server, string) {
 		t.Fatal("session not authenticated / no CSRF token")
 	}
 	return client, srv, sess.CSRFToken
+}
+
+func TestHostSessionImportRequiresCSRF(t *testing.T) {
+	client, srv, _ := csrfClient(t)
+	resp, err := client.Post(srv.URL()+"/api/v1/profiles/import-host-sessions", "application/json", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatalf("post host session import without CSRF token: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected 403 for host session import without CSRF token, got %d", resp.StatusCode)
+	}
+}
+
+func TestResolveRunInterventionRejectsMalformedAndNonPositiveVersion(t *testing.T) {
+	client, srv, csrf := csrfClient(t)
+	tests := []struct {
+		name string
+		body string
+		want string
+	}{
+		{name: "malformed JSON", body: `{"intervention_id":`, want: "invalid body"},
+		{name: "trailing JSON value", body: `{"intervention_id":"intv","version":1,"option_id":"verify"} {}`, want: "invalid body"},
+		{name: "missing version", body: `{"intervention_id":"intv","option_id":"verify"}`, want: "intervention_id, version and option_id are required"},
+		{name: "zero version", body: `{"intervention_id":"intv","version":0,"option_id":"verify"}`, want: "intervention_id, version and option_id are required"},
+		{name: "negative version", body: `{"intervention_id":"intv","version":-1,"option_id":"verify"}`, want: "intervention_id, version and option_id are required"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodPost, srv.URL()+"/api/v1/runs/missing-run/resolve-intervention", strings.NewReader(test.body))
+			if err != nil {
+				t.Fatal(err)
+			}
+			req.Header.Set("X-CSRF-Token", csrf)
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Fatalf("resolve intervention: %v", err)
+			}
+			defer resp.Body.Close()
+			if resp.StatusCode != http.StatusBadRequest {
+				t.Fatalf("status=%d, want %d", resp.StatusCode, http.StatusBadRequest)
+			}
+			var payload struct {
+				Error string `json:"error"`
+			}
+			if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+				t.Fatal(err)
+			}
+			if payload.Error != test.want {
+				t.Fatalf("error=%q, want %q", payload.Error, test.want)
+			}
+		})
+	}
 }
 
 func TestNexusProjectsAndAgentsAPI(t *testing.T) {

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/classifier"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/authcopy"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/core/provider/versionprobe"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
@@ -175,6 +177,66 @@ func (a *Adapter) Logout(ctx context.Context, p model.Profile) error {
 	_ = os.RemoveAll(filepath.Join(home, ".gemini", "antigravity-cli", "antigravity-oauth-token"))
 	_ = os.RemoveAll(filepath.Join(home, ".local", "share", "keyrings"))
 	return nil
+}
+
+// ImportHostAuth copies AGY's file-backed OAuth token into an isolated Nexus
+// profile. Shared conversation artifacts are handled separately by Prepare.
+func (a *Adapter) ImportHostAuth(ctx context.Context, p model.Profile) (bool, error) {
+	hostHome := security.FindHostHome()
+	if hostHome == "" {
+		return false, nil
+	}
+	home, err := config.ProfileHome(string(a.ID()), p.Name)
+	if err != nil {
+		return false, err
+	}
+	if err := a.Prepare(ctx, p); err != nil {
+		return false, err
+	}
+	for _, relative := range []string{
+		filepath.Join(".gemini", "antigravity-cli", "antigravity-oauth-token"),
+		filepath.Join(".gemini", "antigravity-oauth-token"),
+	} {
+		validate := func(data []byte) bool { return validHostAgyAuthForHome(data, hostHome) }
+		copied, err := authcopy.CopyValidatedFile(
+			filepath.Join(hostHome, relative), filepath.Join(home, relative), validate,
+		)
+		if err != nil || !copied {
+			if err != nil || errors.Is(err, authcopy.ErrDestinationExists) {
+				return copied, err
+			}
+			continue
+		}
+		if !a.InspectAuth(ctx, p).Authenticated {
+			return false, errors.New("host AGY session could not be verified in the Nexus profile")
+		}
+		return true, nil
+	}
+	return false, nil
+}
+
+func validHostAgyAuthForHome(data []byte, hostHome string) bool {
+	var credential struct {
+		Token struct {
+			AccessToken  string `json:"access_token"`
+			RefreshToken string `json:"refresh_token"`
+			Expiry       string `json:"expiry"`
+		} `json:"token"`
+	}
+	if json.Unmarshal(data, &credential) != nil {
+		return false
+	}
+	accessToken := strings.TrimSpace(credential.Token.AccessToken)
+	refreshToken := strings.TrimSpace(credential.Token.RefreshToken)
+	if accessToken == "" && refreshToken == "" {
+		return false
+	}
+	if expiry, err := time.Parse(time.RFC3339Nano, strings.TrimSpace(credential.Token.Expiry)); err == nil && time.Now().After(expiry) {
+		if refreshToken == "" || (hostHome != "" && refreshTokenRevoked(hostHome, refreshToken)) {
+			return false
+		}
+	}
+	return true
 }
 
 func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.AccountInfo {

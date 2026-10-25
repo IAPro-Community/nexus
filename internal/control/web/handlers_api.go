@@ -528,7 +528,9 @@ func (h *APIHandler) handleProviders(w http.ResponseWriter, r *http.Request) {
 		wg.Add(1)
 		go func(idx int, drv driver.ControlDriver) {
 			defer wg.Done()
-			pctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+			// JavaScript-based provider CLIs can take more than two seconds to probe
+			// while the first-run screen and system doctor are loading concurrently.
+			pctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 			defer cancel()
 			det, _ := drv.Detect(pctx)
 			caps := drv.EffectiveCaps(pctx, model.Profile{Name: "default", Provider: drv.ProviderID()})
@@ -540,14 +542,19 @@ func (h *APIHandler) handleProviders(w http.ResponseWriter, r *http.Request) {
 				Capabilities: caps,
 				BinaryPath:   det.BinaryPath,
 			}
-			if profilesErr == nil {
-				res[idx].RegistrationState = providerRegistrationState(
-					drv.ProviderID(), det.Installed, registeredProfiles,
-					func(p model.Profile) bool {
-						return profile.GetAccountInfo(p.Provider, p.Name).Authenticated
-					},
-				)
+			if profilesErr != nil {
+				if det.Installed {
+					res[idx].RegistrationState = string(coreprovider.RegistrationUnknown)
+				}
+				return
 			}
+			res[idx].RegistrationState = providerRegistrationState(
+				pctx, drv.ProviderID(), det.Installed, registeredProfiles,
+				func(ctx context.Context, p model.Profile) (bool, error) {
+					info, err := profile.GetAccountInfoContext(ctx, p.Provider, p.Name)
+					return info.Authenticated, err
+				},
+			)
 		}(i, d)
 	}
 	wg.Wait()
@@ -558,20 +565,33 @@ func (h *APIHandler) handleProviders(w http.ResponseWriter, r *http.Request) {
 // profile cannot overwrite a previously detected authenticated profile.
 // Disabled profiles and CLIs missing on the machine do not count as ready.
 func providerRegistrationState(
-	providerID string, installed bool, profiles []model.Profile, authenticated func(model.Profile) bool,
+	ctx context.Context, providerID string, installed bool, profiles []model.Profile,
+	authenticated func(context.Context, model.Profile) (bool, error),
 ) string {
 	if !installed {
 		return ""
 	}
 	state := string(coreprovider.InstalledUnregistered)
+	unverified := false
 	for _, registered := range profiles {
 		if registered.Provider != providerID || registered.Disabled {
 			continue
 		}
-		if authenticated(registered) {
+		if err := ctx.Err(); err != nil {
+			return string(coreprovider.RegistrationUnknown)
+		}
+		isAuthenticated, err := authenticated(ctx, registered)
+		if err != nil {
+			unverified = true
+			continue
+		}
+		if isAuthenticated {
 			return string(coreprovider.RegisteredAuthenticated)
 		}
 		state = string(coreprovider.PendingAuth)
+	}
+	if unverified || ctx.Err() != nil {
+		return string(coreprovider.RegistrationUnknown)
 	}
 	return state
 }
@@ -612,6 +632,19 @@ func (h *APIHandler) handleProfiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+}
+
+func (h *APIHandler) handleHostSessionImport(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	results, err := profile.ImportHostSessions(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not inspect local provider profiles")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"results": results})
 }
 
 func (h *APIHandler) handleProfileDefault(w http.ResponseWriter, r *http.Request) {

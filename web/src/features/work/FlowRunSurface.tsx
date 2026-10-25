@@ -32,6 +32,7 @@ import type {
 import { asArray, asStringArray } from '../../lib/safeArray';
 import { flowFromWorkPlan } from './flowModel';
 import { flowRunStateFromMission, packageRunState } from './flowRunModel';
+import styles from './FlowRunSurface.module.scss';
 import { createRefreshGuard } from './flowRefreshGuard';
 import {
   terminalMissionStates,
@@ -274,58 +275,72 @@ export const FlowRunSurface: React.FC<{
         </div>
       </div>
 
-      <Card className="nx-flow-run-status">
-        <div>
-          <strong>
+      <Card className={styles.status}>
+        <div className={styles.statusRow}>
+          <strong className={styles.statusLabel}>
             {t('flowRun.statusStep', { done: verifiedCount, total: packageRuns.length })}
           </strong>
-          <span>{currentPackage?.title || run.current_phase_id || t('common.unknown')}</span>
+          <span className={styles.statusValue}>
+            {currentPackage?.title || run.current_phase_id || t('common.unknown')}
+          </span>
         </div>
-        <div>
-          <strong>{t('flowRun.statusAgent')}</strong>
-          <span>{currentPackage?.assigned_agent || t('flowRun.awaitingAllocation')}</span>
+        <div className={styles.statusRow}>
+          <strong className={styles.statusLabel}>{t('flowRun.statusAgent')}</strong>
+          <span className={styles.statusValue}>
+            {currentPackage?.assigned_agent || t('flowRun.awaitingAllocation')}
+          </span>
         </div>
-        <div>
-          <strong>{t('flowRun.statusState')}</strong>
-          <span>{t(`flow.state.${userState}`, userState)}</span>
+        <div className={styles.statusRow}>
+          <strong className={styles.statusLabel}>{t('flowRun.statusState')}</strong>
+          <span className={styles.statusValue}>{t(`flow.state.${userState}`, userState)}</span>
         </div>
-        <div>
-          <strong>{t('flowRun.statusAction')}</strong>
-          <span>{needsAction ? t('flowRun.actionRequired') : t('flowRun.noActionRequired')}</span>
+        <div className={styles.statusRow}>
+          <strong className={styles.statusLabel}>{t('flowRun.statusAction')}</strong>
+          <span className={styles.statusValue}>
+            {needsAction ? t('flowRun.actionRequired') : t('flowRun.noActionRequired')}
+          </span>
         </div>
       </Card>
 
       {evidenceBundle && (
         <Card
-          className="nx-flow-run-status"
+          className={styles.status}
           data-evidence-complete={evidenceBundle.evidence_complete ? 'true' : 'false'}
         >
-          <div>
-            <strong>{t('flowRun.evidenceBundle', 'Evidence Bundle')}</strong>
-            <span>
+          <div className={styles.statusRow}>
+            <strong className={styles.statusLabel}>
+              {t('flowRun.evidenceBundle', 'Evidence Bundle')}
+            </strong>
+            <span className={styles.statusValue}>
               {evidenceBundle.evidence_complete
                 ? t('flowRun.evidenceComplete', 'Complete and verified')
                 : t('flowRun.evidenceIncomplete', 'Evidence still incomplete')}
             </span>
           </div>
-          <div>
-            <strong>{t('flowRun.evidenceReceipts', 'Verified receipts')}</strong>
-            <span>
+          <div className={styles.statusRow}>
+            <strong className={styles.statusLabel}>
+              {t('flowRun.evidenceReceipts', 'Verified receipts')}
+            </strong>
+            <span className={styles.statusValue}>
               {evidenceBundle.receipts.filter((receipt) => receipt.status === 'VERIFIED').length}/
               {packageRuns.length}
             </span>
           </div>
-          <div>
-            <strong>{t('flowRun.evidenceChain', 'Validation chain')}</strong>
-            <span>
+          <div className={styles.statusRow}>
+            <strong className={styles.statusLabel}>
+              {t('flowRun.evidenceChain', 'Validation chain')}
+            </strong>
+            <span className={styles.statusValue}>
               {evidenceBundle.validation.chain_verified
                 ? t('flowRun.evidenceChainVerified', 'Verified')
                 : t('flowRun.evidenceChainMissing', 'Not verified')}
             </span>
           </div>
-          <div>
-            <strong>{t('flowRun.evidenceMissing', 'Missing proof')}</strong>
-            <span>
+          <div className={styles.statusRow}>
+            <strong className={styles.statusLabel}>
+              {t('flowRun.evidenceMissing', 'Missing proof')}
+            </strong>
+            <span className={styles.statusValue}>
               {asArray<string>(evidenceBundle.missing_evidence).length
                 ? asArray<string>(evidenceBundle.missing_evidence).join(' · ')
                 : t('flowRun.evidenceNoneMissing', 'None')}

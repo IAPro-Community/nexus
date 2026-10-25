@@ -18,6 +18,8 @@ const (
 	sessionsFileName     = "sessions.json"
 	deviceFileName       = "device.json"
 	listenFileName       = "listen.json"
+	listenFilePrefix     = "listen-"
+	listenFileSuffix     = ".json"
 	webAuthFileMode      = 0o600
 	webAuthDirMode       = 0o700
 	maxPersistedSessions = 8
@@ -94,7 +96,7 @@ func (a *AuthManager) persistLocked() error {
 		fmt.Fprintf(os.Stderr, "nexus web: failed to persist sessions: %v\n", err)
 		return err
 	}
-	if err := atomicWriteFile(filepath.Join(a.storeDir, sessionsFileName), data, webAuthFileMode); err != nil {
+	if err := atomicWriteFile(filepath.Join(a.storeDir, sessionsFileName), data); err != nil {
 		fmt.Fprintf(os.Stderr, "nexus web: failed to persist sessions: %v\n", err)
 		return err
 	}
@@ -160,7 +162,7 @@ func (a *AuthManager) persistDeviceTokenLocked() error {
 		fmt.Fprintf(os.Stderr, "nexus web: failed to persist device token: %v\n", err)
 		return err
 	}
-	if err := atomicWriteFile(filepath.Join(a.storeDir, deviceFileName), data, webAuthFileMode); err != nil {
+	if err := atomicWriteFile(filepath.Join(a.storeDir, deviceFileName), data); err != nil {
 		fmt.Fprintf(os.Stderr, "nexus web: failed to persist device token: %v\n", err)
 		return err
 	}
@@ -202,7 +204,14 @@ func writeListenState(state ListenState) error {
 	if err != nil {
 		return err
 	}
-	return atomicWriteFile(filepath.Join(dir, listenFileName), data, webAuthFileMode)
+	return atomicWriteFile(listenStatePath(dir, state.PID), data)
+}
+
+func listenStatePath(dir string, pid int) string {
+	if pid <= 0 {
+		return filepath.Join(dir, listenFileName)
+	}
+	return filepath.Join(dir, fmt.Sprintf("%s%d%s", listenFilePrefix, pid, listenFileSuffix))
 }
 
 func removeListenState(pid int) {
@@ -210,6 +219,11 @@ func removeListenState(pid int) {
 	if dir == "" {
 		return
 	}
+	if pid > 0 {
+		_ = os.Remove(listenStatePath(dir, pid))
+	}
+	// Remove the single-file format written by earlier Nexus versions when it
+	// belongs to this server. Other live servers keep their own state files.
 	path := filepath.Join(dir, listenFileName)
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -232,24 +246,52 @@ func ReadListenState() (ListenState, error) {
 	if dir == "" {
 		return ListenState{}, os.ErrNotExist
 	}
-	data, err := os.ReadFile(filepath.Join(dir, listenFileName))
+	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return ListenState{}, err
 	}
-	var state ListenState
-	if err := json.Unmarshal(data, &state); err != nil {
-		return ListenState{}, err
+	type candidate struct {
+		path    string
+		modTime time.Time
+		legacy  bool
 	}
-	if !processAlive(state.PID) {
-		return ListenState{}, os.ErrNotExist
+	candidates := make([]candidate, 0, len(entries))
+	for _, entry := range entries {
+		name := entry.Name()
+		legacy := name == listenFileName
+		if !legacy && (!strings.HasPrefix(name, listenFilePrefix) || !strings.HasSuffix(name, listenFileSuffix)) {
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil || !info.Mode().IsRegular() {
+			continue
+		}
+		candidates = append(candidates, candidate{
+			path:    filepath.Join(dir, name),
+			modTime: info.ModTime(),
+			legacy:  legacy,
+		})
 	}
-	if state.URL == "" {
-		return ListenState{}, os.ErrNotExist
+	sort.SliceStable(candidates, func(i, j int) bool {
+		if candidates[i].modTime.Equal(candidates[j].modTime) && candidates[i].legacy != candidates[j].legacy {
+			return !candidates[i].legacy
+		}
+		return candidates[i].modTime.After(candidates[j].modTime)
+	})
+	for _, candidate := range candidates {
+		data, err := os.ReadFile(candidate.path)
+		if err != nil {
+			continue
+		}
+		var state ListenState
+		if json.Unmarshal(data, &state) != nil || state.URL == "" || !processAlive(state.PID) {
+			continue
+		}
+		if listenHealthOK(state.URL) {
+			return state, nil
+		}
 	}
-	if !listenHealthOK(state.URL) {
-		return ListenState{}, os.ErrNotExist
-	}
-	return state, nil
+	return ListenState{}, os.ErrNotExist
 }
 
 func listenHealthOK(baseURL string) bool {
@@ -262,7 +304,7 @@ func listenHealthOK(baseURL string) bool {
 	return resp.StatusCode == http.StatusOK
 }
 
-func atomicWriteFile(path string, data []byte, mode os.FileMode) error {
+func atomicWriteFile(path string, data []byte) error {
 	dir := filepath.Dir(path)
 	tmp, err := os.CreateTemp(dir, ".tmp-*")
 	if err != nil {
@@ -279,7 +321,7 @@ func atomicWriteFile(path string, data []byte, mode os.FileMode) error {
 		_ = tmp.Close()
 		return err
 	}
-	if err := tmp.Chmod(mode); err != nil {
+	if err := tmp.Chmod(webAuthFileMode); err != nil {
 		_ = tmp.Close()
 		return err
 	}

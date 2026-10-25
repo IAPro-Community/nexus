@@ -5,7 +5,6 @@ package protocol
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -25,9 +24,6 @@ func TestEndpointPathFitsKernelLimit(t *testing.T) {
 }
 
 func TestEndpointPathShortensLongTempDir(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("unix sockets only")
-	}
 	// Simulate the macOS per-user TMPDIR that broke Listen with EINVAL.
 	longDir := filepath.Join(t.TempDir(), strings.Repeat("very-long-temp-segment-", 3))
 	if err := os.MkdirAll(longDir, 0700); err != nil {
@@ -59,9 +55,6 @@ func TestEndpointPathShortensLongTempDir(t *testing.T) {
 
 // TestListenDialWithLongTempDir reproduces the macOS bind EINVAL regression.
 func TestListenDialWithLongTempDir(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("unix sockets only")
-	}
 	longDir := filepath.Join(t.TempDir(), strings.Repeat("very-long-temp-segment-", 3))
 	if err := os.MkdirAll(longDir, 0700); err != nil {
 		t.Fatalf("failed to create long temp dir: %v", err)

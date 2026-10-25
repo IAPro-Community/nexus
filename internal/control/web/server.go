@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -465,7 +466,11 @@ func (s *Server) BootstrapToken() string {
 }
 
 func (s *Server) Start() error {
-	return s.httpServer.Serve(s.listener)
+	err := s.httpServer.Serve(s.listener)
+	if errors.Is(err, http.ErrServerClosed) {
+		return nil
+	}
+	return err
 }
 
 func (s *Server) Handler() http.Handler {

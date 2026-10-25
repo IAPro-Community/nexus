@@ -11,6 +11,7 @@ import { translateStatus } from '../../i18n';
 import { useTranslation } from 'react-i18next';
 import styles from './ProjectOverviewSurface.module.scss';
 import { buildOverviewResume } from './overviewResumeModel';
+import { attachOverviewRuntime } from './overviewRuntimeActions';
 import { ProviderReadinessBanner } from './ProviderReadinessBanner';
 
 const tone = (status: string) =>
@@ -30,6 +31,7 @@ export const ProjectOverviewSurface: React.FC<{
   onOpenAgent: (agent: Agent, runtimeId?: string) => void;
   onNewAISession: () => void;
   onProjectShell: () => void;
+  onAttachRuntime: (runtime: RuntimeSession) => void;
   onOpenComposer?: () => void;
   onOpenFlow?: () => void;
   onOpenResources?: () => void;
@@ -47,6 +49,7 @@ export const ProjectOverviewSurface: React.FC<{
   onOpenAgent,
   onNewAISession,
   onProjectShell,
+  onAttachRuntime,
   onOpenComposer,
   onOpenFlow,
   onOpenResources,
@@ -340,13 +343,12 @@ export const ProjectOverviewSurface: React.FC<{
                     <Button
                       size="sm"
                       tone="brand"
-                      onClick={() => {
-                        if (matchedAgent) {
-                          onOpenAgent(matchedAgent, rt.runtime_id);
-                        } else {
-                          onProjectShell();
-                        }
-                      }}
+                      onClick={() =>
+                        attachOverviewRuntime(rt, matchedAgent, {
+                          onOpenAgent,
+                          onAttachRuntime,
+                        })
+                      }
                     >
                       <TerminalSquare size={12} /> {t('overview.attachTerminal', 'Anexar Terminal')}
                     </Button>

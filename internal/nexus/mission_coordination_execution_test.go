@@ -1,6 +1,7 @@
 package nexus
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
@@ -41,6 +42,28 @@ func TestParseExecutionCoordinationRequestsFailsClosedOnMalformedMarker(t *testi
 	)
 	if err == nil {
 		t.Fatal("malformed coordination marker must fail closed")
+	}
+}
+
+func TestParseExecutionCoordinationRequestsRejectsTemplatePlaceholders(t *testing.T) {
+	run := &runner.MissionRun{ID: "run-1"}
+	pkg := &runner.PackageRun{PackageID: "source", AssignedAgent: "agent-a"}
+	output := `NEXUS_COORDINATION_REQUEST: {"operation":"NEED_INFO","subject":"concise question or exact memory key","objective":"what is needed","preferred_role":"investigator"}`
+
+	if _, err := parseExecutionCoordinationRequests(output, run, pkg); err == nil {
+		t.Fatal("provider output copied from the coordination template must fail closed")
+	}
+}
+
+func TestMissionCoordinationPromptDoesNotOfferCopyablePlaceholders(t *testing.T) {
+	prompt := missionCoordinationPromptInstructions()
+	for _, placeholder := range []string{"concise question or exact memory key", "what is needed"} {
+		if strings.Contains(prompt, placeholder) {
+			t.Fatalf("coordination instructions still contain copyable placeholder %q", placeholder)
+		}
+	}
+	if !strings.Contains(strings.ToLower(prompt), "concrete") {
+		t.Fatal("coordination instructions must require concrete request details")
 	}
 }
 

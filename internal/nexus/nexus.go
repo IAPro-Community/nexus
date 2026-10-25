@@ -63,6 +63,9 @@ type Nexus struct {
 	maestroStatus              func() MaestroStatus
 	workersMu                  sync.Mutex
 	workers                    map[string]*missionWorker
+	workersStopped             bool
+	storeCloseOnce             sync.Once
+	storeCloseErr              error
 	schedulerOnce              sync.Once
 	scheduleCancel             context.CancelFunc
 	quotaMonitor               *QuotaMonitorService
@@ -93,6 +96,27 @@ func (n *Nexus) Runner() *runner.MissionRunner {
 		n.runner = runner.NewMissionRunner(newStoreRunRepository(n.st), newNexusPackageExecutor(n))
 	}
 	return n.runner
+}
+
+// NewWithStoreAndExecutor constructs an isolated Nexus service around a
+// caller-supplied durable store, which the service closes during shutdown. A
+// supplied executor is useful for deterministic integration tests and embedded
+// deployments; nil selects the production Nexus-backed executor when Runner is
+// first requested.
+func NewWithStoreAndExecutor(st *store.Store, executor runner.PackageExecutor) *Nexus {
+	n := &Nexus{
+		st:                         st,
+		launcher:                   &prodLauncher{l: launcher.Default()},
+		drivers:                    driver.DefaultRegistry(),
+		runtimeReg:                 registry.DefaultRegistry(),
+		workers:                    map[string]*missionWorker{},
+		projectIntelligenceRunning: map[string]bool{},
+		entitlementService:         entitlement.StaticService{Grants: entitlement.BetaGrants()},
+	}
+	if executor != nil {
+		n.runner = runner.NewMissionRunner(newStoreRunRepository(st), executor)
+	}
+	return n
 }
 
 // AttentionCenter returns the read-model query surface for mission attention items.
@@ -178,12 +202,7 @@ func Default() *Nexus {
 			// runtime features degrade gracefully instead of panicking.
 			st = nil
 		}
-		defaultNexus = &Nexus{
-			st: st, launcher: &prodLauncher{l: launcher.Default()}, drivers: driver.DefaultRegistry(),
-			runtimeReg: registry.DefaultRegistry(), workers: map[string]*missionWorker{},
-			projectIntelligenceRunning: map[string]bool{},
-			entitlementService:         entitlement.StaticService{Grants: entitlement.BetaGrants()},
-		}
+		defaultNexus = NewWithStoreAndExecutor(st, nil)
 		defaultNexus.quotaMonitor = NewQuotaMonitorService(DefaultQuotaDropMonitor(), events.DefaultBus())
 		defaultNexus.wireQuotaContinuity(defaultNexus.quotaMonitor)
 		if st != nil {
@@ -340,33 +359,44 @@ func (n *Nexus) StopQuotaMonitor() {
 }
 
 // Shutdown gracefully stops all background services and releases resources.
-// It must be called once during process exit to avoid leaked SQLite handles
-// and orphaned goroutines.
+// It waits for Mission workers before closing their shared durable store.
 func (n *Nexus) Shutdown() {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	if err := n.ShutdownContext(ctx); err != nil {
+		slog.Error("Nexus shutdown did not complete cleanly", "error", err)
+	}
+}
+
+// ShutdownContext stops background services, joins Mission workers, then
+// closes SQLite. If a worker does not stop before ctx expires, SQLite remains
+// open so an in-flight operation cannot race a closed database handle.
+func (n *Nexus) ShutdownContext(ctx context.Context) error {
+	if n == nil {
+		return nil
+	}
 	n.StopQuotaMonitor()
 	n.StopCapacityMonitor()
 
 	// Stop the schedule loop goroutine.
 	if n.scheduleCancel != nil {
 		n.scheduleCancel()
+		n.scheduleCancel = nil
 	}
 
-	// Cancel all active mission workers.
-	n.workersMu.Lock()
-	workers := make([]*missionWorker, 0, len(n.workers))
-	for _, w := range n.workers {
-		workers = append(workers, w)
-	}
-	n.workersMu.Unlock()
-	for _, w := range workers {
-		w.cancel()
+	if err := n.StopMissionWorkers(ctx); err != nil {
+		return fmt.Errorf("stop mission workers: %w", err)
 	}
 
 	// Close the SQLite store last, after all goroutines that reference it
-	// have been asked to stop.
+	// have stopped.
 	if n.st != nil {
-		_ = n.st.Close()
+		n.storeCloseOnce.Do(func() { n.storeCloseErr = n.st.Close() })
+		if n.storeCloseErr != nil {
+			return fmt.Errorf("close Nexus store: %w", n.storeCloseErr)
+		}
 	}
+	return nil
 }
 
 // OpenStore opens the SQLite store at <DataDir>/nexus.db using the canonical

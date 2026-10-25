@@ -3,11 +3,13 @@ package web
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/nexus"
@@ -68,6 +70,32 @@ func TestServerCanDisableHostsFileForEmbeddedDesktop(t *testing.T) {
 	t.Cleanup(func() { _ = srv.Shutdown(context.Background()) })
 	if srv.hostname != "" {
 		t.Fatalf("embedded desktop server must not register a hosts alias, got %q", srv.hostname)
+	}
+}
+
+func TestServerStartReturnsNilAfterGracefulShutdown(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("net.Listen: %v", err)
+	}
+	srv := &Server{listener: listener, httpServer: &http.Server{}}
+	t.Cleanup(func() { _ = listener.Close() })
+
+	started := make(chan error, 1)
+	go func() { started <- srv.Start() }()
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := srv.httpServer.Shutdown(shutdownCtx); err != nil {
+		t.Fatalf("graceful shutdown: %v", err)
+	}
+
+	select {
+	case err := <-started:
+		if err != nil {
+			t.Fatalf("server start loop after graceful shutdown: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("server start loop did not return after graceful shutdown")
 	}
 }
 

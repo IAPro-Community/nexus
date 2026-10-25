@@ -191,3 +191,79 @@ export function eligibleDirectResources<T extends DirectResourceLike>(
       return `${a.provider}:${a.profile}`.localeCompare(`${b.provider}:${b.profile}`);
     });
 }
+
+/** The backend is the sole ranking authority. No silent fallback to an
+ * arbitrary account when a recommendation is unavailable or ineligible. */
+export function recommendedDirectAccountId<T extends DirectResourceLike>(
+  resources: T[],
+  recommendation: { recommended?: { account?: { id?: string } } } | null,
+): string {
+  const id = recommendation?.recommended?.account?.id || '';
+  return resources.some((resource) => resource.id === id) ? id : '';
+}
+
+const knownResourcePolicies = new Set(['BALANCED', 'PRESERVE_QUOTA', 'PREFER_PROVIDER']);
+
+/** Project.resource_policy is historically a JSON object, not always a string enum.
+ * Unsupported values must not become implicit scheduler policies. */
+export function directResourcePolicy(value: string | undefined): string {
+  const raw = (value || '').trim();
+  if (!raw) return 'BALANCED';
+  let policy = raw;
+  if (raw.startsWith('{')) {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return 'BALANCED';
+      const data = parsed as Record<string, unknown>;
+      policy =
+        typeof data.policy === 'string'
+          ? data.policy
+          : typeof data.scheduler_policy === 'string'
+            ? data.scheduler_policy
+            : 'BALANCED';
+    } catch {
+      return 'BALANCED';
+    }
+  }
+  const normalized = policy.trim().toUpperCase();
+  return knownResourcePolicies.has(normalized) ? normalized : 'BALANCED';
+}
+
+export interface DirectSchedulerContext {
+  policy: string;
+  preferProvider: string;
+}
+
+/**
+ * Project.resource_policy is an untrusted, historical JSON string. A
+ * PREFER_PROVIDER request without an explicit provider is not a preference.
+ */
+export function directSchedulerContext(
+  value: string | undefined,
+  selectedProvider = '',
+): DirectSchedulerContext {
+  let preferred = '';
+  try {
+    const parsed: unknown = JSON.parse(value || '{}');
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      const config = parsed as Record<string, unknown>;
+      const raw = config.prefer_provider ?? config.preferred_provider ?? config.provider;
+      if (typeof raw === 'string') preferred = raw.trim().toLowerCase();
+    }
+  } catch {
+    // Legacy enum values are handled by directResourcePolicy below.
+  }
+  const override = selectedProvider.trim().toLowerCase();
+  const preferProvider = /^[a-z0-9][a-z0-9_-]{0,63}$/.test(override || preferred)
+    ? override || preferred
+    : '';
+  const configured = directResourcePolicy(value);
+  // The user's explicit preferred provider wins over passive balancing.
+  // Without a provider there is nothing for PREFER_PROVIDER to promote.
+  const policy = preferProvider
+    ? 'PREFER_PROVIDER'
+    : configured === 'PREFER_PROVIDER'
+      ? 'BALANCED'
+      : configured;
+  return { policy, preferProvider };
+}

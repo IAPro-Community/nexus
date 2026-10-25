@@ -3,6 +3,7 @@ package claude
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/classifier"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/authcopy"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/core/security"
 	"github.com/IAPro-Community/nexus/internal/runtime"
@@ -118,6 +120,52 @@ func (a *Adapter) Logout(ctx context.Context, p model.Profile) error {
 	return nil
 }
 
+// ImportHostAuth copies Claude Code's file-backed OAuth credential into an
+// isolated Nexus profile. It deliberately excludes Claude history and config.
+func (a *Adapter) ImportHostAuth(ctx context.Context, p model.Profile) (bool, error) {
+	hostHome := security.FindHostHome()
+	if hostHome == "" {
+		return false, nil
+	}
+	root, err := config.ProfileRoot(string(a.ID()), p.Name)
+	if err != nil {
+		return false, err
+	}
+	if err := a.Prepare(ctx, p); err != nil {
+		return false, err
+	}
+	destination := filepath.Join(root, "home", ".claude", ".credentials.json")
+	for _, relative := range []string{
+		filepath.Join(".claude", ".credentials.json"),
+		filepath.Join(".claude", "credentials.json"),
+	} {
+		copied, err := authcopy.CopyValidatedFile(
+			filepath.Join(hostHome, relative), destination, validHostClaudeAuth,
+		)
+		if err != nil || !copied {
+			if err != nil || errors.Is(err, authcopy.ErrDestinationExists) {
+				return copied, err
+			}
+			continue
+		}
+		if !a.InspectAuth(ctx, p).Authenticated {
+			return false, errors.New("host Claude session could not be verified in the Nexus profile")
+		}
+		return true, nil
+	}
+	return false, nil
+}
+
+func validHostClaudeAuth(data []byte) bool {
+	credential, ok := parseClaudeCredentialsJSON(data)
+	if !ok || (strings.TrimSpace(credential.AccessToken) == "" && strings.TrimSpace(credential.RefreshToken) == "") {
+		return false
+	}
+	info := model.AccountInfo{}
+	applyClaudeTokenExpiry(&info, credential)
+	return info.Authenticated
+}
+
 func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.AccountInfo {
 	root, err := config.ProfileRoot(string(a.ID()), p.Name)
 	if err != nil {
@@ -159,26 +207,15 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 
 	cred, ok := readClaudeCredentials(home)
 	if !ok {
-		// Preserve prior fail-open for identity-only installs that never wrote
-		// a credentials file: email/userID in .claude.json still counts.
-		if info.Email != "" {
-			info.Authenticated = true
-			info.Status = "Authenticated"
-			info.Health = model.HealthHealthy
-		}
+		// Profile metadata is useful for display, but only OAuth credentials
+		// prove that this isolated profile can authenticate.
 		return info
 	}
 	if cred.Email != "" {
 		info.Email = cred.Email
 	}
 	hasToken := cred.AccessToken != "" || cred.RefreshToken != ""
-	if !hasToken && info.Email == "" {
-		return info
-	}
 	if !hasToken {
-		info.Authenticated = true
-		info.Status = "Authenticated"
-		info.Health = model.HealthHealthy
 		return info
 	}
 

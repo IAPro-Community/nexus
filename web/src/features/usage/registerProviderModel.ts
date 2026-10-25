@@ -3,6 +3,7 @@ import type { ProviderInfo } from '../../types';
 type RegistrationCandidate = Pick<ProviderInfo, 'id' | 'installed' | 'registration_state'>;
 
 const hasProfile = (provider: RegistrationCandidate) =>
+  provider.registration_state === 'REGISTRATION_UNKNOWN' ||
   provider.registration_state === 'PENDING_AUTH' ||
   provider.registration_state === 'REGISTERED_AUTHENTICATED' ||
   provider.registration_state === 'REGISTERED_AUTH_EXPIRED';

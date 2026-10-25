@@ -23,6 +23,13 @@ type AuthProvider interface {
 	InspectAuth(ctx context.Context, p model.Profile) model.AccountInfo
 }
 
+// HostAuthImporter copies a provider's supported host CLI authentication file
+// into an isolated Nexus profile. Implementations must leave the host session
+// untouched and must never replace existing profile credentials.
+type HostAuthImporter interface {
+	ImportHostAuth(ctx context.Context, p model.Profile) (bool, error)
+}
+
 // UsageProvider retrieves live or local usage metrics.
 type UsageProvider interface {
 	GetUsage(ctx context.Context, p model.Profile) model.UsageSnapshot

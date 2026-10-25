@@ -1,0 +1,40 @@
+.controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--nx-text);
+  font-size: 0.83rem;
+}
+
+.hint,
+.explanation {
+  margin: 0 0 8px;
+  color: var(--nx-muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.explanation {
+  color: var(--nx-text);
+}
+
+@media (max-width: 640px) {
+  .controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.reasons {
+  margin: 0 0 8px;
+  padding-left: 18px;
+  color: var(--nx-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}

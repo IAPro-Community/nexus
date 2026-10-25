@@ -1,0 +1,28 @@
+.status {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  align-items: start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.statusRow {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statusLabel {
+  color: var(--nx-subtle);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.statusValue {
+  color: var(--nx-text-soft);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button, Card } from '../../design-system';
 import { nexus } from '../../nexus/api';
 import {
@@ -13,6 +14,7 @@ import styles from './ProviderReadinessBanner.module.scss';
 export const ProviderReadinessBanner: React.FC<{ onOpenAccounts: () => void }> = ({
   onOpenAccounts,
 }) => {
+  const { t } = useTranslation();
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [state, setState] = useState<'checking' | 'loaded' | 'unavailable'>('checking');
 
@@ -38,9 +40,10 @@ export const ProviderReadinessBanner: React.FC<{ onOpenAccounts: () => void }> =
     <Card className={styles.banner} data-testid="provider-readiness-banner">
       <div className={styles.copy} role="status" aria-live="polite">
         <strong>
-          <AlertCircle size={15} aria-hidden="true" /> {readiness.title}
+          <AlertCircle size={15} aria-hidden="true" />{' '}
+          {t(readiness.titleKey, readiness.titleParams)}
         </strong>
-        <p>{readiness.description}</p>
+        <p>{t(readiness.descriptionKey)}</p>
       </div>
       <div className={styles.actions}>
         {readiness.status === 'needs-provider' &&
@@ -51,7 +54,11 @@ export const ProviderReadinessBanner: React.FC<{ onOpenAccounts: () => void }> =
           ))}
         {readiness.status !== 'unavailable' && (
           <Button size="sm" tone="brand" onClick={onOpenAccounts}>
-            {readiness.status === 'needs-login' ? 'Concluir login' : 'Configurar conta'}
+            {readiness.status === 'needs-login'
+              ? t('projects.readinessCompleteLogin')
+              : readiness.status === 'verification-unknown'
+                ? t('projects.readinessReviewAccounts')
+                : t('projects.readinessConfigureAccounts')}
           </Button>
         )}
         <Button size="sm" tone="ghost" onClick={() => void refresh()}>

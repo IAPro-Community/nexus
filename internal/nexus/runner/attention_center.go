@@ -3,7 +3,15 @@ package runner
 import (
 	"context"
 	"sort"
+	"strings"
 )
+
+// AttentionFilter scopes a workspace-wide attention query to a project and/or
+// Mission without changing the canonical MissionRun state.
+type AttentionFilter struct {
+	ProjectID string
+	MissionID string
+}
 
 // AttentionCenter is a read model / query surface over canonical MissionRun
 // state. It does not own business truth; it projects AttentionItems from the
@@ -29,12 +37,24 @@ type AttentionGroup struct {
 // ListAttention returns all active attention items across all mission runs,
 // grouped by category. This is the primary query for the Attention Center UI.
 func (ac *AttentionCenter) ListAttention(ctx context.Context) (*AttentionGroup, error) {
+	return ac.ListAttentionFiltered(ctx, AttentionFilter{})
+}
+
+// ListAttentionFiltered returns the workspace attention projection restricted
+// to the requested project and/or Mission. When both are supplied, both must
+// match the same run.
+func (ac *AttentionCenter) ListAttentionFiltered(ctx context.Context, filter AttentionFilter) (*AttentionGroup, error) {
 	runs, err := ac.repo.ListRuns(ctx)
 	if err != nil {
 		return nil, err
 	}
+	projectID := strings.TrimSpace(filter.ProjectID)
+	missionID := strings.TrimSpace(filter.MissionID)
 	group := &AttentionGroup{}
 	for _, run := range runs {
+		if run == nil || (projectID != "" && run.ProjectID != projectID) || (missionID != "" && run.ID != missionID) {
+			continue
+		}
 		item := AttentionFromRun(run)
 		if item == nil {
 			continue

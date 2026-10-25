@@ -20,7 +20,7 @@ import {
 import { WorkspaceLayoutService } from '../services/WorkspaceLayoutService';
 import {
   COMPOSER_FLOW_ENABLED,
-  isExperimentalComposerFlowSurface,
+  isExperimentalWorkspaceSurfaceBlocked,
   withoutExperimentalComposerFlow,
 } from '../app/composerFlowFlag';
 import type { WorkspacePresentationState } from './presentation';
@@ -208,11 +208,11 @@ export const WorkspaceProvider: React.FC<{
     () => ({
       model,
       open: (surface, stackId) => {
-        if (!COMPOSER_FLOW_ENABLED && isExperimentalComposerFlowSurface(surface.type)) return;
+        if (!COMPOSER_FLOW_ENABLED && isExperimentalWorkspaceSurfaceBlocked(surface)) return;
         dispatch({ type: 'open', surface, stackId });
       },
       ensure: (surface, stackId) => {
-        if (!COMPOSER_FLOW_ENABLED && isExperimentalComposerFlowSurface(surface.type)) return;
+        if (!COMPOSER_FLOW_ENABLED && isExperimentalWorkspaceSurfaceBlocked(surface)) return;
         dispatch({ type: 'ensure', surface, stackId });
       },
       activate: (surfaceId) => dispatch({ type: 'activate', surfaceId }),
@@ -230,7 +230,7 @@ export const WorkspaceProvider: React.FC<{
       },
       updateSurface: (surfaceId, patch) => dispatch({ type: 'updateSurface', surfaceId, patch }),
       split: (relativeSurfaceId, surface, direction) => {
-        if (!COMPOSER_FLOW_ENABLED && isExperimentalComposerFlowSurface(surface.type)) return;
+        if (!COMPOSER_FLOW_ENABLED && isExperimentalWorkspaceSurfaceBlocked(surface)) return;
         dispatch({ type: 'split', relativeSurfaceId, surface, direction });
       },
       move: (surfaceId, targetStackId) => dispatch({ type: 'move', surfaceId, targetStackId }),

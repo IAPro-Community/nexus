@@ -1,6 +1,7 @@
 package web
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -150,6 +151,89 @@ func TestListenStateRoundTripForLivePID(t *testing.T) {
 	removeListenState(os.Getpid())
 	if _, err := ReadListenState(); err == nil {
 		t.Fatal("listen state should be gone after matching pid remove")
+	}
+}
+
+func TestReadListenStateFallsBackToAnotherLiveServerAfterClose(t *testing.T) {
+	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
+	health := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v1/health" {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"status":"ok"}`))
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	t.Cleanup(health.Close)
+
+	first := ListenState{
+		URL:            health.URL,
+		BootstrapURL:   health.URL + "/first",
+		BootstrapToken: "first-token",
+		PID:            os.Getpid(),
+		Loopback:       true,
+	}
+	second := ListenState{
+		URL:            health.URL,
+		BootstrapURL:   health.URL + "/second",
+		BootstrapToken: "second-token",
+		PID:            os.Getpid() + 1,
+		Loopback:       true,
+	}
+	if err := writeListenState(first); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeListenState(second); err != nil {
+		t.Fatal(err)
+	}
+
+	removeListenState(second.PID)
+
+	got, err := ReadListenState()
+	if err != nil {
+		t.Fatalf("ReadListenState() after closing newest server: %v", err)
+	}
+	if got.PID != first.PID || got.BootstrapURL != first.BootstrapURL || got.BootstrapToken != first.BootstrapToken {
+		t.Fatalf("expected remaining live server state, got %+v", got)
+	}
+}
+
+func TestReadListenStateSupportsLegacySingleFile(t *testing.T) {
+	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
+	health := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v1/health" {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"status":"ok"}`))
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	t.Cleanup(health.Close)
+	state := ListenState{
+		URL:            health.URL,
+		BootstrapURL:   health.URL,
+		BootstrapToken: "legacy-token",
+		PID:            os.Getpid(),
+		Loopback:       true,
+	}
+	data, err := json.Marshal(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := loopbackAuthStoreDir()
+	if err := os.MkdirAll(dir, webAuthDirMode); err != nil {
+		t.Fatal(err)
+	}
+	if err := atomicWriteFile(filepath.Join(dir, listenFileName), data); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := ReadListenState()
+	if err != nil {
+		t.Fatalf("ReadListenState() for legacy file: %v", err)
+	}
+	if got.PID != state.PID || got.BootstrapToken != state.BootstrapToken {
+		t.Fatalf("legacy listen state mismatch: %+v", got)
 	}
 }
 

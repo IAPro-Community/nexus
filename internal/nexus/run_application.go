@@ -460,10 +460,14 @@ func (s *RunApplicationService) publishCoordinationTransitions(before, after *ru
 }
 
 func (s *RunApplicationService) Attention(ctx context.Context) (*runner.AttentionGroup, error) {
+	return s.AttentionFiltered(ctx, runner.AttentionFilter{})
+}
+
+func (s *RunApplicationService) AttentionFiltered(ctx context.Context, filter runner.AttentionFilter) (*runner.AttentionGroup, error) {
 	if err := s.ready(ctx); err != nil {
 		return nil, err
 	}
-	return s.nexus.AttentionCenter().ListAttention(ctx)
+	return s.nexus.AttentionCenter().ListAttentionFiltered(ctx, filter)
 }
 
 func (s *RunApplicationService) publishRunEvent(run *runner.MissionRun, eventType events.EventType, summary string, data map[string]any) {

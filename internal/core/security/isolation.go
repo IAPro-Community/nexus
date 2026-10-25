@@ -118,6 +118,11 @@ func AuditProfile(provider, profileName, profileHome, hostHome string, preset mo
 
 // FindHostHome determines the real host home directory dynamically without hardcoded usernames.
 func FindHostHome() string {
+	if v := os.Getenv("NEXUS_REAL_HOME"); v != "" {
+		if st, err := os.Stat(v); err == nil && st.IsDir() {
+			return v
+		}
+	}
 	if v := os.Getenv("AI_REAL_HOME"); v != "" {
 		if st, err := os.Stat(v); err == nil && st.IsDir() {
 			return v

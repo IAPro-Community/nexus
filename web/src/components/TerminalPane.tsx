@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { ProtocolScrubber } from '../nexus/terminalProtocol';
 import { canFitTerminal } from '../nexus/terminalFitModel';
+import { observeTerminalPaneResize } from './terminalPaneResize';
 import { TERMINAL_CONNECT_TIMEOUT_MS } from '../nexus/agentTerminalModel';
 import {
   DEFAULT_TERMINAL_SCROLLBACK,
@@ -136,7 +137,8 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
   };
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    const terminalContainer = containerRef.current;
+    if (!terminalContainer) return;
     setConnecting(true);
     setDisconnected(false);
     setDiagnosticCode('');
@@ -158,14 +160,14 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
 
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
-    term.open(containerRef.current);
+    term.open(terminalContainer);
 
     let disposed = false;
     let terminalTraceEnabled = false;
     let sessionReady = false;
     // Buffers split control-RPC lines across output messages (see ProtocolScrubber).
     const protocolScrubber = new ProtocolScrubber();
-    const panel = containerRef.current.closest<HTMLElement>('.nx-workspace-panel');
+    const panel = terminalContainer.closest<HTMLElement>('.nx-workspace-panel');
     const redrawTimers: number[] = [];
     let lastSentSize = { rows: 0, cols: 0 };
 
@@ -176,9 +178,9 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
           disposed,
           sessionReady,
           terminalConnected: term.element?.isConnected === true,
-          containerConnected: containerRef.current?.isConnected === true,
-          width: containerRef.current?.clientWidth || 0,
-          height: containerRef.current?.clientHeight || 0,
+          containerConnected: terminalContainer.isConnected,
+          width: terminalContainer.clientWidth,
+          height: terminalContainer.clientHeight,
         })
       ) {
         return;
@@ -456,6 +458,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       : null;
     if (panel)
       panelObserver?.observe(panel, { attributes: true, attributeFilter: ['data-active'] });
+    const stopObservingContainer = observeTerminalPaneResize(terminalContainer, () => safeFit());
     window.addEventListener('resize', handleWindowResize);
 
     return () => {
@@ -483,6 +486,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
         // ignore
       }
       window.removeEventListener('resize', handleWindowResize);
+      stopObservingContainer();
       window.cancelAnimationFrame(initialFit);
       if (flushFrame !== undefined) window.cancelAnimationFrame(flushFrame);
       panelObserver?.disconnect();
@@ -587,67 +591,88 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     >
       {/* Terminal Toolbar */}
       {!hideHeader && (
-        <div className="flex items-center justify-between px-3 py-2 bg-[var(--nx-terminal-surface)] border-b border-[var(--nx-terminal-border)] text-xs font-mono select-none">
-          <div className="flex items-center space-x-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[var(--nx-success)] animate-pulse"></span>
-            {isEditingTitle ? (
-              <div className="flex items-center space-x-1">
-                <input
-                  type="text"
-                  value={customTitle}
-                  onChange={(e) => setCustomTitle(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') void handleSaveTitle();
-                    if (e.key === 'Escape') {
-                      setCustomTitle(title || '');
-                      setIsEditingTitle(false);
-                    }
-                  }}
-                  className="bg-[var(--nx-terminal-bg)] border border-[var(--nx-terminal-cursor)] rounded px-1.5 py-0.5 text-xs text-[var(--nx-terminal-text)] focus:outline-none"
-                  autoFocus
-                />
+        <div
+          className={`${styles.terminalHeader} bg-[var(--nx-terminal-surface)] border-b border-[var(--nx-terminal-border)] text-xs font-mono select-none`}
+          data-terminal-header
+        >
+          <div className={styles.terminalIdentity} data-terminal-identity>
+            <div className={styles.terminalSessionIdentity} data-terminal-session-identity>
+              <span className="w-2.5 h-2.5 rounded-full bg-[var(--nx-success)] animate-pulse"></span>
+              {isEditingTitle ? (
+                <div className={`${styles.terminalTitleEdit} flex items-center space-x-1`}>
+                  <input
+                    type="text"
+                    value={customTitle}
+                    onChange={(e) => setCustomTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') void handleSaveTitle();
+                      if (e.key === 'Escape') {
+                        setCustomTitle(title || '');
+                        setIsEditingTitle(false);
+                      }
+                    }}
+                    className="bg-[var(--nx-terminal-bg)] border border-[var(--nx-terminal-cursor)] rounded px-1.5 py-0.5 text-xs text-[var(--nx-terminal-text)] focus:outline-none"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void handleSaveTitle()}
+                    className="p-0.5 text-[var(--nx-success)] hover:opacity-80"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
                 <button
                   type="button"
-                  onClick={() => void handleSaveTitle()}
-                  className="p-0.5 text-[var(--nx-success)] hover:opacity-80"
+                  className={`${styles.terminalTitleButton} flex items-center space-x-1.5 cursor-pointer group`}
+                  onClick={() => setIsEditingTitle(true)}
+                  title={t('terminal.renameSessionTitle')}
+                  aria-label={t('terminal.renameSessionTitle')}
                 >
-                  <Check className="w-3.5 h-3.5" />
+                  <span
+                    className={`${styles.terminalTitleText} text-[var(--nx-terminal-text)] font-bold font-sans`}
+                  >
+                    {customTitle || `${provider.toUpperCase()} (${profile})`}
+                  </span>
+                  <Pencil className="w-3 h-3 text-[var(--nx-terminal-muted)] opacity-0 group-hover:opacity-100 transition" />
                 </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                className="flex items-center space-x-1.5 cursor-pointer group"
-                onClick={() => setIsEditingTitle(true)}
-                title={t('terminal.renameSessionTitle')}
-                aria-label={t('terminal.renameSessionTitle')}
-              >
-                <span className="text-[var(--nx-terminal-text)] font-bold font-sans">
-                  {customTitle || `${provider.toUpperCase()} (${profile})`}
+              )}
+              {ptyTitle && (
+                <span
+                  className={`${styles.terminalPtyTitle} px-2 py-0.5 rounded-full border border-[var(--nx-warning)] bg-[var(--nx-warning-soft)] text-[var(--nx-warning)] text-[10px]`}
+                  title={ptyTitle}
+                  data-terminal-pty-title
+                >
+                  {ptyTitle}
                 </span>
-                <Pencil className="w-3 h-3 text-[var(--nx-terminal-muted)] opacity-0 group-hover:opacity-100 transition" />
-              </button>
-            )}
-            {ptyTitle && (
-              <span
-                className="px-2 py-0.5 rounded-full border border-[var(--nx-warning)] bg-[var(--nx-warning-soft)] text-[var(--nx-warning)] text-[10px] max-w-[220px] truncate"
-                title={ptyTitle}
-              >
-                {ptyTitle}
+              )}
+            </div>
+
+            <div className={styles.terminalRuntimeMetadata} data-terminal-runtime-metadata>
+              <span className="text-[var(--nx-terminal-muted)]">|</span>
+              <span className="text-[var(--nx-terminal-text-soft)] uppercase text-[11px]">
+                {provider}
               </span>
-            )}
-            <span className="text-[var(--nx-terminal-muted)]">|</span>
-            <span className="text-[var(--nx-terminal-text-soft)] uppercase text-[11px]">
-              {provider}
-            </span>
-            <span className="text-[var(--nx-terminal-muted)] text-[11px]">({profile})</span>
-            <span className="text-[var(--nx-terminal-muted)]">|</span>
-            <span className="text-[var(--nx-terminal-muted)] text-[10px]">ID: {runtimeId}</span>
+              <span className="text-[var(--nx-terminal-muted)] text-[11px]">({profile})</span>
+              <span className="text-[var(--nx-terminal-muted)]">|</span>
+              <span
+                className={`${styles.terminalRuntimeId} text-[var(--nx-terminal-muted)] text-[10px]`}
+                title={`ID: ${runtimeId}`}
+                data-terminal-runtime-id
+              >
+                ID: {runtimeId}
+              </span>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className={styles.terminalActions} data-terminal-actions>
             {errorMsg && (
-              <span className="text-[var(--nx-danger)] font-sans text-xs">{errorMsg}</span>
+              <span
+                className={`${styles.terminalErrorText} text-[var(--nx-danger)] font-sans text-xs`}
+              >
+                {errorMsg}
+              </span>
             )}
 
             <VoiceCaptureButton

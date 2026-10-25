@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
@@ -39,6 +40,48 @@ func TestAGYSecretServiceIsOptIn(t *testing.T) {
 	t.Setenv("NEXUS_AGY_ENABLE_SECRET_SERVICE", "1")
 	if !agySecretServiceEnabled() {
 		t.Fatal("Secret Service opt-in was not honored")
+	}
+}
+
+func TestImportHostAuthCopiesOnlyAGYOAuthToken(t *testing.T) {
+	dataDir := t.TempDir()
+	t.Setenv("AI_CLI_DATA_DIR", dataDir)
+	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
+	hostHome := t.TempDir()
+	t.Setenv("AI_REAL_HOME", hostHome)
+	t.Setenv("HOME", hostHome)
+	tokenDir := filepath.Join(hostHome, ".gemini", "antigravity-cli")
+	if err := os.MkdirAll(tokenDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	token := `{"token":{"access_token":"access","refresh_token":"refresh","expiry":"` +
+		time.Now().Add(time.Hour).UTC().Format(time.RFC3339Nano) + `"}}`
+	source := filepath.Join(tokenDir, "antigravity-oauth-token")
+	if err := os.WriteFile(source, []byte(token), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	profile := model.Profile{Provider: "agy", Name: "imported"}
+	adapter := New()
+	copied, err := adapter.ImportHostAuth(t.Context(), profile)
+	if err != nil || !copied {
+		t.Fatalf("import = %v, %v; want true, nil", copied, err)
+	}
+	if !adapter.InspectAuth(t.Context(), profile).Authenticated {
+		t.Fatal("imported AGY profile was not authenticated")
+	}
+	home, err := config.ProfileHome("agy", profile.Name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	destination := filepath.Join(home, ".gemini", "antigravity-cli", "antigravity-oauth-token")
+	imported, err := os.ReadFile(destination)
+	if err != nil || string(imported) != token {
+		t.Fatalf("destination did not receive host token: err=%v", err)
+	}
+	unchanged, err := os.ReadFile(source)
+	if err != nil || string(unchanged) != token {
+		t.Fatalf("host AGY token changed: err=%v", err)
 	}
 }
 

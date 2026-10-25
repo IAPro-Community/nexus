@@ -2,6 +2,7 @@ package profile
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/core/model"
@@ -15,9 +16,20 @@ import (
 
 type AccountInfo = model.AccountInfo
 
+var ErrAccountStatusUnverified = errors.New("account authentication status could not be verified")
+
 // GetAccountInfo extracts authentic non-secret account identity, email, and subscription plan.
 func GetAccountInfo(providerName, name string) model.AccountInfo {
-	ctx := context.Background()
+	info, _ := GetAccountInfoContext(context.Background(), providerName, name)
+	return info
+}
+
+// GetAccountInfoContext extracts account identity while respecting the caller's
+// deadline for provider probes that may invoke a local CLI.
+func GetAccountInfoContext(ctx context.Context, providerName, name string) (model.AccountInfo, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	p := model.Profile{Provider: providerName, Name: name}
 	var info model.AccountInfo
 	switch providerName {
@@ -40,6 +52,16 @@ func GetAccountInfo(providerName, name string) model.AccountInfo {
 			Authenticated: false,
 		}
 	}
+	if err := ctx.Err(); err != nil {
+		info.Status = "Authentication status could not be verified"
+		info.Health = model.HealthUnknown
+		info.Authenticated = false
+		return info, err
+	}
+	if info.Health == model.HealthUnknown {
+		info.Authenticated = false
+		return info, ErrAccountStatusUnverified
+	}
 
 	// Keep the opaque account boundary attached to every account inspection.
 	// Codex scopes by chatgpt_account_id; other providers use email.
@@ -50,5 +72,5 @@ func GetAccountInfo(providerName, name string) model.AccountInfo {
 	if scope, err := AccountScope(providerName, name, identity); err == nil {
 		info.AccountScope = scope
 	}
-	return info
+	return info, nil
 }

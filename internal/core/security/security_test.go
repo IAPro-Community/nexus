@@ -355,3 +355,12 @@ func TestApplyIsolationSharesMissingConfigDirectory(t *testing.T) {
 		t.Fatalf("shared config = %q, want %q", got, want)
 	}
 }
+
+func TestFindHostHomeHonorsNexusRealHome(t *testing.T) {
+	hostHome := t.TempDir()
+	t.Setenv("NEXUS_REAL_HOME", hostHome)
+	t.Setenv("AI_REAL_HOME", t.TempDir())
+	if got := FindHostHome(); got != hostHome {
+		t.Fatalf("FindHostHome() = %q, want NEXUS_REAL_HOME %q", got, hostHome)
+	}
+}

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/classifier"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/authcopy"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/core/provider/versionprobe"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
@@ -209,6 +211,50 @@ func (a *Adapter) Logout(ctx context.Context, p model.Profile) error {
 	_ = os.Remove(filepath.Join(home, "auth.json"))
 	_ = os.Remove(filepath.Join(home, ".codex", "auth.json"))
 	return nil
+}
+
+// ImportHostAuth adopts the host Codex file-backed login into an isolated
+// Nexus profile. It copies only auth.json and never the host session history.
+func (a *Adapter) ImportHostAuth(ctx context.Context, p model.Profile) (bool, error) {
+	hostHome := security.FindHostHome()
+	if hostHome == "" {
+		return false, nil
+	}
+	home, err := config.ProfileHome(string(a.ID()), p.Name)
+	if err != nil {
+		return false, err
+	}
+	if err := a.Prepare(ctx, p); err != nil {
+		return false, err
+	}
+	source := filepath.Join(hostHome, ".codex", "auth.json")
+	destination := filepath.Join(home, "auth.json")
+	copied, err := authcopy.CopyValidatedFile(source, destination, validHostCodexAuth)
+	if err != nil || !copied {
+		return copied, err
+	}
+	if !a.InspectAuth(ctx, p).Authenticated {
+		return false, errors.New("host Codex session could not be verified in the Nexus profile")
+	}
+	return true, nil
+}
+
+func validHostCodexAuth(data []byte) bool {
+	var auth struct {
+		Tokens struct {
+			IDToken     string `json:"id_token"`
+			AccessToken string `json:"access_token"`
+			Refresh     string `json:"refresh_token"`
+		} `json:"tokens"`
+	}
+	if json.Unmarshal(data, &auth) != nil || strings.TrimSpace(auth.Tokens.IDToken) == "" {
+		return false
+	}
+	if strings.TrimSpace(auth.Tokens.AccessToken) == "" && strings.TrimSpace(auth.Tokens.Refresh) == "" {
+		return false
+	}
+	accountID, email, _, _ := parseCodexAuthBytes(data)
+	return accountID != "" || email != ""
 }
 
 func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.AccountInfo {

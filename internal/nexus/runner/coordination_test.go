@@ -59,6 +59,35 @@ func TestValidateCoordinationRequest(t *testing.T) {
 	}
 }
 
+func TestValidateCoordinationRequestRejectsTemplatePlaceholders(t *testing.T) {
+	base := CoordinationRequest{
+		ID:              "coord_1",
+		RunID:           "run_1",
+		SourcePackageID: "step_1",
+		Operation:       CoordinationNeedInfo,
+		Subject:         "specific auth endpoint behavior",
+		Objective:       "inspect the route and report its evidence",
+		Status:          CoordinationPending,
+	}
+
+	for name, mutate := range map[string]func(*CoordinationRequest){
+		"subject placeholder": func(req *CoordinationRequest) {
+			req.Subject = "concise question or exact memory key"
+		},
+		"objective placeholder": func(req *CoordinationRequest) {
+			req.Objective = "what is needed"
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			req := base
+			mutate(&req)
+			if err := ValidateCoordinationRequest(req); err == nil {
+				t.Fatal("template placeholder must not become durable coordination work")
+			}
+		})
+	}
+}
+
 func TestMissionRunnerCoordinationLifecycleIsDurableAndIdempotent(t *testing.T) {
 	repo := NewMemoryRunRepository()
 	r := NewMissionRunner(repo, coordinationTestExecutor{})

@@ -45,6 +45,40 @@ func TestDecomposePromptIntoFlowProposal_SimpleTask(t *testing.T) {
 	}
 }
 
+func TestDecomposePromptIntoFlowProposalDoesNotPromoteDuplicatedDirectGoal(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "DecompDuplicatedDirect", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	goal := "corrija este teste quebrado"
+
+	proposal, err := n.DecomposePromptIntoFlowProposal(context.Background(), FlowDecompositionRequest{
+		ProjectID:      project.ID,
+		Goal:           goal,
+		SourcePrompt:   goal,
+		Simple:         true,
+		DelegationMode: DelegationAuto,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(proposal.Flow.Steps) != 1 {
+		t.Fatalf("duplicate goal/source prompt must stay atomic, got %d steps", len(proposal.Flow.Steps))
+	}
+	selection, err := ReadMissionTeamSelectionFacts(proposal.Flow.StructuredFacts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !selection.Direct || selection.Preset != "" {
+		t.Fatalf("duplicate goal/source prompt was promoted to a mission team: %+v", selection)
+	}
+}
+
 func TestDecomposePromptIntoFlowProposal_UsesCompleteSourcePromptForAtomicity(t *testing.T) {
 	n := openTestNexus(t)
 	st, err := n.OpenProject()

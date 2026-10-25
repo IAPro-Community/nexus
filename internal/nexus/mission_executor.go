@@ -795,13 +795,12 @@ func missionCoordinationPromptInstructions() string {
 	return `
 
 ## Mission coordination protocol
-If this step cannot continue safely without information, an artifact, bounded delegation, or an independent review, stop before modifying files or causing external side effects and emit one line per request using exactly:
-NEXUS_COORDINATION_REQUEST: {"operation":"NEED_INFO","subject":"concise question or exact memory key","objective":"what is needed","preferred_role":"investigator","preferred_provider":"","required_capabilities":[],"artifact_refs":[]}
+Use coordination only when this step cannot continue safely without missing information, an existing artifact, bounded delegation, or an independent review. First inspect the available project context and evidence; do not ask for information already present.
 
-Allowed operations are NEED_INFO, DELEGATE, ARTIFACT_REQUEST, REVIEW_REQUEST.
-DELEGATE requires a non-empty objective.
-After emitting a coordination request, stop the turn and do not claim task completion.
-Never emit a coordination request after modifying the workspace or performing an external side effect.
+
+When a concrete request is necessary, emit one line beginning with NEXUS_COORDINATION_REQUEST: followed by a JSON object. Its required fields are operation (NEED_INFO, DELEGATE, ARTIFACT_REQUEST, or REVIEW_REQUEST) and subject (the specific question, artifact, or bounded task). Include objective with the concrete result and evidence required; preferred_role, preferred_provider, required_capabilities, and artifact_refs are optional.
+
+Every string must contain concrete request details. Never copy template text, generic labels, or placeholder values into a request. If no specific request is necessary, continue the assigned step without emitting a coordination request. A coordination request must not be emitted after modifying the workspace or performing an external side effect. After emitting one, stop the turn and do not claim task completion.
 `
 }
 

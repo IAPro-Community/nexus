@@ -72,10 +72,24 @@ type CoordinationRequest struct {
 }
 
 func validateCoordinationString(name, value string, maxBytes int) error {
-	if len(strings.TrimSpace(value)) > maxBytes {
+	value = strings.TrimSpace(value)
+	if len(value) > maxBytes {
 		return fmt.Errorf("coordination %s exceeds %d bytes", name, maxBytes)
 	}
+	if isCoordinationTemplatePlaceholder(value) {
+		return fmt.Errorf("coordination %s must contain a concrete value, not a template placeholder", name)
+	}
 	return nil
+}
+
+func isCoordinationTemplatePlaceholder(value string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	switch normalized {
+	case "concise question or exact memory key", "what is needed", "your question", "placeholder", "todo", "tbd":
+		return true
+	}
+	return (strings.HasPrefix(normalized, "<") && strings.HasSuffix(normalized, ">")) ||
+		(strings.HasPrefix(normalized, "{{") && strings.HasSuffix(normalized, "}}"))
 }
 
 func validateCoordinationList(name string, values []string) error {
@@ -85,6 +99,9 @@ func validateCoordinationList(name string, values []string) error {
 	for _, value := range values {
 		if len(strings.TrimSpace(value)) > maxCoordinationListItemBytes {
 			return fmt.Errorf("coordination %s item exceeds %d bytes", name, maxCoordinationListItemBytes)
+		}
+		if isCoordinationTemplatePlaceholder(value) {
+			return fmt.Errorf("coordination %s must contain concrete values, not template placeholders", name)
 		}
 	}
 	return nil

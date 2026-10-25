@@ -85,3 +85,51 @@ func TestInspectAuthExtractsEmail(t *testing.T) {
 		t.Fatalf("expected Email='engineer@example.com', got %q", got.Email)
 	}
 }
+
+func TestInspectAuthRecognizesSuccessfulLoginStatus(t *testing.T) {
+	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
+	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
+	invalidateCursorAuthCache("login-success")
+
+	previousStatusRun := cursorStatusRun
+	cursorStatusRun = func(context.Context, string, []string, []string, string) (string, error) {
+		return "✓ Login successful!", nil
+	}
+	t.Cleanup(func() { cursorStatusRun = previousStatusRun })
+
+	previousLookPath := spec.BinaryLookPath
+	spec.BinaryLookPath = func(name string) (string, error) {
+		return filepath.Join(t.TempDir(), name), nil
+	}
+	t.Cleanup(func() { spec.BinaryLookPath = previousLookPath })
+
+	profile := model.Profile{Provider: "cursor", Name: "login-success"}
+	info := New().InspectAuth(t.Context(), profile)
+	if !info.Authenticated {
+		t.Fatalf("successful Cursor status must be authenticated, got %+v", info)
+	}
+}
+
+func TestCursorStatusAuthenticationRequiresPositiveSignal(t *testing.T) {
+	tests := []struct {
+		name   string
+		output string
+		want   bool
+	}{
+		{name: "successful login", output: "✓ Login successful!", want: true},
+		{name: "logged in account", output: "Logged in as developer@example.test", want: true},
+		{name: "not authenticated", output: "Not authenticated", want: false},
+		{name: "unauthenticated", output: "Unauthenticated", want: false},
+		{name: "login required", output: "Not logged in. Run cursor-agent login.", want: false},
+		{name: "failed login", output: "Login failed: invalid credentials", want: false},
+		{name: "empty output", output: "", want: false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := cursorStatusAuthenticated(test.output); got != test.want {
+				t.Fatalf("cursorStatusAuthenticated(%q) = %t, want %t", test.output, got, test.want)
+			}
+		})
+	}
+}

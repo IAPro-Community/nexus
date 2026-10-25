@@ -29,6 +29,7 @@ var upgrader = websocket.Upgrader{
 
 type TerminalMessage struct {
 	Type  string `json:"type"` // "output", "input", "resize", "lease", "promotion", "trace", "error"
+	Code  string `json:"code,omitempty"`
 	Data  string `json:"data,omitempty"`
 	Rows  int    `json:"rows,omitempty"`
 	Cols  int    `json:"cols,omitempty"`
@@ -159,22 +160,6 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	}
 	traceDocsCaptureTerminalStage("pipe-connected")
 
-	compatibilityStarted := time.Now()
-	traceDocsCaptureTerminalStage("attach-validation-start")
-	if err := registry.ValidateAttachCompatibility(sess); err != nil {
-		// Preserve the process for explicit user cleanup, but make the runtime
-		// non-attachable and actionable instead of opening a silent black TTY.
-		_ = client.Close()
-		_ = reg.UpdateState(runtimeID, registry.StateStale)
-		writeError(w, http.StatusConflict, "runtime is incompatible with the current Nexus binary; recreate the session with nexus codex --yolo")
-		return
-	}
-	if os.Getenv("NEXUS_DOCS_CAPTURE") == "1" {
-		log.Printf("nexus_docs_capture_diagnostic=attach_validation_elapsed=%s", time.Since(compatibilityStarted))
-	}
-	traceDocsCaptureTerminalStage("attach-validation-finished")
-	traceDocsCaptureTerminalStage("attach-compatible")
-
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		_ = client.Close()
@@ -183,6 +168,27 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	defer ws.Close()
 	defer client.Close()
 	traceDocsCaptureTerminalStage("websocket-upgraded")
+
+	compatibilityStarted := time.Now()
+	traceDocsCaptureTerminalStage("attach-validation-start")
+	if err := registry.ValidateAttachCompatibility(sess); err != nil {
+		// Validate the WebSocket origin before changing registry state. Browser
+		// WebSocket errors hide HTTP response bodies, so return a structured
+		// protocol error after the upgrade for the UI to explain safe recovery.
+		_ = client.Close()
+		_ = reg.UpdateState(runtimeID, registry.StateStale)
+		_ = ws.WriteJSON(TerminalMessage{
+			Type: "error",
+			Code: "RUNTIME_ATTACH_INCOMPATIBLE",
+			Data: "Runtime compatibility validation failed.",
+		})
+		return
+	}
+	if os.Getenv("NEXUS_DOCS_CAPTURE") == "1" {
+		log.Printf("nexus_docs_capture_diagnostic=attach_validation_elapsed=%s", time.Since(compatibilityStarted))
+	}
+	traceDocsCaptureTerminalStage("attach-validation-finished")
+	traceDocsCaptureTerminalStage("attach-compatible")
 
 	var wsMu sync.Mutex
 	safeWriteJSON := func(v any) error {

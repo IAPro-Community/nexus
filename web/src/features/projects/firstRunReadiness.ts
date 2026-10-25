@@ -5,10 +5,19 @@ import type { ProviderInfo } from '../../types';
 export type FirstRunDetectionState = 'checking' | 'loaded' | 'unavailable';
 
 export type FirstRunReadiness = {
-  status: 'checking' | 'ready' | 'needs-account' | 'needs-login' | 'needs-provider' | 'unavailable';
-  title: string;
-  description: string;
+  status:
+    | 'checking'
+    | 'ready'
+    | 'needs-account'
+    | 'needs-login'
+    | 'verification-unknown'
+    | 'needs-provider'
+    | 'unavailable';
+  titleKey: string;
+  titleParams?: { count: number };
+  descriptionKey: string;
   suggestedProvider?: string;
+  canImportSessions: boolean;
 };
 
 type DetectedProvider = Pick<ProviderInfo, 'id' | 'installed' | 'registration_state'>;
@@ -20,16 +29,17 @@ export const deriveFirstRunReadiness = (
   if (detectionState === 'checking') {
     return {
       status: 'checking',
-      title: 'Identificando seu ambiente…',
-      description: 'Verificando provedores instalados e dependências sem alterar configurações.',
+      titleKey: 'projects.readinessCheckingTitle',
+      descriptionKey: 'projects.readinessCheckingDescription',
+      canImportSessions: false,
     };
   }
   if (detectionState === 'unavailable') {
     return {
       status: 'unavailable',
-      title: 'Não foi possível verificar os provedores',
-      description:
-        'Você ainda pode adicionar seu projeto. Tente verificar novamente quando o Nexus estiver disponível.',
+      titleKey: 'projects.readinessUnavailableTitle',
+      descriptionKey: 'projects.readinessUnavailableDescription',
+      canImportSessions: false,
     };
   }
 
@@ -40,12 +50,16 @@ export const deriveFirstRunReadiness = (
   if (authenticated.length > 0) {
     return {
       status: 'ready',
-      title:
+      titleKey:
         authenticated.length === 1
-          ? 'Conta detectada'
-          : `${authenticated.length} provedores com conta detectada`,
-      description:
-        'Já existe uma conta autenticada. Escolha a pasta do projeto e inicie sua sessão; a disponibilidade de quota será verificada separadamente.',
+          ? 'projects.readinessAuthenticatedOne'
+          : 'projects.readinessAuthenticatedMany',
+      titleParams: { count: authenticated.length },
+      descriptionKey:
+        authenticated.length < installed.length
+          ? 'projects.readinessAuthenticatedImportMore'
+          : 'projects.readinessAuthenticatedDescription',
+      canImportSessions: authenticated.length < installed.length,
     };
   }
   const pending = installed.find(
@@ -56,29 +70,69 @@ export const deriveFirstRunReadiness = (
   if (pending) {
     return {
       status: 'needs-login',
-      title: 'Conta aguardando autenticação',
-      description:
-        'Já existe um perfil deste provedor. Conclua o login da conta existente; não cadastre outro perfil.',
+      titleKey: 'projects.readinessNeedsLoginTitle',
+      descriptionKey: 'projects.readinessNeedsLoginDescription',
       suggestedProvider: pending.id,
+      canImportSessions: authenticated.length < installed.length,
+    };
+  }
+  const unverified = installed.find(
+    (provider) => provider.registration_state === 'REGISTRATION_UNKNOWN',
+  );
+  if (unverified) {
+    return {
+      status: 'verification-unknown',
+      titleKey: 'projects.readinessVerificationUnknownTitle',
+      descriptionKey: 'projects.readinessVerificationUnknownDescription',
+      suggestedProvider: unverified.id,
+      canImportSessions: true,
     };
   }
   if (installed.length > 0) {
     return {
       status: 'needs-account',
-      title:
-        installed.length === 1 ? 'Provedor instalado' : `${installed.length} provedores instalados`,
-      description:
-        'O Nexus encontrou a CLI, mas não uma conta configurada. Adicione um perfil uma única vez; o login será solicitado na seção Uso/Contas.',
+      titleKey:
+        installed.length === 1
+          ? 'projects.readinessInstalledOne'
+          : 'projects.readinessInstalledMany',
+      titleParams: { count: installed.length },
+      descriptionKey: 'projects.readinessNeedsAccountDescription',
       suggestedProvider: installed[0].id,
+      canImportSessions: true,
     };
   }
   return {
     status: 'needs-provider',
-    title: 'Nenhum provedor de IA detectado',
-    description:
-      'Instale uma CLI compatível a partir da fonte oficial e verifique novamente. O projeto e o terminal local continuam disponíveis.',
+    titleKey: 'projects.readinessNoProviderTitle',
+    descriptionKey: 'projects.readinessNoProviderDescription',
+    canImportSessions: false,
   };
 };
+
+export type HostSessionImportSummary = {
+  imported: number;
+  alreadyAuthenticated: number;
+  notImported: number;
+  unsupported: number;
+  failed: number;
+};
+
+export const summarizeHostSessionImport = (
+  results: Array<{ status: string }>,
+): HostSessionImportSummary =>
+  results.reduce<HostSessionImportSummary>(
+    (summary, result) => {
+      if (result.status === 'IMPORTED') summary.imported += 1;
+      if (result.status === 'ALREADY_AUTHENTICATED') summary.alreadyAuthenticated += 1;
+      if (result.status === 'NO_SESSION' || result.status === 'LOGIN_REQUIRED') {
+        summary.notImported += 1;
+      }
+      if (result.status === 'UNSUPPORTED') summary.unsupported += 1;
+      if (result.status === 'FAILED') summary.failed += 1;
+      return summary;
+    },
+    { imported: 0, alreadyAuthenticated: 0, notImported: 0, unsupported: 0, failed: 0 },
+  );
 
 export const OFFICIAL_PROVIDER_INSTALL_GUIDES = [
   { label: 'Codex', href: 'https://github.com/openai/codex' },

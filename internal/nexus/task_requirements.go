@@ -35,7 +35,7 @@ func ClassifyTaskRequirements(prompt string) TaskRequirements {
 		req.AcceptableRoles = []string{"security-reviewer", "reviewer", "qa"}
 		req.Domains = []string{"security", "backend"}
 		req.RequiredCapabilities = append(req.RequiredCapabilities, "security")
-	case containsAny(text, "revise este pr", "review", "regressões", "regressoes", "pull request"):
+	case containsAny(text, "revise este pr", "revisar", "revise", "revisão", "revisao", "review", "regressões", "regressoes", "pull request"):
 		req.TaskKind = "review"
 		req.Role = "reviewer"
 		req.PreferredRoles = []string{"reviewer", "qa"}

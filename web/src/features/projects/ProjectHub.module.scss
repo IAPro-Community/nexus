@@ -8,6 +8,7 @@
   display: grid;
   place-items: center;
   align-content: center;
+  align-content: safe center;
   gap: 16px;
   padding: 28px;
   background:
@@ -43,11 +44,6 @@
   align-items: center;
   gap: 10px;
 
-  > div:nth-child(2) {
-    display: grid;
-    gap: 3px;
-  }
-
   strong {
     font-size: 0.929rem;
   }
@@ -65,6 +61,12 @@
   gap: 8px;
   grid-column: 1 / -1;
   flex-wrap: wrap;
+}
+
+.createHeader > div:first-child {
+  display: grid;
+  min-width: 0;
+  gap: var(--nx-space-1, 4px);
 }
 
 .osActions {

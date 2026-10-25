@@ -7,6 +7,9 @@ import {
   directQuotaDisplay,
   directQuotaPercent,
   eligibleDirectResources,
+  recommendedDirectAccountId,
+  directResourcePolicy,
+  directSchedulerContext,
   quotaTruthState,
 } from './directSessionModel';
 
@@ -160,4 +163,75 @@ describe('direct session model', () => {
       expect(directQuotaDisplay({ quota_remaining: 0, quota_view: view })).toBeNull();
     },
   );
+});
+
+describe('scheduler-authoritative Direct selection', () => {
+  const accounts = [
+    {
+      id: 'codex-default',
+      provider: 'codex',
+      profile: 'default',
+      authenticated: true,
+      available: true,
+    },
+    {
+      id: 'claude-work',
+      provider: 'claude',
+      profile: 'work',
+      authenticated: true,
+      available: true,
+    },
+  ];
+  it('uses backend recommendation rather than first/alphabetical account', () => {
+    expect(
+      recommendedDirectAccountId(accounts, { recommended: { account: { id: 'claude-work' } } }),
+    ).toBe('claude-work');
+  });
+  it('does not invent a selection for missing or ineligible recommendation', () => {
+    expect(
+      recommendedDirectAccountId(accounts, { recommended: { account: { id: 'missing' } } }),
+    ).toBe('');
+    expect(recommendedDirectAccountId(accounts, null)).toBe('');
+  });
+});
+
+describe('project resource policy normalization', () => {
+  it('supports a legacy enum and a project JSON configuration', () => {
+    expect(directResourcePolicy('PRESERVE_QUOTA')).toBe('PRESERVE_QUOTA');
+    expect(directResourcePolicy('{"policy":"PREFER_PROVIDER"}')).toBe('PREFER_PROVIDER');
+    expect(directResourcePolicy('{"scheduler_policy":"PRESERVE_QUOTA"}')).toBe('PRESERVE_QUOTA');
+  });
+  it('fails to BALANCED on unknown, malformed or empty policy', () => {
+    expect(directResourcePolicy('{}')).toBe('BALANCED');
+    expect(directResourcePolicy('{broken')).toBe('BALANCED');
+    expect(directResourcePolicy('CUSTOM')).toBe('BALANCED');
+  });
+});
+
+describe('effective Direct scheduler context', () => {
+  it('passes configured provider affinity into the existing scheduler policy', () => {
+    expect(
+      directSchedulerContext('{"policy":"PREFER_PROVIDER","prefer_provider":"codex"}'),
+    ).toEqual({
+      policy: 'PREFER_PROVIDER',
+      preferProvider: 'codex',
+    });
+    expect(directSchedulerContext('{"policy":"BALANCED"}', 'Claude')).toEqual({
+      policy: 'PREFER_PROVIDER',
+      preferProvider: 'claude',
+    });
+  });
+  it('does not claim a preference when the policy provides no provider', () => {
+    expect(directSchedulerContext('{"policy":"PREFER_PROVIDER"}')).toEqual({
+      policy: 'BALANCED',
+      preferProvider: '',
+    });
+    expect(directSchedulerContext('{}')).toEqual({ policy: 'BALANCED', preferProvider: '' });
+  });
+  it('rejects invalid provider tokens instead of forwarding unchecked affinity', () => {
+    expect(directSchedulerContext('{"prefer_provider":"evil provider"}')).toEqual({
+      policy: 'BALANCED',
+      preferProvider: '',
+    });
+  });
 });

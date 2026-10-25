@@ -197,6 +197,53 @@ func TestOpenCode_Prepare_CopiesHostAuth(t *testing.T) {
 	}
 }
 
+func TestOpenCode_ImportHostAuthConfirmsIsolatedCopy(t *testing.T) {
+	stubOpenCodeBinary(t)
+	dataDir := t.TempDir()
+	t.Setenv("AI_DATA_DIR", dataDir)
+	t.Setenv("NEXUS_DATA_DIR", dataDir)
+	hostHome := t.TempDir()
+	t.Setenv("HOME", hostHome)
+	t.Setenv("NEXUS_REAL_HOME", hostHome)
+	authDir := filepath.Join(hostHome, ".local", "share", "opencode")
+	if err := os.MkdirAll(authDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := json.Marshal(map[string]any{
+		"anthropic": map[string]string{"type": "api", "key": "anthropic-host-key"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := filepath.Join(authDir, "auth.json")
+	if err := os.WriteFile(source, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	profile := model.Profile{Provider: "opencode", Name: "imported"}
+	adapter := New()
+	copied, err := adapter.ImportHostAuth(t.Context(), profile)
+	if err != nil || !copied {
+		t.Fatalf("import = %v, %v; want true, nil", copied, err)
+	}
+	if !adapter.InspectAuth(t.Context(), profile).Authenticated {
+		t.Fatal("imported OpenCode profile was not authenticated")
+	}
+	home, err := config.ProfileHome("opencode", profile.Name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	destination := filepath.Join(home, ".local", "share", "opencode", "auth.json")
+	imported, err := os.ReadFile(destination)
+	if err != nil || string(imported) != string(raw) {
+		t.Fatalf("destination did not receive host auth: err=%v", err)
+	}
+	unchanged, err := os.ReadFile(source)
+	if err != nil || string(unchanged) != string(raw) {
+		t.Fatalf("host OpenCode auth changed: err=%v", err)
+	}
+}
+
 // TestOpenCode_InspectAuth_BinaryMissingFailsClosed proves an installed
 // credential without a launchable binary is reported unavailable instead of
 // healthy: absence of the binary must never read as authenticated.

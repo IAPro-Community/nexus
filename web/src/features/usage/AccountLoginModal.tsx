@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Check, Copy, Cpu, Globe, KeyRound, RefreshCw, Sparkles, Terminal } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, Dialog } from '../../design-system';
+import { providerLoginCommand } from '../../lib/providerLoginCommand';
 import { nexus } from '../../nexus/api';
 import type { ProviderAccount } from '../../types';
 import { isProviderLoginVerified } from './providerLoginVerification';
@@ -32,7 +33,7 @@ export const AccountLoginModal: React.FC<AccountLoginModalProps> = ({
   const provider = account.provider || 'codex';
   const profile = account.profile || 'default';
   const isOpencode = provider.toLowerCase() === 'opencode';
-  const cliCommand = `nexus login ${provider} ${profile}`;
+  const cliCommand = providerLoginCommand(provider, profile);
 
   const activeProvider =
     account.quota_view?.account ||

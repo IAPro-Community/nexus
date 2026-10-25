@@ -19,7 +19,12 @@ import { getRepositoryPathPlaceholderKey } from './repositoryPathPlaceholder';
 import styles from './ProjectHub.module.scss';
 import { RegisterProviderModal } from '../usage/RegisterProviderModal';
 import { AccountLoginModal } from '../usage/AccountLoginModal';
-import { deriveFirstRunReadiness, OFFICIAL_PROVIDER_INSTALL_GUIDES } from './firstRunReadiness';
+import {
+  deriveFirstRunReadiness,
+  OFFICIAL_PROVIDER_INSTALL_GUIDES,
+  summarizeHostSessionImport,
+  type HostSessionImportSummary,
+} from './firstRunReadiness';
 
 export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = ({ onCreated }) => {
   const { t } = useTranslation();
@@ -36,6 +41,10 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
   const [loginAccount, setLoginAccount] = useState<ProviderAccount | null>(null);
   const [loginBusy, setLoginBusy] = useState(false);
   const [setupError, setSetupError] = useState('');
+  const [importingSessions, setImportingSessions] = useState(false);
+  const [sessionImportSummary, setSessionImportSummary] = useState<HostSessionImportSummary | null>(
+    null,
+  );
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [doctor, setDoctor] = useState<SystemDoctorReport | null>(null);
   const [detectionState, setDetectionState] = useState<'checking' | 'loaded' | 'unavailable'>(
@@ -78,10 +87,7 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
       if (account) {
         setLoginAccount(account);
       } else {
-        setSetupError(
-          'Ainda não foi possível localizar esse perfil em Uso/Contas. ' +
-            'Verifique novamente ou use nexus profiles no terminal para identificar o perfil.',
-        );
+        setSetupError(t('projects.readinessProfileMissing'));
       }
     } catch (err) {
       setSetupError(err instanceof Error ? err.message : String(err));
@@ -96,6 +102,20 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
       (check.id === 'platform.webview2' || check.id === 'platform.webkitgtk') &&
       (check.status === 'WARN' || check.status === 'FAIL'),
   );
+
+  const importHostSessions = async () => {
+    setSetupError('');
+    setImportingSessions(true);
+    try {
+      const result = await nexus.importHostSessions();
+      setSessionImportSummary(summarizeHostSessionImport(result.results || []));
+      await detectEnvironment();
+    } catch (err) {
+      setSetupError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setImportingSessions(false);
+    }
+  };
 
   const create = async (customPath?: string, customName?: string) => {
     const targetPath = (customPath || path).trim();
@@ -218,21 +238,49 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
               ) : (
                 <AlertCircle size={17} aria-hidden="true" />
               )}
-              Ambiente de execução
+              {t('projects.readinessEnvironment')}
             </span>
-            <Button size="sm" tone="ghost" onClick={() => void detectEnvironment()}>
+            <Button
+              size="sm"
+              tone="ghost"
+              onClick={() => {
+                setSessionImportSummary(null);
+                void detectEnvironment();
+              }}
+            >
               <RefreshCw size={13} aria-hidden="true" />
-              Verificar novamente
+              {t('projects.readinessVerifyAgain')}
             </Button>
           </div>
           <div role="status" aria-live="polite" className={styles.readinessMessage}>
-            <strong>{readiness.title}</strong>
-            <p>{readiness.description}</p>
+            <strong>{t(readiness.titleKey, readiness.titleParams)}</strong>
+            <p>{t(readiness.descriptionKey)}</p>
           </div>
+          {readiness.canImportSessions && (
+            <>
+              <p className={styles.readinessMessage}>{t('projects.readinessImportExplanation')}</p>
+              <Button
+                size="sm"
+                tone="brand"
+                disabled={importingSessions || detectionState === 'checking'}
+                onClick={() => void importHostSessions()}
+              >
+                <RefreshCw size={14} aria-hidden="true" />
+                {importingSessions
+                  ? t('projects.readinessImporting')
+                  : t('projects.readinessImportButton')}
+              </Button>
+            </>
+          )}
+          {sessionImportSummary && (
+            <p role="status" className={styles.readinessMessage}>
+              {t('projects.readinessImportResult', sessionImportSummary)}
+            </p>
+          )}
           {readiness.status === 'needs-account' && readiness.suggestedProvider && (
             <Button size="sm" tone="brand" onClick={() => setAccountModalOpen(true)}>
               <Plus size={14} aria-hidden="true" />
-              Adicionar conta {readiness.suggestedProvider}
+              {t('projects.readinessAddAccount', { provider: readiness.suggestedProvider })}
             </Button>
           )}
           {readiness.status === 'needs-login' && (
@@ -242,12 +290,12 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
               disabled={loginBusy}
               onClick={() => void openExistingLogin(readiness.suggestedProvider)}
             >
-              Concluir login da conta existente
+              {t('projects.readinessCompleteLogin')}
             </Button>
           )}
           {readiness.status === 'needs-provider' && (
             <div className={styles.installGuides}>
-              <span>Instalação oficial:</span>
+              <span>{t('projects.readinessOfficialInstall')}</span>
               {OFFICIAL_PROVIDER_INSTALL_GUIDES.map((guide) => (
                 <a key={guide.label} href={guide.href} target="_blank" rel="noopener noreferrer">
                   {guide.label}
@@ -261,10 +309,7 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
             </p>
           )}
           {desktopPrerequisite && (
-            <p className={styles.readinessWarning}>
-              Desktop: dependência nativa ainda não confirmada. O terminal e o navegador podem
-              continuar disponíveis; consulte o diagnóstico do sistema.
-            </p>
+            <p className={styles.readinessWarning}>{t('projects.readinessDesktopPrerequisite')}</p>
           )}
         </Card>
 

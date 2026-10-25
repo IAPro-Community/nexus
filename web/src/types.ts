@@ -169,6 +169,21 @@ export interface RegisteredProfile {
   account_scope?: AccountScope;
 }
 
+export type HostSessionImportStatus =
+  | 'IMPORTED'
+  | 'ALREADY_AUTHENTICATED'
+  | 'NO_SESSION'
+  | 'LOGIN_REQUIRED'
+  | 'UNSUPPORTED'
+  | 'FAILED'
+  | 'NOT_INSTALLED';
+
+export interface HostSessionImportResult {
+  provider: string;
+  profile?: string;
+  status: HostSessionImportStatus;
+}
+
 export interface ProviderAccount {
   id: string;
   provider: string;
@@ -784,6 +799,16 @@ export interface FSInspectResult {
   tech: string[];
 }
 
+export interface GitWorktree {
+  path: string;
+  head: string;
+  branch: string;
+  is_primary: boolean;
+  detached: boolean;
+  locked: boolean;
+  prunable: boolean;
+}
+
 export interface GitBranchesResult {
   project_id: string;
   canonical_path: string;
@@ -793,6 +818,8 @@ export interface GitBranchesResult {
   remote_branches: string[];
   is_clean: boolean;
   modified_count: number;
+  worktrees?: GitWorktree[];
+  worktrees_available?: boolean;
 }
 
 export interface GitCheckoutResult {

@@ -2,6 +2,7 @@ package cursor
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -44,6 +45,62 @@ var (
 	cursorAuthCacheMu sync.Mutex
 	cursorStatusRun   = runtime.RunCommandCapture
 )
+
+func cursorStatusAuthenticated(output string) bool {
+	text := strings.ToLower(strings.TrimSpace(output))
+	if text == "" {
+		return false
+	}
+
+	for _, marker := range []string{
+		"not authenticated",
+		"unauthenticated",
+		"not logged in",
+		"logged out",
+		"login required",
+		"authentication required",
+		"please login",
+		"please log in",
+	} {
+		if strings.Contains(text, marker) {
+			return false
+		}
+	}
+
+	for _, marker := range []string{
+		"login successful",
+		"logged in as",
+		"authentication successful",
+		"authenticated",
+	} {
+		if strings.Contains(text, marker) {
+			return true
+		}
+	}
+	return false
+}
+
+func cursorStatusUnauthenticated(output string) bool {
+	text := strings.ToLower(strings.TrimSpace(output))
+	if text == "" {
+		return false
+	}
+	for _, marker := range []string{
+		"not authenticated",
+		"unauthenticated",
+		"not logged in",
+		"logged out",
+		"login required",
+		"authentication required",
+		"please login",
+		"please log in",
+	} {
+		if strings.Contains(text, marker) {
+			return true
+		}
+	}
+	return false
+}
 
 func cursorBinary() (string, error) {
 	return spec.MustGet("cursor").ResolveBinary()
@@ -138,8 +195,12 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 	statusCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
 	defer cancel()
 	out, err := cursorStatusRun(statusCtx, bin, []string{"status"}, env, "")
-	text := strings.ToLower(out)
-	if err == nil && !strings.Contains(text, "not authenticated") && !strings.Contains(text, "login") {
+	if err != nil && (errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)) {
+		info.Status = "Authentication status could not be verified"
+		info.Health = model.HealthUnknown
+		return info
+	}
+	if err == nil && cursorStatusAuthenticated(out) {
 		info.Authenticated = true
 		info.Status = "Authenticated"
 		info.Health = model.HealthHealthy
@@ -153,6 +214,11 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 				}
 			}
 		}
+	}
+	if !info.Authenticated && !cursorStatusUnauthenticated(out) {
+		info.Status = "Authentication status could not be verified"
+		info.Health = model.HealthUnknown
+		return info
 	}
 
 	cursorAuthCacheMu.Lock()

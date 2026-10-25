@@ -684,7 +684,8 @@ func (h *NexusHandler) handleRunDetail(w http.ResponseWriter, r *http.Request) {
 		OptionID       string `json:"option_id"`
 		ResolvedBy     string `json:"resolved_by"`
 	}
-	_ = json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body)
+	decoder := json.NewDecoder(io.LimitReader(r.Body, 1<<20))
+	decodeErr := decoder.Decode(&body)
 	var (
 		run *runner.MissionRun
 		err error
@@ -701,7 +702,16 @@ func (h *NexusHandler) handleRunDetail(w http.ResponseWriter, r *http.Request) {
 	case "cancel":
 		run, err = h.runs.Cancel(r.Context(), runID, firstNonEmpty(body.Reason, "canceled by user"))
 	case "resolve-intervention":
-		if body.InterventionID == "" || body.OptionID == "" {
+		if decodeErr != nil {
+			writeError(w, http.StatusBadRequest, "invalid body")
+			return
+		}
+		var trailing any
+		if err := decoder.Decode(&trailing); err != io.EOF {
+			writeError(w, http.StatusBadRequest, "invalid body")
+			return
+		}
+		if strings.TrimSpace(body.InterventionID) == "" || body.Version < 1 || strings.TrimSpace(body.OptionID) == "" {
 			writeError(w, http.StatusBadRequest, "intervention_id, version and option_id are required")
 			return
 		}
@@ -932,10 +942,17 @@ func (h *NexusHandler) handleAttentionCenter(w http.ResponseWriter, r *http.Requ
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
-	group, err := h.runs.Attention(r.Context())
+	group, err := h.runs.AttentionFiltered(r.Context(), attentionFilterFromRequest(r))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	writeJSON(w, http.StatusOK, group)
+}
+
+func attentionFilterFromRequest(r *http.Request) runner.AttentionFilter {
+	return runner.AttentionFilter{
+		ProjectID: strings.TrimSpace(r.URL.Query().Get("project_id")),
+		MissionID: strings.TrimSpace(r.URL.Query().Get("mission_id")),
+	}
 }

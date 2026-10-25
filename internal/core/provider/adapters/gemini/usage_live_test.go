@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/provider/oauthutil"
 )
@@ -69,6 +70,53 @@ func TestGeminiUsageKillSwitchReturnsUnknownWithoutUsageJSONPassthrough(t *testi
 	snapshot := New().RefreshUsage(context.Background(), model.Profile{Name: "disabled"})
 	if snapshot.Status != model.UsageUnknown || snapshot.Source != model.SourceNone {
 		t.Fatalf("kill switch returned invented usage: %+v", snapshot)
+	}
+}
+
+func TestImportHostAuthCopiesGeminiOAuthToIsolatedProfile(t *testing.T) {
+	dataDir := t.TempDir()
+	t.Setenv("AI_CLI_DATA_DIR", dataDir)
+	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
+	hostHome := t.TempDir()
+	t.Setenv("AI_REAL_HOME", hostHome)
+	t.Setenv("HOME", hostHome)
+	hostGemini := filepath.Join(hostHome, ".gemini")
+	if err := os.MkdirAll(hostGemini, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := json.Marshal(map[string]any{
+		"access_token": "access", "refresh_token": "refresh",
+		"expiry_date": time.Now().Add(time.Hour).UnixMilli(),
+		"id_token":    "synthetic-id-token", "scope": "openid email", "token_type": "Bearer",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := filepath.Join(hostGemini, "oauth_creds.json")
+	if err := os.WriteFile(source, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	profile := model.Profile{Provider: "gemini", Name: "imported"}
+	adapter := New()
+	copied, err := adapter.ImportHostAuth(t.Context(), profile)
+	if err != nil || !copied {
+		t.Fatalf("import = %v, %v; want true, nil", copied, err)
+	}
+	if !adapter.InspectAuth(t.Context(), profile).Authenticated {
+		t.Fatal("imported Gemini profile was not authenticated")
+	}
+	home, err := config.ProfileHome("gemini", profile.Name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	imported, err := os.ReadFile(filepath.Join(home, ".gemini", "oauth_creds.json"))
+	if err != nil || string(imported) != string(raw) {
+		t.Fatalf("destination did not receive host credentials: err=%v", err)
+	}
+	unchanged, err := os.ReadFile(source)
+	if err != nil || string(unchanged) != string(raw) {
+		t.Fatalf("host Gemini credentials changed: err=%v", err)
 	}
 }
 

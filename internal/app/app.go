@@ -490,7 +490,8 @@ func usage() {
   %s add <provider> [name]        Add a new provider authentication profile
   %s remove <provider> <name>     Remove an existing profile
   %s rename <provider> <old> <new> Rename a configured provider profile
-  %s login / logout <p> <name>    Run provider official login/logout flow
+  %s login <provider> [name]      Run provider official login flow; defaults to the provider profile
+  %s logout <provider> <name>     Run provider official logout flow
   %s use <provider> <name>        Set default active profile for provider
   %s status [provider[:profile]]  Display profile health, plan and account status
   %s usage [--json] [--refresh]   Searchable quota table; --json for integrations; --refresh for live CLI fetch
@@ -540,7 +541,7 @@ Merged Help:
 		p, p, p, p, p, p, p, p, p, p, p,
 		p, p, p,
 		p, p, p, p, p, p, p, p, p, p, p, p, p, p, p, p, p, p, p, p, p,
-		p,
+		p, p,
 	)
 	fmt.Print(localization.HumanizeHelp(body))
 	fmt.Println(localization.T("help.language"))
@@ -856,11 +857,21 @@ func renameCmd(args []string) error {
 	return profile.Rename(args[0], args[1], args[2])
 }
 
-func loginCmd(args []string) error {
-	if len(args) != 2 {
-		return fmt.Errorf("usage: %s login <provider> <name>", progName())
+func resolveLoginTarget(args []string) (string, string, error) {
+	if len(args) == 1 {
+		return args[0], args[0], nil
 	}
-	prov, name := args[0], args[1]
+	if len(args) == 2 {
+		return args[0], args[1], nil
+	}
+	return "", "", fmt.Errorf("usage: %s login <provider> [name]", progName())
+}
+
+func loginCmd(args []string) error {
+	prov, name, err := resolveLoginTarget(args)
+	if err != nil {
+		return err
+	}
 	if !profile.Exists(prov, name) {
 		return fmt.Errorf("profile %s:%s does not exist", prov, name)
 	}
@@ -1643,7 +1654,7 @@ func runCmd(args []string) error {
 	// task form executable: nexus run "corrija a UI React". The task form
 	// enters the same Flow -> AgentMatcher -> ResourceScheduler -> runtime
 	// pipeline used by the control plane.
-	if !isSupportedProvider(args[0]) && !strings.Contains(args[0], ":") {
+	if !isRunProviderInvocation(args) {
 		if args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
 			fmt.Printf("usage: %s run <goal>\n       %s run <provider> [profile] [--] [args...]\n", progName(), progName())
 			return nil
@@ -1662,6 +1673,18 @@ func runCmd(args []string) error {
 		rest = rest[1:]
 	}
 	return executeProviderWithSmartSelection(prov, prof, trimDashDash(rest))
+}
+
+func isRunProviderInvocation(args []string) bool {
+	if len(args) == 0 {
+		return false
+	}
+	if isSupportedProvider(args[0]) {
+		return true
+	}
+	providerID, profileName, hasProfile := strings.Cut(args[0], ":")
+	return hasProfile && isSupportedProvider(providerID) && profileName != "" &&
+		strings.TrimSpace(profileName) == profileName && !strings.ContainsAny(profileName, " \t\r\n")
 }
 
 func runGoalCmd(args []string) error {

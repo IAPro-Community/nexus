@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, GitBranch, Plus, RefreshCw } from 'lucide-react';
+import { linkedGitWorktrees, linkedWorktreeForBranch } from './gitWorktrees';
+import styles from './BranchSwitcherModal.module.scss';
 import {
   Button,
   Dialog,
@@ -85,6 +87,7 @@ export const BranchSwitcherModal: React.FC<BranchSwitcherModalProps> = ({
   const currentBranch = data?.current_branch || project.default_branch || 'main';
   const allBranches = data?.branches || [currentBranch];
   const filtered = allBranches.filter((b) => b.toLowerCase().includes(search.toLowerCase().trim()));
+  const linkedWorktrees = linkedGitWorktrees(data?.worktrees);
 
   return (
     <Dialog open={open} onClose={onClose} title={`${t('git.switchBranch')} · ${project.name}`}>
@@ -179,6 +182,7 @@ export const BranchSwitcherModal: React.FC<BranchSwitcherModalProps> = ({
             <ul className="nx-branch-items" role="listbox" aria-label={t('git.branchesAriaLabel')}>
               {filtered.map((branch) => {
                 const isActive = branch === currentBranch;
+                const occupied = linkedWorktreeForBranch(linkedWorktrees, branch);
                 return (
                   <li key={branch}>
                     <button
@@ -187,12 +191,20 @@ export const BranchSwitcherModal: React.FC<BranchSwitcherModalProps> = ({
                       aria-selected={isActive}
                       className={`nx-branch-item ${isActive ? 'nx-branch-item--active' : ''}`}
                       onClick={() => handleCheckout(branch, false)}
-                      disabled={switching}
+                      disabled={switching || isActive || Boolean(occupied)}
+                      title={
+                        occupied
+                          ? t('git.branchInWorktreePath', { path: occupied.path })
+                          : undefined
+                      }
                     >
                       <div className="nx-branch-item-name">
                         <GitBranch size={13} className="nx-branch-icon" />
                         <span className="nx-branch-text">{branch}</span>
                       </div>
+                      {occupied && (
+                        <span className={styles.occupiedBadge}>{t('git.branchInWorktree')}</span>
+                      )}
                       {isActive && (
                         <span className="nx-branch-active-badge">
                           <Check size={12} /> {t('git.active')}
@@ -205,6 +217,35 @@ export const BranchSwitcherModal: React.FC<BranchSwitcherModalProps> = ({
             </ul>
           )}
         </div>
+
+        {data?.worktrees_available === false && (
+          <InlineAlert tone="warning">{t('git.worktreesUnavailable')}</InlineAlert>
+        )}
+
+        {linkedWorktrees.length > 0 && (
+          <section className={styles.worktreeSection} aria-label={t('git.linkedWorktrees')}>
+            <div className={styles.worktreeHeading}>
+              <strong>{t('git.linkedWorktrees')}</strong>
+              <span>{linkedWorktrees.length}</span>
+            </div>
+            <p className={styles.worktreeHint}>{t('git.worktreeReadOnlyHint')}</p>
+            <ul className={styles.worktreeList}>
+              {linkedWorktrees.map((worktree) => (
+                <li key={worktree.path} className={styles.worktreeRow}>
+                  <span className={styles.worktreeBranch}>
+                    <GitBranch size={13} aria-hidden />
+                    {worktree.detached ? t('git.detachedHead') : worktree.branch}
+                    {worktree.locked && <Badge tone="warning">{t('git.worktreeLocked')}</Badge>}
+                    {worktree.prunable && <Badge tone="warning">{t('git.worktreePrunable')}</Badge>}
+                  </span>
+                  <code className={styles.worktreePath} title={worktree.path}>
+                    {worktree.path}
+                  </code>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {/* Remote branches hint */}
         {data && data.remote_branches && data.remote_branches.length > 0 && (

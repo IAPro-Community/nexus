@@ -116,6 +116,9 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
     if (prov.registration_state === 'PENDING_AUTH') {
       return <Badge tone="warning">{t('usage.pendingAuthBadge')}</Badge>;
     }
+    if (prov.registration_state === 'REGISTRATION_UNKNOWN') {
+      return <Badge tone="warning">{t('usage.verificationUnknownBadge')}</Badge>;
+    }
     return <Badge tone="brand">{t('usage.unregisteredBadge')}</Badge>;
   };
 

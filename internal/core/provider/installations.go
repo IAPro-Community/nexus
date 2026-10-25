@@ -17,6 +17,7 @@ type RegistrationState string
 
 const (
 	InstalledUnregistered   RegistrationState = "INSTALLED_UNREGISTERED"
+	RegistrationUnknown     RegistrationState = "REGISTRATION_UNKNOWN"
 	PendingAuth             RegistrationState = "PENDING_AUTH"
 	RegisteredAuthenticated RegistrationState = "REGISTERED_AUTHENTICATED"
 	RegisteredAuthExpired   RegistrationState = "REGISTERED_AUTH_EXPIRED"

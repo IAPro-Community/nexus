@@ -12,6 +12,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/classifier"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/authcopy"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/core/security"
 	"github.com/IAPro-Community/nexus/internal/runtime"
@@ -76,19 +77,15 @@ func (a *Adapter) Prepare(ctx context.Context, p model.Profile) error {
 		}
 	}
 
-	// Copy host auth.json into profile if profile does not have one yet
+	// Import only a recognized host provider credential, never arbitrary JSON.
 	profileAuth := filepath.Join(home, ".local", "share", "opencode", "auth.json")
-	if _, err := os.Stat(profileAuth); os.IsNotExist(err) {
-		hostHome := config.BaseHome()
-		if hostHome == "" {
-			hostHome, _ = os.UserHomeDir()
-		}
-		if hostHome != "" {
-			hostAuth := filepath.Join(hostHome, ".local", "share", "opencode", "auth.json")
-			if hostData, rerr := os.ReadFile(hostAuth); rerr == nil && len(hostData) > 0 {
-				_ = os.WriteFile(profileAuth, hostData, 0600)
-			}
-		}
+	hostHome := config.BaseHome()
+	if hostHome == "" {
+		hostHome, _ = os.UserHomeDir()
+	}
+	if hostHome != "" {
+		hostAuth := filepath.Join(hostHome, ".local", "share", "opencode", "auth.json")
+		_, _ = authcopy.CopyValidatedFile(hostAuth, profileAuth, validHostOpenCodeAuth)
 	}
 
 	cfgObj, _ := config.LoadConfig()
@@ -97,6 +94,55 @@ func (a *Adapter) Prepare(ctx context.Context, p model.Profile) error {
 		return err
 	}
 	return os.MkdirAll(filepath.Join(home, ".config", "opencode"), 0700)
+}
+
+// ImportHostAuth reports an OpenCode host session only after Prepare has copied
+// a recognized auth entry into the isolated profile home.
+func (a *Adapter) ImportHostAuth(ctx context.Context, p model.Profile) (bool, error) {
+	hostHome := config.BaseHome()
+	if hostHome == "" {
+		hostHome, _ = os.UserHomeDir()
+	}
+	if hostHome == "" {
+		return false, nil
+	}
+	hostAuth := filepath.Join(hostHome, ".local", "share", "opencode", "auth.json")
+	validHost, err := authcopy.ReadValidatedFile(hostAuth, validHostOpenCodeAuth)
+	if err != nil || !validHost {
+		return false, err
+	}
+	if err := a.Prepare(ctx, p); err != nil {
+		return false, err
+	}
+	home, err := config.ProfileHome(string(a.ID()), p.Name)
+	if err != nil {
+		return false, err
+	}
+	profileAuth := filepath.Join(home, ".local", "share", "opencode", "auth.json")
+	validProfile, err := authcopy.ReadValidatedFile(profileAuth, validHostOpenCodeAuth)
+	if err != nil {
+		return false, err
+	}
+	if !validProfile {
+		if _, err := os.Lstat(profileAuth); err == nil {
+			return false, authcopy.ErrDestinationExists
+		}
+		return false, nil
+	}
+	return a.InspectAuth(ctx, p).Authenticated, nil
+}
+
+func validHostOpenCodeAuth(data []byte) bool {
+	var auth openCodeAuthFile
+	if json.Unmarshal(data, &auth) != nil {
+		return false
+	}
+	for _, entry := range auth {
+		if firstNonEmpty(entry.Key, entry.Token, entry.Access) != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (model.Failure, error) {
@@ -194,17 +240,7 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 	}
 
 	authFile := filepath.Join(home, ".local", "share", "opencode", "auth.json")
-	data, err := os.ReadFile(authFile)
-	if err != nil {
-		hostHome := config.BaseHome()
-		if hostHome == "" {
-			hostHome, _ = os.UserHomeDir()
-		}
-		if hostHome != "" {
-			hostAuthFile := filepath.Join(hostHome, ".local", "share", "opencode", "auth.json")
-			data, _ = os.ReadFile(hostAuthFile)
-		}
-	}
+	data, _ := os.ReadFile(authFile)
 
 	if len(data) > 0 {
 		var auth openCodeAuthFile

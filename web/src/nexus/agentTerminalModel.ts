@@ -89,12 +89,16 @@ export function shouldAutoRecoverAgentTerminal(openedOnce: boolean, lastError?: 
 }
 
 export type TerminalAttachFailure =
+  | { kind: 'runtime_incompatible' }
   | { kind: 'fatal_with_detail'; detail: string }
   | { kind: 'with_detail'; detail: string }
   | { kind: 'generic' };
 
 /** Classifies an attach failure so the UI translates the hint at render time. */
-export function terminalAttachFailure(detail?: string): TerminalAttachFailure {
+export function terminalAttachFailure(detail?: string, code?: string): TerminalAttachFailure {
+  if (code === 'RUNTIME_ATTACH_INCOMPATIBLE') {
+    return { kind: 'runtime_incompatible' };
+  }
   const trimmed = (detail || '').trim();
   if (trimmed && isFatalTerminalAttachError(trimmed)) {
     return { kind: 'fatal_with_detail', detail: trimmed };

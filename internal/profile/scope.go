@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
@@ -40,8 +41,10 @@ func AccountScope(provider, profileName, authenticatedIdentity string) (model.Ac
 	path := filepath.Join(root, "account-scope.json")
 	var record scopeRecord
 	if data, readErr := os.ReadFile(path); readErr == nil {
-		if err := json.Unmarshal(data, &record); err != nil {
-			return model.AccountScope{}, fmt.Errorf("read account scope: %w", err)
+		if len(strings.TrimSpace(string(data))) > 0 {
+			if err := json.Unmarshal(data, &record); err != nil {
+				return model.AccountScope{}, fmt.Errorf("read account scope: %w", err)
+			}
 		}
 	}
 	record.IdentityHistory = normalizeScopeIdentityHistory(record.IdentityHistory)
@@ -65,7 +68,12 @@ func AccountScope(provider, profileName, authenticatedIdentity string) (model.Ac
 	if err != nil {
 		return model.AccountScope{}, err
 	}
-	if err := os.WriteFile(path, append(data, '\n'), 0600); err != nil {
+	tempPath := filepath.Join(root, fmt.Sprintf("account-scope.tmp.%d", time.Now().UnixNano()))
+	if err := os.WriteFile(tempPath, append(data, '\n'), 0600); err != nil {
+		return model.AccountScope{}, err
+	}
+	if err := os.Rename(tempPath, path); err != nil {
+		_ = os.Remove(tempPath)
 		return model.AccountScope{}, err
 	}
 	// Keep the durable local account id for future registration, but do not
@@ -131,7 +139,7 @@ func persistedScopeContainsIdentity(provider, profileName, accountID, identity s
 		return false
 	}
 	data, err := os.ReadFile(filepath.Join(root, "account-scope.json"))
-	if err != nil {
+	if err != nil || len(strings.TrimSpace(string(data))) == 0 {
 		return false
 	}
 	var record scopeRecord

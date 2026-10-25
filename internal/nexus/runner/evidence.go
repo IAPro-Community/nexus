@@ -406,7 +406,7 @@ func validateMissionRunLifecycle(run *MissionRun) error {
 			return fmt.Errorf("BLOCKED_NEEDS_USER intervention contains an invalid option")
 		}
 		switch option.Operation {
-		case InterventionRetrySafePackage, InterventionReplanPackage, InterventionConfirmExternalOutcome:
+		case InterventionRetrySafePackage, InterventionReplanPackage, InterventionConfirmExternalOutcome, InterventionVerifyCompletedWithoutReplay:
 		default:
 			return fmt.Errorf("BLOCKED_NEEDS_USER intervention contains unsupported option %q", option.Operation)
 		}

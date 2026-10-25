@@ -9,20 +9,32 @@ import (
 )
 
 type interventionSideEffectExecutor struct {
-	executed int
+	executed                 int
+	allocated                int
+	compiled                 int
+	coordinationRequests     []CoordinationRequest
+	coordinationReplaySafe   bool
+	coordinationUnsafeReason string
 }
 
 func (e *interventionSideEffectExecutor) Allocate(context.Context, *MissionRun, *PackageRun) (AllocationResult, error) {
+	e.allocated++
 	return AllocationResult{AgentID: "agent-1", Workspace: "."}, nil
 }
 
 func (e *interventionSideEffectExecutor) Compile(context.Context, *MissionRun, *PackageRun) (PromptArtifact, error) {
+	e.compiled++
 	return PromptArtifact{VersionID: "prompt-1", Content: "resume"}, nil
 }
 
 func (e *interventionSideEffectExecutor) Execute(context.Context, *MissionRun, *PackageRun, string) (ExecutionResult, error) {
 	e.executed++
-	return ExecutionResult{RuntimeID: fmt.Sprintf("runtime-%d", e.executed)}, nil
+	return ExecutionResult{
+		RuntimeID:                fmt.Sprintf("runtime-%d", e.executed),
+		CoordinationRequests:     e.coordinationRequests,
+		CoordinationReplaySafe:   e.coordinationReplaySafe,
+		CoordinationUnsafeReason: e.coordinationUnsafeReason,
+	}, nil
 }
 
 func (e *interventionSideEffectExecutor) Review(context.Context, *MissionRun, *PackageRun) (ReviewVerdict, error) {
@@ -119,6 +131,100 @@ func TestExecuteNextStep_FailsClosedForUnknownDispatchWithoutIdentity(t *testing
 	}
 }
 
+func TestResolveInterventionDoesNotReplayCompletedUnsafeCoordination(t *testing.T) {
+	tests := []struct {
+		name                   string
+		coordinationRequests   []CoordinationRequest
+		coordinationUnsafe     string
+		wantInterventionReason string
+	}{
+		{
+			name:                   "coordination replay was not proven safe",
+			coordinationRequests:   []CoordinationRequest{{Operation: CoordinationNeedInfo, Subject: "architecture.auth_endpoint", Objective: "confirm endpoint behavior"}},
+			wantInterventionReason: "COORDINATION_REPLAY_UNPROVEN",
+		},
+		{
+			name:                   "coordination followed an unsafe side effect",
+			coordinationUnsafe:     "external mutation occurred before coordination was requested",
+			wantInterventionReason: "UNSAFE_COORDINATION_AFTER_SIDE_EFFECT",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.Background()
+			repo := NewMemoryRunRepository()
+			exec := &interventionSideEffectExecutor{
+				coordinationRequests:     test.coordinationRequests,
+				coordinationUnsafeReason: test.coordinationUnsafe,
+			}
+			r := NewMissionRunner(repo, exec)
+			now := time.Now().UTC()
+			run := &MissionRun{
+				ID: "run-unsafe-coordination", State: StateExecuting,
+				Contract: AutonomyContract{MaxTotalIterations: 10, RequireVerification: false},
+				PackageRuns: []PackageRun{{
+					ID: "pkg", PackageID: "pkg", State: StateExecuting,
+					AssignedAgent: "agent-1", Workspace: t.TempDir(), CompiledPrompt: "perform one side effect",
+				}},
+				StartedAt: now, UpdatedAt: now,
+			}
+			if err := repo.SaveRun(ctx, run); err != nil {
+				t.Fatal(err)
+			}
+
+			blocked, _, err := r.ExecuteNextStep(ctx, run.ID)
+			if err == nil {
+				t.Fatal("unsafe coordination must create a human intervention")
+			}
+			if blocked.NeedsHuman == nil || blocked.NeedsHuman.ReasonCode != test.wantInterventionReason {
+				t.Fatalf("unexpected intervention: %+v", blocked.NeedsHuman)
+			}
+			if len(blocked.NeedsHuman.Options) != 1 || blocked.NeedsHuman.Options[0].ID != "verify-completed-without-replay" {
+				t.Fatalf("completed unsafe dispatch must offer verification without replay: %+v", blocked.NeedsHuman.Options)
+			}
+			if got := blocked.PackageRuns[0]; got.DispatchState != DispatchCompleted || got.DispatchID == "" || !got.ReplayProhibited {
+				t.Fatalf("completed side effect identity was not preserved: %+v", got)
+			}
+			if exec.executed != 1 {
+				t.Fatalf("initial side effect count=%d, want 1", exec.executed)
+			}
+
+			_, err = r.ResolveIntervention(ctx, run.ID, blocked.NeedsHuman.ID, blocked.NeedsHuman.Version, "replan-package", "user-1")
+			if !errors.Is(err, ErrInvalidInterventionOption) {
+				t.Fatalf("replanning must not be offered for a completed dispatch, got %v", err)
+			}
+			if err := applyInterventionOption(&blocked.PackageRuns[0], InterventionOption{ID: "replan-package", Operation: InterventionReplanPackage, PackageID: "pkg"}); !errors.Is(err, ErrInterventionPolicyDenied) {
+				t.Fatalf("forged replan of a completed dispatch must fail closed, got %v", err)
+			}
+			saved, err := repo.GetRun(ctx, run.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if saved.State != StateBlockedNeedsUser || saved.NeedsHuman.Resolved || saved.PackageRuns[0].DispatchState != DispatchCompleted || saved.PackageRuns[0].DispatchID != blocked.PackageRuns[0].DispatchID {
+				t.Fatalf("denied replay changed durable state: %+v", saved)
+			}
+			if exec.executed != 1 {
+				t.Fatalf("denied replay repeated the side effect: count=%d", exec.executed)
+			}
+
+			resolved, err := r.ResolveIntervention(ctx, run.ID, blocked.NeedsHuman.ID, blocked.NeedsHuman.Version, "verify-completed-without-replay", "user-1")
+			if err != nil {
+				t.Fatalf("verify completed work: %v", err)
+			}
+			if got := resolved.PackageRuns[0]; got.State != StateTesting || got.DispatchState != DispatchCompleted || got.DispatchID != blocked.PackageRuns[0].DispatchID {
+				t.Fatalf("verification must retain completed dispatch identity: %+v", got)
+			}
+			if _, _, err := r.ExecuteNextStep(ctx, run.ID); err != nil {
+				t.Fatalf("run verification after explicit confirmation: %v", err)
+			}
+			if exec.executed != 1 {
+				t.Fatalf("verification re-executed provider side effect: count=%d", exec.executed)
+			}
+		})
+	}
+}
+
 func TestResolveIntervention_Success(t *testing.T) {
 	repo := NewMemoryRunRepository()
 	r := NewMissionRunner(repo, &fakeExecutor{})
@@ -188,8 +294,8 @@ func TestResolveIntervention_Idempotent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resolved1.State != StateExecuting {
-		t.Fatalf("first: expected EXECUTING, got %s", resolved1.State)
+	if resolved1.State != StateExecuting || resolved1.PackageRuns[0].State != StateAllocating {
+		t.Fatalf("replan must resume the run at validated allocation, got run=%s package=%s", resolved1.State, resolved1.PackageRuns[0].State)
 	}
 
 	// Simulate that the run was saved and moved to executing
@@ -199,6 +305,138 @@ func TestResolveIntervention_Idempotent(t *testing.T) {
 	saved, _ := repo.GetRun(ctx, "run_2")
 	if !saved.NeedsHuman.Resolved {
 		t.Fatal("intervention should be resolved")
+	}
+}
+
+func TestResolveIntervention_ReplanReallocatesAndRecompilesBeforeRetry(t *testing.T) {
+	ctx := context.Background()
+	repo := NewMemoryRunRepository()
+	exec := &interventionSideEffectExecutor{}
+	r := NewMissionRunner(repo, exec)
+	now := time.Now().UTC()
+	run := &MissionRun{
+		ID: "run-replan-pipeline", State: StateBlockedNeedsUser,
+		Contract: AutonomyContract{MaxTotalIterations: 20, RequireVerification: false},
+		PackageRuns: []PackageRun{{
+			ID: "pkg", PackageID: "pkg", State: StateFailed, DispatchState: DispatchFailedBeforeDispatch,
+			AssignedAgent: "stale-agent", AssignedRuntime: "stale-runtime", Workspace: "stale-workspace",
+			PromptVersionID: "stale-prompt", CompiledPrompt: "stale prompt",
+		}},
+		NeedsHuman: &HumanIntervention{
+			ID: "intv-replan-pipeline", Version: 1, MissionID: "run-replan-pipeline", TaskID: "pkg", Timestamp: now,
+			Options: []InterventionOption{{ID: "replan-package", Operation: InterventionReplanPackage, PackageID: "pkg"}},
+		},
+		UpdatedAt: now,
+	}
+	if err := repo.SaveRun(ctx, run); err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := r.ResolveIntervention(ctx, run.ID, "intv-replan-pipeline", 1, "replan-package", "user")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := resolved.PackageRuns[0]; got.State != StateAllocating || got.AssignedAgent != "stale-agent" || got.AssignedRuntime != "" || got.Workspace != "stale-workspace" || got.CompiledPrompt != "" || got.PromptVersionID != "" {
+		t.Fatalf("replan did not retain the working copy while clearing stale execution state: %+v", got)
+	}
+	for i := 0; i < 3; i++ {
+		if _, _, err := r.ExecuteNextStep(ctx, run.ID); err != nil {
+			t.Fatalf("pipeline step %d: %v", i+1, err)
+		}
+	}
+	if exec.allocated != 1 || exec.compiled != 1 || exec.executed != 1 {
+		t.Fatalf("replan must allocate, compile, and only then execute: allocate=%d compile=%d execute=%d", exec.allocated, exec.compiled, exec.executed)
+	}
+}
+
+func TestResolveIntervention_DefersPackageUntilDependenciesAreVerified(t *testing.T) {
+	ctx := context.Background()
+	repo := NewMemoryRunRepository()
+	r := NewMissionRunner(repo, &interventionSideEffectExecutor{})
+	now := time.Now().UTC()
+	run := &MissionRun{
+		ID: "run-replan-dependency", State: StateBlockedNeedsUser,
+		Contract: AutonomyContract{MaxTotalIterations: 20, RequireVerification: false},
+		PackageRuns: []PackageRun{
+			{ID: "target", PackageID: "target", State: StateFailed, DispatchState: DispatchFailedBeforeDispatch, Dependencies: []string{"dependency"}},
+			{ID: "dependency", PackageID: "dependency", State: StateReady},
+		},
+		NeedsHuman: &HumanIntervention{
+			ID: "intv-replan-dependency", Version: 1, MissionID: "run-replan-dependency", TaskID: "target", Timestamp: now,
+			Options: []InterventionOption{{ID: "replan-package", Operation: InterventionReplanPackage, PackageID: "target"}},
+		},
+		UpdatedAt: now,
+	}
+	if err := repo.SaveRun(ctx, run); err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := r.ResolveIntervention(ctx, run.ID, "intv-replan-dependency", 1, "replan-package", "user")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolved.PackageRuns[0].State != StatePending {
+		t.Fatalf("replanned package ran before dependencies were verified: %+v", resolved.PackageRuns[0])
+	}
+	if _, _, err := r.ExecuteNextStep(ctx, run.ID); err != nil {
+		t.Fatalf("dependency should continue first: %v", err)
+	}
+	progress, err := repo.GetRun(ctx, run.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if progress.PackageRuns[0].State != StatePending || progress.PackageRuns[1].State != StateAllocating {
+		t.Fatalf("dependency ordering was not preserved: target=%s dependency=%s", progress.PackageRuns[0].State, progress.PackageRuns[1].State)
+	}
+	progress.PackageRuns[1].State = StateVerified
+	if err := repo.SaveRun(ctx, progress); err != nil {
+		t.Fatal(err)
+	}
+	resumed, _, err := r.ExecuteNextStep(ctx, run.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resumed.PackageRuns[0].State != StateAllocating {
+		t.Fatalf("package did not resume allocation after dependency verification: %+v", resumed.PackageRuns[0])
+	}
+}
+
+func TestCompletedDispatchVerificationFailureBlocksWithoutReplay(t *testing.T) {
+	ctx := context.Background()
+	repo := NewMemoryRunRepository()
+	exec := &interventionSideEffectExecutor{}
+	r := NewMissionRunner(repo, exec)
+	now := time.Now().UTC()
+	run := &MissionRun{
+		ID: "run-completed-verification-failure", State: StateBlockedNeedsUser,
+		Contract: AutonomyContract{MaxTotalIterations: 10, RequireVerification: true, VerificationCommands: []string{"false"}},
+		PackageRuns: []PackageRun{{
+			ID: "pkg", PackageID: "pkg", State: StateTesting, DispatchState: DispatchCompleted,
+			DispatchID: "dispatch-completed", AssignedRuntime: "runtime-completed", ReplayProhibited: true, Workspace: t.TempDir(),
+		}},
+		NeedsHuman: &HumanIntervention{
+			ID: "intv-completed-verification-failure", Version: 1, MissionID: "run-completed-verification-failure", TaskID: "pkg", Timestamp: now,
+			Options: []InterventionOption{{ID: "verify-completed-without-replay", Operation: InterventionVerifyCompletedWithoutReplay, PackageID: "pkg"}},
+		},
+		UpdatedAt: now,
+	}
+	if err := repo.SaveRun(ctx, run); err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := r.ResolveIntervention(ctx, run.ID, "intv-completed-verification-failure", 1, "verify-completed-without-replay", "user")
+	if err != nil {
+		t.Fatal(err)
+	}
+	updated, _, err := r.ExecuteNextStep(ctx, resolved.ID)
+	if err != nil {
+		t.Fatalf("verification failure should become an actionable intervention: %v", err)
+	}
+	if updated.State != StateBlockedNeedsUser || updated.NeedsHuman == nil || updated.PackageRuns[0].DispatchState != DispatchCompleted || updated.PackageRuns[0].DispatchID != "dispatch-completed" || !updated.PackageRuns[0].ReplayProhibited {
+		t.Fatalf("failed verification after completed dispatch must block and preserve dispatch identity: %+v", updated)
+	}
+	if len(updated.NeedsHuman.Options) != 1 || updated.NeedsHuman.Options[0].Operation != InterventionVerifyCompletedWithoutReplay {
+		t.Fatalf("failed verification must offer only safe verification retry: %+v", updated.NeedsHuman.Options)
+	}
+	if exec.executed != 0 {
+		t.Fatalf("verification failure re-executed provider side effect: count=%d", exec.executed)
 	}
 }
 
@@ -382,11 +620,13 @@ func TestResolveIntervention_AllowsRetryOnlyAfterProvenPreDispatchFailure(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resolved.PackageRuns[0].DispatchState != DispatchNone || resolved.PackageRuns[0].State != StateExecuting {
+	if resolved.PackageRuns[0].DispatchState != DispatchNone || resolved.PackageRuns[0].State != StateAllocating {
 		t.Fatalf("safe retry did not reset only proven pre-dispatch failure: %+v", resolved.PackageRuns[0])
 	}
-	if _, _, err := r.ExecuteNextStep(ctx, run.ID); err != nil {
-		t.Fatal(err)
+	for i := 0; i < 3; i++ {
+		if _, _, err := r.ExecuteNextStep(ctx, run.ID); err != nil {
+			t.Fatalf("safe retry stage %d: %v", i+1, err)
+		}
 	}
 	if exec.executed != 1 {
 		t.Fatalf("expected exactly one safe retry side effect, got %d", exec.executed)

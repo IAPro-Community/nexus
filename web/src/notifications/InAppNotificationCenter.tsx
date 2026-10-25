@@ -1,9 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, CheckCircle2, Radio, Terminal, X, XCircle } from 'lucide-react';
-import type { EventRecord, RuntimeSession } from '../types';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ClipboardList,
+  Radio,
+  Terminal,
+  X,
+  XCircle,
+} from 'lucide-react';
+import type { AttentionItem, EventRecord, RuntimeSession } from '../types';
 import { api } from '../api';
+import { nexus } from '../nexus/api';
 import { sanitizeAttentionText } from '../components/attentionText';
 import { Button, IconButton } from '../design-system';
 import { ContextDrawer } from '../design-system/primitives/ContextDrawer';
@@ -16,6 +25,7 @@ import {
   type InAppNotificationAction,
 } from './inAppNotificationModel';
 import { loadNotificationPrefs } from './notificationPrefs';
+import { MissionAttentionPanel } from './MissionAttentionPanel';
 
 const DISMISS_AFTER_MS = 7_000;
 
@@ -27,6 +37,8 @@ export const InAppNotificationCenter: React.FC<{
   onCloseDrawer?: () => void;
   onFocusRuntime: (runtimeId: string) => void;
   onFocusAttention?: (item: RadarRuntimeItem) => void;
+  onOpenMission?: (item: AttentionItem) => void;
+  onAttentionCountChange?: (count: number) => void;
 }> = ({
   runtimes,
   events,
@@ -35,14 +47,40 @@ export const InAppNotificationCenter: React.FC<{
   onCloseDrawer,
   onFocusRuntime,
   onFocusAttention,
+  onOpenMission,
+  onAttentionCountChange,
 }) => {
   const { t } = useTranslation();
   const [notifications, setNotifications] = useState<InAppNotification[]>([]);
   const [history, setHistory] = useState<InAppNotification[]>([]);
-  const [activeTab, setActiveTab] = useState<'radar' | 'notifications'>('radar');
+  const [activeTab, setActiveTab] = useState<'missions' | 'radar' | 'notifications'>('missions');
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [attentionNeedsCount, setAttentionNeedsCount] = useState(0);
   const observed = useRef(new Set<string>());
   const initialized = useRef(false);
+
+  useEffect(() => {
+    let active = true;
+    const loadNeedsCount = () => {
+      void nexus
+        .getAttention()
+        .then((group) => {
+          if (!active) return;
+          const count = Number.isFinite(group.total_needs) ? group.total_needs : 0;
+          setAttentionNeedsCount(count);
+          onAttentionCountChange?.(count);
+        })
+        .catch(() => undefined);
+    };
+    loadNeedsCount();
+    window.addEventListener('focus', loadNeedsCount);
+    const interval = window.setInterval(loadNeedsCount, 30_000);
+    return () => {
+      active = false;
+      window.removeEventListener('focus', loadNeedsCount);
+      window.clearInterval(interval);
+    };
+  }, [onAttentionCountChange]);
 
   const handleExecuteAction = async (action: InAppNotificationAction, notifId: string) => {
     if (!action.sourceRuntimeId) {
@@ -228,6 +266,19 @@ export const InAppNotificationCenter: React.FC<{
               <button
                 type="button"
                 role="tab"
+                aria-selected={activeTab === 'missions'}
+                className={`nx-notification-drawer__tab ${activeTab === 'missions' ? 'nx-notification-drawer__tab--active' : ''}`}
+                onClick={() => setActiveTab('missions')}
+              >
+                <ClipboardList size={13} />
+                <span>{t('notifications.missionAttentionTab')}</span>
+                {attentionNeedsCount > 0 && (
+                  <span className="nx-notification-drawer__badge">{attentionNeedsCount}</span>
+                )}
+              </button>
+              <button
+                type="button"
+                role="tab"
                 aria-selected={activeTab === 'radar'}
                 className={`nx-notification-drawer__tab ${activeTab === 'radar' ? 'nx-notification-drawer__tab--active' : ''}`}
                 onClick={() => setActiveTab('radar')}
@@ -251,6 +302,17 @@ export const InAppNotificationCenter: React.FC<{
                 </span>
               </button>
             </div>
+
+            {activeTab === 'missions' && (
+              <div className="nx-notification-drawer__panel">
+                <MissionAttentionPanel
+                  onOpenMission={(item) => {
+                    onCloseDrawer();
+                    onOpenMission?.(item);
+                  }}
+                />
+              </div>
+            )}
 
             {/* Radar Panel */}
             {activeTab === 'radar' && (

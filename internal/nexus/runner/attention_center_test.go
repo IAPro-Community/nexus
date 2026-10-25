@@ -84,6 +84,55 @@ func TestAttentionCenter_GroupsCorrectly(t *testing.T) {
 	}
 }
 
+func TestAttentionCenter_FiltersByProjectAndMission(t *testing.T) {
+	ctx := context.Background()
+	repo := NewMemoryRunRepository()
+	center := NewAttentionCenter(repo)
+	now := time.Now().UTC()
+
+	for _, run := range []*MissionRun{
+		{ID: "mission-a", ProjectID: "project-a", State: StateBlockedNeedsUser, UpdatedAt: now,
+			NeedsHuman: &HumanIntervention{ID: "int-a", MissionID: "mission-a", Timestamp: now, Version: 1}},
+		{ID: "mission-b", ProjectID: "project-a", State: StateCompletedVerified, UpdatedAt: now},
+		{ID: "mission-c", ProjectID: "project-b", State: StateFailedNoProgress, UpdatedAt: now,
+			Contract: AutonomyContract{EscalateOnFailure: true}},
+	} {
+		if err := repo.SaveRun(ctx, run); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	projectGroup, err := center.ListAttentionFiltered(ctx, AttentionFilter{ProjectID: "project-a"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(projectGroup.AllItems) != 2 || projectGroup.TotalNeeds != 1 || len(projectGroup.Completed) != 1 {
+		t.Fatalf("project filter leaked another project or lost categories: %+v", projectGroup)
+	}
+
+	missionGroup, err := center.ListAttentionFiltered(ctx, AttentionFilter{
+		ProjectID: "project-b",
+		MissionID: "mission-c",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(missionGroup.AllItems) != 1 || missionGroup.AllItems[0].MissionID != "mission-c" || len(missionGroup.Failed) != 1 {
+		t.Fatalf("mission filter did not return its project-isolated item: %+v", missionGroup)
+	}
+
+	conflictingFilter, err := center.ListAttentionFiltered(ctx, AttentionFilter{
+		ProjectID: "project-a",
+		MissionID: "mission-c",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(conflictingFilter.AllItems) != 0 {
+		t.Fatalf("combined filters must intersect, got %+v", conflictingFilter.AllItems)
+	}
+}
+
 func TestAttentionCenter_NeedsUserCount(t *testing.T) {
 	ctx := context.Background()
 	repo := NewMemoryRunRepository()

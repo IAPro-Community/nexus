@@ -103,7 +103,10 @@ func (n *Nexus) DecomposePromptIntoFlowProposal(ctx context.Context, req FlowDec
 		}
 	}
 
-	planningText := strings.TrimSpace(strings.Join([]string{goal, sourcePrompt}, "\n"))
+	planningText := goal
+	if sourcePrompt != "" && !strings.EqualFold(sourcePrompt, goal) {
+		planningText = strings.TrimSpace(strings.Join([]string{goal, sourcePrompt}, "\n"))
+	}
 
 	// Resolve only already-known skills; never execute skill code during discovery.
 	if len(req.resolvedSkillIDs()) == 0 {

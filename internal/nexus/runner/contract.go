@@ -114,6 +114,7 @@ func DefaultAutonomyContract() AutonomyContract {
 			InterventionRetrySafePackage,
 			InterventionReplanPackage,
 			InterventionConfirmExternalOutcome,
+			InterventionVerifyCompletedWithoutReplay,
 		},
 	}
 }

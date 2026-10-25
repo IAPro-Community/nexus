@@ -1,6 +1,7 @@
 @use '../styles/mixins';
 
 .terminalPaneRoot {
+  container: terminal-pane / inline-size;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -10,6 +11,132 @@
   border-radius: var(--nx-radius-md);
   overflow: hidden;
   box-shadow: var(--nx-shadow-lg);
+}
+
+.terminalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nx-space-3);
+  min-width: 0;
+  padding: var(--nx-space-2) var(--nx-space-3);
+  border-bottom: 1px solid var(--nx-terminal-border);
+}
+
+.terminalIdentity {
+  display: flex;
+  align-items: center;
+  gap: var(--nx-space-3);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.terminalSessionIdentity,
+.terminalRuntimeMetadata {
+  display: flex;
+  align-items: center;
+  gap: var(--nx-space-2);
+  min-width: 0;
+}
+
+.terminalSessionIdentity {
+  flex: 0 1 auto;
+}
+
+.terminalRuntimeMetadata {
+  flex: 1 1 auto;
+}
+
+.terminalTitleEdit,
+.terminalTitleButton {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.terminalTitleButton {
+  max-width: 220px;
+}
+
+.terminalTitleText,
+.terminalRuntimeId {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.terminalTitleText {
+  min-width: 0;
+}
+
+.terminalPtyTitle {
+  display: block;
+  flex: 0 1 auto;
+  max-width: 220px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.terminalRuntimeId {
+  display: block;
+  flex: 0 1 180px;
+  max-width: 180px;
+  min-width: 72px;
+}
+
+.terminalActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--nx-space-2);
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.terminalErrorText {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@container terminal-pane (max-width: 600px) {
+  .terminalHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .terminalIdentity {
+    align-items: flex-start;
+    flex: 0 1 auto;
+    flex-direction: column;
+    gap: var(--nx-space-1);
+  }
+
+  .terminalSessionIdentity,
+  .terminalRuntimeMetadata {
+    width: 100%;
+  }
+
+  .terminalSessionIdentity {
+    flex: 0 1 auto;
+  }
+
+  .terminalRuntimeMetadata {
+    flex: 0 1 auto;
+  }
+
+  .terminalTitleButton {
+    max-width: min(220px, 50cqw);
+  }
+
+  .terminalActions {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    width: 100%;
+  }
 }
 
 .terminalContainer {

@@ -678,11 +678,19 @@ func (n *Nexus) restartMissionWorker(runID string) {
 }
 
 func (n *Nexus) startMissionWorker(runID string, replace bool) *missionWorker {
+	return n.startMissionWorkerWithHandoffTimeout(runID, replace, 15*time.Second)
+}
+
+func (n *Nexus) startMissionWorkerWithHandoffTimeout(runID string, replace bool, handoffTimeout time.Duration) *missionWorker {
 	if strings.TrimSpace(runID) == "" {
 		return nil
 	}
 	for {
 		n.workersMu.Lock()
+		if n.workersStopped {
+			n.workersMu.Unlock()
+			return nil
+		}
 		if n.workers == nil {
 			n.workers = map[string]*missionWorker{}
 		}
@@ -703,8 +711,15 @@ func (n *Nexus) startMissionWorker(runID string, replace bool) *missionWorker {
 		n.workersMu.Unlock()
 		select {
 		case <-existing.done:
-		case <-time.After(15 * time.Second):
-			return nil
+		case <-time.After(handoffTimeout):
+			// Keep the durable resume request observable and retry the handoff
+			// once the canceled worker actually exits. Starting a second worker
+			// before then could race a late save from the old generation.
+			go func() {
+				<-existing.done
+				n.startMissionWorker(runID, false)
+			}()
+			return existing
 		}
 		n.workersMu.Lock()
 		current := n.workers[runID]
@@ -756,6 +771,37 @@ func (n *Nexus) stopMissionWorker(runID string) error {
 	case <-time.After(15 * time.Second):
 		return fmt.Errorf("mission worker did not stop within 15s")
 	}
+}
+
+// StopMissionWorkers prevents new in-process Mission workers from starting,
+// cancels current workers, and waits for each one to release its durable lease.
+// The caller must keep the store open until this method returns nil.
+func (n *Nexus) StopMissionWorkers(ctx context.Context) error {
+	if n == nil {
+		return nil
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	n.workersMu.Lock()
+	n.workersStopped = true
+	workers := make([]*missionWorker, 0, len(n.workers))
+	for _, worker := range n.workers {
+		workers = append(workers, worker)
+	}
+	n.workersMu.Unlock()
+
+	for _, worker := range workers {
+		worker.cancel()
+	}
+	for _, worker := range workers {
+		select {
+		case <-worker.done:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	return nil
 }
 
 // RecoverMissionRuns resumes durable non-terminal runs after Nexus restart.

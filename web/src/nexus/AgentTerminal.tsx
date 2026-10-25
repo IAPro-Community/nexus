@@ -416,15 +416,16 @@ export const AgentTerminal: React.FC<{
       }
     };
 
-    const failPermanently = (detail?: string) => {
+    const failPermanently = (detail?: string, attachCode?: string) => {
       stopReconnect = true;
-      setDiagnosticCode(lastFailureCode || 'TERMINAL_ATTACH_FAILED');
+      const diagnosticCode = attachCode || lastFailureCode || 'TERMINAL_ATTACH_FAILED';
+      setDiagnosticCode(diagnosticCode);
       console.warn(
         '[nexus:terminal]',
         JSON.stringify({
           event: 'terminal.attach.failed',
           phase: 'TRANSPORT',
-          code: lastFailureCode || 'TERMINAL_ATTACH_FAILED',
+          code: diagnosticCode,
           agentId,
           runtimeId: boundRuntimeId,
           reconnectAttempts: reconnectAttempt,
@@ -436,9 +437,11 @@ export const AgentTerminal: React.FC<{
       }
       setRecovering(false);
       setConnection('ERROR');
-      const failure = terminalAttachFailure(detail);
+      const failure = terminalAttachFailure(detail, attachCode);
       if (failure.kind === 'generic') {
         setMessage(tRef.current('terminal.attachFailedGeneric'));
+      } else if (failure.kind === 'runtime_incompatible') {
+        setMessage(tRef.current('terminal.runtimeAttachIncompatible'));
       } else if (failure.kind === 'fatal_with_detail') {
         setMessage(`${failure.detail} ${tRef.current('terminal.attachFailedRecoverHint')}`);
       } else {
@@ -635,9 +638,16 @@ export const AgentTerminal: React.FC<{
             }
           } else if (payload.type === 'error') {
             const detail = String(payload.data ?? 'Terminal error');
+            const code = typeof payload.code === 'string' ? payload.code : '';
+            if (code) lastFailureCode = code;
             lastError = detail;
-            setMessage(detail);
-            if (isFatalTerminalAttachError(detail)) {
+            if (code === 'RUNTIME_ATTACH_INCOMPATIBLE') {
+              failPermanently(detail, code);
+              ws.close(1011, 'runtime attach incompatible');
+            } else {
+              setMessage(detail);
+            }
+            if (code !== 'RUNTIME_ATTACH_INCOMPATIBLE' && isFatalTerminalAttachError(detail)) {
               // A dead transport is not proof that the runtime should be
               // relaunched. Recovery is only performed by the explicit
               // Recover/Start action in the overlay.

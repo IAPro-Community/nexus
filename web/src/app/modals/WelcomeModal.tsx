@@ -124,8 +124,8 @@ export const WelcomeModal: React.FC<{
             <div className="nx-welcome-panel">
               <h4>{t('welcome.quickstartTitle')}</h4>
               <div className="nx-system-versions-card" role="status" aria-live="polite">
-                <strong>{readiness.title}</strong>
-                <p>{readiness.description}</p>
+                <strong>{t(readiness.titleKey, readiness.titleParams)}</strong>
+                <p>{t(readiness.descriptionKey)}</p>
                 {readiness.status === 'needs-provider' && (
                   <p>
                     Instalação oficial:{' '}
@@ -151,8 +151,10 @@ export const WelcomeModal: React.FC<{
                   }}
                 >
                   {readiness.status === 'ready'
-                    ? 'Gerenciar contas de IA'
-                    : 'Configurar contas de IA'}
+                    ? t('projects.readinessManageAccounts')
+                    : readiness.status === 'verification-unknown'
+                      ? t('projects.readinessReviewAccounts')
+                      : t('projects.readinessConfigureAccounts')}
                   <ArrowRight size={13} />
                 </Button>
               </div>
@@ -232,8 +234,8 @@ export const WelcomeModal: React.FC<{
             <div className="nx-welcome-panel">
               <h4>{t('welcome.systemTitle')}</h4>
               <div className="nx-system-versions-card" role="status" aria-live="polite">
-                <strong>{readiness.title}</strong>
-                <p>{readiness.description}</p>
+                <strong>{t(readiness.titleKey, readiness.titleParams)}</strong>
+                <p>{t(readiness.descriptionKey)}</p>
                 {readiness.status === 'needs-login' && (
                   <Button
                     size="sm"

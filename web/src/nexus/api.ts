@@ -26,9 +26,11 @@ import {
   ResourceAllocation,
   ProviderInfo,
   RegisteredProfile,
+  HostSessionImportResult,
 } from '../types';
 import { request, setCSRFToken } from '../api';
 import { normalizeWorkPlan } from './workPlan';
+import { missionAttentionQueryPath, type MissionAttentionFilter } from './missionAttentionModel';
 
 export type SystemDoctorCheck = {
   id: string;
@@ -71,6 +73,11 @@ export const nexus = {
     request<{ profile: RegisteredProfile; state: string }>('/api/v1/providers', {
       method: 'POST',
       body: JSON.stringify({ provider, profile }),
+    }),
+  importHostSessions: () =>
+    request<{ results: HostSessionImportResult[] }>('/api/v1/profiles/import-host-sessions', {
+      method: 'POST',
+      body: '{}',
     }),
   listProjects: () => request<Project[]>('/api/v1/projects'),
   listProjectSummaries: () =>
@@ -763,6 +770,9 @@ export const nexus = {
       role: string;
       current_provider?: string;
       prefer_provider?: string;
+      domains?: string[];
+      estimated_complexity?: string;
+      source?: string;
     },
     policy?: string,
   ) =>
@@ -881,7 +891,8 @@ export const nexus = {
     ),
 
   // Attention Center
-  getAttention: () => request<import('../types').AttentionGroup>('/api/v1/attention'),
+  getAttention: (filter?: MissionAttentionFilter) =>
+    request<import('../types').AttentionGroup>(missionAttentionQueryPath(filter)),
   resolveIntervention: (
     runId: string,
     interventionId: string,

@@ -239,6 +239,7 @@ type PackageRun struct {
 	AssignedRuntime          string               `json:"assigned_runtime,omitempty"`
 	DispatchID               string               `json:"dispatch_id,omitempty"`
 	DispatchState            DispatchState        `json:"dispatch_state,omitempty"`
+	ReplayProhibited         bool                 `json:"replay_prohibited,omitempty"`
 	DispatchStartedAt        *time.Time           `json:"dispatch_started_at,omitempty"`
 	DispatchFinishedAt       *time.Time           `json:"dispatch_finished_at,omitempty"`
 	Workspace                string               `json:"workspace,omitempty"`
@@ -282,9 +283,10 @@ type PhaseRun struct {
 type InterventionOperation string
 
 const (
-	InterventionRetrySafePackage       InterventionOperation = "RETRY_SAFE_PACKAGE"
-	InterventionReplanPackage          InterventionOperation = "REPLAN_PACKAGE"
-	InterventionConfirmExternalOutcome InterventionOperation = "CONFIRM_EXTERNAL_COMPLETION"
+	InterventionRetrySafePackage             InterventionOperation = "RETRY_SAFE_PACKAGE"
+	InterventionReplanPackage                InterventionOperation = "REPLAN_PACKAGE"
+	InterventionConfirmExternalOutcome       InterventionOperation = "CONFIRM_EXTERNAL_COMPLETION"
+	InterventionVerifyCompletedWithoutReplay InterventionOperation = "VERIFY_COMPLETED_WITHOUT_REPLAY"
 )
 
 type InterventionOption struct {
