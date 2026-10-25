@@ -1,0 +1,7 @@
+Cursor CLI host-session assessment (2026-10-24)
+
+- Official `cursor-agent status` returned exit code 0 and authenticated=true. Its account details were discarded.
+- Official CLI documentation describes browser login, status, and logout, and says credentials are stored locally; it does not document a credential export/import file format.
+- Metadata-only inventory found Cursor configuration, session databases, and worker state. The main IDE state database is multi-gigabyte; no file contents or database rows were read.
+- No Cursor credential file was copied. The current Nexus adapter reports UNSUPPORTED. Copying the full Cursor profile would include unrelated configuration and session data and is not a safe credential migration.
+- No CLI API key, account identity, token, or credential value is included in this evidence.

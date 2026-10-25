@@ -96,3 +96,33 @@ mantém o prompt no provider.
 
 Essa distinção é usada por CLI e Web para impedir tanto perda de prompt quanto
 dupla execução.
+
+## Comandos da CLI & Disparo Autônomo
+
+O Conductor é a inteligência por trás dos comandos de autonomia de alto nível da CLI:
+
+```bash
+# Execução autônoma completa em foreground
+nexus run "Implementar autenticação OAuth2 com GitHub e testes de integração"
+
+# Disparo explícito com compilação de WorkPlan
+nexus conductor dispatch "Auditar e corrigir vulnerabilidades de dependências no backend Go"
+```
+
+### Ciclo de vida da execução
+
+```mermaid
+stateDiagram-v2
+  [*] --> AnaliseIntencao: Goal do Usuário
+  AnaliseIntencao --> WorkPlanDRAFT: Conductor Decomposição
+  WorkPlanDRAFT --> AdmissionCheck: Execution Preview & Gates
+  AdmissionCheck --> DISPATCHED: Aprovado
+  AdmissionCheck --> IntervencaoHumana: Violação ou Risco
+  DISPATCHED --> RUNNING: MissionRunner Aloca Agentes
+  RUNNING --> VERIFYING: Execução de Gates & Testes
+  VERIFYING --> COMPLETED_VERIFIED: Sucesso Total
+  VERIFYING --> RUNNING: Correção Automática (Loops)
+  COMPLETED_VERIFIED --> [*]
+```
+
+Durante a execução, o Conductor monitora o progresso de cada fase do grafo DAG gerado, assegurando que o especialista adequado (`Architect`, `Implementer`, `Reviewer`, `QA`) execute cada tarefa dentro dos limites estabelecidos de tempo, arquivos e quota.

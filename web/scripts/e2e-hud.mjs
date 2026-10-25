@@ -36,6 +36,32 @@ async function main() {
       bootstrapUrl,
       isolatedProjectPath,
     );
+    await context.route('**/api/v1/attention**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          needs_you: [
+            {
+              mission_id: 'fixture-mission',
+              project_id: project.id,
+              state: 'BLOCKED_NEEDS_USER',
+              level: 'REQUIRE_USER',
+              reason_code: 'INTERVENTION_REQUIRED',
+              summary: 'Fixture mission is waiting for a decision',
+              question: 'Choose the next step',
+              impact: 'Execution is paused',
+              recommended_actions: ['Review mission'],
+              age_seconds: 1,
+            },
+          ],
+          completed: [],
+          failed: [],
+          all_items: [],
+          total_needs: 1,
+        }),
+      }),
+    );
 
     // Web HUD remains opt-in even though native HUD needs the projection API
     // available by default. Opt in before the project shell boots.
@@ -106,6 +132,36 @@ async function main() {
     assert.equal(await page.getByRole('button', { name: /recolher nexus hud/i }).count() > 0, true);
     const expanded = page.locator('section[data-hud-panel][data-expanded="true"]').first();
     await expanded.waitFor({ state: 'visible', timeout: 5000 });
+    const attentionList = page.locator('[data-companion-attention-list]');
+    await attentionList.waitFor({ state: 'visible', timeout: 5000 });
+    assert.match(
+      await attentionList.innerText(),
+      /Uma missão precisa da sua atenção/,
+      'Companion attention must use the canonical Attention Center fixture',
+    );
+    assert.equal(await attentionList.getByRole('button', { name: 'Abrir' }).count(), 1);
+    assert.equal(await attentionList.getByRole('button', { name: 'Adiar' }).count(), 1);
+    await attentionList.screenshot({ path: path.join(screenshotDir, 'web-hud-attention.png') });
+    await attentionList.getByRole('button', { name: 'Adiar' }).click();
+    assert.equal(
+      await page.evaluate(() =>
+        window.localStorage
+          .getItem('iapro:nexus:companion:snooze:v1')
+          ?.includes('fixture-mission'),
+      ),
+      true,
+      'Companion snooze must be persisted without mutating canonical Attention Center state',
+    );
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 15000 });
+    await page.waitForSelector('.nx-os-shell', { timeout: 10000 });
+    await page.locator('aside[aria-label="Nexus HUD"]').waitFor({ state: 'visible' });
+    await page.getByRole('button', { name: /expandir nexus hud/i }).click();
+    await page.locator('#nexus-hud-popover').waitFor({ state: 'visible' });
+    assert.equal(
+      await page.locator('[data-companion-attention-list]').count(),
+      1,
+      'Snoozing the Companion notification must not hide the canonical Attention Center item',
+    );
 
     // Exercise compiled detached-popup styles without claiming native Wails
     // focus, transparency or mouse hit-testing has been certified.

@@ -1,0 +1,67 @@
+XDG_SESSION_TYPE=wayland; DISPLAY is XWayland; real D-Bus and GDK_BACKEND=x11; isolated HOME/XDG Nexus data. Window discovery uses X11 tree (xwininfo); xdotool is not installed.
+
+
+xwininfo: Window id: 0x201 (the root window) (has no name)
+
+  Root window id: 0x201 (the root window) (has no name)
+  Parent window id: 0x0 (none)
+     22 children:
+     0x1400015 (has no name): ()  1x1+-1+-1  +-1+-1
+     0x140000f "nexus-hud": ("nexus-hud" "Nexus-hud")  224x158+1684+914  +1684+914
+        1 child:
+        0x1400010 (has no name): ()  1x1+-1+-1  +1683+913
+     0x1400001 "nexus-hud": ("nexus-hud" "Nexus-hud")  10x10+10+10  +10+10
+     0x1800000 (has no name): ()  1x1+0+0  +0+0
+     0x1200000 (has no name): ()  1x1+0+0  +0+0
+     0x600009 (has no name): ()  1x1+-1+-1  +-1+-1
+     0xc00002 "vmware-user": ()  10x10+-100+-100  +-100+-100
+     0x600002 "mutter-x11-frames": ("mutter-x11-frames" "mutter-x11-frames")  1x1+0+0  +0+0
+        1 child:
+        0x600003 (has no name): ()  1x1+-1+-1  +-1+-1
+     0x800003 "ibus-xim": ()  1x1+0+0  +0+0
+        1 child:
+        0x800004 (has no name): ()  1x1+-1+-1  +-1+-1
+     0x800001 "ibus-x11": ("ibus-x11" "")  10x10+10+10  +10+10
+     0xc00001 "vmware-user": ("vmware-user" "Vmware-user")  10x10+10+10  +10+10
+     0x400009 (has no name): ()  1x1+0+0  +0+0
+     0x400008 (has no name): ()  1x1+-1+-1  +-1+-1
+     0x400007 (has no name): ()  1x1+-1+-1  +-1+-1
+     0x400006 (has no name): ()  1x1+-100+-100  +-100+-100
+     0x400005 (has no name): ()  1x1+-100+-100  +-100+-100
+     0x400004 (has no name): ()  1x1+-1+-1  +-1+-1
+     0x400003 (has no name): ()  1x1+-100+-100  +-100+-100
+     0x400002 (has no name): ()  1x1+-100+-100  +-100+-100
+     0x400001 "GNOME Shell": ()  1x1+-100+-100  +-100+-100
+     0x200001 (has no name): ()  10x10+0+0  +0+0
+     0x40000a "mutter guard window": ()  1920x1080+0+0  +0+0
+binary_sha256=f9acd2de7827f7ce4529d99189f0fa4116e6ca1a4ab05a9c3da030a30a4c4348
+window_id=0x140000f
+
+xwininfo: Window id: 0x140000f "nexus-hud"
+
+  Absolute upper-left X:  1684
+  Absolute upper-left Y:  914
+  Relative upper-left X:  1684
+  Relative upper-left Y:  914
+  Width: 224
+  Height: 158
+  Depth: 32
+  Visual: 0x1f2
+  Visual Class: TrueColor
+  Border width: 0
+  Class: InputOutput
+  Colormap: 0x140000e (not installed)
+  Bit Gravity State: NorthWestGravity
+  Window Gravity State: NorthWestGravity
+  Backing Store State: NotUseful
+  Save Under State: no
+  Map State: IsViewable
+  Override Redirect State: no
+  Corners:  +1684+914  -12+914  -12-8  +1684-8
+  -geometry 224x158-12-8
+
+_NET_WM_PID(CARDINAL) = 1921721
+WM_NAME(STRING) = "nexus-hud"
+_NET_WM_NAME(UTF8_STRING) = "nexus-hud"
+/projetos/nexus/DEV/validation/linux-100-2026-10-25/screenshots/native-hud-single-nex-mascot-fix-xwayland.png: PNG image data, 224 x 158, 8-bit/color RGB, non-interlaced
+6d7bf609f6926c104fba5628775d1eb5d7cfab2f36e2094c1ab73bde0521cb97  /projetos/nexus/DEV/validation/linux-100-2026-10-25/screenshots/native-hud-single-nex-mascot-fix-xwayland.png

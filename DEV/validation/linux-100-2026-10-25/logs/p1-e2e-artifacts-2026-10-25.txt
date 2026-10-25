@@ -1,0 +1,6 @@
+architecture=linux/amd64
+version=1.0.0-beta.10
+commit=bf6adf0c
+CLI: path=/home/desenvolvedor/.local/bin/nexus sha256=162e4687db9e8e58cb832e4a15d673398f68d0f9e59651a9ec9350d1705e2322 ldd_resolved=1 ldd_missing=0
+Desktop: path=cmd/nexus-desktop/build/bin/nexus-desktop sha256=137bc08797b94c006b44bb605757da4ebb6db33867ee02045cd96a1247117ad2 ldd_resolved=122 ldd_missing=0
+HUD: path=cmd/nexus-hud/build/bin/nexus-hud sha256=1f5f690a9e346a7c2de4be00c04f44a9d3676e402f756da44531efde8c110960 ldd_resolved=122 ldd_missing=0

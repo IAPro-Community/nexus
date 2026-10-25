@@ -1,0 +1,16 @@
+{
+  "status": "resolved",
+  "provider": "@../design-system",
+  "confidence": 0.95,
+  "evidence": [
+    {
+      "type": "import-usage",
+      "provider": "@../design-system",
+      "matches": 11,
+      "confidence": 0.95
+    }
+  ],
+  "alternatives": [],
+  "requiresUserDecision": false,
+  "implementationAllowed": true
+}

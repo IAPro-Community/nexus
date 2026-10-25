@@ -1,0 +1,10 @@
+Desktop Wails — smoke do build após FIX-008
+Base Git: bf6adf0c80ac3531d7291844512a14a017ab0002
+Fingerprint das fontes: 996e1063540370263158e70903477f4cbbc3035dbb33b93161e603bffbe3c133
+Binário raw Desktop SHA-256: c4e97f33a7d79c8137281c37f3d86eb7822f1c3f59e6ecce1c9c1165a0823066.
+Binário Desktop do pacote tar SHA-256: 9c607512ebd81975eaa0be44dc28603123b66d5c53d30026889dcd49d61d69e9.
+
+Execução com HOME/XDG descartáveis, GDK_BACKEND=x11 e sessão GNOME/Wayland real: janela Wails abriu em 1280x800, carregou a tela de projetos, exibiu seis provedores instalados e os controles de importação de sessões. O build empacotado também foi extraído do tar oficial do workflow e iniciou a mesma tela. Os processos de teste receberam SIGTERM e encerraram com exit 0. Não foi importada nem copiada credencial neste smoke.
+
+Captura do Desktop: screenshots/native-desktop-xwayland-position-fix.png, SHA-256 1b27df87c08ddfba9e2f93609719470a8ba63b06e7e038aeef72001b37eb3e52.
+Captura do HUD iniciado pelo binário raw atual: screenshots/native-hud-xwayland-position-fix.png, SHA-256 bdbb91cf681c12c9fab0245dbc65865dd8ee3cc98cafe3eab2a2c2b4313921ab. Janela 224x158 com um NEX.

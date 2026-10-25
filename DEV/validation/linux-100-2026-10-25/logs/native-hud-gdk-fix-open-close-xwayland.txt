@@ -1,0 +1,10 @@
+<stdin>:22: DeprecationWarning: Atspi.Accessible.get_action is deprecated
+<stdin>:32: DeprecationWarning: Atspi.Accessible.get_component is deprecated
+process=visible native Wails HUD; G_DEBUG=fatal-criticals
+cycle=1 opened_frames=[(1684, 824, 224, 158), (1574, 320, 334, 496)]
+cycle=1 closed_frames=[(1684, 824, 224, 158)]
+cycle=2 opened_frames=[(1684, 824, 224, 158), (1574, 320, 334, 496)]
+cycle=2 closed_frames=[(1684, 824, 224, 158)]
+cycle=3 opened_frames=[(1684, 824, 224, 158), (1574, 320, 334, 496)]
+cycle=3 closed_frames=[(1684, 824, 224, 158)]
+RESULT=PASS; three native popup open/close cycles, no GTK critical observed

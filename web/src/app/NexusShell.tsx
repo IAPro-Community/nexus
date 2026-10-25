@@ -23,7 +23,7 @@ import { AttentionIntermediationBanner } from '../components/AttentionIntermedia
 import { pushNotifications } from '../notifications/PushNotificationManager';
 import { InAppNotificationCenter } from '../notifications/InAppNotificationCenter';
 import { ProjectCreateMenu } from '../features/projects/ProjectCreateMenu';
-import type { Agent, EventRecord, Project, RuntimeSession } from '../types';
+import type { Agent, AttentionItem, EventRecord, Project, RuntimeSession } from '../types';
 import type { RadarRuntimeItem } from './attentionRadarModel';
 import { VoiceCaptureButton } from '../features/voice/VoiceCaptureButton';
 import styles from './NexusShell.module.scss';
@@ -49,6 +49,7 @@ export const NexusShell: React.FC<{
   onProjectShell?: () => void;
   onFocusRuntime?: (runtimeId: string) => void;
   onFocusAttention?: (item: RadarRuntimeItem) => void;
+  onOpenMissionAttention?: (item: AttentionItem) => void;
   onFocusAgent?: (agentId: string) => void;
 }> = ({
   project,
@@ -60,7 +61,7 @@ export const NexusShell: React.FC<{
   zenMode = false,
   onToggleZenMode,
   onOpenRail,
-  onOpenSurface: _onOpenSurface,
+  onOpenSurface,
   onCommand,
   onOpenWelcome,
   onOpenProjectManager,
@@ -71,10 +72,12 @@ export const NexusShell: React.FC<{
   onProjectShell,
   onFocusRuntime,
   onFocusAttention,
+  onOpenMissionAttention,
   onFocusAgent,
 }) => {
   const { t } = useTranslation();
   const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false);
+  const [missionNeedsCount, setMissionNeedsCount] = useState(0);
   const [sysInfo, setSysInfo] = useState<{
     nexus_version: string;
     maestro_version: string;
@@ -105,14 +108,16 @@ export const NexusShell: React.FC<{
 
   const hasAvailableUpdates = Boolean(sysInfo?.nexus_update_available || sysInfo?.update_available);
 
-  const hasAttentionAlerts = runtimes.some(
-    (rt) =>
-      rt.attention_kind === 'needs_user' ||
-      rt.attention_reason === 'QUESTION' ||
-      rt.attention_reason === 'APPROVAL' ||
-      rt.attention_reason === 'ERROR' ||
-      rt.state === 'FAILED',
-  );
+  const hasAttentionAlerts =
+    missionNeedsCount > 0 ||
+    runtimes.some(
+      (rt) =>
+        rt.attention_kind === 'needs_user' ||
+        rt.attention_reason === 'QUESTION' ||
+        rt.attention_reason === 'APPROVAL' ||
+        rt.attention_reason === 'ERROR' ||
+        rt.state === 'FAILED',
+    );
 
   return (
     <div
@@ -306,6 +311,11 @@ export const NexusShell: React.FC<{
         onCloseDrawer={() => setNotificationDrawerOpen(false)}
         onFocusRuntime={(runtimeId) => onFocusRuntime?.(runtimeId)}
         onFocusAttention={(item) => onFocusAttention?.(item)}
+        onOpenMission={(item) => {
+          if (onOpenMissionAttention) onOpenMissionAttention(item);
+          else onOpenSurface?.('missions');
+        }}
+        onAttentionCountChange={setMissionNeedsCount}
       />
     </div>
   );

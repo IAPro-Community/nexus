@@ -1,0 +1,12 @@
+=== RUN   TestLiveCodexExecutionAfterHostSessionImport
+    codex_live_homologation_test.go:38: provider=codex status=IMPORTED
+    codex_live_homologation_test.go:38: provider=claude status=NO_SESSION
+    codex_live_homologation_test.go:38: provider=gemini status=NO_SESSION
+    codex_live_homologation_test.go:38: provider=agy status=IMPORTED
+    codex_live_homologation_test.go:38: provider=opencode status=IMPORTED
+    codex_live_homologation_test.go:38: provider=cursor status=UNSUPPORTED
+    codex_live_homologation_test.go:87: codex_live_execution=PASS response_contract=READY mode=ephemeral sandbox=read-only
+    codex_live_homologation_test.go:97: host_sources_unchanged=true temp_profile_cleanup=automatic
+--- PASS: TestLiveCodexExecutionAfterHostSessionImport (6.62s)
+PASS
+ok  	github.com/IAPro-Community/nexus/internal/profile	6.630s

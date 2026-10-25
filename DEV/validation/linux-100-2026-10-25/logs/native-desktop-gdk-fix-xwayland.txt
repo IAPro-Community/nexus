@@ -1,0 +1,16 @@
+Nexus Desktop started an embedded Core at http://127.0.0.1:37671
+Overriding existing handler for signal 10. Set JSC_SIGNAL_FOR_GC if you want WebKit to use a different signal
+libEGL warning: DRI3 error: Could not get DRI3 device
+libEGL warning: Ensure your X server supports DRI3 to get accelerated rendering
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen

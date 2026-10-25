@@ -126,10 +126,10 @@ CSS Custom Properties (`var(--nx-*)`) are the authoritative runtime source for:
 ### Strict Rules for Styles:
 1. **SCSS Modules for Component Styling**: New component styles must use `ComponentName.module.scss`. Do not create local unencapsulated `.css` files.
 2. **Zero Unjustified Inline CSS**: Static presentation styles must reside in SCSS modules or global stylesheets.
-3. **Inline Style Exception**: Inline `style={{ ... }}` is permitted *only* for dynamic runtime variables (e.g., coordinates, pane dimensions, CSS variable overrides like `style={{ '--panel-width': `${width}px` }}`).
+3. **Inline Style Exception**: Inline `style={{ ... }}` is permitted *only* for dynamic runtime variables (e.g., coordinates, pane dimensions, CSS variable overrides like `style={{ '--panel-width': width + 'px' }}`).
 4. **No `!important`**: Overriding CSS specificity with `!important` is forbidden and enforced via Stylelint (`declaration-no-important: true`).
 5. **No Hardcoded Hex/RGB in Components**: Components must consume semantic design tokens rather than arbitrary raw colors (`#ffffff`, `#1a1a1a`).
-6. **Modern SCSS/CSS**: Use `@use` and `@forward` for Sass; never use deprecated Sass `@import`. The ordered `@import` directives in `workspace-os.css` are **native CSS imports**, an explicit migration-only exception needed to preserve the existing global cascade. Limit selector nesting to <= 3 levels.
+6. **Modern SCSS/CSS**: Use `@use` and `@forward` for Sass; never use deprecated Sass `@import`. The ordered `@import` directives in `workspace-os.css` are **native CSS imports**, an explicit migration-only exception needed to preserve the existing global cascade. Limit selector nesting to at most 3 levels.
 7. **Global Styles Allowlist**: Global stylesheets are restricted to `src/index.css`, the import-only `src/app/workspace-os.css` entry, the 17 named migration sections in `src/app/workspace-styles/*.css`, and `src/styles/*.scss`. Other global `.css` files are rejected by `npm run check:styles`. New feature styles MUST use co-located `*.module.scss`; do not append to the legacy sections merely for convenience.
 
 ### Legacy workspace CSS migration guard

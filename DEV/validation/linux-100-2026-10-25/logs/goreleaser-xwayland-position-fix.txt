@@ -1,0 +1,12 @@
+Snapshot GoReleaser final da homologação — local e não publicado
+Base Git: bf6adf0c80ac3531d7291844512a14a017ab0002
+Fingerprint das fontes: 996e1063540370263158e70903477f4cbbc3035dbb33b93161e603bffbe3c133 (1.401 arquivos)
+Comando: NEXUS_VERSION=1.0.0-beta.10 NEXUS_UPDATE_PUBLIC_KEY= go run github.com/goreleaser/goreleaser/v2@v2.18.0 release --snapshot --clean --config /tmp/nexus-linux-live-gemini-smoke/goreleaser-xwayland-position-fix.yaml
+GoReleaser 2.18.0 selecionou Go 1.27.3 via toolchain Go; o Go principal do host é 1.25.14. O build terminou com "release succeeded after 31s".
+
+- CLI tar.gz SHA-256: 289131adba5bce57ca4ca504a6c05ee37ead13caf8b43a14eee6a880d10cb3db.
+- DEB amd64 SHA-256: 112bbd98c11139aa865f09e576239c4c49f0d0d3e508f47d387eac571ad01df0.
+- checksums.txt SHA-256: 2ef6c4a47b51d094a975b7f7a36fba77e48e49338999567147f7af23378554aa; sha256sum -c passou para tar e DEB.
+- Payload CLI extraído do tar e do DEB: SHA-256 650d7dc827f8e0ba84f3861376b42d263b1d5402b4148b49d598741449f49c09; arquivos byte a byte idênticos.
+- Ambos os CLIs extraídos reportaram version=1.0.0-beta.10, os=linux, arch=amd64 e commit-base bf6adf0c80ac3531d7291844512a14a017ab0002.
+- Os pacotes foram extraídos em /tmp. Instalação dpkg não foi executada nesta rodada; a tentativa isolada anterior foi BLOCKED por falta de privilégio de superusuário. Nenhuma instalação no host, assinatura ou publicação foi feita.

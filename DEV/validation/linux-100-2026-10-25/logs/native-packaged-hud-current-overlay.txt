@@ -1,0 +1,30 @@
+Nexus HUD started an embedded Core at http://127.0.0.1:39025
+Overriding existing handler for signal 10. Set JSC_SIGNAL_FOR_GC if you want WebKit to use a different signal
+libEGL warning: DRI3 error: Could not get DRI3 device
+libEGL warning: Ensure your X server supports DRI3 to get accelerated rendering
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+process_pid=1873836
+alive_before_cleanup=True
+window=0x140000f title=nexus-hud geometry=224x158 position=+1684+914
+archive_sha256=6552ca3c7162c2b6c1c7322e8814c1f461da14a71e7377ad2dc08d4635afda8f
+payload_sha256=cf00cee5b82c6f856625c87bee8aef1891e39ad975e3fbbe1a491b76457e1dfd
+result=PASS
+screenshot=/projetos/nexus/DEV/validation/linux-100-2026-10-25/screenshots/native-hud-packaged-current-overlay-xwayland.png
+exit_after_cleanup=0

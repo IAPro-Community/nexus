@@ -1,0 +1,21 @@
+top - 16:24:56 up 3 days,  2:27,  1 user,  load average: 9.95, 8.71, 9.11
+Tasks:   3 total,   0 running,   3 sleeping,   0 stopped,   0 zombie
+%Cpu(s): 77.9 us, 20.9 sy,  0.0 ni,  1.2 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st 
+MiB Mem :  62253.4 total,   6210.7 free,  34644.5 used,  27251.6 buff/cache     
+MiB Swap:   4096.0 total,    370.9 free,   3725.1 used.  27608.9 avail Mem 
+
+    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+ 292171 desenvo+  20   0 2067952  33032  21132 S   0.0   0.1   0:06.71 nexus
+ 352485 desenvo+  20   0   74.5g 226880 162720 S   0.0   0.4   0:03.86 nexus-d+
+ 352495 desenvo+  20   0   73.3g 194848 137036 S   0.0   0.3   0:02.49 nexus-h+
+
+top - 16:24:59 up 3 days,  2:27,  1 user,  load average: 13.32, 9.43, 9.34
+Tasks:   3 total,   0 running,   3 sleeping,   0 stopped,   0 zombie
+%Cpu(s): 76.8 us, 21.2 sy,  0.1 ni,  1.8 id,  0.0 wa,  0.0 hi,  0.1 si,  0.0 st 
+MiB Mem :  62253.4 total,   5993.3 free,  34812.4 used,  27352.6 buff/cache     
+MiB Swap:   4096.0 total,    370.9 free,   3725.1 used.  27441.0 avail Mem 
+
+    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+ 352485 desenvo+  20   0   74.5g 226780 162720 S   0.7   0.4   0:03.88 nexus-d+
+ 352495 desenvo+  20   0   73.3g 194988 137080 S   0.7   0.3   0:02.51 nexus-h+
+ 292171 desenvo+  20   0 2067952  33032  21132 S   0.0   0.1   0:06.71 nexus

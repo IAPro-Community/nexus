@@ -75,7 +75,7 @@ import { attentionFingerprintOf, buildDocumentTitle, isHonestNeedsUser } from '.
 import { planFocusAttention, type RadarRuntimeItem } from './attentionRadarModel';
 import { resolveProjectSelection, resolveStaleProjectRoute } from './projectSelection';
 import { useNexusData } from './useNexusData';
-import type { Agent, ExecutionRole, MissionRun, Project } from '../types';
+import type { Agent, AttentionItem, ExecutionRole, MissionRun, Project } from '../types';
 import { currentRuntimeForAgent } from './runtimeAgentMapping';
 import { useTranslation } from 'react-i18next';
 import { shouldMarkUnread, surfaceTitleFromAgent } from '../workspace/surfaceAttention';
@@ -85,7 +85,12 @@ import { loadNotificationPrefs, playAttentionSound } from '../notifications/noti
 import { formatAttentionPushBody } from '../notifications/attentionPushCopy';
 import { isPtyAttentionFocused } from '../notifications/attentionDelivery';
 import { interpretNexusVoiceCommand } from '../features/voice/voiceCommand';
-import { COMPOSER_FLOW_ENABLED, isExperimentalComposerFlowSurface } from './composerFlowFlag';
+import {
+  COMPOSER_FLOW_ENABLED,
+  isExperimentalComposerFlowSurface,
+  isExperimentalRouteBlocked,
+  isExperimentalWorkspaceSurfaceBlocked,
+} from './composerFlowFlag';
 
 const selectedProjectKey = 'iapro:nexus:selected-project:v1';
 const tourKey = 'iapro:nexus:tour-complete:v1';
@@ -232,7 +237,10 @@ const NexusWorkspaceSession: React.FC<{
     if (
       !COMPOSER_FLOW_ENABLED &&
       (parsedRoute.kind === 'project' || parsedRoute.kind === 'popout') &&
-      isExperimentalComposerFlowSurface(parsedRoute.surface)
+      isExperimentalRouteBlocked(
+        parsedRoute.surface,
+        parsedRoute.kind === 'project' ? parsedRoute.subId : undefined,
+      )
     ) {
       navigate(buildProjectRoute(parsedRoute.projectId, 'overview'), { replace: true });
     }
@@ -451,7 +459,7 @@ const WorkspaceCoordinator: React.FC<{
 
   const open = useCallback(
     (surface: WorkspaceSurface, updateUrl = true) => {
-      if (!COMPOSER_FLOW_ENABLED && isExperimentalComposerFlowSurface(surface.type)) return;
+      if (!COMPOSER_FLOW_ENABLED && isExperimentalWorkspaceSurfaceBlocked(surface)) return;
       workspace.open(surface);
       if (updateUrl && !popout) {
         if (surface.type === 'flow-run' && surface.data?.runId) {
@@ -669,9 +677,19 @@ const WorkspaceCoordinator: React.FC<{
         keywords: ['fleet', 'workers', 'terminals'],
         run: () => openKind('agents'),
       },
+      ...data.projects.map((entry) => ({
+        id: `switch-project-${entry.id}`,
+        kind: 'project' as const,
+        label: entry.name || entry.id,
+        group: t('commands.scopeProjects'),
+        description: entry.canonical_path,
+        keywords: [entry.id, entry.canonical_path || '', 'switch', 'workspace'],
+        run: () => setProject(entry),
+      })),
       ...data.agents.flatMap((agent) => [
         {
           id: `terminal-${agent.id}`,
+          kind: 'agent' as const,
           label: t('commands.open', { name: `${agent.name} terminal` }),
           group: t('nav.agents'),
           keywords: ['terminal', agent.role],
@@ -679,6 +697,7 @@ const WorkspaceCoordinator: React.FC<{
         },
         {
           id: `config-${agent.id}`,
+          kind: 'agent' as const,
           label: t('commands.configure', { name: agent.name }),
           group: t('nav.agents'),
           keywords: ['settings', agent.role],
@@ -724,7 +743,44 @@ const WorkspaceCoordinator: React.FC<{
           ]
         : []),
       {
+        id: 'resource-chooser',
+        kind: 'resource' as const,
+        label: t('commands.chooseAccountModel'),
+        group: t('commands.scopeResources'),
+        keywords: ['account', 'profile', 'model', 'scheduler', 'ai'],
+        run: openNewAISession,
+      },
+      ...(listSurfaces(workspace.model.root).filter(isPtySurface).length >= 2
+        ? [
+            {
+              id: 'split-terminals-vertical',
+              kind: 'action' as const,
+              label: t('workspace.splitSideBySide'),
+              group: t('commands.scopeActions'),
+              keywords: ['split', 'vertical', 'side by side', 'terminais'],
+              run: () => {
+                presentation.setSplitOrientation('vertical');
+                presentation.setMode('SPLIT');
+                openKind('terminals');
+              },
+            },
+            {
+              id: 'split-terminals-horizontal',
+              kind: 'action' as const,
+              label: t('workspace.splitStacked'),
+              group: t('commands.scopeActions'),
+              keywords: ['split', 'horizontal', 'stacked', 'terminais'],
+              run: () => {
+                presentation.setSplitOrientation('horizontal');
+                presentation.setMode('SPLIT');
+                openKind('terminals');
+              },
+            },
+          ]
+        : []),
+      {
         id: 'resources',
+        kind: 'resource' as const,
         label: t('commands.open', { name: t('nav.resources') }),
         group: 'Nexus',
         keywords: ['quota', 'provider', 'accounts'],
@@ -863,6 +919,9 @@ const WorkspaceCoordinator: React.FC<{
     ],
     [
       data.agents,
+      data.projects,
+      setProject,
+      workspace.model.root,
       executionRoles,
       activeAgentRuntimeId,
       flowRuns,
@@ -1392,6 +1451,9 @@ const WorkspaceCoordinator: React.FC<{
         }}
         onFocusRuntime={handleFocusRuntime}
         onFocusAttention={handleFocusAttention}
+        onOpenMissionAttention={(item: AttentionItem) => {
+          open(flowRunSurface(item.mission_id));
+        }}
         onFocusAgent={(agentId) => {
           const agent = data.agents.find((a) => a.id === agentId);
           if (agent) terminal(agent);

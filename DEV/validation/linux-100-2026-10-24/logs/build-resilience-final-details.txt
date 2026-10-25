@@ -1,0 +1,17 @@
+Final Linux AMD64 binaries rebuilt after Core resilience fixes
+base_commit=bf6adf0c80ac3531d7291844512a14a017ab0002
+source_fingerprint=84bef2759af6b975d73e0488ab80e5fced2df70f17855597d512dcdef1f29ec8
+source_files=1694
+
+[nexus] sha256=f7470fcee9a3f1a2f4eba2bf2dd8f9aac443c5cade2de30c7225561586496c86
+/tmp/nexus-linux-100-2026-10-24/res-001-rebuild-2026-10-25/bin/nexus: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=b49f3404bd45778bafe51a83eb8f28abf13488e6, stripped
+
+[nexus-desktop] sha256=2d0c4af7b8717776e7b95133dfcdaa8f16e2495c3b243a9925053ad3aef6dcef
+/tmp/nexus-linux-100-2026-10-24/res-001-rebuild-2026-10-25/bin/nexus-desktop: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=a3e373ade9f269e8fd4dcabae88e5212b07ee8ab, for GNU/Linux 3.2.0, stripped
+ldd_missing_libraries=0
+
+[nexus-hud] sha256=57a30228ed3060c134a91d6ee7cf5202ae941799faae7960729f2ac54b2dca7d
+/tmp/nexus-linux-100-2026-10-24/res-001-rebuild-2026-10-25/bin/nexus-hud: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=436a0fa79b04f28f069638f45803fa17290bffb5, for GNU/Linux 3.2.0, stripped
+ldd_missing_libraries=0
+
+version_json={"arch": "amd64", "build_date": "2026-10-25T04:19:07Z", "commit": "bf6adf0c", "go": "go1.25.14", "os": "linux", "version": "1.0.0-beta.10"}

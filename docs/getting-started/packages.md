@@ -36,9 +36,14 @@ binário antes da substituição.
 
 ## Desktop nativo
 
-A v1 publica somente:
+Os artefatos nativos Linux x86_64 previstos para a distribuição v1 são:
 
-- Linux x86_64: `nexus-desktop_Linux_x86_64.tar.gz`.
+- Linux x86_64 Desktop: `nexus-desktop_Linux_x86_64.tar.gz`;
+- Linux x86_64 HUD companion: `nexus-hud_Linux_x86_64.tar.gz`.
+
+O instalador assinado valida os dois artefatos pelo mesmo manifesto e os coloca
+lado a lado no diretório de instalação, pois o Desktop inicia o HUD vinculado
+a partir desse local.
 
 Windows e macOS possuem implementação no source, porém seus artefatos não são
 publicados como parte da v1 estável.

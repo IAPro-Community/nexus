@@ -1,0 +1,3 @@
+Linux native smoke: Desktop and HUD built from current source overlay, run with isolated XDG/Nexus profiles under XWayland.
+desktop: alive_after_7s=True; x11_nexus_window_detected=True; exit_after_cleanup=0
+hud: alive_after_7s=True; x11_nexus_window_detected=True; exit_after_cleanup=0

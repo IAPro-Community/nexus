@@ -1,0 +1,25 @@
+Base commit: bf6adf0c80ac3531d7291844512a14a017ab0002
+Source overlay: 996e1063540370263158e70903477f4cbbc3035dbb33b93161e603bffbe3c133 (1,401 files)
+Frontend: make web exit 0; see web-build-final-xwayland-position-fix.log
+Go build commands:
+go build -trimpath -buildvcs=false -o /tmp/nexus-linux-live-gemini-smoke/xwayland-position-fix/nexus ./cmd/nexus
+go build -trimpath -buildvcs=false -tags production,gtk3 -o /tmp/nexus-linux-live-gemini-smoke/xwayland-position-fix/nexus-desktop ./cmd/nexus-desktop
+go build -trimpath -buildvcs=false -tags production,gtk3 -o /tmp/nexus-linux-live-gemini-smoke/xwayland-position-fix/nexus-hud ./cmd/nexus-hud
+
+== /tmp/nexus-linux-live-gemini-smoke/xwayland-position-fix/nexus ==
+/tmp/nexus-linux-live-gemini-smoke/xwayland-position-fix/nexus: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=c295bfad77d0f185025f0776bf6d4df0dde4d05b, with debug_info, not stripped
+fc6fb86f5a20b7c24d0ed2609624adcde43dc25bff42d646fa06a451fd1e87de  /tmp/nexus-linux-live-gemini-smoke/xwayland-position-fix/nexus
+ldd_resolved=1
+ldd_missing=0
+
+== /tmp/nexus-linux-live-gemini-smoke/xwayland-position-fix/nexus-desktop ==
+/tmp/nexus-linux-live-gemini-smoke/xwayland-position-fix/nexus-desktop: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=c0756a2a5ff17aa8dbd285ece894fdaa511654e7, for GNU/Linux 3.2.0, with debug_info, not stripped
+c4e97f33a7d79c8137281c37f3d86eb7822f1c3f59e6ecce1c9c1165a0823066  /tmp/nexus-linux-live-gemini-smoke/xwayland-position-fix/nexus-desktop
+ldd_resolved=122
+ldd_missing=0
+
+== /tmp/nexus-linux-live-gemini-smoke/xwayland-position-fix/nexus-hud ==
+/tmp/nexus-linux-live-gemini-smoke/xwayland-position-fix/nexus-hud: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=8f2f0f5902c1046beccaa19047aff8a805bd1afc, for GNU/Linux 3.2.0, with debug_info, not stripped
+95137b3af9324a4590e19d6b14106e6391b2bdcc97594bab54835a96fa62b984  /tmp/nexus-linux-live-gemini-smoke/xwayland-position-fix/nexus-hud
+ldd_resolved=122
+ldd_missing=0

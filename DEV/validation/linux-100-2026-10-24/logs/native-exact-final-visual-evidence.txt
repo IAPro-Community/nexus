@@ -1,0 +1,11 @@
+Desktop build SHA-256: 8334dc0b84cca98d6abef2fc41a3819af6575ae8d4eb6eb83cf6617bc6331753
+Desktop screenshot SHA-256: 1b27df87c08ddfba9e2f93609719470a8ba63b06e7e038aeef72001b37eb3e52
+Desktop screenshot: screenshots/native-desktop-exact-final-xwayland.png (1280x800, XWayland)
+Desktop embedded Core: HTTP 200
+
+HUD build SHA-256: 3cafbc761ec05838ea7e3f2a654280770ccff71c7ff7dc4781b31fff4912501d
+HUD screenshot SHA-256: 645942cb4f57c100dbd92174173e057dc3458b24a6d01154dad93c7cc9f1b4d8
+HUD screenshot: screenshots/native-hud-exact-final-xwayland.png (224x158, XWayland); one NEX visible
+HUD embedded Core: HTTP 200
+
+Build identity: commit base bf6adf0c80ac3531d7291844512a14a017ab0002 + source overlay SHA-256 6476b22e5ae0b69e6f7340d13915ad013e0151dd5119fe91142cbef69441b02e

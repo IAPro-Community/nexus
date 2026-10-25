@@ -1,0 +1,41 @@
+GoReleaser snapshot artifact verification
+nexus_1.0.0-beta.10_linux_amd64.deb: OK
+nexus_Linux_x86_64.tar.gz: OK
+ new Debian package, version 2.0.
+ size 9654238 bytes: control archive=480 bytes.
+     274 bytes,     9 lines      control
+     239 bytes,     4 lines      md5sums
+ Package: nexus
+ Version: 1.0.0~beta.10
+ Section: 
+ Priority: optional
+ Architecture: amd64
+ Maintainer: Vinicius Kiver <kivervinicius@gmail.com>
+ Installed-Size: 23726
+ Homepage: https://github.com/IAPro-Community/nexus
+ Description: IAPro Nexus Autonomous Multi-Agent Workspace OS
+{
+  "arch": "amd64",
+  "build_date": "2026-10-25T02:44:57Z",
+  "commit": "bf6adf0c80ac3531d7291844512a14a017ab0002",
+  "go": "go1.25.14",
+  "os": "linux",
+  "version": "1.0.0-beta.10"
+}
+drwxr-xr-x root/root         0 2026-10-24 22:45 ./usr/
+drwxr-xr-x root/root         0 2026-10-24 22:45 ./usr/local/
+drwxr-xr-x root/root         0 2026-10-24 22:45 ./usr/local/bin/
+-rw-rw-r-- root/root         0 2026-09-23 10:11 ./usr/local/bin/.nexus-deb
+-rwxr-xr-x root/root  24281272 2026-10-24 22:44 ./usr/local/bin/nexus
+drwxr-xr-x root/root         0 2026-10-24 22:45 ./usr/share/
+drwxr-xr-x root/root         0 2026-10-24 22:45 ./usr/share/doc/
+drwxr-xr-x root/root         0 2026-10-24 22:45 ./usr/share/doc/nexus/
+-rw-rw-r-- root/root      3553 2026-10-20 14:57 ./usr/share/doc/nexus/LICENSE
+-rw-rw-r-- root/root     11427 2026-10-23 09:55 ./usr/share/doc/nexus/README.md
+aa91392e92d4ffe4881252a5adccac7656caac949445e452fb7176cace9d2824  /tmp/nexus-linux-100-2026-10-24/goreleaser-dist/nexus_1.0.0-beta.10_linux_amd64.deb
+2e3a2fac5858e260e90cdd4d33c95f2c0333cf510f2f3f53ae2abe2d4fa45b7f  /tmp/nexus-linux-100-2026-10-24/goreleaser-dist/nexus_Linux_x86_64.tar.gz
+41e4f9483fd243bb28f90f0dc0c5b7768fd9e539087ff1a620e3ed8eca6aa4df  /tmp/nexus-linux-100-2026-10-24/bin/nexus
+994a394f5548d43d6c535b2dee5baf90528667241a31d0743d17b619811f9fae  /tmp/nexus-linux-100-2026-10-24/bin/nexus-desktop
+9e2333409b5784e1d90ecb78a6c7d7ca5cf04b9188bad638f7c3bbe279350dd4  /tmp/nexus-linux-100-2026-10-24/bin/nexus-hud
+cfc8990cbaacea30989028403f55808b4e9cebe8b6d9987f578e8d0650f0180f  /tmp/nexus-linux-100-2026-10-24/desktop-packages/nexus-desktop_Linux_x86_64.tar.gz
+dbf586d84fd29393ad9b901dd1cd11aaa58f8b3f85ae04787d1a082ba7553307  /tmp/nexus-linux-100-2026-10-24/desktop-packages/nexus-hud_Linux_x86_64.tar.gz

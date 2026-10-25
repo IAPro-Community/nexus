@@ -1,0 +1,28 @@
+{
+  "name": "@iapro/nexus-docs-site",
+  "version": "1.0.0-beta.0",
+  "private": true,
+  "scripts": {
+    "prepare:docs": "node scripts/prepare-docs.cjs",
+    "check:docs": "node scripts/prepare-docs.cjs --check",
+    "start": "npm run prepare:docs && docusaurus start",
+    "build": "npm run prepare:docs && docusaurus build",
+    "serve": "docusaurus serve"
+  },
+  "dependencies": {
+    "@docusaurus/core": "3.10.2",
+    "@docusaurus/preset-classic": "3.10.2",
+    "@easyops-cn/docusaurus-search-local": "0.55.3",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "overrides": {
+    "tinypool": "2.2.0",
+    "serialize-javascript": "7.1.4",
+    "uuid": "11.1.1",
+    "postcss-selector-parser": "7.1.7"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

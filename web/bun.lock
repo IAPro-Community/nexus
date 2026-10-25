@@ -38,6 +38,8 @@
         "husky": "^9.1.7",
         "lint-staged": "^16.4.0",
         "playwright": "^1.63.0",
+        "postcss": "^8.5.26",
+        "postcss-selector-parser": "^7.1.6",
         "prettier": "^3.9.6",
         "sass": "^1.85.1",
         "stylelint": "^17.15.0",

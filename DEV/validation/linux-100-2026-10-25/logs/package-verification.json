@@ -1,0 +1,44 @@
+{
+  "status": "PASS",
+  "scope": "local snapshot only; no official release published",
+  "package_checksums_verified": true,
+  "payloads_match": {
+    "cli_tar_and_deb": true,
+    "desktop_tar_and_build": true,
+    "hud_tar_and_build": true,
+    "make_cli_vs_goreleaser_cli": "different link flags; expected different hash"
+  },
+  "installed_and_removed_in_isolated_dpkg_root": true,
+  "versions": {
+    "make_build": {
+      "arch": "amd64",
+      "build_date": "2026-10-25T05:09:18Z",
+      "commit": "bf6adf0c",
+      "go": "go1.25.14",
+      "os": "linux",
+      "version": "1.0.0-beta.10"
+    },
+    "deb_installed": {
+      "arch": "amd64",
+      "build_date": "2026-10-25T05:17:57Z",
+      "commit": "bf6adf0c80ac3531d7291844512a14a017ab0002",
+      "go": "go1.25.14",
+      "os": "linux",
+      "version": "1.0.0-beta.10"
+    }
+  },
+  "hashes": {
+    "goreleaser_cli_tar_sha256": "a0bf9ef490931ae5b78f445915695bf561915a709453f737c095ea7c27579ede",
+    "goreleaser_deb_sha256": "52cf2c9cca1a4204c914d7e3d08eb4f3dacc37406959c3f5aaa51e2cd19e943b",
+    "desktop_tar_sha256": "624de1a179fb4020c8d2bcbddcc9dde0f098467055da28bec7d996dcc8465de3",
+    "hud_tar_sha256": "7438e0b079ca13512b6e2711401f00841b2e865bffbcd2d89d1268e1aedb9c91",
+    "cli_tar_payload_sha256": "b4e4c1561b0ba4682c3b901b321837820530d3c1b9d70eddac22fca71187bbe0",
+    "deb_payload_sha256": "b4e4c1561b0ba4682c3b901b321837820530d3c1b9d70eddac22fca71187bbe0",
+    "desktop_payload_sha256": "916147c0dd45eaa9d5f06590cd5fcfb2ce94288d3f6d8c52eac31fbf5fe2b2ff",
+    "desktop_build_sha256": "916147c0dd45eaa9d5f06590cd5fcfb2ce94288d3f6d8c52eac31fbf5fe2b2ff",
+    "hud_payload_sha256": "1ff2f350c5d2959607a35dd5e100a2c97115a3e5a1e6123194b59e89dbd59f3d",
+    "hud_build_sha256": "1ff2f350c5d2959607a35dd5e100a2c97115a3e5a1e6123194b59e89dbd59f3d",
+    "installed_deb_binary_sha256": "b4e4c1561b0ba4682c3b901b321837820530d3c1b9d70eddac22fca71187bbe0"
+  },
+  "validation_note": "The isolated dpkg root was installed, queried, and removed; the payload checksum was recorded before removal."
+}

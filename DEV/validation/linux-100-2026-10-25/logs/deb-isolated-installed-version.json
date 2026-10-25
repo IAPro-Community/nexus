@@ -1,0 +1,8 @@
+{
+  "arch": "amd64",
+  "build_date": "2026-10-25T05:17:57Z",
+  "commit": "bf6adf0c80ac3531d7291844512a14a017ab0002",
+  "go": "go1.25.14",
+  "os": "linux",
+  "version": "1.0.0-beta.10"
+}

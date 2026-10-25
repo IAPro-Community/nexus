@@ -482,7 +482,6 @@ echo "✓ Successfully installed IAPro Nexus to ${TARGET_DIR}/nexus"
 if [ "$OS_NAME" = "Linux" ] && [ -n "$VERSION_PLAIN" ] && [ "$BUILD_FROM_SOURCE" != true ]; then
     echo "Optional system packages (when published on the same release):"
     echo "  # Debian/Ubuntu: sudo dpkg -i nexus_*_linux_amd64.deb"
-    echo "  # Fedora/RHEL:   sudo rpm -i nexus_*_linux_amd64.rpm"
 fi
 
 install_linux_desktop() {
@@ -566,7 +565,20 @@ if [ "$INSTALL_DESKTOP" = true ] && [ -n "$VERSION_PLAIN" ] && [ "$DESKTOP_SUPPO
             tar -xzf "${TMP_DIR}/${DESKTOP_ARCHIVE_NAME}" -C "$TMP_DIR"
             DESKTOP_BINARY="${TMP_DIR}/nexus-desktop"
             if [ -x "$DESKTOP_BINARY" ]; then
+                HUD_ARCHIVE_NAME="nexus-hud_${OS_NAME}_${ARCH_NAME}.tar.gz"
+                echo "Attempting to install the linked IAPro Nexus HUD..."
+                if ! download_and_verify_archive "$HUD_ARCHIVE_NAME" "$VERSION_PLAIN"; then
+                    echo "ERROR: Native HUD requires an entry in the signed update-manifest." >&2
+                    exit 1
+                fi
+                HUD_BINARY="${TMP_DIR}/nexus-hud"
+                if [ ! -x "$HUD_BINARY" ]; then
+                    echo "ERROR: HUD executable missing from verified archive ${HUD_ARCHIVE_NAME}" >&2
+                    exit 1
+                fi
                 install_linux_desktop "$DESKTOP_BINARY"
+                install -m 0755 "$HUD_BINARY" "${TARGET_DIR}/nexus-hud"
+                echo "✓ Linked HUD installed to ${TARGET_DIR}/nexus-hud"
                 warn_webkitgtk
             else
                 echo "ERROR: Native Desktop executable missing from verified archive ${DESKTOP_ARCHIVE_NAME}" >&2

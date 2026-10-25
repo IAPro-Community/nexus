@@ -1,0 +1,4 @@
+=== RUN   TestAttentionEndpointRequiresAuthenticationAndReturnsFilteredProjection
+--- PASS: TestAttentionEndpointRequiresAuthenticationAndReturnsFilteredProjection (0.04s)
+PASS
+ok  	github.com/IAPro-Community/nexus/internal/control/web	0.054s

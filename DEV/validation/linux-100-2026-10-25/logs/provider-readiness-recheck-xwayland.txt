@@ -1,0 +1,25 @@
+Linux provider readiness follow-up — native UI and slow-probe regression
+Date: 2026-10-25
+Branch: release/v1.0.0
+Git HEAD and origin/release/v1.0.0 at capture: bf6adf0c80ac3531d7291844512a14a017ab0002
+Version: 1.0.0-beta.10
+Source provenance: logs/source-provenance-linux-provider-readiness-final.txt
+Source overlay fingerprint: 825800ba46bab26ac692a8cc5f8cfc82f64ed474cf36459a672d09943c85b62b (1,399 source files)
+Desktop binary SHA-256: 043ed2ba9fbd60ff2587c495e1db33070a893ed788fbd8a0360f32af74116ba4
+Session: Ubuntu GNOME 49, Wayland session with the Nexus Wails window on XWayland
+
+Finding and correction
+The provider API had a 2-second detection deadline. A locally installed JavaScript CLI probe took about 2.2 seconds while the first-run readiness screen and system checks were running concurrently. The API then marked that provider absent, even though its imported profile was authenticated. The detection deadline is now 5 seconds. No credential data is logged or returned by this change.
+
+Automated regression
+`go test -count=1 -run '^TestHandleProvidersAllowsSlowLocalCLIProbeToComplete$' -v ./internal/control/web` — PASS. A fake Gemini detection sleeps 2.5 seconds, then returns Installed=true; the endpoint returns it as installed within the new 5-second deadline. Full package `go test -count=1 ./internal/control/web` — PASS (22.710s). Logs: `provider-detection-regression-test.log` and `provider-web-package-regression-final.log`.
+
+Native procedure and outcome
+The exact final Desktop binary above was launched as a real Wails application in XWayland with NEXUS_CONFIG_DIR, NEXUS_DATA_DIR and all XDG directories isolated under a disposable /tmp profile. The native “Importar sessões existentes” button copied four host sessions (Codex, Gemini, AGY and OpenCode); the UI reported 4 imported, 0 already authenticated, 1 without an importable session, 1 unsupported and 0 failures. Imported auth files were mode 0600. Claude had no importable session; Cursor remains unsupported. The same binary was stopped with SIGTERM and restarted using the same isolated profile. The UI then detected four providers with accounts. The original provider sessions were not modified.
+
+Screenshots (real native XWayland window)
+- Before: `screenshots/host-session-import-before-xwayland.png`, SHA-256 `21fd59d24c365d82f3cc3cb75f47adbee1667b1ebc286fb102ee6e5f4744dda3`.
+- Import completed: `screenshots/host-session-import-result-xwayland.png`, SHA-256 `02875e424338e1324234ed8fc9e91b372e6687a970a1e68bf06b5992faa75df0`.
+- After restart: `screenshots/host-session-import-after-restart-xwayland.png`, SHA-256 `b76c075c0f1904dd004e39676661e03caa60605c73c6d98d07187dd13b9e86bc`.
+
+The test Desktop exited gracefully. Its temporary profiles, including copied credentials, were removed. The already-running user Nexus process was not stopped or modified. The screenshots and logs contain no token or account identity.

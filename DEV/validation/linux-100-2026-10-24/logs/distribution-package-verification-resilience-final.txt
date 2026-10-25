@@ -1,0 +1,24 @@
+Linux AMD64 snapshot validation after Core resilience fixes
+{
+  "tar_cli_sha256": "43ce3224628a91df88e13165b4ee52e2b8c13ff400e41aefbb486b938de21a04",
+  "deb_cli_sha256": "43ce3224628a91df88e13165b4ee52e2b8c13ff400e41aefbb486b938de21a04",
+  "tar_sha256": "58d1ebf202f5bc4bb2966ecf05f1caa57407ebcbf9094418b61c4a2b21f2d5c1",
+  "deb_sha256": "d0d92dbd74c558c4ad699e0aa4db8b9fb53a527502d4da7062d4592a4e14953d",
+  "deb_control": "Package: nexus; Version: 1.0.0~beta.10; Architecture: amd64",
+  "install_exit": 0,
+  "install_output": "Selecting previously unselected package nexus.\n(Reading database ... 0 files and directories currently installed.)\nPreparing to unpack .../nexus_1.0.0-beta.10_linux_amd64.deb ...\nUnpacking nexus (1.0.0~beta.10) ...\nSetting up nexus (1.0.0~beta.10) ...",
+  "installed_binary_sha256": "43ce3224628a91df88e13165b4ee52e2b8c13ff400e41aefbb486b938de21a04",
+  "version_json": {
+    "arch": "amd64",
+    "build_date": "2026-10-25T04:21:43Z",
+    "commit": "bf6adf0c80ac3531d7291844512a14a017ab0002",
+    "go": "go1.25.14",
+    "os": "linux",
+    "version": "1.0.0-beta.10"
+  },
+  "remove_exit": 0,
+  "remove_output": "(Reading database ... 10 files and directories currently installed.)\nRemoving nexus (1.0.0~beta.10) ...",
+  "removed": true,
+  "host_installation_touched": false
+}
+All assertions: PASS; temporary dpkg root only; host installation untouched.

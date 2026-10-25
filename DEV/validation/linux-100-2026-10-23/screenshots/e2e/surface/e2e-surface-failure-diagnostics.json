@@ -1,0 +1,10 @@
+{
+  "url": "http://127.0.0.1:41457/p/prj_06GPMZNECAQ9502N3FKVEG922R/overview",
+  "pageErrors": [],
+  "consoleErrors": [],
+  "requestFailures": [
+    "HEAD http://127.0.0.1:41457/wails/custom.js → net::ERR_ABORTED"
+  ],
+  "serverOutput": "=== Nexus Control Center (Web UI) ===\nURL:       http://127.0.0.1:41457\nPress Ctrl+C to stop the Web Control Center.\nReopen from any terminal: nexus web open\n",
+  "error": "AssertionError [ERR_ASSERTION]: layout must own the pinned work product tab\n    at main (file:///projetos/nexus/web/scripts/e2e-surface-isolation.mjs:250:14)"
+}

@@ -1,0 +1,36 @@
+XDG_SESSION_TYPE=wayland; XWayland forced via GDK_BACKEND=x11; real session D-Bus; HOME/XDG Nexus profile isolated; HUD auto-spawn disabled for desktop-only capture.
+binary_sha256=c32ca11e29a2add3a8d398a8bc63ed36c5f87d5b6d25409d569e6de90fcddf98
+window_id=0x6005fb
+WM_NAME(STRING) = "IAPro Nexus"
+_NET_WM_NAME(UTF8_STRING) = "IAPro Nexus"
+
+xwininfo: Window id: 0x6005fb "IAPro Nexus"
+
+  Absolute upper-left X:  295
+  Absolute upper-left Y:  115
+  Relative upper-left X:  295
+  Relative upper-left Y:  115
+  Width: 1330
+  Height: 887
+  Depth: 32
+  Visual: 0x41
+  Visual Class: TrueColor
+  Border width: 0
+  Class: InputOutput
+  Colormap: 0x600001 (not installed)
+  Bit Gravity State: NorthWestGravity
+  Window Gravity State: NorthWestGravity
+  Backing Store State: NotUseful
+  Save Under State: no
+  Map State: IsViewable
+  Override Redirect State: no
+  Corners:  +295+115  -295+115  -295-78  +295-78
+  -geometry 1330x887+295-78
+
+/projetos/nexus/DEV/validation/linux-100-2026-10-25/screenshots/native-desktop-mascot-fix-xwayland.png: PNG image data, 1330 x 887, 8-bit colormap, non-interlaced
+db923bce84543d34a573686ec4ff59fd6b16dfc507c2f9df60c75c8ef57dba89  /projetos/nexus/DEV/validation/linux-100-2026-10-25/screenshots/native-desktop-mascot-fix-xwayland.png
+
+first_frame_status=NOT_APPROVED
+reason=Screenshot was captured immediately after X11 window mapping, before the WebView rendered; the RGB capture is black.
+replacement_capture=screenshots/native-desktop-mascot-fix-ready-xwayland.png (captured after 8 seconds; visible first-run screen).
+replacement_sha256=9e16edddcd8d4bffa10399556fe50d6b1aae5a5f15618111c23916e5651860bc

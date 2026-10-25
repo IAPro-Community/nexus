@@ -1,0 +1,24 @@
+NEXUS_GUARDIAN_FILES
+web/src/features/hud/GuardianMascot.test.tsx
+web/src/features/hud/GuardianMascot.tsx
+web/src/features/hud/NexPixelSprite.tsx
+
+COMPANION_SYMBOLS
+web/src/features/hud/guardianModel.test.ts:2:import { guardianMood, normalizeHudAppearance } from './guardianModel';
+web/src/features/hud/NexusHud.tsx:40:import { GuardianMascot, GuardianModeSelector } from './GuardianMascot';
+web/src/features/hud/NexusHud.tsx:41:import { guardianMood, normalizeHudAppearance, type HudAppearance } from './guardianModel';
+web/src/features/hud/NexusHud.tsx:537:  const showGuardianMascot = native && !isDetachedPopup && nativeAppearance === 'MASCOT';
+web/src/features/hud/NexusHud.tsx:564:        data-appearance={showGuardianMascot ? 'MASCOT' : 'BAR'}
+web/src/features/hud/NexusHud.tsx:1001:        {showGuardianMascot && (
+web/src/features/hud/NexusHud.tsx:1013:              <GuardianMascot mood={guardianState} attention={isAttention} />
+web/src/features/hud/NexusHud.tsx:1034:        {!isDetachedPopup && !showGuardianMascot && (
+web/src/features/hud/NexPixelSprite.tsx:2:import type { GuardianMood } from './guardianModel';
+web/src/features/hud/GuardianMascot.tsx:2:import type { GuardianMood, HudAppearance } from './guardianModel';
+web/src/features/hud/GuardianMascot.tsx:6:interface GuardianMascotProps {
+web/src/features/hud/GuardianMascot.tsx:16:export const GuardianMascot: React.FC<GuardianMascotProps> = ({ mood, attention }) => (
+cmd/nexus-hud/window_options_test.go:99:func TestGuardianMascotAndTrayNativeWindowContracts(t *testing.T) {
+web/src/features/hud/GuardianMascot.test.tsx:4:import { GuardianMascot, GuardianModeSelector } from './GuardianMascot';
+web/src/features/hud/GuardianMascot.test.tsx:5:import type { GuardianMood, HudAppearance } from './guardianModel';
+web/src/features/hud/GuardianMascot.test.tsx:8:  renderToStaticMarkup(React.createElement(GuardianMascot, { mood, attention }));
+web/src/features/hud/GuardianMascot.test.tsx:52:        React.createElement(GuardianMascot, { mood: 'idle', attention: false, key: 'left' }),
+web/src/features/hud/GuardianMascot.test.tsx:53:        React.createElement(GuardianMascot, { mood: 'working', attention: false, key: 'right' }),

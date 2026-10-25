@@ -1,0 +1,21 @@
+Execução nativa do overlay Linux final
+Data: 2026-10-25
+Base Git: bf6adf0c80ac3531d7291844512a14a017ab0002
+Fingerprint das fontes: 64c48060972e179d021f1406339ce3619389d0321f76ebcffad0414f46cbd904
+Ambiente: Ubuntu GNOME 49, sessão Wayland, Wails em XWayland (`DISPLAY=:0`, `GDK_BACKEND=x11`), perfil e diretórios XDG temporários.
+Desktop SHA-256: 7823a991664c1812f5cfbc96da23db3e7599f6871a7d7682d77b066dcc7d8a10
+HUD SHA-256: 9cdd0ccf55db6686f2d8bc0069b3679fa1048f09255435bbf3af49ff9f592791
+
+Desktop Wails abriu a tela inicial (1280×800). Na cópia isolada, a interface importou 4 sessões, registrou 0 já autenticadas, 1 sem sessão importável, 1 sem suporte e 0 falhas. Depois de encerrar e reabrir o mesmo binário e perfil, a interface mostrou 4 provedores com conta. As cópias temporárias de credenciais foram removidas; o processo preexistente do usuário PID 4048119 não foi encerrado.
+
+HUD Wails abriu em 224×158 com uma única arte NEX. Clique XTest no mascote expandiu a janela para 334×496; os controles nativos exibem Barra, Mascote e Bandeja. A apresentação Mascote continua o mesmo NEX, sem renderer/personagem ou modo Companion 2D. O HUD e o Desktop do teste receberam SIGTERM e encerraram com exit 0.
+
+GPU: o host virtual VMware não fornece aceleração 3D utilizável. WebKit registrou avisos DRI3/DRI2; as janelas renderizaram e foram inspecionadas visualmente em XWayland. Isso não valida desempenho GPU acelerado.
+
+| Evidência | SHA-256 |
+| --- | --- |
+| `screenshots/native-desktop-final-gemini-fix-xwayland.png` | 1b27df87c08ddfba9e2f93609719470a8ba63b06e7e038aeef72001b37eb3e52 |
+| `screenshots/native-desktop-final-session-import-xwayland.png` | c2268fd9c7e4745edde1e4f4c8d2dd1715fda11f3a86768b3b3f8bfc4a398def |
+| `screenshots/native-desktop-final-after-restart-xwayland.png` | b76c075c0f1904dd004e39676661e03caa60605c73c6d98d07187dd13b9e86bc |
+| `screenshots/native-nexus-hud-final-overlay-xwayland.png` | 0aa501980896744e1bd03f7f474b00389c9cd7db9c90699a4ce0eb492bda7ffc |
+| `screenshots/native-nexus-hud-expanded-final-overlay-xwayland.png` | 92a03c4f6740c8876d24e6f4912387e0f06fad257b05e37bdd77d9926fe0e2c1 |

@@ -1,0 +1,10 @@
+=== RUN   TestLiveHostCredentialValidationHomologation
+    live_auth_parse_homologation_test.go:12: provider=claude source_present=true importer_accepts=false
+--- PASS: TestLiveHostCredentialValidationHomologation (0.00s)
+PASS
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/adapters/claude	0.004s
+=== RUN   TestLiveHostCredentialValidationHomologation
+    live_auth_parse_homologation_test.go:12: provider=gemini source_present=true importer_accepts=false
+--- PASS: TestLiveHostCredentialValidationHomologation (0.00s)
+PASS
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/adapters/gemini	0.004s

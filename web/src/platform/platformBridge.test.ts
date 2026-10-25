@@ -64,6 +64,29 @@ describe('PlatformBridge', () => {
     expect(changes).toEqual([true, false]);
   });
 
+  it('routes native Companion bubble geometry through the Wails HUDController binding', async () => {
+    const calls: Array<{ method: string; args: unknown[] }> = [];
+    setWailsV3InvokerForTests(async (method, ...args) => {
+      calls.push({ method, args });
+      return undefined;
+    });
+
+    await hudV3.setBubbleVisible(true);
+    await hudV3.setBubbleVisible(false);
+    expect(calls).toEqual([
+      {
+        method:
+          'github.com/IAPro-Community/nexus/internal/desktop.HUDController.SetHUDBubbleVisible',
+        args: [true],
+      },
+      {
+        method:
+          'github.com/IAPro-Community/nexus/internal/desktop.HUDController.SetHUDBubbleVisible',
+        args: [false],
+      },
+    ]);
+  });
+
   it('routes native HUD size presets and keyboard moves through the controller', async () => {
     const calls: Array<{ method: string; args: unknown[] }> = [];
     setWailsV3InvokerForTests(async (method, ...args) => {

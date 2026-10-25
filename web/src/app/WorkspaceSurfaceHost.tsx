@@ -2,6 +2,7 @@ import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { Network } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, EmptyState } from '../design-system';
+import { providerLoginCommand } from '../lib/providerLoginCommand';
 import { recoverOrStartAgent } from '../nexus/agentRecover';
 import { isLiveRuntimeState, runtimeIdFromRecoverResult } from '../nexus/agentTerminalModel';
 import { nexus } from '../nexus/api';
@@ -29,7 +30,7 @@ import { surfaceViewId } from '../workspace/model';
 import { useWorkspacePresentation } from '../workspace/WorkspacePresentationProvider';
 import { SurfaceLoadingFallback } from './SurfaceLoadingFallback';
 import { mapDurableActivity } from './activityModel';
-import { COMPOSER_FLOW_ENABLED, isExperimentalComposerFlowSurface } from './composerFlowFlag';
+import { COMPOSER_FLOW_ENABLED, isExperimentalWorkspaceSurfaceBlocked } from './composerFlowFlag';
 
 // Lazy-loaded Surfaces to isolate heavy dependencies (xterm.js, DAG canvas, settings)
 const ProjectManagerSurface = React.lazy(() =>
@@ -186,7 +187,7 @@ export const WorkspaceSurfaceHost: React.FC<{
   const config = (target: Agent) => openSurface(agentConfigSurface(target.id, target.name));
 
   const renderSurfaceContent = () => {
-    if (!COMPOSER_FLOW_ENABLED && isExperimentalComposerFlowSurface(surface.type)) {
+    if (!COMPOSER_FLOW_ENABLED && isExperimentalWorkspaceSurfaceBlocked(surface)) {
       return (
         <EmptyState
           title={t('surfaces.unavailable', 'Feature unavailable')}
@@ -217,6 +218,16 @@ export const WorkspaceSurfaceHost: React.FC<{
           runtimes={runtimes}
           flowRuns={COMPOSER_FLOW_ENABLED ? flowRuns : []}
           onOpenAgent={(agent, runtimeId) => terminal(agent, '', runtimeId || '')}
+          onAttachRuntime={(runtime) => {
+            openSurface(
+              projectShellSurface(
+                project.id,
+                runtime.runtime_id,
+                runtime.dynamic_title || runtime.title || 'Terminal',
+              ),
+            );
+            openSurface(projectSurface(project.id, 'terminals'));
+          }}
           refreshAgents={refreshAgents}
           onNewAgent={() => window.dispatchEvent(new CustomEvent('nexus:new-agent'))}
           onConfigureAgent={config}
@@ -429,7 +440,7 @@ export const WorkspaceSurfaceHost: React.FC<{
     if (surface.type === 'resources') {
       const openProviderShell = (provider: string, profile: string, login: boolean) => {
         const command = login
-          ? `nexus login ${provider} ${profile}`
+          ? providerLoginCommand(provider, profile)
           : `nexus ${provider}:${profile}`;
         if (!login) {
           void navigator.clipboard?.writeText(command).catch(() => undefined);

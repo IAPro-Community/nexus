@@ -1,0 +1,8 @@
+Linux desktop package snapshot after Core resilience fixes
+Source overlays: bf6adf0c80ac3531d7291844512a14a017ab0002 + 84bef2759af6b975d73e0488ab80e5fced2df70f17855597d512dcdef1f29ec8
+nexus-desktop binary sha256=2d0c4af7b8717776e7b95133dfcdaa8f16e2495c3b243a9925053ad3aef6dcef
+nexus-desktop archive sha256=f8c40d687cc66df69edb8428ee2c9cc246c75cb733b9d0a2cf923f48647c9049 path=/tmp/nexus-linux-100-2026-10-24/desktop-packages-resilience-2026-10-25/nexus-desktop_Linux_x86_64.tar.gz
+nexus-desktop payload byte equivalence=PASS
+nexus-hud binary sha256=57a30228ed3060c134a91d6ee7cf5202ae941799faae7960729f2ac54b2dca7d
+nexus-hud archive sha256=57d4819b0b6bcf53e92a166ad074f65a832e390ca52213ff3e7f220059d51bb8 path=/tmp/nexus-linux-100-2026-10-24/desktop-packages-resilience-2026-10-25/nexus-hud_Linux_x86_64.tar.gz
+nexus-hud payload byte equivalence=PASS

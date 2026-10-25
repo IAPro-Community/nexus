@@ -4,6 +4,8 @@ import type { WorkspaceSurface } from '../workspace/model';
 import {
   COMPOSER_FLOW_ENABLED,
   isExperimentalComposerFlowSurface,
+  isExperimentalRouteBlocked,
+  isExperimentalWorkspaceSurfaceBlocked,
   withoutExperimentalComposerFlow,
 } from './composerFlowFlag';
 
@@ -15,12 +17,35 @@ const surface = (type: string, id = type): WorkspaceSurface => ({
 });
 
 describe('Composer/Flow release gate', () => {
-  it('is disabled by default in a non-opted-in test/build', () => {
-    expect(COMPOSER_FLOW_ENABLED).toBe(false);
+  it('is enabled by default in normal test/build', () => {
+    expect(COMPOSER_FLOW_ENABLED).toBe(true);
     expect(isExperimentalComposerFlowSurface('work')).toBe(true);
     expect(isExperimentalComposerFlowSurface('missions')).toBe(true);
     expect(isExperimentalComposerFlowSurface('flow-run')).toBe(true);
     expect(isExperimentalComposerFlowSurface('terminals')).toBe(false);
+  });
+
+  it('keeps mission decision routes available while hiding experimental planning surfaces', () => {
+    expect(isExperimentalRouteBlocked('missions', 'mission-123')).toBe(false);
+    expect(isExperimentalRouteBlocked('missions')).toBe(true);
+    expect(isExperimentalRouteBlocked('work')).toBe(true);
+    expect(isExperimentalRouteBlocked('flow-run', 'mission-123')).toBe(true);
+  });
+
+  it('allows only a mission-specific Flow detail surface in the workspace', () => {
+    expect(isExperimentalWorkspaceSurfaceBlocked(surface('flow-run'))).toBe(true);
+    expect(
+      isExperimentalWorkspaceSurfaceBlocked({
+        ...surface('flow-run'),
+        data: { runId: 'mission-123' },
+      }),
+    ).toBe(false);
+    expect(
+      isExperimentalWorkspaceSurfaceBlocked({
+        ...surface('missions'),
+        data: { runId: 'mission-123' },
+      }),
+    ).toBe(true);
   });
 
   it('removes previously pinned Composer/Flow tabs without removing stable views', () => {

@@ -1,0 +1,18 @@
+Direct Wayland Desktop validation
+Date: 2026-10-25
+Branch: release/v1.0.0
+Git base: bf6adf0c80ac3531d7291844512a14a017ab0002
+Source overlay fingerprint: 6370093f2237d6b14d8ad2f23b5444466ef6556d7ee19f78ce1830bd114ba05e
+Backend: GDK_BACKEND=wayland; WAYLAND_DISPLAY=wayland-0; real GNOME session bus
+
+Result: PASS for native direct-Wayland Desktop startup and accessible main page.
+AT-SPI reported the nexus-desktop application, a 1332x889 native frame, and
+document title “IAPro Nexus · Workspace OS”. The visible page exposed project
+creation controls, provider account controls, “Verificar novamente” and
+“Importar sessões existentes”. The Desktop attached to the isolated Web Core
+used by the matching test session. The test process was stopped gracefully.
+
+The compositor did not provide a non-interactive screenshot route in this VM;
+this record is functional evidence, not visual-pixel or alpha evidence. The
+direct Wayland HUD interaction is recorded separately in
+wayland-hud-functional-summary.txt.

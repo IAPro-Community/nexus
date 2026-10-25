@@ -1,0 +1,11 @@
+Test ID: PTY-003 visual split toolbar reproduction
+Area: Linux native Wails terminal split
+Procedure: Opened two independent shell PTYs in the Wails app (XWayland), switched to Dividir, and captured the actual 1280x800 desktop window.
+Expected: Each pane keeps its session identity, runtime ID, and controls contained without overlap.
+Observed: Header text and controls collide/overlap in both approximately 500 px panes. Both PTYs still show independent shell output.
+Status: FAIL (before fix)
+Severity: P1 visual/function access risk in split terminal toolbar.
+App PID: 2110859; XID: 0x1a0000e. Test profile and repository: /tmp/nexus-linux-100-pty-native-input-retest.
+Screenshot: screenshots/terminal-split-toolbar-overflow-before-fix-xwayland.png
+Screenshot SHA-256: see terminal-split-toolbar-before-fix-sha256.txt
+Source base: bf6adf0c80ac3531d7291844512a14a017ab0002 plus overlay; previous desktop binary SHA-256 ee9f0bfa6a8f11e592100b50f7619510d39c146bfa0831f3cdab27553f7af078.

@@ -1,0 +1,3 @@
+/tmp/nexus-linux-100-2026-10-25/bin/nexus:         ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=1274debb542c75e1ab929b0ee11d3d2a7923ecad, stripped
+/tmp/nexus-linux-100-2026-10-25/bin/nexus-desktop: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=1152731881c8d3926c92da72a2775e22dad5dc2d, for GNU/Linux 3.2.0, stripped
+/tmp/nexus-linux-100-2026-10-25/bin/nexus-hud:     ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=61aef9d9af269b2f163eca418d2048d3174c5544, for GNU/Linux 3.2.0, stripped

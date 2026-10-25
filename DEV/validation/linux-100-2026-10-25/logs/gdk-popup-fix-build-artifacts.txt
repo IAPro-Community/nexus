@@ -1,0 +1,20 @@
+== Linux AMD64 build artifacts after HUD FIX-012 ==
+632f6e00620e79e19794b55df3fdb00f6f39ed1263f11f114b59deb7ad13926e  nexus
+b500303ec1e4654ec267cb171097b65c707b7de67b571b8650837a30cd8df492  cmd/nexus-desktop/build/bin/nexus-desktop
+a70789f8c5e6afa45515c84abab8a0a311070821719712227360d1ed6137a0d6  cmd/nexus-hud/build/bin/nexus-hud
+8fc86f6a435a28259e1d7029870f0669858ced731235b38680ea42c76e159598  /tmp/nexus-linux-active-20261025/goreleaser-gdk-fix/dist/nexus_Linux_x86_64.tar.gz
+f5c4932defd2745d6a256ee66478eb8eda2214089b16ffec1d2484a7ded1a83f  /tmp/nexus-linux-active-20261025/goreleaser-gdk-fix/dist/nexus_1.0.0-beta.10_linux_amd64.deb
+nexus:                                     ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=9bab24d92a50e20be74d42299f02c8973d5c775f, stripped
+cmd/nexus-desktop/build/bin/nexus-desktop: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=edd4b3018c0d96bfe97de66598df17099149b45c, for GNU/Linux 3.2.0, stripped
+cmd/nexus-hud/build/bin/nexus-hud:         ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=b30e0a735ce7f65927c475973ff3f775e79d8654, for GNU/Linux 3.2.0, stripped
+{
+  "arch": "amd64",
+  "build_date": "2026-10-25T14:38:44Z",
+  "commit": "bf6adf0c",
+  "go": "go1.25.14",
+  "os": "linux",
+  "version": "1.0.0-beta.10"
+}
+ldd: no missing shared libraries: cmd/nexus-desktop/build/bin/nexus-desktop
+ldd: no missing shared libraries: cmd/nexus-hud/build/bin/nexus-hud
+NEXUS_UPDATE_PUBLIC_KEY: empty (snapshot has no production trust root or signature)

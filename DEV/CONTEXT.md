@@ -1,15 +1,25 @@
 # Contexto atual
 
+## Snapshot atual — homologação Linux, 2026-10-25
+
+- Follow-up: Mission Attention abre detalhe Flow Run no workspace nativo; resumo de estado/evidência corrigido por SCSS Module. Evidências: `DEV/validation/linux-100-2026-10-25/MISSION_ATTENTION_VALIDATION.md`. O mascote continua sendo um único NEX, sem Companion 2D separado; `NO_GO_LINUX` geral permanece.
+
+- Branch `release/v1.0.0`; HEAD local/remoto `bf6adf0c80ac3531d7291844512a14a017ab0002`; `VERSION=1.0.0-beta.10`.
+- Snapshot da matriz Linux FIX-012: `516b706a2c3cdca1a6d76200833a785186063350fa4d41db4494fcb67bdb7f7a` (1.404 fontes). Follow-up P2 mais recente: `7368531977b7422eccdf00e7c676f57d440e8d736d9e114bcdc071b9d5885fe6` (1.410 arquivos no escopo do manifesto). Worktree modificado, sem commit imutável.
+- Resultado **NO_GO_LINUX**: 63 PASS / 1 FAIL / 12 BLOCKED / 5 NOT_RUN (81 casos). Relatório em `DEV/validation/linux-100-2026-10-25/`.
+- Produto tem um mascote NEX. Não há personagem, renderer ou modo Companion 2D separado; `GuardianMascot` e `NexPixelSprite` compõem o único caminho visual. Atenção e humor alimentam o mesmo NEX.
+- Os gates prévios de Go/Web/race/security e builds AMD64 passaram nos escopos registrados. FIX-011 corrigiu o anexo do runtime. FIX-012 corrigiu o popover lazy do HUD: teste focado, race detector e três ciclos nativos com `G_DEBUG=fatal-criticals` passaram. A captura atual confirma um único NEX; os testes focados do mascote passaram 25/25, sem modo Companion 2D separado. Entrada nativa nos dois PTYs split, atenção real de agente, roteamento completo, continuidade, skills, Wayland físico/alpha, updater assinado e release estável continuam pendentes.
+
 ## Estado
 
 - Produto: IAPro Nexus Workspace OS.
-- Versão-fonte em homologação: `1.0.0-beta.7` (`VERSION`).
+- Versão-fonte neste checkout: `1.0.0-beta.10` (`VERSION`).
 - O launcher persiste a identidade autoritativa do `SessionHost` após o
   handshake (`PID`, `HostPID`, `HostGeneration` e fingerprints); isso evita que
   o registro final apague a geração usada pelo attach.
 - A instalação local reinicia apenas o `nexus web` associado ao binário
   instalado, evitando hosts Web em memória com executável `(deleted)`.
-- Branch ativa neste checkout Windows: release/v1.0.0, HEAD-base 52f35c04181b85379219ab55fc3192c63a5440a8; a árvore suja contém ajustes locais de homologação. Não há merge Beta 7 pendente. Gates Windows locais passaram; NSIS exato compilado e variante isolada com payload real passaram; Desktop Wails/WebView2 validado por 10s com cleanup limitado ao perfil Nexus. Exact-SHA, gate docs-verify (manifesto visual stale em 2892f301), renderização visual, CI nativo, Authenticode e update trust root continuam NO-GO; host sem runner Windows, Windows SDK/signtool e certificado.
+- Registro histórico de homologação Windows beta.7: branch `release/v1.0.0`, base `52f35c04181b85379219ab55fc3192c63a5440a8`; não descreve o checkout Linux atual. Exact-SHA, Authenticode e trust root permaneciam pendentes naquela campanha.
 - Versão-fonte: arquivo `VERSION`.
 - Launcher destacado usa envelopes privados de uso único para argumentos opacos.
 - Motor de Flags Canônicas e Normalização (`internal/control/flags`): mapeamento transparente de `--yolo`, `-y`, `--continue`, `-c`, `--resume`, `-r`, `--print`, `-p`, `--effort`, `--plan` e suporte a `Merged Help` (`nexus <provider> --help`).

@@ -5,15 +5,36 @@ import {
   type WorkspaceSurface,
 } from '../workspace/model';
 
-// Build-time opt-in. Regular 1.0.0 builds omit the experimental surfaces.
-// Enable only in a deliberately built homologation artifact.
-declare const __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__: boolean;
+// Enabled by default for all builds. Can be explicitly disabled via compile-time define
+// __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__ = false.
+declare const __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__: boolean | undefined;
 export const COMPOSER_FLOW_ENABLED =
-  typeof __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__ !== 'undefined' &&
-  __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__;
+  typeof __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__ === 'undefined'
+    ? true
+    : Boolean(__NEXUS_EXPERIMENTAL_COMPOSER_FLOW__);
 
 export function isExperimentalComposerFlowSurface(type: string): boolean {
   return type === 'work' || type === 'missions' || type === 'flow-run';
+}
+
+/**
+ * A mission detail is an actionable, stable surface even while mission
+ * creation and history remain behind the Composer/Flow release gate.
+ */
+export function isExperimentalRouteBlocked(type: string, subId?: string): boolean {
+  if (!isExperimentalComposerFlowSurface(type)) return false;
+  return !(type === 'missions' && Boolean(subId?.trim()));
+}
+
+/**
+ * Workspace detail tabs are allowed only when they point to a specific
+ * mission run. Generic Flow/Composer surfaces remain gated in stable builds.
+ */
+export function isExperimentalWorkspaceSurfaceBlocked(
+  surface: Pick<WorkspaceSurface, 'type' | 'data'>,
+): boolean {
+  if (!isExperimentalComposerFlowSurface(surface.type)) return false;
+  return !(surface.type === 'flow-run' && Boolean(surface.data?.runId?.trim()));
 }
 
 /**

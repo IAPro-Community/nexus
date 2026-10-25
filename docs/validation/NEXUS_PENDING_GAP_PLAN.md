@@ -2,7 +2,9 @@
 
 Baseline: `e28e38c6380cb639d673231449810d151adf2678`  
 Verdict at audit freeze: **NO-GO**  
-This plan is derived from `NEXUS_PENDING_FINAL_AUDIT.md`. It describes closure work; it does not claim that any campaign below has started or passed.
+This plan is derived from `NEXUS_PENDING_FINAL_AUDIT.md`. It is being executed incrementally; completion requires the campaign-specific evidence below, not code presence alone.
+
+Progress snapshot (2026-10-25): P2 has a connected Attention Center, a native fixture flow, SQLite reopen coverage, and an authenticated HTTP endpoint test (401 without a session; filtered 200 with a session). Its multi-mission HTTP/UI restart E2E, authorization isolation, and empty/loading/error coverage remain open. P3–P9 remain pending; each campaign still requires its own completion evidence.
 
 ## Campaign P1 — Fail-closed HumanIntervention and resume
 
@@ -43,11 +45,20 @@ Every `BLOCKED_NEEDS_USER` item is answerable; resolution is exactly-once semant
 
 Lease races, old clients sending free-form strings, recovery of runs created before the intervention schema, and dispatch outcomes that are genuinely unknown.
 
+**Progress — 2026-10-25 (COMPLETE)**
+
+- Reproduced and fixed the P1 unsafe replay: an unsafe or unproven completed coordination dispatch now persists `ReplayProhibited`, offers verification without provider replay, preserves dispatch identity, and blocks retry/replan. SQLite reopen coverage protects this marker.
+- Retry/replan from a proven pre-dispatch failure now re-enters `ALLOCATING`, clears the old prompt artifact, allocates/compiles again, and waits in `PENDING` until package dependencies are verified.
+- A worker handoff that exceeds its first wait now schedules a single-owner retry after the canceled worker exits. Handler validation rejects malformed/trailing JSON and missing/non-positive intervention versions with HTTP 400.
+- Validation passed: `go test ./internal/nexus/runner -count=1 -v`, `go test ./internal/nexus -count=1`, `go test ./internal/nexus/...`, `go test ./internal/control/web -count=1`, `go test -race ./internal/nexus/runner -count=1`, and `go vet ./internal/control/web ./internal/nexus/...`. Detailed evidence: `DEV/validation/linux-100-2026-10-25/P1_INTERVENTION_VALIDATION.md`.
+- The plan-mandated integrated E2E now passes: authenticated HTTP resolution, durable decision/outbox, duplicate request, server/store restart, one resumed execution and verified terminal state. `go test ./internal/control/web -run '^TestResolveInterventionHTTPDecisionSurvivesServerRestartExactlyOnce$' -count=10` and the five-run race test both passed; logs and exact overlay fingerprint `ddad56697609de1374cdede949e794316e3263357b052f745defb64f11a4be5b` are recorded in `DEV/validation/linux-100-2026-10-25/P1_INTERVENTION_VALIDATION.md`.
+- P1 is closed for this dirty overlay, not for a frozen release SHA. P2–P9 and global release gates remain open; overall recommendation stays `NO_GO_LINUX`.
+
 ## Campaign P2 — Global Attention projection and workspace integration
 
 **Problem**
 
-The dirty Mission Attention component is orphaned. The reachable radar is runtime-centric and does not provide a proven global Mission/Project Needs You, Completed and Failed/No Progress surface.
+At the audit baseline, Mission Attention was orphaned and the reachable radar was runtime-centric. The current dirty overlay connects a workspace-wide Mission Attention panel, but a multi-mission durable-restart scenario has not yet proven the complete behavior.
 
 **Existing infrastructure to reuse**
 
@@ -75,6 +86,13 @@ Create A/B/C/D/E with deterministic fakes, verify C quota fallback is absent, re
 **Definition of Done**
 
 Global Attention answers “what work needs me now?” and never becomes a second Mission truth.
+
+**Progress — 2026-10-25 (IN_PROGRESS)**
+
+- The global shell panel, project/Mission filters, count badge and Mission detail navigation are connected. Backend filter tests, frontend route/gate tests, full Web quality and a native XWayland fixture click passed. A rendering defect in the Flow Run status summary was fixed and captured.
+- A SQLite close/reopen integration test now proves the A/D/E projection remains canonical, executing B/C stay out of Attention, and project/mission filters do not cross scopes.
+- Evidence: `DEV/validation/linux-100-2026-10-25/MISSION_ATTENTION_VALIDATION.md`; exact tested overlay fingerprint `7368531977b7422eccdf00e7c676f57d440e8d736d9e114bcdc071b9d5885fe6` over base `bf6adf0c80ac3531d7291844512a14a017ab0002`.
+- Still required before closing P2: HTTP/UI E2E across projects/missions, authorization isolation, empty/loading/error and keyboard/focus/responsive coverage, actual server restart through the UI, and a full E2E proving completed/failed/needs-user projections remain canonical. The endpoint's unauthenticated 401 and authenticated filtered 200 paths have focused Go coverage, but do not replace those scenarios.
 
 **Regression risks**
 

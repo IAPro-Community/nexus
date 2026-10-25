@@ -1,0 +1,12 @@
+Pacotes nativos Desktop/HUD Linux — formato suportado pelo workflow CI
+Base Git: bf6adf0c80ac3531d7291844512a14a017ab0002
+Fingerprint das fontes: 996e1063540370263158e70903477f4cbbc3035dbb33b93161e603bffbe3c133
+Build com production,gtk3, versão VERSION=1.0.0-beta.10, commit-base bf6adf0c; tarballs criados com os nomes definidos em .github/workflows/ci.yml.
+
+- nexus-desktop_Linux_x86_64.tar.gz SHA-256: 46df90ec4409a74e1ac91a3153e6eecba37d7c8590467641914cfc723abaab32. Executável: 9c607512ebd81975eaa0be44dc28603123b66d5c53d30026889dcd49d61d69e9.
+- nexus-hud_Linux_x86_64.tar.gz SHA-256: 3905bc6035d0cd2a7a45da8ffa5754468204933d94fe94e6c54713231e9e68ad. Executável: bdf3301158cbca6d6b679eb4b418feeb049d2a9ea16071b75073fd6346a3149f.
+- Ambos os arquivos foram extraídos; os payloads coincidiram byte a byte com os executáveis empacotados; file confirmou ELF x86-64; ldd não encontrou dependências ausentes.
+- O Desktop extraído do tar abriu a tela inicial com seis provedores no estado de detecção.
+- O HUD extraído do tar iniciou em XWayland; janela 224x158 com um único NEX; encerrou com SIGTERM/exit 0. Captura: screenshots/native-hud-packaged-linux-position-fix.png, SHA-256 de22c42431b7d54598a335da7dbc1e1bdf019a623fdee5092d9f4b4334414bcc.
+
+Os artefatos ficaram fora do Git em /tmp/nexus-linux-live-gemini-smoke/linux-packages-xwayland-position-fix.

@@ -1,0 +1,7 @@
+ccc88d2819d250dbe1f0989bcdd96c7d042c5e42288133a79ee710033277b443  /tmp/nexus-linux-100-2026-10-24/goreleaser-dist/nexus_1.0.0-beta.10_linux_amd64.deb
+a83fd3f352325f406ed2085cb9a0dd558fc79b8ca425160f066b3b4b57e06eff  /tmp/nexus-linux-100-2026-10-24/goreleaser-dist/nexus_Linux_x86_64.tar.gz
+44fbfcab15803a7c4120ae0cfe0f113e9df7d4939b23ccd6239f0c4c96c024c3  /tmp/nexus-linux-100-2026-10-24/bin/nexus
+dd5f2e7df725ed88812b590021db46fdc122b408e75f5d8bc8656d450f9c7fa1  /tmp/nexus-linux-100-2026-10-24/bin/nexus-desktop
+194b459239564a57802fa5f0f2bbbc35f060d289ba2377eae234a8f9e9c8cdc4  /tmp/nexus-linux-100-2026-10-24/bin/nexus-hud
+135deef8d6831310d2d82034a8807516e9e9677e1788b38db2be65ab02c5498a  /tmp/nexus-linux-100-2026-10-24/desktop-packages/nexus-desktop_Linux_x86_64.tar.gz
+5c618b3d31295faca4c88386bbcacf1376e2c8597074afdec4486257ba37a1d1  /tmp/nexus-linux-100-2026-10-24/desktop-packages/nexus-hud_Linux_x86_64.tar.gz

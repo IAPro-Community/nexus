@@ -117,6 +117,7 @@ const DemoCoordinator: React.FC = () => {
           onOpenAgent={() => openKind('agents')}
           onNewAISession={() => openKind('agents')}
           onProjectShell={() => openKind('agents')}
+          onAttachRuntime={() => openKind('agents')}
           onOpenComposer={COMPOSER_FLOW_ENABLED ? () => openKind('work') : undefined}
           onOpenFlow={COMPOSER_FLOW_ENABLED ? () => openKind('missions') : undefined}
         />

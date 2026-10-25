@@ -1,0 +1,33 @@
+== GDK root-fix snapshot verification, rerun with tar payload executable ==
+nexus_1.0.0-beta.10_linux_amd64.deb: OK
+nexus_Linux_x86_64.tar.gz: OK
+ce232d32c71ca54ce463be4150d8082a60be1ad944b53f46e30ad88e5dcfa8f7  /tmp/nexus-linux-active-20261025/dpkg-gdk-fix/nexus-from-tar
+ce232d32c71ca54ce463be4150d8082a60be1ad944b53f46e30ad88e5dcfa8f7  /tmp/nexus-linux-active-20261025/dpkg-gdk-fix/deb-extracted/usr/local/bin/nexus
+{
+  "arch": "amd64",
+  "build_date": "2026-10-25T14:40:27Z",
+  "commit": "bf6adf0c80ac3531d7291844512a14a017ab0002",
+  "go": "go1.25.14",
+  "os": "linux",
+  "version": "1.0.0-beta.10"
+}
+dpkg: could not open log '/var/log/dpkg.log': Permission denied
+Selecting previously unselected package nexus.
+(Reading database ... 0 files and directories currently installed.)
+Preparing to unpack .../nexus_1.0.0-beta.10_linux_amd64.deb ...
+Unpacking nexus (1.0.0~beta.10) ...
+Setting up nexus (1.0.0~beta.10) ...
+install ok installed 1.0.0~beta.10 amd64
+{
+  "arch": "amd64",
+  "build_date": "2026-10-25T14:40:27Z",
+  "commit": "bf6adf0c80ac3531d7291844512a14a017ab0002",
+  "go": "go1.25.14",
+  "os": "linux",
+  "version": "1.0.0-beta.10"
+}
+dpkg: could not open log '/var/log/dpkg.log': Permission denied
+(Reading database ... 10 files and directories currently installed.)
+Removing nexus (1.0.0~beta.10) ...
+isolated_package_removed=true
+host_installation_modified=false

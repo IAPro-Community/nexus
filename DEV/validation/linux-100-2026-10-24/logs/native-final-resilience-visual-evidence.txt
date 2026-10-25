@@ -1,0 +1,14 @@
+Native visual capture after Core resilience fixes
+date=2026-10-25
+base_commit=bf6adf0c80ac3531d7291844512a14a017ab0002
+source_fingerprint=84bef2759af6b975d73e0488ab80e5fced2df70f17855597d512dcdef1f29ec8
+session=Ubuntu GNOME 49; host Wayland; GTK forced to X11/XWayland; current user D-Bus reused
+profile=isolated HOME/XDG/NEXUS_DATA_DIR under /tmp; NEXUS_HUD_SPAWN=0
+Desktop binary sha256=2d0c4af7b8717776e7b95133dfcdaa8f16e2495c3b243a9925053ad3aef6dcef
+Desktop result=main Wails window visible; Core HTTP 200; test process SIGTERM exit 0
+screenshot=native-desktop-resilience-final-xwayland.png; dimensions=1330x887; sha256=ce0767277b69058f4d4bf962d32552369d91cba49e6d1574b5c4eb522ee86cc1
+screenshot=native-hud-resilience-final-xwayland.png; dimensions=224x158; sha256=992ea14a65d072ac42d5c6b66ab8ba18b42ae7de67eb42eaf9ec78e150c9267c
+HUD binary sha256=57a30228ed3060c134a91d6ee7cf5202ae941799faae7960729f2ac54b2dca7d
+HUD result=224x158 native window visible; one NEX rendered; Core HTTP 200; test process SIGTERM exit 0
+alpha_validation=BLOCKED; XWayland capture background is not evidence of alpha transparency
+Wayland_native_interaction=BLOCKED; this capture ran on XWayland

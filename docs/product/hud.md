@@ -193,9 +193,9 @@ milestone de UX avançada, desde que:
   atual.
 
 
-## NEX — identidade oficial do Companion visual
+## NEX — identidade do mascote único
 
-Na linha 1.0, o **NEX Compact** é o mascote oficial e frontal em pixel art 32-bit-inspired. Ele substitui somente a arte genérica anterior dentro da apresentação nativa **MASCOT**, preservando os modos BAR/MASCOT/TRAY, o Core e todos os contratos operacionais. `idle`, `working`, `warning` e `offline` seguem derivados da projeção real; nenhuma animação é evidência de conclusão de tarefa.
+Na linha 1.0, o **NEX Compact** é o único mascote oficial. A apresentação nativa **MASCOT** mostra essa arte e estados derivados dos dados do Nexus. Barra e Bandeja são apresentações do HUD, não personagens adicionais. A conclusão de uma missão, por si só, não produz um estado visual de sucesso; essa expressão depende de telemetria verificada própria.
 
 Veja [identidade visual oficial](../design/NEX_32BIT_VISUAL_CONTRACT.md) e [guia do HUD nativo](hud-guardian-v1.md). O código-fonte da arte não certifica sozinho uma release ou plataforma.
 
@@ -351,3 +351,42 @@ Sem evidências nativas para **Windows, macOS e Linux** no mesmo SHA, a
 gerada pelo compositor ou tema GTK não é controlada pelas flags Windows/macOS;
 se o retângulo persistir, o caminho é um adaptador GTK/compositor específico
 ou redesign da superfície, não alegar correção por flag.
+
+---
+
+## Modos de Apresentação e Mascote NEX
+
+O Desktop HUD oferece três apresentações: Barra, Mascote e Bandeja. A apresentação Mascote usa uma única arte oficial NEX, com expressão e animação dirigidas pelos estados reais do Nexus. Barra e Bandeja são formas de exibição do HUD, não outros personagens.
+
+| Modo | Descrição e Finalidade |
+| --- | --- |
+| **Barra** | Barra flutuante translúcida contendo telemetria compacta de quotas, conta em destaque e status de degradações. |
+| **Mascote** | Projeção do único mascote oficial NEX, flutuando sobre o desktop com expressões e estados visuais ligados à saúde real do sistema. |
+| **Bandeja (Tray)** | Modo recolhido silencioso na bandeja do sistema operacional, exibindo alertas apenas quando ocorre saturação ou rate limit. |
+
+### Humores Operacionais do Mascote NEX
+
+```mermaid
+stateDiagram-v2
+  [*] --> IDLE: Sem tarefas ativas
+  IDLE --> WORKING: Sessão iniciada / Chamada LLM
+  WORKING --> IDLE: Projeção atualizada após a execução
+  WORKING --> CRITICAL: Falha ou intervenção que exige o usuário
+  WORKING --> WARNING: Quota / Rate Limit / Degradação
+  IDLE --> WARNING: Alerta de capacidade / Conta sem renovação
+  WARNING --> WORKING: Recuperação / Fallback automático
+  IDLE --> OFFLINE: Core desconectado / Daemon parado
+  OFFLINE --> IDLE: Reconexão estabelecida
+```
+
+- **IDLE**: Respiração ambiente sutil, visor azul calmo, módulos orbitais estáveis.
+- **WORKING**: Pulsos de computação no núcleo reator circular, visor focado, módulos orbitais em rotação ativa.
+- **WARNING**: Núcleo reator âmbar/amarelo, alertas visuais de degradação de quota ou rate limit detectado nas janelas de 5h/7 dias.
+- **CRITICAL**: Núcleo vermelho para falha ou intervenção prioritária, com acesso ao item correspondente no HUD.
+- **OFFLINE**: Mascote em repouso/desconectado, reator apagado, indicando perda de sinal com o Core local.
+
+### Particularidades do Wayland no Linux
+
+No Wayland (GNOME Shell / KDE Plasma / Sway), o protocolo de segurança do compositor proíbe clientes de definir posições globais absolutas de janelas secundárias na tela. Por isso:
+- O botão **Popup independente** é automaticamente desativado exibindo *"Indisponível no Wayland"*.
+- O popup de detalhes de quotas permanece firmemente ancorado dentro da janela principal do HUD para prevenir janelas órfãs fora da área visível.

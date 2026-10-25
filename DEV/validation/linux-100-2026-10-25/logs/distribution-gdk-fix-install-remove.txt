@@ -1,0 +1,6 @@
+== GDK root-fix snapshot verification ==
+nexus_1.0.0-beta.10_linux_amd64.deb: OK
+nexus_Linux_x86_64.tar.gz: OK
+ce232d32c71ca54ce463be4150d8082a60be1ad944b53f46e30ad88e5dcfa8f7  /tmp/nexus-linux-active-20261025/dpkg-gdk-fix/nexus-from-tar
+ce232d32c71ca54ce463be4150d8082a60be1ad944b53f46e30ad88e5dcfa8f7  /tmp/nexus-linux-active-20261025/dpkg-gdk-fix/deb-extracted/usr/local/bin/nexus
+zsh:13: permission denied: /tmp/nexus-linux-active-20261025/dpkg-gdk-fix/nexus-from-tar

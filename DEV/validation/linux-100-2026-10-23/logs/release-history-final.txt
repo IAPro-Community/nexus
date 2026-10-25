@@ -1,0 +1,25 @@
+bf6adf0c (HEAD -> release/v1.0.0, origin/release/v1.0.0) docs(nex): official visual refs, AI parity manifest and validation gates
+9929bef2 docs(visual): recapture synthetic Web evidence for source 689fa3e21ab1
+689fa3e2 feat(hud): official NEX 32-bit mascot and shared SVG assets
+f62fdec0 fix(hud): restore geometry on first native show; audit companion branch drift
+bc35bcb0 ci(windows): preflight docs and run remaining checks despite capture failure
+321be62f test(hud/windows): verify companion starts without hidden GUI first paint
+7728fde8 fix(hud/windows): launch linked native Guardian without SW_HIDE
+2bb8b4dc fix(hud/windows): launch linked native Guardian without SW_HIDE
+afe880d4 fix(hud/windows): launch linked native Guardian without SW_HIDE
+a0b5981c fix(hud/windows): launch linked native Guardian without SW_HIDE
+374ea2e8 fix(docs/capture): recognize server terminal output over reused reconnect WebSocket
+71fa29a3 docs(release): keep internal beta10 evidence out of public markdown links
+d5d96884 docs(release): keep internal beta10 evidence out of public markdown links
+39a9b348 docs(release): keep internal beta10 evidence out of public markdown links
+6662d5c3 docs(release): keep internal beta10 evidence out of public markdown links
+9ff18896 docs(hud): specify macOS opt-in click-through native verification
+8f8bbe83 docs(hud): distinguish experimental macOS hit test from Linux unsupported path
+938e36eb test(hud/macos): require explicit opt-in for unverified Quartz adapter
+8b43c72a fix(hud/macos): fail open if Quartz adapter is unavailable
+7828d66a feat(hud/macos): add opt-in Quartz cursor hit-test adapter
+d5f2ba10 refactor(hud): separate macOS cursor adapter from Linux fallback
+1d4a41c8 test(hud/wayland): prevent fictitious coordinates when resizing
+9ec6ed5f fix(hud/wayland): persist actual capsule position when toggling popup
+41f5f73d fix(hud/wayland): keep actual position when switching Guardian appearance
+fa0107c3 fix(hud/wayland): preserve actual window origin without global positioning

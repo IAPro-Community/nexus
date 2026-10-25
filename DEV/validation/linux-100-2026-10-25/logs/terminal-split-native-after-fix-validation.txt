@@ -1,0 +1,26 @@
+Terminal split — native validation after FIX-006
+Date: 2026-10-25
+Base Git commit: bf6adf0c80ac3531d7291844512a14a017ab0002
+Source overlay: logs/source-provenance-terminal-split-final.txt
+Source fingerprint: a6be83416651b6cdb4e0cb77a8c0448c17708d19e4c3b8d6f7e41bb8a5ad0b0a
+Environment: Ubuntu 25.10, GNOME 49 Wayland session; Nexus Wails window under XWayland, 1280x800.
+
+Build
+- Rebuilt with Go 1.25.14, linux/amd64, tags production,gtk3, CGO enabled.
+- Tested native window binary: /tmp/nexus-linux-100-2026-10-25-split-native/fixed/nexus-desktop
+- Tested native window binary SHA-256: adb7d9d21035452ca7e6c034d3b1ff2dea03357084f0990c2a56652f227e19f7
+- Independent repeat build from the same source: /tmp/nexus-linux-100-2026-10-25-split-native/fixed/nexus-desktop-rebuilt
+- Repeat build SHA-256: dc462b34ae795cfc0f6be38b7dba07fd99c7db2a696b22beed68a62340395499
+- Repeat build is ELF 64-bit x86-64; `ldd` resolved all linked libraries with no `not found` entries.
+
+Scenario and result
+- Opened two real shell sessions in the isolated test project, selected vertical split, and inspected the Wails window.
+- Before FIX-006, long user@host:path tab labels overflowed and overlapped adjacent tab labels. Before screenshot: `screenshots/terminal-split-title-overflow-before-fix-xwayland.png` (SHA-256 100c4e867aadf29e7e261b1611fa9bba6d3d04fb180fcadee7980eebbb5cf63f).
+- After FIX-006, both labels remain inside their tabs and are shortened with ellipsis. After screenshot: `screenshots/terminal-split-title-clipped-after-fix-xwayland.png` (SHA-256 8a408b8c0927364bf7298a38fc9bec76b215972a0e0138db030b5d25789cac34).
+- Browser regression: seven vertical/horizontal geometry cases plus long-label clipping passed in `terminal-split-overflow-browser-regression.log`.
+- Frontend `bun run quality:full`: PASS, 105 test files and 660 tests; format, lint, Stylelint, typecheck, style gates and production build passed. Log: `web-quality-full-after-terminal-fix.log`.
+
+Blocked coverage
+- Native keyboard input to both split PTYs was attempted, but XTest did not deliver shell input reliably. No command/ANSI/Unicode result is claimed for the two-pane flow; mark PTY-003 BLOCKED.
+- Resize via drag/keyboard, persistence after restart, and reconnect for split sessions remain unverified.
+- Both isolated shell runtimes were stopped with the Nexus CLI; the isolated Desktop test process was terminated. The host's unrelated Nexus runtime was not touched.

@@ -1,0 +1,20 @@
+HUD nativo — movimentação por teclado e restauração em XWayland
+Base Git local/remota: bf6adf0c80ac3531d7291844512a14a017ab0002
+Fingerprint das fontes: 996e1063540370263158e70903477f4cbbc3035dbb33b93161e603bffbe3c133 (1.401 arquivos)
+Ambiente: Ubuntu 25.10, GNOME 49, sessão Wayland, XWayland DISPLAY=:0; XDG_SESSION_TYPE=wayland e GDK_BACKEND=x11. O perfil XDG foi descartável.
+
+Reprodução antes de FIX-008
+- HUD SHA-256: 9cdd0ccf55db6686f2d8bc0069b3679fa1048f09255435bbf3af49ff9f592791.
+- O controle acessível de arraste recebeu foco visual. XTest enviou Right.
+- Resultado real: janela permaneceu em 224x158+50+32; estado persistido permaneceu x=50,y=32.
+
+Validação após FIX-008
+- HUD SHA-256: 95137b3af9324a4590e19d6b14106e6391b2bdcc97594bab54835a96fa62b984.
+- Com foco visível no controle de arraste, ArrowRight moveu a janela de x=50 para x=66 e persistiu x=66. Um segundo ArrowRight moveu de x=66 para x=82 e persistiu x=82.
+- O processo de teste encerrou com SIGTERM/exit 0. Ao abrir novamente o mesmo binário e perfil, a janela voltou a x=82,y=32, com 224x158.
+- O screenshot mostra uma única arte NEX.
+
+Capturas reais Wails/XWayland (SHA-256)
+- screenshots/native-nexus-hud-keyboard-drag-focus-xwayland-position-fix.png: ded66d776af6da46f79778ced0e38592777a0bcc030bf40486c6964aa5efc914.
+- screenshots/native-nexus-hud-keyboard-moved-xwayland-position-fix.png: c63be2a23a51a5cf5c010663c8c71607c0ef09ba70df02b46c22c12fcbeef19d.
+- screenshots/native-nexus-hud-position-persisted-after-restart-xwayland-position-fix.png: 75cb6aec136b081f4f3c9a28e228846a8302fa0adb6c4226b0db483a4468be66.

@@ -1,0 +1,29 @@
+binary_sha256=13a6663d329e7a97cf7fc198af7153e887a1a3cced5ee11ca50b492396024a1d
+profile_dir=/tmp/nexus-hud-smoke-current.NFRus6
+
+xwininfo: Window id: 0x1400001 "nexus-hud"
+
+  Absolute upper-left X:  10
+  Absolute upper-left Y:  10
+  Relative upper-left X:  10
+  Relative upper-left Y:  10
+  Width: 10
+  Height: 10
+  Depth: 0
+  Visual: 0x193
+  Visual Class: TrueColor
+  Border width: 0
+  Class: InputOnly
+  Colormap: 0x0 (not installed)
+  Bit Gravity State: ForgetGravity
+  Window Gravity State: NorthWestGravity
+  Backing Store State: NotUseful
+  Save Under State: no
+  Map State: IsUnMapped
+  Override Redirect State: no
+  Corners:  +10+10  -1900+10  -1900-1060  +10-1060
+  -geometry 10x10+10+10
+
+
+result=INVALID_CAPTURE_ATTEMPT
+reason=selected_hidden_10x10_input_only_helper_not_main_window; no visual pass claimed

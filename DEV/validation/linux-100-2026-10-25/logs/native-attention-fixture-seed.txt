@@ -1,0 +1,6 @@
+db= /tmp/nexus-linux-100-attention-fixture-20261025/data/nexus/nexus.db
+project_id= proj_native_hud_attention_fixture
+plan_id= plan_native_hud_attention_fixture
+mission_run_id= run_native_hud_attention_fixture
+state=BLOCKED_NEEDS_USER
+fixture=controlled; no provider process or user data used

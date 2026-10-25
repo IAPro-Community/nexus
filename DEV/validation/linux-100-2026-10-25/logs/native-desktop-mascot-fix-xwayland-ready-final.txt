@@ -1,0 +1,64 @@
+XWayland; real session D-Bus; isolated HOME/XDG; wait 8 s after inner WebView maps before capture. Discovery by nexus-desktop WM_CLASS.
+binary_sha256=c32ca11e29a2add3a8d398a8bc63ed36c5f87d5b6d25409d569e6de90fcddf98
+window_id=0x1400001
+
+xwininfo: Window id: 0x1400001 "nexus-desktop"
+
+  Absolute upper-left X:  10
+  Absolute upper-left Y:  10
+  Relative upper-left X:  10
+  Relative upper-left Y:  10
+  Width: 10
+  Height: 10
+  Depth: 0
+  Visual: 0x193
+  Visual Class: TrueColor
+  Border width: 0
+  Class: InputOnly
+  Colormap: 0x0 (not installed)
+  Bit Gravity State: ForgetGravity
+  Window Gravity State: NorthWestGravity
+  Backing Store State: NotUseful
+  Save Under State: no
+  Map State: IsUnMapped
+  Override Redirect State: no
+  Corners:  +10+10  -1900+10  -1900-1060  +10-1060
+  -geometry 10x10+10+10
+
+WM_NAME(STRING) = "nexus-desktop"
+_NET_WM_NAME(UTF8_STRING) = "nexus-desktop"
+_NET_WM_PID(CARDINAL) = 1931524
+WM_CLASS(STRING) = "nexus-desktop", "Nexus-desktop"
+The prior probe selected an unmapped 10x10 InputOnly X11 parking window; it is not the app surface. Retrying against the mapped 1280x800 nexus-desktop WebView, waiting 8 s before capture.
+binary_sha256=c32ca11e29a2add3a8d398a8bc63ed36c5f87d5b6d25409d569e6de90fcddf98
+window_id=0x140000e
+
+xwininfo: Window id: 0x140000e "IAPro Nexus"
+
+  Absolute upper-left X:  320
+  Absolute upper-left Y:  177
+  Relative upper-left X:  25
+  Relative upper-left Y:  62
+  Width: 1280
+  Height: 800
+  Depth: 24
+  Visual: 0x193
+  Visual Class: TrueColor
+  Border width: 0
+  Class: InputOutput
+  Colormap: 0x1400002 (not installed)
+  Bit Gravity State: NorthWestGravity
+  Window Gravity State: NorthWestGravity
+  Backing Store State: NotUseful
+  Save Under State: no
+  Map State: IsViewable
+  Override Redirect State: no
+  Corners:  +320+177  -320+177  -320-103  +320-103
+  -geometry 1280x800+295-78
+
+WM_NAME(STRING) = "IAPro Nexus"
+_NET_WM_NAME(UTF8_STRING) = "IAPro Nexus"
+_NET_WM_PID(CARDINAL) = 1933157
+WM_CLASS(STRING) = "nexus-desktop", "Nexus-desktop"
+/projetos/nexus/DEV/validation/linux-100-2026-10-25/screenshots/native-desktop-mascot-fix-ready-xwayland.png: PNG image data, 1280 x 800, 8-bit/color RGB, non-interlaced
+9e16edddcd8d4bffa10399556fe50d6b1aae5a5f15618111c23916e5651860bc  /projetos/nexus/DEV/validation/linux-100-2026-10-25/screenshots/native-desktop-mascot-fix-ready-xwayland.png

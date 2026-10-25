@@ -1,0 +1,6 @@
+internal/profile/host_auth_import.go:101:2: SA4006: this value of target is never used (staticcheck)
+	target, created := model.Profile{}, false
+	^
+1 issues:
+* staticcheck: 1
+exit status 1

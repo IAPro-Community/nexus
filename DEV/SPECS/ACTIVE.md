@@ -1,10 +1,65 @@
+# Estado ativo — homologação Linux e mascote único — 2026-10-25
+
+**Follow-up P1, 2026-10-25:** P1 COMPLETE no overlay `ddad56697609de1374cdede949e794316e3263357b052f745defb64f11a4be5b` (1.412 fontes). O E2E HTTP autenticado → decisão/outbox durável → restart → exatamente uma retomada verificada passou 10 vezes e 5 vezes com race. Relatório/logs em `DEV/validation/linux-100-2026-10-25/P1_INTERVENTION_VALIDATION.md`. P2–P9 e gates de release continuam abertos; resultado global `NO_GO_LINUX`. O mascote permanece um NEX único, sem modo Companion 2D.
+
+**Base:** branch `release/v1.0.0`, HEAD local/remoto `bf6adf0c80ac3531d7291844512a14a017ab0002`, versão `1.0.0-beta.10`. Overlay de fonte/evidência atual `516b706a2c3cdca1a6d76200833a785186063350fa4d41db4494fcb67bdb7f7a` (1.404 fontes; FIX-012), manifesto `DEV/validation/linux-100-2026-10-25/logs/source-provenance-gdk-fix.txt`, verificado sem arquivos ausentes/divergentes. Worktree dirty e sem commit imutável.
+
+**Veredito:** `NO_GO_LINUX` — 63 PASS / 1 FAIL / 12 BLOCKED / 5 NOT_RUN (81 casos). A release continua beta.10 sem tag/release estável. Relatório canônico: `DEV/validation/linux-100-2026-10-25/LINUX_HOMOLOGATION_REPORT.md`.
+
+**Contrato do mascote:** um NEX único, bem acabado e funcional. Não existe personagem, renderer ou modo Companion 2D no checkout atual. `NexusHud` usa `GuardianMascot`/`NexPixelSprite`; Barra, Mascote e Bandeja são apresentações do HUD. Atenção e humor são estados do mesmo mascote. A regressão focada passou 25/25, e a captura nativa mostra um NEX. A PR #55 propunha uma implementação Companion separada; foi fechada em 2026-10-25 e está fora do escopo.
+
+**Estado de verificação:** Os gates anteriores de Go quality-full com race/security e frontend 106 arquivos/664 testes passaram; CLI/Desktop/HUD AMD64, snapshot GoReleaser e instalação DEB isolada foram validados. Após FIX-012, os testes do popover e race passaram, o HUD nativo passou três ciclos sem critical GDK, os testes do mascote passaram 25/25 e a captura mostra apenas o NEX único. Uma Mission real DIRECT terminou `COMPLETED_VERIFIED`. O Desktop final importou quatro sessões e as reconheceu após reinício; a regressão do timeout lento passou. FIX-006 corrigiu e validou visualmente as abas PTY divididas; FIX-011 anexa o terminal existente pelo `runtime_id`. Input nativo nos dois shells segue BLOCKED. HUD e Desktop iniciaram em Wayland direto; controles funcionais do HUD passaram. Balão/adiamento nativos passaram com fixture local, mas a ligação de atenção real a agente, roteamento completo, continuidade, skills, teclado/foco/movimento Wayland, transparência alpha e updater assinado continuam bloqueados/não executados.
+
+**Follow-up PR #57/#58 — 2026-10-25:** integração local automatizada passou `make quality-full` (frontend 105/660, Go/race, `govulncheck`), 7/7 geometrias Chromium, build CLI/Desktop/HUD AMD64 e inicialização real Desktop+HUD em XWayland e Wayland direto. A regressão nativa posterior corrigiu a sobreposição dos nomes PTY em duas sessões; input split e navegação nativa de worktree continuam pendentes. Fingerprint do follow-up #57/#58: `a6be83416651b6cdb4e0cb77a8c0448c17708d19e4c3b8d6f7e41bb8a5ad0b0a`; overlay posterior FIX-009: `dac0d00b8410f70ed02c8b4c324780349655fed8f7e580d1944da1ec3eaecefa`. Detalhes em `DEV/validation/linux-100-2026-10-25/PR578_FOLLOWUP.md`. PRs #57/#58 continuam Draft. Overlay sem commit, nenhum SHA imutável; `NO_GO_LINUX` permanece.
+
+**Follow-up PR #61 — 2026-10-25:** a busca do portal falhava porque o plugin indexava a rota padrão `/docs`, enquanto o preset publica documentos em `/`. `docsRouteBasePath: ["/"]` gerou o índice; build estático, busca Playwright por Terminais, catálogo de 100 páginas e auditoria npm (0 vulnerabilidades) passaram. A PR permanece Draft. Evidências: `DEV/validation/linux-100-2026-10-25/PR61_DOCS_SITE_VALIDATION.md`.
+
+**Direção confirmada do mascote:** não desenvolver Companion 2D nem um segundo personagem. A apresentação `MASCOT` mostra o único NEX; estado/atenção pertence ao mesmo modelo visual. PR #55 está `CLOSED`.
+
+---
+
+## Continuidade — compilar/instalar HEAD remoto mais recente — 2026-10-23 13:56 UTC
+
+`release/v1.0.0` avançou por fast-forward até `9929bef2070a95672a3af8381c09cffbfbe36711` (commits `689fa3e2` e `9929bef2`). `make build build-desktop build-hud` compilou CLI, Desktop e HUD sobre a árvore com alterações locais preservadas. Instalados atomicamente em `~/.local/bin` e no `~/.local/share/ai-manager/profiles/codex/kivergmail/home/.local/bin`; `nexus version --json` confirma `1.0.0-beta.10`, commit `9929bef2`, Linux AMD64. Hashes: CLI `fb24d4d05769032621e0cb926fa52152016c0f88183dcc5513d34a6d14f78310`, Desktop `a12d8ad2a576a0f99c7013bbe463729d2d4fe37f6827fe3b864b159616412320`, HUD `597a5101c4cf0a85edbff0e6259a020d824f2045a542f1ee25445e511f8acad1`. Backups em `~/.local/state/ai-manager/nexus-update-backups/20261023T135607Z`. A atualização compilou; reinício dos seis runtimes e do serviço web com executáveis novos ainda está pendente nesta passagem.
+
 # Especificação ativa: IAPro Nexus — Implementação Completa Web + Desktop Multiplataforma
+
+## Registro da matriz base — 2026-10-25 (superado pelo follow-up nativo acima)
+
+O HEAD local e remoto consultado é bf6adf0c80ac3531d7291844512a14a017ab0002; VERSION permanece 1.0.0-beta.10. A árvore está modificada. O Desktop da última revalidação foi compilado com overlay fingerprint 825800ba46bab26ac692a8cc5f8cfc82f64ed474cf36459a672d09943c85b62b (1.399 arquivos), mas ainda não é um SHA Git limpo e imutável.
+
+**Resultado da matriz base, atualizado nos follow-ups:** 41 PASS / 1 FAIL / 9 BLOCKED / 9 NOT_RUN (60 casos). O resultado corrente é 48 PASS / 1 FAIL / 11 BLOCKED / 7 NOT_RUN (67 casos). O produto tem um mascote NEX, sem personagem/modo Companion 2D.
+
+**Contrato do mascote:** o produto tem um único mascote NEX. Personagem e modo Companion 2D não fazem parte do escopo. Barra e Bandeja são apresentações do HUD. O modelo de atenção pertence ao NEX único.
+
+Evidências: relatório, matriz e resumo em DEV/validation/linux-100-2026-10-25/.
+
+### Registro histórico substituído — homologação de 2026-10-23
+
+## Estado atualizado — homologação Linux, build e instalação — 2026-10-23
+
+O `release/v1.0.0` consultado está em `bf6adf0c80ac3531d7291844512a14a017ab0002`; `VERSION` permanece `1.0.0-beta.10`. CLI, Desktop e HUD foram compilados com Go 1.26.10, instalados nas duas raízes do usuário e os processos ativos foram reiniciados. Hosts, Web, Desktop e HUD carregam binários com os hashes instalados; health do Web e Core Desktop = HTTP 200. Gates Go/Web passam (99 arquivos / 612 testes), mas há E2Es Composer falhos e cobertura nativa incompleta.
+
+**Registro histórico, substituído em 2026-10-25:** a avaliação daquela data chamava o NEX de Guardian e tratava a PR #55 como requisito. A direção vigente é um mascote NEX único, sem Companion 2D. Matriz histórica: 30 PASS / 7 FAIL / 6 BLOCKED / 12 NOT_RUN. Relatório daquela execução: `DEV/validation/linux-100-2026-10-23/LINUX_HOMOLOGATION_REPORT.md`; para o estado atual, use a homologação de 2026-10-25 no início deste documento.
+
+## Follow-up ativo — configuração de provedores no primeiro acesso — 2026-10-22
+
+O cartão **Ambiente de execução** deve tentar reaproveitar sessões autenticadas locais reconhecidas antes de encaminhar o usuário para novo login. Aceite implementado: ação explícita na tela; importação somente de formatos file-backed suportados para perfis Nexus isolados; nenhum overwrite; origem intacta; resumo de resultado; fluxo manual como fallback; API protegida por CSRF; regressões Go/Web. No diálogo de conta, o comando padrão não deve repetir o nome do provedor: `nexus login codex` resolve ao perfil Codex padrão; perfis nomeados continuam explícitos.
+
+Implementado para Codex, Claude, Gemini, AGY e OpenCode. Cursor continua `UNSUPPORTED` no adaptador atual. O comando de login duplicado foi corrigido e `make quality`, vet, race focado, build Wails e startup nativo passaram. **Validação pendente:** abrir o cartão e clicar na janela Wails nativa, porque GNOME Wayland bloqueou screenshot e controle nesta sessão. Dossiê: `DEV/validation/linux-100-2026-10-22/SESSION_IMPORT_FOLLOWUP.md`. O veredito exact-SHA da release permanece `NO_GO_LINUX`.
+
+## Homologação Linux 1.0.0 — estado observado 2026-10-22
+
+`release/v1.0.0` está em `f62fdec0c571ac6a19a904164d3f580799da6bf3` no remoto e na cópia de homologação. `VERSION` ainda reporta `1.0.0-beta.10`. Decisão independente: **NO_GO_LINUX**. A branch não integra o Nexus Companion 2D da PR #55 (só Guardian antigo); release estável assinada não existe; cinco suítes browser E2E falham; Wayland bloqueou screenshots e input da janela nativa. Build/execução real Linux passaram, mas não completam esses gates. Correções permanecem locais, não commitadas, em `DEV/validation/linux-100-2026-10-22/FIXES.patch`; SHA-256 `5557c3bccf606baffcdc8e3db1e44c7cd423d0da570baf69f9acb8744d749b10`. Matriz e evidências estão no diretório de validação. Este estado substitui os snapshots históricos subsequentes deste arquivo; a fonte de verdade da campanha é o SHA e o relatório ligados acima. O documento de reconciliação anterior em `DEV/validation/NEXUS_100_BRANCH_COMPANION_RECONCILIATION_20261022.md` é uma fotografia do SHA `9ff1889`, enquanto a confirmação atual foi refeita no HEAD `f62fdec0`.
+
+---
+
 
 ## Estado atualizado — sincronização 1.0/1.1 e branches — 2026-10-22
 
 `release/v1.1.0` = `c01cd04a`, com o hardening da 1.0 incorporado via PR #60. O sync também restaurou a buildabilidade da 1.1 (bloco `var` corrompido em `project_manifest.go`, `strings.ValidUTF8` inexistente, IPv6 entre colchetes no SSH bridge, literais quebrados em testes e `registeredAccountScope` faltando). `release/v1.0.0` = `0ac9d8ed` (docs-only sobre `f789db63`).
 
-PRs abertos: #59 (fix HUD, mergeable, aguardando review/homologação), #57 e #58 (sincronizados com a 1.0, ainda draft; o check "Sanitize self-hosted workspace" fica `queued`), #55 (Companion 1.1, retargetado para 1.1; merge bloqueado por conflito de arquitetura com o Guardian Mascot da 1.0). `fix/beta8-manual-opaque-quota` não está na 1.0 e o PR #52 foi fechado sem merge; destino pendente. Veredito de release permanece `NO_GO_WINDOWS`.
+Registro histórico de 2026-10-22: PRs #59 (fix HUD, mergeable, aguardando review/homologação), #57 e #58 (sincronizados com a 1.0, ainda draft; o check "Sanitize self-hosted workspace" fica `queued`), #55 (Companion 1.1, retargetado para 1.1; merge bloqueado por conflito de arquitetura com o Guardian Mascot da 1.0). O estado atual da PR #55 é `CLOSED`, após a decisão do produto de manter apenas o NEX. `fix/beta8-manual-opaque-quota` não está na 1.0 e o PR #52 foi fechado sem merge; destino pendente. Veredito de release permanece `NO_GO_WINDOWS` naquele snapshot.
 
 ## Estado atualizado — popup independente/Mascote controlável @ f789db63 — 2026-10-22
 
@@ -365,7 +420,7 @@ Project Hub passou na regressão 775×483, e gates web/E2E e smokes Windows pass
 
 ### Verificação real — 2026-10-22
 
-Instalação exercitada no perfil do usuário: popup habilitado pelo painel, Mascote aplicado e Bandeja restaurada (eal-profile/RESULT.json PASS); app desktop abriu e anexou ao Core existente. Estado final TRAY + detachedPopover: true.
+Instalação exercitada no perfil do usuário: popup habilitado pelo painel, Mascote aplicado e Bandeja restaurada (real-profile/RESULT.json PASS); app desktop abriu e anexou ao Core existente. Estado final TRAY + detachedPopover: true.
 
 ### Entrega atual — 2026-10-22
 

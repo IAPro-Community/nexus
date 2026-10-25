@@ -1,0 +1,32 @@
+Linux Dev-Web-Kiver 6.17.0-23-generic #23-Ubuntu SMP PREEMPT_DYNAMIC Sat Apr 11 23:29:57 UTC 2026 x86_64 GNU/Linux
+PRETTY_NAME="Ubuntu 25.10"
+NAME="Ubuntu"
+VERSION_ID="25.10"
+VERSION="25.10 (Questing Quokka)"
+VERSION_CODENAME=questing
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=questing
+LOGO=ubuntu-logo
+arch=x86_64
+session=wayland
+desktop=ubuntu:GNOME
+go=go version go1.25.14 linux/amd64
+bun=1.4.2
+node=v22.17.0
+cc=cc (Ubuntu 15.2.0-4ubuntu4) 15.2.0
+gtk=3.24.50
+webkitgtk=2.52.3
+wails=14:	github.com/wailsapp/wails/v3 v3.0.0-beta.25
+cpu=8
+               total        used        free      shared  buff/cache   available
+Mem:            60Gi        47Gi       1.1Gi        12Gi        26Gi        13Gi
+Swap:          4.0Gi       4.0Gi       316Ki
+gpu=display=Screen 0: minimum 16 x 16, current 1920 x 1080, maximum 32767 x 32767
+Meta-0 connected primary 1920x1080+0+0 (normal left inverted right x axis y axis) 0mm x 0mm
+   1920x1080     59.96*+
+wm=

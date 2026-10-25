@@ -217,7 +217,7 @@ async function assertBrowserPanelCanScroll(page, label) {
 async function main() {
   console.log('=== Surface Isolation + Terminal Keep-Alive E2E ===');
   const { server, bootstrapUrl, isolatedProjectPath, isolatedDataDir, getOutput } =
-    await startFixtureServer();
+    await startFixtureServer({ composerFlow: true });
   let browser;
   let context;
   let page;

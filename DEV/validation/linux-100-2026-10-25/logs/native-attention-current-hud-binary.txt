@@ -1,0 +1,14 @@
+Native HUD binary used for the controlled attention fixture
+
+Branch: release/v1.0.0
+Base commit: bf6adf0c80ac3531d7291844512a14a017ab0002
+Source overlay fingerprint: 4e7afe7bc0e99c8d11e34dd3db9295829ab41081173bc9a7cc9b262f3c92111b
+Build command: make build-hud-wails
+Build output: logs/native-attention-current-hud-build.log
+Binary: cmd/nexus-hud/build/bin/nexus-hud
+SHA-256: d16edb3ad61dea3e3cceb4124c6524145abe04f7afa019c6ff1f0e8cdbbdde2d
+File: ELF 64-bit LSB executable, x86-64, dynamically linked
+Display: GNOME 49 Wayland session, application window via XWayland (GDK_BACKEND=x11)
+Profile: /tmp/nexus-linux-100-attention-fixture-20261025 (isolated HOME/XDG/NEXUS directories)
+d16edb3ad61dea3e3cceb4124c6524145abe04f7afa019c6ff1f0e8cdbbdde2d  cmd/nexus-hud/build/bin/nexus-hud
+Binary: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=a5a27df906e111cae9b984736db1c9035c0479a3, for GNU/Linux 3.2.0, stripped

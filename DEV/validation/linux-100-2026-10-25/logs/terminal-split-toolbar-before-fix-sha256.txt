@@ -1,0 +1,1 @@
+2acf36166e6be56a0b012f3ca49d5b3b5e2ea896bbd80a8312488569e311b9dd  DEV/validation/linux-100-2026-10-25/screenshots/terminal-split-toolbar-overflow-before-fix-xwayland.png

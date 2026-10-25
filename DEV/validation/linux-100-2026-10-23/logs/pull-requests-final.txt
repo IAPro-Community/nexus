@@ -1,0 +1,4 @@
+#55 state=open draft=true base=release/v1.0.0 head=feat/nexus-companion-v1.1 updated=2026-10-23T02:08:34Z title=feat(v1.0.0): integrate Nexus Companion 2D into canonical HUD
+#57 state=open draft=true base=release/v1.0.0 head=feat/orca-worktree-visibility-v1 updated=2026-10-22T03:54:28Z title=feat(workspace): expose parallel Git worktrees in Nexus 1.0
+#58 state=open draft=true base=release/v1.0.0 head=feat/v1-contextual-workspace-experience updated=2026-10-22T23:02:35Z title=feat(workspace): persistent split terminals, contextual commands and scheduler-guided Direct
+#59 state=open draft=false base=release/v1.0.0 head=fix/hud-show-restore-v2 updated=2026-10-23T02:04:12Z title=fix(hud): restore geometry on WindowShow + CommandNoConsole for linked spawn

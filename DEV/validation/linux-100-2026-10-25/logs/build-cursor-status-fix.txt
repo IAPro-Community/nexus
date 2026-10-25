@@ -1,0 +1,44 @@
+$ node scripts/build.mjs
+≈ tailwindcss v4.3.3
+
+Done in 275ms
+
+  dist/bundle.js                                   415.2kb
+  dist/chunks/chunk-66W6FALB.js                    348.8kb
+  dist/chunks/chunk-25456IRH.js                    280.9kb
+  dist/chunks/chunk-SGQQ3PAN.js                    246.5kb
+  dist/chunks/FlowRunsHistorySurface-K5BHCJWY.js   221.3kb
+  dist/bundle.css                                  161.8kb
+  dist/chunks/chunk-B26PABYF.js                    136.3kb
+  dist/chunks/chunk-4P5SOY7A.js                     93.6kb
+  dist/chunks/chunk-5HYXVZU4.js                     64.3kb
+  dist/chunks/chunk-O7V4VUIQ.js                     37.0kb
+  dist/chunks/chunk-OA3QCJXK.js                     34.7kb
+  dist/chunks/chunk-ECDEGFGG.js                     34.3kb
+  dist/chunks/UsageSurface-HPGEBGMV.js              30.8kb
+  dist/chunks/AgentTerminal-TMQKKNYX.js             30.1kb
+  dist/chunks/chunk-UX7NRIZO.js                     27.5kb
+  dist/chunks/FlowRunSurface-IYJMVMWI.js            16.2kb
+  dist/chunks/FlowRunsHistorySurface-2YMTODPA.css   15.5kb
+  dist/chunks/chunk-VLAKTM53.js                     14.7kb
+  dist/chunks/chunk-A4CW5CRQ.js                     14.6kb
+  dist/chunks/chunk-BV6EL6HP.js                     14.3kb
+  ...and 45 more output files...
+
+⚡ Done in 947ms
+NEX 32-bit official SVG exported: /projetos/nexus/web/public/nex
+Nexus web build complete: /projetos/nexus/web/dist
+/tmp/nexus-linux-cursor-status-fix/nexus:         ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=69757748921a446c5def748ff4bcf34f3c5d0b5f, stripped
+/tmp/nexus-linux-cursor-status-fix/nexus-desktop: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=14af9ec0760e73165d611b8a1ec784079f8aaa9e, for GNU/Linux 3.2.0, stripped
+/tmp/nexus-linux-cursor-status-fix/nexus-hud:     ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=e4af01c0e5fb2df946b3e772ee19f67665b394f1, for GNU/Linux 3.2.0, stripped
+bcea3cbe3bff455c2b49c161f0c1b428e0a568395f23edbba05b9190d977fe47  /tmp/nexus-linux-cursor-status-fix/nexus
+e648e1273e0654f3ea1ff7ab6e438a72f8b019881a480806964689267dcc57aa  /tmp/nexus-linux-cursor-status-fix/nexus-desktop
+cf00cee5b82c6f856625c87bee8aef1891e39ad975e3fbbe1a491b76457e1dfd  /tmp/nexus-linux-cursor-status-fix/nexus-hud
+{
+  "arch": "amd64",
+  "build_date": "2026-10-25T08:58:03Z",
+  "commit": "bf6adf0c",
+  "go": "go1.25.14",
+  "os": "linux",
+  "version": "1.0.0-beta.10"
+}

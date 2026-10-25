@@ -116,17 +116,87 @@ oficial. Verifique disponibilidade antes com `nexus providers status --json`.
 
 ### Aliases canônicos
 
-| Alias Nexus | Significado |
-| --- | --- |
-| `--yolo` / `-y` | pede bypass de aprovações ao provider, quando compatível |
-| `--continue` | continua a sessão mais recente |
-| `--resume <id>` / `-r <id>` | retoma uma sessão pelo ID |
-| `--print` | pede execução não interativa |
-| `--effort <low\|med\|high>` | preferência de esforço, quando suportado |
-| `--plan` | inicia em modo de planejamento, quando suportado |
+| Alias Nexus | Significado | Descrição e Comportamento |
+| --- | --- | --- |
+| `--yolo` / `-y` | Execução autônoma sem prompts | Pede bypass de aprovações e confirmações interativas ao provider quando suportado |
+| `--lead` | Agente Lead Interativo (`STICKY_LEAD`) | Vincula a sessão ao papel Lead persistente; promove tarefas para WorkPlans estruturados |
+| `--continue` | Continuidade da sessão anterior | Continua a sessão mais recente no mesmo workspace (AGY/Claude também aceitam `-c`) |
+| `--resume <id>` / `-r <id>` | Retomada por ID | Retoma uma sessão existente pelo seu identificador único de histórico |
+| `--print` / `-p` | Saída não-interativa | Executa em modo pipeline/print (AGY/Claude aceitam `-p`; Codex reserva `-p` para `--profile`) |
+| `--effort <low\|med\|high>` | Nível de raciocínio | Ajusta o esforço cognitivo / reasoning budget do modelo (quando suportado) |
+| `--plan` | Modo de planejamento | Inicia a sessão em modo de formulação de plano antes de qualquer modificação de código |
 
-Para Codex, `-c` e `-p` permanecem flags nativas. Use `--continue` e
-`--print` para os aliases Nexus.
+> **Nota sobre o Codex**: No provider Codex, `-c` representa `--config` e `-p` representa `--profile`. Para aliases canônicos do Nexus, use explicitamente `--continue` e `--print`.
+
+## Execução Autônoma & Conductor
+
+### `nexus run "<goal>"`
+O comando de execução de maior nível do Nexus. Recebe um objetivo em linguagem natural, aciona o Conductor para classificação e decomposição, gera o DAG do WorkPlan e coordena a equipe virtual de agentes até a verificação final:
+
+```bash
+nexus run "Adicionar suporte a exportação de métricas em formato Prometheus no endpoint /metrics"
+```
+
+- **Pipeline Executado**: Análise de intenção → WorkPlan estruturado → Execução isolada em sandboxes → Testes automatizados → Relatório de evidências (`COMPLETED_VERIFIED`).
+- **Segurança**: Pausa imediatamente e solicita intervenção humana se detectar risco destrutivo ou alteração fora dos guardrails.
+
+### `nexus conductor dispatch "<goal>"`
+Dispara explicitamente a camada de decomposição sem execução imediata:
+```bash
+nexus conductor dispatch "Refatorar camada de persistência para isolamento multitenant"
+```
+
+---
+
+## Controle Supervisionado de Runtimes (`nexus control` / `nexus ui`)
+
+O Nexus SessionHost permite iniciar, pausar, inspecionar e alternar entre sessões de agentes executando em segundo plano:
+
+| Comando | Descrição |
+| --- | --- |
+| `nexus start <provider> [flags]` | Inicia um novo runtime supervisionado e anexa o terminal |
+| `nexus stop <runtime-id>` | Encerra um runtime ativo |
+| `nexus ps` ou `nexus running` | Lista todos os runtimes supervisionados em execução |
+| `nexus attach <runtime-id>` | Anexa a sessão de terminal a um runtime em background |
+| `nexus handoff <id> <target>` | **Handoff intra-provider**: transfere o contexto ativo para outra conta do mesmo provedor |
+| `nexus continue <id> --with <provider>` | **Handoff cross-provider**: resume o contexto e histórico convertendo para um provedor diferente |
+
+---
+
+## Quotas, Inteligência de Custos & Diagnósticos
+
+### `nexus usage`
+Exibe a tabela interativa e pesquisável de consumo de quotas em tempo real:
+```bash
+nexus usage
+nexus usage --json        # Ideal para integrações e dashboards
+nexus usage --refresh     # Força chamada ativa às APIs/CLIs para atualizar cache
+```
+
+### `nexus explain <provider>`
+Explica detalhadamente por que uma determinada conta/perfil foi selecionada, expondo a matriz de pontuação (pesos de quota, janelas de 5h e 7 dias, latência e histórico de rate limits):
+```bash
+nexus explain agy
+nexus explain codex
+```
+
+### `nexus doctor`
+Audita a integridade do ambiente de execução, terminais e dependências:
+```bash
+nexus doctor
+nexus doctor terminal             # Audita modos TTY, PTY/ConPTY e gerações de terminal
+nexus doctor terminal --recover   # Restaura modos crus (raw mode) e limpa flags travadas
+nexus doctor --bundle             # Gera pacote diagnóstico sanitizado para suporte
+```
+
+### `nexus security`
+Audita limites de isolamento, variáveis de ambiente e compartilhamento de arquivos:
+```bash
+nexus security
+nexus security <profile> --json
+```
+
+---
 
 ## Exemplos validados contra o help
 

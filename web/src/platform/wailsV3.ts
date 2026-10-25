@@ -114,6 +114,8 @@ export const hudV3 = {
     call<void>('HUDController', 'SetHUDAppearance', appearance),
   captureWindowState: () => call<void>('HUDController', 'CaptureHUDWindowState'),
   setExpanded: (expanded: boolean) => call<void>('HUDController', 'SetHUDExpanded', expanded),
+  setBubbleVisible: (visible: boolean) =>
+    call<void>('HUDController', 'SetHUDBubbleVisible', visible),
   getSizePresets: () => call<HudSizePreset[]>('HUDController', 'GetHUDSizePresets'),
   setSizePreset: (preset: string, expanded: boolean) =>
     call<void>('HUDController', 'SetHUDSizePreset', preset, expanded),

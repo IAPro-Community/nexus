@@ -1,0 +1,13 @@
+ new Debian package, version 2.0.
+ size 9660364 bytes: control archive=481 bytes.
+     274 bytes,     9 lines      control
+     239 bytes,     4 lines      md5sums
+ Package: nexus
+ Version: 1.0.0~beta.10
+ Section: 
+ Priority: optional
+ Architecture: amd64
+ Maintainer: Vinicius Kiver <kivervinicius@gmail.com>
+ Installed-Size: 23734
+ Homepage: https://github.com/IAPro-Community/nexus
+ Description: IAPro Nexus Autonomous Multi-Agent Workspace OS

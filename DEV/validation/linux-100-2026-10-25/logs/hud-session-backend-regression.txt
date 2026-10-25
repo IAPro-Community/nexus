@@ -1,0 +1,17 @@
+Correção FIX-008 — seleção do backend de janela Linux
+Base Git local/remota: bf6adf0c80ac3531d7291844512a14a017ab0002
+Fingerprint das fontes corrigidas: 996e1063540370263158e70903477f4cbbc3035dbb33b93161e603bffbe3c133
+
+RED — regressão escrita antes da correção
+Comando: go test ./internal/desktop -run '^TestHUDSessionHonorsExplicitGDKBackend$' -count=1
+Resultado observado: exit 1; o teste falhou na expectativa XWayland. Valor recebido: Session=wayland e GlobalPositioning=false mesmo com XDG_SESSION_TYPE=wayland e GDK_BACKEND=x11.
+Causa: hudSession ignorava o backend GTK explícito e tratava a sessão do compositor como backend efetivo da janela.
+
+GREEN — correção e regressões
+Foi ajustado hudSession para honrar GDK_BACKEND quando definido como um backend único x11 ou wayland. O caso Wayland explícito continua desabilitando posicionamento global.
+- go test ./internal/desktop -count=1: PASS, exit 0.
+- go test -count=1 -timeout=20m ./...: PASS, exit 0; log go-test-final-xwayland-position-fix.log.
+- go vet ./...: PASS, exit 0; log go-vet-final-xwayland-position-fix.log.
+- go test -race ./internal/desktop -count=1: PASS, exit 0; log go-test-race-desktop-xwayland-position-fix.log.
+- make web: PASS, exit 0; log web-build-final-xwayland-position-fix.log.
+Os avisos de compilação são de APIs X11 deprecadas usadas pelo Wails/GTK; não houve falhas de teste nem diagnósticos do vet.

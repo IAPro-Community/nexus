@@ -1,0 +1,54 @@
+$ node scripts/e2e-first-run-import.mjs
+=== Nexus first-run host-session import E2E ===
+≈ tailwindcss v4.3.3
+
+Done in 293ms
+
+  dist/bundle.js                                   414.8kb
+  dist/chunks/chunk-66W6FALB.js                    348.8kb
+  dist/chunks/chunk-25456IRH.js                    280.9kb
+  dist/chunks/chunk-64IM3D5L.js                    247.8kb
+  dist/chunks/FlowRunsHistorySurface-K5BHCJWY.js   221.3kb
+  dist/bundle.css                                  161.8kb
+  dist/chunks/chunk-B26PABYF.js                    136.3kb
+  dist/chunks/chunk-4P5SOY7A.js                     93.6kb
+  dist/chunks/chunk-5HYXVZU4.js                     64.3kb
+  dist/chunks/chunk-O7V4VUIQ.js                     37.0kb
+  dist/chunks/chunk-OA3QCJXK.js                     34.7kb
+  dist/chunks/chunk-ECDEGFGG.js                     34.3kb
+  dist/chunks/UsageSurface-RXTWXIZ2.js              30.8kb
+  dist/chunks/AgentTerminal-EZVFBR4A.js             30.1kb
+  dist/chunks/chunk-UX7NRIZO.js                     27.5kb
+  dist/chunks/FlowRunSurface-IYJMVMWI.js            16.2kb
+  dist/chunks/FlowRunsHistorySurface-2YMTODPA.css   15.5kb
+  dist/chunks/chunk-XOW3X6NZ.js                     14.8kb
+  dist/chunks/chunk-A4CW5CRQ.js                     14.6kb
+  dist/chunks/chunk-BV6EL6HP.js                     14.3kb
+  ...and 45 more output files...
+
+⚡ Done in 911ms
+NEX 32-bit official SVG exported: /projetos/nexus/web/public/nex
+Nexus web build complete: /projetos/nexus/web/dist
+# modernc.org/sqlite
+/home/desenvolvedor/go/pkg/mod/modernc.org/sqlite@v1.57.0/conn.go:10:2: could not import fmt (open /home/desenvolvedor/.cache/go-build/2f/2fbf5879efac7f11ceb0602802b00bbf7d46e5d89e822ef7f9dbee363e33dd9a-d: no such file or directory)
+/home/desenvolvedor/go/pkg/mod/modernc.org/sqlite@v1.57.0/conn.go:11:2: could not import strconv (open /home/desenvolvedor/.cache/go-build/a2/a2524e8f4fd192dac7fdcb06e37368046368d6efeab163ddfcf88bd01387320f-d: no such file or directory)
+/home/desenvolvedor/go/pkg/mod/modernc.org/sqlite@v1.57.0/conn.go:12:2: could not import strings (open /home/desenvolvedor/.cache/go-build/1c/1c4ec6c8ff6328beed6144800bcdf10f4d4c2bd457d01bbafd8c71f16484b244-d: no such file or directory)
+/home/desenvolvedor/go/pkg/mod/modernc.org/sqlite@v1.57.0/conn.go:13:2: could not import sync (open /home/desenvolvedor/.cache/go-build/2d/2d62e427d6a89a2b8c302dad86b8395a5168fa109a26b79a1a183afa6938f396-d: no such file or directory)
+/home/desenvolvedor/go/pkg/mod/modernc.org/sqlite@v1.57.0/conn.go:14:2: could not import time (open /home/desenvolvedor/.cache/go-build/ce/ce92d4bb89d1a5273c1ec99c9cd6039b24a220c4c85888a6716a3b878fbb443e-d: no such file or directory)
+/home/desenvolvedor/go/pkg/mod/modernc.org/sqlite@v1.57.0/convert.go:14:2: could not import errors (open /home/desenvolvedor/.cache/go-build/0b/0be62c6e6ceea71b2b64983e370e52385149ba4c5c95296428dd74851f99559f-d: no such file or directory)
+/home/desenvolvedor/go/pkg/mod/modernc.org/sqlite@v1.57.0/convert.go:16:2: could not import reflect (open /home/desenvolvedor/.cache/go-build/63/6301ed622fa8339e4330b2ec8e2136a7794dda511f92d8db4a86d28ccc8e5924-d: no such file or directory)
+/home/desenvolvedor/go/pkg/mod/modernc.org/sqlite@v1.57.0/pagecache.go:11:2: could not import sync/atomic (open /home/desenvolvedor/.cache/go-build/0e/0e3b53f9fe0239118ccfb004b337262a86626b110b5f9f011295c30583053faa-d: no such file or directory)
+/home/desenvolvedor/go/pkg/mod/modernc.org/sqlite@v1.57.0/pagecache_trampolines.go:8:2: could not import math/bits (open /home/desenvolvedor/.cache/go-build/22/2223cedeba5292fceba9ee9af531c6c4c550f5f70ab4372a05fd9d58eb845c46-d: no such file or directory)
+/home/desenvolvedor/go/pkg/mod/modernc.org/sqlite@v1.57.0/rows.go:10:2: could not import io (open /home/desenvolvedor/.cache/go-build/10/10753fd63d77cbac5369559bdbb03c4614a82a41d1c0f86e78076b3c468c9ce0-d: no such file or directory)
+/home/desenvolvedor/go/pkg/mod/modernc.org/sqlite@v1.57.0/rows.go:10:2: too many errors
+First-run host-session import E2E: FAIL: Error: nexus CLI build failed with exit code 1
+    at run (file:///projetos/nexus/web/scripts/e2e-platform.mjs:19:11)
+    at buildNexusForE2E (file:///projetos/nexus/web/scripts/e2e-platform.mjs:36:3)
+    at ensureNexusBinary (file:///projetos/nexus/web/scripts/e2e-platform.mjs:51:46)
+    at startFixtureServer (file:///projetos/nexus/web/scripts/e2e-fixture.mjs:36:3)
+    at main (file:///projetos/nexus/web/scripts/e2e-first-run-import.mjs:17:70)
+    at file:///projetos/nexus/web/scripts/e2e-first-run-import.mjs:112:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:329:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:644:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+error: script "test:e2e:first-run-import" exited with code 1

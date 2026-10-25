@@ -1,0 +1,8 @@
+version=1.0.0-beta.10
+commit=bf6adf0c
+build_date_utc=2026-10-25T05:09:26Z
+goos=linux
+goarch=amd64
+nexus_sha256=2ee31ff0fa8b20f498340bc39c9df1b27ef51eca52b1e39abe41dcac64baa53d
+nexus-desktop_sha256=916147c0dd45eaa9d5f06590cd5fcfb2ce94288d3f6d8c52eac31fbf5fe2b2ff
+nexus-hud_sha256=1ff2f350c5d2959607a35dd5e100a2c97115a3e5a1e6123194b59e89dbd59f3d

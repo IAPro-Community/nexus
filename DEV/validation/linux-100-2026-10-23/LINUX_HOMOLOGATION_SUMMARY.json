@@ -1,0 +1,62 @@
+{
+  "verdict": "NO_GO_LINUX",
+  "reason": "NO-GO — COMPANION_2D_NOT_INTEGRATED",
+  "date": "2026-10-23",
+  "branch": "release/v1.0.0",
+  "remote_head": "bf6adf0c80ac3531d7291844512a14a017ab0002",
+  "worktree_dirty": true,
+  "build_input": "remote HEAD plus preserved local worktree changes; no commit or push",
+  "tracked_source_diff_sha256": "dc565b4d87f498f69bc0016fedb8a26e94aa0d0c50aee3b2348d158e3ce839c5",
+  "untracked_build_inputs_manifest": "logs/source-provenance-go1.26.10-bf6adf0c.txt",
+  "version": "1.0.0-beta.10",
+  "environment": {
+    "distribution": "Ubuntu 25.10 Questing Quokka",
+    "kernel": "6.17.0-23-generic",
+    "architecture": "amd64",
+    "desktop": "GNOME",
+    "session": "Wayland",
+    "x11_session_available": false,
+    "go": "go1.26.10",
+    "bun": "1.4.2",
+    "node": "22.17.0",
+    "wails": "3.0.0-beta.25"
+  },
+  "installed_artifacts": {
+    "nexus_sha256": "9ecd3ff22cd1d6b099d1963424dc7c8c55302295cef54d5a24b7adc715f9d815",
+    "nexus_desktop_sha256": "ca3076dd82d39a285c547ad833c59a43156c2a831bd5461738498b2d63a056c7",
+    "nexus_hud_sha256": "89b2b2f79ae0254d3ef23761f07ac9ee8b60f5325d4aeb437b80cc68f6706b52",
+    "install_roots": [
+      "/home/desenvolvedor/.local/bin",
+      "/home/desenvolvedor/.local/share/ai-manager/profiles/codex/kivergmail/home/.local/bin"
+    ],
+    "running_processes_verified": true,
+    "web_health_http": 200,
+    "desktop_health_http": 200,
+    "hud_health_http": 200
+  },
+  "tests": {
+    "pass": 30,
+    "fail": 7,
+    "blocked": 6,
+    "not_run": 12,
+    "total": 55
+  },
+  "companion_2d": {
+    "status": "FAIL",
+    "result": "COMPANION_2D_NOT_INTEGRATED",
+    "legacy_guardian_rendered": true,
+    "pr_55_integrated": false
+  },
+  "hud": {
+    "binary_built_and_installed": true,
+    "native_process_started": true,
+    "native_health_http": 200,
+    "full_native_interaction_matrix": "BLOCKED"
+  },
+  "distribution": {
+    "linux_package": "BLOCKED",
+    "stable_github_release": "NOT_AVAILABLE",
+    "updater_a_to_b": "NOT_RUN"
+  },
+  "evidence_directory": "DEV/validation/linux-100-2026-10-23"
+}

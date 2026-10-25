@@ -1,0 +1,20 @@
+bf6adf0c80ac3531d7291844512a14a017ab0002
+bf6adf0c80ac3531d7291844512a14a017ab0002
+web/src/features/hud/GuardianModeSelector.test.tsx:22:    expect(html).not.toContain('Companion 2D');
+web/src/features/hud/NexusHud.tsx:52:import { GuardianMascot } from './GuardianMascot';
+web/src/features/hud/NexusHud.tsx:701:  const showGuardianMascot = shouldRenderHudMascot(
+web/src/features/hud/NexusHud.tsx:1181:        {showGuardianMascot && (
+web/src/features/hud/NexusHud.tsx:1183:            <GuardianMascot
+web/src/features/hud/NexusHud.tsx:1203:          !showGuardianMascot && (
+web/src/features/hud/GuardianMascot.test.tsx:6:import { GuardianMascot } from './GuardianMascot';
+web/src/features/hud/GuardianMascot.test.tsx:19:const renderGuardian = (overrides: Partial<React.ComponentProps<typeof GuardianMascot>> = {}) =>
+web/src/features/hud/GuardianMascot.test.tsx:21:    React.createElement(GuardianMascot, {
+web/src/features/hud/GuardianMascot.tsx:5:import { NexPixelSprite } from './NexPixelSprite';
+web/src/features/hud/GuardianMascot.tsx:7:import styles from './GuardianMascot.module.scss';
+web/src/features/hud/GuardianMascot.tsx:10:interface GuardianMascotProps {
+web/src/features/hud/GuardianMascot.tsx:24:export const GuardianMascot: React.FC<GuardianMascotProps> = ({
+web/src/features/hud/GuardianMascot.tsx:110:            <NexPixelSprite mood={spriteMood} />
+web/src/features/hud/NexPixelSprite.tsx:5:type NexPixelSpriteProps = {
+web/src/features/hud/NexPixelSprite.tsx:26:export const NexPixelSprite: React.FC<NexPixelSpriteProps> = ({ mood }) => {
+NexusGuardian.tsx: absent
+98b4320b329512b349af90284f5851b9080b20be3d97fc4bccf19520ac16cd3c  DEV/validation/linux-100-2026-10-25/screenshots/native-hud-gdk-fix-mascot-xwayland.png

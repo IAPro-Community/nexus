@@ -4,8 +4,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createHash } from 'node:crypto';
 import * as sass from 'sass';
+import { scopeCssModule } from './css-module-scope.mjs';
 
 const webDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repoDir = resolve(webDir, '..');
@@ -42,15 +42,7 @@ const sassPlugin = {
       // Hash the module's repository-relative identity so builds are stable
       // when the same checkout is built from a different absolute directory.
       const moduleIdentity = relative(webDir, args.path).replaceAll('\\', '/');
-      const fileHash = createHash('md5').update(moduleIdentity).digest('hex').slice(0, 6);
-
-      const classMap = {};
-      const transformedCss = compiledCss.replace(/\.([a-zA-Z_][a-zA-Z0-9_-]*)/g, (match, className) => {
-        const scoped = `${className}_${fileHash}`;
-        classMap[className] = scoped;
-        return `.${scoped}`;
-      });
-
+      const { css: transformedCss, classMap } = scopeCssModule(compiledCss, moduleIdentity);
       collectedStyles.push({ path: args.path, css: transformedCss });
 
       return {
@@ -78,7 +70,7 @@ await build({
   define: {
     'process.env.NODE_ENV': '"production"',
     '__NEXUS_EXPERIMENTAL_COMPOSER_FLOW__': JSON.stringify(
-      process.env.NEXUS_EXPERIMENTAL_COMPOSER_FLOW === '1',
+      process.env.NEXUS_EXPERIMENTAL_COMPOSER_FLOW !== '0',
     ),
   },
   logLevel: 'info',

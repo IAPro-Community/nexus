@@ -1,0 +1,2 @@
+71d6cc1e501d36af35ef908d1133975b9d54b51695dfcbd580e580a6c933db21  DEV/validation/linux-100-2026-10-25/screenshots/native-nexus-desktop-final-xwayland.png
+e58c1dbc6dc1c32705a627c85a2e86ef53b9ed9f280c41e10f65ca19a0be0127  DEV/validation/linux-100-2026-10-25/screenshots/native-nexus-hud-single-mascot-xwayland.png

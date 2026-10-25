@@ -1,0 +1,11 @@
+=== RUN   TestHostAuthLiveHomologation
+    host_auth_live_homologation_test.go:48: provider=codex status=IMPORTED
+    host_auth_live_homologation_test.go:48: provider=claude status=NO_SESSION
+    host_auth_live_homologation_test.go:48: provider=gemini status=NO_SESSION
+    host_auth_live_homologation_test.go:48: provider=agy status=IMPORTED
+    host_auth_live_homologation_test.go:48: provider=opencode status=IMPORTED
+    host_auth_live_homologation_test.go:48: provider=cursor status=UNSUPPORTED
+    host_auth_live_homologation_test.go:65: imported_profiles=3 host_sources_unchanged=true temp_profile_cleanup=automatic
+--- PASS: TestHostAuthLiveHomologation (2.45s)
+PASS
+ok  	github.com/IAPro-Community/nexus/internal/profile	2.459s

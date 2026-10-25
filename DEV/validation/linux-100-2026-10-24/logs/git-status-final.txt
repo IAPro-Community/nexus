@@ -1,0 +1,134 @@
+A  .github/workflows/docs-site.yml
+ M DEV/CONTEXT.md
+ M DEV/HANDOFF.md
+ M DEV/INDEX.md
+ M DEV/SPECS/ACTIVE.md
+ M DEV/VERIFY.md
+ M DEV/WORKLOG.md
+ M DEV/validation/FRONTEND_HISTORY.md
+ M DEV/validation/FRONTEND_LATEST.md
+ M DEV/validation/composer-execution-spine/north-star-vague.json
+ M DEV/validation/composer-execution-spine/north-star-vague.png
+ M DEV/validation/composer-execution-spine/north-star.json
+ M DEV/validation/composer-execution-spine/north-star.png
+ M DEV/validation/composer-workspace/e2e-desktop-1440.png
+ M DEV/validation/composer-workspace/e2e-mobile-390.png
+ M DEV/validation/composer-workspace/e2e-tablet-900.png
+ M Makefile
+A  docs-site/.gitignore
+A  docs-site/README.md
+AM docs-site/docusaurus.config.js
+A  docs-site/package.json
+AM docs-site/pages.json
+AM docs-site/scripts/prepare-docs.cjs
+A  docs-site/sidebars.cjs
+A  docs-site/src/css/custom.css
+ M docs/README.md
+ M docs/cli/README.md
+ M docs/engineering/WEB_ENGINEERING_STANDARDS.md
+ M docs/getting-started/packages.md
+ M docs/product/conductor.md
+ M docs/product/hud-detached-popover.md
+ M docs/product/hud.md
+ M install.sh
+ M internal/app/app.go
+ M internal/app/app_test.go
+ M internal/control/protocol/endpoint_path_test.go
+ M internal/control/web/auth_persist_test.go
+ M internal/control/web/auth_store.go
+ M internal/control/web/handlers_api.go
+ M internal/control/web/handlers_nexus_test.go
+ M internal/control/web/routes.go
+ M internal/control/web/server.go
+ M internal/control/web/server_test.go
+ M internal/core/provider/adapters/agy/agy.go
+ M internal/core/provider/adapters/agy/agy_test.go
+ M internal/core/provider/adapters/claude/claude.go
+ M internal/core/provider/adapters/claude/claude_test.go
+ M internal/core/provider/adapters/codex/codex.go
+ M internal/core/provider/adapters/codex/codex_auth_test.go
+ M internal/core/provider/adapters/gemini/gemini.go
+ M internal/core/provider/adapters/gemini/usage_live_test.go
+ M internal/core/provider/adapters/opencode/opencode.go
+ M internal/core/provider/adapters/opencode/opencode_test.go
+ M internal/core/provider/provider.go
+ M internal/core/security/isolation.go
+ M internal/core/security/security_test.go
+ M internal/desktop/hud_appearance.go
+ M internal/desktop/hud_appearance_test.go
+ M internal/desktop/hud_clickthrough.go
+ M internal/desktop/hud_clickthrough_darwin.go
+ M internal/desktop/hud_clickthrough_other.go
+ M internal/desktop/hud_clickthrough_test.go
+ M internal/desktop/hud_clickthrough_windows.go
+ M internal/desktop/hud_window.go
+ M internal/desktop/hud_window_test.go
+ M internal/nexus/hud_projection.go
+ M internal/nexus/task_requirements.go
+ M internal/profile/scope.go
+ M web/bun.lock
+ M web/package.json
+ M web/scripts/build.mjs
+ M web/scripts/e2e-composer-execution-spine.mjs
+ M web/scripts/e2e-composer-themes.mjs
+ M web/scripts/e2e-composer-vague-execution-spine.mjs
+ M web/scripts/e2e-composer-workspace.mjs
+ M web/scripts/e2e-fixture.mjs
+ M web/scripts/e2e-hud.mjs
+ M web/scripts/e2e-platform.mjs
+ M web/scripts/e2e-surface-isolation.mjs
+ M web/src/app/DesktopHudApp.tsx
+ M web/src/app/WorkspaceSurfaceHost.tsx
+ M web/src/app/modals/WelcomeModal.tsx
+ M web/src/components/TerminalPane.tsx
+ M web/src/features/hud/GuardianMascot.test.tsx
+ M web/src/features/hud/GuardianMascot.tsx
+ M web/src/features/hud/HudSettings.tsx
+ M web/src/features/hud/NexPixelSprite.tsx
+ M web/src/features/hud/NexusHud.tsx
+ M web/src/features/hud/_hudGuardian.scss
+ M web/src/features/hud/attentionNavigation.test.ts
+ M web/src/features/hud/attentionNavigation.ts
+ M web/src/features/hud/guardianModel.test.ts
+ M web/src/features/hud/guardianModel.ts
+ M web/src/features/hud/hudMiniModel.ts
+ M web/src/features/hud/hudModel.test.ts
+ M web/src/features/hud/hudModel.ts
+ M web/src/features/hud/hudPresentation.test.ts
+ M web/src/features/hud/hudPresentation.ts
+ M web/src/features/overview/ProviderReadinessBanner.tsx
+ M web/src/features/projects/ProjectHub.module.scss
+ M web/src/features/projects/ProjectHub.tsx
+ M web/src/features/projects/firstRunReadiness.test.ts
+ M web/src/features/projects/firstRunReadiness.ts
+ M web/src/features/usage/AccountLoginModal.tsx
+ M web/src/i18n/resources.ts
+ M web/src/nexus/api.ts
+ M web/src/platform/platformBridge.test.ts
+ M web/src/platform/wailsV3.ts
+ M web/src/types.ts
+?? DEV/validation/linux-100-2026-10-22/
+?? DEV/validation/linux-100-2026-10-23/
+?? DEV/validation/linux-100-2026-10-24/
+?? docs-site/package-lock.json
+?? internal/core/provider/adapters/gemini/gemini_auth_test.go
+?? internal/core/provider/authcopy/
+?? internal/desktop/hud_clickthrough_linux.go
+?? internal/profile/host_auth_import.go
+?? internal/profile/host_auth_import_test.go
+?? nexus-hud
+?? web/public/nex/
+?? web/scripts/css-module-scope.mjs
+?? web/scripts/css-module-scope.node-test.mjs
+?? web/scripts/e2e-first-run-import.mjs
+?? web/scripts/e2e-platform.node-test.mjs
+?? web/src/app/providerLoginCommandWiring.test.ts
+?? web/src/components/terminalPaneResize.test.ts
+?? web/src/components/terminalPaneResize.ts
+?? web/src/features/hud/GuardianMascot.module.scss
+?? web/src/features/hud/GuardianModeSelector.test.tsx
+?? web/src/features/hud/GuardianModeSelector.tsx
+?? web/src/features/hud/companionModel.test.ts
+?? web/src/features/hud/companionModel.ts
+?? web/src/lib/providerLoginCommand.test.ts
+?? web/src/lib/providerLoginCommand.ts

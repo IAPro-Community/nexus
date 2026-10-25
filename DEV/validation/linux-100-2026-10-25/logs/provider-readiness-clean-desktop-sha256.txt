@@ -1,0 +1,4 @@
+043ed2ba9fbd60ff2587c495e1db33070a893ed788fbd8a0360f32af74116ba4  nexus-desktop (Linux AMD64; production,gtk3)
+Path at test time: /tmp/nexus-linux-100-2026-10-25-final-build/bin/nexus-desktop
+Git base: bf6adf0c80ac3531d7291844512a14a017ab0002
+Source overlay fingerprint: 825800ba46bab26ac692a8cc5f8cfc82f64ed474cf36459a672d09943c85b62b

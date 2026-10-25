@@ -1,0 +1,2 @@
+52cf2c9cca1a4204c914d7e3d08eb4f3dacc37406959c3f5aaa51e2cd19e943b  nexus_1.0.0-beta.10_linux_amd64.deb
+a0bf9ef490931ae5b78f445915695bf561915a709453f737c095ea7c27579ede  nexus_Linux_x86_64.tar.gz

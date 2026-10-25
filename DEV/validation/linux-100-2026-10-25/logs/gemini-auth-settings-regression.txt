@@ -1,0 +1,18 @@
+Regressão de perfil OAuth Gemini
+Data: 2026-10-25
+Branch: release/v1.0.0
+Commit-base local/remoto: bf6adf0c80ac3531d7291844512a14a017ab0002
+Fingerprint exato das fontes: 64c48060972e179d021f1406339ce3619389d0321f76ebcffad0414f46cbd904
+Manifesto: source-provenance-gemini-auth-fix.txt
+
+Reprodução: a sessão OAuth copiada era reconhecida como autenticada, mas o Gemini CLI 0.62.0 recusava o uso local porque o perfil importado não tinha `security.auth.selectedType`.
+
+Correção FIX-007: em `Prepare`, quando `oauth_creds.json` é válido e o perfil Nexus não declara tipo de autenticação, gravar `security.auth.selectedType=oauth-personal`. Preservar tipo explícito e outras configurações; não criar a preferência sem credencial OAuth válida; tratar `security: null`. A mudança opera no perfil isolado Nexus e não altera o perfil de origem.
+
+Validação:
+- `go test -count=1 -v ./internal/core/provider/adapters/gemini` — PASS; os quatro casos de regressão de preparação e a suíte do adaptador passaram.
+- `go test -count=1 -timeout=20m ./...` — PASS, exit 0.
+- `go vet ./...` — PASS, exit 0; avisos GDK/X11 de depreciação do Wails não impediram a execução.
+- Chamada real via Nexus chegou ao serviço Gemini depois da correção local, mas o serviço retornou `IneligibleTierError` para Gemini Code Assist individual. Registrar como BLOCKED externo em NR-013, não como sucesso de modelo.
+
+Logs sanitizados em `go-test-final-gemini-overlay.log`, `go-vet-final-gemini-overlay.log` e `gemini-adapter-focused-test.log`. Não há tokens, emails ou saída bruta de provedor nestes arquivos.

@@ -1,0 +1,32 @@
+Native Linux Desktop/HUD package validation — 2026-10-25
+
+Git base: bf6adf0c80ac3531d7291844512a14a017ab0002
+Source overlay: 516b706a2c3cdca1a6d76200833a785186063350fa4d41db4494fcb67bdb7f7a
+Source manifest: logs/source-provenance-gdk-fix.txt (1,404 product source files)
+Packaging contract: .github/workflows/ci.yml, "Package Linux desktop surfaces"
+
+Commands used:
+  tar -C cmd/nexus-desktop/build/bin -czf <isolated-dir>/nexus-desktop_Linux_x86_64.tar.gz nexus-desktop
+  tar -C cmd/nexus-hud/build/bin -czf <isolated-dir>/nexus-hud_Linux_x86_64.tar.gz nexus-hud
+
+Archives were written only under /tmp/nexus-linux-active-20261025/native-packages-gdk-fix.
+
+Desktop:
+  archive SHA-256: 8ed42fe048300f4069a4cbafb61378080c0aaeace9d2c7e950053fe7da67cf8f
+  member: nexus-desktop
+  extracted payload SHA-256: b500303ec1e4654ec267cb171097b65c707b7de67b571b8650837a30cd8df492
+  current build binary SHA-256: b500303ec1e4654ec267cb171097b65c707b7de67b571b8650837a30cd8df492
+  file: ELF 64-bit LSB x86-64, dynamically linked
+  ldd: no missing linked libraries
+
+HUD:
+  archive SHA-256: 425e58cf811dc6b7245211bd289e4ab3f90fe908f922197f4e64f6b401f9eb2f
+  member: nexus-hud
+  extracted payload SHA-256: a70789f8c5e6afa45515c84abab8a0a311070821719712227360d1ed6137a0d6
+  current build binary SHA-256: a70789f8c5e6afa45515c84abab8a0a311070821719712227360d1ed6137a0d6
+  file: ELF 64-bit LSB x86-64, dynamically linked
+  ldd: no missing linked libraries
+
+The raw binaries with these payload hashes were launched in the native GNOME 49/XWayland session. Desktop startup and rendering evidence: native-desktop-gdk-fix-xwayland.txt and native-desktop-gdk-fix-xwayland.png (screenshot SHA-256 1b27df87c08ddfba9e2f93609719470a8ba63b06e7e038aeef72001b37eb3e52). HUD mascot evidence: native-hud-gdk-fix-open-close-xwayland.txt and native-hud-gdk-fix-mascot-xwayland.png (screenshot SHA-256 98b4320b329512b349af90284f5851b9080b20be3d97fc4bccf19520ac16cd3c); three native popup open/close cycles passed with G_DEBUG=fatal-criticals.
+
+Result: PASS for the official CI tar.gz payload shape, AMD64 ELF architecture, payload hash equality, and linked-library resolution. These are local validation artifacts only; no release or publication was created.

@@ -1,0 +1,19 @@
+Builds Linux AMD64 do overlay final
+Data: 2026-10-25
+Branch/base: release/v1.0.0 @ bf6adf0c80ac3531d7291844512a14a017ab0002
+Fingerprint de fontes: 64c48060972e179d021f1406339ce3619389d0321f76ebcffad0414f46cbd904
+Go 1.25.14 linux/amd64; Bun 1.4.2; Node v22.17.0; Wails v3.0.0-beta.25.
+
+Comandos executados:
+- `make web`
+- `go build -trimpath -buildvcs=false -o /tmp/nexus-linux-live-gemini-smoke/final-overlay/nexus ./cmd/nexus`
+- `go build -trimpath -buildvcs=false -tags production,gtk3 -o /tmp/nexus-linux-live-gemini-smoke/final-overlay/nexus-desktop ./cmd/nexus-desktop`
+- `go build -trimpath -buildvcs=false -tags production,gtk3 -o /tmp/nexus-linux-live-gemini-smoke/final-overlay/nexus-hud ./cmd/nexus-hud`
+
+| Binário | Arquitetura | SHA-256 | `ldd` |
+| --- | --- | --- | --- |
+| CLI | ELF x86-64 | fc6fb86f5a20b7c24d0ed2609624adcde43dc25bff42d646fa06a451fd1e87de | 1 dependência resolvida; nenhuma ausente. |
+| Desktop | ELF x86-64 | 7823a991664c1812f5cfbc96da23db3e7599f6871a7d7682d77b066dcc7d8a10 | 122 resolvidas; nenhuma ausente. |
+| HUD | ELF x86-64 | 9cdd0ccf55db6686f2d8bc0069b3679fa1048f09255435bbf3af49ff9f592791 | 122 resolvidas; nenhuma ausente. |
+
+O CLI local sem ldflags reporta `dev/unknown`; o snapshot GoReleaser separado reporta `1.0.0-beta.10`, Linux/amd64, commit-base bf6adf0c. Os binários foram compilados sem substituir os executáveis instalados no host.

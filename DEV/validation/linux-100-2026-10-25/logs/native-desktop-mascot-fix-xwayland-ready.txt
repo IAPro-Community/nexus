@@ -1,0 +1,2 @@
+Recheck after initial black first-frame capture: XWayland, real session D-Bus, isolated HOME/XDG; wait 8 s after window mapping before capture.
+No IAPro Nexus X11 surface found

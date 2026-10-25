@@ -21,7 +21,7 @@ const outDir = path.resolve(repoRoot, 'DEV/validation/composer-workspace');
 
 mkdirSync(outDir, { recursive: true });
 
-ensureNexusBinary(repoRoot);
+ensureNexusBinary(repoRoot, { composerFlow: true });
 assert.ok(existsSync(binPath), `nexus binary missing at ${binPath}`);
 
 let browser;

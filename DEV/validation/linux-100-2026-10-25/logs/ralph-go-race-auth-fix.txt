@@ -1,0 +1,3 @@
+ok  	github.com/IAPro-Community/nexus/internal/profile	1.537s
+ok  	github.com/IAPro-Community/nexus/internal/control/web	32.580s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/adapters/cursor	1.032s

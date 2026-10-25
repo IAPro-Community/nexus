@@ -1,0 +1,6 @@
+Package checksums: PASS
+DEB architecture: amd64
+CLI tar package equivalence: PASS
+DEB extracted CLI equivalence: PASS
+Desktop archive contents: nexus-desktop
+HUD archive contents: nexus-hud

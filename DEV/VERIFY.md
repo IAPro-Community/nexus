@@ -1,5 +1,129 @@
 # Verification: Nexus V1 (post-pending-issues)
 
+## 2026-10-25 — Campaign P1: intervenção e retomada — COMPLETE
+
+- **PASS** — `go test ./internal/nexus/runner -count=1 -v`; `go test ./internal/nexus -count=1`; `go test ./internal/nexus/...`; `go test ./internal/control/web -count=1`.
+- **PASS** — `go test -race ./internal/nexus/runner -count=1`; `go vet ./internal/control/web ./internal/nexus/...`.
+- **PASS** — regressões de replay inseguro, re-alocação/recompilação, espera por dependências, persistência `ReplayProhibited` no SQLite, timeout/handoff do worker e JSON/versionamento HTTP.
+- **PASS** — `TestResolveInterventionHTTPDecisionSurvivesServerRestartExactlyOnce`, 10 execuções; teste com race do mesmo caso, 5 execuções. Inclui middleware real, resolução persistida, duplicata idempotente, shutdown/reopen de store/servidor, recovery e um único efeito externo. Logs `p1-http-restart-e2e-2026-10-25.log` e `p1-http-restart-e2e-race-2026-10-25.log`.
+- **PASS** — suítes Web e Nexus do escopo, vet, lint Go com cache isolado, builds CLI/Desktop/HUD e instalação local/restart; evidências linkadas no relatório P1.
+- **NO_GO_LINUX** — P1 fechado para o overlay, mas P2–P9 e outros gates de release seguem abertos. HEAD local/remoto `bf6adf0c80ac3531d7291844512a14a017ab0002`; worktree dirty.
+- Fingerprint do overlay validado: `ddad56697609de1374cdede949e794316e3263357b052f745defb64f11a4be5b` (1.412 fontes; manifesto em `DEV/validation/linux-100-2026-10-25/logs/p1-e2e-source-provenance-current.txt`).
+- Mascote: um caminho único `NexusHud → GuardianMascot → NexPixelSprite`; nenhum modo ou personagem Companion 2D separado. A apresentação Mascote continua sendo o NEX único.
+
+## 2026-10-25 — Follow-up P2: Mission Attention e decisão nativa
+
+- **PASS** — testes focados de rota e gate: 21/21; detalhe de uma missão continua disponível na build estável, com criação/histórico experimentais bloqueados.
+- **PASS** — Wails AMD64 iniciou no GNOME Wayland/XWayland; cartão de fixture abriu e ativou o Flow Run com a decisão visível. Captura 1280×800: `DEV/validation/linux-100-2026-10-25/screenshots/mission-attention-open-detail-native-xwayland.png`.
+- **PASS** — resumo de estado corrigido com SCSS Module e teste de regressão. `bun run quality:full`: 108 arquivos/672 testes; checks de estilo, formatação, lint, typecheck e build passaram.
+- **PASS** — `make build-desktop-wails`; ELF AMD64, `ldd` sem bibliotecas ausentes. SHA-256 `f6e1afcf2e7b0e10ed5d75a5d716b22dfe6f6ca894e056c64938599172ee7f15`.
+- **PASS** — `TestGlobalAttentionProjectionSurvivesStoreReopen`: cinco missões/2 projetos mantiveram os estados canônicos após reabrir SQLite; filtros projeto/missão não vazaram.
+- **Mascote** — um único NEX (`GuardianMascot → NexPixelSprite`); nenhum Companion 2D ou modo separado. Captura: `DEV/validation/linux-100-2026-10-25/screenshots/native-nexus-hud-single-mascot-xwayland.png`.
+- **NO_GO_LINUX** — base HEAD local/remota `bf6adf0c80ac3531d7291844512a14a017ab0002`, overlay dirty `7368531977b7422eccdf00e7c676f57d440e8d736d9e114bcdc071b9d5885fe6`; a fixture não valida atenção de agente real e gates globais anteriores continuam abertos. Detalhes: `DEV/validation/linux-100-2026-10-25/MISSION_ATTENTION_VALIDATION.md`.
+
+## 2026-10-25 — FIX-012, evidência Linux atual e escopo do mascote
+
+- **PASS** — reexecutei os cinco testes focados do mascote: 25/25. Barra/Mascote/Bandeja são apresentações do mesmo HUD; nenhum modo Companion 2D separado está conectado. A captura nativa mostra um NEX (SHA-256 `98b4320b329512b349af90284f5851b9080b20be3d97fc4bccf19520ac16cd3c`).
+- **PASS** — `node scripts/verify-nex-visual.mjs`: identidade visual estrutural. O manifesto `source-provenance-gdk-fix.txt` foi rechecado arquivo a arquivo: 1.404 fontes, zero ausentes/divergentes.
+- **PASS** — regressões direcionadas do popover GTK e `go test -race -count=1 ./internal/desktop ./cmd/nexus-hud`. Três ciclos nativos abrir/fechar passaram com `G_DEBUG=fatal-criticals`.
+- **PASS** — builds/pacotes Linux pós-FIX-012: CLI/Desktop/HUD AMD64, tarballs CI com payload idêntico, GoReleaser tar/DEB e instalação/remoção dpkg isolada.
+- **PASS** — JSON e matriz reconciliados: 63 PASS / 1 FAIL / 12 BLOCKED / 5 NOT_RUN (81); branch base local/remota `bf6adf0c80ac3531d7291844512a14a017ab0002`.
+- **NO_GO_LINUX** — worktree dirty sem commit imutável e gates de release/runtime ainda abertos.
+
+
+## 2026-10-25 — Balão de atenção nativo do mascote
+
+- **PASS** — HUD Wails recompilado abriu no GNOME/XWayland com perfil isolado; fixture `REQUIRE_USER` apareceu junto ao NEX único. Screenshot SHA-256 `b2bff6d18ab8214d682430c3f097e93bf1e338a1924af7ccb7b25f661c7ba08a`.
+- **PASS** — XTest clicou “Adiar”; HUD recolheu o balão, enquanto `/api/v1/attention` manteve a fixture (`HTTP 200`, `needs_you_count=1`). Log: `DEV/validation/linux-100-2026-10-25/logs/native-attention-fixture-click-snooze.txt`.
+- **PASS** — evidência de preferências nativas e controle Barra/Mascote/Bandeja em `DEV/validation/linux-100-2026-10-25/screenshots/native-hud-expanded-single-nex-auth-fix-xwayland.png`.
+- **BLOCKED** — evento real de agente ainda não alimentou o HUD; a fixture não conta como validação de runtime.
+- **PASS** — contagem reconciliada em 79 casos: 61 PASS / 1 FAIL / 12 BLOCKED / 5 NOT_RUN. Matriz e JSON atualizados; `NO_GO_LINUX` permanece.
+
+## 2026-10-25 — Contrato do mascote único, reteste e integridade das evidências
+
+- **PASS** — inspeção do fluxo ativo confirma `NexusHud → GuardianMascot → NexPixelSprite`; não existe segundo renderer nem seletor Companion 2D. Barra, Mascote e Bandeja são apresentações do mesmo HUD.
+- **PASS** — reteste focado atual: 5 arquivos / 25 testes, incluindo `GuardianModeSelector`; log `DEV/validation/linux-100-2026-10-25/logs/mascot-user-direction-final-retest.log`.
+- **PASS** — 79 casos contabilizados igualmente no JSON e na matriz: 61 PASS / 1 FAIL / 12 BLOCKED / 5 NOT_RUN. Integridade de 1.403 entradas do manifesto atual: zero arquivos ausentes ou divergentes.
+- **PASS** — `git diff --check`; `origin/release/v1.0.0` segue em `bf6adf0c80ac3531d7291844512a14a017ab0002`. Overlay `4e7afe7bc0e99c8d11e34dd3db9295829ab41081173bc9a7cc9b262f3c92111b`; sem commit imutável. Veredito `NO_GO_LINUX` permanece.
+
+## 2026-10-25 — FIX-011: anexar runtime shell existente
+
+- **PASS** — regressão unitária de roteamento: shell chama `onAttachRuntime(runtime)`; runtime de agente preserva `runtime_id` e o fluxo de terminal existente. 2/2 testes.
+- **PASS** — `bun run quality:full`: 106 arquivos/664 testes; arquitetura de estilos, Prettier, ESLint, Stylelint, typecheck e build passaram.
+- **PASS** — E2E de terminal dividido: sete geometrias, rótulos longos e toolbars em 520 px/360 px.
+- **PASS** — Desktop Wails AMD64 atual recompilado e iniciado em XWayland. Shell iniciado com a imagem atual foi anexado; runtime permaneceu RUNNING, total de runtimes/PTYs ficou em 4 e o prompt existente ficou visível.
+- **BLOCKED** — anexar host lançado por imagem anterior após troca do binário no mesmo caminho: validação de fingerprint o marcou `STALE`; a UI expôs erro genérico `TERMINAL_TRANSPORT_ERROR`. Não foi alterado o gate de compatibilidade.
+- **Mascote** — confirmado NEX único; não há modo Companion 2D separado para remover. A apresentação “Mascote” continua sendo o mesmo NEX.
+- **Matriz:** NO_GO_LINUX — 60 PASS / 1 FAIL / 12 BLOCKED / 6 NOT_RUN (79). Base SHA local/remota `bf6adf0c80ac3531d7291844512a14a017ab0002`; overlay `4e7afe7bc0e99c8d11e34dd3db9295829ab41081173bc9a7cc9b262f3c92111b` (1.403 fontes), dirty e não commitado.
+- Evidências: `DEV/validation/linux-100-2026-10-25/logs/runtime-attach-validation.txt`, `runtime-attach-quality-full.log`, `terminal-split-toolbar-regression-final.log` e screenshots correspondentes.
+
+## 2026-10-25 — FIX-009, revalidação do mascote e evidência corrente
+
+- **PASS** — mascote único: `GuardianMascot → NexPixelSprite`, seletor Barra/Mascote/Bandeja, sem segundo renderer ou modo 2D. Regressão Vitest: 25/25; NEX visível em captura nativa.
+- **PASS** — Cursor `InspectAuth` reconhece `✓ Login successful!`; sinais negativos e saída vazia permanecem não autenticados.
+- **PASS** — `go test -count=1 -timeout=20m ./...`; `go vet ./...`; `go test -count=1 -v ./internal/core/provider/adapters/cursor`; `go test -race -count=1 ./internal/core/provider/adapters/cursor`; `bun run quality:full` (105 arquivos/660 testes); `bun run art:nex:check`. Avisos restantes são depreciações GDK/X11 upstream do Wails.
+- **PASS** — snapshot GoReleaser v2.18 atual, checksums, payload tar/DEB idênticos e ciclo de instalação/consulta/execução/remoção do DEB em dpkg root temporário.
+- **BLOCKED** — importação/cópia de sessão Cursor ainda não suportada; runtime orquestrado/continuidade/Skills/atenção real, interação física Wayland, alpha e updater assinado continuam pendentes.
+- **Matriz:** NO_GO_LINUX — 58 PASS / 1 FAIL / 12 BLOCKED / 6 NOT_RUN (77); overlay `dac0d00b8410f70ed02c8b4c324780349655fed8f7e580d1944da1ec3eaecefa`, base `bf6adf0c80ac3531d7291844512a14a017ab0002`, worktree dirty.
+- Evidências: `DEV/validation/linux-100-2026-10-25/LINUX_HOMOLOGATION_REPORT.md`, `TEST_MATRIX.md`, `MASCOT_VALIDATION.md`, `logs/go-test-cursor-status-final.log`, `logs/go-vet-cursor-status-final.log`.
+
+## 2026-10-25 — Atualização da homologação nativa e mascote NEX único
+
+- **PASS** — busca local Docusaurus: `npm run build --prefix docs-site` gerou `search-index.json` (2.442.219 bytes); Playwright consultou `terminal`, recebeu índice HTTP 200 e encontrou `/product/terminals`, sem erros de página.
+- **PASS** — `npm run check:docs --prefix docs-site`: 100 páginas; `npm audit --audit-level=high --prefix docs-site`: 0 vulnerabilidades; Prettier e `node --check` passaram.
+- **PASS** — `bun run quality:full` em `web/`: 105 arquivos/660 testes, lint, Stylelint, typecheck e build. Seis suítes focadas do HUD/mascote: 30/30.
+- **PASS** — contrato revisado: uma renderização `GuardianMascot → NexPixelSprite`; sem segundo renderer/atlas/modo Companion 2D. Captura XWayland mostra um NEX. PR #55 `CLOSED`; PR #61 permanece aberta/Draft.
+- **PASS** — testes focados de mascote: 25/25. HUD em Wayland direto iniciou, expandiu/recolheu, alternou apresentações, restaurou Mascote pelo tray e manteve a apresentação após reinício. Desktop abriu diretamente em Wayland e expôs a página principal via AT-SPI.
+- **PASS** — após FIX-006, `bun run quality:full`: 105 arquivos/660 testes, lint, Stylelint, typecheck e build. Terminais divididos: regressão de rótulo passou em 7 geometrias e na janela Wails XWayland; captura mostra dois PTYs sem sobreposição. Digitação split e persistência seguem BLOCKED.
+- **PASS** — interface Wails real importou 4 sessões host, retornou resumo agregado com 0 falhas, criou cópias `0600` no perfil Nexus isolado e voltou a detectar 3 provedores após reinício.
+- **BLOCKED** — captura de pixels/alpha, teclado físico, foco/movimento em Wayland, evento real no balão, roteamento/continuidade/Skills completos, Cursor, updater assinado e proveniência imutável.
+- **Matriz atualizada:** 48 PASS / 1 FAIL / 11 BLOCKED / 7 NOT_RUN (67 casos). O resultado de release segue `NO_GO_LINUX`.
+- Evidências: `DEV/validation/linux-100-2026-10-25/MASCOT_VALIDATION.md`, `HUD_VALIDATION.md`, `RUNTIME_VALIDATION.md` e `PR61_DOCS_SITE_VALIDATION.md`.
+
+## 2026-10-25 — Homologação Linux AMD64 (matriz base antes do follow-up nativo)
+
+- **NO_GO_LINUX** — HEAD local/remoto `bf6adf0c80ac3531d7291844512a14a017ab0002`; overlay `af7476a2ab2ffeabcbfcaf35051d6d24d61a0a35bd5786b5429dc2ee3a0662e4` (1.694 fontes); VERSION=1.0.0-beta.10; worktree não congelado.
+- **PASS** — `make quality-full` após correções; Go/race/vet/lint/govulncheck e frontend 103 arquivos/633 testes. Vinte temas × três viewports passaram no E2E browser.
+- **PASS** — builds CLI/Desktop/HUD AMD64; Core multi-instância, colisão e shutdown; snapshot GoReleaser atual e tarballs Desktop/HUD; DEB instalado/removido em dpkg root temporário.
+- **PASS** — 25/25 testes focados do mascote; captura nativa XWayland do HUD atual mostra um NEX. Não existe personagem ou modo Companion 2D.
+- **PASS** — Mission real DIRECT via Nexus terminou `COMPLETED_VERIFIED`; `go test ./...` exit 0 no worktree temporário.
+- **BLOCKED** — atenção real no HUD; outros modos de roteamento/continuidade/skills; importação Cursor; teclado/foco/movimento Wayland; alpha; updater assinado; proveniência imutável.
+- **FAIL** — versão beta.10 e ausência de release/artefatos estáveis 1.0.0.
+- **NOT_RUN na matriz base, posteriormente coberto:** diálogo nativo de importação. Ainda não executados: captura nativa do balão fixture, soak/crash, persistência/multimonitor e temas GTK.
+- Matriz: 41 PASS / 1 FAIL / 9 BLOCKED / 9 NOT_RUN (60 casos). Dossiê: `DEV/validation/linux-100-2026-10-25/`.
+
+**Escopo atual do mascote:** a decisão de produto é manter um único NEX. As referências abaixo, em registros de 2026-10-23 e anteriores, que listam a ausência do Companion 2D/PR #55 como falha são históricas e foram superadas; Companion 2D não é requisito nem defeito da release atual. A PR #55 foi fechada em 2026-10-25 e não faz parte da implementação aprovada.
+
+## 2026-10-23 — Homologação Linux e reinstalação final
+
+- **PASS** — `make quality-full`, `make vet`, `make test-e2e`, segurança e builds CLI/Desktop/HUD em Go 1.26.10. Frontend 99 arquivos / 612 testes.
+- **PASS** — instalação nas duas raízes locais; version JSON beta.10/amd64. Web, Core Desktop, HUD e quatro hosts retomados com os hashes atualmente instalados; health Web/Core/HUD HTTP 200.
+- **FAIL** — Companion 2D da PR #55 ausente. E2Es composer workspace, surface, execution spine e vague spine falham; dois presets Composer também falham; UI de importação sem confirmação visível.
+- **BLOCKED/NOT_RUN** — limitações GNOME Wayland/X11, pacote e updater oficial, fluxos externos de provedor, matriz interativa nativa e resiliência; detalhados na matriz.
+- Veredito `NO_GO_LINUX`, 30 PASS / 7 FAIL / 6 BLOCKED / 12 NOT_RUN. SHA-base remoto `bf6adf0c80ac3531d7291844512a14a017ab0002`, worktree dirty, sem commit/push. Dossiê: `DEV/validation/linux-100-2026-10-23/LINUX_HOMOLOGATION_REPORT.md`.
+
+## 2026-10-23 — Follow-up de sessões e comando de login
+
+- **PASS** — `make quality`: lint Go 0 issues, suíte Go completa (69 pacotes com testes passaram; 13 sem testes), Web 99 arquivos / 610 testes e contrato de versão.
+- **PASS** — `make vet`; `go test -race -tags=gtk3 ./internal/app ./internal/profile`; build `make build-desktop` e smoke final Wails em storage temporário, Core/UI HTTP 200, SIGTERM exit 0.
+- **PASS** — regressão do comando do screenshot: UI gera `nexus login codex` para perfil padrão e mantém argumentos de perfil explícito; o CLI resolve o perfil e chamou o `login` do Codex fake.
+- **BLOCKED** — screenshot e interação real do cartão: compositor GNOME Wayland rejeita `grim` e screenshot D-Bus. Não foi clicado **Importar sessões existentes** na janela nativa.
+- Estado do teste: base `f62fdec0c571ac6a19a904164d3f580799da6bf3` + worktree dirty; nenhum commit/push. Dossiê e logs: `DEV/validation/linux-100-2026-10-22/SESSION_IMPORT_FOLLOWUP.md` e `logs/host-session-import-*`.
+- **PASS** — fetch de `origin/release/v1.0.0` permaneceu em `f62fdec0c571ac6a19a904164d3f580799da6bf3`; builds `make build`, `make build-desktop` e `make build-hud` exit 0. Três saídas são ELF x86-64; `ldd` de desktop/HUD sem dependências ausentes. SHA-256: CLI `a9035c8b92538aa80b2d2fe469410ba989f457a6c04cbc2c796f0b19f2f17e44`, desktop `aa22cc5ab78644ba384ec68a9d5417fb9014787f0fdd8c5762f46c11becac206`, HUD `13982c259df5606e73a7c1d70ad12bea4b84c3384d17a172ef2599d128cc1d89`. Compilação feita no worktree dirty, não no SHA remoto puro; logs em `DEV/validation/linux-100-2026-10-22/logs/build-current-2026-10-23-*`.
+- **PASS — instalação local:** recompilação seguida de hash parity em ambas as pastas `~/.local/bin` (home e perfil Codex); CLI instalado reporta `1.0.0-beta.10`, commit embutido `f62fdec0`. Desktop/HUD sem bibliotecas dinâmicas ausentes. `nexus web` reiniciado (PID 3393460), health HTTP 200/version `1.0.0-beta.10`; rollback: `~/.local/state/nexus-update-backups/20261023T131106Z`. Evidência: `logs/install-current-2026-10-23.log` e `logs/web-restart-current-2026-10-23.log`.
+- **PENDENTE DE REINÍCIO:** 11 processos Nexus `__control-host` mantidos vivos; executáveis já substituídos no disco, mas os processos residentes continuam carregando a imagem antiga até o encerramento natural/reinício das sessões.
+
+## 2026-10-22 — Homologação Linux 1.0.0 — f62fdec0
+
+- **PASS** Linux AMD64 CLI/Desktop/HUD builds em Go 1.26.10; Wails Desktop e HUD linked iniciados em Ubuntu 25.10/GNOME 49 Wayland; Core respondeu HTTP 200.
+- **PASS** frontend `quality:full` (98 arquivos/605 testes), Go `vet`, suíte completa e race detector, golangci-lint, govulncheck, `make format-check`, pacote Debian snapshot e archives temporários Desktop/HUD.
+- **FAIL** Companion 2D não integrado no SHA exato; versão do source segue beta.10 e não existe release estável assinada; cinco suítes E2E falham; `docs-verify` acusa visual manifest stale.
+- **BLOCKED** screenshots/controle da janela pelo compositor Wayland, GPU 3D ausente, provedores autenticados live, fluxo de instalação estável sem manifesto. **NOT_RUN** X11, segundo monitor/escala, soak/crash recovery e ShellCheck.
+- **Veredito: NO_GO_LINUX**. Detalhes e matriz: `DEV/validation/linux-100-2026-10-22/`.
+
+---
+
+
 ## 2026-10-21 — Click-through do HUD corrigido em 047f4348
 
 - **PASS** `gofmt`, `go vet ./...`, `go test -count=1 ./...` (Go 1.26.10).
@@ -1760,50 +1884,6 @@ Worktree `C:\Dev\nexus-hud-validation`, base `f6098b8c684a97bf7e8e56804109ca491c
 - **BLOCKED** — `node scripts/docs-verify.mjs` falha por alterações visuais não commitadas em `web/src`/`internal/desktop`; o gate exige SHA imutável. Nenhum GO, tag ou release.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-10-17T18:34:42Z
+## Frontend gate — 2026-10-25T10:41:55Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
-
-## HUD nativo — toggle do popup independente/Mascote — 2026-10-22
-
-Código `f789db63c8ec9f3498c3822a94ee7c823ec7086c`; HUD `nexus-hud.exe` SHA-256 `1f3ced07acc02672dd786c3c39cf87a390da9f315e0e654a9e2505f2ab7929de`. Dossiê: `DEV/validation/mascot-toggle-f789db63/HOMOLOGATION.md`.
-
-- **PASS** — `gofmt` limpo, `go vet ./...`, `go test -count=1 ./...` (Go 1.26.10), Web `npm run quality` 97 arquivos/599 testes, build Web e build HUD `production`.
-- **PASS** — UI Automation em Windows 11 `10.0.26200` (escala 100%), estado isolado, duas sessões no mesmo diretório:
-  - sessão A: `Popup independente: Não` e `Mascote` desabilitado → habilitar → `DetachedPopover=true`, popup criado oculto, cápsula restaurada `220x60` → expandir → popup visível `334x496` com a cápsula ainda `220x60` → `Mascote` habilitado → `Appearance=MASCOT`, cápsula `136x112` renderizando o mascote, popup oculto;
-  - sessão B (reinício): abre em `MASCOT` `136x112` com popup habilitado e oculto → abrir pelo mascote → `Popup independente: Sim` → desabilitar → `Appearance=BAR`, cápsula `220x60`, popup oculto → painel inline volta a abrir com `Popup independente: Não`.
-- **PASS (herdado)** — click-through da janela única permanece no dossiê `local-hud-047f4348`; o watcher segue desativado em modo detached.
-- **NOT_TESTED** — click-through do popover destacado, confirmação visual humana das capturas e matriz Linux X11/macOS.
-- **BLOCKED** — assinatura Authenticode/instalador e smokes interativos de Codex/multi-conta. Veredito de release: **NO_GO_WINDOWS**.
-
-### Implantação local — 2026-10-22
-
-- **PASS** — 955b197f instalado em %LOCALAPPDATA%\Programs\IAPro Nexus; 
-exus.exe/i.exe 8cd64d5, 
-exus-desktop.exe 72b3cc50, 
-exus-hud.exe 8364a942 (hashes conferem com o build).
-- **PASS** — servidor PID 24184, http://127.0.0.1:13000/ HTTP 200, ersion --json com commit 955b197f, Go 1.26.10, 1.0.0-beta.10; HUD PID 21168 --linked.
-- **PASS** — harness do Mascote no artefato exato (8364a942, commit 955b197f): deployed-artifact/RESULT.json com erdict: PASS e ailed_checks: [].
-- Backup: %TEMP%\nexus-backup-20261022-003138. Detalhes/rollback: DEV/validation/mascot-toggle-f789db63/DEPLOYMENT.md.
-
-### Verificação no perfil real do host — 2026-10-22
-
-- **PASS** — binário instalado (8364a942) no perfil do usuário: painel → `Popup independente: Não` → habilitado (detachedPopover: true, popup criado oculto, cápsula `220x60`) → popup `334x496` → `Mascote` habilitado e aplicado (`136x112`) → `Bandeja` restaurada (`appearance: TRAY`, HUD e popup ocultos). Evidência: `DEV/validation/mascot-toggle-f789db63/real-profile/RESULT.json` (PASS).
-- **PASS** — `nexus-desktop.exe` instalado abriu `IAPro Nexus` `1280x800`, anexou ao Core existente na 13000 e renderizou o workspace real (`DESKTOP_APP.png`).
-- **PASS** — `/api/v1/health` 200 (`1.0.0-beta.10`); rotas protegidas sem sessão retornam 401 `AUTH_REQUIRED`.
-- **NOTA** — o toggle está no rodapé do painel; com muitos provedores é necessário rolar até o fim. Registrado em `real-profile/REAL_PROFILE.md`.
-
-## Sincronização 1.0 → 1.1 e branches — 2026-10-22
-
-- **PASS** — PR #60 (`c01cd04a`): `go build ./...`, `go vet ./...`, `go test -count=1 ./internal/control/remote ./internal/core/flags ./internal/control/registry`, `go test -count=1 ./internal/nexus -run "Manifest|ExecutionTarget|Computer|ManagedExecution"`; web `bun run typecheck`, eslint e `vitest theme.test.ts` 30/30.
-- **PASS** — PR #57 (`3d6d57a2`): `go build ./...`, `go vet ./internal/control/web`, `go test -count=1 ./internal/control/web -run "Worktree|Git"`, web `typecheck`, eslint, prettier e `gitWorktrees.test.ts` 3/3.
-- **PASS** — PR #58 (`87df3429`): web `typecheck`, eslint, prettier e vitest direcionado 56/56.
-- **PASS** — PR #59 (`27f646ea`): `gofmt` limpo, `go vet ./internal/desktop ./internal/executil ./internal/hudlink`, `go test -count=1` nos 3 pacotes; 7 arquivos, +155/−4.
-- **NOT_RUN** — suíte Go completa e quality web completa nos SHAs de sync (CI cobre); homologação exact-SHA da 1.0 continua bloqueada.
-
-### Toggle do popup no topo do painel — 2026-10-22
-
-- **PASS** — harness `homologate-hud-mascot-toggle-windows.ps1` com `-ExpectedSha` no build `9b78fb10…7f4` (commit `8d100e96`): duas sessões, `failed_checks: []`. Evidência: `DEV/validation/mascot-toggle-8d100e96/`.
-- **PASS** — perfil real, binário instalado: toggle visível na primeira dobra no painel inline (`y=560` dentro de `486..982`) e no popup (`y=490` dentro de `418..914`), sem rolagem; habilitar/desabilitar pelos dois lados, Mascote `136x112` e Bandeja restaurada. `real-profile/RESULT.json` PASS.
-- **PASS** — `nexus-desktop.exe` novo abriu e anexou ao Core existente; `/api/v1/health` 200; `version --json` commit `8d100e96`, Go `1.26.10`.
-- **PASS** — `npm run quality` (97 arquivos / 599 testes), `gofmt`/`go vet`/`go test` dos pacotes tocados, `docs-verify` 192 Markdown / 33 assets.

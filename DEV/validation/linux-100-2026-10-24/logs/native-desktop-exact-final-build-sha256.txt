@@ -1,0 +1,4 @@
+8334dc0b84cca98d6abef2fc41a3819af6575ae8d4eb6eb83cf6617bc6331753  /tmp/nexus-linux-100-2026-10-24/bin/nexus-desktop
+1b27df87c08ddfba9e2f93609719470a8ba63b06e7e038aeef72001b37eb3e52  DEV/validation/linux-100-2026-10-24/screenshots/native-desktop-exact-final-xwayland.png
+DEV/validation/linux-100-2026-10-24/screenshots/native-desktop-exact-final-xwayland.png: PNG image data, 1280 x 800, 8-bit/color RGB, non-interlaced
+core_health_http=200

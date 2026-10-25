@@ -32,8 +32,8 @@ export function terminateProcessOnExit(proc) {
 
 export { terminateProcess };
 
-export async function startFixtureServer() {
-  ensureNexusBinary(repoRoot);
+export async function startFixtureServer({ composerFlow = false } = {}) {
+  ensureNexusBinary(repoRoot, { composerFlow });
   const isolatedDataDir =
     process.env.NEXUS_E2E_DATA_DIR || path.join(tmpdir(), `nexus-surface-e2e-${process.pid}`);
   const isolatedProjectPath =

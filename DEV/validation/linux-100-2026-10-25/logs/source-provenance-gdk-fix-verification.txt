@@ -1,0 +1,3 @@
+manifest=DEV/validation/linux-100-2026-10-25/logs/source-provenance-gdk-fix.txt
+files=1404 missing=0 mismatched=0
+source files: PASS

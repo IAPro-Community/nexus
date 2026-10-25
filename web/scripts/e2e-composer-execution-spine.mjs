@@ -37,7 +37,7 @@ async function getJSON(context, url) {
 }
 
 async function main() {
-  fixture = await startFixtureServer();
+  fixture = await startFixtureServer({ composerFlow: true });
   const launched = await launchFixtureBrowser(fixture.bootstrapUrl);
   browser = launched.browser;
   const { context, page, collectors } = launched;

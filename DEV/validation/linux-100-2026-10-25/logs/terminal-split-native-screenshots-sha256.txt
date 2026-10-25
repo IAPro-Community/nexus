@@ -1,0 +1,4 @@
+6f156699345a6646145ddd2dd1f0a27244473e8a339b025deb0401c5a1f3b85a  DEV/validation/linux-100-2026-10-25/screenshots/terminal-split-toolbar-after-fix-xwayland.png
+7d02633ee0ff9f1aa37183574d1df18577aef831aac0e2a444b2fdcef6ea34d9  DEV/validation/linux-100-2026-10-25/screenshots/terminal-split-native-resize-sizes-xwayland.png
+fa86ef742acc27812085db311bd035ede942ec4a2a526dcf14470d54726316bf  DEV/validation/linux-100-2026-10-25/screenshots/terminal-split-native-cancel-xwayland.png
+975a01b1cd143650f86224e6ce3ab7bab17e4ebb7ad6ee7f2ccaa6960182fc66  DEV/validation/linux-100-2026-10-25/screenshots/terminal-split-native-unicode-xwayland.png

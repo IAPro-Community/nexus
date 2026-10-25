@@ -1,0 +1,1 @@
+cmd/nexus-desktop/build/bin/nexus-desktop: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=07e0bf2479247004d1c4e4c29f93d6b32692daa4, for GNU/Linux 3.2.0, stripped

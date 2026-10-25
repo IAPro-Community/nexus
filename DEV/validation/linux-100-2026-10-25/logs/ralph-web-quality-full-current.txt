@@ -1,0 +1,276 @@
+$ bun run quality && bun run build
+$ bun run check:styles && bun run format:check && bun run lint && bun run lint:styles && bun run typecheck && bun run test
+$ node --test scripts/check-css-allowlist.node-test.mjs && node scripts/check-css-allowlist.js && node scripts/check-workspace-styles.mjs
+TAP version 13
+# Subtest: Sass partials are scoped to CSS Modules, never exempted for global styles
+ok 1 - Sass partials are scoped to CSS Modules, never exempted for global styles
+  ---
+  duration_ms: 99.333908
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 178.558037
+[32m[OK] Stylesheet architecture check passed: all styles conform to SCSS Modules & global allowlist.[0m
+[OK] Workspace CSS: 17 ordered sections with bounded size
+$ prettier --check "src/**/*.{ts,tsx,css,scss,json}"
+Checking formatting...
+All matched files use Prettier code style!
+$ eslint src
+$ stylelint "src/**/*.{css,scss}"
+$ tsc --noEmit
+$ node --test scripts/process-termination.node-test.mjs scripts/workspace-state.node-test.mjs scripts/e2e-platform.node-test.mjs scripts/css-module-scope.node-test.mjs && vitest run
+TAP version 13
+# Subtest: scopes CSS classes without rewriting asset URLs or declaration values
+ok 1 - scopes CSS classes without rewriting asset URLs or declaration values
+  ---
+  duration_ms: 7.011854
+  type: 'test'
+  ...
+# Subtest: regular E2E builds keep experimental Composer and Flow disabled
+ok 2 - regular E2E builds keep experimental Composer and Flow disabled
+  ---
+  duration_ms: 0.717609
+  type: 'test'
+  ...
+# Subtest: Composer and Flow E2E builds opt in explicitly
+ok 3 - Composer and Flow E2E builds opt in explicitly
+  ---
+  duration_ms: 0.849638
+  type: 'test'
+  ...
+# Subtest: terminateProcess waits until the child has actually exited
+ok 4 - terminateProcess waits until the child has actually exited
+  ---
+  duration_ms: 11.480234
+  type: 'test'
+  ...
+# Subtest: workspace diagnostics summarize local and server layouts in the page context
+ok 5 - workspace diagnostics summarize local and server layouts in the page context
+  ---
+  duration_ms: 2.187451
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 148.555709
+
+ RUN  v3.2.7 /projetos/nexus/web
+
+ ✓ src/design-system/theme/theme.test.ts (29 tests) 37ms
+ ✓ src/features/hud/hudModel.test.ts (9 tests) 76ms
+ ✓ src/features/work/composerModel.test.ts (17 tests) 77ms
+ ✓ src/features/settings/intelligenceProfiles.test.ts (6 tests) 29ms
+stderr | src/features/projects/useProjectRailOutline.test.ts
+
+⚠️ Browser Environment Detected 
+
+Only UI previews are available in the browser. For full functionality, please run the application in desktop mode.
+More information at: https://v3.wails.io/learn/build/#using-a-browser-for-development
+
+
+stderr | src/api.test.ts
+
+⚠️ Browser Environment Detected 
+
+Only UI previews are available in the browser. For full functionality, please run the application in desktop mode.
+More information at: https://v3.wails.io/learn/build/#using-a-browser-for-development
+
+
+ ✓ src/api.test.ts (17 tests) 34ms
+ ✓ src/features/projects/useProjectRailOutline.test.ts (4 tests) 29ms
+ ✓ src/features/work/planBuilderModel.test.ts (5 tests) 6ms
+ ✓ src/workspace/model.test.ts (14 tests) 13ms
+ ✓ src/features/work/directSessionLifecycle.test.ts (8 tests) 25ms
+ ✓ src/workspace/presentation.test.ts (29 tests) 25ms
+stderr | src/platform/platformBridge.test.ts
+
+⚠️ Browser Environment Detected 
+
+Only UI previews are available in the browser. For full functionality, please run the application in desktop mode.
+More information at: https://v3.wails.io/learn/build/#using-a-browser-for-development
+
+
+ ✓ src/platform/platformBridge.test.ts (15 tests) 19ms
+ ✓ src/features/work/directSessionModel.test.ts (17 tests) 28ms
+ ✓ src/features/projects/firstRunReadiness.test.ts (10 tests) 7ms
+ ✓ src/features/work/composerSessionModel.test.ts (1 test) 12ms
+ ✓ src/features/work/flowModel.test.ts (17 tests) 27ms
+ ✓ src/features/usage/usageModel.test.ts (9 tests) 33ms
+ ✓ src/features/work/composerWorkspace.test.ts (5 tests) 29ms
+ ✓ src/i18n/i18n.test.ts (7 tests) 27ms
+ ✓ src/features/agents/askAgentModel.test.ts (2 tests) 13ms
+ ✓ src/lib/downloadAuthenticatedCsv.test.ts (3 tests) 17ms
+ ✓ src/features/hud/hudMiniModel.test.ts (12 tests) 24ms
+ ✓ src/features/hud/GuardianMascot.test.tsx (6 tests) 47ms
+ ✓ src/lib/networkHost.test.ts (4 tests) 7ms
+ ✓ src/features/work/flowRunModel.test.ts (3 tests) 9ms
+ ✓ src/features/hud/companionModel.test.ts (9 tests) 8ms
+ ✓ src/app/routes.test.ts (9 tests) 21ms
+stderr | src/nexus/api.test.ts
+
+⚠️ Browser Environment Detected 
+
+Only UI previews are available in the browser. For full functionality, please run the application in desktop mode.
+More information at: https://v3.wails.io/learn/build/#using-a-browser-for-development
+
+
+ ✓ src/app/documentTitle.test.ts (6 tests) 11ms
+ ✓ src/features/work/flowRunPresentation.test.ts (5 tests) 13ms
+ ✓ src/nexus/api.test.ts (17 tests) 25ms
+ ✓ src/features/work/flowDraftEditorModel.test.ts (5 tests) 9ms
+ ✓ src/nexus/agentRecover.test.ts (4 tests) 18ms
+ ✓ src/features/hud/GuardianModeSelector.test.tsx (1 test) 40ms
+ ✓ src/notifications/inAppNotificationModel.test.ts (7 tests) 20ms
+ ✓ src/features/work/projectIntelligencePresentation.test.ts (4 tests) 5ms
+ ✓ src/workspace/arrange.test.ts (12 tests) 27ms
+ ✓ src/nexus/terminalInput.test.ts (33 tests) 27ms
+ ✓ src/features/voice/terminalVoice.test.ts (4 tests) 27ms
+ ✓ src/services/WorkspaceLayoutService.test.ts (7 tests) 31ms
+ ✓ src/workspace/arrangePresets.test.ts (9 tests) 28ms
+ ✓ src/features/work/flowCanvasInput.test.ts (4 tests) 4ms
+ ✓ src/workspace/state.test.ts (8 tests) 6ms
+ ✓ src/features/usage/providerLoginVerification.test.ts (2 tests) 3ms
+ ✓ src/workspace/ptyLiveChrome.test.ts (6 tests) 12ms
+ ✓ src/features/work/FlowPipeline.test.tsx (3 tests) 5ms
+ ✓ src/app/projectSelection.test.ts (9 tests) 10ms
+ ✓ src/notifications/attentionPushCopy.test.ts (3 tests) 3ms
+ ✓ src/features/overview/overviewResumeModel.test.ts (2 tests) 7ms
+stderr | src/features/projects/projectDirectoryPicker.test.ts
+
+⚠️ Browser Environment Detected 
+
+Only UI previews are available in the browser. For full functionality, please run the application in desktop mode.
+More information at: https://v3.wails.io/learn/build/#using-a-browser-for-development
+
+
+ ✓ src/features/projects/projectDirectoryPicker.test.ts (2 tests) 14ms
+ ✓ src/app/attentionRadarModel.test.ts (7 tests) 7ms
+ ✓ src/workspace/taskbarHonesty.test.ts (2 tests) 5ms
+ ✓ src/nexus/agentTerminalModel.test.ts (19 tests) 14ms
+ ✓ src/features/hud/hudHitRegions.test.ts (7 tests) 26ms
+ ✓ src/nexus/terminalSettings.test.ts (7 tests) 5ms
+ ✓ src/app/surfaces.test.ts (7 tests) 5ms
+ ✓ src/app/commands/registry.test.ts (9 tests) 8ms
+stderr | src/components/AttentionNotification.test.ts
+
+⚠️ Browser Environment Detected 
+
+Only UI previews are available in the browser. For full functionality, please run the application in desktop mode.
+More information at: https://v3.wails.io/learn/build/#using-a-browser-for-development
+
+
+ ✓ src/components/AttentionNotification.test.ts (5 tests) 3ms
+ ✓ src/app/tour/tour.test.ts (5 tests) 5ms
+ ✓ src/components/terminalViewModel.test.ts (3 tests) 6ms
+ ✓ src/features/settings/externalClaudeAvailability.test.ts (11 tests) 6ms
+ ✓ src/app/providerLoginCommandWiring.test.ts (2 tests) 10ms
+ ✓ src/keyboard/KeyboardShortcutRegistry.test.ts (4 tests) 8ms
+ ✓ src/features/overview/overviewRecover.test.ts (5 tests) 15ms
+ ✓ src/nexus/terminalProtocol.test.ts (12 tests) 27ms
+ ✓ src/app/composerFlowFlag.test.ts (4 tests) 18ms
+stderr | src/features/agents/NewAgentModal.test.tsx
+
+⚠️ Browser Environment Detected 
+
+Only UI previews are available in the browser. For full functionality, please run the application in desktop mode.
+More information at: https://v3.wails.io/learn/build/#using-a-browser-for-development
+
+
+ ✓ src/features/agents/NewAgentModal.test.tsx (4 tests) 6ms
+ ✓ src/features/hud/hudPresentation.test.ts (6 tests) 7ms
+ ✓ src/workspace/surfaceAttention.test.ts (6 tests) 4ms
+ ✓ src/components/terminalPaneResize.test.ts (2 tests) 18ms
+ ✓ src/lib/safeArray.test.ts (3 tests) 9ms
+ ✓ src/features/conversation/nexusConversationMapper.test.ts (6 tests) 12ms
+ ✓ src/app/maestroHonesty.test.ts (2 tests) 5ms
+ ✓ src/app/runtimeAgentMapping.test.ts (4 tests) 6ms
+ ✓ src/features/hud/guardianModel.test.ts (3 tests) 21ms
+ ✓ src/notifications/capacityAlert.test.ts (5 tests) 7ms
+ ✓ src/features/work/missionAutonomyModel.test.ts (1 test) 4ms
+ ✓ src/nexus/terminalUsability.test.ts (6 tests) 5ms
+ ✓ src/features/usage/registerProviderModel.test.ts (3 tests) 4ms
+ ✓ src/nexus/resourceSelectionModel.test.ts (11 tests) 11ms
+ ✓ src/nexus/terminalFitModel.test.ts (3 tests) 10ms
+ ✓ src/features/hud/attentionNavigation.test.ts (5 tests) 6ms
+ ✓ src/app/workspaceSurfaceStyles.test.ts (3 tests) 5ms
+ ✓ src/nexus/terminalZoomKey.test.ts (2 tests) 12ms
+ ✓ src/features/projects/gitWorktrees.test.ts (3 tests) 11ms
+ ✓ src/features/voice/voiceCommand.test.ts (2 tests) 5ms
+ ✓ src/components/attentionText.test.ts (2 tests) 3ms
+ ✓ src/nexus/executionRoleModel.test.ts (2 tests) 3ms
+stderr | src/features/work/clarificationModel.test.ts
+
+⚠️ Browser Environment Detected 
+
+Only UI previews are available in the browser. For full functionality, please run the application in desktop mode.
+More information at: https://v3.wails.io/learn/build/#using-a-browser-for-development
+
+
+ ✓ src/features/work/clarificationModel.test.ts (2 tests) 3ms
+ ✓ src/features/agents/terminalSkillsAndAlias.test.ts (3 tests) 4ms
+ ✓ src/app/versionHonesty.test.ts (5 tests) 12ms
+ ✓ src/features/voice/voiceCapture.test.ts (4 tests) 4ms
+ ✓ src/features/projects/projectRail.test.ts (4 tests) 4ms
+ ✓ src/app/workspaceMissionRoute.test.ts (3 tests) 7ms
+ ✓ src/app/routerIntegration.test.tsx (3 tests) 14ms
+ ✓ src/features/usage/UsageSurface.test.tsx (2 tests) 6ms
+ ✓ src/notifications/notificationModel.test.ts (2 tests) 4ms
+ ✓ src/app/activityModel.test.ts (1 test) 8ms
+ ✓ src/features/work/flowRefreshGuard.test.ts (3 tests) 15ms
+ ✓ src/features/work/composerConversationRunning.test.ts (1 test) 21ms
+ ✓ src/features/projects/repositoryPathPlaceholder.test.ts (3 tests) 3ms
+ ✓ src/features/work/flowRunFilter.test.ts (2 tests) 3ms
+ ✓ src/app/sessionModel.test.ts (2 tests) 3ms
+ ✓ src/notifications/attentionDelivery.test.ts (2 tests) 9ms
+ ✓ src/lib/providerLoginCommand.test.ts (2 tests) 3ms
+ ✓ src/design-system/primitives/ContextMenu.test.ts (1 test) 3ms
+ ✓ src/features/work/ClarificationPrompt.test.tsx (2 tests) 3ms
+
+ Test Files  105 passed (105)
+      Tests  660 passed (660)
+   Start at  05:48:51
+   Duration  9.47s (transform 4.92s, setup 0ms, collect 14.68s, tests 1.49s, environment 34ms, prepare 13.48s)
+
+$ node scripts/build.mjs
+≈ tailwindcss v4.3.3
+
+Done in 272ms
+
+  dist/bundle.js                                   414.8kb
+  dist/chunks/chunk-66W6FALB.js                    348.8kb
+  dist/chunks/chunk-25456IRH.js                    280.9kb
+  dist/chunks/chunk-SGQQ3PAN.js                    246.5kb
+  dist/chunks/FlowRunsHistorySurface-K5BHCJWY.js   221.3kb
+  dist/bundle.css                                  161.8kb
+  dist/chunks/chunk-B26PABYF.js                    136.3kb
+  dist/chunks/chunk-4P5SOY7A.js                     93.6kb
+  dist/chunks/chunk-5HYXVZU4.js                     64.3kb
+  dist/chunks/chunk-O7V4VUIQ.js                     37.0kb
+  dist/chunks/chunk-OA3QCJXK.js                     34.7kb
+  dist/chunks/chunk-ECDEGFGG.js                     34.3kb
+  dist/chunks/UsageSurface-HPGEBGMV.js              30.8kb
+  dist/chunks/AgentTerminal-TMQKKNYX.js             30.1kb
+  dist/chunks/chunk-UX7NRIZO.js                     27.5kb
+  dist/chunks/FlowRunSurface-IYJMVMWI.js            16.2kb
+  dist/chunks/FlowRunsHistorySurface-2YMTODPA.css   15.5kb
+  dist/chunks/chunk-VLAKTM53.js                     14.7kb
+  dist/chunks/chunk-A4CW5CRQ.js                     14.6kb
+  dist/chunks/chunk-BV6EL6HP.js                     14.3kb
+  ...and 45 more output files...
+
+⚡ Done in 933ms
+NEX 32-bit official SVG exported: /projetos/nexus/web/public/nex
+Nexus web build complete: /projetos/nexus/web/dist

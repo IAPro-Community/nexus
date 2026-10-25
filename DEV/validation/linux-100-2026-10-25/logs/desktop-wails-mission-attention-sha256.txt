@@ -1,0 +1,1 @@
+6f9088400a302e40b3ffe6413fcc4815702e57ee7e454ed913f735ea4e7c9099  cmd/nexus-desktop/build/bin/nexus-desktop

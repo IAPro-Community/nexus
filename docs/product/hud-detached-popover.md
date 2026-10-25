@@ -9,8 +9,8 @@ global de um popup separado.
 
 ## Objetivo
 
-O Nexus Guardian mantém um Mascote 2D de 108 x 112 DIPs por padrão.
-O usuário pode escolher Barra (220 x 60 DIPs no preset Compacto)
+O HUD mostra um único mascote NEX na apresentação Mascote. O usuário
+pode escolher essa apresentação, Barra (220 x 60 DIPs no preset Compacto)
 ou Bandeja. Quando permitido pelo sistema, os detalhes são exibidos
 em janela Wails separada, com WebView/React próprios e Core compartilhado.
 O popup começa oculto e surge apenas mediante interação.
@@ -87,7 +87,7 @@ adaptações equivalentes e execução nativa permanecem obrigatórias.
 - `prefers-reduced-motion: reduce` desativa a animação; o HUD web/legado
   mantém as transições existentes.
 - Os estados de rendering são cobertos por `hudPresentation.test.ts`.
-- O Mascote 2D possui estados ocioso, trabalhando, atenção e offline,
+- O mascote NEX possui estados operacionais dirigidos pelos dados do HUD,
   com `prefers-reduced-motion` para respeitar acessibilidade.
 - Ainda são obrigatórias capturas sequenciais e testes de foco/clique em
   sessões gráficas reais. O CI não comprova que a animação roda sem flicker.

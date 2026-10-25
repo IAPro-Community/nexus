@@ -1,0 +1,7 @@
+branch=release/v1.0.0
+base_commit=bf6adf0c80ac3531d7291844512a14a017ab0002
+remote_commit=bf6adf0c80ac3531d7291844512a14a017ab0002
+source_overlay=eccc97fea75002ce905239be463cc5d37f095e7d7b1b524f2abe19a7c3568bbc
+separate_companion_renderer=NOT_PRESENT_IN_RELEASE_WORKTREE
+active_renderer=web/src/features/hud/NexusHud.tsx -> GuardianMascot -> NexPixelSprite
+active_hud_presentations=BAR,MASCOT,TRAY

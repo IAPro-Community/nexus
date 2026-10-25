@@ -1,0 +1,14 @@
+Chamadas reais de provedores pelo runtime Nexus
+Data: 2026-10-25
+Branch/base: release/v1.0.0 @ bf6adf0c80ac3531d7291844512a14a017ab0002
+Fingerprint de fontes: 64c48060972e179d021f1406339ce3619389d0321f76ebcffad0414f46cbd904
+CLI usada nos smokes: SHA-256 56ea889d47b27101fa4e294d4b4649257baaca03d5d1cfef04fb8feb1dfe6c46
+Perfis Nexus de teste em /tmp, isolados; arquivos de credencial privados; removidos ao final.
+
+| Provedor | Procedimento resumido | Resultado |
+| --- | --- | --- |
+| AGY 1.4.7 | `nexus run agy agy -- --print '<pedido seguro READY sem ferramentas>'` | PASS; saída exata `READY`, exit 0, aproximadamente 5 s. |
+| OpenCode 2.1.3 | `nexus run opencode opencode -- run --standalone --format json '<pedido seguro READY sem ferramentas>'` | PASS; saída exata `READY`, exit 0, aproximadamente 3 s. |
+| Gemini CLI 0.62.0 | `nexus run gemini gemini -- -p '<pedido seguro READY sem ferramentas>' --approval-mode plan` | BLOCKED; após a correção de preparação OAuth, o serviço externo recusou o client/conta com `IneligibleTierError` (Gemini Code Assist para indivíduos). Não houve resposta `READY`. |
+
+Os smokes AGY/OpenCode validam chamadas de modelo através do Nexus com sessões reaproveitadas. O erro Gemini ocorreu depois de a autenticação local ser reconhecida e preparada; não homologa uso real Gemini nesta conta. Saídas brutas permanecem em `/tmp` e não foram copiadas por poderem conter metadados da conta. O resumo não contém identidade, token ou conteúdo sensível.

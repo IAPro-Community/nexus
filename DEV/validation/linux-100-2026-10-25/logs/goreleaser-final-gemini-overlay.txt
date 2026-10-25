@@ -1,0 +1,17 @@
+Snapshot de distribuição do overlay final (local, não publicado)
+Data: 2026-10-25
+Base: bf6adf0c80ac3531d7291844512a14a017ab0002
+Fingerprint: 64c48060972e179d021f1406339ce3619389d0321f76ebcffad0414f46cbd904
+GoReleaser v2.18.0; versão 1.0.0-beta.10; Linux/amd64.
+
+Comando executado com configuração temporária cujo `dist` aponta para `/tmp`:
+`NEXUS_VERSION=1.0.0-beta.10 NEXUS_UPDATE_PUBLIC_KEY= go run github.com/goreleaser/goreleaser/v2@v2.18.0 release --snapshot --clean --config /tmp/nexus-linux-live-gemini-smoke/goreleaser-final.yaml`
+
+- CLI tar.gz SHA-256: 65d3797cb896bb52753b19da9de54ae0f40d97f6ecdc6f763f20ff7f9a20c8fb
+- DEB amd64 SHA-256: 571db698e234db4062a95509d661d0f419d5bf39d6e9a7998a2b64b0faa16a87
+- `checksums.txt` passou; SHA-256 do manifesto: 7d02930340029a898835cf91bbfe7ba1bc9c2f4480eb986085c0d187c8795f5a
+- Payload CLI SHA-256: 6ff20faf39bac06e29bfa8e0bcbb5c476c2931b0747648d6fca0339ba25c1ce2. O payload do tar e do DEB é byte a byte idêntico; ambos reportam beta.10, linux/amd64 e commit-base bf6adf0c.
+- Instalação via `dpkg --root` em raiz temporária: BLOCKED; `dpkg` exige privilégio de superusuário mesmo com raiz/admindir temporários. Nenhuma instalação no host foi tentada. Extração com `dpkg-deb -x` e execução do payload passaram.
+- O snapshot não está assinado nem publicado e não constitui release estável.
+
+Duas tentativas de comando anteriores não geraram artefato: GoReleaser v2.18 removeu a flag `--dist` e a configuração exige a variável `NEXUS_UPDATE_PUBLIC_KEY`; a execução acima usou `dist` no YAML temporário e definiu a variável vazia, sem alterar `.goreleaser.yaml` do repositório.

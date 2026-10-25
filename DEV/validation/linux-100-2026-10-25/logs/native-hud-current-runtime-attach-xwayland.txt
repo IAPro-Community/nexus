@@ -1,0 +1,55 @@
+binary_sha256=13a6663d329e7a97cf7fc198af7153e887a1a3cced5ee11ca50b492396024a1d
+profile_dir=/tmp/nexus-hud-smoke-current.TUvbWo
+
+xwininfo: Window id: 0x140000f "nexus-hud"
+
+  Absolute upper-left X:  1684
+  Absolute upper-left Y:  914
+  Relative upper-left X:  1684
+  Relative upper-left Y:  914
+  Width: 224
+  Height: 158
+  Depth: 32
+  Visual: 0x1f2
+  Visual Class: TrueColor
+  Border width: 0
+  Class: InputOutput
+  Colormap: 0x140000e (not installed)
+  Bit Gravity State: NorthWestGravity
+  Window Gravity State: NorthWestGravity
+  Backing Store State: NotUseful
+  Save Under State: no
+  Map State: IsViewable
+  Override Redirect State: no
+  Corners:  +1684+914  -12+914  -12-8  +1684-8
+  -geometry 224x158-12-8
+
+pid=2405734
+window_id=0x140000f
+/projetos/nexus/DEV/validation/linux-100-2026-10-25/screenshots/native-hud-current-runtime-attach-xwayland.png: PNG image data, 224 x 158, 8-bit/color RGB, non-interlaced
+1157f237169a17001808ee86a54957373636c121bbe731c493f58c278a8b80ba  /projetos/nexus/DEV/validation/linux-100-2026-10-25/screenshots/native-hud-current-runtime-attach-xwayland.png
+Nexus HUD started an embedded Core at http://127.0.0.1:38929
+Overriding existing handler for signal 10. Set JSC_SIGNAL_FOR_GC if you want WebKit to use a different signal
+libEGL warning: DRI3 error: Could not get DRI3 device
+libEGL warning: Ensure your X server supports DRI3 to get accelerated rendering
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+Xlib:  extension "DRI2" missing on display ":0".
+result=PASS
+exit_after_cleanup=0

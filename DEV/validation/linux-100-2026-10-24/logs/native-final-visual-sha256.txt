@@ -1,0 +1,6 @@
+sha256  file
+ea8ce60dd2332754efe56f8ab4df1947be0cfd493a3d8f79efc95f319772583a  screenshots/native-desktop-final-build-xwayland.png
+8e62fcd423600d55f42c861a20d73135e4010721a65b8ccd146d1995057c6897  screenshots/native-hud-final-build-xwayland.png
+
+Desktop: 1280x800 PNG; final build, XWayland.
+HUD: 224x158 PNG; final build, XWayland; visual evidence shows one NEX.

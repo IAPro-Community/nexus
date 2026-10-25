@@ -1,0 +1,4 @@
+PASS: GoReleaser CLI tar matches CLI extracted from DEB byte-for-byte.
+PASS: CLI reports 1.0.0-beta.10 on Linux AMD64.
+PASS: Desktop and HUD archives match the final native executables byte-for-byte.
+NOTE: standalone CLI from make uses different GoReleaser ldflags, so it is not expected to match the GoReleaser packaged CLI.

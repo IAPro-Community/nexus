@@ -1,0 +1,13 @@
+pid=1152243 GDK_BACKEND=wayland WAYLAND_DISPLAY=wayland-0
+<stdin>:24: DeprecationWarning: Atspi.Accessible.get_component is deprecated
+initial_window= (0, 0, 224, 158)
+NEX_details_accessible=true
+<stdin>:29: DeprecationWarning: Atspi.Accessible.get_action is deprecated
+expanded_window= (0, 0, 334, 496)
+presentation= Barra role=toggle button pressed=False
+presentation= Mascote role=toggle button pressed=True
+presentation= Bandeja role=toggle button pressed=False
+single_mascot_accessible_control=true
+companion_or_2d_labels= []
+collapsed_window= (0, 0, 224, 158)
+RESULT=PASS; direct Wayland native HUD, one NEX, accessible mode selector and pressed state

@@ -1,0 +1,32 @@
+{
+  "record_type": "sanitized_evidence_projection",
+  "test_id": "RT-001",
+  "status": "PASS",
+  "base_commit": "bf6adf0c80ac3531d7291844512a14a017ab0002",
+  "source_overlay_fingerprint": "af7476a2ab2ffeabcbfcaf35051d6d24d61a0a35bd5786b5429dc2ee3a0662e4",
+  "binary_sha256": "2ee31ff0fa8b20f498340bc39c9df1b27ef51eca52b1e39abe41dcac64baa53d",
+  "raw_output_path_outside_repository": "/tmp/nexus-linux-runtime-live-2026-10-25/private-direct-mission-output.log",
+  "raw_output_sha256": "8801909c86b3340b5b728f1677fdfa2e56dc9aeb9a7549ce50224a3946b9de32",
+  "provider": "Codex",
+  "execution_mode": "DIRECT",
+  "final_state": "COMPLETED_VERIFIED",
+  "iterations": 6,
+  "coordination_requests": 0,
+  "work_packages": [
+    {
+      "role": "implementer",
+      "state": "VERIFIED"
+    }
+  ],
+  "verification": {
+    "command": "go test ./...",
+    "exit_code": 0
+  },
+  "temporary_worktree_changed_files": [
+    "marker_test.go"
+  ],
+  "temporary_worktree_changed_file_sha256": "b44536b71f45e22173db227b16a133f60f5a62e002b32caea438b1605d9240fa",
+  "canonical_test_project_modified": false,
+  "nexus_repository_modified_by_run": false,
+  "credentials_copied_to_report": false
+}

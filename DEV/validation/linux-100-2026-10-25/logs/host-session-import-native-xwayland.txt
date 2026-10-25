@@ -1,0 +1,40 @@
+SUPERSEDED: This was the first native import run. It detected only 3 accounts after restart because the 2 s provider probe timed out; see provider-readiness-recheck-xwayland.txt for the fix and final clean-build PASS with 4 accounts.
+
+Linux native UI session-import validation
+Date: 2026-10-25
+Branch: release/v1.0.0
+Git base: bf6adf0c80ac3531d7291844512a14a017ab0002
+Source overlay fingerprint: 6370093f2237d6b14d8ad2f23b5444466ef6556d7ee19f78ce1830bd114ba05e
+Desktop binary SHA-256: 09c9a0c42af20c8dc3e33ab7cc81dfacdf40c58cc98c1cb1282375da250469a0
+Session: Ubuntu GNOME Wayland, Nexus Wails window on XWayland, real user D-Bus
+
+Isolation: NEXUS_CONFIG_DIR, NEXUS_DATA_DIR, XDG_DATA_HOME, XDG_CACHE_HOME and
+XDG_STATE_HOME pointed to /tmp/nexus-linux-100-2026-10-25-import-ui3. Host
+provider auth files were only the import source; no credential or identity
+contents were read into this evidence. The temporary Nexus profile was removed
+after the test.
+
+Procedure: opened the compiled Nexus Desktop, captured the first-run state,
+clicked “Importar sessões existentes” in the actual native window, captured the
+completion summary, gracefully stopped the process, restarted it with the same
+isolated profile, and captured the restored provider readiness state.
+
+Observed UI result: 4 imported; 0 already authenticated; 1 without an
+importable session; 1 unsupported; 0 failures. Isolated profiles were created
+for AGY, Codex, Gemini and OpenCode. Their imported auth files had mode 0600.
+The original local sessions were not replaced. After restart, the Desktop again
+reported 3 providers with detected accounts. Both Desktop runs stopped
+gracefully.
+
+Status: PASS for host-session import through the native UI and persistence of
+the imported profiles. Cursor remains unsupported; Claude had no importable
+session. This does not certify provider model execution or Cursor credential
+import.
+
+Screenshots and SHA-256:
+- screenshots/host-session-import-before-xwayland.png
+  21fd59d24c365d82f3cc3cb75f47adbee1667b1ebc286fb102ee6e5f4744dda3
+- screenshots/host-session-import-result-xwayland.png
+  efdfe182eab06b0acea4dda36ca25f74a8b6e0d339632fc8800f2e72c2cc6595
+- screenshots/host-session-import-after-restart-xwayland.png
+  263a297b61558c1e8f004934bd627c9642a8f0959b0faea772b4ebee04061963

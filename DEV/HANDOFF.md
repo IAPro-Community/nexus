@@ -1,4 +1,120 @@
+## Handoff — Ativação Composer/Flow, Telemetria HUD, Quotas & Docs Portal — 2026-10-25
+
+- **Status & Branch**: Branch `release/v1.0.0`; commits atômicos estruturados conforme plano aprovado `commit-and-push-plan.md`.
+- **Composer & Flow**: Ativados como padrão de produção (`COMPOSER_FLOW_ENABLED = true`), com rotas de Work/Missions, pipeline visual e spine E2E homologado.
+- **HUD & Mascote NEX**: Redesign vetorial contínuo sem serrilhado em SVG/React; telemetria saneada (Wayland popover, fontes formatadas `CLI`/`API`/`Sessão`, feedback amigável de cotas pendentes, exibição de até 5 contas).
+- **Quotas & Persistência**: Gravação atômica via `.tmp` em `scope.go`; retenção estimada `~61%` de janelas ativas em `hud_projection.go`.
+- **Docs Portal**: 100 páginas Docusaurus v3 compiladas com zero erros e pipeline GitHub Actions pronta para publicação em `https://iapro-community.github.io/nexus/`.
+- **Gates Validados**: Vitest (108 arquivos / 672 testes), TypeScript, Stylelint/CSS-Modules, Go test suite completo (100% PASS), NEX visual parity PASS, Docusaurus build PASS.
+
+## Handoff — P1 fechado; iniciar validação restante — 2026-10-25
+
+- Branch `release/v1.0.0`; HEAD e remoto `bf6adf0c80ac3531d7291844512a14a017ab0002`. Worktree dirty (414 paths); preserve tudo e não faça reset, commit, push, merge ou tag.
+- P1: `ReplayProhibited` persistido impede `REPLAN_PACKAGE` após coordenação insegura/sem prova; oferece verificação sem replay, preserva ID do dispatch e volta a bloquear se a verificação falhar. Retry/replan seguro passa por Allocate/Compile e aguarda dependências verificadas.
+- Handoff de worker acima do timeout agenda nova tentativa após encerramento do antigo. Handler HTTP rejeita JSON malformado/trailing e versão inválida.
+- Passaram runner completo, `internal/nexus`, `internal/nexus/...`, Web, race do runner e vet. Logs `DEV/validation/linux-100-2026-10-25/logs/p1-*`; relatório `P1_INTERVENTION_VALIDATION.md`.
+- **P1 COMPLETE no overlay** `ddad56697609de1374cdede949e794316e3263357b052f745defb64f11a4be5b`: E2E HTTP autenticado → SQLite/outbox → restart → retomada única terminou em `COMPLETED_VERIFIED`; efeito externo contado exatamente uma vez. Repetições: 10 normais e 5 com race. Evidência em `DEV/validation/linux-100-2026-10-25/P1_INTERVENTION_VALIDATION.md`.
+- Próxima ação: continuar P2 com autorização/isolation e E2E HTTP/UI multi-missão após reinício; P3–P9 e outros gates permanecem abertos. Resultado global `NO_GO_LINUX`.
+- Mascote: manter somente um NEX bem acabado e funcional. A verificação focada passou 25/25 e a captura nativa mostra uma única arte; o modo/renderer Companion 2D não existe. Barra/Mascote/Bandeja são apresentações do HUD.
+
+## Handoff — follow-up Mission Attention — 2026-10-25
+
+- O contrato vigente segue: um só mascote NEX; não há segundo renderer ou modo Companion 2D para remover. `NexusHud → GuardianMascot → NexPixelSprite` é o único caminho visual.
+- Mission Attention abre a missão bloqueada direto na aba Flow Run no Desktop Wails nativo. O resumo de estado foi corrigido com SCSS Module. Evidências: `DEV/validation/linux-100-2026-10-25/MISSION_ATTENTION_VALIDATION.md`.
+- Validação da rodada: 21 testes de rota/gate; 108 arquivos/672 testes de qualidade Web; build Desktop Wails AMD64. Todos passaram.
+- A projeção durável também passou no teste SQLite de close/reopen para cinco missões em dois projetos; o E2E real HTTP/UI reiniciando o servidor ainda está pendente.
+- HEAD local/remoto: `bf6adf0c80ac3531d7291844512a14a017ab0002`; overlay dirty `7368531977b7422eccdf00e7c676f57d440e8d736d9e114bcdc071b9d5885fe6`, sem commit/push. NO_GO_LINUX global permanece.
+
+## Handoff — FIX-012 e mascote único — 2026-10-25
+
+- Branch `release/v1.0.0`; HEAD local/remoto `bf6adf0c80ac3531d7291844512a14a017ab0002`; `VERSION=1.0.0-beta.10`. Overlay compilado/testado `516b706a2c3cdca1a6d76200833a785186063350fa4d41db4494fcb67bdb7f7a` (1.404 fontes), manifesto verificado sem divergências. Worktree segue dirty, sem commit/push.
+- Direção de produto: um só mascote NEX, muito bem acabado e funcional. O código ativo renderiza `NexusHud → GuardianMascot → NexPixelSprite`; `NexusGuardian.tsx` e modo/renderer Companion 2D não existem nesta branch. Barra/Mascote/Bandeja são apresentações do mesmo HUD; não apagar a apresentação Mascote, que é o único NEX.
+- Evidência atual: 25/25 testes focados, verificação estrutural de identidade e captura nativa XWayland com uma arte NEX (SHA-256 `98b4320b329512b349af90284f5851b9080b20be3d97fc4bccf19520ac16cd3c`). FIX-012 passou regressões Go/race e três ciclos nativos do popover sob `G_DEBUG=fatal-criticals`.
+- Artefatos pós-FIX-012: CLI/Desktop/HUD AMD64; tarballs CI Desktop/HUD e snapshot CLI/DEB validados; instalação/consulta/execução/remoção dpkg isolada passou sem tocar no host. Relatórios em `DEV/validation/linux-100-2026-10-25/`.
+- Veredito: **NO_GO_LINUX** — 63 PASS / 1 FAIL / 12 BLOCKED / 5 NOT_RUN (81). Release estável exact-SHA, runtime/roteamento/continuidade/skills completos, atenção gerada por agente real, gates Wayland/alpha e updater assinado seguem pendentes.
+
+## Handoff — FIX-011, runtime attach e mascote único — 2026-10-25
+
+- Revalidei o balão nativo do NEX em HUD Wails real com fixture local: estado `REQUIRE_USER`, um único mascote, “Adiar” recolheu a bolha, e o Attention Center manteve o item. Preferências foram capturadas separadamente. Screenshot SHA-256 `b2bff6d18ab8214d682430c3f097e93bf1e338a1924af7ccb7b25f661c7ba08a`; log `DEV/validation/linux-100-2026-10-25/logs/native-attention-fixture-click-snooze.txt`. Evento conectado a agente real ainda está BLOCKED.
+- Matriz atualizada: 61 PASS / 1 FAIL / 12 BLOCKED / 5 NOT_RUN (79). Veredito continua NO_GO_LINUX.
+
+- Direção reafirmada: somente o mascote NEX único. O reteste focado no overlay atual passou 25/25; não havia modo/renderer Companion 2D para remover. Matriz e resumo JSON reconciliados em 61/1/12/5 (79), e 1.403 fontes do manifesto verificadas.
+- HEAD local/remoto confirmado: `bf6adf0c80ac3531d7291844512a14a017ab0002`, branch `release/v1.0.0`. Overlay atual: `4e7afe7bc0e99c8d11e34dd3db9295829ab41081173bc9a7cc9b262f3c92111b` (1.403 fontes); dirty, sem commit/push.
+- O produto tem um mascote NEX único. Não há renderer nem modo Companion 2D separado; não remova a apresentação Mascote do HUD.
+- FIX-011 corrigiu o botão “Anexar Terminal” em runtimes shell: agora abre o mesmo `runtime_id`, sem criar outra sessão. Testes 2/2, quality:full 106/664, E2E split e Desktop Wails AMD64 passaram.
+- Validação nativa em Ubuntu 25.10/GNOME 49/XWayland anexou um runtime do binário atual; o prompt ficou visível e o total permaneceu 4 runtimes/4 PTYs. Desktop SHA-256 `e4f46da9af49adb51bbdce91b5c78b91de0d852e89446dc6d2a9f8cf088b41d4`.
+- Gate ainda BLOCKED: hosts de imagem anterior falharam fingerprint após substituição do binário no mesmo caminho, foram marcados `STALE`, e a UI mostrou `TERMINAL_TRANSPORT_ERROR`. Não foi ignorada compatibilidade binária.
+- Resultado segue **NO_GO_LINUX** — 61 PASS / 1 FAIL / 12 BLOCKED / 5 NOT_RUN (79). Faltam release estável 1.0.0, árvore imutável, roteamento/continuidade/skills completos, atenção real no HUD, gates Wayland/alpha e updater assinado.
+- Relatório e evidências: `DEV/validation/linux-100-2026-10-25/LINUX_HOMOLOGATION_REPORT.md`, `TEST_MATRIX.md`, `LINUX_HOMOLOGATION_SUMMARY.json` e `logs/runtime-attach-validation.txt`.
+
+## Handoff — homologação Linux e mascote NEX único — 2026-10-25
+
+- HEAD local/remoto `bf6adf0c80ac3531d7291844512a14a017ab0002`. Overlay corrente `dac0d00b8410f70ed02c8b4c324780349655fed8f7e580d1944da1ec3eaecefa` (1.401 fontes; manifesto em `DEV/validation/linux-100-2026-10-25/logs/source-provenance-cursor-status-fix.txt`). Worktree dirty, sem commit/push; este fingerprint identifica as evidências, não substitui um commit imutável.
+- Contrato do produto: um único mascote NEX bem acabado e funcional. Não existe renderer nem modo Companion 2D no checkout atual. `NexusHud` monta uma `GuardianMascot` com `NexPixelSprite`; Barra e Bandeja são apresentações do HUD. PR #55 foi fechada em 2026-10-25 e não foi integrada.
+- Direção confirmada pelo usuário nesta continuação: manter um mascote NEX único, muito bem acabado e funcional; não criar personagem nem modo 2D. Verificação visual e seletor confirmam `GuardianMascot → NexPixelSprite`; Barra/Mascote/Bandeja apresentam o mesmo HUD. Testes focados passaram 25/25. FIX-009 também corrigiu o parser do status do Cursor, sem habilitar cópia da sessão.
+- Follow-up da PR #61: busca local reproduzida com 404 e corrigida em `docs-site/docusaurus.config.js` (`docsRouteBasePath: ["/"]`, porque os docs usam `routeBasePath: "/"`). Build gerou o índice JSON; Playwright encontrou Terminais sem erro; auditoria npm registrou zero vulnerabilidades. `bun run quality:full` Web passou com 105 arquivos/660 testes. Relatório: `DEV/validation/linux-100-2026-10-25/PR61_DOCS_SITE_VALIDATION.md`.
+- PR #61 segue aberta/Draft; PR #55 segue fechada. Nenhuma PR foi mesclada remotamente. O follow-up do portal não altera as contagens nem os bloqueios da matriz principal.
+- Correções locais: listener HTTP por PID e shutdown gracioso; parser de task com dois-pontos; deduplicação do goal; validação do prompt de coordenação. Quality-full Go/Web/race/security passou. CLI, Desktop e HUD AMD64 recompilados; snapshot GoReleaser e tarballs atuais verificados; instalação/remoção do DEB em dpkg root isolado passou.
+- A Mission real DIRECT terminou `COMPLETED_VERIFIED`; uma work package implementer verificou `go test ./...` em worktree temporário. Não valida roteamento completo, Skills ou atenção real do HUD.
+- Matriz atualizada: **NO_GO_LINUX — 58 PASS / 1 FAIL / 12 BLOCKED / 6 NOT_RUN (77 casos)**. A falha de release continua beta.10 sem release estável. Desktop e HUD passaram em XWayland; HUD e Desktop também iniciaram diretamente em Wayland. FIX-006 corrigiu a sobreposição visual das abas de PTY no split; digitação nativa nos dois shells segue BLOCKED. Capturas XWayland do HUD mostram um NEX.
+- A UI nativa importou Codex, Gemini, AGY e OpenCode em perfis temporários `0600`; exibiu 4 importadas, 1 sem sessão, 1 sem suporte, 0 falhas, e reconheceu três provedores após reinício. Evidências em `DEV/validation/linux-100-2026-10-25/RUNTIME_VALIDATION.md`.
+- Próximo passo: resolver a versão beta.10 e preparar uma árvore imutável aprovada; completar roteamento, continuidade, skills, atenção real, teclado/foco/movimento Wayland, alpha/transparência e updater assinado. Relatório e evidências em `DEV/validation/linux-100-2026-10-25/`.
+
+## Homologação Linux AMD64 — 2026-10-24
+
+- Resultado: **NO_GO_LINUX**. Branch release/v1.0.0; HEAD local/remoto bf6adf0c80ac3531d7291844512a14a017ab0002; VERSION 1.0.0-beta.10.
+- Overlay final: 6476b22e5ae0b69e6f7340d13915ad013e0151dd5119fe91142cbef69441b02e (1694 arquivos), manifesto em DEV/validation/linux-100-2026-10-24/logs/source-provenance.txt; árvore ainda modificada, sem commit/push.
+- Matriz: 36 PASS / 1 FAIL / 10 BLOCKED / 10 NOT_RUN. Go 1.25.14; Go quality-full passou; frontend quality:full passou com 103 arquivos/633 testes.
+- Direção de produto: um único mascote NEX. Não há renderer/seleção de Companion 2D separado no caminho ativo; o teste verifica uma arte NEX por render. Barra e Bandeja são apresentações do HUD.
+- Build final e snapshots CLI/DEB/Desktop/HUD concluídos; hashes e equivalência estão em DEV/validation/linux-100-2026-10-24/logs/artifact-sha256-build-final-2026-10-25.txt e distribution-package-verification-build-final-2026-10-25.txt.
+- Desktop final iniciou Core HTTP 200 e foi capturado; HUD final mostra um NEX. Evidências: screenshots/native-desktop-exact-final-xwayland.png e screenshots/native-hud-exact-final-xwayland.png.
+- `make docs-verify` bloqueado porque há fontes visuais modificadas sem commit certificado. Outras pendências: beta.10, overlay imutável, runtime/roteamento/continuidade/skills reais, Cursor, Wayland direto, alpha e updater assinado. DEB instalado/removido em root temporário.
+- Dossiê: DEV/validation/linux-100-2026-10-24/LINUX_HOMOLOGATION_REPORT.md, TEST_MATRIX.md e LINUX_HOMOLOGATION_SUMMARY.json.
+
+## Handoff — build, instalação e reinício final — 2026-10-23 20:48 UTC
+
+- `origin/release/v1.0.0` e HEAD local: `bf6adf0c80ac3531d7291844512a14a017ab0002`. Código empacotado no binário é a base remota mais alterações locais não commitadas; nenhum commit/push foi feito.
+- `make build build-desktop build-hud` passou com Go 1.26.10. CLI/Desktop/HUD foram instalados atomicamente nos dois prefixos usados e conferidos por SHA-256: `9ecd3ff2…`, `ca3076dd…`, `89b2b2f7…`. Backup: `~/.local/state/ai-manager/nexus-update-backups/20261023T203808Z-go1.26.10`.
+- Quatro hosts de agentes, Desktop, HUD ligado e serviço Web foram encerrados e reabertos. `/api/v1/health` do Web e Core Desktop retornou HTTP 200 na beta.10; os processos carregam os hashes instalados.
+- **Registro histórico, superado em 2026-10-25:** naquela execução a PR #55 foi tratada como gate. A direção atual é um único mascote NEX; Companion 2D não é requisito nem deve ser integrado como modo ou personagem adicional. A matriz vigente está em `DEV/validation/linux-100-2026-10-24/`.
+
+## Handoff — atualização local do HEAD remoto — 2026-10-23 13:56 UTC
+
+- `release/v1.0.0` foi atualizada por fast-forward até `9929bef2070a95672a3af8381c09cffbfbe36711` após `git fetch origin --prune`; entraram `689fa3e2` e `9929bef2`. Alterações locais não commitadas foram preservadas.
+- `make build build-desktop build-hud` terminou com sucesso; a arte NEX SVG foi exportada no build Web. CLI/Desktop/HUD instalados atomicamente em `~/.local/bin` e no bin local do perfil Codex. `nexus version --json`: `1.0.0-beta.10`, Linux AMD64, commit `9929bef2`.
+- SHA-256: CLI `fb24d4d05769032621e0cb926fa52152016c0f88183dcc5513d34a6d14f78310`, Desktop `a12d8ad2a576a0f99c7013bbe463729d2d4fe37f6827fe3b864b159616412320`, HUD `597a5101c4cf0a85edbff0e6259a020d824f2045a542f1ee25445e511f8acad1`. Backup pré-instalação: `~/.local/state/ai-manager/nexus-update-backups/20261023T135607Z/`.
+- O build não executou testes. Seis runtimes (cinco sessões de provedor mais a sessão ativa do agente) e um processo `nexus web` ainda estavam com executáveis já carregados; a atualização desses processos é o próximo passo autorizado.
+
 # Handoff
+
+## Handoff — importar sessões locais no primeiro acesso — 2026-10-22
+
+- Implementação local em `release/v1.0.0`, sobre base remota `f62fdec0c571ac6a19a904164d3f580799da6bf3`; não commitada nem enviada. Build foi do worktree dirty, não do SHA puro.
+- O cartão Ambiente de execução tenta importar Codex, Claude, Gemini, AGY e OpenCode por arquivos de autenticação reconhecidos; Cursor retorna suporte indisponível. A cópia é sem sobrescrita, atômica, `0600`, mantém a origem e registra resumo sem identidade/segredo. Login e cadastro seguem como alternativa.
+- Gates Web PASS (98 arquivos/608 testes, estilo/lint/typecheck/build), testes Go direcionados PASS (9 pacotes), `go vet` PASS, Wails Desktop compilado e startup smoke HTTP 200 PASS.
+- **BLOCKED** — screenshot e clique nativos; GNOME Wayland nega screenshot D-Bus, `grim` não é suportado. A interação real do botão ainda requer host com captura/automação permitidas. Nenhuma credencial real foi importada nesta verificação.
+- Não muda `NO_GO_LINUX` do relatório de homologação exata; veja `DEV/validation/linux-100-2026-10-22/SESSION_IMPORT_FOLLOWUP.md` e os logs de mesmo prefixo.
+
+### Continuidade — comando de login duplicado — 2026-10-23
+
+- Corrigido `nexus login codex codex`: a UI agora exibe/copia `nexus login codex`; o CLI mapeia a forma curta ao perfil `codex`. Teste integrou o comando a um Codex fake e confirmou a chamada oficial `login`; perfil nomeado continua `nexus login codex <perfil>`.
+- `make quality`, `make vet`, race em app/perfil, build Wails e startup nativo final passaram. GNOME Wayland continua bloqueando screenshot e interação, então o diálogo não tem validação visual nativa.
+- SHA local/remoto permanece `f62fdec0c571ac6a19a904164d3f580799da6bf3`; worktree dirty, sem commit/push. Release permanece `NO_GO_LINUX`.
+- Fetch e builds repetidos em 2026-10-23: branch remota sem novos commits; CLI, Desktop Wails e HUD recompilados com exit 0 a partir do worktree dirty; ELF AMD64 e dependências dinâmicas resolvidas. Logs/checksums em `DEV/validation/linux-100-2026-10-22/logs/build-current-2026-10-23-*`. Próxima execução visual continua sujeita às permissões do GNOME Wayland; estes builds não alteram o resultado de homologação.
+- Instalação atualizada em 2026-10-23 para a versão mais recente de `release/v1.0.0` (`f62fdec0`, `1.0.0-beta.10`), compilada com as alterações locais atuais. CLI/Desktop/HUD estão nas duas pastas `~/.local/bin`; launcher aponta para o binário atualizado. O serviço web foi reiniciado e responde health 200. Backups em `~/.local/state/nexus-update-backups/20261023T131106Z`. 11 `__control-host` residentes foram preservados para não cortar sessões; só usarão a versão nova após reinício.
+
+## Handoff — Homologação Linux Nexus 1.0.0 — 2026-10-22
+
+- **SHA exato:** `release/v1.0.0` local e remoto em `f62fdec0c571ac6a19a904164d3f580799da6bf3` no fetch final. `VERSION=1.0.0-beta.10`; não há release estável v1.0.0.
+- **Registro histórico, superado em 2026-10-25:** `NO_GO_LINUX`, matriz 36 PASS / 9 FAIL / 10 BLOCKED / 4 NOT_RUN. A nota original considerava Companion 2D da PR #55 um requisito; a decisão vigente é manter um mascote NEX único e não criar um modo 2D separado. Consulte a homologação atual em `DEV/validation/linux-100-2026-10-24/`.
+- **Execução:** Ubuntu 25.10 AMD64, GNOME 49 Wayland. CLI/Desktop/HUD compilados; Desktop e `nexus-hud --linked` iniciaram; Core HTTP 200. Screenshot e input nativo bloqueados pelo compositor.
+- **Distribuição:** snapshot local CLI/DEB e archives Linux Desktop/HUD verificados; nada publicado/instalado. Script real de instalação recusou manifesto v1.0.0 ausente (404), sem deixar binário.
+- **Patch local sem commit:** `DEV/validation/linux-100-2026-10-22/FIXES.patch`, SHA-256 `5557c3bccf606baffcdc8e3db1e44c7cd423d0da570baf69f9acb8744d749b10`. Corrige classificação de pedido de revisão PT, fixture de restauração HUD, lint de guards unreachable, saída RPM e instalação do HUD irmão.
+- **Próximos gates registrados à época:** corrigir E2Es falhos, publicar release estável assinada, executar homologação visual/interativa nativa em host com screenshot/input, resolver docs visual manifest e repetir distribuição a partir de SHA limpo. A proposta de integrar Companion 2D foi descartada pela decisão de produto de 2026-10-25. Nenhuma PR foi mesclada por esta sessão.
+- Dossiê completo: `DEV/validation/linux-100-2026-10-22/LINUX_HOMOLOGATION_REPORT.md`.
+
+---
+
 
 ## Handoff — Archive cleanup verificado no remoto — 2026-10-22
 
@@ -106,7 +222,8 @@
 
 ## Estado atual — homologação Windows beta.10 — 2026-10-17 (continuação)
 
-Branch elease/v1.0.0, HEAD 984c2b0f (984c2b0fdbd7b4c4b4917c9de7f1a4d2a60a4b17); remoto origin/release/v1.0.0 em $(6552f3d0b834bf94026e3ce9bd415f826fa57df7.Substring(0,12)). Três commits novos foram criados após o SHA-base 5d5aea9211b5154e96b036c519a61de9723593b1; seis commits locais estão acima do remoto, ainda sem push.
+Branch
+elease/v1.0.0, HEAD 984c2b0f (984c2b0fdbd7b4c4b4917c9de7f1a4d2a60a4b17); remoto origin/release/v1.0.0 em $(6552f3d0b834bf94026e3ce9bd415f826fa57df7.Substring(0,12)). Três commits novos foram criados após o SHA-base 5d5aea9211b5154e96b036c519a61de9723593b1; seis commits locais estão acima do remoto, ainda sem push.
 
 Correção do timeout Go: os fixtures Git falhavam quando TEMP era profundamente aninhado. scripts/homologate-beta.ps1 agora cria TEMP curto na raiz da unidade do checkout (commit 32dc7fa5). Três testes de integração passaram com D:\nxt; go test -count=1 -v ./... passou com Go 1.26.9 e TEMP/TMP/GOTMPDIR curtos, exit 0 em 414,8s. Golangci-lint canônico v2.12.2 passou no limite de 5 min, 0 issues. Os commits adicionais são 976e3b53 (sincronização a11y) e 984c2b0f (regressões PATH).
 
@@ -2388,3 +2505,9 @@ Próximo: (1) revisar/mergear #59; (2) decidir o guardião canônico da 1.1 e re
 ### Toggle do popup no topo — 2026-10-22
 
 O controle `Popup independente` agora fica imediatamente abaixo do cabeçalho do painel (inline e popup), sem rolagem. Instalado em `%LOCALAPPDATA%\Programs\IAPro Nexus` no commit `8d100e96` (servidor PID `15516`, HUD PID `8304 --linked`, `nexus-hud.exe` `9b78fb10`). Estado do usuário: `appearance: TRAY` + `detachedPopover: true`. Evidência em `DEV/validation/mascot-toggle-8d100e96/` (harness PASS + perfil real PASS). Backup/rollback em `DEPLOYMENT.md`.
+
+
+## 2026-10-23 14:00 UTC — processos atualizados após build 9929bef2
+
+- Reiniciados 6 runtimes e o serviço Web com o Nexus instalado (SHA-256 fb24d4d05769032621e0cb926fa52152016c0f88183dcc5513d34a6d14f78310). IDs, perfis e workspaces preservados; sessões interativas foram abertas vazias porque não havia IDs de retomada persistidos.
+- Resultado: FAIL. Evidência: DEV/validation/linux-100-2026-10-22/logs/process-refresh-latest-2026-10-23.log.

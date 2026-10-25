@@ -363,7 +363,7 @@ async function assertAppearanceControlsPersist(page, apiOrigin) {
 }
 
 async function main() {
-  fixture = await startFixtureServer();
+  fixture = await startFixtureServer({ composerFlow: true });
   browser = await chromium.launch({
     executablePath: playwrightExecutablePath(),
     headless: true,

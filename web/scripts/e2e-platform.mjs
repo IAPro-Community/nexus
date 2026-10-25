@@ -20,15 +20,23 @@ function run(command, args, options, label) {
   }
 }
 
-export function buildNexusForE2E(repoRoot) {
+export function createNexusE2EBuildEnv(sourceEnv, { composerFlow = false } = {}) {
+  return {
+    ...sourceEnv,
+    NEXUS_EXPERIMENTAL_COMPOSER_FLOW: composerFlow ? '1' : '0',
+  };
+}
+
+export function buildNexusForE2E(repoRoot, options = {}) {
   const webDir = path.resolve(repoRoot, 'web');
   const binPath = nexusBinaryPath(repoRoot);
+  const env = createNexusE2EBuildEnv(process.env, options);
 
-  run(process.execPath, ['scripts/build.mjs'], { cwd: webDir }, 'frontend build');
+  run(process.execPath, ['scripts/build.mjs'], { cwd: webDir, env }, 'frontend build');
   run(
     process.platform === 'win32' ? 'go.exe' : 'go',
     ['build', '-trimpath', '-buildvcs=false', '-o', binPath, './cmd/nexus'],
-    { cwd: repoRoot },
+    { cwd: repoRoot, env },
     'nexus CLI build',
   );
 
@@ -38,9 +46,9 @@ export function buildNexusForE2E(repoRoot) {
   return binPath;
 }
 
-export function ensureNexusBinary(repoRoot) {
+export function ensureNexusBinary(repoRoot, options = {}) {
   const binPath = nexusBinaryPath(repoRoot);
-  if (process.env.SKIP_BUILD !== '1') return buildNexusForE2E(repoRoot);
+  if (process.env.SKIP_BUILD !== '1') return buildNexusForE2E(repoRoot, options);
   if (!existsSync(binPath)) {
     throw new Error(
       `nexus binary missing at ${binPath}; unset SKIP_BUILD or build the current checkout first`,

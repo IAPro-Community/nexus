@@ -1,0 +1,4 @@
+f6e1afcf2e7b0e10ed5d75a5d716b22dfe6f6ca894e056c64938599172ee7f15  cmd/nexus-desktop/build/bin/nexus-desktop
+faa6d320a5b85fada40a530dcc8d320fcd2ed448f306051b39b805dba063217c  DEV/validation/linux-100-2026-10-25/screenshots/mission-attention-drawer-native-xwayland.png
+ac79e4c4f72e16fe61f546e26127b72763d15c1d5f652bf6033b3dea0ca7bdf6  DEV/validation/linux-100-2026-10-25/screenshots/mission-attention-open-detail-native-xwayland.png
+e58c1dbc6dc1c32705a627c85a2e86ef53b9ed9f280c41e10f65ca19a0be0127  DEV/validation/linux-100-2026-10-25/screenshots/native-nexus-hud-single-mascot-xwayland.png

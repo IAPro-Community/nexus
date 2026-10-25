@@ -1,0 +1,4 @@
+bubble_window= ('0x140000f', 310, 245, 1352, 574)
+clicked=Adiar screen_xy= (1612, 669)
+geometry_after_click= ('0x140000f', 224, 158, 1438, 661)
+canonical_attention_http= 200 needs_you_count= 1 fixture_present= True

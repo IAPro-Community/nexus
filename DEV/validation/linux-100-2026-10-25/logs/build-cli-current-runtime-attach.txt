@@ -1,0 +1,33 @@
+Building frontend...
+≈ tailwindcss v4.3.3
+
+Done in 239ms
+
+  dist/bundle.js                                   415.0kb
+  dist/chunks/chunk-66W6FALB.js                    348.8kb
+  dist/chunks/chunk-25456IRH.js                    280.9kb
+  dist/chunks/chunk-BBQUBGWF.js                    248.6kb
+  dist/chunks/FlowRunsHistorySurface-K5BHCJWY.js   221.3kb
+  dist/bundle.css                                  161.8kb
+  dist/chunks/chunk-B26PABYF.js                    136.3kb
+  dist/chunks/chunk-4P5SOY7A.js                     93.6kb
+  dist/chunks/chunk-5HYXVZU4.js                     64.3kb
+  dist/chunks/chunk-O7V4VUIQ.js                     37.0kb
+  dist/chunks/chunk-OA3QCJXK.js                     34.7kb
+  dist/chunks/chunk-ECDEGFGG.js                     34.3kb
+  dist/chunks/UsageSurface-MTZYXJAP.js              30.8kb
+  dist/chunks/AgentTerminal-E24JCI4Z.js             30.3kb
+  dist/chunks/chunk-UX7NRIZO.js                     27.5kb
+  dist/chunks/FlowRunSurface-IYJMVMWI.js            16.2kb
+  dist/chunks/FlowRunsHistorySurface-2YMTODPA.css   15.5kb
+  dist/chunks/chunk-PVGPHWFO.js                     15.2kb
+  dist/chunks/chunk-ZW3UIKM6.js                     14.9kb
+  dist/chunks/chunk-A4CW5CRQ.js                     14.6kb
+  ...and 45 more output files...
+
+⚡ Done in 843ms
+NEX 32-bit official SVG exported: /projetos/nexus/web/public/nex
+Nexus web build complete: /projetos/nexus/web/dist
+Frontend bundle ready for embedding
+Building nexus v1.0.0-beta.10 (commit: bf6adf0c)...
+Built nexus v1.0.0-beta.10 at ./nexus

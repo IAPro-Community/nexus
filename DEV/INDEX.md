@@ -29,7 +29,13 @@
 
 Guia e índice de navegação estruturada da documentação de engenharia e governança do IAPro Nexus.
 
-**Current release status for HEAD:** [`validation/current/RELEASE_STATUS.md`](validation/current/RELEASE_STATUS.md)
+**Current release status for HEAD:**
+
+**Matriz base da homologação Linux AMD64 (2026-10-25):** [relatório](validation/linux-100-2026-10-25/LINUX_HOMOLOGATION_REPORT.md) · [matriz](validation/linux-100-2026-10-25/TEST_MATRIX.md) · [resumo JSON](validation/linux-100-2026-10-25/LINUX_HOMOLOGATION_SUMMARY.json) · [validação do mascote único](validation/linux-100-2026-10-25/MASCOT_VALIDATION.md) · [escopo confirmado](validation/linux-100-2026-10-25/COMPANION_VALIDATION.md). Resultado NO_GO_LINUX (63 PASS / 1 FAIL / 12 BLOCKED / 5 NOT_RUN; snapshot de overlay `516b706a…`, base `bf6adf0c…`). Produto: um único mascote NEX; não há modo ou renderer Companion 2D. O balão nativo e “Adiar” passaram com fixture, sem substituir a validação pendente de atenção gerada por agente real. [`validation/current/RELEASE_STATUS.md`](validation/current/RELEASE_STATUS.md)
+
+Follow-up nativo do Attention Center (2026-10-25): [validação de filtros, navegação para decisão e layout](validation/linux-100-2026-10-25/MISSION_ATTENTION_VALIDATION.md). O cartão agora abre a missão no workspace; a evidência vem de fixture isolada e inclui teste SQLite após reopen. Fingerprint do overlay: `7368531977b7422eccdf00e7c676f57d440e8d736d9e114bcdc071b9d5885fe6`; o veredito geral continua NO_GO_LINUX.
+
+Follow-ups da mesma campanha: [PRs #57/#58 e testes Linux](validation/linux-100-2026-10-25/PR578_FOLLOWUP.md) · [PR #61, busca do portal e contrato do mascote](validation/linux-100-2026-10-25/PR61_DOCS_SITE_VALIDATION.md).
 
 Latest Windows beta.7 evidence: [BETA7_WINDOWS_HOMOLOGATION_20261007.md](validation/current/BETA7_WINDOWS_HOMOLOGATION_20261007.md). NSIS Path-state smoke: [BETA7_NSIS_PATH_STATE_SMOKE_20261007.md](validation/current/BETA7_NSIS_PATH_STATE_SMOKE_20261007.md).
 

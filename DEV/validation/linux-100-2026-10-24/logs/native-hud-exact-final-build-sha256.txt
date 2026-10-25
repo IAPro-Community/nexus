@@ -1,0 +1,4 @@
+3cafbc761ec05838ea7e3f2a654280770ccff71c7ff7dc4781b31fff4912501d  /tmp/nexus-linux-100-2026-10-24/bin/nexus-hud
+645942cb4f57c100dbd92174173e057dc3458b24a6d01154dad93c7cc9f1b4d8  DEV/validation/linux-100-2026-10-24/screenshots/native-hud-exact-final-xwayland.png
+DEV/validation/linux-100-2026-10-24/screenshots/native-hud-exact-final-xwayland.png: PNG image data, 224 x 158, 8-bit/color RGB, non-interlaced
+core_health_http=200

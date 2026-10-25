@@ -1,0 +1,15 @@
+HUD empacotado — amostra curta de soak e recuperação após crash
+Base Git: bf6adf0c80ac3531d7291844512a14a017ab0002
+Fingerprint das fontes: 996e1063540370263158e70903477f4cbbc3035dbb33b93161e603bffbe3c133
+Binário: nexus-hud extraído do tar Linux/HUD do workflow CI, SHA-256 bdf3301158cbca6d6b679eb4b418feeb049d2a9ea16071b75073fd6346a3149f.
+Ambiente: GNOME 49 / Wayland com GDK_BACKEND=x11; HOME e XDG de teste; estado inicial da janela x=82,y=32, 224x158.
+
+Soak curto: 12 amostras a cada 5 s após aquecimento, totalizando 60 s. O processo permaneceu ativo. RSS do processo variou de 172,840 KB a 173,884 KB; o processo manteve três filhos durante todas as amostras. Nenhuma regressão observável de janela ou erro fatal.
+
+Crash e recuperação:
+- O processo de teste recebeu SIGKILL; exit 137 era esperado.
+- Três filhos foram observados antes do crash; após 3 s, nenhum processo pai ou filho do HUD de teste permaneceu.
+- O mesmo binário e perfil foram abertos novamente; a janela voltou em x=82,y=32 e 224x158, lendo o estado salvo.
+- O processo recuperado recebeu SIGTERM e encerrou com exit 0.
+
+Esta amostra não substitui soak prolongado nem cobre crash durante uma tarefa ativa, recuperação de PTY ou todas as transições de estado. NR-007 permanece NOT_RUN para esse escopo maior.

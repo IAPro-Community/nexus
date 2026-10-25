@@ -54,11 +54,16 @@ describe('Semantic Route Parsing and Building', () => {
   });
 
   it('parses deep-link routes for flow-run, terminals, and agents', () => {
-    expect(parseRouteLocation('/p/proj-123/missions/run-456')).toEqual({
+    const missionRoute = parseRouteLocation('/p/proj-123/missions/run-456');
+    expect(missionRoute).toEqual({
       kind: 'project',
       projectId: 'proj-123',
       surface: 'missions',
       subId: 'run-456',
+    });
+    expect(routeToWorkspaceSurface(missionRoute)).toMatchObject({
+      type: 'flow-run',
+      data: { runId: 'run-456' },
     });
 
     expect(parseRouteLocation('/p/proj-123/work/session-789')).toEqual({

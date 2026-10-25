@@ -1,0 +1,31 @@
+Runtime attachment regression — native Linux/XWayland
+Date: 2026-10-25
+Branch: release/v1.0.0
+Base local/remoto: bf6adf0c80ac3531d7291844512a14a017ab0002
+Source overlay: 4e7afe7bc0e99c8d11e34dd3db9295829ab41081173bc9a7cc9b262f3c92111b (1,403 files)
+Desktop binary: cmd/nexus-desktop/build/bin/nexus-desktop
+Desktop SHA-256: e4f46da9af49adb51bbdce91b5c78b91de0d852e89446dc6d2a9f8cf088b41d4
+Environment: Ubuntu 25.10 AMD64, GNOME 49 Wayland session, Desktop Wails under XWayland, 1280x800.
+Profile: isolated HOME/XDG under /tmp/nexus-linux-100-pty-toolbar-fix; test repository under /tmp/nexus-linux-100-2026-10-25-split-native/repo.
+
+Defect and fix
+- Reproduction: Overview cards for active shell runtimes called onProjectShell(), which dispatches creation of a new shell. A native restart test showed the runtime total grow from two to three after pressing “Anexar Terminal”.
+- Correction: ProjectOverviewSurface now requires an explicit onAttachRuntime callback and sends the selected RuntimeSession to it. WorkspaceSurfaceHost opens projectShellSurface with the existing runtime_id, then focuses the Terminals surface. Agent cards keep using their existing agent terminal route. Creating a new shell stays on the separate “Terminal do Projeto” action.
+- Regression: overviewRuntimeActions.test.ts covers both existing shell attachment and existing agent-runtime routing. The test was first run before implementation and failed because the attachment action module did not exist; after implementation, 2/2 passed.
+
+Validation
+- `bun run quality:full`: PASS; 106 Vitest files / 664 tests, style architecture, formatting, ESLint, Stylelint, TypeScript, unit/component tests and production build. Log: logs/runtime-attach-quality-full.log.
+- `PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/google-chrome bun run test:e2e:terminal-split`: PASS; seven vertical/horizontal geometries, 520px and 360px compact toolbars, and long PTY labels. Log: logs/terminal-split-toolbar-regression-final.log.
+- `make build-desktop-wails`: PASS; ELF x86-64/AMD64. `ldd` resolves GTK3 and WebKitGTK 4.1 with no missing shared libraries. Build log: logs/runtime-attach-desktop-build.log.
+- Native smoke: created one shell using the current binary. Runtime ID shell-06GQ5DD4PV4KZSM7H687M20YKC (provider PID 2278671, host PID 2278662) remained RUNNING. Before and after “Anexar Terminal”, the isolated runtime registry contained four runtimes; the Terminals workspace contained four PTYs. The attached surface showed the existing shell prompt. No extra runtime was created. Screenshots: screenshots/terminal-runtime-attach-current-build-xwayland.png and screenshots/terminal-runtime-count-after-attach-xwayland.png.
+
+Separate reconnect observation
+- The isolated profile also held older test runtimes created by Desktop binary SHA-256 211dd6a90c117b11c05402a9e8d42bd67cc3d6d471463d8879ebf2aca147342e. After replacing that executable path with the current binary, attempting to attach those old hosts produced a generic `TERMINAL_TRANSPORT_ERROR`; the API marked their records STALE. Their Unix control sockets still answered a direct ping, but their recorded binary fingerprint no longer matched the executable at that path. Screenshot: screenshots/terminal-runtime-after-binary-replacement-xwayland.png.
+- This did not affect a runtime started and attached with the current binary. Reconnect across binary replacement remains BLOCKED for distribution/update homologation; no compatibility bypass was added.
+
+Screenshot SHA-256:
+- terminal-runtime-attach-current-build-xwayland.png: 5191009376544d986fbaa36b0a5c5b98d08d0444e265213e9649addd674d59d2
+- terminal-runtime-count-after-attach-xwayland.png: 650e7be75f9e325fdc4ab048442de0e8815dee522252baf75ed51a206e90e47e
+- terminal-runtime-after-binary-replacement-xwayland.png: 6f6b68eda859c09c2759dc2a47e028b524bded0b8ef5c8b7716faee70dde627b
+
+No commit, push, tag, publication, or modification of the user's normal Nexus profile was performed.
