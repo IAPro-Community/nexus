@@ -57,8 +57,10 @@ func (p *CLIProvider) AnalyzeIntent(ctx context.Context, input string, contextDa
 		return nil, ErrIntelligenceUnavailable
 	}
 	prompt := fmt.Sprintf(`Return ONLY a JSON object. Do not wrap it in prose.
-You are the Nexus software architecture intelligence layer.
-Analyze this engineering objective and produce:
+You are the Nexus product discovery and planning consultant for novices and experts.
+Explain the underlying need as concrete goals. Recommend sensible steps from evidence and label assumptions.
+Do not demand architecture, scope exclusions or test details from non-technical users.
+Analyze this objective and produce:
 {"intent":"...","scope":"project|mission|package|task","risk_level":"low|medium|high","identified_goals":["..."],"constraints":["..."],"assumptions":["..."]}
 Objective: %s
 Context: %s`, input, boundContextJSON(contextData))
@@ -88,7 +90,11 @@ func (p *CLIProvider) EvaluateAmbiguitiesWithContext(ctx context.Context, intent
 	}
 	intentJSON, _ := json.Marshal(intent)
 	prompt := fmt.Sprintf(`Return ONLY a JSON object. Do not wrap it in prose.
-Identify requirement ambiguities. BLOCKING means execution cannot safely continue; IMPORTANT materially changes design; LOW_IMPACT has a safe default.
+Identify only material choices which are genuinely impossible to infer from the goal and available context.
+Return {"unknowns":[]} when the user can safely proceed with explicit proposed assumptions.
+Never ask generic checklist questions (out of scope, Definition of Done, tech stack, risks, deliverables or tests).
+Use simple language the user understands and provide recommended options for real choices.
+BLOCKING is reserved for non-reversible, high-impact or safety-critical choices; IMPORTANT materially changes design; LOW_IMPACT has a safe default.
 Schema: {"unknowns":[{"key":"...","level":"BLOCKING|IMPORTANT|LOW_IMPACT","question":"...","rationale":"...","suggested_options":["..."],"default_choice":"..."}]}
 Intent: %s
 Project context: %s`, string(intentJSON), boundContextJSON(contextData))
@@ -149,10 +155,12 @@ func (p *CLIProvider) ExtractBrief(ctx context.Context, text string, contextData
 		return &BriefExtraction{}, nil
 	}
 	prompt := fmt.Sprintf(`Return ONLY a JSON object. Do not wrap it in prose or markdown fences.
-You extract a structured engineering brief from a free-form prompt.
-Only output fields the text actually supports; leave arrays empty when the text says nothing. Do NOT invent scope, criteria, or constraints.
+You are a consultative product planner for non-technical and expert users.
+Extract only grounded requirements from the prompt/context; do not invent stack or repository facts.
+Separately propose 1–3 concise solution approaches understandable to the user, explaining benefits or trade-offs.
+Recommendations are proposals, NEVER facts or user-approved scope. Other arrays remain empty unless grounded.
 Schema:
-{"in_scope":["..."],"out_of_scope":["..."],"constraints_technical":["..."],"constraints_security":["..."],"risks":["..."],"acceptance_criteria":["..."],"testing":["..."],"verification":["..."],"prohibited_actions":["..."],"deliverables":["..."],"stack":["..."],"existing_state":["..."]}
+{"recommended_approaches":["Proposed approach and why (not verified)"],"in_scope":["..."],"out_of_scope":["..."],"constraints_technical":["..."],"constraints_security":["..."],"risks":["..."],"acceptance_criteria":["..."],"testing":["..."],"verification":["..."],"prohibited_actions":["..."],"deliverables":["..."],"stack":["..."],"existing_state":["..."]}
 Prompt: %s
 Context: %s`, text, boundContextJSON(contextData))
 	out, err := p.run(ctx, prompt)
