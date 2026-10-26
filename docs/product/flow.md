@@ -36,3 +36,46 @@ Isso não transforma Flow em scheduler. O `MissionRunner` continua sendo a
 autoridade da execução.
 
 Veja [Coordenação entre Agents](agent-coordination.md).
+
+## Contrato Composer → Flow v1
+
+O Composer continua sendo consultor de descoberta e planejamento; Flow é o editor
+e a projeção da execução canônica. A conversão de um PromptArtifact aprovado
+persiste `composer.handoff.v1` em `WorkPlan.StructuredFacts`, com:
+
+- `session_id`, `artifact_id`, `artifact_version` e `artifact_hash` imutáveis;
+- objetivo, respostas aprovadas, hipóteses e propostas da IA identificadas;
+- perguntas bloqueantes não resolvidas e critérios de aceite;
+- recomendação de destino entre Direct/Agent e Flow, explicável e não vinculante.
+
+A interface de Flow Draft e Flow Run exibe o mesmo contrato, sem editar o
+Composer por baixo dos panos. Uma proposta da IA continua sendo PROPOSED, e
+dados inferidos não viram fatos executivos em `StructuredFacts`. O
+`ExecutionPreview` acrescenta um bloqueio se o handoff v1 mantiver questões
+`BLOCKING` abertas; a admissão do MissionRunner revalida essa projeção no GO.
+
+O editor usa `@xyflow/react` para o grafo, mas deixa o pipeline como visão
+inicial. O `MissionRunner` conserva toda a autoridade de execução, alocação,
+retries, isolamento e recovery. Não há scheduler concorrente.
+
+### Descoberta durante a execução e replanejamento
+
+No Flow Run, a ação **Reavaliar planejamento no Composer** cria uma **nova**
+elaboração com o ID da Mission, revisão de origem e razão para revisão. A
+navegação abre a nova sessão, sem reescrever o plano original, a execução ativa
+ou o `ExecutionSnapshot`. A pessoa precisa revisar, aprovar e materializar um
+novo artefato/WorkPlan para qualquer execução futura. Nunca é feito um retry,
+merge, deploy ou restart implícito.
+
+Esse processo requer Nexus Intelligence configurada e responsiva. Com IA
+indisponível, o histórico de Composer continua legível, mas novas elaborações
+ficam bloqueadas. Maestro permanece opcional e independente.
+
+### Homologação
+
+Validar, no mínimo, transferência de decisões e proveniência,
+ausência de promoção de inferências a fatos, admissões bloqueadas por lacunas,
+revisões imutáveis, composição sem IA, persistência de histórico, permissão
+do usuário no replanejamento e navegação em abas já montadas.
+
+**Não declarar release estável sem validação local e por plataforma.**
