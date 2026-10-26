@@ -171,6 +171,11 @@ type DecisionExplanation struct {
 // provider returns only what the text actually supports so heuristics stay the
 // primary source and intelligence merely enriches gaps.
 type BriefExtraction struct {
+	// DiscoveryComplete means the provider evaluated whether any user
+	// clarification is actually necessary. It allows Composer to avoid
+	// running a second, expensive LLM interview on every creation.
+	DiscoveryComplete bool `json:"discovery_complete,omitempty"`
+	Clarifications []AmbiguityItem `json:"clarifications,omitempty"`
 	// Recommendations are proposed approaches, not verified requirements or repository facts.
 	RecommendedApproaches []string `json:"recommended_approaches,omitempty"`
 	InScope              []string `json:"in_scope,omitempty"`
