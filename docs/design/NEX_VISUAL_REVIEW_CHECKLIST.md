@@ -37,6 +37,14 @@
 - [ ] Alternar BAR ⇄ MASCOT ⇄ TRAY e reiniciar sem perder preferências.
 - [ ] Transparência, drag/click-through, popup e alça preservados em Windows/macOS/Linux X11/Wayland.
 
+## C.1 Prévia reproduzível de animações
+
+- [ ] `cd web && npm run art:nex:preview` gera `dist/nex-motion-preview.html` sem falhas.
+- [ ] O preview mostra exatamente cinco estados oficiais e mantém o mesmo personagem frontal.
+- [ ] O modo **Desativar animações** congela partes internas, movimento de entrada e hover.
+- [ ] Todas as poses preservam as âncoras dos quatro módulos; sem recorte de órbita/cabeça.
+- [ ] O HTML não é usado como substituto de smoke gráfico do HUD nativo.
+
 ## D. Gates da release (não executáveis por inspeção documental)
 
 - [ ] `bun run --cwd web quality:full`.
