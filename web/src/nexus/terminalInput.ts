@@ -30,18 +30,21 @@ export function shouldForwardTerminalInput(data: string, allowMouse = false): bo
   // Mouse reports are only useful after the child explicitly enables tracking.
   // When forwarded through xterm the SessionHost validates that negotiated
   // state; the frontend must not delete a valid click before it reaches the PTY.
-  if (!allowMouse && isTerminalMouseReport(data)) return false;
+  // Bare mouse reports indicate a broken bridge; without ESC they would be
+  // forwarded as printable text by the host, even when tracking is active.
+  if (isTerminalMouseReport(data)) return allowMouse && data.startsWith('\x1b');
   return true;
 }
 
 // Detect full packets only; partial CSI/X10 input is assembled by the host.
 function isTerminalMouseReport(data: string): boolean {
   // eslint-disable-next-line no-control-regex
-  return /^\x1b?\[<\d+;\d+;\d+[Mm]$/.test(data) ||
-    // eslint-disable-next-line no-control-regex
-    /^\x1b\[M[\x20-\xff]{3}$/.test(data) ||
-    // eslint-disable-next-line no-control-regex
-    /^\x1b?\[(?:[3-9]\d|\d{3,});\d+;\d+M$/.test(data);
+  const sgr = /^\x1b?\[<\d+;\d+;\d+[Mm]$/.test(data);
+  // eslint-disable-next-line no-control-regex
+  const x10 = /^\x1b\[M[\x20-\xff]{3}$/.test(data);
+  // eslint-disable-next-line no-control-regex
+  const urxvt = /^\x1b?\[(?:[3-9]\d|\d{3,});\d+;\d+M$/.test(data);
+  return sgr || x10 || urxvt;
 }
 
 // xterm may coalesce a leaked focus/CPR report with real keystrokes in one
