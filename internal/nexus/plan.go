@@ -45,9 +45,17 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 		"nexus.source_artifact_id":       artifact.ID,
 		"nexus.source_artifact_revision": fmt.Sprintf("%d", artifact.Version),
 		"nexus.source_artifact_hash":     artifact.Hash,
+		"nexus.source_composer_session_id": session.ID,
+		"composer.handoff.schema_version": "1",
 	}
 	if strings.TrimSpace(manifest.Fingerprint) != "" {
 		facts["nexus.source_context_manifest_fingerprint"] = manifest.Fingerprint
+	}
+	// Freeze the decision provenance with the artifact that was actually
+	// approved. The Flow may project these fields, but cannot silently promote
+	// model proposals and hypotheses to instructions approved by the user.
+	if handoff, marshalErr := json.Marshal(composerHandoffFromArtifact(*artifact, *session, brief)); marshalErr == nil {
+		facts["composer.handoff.v1"] = string(handoff)
 	}
 	if motivation, marshalErr := json.Marshal(brief.Motivation); marshalErr == nil {
 		facts["composer.motivation_map"] = string(motivation)
@@ -70,11 +78,16 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 		facts["composer.fact."+unknown.Field] = unknown.Answer
 	}
 	for i, fact := range brief.Facts {
-		if strings.TrimSpace(fact.Value) == "" {
+		// Do not flatten INFERRED/ASSUMED/PROPOSED statements into authoritative
+		// WorkPlan facts. They remain explicitly typed in composer.context and
+		// composer.handoff.v1 so the executor can review provenance.
+		if strings.TrimSpace(fact.Value) == "" || fact.Status != ComposerFactConfirmed {
 			continue
 		}
 		key := firstNonEmpty(fact.Field, fmt.Sprintf("composer.fact.%d", i))
-		facts[key] = fact.Value
+		if _, exists := facts[key]; !exists {
+			facts[key] = fact.Value
+		}
 	}
 	if memFacts, memErr := n.MemoryFactsMap(ctx, session.ProjectID); memErr == nil {
 		for key, value := range memFacts {
@@ -125,6 +138,51 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 		return nil, err
 	}
 	return plan, nil
+}
+
+// composerHandoffContract is a versioned, self-contained interpretation of the
+// immutable PromptArtifact. Structured facts carry it through the Flow editor
+// and into the Mission snapshot without changing the execution engine.
+type composerHandoffContract struct {
+	Version          int               `json:"version"`
+	SessionID        string            `json:"session_id"`
+	ArtifactID       string            `json:"artifact_id"`
+	ArtifactVersion  int               `json:"artifact_version"`
+	ArtifactHash     string            `json:"artifact_hash"`
+	Goal             string            `json:"goal"`
+	ApprovedAnswers  map[string]string `json:"approved_answers,omitempty"`
+	Assumptions      []PromptAssumption `json:"assumptions,omitempty"`
+	Recommendations  []ComposerFact    `json:"recommendations,omitempty"`
+	Unresolved       []PromptUnknown   `json:"unresolved,omitempty"`
+	Acceptance       []string          `json:"acceptance,omitempty"`
+	Risks            []string          `json:"risks,omitempty"`
+	Route            FlowSuitabilityAssessment `json:"route"`
+}
+
+func composerHandoffFromArtifact(artifact store.PromptArtifact, session store.ComposerSession, brief LivingBrief) composerHandoffContract {
+	approved := map[string]string{}
+	unresolved := []PromptUnknown{}
+	for _, u := range brief.Unknowns {
+		if (u.Status == PromptUnknownAnswered || u.Status == PromptUnknownConfirmed) && strings.TrimSpace(u.Answer) != "" {
+			approved[u.Field] = u.Answer
+		} else if u.Status == PromptUnknownOpen && u.Severity == PromptUnknownBlocking {
+			// A confirmed-gap finalization never converts an unresolved risk into
+			// an approved decision. Admission must still validate the plan.
+			unresolved = append(unresolved, u)
+		}
+	}
+	return composerHandoffContract{
+		Version: 1, SessionID: session.ID, ArtifactID: artifact.ID,
+		ArtifactVersion: artifact.Version, ArtifactHash: artifact.Hash,
+		Goal: firstNonEmpty(brief.Intent.Objective, brief.Goal),
+		ApprovedAnswers: approved,
+		Assumptions: append([]PromptAssumption(nil), brief.Assumptions...),
+		Recommendations: append([]ComposerFact(nil), brief.Recommendations...),
+		Unresolved: unresolved,
+		Acceptance: append([]string(nil), brief.Quality.AcceptanceCriteria...),
+		Risks: append([]string(nil), brief.Risks...),
+		Route: AssessComposerFlowSuitability(brief),
+	}
 }
 
 type composerArtifactContextEnvelope struct {
