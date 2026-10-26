@@ -668,13 +668,15 @@ func (h *NexusHandler) handleRunPlanningReview(w http.ResponseWriter, r *http.Re
 	}
 	goal := "Revisar planejamento: " + sourcePlan.Title
 	snapshotEvidence := "O plano histórico desta revisão está indisponível. Não deduza seu conteúdo do plano atual; solicite evidências antes de propor mudanças."
+	snapshotDescription := "indisponível na revisão original"
 	if frozenRevisionFound {
 		snapshotEvidence = "O título e a descrição abaixo pertencem à revisão histórica da Mission."
+		snapshotDescription = strings.TrimSpace(sourcePlan.Description)
 	}
 	prompt := strings.Join([]string{
 		"Revise o planejamento abaixo sem alterar a execução ativa ou realizar ações externas.",
 		"Projeto e plano: " + sourcePlan.ProjectID + " / " + sourcePlan.ID,
-		"Descrição histórica consultada: " + strings.TrimSpace(sourcePlan.Description),
+		"Descrição histórica consultada: " + snapshotDescription,
 		"Proveniência do snapshot: " + snapshotEvidence,
 		"Mission origem: " + run.ID,
 		"Revisão congelada da Mission: " + strconv.Itoa(run.PlanRevision),
