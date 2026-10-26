@@ -670,6 +670,11 @@ export const nexus = {
     }),
   getRuns: () => request<import('../types').MissionRun[]>('/api/v1/runs'),
   getRun: (runId: string) => request<import('../types').MissionRun>(`/api/v1/runs/${runId}`),
+  requestMissionPlanningReview: (runId: string, reason: string) =>
+    request<import('../types').ComposerSessionView>(`/api/v1/runs/${runId}/planning-review`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
   getRunCoordination: (runId: string) =>
     request<import('../types').CoordinationRequest[]>(`/api/v1/runs/${runId}/coordination`),
   submitRunCoordination: (
