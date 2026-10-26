@@ -185,6 +185,34 @@ func composerHandoffFromArtifact(artifact store.PromptArtifact, session store.Co
 	}
 }
 
+// composerHandoffExecutionBlockers is intentionally independent of AI service
+// availability. Admission can validate the frozen, typed Composer contract
+// offline. Legacy and manually-authored plans have no handoff and are unchanged.
+func composerHandoffExecutionBlockers(facts map[string]string) []string {
+	raw := strings.TrimSpace(facts["composer.handoff.v1"])
+	if raw == "" {
+		return nil
+	}
+	var handoff composerHandoffContract
+	if err := json.Unmarshal([]byte(raw), &handoff); err != nil || handoff.Version != 1 {
+		return []string{"Composer handoff inválido ou incompatível; revise e recrie o Flow a partir do artefato aprovado"}
+	}
+	var blockers []string
+	for _, unresolved := range handoff.Unresolved {
+		if unresolved.Status != PromptUnknownOpen || unresolved.Severity != PromptUnknownBlocking {
+			continue
+		}
+		// Include a bounded, actionable description. Never echo the entire
+		// submitted prompt or potentially sensitive model output here.
+		label := firstNonEmpty(strings.TrimSpace(unresolved.Question), strings.TrimSpace(unresolved.Field), "decisão necessária")
+		if len([]rune(label)) > 180 {
+			label = string([]rune(label)[:180])
+		}
+		blockers = append(blockers, "Composer: decisão bloqueante ainda não resolvida — "+label)
+	}
+	return blockers
+}
+
 type composerArtifactContextEnvelope struct {
 	ProjectID       string                  `json:"project_id"`
 	Brief           LivingBrief             `json:"brief"`
