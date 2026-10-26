@@ -50,7 +50,8 @@ export const FlowRunSurface: React.FC<{
   agents: Agent[];
   onOpenAgent?: (agent: Agent) => void;
   onOpenResources?: () => void;
-}> = ({ runId, project, agents, onOpenAgent, onOpenResources }) => {
+  onOpenComposer?: (sessionId: string) => void;
+}> = ({ runId, project, agents, onOpenAgent, onOpenResources, onOpenComposer }) => {
   const { t } = useTranslation();
   const [run, setRun] = useState<MissionRun | null>(null);
   const [evidence, setEvidence] = useState<FlowRunEvidence>({
@@ -64,6 +65,8 @@ export const FlowRunSurface: React.FC<{
   const [error, setError] = useState('');
   const [resolvingOption, setResolvingOption] = useState('');
   const [decisionNotice, setDecisionNotice] = useState('');
+  const [planningReviewBusy, setPlanningReviewBusy] = useState(false);
+  const planningReviewBusyRef = useRef(false);
   const interventionRef = useRef<HTMLDivElement>(null);
   // Synchronous action guards: setState is async, so two rapid clicks (or a
   // pause/cancel racing an intervention resolve) would both pass the `busy`
@@ -212,6 +215,28 @@ export const FlowRunSurface: React.FC<{
     }
   };
 
+  // Explicit user action: create a fresh planning revision in Composer.
+  // Do not mutate the frozen Mission snapshot or auto-resume its runtime.
+  const requestPlanningReview = async () => {
+    if (!run || !onOpenComposer || planningReviewBusyRef.current || busyRef.current) return;
+    planningReviewBusyRef.current = true;
+    setPlanningReviewBusy(true);
+    setError('');
+    try {
+      const reason = run.paused_reason ||
+        (run.needs_human?.question
+          ? 'Reavaliar decisão pendente e dependências da Mission'
+          : 'Reavaliar o planejamento e as próximas etapas desta Mission');
+      const composer = await nexusApi.requestMissionPlanningReview(run.id, reason);
+      onOpenComposer(composer.session.id);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      planningReviewBusyRef.current = false;
+      setPlanningReviewBusy(false);
+    }
+  };
+
   const focusIntervention = () => {
     interventionRef.current?.scrollIntoView({ block: 'nearest' });
     interventionRef.current?.focus();
@@ -275,6 +300,22 @@ export const FlowRunSurface: React.FC<{
           <Badge tone={toneFor(userState)}>{t(`flow.state.${userState}`, userState)}</Badge>
         </div>
       </div>
+
+      {onOpenComposer && (
+        <div className="nx-flow-run-review-actions">
+          <Button
+            size="sm"
+            disabled={planningReviewBusy || Boolean(busy)}
+            onClick={() => void requestPlanningReview()}
+          >
+            {planningReviewBusy ? 'Preparando revisão…' : 'Reavaliar planejamento no Composer'}
+          </Button>
+          <p>
+            Cria uma nova elaboração vinculada à Mission. A execução aprovada não será
+            alterada automaticamente.
+          </p>
+        </div>
+      )}
 
       <Card className={styles.status}>
         <div className={styles.statusRow}>
