@@ -179,9 +179,8 @@ func (s *Store) DeleteComposerSessionExpected(id string, expectedRevision int) e
 	tx, err := s.db.Begin()
 	if err != nil { return err }
 	defer tx.Rollback()
-	var projectID string
 	var revision int
-	if err := tx.QueryRow(`SELECT project_id, revision FROM composer_sessions WHERE id=?`, id).Scan(&projectID, &revision); err != nil {
+	if err := tx.QueryRow(`SELECT revision FROM composer_sessions WHERE id=?`, id).Scan(&revision); err != nil {
 		return err
 	}
 	if expectedRevision > 0 && revision != expectedRevision {
@@ -207,7 +206,8 @@ func (s *Store) DeleteComposerSessionExpected(id string, expectedRevision int) e
 	)`, id).Scan(&delivered); err != nil { return err }
 	if delivered != 0 { return ErrComposerDeleteProtected }
 
-	plans, err := tx.Query(`SELECT facts_json FROM work_plans WHERE project_id=?`, projectID)
+	// Cross-project plans can retain imported artifact lineage as well.
+	plans, err := tx.Query(`SELECT facts_json FROM work_plans`)
 	if err != nil { return err }
 	for plans.Next() {
 		var raw string
