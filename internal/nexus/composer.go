@@ -232,6 +232,18 @@ func (n *Nexus) createComposerSessionWithPromptProgress(
 	if catalog, catalogErr := n.skillCatalogForProject(projectID); catalogErr == nil {
 		reconcileComposerSkillProposals(st, session.ID, brief, catalog)
 	}
+	// Start with a useful, inspectable discovery summary rather than a blank
+	// conversation plus a mandatory question. This is derived from the LivingBrief
+	// and contains no claimed repository findings that were not grounded.
+	initialReply := composeAssistantReply(brief)
+	if initialReply != "" {
+		if _, err := st.AppendComposerTurn(store.ComposerTurn{
+			SessionID: session.ID, Role: store.ComposerAssistant, Content: initialReply,
+		}); err != nil {
+			progress.Step("persist", "error")
+			return nil, err
+		}
+	}
 	progress.Step("persist", "done")
 	return n.composeSessionView(st, *session, brief)
 }
@@ -718,18 +730,46 @@ func (n *Nexus) persistComposerSessionExpected(ctx context.Context, st *store.St
 }
 
 func composeAssistantReply(brief LivingBrief) string {
-	open, hasOpen := selectComposerNextUnknownForBrief(brief)
-	understood := firstNonEmpty(brief.Intent.DesiredOutcome, brief.Intent.Objective, brief.Goal)
-	if hasOpen && open.Question != "" {
-		if understood != "" {
-			return "Entendi: " + understood + ". Para aprofundar o prompt: " + open.Question
+	understood := strings.TrimSpace(firstNonEmpty(brief.Intent.DesiredOutcome, brief.Intent.Objective, brief.Goal))
+	var b strings.Builder
+	if understood != "" {
+		b.WriteString("**Objetivo compreendido:** ")
+		b.WriteString(understood)
+	}
+	if len(brief.Recommendations) > 0 {
+		b.WriteString("\n\n**Caminhos sugeridos pela IA (propostas, ainda não validadas):**")
+		for i, recommendation := range brief.Recommendations {
+			if i >= 3 {
+				break
+			}
+			if recommendation.Status == ComposerFactDismissed {
+				continue
+			}
+			b.WriteString("\n- ")
+			b.WriteString(recommendation.Value)
 		}
-		return "Para aprofundar o prompt: " + open.Question
 	}
-	if PromptIsShallow(brief) {
-		return "Ainda falta um resultado observável. O que deve ficar pronto e como você vai verificar?"
+	if len(brief.Scope.InScope) > 0 {
+		b.WriteString("\n\n**O que já foi identificado para o plano:**")
+		for i, item := range brief.Scope.InScope {
+			if i >= 3 {
+				break
+			}
+			b.WriteString("\n- ")
+			b.WriteString(item)
+		}
 	}
-	return "O prompt já tem profundidade suficiente para Copiar, enviar ao agente ou transformar em Flow. Você ainda pode refinar."
+	if open, hasOpen := selectComposerNextUnknownForBrief(brief); hasOpen && strings.TrimSpace(open.Question) != "" {
+		b.WriteString("\n\n**Uma decisão que pode mudar a solução:** ")
+		b.WriteString(open.Question)
+		if strings.TrimSpace(open.Rationale) != "" {
+			b.WriteString("\n")
+			b.WriteString(open.Rationale)
+		}
+	} else {
+		b.WriteString("\n\nVocê pode corrigir qualquer hipótese, pedir alternativas ou revisar o plano no painel lateral antes de enviar ao Agent ou preparar um Flow.")
+	}
+	return strings.TrimSpace(b.String())
 }
 
 // enrichComposerBriefFromText asks the configured intelligence provider to
