@@ -383,6 +383,12 @@ func refreshComposerUnknowns(brief LivingBrief) []PromptUnknown {
 	current := map[string]PromptUnknown{}
 	order := []string{}
 	for _, item := range brief.Unknowns {
+		// Legacy sessions may carry open questions produced by the static
+		// checklist. They are not user decisions and must not be replayed.
+		if (item.Source == "ARCHETYPE" || item.Source == "REFINERY") &&
+			item.Status != PromptUnknownAnswered && item.Status != PromptUnknownConfirmed && item.Status != PromptUnknownDismissed {
+			continue
+		}
 		field := item.Field
 		if field == "" {
 			field = item.ID
@@ -398,6 +404,13 @@ func refreshComposerUnknowns(brief LivingBrief) []PromptUnknown {
 	for _, bp := range blueprints {
 		item, exists := current[bp.Field]
 		if !exists {
+			// A missing field is not by itself a reason to interrogate a
+			// non-technical user. The intelligence evaluator supplies material
+			// questions; the archetype remains a non-blocking quality checklist.
+			_, status, _ := evaluateBriefField(brief, bp.Field)
+			if status == PromptUnknownOpen {
+				continue
+			}
 			item = PromptUnknown{
 				ID: bp.ID, Field: bp.Field, Question: bp.Question,
 				Rationale: bp.Rationale, Severity: bp.Severity, Source: "ARCHETYPE",
@@ -490,7 +503,11 @@ func MergeIntelligenceUnknowns(brief *LivingBrief, items []intelligence.Ambiguit
 	}
 	for _, item := range items {
 		field := strings.TrimSpace(item.Key)
-		if field == "" {
+		if field == "" || strings.TrimSpace(item.Question) == "" {
+			continue
+		}
+		// If already evidenced in the brief, do not ask for it again.
+		if _, status, _ := evaluateBriefField(*brief, field); status == PromptUnknownConfirmed || status == PromptUnknownAnswered {
 			continue
 		}
 		severity := PromptUnknownRecommended
@@ -631,6 +648,10 @@ func computePromptReadiness(brief LivingBrief) PromptReadiness {
 		state = PromptReadinessReady
 	case blockingOpen:
 		state = PromptReadinessBlocked
+	case !PromptIsShallow(brief) && len(brief.OpenQuestions) == 0:
+		// Missing optional checklist fields are not pending user decisions.
+		// The draft remains reviewable with explicit assumptions.
+		state = PromptReadinessReadyWithAssumption
 	case brief.Interview.Mode != "" && ambiguity <= target && !brief.Interview.ChallengePending && !inferredOnly:
 		state = PromptReadinessReady
 	case brief.Interview.Mode != "" && ambiguity <= target+0.10:
