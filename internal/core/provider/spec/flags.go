@@ -101,6 +101,17 @@ var BuiltinAliases = map[string]CanonicalAlias{
 
 // Normalize maps recognized aliases to provider-native flags.
 func Normalize(provider string, args []string, userAliases map[string]map[string][]string) []string {
+	return normalize(provider, args, userAliases, false)
+}
+
+// NormalizePreservingRepeatedArgs maps aliases while retaining repeated
+// provider-native arguments such as --add-dir. Alias expansions remain
+// deduplicated against each other and already-emitted native equivalents.
+func NormalizePreservingRepeatedArgs(provider string, args []string, userAliases map[string]map[string][]string) []string {
+	return normalize(provider, args, userAliases, true)
+}
+
+func normalize(provider string, args []string, userAliases map[string]map[string][]string, preserveRepeatedArgs bool) []string {
 	provider = strings.ToLower(strings.TrimSpace(provider))
 	if len(args) == 0 {
 		return args
@@ -108,6 +119,7 @@ func Normalize(provider string, args []string, userAliases map[string]map[string
 
 	var result []string
 	seenEmitted := make(map[string]bool)
+	aliasEmitted := make(map[string]bool)
 
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
@@ -128,6 +140,7 @@ func Normalize(provider string, args []string, userAliases map[string]map[string
 					for _, f := range flags {
 						result = append(result, f)
 						seenEmitted[f] = true
+						aliasEmitted[f] = true
 					}
 					continue
 				}
@@ -164,12 +177,13 @@ func Normalize(provider string, args []string, userAliases map[string]map[string
 						continue
 					}
 					seenEmitted[exp] = true
+					aliasEmitted[exp] = true
 				}
 				continue
 			}
 		}
 
-		if !seenEmitted[arg] {
+		if !seenEmitted[arg] || (preserveRepeatedArgs && !aliasEmitted[arg]) {
 			result = append(result, arg)
 			seenEmitted[arg] = true
 		}

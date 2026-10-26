@@ -9,3 +9,7 @@ var BuiltinAliases = spec.BuiltinAliases
 func Normalize(provider string, args []string, userAliases map[string]map[string][]string) []string {
 	return spec.Normalize(provider, args, userAliases)
 }
+
+func NormalizePreservingRepeatedArgs(provider string, args []string, userAliases map[string]map[string][]string) []string {
+	return spec.NormalizePreservingRepeatedArgs(provider, args, userAliases)
+}

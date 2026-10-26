@@ -16,6 +16,7 @@ import {
 import { Button, Card, Dialog, Input, Select } from '../../design-system';
 import { nexus } from '../../nexus/api';
 import { isRequiredResourceSelection } from '../../nexus/agentTerminalModel';
+import { withAgentExecutionMode } from '../../nexus/agentExecutionMode';
 import type { Agent, AgentConfig, AgentMode, Project } from '../../types';
 import styles from './NewAgentModal.module.scss';
 
@@ -269,19 +270,15 @@ export const NewAgentModal: React.FC<{
     try {
       created = await nexus.createAgent(project.id, name.trim(), selectedType.role);
 
-      const extraArgs: string[] = [];
-      if (mode === 'YOLO') extraArgs.push('--yolo');
-
-      const configOptions: Record<string, unknown> = {
-        agent_mode_id: selectedType.id,
-        read_only_by_default: Boolean(selectedType.read_only_by_default),
-        role_type: selectedType.role,
-        origin,
+      const configOptions = withAgentExecutionMode(
+        {
+          agent_mode_id: selectedType.id,
+          read_only_by_default: Boolean(selectedType.read_only_by_default),
+          role_type: selectedType.role,
+          origin,
+        },
         mode,
-      };
-      if (extraArgs.length > 0) {
-        configOptions.extra_args = extraArgs;
-      }
+      );
       if (origin === 'custom') {
         configOptions.command_template = commandTemplate;
         configOptions.execution_adapter = 'command_template';

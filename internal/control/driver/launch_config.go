@@ -15,8 +15,7 @@ import (
 func ApplyLaunchConfiguration(provider, model string, options map[string]any, baseArgs []string) ([]string, error) {
 	provider = strings.ToLower(strings.TrimSpace(provider))
 	cfg, _ := config.LoadConfig()
-	normalizedBaseArgs := flags.Normalize(provider, baseArgs, cfg.FlagAliases)
-	args := append([]string(nil), normalizedBaseArgs...)
+	args := flags.Normalize(provider, baseArgs, cfg.FlagAliases)
 	model = strings.TrimSpace(model)
 	if model != "" {
 		switch provider {
@@ -45,7 +44,7 @@ func ApplyLaunchConfiguration(provider, model string, options map[string]any, ba
 			if err != nil {
 				return nil, fmt.Errorf("provider option extra_args: %w", err)
 			}
-			args = append(args, extra...)
+			args = append(args, flags.NormalizePreservingRepeatedArgs(provider, extra, cfg.FlagAliases)...)
 		case "mode":
 			// UI-only Safe/Plan/YOLO marker. Flags live in extra_args.
 			continue

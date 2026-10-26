@@ -188,3 +188,8 @@
 ## Estado Windows atual — Nexus 1.0.0-beta.7 — 2026-10-07
 
 Project Hub corrigido e validado em 775×483; gates web, oito suítes browser, builds CLI/Desktop/HUD e smokes isolados passaram no worktree 52f35c04-dirty. O SHA d14154d2 solicitado é ancestral, mas não é o HEAD. A release segue NO-GO até homologação exact-SHA, assinatura/trust root e fechamento de CI/instalador. Ver DEV/validation/current/RELEASE_STATUS.md e DEV/validation/current/BETA7_WINDOWS_HOMOLOGATION_20261007.md.
+
+## Estado atual — correções de terminais/agentes — 2026-10-26
+
+- Revisão solicitada para o modo YOLO do Codex e rolagem de OpenCode/Oh My Pi. Correções de código foram feitas em `web/` e no normalizador/launcher Go.
+- Ver `DEV/validation/TERMINALS_AGENTS_YOLO_SCROLL_20261026.md` para evidências e status. A instalação beta.11 permanece servindo a interface; ainda não foi reiniciada com o código novo porque mantém um runtime Codex ativo.

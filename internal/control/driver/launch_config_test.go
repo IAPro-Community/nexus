@@ -81,3 +81,21 @@ func TestApplyLaunchConfigurationCanonicalAlias(t *testing.T) {
 		t.Fatalf("codex args=%v want %v", gotCodex, wantCodex)
 	}
 }
+
+func TestApplyLaunchConfigurationNormalizesConfiguredYoloForCodex(t *testing.T) {
+	got, err := ApplyLaunchConfiguration("codex", "", map[string]any{
+		"mode":       "YOLO",
+		"extra_args": []any{"--yolo", "--sandbox", "workspace-write", "--add-dir", "one", "--add-dir", "two"},
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{
+		"--dangerously-bypass-approvals-and-sandbox",
+		"--sandbox", "workspace-write",
+		"--add-dir", "one", "--add-dir", "two",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("configured args=%v want %v", got, want)
+	}
+}

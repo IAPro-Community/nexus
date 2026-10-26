@@ -38,6 +38,7 @@ import {
   terminalReconnectDelay,
   type TerminalRole,
 } from './agentTerminalModel';
+import { executionModeFromOptions, type AgentExecutionMode } from './agentExecutionMode';
 import {
   DEFAULT_TERMINAL_SCROLLBACK,
   adjustTerminalFontSize,
@@ -53,6 +54,7 @@ import { ResourcePicker } from './ResourcePicker';
 import { TerminalActionDialog } from './TerminalActionDialog';
 import { ProtocolScrubber } from './terminalProtocol';
 import {
+  shouldAutoScrollToBottomOnInput,
   shouldForwardTerminalInput,
   stripEmbeddedTerminalMetadata,
   terminalTraceShape,
@@ -92,7 +94,7 @@ export const AgentTerminal: React.FC<{
   initialPrompt?: string;
   provider?: string;
   profile?: string;
-  mode?: 'Safe' | 'YOLO';
+  mode?: AgentExecutionMode;
   agentName?: string;
   /** When "window", identity lives on the Desktop titlebar; actions stay in a compact toolbar. */
   chrome?: 'full' | 'window';
@@ -156,6 +158,7 @@ export const AgentTerminal: React.FC<{
   const [selectedMode, setSelectedMode] = useState<'Safe' | 'YOLO'>(
     mode === 'YOLO' ? 'YOLO' : 'Safe',
   );
+  const [loadingMode, setLoadingMode] = useState(true);
   const [pendingMode, setPendingMode] = useState<'Safe' | 'YOLO' | null>(null);
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
   const [promotionPrompt, setPromotionPrompt] = useState('');
@@ -196,6 +199,25 @@ export const AgentTerminal: React.FC<{
   useEffect(() => {
     setBoundRuntimeId((current) => nextBoundRuntimeId(current, runtimeId, preferredRuntimeId));
   }, [runtimeId, preferredRuntimeId]);
+
+  useEffect(() => {
+    let active = true;
+    setLoadingMode(true);
+    void nexus
+      .getAgentConfig(agentId)
+      .then(({ config }) => {
+        if (active) setSelectedMode(executionModeFromOptions(config.options));
+      })
+      .catch(() => {
+        if (active) setSelectedMode(mode === 'YOLO' ? 'YOLO' : 'Safe');
+      })
+      .finally(() => {
+        if (active) setLoadingMode(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [agentId, mode]);
 
   useEffect(() => {
     const key = liveTitleKey;
@@ -688,8 +710,10 @@ export const AgentTerminal: React.FC<{
     };
 
     const dataDisposable = term.onData((data) => {
-      term.scrollToBottom();
-      setIsScrolledUp(false);
+      if (shouldAutoScrollToBottomOnInput(data)) {
+        term.scrollToBottom();
+        setIsScrolledUp(false);
+      }
       const ws = wsRef.current;
       if (!ws || ws.readyState !== WebSocket.OPEN) return;
       if (roleRef.current !== 'CONTROL') {
@@ -1053,6 +1077,7 @@ export const AgentTerminal: React.FC<{
           onClick={() => requestModeChange(m)}
           disabled={
             !onRestartWithMode ||
+            loadingMode ||
             connection === 'CONNECTING' ||
             recovering ||
             modeAction === 'Applying' ||

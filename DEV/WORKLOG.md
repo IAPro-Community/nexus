@@ -6450,3 +6450,10 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Em perfil Codex temporário, uma Mission real retornou `COMPLETED_VERIFIED` e package `VERIFIED`, mas a primeira versão do harness não inspecionou o worktree e apagou o fixture. A repetição com verificação do worktree/recibo expirou em 180 s. O runtime ativo foi parado, a contagem final ficou zero, o Core saiu com exit 0 e a raiz temporária foi removida.
 - RT-002 ficou **BLOCKED** por evidência incompleta/repetição em timeout; não classifiquei como defeito de produto nem como aprovação. Detalhes em `validation/linux-100-2026-10-25/RUNTIME_VALIDATION.md`; logs nos dois arquivos `runtime-real-nexus-run-isolated*.log`.
 - Contagem reconciliada: **NO_GO_LINUX — 169 PASS / 1 FAIL / 22 BLOCKED / 0 NOT_RUN (192)**. A direção do mascote permanece um único NEX, sem Companion 2D; nenhum código de produto ou preferência visual foi removido nesta retomada. Nenhum commit/push/publicação.
+
+## 2026-10-26 — correções de modo YOLO e rolagem de terminais
+
+- Corrigi a tradução das opções salvas de agentes antes de iniciar o CLI: aliases como `--yolo` agora passam pelo normalizador do provedor; argumentos repetíveis nativos, como `--add-dir`, continuam preservados.
+- O terminal de agente consulta a configuração persistida para exibir o modo Safe/YOLO correto. A criação de agente e o alternador de modo usam o mesmo helper para gravar o modo e limpar flags conflitantes.
+- Removi o salto automático ao fim do buffer quando o terminal recebe eventos de roda do mouse e navegação por PageUp/PageDown/Home/End. A correção é compartilhada pelo PTY comum e pelo PTY de agente, incluindo OpenCode e Oh My Pi.
+- Cobertura adicionada para normalização do Codex, preservação de flags repetíveis, persistência do modo e navegação do scrollback. Validação final e limites documentados em `DEV/validation/TERMINALS_AGENTS_YOLO_SCROLL_20261026.md`.
