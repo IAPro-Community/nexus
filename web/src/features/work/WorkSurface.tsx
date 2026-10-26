@@ -14,6 +14,7 @@ import type {
 import { nexus } from '../../nexus/api';
 import { asArray } from '../../lib/safeArray';
 import { ComposerSurface } from './ComposerSurface';
+import { ComposerReadOnlyHistory } from './ComposerReadOnlyHistory';
 import { composerGateForReadiness } from './composerModel';
 import styles from './WorkSurface.module.scss';
 
@@ -110,29 +111,15 @@ export const WorkSurface: React.FC<{
       </div>
     );
   }
-  // Do not render editable sessions or creation until Intelligence is configured.
+  // Keep history readable even when AI is OFF, unauthenticated or offline.
+  // All mutating Composer routes are guarded independently on the backend.
   if (!intelligence.available) {
     return (
-      <div className={`nx-surface-scroll nx-composer-surface ${styles.workbench}`}>
-        <div className={styles.contextFix} role="status" aria-live="polite">
-          <h2>{t('work.composer.intelligenceRequiredTitle', 'Configure uma IA para usar o Composer')}</h2>
-          <p>
-            {t(
-              'work.composer.intelligenceRequiredDescription',
-              'O Composer utiliza a IA configurada em Nexus Intelligence para compreender sua ideia, investigar alternativas e preparar um plano. Sem ela, não inicia entrevistas por checklist.',
-            )}
-          </p>
-          {intelligence?.error ? <p className="nx-inline-error">{intelligence.error}</p> : null}
-          <div className={styles.contextFix}>
-            <Button tone="brand" onClick={() => onOpenIntelligenceSettings?.()} disabled={!onOpenIntelligenceSettings}>
-              {t('work.composer.configureIntelligence', 'Abrir Nexus Intelligence')}
-            </Button>
-            <Button onClick={() => void refreshIntelligence()}>
-              <RefreshCw size={13} /> {t('work.composer.retryIntelligence', 'Verificar novamente')}
-            </Button>
-          </div>
-        </div>
-      </div>
+      <ComposerReadOnlyHistory
+        projectId={project.id}
+        onOpenSettings={onOpenIntelligenceSettings}
+        onRetry={() => void refreshIntelligence()}
+      />
     );
   }
 
