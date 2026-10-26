@@ -391,7 +391,9 @@ func selectComposerNextUnknownForBrief(brief LivingBrief) (PromptUnknown, bool) 
 }
 
 func shouldAddComposerPressurePass(brief LivingBrief, state ComposerInterviewState) bool {
-	if state.Mode == ComposerInterviewQuick || state.QuestionsAnswered >= state.MaxQuestions {
+	// Pressure-test only on explicit DEEP mode, never as a surprise in the
+	// default experience. Ordinary questions must come from a real trade-off.
+	if state.Mode != ComposerInterviewDeep || state.QuestionsAnswered >= state.MaxQuestions {
 		return false
 	}
 	for _, unknown := range brief.Unknowns {
