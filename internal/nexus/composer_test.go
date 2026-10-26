@@ -279,11 +279,12 @@ Need backend and frontend changes.`)
 	if view.Brief.Intent.Archetype != PromptArchetypeSecurity {
 		t.Fatalf("unexpected archetype: %+v", view.Brief.Intent)
 	}
-	if view.Brief.Readiness.State != PromptReadinessNeedsInformation && view.Brief.Readiness.State != PromptReadinessBlocked {
-		t.Fatalf("expected non-ready imported prompt, got %+v", view.Brief.Readiness)
-	}
-	if len(view.Brief.Unknowns) == 0 {
-		t.Fatalf("expected imported prompt to produce unknowns: %+v", view.Brief)
+	// No ritual questions for every missing field: a reviewer may refine this
+	// plan without having to complete an arbitrary archetype questionnaire.
+	for _, unknown := range view.Brief.Unknowns {
+		if unknown.Status == PromptUnknownOpen && (unknown.Source == "ARCHETYPE" || unknown.Source == "REFINERY") {
+			t.Fatalf("unexpected static checklist question: %+v", unknown)
+		}
 	}
 	if _, err := st.UpsertComposerSkillProposal(store.ComposerSkillProposal{
 		SessionID: view.Session.ID,
@@ -320,7 +321,7 @@ Need backend and frontend changes.`)
 			openUnknowns++
 		}
 	}
-	if openUnknowns == len(updated.Brief.Unknowns) {
+	if len(updated.Brief.Unknowns) > 0 && openUnknowns == len(updated.Brief.Unknowns) {
 		t.Fatalf("expected at least one unknown to close: %+v", updated.Brief.Unknowns)
 	}
 	artifact, err := n.FinalizeComposerSession(context.Background(), view.Session.ID, []string{"skill-webapp-testing"}, true)
@@ -411,10 +412,23 @@ func TestResolveComposerUnknown(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(view.Brief.Unknowns) == 0 {
-		t.Fatal("expected at least one unknown in initial brief")
+	// An actionable question must come from Intelligence, not from a fixed
+	// set of seven questions rendered to every user.
+	session, err := st.GetComposerSession(view.Session.ID)
+	if err != nil {
+		t.Fatal(err)
 	}
-	targetID := view.Brief.Unknowns[0].ID
+	brief := decodeComposerBrief(session.BriefJSON)
+	MergeIntelligenceUnknowns(&brief, []intelligence.AmbiguityItem{{
+		Key: "context.existing_state", Level: intelligence.AmbiguityBlocking,
+		Question: "What behavior is leaking memory?", Rationale: "Identify the failure before modifying code.",
+	}})
+	refreshComposerBrief(&brief)
+	session.BriefJSON = mustJSON(brief)
+	if err := st.UpdateComposerSession(*session); err != nil {
+		t.Fatal(err)
+	}
+	targetID := "context.existing_state"
 	updated, err := n.ResolveComposerUnknown(context.Background(), view.Session.ID, targetID, "The leak happens in disconnect handler", "ANSWERED")
 	if err != nil {
 		t.Fatal(err)
