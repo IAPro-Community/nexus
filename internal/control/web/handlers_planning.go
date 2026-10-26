@@ -430,10 +430,17 @@ func (h *NexusHandler) handlePlanDetail(w http.ResponseWriter, r *http.Request) 
 		})
 
 	case http.MethodDelete:
-		expectedRevision, err := strconv.Atoi(r.URL.Query().Get("expected_revision"))
-		if err != nil || expectedRevision <= 0 {
-			writeError(w, http.StatusBadRequest, "expected_revision is required")
-			return
+		// Preserve the existing DELETE /plans/{id} contract for older CLIs.
+		// New UI clients pass expected_revision for optimistic concurrency.
+		// Both paths still enforce database Mission/snapshot/schedule guards.
+		expectedRevision := 0
+		if raw := r.URL.Query().Get("expected_revision"); raw != "" {
+			parsed, err := strconv.Atoi(raw)
+			if err != nil || parsed <= 0 {
+				writeError(w, http.StatusBadRequest, "expected_revision must be a positive integer")
+				return
+			}
+			expectedRevision = parsed
 		}
 		if err := h.plans.DeleteExpected(r.Context(), planID, expectedRevision); err != nil {
 			switch {
