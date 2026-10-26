@@ -353,6 +353,22 @@ func (n *Nexus) PreflightFlow(ctx context.Context, planID string) (*FlowPrefligh
 		Checks:      []FlowPreflightCheck{},
 	}
 
+	// Composer decisions are part of the frozen handoff. Advisory preflight
+	// must not claim an executable plan when BLOCKING decisions remain open.
+	composerBlockers := composerHandoffExecutionBlockers(plan.StructuredFacts)
+	if len(composerBlockers) > 0 {
+		report.Ready = false
+		report.Checks = append(report.Checks, FlowPreflightCheck{
+			Key: "composer_handoff", Label: "Decisões do Composer",
+			Status: "FAIL", Summary: strings.Join(composerBlockers, "; "),
+		})
+	} else if strings.TrimSpace(plan.StructuredFacts["composer.handoff.v1"]) != "" {
+		report.Checks = append(report.Checks, FlowPreflightCheck{
+			Key: "composer_handoff", Label: "Decisões do Composer",
+			Status: "PASS", Summary: "O contrato versionado não contém decisões bloqueantes pendentes.",
+		})
+	}
+
 	// 1. DAG Validity
 	if err := ValidateFlowDAG(flow); err != nil {
 		report.Ready = false
@@ -436,6 +452,14 @@ func (n *Nexus) strictAdmissionForPlan(ctx context.Context, plan store.WorkPlan,
 	// revalidate an immutable snapshot with a fresh report, so initialize the
 	// optimistic state here instead of relying on PreflightFlow's constructor.
 	report.Ready = true
+	// Strict admission recalculates readiness from scratch. Recheck Composer
+	// independently so the advisory result cannot be reset into a false PASS.
+	for _, blocker := range composerHandoffExecutionBlockers(plan.StructuredFacts) {
+		report.Ready = false
+		report.Checks = append(report.Checks, FlowPreflightCheck{
+			Key: "composer_handoff", Label: "Decisões do Composer", Status: "FAIL", Summary: blocker,
+		})
+	}
 	if err := validateFlowExecutionContract(plan); err != nil {
 		report.Ready = false
 		report.Checks = append(report.Checks, FlowPreflightCheck{Key: "execution_contract", Label: "Contrato de Execução", Status: "FAIL", Summary: err.Error()})
