@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ComposerSessionView } from '../../types';
-import { composerBriefStats, composerReadinessDisplay } from './composerModel';
+import { composerBriefStats } from './composerModel';
 import styles from './ComposerInspector.module.scss';
 
 export const ComposerReadiness: React.FC<{
@@ -9,7 +9,9 @@ export const ComposerReadiness: React.FC<{
   onFocusGaps?: () => void;
 }> = ({ view, onFocusGaps }) => {
   const { t } = useTranslation();
-  const display = composerReadinessDisplay(view.brief.readiness);
+  // A percentage based on archetype checklist fields is misleading: it
+  // rewards answering generic questions rather than validating a useful plan.
+  const readinessState = String(view.brief.readiness?.state || 'NEEDS_INFORMATION').toUpperCase();
   const stats = composerBriefStats(view);
   const items = [
     {
@@ -55,30 +57,14 @@ export const ComposerReadiness: React.FC<{
         <h3 id="composer-readiness" className={styles.groupTitle}>
           {t('work.composer.readiness', 'Readiness')}
         </h3>
-        {display.mode === 'score' ? (
-          <strong className={styles.score}>{display.score}%</strong>
-        ) : (
-          <strong className={styles.score}>
-            {t(`work.composer.readinessState.${display.state}`, display.state)}
-          </strong>
-        )}
+        <strong className={styles.score}>
+          {t(`work.composer.readinessState.${readinessState}`, readinessState.replaceAll('_', ' '))}
+        </strong>
       </div>
-      {display.mode === 'score' ? (
-        <div
-          className={styles.meter}
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={display.score}
-          aria-label={t('work.composer.readiness', 'Readiness')}
-        >
-          <span className={styles.meterFill} style={{ width: `${display.score}%` }} />
-        </div>
-      ) : (
-        <p className={styles.summary}>
-          {view.brief.readiness?.summary || t('work.composer.readinessEmpty', 'No assessment yet.')}
-        </p>
-      )}
+      <p className={styles.summary}>
+        {view.brief.readiness?.summary ||
+          t('work.composer.readinessEmpty', 'O plano ainda está em elaboração.')}
+      </p>
       <ul className={styles.statList}>
         {items.map((item) => (
           <li key={item.id}>
