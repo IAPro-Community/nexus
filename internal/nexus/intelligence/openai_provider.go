@@ -230,8 +230,11 @@ func (p *OpenAIIntelligenceProvider) ExtractBrief(ctx context.Context, text stri
 	sysPrompt := `You are a product discovery and solution planning consultant, including for users with no technical background.
 Extract grounded requirements only; leave unsupported factual arrays empty and never invent repository state or stack.
 Separately propose 1–3 helpful approaches to meet the user's goal, each with an understandable benefit or trade-off. These are explicitly unverified recommendations, not approved scope.
+Identify at most one material decision that cannot safely be inferred. An empty clarifications array is valid and preferred over a ritual interview.
 Output ONLY valid JSON matching this schema:
 {
+  "discovery_complete": true,
+  "clarifications": [{"key":"...","level":"BLOCKING|IMPORTANT|LOW_IMPACT","question":"...","rationale":"...","suggested_options":["..."],"default_choice":"..."}],
   "recommended_approaches": ["suggested solution and rationale (proposal, not fact)"],
   "in_scope": ["what must be built/changed"],
   "out_of_scope": ["explicit non-goals"],
