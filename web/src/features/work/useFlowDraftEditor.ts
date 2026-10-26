@@ -61,7 +61,6 @@ export function useFlowDraftEditor(options: {
   const { t } = useTranslation();
 
   const [selectedPlan, setSelectedPlan] = useState<WorkPlan | null>(null);
-  const [savedPlans, setSavedPlans] = useState<WorkPlan[]>([]);
   const [deletingPlan, setDeletingPlan] = useState(false);
   const [autoGoal, setAutoGoal] = useState('');
   const [generating, setGenerating] = useState(false);
@@ -90,18 +89,6 @@ export function useFlowDraftEditor(options: {
   const [executionPreviewBusy, setExecutionPreviewBusy] = useState(false);
   const [pendingCostConfirmationToken, setPendingCostConfirmationToken] = useState('');
   const [studioView, setStudioView] = useState<StudioView>('pipeline');
-
-  const refreshSavedPlans = useCallback(async () => {
-    const plans = await nexusApi.getPlans(project.id);
-    setSavedPlans(plans);
-    return plans;
-  }, [project.id]);
-  useEffect(() => {
-    void refreshSavedPlans().catch(() => {
-      // Existing draft editing remains possible when listing fails.
-      setSavedPlans([]);
-    });
-  }, [refreshSavedPlans]);
 
   const composerDraftKey = composerDraftStorageKey(project.id);
   const composerHistoryKey = composerHistoryStorageKey(project.id);
@@ -243,25 +230,12 @@ export function useFlowDraftEditor(options: {
     (plan: WorkPlan) => {
       const next = normalizeWorkPlan(plan);
       setSelectedPlan(next);
-      void refreshSavedPlans().catch(() => undefined);
       setGoalChips(chipsFromPlan(next, autoGoal || next.title || next.description || ''));
       setClarification(null);
       setClarificationAnswers({});
     },
-    [autoGoal, refreshSavedPlans],
+    [autoGoal],
   );
-
-  const selectSavedPlan = useCallback(async (planId: string) => {
-    if (!planId) return;
-    try {
-      setPlanError('');
-      const detail = await nexusApi.getPlan(planId);
-      if (detail.plan.project_id !== project.id) throw new Error('Flow pertence a outro projeto.');
-      selectGeneratedPlan(detail.plan);
-    } catch (error) {
-      setPlanError(error instanceof Error ? error.message : String(error));
-    }
-  }, [project.id, selectGeneratedPlan]);
 
   const deleteSelectedFlow = useCallback(async () => {
     if (!selectedPlan || deletingPlan || generating || runBusy) return;
@@ -284,15 +258,13 @@ export function useFlowDraftEditor(options: {
       setPendingCostConfirmationToken('');
       setClarification(null);
       setFlowNotice(t('flow.deleted', 'Flow removido. Você pode iniciar outro planejamento.'));
-      await refreshSavedPlans();
       onPlanDeleted?.();
     } catch (error) {
       setPlanError(error instanceof Error ? error.message : String(error));
-      await refreshSavedPlans().catch(() => undefined);
     } finally {
       setDeletingPlan(false);
     }
-  }, [selectedPlan, deletingPlan, generating, runBusy, project.id, t, refreshSavedPlans, onPlanDeleted]);
+  }, [selectedPlan, deletingPlan, generating, runBusy, project.id, t, onPlanDeleted]);
 
   const appliedInitialPlanId = useRef<string | null>(null);
   useEffect(() => {
@@ -738,9 +710,7 @@ export function useFlowDraftEditor(options: {
 
   return {
     selectedPlan,
-    savedPlans,
     deletingPlan,
-    selectSavedPlan,
     deleteSelectedFlow,
     autoGoal,
     setAutoGoal,
