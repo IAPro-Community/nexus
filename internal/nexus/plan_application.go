@@ -137,6 +137,22 @@ func (s *PlanApplicationService) Update(ctx context.Context, plan store.WorkPlan
 		if plan.StructuredFacts == nil {
 			plan.StructuredFacts = map[string]string{}
 		}
+		// Composer provenance is an immutable part of the original approval.
+		// A Flow edit may revise tasks, but may not delete or replace the
+		// source artifact, original decision contract or its pending blockers.
+		// Replanning requires a new Composer artifact and WorkPlan.
+		for _, key := range []string{
+			"composer.handoff.v1", "composer.handoff.schema_version",
+			"nexus.source_artifact_id", "nexus.source_artifact_revision",
+			"nexus.source_artifact_hash", "nexus.source_composer_session_id",
+			"composer.context",
+		} {
+			if original, exists := current.StructuredFacts[key]; exists {
+				if updated, present := plan.StructuredFacts[key]; !present || updated != original {
+					return nil, nil, fmt.Errorf("immutable Composer plan provenance %q cannot be changed; create a new Composer artifact and WorkPlan", key)
+				}
+			}
+		}
 		for _, key := range []string{DelegationDecisionFactKey, DelegationModeFactKey, LeadAgentFactKey} {
 			if _, present := plan.StructuredFacts[key]; !present {
 				if value := current.StructuredFacts[key]; value != "" {
