@@ -23,8 +23,7 @@ export function shouldForwardTerminalInput(data: string, allowMouse = false): bo
     // stateful coalescer must receive both pieces intact.
     // eslint-disable-next-line no-control-regex
     /^\x1b\[\d+;\d+R$/.test(data) ||
-    /^\[\d+;\d+R$/.test(data) ||
-    false
+    /^\[\d+;\d+R$/.test(data)
   ) {
     return false;
   }
