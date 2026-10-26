@@ -37,7 +37,7 @@ A expressão “32 bits” é uma referência à estética dos jogos, **não** u
 - Azul Nexus institucional: `#3B72E1`.
 - Ciano emissivo: `#31D5FF`; highlights `#DFFFFF`.
 - Branco metálico: `#F2F8FF`, sombras de aço `#AAC4E2`.
-- Alerta comprovado: `#FF8A45`; offline: cinza-azulado `#71839D`.
+- Alerta comprovado: `#FF8A45`; crítico comprovado: `#FF496C`; offline: cinza-azulado `#71839D`.
 
 Não introduzir uma nova identidade visual substituindo a marca principal, nem permitir skins de provedores alterarem a anatomia de NEX.
 
@@ -48,6 +48,7 @@ O *Guardian* permanece um **modo de apresentação do HUD**. NEX não é um agen
 - `idle`: olhos contentes, flutuação sutil, pulsação lenta do núcleo.
 - `working`: olhos concentrados, núcleo e módulos com pulso mais rápido.
 - `warning`: olhos laranja, gesto curto e balão de intervenção baseado em sinal real.
+- `critical`: olhos em vermelho-rosa `#FF496C`, acionados exclusivamente quando o Companion recebe evidência crítica da projeção canônica (falha/atenção prioritária).
 - `offline`: brilho reduzido, olhos neutros, **sem loop que simule atividade**.
 
 As animações CSS são de apresentação, não barras de progresso de execução; o estado `verified` não é inferido de `working`. Estados como `thinking`, `routing` e `success` somente poderão ser ligados a telemetria própria futuramente.
@@ -69,7 +70,7 @@ A vista frontal é a representação institucional padrão. As aletas, o visor, 
 
 ![NEX nas expressões permitidas e conceituais](assets/nex/nex-expression-states.svg)
 
-A linha 1.0 só deve vincular `idle`, `working`, `warning` e `offline` aos eventos reais. Outras expressões podem orientar ilustrações, mas **não autorizam inventar estados operacionais**.
+A linha 1.0 vincula `idle`, `working`, `warning`, `critical` e `offline` a evidências reais. O Companion usa `attention` na apresentação e traduz esse estado visualmente para `warning`; somente atenção com severidade crítica produz `critical`. Outras expressões podem orientar ilustrações, mas **não autorizam inventar estados operacionais**.
 
 ### Variações de escala
 
@@ -82,8 +83,8 @@ O Compact usado pelo HUD é uma fonte React/SVG própria. As representações ac
 1. Este **contrato** determina anatomia, pose, paleta, linguagem e proibições.
 2. `web/src/features/hud/NexPixelSprite.tsx` é a fonte executável do NEX **Compact**, não uma autoridade para redesenhar o personagem ou limitar a arte Hero.
 3. As [referências desenhadas versionadas](assets/nex/README.md) orientam criação por humanos e IAs, mas **não são recortes perfeitos** das imagens conceituais geradas anteriormente.
-4. Os quatro SVGs que o build exporta em `web/public/nex/` representam os estados do Compact e não devem ser promovidos a arte Hero.
-5. A **prancha raster de alta fidelidade aprovada na conversa** ainda requer incorporação binária e registro de origem/hash. Seu status no manifesto é `AWAITING_BINARY_INGEST`, portanto não se deve afirmar que esse PNG já está versionado.
+4. Os cinco SVGs que o build exporta em `web/public/nex/` (`idle`, `working`, `warning`, `critical`, `offline`) representam os estados do Compact e não devem ser promovidos a arte Hero.
+5. A **prancha raster original aprovada** foi localizada e sua proveniência registrada no manifesto: PNG 1448 × 1086, SHA-256 `4dff7d9521687f77f666a56dcf04bbe3d04dd4cd895139b1fa98df5f90f35ed5`. Seus bytes **ainda não estão commitados**; usar `node scripts/import-nex-concept.mjs --source <arquivo-original.png>` para importar com validação estrita antes de criar o commit. Não afirmar que o PNG está versionado enquanto o manifesto marcar `IDENTIFIED_BINARY_NOT_VERSIONED`.
 6. Se o código divergir do desenho normativo, registrar a divergência e corrigir a implementação após revisão visual. **Não** reescrever o contrato automaticamente a partir de um resultado acidental do sprite ou de uma geração de IA.
 
 ### Instrumentação para evitar deriva
@@ -115,5 +116,5 @@ O visual foi **aprovado como direção de produto**, mas a release binária **n�
 1. `bun run --cwd web quality:full` e build frontend no mesmo SHA.
 2. HUD nativo Windows/macOS/Linux (X11 e Wayland), transparência real, hit testing, alça de arraste e troca BAR↔MASCOT↔TRAY.
 3. Escalas DPI 100%, 125% e 150%: legibilidade, recorte, aliasing, dimensões ~108x112 DIP.
-4. Estados idle/working/warning/offline e `prefers-reduced-motion`: ausência de flicker, loops artificiais ou falsos alertas.
+4. Estados idle/working/warning/critical/offline e `prefers-reduced-motion`: ausência de flicker, loops artificiais ou falsos alertas.
 5. Documentação de evidência, SHA, artefatos e rollback. **Sem certificar Windows/macOS/Linux por inspeção estática de source.**

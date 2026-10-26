@@ -11,7 +11,7 @@
 - [ ] Há exatamente **quatro módulos flutuantes**: dois laterais, dois inferiores.
 - [ ] A órbita fica na região inferior e não cobre o rosto.
 - [ ] Não foram adicionados dedos, pernas humanas, boca, nariz, capa ou marcas de provedores.
-- [ ] Paleta e proporções permanecem equivalentes entre idle, working, warning, offline.
+- [ ] Paleta e proporções permanecem equivalentes entre idle, working, warning, critical e offline.
 - [ ] Ilustrações novas foram comparadas lado a lado com [desenho frontal](assets/nex/nex-character-reference.svg) e [expressões](assets/nex/nex-expression-states.svg).
 - [ ] Diferenças entre o conceito raster aprovado e a arte operacional são reconhecidas/documentadas; não declarar equivalência pixel a pixel sem revisão humana.
 
@@ -21,6 +21,7 @@
 - [ ] SVGs podem ser abertos e têm fundo transparente na camada do personagem (a prancha pode ter fundo editorial).
 - [ ] A arte oficial Compact é o componente `NexPixelSprite.tsx`; exports derivam dele.
 - [ ] Standard/Hero, caso publicados, têm masters separados e preservam a mesma anatomia.
+- [ ] O original aprovado corresponde ao PNG de 1448 × 1086 e ao SHA-256 `4dff7d9521687f77f666a56dcf04bbe3d04dd4cd895139b1fa98df5f90f35ed5`; se ausente, o manifesto permanece explicitamente pendente.
 - [ ] Assets originais aprovados, quando incorporados, têm arquivo, data, origem, responsável e hash.
 - [ ] Nenhum link usa `sandbox:` ou imagem temporária/externa como fonte canônica.
 - [ ] `node scripts/verify-nex-visual.mjs` passa no checkout da branch (validação estrutural; não substitui revisão visual).
@@ -29,7 +30,7 @@
 
 - [ ] Personagem legível a 1x, 1.25x e 1.5x no tamanho real do HUD.
 - [ ] Sem clipping, tremor de pixel, mudanças inesperadas de anatomia entre quadros.
-- [ ] `idle`: flutuação/piscada discretas; `working`: atividade visual; `warning`: apenas mediante atenção real; `offline`: não simula atividade.
+- [ ] `idle`: flutuação/piscada discretas; `working`: atividade visual; `warning`: apenas mediante atenção real; `critical`: apenas mediante severidade crítica canônica; `offline`: não simula atividade.
 - [ ] `prefers-reduced-motion`: animações reduzidas/desativadas, estado ainda compreensível.
 - [ ] Contraste em tema claro/escuro, leitor de tela e acessibilidade preservados.
 - [ ] CPU/GPU estáveis e sem tarefas/LLMs independentes para movimentar o mascote.
