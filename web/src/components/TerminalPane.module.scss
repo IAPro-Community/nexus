@@ -148,6 +148,32 @@
   overflow: hidden;
 }
 
+.terminalControlOverlay {
+  position: absolute;
+  top: 12px;
+  right: 18px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px;
+  background: var(--nx-surface-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  color: var(--nx-text-soft);
+  font: 600 11px var(--nx-font-mono);
+
+  button {
+    border: 1px solid var(--nx-border);
+    border-radius: var(--nx-radius-sm);
+    background: var(--nx-accent);
+    color: var(--nx-accent-contrast);
+    padding: 3px 7px;
+    cursor: pointer;
+    @include mixins.focus-visible-ring;
+  }
+}
+
 .zoomGroup {
   display: inline-flex;
   align-items: center;
