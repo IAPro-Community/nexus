@@ -76,3 +76,21 @@ Com a IA offline, o histórico do Composer permanece visível para leitura e
 cópia de artefatos. Todas as mutações de elaboração seguem bloqueadas até que
 Nexus Intelligence esteja configurada e utilizável. O acesso a Direct, Agents
 e às operações do MissionRunner continua independente.
+
+
+## Excluir planejamentos
+
+O Composer permite excluir uma elaboração diretamente no cabeçalho ou na
+lista de elaborações anteriores. A exclusão requer confirmação e revisão
+atualizada (`expected_revision`), para impedir remoções por acidente ou
+com base numa aba desatualizada.
+
+A operação remove sessão, turnos, revisões, propostas de skills, artefatos e
+anexos próprios, sem afetar outras elaborações. O Nexus bloqueia a exclusão
+quando seus artefatos tiverem originado um WorkPlan/Flow ainda persistido ou
+uma entrega registrada. Para excluir uma elaboração associada a um Flow de
+rascunho, remova primeiro o Flow; se houver Mission executada ou agendamento,
+o histórico será preservado.
+
+A exclusão continua disponível mesmo se Nexus Intelligence estiver offline:
+ela é uma operação de gerenciamento do usuário, não geração com IA.
