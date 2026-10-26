@@ -448,11 +448,17 @@ func (n *Nexus) strictAdmissionForPlan(ctx context.Context, plan store.WorkPlan,
 	if report == nil {
 		return nil, fmt.Errorf("strict admission report is required")
 	}
-	// Admission checks only turn Ready off when a check fails. Callers may
-	// revalidate an immutable snapshot with a fresh report, so initialize the
-	// optimistic state here instead of relying on PreflightFlow's constructor.
+	// Strict admission starts from actual check outcomes, not the optimistic
+	// Ready flag. A previously recorded failing DAG/Composer check cannot be
+	// erased by recomputing admission checks.
 	report.Ready = true
-	// Strict admission recalculates readiness from scratch. Recheck Composer
+	for _, check := range report.Checks {
+		if check.Status == "FAIL" {
+			report.Ready = false
+			break
+		}
+	}
+	// Strict admission recomputes operational checks. Recheck Composer
 	// independently so the advisory result cannot be reset into a false PASS.
 	for _, blocker := range composerHandoffExecutionBlockers(plan.StructuredFacts) {
 		report.Ready = false
