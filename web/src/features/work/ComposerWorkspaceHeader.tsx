@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { History, Plus, Sparkles } from 'lucide-react';
-import { Badge, Button, Select } from '../../design-system';
+import { History, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { Badge, Button, ConfirmDialog, Select } from '../../design-system';
 import type { ComposerSessionView, ContextReadinessState } from '../../types';
 import {
   composerSessionStateKey,
@@ -17,6 +17,7 @@ export type ComposerWorkspaceHeaderProps = {
   busy: boolean;
   onSelectSession: (id: string) => void;
   onNewSession: () => void;
+  onDeleteSession: (id: string, expectedRevision: number) => void;
   onToggleHistory?: () => void;
   historyOpen?: boolean;
   contextState: ContextReadinessState;
@@ -32,6 +33,7 @@ export const ComposerWorkspaceHeader: React.FC<ComposerWorkspaceHeaderProps> = (
   busy,
   onSelectSession,
   onNewSession,
+  onDeleteSession,
   onToggleHistory,
   historyOpen,
   contextState,
@@ -40,6 +42,7 @@ export const ComposerWorkspaceHeader: React.FC<ComposerWorkspaceHeaderProps> = (
   memoryCount,
 }) => {
   const { t, i18n } = useTranslation();
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
   const title = formatComposerSessionTitle(
     view.session.title,
     view.session.id,
@@ -86,12 +89,36 @@ export const ComposerWorkspaceHeader: React.FC<ComposerWorkspaceHeaderProps> = (
               <History size={14} /> {t('work.composer.history', 'History')}
             </Button>
           )}
+          <Button
+            size="sm"
+            tone="danger"
+            disabled={busy}
+            onClick={() => setDeleteOpen(true)}
+            title={t('work.composer.deleteElaboration', 'Excluir elaboração')}
+          >
+            <Trash2 size={14} /> {t('common.delete', 'Excluir')}
+          </Button>
           <Button size="sm" tone="brand" disabled={busy} onClick={onNewSession}>
             <Plus size={14} /> {t('work.composer.newElaboration', 'New elaboration')}
           </Button>
         </div>
       </div>
 
+      <ConfirmDialog
+        open={deleteOpen}
+        title={t('work.composer.deleteElaboration', 'Excluir elaboração')}
+        description={t(
+          'work.composer.deleteElaborationConfirm',
+          'Excluir "{{title}}" e suas mensagens e artefatos? Esta ação não pode ser desfeita. Elaborações vinculadas a um Flow ou entrega não podem ser excluídas.',
+          { title },
+        )}
+        confirmLabel={t('work.composer.deleteElaboration', 'Excluir elaboração')}
+        onCancel={() => setDeleteOpen(false)}
+        onConfirm={() => {
+          setDeleteOpen(false);
+          onDeleteSession(view.session.id, view.session.revision);
+        }}
+      />
       <div className={styles.sessionRow}>
         <div className={styles.sessionMeta}>
           <div className={styles.titleRow}>
