@@ -1220,6 +1220,13 @@ export interface ComposerSessionView {
     decisions?: string[];
     assumptions?: Array<string | { value?: string; status?: string; confidence?: string }>;
     alternatives?: string[];
+    recommendations?: Array<{
+      id: string;
+      value: string;
+      source_type?: string;
+      confidence?: string;
+      status: string;
+    }>;
     risks?: string[];
     quality?: {
       acceptance_criteria?: string[];
