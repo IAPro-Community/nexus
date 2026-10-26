@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Play, Plus, Route, Sparkles } from 'lucide-react';
-import { Badge, Button, Card, Input, Select } from '../../design-system';
+import { Play, Plus, Route, Sparkles, Trash2 } from 'lucide-react';
+import { Badge, Button, Card, ConfirmDialog, Input, Select } from '../../design-system';
 import type { Agent, FlowLeaderPolicy } from '../../types';
 import {
   executionPreviewDetails,
@@ -19,8 +19,13 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
   agents,
 }) => {
   const { t } = useTranslation();
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
   const {
     selectedPlan,
+    savedPlans,
+    deletingPlan,
+    selectSavedPlan,
+    deleteSelectedFlow,
     autoGoal,
     setAutoGoal,
     generating,
@@ -59,6 +64,54 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
             : t('flow.yourRequest', 'Sua solicitação')}
         </span>
       </div>
+
+      {savedPlans.length > 0 && (
+        <div className="nx-composer-goal-bar__row">
+          <label htmlFor="flow-saved-plans">
+            {t('flow.savedPlans', 'Flows salvos')}
+          </label>
+          <Select
+            id="flow-saved-plans"
+            value={selectedPlan?.id || ''}
+            placeholder={t('flow.chooseSavedPlan', 'Abrir um Flow salvo…')}
+            onChange={(id) => void selectSavedPlan(id)}
+            options={savedPlans.map((plan) => ({
+              value: plan.id,
+              label: `${plan.title || 'Flow sem nome'} · revisão ${plan.current_revision}`,
+            }))}
+            selectStyle={{ minWidth: 220, maxWidth: 390 }}
+            disabled={generating || runBusy || deletingPlan}
+          />
+          {selectedPlan && (
+            <Button
+              size="sm"
+              tone="danger"
+              disabled={deletingPlan || runBusy || generating}
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2 size={13} />
+              {deletingPlan
+                ? t('flow.deleting', 'Excluindo…')
+                : t('flow.deleteDraft', 'Excluir Flow')}
+            </Button>
+          )}
+        </div>
+      )}
+      <ConfirmDialog
+        open={deleteOpen}
+        title={t('flow.deleteDraft', 'Excluir Flow')}
+        description={t(
+          'flow.deleteDraftConfirm',
+          'Excluir "{{title}}" e todas as suas revisões? Esta ação não pode ser desfeita. Se houver execuções, evidências ou agendamentos vinculados, o Nexus impedirá a exclusão.',
+          { title: selectedPlan?.title || 'Flow sem nome' },
+        )}
+        confirmLabel={t('flow.deleteDraft', 'Excluir Flow')}
+        onCancel={() => setDeleteOpen(false)}
+        onConfirm={() => {
+          setDeleteOpen(false);
+          void deleteSelectedFlow();
+        }}
+      />
 
       {!flowDraft && (
         <div className="nx-composer-goal-bar__row">
