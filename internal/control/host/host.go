@@ -66,6 +66,7 @@ type SessionHost struct {
 	detector      *AttentionDetector
 	shellInput    shellPipeInputNormalizer
 	terminalInput *nexusruntime.TerminalOutputScrubber
+	terminalMouse *nexusruntime.TerminalMouseState
 	stopOnce      sync.Once
 	doneOnce      sync.Once
 	codexTUILock  interface{ Release() error }
@@ -217,8 +218,10 @@ func (sh *SessionHost) Start() error {
 	// streams, not message transports, so upstream write boundaries cannot be
 	// trusted. Coalesce CSI/SS3 and terminal metadata one last time immediately
 	// before the provider PTY for both CLI and Web paths.
-	sh.terminalInput = nexusruntime.NewTerminalInputScrubber(
+	sh.terminalMouse = &nexusruntime.TerminalMouseState{}
+	sh.terminalInput = nexusruntime.NewTerminalInputScrubberWithMouseState(
 		nexusruntime.NewTerminalTracingWriter(sh.termBackend, sh.session.RuntimeID, "host.scrubber.output"),
+		sh.terminalMouse,
 	)
 
 	setStage(registry.StartupTerminalReady, "")
@@ -296,7 +299,7 @@ func (sh *SessionHost) streamReader(r io.Reader) {
 	buf := make([]byte, 4096)
 	var pending []byte
 	var filtered bytes.Buffer
-	scrubber := nexusruntime.NewTerminalOutputScrubber(&filtered)
+	scrubber := nexusruntime.NewTerminalOutputScrubberTrackingMouse(&filtered, sh.terminalMouse)
 	flushFiltered := func() {
 		if filtered.Len() == 0 {
 			return
