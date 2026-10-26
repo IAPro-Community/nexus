@@ -123,7 +123,7 @@ Added tests:
 Required local commands:
 ```bash
 go test ./internal/nexus/store ./internal/nexus ./internal/control/web
-cd web && npm ci && npm run test -- --run src/nexus/api.test.ts
+cd web && bun install --frozen-lockfile && bunx vitest run src/nexus/api.test.ts && bun run typecheck && bun run build
 ```
 
 **Certification remains NO_GO until these commands and GUI checks pass.**
