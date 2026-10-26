@@ -105,6 +105,9 @@ func (s *ComposerApplicationService) AddTurn(ctx context.Context, sessionID, con
 }
 
 func (s *ComposerApplicationService) UpdateSkill(ctx context.Context, sessionID, skillID, state string) (*ComposerSessionView, error) {
+	if err := s.requireSessionIntelligence(ctx, sessionID); err != nil {
+		return nil, err
+	}
 	return s.nexus.UpdateComposerSkillState(ctx, sessionID, skillID, state)
 }
 
@@ -113,6 +116,9 @@ func (s *ComposerApplicationService) SkillCatalog(ctx context.Context, projectID
 }
 
 func (s *ComposerApplicationService) SelectSkill(ctx context.Context, sessionID, skillID string) (*ComposerSessionView, error) {
+	if err := s.requireSessionIntelligence(ctx, sessionID); err != nil {
+		return nil, err
+	}
 	return s.nexus.SelectComposerSkill(ctx, sessionID, skillID)
 }
 
@@ -138,9 +144,15 @@ func (s *ComposerApplicationService) ResolveUnknown(ctx context.Context, session
 }
 
 func (s *ComposerApplicationService) AttachContextFile(ctx context.Context, sessionID, relPath string, expectedRevision int) (*ComposerSessionView, error) {
+	if err := s.requireSessionIntelligence(ctx, sessionID); err != nil {
+		return nil, err
+	}
 	return s.nexus.AttachComposerContextFile(ctx, sessionID, relPath, expectedRevision)
 }
 
 func (s *ComposerApplicationService) DetachContextFile(ctx context.Context, sessionID, relPath string, expectedRevision int) (*ComposerSessionView, error) {
+	if err := s.requireSessionIntelligence(ctx, sessionID); err != nil {
+		return nil, err
+	}
 	return s.nexus.DetachComposerContextFile(ctx, sessionID, relPath, expectedRevision)
 }
