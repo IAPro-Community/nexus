@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { History, Layers, Play, RefreshCw, Sparkles } from 'lucide-react';
-import { Badge, Button, Card, EmptyState, Spinner } from '../../design-system';
+import { History, Layers, Play, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
+import { Badge, Button, Card, ConfirmDialog, EmptyState, Spinner } from '../../design-system';
 import { nexusApi } from '../../nexus/api';
 import type { MissionRun, Project, WorkPlan, Agent } from '../../types';
 import { asArray } from '../../lib/safeArray';
@@ -48,6 +48,8 @@ export const FlowRunsHistorySurface: React.FC<{
   const [selectedPlan, setSelectedPlan] = useState<WorkPlan | null>(null);
   const [newGoal, setNewGoal] = useState('');
   const [creating, setCreating] = useState(false);
+  const [planToDelete, setPlanToDelete] = useState<WorkPlan | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const loadSeqRef = React.useRef(0);
   const load = useCallback(async () => {
@@ -113,6 +115,30 @@ export const FlowRunsHistorySurface: React.FC<{
     writeSelectedPlanId(project.id, selectedPlan?.id || '');
   }, [project.id, selectedPlan?.id]);
 
+  const deleteFlow = async () => {
+    if (!planToDelete || deleteBusy) return;
+    const plan = planToDelete;
+    setPlanToDelete(null);
+    setDeleteBusy(true);
+    setError('');
+    try {
+      await nexusApi.deletePlan(plan.id, plan.current_revision);
+      writeSelectedPlanId(project.id, '');
+      try {
+        if (sessionStorage.getItem(FLOW_DRAFT_KEY(project.id)) === plan.id) {
+          sessionStorage.removeItem(FLOW_DRAFT_KEY(project.id));
+        }
+        sessionStorage.removeItem(`nexus:flow:draft-edits:${project.id}:${plan.id}`);
+      } catch { /* optional local cache */ }
+      if (selectedPlan?.id === plan.id) setSelectedPlan(null);
+      await load();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
   const draftPlans = useMemo(() => {
     const runPlanIds = new Set(runs.map((run) => run.plan_id).filter(Boolean));
     return plans.filter((plan) => plan.status === 'DRAFT' || !runPlanIds.has(plan.id));
@@ -161,6 +187,11 @@ export const FlowRunsHistorySurface: React.FC<{
             onOpenRun(run);
           }}
           initialPlan={selectedPlan}
+          onPlanDeleted={() => {
+            writeSelectedPlanId(project.id, '');
+            setSelectedPlan(null);
+            void load();
+          }}
         />
       </div>
     );
@@ -233,6 +264,18 @@ export const FlowRunsHistorySurface: React.FC<{
         </div>
       </div>
 
+      <ConfirmDialog
+        open={Boolean(planToDelete)}
+        title={t('flow.deleteDraft', 'Excluir Flow')}
+        description={t(
+          'flow.deleteDraftConfirm',
+          'Excluir "{{title}}" e suas revisões? Esta ação não pode ser desfeita. Flows com execuções ou agendamentos são protegidos.',
+          { title: planToDelete?.title || 'Flow sem nome' },
+        )}
+        confirmLabel={t('flow.deleteDraft', 'Excluir Flow')}
+        onCancel={() => setPlanToDelete(null)}
+        onConfirm={() => void deleteFlow()}
+      />
       {loading && (
         <div className={styles.loadingContainer}>
           <Spinner />
@@ -334,6 +377,17 @@ export const FlowRunsHistorySurface: React.FC<{
                 </div>
                 <Badge tone="brand">{t('flow.draftBadge', 'RASCUNHO')}</Badge>
               </button>
+              <Button
+                size="sm"
+                tone="danger"
+                disabled={deleteBusy || loading}
+                onClick={() => setPlanToDelete(plan)}
+                aria-label={t('flow.deleteFlowNamed', 'Excluir Flow: {{title}}', {
+                  title: plan.title || plan.id,
+                })}
+              >
+                <Trash2 size={13} /> {t('common.delete', 'Excluir')}
+              </Button>
             </Card>
           ))}
         </div>
