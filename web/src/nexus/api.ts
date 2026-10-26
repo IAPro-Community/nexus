@@ -147,6 +147,11 @@ export const nexus = {
     ),
   getComposerSession: (id: string) =>
     request<import('../types').ComposerSessionView>(`/api/v1/composer-sessions/${id}`),
+  deleteComposerSession: (id: string, expectedRevision: number) =>
+    request<{ deleted: boolean }>(
+      `/api/v1/composer-sessions/${encodeURIComponent(id)}?expected_revision=${expectedRevision}`,
+      { method: 'DELETE' },
+    ),
   addComposerTurn: (
     id: string,
     content: string,
@@ -575,6 +580,11 @@ export const nexus = {
     );
     return Array.isArray(plans) ? plans.map(normalizeWorkPlan) : [];
   },
+  deletePlan: (planId: string, expectedRevision: number) =>
+    request<{ deleted: boolean }>(
+      `/api/v1/plans/${encodeURIComponent(planId)}?expected_revision=${expectedRevision}`,
+      { method: 'DELETE' },
+    ),
   createPlan: async (
     projectId: string,
     data: {
