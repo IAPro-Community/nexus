@@ -31,7 +31,7 @@ import type {
 } from '../../types';
 import { asArray, asStringArray } from '../../lib/safeArray';
 import { flowFromWorkPlan } from './flowModel';
-import { normalizeWorkPlan } from '../../nexus/workPlan';
+import { selectRunHistoricalPlan } from './flowRunHistoricalPlan';
 import { ComposerHandoffSummary } from './ComposerHandoffSummary';
 import { flowRunStateFromMission, packageRunState } from './flowRunModel';
 import styles from './FlowRunSurface.module.scss';
@@ -112,23 +112,7 @@ export const FlowRunSurface: React.FC<{
         receipts: asArray<WorkReceipt>(nextEvidence.receipts),
       });
       setEvidenceBundle(nextBundle);
-      if (detail) {
-        // Missions use an immutable plan revision. Never project the latest
-        // mutable draft as the source of a run that started on an older revision.
-        let runPlan: WorkPlan | null = detail.plan;
-        if (detail.plan.current_revision !== current.plan_revision) {
-          const original = (detail.revisions || []).find(
-            (revision) => revision.revision === current.plan_revision,
-          );
-          try {
-            const historical = original ? normalizeWorkPlan(JSON.parse(original.snapshot_json)) : null;
-            runPlan = historical?.id === current.plan_id ? historical : null;
-          } catch {
-            runPlan = null;
-          }
-        }
-        setPlan(runPlan);
-      }
+      if (detail) setPlan(selectRunHistoricalPlan(detail, current.plan_revision));
       setError('');
     } catch (err) {
       if (!guard.isLatest(seq)) return;
