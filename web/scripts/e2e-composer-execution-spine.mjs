@@ -9,6 +9,7 @@ import {
   startFixtureServer,
   terminateProcess,
 } from './e2e-fixture.mjs';
+import { startComposerIntelligenceMock, configureComposerIntelligence } from './e2e-composer-intelligence-mock.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
@@ -31,6 +32,7 @@ Do not push, merge, deploy, or weaken existing authentication controls.`;
 
 let fixture;
 let browser;
+let intelligenceMock;
 
 async function getJSON(context, url) {
   const response = await context.request.get(url, { headers: { Accept: 'application/json' } });
@@ -53,6 +55,11 @@ async function main() {
 
   const session = await getJSON(context, `${apiOrigin}/api/v1/session`);
   assert.ok(session.csrf_token, 'authenticated fixture must expose a CSRF token');
+  intelligenceMock = await startComposerIntelligenceMock();
+  const intelligence = await configureComposerIntelligence(
+    context, apiOrigin, session.csrf_token, project.id, intelligenceMock,
+  );
+  assert.equal(intelligence.available, true, 'mock Intelligence must be available before Composer');
 
   const prepare = await context.request.post(
     `${apiOrigin}/api/v1/projects/${project.id}/context/prepare`,
@@ -313,6 +320,9 @@ main()
     }
     if (fixture?.server) {
       await terminateProcess(fixture.server);
+    }
+    if (intelligenceMock) {
+      try { await intelligenceMock.close(); } catch (_) {}
     }
     if (fixture?.isolatedDataDir && !process.env.NEXUS_E2E_DATA_DIR) {
       try {
