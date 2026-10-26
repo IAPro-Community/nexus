@@ -251,6 +251,12 @@ export const WorkspaceSurfaceHost: React.FC<{
             openSurface(flowRunSurface(run.id, `Flow Run · ${(run.id || '').slice(-6)}`))
           }
           onOpenFlowDrafts={() => open('missions')}
+          onOpenIntelligenceSettings={() =>
+            openSurface({
+              ...projectSurface(project.id, 'settings'),
+              data: { settingsTab: 'intelligence' },
+            })
+          }
         />
       );
     }
@@ -491,7 +497,12 @@ export const WorkspaceSurfaceHost: React.FC<{
     if (surface.type === 'sessions') return <SessionsSurface agents={agents} />;
 
     if (surface.type === 'settings')
-      return <SettingsSurface onTour={onTour} initialTab={settingsInitialTab} />;
+      return (
+        <SettingsSurface
+          onTour={onTour}
+          initialTab={surface.data?.settingsTab === 'intelligence' ? 'intelligence' : settingsInitialTab}
+        />
+      );
 
     if (surface.type === 'legacy-providers') {
       return (
