@@ -31,6 +31,7 @@ import type {
 } from '../../types';
 import { asArray, asStringArray } from '../../lib/safeArray';
 import { flowFromWorkPlan } from './flowModel';
+import { ComposerHandoffSummary } from './ComposerHandoffSummary';
 import { flowRunStateFromMission, packageRunState } from './flowRunModel';
 import styles from './FlowRunSurface.module.scss';
 import { createRefreshGuard } from './flowRefreshGuard';
@@ -442,6 +443,8 @@ export const FlowRunSurface: React.FC<{
           </div>
         </Card>
       )}
+
+      <ComposerHandoffSummary plan={plan} execution />
 
       {missionTeam && (
         <Card className="nx-flow-run-overview" data-mission-team="true">
