@@ -37,14 +37,15 @@ a seleção de uma aparência diferente não exige reinicialização.
 
 ## Animações de caráter exclusivamente visual
 
-O NEX utiliza o sprite canônico em `web/src/features/hud/NexPixelSprite.tsx`, desenhado em SVG com pixels geométricos e CSS Modules. O antigo robô retangular genérico foi substituído na camada visual; o componente de integração `GuardianMascot.tsx`, suas props, a apresentação BAR/MASCOT/TRAY e o Core são preservados.
+O NEX utiliza a arte canônica em `web/src/features/hud/NexPixelSprite.tsx`, desenhada em SVG com acabamento vetorial 32-bit-inspired e CSS Modules. O antigo robô retangular genérico foi substituído na camada visual; o componente de integração `GuardianMascot.tsx`, suas props, a apresentação BAR/MASCOT/TRAY e o Core são preservados.
 Não depende de vídeos, assets externos, WebGL ou URLs remotas.
 
 | Estado | Fonte | Comportamento |
 | --- | --- | --- |
 | Ocioso | Sem agentes trabalhando, sem intervenção | Flutuação lenta e piscada |
 | Trabalhando | Agentes em status WORKING | Movimento curto de trabalho e sinal acelerado |
-| Atenção | Alertas/mission que exigem atenção | Balanço breve e balão `Atenção!` |
+| Atenção | Alertas/mission que exigem atenção | Balanço breve, olhos laranja e indicação de intervenção somente com evidência |
+| Crítico | Atenção com severidade `critical` projetada pelo Companion | Olhos vermelho-rosa e sinalização de prioridade; não representa sucesso/finalização |
 | Offline | Projeção sem disponibilidade confirmada | Visual dessaturado, sem simular atividade |
 
 Em `prefers-reduced-motion: reduce`, todos os movimentos do personagem,
@@ -104,7 +105,7 @@ a última prévia permanece anterior ao Guardian.
    escolher Barra/Mascote, fechar por Escape e por clique externo.
 4. Arraste: usar alça do Mascote e da Barra, teclas de direção,
    várias escalas DPI, monitores múltiplos e desconexão de monitor.
-5. Animar: capturar vídeo real das sequências ocioso, trabalhando, atenção,
+5. Animar: capturar vídeo real das sequências ocioso, trabalhando, atenção, crítico,
    offline e `prefers-reduced-motion`; não aceitar flicker, popup em branco
    ou disparos infinitos de avisos.
 6. Click-through: clicar em pontos vazios do retângulo nativo com outro
@@ -128,7 +129,7 @@ nem liberação automática do novo modo nesta etapa.
 
 ## Identidade oficial NEX 32 bits (23/10/2026)
 
-A atualização do desenho é exclusivamente de apresentação: ela não adiciona novos moods nem modifica os estados canônicos `idle`, `working`, `warning` e `offline`. O símbolo/logo institucional do Nexus permanece inalterado. O sprite usa `viewBox=128x128` dentro da área existente de exibição (aproximadamente 92px), mantendo a janela nativa e a área clicável anteriores; atenção operacional continua indicada pelo balão e atributos acessíveis da integração.
+A atualização do desenho é exclusivamente de apresentação: ela não inventa estados operacionais. O runtime atual contempla `idle`, `working`, `warning`, `critical` e `offline`; a apresentação `attention` do Companion é convertida em `warning` no sprite. O símbolo/logo institucional do Nexus permanece inalterado. O sprite usa `viewBox=128x128` dentro da área existente de exibição (aproximadamente 92px), mantendo a janela nativa e a área clicável anteriores; atenção operacional continua indicada pelo balão e atributos acessíveis da integração.
 
 A aprovação visual estabelece NEX frontal como mascote oficial. O logotipo institucional permanece inalterado; ver [contrato visual](../design/NEX_32BIT_VISUAL_CONTRACT.md). O asset Compact é código-fonte editável, e Standard/Hero são derivados visuais previstos, não artefatos já disponíveis.
 
