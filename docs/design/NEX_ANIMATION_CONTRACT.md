@@ -55,6 +55,19 @@ Em `GuardianMascot.tsx`, `CompanionMood.attention` é apresentado como `Guardian
 
 **Hero:** movimentos de apresentação do site podem usar parallax/partículas e transições, mas **não** inventar gestos humanos nem modificar os cinco estados da v1. Não replicar uma imagem da prancha como frames diferentes sem mesmo master em camadas.
 
+## Prévia local sem executar o HUD nativo
+
+Após instalar as dependências do `web/`, execute:
+
+```bash
+cd web
+npm run art:nex:preview
+```
+
+O comando exporta os cinco SVGs a partir do **mesmo** `NexPixelSprite.tsx`, compila o SCSS real de animações e gera `web/dist/nex-motion-preview.html`. Abra esse arquivo no navegador, troque entre os cinco estados e teste a opção **Desativar animações**.
+
+Essa página é apenas um auxílio à inspeção visual. Ela não representa o comportamento das janelas nativas nem homologa DPI, click-through, transparência, arraste ou bandeja.
+
 ## Critérios de homologação
 
 1. `web/src/features/hud/GuardianMascot.test.tsx` valida duas aletas, quatro módulos e posicionamento de âncora no DOM.
