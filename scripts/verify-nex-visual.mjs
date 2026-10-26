@@ -133,6 +133,44 @@ if (highFidelity) {
     }
   }
 }
+const animation = manifest.animation;
+check(Boolean(animation), 'manifest has no NEX animation contract');
+if (animation) {
+  check(animation.implementation === 'CSS_SVG_ARTICULATED',
+    'NEX animation implementation changed without visual review');
+  check(animation.spriteSheetPublished === false,
+    'cannot claim a sprite sheet unless a real atlas has been published');
+  const animationDocument = read(animation.contract);
+  const spriteStyles = read(animation.runtimeStyles);
+  const companionStyles = read(animation.interactionStyles);
+  const integration = read('web/src/features/hud/GuardianMascot.tsx');
+  check(animationDocument.includes('quatro') && animationDocument.includes('offline'),
+    'animation contract omits canonical anatomy or idle safety');
+  check(integration.includes("data-motion={motionEnabled ? 'on' : 'off'}"),
+    'NEX Guardian no longer projects requested motion mode');
+  for (const className of ['nexFinLeft', 'nexFinRight', 'nexOrbitFront', 'nexModuleNear', 'nexModuleFar']) {
+    check(source.includes(`styles.${className}`),
+      `missing independently articulated SVG layer: ${className}`);
+    check(spriteStyles.includes(`.${className}`),
+      `missing animation styles for NEX layer: ${className}`);
+  }
+  for (const part of ['data-nex-fin="left"', 'data-nex-fin="right"', 'data-nex-part="orbit-front"']) {
+    check(source.includes(part), `missing SVG anatomy marker: ${part}`);
+  }
+  for (const keyframe of ['nex-fin-left', 'nex-fin-right', 'nex-module-hover',
+    'nex-module-hover-reverse', 'nex-reactor-work']) {
+    check(spriteStyles.includes(`@keyframes ${keyframe}`),
+      `missing approved motion keyframes: ${keyframe}`);
+  }
+  check(spriteStyles.includes(".guardian[data-motion='off'] .guardianSprite *"),
+    'explicitly disabled motion does not cover child SVG groups');
+  check(spriteStyles.includes('@media (prefers-reduced-motion: reduce)') &&
+    spriteStyles.includes('.guardian[data-motion] .guardianSprite *'),
+    'reduced-motion override does not cover the articulated groups');
+  check(companionStyles.includes(".root[data-motion='off'] .guardianButton svg"),
+    'hover still animates when the user disables motion');
+}
+
 check(contract.includes('assets/nex/nex-character-reference.svg'),
   'contract lacks original frontend anatomy drawing');
 check(contract.includes('NEX_VISUAL_MANIFEST.json'), 'contract lacks machine-readable manifest');
