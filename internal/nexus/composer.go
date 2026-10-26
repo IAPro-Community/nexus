@@ -79,27 +79,56 @@ func ReviewComposerPrompt(brief LivingBrief) ComposerPromptReview {
 	return review
 }
 
+// AssessComposerFlowSuitability recommends a destination, not an execution
+// decision. It relies on observed brief characteristics and explicit intent;
+// availability, cost and real resource admission are still checked at GO.
 func AssessComposerFlowSuitability(brief LivingBrief) FlowSuitabilityAssessment {
 	signals, reasons := []string{}, []string{}
+	score := 0
+	add := func(points int, signal, reason string) {
+		score += points
+		signals = append(signals, signal)
+		reasons = append(reasons, reason)
+	}
 	if len(brief.Scope.InScope) >= 2 {
-		signals = append(signals, "multiple-workstreams")
-		reasons = append(reasons, "há múltiplas frentes no escopo")
+		add(2, "multiple-workstreams", "há frentes independentes que podem exigir coordenação")
 	}
 	if len(brief.Quality.Review) > 0 {
-		signals = append(signals, "independent-review")
-		reasons = append(reasons, "há revisão adicional")
+		add(1, "independent-review", "o plano prevê revisão independente")
 	}
-	if len(brief.Constraints.Security)+len(brief.Risks) > 0 {
-		signals = append(signals, "risk-or-gates")
-		reasons = append(reasons, "há risco ou restrição que beneficia gates")
+	if len(brief.Constraints.Security)+len(brief.Constraints.Compliance) > 0 {
+		add(2, "safety-gates", "regras de segurança ou conformidade exigem gates explícitos")
 	}
-	if len(signals) >= 3 {
+	if len(brief.Risks) > 0 {
+		add(1, "material-risks", "há riscos identificados para acompanhar e verificar")
+	}
+	text := strings.ToLower(strings.Join([]string{brief.Goal, brief.SourcePrompt, brief.Intent.Objective}, " "))
+	if composerContainsAny(text, "parallel", "paralel", "dependenc", "dependên", "dependency", "depende de") {
+		add(3, "dependency-or-parallelism", "o pedido descreve dependências ou trabalho paralelo")
+	}
+	if composerContainsAny(text, "multiple agents", "multi-agent", "múltiplos agentes", "varios agentes", "vários agentes", "especialistas simult") {
+		add(3, "multiple-agents", "há necessidade explícita de vários agentes")
+	}
+	if composerContainsAny(text, "long-running", "longa duração", "longa duracao", "retomada", "reiniciar e continuar", "survive restart", "recovery") {
+		add(3, "durable-execution", "o trabalho precisa sobreviver a interrupções ou ser retomado")
+	}
+	if composerContainsAny(text, "deploy em produção", "deploy in production", "migração de dados", "database migration", "produção sem parar") {
+		add(2, "high-impact-operation", "mudanças de alto impacto requerem controle e evidências")
+	}
+	if score >= 4 {
 		return FlowSuitabilityAssessment{FlowStronglyRecommended, reasons, signals}
 	}
-	if len(signals) > 0 {
+	if score >= 2 {
 		return FlowSuitabilityAssessment{FlowBeneficial, reasons, signals}
 	}
-	return FlowSuitabilityAssessment{FlowDirectFit, []string{"execução direta é suficiente para este escopo"}, signals}
+	if score > 0 {
+		return FlowSuitabilityAssessment{
+			FlowDirectFit,
+			[]string{"um único Agent pode executar este escopo; revisão e riscos continuam necessários"},
+			signals,
+		}
+	}
+	return FlowSuitabilityAssessment{FlowDirectFit, []string{"o escopo conhecido cabe em execução direta; Flow continua disponível para organização manual"}, signals}
 }
 
 func (n *Nexus) CreateComposerSession(ctx context.Context, projectID, goal string) (*ComposerSessionView, error) {
