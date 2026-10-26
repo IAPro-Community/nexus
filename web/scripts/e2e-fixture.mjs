@@ -47,6 +47,7 @@ export async function startFixtureServer({ composerFlow = false } = {}) {
   const serverEnv = {
     ...process.env,
     NEXUS_DATA_DIR: isolatedDataDir,
+    NEXUS_CONFIG_DIR: path.join(isolatedDataDir, 'config'),
     AI_MANAGER_DATA_DIR: isolatedDataDir,
     NEXUS_E2E_PROJECT_PATH: isolatedProjectPath,
   };
