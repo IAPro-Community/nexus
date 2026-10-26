@@ -222,6 +222,26 @@ func (s *Store) DeleteComposerSessionExpected(id string, expectedRevision int) e
 			plans.Close()
 			return ErrComposerDeleteProtected
 		}
+		// Imported/cloned plans may carry only the versioned Composer handoff,
+		// without older flattened nexus.source_artifact_id fields.
+		if raw := strings.TrimSpace(facts["composer.handoff.v1"]); raw != "" {
+			var handoff struct {
+				SessionID string `json:"session_id"`
+				ArtifactID string `json:"artifact_id"`
+			}
+			if err := json.Unmarshal([]byte(raw), &handoff); err != nil {
+				plans.Close()
+				return fmt.Errorf("cannot verify imported Composer handoff before deletion: %w", err)
+			}
+			if handoff.SessionID == id {
+				plans.Close()
+				return ErrComposerDeleteProtected
+			}
+			if _, linked := artifacts[handoff.ArtifactID]; linked {
+				plans.Close()
+				return ErrComposerDeleteProtected
+			}
+		}
 	}
 	if err := plans.Err(); err != nil { plans.Close(); return err }
 	plans.Close()
