@@ -79,3 +79,21 @@ revisões imutáveis, composição sem IA, persistência de histórico, permiss�
 do usuário no replanejamento e navegação em abas já montadas.
 
 **Não declarar release estável sem validação local e por plataforma.**
+
+
+## Excluir Flows
+
+No Flow Studio, na área de rascunhos, cada Flow possui a ação **Excluir**.
+O editor também oferece **Excluir Flow**. Ambas apresentam confirmação
+explícita e enviam `DELETE /api/v1/plans/{id}?expected_revision=N`.
+
+A exclusão é definitiva apenas para Flows sem Mission, snapshot de execução
+ou agendamento. Isso é validado pelo armazenamento em uma transação antes
+do delete: um Flow usado em execução passa a integrar a trilha histórica e
+não pode ser apagado em cascata, nem mesmo depois de a Mission terminar.
+O Nexus retorna HTTP 409 explicando o impedimento ou uma revisão obsoleta.
+A lista e a seleção local são atualizadas após exclusão bem-sucedida.
+
+Quando o Flow veio de um Composer, remover esse Flow não remove a elaboração
+original automaticamente; o usuário pode excluí-la separadamente após
+remover todas as dependências.
