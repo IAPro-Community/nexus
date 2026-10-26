@@ -203,6 +203,7 @@ type LivingBrief struct {
 	Decisions     []string               `json:"decisions,omitempty"`
 	Assumptions   []PromptAssumption     `json:"assumptions,omitempty"`
 	Alternatives  []string               `json:"alternatives,omitempty"`
+	Recommendations []ComposerFact       `json:"recommendations,omitempty"`
 	Risks         []string               `json:"risks,omitempty"`
 	Unknowns      []PromptUnknown        `json:"unknowns,omitempty"`
 	OpenQuestions []string               `json:"open_questions,omitempty"`
@@ -594,6 +595,30 @@ func applyBriefExtraction(brief *LivingBrief, ext *intelligence.BriefExtraction)
 	merge("deliverable.expected_artifacts", &brief.Deliverable.ExpectedArtifacts, ext.Deliverables)
 	merge("environment.stack", &brief.Environment.Stack, ext.Stack)
 	merge("context.existing_state", &brief.Context.ExistingState, ext.ExistingState)
+	for _, raw := range ext.RecommendedApproaches {
+		value := strings.TrimSpace(raw)
+		if value == "" || len(brief.Recommendations) >= 4 {
+			continue
+		}
+		if len(value) > 500 {
+			value = value[:500]
+		}
+		alreadyProposed := false
+		for _, recommendation := range brief.Recommendations {
+			if recommendation.Value == value {
+				alreadyProposed = true
+				break
+			}
+		}
+		if !alreadyProposed {
+			brief.Recommendations = append(brief.Recommendations, ComposerFact{
+				ID: fmt.Sprintf("recommendation-%d", len(brief.Recommendations)+1),
+				Field: "recommendations", Value: value, SourceType: "INTELLIGENCE",
+				Confidence: "MEDIUM", Status: ComposerFactProposed,
+				Revision: 1, UpdatedAt: now,
+			})
+		}
+	}
 }
 
 func computePromptReadiness(brief LivingBrief) PromptReadiness {
@@ -692,6 +717,7 @@ func renderCanonicalPrompt(brief LivingBrief) string {
 	writePromptList(&b, "Requirements", brief.Scope.InScope)
 	writePromptList(&b, "Out of scope", brief.Scope.OutOfScope)
 	writePromptList(&b, "Decisions", brief.Decisions)
+	writePromptList(&b, "Suggested approaches (AI proposals; validate before implementing)", factsToLines(brief.Recommendations))
 	writePromptList(&b, "Assumptions", flattenAssumptionsToLines(brief.Assumptions))
 	writePromptList(&b, "Constraints — Technical", brief.Constraints.Technical)
 	writePromptList(&b, "Constraints — Product", brief.Constraints.Product)
