@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { ClipboardCopy, RefreshCw } from 'lucide-react';
-import { Button } from '../../design-system';
+import { ClipboardCopy, RefreshCw, Trash2 } from 'lucide-react';
+import { Button, ConfirmDialog } from '../../design-system';
 import { nexus } from '../../nexus/api';
 import type { ComposerSession, ComposerSessionView } from '../../types';
 import styles from './WorkSurface.module.scss';
@@ -19,6 +19,8 @@ export const ComposerReadOnlyHistory: React.FC<{
   const [selectedId, setSelectedId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -48,6 +50,24 @@ export const ComposerReadOnlyHistory: React.FC<{
     return () => { active = false; };
   }, [selectedId]);
 
+  const deleteSavedSession = async () => {
+    if (!view || deleteBusy) return;
+    setDeleteOpen(false);
+    setDeleteBusy(true);
+    setError('');
+    try {
+      await nexus.deleteComposerSession(view.session.id, view.session.revision);
+      const remaining = await nexus.listComposerSessions(projectId);
+      setSessions(remaining || []);
+      setView(null);
+      setSelectedId(remaining?.[0]?.id || '');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
   return (
     <div className={`nx-surface-scroll nx-composer-surface ${styles.workbench}`}>
       <section className={styles.contextFix} aria-label="Nexus Intelligence">
@@ -63,7 +83,7 @@ export const ComposerReadOnlyHistory: React.FC<{
         </div>
       </section>
       <section className={styles.contextFix} aria-label="Histórico do Composer">
-        <h3>Histórico de planejamentos (somente leitura)</h3>
+        <h3>Histórico de planejamentos</h3>
         {loading && <p role="status">Carregando sessões salvas…</p>}
         {error && <p role="alert" className="nx-inline-error">{error}</p>}
         {!loading && !sessions.length && <p>Nenhum planejamento salvo neste projeto.</p>}
@@ -85,6 +105,14 @@ export const ComposerReadOnlyHistory: React.FC<{
             <h4>{view.session.title}</h4>
             <p>{view.brief.goal}</p>
             <p>Estado: {view.session.state} · Revisão: {view.session.revision}</p>
+            <Button
+              size="sm"
+              tone="danger"
+              disabled={deleteBusy}
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2 size={13} /> Excluir elaboração
+            </Button>
             {(view.brief.decisions || []).length > 0 && (
               <>
                 <h5>Decisões registradas</h5>
@@ -109,6 +137,14 @@ export const ComposerReadOnlyHistory: React.FC<{
           </article>
         )}
       </section>
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Excluir elaboração"
+        description={`Excluir "${view?.session.title || ''}" e o histórico de suas decisões? Ação irreversível. Se houver um Flow ou uma entrega dependente, a exclusão será bloqueada.`}
+        confirmLabel="Excluir elaboração"
+        onCancel={() => setDeleteOpen(false)}
+        onConfirm={() => void deleteSavedSession()}
+      />
     </div>
   );
 };
