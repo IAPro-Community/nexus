@@ -120,4 +120,5 @@ Em qualquer tarefa sobre **mascote, HUD Guardian, onboarding com NEX, sprites, a
 3. NEX é **um único robô frontal, 32-bit-inspired**, com duas aletas, dois acoplamentos laterais, um núcleo circular e quatro módulos orbitais destacados (dois laterais, dois inferiores). Não trocar por mascote genérico, nem alterar a marca Nexus.
 4. Preserve o Core, os estados observados `idle/working/warning/critical/offline`, a acessibilidade e o modo sem animações; não inferir sucesso ou progresso.
 5. Para código ou documentação que altera NEX, execute `node scripts/verify-nex-visual.mjs`, anexe antes/depois e registre divergências, além dos gates habituais.
-6. Standard/Hero ainda não têm masters de produção; **não** descrever pranchas auxiliares como arte raster original aprovada nem como screenshot real.
+6. Para modificar movimentos, inspecione também [contrato de animação](docs/design/NEX_ANIMATION_CONTRACT.md): movimentos só em camadas internas, nunca no transform de âncora dos módulos; o modo sem animações e `prefers-reduced-motion` precisam desativar tudo, inclusive hover.
+7. Standard/Hero ainda não têm masters de produção; **não** descrever pranchas auxiliares como arte raster original aprovada nem como screenshot real.
