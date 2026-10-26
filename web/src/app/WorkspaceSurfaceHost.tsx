@@ -275,6 +275,9 @@ export const WorkspaceSurfaceHost: React.FC<{
             } catch {
               /* Navigation still opens the Composer if storage is unavailable. */
             }
+            window.dispatchEvent(new CustomEvent('nexus:composer:focus', {
+              detail: { projectId: project.id, sessionId },
+            }));
             open('work');
           }}
         />
