@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -18,6 +19,8 @@ type TerminalOutputScrubber struct {
 	pending              []byte
 	drop                 func([]byte) bool
 	inputMetadata        bool
+	mouseState           *TerminalMouseState
+	forwardMouse         bool
 	flushIncompleteAfter time.Duration
 	flushTimer           *time.Timer
 	flushGeneration      uint64
@@ -50,6 +53,84 @@ func NewTerminalInputScrubber(out io.Writer) *TerminalOutputScrubber {
 		inputMetadata:        true,
 		flushIncompleteAfter: terminalInputEscapeCoalesceWindow,
 	}
+}
+
+// TerminalMouseState records tracking modes requested by the child TUI, not
+// unsolicited mouse reports from the outer emulator. The final host input
+// boundary only accepts mouse events while tracking is enabled.
+type TerminalMouseState struct {
+	modes atomic.Uint32
+}
+
+func (m *TerminalMouseState) Enabled() bool {
+	return m != nil && m.modes.Load() != 0
+}
+
+func (m *TerminalMouseState) ObserveOutputSequence(sequence []byte) {
+	if m == nil || len(sequence) < 5 || sequence[0] != 0x1b || sequence[1] != '[' {
+		return
+	}
+	final := sequence[len(sequence)-1]
+	if final != 'h' && final != 'l' {
+		return
+	}
+	body := string(sequence[2 : len(sequence)-1])
+	if !strings.HasPrefix(body, "?") {
+		return
+	}
+	var bits uint32
+	for _, mode := range strings.Split(body[1:], ";") {
+		switch mode {
+		case "9":
+			bits |= 1 // X10 mouse tracking
+		case "1000":
+			bits |= 2 // normal mouse tracking
+		case "1002":
+			bits |= 4 // button-event tracking
+		case "1003":
+			bits |= 8 // any-event tracking
+		}
+	}
+	if bits == 0 {
+		return
+	}
+	for {
+		before := m.modes.Load()
+		after := before | bits
+		if final == 'l' {
+			after = before &^ bits
+		}
+		if m.modes.CompareAndSwap(before, after) {
+			return
+		}
+	}
+}
+
+// Output negotiation must reach xterm/host TTY so cursor and mouse modes
+// work. The same parser updates the host's mouse admission state even when
+// escape sequences arrive fragmented across PTY reads.
+func NewTerminalOutputScrubberTrackingMouse(out io.Writer, state *TerminalMouseState) *TerminalOutputScrubber {
+	s := NewTerminalOutputScrubber(out)
+	s.mouseState = state
+	return s
+}
+
+// Upstream WebSocket/CLI filters may pass complete mouse packets through.
+// The SessionHost still validates the child-negotiated tracking state.
+func NewTerminalInputScrubberAllowMouse(out io.Writer) *TerminalOutputScrubber {
+	s := NewTerminalInputScrubber(out)
+	s.forwardMouse = true
+	return s
+}
+
+func NewTerminalInputScrubberWithMouseState(out io.Writer, state *TerminalMouseState) *TerminalOutputScrubber {
+	s := NewTerminalInputScrubber(out)
+	s.mouseState = state
+	return s
+}
+
+func (s *TerminalOutputScrubber) mouseForwardAllowed() bool {
+	return s.forwardMouse || s.mouseState.Enabled()
 }
 
 func (s *TerminalOutputScrubber) Write(p []byte) (int, error) {
@@ -211,6 +292,9 @@ func (s *TerminalOutputScrubber) flushLocked(final bool) error {
 			}
 			mouse := s.pending[pos : pos+6]
 			if mouse[3] >= 0x20 && mouse[4] >= 0x20 && mouse[5] >= 0x20 {
+				if s.mouseForwardAllowed() {
+					clean = append(clean, mouse...)
+				}
 				pos += 6
 				continue
 			}
@@ -252,7 +336,14 @@ func (s *TerminalOutputScrubber) flushLocked(final bool) error {
 		}
 
 		sequence := s.pending[pos : end+1]
-		if s.drop == nil || !s.drop(sequence) {
+		if !s.inputMetadata {
+			s.mouseState.ObserveOutputSequence(sequence)
+		}
+		drop := s.drop != nil && s.drop(sequence)
+		if drop && s.inputMetadata && s.mouseForwardAllowed() && isMouseInputSequence(sequence) {
+			drop = false
+		}
+		if !drop {
 			clean = append(clean, sequence...)
 		}
 		pos = end + 1
@@ -282,18 +373,10 @@ func isKeyboardNegotiation(sequence []byte) bool {
 		// parameter beginning with '>'.
 		return len(body) > 0 && body[0] == '>'
 	case 'h', 'l':
-		// Private modes that affect the outer terminal's input protocols.
-		// DECCKM changes arrows from CSI to SS3 and mouse/focus modes generate
-		// unsolicited input reports. The provider owns its inner PTY state; it
-		// must not reconfigure the outer Nexus terminal transport. Bracketed
-		// paste (?2004) is intentionally permitted so multiline paste reaches
-		// the provider atomically instead of submitting line-by-line.
-		switch string(body) {
-		case "?1", "?1000", "?1002", "?1003", "?1004", "?1005", "?1006", "?1007", "?1015", "?1016":
-			return true
-		default:
-			return false
-		}
+		// Preserve DECCKM (?1), mouse tracking and mouse encodings: xterm
+		// must see those negotiations to send the correct keys and clicks.
+		// Unsolicited focus reports remain filtered from provider input.
+		return string(body) == "?1004"
 	default:
 		return false
 	}
@@ -318,21 +401,31 @@ func isTerminalInputMetadata(sequence []byte) bool {
 		// Cursor-position reports are terminal metadata, never user input.
 		return numericCSIParameters(body)
 	case 'M', 'm':
-		// SGR mouse reports use CSI <button;x;y M/m.
-		if len(body) > 1 && body[0] == '<' && numericCSIParameters(body[1:]) {
-			return true
-		}
-		// Older terminals use URXVT 1015 tracking: CSI button;x;y M,
-		// typically button 96/97 for scroll. Requiring three numeric fields
-		// and button >= 32 avoids eating unrelated CSI commands.
-		if final == 'M' {
-			fields := bytesSplitMouseParameters(body)
-			return len(fields) == 3 && fields[0] >= 32
-		}
-		return false
+		return isMouseInputSequence(sequence)
 	default:
 		return false
 	}
+}
+
+// isMouseInputSequence recognizes complete mouse reports only; cursor keys
+// and text remain distinct even when input packets are coalesced.
+func isMouseInputSequence(sequence []byte) bool {
+	if len(sequence) < 4 || sequence[0] != 0x1b || sequence[1] != '[' {
+		return false
+	}
+	final := sequence[len(sequence)-1]
+	if final != 'M' && final != 'm' {
+		return false
+	}
+	body := sequence[2 : len(sequence)-1]
+	if len(body) > 1 && body[0] == '<' && numericCSIParameters(body[1:]) {
+		return true
+	}
+	if final == 'M' {
+		fields := bytesSplitMouseParameters(body)
+		return len(fields) == 3 && fields[0] >= 32
+	}
+	return false
 }
 
 // bytesSplitMouseParameters recognizes only complete numeric URXVT packets.
