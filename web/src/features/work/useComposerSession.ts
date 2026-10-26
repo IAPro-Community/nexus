@@ -201,6 +201,18 @@ export function useComposerSession(project: Project) {
       setArtifact(latestComposerArtifact(loaded));
     });
 
+  const deleteSession = (sessionId: string, expectedRevision: number) =>
+    runBusy(async () => {
+      await nexus.deleteComposerSession(sessionId, expectedRevision);
+      if (view?.session.id === sessionId) {
+        conversationAbort.current?.abort();
+        setView(null);
+        setArtifact(null);
+        setBootstrapActivity(null);
+      }
+      await refreshSessions();
+    });
+
   const create = ({ mode, interviewMode, draft, sourcePrompt }: ComposerStartCreateArgs) =>
     runBusy(
       async () => {
@@ -487,6 +499,7 @@ export function useComposerSession(project: Project) {
     copy,
     sendToAgent,
     loadSession,
+    deleteSession,
     resetSession,
   };
 }
