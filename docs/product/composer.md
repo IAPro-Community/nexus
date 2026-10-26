@@ -48,3 +48,31 @@ GO, verificações e conclusão com evidência continuam governados pelos sistem
 - As versões finais precisam de homologação real por SHA e plataforma. Alteração de código na `release/v1.0.0` não significa distribuição estável certificada.
 
 Consulte também [guia operacional](composer-guide.md), [Flow](flow.md) e [status da release](../release-status.md).
+
+## Continuidade com Flow e Missions
+
+Ao finalizar a elaboração, o usuário pode escolher Agent ou **Turn into Flow**.
+O Flow recomendado é calculado a partir do escopo, revisão, dependências,
+paralelismo, múltiplos agentes e requisitos de execução durável. A recomendação
+não substitui a decisão humana, tampouco o `ExecutionPreview`.
+
+A transferência produz `composer.handoff.v1`: versão do artefato, hash,
+respostas aprovadas, hipóteses, sugestões ainda não aprovadas, questões
+bloqueantes, critérios de aceite e origem. O Flow projeta esse registro no
+editor e na Mission; não copia ou atualiza silenciosamente a sessão.
+
+Campos sugeridos pela IA mas não confirmados recebem a marca
+`AI-INFERRED` no prompt executável; apenas fatos CONFIRMED podem ser promovidos
+para fatos diretos do WorkPlan. Uma questão BLOCKING não respondida aparece
+como bloqueio no Execution Preview, sendo revalidada na admissão.
+
+Durante o Flow Run, o usuário pode escolher **Reavaliar planejamento no
+Composer**. Essa ação cria uma **nova sessão** de descoberta usando a origem
+da Mission e a revisão histórica disponível, e não altera a execução ativa ou
+o `ExecutionSnapshot`. Se não houver snapshot histórico, o Composer avisa
+explicitamente que não há evidência para presumir o conteúdo daquela revisão.
+
+Com a IA offline, o histórico do Composer permanece visível para leitura e
+cópia de artefatos. Todas as mutações de elaboração seguem bloqueadas até que
+Nexus Intelligence esteja configurada e utilizável. O acesso a Direct, Agents
+e às operações do MissionRunner continua independente.
