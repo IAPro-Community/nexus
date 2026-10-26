@@ -266,9 +266,43 @@ func (s *Store) UpdateWorkPlan(p WorkPlan, changeSummary string) (*WorkPlan, *Pl
 	return &p, &rev, nil
 }
 
+// ErrPlanDeleteProtected prevents cascaded destruction of durable Mission
+// evidence and scheduled work. A used plan is a historical execution record.
+var ErrPlanDeleteProtected = fmt.Errorf("flow has Mission history or schedules; deletion would destroy execution evidence")
+
+// DeleteWorkPlan removes only an unused draft. SQLite FK cascades otherwise
+// delete Mission runs, execution snapshots and validation receipts: always
+// inspect dependencies in the same write transaction before deleting.
 func (s *Store) DeleteWorkPlan(id string) error {
-	_, err := s.db.Exec(`DELETE FROM work_plans WHERE id=?`, id)
-	return err
+	return s.DeleteWorkPlanExpected(id, 0)
+}
+
+func (s *Store) DeleteWorkPlanExpected(id string, expectedRevision int) error {
+	tx, err := s.db.Begin()
+	if err != nil { return err }
+	defer tx.Rollback()
+	var currentRevision int
+	if err := tx.QueryRow(`SELECT current_revision FROM work_plans WHERE id=?`, id).Scan(&currentRevision); err != nil {
+		return err
+	}
+	if expectedRevision > 0 && currentRevision != expectedRevision {
+		return ErrPlanRevisionConflict
+	}
+	for _, query := range []string{
+		`SELECT EXISTS(SELECT 1 FROM mission_runs WHERE plan_id=?)`,
+		`SELECT EXISTS(SELECT 1 FROM execution_snapshots WHERE plan_id=?)`,
+		`SELECT EXISTS(SELECT 1 FROM mission_schedules WHERE plan_id=?)`,
+	} {
+		var used int
+		if err := tx.QueryRow(query, id).Scan(&used); err != nil { return err }
+		if used != 0 { return ErrPlanDeleteProtected }
+	}
+	res, err := tx.Exec(`DELETE FROM work_plans WHERE id=? AND current_revision=?`, id, currentRevision)
+	if err != nil { return err }
+	if count, err := res.RowsAffected(); err != nil { return err } else if count != 1 {
+		return ErrPlanRevisionConflict
+	}
+	return tx.Commit()
 }
 
 func (s *Store) ListPlanRevisions(planID string) ([]PlanRevision, error) {
