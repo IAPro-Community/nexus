@@ -1,5 +1,5 @@
 /**
- * Export four static SVG renders from the same React source used by the HUD.
+ * Export five canonical static SVG renders from the same React source used by the HUD.
  * This prevents a second, drifting mascot design for docs/marketing assets.
  *
  * Usage: node scripts/export-nex-art.mjs [--check]
@@ -52,7 +52,7 @@ try {
   }
   if (!check) await mkdir(outputDir, { recursive: true });
 
-  for (const mood of ['idle', 'working', 'warning', 'offline']) {
+  for (const mood of ['idle', 'working', 'warning', 'critical', 'offline']) {
     const rendered = renderToStaticMarkup(React.createElement(NexPixelSprite, { mood }));
     if (!rendered.includes('data-nex-art="32bit-official"') ||
         !rendered.includes('data-nex-facing="front"')) {
