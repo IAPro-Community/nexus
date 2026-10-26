@@ -88,3 +88,42 @@ Windows/macOS before declaring cross-platform support.
   installation in addition to the fake provider E2E.
 - Review release truth, CSS/accessibility and legacy E2E expectations before
   moving the beta release gate to PASS.
+
+## Cleanup regression addendum — Composer + Flow deletion
+
+The UI now exposes `Excluir elaboração` on the Composer header and saved
+sessions (including Intelligence-OFF history), and `Excluir Flow` in the
+Flow Studio draft gallery and the active draft editor.
+
+The DELETE endpoints require `expected_revision` and check foreign-key
+dependencies **before** deleting. They are intentionally not delete-cascade
+operations for Mission history.
+
+| Validation | Expected outcome |
+| --- | --- |
+| Delete an unused Composer session | Confirmation, 200, session/turn/artifact/variant records removed |
+| Delete session with a linked Flow | 409; Composer and Flow remain intact |
+| Delete session with recorded delivery | 409; delivery provenance remains intact |
+| Delete session with stale revision | 409; no rows removed |
+| Delete session with Intelligence OFF | Cleanup allowed; new AI elaboration still blocked |
+| Delete unused Flow from gallery | 200; list refreshes, revision records removed |
+| Delete unused Flow from editor | 200; navigate back to Flow Studio |
+| Delete Flow with Mission runs/snapshots | 409; execution/evidence preserved |
+| Delete Flow with schedules | 409; schedule retained |
+| Delete Flow with legacy mission link | 409; legacy execution preserved |
+| Delete Flow with stale revision | 409; current draft remains |
+| User cancels confirmation | No DELETE request sent |
+| Windows/Linux/macOS UI | Visible, keyboard-accessible controls; no accidental card-open |
+| Mobile Flow list | Button remains reachable, not nested in open-card button |
+
+Added tests:
+- `internal/nexus/store/planning_deletion_test.go`
+- `web/src/nexus/api.test.ts`
+
+Required local commands:
+```bash
+go test ./internal/nexus/store ./internal/nexus ./internal/control/web
+cd web && npm ci && npm run test -- --run src/nexus/api.test.ts
+```
+
+**Certification remains NO_GO until these commands and GUI checks pass.**
