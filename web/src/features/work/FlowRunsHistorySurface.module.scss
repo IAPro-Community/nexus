@@ -140,6 +140,24 @@
   gap: 10px;
 }
 
+.planRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-right: 8px;
+}
+
+.planRow .runButton {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+}
+
+.deletePlanAction {
+  flex: 0 0 auto;
+}
+
 .runButton {
   width: 100%;
   display: flex;
@@ -210,6 +228,19 @@
 
   .canvasBar {
     flex-wrap: wrap;
+  }
+
+  .planRow {
+    flex-wrap: wrap;
+  }
+
+  .planRow .runButton {
+    flex-basis: 100%;
+  }
+
+  .deletePlanAction {
+    margin-left: auto;
+    min-height: var(--nx-touch-min, 44px);
   }
 
   .runButton {
