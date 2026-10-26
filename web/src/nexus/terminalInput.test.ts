@@ -55,6 +55,8 @@ describe('shouldForwardTerminalInput', () => {
     expect(stripEmbeddedTerminalMetadata('start\x1b[<0;10;4M\x1b[Ifinish', true)).toBe(
       'start\x1b[<0;10;4Mfinish',
     );
+    expect(shouldForwardTerminalInput('[<0;10;4M', true)).toBe(false);
+    expect(shouldForwardTerminalInput('[96;40;8M', true)).toBe(false);
     expect(shouldForwardTerminalInput('\x1b[I', true)).toBe(false);
     expect(shouldForwardTerminalInput('\x1b[12;34R', true)).toBe(false);
     expect(shouldForwardTerminalInput('\x1bOA', true)).toBe(true);
