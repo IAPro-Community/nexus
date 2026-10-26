@@ -85,12 +85,6 @@
   transition: transform 200ms ease-out;
 }
 
-.guardian[data-motion='off'],
-.guardian[data-motion='off'] * {
-  animation: none;
-  transition: none;
-}
-
 .guardianEyes {
   animation: guardian-blink 6.5s steps(1, end) infinite;
   transform-origin: 64px 59px;
@@ -102,9 +96,22 @@
   transition: transform 60ms steps(1, end);
 }
 
-.guardianAntenna {
-  animation: guardian-antenna 3.6s ease-in-out infinite;
-  transform-origin: 64px 27px;
+.nexFinLeft,
+.nexFinRight {
+  transform-box: view-box;
+  animation-duration: 4.8s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.nexFinLeft {
+  transform-origin: 39px 31px;
+  animation-name: nex-fin-left;
+}
+
+.nexFinRight {
+  transform-origin: 89px 31px;
+  animation-name: nex-fin-right;
 }
 
 .guardianSignal {
@@ -126,7 +133,12 @@
 }
 
 .guardianBody {
+  transform-box: view-box;
   transform-origin: 64px 92px;
+}
+
+.guardian[data-mood='working'] .guardianBody {
+  animation: nex-torso-work 1.3s ease-in-out infinite;
 }
 
 .nexReactor {
@@ -136,11 +148,33 @@
 
 .nexModuleNear,
 .nexModuleFar {
-  animation: nex-module-glow 3.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: nex-module-hover 3.4s ease-in-out infinite;
 }
 
 .nexModuleFar {
-  animation-delay: -1.7s;
+  animation-name: nex-module-hover-reverse;
+}
+
+.guardian [data-nex-module='1'] .nexModuleNear {
+  animation-delay: -0.25s;
+}
+
+.guardian [data-nex-module='2'] .nexModuleFar {
+  animation-delay: -1.4s;
+}
+
+.guardian [data-nex-module='3'] .nexModuleNear {
+  animation-delay: -1.95s;
+}
+
+.guardian [data-nex-module='4'] .nexModuleFar {
+  animation-delay: -0.8s;
+}
+
+.nexOrbitFront {
+  animation: nex-orbit-front-glow 3.2s ease-in-out infinite;
 }
 
 .nexSparkle {
@@ -160,8 +194,9 @@
   animation: guardian-attention 2.6s ease-in-out infinite;
 }
 
-.guardian[data-mood='warning'] .guardianSignal {
-  animation-duration: 0.6s;
+.guardian[data-mood='warning'] .guardianSignal,
+.guardian[data-mood='warning'] .nexOrbitFront {
+  animation-duration: 0.9s;
 }
 
 .guardian[data-mood='critical'] {
@@ -170,6 +205,15 @@
 
 .guardian[data-mood='critical'] .guardianSprite {
   animation: guardian-critical 1.1s ease-in-out infinite;
+}
+
+.guardian[data-mood='critical'] .nexFinLeft,
+.guardian[data-mood='critical'] .nexFinRight {
+  animation: none;
+}
+
+.guardian[data-mood='critical'] .nexOrbitFront {
+  animation-duration: 1.1s;
 }
 
 .guardian[data-mood='offline'] {
@@ -181,7 +225,10 @@
 }
 
 .guardian[data-mood='offline'] .guardianSignal,
-.guardian[data-mood='offline'] .guardianAntenna,
+.guardian[data-mood='offline'] .nexFinLeft,
+.guardian[data-mood='offline'] .nexFinRight,
+.guardian[data-mood='offline'] .nexOrbitFront,
+.guardian[data-mood='offline'] .guardianBody,
 .guardian[data-mood='offline'] .guardianEyes,
 .guardian[data-mood='offline'] .nexReactor,
 .guardian[data-mood='offline'] .nexModuleNear,
@@ -477,14 +524,73 @@
   }
 }
 
-@keyframes guardian-antenna {
+@keyframes nex-fin-left {
   0%,
   100% {
-    transform: rotate(-4deg);
+    transform: rotate(0);
   }
 
   50% {
-    transform: rotate(4deg);
+    transform: rotate(-2deg);
+  }
+}
+
+@keyframes nex-fin-right {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+
+  50% {
+    transform: rotate(2deg);
+  }
+}
+
+@keyframes nex-torso-work {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes nex-module-hover {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.96;
+  }
+
+  50% {
+    transform: translateY(-2px);
+    opacity: 1;
+  }
+}
+
+@keyframes nex-module-hover-reverse {
+  0%,
+  100% {
+    transform: translateY(-1px);
+    opacity: 0.95;
+  }
+
+  50% {
+    transform: translateY(1px);
+    opacity: 1;
+  }
+}
+
+@keyframes nex-orbit-front-glow {
+  0%,
+  100% {
+    opacity: 0.95;
+  }
+
+  50% {
+    opacity: 0.65;
   }
 }
 
@@ -539,19 +645,6 @@
   }
 }
 
-@keyframes nex-module-glow {
-  0%,
-  100% {
-    opacity: 0.95;
-    filter: drop-shadow(0 0 1px #31d5ff66);
-  }
-
-  50% {
-    opacity: 0.72;
-    filter: none;
-  }
-}
-
 @keyframes nex-sparkle-twinkle {
   0%,
   100% {
@@ -575,29 +668,31 @@
   }
 }
 
+.guardian[data-motion='off'] .guardianSprite,
+.guardian[data-motion='off'] .guardianSprite *,
+.guardian[data-motion='off'] .guardianBubble {
+  animation: none;
+  transition: none;
+}
+
+.guardian[data-motion='off'] {
+  animation: none;
+  transition: none;
+}
+
+.mascotButton:hover .guardian[data-motion='off'] .guardianSprite {
+  transform: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .guardian[data-motion='on'],
-  .guardian[data-motion='on'] .guardianSprite,
-  .guardian[data-motion='on'] .guardianEyes,
-  .guardian[data-motion='on'] .guardianAntenna,
-  .guardian[data-motion='on'] .guardianSignal,
-  .guardian[data-motion='on'] .nexReactor,
-  .guardian[data-motion='on'] .nexModuleNear,
-  .guardian[data-motion='on'] .nexModuleFar,
-  .guardian[data-motion='on'] .nexSparkle,
-  .guardian[data-motion='on'] .nexShadow,
-  .guardian[data-motion='on'] .guardianBubble,
-  .guardian[data-motion='off'],
-  .guardian[data-motion='off'] .guardianSprite,
-  .guardian[data-motion='off'] .guardianEyes,
-  .guardian[data-motion='off'] .guardianAntenna,
-  .guardian[data-motion='off'] .guardianSignal,
-  .guardian[data-motion='off'] .nexReactor,
-  .guardian[data-motion='off'] .nexModuleNear,
-  .guardian[data-motion='off'] .nexModuleFar,
-  .guardian[data-motion='off'] .nexSparkle,
-  .guardian[data-motion='off'] .nexShadow,
-  .guardian[data-motion='off'] .guardianBubble {
+  .guardian[data-motion] {
+    animation: none;
+    transition: none;
+  }
+
+  .guardian[data-motion] .guardianSprite,
+  .guardian[data-motion] .guardianSprite *,
+  .guardian[data-motion] .guardianBubble {
     animation: none;
     transition: none;
   }
