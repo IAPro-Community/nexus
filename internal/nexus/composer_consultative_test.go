@@ -1,8 +1,11 @@
 package nexus
 
 import (
+    "context"
     "strings"
     "testing"
+
+    "github.com/IAPro-Community/nexus/internal/nexus/store"
 
     "github.com/IAPro-Community/nexus/internal/nexus/intelligence"
 )
@@ -69,5 +72,33 @@ func TestComposerConsultativeDoesNotReaskGroundedProviderField(t *testing.T) {
         if unknown.Field == "scope.in_scope" && unknown.Status == PromptUnknownOpen {
             t.Fatalf("must not ask question already answered by evidence: %+v", unknown)
         }
+    }
+}
+
+func TestComposerRequiresConfiguredIntelligenceBeforePersistingSession(t *testing.T) {
+    n := openTestNexus(t)
+    st, err := n.OpenProject()
+    if err != nil {
+        t.Fatal(err)
+    }
+    project, err := st.CreateProject(store.Project{
+        Name: "Intelligence gate", CanonicalPath: t.TempDir(),
+    })
+    if err != nil {
+        t.Fatal(err)
+    }
+    app := NewComposerApplicationService(n)
+    _, err = app.CreateWithInterviewMode(
+        context.Background(), project.ID, "Quero criar um app simples", "", "IDEA", "STANDARD",
+    )
+    if err == nil {
+        t.Fatal("Composer must not create without a configured, usable Intelligence provider")
+    }
+    sessions, err := st.ListComposerSessions(project.ID)
+    if err != nil {
+        t.Fatal(err)
+    }
+    if len(sessions) != 0 {
+        t.Fatalf("failed Intelligence preflight persisted an orphan session: %+v", sessions)
     }
 }
