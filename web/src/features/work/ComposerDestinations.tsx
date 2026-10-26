@@ -58,6 +58,11 @@ export const ComposerDestinations: React.FC<{
 }) => {
   const { t } = useTranslation();
   const [preparationOpen, setPreparationOpen] = useState(false);
+  // Recommend an execution path but never force it: both actions remain
+  // available. Runtime admission, rather than this heuristic, authorizes GO.
+  const flowPreferred = flowSuitability?.result === 'FLOW_BENEFICIAL' ||
+    flowSuitability?.result === 'FLOW_STRONGLY_RECOMMENDED';
+  const routeReason = asStringArray(flowSuitability?.reasons).slice(0, 2).join(' · ');
   const selectedAgent = agents.find((agent) => agent.id === selectedAgentId);
   const startAgentIfNeeded = !askActionForStatus(selectedAgent?.status || 'STOPPED').startIfNeeded;
   const blocked = Boolean(artifact && (!canMaterialize || !canExecute));
@@ -74,12 +79,15 @@ export const ComposerDestinations: React.FC<{
         {t('work.composer.destinations', 'Destinations')}
       </small>
       {flowSuitability?.result ? (
-        <p className={styles.destinationHint}>
-          {t('work.composer.flowSuitability', 'Flow suitability')}:{' '}
-          {t(`work.composer.flowResult.${flowSuitability.result}`, flowSuitability.result)}
-          {asStringArray(flowSuitability.reasons)[0]
-            ? ` · ${asStringArray(flowSuitability.reasons)[0]}`
-            : ''}
+        <p className={styles.destinationHint} role="status">
+          <strong>
+            {flowPreferred
+              ? t('work.composer.recommendFlow', 'Caminho recomendado: Flow coordenado')
+              : t('work.composer.recommendAgent', 'Caminho recomendado: Agent direto')}
+          </strong>
+          {routeReason ? ` · ${routeReason}` : ''}
+          {' · '}
+          {t('work.composer.routeIsAdvice', 'Você pode escolher outro caminho. A execução depende de aprovação e validação.')}
         </p>
       ) : null}
       <ComposerPromptReview
@@ -99,7 +107,7 @@ export const ComposerDestinations: React.FC<{
               aria-label={t('work.composer.sendToAgent', 'Send to agent')}
             />
             <Button
-              tone="brand"
+              tone={flowPreferred ? 'default' : 'brand'}
               disabled={busy || !selectedAgentId || !canExecute || !artifact}
               onClick={() => setPreparationOpen(true)}
             >
@@ -108,7 +116,7 @@ export const ComposerDestinations: React.FC<{
           </>
         ) : null}
         <Button
-          tone="brand"
+          tone={flowPreferred ? 'brand' : 'default'}
           disabled={!canMaterialize || !artifact}
           title={
             !canMaterialize && destinationGate
