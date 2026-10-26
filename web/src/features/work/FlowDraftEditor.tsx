@@ -7,6 +7,7 @@ import { unresolvedBlocking } from './clarificationModel';
 import { ClarificationPrompt } from './ClarificationPrompt';
 import { FlowCanvas } from './FlowCanvas';
 import { FlowGoalBar } from './FlowGoalBar';
+import { ComposerHandoffSummary } from './ComposerHandoffSummary';
 import { FlowPipeline } from './FlowPipeline';
 import { FlowStepInspector } from './FlowStepInspector';
 import type { FlowDraftModel } from './flowModel';
@@ -53,6 +54,7 @@ export const FlowDraftEditor: React.FC<{
   return (
     <div className="nx-composer-flow-clean">
       <FlowGoalBar controller={controller} agents={agents} />
+      <ComposerHandoffSummary plan={controller.selectedPlan} />
 
       {planError && (
         <InlineAlert
