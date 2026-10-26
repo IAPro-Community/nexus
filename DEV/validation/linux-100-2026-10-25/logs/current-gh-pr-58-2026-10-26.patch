@@ -1,0 +1,2351 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index d45530a56..feed3ae36 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -226,6 +226,12 @@ jobs:
+         run: |
+           set -o pipefail
+           bun run test:e2e:surface 2>&1 | tee "$RUNNER_TEMP/nexus-browser-surface.log"
++      - id: terminal-split-e2e
++        if: always()
++        working-directory: web
++        run: |
++          set -o pipefail
++          bun run test:e2e:terminal-split 2>&1 | tee "$RUNNER_TEMP/nexus-browser-terminal-split.log"
+       - id: capacity-e2e
+         if: always()
+         working-directory: web
+@@ -288,6 +294,7 @@ jobs:
+         run: |
+           test '${{ steps.browser-e2e.outcome }}' = success
+           test '${{ steps.surface-e2e.outcome }}' = success
++          test '${{ steps.terminal-split-e2e.outcome }}' = success
+           test '${{ steps.capacity-e2e.outcome }}' = success
+           test '${{ steps.hud-e2e.outcome }}' = success
+           test '${{ steps.composer-spine-e2e.outcome }}' = success
+diff --git a/DEV/validation/PR58_CONTEXTUAL_WORKSPACE_20261022.md b/DEV/validation/PR58_CONTEXTUAL_WORKSPACE_20261022.md
+new file mode 100644
+index 000000000..a9fbf5d9c
+--- /dev/null
++++ b/DEV/validation/PR58_CONTEXTUAL_WORKSPACE_20261022.md
+@@ -0,0 +1,34 @@
++# PR #58 — contextual workspace verification (2026-10-22)
++
++## Scope and evidence separation
++
++Branch: `feat/v1-contextual-workspace-experience`. PR: https://github.com/IAPro-Community/nexus/pull/58.
++Feature areas: persistent terminal Split, contextual command search, Direct Session account selection and ResourceScheduler integration.
++
++**Current verdict: NOT CERTIFIED / DO NOT MERGE.** The evidence below is limited to isolated reproductions. It does not certify the full current Git SHA, the production web bundle, PTY state transitions or native desktop compatibility.
++
++### Isolated checks performed
++
++- **PASS (isolated):** Node 22 + TypeScript `tsc --strict` against a stand-alone copy of command registry logic; 10 search scenarios covering scoped commands, fuzzy spelling, missing results and exact-result priority.
++- **PASS (isolated):** Node 22 + TypeScript `tsc --strict` against a stand-alone copy of Direct Session lifecycle logic; 6 cases covering successful creation, create failure, allocation failure, configuration failure, failed rollback and uncertain start.
++- **PASS (isolated):** Chromium 144 real layout engine with relevant declarations from `03-workspace-layout.css` and `TerminalSplit.module.scss`; 7 geometry combinations: side-by-side 20/50/80%, stacked 20/50/80%, and stacked compact viewport (360 × 640). Two live pane rectangles remain non-overlapping, a hidden third pane does not occupy grid space, and legacy `position:absolute` is overridden.
++- These copies were reproduced in an offline container (GitHub clone blocked by DNS); **do not mislabel them as full-repository test executions**.
++
++### CI integration
++
++The existing `browser` CI job now executes `bun run test:e2e:terminal-split` after the surface-isolation suite and checks the step outcome in its final aggregate gate. The repository script now covers 7 ratios/orientations. A pending self-hosted runner job is *not* a PASS.
++
++### Still required on the exact candidate SHA
++
++1. `cd web && bun install --frozen-lockfile && bun run quality:full`
++2. `cd web && bun run test:e2e:terminal-split && bun run test:e2e:surface && bun run test:e2e`
++3. `go vet ./... && go test -count=1 ./...` using the exact Go toolchain defined by this release; include races where supported
++4. Real terminal interaction: open two PTYs, split/stack, resize (verify cols/rows upstream), change focus, close one PTY, reconnect one PTY, switch back to Tabs/Desktop/Mosaic and restore persisted project layout
++5. Native Windows ConPTY, macOS PTY and Linux PTY/HUD matrix, installed desktop not only browser; preserve native signing and updater gates
++6. Inspect CI failures and real browser screenshots; only mark READY after all required gates pass at the **final SHA**
++
++### Scope not silently claimed complete
++
++The Direct Session model override is manual. A trusted per-provider/per-profile model catalog and model specialty/risk classification are not yet connected to the Direct launcher. Do not invent models or claim model auto-routing is certified. Composer and Flow feature status is unchanged.
++
++The GitHub release branch remains protected from this PR: no merge, tag, installer or update manifest was published by these checks.
+diff --git a/docs/product/contextual-workspace-experience-v1.md b/docs/product/contextual-workspace-experience-v1.md
+new file mode 100644
+index 000000000..b39885414
+--- /dev/null
++++ b/docs/product/contextual-workspace-experience-v1.md
+@@ -0,0 +1,84 @@
++# Nexus 1.0 — Terminais divididos, busca contextual e ResourceScheduler
++
++> Escopo: melhorias aditivas na branch `feat/v1-contextual-workspace-experience`, derivada da `release/v1.0.0`. Os gates do exato SHA permanecem obrigatórios. Este documento não declara homologação.
++
++## A. Split terminal (reutiliza PTY/ConPTY)
++
++O Nexus já tinha um host único de PTYs supervisionados (Terminais) e o `WorkspacePresentationState` persistente por projeto. Criar outro TerminalManager duplicaria estado, socket e lifecycle. A implementação introduz um quarto modo visual `SPLIT` na mesma apresentação, mantendo `TABS`, `DESKTOP` e `MOSAIC` sem alteração de protocolo.
++
++- No cabeçalho de Terminais, escolha **Dividir** (habilitado com duas ou mais sessões PTY).
++- Selecione disposição lado a lado ou empilhada. No viewport compacto, a visualização é sempre empilhada, sem mudar a orientação salva para desktop.
++- Use o divisor com ponteiro, ou foco no divisor + setas (incrementos de 5%, limites 20%–80%).
++- Para escolher o terminal do segundo painel, use o menu de contexto da aba. Clique em outra aba para focar um terminal existente ou substituir o primeiro painel.
++- O foco ativo é independente das identidades do primeiro/segundo painel, evitando movimentação inesperada quando o usuário interage com um terminal.
++- O layout usa o `WorkspaceLayoutService` v4 já persistido por Project, com campos aditivos: `splitPrimaryViewId`, `splitSecondaryViewId`, `splitOrientation` e `splitRatio`. O schema de persistência e a chave não são alterados.
++- As sessões são reutilizadas, não clonadas. O render de painéis ocultos segue o mecanismo keep-alive que já existia; nenhum terminal novo é criado ao dividir.
++- Se um PTY for fechado ou não existir, o resolvedor só exibe identidades disponíveis.
++
++## B. Busca e comandos rápidos
++
++`Ctrl/Cmd+K` continua usando a Command Palette existente. A lista agora permite ações de projeto e terminal além da navegação existente e mantém as teclas do provider nativo intactas.
++
++| Prefixo | Escopo | Exemplo |
++| --- | --- | --- |
++| `#` | Projetos conhecidos | `#escola` |
++| `@` | Agentes carregados | `@revisor` |
++| `$` | Recursos, contas, escolha de modelo | `$conta` |
++| `>` | Comandos gerais | `>terminais` |
++| Sem prefixo | Tudo | `split` |
++
++O filtro remove diferenças de acentuação, exige correspondência para todos os termos e mantém ordem estável para resultados equivalentes. A seleção continua explícita: pesquisa **não executa** comandos nem alterna contas automaticamente.
++
++## C. Seleção contextual de contas e modelos no Direct
++
++O Direct Session Launcher passa o tipo de tarefa (`coding`, `planning`, `review` ou `security`) para `POST /api/v1/resources/recommend`. O backend `ResourceScheduler` classifica perfis/contas usando seu próprio contrato de elegibilidade e política. `Project.resource_policy`, que historicamente é uma string JSON, é normalizada com allowlist para `BALANCED | PRESERVE_QUOTA | PREFER_PROVIDER`.
++
++- A conta sugerida é pré-selecionada apenas se existir na lista de contas manualmente elegíveis retornada pelo Core.
++- Sem recomendação confiável, o Nexus não escolhe a primeira conta por ordem alfabética nem inventa quota.
++- O usuário pode selecionar outra conta; `POST /api/v1/resources/select` permanece o gate final de política `MANUAL`.
++- A identidade de provider/profile e o override explícito de `model` são salvos em `AgentConfig` antes do start; o modelo em branco usa o padrão do provider.
++- O campo de modelo **não é um catálogo de modelos certificados**. A recomendação atual é de **conta/perfil**, não um ranking modelo+conta. A seleção de modelo digitado pelo usuário é uma preferência manual; o provider é responsável por aceitar/rejeitar o ID no lançamento. Não chamar isto de decisão automática de melhor modelo.
++- O `ModelCandidate`/`ResolveTaskModel` do MissionRunner permanece a autoridade para seleção contextual de modelos **quando existe catálogo de candidatos com proveniência**. Disponibilizar tal catálogo no Direct exigirá uma API própria de modelos por provider e critérios de confiança; não deve ser implementada com lista hardcoded no frontend.
++
++## Gates obrigatórios antes de merge
++
++1. `bun run --cwd web quality:full`; format-check, TypeScript, ESLint, Stylelint e Vitest.
++2. Playwright em Chromium: layout Split em duas sessões reais, redimensionamento, escolha do secundário, fechar uma sessão, troca de foco, render do painel em outra aba, scroll e suporte de teclado.
++3. Reabrir projeto/reiniciar frontend: persistência do modo, da orientação e da proporção; sem reaproveitamento de layout entre projetos.
++4. Testes com Mac e Windows/ConPTY: colagem, seletor CLI, setas, Ctrl+C, reconexão e input byte-transparent. Não confundir build cross-platform com homologação nativa.
++5. ResourceScheduler: conta recomendada não ser a primeira da lista, ausência de recomendação, quota UNKNOWN/CACHED/UNSUPPORTED, múltiplos perfis, mudança da especialidade e falhas de rede.
++6. Modelo: override manual, default nativo, modelo inválido, falha de start e possível Agent parcialmente criado.
++7. Acessibilidade: comandos de teclado e leitores de tela, reduced motion, contraste de divisor e viewport compacto.
++8. Rebase e certificação same-SHA da release antes de qualquer merge/tag/build público.
++
++## Não escopo
++
++Nenhum novo PTY, renderer, scheduler, modelo de memória, marketplace, runtime remoto ou sistema de conta é criado. Não há atualização da `release/v1.0.0` nesta branch até os gates e o review do PR serem concluídos.
++
++## Correções de hardening — seleção e criação de agente
++
++- A preferência explícita de provedor é repassada para `requirements.prefer_provider` e ativa `PREFER_PROVIDER` no scheduler existente. O `resource_policy` JSON do Project também pode conter `prefer_provider`. Quando essa política não declara nenhum provedor, o launcher usa `BALANCED` sem inventar afinidade.
++- Se `selectResource` ou `applyAgentConfig` falhar, a criação é desfeita via `deleteAgent`. Falhas no rollback preservam o ID no erro.
++- Se `startAgent` retornar erro, a sessão pode já estar rodando; **não** excluir automaticamente o agente. O usuário é orientado a verificar o painel de Agentes.
++- Falhas de UI/refresh depois de um start bem-sucedido também preservam a sessão.
++- O botão de submissão impede invocações concorrentes e o diálogo impede fechamento durante a inicialização.
++
++A seleção automática do modelo continua bloqueada até que o Direct obtenha um catálogo confiável de modelos compatíveis por perfil. Não criar lista hardcoded nem tratar nomes de modelos digitados como certificação.
++
++## Split — resize do Project Shell
++
++O `AgentTerminal` já observava mudanças de tamanho do contêiner. O `TerminalPane` do Project Shell agora também observa o contêiner com `ResizeObserver`, agendando o `FitAddon` no próximo frame durante o arraste do Split. Ao desmontar, o observer e o frame pendente são descartados. Continua sendo obrigatório confirmar resize PTY real no browser/ConPTY/macOS.
++
++## Busca contextual — tolerância a digitação
++
++A Command Palette preserva os prefixos `#`, `@`, `$`, `>` e coloca correspondências exatas à frente. Palavras com quatro ou mais caracteres permitem uma omissão, inserção, substituição ou transposição adjacente; IDs curtos e caminhos mantêm busca estrita. Mudanças na coleção de comandos não podem disparar um item com índice desatualizado, e IME em composição não executa a seleção com Enter.
++
++## Smoke visual isolado de CSS
++
++O comando `npm run test:e2e:terminal-split` exercita o **grid real de estilos** em Chromium, com a regra absoluta legada e as regras `TerminalSplit.module.scss`: ordem primário/divisor/secundário, ausência de sobreposição, painel oculto fora do grid e orientação vertical/horizontal. É um gate geométrico de regressão que não substitui o E2E real do Nexus com PTY/ConPTY e resize via WebSocket. Requer Playwright Chromium disponível.
++
++A recomendação de conta exibe até dois motivos de pontuação vindos do backend, sem calcular scores fictícios no frontend.
++
++### Web platform scroll specificity (release regression)
++
++The release web workspace uses `:root[data-nexus-platform="web"] .nx-workspace-panel[data-active="true"]` to make ordinary browser panels scrollable. Split terminals must not inherit its scrollbars or `scrollbar-gutter: stable`. A more-specific grid-child rule keeps both PTYs at `overflow: hidden` and `scrollbar-gutter: auto`, while retaining web scrolling on non-Split panels. The Chromium geometry gate now asserts these computed styles for both orientations.
+diff --git a/web/package.json b/web/package.json
+index 0919ee0fe..9dd044571 100644
+--- a/web/package.json
++++ b/web/package.json
+@@ -21,6 +21,7 @@
+     "test:e2e": "node scripts/e2e-hardening-verify.mjs",
+     "test:e2e:composer": "node scripts/e2e-composer-workspace.mjs",
+     "test:e2e:surface": "node scripts/e2e-surface-isolation.mjs",
++    "test:e2e:terminal-split": "node scripts/e2e-terminal-split-grid.mjs",
+     "test:e2e:capacity": "node scripts/e2e-capacity.mjs",
+     "test:e2e:hud": "node scripts/e2e-hud.mjs",
+     "test:a11y": "node scripts/e2e-hardening-verify.mjs",
+diff --git a/web/scripts/e2e-terminal-split-grid.mjs b/web/scripts/e2e-terminal-split-grid.mjs
+new file mode 100644
+index 000000000..2a4a6de99
+--- /dev/null
++++ b/web/scripts/e2e-terminal-split-grid.mjs
+@@ -0,0 +1,96 @@
++#!/usr/bin/env node
++// Nexus terminal split CSS regression: proves that the legacy absolute
++// positioning from Tabs does not overlap two grid-managed PTY panels.
++// Browser-only style smoke. Real PTY/ConPTY E2E remains a separate gate.
++import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
++import path from 'node:path';
++import { fileURLToPath } from 'node:url';
++import { chromium } from 'playwright';
++
++const webRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
++const shared = readFileSync(path.join(webRoot, 'src/app/workspace-styles/03-workspace-layout.css'), 'utf8');
++const split = readFileSync(path.join(webRoot, 'src/workspace/TerminalSplit.module.scss'), 'utf8');
++
++const browser = await chromium.launch({
++  headless: true,
++  executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || undefined,
++  args: ['--no-sandbox', '--disable-dev-shm-usage'],
++});
++
++try {
++  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
++  for (const { orientation, width, height, ratio } of [
++    { orientation: 'vertical', width: 960, height: 480, ratio: 20 },
++    { orientation: 'vertical', width: 960, height: 480, ratio: 50 },
++    { orientation: 'vertical', width: 960, height: 480, ratio: 80 },
++    { orientation: 'horizontal', width: 480, height: 720, ratio: 20 },
++    { orientation: 'horizontal', width: 480, height: 720, ratio: 50 },
++    { orientation: 'horizontal', width: 480, height: 720, ratio: 80 },
++    { orientation: 'horizontal', width: 360, height: 640, ratio: 50 },
++  ]) {
++    await page.setContent(`
++      <style>
++        * { box-sizing: border-box }
++        ${shared}
++        ${split}
++      </style>
++      <div class="splitPanels" data-orientation="${orientation}"
++           style="width:${width}px; height:${height}px; --nx-terminal-split-ratio: ${ratio}%">
++        <div class="nx-workspace-panel splitPane" data-active="true"
++             style="order:0">Primary PTY</div>
++        <div class="nx-workspace-panel splitPane" data-active="true"
++             style="order:2">Secondary PTY</div>
++        <div class="nx-workspace-panel splitPane" data-active="false" hidden>Hidden PTY</div>
++        <div class="divider" role="separator" style="order:1"></div>
++      </div>
++    `);
++    // setContent replaces documentElement; platform selection belongs after it.
++    await page.evaluate(() => {
++      document.documentElement.dataset.nexusPlatform = 'web';
++    });
++    const geometry = await page.evaluate(() => {
++      const panes = [...document.querySelectorAll('.splitPane')];
++      const separator = document.querySelector('.divider');
++      const box = (element) => {
++        const rect = element.getBoundingClientRect();
++        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
++      };
++      return {
++        primary: box(panes[0]),
++        secondary: box(panes[1]),
++        divider: box(separator),
++        primaryPosition: getComputedStyle(panes[0]).position,
++        secondaryPosition: getComputedStyle(panes[1]).position,
++        hiddenDisplay: getComputedStyle(panes[2]).display,
++        primaryOverflow: getComputedStyle(panes[0]).overflow,
++        secondaryOverflow: getComputedStyle(panes[1]).overflow,
++        primaryGutter: getComputedStyle(panes[0]).scrollbarGutter,
++        secondaryGutter: getComputedStyle(panes[1]).scrollbarGutter,
++      };
++    });
++    const { primary, secondary, divider } = geometry;
++    assert.equal(geometry.primaryPosition, 'relative', 'primary cannot inherit absolute Tabs positioning');
++    assert.equal(geometry.secondaryPosition, 'relative', 'secondary cannot inherit absolute Tabs positioning');
++    assert.equal(geometry.hiddenDisplay, 'none', 'third PTY cannot occupy a grid track');
++    assert.equal(geometry.primaryOverflow, 'hidden', 'web Split primary must not inherit page scrollbars');
++    assert.equal(geometry.secondaryOverflow, 'hidden', 'web Split secondary must not inherit page scrollbars');
++    assert.equal(geometry.primaryGutter, 'auto', 'web Split primary cannot reserve scrollbar gutter');
++    assert.equal(geometry.secondaryGutter, 'auto', 'web Split secondary cannot reserve scrollbar gutter');
++    if (orientation === 'vertical') {
++      assert.ok(primary.width > 50 && secondary.width > 50, 'both PTYs need usable widths');
++      assert.ok(primary.x + primary.width <= divider.x + 1, 'primary cannot overlap the divider');
++      assert.ok(divider.x + divider.width <= secondary.x + 1, 'secondary cannot overlap the divider');
++      assert.ok(Math.abs(primary.y - secondary.y) <= 1, 'panes must sit in the same grid row');
++    } else {
++      assert.ok(primary.height > 50 && secondary.height > 50, 'both PTYs need usable heights');
++      assert.ok(primary.y + primary.height <= divider.y + 1, 'primary cannot overlap the divider');
++      assert.ok(divider.y + divider.height <= secondary.y + 1, 'secondary cannot overlap the divider');
++      assert.ok(Math.abs(primary.x - secondary.x) <= 1, 'panes must sit in the same grid column');
++    }
++    console.log(`PASS terminal split ${orientation} ${ratio}% (${width}x${height})`);
++  }
++  await page.close();
++} finally {
++  await browser.close();
++}
+diff --git a/web/src/app/NexusWorkspaceApp.tsx b/web/src/app/NexusWorkspaceApp.tsx
+index acc412a28..e377badb6 100644
+--- a/web/src/app/NexusWorkspaceApp.tsx
++++ b/web/src/app/NexusWorkspaceApp.tsx
+@@ -669,9 +669,19 @@ const WorkspaceCoordinator: React.FC<{
+         keywords: ['fleet', 'workers', 'terminals'],
+         run: () => openKind('agents'),
+       },
++      ...data.projects.map((entry) => ({
++        id: `switch-project-${entry.id}`,
++        kind: 'project' as const,
++        label: entry.name || entry.id,
++        group: t('commands.scopeProjects'),
++        description: entry.canonical_path,
++        keywords: [entry.id, entry.canonical_path || '', 'switch', 'workspace'],
++        run: () => setProject(entry),
++      })),
+       ...data.agents.flatMap((agent) => [
+         {
+           id: `terminal-${agent.id}`,
++          kind: 'agent' as const,
+           label: t('commands.open', { name: `${agent.name} terminal` }),
+           group: t('nav.agents'),
+           keywords: ['terminal', agent.role],
+@@ -679,6 +689,7 @@ const WorkspaceCoordinator: React.FC<{
+         },
+         {
+           id: `config-${agent.id}`,
++          kind: 'agent' as const,
+           label: t('commands.configure', { name: agent.name }),
+           group: t('nav.agents'),
+           keywords: ['settings', agent.role],
+@@ -723,8 +734,45 @@ const WorkspaceCoordinator: React.FC<{
+             },
+           ]
+         : []),
++      {
++        id: 'resource-chooser',
++        kind: 'resource' as const,
++        label: t('commands.chooseAccountModel'),
++        group: t('commands.scopeResources'),
++        keywords: ['account', 'profile', 'model', 'scheduler', 'ai'],
++        run: openNewAISession,
++      },
++      ...(listSurfaces(workspace.model.root).filter(isPtySurface).length >= 2
++        ? [
++            {
++              id: 'split-terminals-vertical',
++              kind: 'action' as const,
++              label: t('workspace.splitSideBySide'),
++              group: t('commands.scopeActions'),
++              keywords: ['split', 'vertical', 'side by side', 'terminais'],
++              run: () => {
++                presentation.setSplitOrientation('vertical');
++                presentation.setMode('SPLIT');
++                openKind('terminals');
++              },
++            },
++            {
++              id: 'split-terminals-horizontal',
++              kind: 'action' as const,
++              label: t('workspace.splitStacked'),
++              group: t('commands.scopeActions'),
++              keywords: ['split', 'horizontal', 'stacked', 'terminais'],
++              run: () => {
++                presentation.setSplitOrientation('horizontal');
++                presentation.setMode('SPLIT');
++                openKind('terminals');
++              },
++            },
++          ]
++        : []),
+       {
+         id: 'resources',
++        kind: 'resource' as const,
+         label: t('commands.open', { name: t('nav.resources') }),
+         group: 'Nexus',
+         keywords: ['quota', 'provider', 'accounts'],
+@@ -863,6 +911,9 @@ const WorkspaceCoordinator: React.FC<{
+     ],
+     [
+       data.agents,
++      data.projects,
++      setProject,
++      workspace.model.root,
+       executionRoles,
+       activeAgentRuntimeId,
+       flowRuns,
+diff --git a/web/src/app/commands/CommandPalette.module.scss b/web/src/app/commands/CommandPalette.module.scss
+new file mode 100644
+index 000000000..14344547d
+--- /dev/null
++++ b/web/src/app/commands/CommandPalette.module.scss
+@@ -0,0 +1,24 @@
++.hints {
++  display: flex;
++  flex-wrap: wrap;
++  gap: 6px 12px;
++  padding: 8px 4px;
++  color: var(--nx-muted);
++  font-size: 0.74rem;
++}
++
++.hints span {
++  display: inline-flex;
++  align-items: center;
++  gap: 4px;
++}
++
++.hints kbd {
++  display: inline-grid;
++  min-width: 18px;
++  min-height: 18px;
++  place-items: center;
++  border: 1px solid var(--nx-border);
++  border-radius: var(--nx-radius-sm, 6px);
++  color: var(--nx-text);
++}
+diff --git a/web/src/app/commands/CommandPalette.tsx b/web/src/app/commands/CommandPalette.tsx
+index ff8107ffe..f986fe4c8 100644
+--- a/web/src/app/commands/CommandPalette.tsx
++++ b/web/src/app/commands/CommandPalette.tsx
+@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
+ import { Command, CornerDownLeft } from 'lucide-react';
+ import { Dialog, SearchInput } from '../../design-system';
+ import { filterCommands, type NexusCommand } from './registry';
++import styles from './CommandPalette.module.scss';
+ import { useTranslation } from 'react-i18next';
+ 
+ export const CommandPalette: React.FC<{
+@@ -13,6 +14,9 @@ export const CommandPalette: React.FC<{
+   const [query, setQuery] = useState('');
+   const [active, setActive] = useState(0);
+   const filtered = useMemo(() => filterCommands(commands, query), [commands, query]);
++  // Commands can change while the palette is open (agent removal, project
++  // switch). Never execute a stale index from the previous result set.
++  const safeActive = Math.min(active, Math.max(0, filtered.length - 1));
+   useEffect(() => {
+     if (open) {
+       setQuery('');
+@@ -32,13 +36,13 @@ export const CommandPalette: React.FC<{
+         onKeyDown={(event) => {
+           if (event.key === 'ArrowDown') {
+             event.preventDefault();
+-            setActive((value) => Math.min(filtered.length - 1, value + 1));
++            setActive((value) => Math.min(Math.max(0, filtered.length - 1), value + 1));
+           } else if (event.key === 'ArrowUp') {
+             event.preventDefault();
+             setActive((value) => Math.max(0, value - 1));
+           } else if (event.key === 'Enter') {
+             event.preventDefault();
+-            execute(filtered[active]);
++            if (!event.nativeEvent.isComposing) execute(filtered[safeActive]);
+           }
+         }}
+       >
+@@ -48,13 +52,27 @@ export const CommandPalette: React.FC<{
+           placeholder={t('commands.placeholder')}
+           autoFocus
+         />
++        <div className={styles.hints} aria-label={t('commands.searchScopes')}>
++          <span>
++            <kbd>#</kbd> {t('commands.scopeProjects')}
++          </span>
++          <span>
++            <kbd>@</kbd> {t('commands.scopeAgents')}
++          </span>
++          <span>
++            <kbd>$</kbd> {t('commands.scopeResources')}
++          </span>
++          <span>
++            <kbd>&gt;</kbd> {t('commands.scopeActions')}
++          </span>
++        </div>
+         <div className="nx-command-list" role="listbox" aria-label={t('commands.available')}>
+           {filtered.map((command, index) => (
+             <button
+               type="button"
+               role="option"
+-              aria-selected={index === active}
+-              data-active={index === active ? 'true' : 'false'}
++              aria-selected={index === safeActive}
++              data-active={index === safeActive ? 'true' : 'false'}
+               key={command.id}
+               onMouseEnter={() => setActive(index)}
+               onClick={() => execute(command)}
+@@ -68,7 +86,7 @@ export const CommandPalette: React.FC<{
+               </span>
+               <span className="nx-command-meta">
+                 {command.shortcut || command.group}
+-                {index === active && <CornerDownLeft size={12} />}
++                {index === safeActive && <CornerDownLeft size={12} />}
+               </span>
+             </button>
+           ))}
+diff --git a/web/src/app/commands/registry.test.ts b/web/src/app/commands/registry.test.ts
+index ee1796c44..ce0d64855 100644
+--- a/web/src/app/commands/registry.test.ts
++++ b/web/src/app/commands/registry.test.ts
+@@ -34,3 +34,117 @@ describe('command registry', () => {
+     expect(filterCommands(commands, 'quota')[0].id).toBe('open-resources'));
+   it('matches group names', () => expect(filterCommands(commands, 'settings')[0].id).toBe('theme'));
+ });
++
++describe('contextual quick-search prefixes', () => {
++  const context: NexusCommand[] = [
++    {
++      id: 'project',
++      kind: 'project',
++      label: 'Projeto Educação',
++      group: 'Projetos',
++      keywords: ['/tmp/educacao'],
++      run: () => undefined,
++    },
++    {
++      id: 'agent',
++      kind: 'agent',
++      label: 'Agente Revisão',
++      group: 'Agents',
++      keywords: ['security'],
++      run: () => undefined,
++    },
++    {
++      id: 'resource',
++      kind: 'resource',
++      label: 'Contas e modelos',
++      group: 'Recursos',
++      run: () => undefined,
++    },
++    {
++      id: 'action',
++      kind: 'action',
++      label: 'Abrir terminais',
++      group: 'Ações',
++      keywords: ['split'],
++      run: () => undefined,
++    },
++  ];
++  it('filters accent-insensitively and checks all query terms', () => {
++    expect(filterCommands(context, '#educacao').map((c) => c.id)).toEqual(['project']);
++    expect(filterCommands(context, '@revisao security').map((c) => c.id)).toEqual(['agent']);
++    expect(filterCommands(context, 'agente projeto')).toEqual([]);
++  });
++  it('keeps scopes isolated and permits unscoped global results', () => {
++    expect(filterCommands(context, '>terminais').map((c) => c.id)).toEqual(['action']);
++    expect(filterCommands(context, '$contas').map((c) => c.id)).toEqual(['resource']);
++    expect(filterCommands(context, '#').map((c) => c.id)).toEqual(['project']);
++    expect(filterCommands(context, '').map((c) => c.id)).toEqual([
++      'project',
++      'agent',
++      'resource',
++      'action',
++    ]);
++  });
++});
++
++describe('typo tolerant quick search', () => {
++  const commands: NexusCommand[] = [
++    {
++      id: 'review',
++      kind: 'agent',
++      label: 'Revisão de código',
++      group: 'Agentes',
++      run: () => undefined,
++    },
++    {
++      id: 'resource',
++      kind: 'resource',
++      label: 'Contas de acesso',
++      group: 'Recursos',
++      run: () => undefined,
++    },
++    {
++      id: 'project',
++      kind: 'project',
++      label: 'Educação municipal',
++      group: 'Projetos',
++      run: () => undefined,
++    },
++  ];
++
++  it('tolerates one character omission and adjacent swaps for long words', () => {
++    expect(filterCommands(commands, '@reviaso').map((entry) => entry.id)).toEqual(['review']);
++    expect(filterCommands(commands, '#educaco').map((entry) => entry.id)).toEqual(['project']);
++    expect(filterCommands(commands, '$conats').map((entry) => entry.id)).toEqual(['resource']);
++  });
++
++  it('preserves exact matches ahead of typo matches', () => {
++    expect(
++      filterCommands(
++        [
++          {
++            id: 'typo',
++            kind: 'project',
++            label: 'Progeto',
++            group: 'Workspace',
++            run: () => undefined,
++          },
++          {
++            id: 'exact',
++            kind: 'project',
++            label: 'Projeto',
++            group: 'Workspace',
++            run: () => undefined,
++          },
++        ],
++        '#projeto',
++      ).map((item) => item.id),
++    ).toEqual(['exact', 'typo']);
++  });
++
++  it('never fuzzy matches short identifiers or scopes', () => {
++    expect(filterCommands(commands, '#ex')).toEqual([]);
++    expect(filterCommands(commands, '@rvs')).toEqual([]);
++    expect(filterCommands(commands, '#')).toHaveLength(1);
++  });
++});
+diff --git a/web/src/app/commands/registry.ts b/web/src/app/commands/registry.ts
+index 6bec628f7..6d222cbea 100644
+--- a/web/src/app/commands/registry.ts
++++ b/web/src/app/commands/registry.ts
+@@ -1,3 +1,5 @@
++export type NexusCommandKind = 'action' | 'project' | 'agent' | 'resource';
++
+ export interface NexusCommand {
+   id: string;
+   label: string;
+@@ -5,37 +7,99 @@ export interface NexusCommand {
+   description?: string;
+   shortcut?: string;
+   keywords?: string[];
++  kind?: NexusCommandKind;
+   run: () => void;
+ }
+ 
++const normalizeSearch = (value: string): string =>
++  value
++    .normalize('NFD')
++    .replace(/[\u0300-\u036f]/g, '')
++    .toLocaleLowerCase()
++    .trim();
++
++/** Only tolerate one edit (including swapped adjacent letters) in tokens with
++ * four or more characters. Short tokens and paths keep precise matching. */
++function oneEditApart(left: string, right: string): boolean {
++  if (Math.abs(left.length - right.length) > 1) return false;
++  let i = 0;
++  let j = 0;
++  let edits = 0;
++  while (i < left.length && j < right.length) {
++    if (left[i] === right[j]) {
++      i++;
++      j++;
++      continue;
++    }
++    edits++;
++    if (edits > 1) return false;
++    if (
++      left.length === right.length &&
++      left[i] === right[j + 1] &&
++      left[i + 1] === right[j]
++    ) {
++      i += 2;
++      j += 2;
++    } else if (left.length > right.length) {
++      i++;
++    } else if (left.length < right.length) {
++      j++;
++    } else {
++      i++;
++      j++;
++    }
++  }
++  return edits + Number(i < left.length || j < right.length) <= 1;
++}
++
++function termMatches(term: string, haystack: string): boolean {
++  if (haystack.includes(term)) return true;
++  if (term.length < 4 || /[^a-z0-9]/i.test(term)) return false;
++  return haystack
++    .split(/[^a-z0-9]+/)
++    .some((word) => word.length >= 4 && oneEditApart(term, word));
++}
++
+ export function filterCommands(commands: NexusCommand[], query: string): NexusCommand[] {
+-  const needle = query.trim().toLowerCase();
+-  if (!needle) return commands;
++  const value = query.trim();
++  const prefix = value[0];
++  const kind: NexusCommandKind | null =
++    prefix === '#'
++      ? 'project'
++      : prefix === '@'
++        ? 'agent'
++        : prefix === '>'
++          ? 'action'
++          : prefix === '$'
++            ? 'resource'
++            : null;
++  const needle = normalizeSearch(kind ? value.slice(1) : value);
++  const terms = needle.split(/\s+/).filter(Boolean);
+   return commands
+-    .map((command) => {
+-      const label = command.label.toLowerCase();
+-      const haystack = [
+-        command.label,
+-        command.group,
+-        command.description,
+-        ...(command.keywords ?? []),
+-      ]
+-        .filter(Boolean)
+-        .join(' ')
+-        .toLowerCase();
+-      const score =
+-        label === needle
++    .filter((command) => !kind || (command.kind ?? 'action') === kind)
++    .map((command, index) => {
++      const label = normalizeSearch(command.label);
++      const haystack = normalizeSearch(
++        [command.label, command.group, command.description, ...(command.keywords ?? [])]
++          .filter(Boolean)
++          .join(' '),
++      );
++      if (!terms.every((term) => termMatches(term, haystack))) {
++        return { command, index, score: 0 };
++      }
++      const exactTerms = terms.every((term) => haystack.includes(term));
++      const score = !needle
++        ? 1
++        : label === needle
+           ? 100
+           : label.startsWith(needle)
+             ? 80
+             : label.includes(needle)
+               ? 60
+-              : haystack.includes(needle)
+-                ? 30
+-                : 0;
+-      return { command, score };
++              : 30 + terms.length;
++      return { command, index, score: exactTerms ? score : 10 + terms.length };
+     })
+     .filter((entry) => entry.score > 0)
+-    .sort((a, b) => b.score - a.score || a.command.label.localeCompare(b.command.label))
++    .sort((a, b) => b.score - a.score || a.index - b.index)
+     .map((entry) => entry.command);
+ }
+diff --git a/web/src/components/TerminalPane.tsx b/web/src/components/TerminalPane.tsx
+index ae69af45c..33e4ef9cf 100644
+--- a/web/src/components/TerminalPane.tsx
++++ b/web/src/components/TerminalPane.tsx
+@@ -457,6 +457,17 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
+     if (panel)
+       panelObserver?.observe(panel, { attributes: true, attributeFilter: ['data-active'] });
+     window.addEventListener('resize', handleWindowResize);
++    // Project Shells used to resize only on window events. Split panes change
++    // their container size without resizing the browser window.
++    let fitFrame: number | undefined;
++    const sizeObserver = new ResizeObserver(() => {
++      if (fitFrame !== undefined || disposed) return;
++      fitFrame = window.requestAnimationFrame(() => {
++        fitFrame = undefined;
++        safeFit();
++      });
++    });
++    if (containerRef.current) sizeObserver.observe(containerRef.current);
+ 
+     return () => {
+       disposed = true;
+@@ -483,6 +494,8 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
+         // ignore
+       }
+       window.removeEventListener('resize', handleWindowResize);
++      sizeObserver.disconnect();
++      if (fitFrame !== undefined) window.cancelAnimationFrame(fitFrame);
+       window.cancelAnimationFrame(initialFit);
+       if (flushFrame !== undefined) window.cancelAnimationFrame(flushFrame);
+       panelObserver?.disconnect();
+diff --git a/web/src/features/work/ContextualResourceSelection.module.scss b/web/src/features/work/ContextualResourceSelection.module.scss
+new file mode 100644
+index 000000000..9697424b6
+--- /dev/null
++++ b/web/src/features/work/ContextualResourceSelection.module.scss
+@@ -0,0 +1,40 @@
++.controls {
++  display: grid;
++  grid-template-columns: repeat(3, minmax(0, 1fr));
++  gap: 12px;
++  margin-bottom: 6px;
++}
++
++.field {
++  display: grid;
++  gap: 6px;
++  min-width: 0;
++  color: var(--nx-text);
++  font-size: 0.83rem;
++}
++
++.hint,
++.explanation {
++  margin: 0 0 8px;
++  color: var(--nx-muted);
++  font-size: 0.75rem;
++  line-height: 1.45;
++}
++
++.explanation {
++  color: var(--nx-text);
++}
++
++@media (max-width: 640px) {
++  .controls {
++    grid-template-columns: minmax(0, 1fr);
++  }
++}
++
++.reasons {
++  margin: 0 0 8px;
++  padding-left: 18px;
++  color: var(--nx-muted);
++  font-size: 0.75rem;
++  line-height: 1.5;
++}
+diff --git a/web/src/features/work/DirectSessionLauncher.tsx b/web/src/features/work/DirectSessionLauncher.tsx
+index 790f40dc4..868d501c4 100644
+--- a/web/src/features/work/DirectSessionLauncher.tsx
++++ b/web/src/features/work/DirectSessionLauncher.tsx
+@@ -1,4 +1,4 @@
+-import React, { useEffect, useMemo, useState } from 'react';
++import React, { useEffect, useMemo, useRef, useState } from 'react';
+ import { Bot, Play, ShieldAlert, TerminalSquare } from 'lucide-react';
+ import { useTranslation } from 'react-i18next';
+ import {
+@@ -11,17 +11,32 @@ import {
+   Input,
+   InlineAlert,
+   Spinner,
++  Select,
+ } from '../../design-system';
+ import { nexus } from '../../nexus/api';
+-import type { Agent, Project } from '../../types';
++import type { Agent, Project, RecommendationResult } from '../../types';
+ import {
+   buildDirectAgentName,
+   directAccountTitle,
+   directQuotaDisplay,
+   eligibleDirectResources,
+   quotaTruthState,
++  recommendedDirectAccountId,
++  directSchedulerContext,
+ } from './directSessionModel';
+ import resourceStyles from '../../nexus/ResourcePicker.module.scss';
++import contextualStyles from './ContextualResourceSelection.module.scss';
++import { DirectSessionSetupError, startDirectSession } from './directSessionLifecycle';
++
++type DirectTaskKind = 'coding' | 'planning' | 'review' | 'security';
++const taskRole: Record<DirectTaskKind, string> = {
++  coding: 'implementer',
++  planning: 'architect',
++  review: 'reviewer',
++  security: 'reviewer',
++};
++const modelIdValid = (value: string) =>
++  !value || (value.length <= 128 && /^[\w./:+-]+$/.test(value));
+ 
+ interface DirectResource {
+   id: string;
+@@ -62,30 +77,89 @@ export const DirectSessionLauncher: React.FC<{
+   const [resources, setResources] = useState<DirectResource[]>([]);
+   const [selectedID, setSelectedID] = useState('');
+   const [name, setName] = useState('');
++  const [taskKind, setTaskKind] = useState<DirectTaskKind>('coding');
++  const [modelOverride, setModelOverride] = useState('');
++  const [preferredProvider, setPreferredProvider] = useState(
++    () => directSchedulerContext(project.resource_policy).preferProvider,
++  );
++  const [recommendation, setRecommendation] = useState<RecommendationResult | null>(null);
++  const [recommendationError, setRecommendationError] = useState(false);
++  const manualChoice = useRef(false);
++  const submitInFlight = useRef(false);
+   const [loading, setLoading] = useState(false);
+   const [starting, setStarting] = useState(false);
+   const [error, setError] = useState('');
++  const [needsAgentRecovery, setNeedsAgentRecovery] = useState(false);
++
++  useEffect(() => {
++    if (!open) return;
++    manualChoice.current = false;
++    setSelectedID('');
++    setNeedsAgentRecovery(false);
++    setModelOverride('');
++    setPreferredProvider(directSchedulerContext(project.resource_policy).preferProvider);
++    setName('');
++    setError('');
++  }, [open, project.id, project.resource_policy]);
+ 
+   useEffect(() => {
+     if (!open) return;
+     let mounted = true;
+     setLoading(true);
+-    setError('');
+-    void nexus
+-      .listResources()
+-      .then((result) => {
+-        if (!mounted) return;
+-        const eligible = eligibleDirectResources((result.accounts || []) as DirectResource[]);
++    // Preserve a recoverable start error: changing filters must not hide the
++    // identity of an Agent whose runtime might already be alive.
++    setRecommendation(null);
++    setRecommendationError(false);
++    const context = directSchedulerContext(project.resource_policy, preferredProvider);
++    void Promise.allSettled([
++      nexus.listResources(),
++      nexus.recommendResources(
++        {
++          task_kind: taskKind,
++          role: taskRole[taskKind],
++          ...(taskKind === 'security' ? { domains: ['security'] } : {}),
++          ...(context.preferProvider ? { prefer_provider: context.preferProvider } : {}),
++          source: 'direct_session_launcher',
++        },
++        context.policy,
++      ),
++    ]).then(([resourcesResult, recommendationResult]) => {
++      if (!mounted) return;
++      if (resourcesResult.status !== 'fulfilled') {
++        setRecommendationError(true);
++        setError(String(resourcesResult.reason));
++        setResources([]);
++        setSelectedID('');
++      } else {
++        const eligible = eligibleDirectResources(
++          (resourcesResult.value.accounts || []) as DirectResource[],
++        );
+         setResources(eligible);
+-        setSelectedID(eligible[0]?.id || '');
+-        if (eligible[0]) setName(buildDirectAgentName(request?.prompt || '', eligible[0].provider));
+-      })
+-      .catch((err) => mounted && setError(err instanceof Error ? err.message : String(err)))
+-      .finally(() => mounted && setLoading(false));
++        const ranked =
++          recommendationResult.status === 'fulfilled' ? recommendationResult.value : null;
++        const suggested = recommendedDirectAccountId(eligible, ranked);
++        setRecommendation(ranked);
++        setRecommendationError(recommendationResult.status !== 'fulfilled');
++        setSelectedID((previous) =>
++          manualChoice.current && eligible.some((account) => account.id === previous)
++            ? previous
++            : suggested,
++        );
++        if (suggested && !manualChoice.current) {
++          const preferred = eligible.find((account) => account.id === suggested);
++          if (preferred)
++            setName(
++              (previous) =>
++                previous.trim() || buildDirectAgentName(request?.prompt || '', preferred.provider),
++            );
++        }
++      }
++      setLoading(false);
++    });
+     return () => {
+       mounted = false;
+     };
+-  }, [open, request?.prompt]);
++  }, [open, request?.prompt, taskKind, preferredProvider, project.resource_policy]);
+ 
+   const selected = useMemo(
+     () => resources.find((resource) => resource.id === selectedID) || null,
+@@ -98,34 +172,52 @@ export const DirectSessionLauncher: React.FC<{
+   }, [selected, request?.prompt, name]);
+ 
+   const choose = (resource: DirectResource) => {
++    manualChoice.current = true;
+     setSelectedID(resource.id);
+     setName(buildDirectAgentName(request?.prompt || '', resource.provider));
+   };
+ 
+   const start = async () => {
+-    if (!selected || !request) return;
++    if (
++      submitInFlight.current ||
++      needsAgentRecovery ||
++      loading ||
++      !selected ||
++      !request ||
++      !modelIdValid(modelOverride.trim())
++    )
++      return;
++    submitInFlight.current = true;
+     setStarting(true);
+     setError('');
++    let started: Agent | null = null;
+     try {
+-      const agent = await nexus.createAgent(
+-        project.id,
+-        name.trim() || buildDirectAgentName(request.prompt, selected.provider),
+-        'developer',
+-      );
+-      await nexus.selectResource(agent.id, selected.provider, selected.profile, 'MANUAL');
+-      await nexus.applyAgentConfig(agent.id, {
++      started = await startDirectSession(nexus, {
++        projectId: project.id,
++        name: name.trim() || buildDirectAgentName(request.prompt, selected.provider),
+         provider: selected.provider,
+         profile: selected.profile,
+-        isolation: 'project',
++        model: modelOverride.trim() || undefined,
+         workspace: project.canonical_path || undefined,
+       });
+-      await nexus.startAgent(agent.id);
+       await refreshAgents();
+-      await onStarted(agent, request.prompt);
++      await onStarted(started, request.prompt);
+       onClose();
+     } catch (err) {
+-      setError(err instanceof Error ? err.message : String(err));
++      const message = err instanceof Error ? err.message : String(err);
++      if (err instanceof DirectSessionSetupError && err.recovery !== 'deleted') {
++        setNeedsAgentRecovery(true);
++        setError(t('directSession.recoverableStartError', { message, agentId: err.agentId }));
++      } else if (started) {
++        // The runtime is running; never offer to re-create it as a fresh session.
++        setNeedsAgentRecovery(true);
++        setError(t('directSession.startedButNotOpened', { message, agentId: started.id }));
++      } else {
++        setError(message);
++      }
++      await refreshAgents().catch(() => undefined);
+     } finally {
++      submitInFlight.current = false;
+       setStarting(false);
+     }
+   };
+@@ -139,7 +231,9 @@ export const DirectSessionLauncher: React.FC<{
+   return (
+     <Dialog
+       open={open}
+-      onClose={onClose}
++      onClose={() => {
++        if (!starting) onClose();
++      }}
+       title={
+         request?.mode === 'assisted' ? t('directSession.assistedTitle') : t('directSession.title')
+       }
+@@ -153,6 +247,79 @@ export const DirectSessionLauncher: React.FC<{
+           aria-label={t('directSession.name')}
+         />
+ 
++        <div className={contextualStyles.controls}>
++          <label className={contextualStyles.field}>
++            <span>{t('directSession.preferProvider')}</span>
++            <Select
++              value={preferredProvider}
++              onChange={(provider) => {
++                manualChoice.current = false;
++                setSelectedID('');
++                setPreferredProvider(provider);
++              }}
++              options={[
++                { value: '', label: t('directSession.providerAutomatic') },
++                ...Array.from(new Set(resources.map((item) => item.provider)))
++                  .sort()
++                  .map((provider) => ({
++                    value: provider,
++                    label: provider,
++                  })),
++              ]}
++            />
++          </label>
++          <label className={contextualStyles.field}>
++            <span>{t('directSession.taskKind')}</span>
++            <Select
++              value={taskKind}
++              onChange={(value) => {
++                manualChoice.current = false;
++                setSelectedID('');
++                setRecommendation(null);
++                setTaskKind(value as DirectTaskKind);
++              }}
++              options={(['coding', 'planning', 'review', 'security'] as const).map((kind) => ({
++                value: kind,
++                label: t(`directSession.task.${kind}`),
++              }))}
++            />
++          </label>
++          <label className={contextualStyles.field}>
++            <span>{t('directSession.modelOverride')}</span>
++            <Input
++              value={modelOverride}
++              onChange={setModelOverride}
++              placeholder={t('directSession.providerDefaultModel')}
++              aria-label={t('directSession.modelOverride')}
++            />
++          </label>
++        </div>
++        <p className={contextualStyles.hint}>{t('directSession.modelHint')}</p>
++        {recommendationError && (
++          <InlineAlert tone="warning">{t('directSession.recommendationUnavailable')}</InlineAlert>
++        )}
++        {recommendation && (
++          <p className={contextualStyles.explanation}>
++            {recommendation.recommended
++              ? t('directSession.schedulerExplained', {
++                  policy: recommendation.policy,
++                  provider:
++                    recommendation.recommended.account.display_name ||
++                    recommendation.recommended.account.provider,
++                })
++              : t('directSession.schedulerNoCandidate')}
++          </p>
++        )}
++        {recommendation?.recommended && recommendation.recommended.pros.length > 0 && (
++          <ul className={contextualStyles.reasons} aria-label={t('directSession.schedulerReasons')}>
++            {recommendation.recommended.pros.slice(0, 2).map((reason) => (
++              <li key={reason}>{reason}</li>
++            ))}
++          </ul>
++        )}
++        {!modelIdValid(modelOverride.trim()) && (
++          <InlineAlert tone="warning">{t('directSession.invalidModel')}</InlineAlert>
++        )}
+         {loading ? (
+           <Spinner label={t('directSession.loading')} />
+         ) : resources.length === 0 ? (
+@@ -183,6 +350,10 @@ export const DirectSessionLauncher: React.FC<{
+                   const checked = resource.id === selectedID;
+                   const quota = directQuotaDisplay(resource);
+                   const quotaState = quotaTruthState(resource);
++                  const candidate = recommendation?.candidates?.find(
++                    (item) => item.account.id === resource.id,
++                  );
++                  const recommended = recommendation?.recommended?.account.id === resource.id;
+                   return (
+                     <ChoiceOption
+                       selected={checked}
+@@ -202,6 +373,14 @@ export const DirectSessionLauncher: React.FC<{
+                         <span className="nx-direct-resource__title">
+                           <strong>{directAccountTitle(resource)}</strong>
+                           {healthBadge(resource.health)}
++                          {recommended && (
++                            <Badge tone="success">{t('directSession.recommended')}</Badge>
++                          )}
++                          {candidate && (
++                            <Badge>
++                              {t('directSession.schedulerRank', { rank: candidate.rank })}
++                            </Badge>
++                          )}
+                           <Badge
+                             tone={
+                               quotaState === 'confirmed'
+@@ -250,10 +429,19 @@ export const DirectSessionLauncher: React.FC<{
+           </InlineAlert>
+         )}
+         <div className="nx-dialog-actions">
+-          <Button onClick={onClose}>{t('directSession.cancel')}</Button>
++          <Button disabled={starting} onClick={onClose}>
++            {t('directSession.cancel')}
++          </Button>
+           <Button
+             tone="brand"
+-            disabled={!selected || starting || !name.trim()}
++            disabled={
++              !selected ||
++              needsAgentRecovery ||
++              starting ||
++              loading ||
++              !name.trim() ||
++              !modelIdValid(modelOverride.trim())
++            }
+             onClick={() => void start()}
+           >
+             <Play size={14} /> {starting ? t('directSession.starting') : t('directSession.start')}
+diff --git a/web/src/features/work/directSessionLifecycle.test.ts b/web/src/features/work/directSessionLifecycle.test.ts
+new file mode 100644
+index 000000000..ba8587d23
+--- /dev/null
++++ b/web/src/features/work/directSessionLifecycle.test.ts
+@@ -0,0 +1,93 @@
++import { describe, expect, it, vi } from 'vitest';
++import type { Agent } from '../../types';
++import {
++  startDirectSession,
++  DirectSessionSetupError,
++  type DirectSessionOperations,
++} from './directSessionLifecycle';
++
++const agent = { id: 'agent-a', project_id: 'project-a' } as Agent;
++const input = {
++  projectId: 'project-a',
++  name: 'Review agent',
++  provider: 'codex',
++  profile: 'work',
++  model: 'example-model',
++  workspace: '/repo',
++};
++
++function operations() {
++  return {
++    createAgent: vi.fn().mockResolvedValue(agent),
++    selectResource: vi.fn().mockResolvedValue({}),
++    applyAgentConfig: vi.fn().mockResolvedValue({}),
++    startAgent: vi.fn().mockResolvedValue({}),
++    deleteAgent: vi.fn().mockResolvedValue({}),
++  } satisfies DirectSessionOperations;
++}
++
++describe('Direct session transactional setup', () => {
++  it('creates, allocates, configures and starts the requested resource', async () => {
++    const api = operations();
++    await expect(startDirectSession(api, input)).resolves.toBe(agent);
++    expect(api.selectResource).toHaveBeenCalledWith('agent-a', 'codex', 'work', 'MANUAL');
++    expect(api.applyAgentConfig).toHaveBeenCalledWith(
++      'agent-a',
++      expect.objectContaining({
++        provider: 'codex',
++        profile: 'work',
++        model: 'example-model',
++        isolation: 'project',
++      }),
++    );
++    expect(api.startAgent).toHaveBeenCalledWith('agent-a');
++    expect(api.deleteAgent).not.toHaveBeenCalled();
++  });
++  it.each(['selectResource', 'applyAgentConfig'] as const)(
++    'rolls back the unstarted Agent when %s fails',
++    async (step) => {
++      const api = operations();
++      api[step].mockRejectedValue(new Error('config unavailable'));
++      await expect(startDirectSession(api, input)).rejects.toMatchObject({
++        agentId: 'agent-a',
++        recovery: 'deleted',
++      });
++      expect(api.deleteAgent).toHaveBeenCalledWith('agent-a');
++      expect(api.startAgent).not.toHaveBeenCalled();
++    },
++  );
++  it('reports failed cleanup and preserves the Agent identity for recovery', async () => {
++    const api = operations();
++    api.selectResource.mockRejectedValue(new Error('selection rejected'));
++    api.deleteAgent.mockRejectedValue(new Error('cannot delete'));
++    await expect(startDirectSession(api, input)).rejects.toMatchObject({
++      agentId: 'agent-a',
++      recovery: 'cleanup-failed',
++    });
++  });
++  it('never deletes a runtime when its start response is uncertain', async () => {
++    const api = operations();
++    api.startAgent.mockRejectedValue(new Error('network timeout'));
++    await expect(startDirectSession(api, input)).rejects.toMatchObject({
++      agentId: 'agent-a',
++      recovery: 'start-uncertain',
++    });
++    expect(api.deleteAgent).not.toHaveBeenCalled();
++  });
++  it('never cleans up an Agent when creation itself fails', async () => {
++    const api = operations();
++    api.createAgent.mockRejectedValue(new Error('create failed'));
++    await expect(startDirectSession(api, input)).rejects.toThrow('create failed');
++    expect(api.deleteAgent).not.toHaveBeenCalled();
++  });
++  it('uses the provider default model when no model is selected', async () => {
++    const api = operations();
++    await startDirectSession(api, { ...input, model: undefined });
++    const config = api.applyAgentConfig.mock.calls[0][1];
++    expect(config).not.toHaveProperty('model');
++  });
++  it('labels recoverable failures with stable identities', () => {
++    const error = new DirectSessionSetupError('failure', 'agent-a', 'start-uncertain');
++    expect(error.agentId).toBe('agent-a');
++  });
++});
+diff --git a/web/src/features/work/directSessionLifecycle.ts b/web/src/features/work/directSessionLifecycle.ts
+new file mode 100644
+index 000000000..cf5380b88
+--- /dev/null
++++ b/web/src/features/work/directSessionLifecycle.ts
+@@ -0,0 +1,67 @@
++import type { Agent, AgentConfig } from '../../types';
++
++export interface DirectSessionOperations {
++  createAgent: (projectId: string, name: string, role?: string) => Promise<Agent>;
++  selectResource: (agentId: string, provider: string, profile: string, policy: string) => Promise<unknown>;
++  applyAgentConfig: (agentId: string, config: AgentConfig) => Promise<unknown>;
++  startAgent: (agentId: string) => Promise<unknown>;
++  deleteAgent: (agentId: string) => Promise<unknown>;
++}
++
++export interface DirectSessionInput {
++  projectId: string;
++  name: string;
++  provider: string;
++  profile: string;
++  model?: string;
++  workspace?: string;
++}
++
++export class DirectSessionSetupError extends Error {
++  constructor(
++    message: string,
++    readonly agentId: string,
++    readonly recovery: 'deleted' | 'cleanup-failed' | 'start-uncertain',
++  ) {
++    super(message);
++    this.name = 'DirectSessionSetupError';
++  }
++}
++
++/**
++ * A failed SELECT or CONFIG step cannot leave a newly created Agent orphaned.
++ * Once start is attempted, runtime creation may succeed despite network errors:
++ * NEVER delete that Agent without knowing its actual runtime state.
++ */
++export async function startDirectSession(
++  api: DirectSessionOperations,
++  input: DirectSessionInput,
++): Promise<Agent> {
++  const created = await api.createAgent(input.projectId, input.name, 'developer');
++  let attemptedStart = false;
++  try {
++    await api.selectResource(created.id, input.provider, input.profile, 'MANUAL');
++    await api.applyAgentConfig(created.id, {
++      provider: input.provider,
++      profile: input.profile,
++      ...(input.model ? { model: input.model } : {}),
++      workspace: input.workspace,
++      isolation: 'project',
++    });
++    attemptedStart = true;
++    await api.startAgent(created.id);
++    return created;
++  } catch (reason) {
++    const message = reason instanceof Error ? reason.message : String(reason);
++    if (attemptedStart) {
++      throw new DirectSessionSetupError(message, created.id, 'start-uncertain');
++    }
++    try {
++      await api.deleteAgent(created.id);
++    } catch (cleanupReason) {
++      const cleanup = cleanupReason instanceof Error ? cleanupReason.message : String(cleanupReason);
++      throw new DirectSessionSetupError(`${message} (cleanup: ${cleanup})`, created.id, 'cleanup-failed');
++    }
++    throw new DirectSessionSetupError(message, created.id, 'deleted');
++  }
++}
+diff --git a/web/src/features/work/directSessionModel.test.ts b/web/src/features/work/directSessionModel.test.ts
+index e8f33a220..756823093 100644
+--- a/web/src/features/work/directSessionModel.test.ts
++++ b/web/src/features/work/directSessionModel.test.ts
+@@ -7,6 +7,9 @@ import {
+   directQuotaDisplay,
+   directQuotaPercent,
+   eligibleDirectResources,
++  recommendedDirectAccountId,
++  directResourcePolicy,
++  directSchedulerContext,
+   quotaTruthState,
+ } from './directSessionModel';
+ 
+@@ -161,3 +164,72 @@ describe('direct session model', () => {
+     },
+   );
+ });
++
++describe('scheduler-authoritative Direct selection', () => {
++  const accounts = [
++    {
++      id: 'codex-default',
++      provider: 'codex',
++      profile: 'default',
++      authenticated: true,
++      available: true,
++    },
++    {
++      id: 'claude-work',
++      provider: 'claude',
++      profile: 'work',
++      authenticated: true,
++      available: true,
++    },
++  ];
++  it('uses backend recommendation rather than first/alphabetical account', () => {
++    expect(
++      recommendedDirectAccountId(accounts, { recommended: { account: { id: 'claude-work' } } }),
++    ).toBe('claude-work');
++  });
++  it('does not invent a selection for missing or ineligible recommendation', () => {
++    expect(
++      recommendedDirectAccountId(accounts, { recommended: { account: { id: 'missing' } } }),
++    ).toBe('');
++    expect(recommendedDirectAccountId(accounts, null)).toBe('');
++  });
++});
++
++describe('project resource policy normalization', () => {
++  it('supports a legacy enum and a project JSON configuration', () => {
++    expect(directResourcePolicy('PRESERVE_QUOTA')).toBe('PRESERVE_QUOTA');
++    expect(directResourcePolicy('{"policy":"PREFER_PROVIDER"}')).toBe('PREFER_PROVIDER');
++    expect(directResourcePolicy('{"scheduler_policy":"PRESERVE_QUOTA"}')).toBe('PRESERVE_QUOTA');
++  });
++  it('fails to BALANCED on unknown, malformed or empty policy', () => {
++    expect(directResourcePolicy('{}')).toBe('BALANCED');
++    expect(directResourcePolicy('{broken')).toBe('BALANCED');
++    expect(directResourcePolicy('CUSTOM')).toBe('BALANCED');
++  });
++});
++
++describe('effective Direct scheduler context', () => {
++  it('passes configured provider affinity into the existing scheduler policy', () => {
++    expect(directSchedulerContext('{"policy":"PREFER_PROVIDER","prefer_provider":"codex"}')).toEqual({
++      policy: 'PREFER_PROVIDER',
++      preferProvider: 'codex',
++    });
++    expect(directSchedulerContext('{"policy":"BALANCED"}', 'Claude')).toEqual({
++      policy: 'PREFER_PROVIDER',
++      preferProvider: 'claude',
++    });
++  });
++  it('does not claim a preference when the policy provides no provider', () => {
++    expect(directSchedulerContext('{"policy":"PREFER_PROVIDER"}')).toEqual({
++      policy: 'BALANCED',
++      preferProvider: '',
++    });
++    expect(directSchedulerContext('{}')).toEqual({ policy: 'BALANCED', preferProvider: '' });
++  });
++  it('rejects invalid provider tokens instead of forwarding unchecked affinity', () => {
++    expect(directSchedulerContext('{"prefer_provider":"evil provider"}')).toEqual({
++      policy: 'BALANCED',
++      preferProvider: '',
++    });
++  });
++});
+diff --git a/web/src/features/work/directSessionModel.ts b/web/src/features/work/directSessionModel.ts
+index d9bf6b47a..67ec3537d 100644
+--- a/web/src/features/work/directSessionModel.ts
++++ b/web/src/features/work/directSessionModel.ts
+@@ -191,3 +191,79 @@ export function eligibleDirectResources<T extends DirectResourceLike>(
+       return `${a.provider}:${a.profile}`.localeCompare(`${b.provider}:${b.profile}`);
+     });
+ }
++
++/** The backend is the sole ranking authority. No silent fallback to an
++ * arbitrary account when a recommendation is unavailable or ineligible. */
++export function recommendedDirectAccountId<T extends DirectResourceLike>(
++  resources: T[],
++  recommendation: { recommended?: { account?: { id?: string } } } | null,
++): string {
++  const id = recommendation?.recommended?.account?.id || '';
++  return resources.some((resource) => resource.id === id) ? id : '';
++}
++
++const knownResourcePolicies = new Set(['BALANCED', 'PRESERVE_QUOTA', 'PREFER_PROVIDER']);
++
++/** Project.resource_policy is historically a JSON object, not always a string enum.
++ * Unsupported values must not become implicit scheduler policies. */
++export function directResourcePolicy(value: string | undefined): string {
++  const raw = (value || '').trim();
++  if (!raw) return 'BALANCED';
++  let policy = raw;
++  if (raw.startsWith('{')) {
++    try {
++      const parsed: unknown = JSON.parse(raw);
++      if (!parsed || typeof parsed !== 'object') return 'BALANCED';
++      const data = parsed as Record<string, unknown>;
++      policy =
++        typeof data.policy === 'string'
++          ? data.policy
++          : typeof data.scheduler_policy === 'string'
++            ? data.scheduler_policy
++            : 'BALANCED';
++    } catch {
++      return 'BALANCED';
++    }
++  }
++  const normalized = policy.trim().toUpperCase();
++  return knownResourcePolicies.has(normalized) ? normalized : 'BALANCED';
++}
++
++export interface DirectSchedulerContext {
++  policy: string;
++  preferProvider: string;
++}
++
++/**
++ * Project.resource_policy is an untrusted, historical JSON string. A
++ * PREFER_PROVIDER request without an explicit provider is not a preference.
++ */
++export function directSchedulerContext(
++  value: string | undefined,
++  selectedProvider = '',
++): DirectSchedulerContext {
++  let preferred = '';
++  try {
++    const parsed: unknown = JSON.parse(value || '{}');
++    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
++      const config = parsed as Record<string, unknown>;
++      const raw = config.prefer_provider ?? config.preferred_provider ?? config.provider;
++      if (typeof raw === 'string') preferred = raw.trim().toLowerCase();
++    }
++  } catch {
++    // Legacy enum values are handled by directResourcePolicy below.
++  }
++  const override = selectedProvider.trim().toLowerCase();
++  const preferProvider = /^[a-z0-9][a-z0-9_-]{0,63}$/.test(override || preferred)
++    ? override || preferred
++    : '';
++  const configured = directResourcePolicy(value);
++  // The user's explicit preferred provider wins over passive balancing.
++  // Without a provider there is nothing for PREFER_PROVIDER to promote.
++  const policy = preferProvider
++    ? 'PREFER_PROVIDER'
++    : configured === 'PREFER_PROVIDER'
++      ? 'BALANCED'
++      : configured;
++  return { policy, preferProvider };
++}
+diff --git a/web/src/i18n/resources.ts b/web/src/i18n/resources.ts
+index 4e5ef490a..9b0ff03c8 100644
+--- a/web/src/i18n/resources.ts
++++ b/web/src/i18n/resources.ts
+@@ -278,6 +278,12 @@ export const en = {
+     tip: 'After adding a Project, open New AI Session or Project Shell. The radar notifies you when an Agent waits — even in another Project.',
+   },
+   commands: {
++    searchScopes: 'Search scopes',
++    scopeProjects: 'Projects',
++    scopeAgents: 'Agents',
++    scopeResources: 'Resources',
++    scopeActions: 'Actions',
++    chooseAccountModel: 'Choose account and model',
+     title: 'Command Palette',
+     placeholder: 'Open Agent terminal, Project Shell, switch Project…',
+     available: 'Available commands',
+@@ -806,6 +812,30 @@ export const en = {
+     edgesCount_other: '{{count}} edges',
+   },
+   directSession: {
++    schedulerReasons: 'Why this account was recommended',
++    preferProvider: 'Prefer provider (optional)',
++    providerAutomatic: 'Automatic (ResourceScheduler)',
++    recoverableStartError: 'Agent {{agentId}} may have started: {{message}}. Check the Agents panel before retrying.',
++    startedButNotOpened: 'Agent {{agentId}} is running, but could not be opened: {{message}}. Open it from Agents.',
++    taskKind: 'Task specialization',
++    task: {
++      coding: 'Coding',
++      planning: 'Planning',
++      review: 'Code review',
++      security: 'Security review',
++    },
++    modelOverride: 'Model (optional)',
++    providerDefaultModel: 'Provider default model',
++    modelHint:
++      'The account is ranked by ResourceScheduler. Model names are manual overrides and must be supported by the selected provider.',
++    recommendationUnavailable: 'Scheduler recommendation unavailable. Select an account manually.',
++    schedulerExplained:
++      'ResourceScheduler recommends {{provider}} (policy: {{policy}}). You may override the account.',
++    schedulerNoCandidate:
++      'No eligible account recommended for this task. Select an eligible account explicitly.',
++    recommended: 'Recommended',
++    schedulerRank: 'Rank #{{rank}}',
++    invalidModel: 'Use a model identifier of at most 128 characters, without spaces.',
+     title: 'Start AI session',
+     assistedTitle: 'Start assisted AI session',
+     name: 'Agent name',
+@@ -1292,6 +1322,13 @@ export const en = {
+     why: 'Why:',
+   },
+   workspace: {
++    splitTerminals: 'Split terminals',
++    showInSecondPane: 'Show in second pane',
++    splitShort: 'Split',
++    splitOrientation: 'Split orientation',
++    splitSideBySide: 'Terminals side by side',
++    splitStacked: 'Terminals one above the other',
++    resizeSplit: 'Resize terminal split',
+     splitRight: 'Split right',
+     splitDown: 'Split down',
+     popout: 'Pop out surface',
+@@ -2262,6 +2299,12 @@ export const ptBR = {
+     tip: 'Depois de adicionar um Projeto, abra Nova sessão de IA ou Project Shell. O radar avisa quando um Agente espera — mesmo em outro Projeto.',
+   },
+   commands: {
++    searchScopes: 'Escopos de busca',
++    scopeProjects: 'Projetos',
++    scopeAgents: 'Agentes',
++    scopeResources: 'Recursos',
++    scopeActions: 'Ações',
++    chooseAccountModel: 'Escolher conta e modelo',
+     title: 'Paleta de comandos',
+     placeholder: 'Abrir terminal de Agente, Project Shell, trocar Projeto…',
+     available: 'Comandos disponíveis',
+@@ -2793,6 +2836,31 @@ export const ptBR = {
+     edgesCount_other: '{{count}} conexões',
+   },
+   directSession: {
++    schedulerReasons: 'Por que esta conta foi recomendada',
++    preferProvider: 'Preferir provedor (opcional)',
++    providerAutomatic: 'Automático (ResourceScheduler)',
++    recoverableStartError: 'O agente {{agentId}} pode ter iniciado: {{message}}. Confira em Agentes antes de tentar novamente.',
++    startedButNotOpened: 'O agente {{agentId}} está em execução, mas não foi possível abrir: {{message}}. Abra pela lista de Agentes.',
++    taskKind: 'Especialidade da tarefa',
++    task: {
++      coding: 'Codificação',
++      planning: 'Planejamento',
++      review: 'Revisão de código',
++      security: 'Revisão de segurança',
++    },
++    modelOverride: 'Modelo (opcional)',
++    providerDefaultModel: 'Modelo padrão do provedor',
++    modelHint:
++      'O ResourceScheduler classifica contas. O modelo é uma escolha manual e precisa ser aceito pelo provedor selecionado.',
++    recommendationUnavailable:
++      'Recomendação do scheduler indisponível. Escolha uma conta manualmente.',
++    schedulerExplained:
++      'O ResourceScheduler recomenda {{provider}} (política: {{policy}}). Você pode alterar a conta.',
++    schedulerNoCandidate:
++      'Nenhuma conta elegível recomendada para esta tarefa. Escolha uma conta explicitamente.',
++    recommended: 'Recomendado',
++    schedulerRank: 'Posição #{{rank}}',
++    invalidModel: 'Informe um identificador de modelo de até 128 caracteres, sem espaços.',
+     title: 'Iniciar sessão de IA',
+     assistedTitle: 'Iniciar sessão assistida de IA',
+     name: 'Nome do agente',
+@@ -3283,6 +3351,13 @@ export const ptBR = {
+     why: 'Por quê:',
+   },
+   workspace: {
++    splitTerminals: 'Dividir terminais',
++    showInSecondPane: 'Exibir no segundo painel',
++    splitShort: 'Dividir',
++    splitOrientation: 'Orientação da divisão',
++    splitSideBySide: 'Terminais lado a lado',
++    splitStacked: 'Terminais um acima do outro',
++    resizeSplit: 'Redimensionar divisão dos terminais',
+     splitRight: 'Dividir à direita',
+     splitDown: 'Dividir abaixo',
+     popout: 'Abrir superfície em nova janela',
+@@ -4261,6 +4336,12 @@ export const es = {
+     tip: 'Después de agregar un Proyecto, abra Nueva sesión de IA o Project Shell. El radar avisa cuando un Agente espera — incluso en otro Proyecto.',
+   },
+   commands: {
++    searchScopes: 'Ámbitos de búsqueda',
++    scopeProjects: 'Proyectos',
++    scopeAgents: 'Agentes',
++    scopeResources: 'Recursos',
++    scopeActions: 'Acciones',
++    chooseAccountModel: 'Elegir cuenta y modelo',
+     title: 'Paleta de comandos',
+     placeholder: 'Abrir terminal de Agente, Project Shell, cambiar Proyecto…',
+     available: 'Comandos disponibles',
+@@ -4792,6 +4873,31 @@ export const es = {
+     edgesCount_other: '{{count}} conexiones',
+   },
+   directSession: {
++    schedulerReasons: 'Por qué se recomendó esta cuenta',
++    preferProvider: 'Preferir proveedor (opcional)',
++    providerAutomatic: 'Automático (ResourceScheduler)',
++    recoverableStartError: 'Es posible que el agente {{agentId}} haya iniciado: {{message}}. Compruébelo en Agentes antes de reintentar.',
++    startedButNotOpened: 'El agente {{agentId}} está ejecutándose, pero no se pudo abrir: {{message}}. Ábralo desde Agentes.',
++    taskKind: 'Especialidad de la tarea',
++    task: {
++      coding: 'Programación',
++      planning: 'Planificación',
++      review: 'Revisión de código',
++      security: 'Revisión de seguridad',
++    },
++    modelOverride: 'Modelo (opcional)',
++    providerDefaultModel: 'Modelo predeterminado del proveedor',
++    modelHint:
++      'ResourceScheduler clasifica cuentas. El modelo es una elección manual y debe ser compatible con el proveedor.',
++    recommendationUnavailable:
++      'Recomendación del scheduler no disponible. Seleccione una cuenta manualmente.',
++    schedulerExplained:
++      'ResourceScheduler recomienda {{provider}} (política: {{policy}}). Puede cambiar de cuenta.',
++    schedulerNoCandidate:
++      'Ninguna cuenta elegible recomendada. Seleccione una cuenta explícitamente.',
++    recommended: 'Recomendado',
++    schedulerRank: 'Posición #{{rank}}',
++    invalidModel: 'Escriba un identificador de modelo de hasta 128 caracteres, sin espacios.',
+     title: 'Iniciar sesión de IA',
+     assistedTitle: 'Iniciar sesión asistida de IA',
+     name: 'Nombre del agente',
+@@ -5283,6 +5389,13 @@ export const es = {
+     why: 'Por qué:',
+   },
+   workspace: {
++    splitTerminals: 'Dividir terminales',
++    showInSecondPane: 'Mostrar en el segundo panel',
++    splitShort: 'Dividir',
++    splitOrientation: 'Orientación de la división',
++    splitSideBySide: 'Terminales lado a lado',
++    splitStacked: 'Terminales uno encima del otro',
++    resizeSplit: 'Cambiar tamaño de la división',
+     splitRight: 'Dividir a la derecha',
+     splitDown: 'Dividir abajo',
+     popout: 'Abrir superficie en otra ventana',
+diff --git a/web/src/nexus/api.ts b/web/src/nexus/api.ts
+index cf47537b6..1b1db0274 100644
+--- a/web/src/nexus/api.ts
++++ b/web/src/nexus/api.ts
+@@ -763,6 +763,9 @@ export const nexus = {
+       role: string;
+       current_provider?: string;
+       prefer_provider?: string;
++      domains?: string[];
++      estimated_complexity?: string;
++      source?: string;
+     },
+     policy?: string,
+   ) =>
+diff --git a/web/src/services/WorkspaceLayoutService.test.ts b/web/src/services/WorkspaceLayoutService.test.ts
+index 306491f8a..e4cd67afd 100644
+--- a/web/src/services/WorkspaceLayoutService.test.ts
++++ b/web/src/services/WorkspaceLayoutService.test.ts
+@@ -1,6 +1,7 @@
+ import { describe, expect, it, beforeEach } from 'vitest';
+ import { WorkspaceLayoutService, WORKSPACE_LAYOUT_VERSION } from './WorkspaceLayoutService';
+ import { createWorkspace } from '../workspace/model';
++import { createPresentationState, setTerminalSplitRatio } from '../workspace/presentation';
+ 
+ // In Node environment vitest tests, provide mock localStorage on global/window
+ const store = new Map<string, string>();
+@@ -97,6 +98,28 @@ describe('WorkspaceLayoutService', () => {
+     expect(imported.workspaceId).toBe(projectId);
+   });
+ 
++  it('restores two-pane terminal proportions for the same project', () => {
++    const initial = service.load(fallback);
++    const presentation = setTerminalSplitRatio(
++      {
++        ...createPresentationState('SPLIT'),
++        splitOrientation: 'horizontal',
++        splitPrimaryViewId: 'view:pty-a',
++        splitSecondaryViewId: 'view:pty-b',
++      },
++      0.65,
++    );
++    service.save({ ...initial, presentation });
++    const restored = new WorkspaceLayoutService(projectId).load(fallback);
++    expect(restored.presentation.mode).toBe('SPLIT');
++    expect(restored.presentation.splitRatio).toBe(0.65);
++    expect(restored.presentation.splitOrientation).toBe('horizontal');
++    expect(restored.presentation.splitPrimaryViewId).toBe('view:pty-a');
++    expect(restored.presentation.splitSecondaryViewId).toBe('view:pty-b');
++    const other = new WorkspaceLayoutService('another-project').load(fallback);
++    expect(other.presentation.mode).not.toBe('SPLIT');
++  });
++
+   it('resets layout to fallback defaults', () => {
+     const initial = service.load(fallback);
+     service.save(initial);
+diff --git a/web/src/workspace/TerminalSplit.module.scss b/web/src/workspace/TerminalSplit.module.scss
+new file mode 100644
+index 000000000..33da04d75
+--- /dev/null
++++ b/web/src/workspace/TerminalSplit.module.scss
+@@ -0,0 +1,80 @@
++.orientation {
++  display: flex;
++  align-items: center;
++  gap: 4px;
++}
++
++.orientation button {
++  display: inline-flex;
++  align-items: center;
++  justify-content: center;
++  width: 30px;
++  height: 30px;
++  border: 1px solid var(--nx-border);
++  border-radius: var(--nx-radius-sm, 6px);
++  color: var(--nx-text);
++  background: var(--nx-surface);
++  cursor: pointer;
++}
++
++.orientation button[aria-pressed='true'] {
++  border-color: var(--nx-accent);
++  background: color-mix(in srgb, var(--nx-accent) 14%, var(--nx-surface));
++}
++
++.orientation button:focus-visible,
++.divider:focus-visible {
++  outline: 2px solid var(--nx-accent);
++  outline-offset: 2px;
++}
++
++.splitPanels.splitPanels {
++  display: grid;
++  grid-template-columns: minmax(0, var(--nx-terminal-split-ratio)) 6px minmax(0, 1fr);
++  grid-template-rows: minmax(0, 1fr);
++  min-height: 0;
++  min-width: 0;
++  overflow: hidden;
++}
++
++.splitPanels[data-orientation='horizontal'] {
++  grid-template-columns: minmax(0, 1fr);
++  grid-template-rows: minmax(0, var(--nx-terminal-split-ratio)) 6px minmax(0, 1fr);
++}
++
++.splitPane.splitPane {
++  /* The shared workspace panel is absolutely positioned for Tabs. In Split,
++     both live PTYs must participate in the grid as independent tracks. */
++  position: relative;
++  inset: auto;
++  width: 100%;
++  height: 100%;
++  min-width: 0;
++  min-height: 0;
++  overflow: hidden;
++}
++
++.splitPane[hidden] {
++  display: none;
++}
++
++/* The web-only workspace rule enables scrolling on every active panel.
++   A Split PTY is a fixed grid cell; the terminal owns its viewport and must
++   not inherit an extra scrollbar or reserved scrollbar gutter. */
++.splitPanels.splitPanels > .splitPane.splitPane[data-active='true'] {
++  overflow: hidden;
++  scrollbar-gutter: auto;
++}
++
++.divider {
++  min-width: 6px;
++  min-height: 6px;
++  background: var(--nx-border);
++  cursor: col-resize;
++  touch-action: none;
++}
++
++.splitPanels[data-orientation='horizontal'] .divider {
++  cursor: row-resize;
++}
++
+diff --git a/web/src/workspace/WorkspacePresentationProvider.tsx b/web/src/workspace/WorkspacePresentationProvider.tsx
+index 12380ff83..44de5da84 100644
+--- a/web/src/workspace/WorkspacePresentationProvider.tsx
++++ b/web/src/workspace/WorkspacePresentationProvider.tsx
+@@ -11,6 +11,10 @@ import {
+   resizeMosaicWindow,
+   restoreDesktopWindow,
+   setActivePtyView,
++  setTerminalSplitOrientation,
++  setTerminalSplitRatio,
++  setTerminalSplitSecondary,
++  setTerminalSplitPrimary,
+   setPresentationCanvas,
+   setPresentationMode,
+   syncDesktopWindows,
+@@ -19,6 +23,7 @@ import {
+   toggleZenMode,
+   setZenMode,
+   type MosaicResizeEdge,
++  type TerminalSplitOrientation,
+   type WorkspacePresentationMode,
+   type WorkspacePresentationState,
+ } from './presentation';
+@@ -37,6 +42,10 @@ interface ContextValue {
+   sync: (surfaces: WorkspaceSurface[]) => void;
+   focus: (viewId: string) => void;
+   setActivePty: (viewId: string) => void;
++  setSplitOrientation: (orientation: TerminalSplitOrientation) => void;
++  setSplitRatio: (ratio: number) => void;
++  setSplitSecondary: (viewId: string) => void;
++  setSplitPrimary: (viewId: string) => void;
+   move: (viewId: string, x: number, y: number) => void;
+   commitMove: (
+     viewId: string,
+@@ -70,6 +79,10 @@ type Action =
+   | { type: 'sync'; surfaces: WorkspaceSurface[] }
+   | { type: 'focus'; viewId: string }
+   | { type: 'setActivePty'; viewId: string }
++  | { type: 'splitOrientation'; orientation: TerminalSplitOrientation }
++  | { type: 'splitRatio'; ratio: number }
++  | { type: 'splitSecondary'; viewId: string }
++  | { type: 'splitPrimary'; viewId: string }
+   | { type: 'move'; viewId: string; x: number; y: number }
+   | {
+       type: 'commitMove';
+@@ -145,6 +158,14 @@ function reducer(state: WorkspacePresentationState, action: Action): WorkspacePr
+       return focusDesktopWindow(state, action.viewId);
+     case 'setActivePty':
+       return setActivePtyView(state, action.viewId);
++    case 'splitOrientation':
++      return setTerminalSplitOrientation(state, action.orientation);
++    case 'splitRatio':
++      return setTerminalSplitRatio(state, action.ratio);
++    case 'splitSecondary':
++      return setTerminalSplitSecondary(state, action.viewId);
++    case 'splitPrimary':
++      return setTerminalSplitPrimary(state, action.viewId);
+     case 'move':
+       return moveDesktopWindow(state, action.viewId, action.x, action.y);
+     case 'commitMove':
+@@ -202,6 +223,10 @@ export const WorkspacePresentationProvider: React.FC<{
+       sync: (surfaces) => dispatch({ type: 'sync', surfaces }),
+       focus: (viewId) => dispatch({ type: 'focus', viewId }),
+       setActivePty: (viewId) => dispatch({ type: 'setActivePty', viewId }),
++      setSplitOrientation: (orientation) => dispatch({ type: 'splitOrientation', orientation }),
++      setSplitRatio: (ratio) => dispatch({ type: 'splitRatio', ratio }),
++      setSplitSecondary: (viewId) => dispatch({ type: 'splitSecondary', viewId }),
++      setSplitPrimary: (viewId) => dispatch({ type: 'splitPrimary', viewId }),
+       move: (viewId, x, y) => dispatch({ type: 'move', viewId, x, y }),
+       commitMove: (viewId, origin, pointer) =>
+         dispatch({ type: 'commitMove', viewId, origin, pointer }),
+diff --git a/web/src/workspace/WorkspaceRenderer.tsx b/web/src/workspace/WorkspaceRenderer.tsx
+index e59b4a3da..4407d8802 100644
+--- a/web/src/workspace/WorkspaceRenderer.tsx
++++ b/web/src/workspace/WorkspaceRenderer.tsx
+@@ -7,6 +7,8 @@ import {
+   Home,
+   Layers,
+   LayoutGrid,
++  Columns2,
++  Rows2,
+   Maximize2,
+   Minimize2,
+   Minus,
+@@ -45,6 +47,8 @@ import { isWindowedPresentationMode, mosaicDropTargetViewId } from './presentati
+ import { ptyWindowHeading } from './ptyLiveChrome';
+ import { liveChromeFor, usePtyLiveChromeOptional } from './PtyLiveChromeContext';
+ import { ARRANGE_MENU_PRESETS, type ArrangeMenuPreset } from './arrangePresets';
++import { resolveTerminalSplitViews } from './presentation';
++import splitStyles from './TerminalSplit.module.scss';
+ 
+ const WINDOW_ACCENTS = [
+   'var(--nx-info)',
+@@ -688,6 +692,32 @@ const TerminalsHost: React.FC<{
+     ptySurfaces[0]?.id ||
+     '';
+   const windowed = isWindowedPresentationMode(presentation.state.mode);
++  const compactSplit = useCompactViewport();
++  const effectiveSplitOrientation = compactSplit
++    ? 'horizontal'
++    : presentation.state.splitOrientation;
++  const splitMode = presentation.state.mode === 'SPLIT' && ptySurfaces.length > 1;
++  const splitViews = resolveTerminalSplitViews(
++    presentation.state,
++    ptySurfaces.map((surface) => surfaceViewId(surface)),
++  );
++  const splitRef = useRef<HTMLDivElement>(null);
++  const beginSplitResize = (event: React.PointerEvent<HTMLDivElement>) => {
++    if (event.button !== 0) return;
++    event.preventDefault();
++    const target = event.currentTarget;
++    target.setPointerCapture(event.pointerId);
++  };
++  const updateSplitResize = (event: React.PointerEvent<HTMLDivElement>) => {
++    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
++    const rect = splitRef.current?.getBoundingClientRect();
++    if (!rect || !rect.width || !rect.height) return;
++    const vertical = effectiveSplitOrientation === 'vertical';
++    const fraction = vertical
++      ? (event.clientX - rect.left) / rect.width
++      : (event.clientY - rect.top) / rect.height;
++    presentation.setSplitRatio(fraction);
++  };
+   const minimizedPtys = ptySurfaces.filter(
+     (surface) => presentation.state.windows[surfaceViewId(surface)]?.minimized,
+   );
+@@ -718,6 +748,9 @@ const TerminalsHost: React.FC<{
+ 
+   const focusPty = (surface: WorkspaceSurface) => {
+     const viewId = surfaceViewId(surface);
++    if (splitMode && viewId !== splitViews.primary && viewId !== splitViews.secondary) {
++      presentation.setSplitPrimary(viewId);
++    }
+     presentation.setActivePty(viewId);
+     if (windowed) {
+       presentation.focus(viewId);
+@@ -799,6 +832,17 @@ const TerminalsHost: React.FC<{
+               <PanelsTopLeft size={11} />
+               <span>{t('workspace.tabs', 'Abas')}</span>
+             </button>
++            <button
++              type="button"
++              disabled={ptySurfaces.length < 2}
++              data-active={presentation.state.mode === 'SPLIT' ? 'true' : 'false'}
++              onClick={() => presentation.setMode('SPLIT')}
++              title={t('workspace.splitTerminals')}
++              aria-label={t('workspace.splitTerminals')}
++            >
++              <Columns2 size={11} />
++              <span>{t('workspace.splitShort')}</span>
++            </button>
+             <button
+               type="button"
+               data-active={presentation.state.mode === 'DESKTOP' ? 'true' : 'false'}
+@@ -820,6 +864,31 @@ const TerminalsHost: React.FC<{
+               <span>{t('workspace.mosaic', 'Mosaico')}</span>
+             </button>
+           </div>
++          {splitMode && (
++            <div
++              className={splitStyles.orientation}
++              role="group"
++              aria-label={t('workspace.splitOrientation')}
++            >
++              <button
++                type="button"
++                aria-pressed={effectiveSplitOrientation === 'vertical'}
++                disabled={compactSplit}
++                title={t('workspace.splitSideBySide')}
++                onClick={() => presentation.setSplitOrientation('vertical')}
++              >
++                <Columns2 size={15} />
++              </button>
++              <button
++                type="button"
++                aria-pressed={effectiveSplitOrientation === 'horizontal'}
++                title={t('workspace.splitStacked')}
++                onClick={() => presentation.setSplitOrientation('horizontal')}
++              >
++                <Rows2 size={15} />
++              </button>
++            </div>
++          )}
+           {windowed && (
+             <ArrangeLayoutMenu
+               activePreset={presentation.state.lastArrangePreset}
+@@ -960,7 +1029,7 @@ const TerminalsHost: React.FC<{
+                         focusPty(surface);
+                       }}
+                       onContextMenu={(event) => {
+-                        focusPty(surface);
++                        if (!splitMode) focusPty(surface);
+                         setChromeMenuViewId(null);
+                         setTabMenu({ surface, point: contextMenuFromEvent(event) });
+                       }}
+@@ -1014,24 +1083,101 @@ const TerminalsHost: React.FC<{
+                 );
+               })}
+             </div>
+-            <div className="nx-terminals-inner-panels">
++            <div
++              ref={splitRef}
++              className={
++                splitMode
++                  ? `nx-terminals-inner-panels ${splitStyles.splitPanels}`
++                  : 'nx-terminals-inner-panels'
++              }
++              data-orientation={splitMode ? effectiveSplitOrientation : undefined}
++              style={
++                splitMode
++                  ? ({
++                      '--nx-terminal-split-ratio': `${Math.round(presentation.state.splitRatio * 100)}%`,
++                    } as React.CSSProperties)
++                  : undefined
++              }
++            >
+               {ptySurfaces.map((surface) => {
+                 const ptyActive = focusedPtyId === surface.id;
++                const isSplitPrimary = splitMode && surfaceViewId(surface) === splitViews.primary;
++                const isSplitSecondary =
++                  splitMode && surfaceViewId(surface) === splitViews.secondary;
++                const visible = splitMode ? isSplitPrimary || isSplitSecondary : ptyActive;
+                 return (
+                   <div
+                     key={surface.id}
+                     role="tabpanel"
+                     id={`nx-pty-panel-${surface.id}`}
+                     aria-labelledby={`nx-pty-tab-${surface.id}`}
+-                    hidden={!ptyActive || undefined}
+-                    inert={!ptyActive || undefined}
+-                    className="nx-workspace-panel"
+-                    data-active={ptyActive ? 'true' : 'false'}
++                    hidden={!visible || undefined}
++                    inert={!visible || undefined}
++                    className={
++                      splitMode
++                        ? `nx-workspace-panel ${splitStyles.splitPane}`
++                        : 'nx-workspace-panel'
++                    }
++                    style={splitMode && visible ? { order: isSplitPrimary ? 0 : 2 } : undefined}
++                    data-active={visible ? 'true' : 'false'}
++                    onPointerDownCapture={() => {
++                      if (
++                        splitMode &&
++                        visible &&
++                        presentation.state.activePtyViewId !== surfaceViewId(surface)
++                      ) {
++                        presentation.setActivePty(surfaceViewId(surface));
++                      }
++                    }}
+                   >
+                     {renderSurface(surface)}
+                   </div>
+                 );
+               })}
++              {splitMode && splitViews.secondary && (
++                <div
++                  className={splitStyles.divider}
++                  role="separator"
++                  aria-orientation={effectiveSplitOrientation}
++                  aria-label={t('workspace.resizeSplit')}
++                  aria-valuemin={20}
++                  aria-valuemax={80}
++                  aria-valuenow={Math.round(presentation.state.splitRatio * 100)}
++                  tabIndex={0}
++                  style={{ order: 1 }}
++                  onPointerDown={beginSplitResize}
++                  onPointerMove={updateSplitResize}
++                  onPointerUp={(event) => {
++                    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
++                      event.currentTarget.releasePointerCapture(event.pointerId);
++                    }
++                    window.dispatchEvent(new Event('resize'));
++                  }}
++                  onPointerCancel={(event) => {
++                    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
++                      event.currentTarget.releasePointerCapture(event.pointerId);
++                    }
++                  }}
++                  onKeyDown={(event) => {
++                    const orientation = effectiveSplitOrientation;
++                    const increment =
++                      orientation === 'vertical'
++                        ? event.key === 'ArrowRight'
++                          ? 0.05
++                          : event.key === 'ArrowLeft'
++                            ? -0.05
++                            : 0
++                        : event.key === 'ArrowDown'
++                          ? 0.05
++                          : event.key === 'ArrowUp'
++                            ? -0.05
++                            : 0;
++                    if (!increment) return;
++                    event.preventDefault();
++                    presentation.setSplitRatio(presentation.state.splitRatio + increment);
++                  }}
++                />
++              )}
+             </div>
+             <ContextMenu
+               open={tabMenu?.point ?? null}
+@@ -1051,6 +1197,18 @@ const TerminalsHost: React.FC<{
+                           setChromeMenuViewId(viewId);
+                         },
+                       },
++                      ...(splitMode && surfaceViewId(tabMenu.surface) !== splitViews.primary
++                        ? ([
++                            {
++                              type: 'item',
++                              id: 'split-secondary',
++                              label: t('workspace.showInSecondPane'),
++                              icon: <Columns2 size={13} />,
++                              onSelect: () =>
++                                presentation.setSplitSecondary(surfaceViewId(tabMenu.surface)),
++                            },
++                          ] satisfies ContextMenuItem[])
++                        : []),
+                       ...(tabMenu.surface.closable !== false && onRequestClose
+                         ? ([
+                             { type: 'separator', id: 'sep-close' },
+diff --git a/web/src/workspace/presentation.test.ts b/web/src/workspace/presentation.test.ts
+index 7256f1504..e05a5a21e 100644
+--- a/web/src/workspace/presentation.test.ts
++++ b/web/src/workspace/presentation.test.ts
+@@ -2,8 +2,15 @@ import { describe, expect, it } from 'vitest';
+ import {
+   commitMosaicMove,
+   createPresentationState,
+-  focusDesktopWindow,
++  normalizeTerminalSplitRatio,
++  resolveTerminalSplitViews,
++  setTerminalSplitOrientation,
++  setTerminalSplitRatio,
++  setTerminalSplitSecondary,
++  setTerminalSplitPrimary,
++  setActivePtyView,
+   migratePresentationState,
++  focusDesktopWindow,
+   mosaicDropTargetViewId,
+   MOSAIC_MINIMIZED_SHELF_H,
+   moveDesktopWindow,
+@@ -430,3 +437,49 @@ describe('workspace presentation', () => {
+     expect(migrated.zenMode).toBe(true);
+   });
+ });
++
++describe('persistent PTY split mode', () => {
++  it('migrates older layouts without losing terminal modes', () => {
++    const old = createPresentationState('TABS');
++    const migrated = migratePresentationState({
++      ...old,
++      splitRatio: undefined,
++      splitOrientation: undefined,
++    });
++    expect(migrated.mode).toBe('TABS');
++    expect(migrated.splitRatio).toBe(0.5);
++    expect(migrated.splitOrientation).toBe('vertical');
++  });
++  it('persists orientation, secondary identity and bounded ratio', () => {
++    let state = syncDesktopWindows(createPresentationState('SPLIT'), [surface('a'), surface('b')]);
++    state = setTerminalSplitOrientation(state, 'horizontal');
++    state = setTerminalSplitRatio(state, 0.72);
++    state = setTerminalSplitPrimary(state, 'view:b');
++    state = setTerminalSplitSecondary(state, 'view:a');
++    state = setActivePtyView(state, 'view:a');
++    const restored = migratePresentationState(JSON.parse(JSON.stringify(state)));
++    expect(restored.splitOrientation).toBe('horizontal');
++    expect(restored.splitRatio).toBe(0.72);
++    expect(restored.splitPrimaryViewId).toBe('view:b');
++    expect(resolveTerminalSplitViews(restored, ['view:a', 'view:b'])).toEqual({
++      primary: 'view:b',
++      secondary: 'view:a',
++    });
++    expect(normalizeTerminalSplitRatio(9)).toBe(0.8);
++    expect(normalizeTerminalSplitRatio(Number.NaN)).toBe(0.5);
++  });
++  it('never displays missing or duplicate PTY view IDs', () => {
++    const state = {
++      ...createPresentationState('SPLIT'),
++      activePtyViewId: 'b',
++      splitSecondaryViewId: 'b',
++    };
++    expect(resolveTerminalSplitViews(state, ['a', 'b'])).toEqual({ primary: 'b', secondary: 'a' });
++    expect(resolveTerminalSplitViews(state, ['a'])).toEqual({ primary: 'a', secondary: '' });
++    const stable = { ...state, splitPrimaryViewId: 'a', splitSecondaryViewId: 'b' };
++    expect(resolveTerminalSplitViews({ ...stable, activePtyViewId: 'b' }, ['a', 'b'])).toEqual({
++      primary: 'a',
++      secondary: 'b',
++    });
++  });
++});
+diff --git a/web/src/workspace/presentation.ts b/web/src/workspace/presentation.ts
+index b48152574..286b17054 100644
+--- a/web/src/workspace/presentation.ts
++++ b/web/src/workspace/presentation.ts
+@@ -6,7 +6,8 @@ import {
+   type ArrangeBounds,
+ } from './arrange';
+ 
+-export type WorkspacePresentationMode = 'TABS' | 'DESKTOP' | 'MOSAIC';
++export type WorkspacePresentationMode = 'TABS' | 'DESKTOP' | 'MOSAIC' | 'SPLIT';
++export type TerminalSplitOrientation = 'vertical' | 'horizontal';
+ 
+ export interface DesktopWindowState {
+   viewId: string;
+@@ -59,6 +60,11 @@ export interface WorkspacePresentationState {
+   tiled: boolean;
+   /** viewId of the PTY the user is viewing (inner tabs or desktop focus). */
+   activePtyViewId: string;
++  /** Two existing PTYs; layout only, never duplicates or starts a runtime. */
++  splitPrimaryViewId: string;
++  splitSecondaryViewId: string;
++  splitOrientation: TerminalSplitOrientation;
++  splitRatio: number;
+   /** Last layout preset chosen from Arranjar / keyboard palette. */
+   lastArrangePreset: LastArrangePreset;
+   /** Last floating layout while in DESKTOP (restored when leaving mosaic/tabs). */
+@@ -117,6 +123,10 @@ export function createPresentationState(
+     canvas,
+     tiled: mode === 'MOSAIC',
+     activePtyViewId: '',
++    splitPrimaryViewId: '',
++    splitSecondaryViewId: '',
++    splitOrientation: 'vertical',
++    splitRatio: 0.5,
+     lastArrangePreset: 'automatic',
+     desktopLayout: emptyLayout(canvas),
+     mosaicLayout: emptyLayout(canvas),
+@@ -129,7 +139,10 @@ export function migratePresentationState(raw: unknown): WorkspacePresentationSta
+   if (!raw || typeof raw !== 'object') return fallback;
+   const parsed = raw as Partial<WorkspacePresentationState> & { version?: number };
+   const mode =
+-    parsed.mode === 'TABS' || parsed.mode === 'DESKTOP' || parsed.mode === 'MOSAIC'
++    parsed.mode === 'TABS' ||
++    parsed.mode === 'DESKTOP' ||
++    parsed.mode === 'MOSAIC' ||
++    parsed.mode === 'SPLIT'
+       ? parsed.mode
+       : 'DESKTOP';
+   const windows =
+@@ -172,6 +185,12 @@ export function migratePresentationState(raw: unknown): WorkspacePresentationSta
+     canvas,
+     tiled,
+     activePtyViewId,
++    splitPrimaryViewId:
++      typeof parsed.splitPrimaryViewId === 'string' ? parsed.splitPrimaryViewId : '',
++    splitSecondaryViewId:
++      typeof parsed.splitSecondaryViewId === 'string' ? parsed.splitSecondaryViewId : '',
++    splitOrientation: parsed.splitOrientation === 'horizontal' ? 'horizontal' : 'vertical',
++    splitRatio: normalizeTerminalSplitRatio(parsed.splitRatio),
+     lastArrangePreset,
+     desktopLayout: parseLayoutSnapshot(parsed.desktopLayout, canvas),
+     mosaicLayout: parseLayoutSnapshot(parsed.mosaicLayout, canvas),
+@@ -471,13 +490,77 @@ export function rearrangeSmart(
+   return { ...state, windows, nextZ, tiled: false };
+ }
+ 
++export function normalizeTerminalSplitRatio(value: unknown): number {
++  return typeof value === 'number' && Number.isFinite(value)
++    ? Math.max(0.2, Math.min(0.8, value))
++    : 0.5;
++}
++
++/** Selects two live PTY view identities without ever inventing a runtime. */
++export function resolveTerminalSplitViews(
++  state: WorkspacePresentationState,
++  viewIds: readonly string[],
++): { primary: string; secondary: string } {
++  const primary = viewIds.includes(state.splitPrimaryViewId)
++    ? state.splitPrimaryViewId
++    : viewIds.includes(state.activePtyViewId)
++      ? state.activePtyViewId
++      : viewIds[0] || '';
++  const secondary =
++    state.splitSecondaryViewId !== primary && viewIds.includes(state.splitSecondaryViewId)
++      ? state.splitSecondaryViewId
++      : viewIds.find((id) => id !== primary) || '';
++  return { primary, secondary };
++}
++
++export function setTerminalSplitOrientation(
++  state: WorkspacePresentationState,
++  orientation: TerminalSplitOrientation,
++): WorkspacePresentationState {
++  return state.splitOrientation === orientation
++    ? state
++    : { ...state, splitOrientation: orientation };
++}
++
++export function setTerminalSplitRatio(
++  state: WorkspacePresentationState,
++  ratio: number,
++): WorkspacePresentationState {
++  const next = normalizeTerminalSplitRatio(ratio);
++  return next === state.splitRatio ? state : { ...state, splitRatio: next };
++}
++
++export function setTerminalSplitPrimary(
++  state: WorkspacePresentationState,
++  viewId: string,
++): WorkspacePresentationState {
++  if (viewId && !state.windows[viewId]) return state;
++  return state.splitPrimaryViewId === viewId ? state : { ...state, splitPrimaryViewId: viewId };
++}
++
++export function setTerminalSplitSecondary(
++  state: WorkspacePresentationState,
++  viewId: string,
++): WorkspacePresentationState {
++  if (viewId && !state.windows[viewId]) return state;
++  return state.splitSecondaryViewId === viewId ? state : { ...state, splitSecondaryViewId: viewId };
++}
++
+ export function setPresentationMode(
+   state: WorkspacePresentationState,
+   mode: WorkspacePresentationMode,
+ ): WorkspacePresentationState {
+   if (state.mode === mode) return state;
+   const snapped = snapshotLeavingMode(state);
+-  const next = { ...snapped, mode, tiled: mode === 'MOSAIC' };
++  const next = {
++    ...snapped,
++    mode,
++    tiled: mode === 'MOSAIC',
++    splitPrimaryViewId:
++      mode === 'SPLIT'
++        ? snapped.splitPrimaryViewId || snapped.activePtyViewId
++        : snapped.splitPrimaryViewId,
++  };
+   if (mode === 'MOSAIC') return applyMosaicLayout(next);
+   if (mode === 'DESKTOP') return applyDesktopLayout(next);
+   return { ...next, tiled: false };
+@@ -603,6 +686,10 @@ export function syncDesktopWindows(
+     nextZ,
+     tiled: state.mode === 'MOSAIC',
+     activePtyViewId,
++    splitPrimaryViewId: nextIds.includes(state.splitPrimaryViewId) ? state.splitPrimaryViewId : '',
++    splitSecondaryViewId: nextIds.includes(state.splitSecondaryViewId)
++      ? state.splitSecondaryViewId
++      : '',
+   };
+   if (state.mode === 'MOSAIC' && (added.length > 0 || removed.length > 0)) {
+     return tileMosaicWindows(synced);

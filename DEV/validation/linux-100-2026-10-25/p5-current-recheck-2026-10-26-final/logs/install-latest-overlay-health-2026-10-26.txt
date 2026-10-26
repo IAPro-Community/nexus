@@ -1,0 +1,22 @@
+date_utc=2026-10-26
+branch=release/v1.0.0
+head=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+source_fingerprint=101e6e62b8d4b9903cf4d40309caeea54c809183e5dba017d9e6a8770302669c
+source_files=1430
+version=IAPro Nexus 1.0.0-beta.10 (linux/amd64, go1.25.14) commit 7a04f1b4 built 2026-10-26T09:19:12Z
+unit_state=active
+desktop_pid=2840787
+hud_pid=2840798
+health_port=37753
+health_response={"status":"ok","timestamp":1793006593,"version":"1.0.0-beta.10"}
+
+installed_sha256:
+76c347d5a12697215c150aa87f6e2e52cf11e199af862c4fa16ca4e3ddc87fbe  /home/desenvolvedor/.local/bin/nexus
+4c68324423fce7e591c8e532092964375cccde2b0ccb725ee5066a65f830c6e2  /home/desenvolvedor/.local/bin/nexus-desktop
+9a143bef1d9be86542dfb92da7248cadb9a3db88c18f508f38c30f78ef83e55a  /home/desenvolvedor/.local/bin/nexus-hud
+build_sha256:
+76c347d5a12697215c150aa87f6e2e52cf11e199af862c4fa16ca4e3ddc87fbe  ./nexus
+4c68324423fce7e591c8e532092964375cccde2b0ccb725ee5066a65f830c6e2  cmd/nexus-desktop/build/bin/nexus-desktop
+9a143bef1d9be86542dfb92da7248cadb9a3db88c18f508f38c30f78ef83e55a  cmd/nexus-hud/build/bin/nexus-hud
+ldd_missing_dependencies:
+backup_dir=/home/desenvolvedor/.local/state/nexus-homologation/20261026T0919Z-p5-preview-copy-fix

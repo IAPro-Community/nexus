@@ -1,0 +1,16 @@
+Linux AMD64 Go validation — current source fingerprint
+
+branch=release/v1.0.0
+base_commit=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+source_fingerprint=b73161ffd4afe7d566bd00cfdc6d6e090e95b0c99e13dbd0653aadd40fdf6eac
+source_manifest=source-provenance-hud-idle-motion-fix-2026-10-26.txt
+
+command=TMPDIR=/home/desenvolvedor/.cache/nexus-p5-recheck/tmp GOCACHE=/home/desenvolvedor/.cache/nexus-p5-recheck/go-build GOMAXPROCS=3 go test -count=1 -timeout=20m ./...
+exit_code=0
+output_log=go-test-full-current-hud-idle-fix-2026-10-26.txt
+
+command=TMPDIR=/home/desenvolvedor/.cache/nexus-p5-recheck/tmp GOCACHE=/home/desenvolvedor/.cache/nexus-p5-recheck/go-build GOMAXPROCS=3 go vet ./...
+exit_code=0
+output_log=go-vet-full-current-hud-idle-fix-2026-10-26.txt
+
+notes=Go suite passed all packages. Compiler emitted upstream Wails/GTK X11 deprecation warnings; no project test failures.

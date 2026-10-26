@@ -1,0 +1,11 @@
+
+ RUN  v3.2.7 /projetos/nexus/web
+
+ ✓ src/features/usage/usageModel.test.ts (10 tests) 21ms
+ ✓ src/i18n/i18n.test.ts (7 tests) 11ms
+
+ Test Files  2 passed (2)
+      Tests  17 passed (17)
+   Start at  21:33:58
+   Duration  560ms (transform 273ms, setup 0ms, collect 369ms, tests 32ms, environment 1ms, prepare 124ms)
+

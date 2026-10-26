@@ -1,6 +1,7 @@
 package nexus
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -241,6 +242,20 @@ func TestResourceRecommendation_RequiredCapabilitiesAreHardGate(t *testing.T) {
 		if candidate.Account.ID == "no-resume" && candidate.Eligible {
 			t.Fatal("candidate without required capability must be ineligible")
 		}
+	}
+}
+
+func TestProviderResourceRequirementsKeepTaskSpecialtiesOutOfControlGate(t *testing.T) {
+	req := TaskRequirements{RequiredCapabilities: []string{
+		"headless", "submit_prompt", "security", "code_review", "read_only_review",
+	}}
+	got := providerResourceRequirements(req)
+	want := []string{"headless", "submit_prompt", "read_only_review"}
+	if !reflect.DeepEqual(got.RequiredCapabilities, want) {
+		t.Fatalf("provider capabilities=%v, want %v", got.RequiredCapabilities, want)
+	}
+	if !reflect.DeepEqual(req.RequiredCapabilities, []string{"headless", "submit_prompt", "security", "code_review", "read_only_review"}) {
+		t.Fatalf("helper mutated original task requirements: %v", req.RequiredCapabilities)
 	}
 }
 

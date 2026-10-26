@@ -109,31 +109,6 @@ export const deriveFirstRunReadiness = (
   };
 };
 
-export type HostSessionImportSummary = {
-  imported: number;
-  alreadyAuthenticated: number;
-  notImported: number;
-  unsupported: number;
-  failed: number;
-};
-
-export const summarizeHostSessionImport = (
-  results: Array<{ status: string }>,
-): HostSessionImportSummary =>
-  results.reduce<HostSessionImportSummary>(
-    (summary, result) => {
-      if (result.status === 'IMPORTED') summary.imported += 1;
-      if (result.status === 'ALREADY_AUTHENTICATED') summary.alreadyAuthenticated += 1;
-      if (result.status === 'NO_SESSION' || result.status === 'LOGIN_REQUIRED') {
-        summary.notImported += 1;
-      }
-      if (result.status === 'UNSUPPORTED') summary.unsupported += 1;
-      if (result.status === 'FAILED') summary.failed += 1;
-      return summary;
-    },
-    { imported: 0, alreadyAuthenticated: 0, notImported: 0, unsupported: 0, failed: 0 },
-  );
-
 export const OFFICIAL_PROVIDER_INSTALL_GUIDES = [
   { label: 'Codex', href: 'https://github.com/openai/codex' },
   { label: 'Claude Code', href: 'https://code.claude.com/docs/en/setup' },

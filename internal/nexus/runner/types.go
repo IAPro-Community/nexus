@@ -236,6 +236,7 @@ type PackageRun struct {
 	State                    State                `json:"state"`
 	Attempt                  int                  `json:"attempt"`
 	AssignedAgent            string               `json:"assigned_agent"`
+	AssignedAgentKind        string               `json:"assigned_agent_kind,omitempty"`
 	AssignedRuntime          string               `json:"assigned_runtime,omitempty"`
 	DispatchID               string               `json:"dispatch_id,omitempty"`
 	DispatchState            DispatchState        `json:"dispatch_state,omitempty"`

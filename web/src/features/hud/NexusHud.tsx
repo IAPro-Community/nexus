@@ -42,13 +42,13 @@ import { HudSizeControls } from './HudSizeControls';
 import { GuardianModeSelector } from './GuardianModeSelector';
 import { normalizeHudAppearance, type HudAppearance } from './guardianModel';
 import {
-  companionMood,
-  nextCompanionBubble,
-  projectCompanionAttention,
-  readCompanionSnoozes,
-  snoozeCompanionAttention,
-  type CompanionAttention,
-} from './companionModel';
+  mascotMood,
+  nextMascotBubble,
+  projectMascotAttention,
+  readMascotSnoozes,
+  snoozeMascotAttention,
+  type MascotAttention,
+} from './mascotModel';
 import { GuardianMascot } from './GuardianMascot';
 import {
   shouldRenderHudCompactControl,
@@ -69,7 +69,7 @@ export interface NexusHudProps {
   onOpenUsage?: () => void;
   onOpenAgents?: () => void;
   onOpenMissions?: () => void;
-  onOpenCompanionAttention?: (item: CompanionAttention) => void;
+  onOpenMascotAttention?: (item: MascotAttention) => void;
   onOpenSettings?: () => void;
   nativeAutoStart?: {
     supported: boolean;
@@ -107,7 +107,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   onOpenUsage,
   onOpenAgents,
   onOpenMissions,
-  onOpenCompanionAttention,
+  onOpenMascotAttention,
   onOpenSettings,
   nativeAutoStart,
 }) => {
@@ -115,16 +115,14 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const [prefs, setPrefs] = useState<HudPresentationPreferences>(() => loadHudPreferences());
   const [response, setResponse] = useState<HudResponse | null>(null);
   const [attentionGroup, setAttentionGroup] = useState<AttentionGroup | undefined>();
-  const [companionSnoozes, setCompanionSnoozes] = useState<Record<string, number>>(() => {
+  const [mascotSnoozes, setMascotSnoozes] = useState<Record<string, number>>(() => {
     try {
-      return readCompanionSnoozes(window.localStorage);
+      return readMascotSnoozes(window.localStorage);
     } catch {
       return {};
     }
   });
-  const [dismissedCompanionBubbles, setDismissedCompanionBubbles] = useState<
-    Record<string, boolean>
-  >({});
+  const [dismissedMascotBubbles, setDismissedMascotBubbles] = useState<Record<string, boolean>>({});
   const [nativeBubbleReadyId, setNativeBubbleReadyId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [nativeDetached, setNativeDetached] = useState(false);
@@ -349,22 +347,16 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   }, [expanded, native]);
 
   const state = response?.state;
-  const companionAttention = useMemo(
-    () => projectCompanionAttention(state, attentionGroup),
+  const mascotAttention = useMemo(
+    () => projectMascotAttention(state, attentionGroup),
     [state, attentionGroup],
   );
-  const companionBubble = useMemo(
-    () =>
-      nextCompanionBubble(
-        companionAttention,
-        companionSnoozes,
-        Date.now(),
-        dismissedCompanionBubbles,
-      ),
-    [companionAttention, companionSnoozes, dismissedCompanionBubbles],
+  const mascotBubble = useMemo(
+    () => nextMascotBubble(mascotAttention, mascotSnoozes, Date.now(), dismissedMascotBubbles),
+    [mascotAttention, mascotSnoozes, dismissedMascotBubbles],
   );
-  const dismissCompanionBubble = useCallback((itemId: string) => {
-    setDismissedCompanionBubbles((current) => {
+  const dismissMascotBubble = useCallback((itemId: string) => {
+    setDismissedMascotBubbles((current) => {
       const next = { ...current, [itemId]: true };
       const ids = Object.keys(next);
       if (ids.length > 80) {
@@ -379,13 +371,13 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     appearanceReady &&
     nativeAppearance === 'MASCOT' &&
     !expanded &&
-    companionBubble,
+    mascotBubble,
   );
-  const companionBubbleId = companionBubble?.id;
+  const mascotBubbleId = mascotBubble?.id;
 
   useEffect(() => {
-    if (!nativeBubbleRequested || !companionBubbleId) return;
-    const bubbleId = companionBubbleId;
+    if (!nativeBubbleRequested || !mascotBubbleId) return;
+    const bubbleId = mascotBubbleId;
     let active = true;
     void hudV3
       .setBubbleVisible(true)
@@ -394,28 +386,28 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       })
       .catch((error: unknown) => {
         if (active) setNativeBubbleReadyId(null);
-        console.error('Nexus HUD Companion bubble resize failed:', error);
+        console.error('Nexus HUD Mascot bubble resize failed:', error);
       });
     return () => {
       active = false;
       setNativeBubbleReadyId((current) => (current === bubbleId ? null : current));
       void hudV3.setBubbleVisible(false).catch(() => undefined);
     };
-  }, [nativeBubbleRequested, companionBubbleId]);
+  }, [nativeBubbleRequested, mascotBubbleId]);
 
-  const visibleCompanionBubble =
+  const visibleMascotBubble =
     native && nativeView === 'capsule'
-      ? nativeBubbleReadyId === companionBubble?.id
-        ? companionBubble
+      ? nativeBubbleReadyId === mascotBubble?.id
+        ? mascotBubble
         : undefined
-      : companionBubble;
+      : mascotBubble;
 
-  const visibleCompanionBubbleId = visibleCompanionBubble?.id;
+  const visibleMascotBubbleId = visibleMascotBubble?.id;
   useEffect(() => {
-    if (!visibleCompanionBubbleId) return;
-    const timer = window.setTimeout(() => dismissCompanionBubble(visibleCompanionBubbleId), 8500);
+    if (!visibleMascotBubbleId) return;
+    const timer = window.setTimeout(() => dismissMascotBubble(visibleMascotBubbleId), 8500);
     return () => window.clearTimeout(timer);
-  }, [visibleCompanionBubbleId, dismissCompanionBubble]);
+  }, [visibleMascotBubbleId, dismissMascotBubble]);
   const focus = useMemo(() => (state ? selectHudFocus(state, offline) : null), [state, offline]);
   const otherAccounts = useMemo(
     () => (state ? hudOtherAccounts(state, focus?.provider) : []),
@@ -442,8 +434,8 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const runtimeAttention = state?.runtime_attention || [];
   // Terminal waits have already been classified by the canonical runtime
   // registry. This view only presents them; it never scrapes raw PTY output.
-  const attentionCount = companionAttention.length;
-  const isAttention = companionAttention.length > 0;
+  const attentionCount = mascotAttention.length;
+  const isAttention = mascotAttention.length > 0;
   const displayTone = offline
     ? 'unknown'
     : activeMission || runtimeAttention.length > 0 || alert?.severity.toUpperCase() === 'WARNING'
@@ -589,15 +581,15 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     }
   };
 
-  const openCompanionAttention = (item: CompanionAttention) => {
-    dismissCompanionBubble(item.id);
+  const openMascotAttention = (item: MascotAttention) => {
+    dismissMascotBubble(item.id);
     const runtime = runtimeAttention.find((candidate) => candidate.runtime_id === item.recordId);
     if (runtime && onOpenRuntime) {
       onOpenRuntime(runtime);
       return;
     }
-    if (onOpenCompanionAttention) {
-      onOpenCompanionAttention(item);
+    if (onOpenMascotAttention) {
+      onOpenMascotAttention(item);
       return;
     }
     if (item.target === 'missions') {
@@ -612,17 +604,17 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     } else onOpenNexus?.();
   };
 
-  const snoozeCompanionItem = (item: CompanionAttention) => {
-    dismissCompanionBubble(item.id);
+  const snoozeMascotItem = (item: MascotAttention) => {
+    dismissMascotBubble(item.id);
     if (item.target === 'usage' && item.recordId) {
       void handleAlert('snooze', item.recordId);
       return;
     }
     const now = Date.now();
-    const next = { ...companionSnoozes, [item.id]: now + 60 * 60 * 1000 };
-    setCompanionSnoozes(next);
+    const next = { ...mascotSnoozes, [item.id]: now + 60 * 60 * 1000 };
+    setMascotSnoozes(next);
     try {
-      snoozeCompanionAttention(window.localStorage, item.id, now);
+      snoozeMascotAttention(window.localStorage, item.id, now);
     } catch {
       // The current window still honors the snooze when browser storage is unavailable.
     }
@@ -697,7 +689,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const capsuleAccessibleLabel = `${expanded ? 'Recolher' : 'Expandir'} Nexus HUD. ${mainLabel}, ${capsuleCapacityCopy}`;
   const nativeTitle = `${mainLabel}: ${currentPercent} · ${focus?.provider?.limiting_window?.reset_description || 'Renovação desconhecida'}`;
   const tone = waiting ? 'unknown' : displayTone;
-  const guardianState = companionMood(state, companionAttention, offline || waiting);
+  const guardianState = mascotMood(state, mascotAttention, offline || waiting);
   const showGuardianMascot = shouldRenderHudMascot(
     native,
     nativeView,
@@ -809,40 +801,40 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               </div>
             )}
 
-            {companionAttention.length > 0 && (
+            {mascotAttention.length > 0 && (
               <section
                 className={styles.runtimeAttention}
-                aria-label={t('hud.companion.pendingCount', { count: companionAttention.length })}
-                data-companion-attention-list
+                aria-label={t('hud.mascot.pendingCount', { count: mascotAttention.length })}
+                data-mascot-attention-list
               >
                 <strong>
                   <AlertTriangle size={14} aria-hidden="true" />
-                  {t('hud.companion.pendingCount', { count: companionAttention.length })}
+                  {t('hud.mascot.pendingCount', { count: mascotAttention.length })}
                 </strong>
                 <ul>
-                  {companionAttention.slice(0, 8).map((item) => (
+                  {mascotAttention.slice(0, 8).map((item) => (
                     <li key={item.id}>
                       <span>
                         <b>{t(item.titleKey)}</b>
                         <br />
                         <small>{t(item.detailKey)}</small>
                       </span>
-                      <div className={styles.companionAttentionActions}>
-                        <button type="button" onClick={() => openCompanionAttention(item)}>
-                          {t('hud.companion.open')}
+                      <div className={styles.mascotAttentionActions}>
+                        <button type="button" onClick={() => openMascotAttention(item)}>
+                          {t('hud.mascot.open')}
                         </button>
                         <button
                           type="button"
-                          onClick={() => snoozeCompanionItem(item)}
+                          onClick={() => snoozeMascotItem(item)}
                           disabled={alertActionPending && item.target === 'usage'}
                         >
-                          {t('hud.companion.snooze')}
+                          {t('hud.mascot.snooze')}
                         </button>
                       </div>
                     </li>
                   ))}
                 </ul>
-                {companionAttention.length > 8 && <small>{companionAttention.length - 8}</small>}
+                {mascotAttention.length > 8 && <small>{mascotAttention.length - 8}</small>}
               </section>
             )}
 
@@ -1184,16 +1176,16 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               mood={guardianState}
               count={attentionCount}
               expanded={expanded}
-              motion={prefs.companionMotion}
-              bubble={visibleCompanionBubble}
+              motion={prefs.mascotMotion}
+              bubble={visibleMascotBubble}
               popoverId={nativeDetached ? undefined : 'nexus-hud-popover'}
               native
               onExpand={() => {
-                if (visibleCompanionBubbleId) dismissCompanionBubble(visibleCompanionBubbleId);
+                if (visibleMascotBubbleId) dismissMascotBubble(visibleMascotBubbleId);
                 setExpandedState(!expanded);
               }}
-              onOpenAttention={openCompanionAttention}
-              onSnooze={snoozeCompanionItem}
+              onOpenAttention={openMascotAttention}
+              onSnooze={snoozeMascotItem}
               onMoveKeys={onNativeDragKeys}
             />
           </div>

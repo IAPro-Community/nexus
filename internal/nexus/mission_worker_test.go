@@ -8,7 +8,96 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
+
+func TestReconcileEphemeralMissionAgentsPreservesActiveIdentity(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Ephemeral reconciliation", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	createWorker := func(name, status, kind string) store.Agent {
+		t.Helper()
+		agent, createErr := st.CreateAgent(store.Agent{
+			ProjectID: project.ID, Name: name, Status: status, IdentityKind: kind,
+		})
+		if createErr != nil {
+			t.Fatal(createErr)
+		}
+		return agent
+	}
+	active := createWorker("Active mission", store.AgentStopped, string(runner.ExecutionIdentityEphemeralWorker))
+	terminal := createWorker("Terminal mission", store.AgentStopped, string(runner.ExecutionIdentityEphemeralWorker))
+	orphan := createWorker("Orphan", store.AgentFailed, string(runner.ExecutionIdentityEphemeralWorker))
+	working := createWorker("Still working", store.AgentWorking, string(runner.ExecutionIdentityEphemeralWorker))
+	persistent := createWorker("Persistent", store.AgentStopped, "PERSISTENT")
+
+	removed, err := n.reconcileEphemeralMissionAgents([]*runner.MissionRun{{
+		ID: "active-run", ProjectID: project.ID, State: runner.StateExecuting,
+		PackageRuns: []runner.PackageRun{{AssignedAgent: active.ID}},
+	}, {
+		ID: "terminal-run", ProjectID: project.ID, State: runner.StateCompletedVerified,
+		PackageRuns: []runner.PackageRun{{AssignedAgent: terminal.ID}},
+	}}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if removed != 2 {
+		t.Fatalf("removed %d ephemeral Agents, want terminal plus orphan, active, working and persistent retained", removed)
+	}
+	for _, retained := range []store.Agent{active, working, persistent} {
+		if _, err := st.GetAgent(retained.ID, project.ID); err != nil {
+			t.Errorf("Agent %s should be retained: %v", retained.Name, err)
+		}
+	}
+	for _, deleted := range []store.Agent{terminal, orphan} {
+		if _, err := st.GetAgent(deleted.ID, project.ID); err == nil {
+			t.Errorf("terminal ephemeral Agent %s should be deleted", deleted.Name)
+		}
+	}
+}
+
+func TestRunApplicationServiceReconcilesEphemeralWorkersAtStartup(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Startup reconciliation", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := n.CreateWorkPlan(context.Background(), project.ID, "Finished plan", "", []store.PlanPhase{{
+		ID: "phase", Title: "Phase", Packages: []store.WorkPackage{{ID: "step", Title: "Step", Goal: "Done", Status: "READY"}},
+	}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	agent, err := st.CreateAgent(store.Agent{
+		ProjectID: project.ID, Name: "Finished specialist", Status: store.AgentStopped,
+		IdentityKind: string(runner.ExecutionIdentityEphemeralWorker),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	run := &runner.MissionRun{
+		ID: "finished-run", PlanID: plan.ID, ProjectID: project.ID, State: runner.StateCompletedVerified,
+		PackageRuns: []runner.PackageRun{{AssignedAgent: agent.ID}},
+	}
+	if err := newStoreRunRepository(st).SaveRun(context.Background(), run); err != nil {
+		t.Fatal(err)
+	}
+
+	_ = NewRunApplicationService(n)
+	if _, err := st.GetAgent(agent.ID, project.ID); err == nil {
+		t.Fatal("startup reconciliation left a stopped Agent from a terminal Mission")
+	}
+}
 
 type delayedHandoffExecutor struct {
 	allocations   int

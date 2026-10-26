@@ -222,7 +222,8 @@ func TestMissingComposerTurnsRecreated(t *testing.T) {
 }
 
 // TestTokenBarUsageSchemaRecoversMissingTables covers upgrades from a partial
-// backup that retained version 30 but accidentally omitted new read-only tables.
+// backup that retained the current schema history but accidentally omitted
+// new read-only tables.
 // Reopen repairs those structures without resetting canonical cost history.
 func TestTokenBarUsageSchemaRecoversMissingTables(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "partial-tokenbar.db")
@@ -255,8 +256,8 @@ func TestTokenBarUsageSchemaRecoversMissingTables(t *testing.T) {
 	}
 	defer st.Close()
 	version, err := st.SchemaVersion()
-	if err != nil || version != 30 {
-		t.Fatalf("schema version = %d, %v, want 30", version, err)
+	if err != nil || version != 31 {
+		t.Fatalf("schema version = %d, %v, want 31", version, err)
 	}
 	for _, table := range []string{"capacity_pace_samples", "external_claude_messages", "external_claude_offsets"} {
 		var count int

@@ -1,0 +1,89 @@
+started_at=2026-10-26T06:42:32Z
+HEAD=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+source_fingerprint=3ed0f39001bb18cd8659f0d4fe4c5e3d2c08711a530b41aa3cd6ebf000ecf576
+command=go test -tags=gtk3 -count=1 -timeout=20m -p=2 ./...
+?   	github.com/IAPro-Community/nexus/DEV/validation/linux-100-2026-10-25/tools/seed_attention_ui_fixture	[no test files]
+?   	github.com/IAPro-Community/nexus/DEV/validation/production-go-no-go/smoke/workspace	[no test files]
+?   	github.com/IAPro-Community/nexus/cmd/nexus	[no test files]
+?   	github.com/IAPro-Community/nexus/cmd/nexus-desktop	[no test files]
+ok  	github.com/IAPro-Community/nexus/cmd/nexus-hud	0.038s
+ok  	github.com/IAPro-Community/nexus/internal/app	28.901s
+?   	github.com/IAPro-Community/nexus/internal/browser	[no test files]
+?   	github.com/IAPro-Community/nexus/internal/buildinfo	[no test files]
+ok  	github.com/IAPro-Community/nexus/internal/control/driver	3.909s
+ok  	github.com/IAPro-Community/nexus/internal/control/events	0.002s
+ok  	github.com/IAPro-Community/nexus/internal/control/flags	0.002s
+ok  	github.com/IAPro-Community/nexus/internal/control/handoff	0.054s
+ok  	github.com/IAPro-Community/nexus/internal/control/host	0.353s
+ok  	github.com/IAPro-Community/nexus/internal/control/ids	0.006s
+ok  	github.com/IAPro-Community/nexus/internal/control/launchenv	0.003s
+ok  	github.com/IAPro-Community/nexus/internal/control/launcher	5.081s
+ok  	github.com/IAPro-Community/nexus/internal/control/notify	0.002s
+ok  	github.com/IAPro-Community/nexus/internal/control/originpolicy	0.003s
+ok  	github.com/IAPro-Community/nexus/internal/control/protocol	2.522s
+ok  	github.com/IAPro-Community/nexus/internal/control/registry	10.043s
+ok  	github.com/IAPro-Community/nexus/internal/control/terminal	0.006s
+ok  	github.com/IAPro-Community/nexus/internal/control/tui	0.007s
+ok  	github.com/IAPro-Community/nexus/internal/control/web	23.527s
+ok  	github.com/IAPro-Community/nexus/internal/control/websocketio	0.046s
+ok  	github.com/IAPro-Community/nexus/internal/control/workspace	0.006s
+ok  	github.com/IAPro-Community/nexus/internal/conversation	0.004s
+ok  	github.com/IAPro-Community/nexus/internal/core/classifier	0.003s
+ok  	github.com/IAPro-Community/nexus/internal/core/config	0.004s
+ok  	github.com/IAPro-Community/nexus/internal/core/cooldown	0.006s
+ok  	github.com/IAPro-Community/nexus/internal/core/device	0.003s
+ok  	github.com/IAPro-Community/nexus/internal/core/entitlement	0.002s
+?   	github.com/IAPro-Community/nexus/internal/core/exitcode	[no test files]
+ok  	github.com/IAPro-Community/nexus/internal/core/fallback	0.007s
+ok  	github.com/IAPro-Community/nexus/internal/core/flags	0.002s
+?   	github.com/IAPro-Community/nexus/internal/core/model	[no test files]
+ok  	github.com/IAPro-Community/nexus/internal/core/provider	0.276s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/adapters/agy	0.028s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/adapters/claude	0.012s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex	2.144s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/adapters/cursor	0.015s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/adapters/gemini	0.029s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/adapters/opencode	0.012s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/agentprojection	0.002s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/agentprojection/opencode	0.011s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/authcopy	0.005s
+?   	github.com/IAPro-Community/nexus/internal/core/provider/mock	[no test files]
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/oauthutil	0.004s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/spec	0.275s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/versionprobe	0.002s
+ok  	github.com/IAPro-Community/nexus/internal/core/quota	0.006s
+ok  	github.com/IAPro-Community/nexus/internal/core/scheduler	0.016s
+ok  	github.com/IAPro-Community/nexus/internal/core/security	0.010s
+ok  	github.com/IAPro-Community/nexus/internal/core/session	0.003s
+ok  	github.com/IAPro-Community/nexus/internal/core/telemetry	0.003s
+ok  	github.com/IAPro-Community/nexus/internal/desktop	0.045s
+ok  	github.com/IAPro-Community/nexus/internal/doctor	0.012s
+?   	github.com/IAPro-Community/nexus/internal/executil	[no test files]
+ok  	github.com/IAPro-Community/nexus/internal/hudlink	0.003s
+ok  	github.com/IAPro-Community/nexus/internal/localization	0.003s
+ok  	github.com/IAPro-Community/nexus/internal/nexus	105.551s
+ok  	github.com/IAPro-Community/nexus/internal/nexus/autonomyguard	0.083s
+ok  	github.com/IAPro-Community/nexus/internal/nexus/capacitymonitor	1.658s
+ok  	github.com/IAPro-Community/nexus/internal/nexus/contextsnapshot	0.355s
+ok  	github.com/IAPro-Community/nexus/internal/nexus/externalusage	0.381s
+ok  	github.com/IAPro-Community/nexus/internal/nexus/intelligence	0.008s
+ok  	github.com/IAPro-Community/nexus/internal/nexus/maestrogates	0.004s
+ok  	github.com/IAPro-Community/nexus/internal/nexus/plangraph	0.002s
+ok  	github.com/IAPro-Community/nexus/internal/nexus/promotion	0.007s
+ok  	github.com/IAPro-Community/nexus/internal/nexus/runner	16.981s
+ok  	github.com/IAPro-Community/nexus/internal/nexus/skills	0.009s
+ok  	github.com/IAPro-Community/nexus/internal/nexus/store	5.410s
+ok  	github.com/IAPro-Community/nexus/internal/profile	0.251s
+ok  	github.com/IAPro-Community/nexus/internal/release	0.021s
+ok  	github.com/IAPro-Community/nexus/internal/runtime	3.165s
+?   	github.com/IAPro-Community/nexus/internal/testutil	[no test files]
+?   	github.com/IAPro-Community/nexus/internal/testutil/fakeagent	[no test files]
+ok  	github.com/IAPro-Community/nexus/internal/tui	0.017s
+ok  	github.com/IAPro-Community/nexus/internal/update	0.018s
+ok  	github.com/IAPro-Community/nexus/internal/voice	0.006s
+ok  	github.com/IAPro-Community/nexus/scripts	0.159s
+?   	github.com/IAPro-Community/nexus/scripts/loadtest	[no test files]
+ok  	github.com/IAPro-Community/nexus/scripts/sign-update-manifest	0.004s
+?   	github.com/IAPro-Community/nexus/web/node_modules/flatted/golang/pkg/flatted	[no test files]
+go_test_gtk3_full=PASS
+finished_at=2026-10-26T06:45:02Z

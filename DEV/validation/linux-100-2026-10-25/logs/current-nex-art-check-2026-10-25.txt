@@ -1,0 +1,2 @@
+$ node scripts/export-nex-art.mjs --check
+NEX 32-bit official SVG verified: /projetos/nexus/web/public/nex

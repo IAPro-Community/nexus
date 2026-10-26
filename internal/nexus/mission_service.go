@@ -3,7 +3,9 @@ package nexus
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
@@ -739,10 +741,105 @@ func runnerID() string {
 func (n *Nexus) runMissionWorker(runID string, ctx context.Context, worker *missionWorker) {
 	go func() {
 		defer func() {
+			if _, err := n.Runner().GetRun(context.Background(), runID); err == nil {
+				runs, listErr := n.Runner().ListRuns(context.Background())
+				if listErr == nil {
+					if _, cleanupErr := n.reconcileEphemeralMissionAgents(runs, runID); cleanupErr != nil {
+						slog.Warn("mission ephemeral Agent cleanup deferred", "error", cleanupErr)
+					}
+				} else {
+					slog.Warn("mission ephemeral Agent cleanup deferred", "error", listErr)
+				}
+			} else {
+				slog.Warn("mission ephemeral Agent cleanup deferred", "error", err)
+			}
 			n.releaseMissionWorker(runID, worker)
 		}()
-		_, worker.err = n.Runner().RunToTerminal(ctx, runID)
+		leaseWait := 100 * time.Millisecond
+		for {
+			_, worker.err = n.Runner().RunToTerminal(ctx, runID)
+			if !errors.Is(worker.err, runner.ErrLeaseHeld) {
+				return
+			}
+
+			timer := time.NewTimer(leaseWait)
+			select {
+			case <-ctx.Done():
+				if !timer.Stop() {
+					select {
+					case <-timer.C:
+					default:
+					}
+				}
+				worker.err = ctx.Err()
+				return
+			case <-timer.C:
+			}
+			if leaseWait < 2*time.Second {
+				leaseWait *= 2
+				if leaseWait > 2*time.Second {
+					leaseWait = 2 * time.Second
+				}
+			}
+		}
 	}()
+}
+
+// reconcileEphemeralMissionAgents deletes only stopped ephemeral workers that
+// no nonterminal MissionRun still references. The exitingRunID exception lets
+// the worker reconcile while still holding its worker slot.
+func (n *Nexus) reconcileEphemeralMissionAgents(runs []*runner.MissionRun, exitingRunID string) (int, error) {
+	if n == nil || n.st == nil {
+		return 0, fmt.Errorf("nexus store unavailable")
+	}
+	n.workersMu.Lock()
+	defer n.workersMu.Unlock()
+	for activeRunID := range n.workers {
+		if activeRunID != exitingRunID {
+			return 0, nil
+		}
+	}
+
+	activeAgents := make(map[string]struct{})
+	for _, run := range runs {
+		if run == nil || runner.IsTerminalState(run.State) {
+			continue
+		}
+		for _, pkg := range run.PackageRuns {
+			if agentID := strings.TrimSpace(pkg.AssignedAgent); agentID != "" {
+				activeAgents[agentID] = struct{}{}
+			}
+			if agentID := strings.TrimSpace(pkg.ResumeAgentID); agentID != "" {
+				activeAgents[agentID] = struct{}{}
+			}
+		}
+	}
+
+	projects, err := n.st.ListProjects()
+	if err != nil {
+		return 0, fmt.Errorf("list projects for ephemeral Agent cleanup: %w", err)
+	}
+	removed := 0
+	for _, project := range projects {
+		workers, listErr := n.st.ListAgentsFiltered(project.ID, string(runner.ExecutionIdentityEphemeralWorker))
+		if listErr != nil {
+			return removed, fmt.Errorf("list ephemeral Agents for project %s: %w", project.ID, listErr)
+		}
+		for _, agent := range workers {
+			if _, active := activeAgents[agent.ID]; active {
+				continue
+			}
+			status := strings.ToUpper(strings.TrimSpace(agent.Status))
+			if status != store.AgentStopped && status != store.AgentFailed {
+				continue
+			}
+			if deleteErr := n.st.DeleteAgent(agent.ID, project.ID); deleteErr != nil {
+				return removed, fmt.Errorf("delete terminal ephemeral Agent %s: %w", agent.ID, deleteErr)
+			}
+			removed++
+		}
+	}
+	return removed, nil
 }
 
 func (n *Nexus) releaseMissionWorker(runID string, worker *missionWorker) {

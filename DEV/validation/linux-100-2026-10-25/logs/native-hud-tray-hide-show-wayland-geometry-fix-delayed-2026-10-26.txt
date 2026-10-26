@@ -1,0 +1,53 @@
+environment=Ubuntu 25.10 GNOME Wayland
+main_pid=2496460
+hud_pid=2496472
+status_notifier_item=org.kde.StatusNotifierItem-2496472-1
+health_before={"status":"ok","timestamp":1793002397,"version":"1.0.0-beta.10"}
+
+state_before_sha256=e7f2b2c562720940636be309b883a362a60f506719983e938acdb0dcb69d2294
+state_before={
+  "displayId": "current",
+  "placement": "CUSTOM",
+  "x": 0,
+  "y": 0,
+  "width": 224,
+  "height": 158,
+  "compactWidth": 220,
+  "compactHeight": 60,
+  "expandedWidth": 334,
+  "expandedHeight": 496,
+  "mode": "AUTO",
+  "appearance": "MASCOT",
+  "opacity": 0.96,
+  "alwaysOnTop": true,
+  "autoHide": false,
+  "detachedPopover": true
+}
+hide_event_reply=after_hide_sha256=e7f2b2c562720940636be309b883a362a60f506719983e938acdb0dcb69d2294
+after_hide=PASS
+show_event_reply=after_show_sha256=e7f2b2c562720940636be309b883a362a60f506719983e938acdb0dcb69d2294
+after_show=PASS
+after_settle_10s_sha256=e7f2b2c562720940636be309b883a362a60f506719983e938acdb0dcb69d2294
+after_settle_10s=PASS
+state_after={
+  "displayId": "current",
+  "placement": "CUSTOM",
+  "x": 0,
+  "y": 0,
+  "width": 224,
+  "height": 158,
+  "compactWidth": 220,
+  "compactHeight": 60,
+  "expandedWidth": 334,
+  "expandedHeight": 496,
+  "mode": "AUTO",
+  "appearance": "MASCOT",
+  "opacity": 0.96,
+  "alwaysOnTop": true,
+  "autoHide": false,
+  "detachedPopover": true
+}
+health_after={"status":"ok","timestamp":1793002413,"version":"1.0.0-beta.10"}
+
+hud_alive=PASS
+result=PASS

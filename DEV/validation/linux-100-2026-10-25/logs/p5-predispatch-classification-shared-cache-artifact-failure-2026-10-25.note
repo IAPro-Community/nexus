@@ -1,0 +1,1 @@
+The first baseline invocation did not reach the target test. Go reported missing temporary export artifacts in the shared GOCACHE while running vet/build. Exit 1 is an environment/cache failure, not a regression result. The cache was not cleared. Re-run the case using a task-isolated GOCACHE.

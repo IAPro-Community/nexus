@@ -81,7 +81,7 @@ func importHostSession(
 
 	importer, canImport := adapter.(coreprovider.HostAuthImporter)
 	authProvider, canInspect := adapter.(coreprovider.AuthProvider)
-	if !canImport || !canInspect {
+	if !canInspect {
 		result.Status = HostSessionUnsupported
 		return result, profiles
 	}
@@ -96,6 +96,10 @@ func importHostSession(
 			}
 			existing = append(existing, candidate)
 		}
+	}
+	if !canImport {
+		result.Status = HostSessionUnsupported
+		return result, profiles
 	}
 
 	var target model.Profile

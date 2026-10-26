@@ -1,0 +1,587 @@
+diff --git a/docs/product/orca-inspired-evolution-v1.md b/docs/product/orca-inspired-evolution-v1.md
+new file mode 100644
+index 000000000..6e3ec4205
+--- /dev/null
++++ b/docs/product/orca-inspired-evolution-v1.md
+@@ -0,0 +1,65 @@
++# Orca como referência de produto — Nexus v1.0
++
++> Pesquisa técnica em 21/10/2026. Referência: [Orca](https://www.onorca.dev/) / [stablyai/orca](https://github.com/stablyai/orca). A referência é de **fluxos de UX**, não uma proposta de migrar a arquitetura do Nexus para Electron ou copiar sua identidade visual. Orca é distribuído sob MIT; qualquer incorporação futura de código de terceiros exige a manutenção dos avisos de licença relevantes.
++
++## Objetivo e restrições
++
++Aproximar a experiência diária do Nexus de um ambiente de desenvolvimento orientado a agentes, sem remover seus diferenciais: agentes persistentes, Project, Direct, Composer, Flow/WorkPlan, MissionRunner, Capacity Monitor, ResourceScheduler, perfis/quotas e integração opcional com Maestro.
++
++Restrições da linha `release/v1.0.0`:
++
++- Não substituir o Core Go, o terminal supervisionado PTY/ConPTY, o Web/Desktop existente ou o scheduler.
++- Não interceptar entrada nativa de Codex/Claude/OpenCode para simular comandos de UX; preservar `STICKY_LEAD` e a autorização formal de Mission.
++- Não misturar identidades de contas nem assumir quotas `UNKNOWN` como disponíveis.
++- Não abrir automaticamente acesso SSH ou remoto; o túnel atual tem sua própria fronteira de autenticação.
++- Não mudar a interface padrão nem declarar suporte multiplataforma sem evidência exact-SHA.
++- Toda adição deve possuir rollback/feature flag quando alterar runtime, shell ou WebView.
++- Respeitar `AGENTS.md`, i18n, SCSS Modules, tokens do Nexus e acessibilidade.
++
++## Matriz comparativa
++
++| Referência Orca | Situação encontrada no Nexus 1.0 | Decisão |
++| --- | --- | --- |
++| Vários agents em worktrees paralelos | O Core já cria worktrees por Agent/Mission em `internal/nexus/worktree.go` | **Reaproveitar**. Acrescentar descoberta, associação e operação visíveis |
++| Splits de terminais e panes persistentes | Existem PTY/ConPTY, sessões e superfícies de terminal; paridade visual e de persistência de panes não certificada | **Evoluir o workspace**, não o transporte do provider |
++| Terminal GPU/WebGL e scrollback | O Nexus possui terminal web supervisionado; equivalência com Ghostty não foi demonstrada | Priorizar estabilidade, resize, input e reconexão, não trocar renderer |
++| Account switcher / usage | Quota, perfis e handoff fazem parte do Core, com estados de confiabilidade | Melhorar descoberta/atalhos, sem outro motor de quota |
++| Navegador embutido / Design Mode | Há suporte a browser e Desktop, mas não há contrato homologado de seleção HTML/CSS/screenshot por worktree | Fazer spike isolado, fora do caminho crítico da beta |
++| Anotação de diff enviada ao agent | O fluxo de review/verificação existe; interface de anotação em diff não certificada | Criar projeção read-only antes de mutações/feedback |
++| GitHub/Linear no workspace | Há comandos Git locais e dados de projeto; não equivalem a uma integração completa de PR/Issues/Linear | Iniciar por GitHub, integração opcional e escopo mínimo |
++| Busca global por worktrees/agentes | Busca de projetos e outras buscas locais existem; um índice universal não foi evidenciado | Agregar fontes existentes via command palette, sem segundo indexador |
++| SSH worktrees | Túnel HTTPS autenticado não equivale a executar em host SSH remoto | Tratar como nova fronteira de segurança e feature própria |
++| Companion iOS/Android | Web remota existe com convite de curta duração; companion nativo não existe como produto certificado | Não incluir no fechamento da v1.0 |
++
++## Primeira vertical slice: descoberta de worktrees
++
++Mudança nesta branch:
++
++- Estender `GET /api/v1/projects/:id/git/branches` com `worktrees` e `worktrees_available`, preservando o contrato anterior.
++- Ler `git worktree list --porcelain -z` com contexto e timeout, sem executar `prune`, `remove`, `checkout` ou qualquer operação destrutiva.
++- Exibir checkout não primário no diálogo de branches, incluindo branch/diretório e indicadores `detached`, `locked` e `prunable`.
++- Desabilitar no cliente a tentativa de checkout de branch já ocupada por outro worktree (Git permanece a autoridade final no backend).
++- Localizar labels EN/PT-BR/ES; não duplicar regras de isolamento de Agent.
++
++A descoberta é **somente leitura**. Não significa que Nexus controla, possui, pode remover ou deve iniciar um runtime naquele worktree. O status `worktrees_available=false` é exibido explicitamente; ausência de leitura não deve virar afirmação falsa de que não existem worktrees.
++
++### Gates
++
++1. Go: `go test ./internal/control/web/...`, `go test ./internal/nexus/...`, `gofmt -l`, `go vet`.
++2. Web: `bun run --cwd web quality:full` e browser E2E de abertura, foco, filtro, branches ocupadas, mobile e regressão de checkout.
++3. Git real: checkout primário + 2 worktrees, diretório com espaço, `detached`, `locked`, `prunable`, branch em uso, Git inexistente.
++4. Windows/macOS/Linux: Git path handling, rolagem dentro do diálogo, WebView/zoom e nenhum desvio de PTY/ConPTY.
++5. Release: gates no mesmo SHA, sem certificar com logs de commits ancestrais.
++
++## Próximas fatias, por valor e risco
++
++1. **Workspaces paralelos utilizáveis:** ação `Novo worktree` opcional por tarefa, idempotência, branch base explícita, criação atômica, política de limpeza **manual e confirmada**, associação a Project/Agent, abertura de terminal no diretório. Nunca remover worktree com alterações não commitadas ou runtime ativo.
++2. **Workspace pane manager:** splits horizontais/verticais, tabs e layout persistido por projeto. Reusar `Project layout`, terminal supervisionado e design system; o mobile deve ter navegação entre painéis, não múltiplas colunas espremidas.
++3. **Git review workspace:** diff read-only incremental, arquivos/linhas alterados, comentários locais versionados e envio explícito de feedback ao Agent. Sem aplicar patch ou fazer commit sem confirmação.
++4. **Navegação e busca unificadas:** comando rápido sobre projetos, branches, agentes, sessões, worktrees e comandos já registrados. Sem indexação de conteúdo sensível nem polling agressivo.
++5. **Uso de contas contextual:** seleção de profile disponível no launcher, proveniência de quota e sinalização `UNKNOWN`; reaproveitar o ResourceScheduler.
++6. **Investigação separada:** Design Mode (Chromium e seleção visual), integração GitHub PR/Issues, SSH remoto e companion mobile. Cada um exige threat model, contratos e homologação próprios; nenhum é pré-requisito da release v1.0.
++
++## Critério para incorporação à release
++
++A mudança só entra na `release/v1.0.0` depois de review, qualidade local, regressão Web, smoke nativo aplicável e aprovação dos gates de release. O PR não autoriza merge automático nem publicação de instaladores. **Uma melhoria Orca-inspired não deve transformar a beta atual em uma reescrita de IDE.**
+diff --git a/internal/control/web/handlers_git.go b/internal/control/web/handlers_git.go
+index e9a4a90c2..80450b0d4 100644
+--- a/internal/control/web/handlers_git.go
++++ b/internal/control/web/handlers_git.go
+@@ -15,14 +15,16 @@ import (
+ 
+ // ProjectGitBranchesResponse is returned by GET /api/v1/projects/:id/git/branches
+ type ProjectGitBranchesResponse struct {
+-	ProjectID      string   `json:"project_id"`
+-	CanonicalPath  string   `json:"canonical_path"`
+-	CurrentBranch  string   `json:"current_branch"`
+-	DefaultBranch  string   `json:"default_branch"`
+-	Branches       []string `json:"branches"`
+-	RemoteBranches []string `json:"remote_branches"`
+-	IsClean        bool     `json:"is_clean"`
+-	ModifiedCount  int      `json:"modified_count"`
++	ProjectID          string               `json:"project_id"`
++	CanonicalPath      string               `json:"canonical_path"`
++	CurrentBranch      string               `json:"current_branch"`
++	DefaultBranch      string               `json:"default_branch"`
++	Branches           []string             `json:"branches"`
++	RemoteBranches     []string             `json:"remote_branches"`
++	IsClean            bool                 `json:"is_clean"`
++	ModifiedCount      int                  `json:"modified_count"`
++	Worktrees          []ProjectGitWorktree `json:"worktrees"`
++	WorktreesAvailable bool                 `json:"worktrees_available"`
+ }
+ 
+ // handleProjectGitBranches GET /api/v1/projects/{projectID}/git/branches
+@@ -100,15 +102,22 @@ func (h *NexusHandler) handleProjectGitBranches(w http.ResponseWriter, r *http.R
+ 		}
+ 	}
+ 
++	worktrees, worktreesErr := listProjectGitWorktrees(r.Context(), dir)
++	if worktrees == nil {
++		worktrees = []ProjectGitWorktree{}
++	}
++
+ 	resp := ProjectGitBranchesResponse{
+-		ProjectID:      proj.ID,
+-		CanonicalPath:  proj.CanonicalPath,
+-		CurrentBranch:  current,
+-		DefaultBranch:  proj.DefaultBranch,
+-		Branches:       branches,
+-		RemoteBranches: remoteBranches,
+-		IsClean:        isClean,
+-		ModifiedCount:  modifiedCount,
++		ProjectID:          proj.ID,
++		CanonicalPath:      proj.CanonicalPath,
++		CurrentBranch:      current,
++		DefaultBranch:      proj.DefaultBranch,
++		Branches:           branches,
++		RemoteBranches:     remoteBranches,
++		IsClean:            isClean,
++		ModifiedCount:      modifiedCount,
++		Worktrees:          worktrees,
++		WorktreesAvailable: worktreesErr == nil,
+ 	}
+ 	writeJSON(w, http.StatusOK, resp)
+ }
+diff --git a/internal/control/web/handlers_git_worktrees.go b/internal/control/web/handlers_git_worktrees.go
+new file mode 100644
+index 000000000..77998e455
+--- /dev/null
++++ b/internal/control/web/handlers_git_worktrees.go
+@@ -0,0 +1,74 @@
++package web
++
++import (
++	"bytes"
++	"context"
++	"fmt"
++	"path/filepath"
++	"strings"
++	"time"
++
++	"github.com/IAPro-Community/nexus/internal/executil"
++)
++
++// ProjectGitWorktree is the read-only Git view of a checkout. It does not
++// imply ownership by Nexus or authorization to remove that worktree.
++type ProjectGitWorktree struct {
++	Path      string `json:"path"`
++	Head      string `json:"head"`
++	Branch    string `json:"branch"`
++	IsPrimary bool   `json:"is_primary"`
++	Detached  bool   `json:"detached"`
++	Locked    bool   `json:"locked"`
++	Prunable  bool   `json:"prunable"`
++}
++
++// listProjectGitWorktrees reads Git's NUL-delimited porcelain format so paths
++// containing whitespace or newlines cannot corrupt record boundaries.
++// This endpoint does not call prune, remove or mutate worktrees.
++func listProjectGitWorktrees(parent context.Context, dir string) ([]ProjectGitWorktree, error) {
++	ctx, cancel := context.WithTimeout(parent, 3*time.Second)
++	defer cancel()
++
++	output, err := executil.CommandContext(ctx, "git", "-C", dir, "worktree", "list", "--porcelain", "-z").Output()
++	if err != nil {
++		return nil, fmt.Errorf("list git worktrees: %w", err)
++	}
++	if len(output) > 512*1024 {
++		return nil, fmt.Errorf("git worktree list output exceeds allowed limit")
++	}
++	return parseGitWorktreesPorcelain(output), nil
++}
++
++func parseGitWorktreesPorcelain(output []byte) []ProjectGitWorktree {
++	worktrees := make([]ProjectGitWorktree, 0)
++	for _, record := range bytes.Split(output, []byte{0, 0}) {
++		if len(record) == 0 {
++			continue
++		}
++		var worktree ProjectGitWorktree
++		for _, lineBytes := range bytes.Split(record, []byte{0}) {
++			line := string(lineBytes)
++			switch {
++			case strings.HasPrefix(line, "worktree "):
++				worktree.Path = filepath.Clean(strings.TrimPrefix(line, "worktree "))
++			case strings.HasPrefix(line, "HEAD "):
++				worktree.Head = strings.TrimPrefix(line, "HEAD ")
++			case strings.HasPrefix(line, "branch refs/heads/"):
++				worktree.Branch = strings.TrimPrefix(line, "branch refs/heads/")
++			case line == "detached":
++				worktree.Detached = true
++			case line == "locked" || strings.HasPrefix(line, "locked "):
++				worktree.Locked = true
++			case line == "prunable" || strings.HasPrefix(line, "prunable "):
++				worktree.Prunable = true
++			}
++		}
++		if worktree.Path == "" || worktree.Path == "." {
++			continue
++		}
++		worktree.IsPrimary = len(worktrees) == 0
++		worktrees = append(worktrees, worktree)
++	}
++	return worktrees
++}
+diff --git a/internal/control/web/handlers_git_worktrees_test.go b/internal/control/web/handlers_git_worktrees_test.go
+new file mode 100644
+index 000000000..536118eba
+--- /dev/null
++++ b/internal/control/web/handlers_git_worktrees_test.go
+@@ -0,0 +1,66 @@
++package web
++
++import (
++	"context"
++	"os"
++	"os/exec"
++	"path/filepath"
++	"strings"
++	"testing"
++)
++
++func TestParseGitWorktreesPorcelain(t *testing.T) {
++	data := []byte("worktree /tmp/project root\x00HEAD aaa\x00branch refs/heads/main\x00\x00" +
++		"worktree /tmp/linked\ncheckout\x00HEAD bbb\x00detached\x00locked active runtime\x00\x00" +
++		"worktree /tmp/prunable\x00HEAD ccc\x00branch refs/heads/feature/isolated\x00prunable missing\x00\x00")
++	got := parseGitWorktreesPorcelain(data)
++	if len(got) != 3 {
++		t.Fatalf("got %d worktrees, want 3", len(got))
++	}
++	if got[0].Branch != "main" || !got[0].IsPrimary || got[0].Path != filepath.Clean("/tmp/project root") {
++		t.Fatalf("invalid primary: %+v", got[0])
++	}
++	if !got[1].Detached || !got[1].Locked || got[1].IsPrimary || !strings.Contains(got[1].Path, "\n") {
++		t.Fatalf("invalid detached worktree: %+v", got[1])
++	}
++	if got[2].Branch != "feature/isolated" || !got[2].Prunable {
++		t.Fatalf("invalid prunable worktree: %+v", got[2])
++	}
++	if got := parseGitWorktreesPorcelain(nil); len(got) != 0 {
++		t.Fatalf("empty output returned %d worktrees", len(got))
++	}
++}
++
++func TestListProjectGitWorktreesReadsLinkedCheckouts(t *testing.T) {
++	if _, err := exec.LookPath("git"); err != nil {
++		t.Skip("git not installed")
++	}
++	root := t.TempDir()
++	repo := filepath.Join(root, "main checkout")
++	linked := filepath.Join(root, "feature checkout")
++	if err := os.MkdirAll(repo, 0o700); err != nil {
++		t.Fatal(err)
++	}
++	run := func(args ...string) {
++		t.Helper()
++		cmd := exec.Command("git", append([]string{"-C", repo}, args...)...)
++		cmd.Env = append(os.Environ(), "GIT_AUTHOR_NAME=Test", "GIT_AUTHOR_EMAIL=test@example.com",
++			"GIT_COMMITTER_NAME=Test", "GIT_COMMITTER_EMAIL=test@example.com")
++		if out, err := cmd.CombinedOutput(); err != nil {
++			t.Fatalf("git %v: %v: %s", args, err, out)
++		}
++	}
++	run("init", "-q")
++	run("commit", "--allow-empty", "-m", "initial")
++	run("worktree", "add", "-b", "feature/parallel", linked)
++	worktrees, err := listProjectGitWorktrees(context.Background(), repo)
++	if err != nil {
++		t.Fatal(err)
++	}
++	if len(worktrees) != 2 || !worktrees[0].IsPrimary || worktrees[1].IsPrimary {
++		t.Fatalf("unexpected worktree list: %+v", worktrees)
++	}
++	if worktrees[1].Branch != "feature/parallel" || worktrees[1].Path != linked {
++		t.Fatalf("linked worktree metadata mismatch: %+v", worktrees[1])
++	}
++}
+diff --git a/web/src/features/projects/BranchSwitcherModal.module.scss b/web/src/features/projects/BranchSwitcherModal.module.scss
+new file mode 100644
+index 000000000..b410c5c78
+--- /dev/null
++++ b/web/src/features/projects/BranchSwitcherModal.module.scss
+@@ -0,0 +1,68 @@
++.worktreeSection {
++  display: grid;
++  gap: 8px;
++  margin-top: 12px;
++  padding-top: 12px;
++  border-top: 1px solid var(--nx-border);
++}
++
++.worktreeHeading {
++  display: flex;
++  justify-content: space-between;
++  align-items: center;
++  gap: 8px;
++  color: var(--nx-text);
++  font-size: 0.82rem;
++}
++
++.worktreeHint {
++  margin: 0;
++  color: var(--nx-muted);
++  font-size: 0.73rem;
++  line-height: 1.45;
++}
++
++.worktreeList {
++  display: grid;
++  gap: 6px;
++  margin: 0;
++  padding: 0;
++  list-style: none;
++}
++
++.worktreeRow {
++  display: grid;
++  gap: 4px;
++  min-width: 0;
++  padding: 8px;
++  border: 1px solid var(--nx-border);
++  border-radius: var(--nx-radius-sm, 6px);
++  background: var(--nx-surface);
++}
++
++.worktreeBranch {
++  display: flex;
++  align-items: center;
++  flex-wrap: wrap;
++  gap: 6px;
++  color: var(--nx-text);
++  font-size: 0.8rem;
++  overflow-wrap: anywhere;
++}
++
++.worktreePath {
++  display: block;
++  color: var(--nx-muted);
++  font-size: 0.69rem;
++  overflow-wrap: anywhere;
++  user-select: text;
++}
++
++.occupiedBadge {
++  padding: 2px 6px;
++  border-radius: 6px;
++  background: var(--nx-warning-soft);
++  color: var(--nx-warning);
++  font-size: 0.68rem;
++  white-space: nowrap;
++}
+diff --git a/web/src/features/projects/BranchSwitcherModal.tsx b/web/src/features/projects/BranchSwitcherModal.tsx
+index 760e1f7d2..c2df46826 100644
+--- a/web/src/features/projects/BranchSwitcherModal.tsx
++++ b/web/src/features/projects/BranchSwitcherModal.tsx
+@@ -1,6 +1,8 @@
+ import React, { useCallback, useEffect, useState } from 'react';
+ import { useTranslation } from 'react-i18next';
+ import { Check, GitBranch, Plus, RefreshCw } from 'lucide-react';
++import { linkedGitWorktrees, linkedWorktreeForBranch } from './gitWorktrees';
++import styles from './BranchSwitcherModal.module.scss';
+ import {
+   Button,
+   Dialog,
+@@ -85,6 +87,7 @@ export const BranchSwitcherModal: React.FC<BranchSwitcherModalProps> = ({
+   const currentBranch = data?.current_branch || project.default_branch || 'main';
+   const allBranches = data?.branches || [currentBranch];
+   const filtered = allBranches.filter((b) => b.toLowerCase().includes(search.toLowerCase().trim()));
++  const linkedWorktrees = linkedGitWorktrees(data?.worktrees);
+ 
+   return (
+     <Dialog open={open} onClose={onClose} title={`${t('git.switchBranch')} · ${project.name}`}>
+@@ -179,6 +182,7 @@ export const BranchSwitcherModal: React.FC<BranchSwitcherModalProps> = ({
+             <ul className="nx-branch-items" role="listbox" aria-label={t('git.branchesAriaLabel')}>
+               {filtered.map((branch) => {
+                 const isActive = branch === currentBranch;
++                const occupied = linkedWorktreeForBranch(linkedWorktrees, branch);
+                 return (
+                   <li key={branch}>
+                     <button
+@@ -187,12 +191,20 @@ export const BranchSwitcherModal: React.FC<BranchSwitcherModalProps> = ({
+                       aria-selected={isActive}
+                       className={`nx-branch-item ${isActive ? 'nx-branch-item--active' : ''}`}
+                       onClick={() => handleCheckout(branch, false)}
+-                      disabled={switching}
++                      disabled={switching || isActive || Boolean(occupied)}
++                      title={
++                        occupied
++                          ? t('git.branchInWorktreePath', { path: occupied.path })
++                          : undefined
++                      }
+                     >
+                       <div className="nx-branch-item-name">
+                         <GitBranch size={13} className="nx-branch-icon" />
+                         <span className="nx-branch-text">{branch}</span>
+                       </div>
++                      {occupied && (
++                        <span className={styles.occupiedBadge}>{t('git.branchInWorktree')}</span>
++                      )}
+                       {isActive && (
+                         <span className="nx-branch-active-badge">
+                           <Check size={12} /> {t('git.active')}
+@@ -206,6 +218,35 @@ export const BranchSwitcherModal: React.FC<BranchSwitcherModalProps> = ({
+           )}
+         </div>
+ 
++        {data?.worktrees_available === false && (
++          <InlineAlert tone="warning">{t('git.worktreesUnavailable')}</InlineAlert>
++        )}
++
++        {linkedWorktrees.length > 0 && (
++          <section className={styles.worktreeSection} aria-label={t('git.linkedWorktrees')}>
++            <div className={styles.worktreeHeading}>
++              <strong>{t('git.linkedWorktrees')}</strong>
++              <span>{linkedWorktrees.length}</span>
++            </div>
++            <p className={styles.worktreeHint}>{t('git.worktreeReadOnlyHint')}</p>
++            <ul className={styles.worktreeList}>
++              {linkedWorktrees.map((worktree) => (
++                <li key={worktree.path} className={styles.worktreeRow}>
++                  <span className={styles.worktreeBranch}>
++                    <GitBranch size={13} aria-hidden />
++                    {worktree.detached ? t('git.detachedHead') : worktree.branch}
++                    {worktree.locked && <Badge tone="warning">{t('git.worktreeLocked')}</Badge>}
++                    {worktree.prunable && <Badge tone="warning">{t('git.worktreePrunable')}</Badge>}
++                  </span>
++                  <code className={styles.worktreePath} title={worktree.path}>
++                    {worktree.path}
++                  </code>
++                </li>
++              ))}
++            </ul>
++          </section>
++        )}
++
+         {/* Remote branches hint */}
+         {data && data.remote_branches && data.remote_branches.length > 0 && (
+           <div className="nx-branch-footer-info">
+diff --git a/web/src/features/projects/gitWorktrees.test.ts b/web/src/features/projects/gitWorktrees.test.ts
+new file mode 100644
+index 000000000..b2fe806d5
+--- /dev/null
++++ b/web/src/features/projects/gitWorktrees.test.ts
+@@ -0,0 +1,37 @@
++import { describe, expect, it } from 'vitest';
++import type { GitWorktree } from '../../types';
++import { linkedGitWorktrees, linkedWorktreeForBranch } from './gitWorktrees';
++
++const primary: GitWorktree = {
++  path: '/repo',
++  head: 'abc',
++  branch: 'main',
++  is_primary: true,
++  detached: false,
++  locked: false,
++  prunable: false,
++};
++const linked: GitWorktree = {
++  ...primary,
++  path: '/repo-feature',
++  branch: 'feature/a',
++  is_primary: false,
++};
++
++describe('linked Git worktree visibility', () => {
++  it('keeps the canonical checkout separate from linked worktrees', () => {
++    expect(linkedGitWorktrees([primary, linked])).toEqual([linked]);
++    expect(linkedGitWorktrees(undefined)).toEqual([]);
++  });
++
++  it('identifies branches already checked out outside the canonical checkout', () => {
++    expect(linkedWorktreeForBranch([linked], 'feature/a')).toBe(linked);
++    expect(linkedWorktreeForBranch([linked], 'main')).toBeUndefined();
++  });
++
++  it('does not reserve a branch for a detached worktree', () => {
++    expect(
++      linkedWorktreeForBranch([{ ...linked, detached: true, branch: '' }], 'feature/a'),
++    ).toBeUndefined();
++  });
++});
+diff --git a/web/src/features/projects/gitWorktrees.ts b/web/src/features/projects/gitWorktrees.ts
+new file mode 100644
+index 000000000..290b09eab
+--- /dev/null
++++ b/web/src/features/projects/gitWorktrees.ts
+@@ -0,0 +1,12 @@
++import type { GitWorktree } from '../../types';
++
++export const linkedGitWorktrees = (worktrees: readonly GitWorktree[] | undefined): GitWorktree[] =>
++  (worktrees ?? []).filter((worktree) => !worktree.is_primary);
++
++// A branch checked out in another worktree cannot be safely checked out in
++// this project's canonical checkout. No branch-switching action is performed.
++export const linkedWorktreeForBranch = (
++  worktrees: readonly GitWorktree[],
++  branch: string,
++): GitWorktree | undefined =>
++  worktrees.find((worktree) => !worktree.detached && worktree.branch === branch);
+diff --git a/web/src/i18n/resources.ts b/web/src/i18n/resources.ts
+index 4e5ef490a..ce7f10e5e 100644
+--- a/web/src/i18n/resources.ts
++++ b/web/src/i18n/resources.ts
+@@ -1532,6 +1532,15 @@ export const en = {
+     switchFailed: 'Failed to switch branch',
+     switchedSuccess: '✓ Switched to branch {{branch}}',
+     branchesAriaLabel: 'Branches',
++    linkedWorktrees: 'Linked worktrees',
++    worktreeReadOnlyHint:
++      'Worktrees created by Nexus or other tools. Manage them in Git; this panel is read-only.',
++    branchInWorktree: 'In another worktree',
++    branchInWorktreePath: 'This branch is checked out at {{path}}',
++    detachedHead: 'Detached HEAD',
++    worktreeLocked: 'Locked',
++    worktreePrunable: 'Missing checkout',
++    worktreesUnavailable: 'Git worktrees could not be listed for this project.',
+   },
+   maestroControl: {
+     title: 'Orquestrador Maestro',
+@@ -3525,6 +3534,15 @@ export const ptBR = {
+     switchFailed: 'Falha ao trocar de branch',
+     switchedSuccess: '✓ Alternado para branch {{branch}}',
+     branchesAriaLabel: 'Branches',
++    linkedWorktrees: 'Worktrees vinculados',
++    worktreeReadOnlyHint:
++      'Worktrees do Nexus ou de outras ferramentas. Gerencie pelo Git; aqui a consulta é somente leitura.',
++    branchInWorktree: 'Em outro worktree',
++    branchInWorktreePath: 'Esta branch está em uso em {{path}}',
++    detachedHead: 'HEAD destacado',
++    worktreeLocked: 'Bloqueado',
++    worktreePrunable: 'Checkout ausente',
++    worktreesUnavailable: 'Não foi possível consultar os worktrees deste projeto.',
+   },
+   maestroControl: {
+     title: 'Orquestrador Maestro',
+@@ -5525,6 +5543,15 @@ export const es = {
+     switchFailed: 'Error al cambiar de rama',
+     switchedSuccess: '✓ Cambiado a la rama {{branch}}',
+     branchesAriaLabel: 'Branches',
++    linkedWorktrees: 'Worktrees vinculados',
++    worktreeReadOnlyHint:
++      'Worktrees de Nexus u otras herramientas. Adminístrelos desde Git; aquí solo se muestran.',
++    branchInWorktree: 'En otro worktree',
++    branchInWorktreePath: 'Esta rama se utiliza en {{path}}',
++    detachedHead: 'HEAD separado',
++    worktreeLocked: 'Bloqueado',
++    worktreePrunable: 'Checkout ausente',
++    worktreesUnavailable: 'No se pudieron consultar los worktrees de este proyecto.',
+   },
+   maestroControl: {
+     title: 'Orquestrador Maestro',
+diff --git a/web/src/types.ts b/web/src/types.ts
+index 87d1379bb..56158af52 100644
+--- a/web/src/types.ts
++++ b/web/src/types.ts
+@@ -784,6 +784,16 @@ export interface FSInspectResult {
+   tech: string[];
+ }
+ 
++export interface GitWorktree {
++  path: string;
++  head: string;
++  branch: string;
++  is_primary: boolean;
++  detached: boolean;
++  locked: boolean;
++  prunable: boolean;
++}
++
+ export interface GitBranchesResult {
+   project_id: string;
+   canonical_path: string;
+@@ -793,6 +803,8 @@ export interface GitBranchesResult {
+   remote_branches: string[];
+   is_clean: boolean;
+   modified_count: number;
++  worktrees?: GitWorktree[];
++  worktrees_available?: boolean;
+ }
+ 
+ export interface GitCheckoutResult {

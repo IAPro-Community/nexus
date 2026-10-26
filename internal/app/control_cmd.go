@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -142,41 +143,20 @@ func controlWebCmd(args []string) error {
 		}
 	}
 
-	var port int
-	var host = "127.0.0.1"
-	var noOpen bool
-	var remote bool
-
-	// Resolve port: CLI flag > env var > default (13000)
-	port = web.DefaultPort
-	if envPort := os.Getenv("NEXUS_WEB_PORT"); envPort != "" {
-		if p, err := strconv.Atoi(envPort); err == nil && p > 0 && p <= 65535 {
-			port = p
-		}
+	options, err := parseControlWebArgs(args, os.Getenv("NEXUS_WEB_PORT"))
+	if err != nil {
+		return err
 	}
-
-	for i := 0; i < len(args); i++ {
-		if (args[i] == "--port" || args[i] == "-p") && i+1 < len(args) {
-			p, err := strconv.Atoi(args[i+1])
-			if err == nil && p >= 0 && p <= 65535 {
-				port = p
-			}
-			i++
-		} else if (args[i] == "--listen" || args[i] == "-l") && i+1 < len(args) {
-			host = args[i+1]
-			i++
-		} else if args[i] == "--no-open" {
-			noOpen = true
-		} else if args[i] == "--remote" {
-			remote = true
-		}
+	if options.help {
+		controlWebHelp()
+		return nil
 	}
 
 	core, err := NewCore(CoreConfig{
-		Host:   host,
-		Port:   port,
-		NoOpen: noOpen,
-		Remote: remote,
+		Host:   options.host,
+		Port:   options.port,
+		NoOpen: options.noOpen,
+		Remote: options.remote,
 	})
 	if err != nil {
 		return err
@@ -197,7 +177,7 @@ func controlWebCmd(args []string) error {
 		}
 	}
 	startHUDCompanion := func() {
-		if remote || !isLoopbackHost(host) {
+		if options.remote || !isLoopbackHost(options.host) {
 			return
 		}
 		proc, spawnErr := hudlink.Spawn()
@@ -234,7 +214,7 @@ func controlWebCmd(args []string) error {
 		fmt.Printf("Reopen from any terminal: %s web open\n", progName())
 		startHUDCompanion()
 
-		if !noOpen {
+		if !options.noOpen {
 			time.Sleep(200 * time.Millisecond)
 			_ = web.OpenBrowser(bootstrapURL)
 		}
@@ -243,6 +223,63 @@ func controlWebCmd(args []string) error {
 	runErr := core.Start(context.Background())
 	stopHUDCompanion()
 	return runErr
+}
+
+type controlWebOptions struct {
+	port   int
+	host   string
+	noOpen bool
+	remote bool
+	help   bool
+}
+
+func parseControlWebArgs(args []string, envPort string) (controlWebOptions, error) {
+	options := controlWebOptions{port: web.DefaultPort, host: "127.0.0.1"}
+	if parsed, err := strconv.Atoi(envPort); err == nil && parsed > 0 && parsed <= 65535 {
+		options.port = parsed
+	}
+
+	flags := flag.NewFlagSet("web", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	flags.IntVar(&options.port, "port", options.port, "HTTP port (0 selects an available port)")
+	flags.IntVar(&options.port, "p", options.port, "HTTP port (shorthand for --port)")
+	flags.StringVar(&options.host, "listen", options.host, "IP address to bind")
+	flags.StringVar(&options.host, "l", options.host, "IP address to bind (shorthand for --listen)")
+	flags.BoolVar(&options.noOpen, "no-open", false, "Do not open a browser automatically")
+	flags.BoolVar(&options.remote, "remote", false, "Enable remote access mode")
+
+	if err := flags.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			options.help = true
+			return options, nil
+		}
+		return controlWebOptions{}, fmt.Errorf("invalid web option: %w", err)
+	}
+	if flags.NArg() > 0 {
+		return controlWebOptions{}, fmt.Errorf("unexpected web argument %q; run '%s web --help' for usage", flags.Arg(0), progName())
+	}
+	if options.port < 0 || options.port > 65535 {
+		return controlWebOptions{}, fmt.Errorf("web port must be between 0 and 65535, got %d", options.port)
+	}
+	if strings.TrimSpace(options.host) == "" {
+		return controlWebOptions{}, errors.New("web listen address cannot be empty")
+	}
+	return options, nil
+}
+
+func controlWebHelp() {
+	fmt.Printf(`Nexus Web Workspace OS
+
+USAGE:
+  %s web [flags]
+
+FLAGS:
+  -p, --port <port>    HTTP port; 0 selects an available port (default: %d or NEXUS_WEB_PORT)
+  -l, --listen <ip>    IP address to bind (default: 127.0.0.1)
+      --no-open         Do not open a browser automatically
+      --remote          Enable remote access mode
+  -h, --help            Show this help message
+`, progName(), web.DefaultPort)
 }
 
 // isLoopbackHost reports whether the resolved bind host stays on this machine,

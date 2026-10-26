@@ -1,0 +1,18 @@
+Nexus Desktop/HUD user-profile restore after isolated Xvfb test
+branch=release/v1.0.0
+base_commit=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+source_overlay_fingerprint=9a66687715414fc8b42d612fd2b4a531370c7f8c4fbfa86338a81ba9728ddcd1
+version=1.0.0-beta.10
+installed_cli_sha256=47c517d28223ebcdde4bbb9288caf3c7413f9d8058ae20de7f2a672b1ebcbd81
+installed_desktop_sha256=362c090ea6972cc1548cf883d78a2d071e9de746e42eb8283a4e10867e15fd0e
+installed_hud_sha256=54925c242a76fc204ae646afdfc7762b88c458ef12dcee8f92765f66641435e1
+unit=nexus-homologation-final-restored-20261026.service
+unit_invocation=c8e7b8d36dc544c2a5f8daffbc35ff25
+main_desktop_pid=22800
+linked_hud_pid=22810
+normal_user_profile=enabled; NEXUS_DATA_DIR override=false
+core_port=43559
+core_health=HTTP 200; {"status":"ok","version":"1.0.0-beta.10"}
+startup_observation=unit active after 8 seconds; systemd reported 918.5 MiB current memory, 1 GiB peak, 18.2 CPU seconds while provider checks were still starting; this is not an idle measurement.
+host_display=xrandr root 0x0; grim reports no wl_output; no native screenshot was captured.
+No session import was triggered during this restore.

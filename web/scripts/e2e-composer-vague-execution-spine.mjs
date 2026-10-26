@@ -12,7 +12,10 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
-const outDir = path.join(repoRoot, 'DEV/validation/composer-execution-spine');
+const outDir = path.resolve(
+  process.env.NEXUS_E2E_ARTIFACTS_DIR ||
+    path.join(repoRoot, 'DEV/validation/linux-100-2026-10-25/composer-project-intelligence'),
+);
 mkdirSync(outDir, { recursive: true });
 
 const vagueGoal = 'Improve authentication safely';
@@ -30,6 +33,24 @@ function openBlockingUnknowns(view) {
   return (view?.brief?.unknowns || []).filter(
     (item) => item.severity === 'BLOCKING' && item.status === 'OPEN',
   );
+}
+
+async function activeOpenUnknown(page, view) {
+  const visibleQuestions = await page.locator('section[data-severity]').evaluateAll((sections) =>
+    sections
+      .filter((section) => {
+        const bounds = section.getBoundingClientRect();
+        return bounds.width > 0 && bounds.height > 0;
+      })
+      .map((section) => section.getAttribute('aria-label'))
+      .filter(Boolean),
+  );
+  const unknowns = view?.brief?.unknowns || [];
+  for (const question of visibleQuestions) {
+    const match = unknowns.find((item) => item.status === 'OPEN' && item.question === question);
+    if (match) return match;
+  }
+  return null;
 }
 
 async function resolveBlockingUnknown(page, context, apiOrigin, sessionId, unknown) {
@@ -123,6 +144,14 @@ async function resolveBlockingUnknown(page, context, apiOrigin, sessionId, unkno
 
 async function main() {
   fixture = await startFixtureServer({ composerFlow: true });
+  writeFileSync(
+    path.join(fixture.isolatedProjectPath, 'package.json'),
+    JSON.stringify({
+      name: 'grounded-frontend-fixture',
+      scripts: { test: 'vitest run', build: 'vite build' },
+      devDependencies: { react: '19.0.0', vitest: '3.0.0', vite: '7.0.0' },
+    }),
+  );
   const launched = await launchFixtureBrowser(fixture.bootstrapUrl);
   browser = launched.browser;
   const { context, page, collectors } = launched;
@@ -209,6 +238,22 @@ async function main() {
 
   let view = await getJSON(context, `${apiOrigin}/api/v1/composer-sessions/${sessionId}`);
   assert.ok(
+    view.brief?.quality?.testing?.includes('vitest run'),
+    'Composer must answer the frontend test-stack question from fixture repository metadata',
+  );
+  const citedTestEvidence = (view.context_manifest?.items || []).find(
+    (item) =>
+      item.kind === 'PROJECT_FACT' &&
+      item.source === 'package.json' &&
+      item.locator === 'scripts.test' &&
+      item.confidence === 'HIGH' &&
+      /test=vitest run · observed \d{4}-\d\d-\d\dT/.test(item.summary),
+  );
+  assert.ok(
+    citedTestEvidence,
+    'Composer must retain the test command, confidence, source citation, and observation freshness',
+  );
+  assert.ok(
     view.context_manifest?.fingerprint,
     'Composer must persist a context manifest fingerprint',
   );
@@ -243,11 +288,29 @@ async function main() {
   let resolved = 0;
   while (openBlockingUnknowns(view).length > 0) {
     assert.ok(resolved < 12, 'vague-goal clarification loop did not converge');
-    const unknown = openBlockingUnknowns(view)[0];
+    const unknown = await activeOpenUnknown(page, view);
+    assert.ok(
+      unknown,
+      `Composer UI must expose the next unknown from the current view; visible=${JSON.stringify(
+        await page
+          .locator('section[data-severity]')
+          .evaluateAll((sections) =>
+            sections
+              .filter((section) => section.getBoundingClientRect().height > 0)
+              .map((section) => section.getAttribute('aria-label')),
+          ),
+      )}`,
+    );
     view = await resolveBlockingUnknown(page, context, apiOrigin, sessionId, unknown);
     resolved += 1;
   }
 
+  const finalizationResponsePromise = page.waitForResponse(
+    (response) =>
+      response.url().includes(`/api/v1/composer-sessions/${sessionId}/finalize`) &&
+      response.request().method() === 'POST',
+    { timeout: 30000 },
+  );
   await reviewFinalize.click();
 
   const turnIntoFlow = page.getByRole('button', {
@@ -267,8 +330,13 @@ async function main() {
     await turnIntoFlow.waitFor({ state: 'visible', timeout: 30000 });
   }
 
+  const finalizationResponse = await finalizationResponsePromise;
   const finalized = await getJSON(context, `${apiOrigin}/api/v1/composer-sessions/${sessionId}`);
-  assert.equal(finalized.session.state, 'FINALIZED', 'clarified session must finalize normally');
+  assert.equal(
+    finalized.session.state,
+    'FINALIZED',
+    `clarified session must finalize normally (POST /finalize HTTP ${finalizationResponse.status()})`,
+  );
 
   await turnIntoFlow.click();
 
@@ -321,6 +389,32 @@ async function main() {
     );
   }
 
+  const completePrompt =
+    'Add a Vitest unit test for the existing project-intelligence summary. Place it beside the current frontend unit tests, preserve the current React and Vite conventions, verify the test with `vitest run`, and do not change runtime behavior or package dependencies.';
+  const completeCreate = await context.request.post(
+    `${apiOrigin}/api/v1/projects/${project.id}/composer-sessions`,
+    {
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': session.csrf_token,
+      },
+      data: {
+        goal: completePrompt,
+        source_prompt: completePrompt,
+        input_mode: 'EXISTING_PROMPT',
+        interview_mode: 'STANDARD',
+      },
+    },
+  );
+  assert.equal(completeCreate.status(), 201, 'complete prompt Composer create must succeed');
+  const completeView = await completeCreate.json();
+  assert.deepEqual(
+    openBlockingUnknowns(completeView),
+    [],
+    'complete prompt must bypass ritual blocking questions',
+  );
+
   await page.screenshot({ path: path.join(outDir, 'north-star-vague.png'), fullPage: true });
   writeFileSync(
     path.join(outDir, 'north-star-vague.json'),
@@ -330,6 +424,8 @@ async function main() {
         composer_session_id: sessionId,
         initial_blocking_questions: initialBlocking,
         resolved_blocking_questions: resolved,
+        grounded_frontend_test_command: citedTestEvidence.summary,
+        complete_prompt_blocking_questions: openBlockingUnknowns(completeView).length,
         plan_id: preview.plan_id,
         revision: preview.revision,
         preview_ready: preview.ready,

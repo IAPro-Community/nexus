@@ -466,25 +466,8 @@ func findOrquestradorDirs() []string {
 			return dirs
 		}
 	}
-	// Host user home.
-	if home, err := os.UserHomeDir(); err == nil && home != "" {
-		candidate := filepath.Join(home, ".orquestrador")
-		if fi, err := os.Stat(candidate); err == nil && fi.IsDir() {
-			dirs = append(dirs, candidate)
-		}
-		// Profile homes can be nested below the real user home. Walk ancestors
-		// so the canonical global catalog is available without hardcoding an OS
-		// or profile layout. The nearest catalog remains first and wins overrides.
-		ancestor := filepath.Dir(home)
-		for i := 0; i < 10 && ancestor != filepath.Dir(ancestor); i++ {
-			candidate = filepath.Join(ancestor, ".orquestrador")
-			if fi, err := os.Stat(candidate); err == nil && fi.IsDir() {
-				dirs = appendUniquePath(dirs, candidate)
-			}
-			ancestor = filepath.Dir(ancestor)
-		}
-	}
-	// Isolated ai-cli/Nexus profile homes under the canonical cross-platform DataDir.
+	// Isolated ai-cli/Nexus profile homes are authoritative for the active
+	// profile and must not be shadowed by the host user's global skill library.
 	if dataDir, err := coreconfig.DataDir(); err == nil && dataDir != "" {
 		pattern := filepath.Join(dataDir, "profiles", "*", "*", "home", ".orquestrador")
 		matches, _ := filepath.Glob(pattern)
@@ -493,6 +476,13 @@ func findOrquestradorDirs() []string {
 			if fi, err := os.Stat(candidate); err == nil && fi.IsDir() {
 				dirs = appendUniquePath(dirs, candidate)
 			}
+		}
+	}
+	// Host user home.
+	if home, err := os.UserHomeDir(); err == nil && home != "" {
+		candidate := filepath.Join(home, ".orquestrador")
+		if fi, err := os.Stat(candidate); err == nil && fi.IsDir() {
+			dirs = append(dirs, candidate)
 		}
 	}
 	return dirs

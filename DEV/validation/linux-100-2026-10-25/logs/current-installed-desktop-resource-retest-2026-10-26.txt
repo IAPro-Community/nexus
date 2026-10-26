@@ -1,0 +1,16 @@
+time_utc=2026-10-26T02:13:50.327264+00:00
+unit=nexus-homologation-final-restored-20261026.service
+cgroup=/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/nexus-homologation-final-restored-20261026.service
+elapsed_seconds=20.00
+memory_start_bytes=883998720
+memory_end_bytes=892092416
+cgroup_cpu_percent=118.6
+processes_start=6
+processes_end=6
+process_cpu_deltas:
+  pid=22800 comm=nexus-desktop cpu_seconds=0.05 cpu_percent=0.2
+  pid=22810 comm=nexus-hud cpu_seconds=0.07 cpu_percent=0.3
+  pid=22945 comm=WebKitNetworkPr cpu_seconds=0.39 cpu_percent=1.9
+  pid=22946 comm=WebKitWebProces cpu_seconds=22.31 cpu_percent=111.5
+  pid=22981 comm=WebKitNetworkPr cpu_seconds=0.00 cpu_percent=0.0
+  pid=22986 comm=WebKitWebProces cpu_seconds=0.05 cpu_percent=0.2

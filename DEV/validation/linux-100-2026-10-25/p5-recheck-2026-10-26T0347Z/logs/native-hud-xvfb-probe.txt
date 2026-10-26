@@ -1,0 +1,38 @@
++ export GDK_BACKEND=x11 LIBGL_ALWAYS_SOFTWARE=1
++ GDK_BACKEND=x11
++ LIBGL_ALWAYS_SOFTWARE=1
+++ mktemp -d /var/tmp/nexus-wails-probe.XXXXXX
++ scratch=/var/tmp/nexus-wails-probe.Nb9KGK
++ export HOME=/var/tmp/nexus-wails-probe.Nb9KGK/home XDG_CONFIG_HOME=/var/tmp/nexus-wails-probe.Nb9KGK/config XDG_DATA_HOME=/var/tmp/nexus-wails-probe.Nb9KGK/data XDG_CACHE_HOME=/var/tmp/nexus-wails-probe.Nb9KGK/cache NEXUS_DATA_DIR=/var/tmp/nexus-wails-probe.Nb9KGK/data/nexus
++ HOME=/var/tmp/nexus-wails-probe.Nb9KGK/home
++ XDG_CONFIG_HOME=/var/tmp/nexus-wails-probe.Nb9KGK/config
++ XDG_DATA_HOME=/var/tmp/nexus-wails-probe.Nb9KGK/data
++ XDG_CACHE_HOME=/var/tmp/nexus-wails-probe.Nb9KGK/cache
++ NEXUS_DATA_DIR=/var/tmp/nexus-wails-probe.Nb9KGK/data/nexus
++ mkdir -p /var/tmp/nexus-wails-probe.Nb9KGK/home /var/tmp/nexus-wails-probe.Nb9KGK/config /var/tmp/nexus-wails-probe.Nb9KGK/data /var/tmp/nexus-wails-probe.Nb9KGK/cache
++ p=856039
++ echo DISPLAY=:114 PID=856039 LOG=/var/tmp/nexus-wails-probe.Nb9KGK/app.log
++ /projetos/nexus/cmd/nexus-hud/build/bin/nexus-hud
+DISPLAY=:114 PID=856039 LOG=/var/tmp/nexus-wails-probe.Nb9KGK/app.log
++ sleep 8
++ echo ===WINDOWS===
+===WINDOWS===
++ xwininfo -root -tree
+
+xwininfo: Window id: 0x1ff (the root window) (has no name)
+
+  Root window id: 0x1ff (the root window) (has no name)
+  Parent window id: 0x0 (none)
+     0 children.
+
++ echo ===PROC===
+===PROC===
++ ps -p 856039 -o pid,stat,etime,cmd
+    PID STAT     ELAPSED CMD
++ echo ===LOG===
+===LOG===
++ cat /var/tmp/nexus-wails-probe.Nb9KGK/app.log
+Nexus HUD started an embedded Core at http://127.0.0.1:37605
++ kill -TERM 856039
++ true
++ wait 856039

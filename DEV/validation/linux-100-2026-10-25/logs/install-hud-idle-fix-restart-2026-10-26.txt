@@ -1,0 +1,26 @@
+unit=nexus-homologation-final-restored-20261026.service
+backup_dir=/home/desenvolvedor/.local/state/ai-manager/nexus-update-backups/20261026T070817Z-hud-idle-fix
+service_state=active
+main_pid=2113355
+hud_pid=2113374
+health_port=34557
+health_response={"status":"ok","timestamp":1792998552,"version":"1.0.0-beta.10"}
+
+installed_hashes:
+5949669ab400fc63ca4b9e28c96b780e229430d68a7367ea67c99151e92e4e69  /home/desenvolvedor/.local/bin/nexus
+570f89398777bd93c36aa9f85d1494efc29aa25ff3bf0222c5d260205f6b8598  /home/desenvolvedor/.local/bin/nexus-desktop
+fbe093cffa25e53a118bb5880a0087645d70ed73776678d55c588f549095c7b3  /home/desenvolvedor/.local/bin/nexus-hud
+
+build_hashes:
+5949669ab400fc63ca4b9e28c96b780e229430d68a7367ea67c99151e92e4e69  ./nexus
+570f89398777bd93c36aa9f85d1494efc29aa25ff3bf0222c5d260205f6b8598  cmd/nexus-desktop/build/bin/nexus-desktop
+fbe093cffa25e53a118bb5880a0087645d70ed73776678d55c588f549095c7b3  cmd/nexus-hud/build/bin/nexus-hud
+
+process_executables:
+/home/desenvolvedor/.local/bin/nexus-desktop
+/home/desenvolvedor/.local/bin/nexus-hud
+
+cli_version:
+IAPro Nexus 1.0.0-beta.10 (linux/amd64, go1.25.14) commit 7a04f1b4 built 2026-10-26T07:02:15Z
+
+SUPPLEMENTAL_OPERATOR_NOTE (2026-10-26): stopping the original transient user unit unloaded it, so the first systemctl start attempt reported unit not found. No binaries were rolled back; backups remained available. The service was recreated with systemd-run under nexus-homologation-final-restored-20261026.service, then verified active with Desktop/HUD processes and HTTP 200 health.

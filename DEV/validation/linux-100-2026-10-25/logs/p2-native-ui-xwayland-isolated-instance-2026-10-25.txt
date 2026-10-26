@@ -1,0 +1,28 @@
+Nexus Linux P2 isolated native UI retest — 2026-10-25
+display=:0
+session=XWayland real GNOME session; private D-Bus; XDG/Nexus data isolated
+desktop_binary=/tmp/nexus-p2-native-ui-test-2026-10-25/nexus-desktop-homologation
+desktop_binary_sha256=41eb66aa4cbb944474db97d10da54ba9eafa9e58d16c2410825b5d0249ec9fea
+test_only_overlay=UniqueID and Linux ApplicationID suffix; product behavior unchanged
+isolated_root=/tmp/nexus-p2-ui-xwayland-ks5xuecw
+port=43140
+core_first_pid=2154262; health=HTTP 200 {"status":"ok","timestamp":1792958174,"version":"1.0.0-beta.10"}
+
+desktop_pid=2154281
+window_xid=0x140000e
+window_properties=_NET_WM_PID(CARDINAL) = 2154281 | WM_CLASS(STRING) = "nexus-desktop", "Nexus-desktop" | WM_NAME(STRING) = "IAPro Nexus" | 
+window_tree= | xwininfo: Window id: 0x201 (the root window) (has no name) |  |   Root window id: 0x201 (the root window) (has no name) |   Parent window id: 0x0 (none) |      24 children: |      0x60074b "IAPro Nexus": ("mutter-x11-frames" "mutter-x11-frames")  1330x887+295+115  +295+115 |         2 children: |         0x140000e "IAPro Nexus": ("nexus-desktop" "Nexus-desktop")  1280x800+25+62  +320+177 |            1 child: |            0x140000f (has no name): ()  1x1+-1+-1  +319+176 |         0x60074c (has no name): ()  1x1+-1+-1  +294+114 |      0x1400014 (has no name): ()  1x1+-1+-1  +-1+-1 |      0x1400001 "nexus-desktop": ("nexus-desktop" "Nexus-desktop")  10x10+10+10  +10+10 |      0x600725 "IAPro Nexus": ("mutter-x11-frames" "mutter-x11-frames")  1330x887+295+115  +295+115 |         2 children: |         0x120000e "IAPro Nexus": ("nexus-desktop" "Nexus-desktop")  1280x800+25+62  +320+177 |            1 child: |            0x120000f (has no name): ()  1x1+-1+-1  +319+176 |         0x600726 (has no name): ()  1x1+-1+-1  +294+114 |      0x1200014 (has no name): ()  1x1+-1+-1  +-1+-1 |      0x1200001 "nexus-desktop": ("nexus-desktop" "Nexus-desktop")  10x10+10+10  +10+10 |      0x1800000 (has no name): ()  1x1+0+0  +0+0 |      0x600009 (has no name): ()  1x1+-1+-1  +-1+-1 |      0xc00002 "vmware-user": ()  10x10+-100+-100  +-100+-100 |      0x600002 "mutter-x11-frames": ("mutter-x11-frames" "mutter-x11-frames")  1x1+0+0  +0+0 |         1 child: |         0x600003 (has no name): ()  1x1+-1+-1  +-1+-1 |      0x800003 "ibus-xim": ()  1x1+0+0  +0+0 |         1 child: |         0x800004 (has no name): ()  1x1+-1+-1  +-1+-1 |      0x800001 "ibus-x11": ("ibus-x11" "")  10x10+10+10  +10+10 |      0xc00001 "vmware-user": ("vmware-user" "Vmware-user")  10x10+10+10  +10+10 |      0x400009 (has no name): ()  1x1+0+0  +0+0 |      0x400008 (has no name): ()  1x1+-1+-1  +-1+-1 |      0x400007 (has no name): ()  1x1+-1+-1  +-1+-1 |      0x400006 (has no name): ()  1x1+-100+-100  +-100+-100 |      0x400005 (has no name): ()  1x1+-100+-100  +-100+-100 |      0x400004 (has no name): ()  1x1+-1+-1  +-1+-1 |      0x400003 (has no name): ()  1x1+-100+-100  +-100+-100 |      0x400002 (has no name): ()  1x1+-100+-100  +-100+-100 |      0x400001 "GNOME Shell": ()  1x1+-100+-100  +-100+-100 |      0x200001 (has no name): ()  10x10+0+0  +0+0 |      0x40000a "mutter guard window": ()  1920x1080+0+0  +0+0 |  | 
+desktop_attached_to_isolated_core=PASS
+before_restart_screenshot=DEV/validation/linux-100-2026-10-25/screenshots/p2-native-ui-xwayland-isolated-instance-before-restart-2026-10-25.png bytes=280 sha256=67b271686e7825c49f90eace3cd7a91d1f7ea2f54b435f6025962362f37dbbd6
+core_first_sigterm_exit=0
+core_second_pid=2163055; health=HTTP 200 {"status":"ok","timestamp":1792958205,"version":"1.0.0-beta.10"}
+
+f5_sent=PASS keycode=71
+window_after_restart_xid=0x140000e; pid=2154281
+post_restart_screenshot=DEV/validation/linux-100-2026-10-25/screenshots/p2-native-ui-xwayland-isolated-instance-after-restart-2026-10-25.png bytes=104822 sha256=9e16edddcd8d4bffa10399556fe50d6b1aae5a5f15618111c23916e5651860bc
+core_post_restart_health=HTTP 200 {"status":"ok","timestamp":1792958210,"version":"1.0.0-beta.10"}
+
+result=PASS: isolated native Wails window owned by test PID stayed open across Core restart and rendered after F5
+test_desktop_cleanup_exit=0
+test_core_cleanup_exit=0
+host_runtime_touched=no; existing_desktop_and_AGY_processes_preserved; isolated_root=/tmp/nexus-p2-ui-xwayland-ks5xuecw

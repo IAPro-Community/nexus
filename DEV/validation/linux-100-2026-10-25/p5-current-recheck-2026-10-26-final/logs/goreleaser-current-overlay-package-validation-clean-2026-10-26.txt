@@ -1,0 +1,20 @@
+source_fingerprint=101e6e62b8d4b9903cf4d40309caeea54c809183e5dba017d9e6a8770302669c
+snapshot_root=/home/desenvolvedor/.local/state/nexus-homologation/20261026-preview-copy-fix-release-snapshot
+nexus_1.0.0-beta.10_linux_amd64.deb: OK
+nexus_Linux_x86_64.tar.gz: OK
+Package: nexus
+Version: 1.0.0~beta.10
+Architecture: amd64
+Selecting previously unselected package nexus.
+(Reading database ... 0 files and directories currently installed.)
+Preparing to unpack .../nexus_1.0.0-beta.10_linux_amd64.deb ...
+Unpacking nexus (1.0.0~beta.10) ...
+Setting up nexus (1.0.0~beta.10) ...
+IAPro Nexus 1.0.0-beta.10 (linux/amd64, go1.27.3) commit 7a04f1b4cf5950b97b4ea1e156dda31ac513823b built 2026-10-26T09:30:50Z
+Package: nexus
+Status: install ok installed
+Architecture: amd64
+Version: 1.0.0~beta.10
+(Reading database ... 10 files and directories currently installed.)
+Removing nexus (1.0.0~beta.10) ...
+isolated_install_remove=PASS

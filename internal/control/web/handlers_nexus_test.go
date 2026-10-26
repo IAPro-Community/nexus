@@ -334,6 +334,67 @@ func csrfClient(t *testing.T) (*http.Client, *Server, string) {
 	return client, srv, sess.CSRFToken
 }
 
+func TestUpdatePlanReturnsConflictForStaleRevision(t *testing.T) {
+	client, srv, csrf := csrfClient(t)
+	n := nexus.Default()
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Plan revision conflict", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	created, err := st.CreateWorkPlan(store.WorkPlan{ProjectID: project.ID, Title: "Original"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	stale := *created
+	current := *created
+	current.Title = "Saved current edit"
+	if _, _, err := n.UpdateWorkPlan(context.Background(), current, "current edit"); err != nil {
+		t.Fatalf("persist current edit: %v", err)
+	}
+	stale.Title = "Stale edit"
+	body, err := json.Marshal(map[string]any{
+		"plan":           stale,
+		"change_summary": "stale edit",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request, err := http.NewRequest(http.MethodPut, srv.URL()+"/api/v1/plans/"+created.ID, bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-CSRF-Token", csrf)
+	response, err := client.Do(request)
+	if err != nil {
+		t.Fatalf("PUT stale plan: %v", err)
+	}
+	response.Body.Close()
+	if response.StatusCode != http.StatusConflict {
+		t.Fatalf("stale plan response status=%d, want %d", response.StatusCode, http.StatusConflict)
+	}
+
+	getResponse, err := client.Get(srv.URL() + "/api/v1/plans/" + created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer getResponse.Body.Close()
+	var latest struct {
+		Plan store.WorkPlan `json:"plan"`
+	}
+	if err := json.NewDecoder(getResponse.Body).Decode(&latest); err != nil {
+		t.Fatal(err)
+	}
+	if latest.Plan.CurrentRevision != 2 || latest.Plan.Title != "Saved current edit" {
+		t.Fatalf("stale HTTP update changed the plan: revision=%d title=%q", latest.Plan.CurrentRevision, latest.Plan.Title)
+	}
+}
+
 func TestHostSessionImportRequiresCSRF(t *testing.T) {
 	client, srv, _ := csrfClient(t)
 	resp, err := client.Post(srv.URL()+"/api/v1/profiles/import-host-sessions", "application/json", strings.NewReader(`{}`))

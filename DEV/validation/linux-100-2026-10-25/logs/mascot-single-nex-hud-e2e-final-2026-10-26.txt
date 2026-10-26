@@ -1,0 +1,41 @@
+identifier=MASCOT-E2E
+area=HUD / mascote NEX único
+base_commit=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+source_overlay_sha256=0f9f1c0912788cf913aff1918111cf3e2b10521e22f70c9079edc6f042a08f28 (1428 source files; mutable worktree, no commit)
+procedure=cd web && bun run test:e2e:hud (TMPDIR and GOCACHE isolated under /home/desenvolvedor/.cache/nexus-p5-recheck)
+expected=HUD builds and completes its E2E flow with the single mascot
+actual=web build completed; Nexus HUD Web E2E passed
+status=PASS
+
+$ node scripts/e2e-hud.mjs
+=== Nexus HUD Web E2E ===
+≈ tailwindcss v4.3.3
+
+Done in 190ms
+
+  dist/bundle.js                                   419.1kb
+  dist/chunks/chunk-BWQ3EW4Y.js                    348.8kb
+  dist/chunks/chunk-25456IRH.js                    280.9kb
+  dist/chunks/chunk-Y4BGOPDO.js                    252.1kb
+  dist/chunks/FlowRunsHistorySurface-GI6NHF66.js   221.4kb
+  dist/bundle.css                                  161.8kb
+  dist/chunks/chunk-F2EO56P2.js                    136.4kb
+  dist/chunks/chunk-4QQZPEUH.js                     93.6kb
+  dist/chunks/chunk-5HYXVZU4.js                     64.3kb
+  dist/chunks/chunk-O7V4VUIQ.js                     37.0kb
+  dist/chunks/chunk-GHGFFS6X.js                     35.1kb
+  dist/chunks/chunk-JYQXCWVN.js                     34.3kb
+  dist/chunks/UsageSurface-5ZUY6GBB.js              31.8kb
+  dist/chunks/AgentTerminal-HPQAOIEH.js             30.3kb
+  dist/chunks/chunk-BO2HIH6X.js                     27.8kb
+  dist/chunks/FlowRunSurface-P5ZZ43HS.js            16.8kb
+  dist/chunks/FlowRunsHistorySurface-2YMTODPA.css   15.5kb
+  dist/chunks/chunk-ACM4V6MS.js                     15.2kb
+  dist/chunks/chunk-UO3PEXKS.js                     15.0kb
+  dist/chunks/chunk-TVDK4X5U.js                     14.9kb
+  ...and 45 more output files...
+
+⚡ Done in 714ms
+NEX 32-bit official SVG exported: /projetos/nexus/web/public/nex
+Nexus web build complete: /projetos/nexus/web/dist
+Nexus HUD Web E2E: PASS

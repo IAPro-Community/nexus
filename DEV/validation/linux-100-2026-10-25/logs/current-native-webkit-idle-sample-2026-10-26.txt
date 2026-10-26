@@ -1,0 +1,14 @@
+# Captura de CPU idle — processo Nexus instalado
+inicio_utc=2026-10-26T04:20:48.085349+00:00
+fim_utc=2026-10-26T04:21:00.086679+00:00
+janela_real_segundos=12.000
+ticks_por_segundo=100
+metodo: delta de utime+stime em /proc/<pid>/stat dividido pelo intervalo monotônico; percent por núcleo.
+sessao: GNOME/Wayland com janelas Wails XWayland existentes; sem interação durante a janela.
+pid=899259 nome=nexus-desktop rss_inicio=209960 kB rss_fim=209960 kB cpu_delta_ticks=5 cpu_pct_por_nucleo=0.4
+pid=899298 nome=nexus-hud rss_inicio=186104 kB rss_fim=186100 kB cpu_delta_ticks=5 cpu_pct_por_nucleo=0.4
+pid=899478 nome=WebKitNetworkPr rss_inicio=55816 kB rss_fim=55816 kB cpu_delta_ticks=24 cpu_pct_por_nucleo=2.0
+pid=899479 nome=WebKitWebProces rss_inicio=449244 kB rss_fim=435724 kB cpu_delta_ticks=1339 cpu_pct_por_nucleo=111.6
+pid=899484 nome=WebKitNetworkPr rss_inicio=49904 kB rss_fim=49904 kB cpu_delta_ticks=0 cpu_pct_por_nucleo=0.0
+pid=899485 nome=WebKitWebProces rss_inicio=246416 kB rss_fim=246612 kB cpu_delta_ticks=3 cpu_pct_por_nucleo=0.2
+limite: amostra curta do perfil do host sem aceleração 3D; não é benchmark GPU nem root cause profile.

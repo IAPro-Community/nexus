@@ -1,0 +1,10 @@
+=== RUN   TestImportCurrentHostSessionsIdempotently
+host-session provider=codex status=ALREADY_AUTHENTICATED
+host-session provider=claude status=NO_SESSION
+host-session provider=gemini status=ALREADY_AUTHENTICATED
+host-session provider=agy status=ALREADY_AUTHENTICATED
+host-session provider=opencode status=ALREADY_AUTHENTICATED
+host-session provider=cursor status=ALREADY_AUTHENTICATED
+--- PASS: TestImportCurrentHostSessionsIdempotently (3.44s)
+PASS
+ok  	github.com/IAPro-Community/nexus/internal/profile	3.440s

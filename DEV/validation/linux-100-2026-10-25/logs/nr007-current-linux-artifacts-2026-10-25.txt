@@ -1,0 +1,22 @@
+Nexus Linux AMD64 — current overlay artifact inspection
+Date: 2026-10-25
+Branch: release/v1.0.0
+Git HEAD / remote HEAD: 7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+Product source fingerprint: b874bec02f83066daed6f913b4d357fb411dfff9fe1ff97e8290a2f8b4f0ca8d (1,426 files)
+
+Build command: make build build-desktop-wails build-hud-wails
+Exit code: 0. Frontend, CLI, Desktop and HUD build targets completed.
+
+`file nexus cmd/nexus-desktop/build/bin/nexus-desktop cmd/nexus-hud/build/bin/nexus-hud`:
+nexus: ELF 64-bit LSB executable, x86-64, dynamically linked, stripped
+cmd/nexus-desktop/build/bin/nexus-desktop: ELF 64-bit LSB executable, x86-64, dynamically linked, GNU/Linux 3.2.0, stripped
+cmd/nexus-hud/build/bin/nexus-hud: ELF 64-bit LSB executable, x86-64, dynamically linked, GNU/Linux 3.2.0, stripped
+
+`sha256sum nexus cmd/nexus-desktop/build/bin/nexus-desktop cmd/nexus-hud/build/bin/nexus-hud`:
+485997b69719257ef61237e44182a013c29db54f0c629e4ae127ff0584c98253  nexus
+fad4f7536fc35abdc010a88d708941df65a3d24182553dbc5ce0631830c35ccf  cmd/nexus-desktop/build/bin/nexus-desktop
+005d68e8275a3d430e3397f18f66d0b38e6de200f467bd99e16c6fa720bc318c  cmd/nexus-hud/build/bin/nexus-hud
+
+`ldd cmd/nexus-desktop/build/bin/nexus-desktop cmd/nexus-hud/build/bin/nexus-hud` was inspected; a follow-up search for `not found` returned no matches. Exit code: 0.
+
+These are locally built unsigned beta.10 artifacts from the dirty source overlay. They were not installed, packaged as an official release, signed, published, or tagged.

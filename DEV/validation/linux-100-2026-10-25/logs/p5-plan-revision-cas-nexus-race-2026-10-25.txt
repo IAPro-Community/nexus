@@ -1,0 +1,26 @@
+=== RUN   TestComposerAndFlowRemainOptionalAcrossIntentPipeline
+--- PASS: TestComposerAndFlowRemainOptionalAcrossIntentPipeline (1.08s)
+=== RUN   TestFlowSemanticEditProducesWorkPlanRevisionPayload
+--- PASS: TestFlowSemanticEditProducesWorkPlanRevisionPayload (0.00s)
+=== RUN   TestStartMissionRunApprovedRejectsStalePlanRevision
+--- PASS: TestStartMissionRunApprovedRejectsStalePlanRevision (0.96s)
+=== RUN   TestScheduleMissionFreezesApprovedPlanRevision
+--- PASS: TestScheduleMissionFreezesApprovedPlanRevision (0.95s)
+=== RUN   TestScheduleMissionRejectsUnknownPlanRevision
+--- PASS: TestScheduleMissionRejectsUnknownPlanRevision (0.97s)
+=== RUN   TestPlanApplicationServiceCRUDPreservesWorkPlanContracts
+--- PASS: TestPlanApplicationServiceCRUDPreservesWorkPlanContracts (1.01s)
+=== RUN   TestComposerAndFlowRemainOptionalAcrossIntentPipeline
+--- PASS: TestComposerAndFlowRemainOptionalAcrossIntentPipeline (0.97s)
+=== RUN   TestFlowSemanticEditProducesWorkPlanRevisionPayload
+--- PASS: TestFlowSemanticEditProducesWorkPlanRevisionPayload (0.00s)
+=== RUN   TestStartMissionRunApprovedRejectsStalePlanRevision
+--- PASS: TestStartMissionRunApprovedRejectsStalePlanRevision (0.99s)
+=== RUN   TestScheduleMissionFreezesApprovedPlanRevision
+--- PASS: TestScheduleMissionFreezesApprovedPlanRevision (1.04s)
+=== RUN   TestScheduleMissionRejectsUnknownPlanRevision
+--- PASS: TestScheduleMissionRejectsUnknownPlanRevision (0.98s)
+=== RUN   TestPlanApplicationServiceCRUDPreservesWorkPlanContracts
+--- PASS: TestPlanApplicationServiceCRUDPreservesWorkPlanContracts (0.98s)
+PASS
+ok  	github.com/IAPro-Community/nexus/internal/nexus	10.963s

@@ -1,0 +1,16 @@
+captured_utc=2026-10-26T01:08:10Z
+command=env -u NEXUS_DATA_DIR /home/desenvolvedor/.local/bin/nexus-desktop
+data_profile=application default; NEXUS_DATA_DIR was unset; no user data is included in this log
+health_http=200
+pid=3467495 ppid=194101 elapsed=00:51 state=Ssl+ command=/home/desenvolvedor/.local/bin/nexus-desktop
+pid=3467531 ppid=3467495 elapsed=00:51 state=Sl+ command=/home/desenvolvedor/.local/bin/nexus-hud --linked
+version_json:
+{
+  "arch": "amd64",
+  "build_date": "2026-10-26T00:51:58Z",
+  "commit": "7a04f1b4",
+  "go": "go1.25.14",
+  "os": "linux",
+  "version": "1.0.0-beta.10"
+}
+visual_capture=omitted to avoid recording the user workspace; isolated-profile native screenshot is recorded separately.

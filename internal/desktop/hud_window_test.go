@@ -274,6 +274,61 @@ func (w *fakeHUDWindow) SetPosition(x, y int) {
 
 func (w *fakeHUDWindow) SetAlwaysOnTop(bool) application.Window { return w }
 
+func TestCaptureHUDWindowStatePreservesWaylandGeometry(t *testing.T) {
+	manager := NewHUDWindowStateManager(filepath.Join(t.TempDir(), "hud.json"))
+	want := HUDWindowState{
+		DisplayID: "current", Placement: HUDPlacementCustom,
+		X: 100, Y: 200, Width: HUDMascotWidth, Height: HUDMascotHeight,
+		CompactWidth: 220, CompactHeight: 60, ExpandedWidth: 334, ExpandedHeight: 496,
+		Mode: "AUTO", Appearance: HUDAppearanceMascot, Opacity: 0.96, AlwaysOnTop: true,
+	}
+	if err := manager.Save(want); err != nil {
+		t.Fatal(err)
+	}
+
+	controller := NewHUDController(manager)
+	controller.caps.GlobalPositioning = false
+	window := newFakeHUDWindow()
+	window.lastWidth, window.lastHeight = 80, 48
+	window.lastX, window.lastY = 0, 0
+
+	if err := controller.captureHUDWindowState(window); err != nil {
+		t.Fatal(err)
+	}
+	got := manager.Load()
+	if got.Width != want.Width || got.Height != want.Height || got.X != want.X || got.Y != want.Y {
+		t.Fatalf("non-positionable compositor overwrote persisted geometry: got (%d,%d %dx%d), want (%d,%d %dx%d)",
+			got.X, got.Y, got.Width, got.Height, want.X, want.Y, want.Width, want.Height)
+	}
+}
+
+func TestCaptureHUDWindowStatePersistsPositionableGeometry(t *testing.T) {
+	manager := NewHUDWindowStateManager(filepath.Join(t.TempDir(), "hud.json"))
+	want := HUDWindowState{
+		DisplayID: "current", Placement: HUDPlacementCustom,
+		X: 100, Y: 200, Width: HUDMascotWidth, Height: HUDMascotHeight,
+		CompactWidth: 220, CompactHeight: 60, ExpandedWidth: 334, ExpandedHeight: 496,
+		Mode: "AUTO", Appearance: HUDAppearanceMascot, Opacity: 0.96, AlwaysOnTop: true,
+	}
+	if err := manager.Save(want); err != nil {
+		t.Fatal(err)
+	}
+
+	controller := NewHUDController(manager)
+	controller.caps.GlobalPositioning = true
+	window := newFakeHUDWindow()
+	window.lastWidth, window.lastHeight = 320, 210
+	window.lastX, window.lastY = 50, 60
+
+	if err := controller.captureHUDWindowState(window); err != nil {
+		t.Fatal(err)
+	}
+	got := manager.Load()
+	if got.Width != 320 || got.Height != 210 || got.X != 50 || got.Y != 60 {
+		t.Fatalf("positionable geometry was not captured: got (%d,%d %dx%d)", got.X, got.Y, got.Width, got.Height)
+	}
+}
+
 // Regression: ServiceStartup runs before the native window exists on Windows,
 // so restore must also be wired to WindowShow. It must run exactly once even
 // when the window emits show events repeatedly.

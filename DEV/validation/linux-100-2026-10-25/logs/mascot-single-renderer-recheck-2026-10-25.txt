@@ -1,0 +1,25 @@
+Mascote NEX único — reteste da direção do produto — 2026-10-25
+
+Base Git: release/v1.0.0 @ 7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+Overlay de produto: a2ed858e013e8e43391cec7c1bb6d6e00324a3170ea9804d0d068bf231e73dfd
+
+Auditoria do código:
+- NexusHud renderiza GuardianMascot, que inclui exatamente um NexPixelSprite.
+- GuardianModeSelector oferece somente BAR, MASCOT e TRAY para o mesmo HUD.
+- NexusGuardian.tsx, atlas Companion e renderer/modelo Companion 2D não existem no frontend ativo.
+- companionModel.ts e companionModel.test.ts foram removidos do worktree.
+- companionMotion e iapro:nexus:companion:snooze:v1 são mantidos apenas na leitura/escrita de preferências antigas.
+- Outras ocorrências Go de “HUD companion” descrevem o processo auxiliar do HUD, não personagem.
+
+Verificação executada:
+  bun x vitest run src/features/hud/GuardianModeSelector.test.tsx src/features/hud/GuardianMascot.test.tsx src/features/hud/mascotModel.test.ts src/features/hud/guardianModel.test.ts
+  Resultado: PASS — 4 arquivos, 20 testes.
+
+  bun run art:nex:check
+  Resultado: PASS — arte SVG oficial NEX verificada.
+
+  Captura Wails nativa XWayland: screenshots/native-hud-current-overlay-xwayland-visible.png
+  SHA-256: b86f040a0fce2ef2837bc27a3b81a84898d25d555a8d14bf24cff51a6d4a5ad7
+  Observado: uma única figura NEX.
+
+Decisão: a apresentação MASCOT permanece porque exibe o mascote único pretendido. Não remover esse NEX nem introduzir Companion 2D. Transparência alpha e evento de atenção de agente real continuam sem homologação completa.

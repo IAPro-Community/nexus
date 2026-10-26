@@ -1,0 +1,13 @@
+identifier=BLK-010/BLK-011-current-environment-probe
+area=Native Wayland startup and compositor capture
+branch=release/v1.0.0
+base_commit=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+product_source_overlay_sha256=0f9f1c0912788cf913aff1918111cf3e2b10521e22f70c9079edc6f042a08f28
+environment=Ubuntu 25.10; GNOME; XDG_SESSION_TYPE=wayland; WAYLAND_DISPLAY=wayland-0; XDG_RUNTIME_DIR=/run/user/1000
+procedure=grim -g '0,0 1x1' -t ppm <temporary-path>
+expected=Wayland compositor exposes an output for a 1x1 privacy-preserving capture
+actual=grim exit 1: no wl_output; no pixel capture was created
+procedure_direct_launch=GDK_BACKEND=wayland; isolated HOME/XDG data/NEXUS_DATA_DIR; temporary Wails app identity to avoid single-instance collision; test binary SHA-256 c66a2315e16a8d17192d7d08d617e316cdf06b3fa945666c9605d96737292c46
+actual_direct_launch=process exited 0 before a window was observable; no screenshot or diagnostic log was produced
+cross_check=the same test binary opened a 224x158 one-NEX HUD under Xvfb/X11; this does not certify Wayland
+status=BLOCKED for current-session Wayland visual revalidation; not a product failure verdict

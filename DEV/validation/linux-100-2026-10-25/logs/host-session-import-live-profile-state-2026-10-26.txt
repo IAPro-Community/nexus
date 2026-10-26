@@ -1,0 +1,7 @@
+claude: profiles=0 authenticated=0 default=0 status=none
+gemini: profiles=1 authenticated=1 default=1 status=Session needs refresh
+codex: profiles=2 authenticated=2 default=0 status=Authenticated
+agy: profiles=2 authenticated=2 default=0 status=Authenticated
+opencode: profiles=1 authenticated=1 default=1 status=Configured (deepseek)
+cursor: profiles=1 authenticated=1 default=0 status=Authenticated
+gemini_credential_copy: present=true bytes_match=true host_mode=0600 copy_mode=0600

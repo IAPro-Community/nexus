@@ -3,6 +3,7 @@ package contextsnapshot
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -313,5 +314,31 @@ func TestDiscoverDoesNotIndexEveryDevMarkdownAsFact(t *testing.T) {
 	}
 	if !sawDevDocs || !sawAgents {
 		t.Fatalf("expected compact convention facts, got %+v", snapshot.Facts)
+	}
+}
+
+func TestDiscoverDoesNotFollowSymlinkOutsideProjectRoot(t *testing.T) {
+	root := t.TempDir()
+	external := t.TempDir()
+	if err := os.WriteFile(filepath.Join(external, "package.json"), []byte(`{"name":"outside-secret-project","scripts":{"test":"outside test command"}}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(external, filepath.Join(root, "linked-project")); err != nil {
+		t.Skipf("symlink creation is unavailable on this platform: %v", err)
+	}
+
+	snapshot, err := Discover(root, Metadata{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, fact := range snapshot.Facts {
+		if fact.Key == "node.package" || strings.Contains(fmt.Sprint(fact.Value), "outside test command") {
+			t.Fatalf("scanner followed a symlink outside the project root: %+v", fact)
+		}
+		for _, provenance := range fact.Provenance {
+			if filepath.IsAbs(provenance.SourcePath) || strings.Contains(provenance.SourcePath, "outside-secret-project") {
+				t.Fatalf("fact provenance escaped the project root: %+v", provenance)
+			}
+		}
 	}
 }

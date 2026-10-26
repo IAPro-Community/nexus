@@ -153,7 +153,7 @@ func TestInteractiveLeadAutomaticallyDelegatesSpecializedWorkUnits(t *testing.T)
 	}
 }
 
-func TestCreateMissionAgentPersistsRichAgentSpecWithoutRuntimeAffinity(t *testing.T) {
+func TestCreateMissionAgentPersistsMissionScopedSpecialistWithoutRuntimeAffinity(t *testing.T) {
 	n := openTestNexus(t)
 	st, err := n.OpenProject()
 	if err != nil {
@@ -169,8 +169,21 @@ func TestCreateMissionAgentPersistsRichAgentSpecWithoutRuntimeAffinity(t *testin
 	if err != nil {
 		t.Fatal(err)
 	}
-	if agent.CurrentRevisionID == "" || agent.Role != "backend-engineer" {
-		t.Fatalf("rich persistent Agent was not created: %+v", agent)
+	if agent.CurrentRevisionID == "" || agent.Role != "backend-engineer" || agent.IdentityKind != string(runner.ExecutionIdentityEphemeralWorker) {
+		t.Fatalf("mission-scoped specialist identity was not created: %+v", agent)
+	}
+	visibleAgents, err := st.ListAgents(project.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, visible := range visibleAgents {
+		if visible.ID == agent.ID {
+			t.Fatal("mission-scoped specialist must not appear as a persistent user Agent")
+		}
+	}
+	storedAgent, err := st.GetAgent(agent.ID, project.ID)
+	if err != nil || storedAgent.ID != agent.ID {
+		t.Fatalf("mission-scoped Agent identity must remain addressable during its Mission: agent=%+v err=%v", storedAgent, err)
 	}
 	revision, err := st.GetRevision(agent.CurrentRevisionID)
 	if err != nil {

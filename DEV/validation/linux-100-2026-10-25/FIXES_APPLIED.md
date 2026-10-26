@@ -1,4 +1,109 @@
+## FIX-036 — remover duplicação e localizar mensagens do preview Composer — 2026-10-26
+
+- Reprodução: quando não havia contas de provider, o preview mostrava o mesmo motivo em inglês vindo de `resource.reason` e `blockers`; a ausência de orçamento local também aparecia em inglês no locale `pt-BR`. Evidência anterior: `p5-current-recheck-2026-10-26/composer-spine/north-star.png` (SHA-256 `4c286dc96e281fe406a6f49c0b1c0dc493dd4e895dfef8f3ceae290a2a60c899`).
+- Correção: helper compartilhado normaliza caixa/pontuação/espaços, remove motivos estáveis duplicados e localiza os estados de provider e orçamento em en/pt-BR/es. O preview permanece bloqueado sem provider e não cria Mission/Agent.
+- Regressões: unitários focados 20/20; `test:e2e:composer-spine` e `test:e2e:composer-vague-spine` passaram, sem duplicação/strings antigas e sem execução lateral; `quality:full` passou com 110 arquivos/681 testes e build. Capturas pós-fix: `p5-current-recheck-2026-10-26-final/composer-spine/north-star.png` e `composer-vague/north-star-vague.png`; o fluxo foi validado em Chromium fixture, não na janela Wails.
+- Overlay: HEAD/base `7a04f1b4cf5950b97b4ea1e156dda31ac513823b` + fingerprint `101e6e62b8d4b9903cf4d40309caeea54c809183e5dba017d9e6a8770302669c` (1.430 fontes). Evidências e checksums em `P5_CURRENT_BROWSER_RECHECK.md` e `p5-current-recheck-2026-10-26-final/logs/`. Provider externo/P5 nativo continuam sem homologação.
+
+## FIX-035 — preservar geometria do HUD no GNOME/Wayland — 2026-10-26
+
+- Reprodução: no GNOME/Wayland, o item de bandeja `Ocultar` chamava `CaptureHUDWindowState` antes de esconder a janela. O Wails reportava a geometria transitória `0,0 80×48`, sobrescrevendo tamanho e posição persistidos.
+- Correção: `captureHUDWindowState` ignora a leitura da janela quando o compositor não oferece posicionamento global estável. Mudanças de apresentação e tamanho continuam sendo persistidas pelos métodos do controlador; plataformas com posicionamento global seguem capturando a geometria nativa.
+- Regressões RED/GREEN: `TestCaptureHUDWindowStatePreservesWaylandGeometry` falhou antes e passou depois; `TestCaptureHUDWindowStatePersistsPositionableGeometry` confirma que X11 ainda grava a geometria real. Os testes, race detector e `go vet` passaram nos dois pacotes com e sem a tag GTK usada pelo Desktop Linux.
+- Validação real: no GNOME/Wayland, os eventos do menu DBus `Ocultar` e `Mostrar` foram enviados ao StatusNotifierItem do HUD. O ciclo inicial e um reteste após a geometria estabilizar em 224×158 mantiveram o checksum de `hud-window-state.json`; no segundo ciclo ele continuou igual após 10 s. HUD ativo e Core HTTP 200. A repetição agora está automatizada em `tools/native_hud_tray_geometry_gnome.sh`; saídas em `logs/native-hud-tray-hide-show-wayland-geometry-fix-2026-10-26.txt`, `logs/native-hud-tray-hide-show-wayland-geometry-fix-delayed-2026-10-26.txt` e `logs/native-hud-tray-geometry-script-2026-10-26.txt`.
+- Build e instalação: CLI/Desktop/HUD recompilados para AMD64 e instalados atomicamente após backup em `/home/desenvolvedor/.local/state/ai-manager/nexus-update-backups/20261026T080719Z-hud-wayland-geometry-fix/`. Hashes coincidem entre build e instalação; `ldd` sem bibliotecas ausentes; evidência completa em `logs/current-installed-wayland-geometry-verification-2026-10-26.txt`.
+- Proveniência: HEAD local/remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b` + fingerprint `047e6f968d64ee7f51ad389a21d43fe305e9ce9fb98b00c750be526b06c2313c` (1.428 fontes); manifesto `logs/source-provenance-wayland-geometry-fix-2026-10-26.txt`. Alterações continuam locais; sem commit/push.
+
+## FIX-034 — reduzir repintura contínua do NEX em idle — 2026-10-26
+
+- Reprodução: o HUD Wails em rendering por software mantinha o processo WebKit em 86,2% de um núcleo durante a amostra idle. Uma execução temporária com animações desativadas caiu para 0,4%/0,4%, isolando o custo nas animações CSS contínuas do mascote.
+- Correção: o NEX permanece estático em idle e pisca discretamente por 120 ms a cada 6,4 s; as animações de estados ativos (working/attention/critical) continuam disponíveis. O produto mantém um único mascote, sem Companion 2D.
+- Regressões: teste do contrato idle no `GuardianMascot.test.tsx`; `bun run quality:full` passou (109 arquivos/678 testes e build); E2E HUD e verificação da arte oficial passaram. O benchmark nativo Xvfb passou com 1,5% e 0,4% por processo WebKit, limite de 15%; o app instalado mediu 0,5% e 0,0% em 20 s.
+- Evidências: `logs/web-hud-mascot-idle-motion-fix-quality-2026-10-26.txt`, `logs/web-hud-e2e-after-idle-motion-fix-2026-10-26.txt`, `logs/nex-art-check-after-idle-motion-fix-2026-10-26.txt`, `logs/native-hud-idle-cpu-after-fix-xvfb-2026-10-26.txt`, `logs/native-installed-hud-desktop-idle-cpu-retest-2026-10-26.txt` e `tools/native_hud_idle_cpu_xvfb.sh`.
+- Limite: Xvfb usa rendering por software e não certifica GPU acelerada ou o compositor Wayland do host. A medição instalada é uma amostra, não valida carga longa nem toda a matriz visual. O gate de idle/compositor continua BLOCKED para homologação completa.
+- Proveniência: branch `release/v1.0.0`, base local/remota `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`, overlay de fontes `b73161ffd4afe7d566bd00cfdc6d6e090e95b0c99e13dbd0653aadd40fdf6eac` (1.428 fontes; manifesto `logs/source-provenance-hud-idle-motion-fix-2026-10-26.txt`). Build não commitado; sem commit/push.
+
+## FIX-033 — correspondência segura de aliases em `/etc/hosts` — 2026-10-26
+
+- Reprodução: a comparação da linha inteira não reconhecia aliases, espaços/tabs alternados, hostname em maiúsculas nem comentários inline. A remoção também podia eliminar aliases e comentários do usuário ao retirar um mapeamento.
+- Correção: o parser compara tokens de IP/hostname sem diferenciar caixa; adicionar é idempotente e remover apaga somente o alias NEX, preservando aliases e comentários restantes. O comentário de ownership do Nexus só é removido quando o mapeamento inteiro desaparece. Nenhum acesso de escrita ao `/etc/hosts` foi executado nesta correção.
+- Regressões: `go test -race -count=3 ./internal/control/web -run '^(TestHostsEntryMatch|TestApplyHostsChange)'`, pacote `go test -count=1 ./internal/control/web` e `go vet ./internal/control/web` passaram.
+- Evidências: `logs/pr64-hosts-regression-race-final-2026-10-26.txt`, `logs/pr64-hosts-web-package-final-2026-10-26.txt` e `logs/pr64-hosts-vet-final-2026-10-26.txt`.
+- Contexto: correção pontual baseada no defeito útil da PR #64, cuja base é `main`; dependências, lockfile, migrações e mudanças não relacionadas da PR não foram transportadas. Nenhum merge/push foi feito.
+- Proveniência: HEAD local/remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b` + overlay `0f9f1c0912788cf913aff1918111cf3e2b10521e22f70c9079edc6f042a08f28` (1.428 arquivos); `logs/source-provenance-pr64-hosts-alias-fix-2026-10-26.txt`.
+
+## FIX-032 — preservar identidade do workspace em deduplicação sem mudanças — 2026-10-26
+
+- Reprodução: no build anterior, abrir Overview sem interação mantinha o WebKit principal em 111,6% de um núcleo. Inspector antes da correção observou 1.024 escritas de document.title, instalações de timer de 500 ms e mutações DOM em 6 s. A pilha apontava para WorkspaceLayoutPersistence e o efeito de superfícies fixadas.
+- Causa: ensureSurface() chama deduplicateWorkspaceSurfaces(), que percorria e recriava a árvore/modelo mesmo quando não havia duplicatas. A nova identidade do workspace acionava o efeito de garantir superfícies novamente.
+- Correção: deduplicateNode() agora retorna os objetos Stack/Split originais quando seus filhos/tabs/activeId não mudaram; deduplicateWorkspaceSurfaces() retorna o modelo original se a raiz não mudou. Também removi a animação contínua do ícone de atualização disponível em Overview.
+- Regressões: identidade estável ao garantir uma aba fixada existente; deduplicação real ainda repara duplicatas e preserva ramos sem alteração; ícone informativo de atualização permanece estático. Suítes workspace/Overview: 22/22. bun run quality: 109 arquivos / 678 testes, typecheck, ESLint, Stylelint, allowlist CSS, Prettier e build Web.
+- Reteste nativo: Desktop Wails de produção, D-Bus/perfil isolados, Xvfb 1280×800, HUD spawn e DevTools desligados. WebKit principal 0,5% de um núcleo em 12 s; RSS 456436→454408 kB. Inspector de build debug separado: 0 document.title writes, 1 timer inicial, 0 mutações DOM em 6 s. Screenshot Overview nativo: screenshots/native-production-overview-idle-fixed-2026-10-26.png, SHA-256 e964fa2b0fe1a7b0ca84e9d1eb625f894600a54dd6a609815ee59d91bc0e08d0.
+- Builds CLI/Desktop/HUD passaram para ELF AMD64; hashes em logs/current-workspace-layout-loop-native-idle-xvfb-2026-10-26.txt; ldd sem bibliotecas ausentes em Desktop/HUD. O reteste é Xvfb/software, não A/B controlado contra GNOME/Wayland, nem valida GPU/alpha/compositor. NR-010 continua BLOCKED.
+- Proveniência: release/v1.0.0 HEAD/remoto 7a04f1b4cf5950b97b4ea1e156dda31ac513823b + overlay eb038f52b8555c362a9129a3680746e0769ba4cbe733450b5c7a3b34a3ecbe05 (1.428 fontes; manifesto logs/source-provenance-workspace-idle-fix-2026-10-26.txt). Sem commit/push.
+
+## FIX-031 — impedir descoberta de skills fora do perfil ativo — 2026-10-26
+
+- Reprodução: testes com `HOME` e `NEXUS_DATA_DIR` temporários encontravam `/home/desenvolvedor/.orquestrador` ao percorrer ancestrais; isso sobrepunha a biblioteca isolada e fazia dois testes de `internal/nexus` falharem.
+- Correção: perfis do `DataDir` são priorizados; a descoberta só considera raízes de perfil explícitas, o diretório `.orquestrador` direto do usuário e perfis isolados do Nexus. Não percorre diretórios ancestrais.
+- Regressões: `go test -count=1 -timeout=4m ./internal/nexus` passou (103,474 s), incluindo `TestFindOrquestradorDirUsesPortableDataDirProfiles` e `TestMaestroCapabilitiesUsesExplicitSkillsListContract`; `go vet ./internal/nexus ./internal/profile` passou.
+- Evidências: `p5-recheck-2026-10-26T0347Z/logs/go-nexus-suite.txt` (reprodução inicial), `p5-recheck-2026-10-26T0347Z/logs/go-nexus-suite-fixed.txt` e `p5-recheck-2026-10-26T0347Z/logs/go-vet-nexus-profile-fixed.txt`.
+- Proveniência: HEAD base/remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b` + overlay `0df26de4a35641d1e5d02ded7757b257fa7f4f15747220416574c083b4127208`; manifesto `p5-recheck-2026-10-26T0347Z/logs/source-provenance-after-auth-maestro-fixes.txt`. Sem commit ou push.
+
+## FIX-030 — reconhecer perfil autenticado antes de exigir importador — 2026-10-26
+
+- Reprodução: `importHostSession` retornava `UNSUPPORTED` antes de inspecionar perfis existentes; o perfil Cursor já autenticado do Nexus podia ser mostrado como conta não configurada.
+- Correção: o serviço verifica primeiro perfis habilitados via `AuthProvider.InspectAuth`. Só exige `HostAuthImporter` quando nenhum perfil existente está autenticado. Não altera nem copia credenciais existentes.
+- Regressão: `TestImportHostSessionRecognizesAuthenticatedProfileWithoutImporter` e suíte `go test -count=1 ./internal/profile` passaram. Cursor continua sem importação de sessão do host se não houver perfil Nexus autenticado; formato interno de sessão não documentado não é copiado.
+- Evidências: `p5-recheck-2026-10-26T0347Z/logs/go-profile-suite-fixed.txt`, `p5-recheck-2026-10-26T0347Z/logs/go-nexus-suite-fixed.txt` e `p5-recheck-2026-10-26T0347Z/logs/go-vet-nexus-profile-fixed.txt`.
+- Proveniência: HEAD base/remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b` + overlay `0df26de4a35641d1e5d02ded7757b257fa7f4f15747220416574c083b4127208`; manifesto `p5-recheck-2026-10-26T0347Z/logs/source-provenance-after-auth-maestro-fixes.txt`. Sem commit ou push.
+
 # Correções aplicadas durante a homologação
+
+## FIX-029 — atualizar dependências Web com advisories conhecidos — 2026-10-26
+
+- Reprodução: `bun audit` encontrou 23 advisories no lockfile Web; Vitest 3.2.7 mantinha uma dependência transitiva vulnerável e outras dependências tinham versões corrigidas disponíveis.
+- Correção: atualizei Vitest para 4.1.12 e as dependências transitivas afetadas em `web/package.json` e `web/bun.lock`. A instalação congelada com Bun 1.3.9 passou sem mudar o lockfile.
+- Regressões: `bun audit --json` passou sem advisories para `web/` e `docs-site/`; `bun run quality:full` passou (109 arquivos/675 testes/build); E2E HUD e Mission Attention passaram. A validação OSV independente continua BLOCKED por reset TCP de `api.osv.dev`; não contei a saída vazia como limpa.
+- Evidências: `SECURITY_VALIDATION.md`, `logs/web-bun-audit-after-fix-2026-10-26.json`, `logs/web-quality-full-after-audit-fix-2026-10-26.log` e `logs/web-bun-audit-run-2026-10-26.txt`.
+- Proveniência: base local/remota `7a04f1b4cf5950b97b4ea1e156dda31ac513823b` + overlay `751cfc1a160c38d950ac5b9807e1febb9746d03981c861c722e5bd965e1ef012` (1.428 fontes). Sem commit ou push.
+
+## FIX-028 — remover animação contínua do indicador de atualização — 2026-10-26
+
+- Reprodução: na tela Uso/Contas, o ícone de atualização disponível mantinha `nx-spin-slow` mesmo sem download, instalação ou outra operação em andamento. WebKit Inspector mostrou uma animação `nx-spin` ativa e timeline dominada por Layout & Rendering; capturas reais do alvo (`screenshots/update-indicator-idle-2026-10-26/webkit-animation-target-before-fix.png`) e da timeline (`screenshots/update-indicator-idle-2026-10-26/webkit-rendering-timeline-before-fix.png`).
+- Correção mínima: removi a classe animada do ícone em `web/src/app/NexusShell.tsx`; o indicador, rótulo, acessibilidade e ação de abrir Atualizações continuam. Adicionei regressão em `versionHonesty.test.ts` garantindo que o ícone disponível permaneça estático.
+- Regressões/build: teste focado 6/6; `bun run quality:full` PASS (109 arquivos, 675 testes e build de produção); build Wails Linux AMD64 isolado PASS. Logs: `logs/current-update-indicator-regression-tests-2026-10-26.txt`, `logs/current-update-indicator-quality-full-2026-10-26.txt` e `logs/current-update-indicator-isolated-build-2026-10-26.txt`.
+- Wails nativo PASS sob Xvfb com perfil/HOME vazios, Core HTTP 200 e HUD desativado para isolar a janela. Após 30 s de estabilização, o WebKit principal mediu 107,8% CPU por 20 s (21,55 CPU s); baseline pré-fix da tela Uso/Contas mediu 196,1% (39,22 CPU s); o processo principal pós-fix mediu 107,8%. A amostra baseline tinha três processos WebKit e a retestada um (spawn do HUD desativado); a diferença é direcional, não um A/B controlado. A amostra corrigida ainda usa rendering por software e não valida GPU ou Wayland do host; NR-010 permanece BLOCKED.
+- Captura Wails: `screenshots/native-idle-xvfb-fixed-update-indicator-2026-10-26/usage-accounts-idle.png`, SHA-256 `e249cbe3a4f96752dc0eac857cc457011c75259c1285a8c5971613e855e1e679`. Build nativo isolado SHA-256 `0365a52b1a65d2a31d422115f5478fa7f2994f8dc6813627b0b0e1136cf8361c`.
+- Proveniência: `7a04f1b4cf5950b97b4ea1e156dda31ac513823b` local/remoto + overlay `391c5718b3f2cd494fb4fa0e6a9fae6f03a618c002155258a59b7e7e83f27459` (1.428 fontes; manifesto `logs/source-provenance-update-indicator-2026-10-26.txt`). Sem commit/push.
+
+## FIX-027 — importar sessões pela tela Uso/Contas — 2026-10-25
+
+- Reprodução: Usage/Accounts só permitia criar um perfil novo e concluir login; importar sessões locais estava disponível apenas no ProjectHub de primeira execução.
+- Correção: adicionei uma ação para importar sessões locais em `UsageSurface`, recarregar os perfis e mostrar contagens de resultado sem credenciais ou identidade de conta. O resumo virou utilitário compartilhado entre ProjectHub e Usage para evitar lógica duplicada; strings estão localizadas em `en`, `pt-BR` e `es`.
+- Regressão: teste do resumo cobre todos os estados de importação; `bun run test:e2e:first-run-import` agora percorre também Uso/Contas e confirma uma chamada, resumo e perfil atualizado em fixture.
+- Validação: `bun run quality:full` passou (109 arquivos/674 testes/build); E2E da primeira execução e de Uso/Contas passou; `make build build-desktop-wails build-hud-wails` passou. A interface Wails do caso novo permanece BLOCKED por falta de output/captura neste contexto (`xrandr` 0×0; `grim: no wl_output`). A fixture de browser não foi tratada como homologação nativa.
+- Overlay compilado: HEAD local/remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b` + fingerprint `9a66687715414fc8b42d612fd2b4a531370c7f8c4fbfa86338a81ba9728ddcd1` (1.428 fontes); sem commit ou push. E2E/logs e captura em [validação da importação](PROVIDER_SESSION_IMPORT_VALIDATION.md).
+
+## FIX-026 — classificar falhas comprovadas antes do dispatch — 2026-10-25
+
+- Reprodução: configuração local ausente do Agent falhava antes de `Launcher.Launch`, mas o MissionRunner tratava o erro como resultado externo desconhecido e impedia a retomada segura.
+- Correção: `executeAgentPrompt` anota erros somente antes da fronteira do launcher; `nexusPackageExecutor` mapeia essa evidência para `runner.MarkDispatchNotSent`. Erros do próprio launcher e posteriores continuam ambíguos e falham fechados.
+- Regressões: configuração ausente retorna `ErrDispatchNotSent` sem chamar o launcher; falha do launcher permanece ambígua após exatamente uma chamada; cenário Composer/WorkPlan injeta falha segura, reabre SQLite, recria o runner, conclui ≥4 pacotes e não repete dispatch concluído.
+- Validação: testes focados, `go test -race -count=3` (três cenários), `go test -count=1 -timeout=4m ./internal/nexus/...` e `go vet ./internal/nexus/...` passaram com GOCACHE isolado. Logs e overlay exato em [P5 Composer → MissionRunner](P5_COMPOSER_MISSION_VALIDATION.md).
+- Overlay testado: HEAD `7a04f1b4cf5950b97b4ea1e156dda31ac513823b` + fingerprint `2c23ebb0c7726a200acbde9326c23ad6023d8fad0238c2adfef993677203f2fa`; sem commit ou push.
+
+## Cobertura P5 — aprovação stale-safe em feature OAuth multiárea — 2026-10-25
+
+Sem alteração de produção nesta etapa. Ampliei a regressão Composer → WorkPlan → MissionRunner para uma solicitação OAuth de múltiplas áreas, com revisão semântica: o token antigo é recusado sem criar run, e a aprovação renovada conclui pelo menos quatro pacotes com a edição no snapshot. `go test ./internal/nexus/...`, `go vet ./internal/nexus/...` e o cenário com `-race -count=3` passaram. A tentativa race inicial expôs uma corrida no contador compartilhado do executor falso; foi corrigida no teste com mutex, com log da falha e da repetição preservados. E2E Flow Chromium anterior permanece evidência separada, sem equivalência a Wails/provider real. Fingerprint e logs em `P5_COMPOSER_MISSION_VALIDATION.md`.
+
+## Follow-up — mascote NEX único — 2026-10-25
+
+FIX-022 remove a ambiguidade interna entre `companion` e o mascote único: o modelo React, as chaves i18n, as propriedades e o balão agora usam o domínio `mascot`. O modo 2D não existia neste checkout e nenhum comportamento do NEX foi removido. Preferências e adiamentos salvos continuam compatíveis.
+
+Validação: `bun run --cwd web quality` (108 arquivos/673 testes), build Web e E2E HUD Chromium passaram. Evidências: `logs/mascot-single-model-refactor-quality.log`, `logs/mascot-single-model-refactor-e2e.log` e `MASCOT_VALIDATION.md`. Base Git `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`; overlay local não commitado.
+
+CLI/Desktop/HUD Linux AMD64 também foram recompilados e instalados localmente. Health Web retornou `ok`, `ldd` não apontou bibliotecas faltantes e a janela Wails atual abriu. Hashes e smoke: `logs/local-install-mascot-refactor.sha256` e `logs/local-native-install-mascot-refactor-smoke.txt`.
 
 Todas as alterações continuam locais e sem commit. Base Git local/remota: `bf6adf0c80ac3531d7291844512a14a017ab0002`. O fingerprint atual após FIX-012 é `516b706a2c3cdca1a6d76200833a785186063350fa4d41db4494fcb67bdb7f7a` (1.404 fontes); manifesto em [source provenance atual](logs/source-provenance-gdk-fix.txt).
 
@@ -20,9 +125,55 @@ Todas as alterações continuam locais e sem commit. Base Git local/remota: `bf6
 
 | FIX-013 | O cartão de Mission Attention fechava o drawer sem abrir uma decisão ativa no workspace. | O callback abre a superfície `flow-run` identificada e sincroniza a rota; o detalhe de uma missão é liberado sem liberar Composer, criação ou histórico. | Regressão de rotas/gates: 21 testes focados passaram. Wails nativo abriu o Flow Run da fixture a partir do cartão. Evidência: `MISSION_ATTENTION_VALIDATION.md` e `screenshots/mission-attention-open-detail-native-xwayland.png`. |
 | FIX-014 | O resumo de estado do Flow Run não tinha layout; rótulos e valores apareciam colados. | Adicionado `FlowRunSurface.module.scss` com grid responsivo, separação e quebra de texto nos resumos de estado/evidência. | Teste de contrato de estilo passou; `bun run quality:full` (108 arquivos/672 testes) passou; a captura Wails 1280×800 mostra os campos legíveis. |
+| FIX-015 | Falha ao consultar Mission Attention mantinha cards antigos na tela como se ainda fossem atuais. | O handler de erro limpa a projeção anterior antes de exibir o estado de erro. | O novo `bun run test:e2e:mission-attention` confirma o fluxo needs-user → HTTP 503 sem cards obsoletos; 12 requests passaram no Chromium. |
+| FIX-016 | Drawer de Mission Attention excedia a viewport móvel de 390 px. | `ContextDrawer.tsx` agora usa `ContextDrawer.module.scss` com `box-sizing: border-box` e `max-width: 100vw`. | O E2E Chromium mede o drawer após a transição: conteúdo e filtros ficam dentro de 390 px e não há scroll horizontal. |
+| FIX-017 | Throttle do notifier registrava a tag antes de o transporte nativo confirmar envio; uma falha podia fazer o retry aparecer como sucesso sem chegar ao desktop. | O throttle agora mantém a exclusão durante a chamada e registra cooldown somente após resposta bem-sucedida. | Teste de retry do throttle e integração Mission falham na primeira entrega, repetem dentro do cooldown e confirmam segunda chamada/recibo Delivered; race focado 5x passou. Evidência: `MISSION_NOTIFICATIONS_VALIDATION.md`, `logs/go-test-p3-notifications.log`, `logs/go-race-p3-notifications.log`. |
+| FIX-018 | Entregas nativas de Mission não tinham cursor/outbox duráveis, recovery nem política de retry/capability; eventos repetidos podiam notificar demais e erros podiam expor segredo em logs. | Migração 0031 cria cursor, intents e delivery state por canal; serviço de aplicação deriva mensagens seguras do estado canônico, deduplica, tenta novamente, redige erros e não altera Mission. | SQLite close/reopen, evento de aplicação, retry após restart, capacidade ausente/retorno, exclusões quota/rate/retry/remediation, privacidade, smoke D-Bus e quality Go passaram; ver [validação P3](MISSION_NOTIFICATIONS_VALIDATION.md). |
+
+FIX-015 e FIX-016 foram validados no overlay `ee8a19c0cf340086f8f1cfc258d50a98ec29719952b978401be55c977a693b6` (1.415 fontes; manifesto `logs/source-provenance-p2-ui-e2e-2026-10-25.txt`). FIX-017 e FIX-018 foram validados no overlay P3 `65b209131c3ffe8101c86090ad229b3299742d4a102229db927b4e3a463c9b3d` (1.420 fontes; manifesto `logs/source-provenance-p3-notifications-2026-10-25.txt`). O gate `bun run quality:full`, `make web-verify`, E2E de Mission Attention, regressões de notificações, race focado, vet, testes do mascote, verificação da arte e E2E HUD passaram. Nenhuma correção foi commitada ou publicada.
 
 FIX-007 foi validado após a execução completa registrada em `logs/go-test-final-gemini-overlay.log` e `logs/go-vet-final-gemini-overlay.log`. O `quality-full` anterior cobre FIX-001 a FIX-004; o follow-up #57/#58 executou novamente `make quality-full` (105 arquivos/660 testes), e o gate Web após FIX-006 também passou. Após FIX-005 passaram `go test -count=1 -timeout=20m ./...` (exit 0), `go vet ./...` (exit 0), `go test -race ./internal/control/web`, a regressão focada e a suíte `internal/control/web`. O build Wails AMD64 após FIX-006 tem SHA-256 `adb7d9d21035452ca7e6c034d3b1ff2dea03357084f0990c2a56652f227e19f7`; os metadados estão em `logs/terminal-split-native-after-fix-validation.txt`. Digitação nativa nos dois PTYs divididos permanece BLOCKED. A Mission DIRECT foi validada separadamente no overlay anterior. Nenhuma correção nesta campanha foi commitada ou publicada.
 
 FIX-008 foi construído e validado no overlay `996e1063540370263158e70903477f4cbbc3035dbb33b93161e603bffbe3c133`. Builds e pacotes atuais: `logs/linux-xwayland-position-fix-build.txt`, `logs/linux-native-packages-xwayland-position-fix.txt` e `logs/goreleaser-xwayland-position-fix.txt`. As APIs X11 deprecadas citadas pelo compilador pertencem ao Wails/GTK; não há diagnóstico de `go vet`. Nenhum commit, push, tag ou publicação foi feito.
 
 Após substituir o binário no mesmo caminho, hosts de runtimes da imagem anterior foram recusados pela validação de compatibilidade e marcados `STALE`; a UI exibiu `TERMINAL_TRANSPORT_ERROR`. Esse cenário de reconexão entre imagens permanece BLOCKED para a homologação de atualização; não foi contornado com relaxamento do gate de compatibilidade.
+
+| FIX-019 | Agentes especialistas criados pelo `AUTO`/`CREATE` podiam ser persistidos como Agents comuns e a origem do assignment não carregava o tipo de identidade. | Especialistas de missão agora são `EPHEMERAL_WORKER`; `PackageRun` persiste o tipo da identidade atribuída. | `TestCreateMissionAgentPersistsMissionScopedSpecialistWithoutRuntimeAffinity` e regressão durável do runner passaram; broad Go package suite passou. Evidência em `AGENT_FALLBACK_VALIDATION.md`. |
+| FIX-020 | Empates de pontuação do scheduler podiam selecionar recursos diferentes dependendo da ordem de entrada. | Empates agora usam provider/profile/ID/nome como chave estável, e o caminho de decisão documenta a regra. | `TestSchedulerUsesStableResourceIdentityTieBreak` falhava antes e passou após a correção. |
+| FIX-021 | Workers efêmeros parados podiam permanecer após fim/reabertura de Mission. | Exit e startup reconciliam workers efêmeros, preservando referências ativas/resumíveis, workers em execução e Agents persistentes. | `TestReconcileEphemeralMissionAgentsPreservesActiveIdentity` e `TestRunApplicationServiceReconcilesEphemeralWorkersAtStartup` passaram; race focado x5 e vet passaram. |
+| FIX-022 | A nomenclatura `companion*` no frontend dava a impressão de existir um segundo mascote, embora só houvesse uma arte NEX. | O modelo de estado/interação, os tipos, as preferências internas, os atributos e o namespace i18n agora usam o domínio do mascote NEX. Dados antigos continuam compatíveis; nenhum modo 2D foi criado. | Regressões para migração, seletor de três apresentações, uma arte, atenção e navegação; quality 108/673, build Web, E2E HUD e builds/instalação Linux passaram. |
+
+## FIX-025 — especialidades do Agent não são capacidades do provider
+
+- Reprodução: a prévia do Composer não selecionava um CLI Codex elegível quando as etapas requeriam `security` ou `code_review`, porque especialidades da tarefa eram tratadas como capabilities de controle obrigatórias do provider.
+- Correção: o hard gate do provider agora recebe somente requisitos de controle reconhecidos; especialidades continuam no matching do Agent. `read_only_review` permanece uma capability de provider quando explicitamente exigida.
+- Regressões: `TestProviderResourceRequirementsKeepTaskSpecialtiesOutOfControlGate` e `TestComposerApprovedFlowReachesMissionRunner`; `go test ./internal/nexus/... -count=1 -timeout=4m`, `go vet ./internal/nexus/...` e as duas regressões com `-race -count=3` passaram.
+- Evidência: [P5 Composer → MissionRunner](P5_COMPOSER_MISSION_VALIDATION.md), logs `p5-composer-mission-fixture-*` e manifesto `source-provenance-p5-composer-mission-fixture-2026-10-25.txt`.
+- Overlay validado: HEAD base `7a04f1b4cf5950b97b4ea1e156dda31ac513823b` + fingerprint `5e39faee13bd663dc56798cffe435e52e2bca081f5332f6d0619c0a61ddce011` (1.424 fontes). A execução usa perfis e CLI sintéticos; P5 e a homologação global permanecem parciais, `NO_GO_LINUX`.
+
+FIX-019 a FIX-021 foram validados no overlay `bb575423508a0c773580804a476b0888ff2449135045a74f80aa6efaffedc6e1` (1.421 fontes; manifesto `logs/source-provenance-p6-agent-fallback-2026-10-25.txt`). Suíte nexus/control, race focado e vet passaram. Nenhum provider externo real foi usado; P7 e a homologação global permanecem abertos.
+
+## FIX-026 — recovery aguarda lease após crash de processo
+
+- Reprodução: processo filho morreu dentro de um dispatch com `DispatchIntent` já persistido. O processo Nexus reaberto tentou recuperar o Mission durante a lease de 30 s ainda válida; o worker recebeu `ErrLeaseHeld` e encerrou, deixando o run ativo sem retry automático.
+- Correção mínima: `runMissionWorker` agora repete somente o caminho de erro `ErrLeaseHeld`, com backoff de 100 ms até 2 s e cancelamento pelo contexto. Outros resultados continuam encerrando o worker normalmente. Ao adquirir a lease, o runner detecta a intenção anterior e preserva a política fail-closed, sem replay.
+- Regressão: `TestMissionProcessCrashDuringProviderDispatchFailsClosed` cria subprocesso real, mata durante a execução, reabre SQLite e verifica `UNKNOWN_EXTERNAL_OUTCOME`, intervenção humana, identidade estável e zero chamadas ao executor de recovery.
+- Validação: teste focado PASS (31,238 s), `-race` PASS (33,409 s), `go test ./internal/nexus/... -count=1` PASS e `go vet ./internal/nexus/...` PASS. Evidência: `logs/nr007-process-crash-recovery-current-2026-10-25.txt`.
+- Overlay: HEAD base local/remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b` + SHA-256 `b874bec02f83066daed6f913b4d357fb411dfff9fe1ff97e8290a2f8b4f0ca8d` (1.426 fontes); manifesto `logs/source-provenance-nr007-current-2026-10-25.txt`. Sem commit/push. O soak de longa duração e a recuperação de PTY continuam pendentes.
+
+
+## FIX-023 — validação da CLI Web antes de iniciar o Core
+
+- Reprodução: `nexus web --help` ignorava help e iniciava servidor; argumentos desconhecidos/sem valor também eram ignorados.
+- Correção mínima: parser `flag.FlagSet` valida `--port/-p`, `--listen/-l`, `--no-open`, `--remote`, help, valores e argumentos posicionais antes de criar `NewCore`.
+- Regressões: `go test -tags=gtk3 -count=1 ./internal/app` e `go vet -tags=gtk3 ./internal/app` passaram; smoke do build atual confirma help exit 0, opção desconhecida exit 1 e nenhuma porta aberta.
+- Distribuição: snapshot GoReleaser tar/DEB contém payload idêntico; instalação/execução/remoção dpkg isolada passou. CLI atual instalada atomicamente, SHA-256 `51b58fe5972f27fcdb55c8284388b3f37998dc57db384b11223719ad6a132905`, com backup em `/home/desenvolvedor/.local/state/nexus-homologation/20261025T1940Z-p2-cli-help/nexus.before`.
+- Código testado: `7a04f1b4cf5950b97b4ea1e156dda31ac513823b + overlay SHA-256 a2ed858e013e8e43391cec7c1bb6d6e00324a3170ea9804d0d068bf231e73dfd`. Evidência: `logs/p2-cli-web-help-package-tests.log`, `logs/p2-cli-web-help-native-smoke.txt`, `logs/p2-cli-web-help-current-build-smoke.txt` e `logs/p2-cli-web-help-package-validation.log`. Sem commit/push.
+
+
+## FIX-024 — conflito concorrente de revisão no WorkPlan
+
+- Reprodução: dois clientes leem a mesma revisão; após o primeiro save, o segundo recebia erro bruto da restrição UNIQUE do SQLite, e a rota HTTP retornava 400.
+- Correção: `UpdateWorkPlan` compara `current_revision` no UPDATE e retorna `ErrPlanRevisionConflict` sem gravar estado/revisão parcial. O handler traduz o conflito em HTTP 409.
+- Regressões: store race x3; contratos Nexus race x2; HTTP 409 race x3; suítes `./internal/nexus/store ./internal/nexus ./internal/control/web` e `go vet` passaram. Evidências em `logs/p5-plan-revision-cas-*.txt`.
+- Overlay: HEAD base `7a04f1b4cf5950b97b4ea1e156dda31ac513823b` + fingerprint `d3caa597ae3bc061ad0048ad4d390b1b9bb0011cc496e4d213d0ec6119400796`; manifesto `logs/source-provenance-p5-plan-revision-cas-2026-10-25.txt`. P5 continua parcial até concluir os cenários oficiais ponta a ponta.

@@ -1,0 +1,5 @@
+7dc821c7a9109d191f5252a2f0c7c4603655c2d5e3b3af4f505a0a18aef1f155  cmd/nexus-desktop/build/bin/nexus-desktop
+8ae8ef9fc2d415a76e0cc247db6d14c35ef75369230ac31470d6da9977a792a6  cmd/nexus-hud/build/bin/nexus-hud
+f9187aa3b0084552e8f518e511425df812e8b1659b4e2cc43df78a6aaa433334  DEV/validation/linux-100-2026-10-25/screenshots/native-desktop-current-overlay-xwayland-ready.png
+12ab9f5242284f57d14647622727d81276f4ffc9e567a2e7894fff670405c155  DEV/validation/linux-100-2026-10-25/screenshots/native-desktop-current-overlay-xwayland-initial-black.png
+b86f040a0fce2ef2837bc27a3b81a84898d25d555a8d14bf24cff51a6d4a5ad7  DEV/validation/linux-100-2026-10-25/screenshots/native-hud-current-overlay-xwayland-visible.png

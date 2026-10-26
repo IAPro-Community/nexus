@@ -1,0 +1,12 @@
+Linux single-mascot regression, exact source overlay
+branch=release/v1.0.0
+base_commit=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+source_fingerprint=2c23ebb0c7726a200acbde9326c23ad6023d8fad0238c2adfef993677203f2fa
+source_files=1425
+focused_vitest=PASS; 5 suites / 29 tests
+official_nex_art=PASS
+hud_e2e=PASS; Chromium fixture; 4 screenshots captured
+visual_scope=frontend browser fixture, not native Wails or compositor alpha
+screenshots=../screenshots/mascot-single-renderer-current-overlay-2c23ebb0
+screenshot_sha256_manifest=p5-predispatch-current-single-mascot-screenshots-2026-10-25.sha256
+result=single NEX render path remains; no separate Companion 2D renderer or mode

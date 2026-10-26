@@ -1,0 +1,45 @@
+started_at=2026-10-26T06:45:08Z
+HEAD=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+source_fingerprint=3ed0f39001bb18cd8659f0d4fe4c5e3d2c08711a530b41aa3cd6ebf000ecf576
+command=make build build-desktop-wails build-hud-wails
+Building frontend...
+≈ tailwindcss v4.3.3
+
+Done in 210ms
+
+  dist/bundle.js                                   419.1kb
+  dist/chunks/chunk-BWQ3EW4Y.js                    348.8kb
+  dist/chunks/chunk-25456IRH.js                    280.9kb
+  dist/chunks/chunk-Y4BGOPDO.js                    252.1kb
+  dist/chunks/FlowRunsHistorySurface-GI6NHF66.js   221.4kb
+  dist/bundle.css                                  161.8kb
+  dist/chunks/chunk-F2EO56P2.js                    136.4kb
+  dist/chunks/chunk-F6I6ZTMS.js                     93.6kb
+  dist/chunks/chunk-5HYXVZU4.js                     64.3kb
+  dist/chunks/chunk-O7V4VUIQ.js                     37.0kb
+  dist/chunks/chunk-GHGFFS6X.js                     35.1kb
+  dist/chunks/chunk-JYQXCWVN.js                     34.3kb
+  dist/chunks/UsageSurface-5ZUY6GBB.js              31.8kb
+  dist/chunks/AgentTerminal-HPQAOIEH.js             30.3kb
+  dist/chunks/chunk-DTISPBI5.js                     27.8kb
+  dist/chunks/FlowRunSurface-P5ZZ43HS.js            16.8kb
+  dist/chunks/FlowRunsHistorySurface-2YMTODPA.css   15.5kb
+  dist/chunks/chunk-ACM4V6MS.js                     15.2kb
+  dist/chunks/chunk-UO3PEXKS.js                     15.0kb
+  dist/chunks/chunk-TVDK4X5U.js                     14.9kb
+  ...and 45 more output files...
+
+⚡ Done in 725ms
+NEX 32-bit official SVG exported: /projetos/nexus/web/public/nex
+Nexus web build complete: /projetos/nexus/web/dist
+Frontend bundle ready for embedding
+Building nexus v1.0.0-beta.10 (commit: 7a04f1b4)...
+Built nexus v1.0.0-beta.10 at ./nexus
+linux_amd64_build_after_lint_fix=PASS
+c5b9299a0b781734904cb8ce162bfab943256dc166c198d95b150ac51d4db3f3  ./nexus
+f1c3b7cd1854602c3a6dd7d19506421129a444b8b9a0584b4167a3d0c246eabc  cmd/nexus-desktop/build/bin/nexus-desktop
+478f12417bf7c9e22a2df97e07414b7febd1c4f8f2c74cf8225b23fe0d0f077a  cmd/nexus-hud/build/bin/nexus-hud
+./nexus:                                   ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=dc9642f3834b8be4c157936cc7a54a773f061ab4, stripped
+cmd/nexus-desktop/build/bin/nexus-desktop: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=3295d437e606a58d58f98ed5ddfd33162bad0731, for GNU/Linux 3.2.0, stripped
+cmd/nexus-hud/build/bin/nexus-hud:         ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=dfb564d45cc1ca33fdf37ad1d9fb981cbcf44100, for GNU/Linux 3.2.0, stripped
+finished_at=2026-10-26T06:45:17Z

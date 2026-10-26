@@ -1,0 +1,10 @@
+command=nexus run agy kiveromegasistemas -- --print <safe READY prompt>
+status=BLOCKED_QUOTA
+exit_code=1
+duration_seconds=3.7
+profile_authenticated=true
+profile_health=HEALTHY
+cached_eligibility=EXHAUSTED
+provider_error=RESOURCE_EXHAUSTED_HTTP_429
+login_attempted=false
+raw_provider_output_suppressed=true

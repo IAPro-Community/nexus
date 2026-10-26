@@ -1,0 +1,47 @@
+dbus-daemon[874048]: [session uid=1000 pid=874048 pidfd=5] Activating service name='org.a11y.Bus' requested by ':1.6' (uid=1000 pid=874087 comm="/projetos/nexus/cmd/nexus-desktop/build/bin/nexus-" label="unconfined")
+dbus-daemon[874048]: [session uid=1000 pid=874048 pidfd=5] Successfully activated service 'org.a11y.Bus'
+dbus-daemon[874048]: [session uid=1000 pid=874048 pidfd=5] Activating service name='org.freedesktop.portal.Desktop' requested by ':1.2' (uid=1000 pid=874087 comm="/projetos/nexus/cmd/nexus-desktop/build/bin/nexus-" label="unconfined")
+dbus-daemon[874048]: [session uid=1000 pid=874048 pidfd=5] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.8' (uid=1000 pid=874156 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[874048]: [session uid=1000 pid=874048 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'
+dbus-daemon[874048]: [session uid=1000 pid=874048 pidfd=5] Activating service name='org.freedesktop.portal.Documents' requested by ':1.8' (uid=1000 pid=874156 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[874048]: [session uid=1000 pid=874048 pidfd=5] Successfully activated service 'org.freedesktop.portal.Documents'
+fusermount3: failed to access mountpoint /run/user/1000/doc: Permission denied
+error: fuse init failed: Can't mount path /run/user/1000/doc
+
+(/usr/libexec/xdg-desktop-portal:874156): xdg-desktop-portal-WARNING **: 00:08:24.974: Document portal fuse mount point unknown: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name :1.11 was not provided by any .service files
+dbus-daemon[874048]: [session uid=1000 pid=874048 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gnome' requested by ':1.8' (uid=1000 pid=874156 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+** (xdg-desktop-portal-gnome:874177): WARNING **: 00:08:25.000: Failed to open service channel Wayland connection, portals dialogs may missbehave (Cannot invoke method; proxy is for the well-known name org.gnome.Mutter.ServiceChannel without an owner, and proxy was constructed with the G_DBUS_PROXY_FLAGS_DO_NOT_AUTO_START flag).
+dbus-daemon[874048]: [session uid=1000 pid=874048 pidfd=5] Activating service name='org.gtk.vfs.Daemon' requested by ':1.12' (uid=1000 pid=874177 comm="/usr/libexec/xdg-desktop-portal-gnome" label="unconfined")
+dbus-daemon[874048]: [session uid=1000 pid=874048 pidfd=5] Successfully activated service 'org.gtk.vfs.Daemon'
+fusermount3: failed to access mountpoint /run/user/1000/gvfs: Permission denied
+dbus-daemon[874048]: [session uid=1000 pid=874048 pidfd=5] Activating service name='org.gnome.Settings.GlobalShortcutsProvider' requested by ':1.12' (uid=1000 pid=874177 comm="/usr/libexec/xdg-desktop-portal-gnome" label="unconfined")
+
+** (process:874202): WARNING **: 00:08:25.130: Failed to open service channel Wayland connection, portals dialogs may missbehave (Cannot invoke method; proxy is for the well-known name org.gnome.Mutter.ServiceChannel without an owner, and proxy was constructed with the G_DBUS_PROXY_FLAGS_DO_NOT_AUTO_START flag).
+dbus-daemon[874048]: [session uid=1000 pid=874048 pidfd=5] Successfully activated service 'org.gnome.Settings.GlobalShortcutsProvider'
+dbus-daemon[874048]: [session uid=1000 pid=874048 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.gnome'
+dbus-daemon[874048]: [session uid=1000 pid=874048 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.8' (uid=1000 pid=874156 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[874154]: Activating service name='org.a11y.atspi.Registry' requested by ':1.2' (uid=1000 pid=874233 comm="/usr/libexec/xdg-desktop-portal-gtk" label="unconfined")
+dbus-daemon[874048]: [session uid=1000 pid=874048 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.gtk'
+dbus-daemon[874154]: Successfully activated service 'org.a11y.atspi.Registry'
+SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry
+dbus-daemon[874048]: [session uid=1000 pid=874048 pidfd=5] Activating service name='org.freedesktop.secrets' requested by ':1.8' (uid=1000 pid=874156 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+discover_other_daemon: 1GNOME_KEYRING_CONTROL=/run/user/1000/keyring
+
+(/usr/libexec/xdg-desktop-portal:874156): xdg-desktop-portal-WARNING **: 00:08:50.356: Failed to create secret proxy: Error calling StartServiceByName for org.freedesktop.secrets: Timeout was reached
+
+(/usr/libexec/xdg-desktop-portal:874156): xdg-desktop-portal-WARNING **: 00:08:50.356: No skeleton to export
+dbus-daemon[874048]: [session uid=1000 pid=874048 pidfd=5] Successfully activated service 'org.freedesktop.portal.Desktop'
+desktop_binary=/projetos/nexus/cmd/nexus-desktop/build/bin/nexus-desktop
+desktop_sha256=6bbbafdab42309d2657ceed4ccf90f1d87c4381aee5d7b6d4528903a136dc61f
+fixture_provider=cursor; fixture_profile=fixture; fake_status=Login successful
+scratch_home=/home/desenvolvedor/.cache/nexus-p5-recheck/tmp/nexus-native-existing-cursor.6uTdH1/home
+isolated_nexus_data=/home/desenvolvedor/.cache/nexus-p5-recheck/tmp/nexus-native-existing-cursor.6uTdH1/data/nexus
+core_port=46443
+core_health={"status":"ok","timestamp":1792987738,"version":"1.0.0-beta.10"}
+result=Review usage-after-import.png; expected 1 already-authenticated profile and no copied host credential.
+8a59edc12e9e21dd69691f4d28aed6252f1c680d144dde9b095faa373bd31379  /projetos/nexus/DEV/validation/linux-100-2026-10-25/p5-recheck-2026-10-26T0347Z/screenshots/desktop-existing-cursor/usage-before-import.png
+e62ffbd382e4e942e642b5c2111a7ca2886caf1983332943ea83abe9b5d1d7bd  /projetos/nexus/DEV/validation/linux-100-2026-10-25/p5-recheck-2026-10-26T0347Z/screenshots/desktop-existing-cursor/usage-after-import.png
+fixture_profile_log=/home/desenvolvedor/.cache/nexus-p5-recheck/tmp/nexus-native-existing-cursor.6uTdH1/profile-create.log
+embedded_core_log=/home/desenvolvedor/.cache/nexus-p5-recheck/tmp/nexus-native-existing-cursor.6uTdH1/desktop.log
+A connection to the bus can't be made

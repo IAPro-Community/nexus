@@ -1,0 +1,2 @@
+FAIL: Wails desktop window did not open
+Nexus Desktop started an embedded Core at http://127.0.0.1:43949

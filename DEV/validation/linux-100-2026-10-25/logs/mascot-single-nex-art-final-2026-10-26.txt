@@ -1,0 +1,11 @@
+identifier=MASCOT-ART
+area=Arte oficial do NEX
+base_commit=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+source_overlay_sha256=0f9f1c0912788cf913aff1918111cf3e2b10521e22f70c9079edc6f042a08f28 (1428 source files; mutable worktree, no commit)
+procedure=cd web && bun run art:nex:check
+expected=official NEX asset is current and valid
+actual=official NEX 32-bit SVG verified
+status=PASS
+
+$ node scripts/export-nex-art.mjs --check
+NEX 32-bit official SVG verified: /projetos/nexus/web/public/nex

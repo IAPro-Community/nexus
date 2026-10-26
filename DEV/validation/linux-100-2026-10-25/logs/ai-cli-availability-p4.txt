@@ -1,0 +1,5 @@
+P4 provider availability check
+Date: 2026-10-25
+Command: command -v ai-cli
+Observed: BLOCKED: ai-cli executable is not installed in PATH
+No external provider session was started.

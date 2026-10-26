@@ -1,0 +1,48 @@
+timestamp_utc=2026-10-26T08:09:53Z
+branch=release/v1.0.0
+head=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+remote=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+source_fingerprint=047e6f968d64ee7f51ad389a21d43fe305e9ce9fb98b00c750be526b06c2313c
+
+installed_vs_build_hashes:
+9349ed4cd2cf0fa124018ac83c49831d7d64521548cda5c6c8c5c200962614fc  /home/desenvolvedor/.local/bin/nexus
+9349ed4cd2cf0fa124018ac83c49831d7d64521548cda5c6c8c5c200962614fc  /projetos/nexus/nexus
+c91834c27641f5cff8bb133ea268aded7bca50bfc8cf329e3dc63cd7a5c660ff  /home/desenvolvedor/.local/bin/nexus-desktop
+c91834c27641f5cff8bb133ea268aded7bca50bfc8cf329e3dc63cd7a5c660ff  /projetos/nexus/cmd/nexus-desktop/build/bin/nexus-desktop
+7667b895cc5c884ab687db1ad982d44ccb7d3e9ed162ba98a366ed54cce65350  /home/desenvolvedor/.local/bin/nexus-hud
+7667b895cc5c884ab687db1ad982d44ccb7d3e9ed162ba98a366ed54cce65350  /projetos/nexus/cmd/nexus-hud/build/bin/nexus-hud
+
+file_types:
+/home/desenvolvedor/.local/bin/nexus:         ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=df232ea0a0cec985b842c1f8a8919af8b0612cdb, stripped
+/home/desenvolvedor/.local/bin/nexus-desktop: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=60f8e2e14233dc9d7cdb921230ee0d5ec405200a, for GNU/Linux 3.2.0, stripped
+/home/desenvolvedor/.local/bin/nexus-hud:     ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=9d62ca2d48f606756e0f83ce1e1ed76ca4854fc6, for GNU/Linux 3.2.0, stripped
+
+ldd_missing_libraries:
+none
+
+cli_version:
+IAPro Nexus 1.0.0-beta.10 (linux/amd64, go1.25.14) commit 7a04f1b4 built 2026-10-26T08:05:15Z
+
+service:
+MainPID=2496460
+ExecStart={ path=/home/desenvolvedor/.local/bin/nexus-desktop ; argv[]=/home/desenvolvedor/.local/bin/nexus-desktop ; ignore_errors=no ; start_time=[Mon 2026-10-26 04:07:21 -04] ; stop_time=[n/a] ; pid=2496460 ; code=(null) ; status=0/0 }
+ActiveState=active
+
+processes:
+/home/desenvolvedor/.local/bin/nexus-desktop
+2496472 /home/desenvolvedor/.local/bin/nexus-hud --linked
+2496607 /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitNetworkProcess 2 35
+2496609 /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitWebProcess 4 35
+
+health_36135:
+{"status":"ok","timestamp":1793002194,"version":"1.0.0-beta.10"}
+
+tray_registration:
+org.kde.StatusNotifierItem-2496460-1         2496460 nexus-desktop   desenvolvedor :1.4337       user@1000.service -       -
+org.kde.StatusNotifierItem-2496472-1         2496472 nexus-hud       desenvolvedor :1.4338       user@1000.service -       -
+org.kde.StatusNotifierWatcher                  25508 gnome-shell     desenvolvedor :1.25         user@1000.service -       -
+
+hud_state_sha256:
+9957c441c81942aa40678b54f7be9bd7c5429798c17e810a75a4cbbcfca0dffd  /home/desenvolvedor/.local/share/ai-manager/hud-window-state.json
+
+result=PASS

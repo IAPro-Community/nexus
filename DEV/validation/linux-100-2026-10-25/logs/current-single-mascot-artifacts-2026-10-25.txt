@@ -1,0 +1,17 @@
+Current installed Nexus Linux AMD64 artifact verification
+UTC: 2026-10-26T00:58:40Z
+base_commit=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+source_fingerprint=f033fa678c1fdeb99373d2456347ac152638ef13f699e607ff5b9bdd12113f2b
+
+file identity:
+/home/desenvolvedor/.local/bin/nexus:         ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=d2f93ac0619df1f5e839a6206c121e1a83920f35, stripped
+/home/desenvolvedor/.local/bin/nexus-desktop: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=213ab7973988554efdd9d8f7f2ec1ce8e3a0778e, for GNU/Linux 3.2.0, stripped
+/home/desenvolvedor/.local/bin/nexus-hud:     ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=2b5b0b46b658bc65cb1d7ecca961df5a49dbded6, for GNU/Linux 3.2.0, stripped
+
+SHA-256:
+67462546458301e4116262c777e440641b0e8749972273395d4197d51c7a07be  /home/desenvolvedor/.local/bin/nexus
+6505a3d266d3f762153d0c6b8cff5a16b533120f3a2bbf2af62a4601407f70d4  /home/desenvolvedor/.local/bin/nexus-desktop
+a592fc12b1ed33a19aefe8c3d78100e72ab1cca8aa19eedf8c44493ec8e06d31  /home/desenvolvedor/.local/bin/nexus-hud
+
+ldd missing dependencies:
+none

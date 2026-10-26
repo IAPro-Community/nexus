@@ -1,0 +1,21 @@
+Installed Nexus version:
+{
+  "arch": "amd64",
+  "build_date": "2026-10-25T18:54:23Z",
+  "commit": "7a04f1b4",
+  "go": "go1.25.14",
+  "os": "linux",
+  "version": "1.0.0-beta.10"
+}
+
+Web health:
+{"status":"ok","timestamp":1792954682,"version":"1.0.0-beta.10"}
+
+No unresolved native libraries:
+PASS /home/desenvolvedor/.local/bin/nexus-desktop
+PASS /home/desenvolvedor/.local/bin/nexus-hud
+
+Running local Desktop/Web:
+1030290 nexus           /home/desenvolvedor/.local/bin/nexus web --port 0 --listen 127.0.0.1 --no-open
+1233402 nexus           /home/desenvolvedor/.local/bin/nexus web --port 0 --listen 127.0.0.1 --no-open
+1235319 nexus-desktop   /home/desenvolvedor/.local/bin/nexus-desktop

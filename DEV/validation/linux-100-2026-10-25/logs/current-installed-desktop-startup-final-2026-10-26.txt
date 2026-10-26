@@ -1,0 +1,16 @@
+Final installed Linux desktop smoke
+branch=release/v1.0.0
+base_commit=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+source_overlay_fingerprint=9a66687715414fc8b42d612fd2b4a531370c7f8c4fbfa86338a81ba9728ddcd1
+version=1.0.0-beta.10
+installed_desktop_sha256=362c090ea6972cc1548cf883d78a2d071e9de746e42eb8283a4e10867e15fd0e
+launch=PASS; transient user systemd unit nexus-homologation-final-20261026.service
+unit_invocation=a506b3d67ab043dfb4de2d8e93d08173
+main_pid=4102943
+linked_hud_pid=4102971
+process_state=active after 22 seconds
+embedded_core_health=HTTP 200; {"status":"ok","version":"1.0.0-beta.10"}
+current_xrandr_root=0x0
+native_capture=BLOCKED; grim reports no wl_output
+native_screen_interaction=BLOCKED; no click performed
+notes=Application and linked HUD remain active in the user session; GPU acceleration is unavailable in this VMware environment. Chromium fixture is not used as native evidence.

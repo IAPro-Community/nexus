@@ -1,12 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   defaultHudPreferences,
   formatHudCost,
+  HUD_PREFERENCES_KEY,
   normalizeAttentionGroup,
   normalizeHudResponse,
   normalizeHudPreferences,
   providerCapacityLabel,
   resolveNativeHudStatus,
+  saveHudPreferences,
   type HudCostSummary,
   type HudProvider,
 } from './hudModel';
@@ -105,10 +107,37 @@ describe('HUD presentation model', () => {
     expect(normalized.surfaceMode).toBe('docked');
     expect(normalized.version).toBe(1);
     expect(defaultHudPreferences.enabled).toBe(false);
-    expect(defaultHudPreferences.companionMotion).toBe(true);
+    expect(defaultHudPreferences.mascotMotion).toBe(true);
     expect(
-      normalizeHudPreferences({ ...defaultHudPreferences, companionMotion: false }).companionMotion,
+      normalizeHudPreferences({ ...defaultHudPreferences, mascotMotion: false }).mascotMotion,
     ).toBe(false);
+    expect(normalizeHudPreferences({ companionMotion: false }).mascotMotion).toBe(false);
+    expect(normalizeHudPreferences({ companionMotion: true }).mascotMotion).toBe(true);
+  });
+
+  it('reads legacy motion preferences but only persists the canonical mascot setting', () => {
+    const values = new Map<string, string>();
+    vi.stubGlobal('window', {
+      localStorage: { setItem: (key: string, value: string) => values.set(key, value) },
+      dispatchEvent: () => true,
+    });
+    vi.stubGlobal(
+      'CustomEvent',
+      class {
+        constructor(readonly type: string) {}
+      },
+    );
+
+    try {
+      saveHudPreferences({ ...defaultHudPreferences, mascotMotion: false });
+      const saved = JSON.parse(values.get(HUD_PREFERENCES_KEY) || '{}') as Record<string, unknown>;
+
+      expect(saved.mascotMotion).toBe(false);
+      expect(saved).not.toHaveProperty('companionMotion');
+      expect(normalizeHudPreferences({ companionMotion: true }).mascotMotion).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('normalizes nullable Go arrays at the native HUD boundary', () => {

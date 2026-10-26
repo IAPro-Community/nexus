@@ -1,0 +1,3 @@
+Command: gh pr checks --repo IAPro-Community/nexus 64
+Exit status: 1
+Output: no checks reported on the 'fix/quality-gates-and-hosts-matching' branch

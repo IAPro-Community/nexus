@@ -1,0 +1,2 @@
+command: go vet ./internal/nexus/store ./internal/nexus ./internal/control/web
+exit_code: 0

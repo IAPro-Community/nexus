@@ -1,0 +1,18 @@
+Native Desktop probe — 2026-10-25
+
+Source under homologation: branch release/v1.0.0, base SHA 7a04f1b4cf5950b97b4ea1e156dda31ac513823b, source overlay SHA-256 d3caa597ae3bc061ad0048ad4d390b1b9bb0011cc496e4d213d0ec6119400796. The installed binary hash matches the current installation record: /home/desenvolvedor/.local/bin/nexus-desktop, SHA-256 25134b1e891ad11fc1f2467e0b814a955156a8ad514efaee8b847afd82b498d5.
+
+Procedure:
+- Started the installed Desktop with `dbus-run-session -- /usr/bin/env`, private HOME/XDG/NEXUS_DATA_DIR and `NEXUS_HUD_SPAWN=0`.
+- Repeated with `WAYLAND_DISPLAY` and `WAYLAND_SOCKET` unset and `GDK_BACKEND=x11` to force the X11 path.
+- Queried only the app/window names, accessible roles/states, and window geometry through AT-SPI; checked the X11 window tree.
+- Stopped only the isolated test process with Ctrl-C. The user's existing Desktop (PID 3618613) and linked HUD (PID 3618685) remained running.
+
+Observed:
+- Both launches printed `Nexus Desktop started an embedded Core at http://127.0.0.1:<ephemeral-port>` and remained alive until test teardown.
+- AT-SPI listed application `nexus-desktop` and frame `IAPro Nexus`, visible/showing, geometry 1332x889. The exposed children were window controls and the title label; the WebView content was not exposed for visual inspection.
+- `xwininfo` saw only a 10x10 `InputOnly`, unmapped `nexus-desktop` helper; it did not provide a capturable Desktop surface.
+- No screenshot was produced. The CUA surface is empty, `grim` lacks the compositor protocol, and the GNOME Screenshot D-Bus path is denied, as recorded in `p5-native-capture-alternatives-2026-10-25.txt`.
+- The isolated private XDG session emitted portal/FUSE permission warnings and the VM reported no DRI3/3D acceleration. These limit this capture path; they are not reported as product failures.
+
+Result: process/Core startup and native frame visibility are confirmed, but the required visual inspection remains BLOCKED. This does not change the existing NEX/HUD screenshot evidence and does not approve the Desktop screen. No product source was changed by this probe.

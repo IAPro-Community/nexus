@@ -60,6 +60,35 @@ var _ coreprovider.Provider = fakeHostSessionProvider{}
 var _ coreprovider.AuthProvider = fakeHostSessionProvider{}
 var _ coreprovider.HostAuthImporter = fakeHostSessionProvider{}
 
+type fakeAuthenticatedProviderWithoutImporter struct{}
+
+func (fakeAuthenticatedProviderWithoutImporter) ID() model.ProviderID { return model.ProviderCursor }
+func (fakeAuthenticatedProviderWithoutImporter) Name() string         { return "Cursor CLI fixture" }
+func (fakeAuthenticatedProviderWithoutImporter) Detect(context.Context) model.DetectionResult {
+	return model.DetectionResult{Installed: true}
+}
+func (fakeAuthenticatedProviderWithoutImporter) Capabilities() model.Capabilities {
+	return model.Capabilities{}
+}
+func (fakeAuthenticatedProviderWithoutImporter) Prepare(context.Context, model.Profile) error {
+	return nil
+}
+func (fakeAuthenticatedProviderWithoutImporter) Run(context.Context, model.Profile, []string) (model.Failure, error) {
+	return model.Failure{}, nil
+}
+func (fakeAuthenticatedProviderWithoutImporter) Login(context.Context, model.Profile) error {
+	return nil
+}
+func (fakeAuthenticatedProviderWithoutImporter) Logout(context.Context, model.Profile) error {
+	return nil
+}
+func (fakeAuthenticatedProviderWithoutImporter) InspectAuth(context.Context, model.Profile) model.AccountInfo {
+	return model.AccountInfo{Authenticated: true, Status: "Authenticated"}
+}
+
+var _ coreprovider.Provider = fakeAuthenticatedProviderWithoutImporter{}
+var _ coreprovider.AuthProvider = fakeAuthenticatedProviderWithoutImporter{}
+
 func setupHostImportTest(t *testing.T) {
 	t.Helper()
 	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
@@ -84,6 +113,27 @@ func TestImportHostSessionRegistersVerifiedProfileAndIsIdempotent(t *testing.T) 
 	result, _ = importHostSession(t.Context(), adapter, profiles)
 	if result.Status != HostSessionAlreadyAuthenticated {
 		t.Fatalf("repeat import = %+v, want already authenticated", result)
+	}
+}
+
+func TestImportHostSessionRecognizesAuthenticatedProfileWithoutImporter(t *testing.T) {
+	setupHostImportTest(t)
+	profile, err := Create("cursor", "existing")
+	if err != nil {
+		t.Fatal(err)
+	}
+	profiles := []model.Profile{profile}
+	adapter := fakeAuthenticatedProviderWithoutImporter{}
+	if _, ok := any(adapter).(coreprovider.HostAuthImporter); ok {
+		t.Fatal("fixture unexpectedly implements HostAuthImporter")
+	}
+
+	result, updated := importHostSession(t.Context(), adapter, profiles)
+	if result.Status != HostSessionAlreadyAuthenticated || result.Profile != profile.Name {
+		t.Fatalf("import = %+v, want authenticated profile without import", result)
+	}
+	if len(updated) != 1 || updated[0].Name != profile.Name {
+		t.Fatalf("profiles after import = %+v, want the existing profile unchanged", updated)
 	}
 }
 

@@ -142,6 +142,36 @@ func TestRuntimeRoutingPreferFallsBackWhenPreferredModelCannotSatisfyTask(t *tes
 	}
 }
 
+func TestMissionModelFallbackPersistsUnavailableModelProvenance(t *testing.T) {
+	modelPolicy := RuntimeAffinityPolicy{Model: AffinityPreference{Mode: AffinityPrefer, Value: "cheap"}}
+	requirements := TaskRequirements{TaskKind: "architecture", RuntimeAffinity: &modelPolicy}
+	account := ProviderAccount{Provider: "agy", Profile: "frontend", Health: "healthy", Authenticated: true, Available: true}
+	models := []ModelCandidate{
+		{Provider: "agy", Profile: "frontend", Model: "cheap", CostRank: 1, ReasoningRank: 1, Healthy: true, Authenticated: true, QuotaAvailable: true},
+		{Provider: "agy", Profile: "frontend", Model: "strong", CostRank: 3, ReasoningRank: 3, Healthy: true, Authenticated: true, QuotaAvailable: true},
+	}
+
+	selected, fallback, reason, err := ResolveTaskModel(requirements, modelPolicy.Model, account, models)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !fallback || selected.Model != "strong" || reason == "" {
+		t.Fatalf("expected documented capable-model fallback, selected=%+v fallback=%t reason=%q", selected, fallback, reason)
+	}
+
+	routing := buildMissionRoutingDecision(
+		&runner.PackageRun{PackageID: "architecture", Attempt: 1}, store.Agent{ID: "agent-1"},
+		requirements, account, AgentConfig{Provider: account.Provider, Profile: account.Profile, Model: selected.Model},
+		"", "", AffinityAuto, fallback, reason,
+	)
+	if !routing.Fallback || routing.RequestedModel != "cheap" || routing.SelectedModel != "strong" {
+		t.Fatalf("model fallback provenance missing: %+v", routing)
+	}
+	if routing.SwitchReason != SwitchReasonModelIncapable || routing.Reason == "" {
+		t.Fatalf("model fallback reason missing: %+v", routing)
+	}
+}
+
 func TestRuntimeRoutingUsesDeterministicTieBreak(t *testing.T) {
 	accounts := []ProviderAccount{
 		{Provider: "opencode", Profile: "qa", Authenticated: true, Available: true, QuotaRemaining: 0.5},
@@ -306,6 +336,81 @@ func TestMissionAllocatePreferMayOpenPoolAfterRateLimit(t *testing.T) {
 	}
 	if len(candidates) != 1 || candidates[0].Provider != "agy" {
 		t.Fatalf("PREFER failover should open alternatives, got %+v", candidates)
+	}
+}
+
+func TestMissionFallbackPreservesResourceAndFailureProvenance(t *testing.T) {
+	cases := []struct {
+		name         string
+		failure      model.FailureKind
+		accounts     []ProviderAccount
+		wantProvider string
+		wantProfile  string
+		wantReason   RoutingSwitchReason
+	}{
+		{
+			name:    "same provider profile after quota exhaustion",
+			failure: model.FailureQuota,
+			accounts: []ProviderAccount{
+				{ID: "codex-main", Provider: "codex", Profile: "main", Authenticated: true, Available: false, RateLimited: true, Health: "healthy", QuotaView: &quota.QuotaView{Status: "LIVE"}},
+				{ID: "codex-backup", Provider: "codex", Profile: "backup", Authenticated: true, Available: true, Health: "healthy", QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.45},
+				{ID: "agy-backup", Provider: "agy", Profile: "backup", Authenticated: true, Available: true, Health: "healthy", QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.95},
+			},
+			wantProvider: "codex",
+			wantProfile:  "backup",
+			wantReason:   SwitchReasonQuotaExhausted,
+		},
+		{
+			name:    "cross provider after rate limit with unauthenticated preferred-provider backup",
+			failure: model.FailureRateLimit,
+			accounts: []ProviderAccount{
+				{ID: "codex-main", Provider: "codex", Profile: "main", Authenticated: true, Available: false, RateLimited: true, Health: "healthy", QuotaView: &quota.QuotaView{Status: "LIVE"}},
+				{ID: "codex-backup", Provider: "codex", Profile: "backup", Authenticated: false, Available: true, Health: "healthy", QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 1},
+				{ID: "agy-backup", Provider: "agy", Profile: "backup", Authenticated: true, Available: true, Health: "healthy", QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.60},
+			},
+			wantProvider: "agy",
+			wantProfile:  "backup",
+			wantReason:   SwitchReasonRateLimited,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			pkg := &runner.PackageRun{
+				PackageID: "step-1", Attempt: 2, RetryFrom: runner.StateAllocating,
+				DesiredProvider: "codex", DesiredProfile: "main", FailureKind: tc.failure,
+			}
+			current := AgentConfig{Provider: "codex", Profile: "main"}
+			candidates, err := selectMissionCandidateAccounts(tc.accounts, pkg, current, AffinityPrefer, true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			recommendation := RecommendResources(candidates, TaskRequirements{
+				TaskKind: "coding", ProviderPriorities: map[string]int{"codex": 1, "agy": 2},
+			}, PolicyBalanced)
+			if recommendation.Recommended == nil {
+				t.Fatalf("no eligible fallback: %s", recommendation.Explanation)
+			}
+			selected := recommendation.Recommended.Account
+			if selected.Provider != tc.wantProvider || selected.Profile != tc.wantProfile {
+				t.Fatalf("selected %s:%s, want %s:%s", selected.Provider, selected.Profile, tc.wantProvider, tc.wantProfile)
+			}
+
+			routing := buildMissionRoutingDecision(
+				pkg, store.Agent{ID: "agent-1"}, TaskRequirements{TaskKind: "coding"},
+				selected, AgentConfig{Provider: selected.Provider, Profile: selected.Profile, Model: "configured-model"},
+				"codex", "main", AffinityPrefer, true, recommendation.Explanation,
+			)
+			if !routing.Fallback || routing.RequestedProvider != "codex" || routing.RequestedProfile != "main" {
+				t.Fatalf("fallback lost requested resource provenance: %+v", routing)
+			}
+			if routing.SelectedProvider != tc.wantProvider || routing.SelectedProfile != tc.wantProfile {
+				t.Fatalf("fallback lost selected resource provenance: %+v", routing)
+			}
+			if routing.SwitchReason != tc.wantReason || routing.Reason == "" || len(routing.RejectedCandidates) == 0 {
+				t.Fatalf("fallback lost failure explanation: %+v", routing)
+			}
+		})
 	}
 }
 

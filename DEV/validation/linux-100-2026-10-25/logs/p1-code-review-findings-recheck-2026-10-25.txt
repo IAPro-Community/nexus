@@ -1,0 +1,9 @@
+started_utc=2026-10-26T01:07:45Z
+command=GOCACHE=/tmp/nexus-p1-review-gocache go test -count=1 -race ./internal/nexus/runner -run 'TestResolveInterventionDoesNotReplayCompletedUnsafeCoordination|TestResolveIntervention_ReplanReallocatesAndRecompilesBeforeRetry|TestResolveIntervention_DefersPackageUntilDependenciesAreVerified'
+ok  	github.com/IAPro-Community/nexus/internal/nexus/runner	1.201s
+command=GOCACHE=/tmp/nexus-p1-review-gocache go test -count=1 -race ./internal/nexus -run TestMissionWorkerHandoffRetriesAfterOldWorkerExceedsTimeout
+ok  	github.com/IAPro-Community/nexus/internal/nexus	1.155s
+command=GOCACHE=/tmp/nexus-p1-review-gocache go test -count=1 -race ./internal/control/web -run 'TestResolveInterventionHTTPDecisionSurvivesServerRestartExactlyOnce|TestResolveRunInterventionRejectsMalformedAndNonPositiveVersion'
+ok  	github.com/IAPro-Community/nexus/internal/control/web	3.249s
+overall_exit=0
+finished_utc=2026-10-26T01:07:53Z

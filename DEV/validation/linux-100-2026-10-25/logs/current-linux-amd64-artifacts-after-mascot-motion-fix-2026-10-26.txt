@@ -1,0 +1,36 @@
+branch=release/v1.0.0
+base_commit=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+remote_commit=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+source_fingerprint=b73161ffd4afe7d566bd00cfdc6d6e090e95b0c99e13dbd0653aadd40fdf6eac
+source_manifest=logs/source-provenance-hud-idle-motion-fix-2026-10-26.txt
+
+local_builds:
+./nexus:                                   ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=ace4c9440d4be1c46c873460c3e2e53ef3197cbd, stripped
+cmd/nexus-desktop/build/bin/nexus-desktop: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=0815ad28cc60ad94762b74c0105bb211a2301453, for GNU/Linux 3.2.0, stripped
+cmd/nexus-hud/build/bin/nexus-hud:         ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=ae11bf523f2441a29bb0f268be6cd174e8f3b9ab, for GNU/Linux 3.2.0, stripped
+5949669ab400fc63ca4b9e28c96b780e229430d68a7367ea67c99151e92e4e69  ./nexus
+570f89398777bd93c36aa9f85d1494efc29aa25ff3bf0222c5d260205f6b8598  cmd/nexus-desktop/build/bin/nexus-desktop
+fbe093cffa25e53a118bb5880a0087645d70ed73776678d55c588f549095c7b3  cmd/nexus-hud/build/bin/nexus-hud
+
+linked_library_check:
+No missing shared libraries.
+
+cli_version:
+IAPro Nexus 1.0.0-beta.10 (linux/amd64, go1.25.14) commit 7a04f1b4 built 2026-10-26T07:02:15Z
+
+goreleaser_snapshot_artifacts:
+1d1e45099a49b5df57cc81bd5c842cbf7674d73c2dc0616fe3b6753ad8e72c9e  /home/desenvolvedor/.cache/nexus-p5-recheck/nexus-dist-b73161ffd4afe7d5/nexus_1.0.0-beta.10_linux_amd64.deb
+123ea3276eb37c18be7e5de3368a01a4944056480d0899ddee3e35f616be8784  /home/desenvolvedor/.cache/nexus-p5-recheck/nexus-dist-b73161ffd4afe7d5/nexus_Linux_x86_64.tar.gz
+478e0bda25e930e9f77dbdfc59c7242fab066d8da3c19707edef941fb4de875c  /home/desenvolvedor/.cache/nexus-p5-recheck/nexus-dist-b73161ffd4afe7d5/checksums.txt
+1d1e45099a49b5df57cc81bd5c842cbf7674d73c2dc0616fe3b6753ad8e72c9e  nexus_1.0.0-beta.10_linux_amd64.deb
+123ea3276eb37c18be7e5de3368a01a4944056480d0899ddee3e35f616be8784  nexus_Linux_x86_64.tar.gz
+
+package_metadata:
+Package: nexus
+Version: 1.0.0~beta.10
+Architecture: amd64
+
+installed_current_build:
+5949669ab400fc63ca4b9e28c96b780e229430d68a7367ea67c99151e92e4e69  /home/desenvolvedor/.local/bin/nexus
+570f89398777bd93c36aa9f85d1494efc29aa25ff3bf0222c5d260205f6b8598  /home/desenvolvedor/.local/bin/nexus-desktop
+fbe093cffa25e53a118bb5880a0087645d70ed73776678d55c588f549095c7b3  /home/desenvolvedor/.local/bin/nexus-hud

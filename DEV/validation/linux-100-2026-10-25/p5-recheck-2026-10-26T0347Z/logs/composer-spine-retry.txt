@@ -1,0 +1,31 @@
+$ node scripts/e2e-composer-execution-spine.mjs
+≈ tailwindcss v4.3.3
+
+Done in 201ms
+
+  dist/bundle.js                                   419.1kb
+  dist/chunks/chunk-BWQ3EW4Y.js                    348.8kb
+  dist/chunks/chunk-25456IRH.js                    280.9kb
+  dist/chunks/chunk-Y4BGOPDO.js                    252.1kb
+  dist/chunks/FlowRunsHistorySurface-GI6NHF66.js   221.4kb
+  dist/bundle.css                                  161.8kb
+  dist/chunks/chunk-F2EO56P2.js                    136.4kb
+  dist/chunks/chunk-MCNZZB2T.js                     93.6kb
+  dist/chunks/chunk-5HYXVZU4.js                     64.3kb
+  dist/chunks/chunk-O7V4VUIQ.js                     37.0kb
+  dist/chunks/chunk-GHGFFS6X.js                     35.1kb
+  dist/chunks/chunk-JYQXCWVN.js                     34.3kb
+  dist/chunks/UsageSurface-5ZUY6GBB.js              31.8kb
+  dist/chunks/AgentTerminal-HPQAOIEH.js             30.3kb
+  dist/chunks/chunk-QKLLPLGV.js                     27.7kb
+  dist/chunks/FlowRunSurface-P5ZZ43HS.js            16.8kb
+  dist/chunks/FlowRunsHistorySurface-2YMTODPA.css   15.5kb
+  dist/chunks/chunk-ACM4V6MS.js                     15.2kb
+  dist/chunks/chunk-UO3PEXKS.js                     15.0kb
+  dist/chunks/chunk-Q3CZVWNB.js                     14.9kb
+  ...and 45 more output files...
+
+⚡ Done in 696ms
+NEX 32-bit official SVG exported: /projetos/nexus/web/public/nex
+Nexus web build complete: /projetos/nexus/web/dist
+composer execution spine e2e PASS · plan=plan_06GQCMQM2X92SH5QAYTMNJ7N68 revision=1 steps=5 ready=false

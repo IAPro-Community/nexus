@@ -1,0 +1,18 @@
+Installed Nexus Desktop resource observation — profile padrão
+Source: release/v1.0.0 @ 7a04f1b4cf5950b97b4ea1e156dda31ac513823b + overlay 9a66687715414fc8b42d612fd2b4a531370c7f8c4fbfa86338a81ba9728ddcd1
+Process: Desktop PID 22800; linked HUD PID 22810; transient unit nexus-homologation-final-restored-20261026.service
+No intentional UI interaction was performed during these samples; this is not an approved idle benchmark because startup/provider state and software rendering were not controlled.
+
+Sample 1: 2026-10-25 22:05:04 -04:00; unit uptime 54 s
+cgroup MemoryCurrent=895131648 bytes (853.5 MiB)
+cgroup CPUUsageNSec=74925830000 ns (74.9 CPU s since start)
+main WebKitWebProcess PID 22946: 115% average CPU; RSS 441128 KiB
+HUD WebKitWebProcess PID 22986: 0.9% average CPU; RSS 238796 KiB
+
+Sample 2: 2026-10-25 22:05:49 -04:00; unit uptime 99 s
+cgroup MemoryCurrent=1047322624 bytes (998.9 MiB)
+cgroup CPUUsageNSec=132317531000 ns (132.3 CPU s since start)
+main WebKitWebProcess PID 22946: 116% average CPU; RSS 603596 KiB
+HUD WebKitWebProcess PID 22986: 1.1% average CPU; RSS 238796 KiB
+
+Delta over 45 s: cgroup memory +145.4 MiB; CPU +57.4 CPU s (~1.28 cores average). Host VM has no usable 3D acceleration, XWayland root is 0x0, and no native screen capture is available. Treat the resource requirement as BLOCKED pending a controlled idle/profile diagnosis; do not interpret these values as a passing idle benchmark or as a confirmed product leak.

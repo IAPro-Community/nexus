@@ -1,0 +1,4 @@
+=== RUN   TestServiceApplyInterruptedDownloadPreservesBinaryAndConfig
+--- PASS: TestServiceApplyInterruptedDownloadPreservesBinaryAndConfig (0.01s)
+PASS
+ok  	github.com/IAPro-Community/nexus/internal/update	1.021s

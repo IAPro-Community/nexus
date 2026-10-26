@@ -1,0 +1,41 @@
+Mascot single-renderer recheck — 2026-10-26
+
+Repository: /projetos/nexus
+Branch: release/v1.0.0
+Git HEAD: 7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+Source state: dirty shared worktree; no commit was created. The hashes below identify the mascot source files used by this run.
+
+Product contract checked:
+- One mascot: NexusHud → GuardianMascot → NexPixelSprite.
+- HUD presentations: BAR, MASCOT, TRAY; MASCOT displays the same NEX character.
+- Separate Companion 2D model/renderer/selector mode is absent. `companionMotion` only migrates a prior preference; existing snooze storage remains compatible with the same mascot.
+
+Regression command:
+  TMPDIR=/home/desenvolvedor/.cache/nexus-test-tmp bun x vitest run \
+    src/features/hud/GuardianMascot.test.tsx \
+    src/features/hud/GuardianModeSelector.test.tsx \
+    src/features/hud/mascotModel.test.ts \
+    src/features/hud/hudModel.test.ts \
+    src/features/hud/hudPresentation.test.ts
+
+Result: PASS — 5 test files, 33 tests.
+
+The first attempt without an isolated TMPDIR failed before test execution with ENOSPC because /tmp was a full tmpfs. No tests ran in that attempt. Retrying with the root filesystem TMPDIR succeeded; no /tmp files were removed.
+
+Official art command:
+  bun run art:nex:check
+
+Result: PASS — official NEX 32-bit SVG verified.
+
+Key source file SHA-256 values:
+  ded904fdd027b62c4696c3f9690d41a60819c529e0cd59b8d2187b161070b8ad  web/src/features/hud/GuardianMascot.tsx
+  66c36dbac22aac3481def75368e3eb5152156c488146d00a33b91a3f2c67353f  web/src/features/hud/GuardianMascot.test.tsx
+  dcfd178eebb9d14b99b15d6e46664f079cf49ff89a3d6c9c5dc4fbd344cfc991  web/src/features/hud/GuardianModeSelector.tsx
+  c91986ffc18533fad8868a3429b657ec2987d61a5906f53f220a5970f98072f6  web/src/features/hud/GuardianModeSelector.test.tsx
+  aa937d8dd21ea106978e296792b557857e4c19f0c77e7a69522bb504d0ee1736  web/src/features/hud/mascotModel.ts
+  92bf52482410ce83be6b2c963ff61cba9c1c416ddec9e34a5f21efeff08a75a9  web/src/features/hud/hudModel.ts
+  a27ea3fc11b7570a5fcde7fa68918cfafec592229a1587c73f9495734d36c6ac  web/src/features/hud/hudModel.test.ts
+  9b27fbe5795f8bbedf747763f54b9240a1e79150d1e857c8d7a7554d7361c1ff  web/src/features/hud/hudPresentation.ts
+  5898464be80b8cc1017e6f49599acecba09e72a4fd02afa3311507b4b8888dc0  web/src/features/hud/hudPresentation.test.ts
+
+Scope: confirms the single-mascot contract and regressions only. This does not certify native Wayland alpha, real-agent events, focus/click-through, or the overall Linux release.

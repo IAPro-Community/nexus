@@ -1,0 +1,19 @@
+{
+  "project_id": "prj_06GQ9YHC5H87A648TPDS8Q02H0",
+  "plan_id": "plan_06GQ9YJVH165QPQAJ1MKS7C6QG",
+  "revision": 1,
+  "preview_ready": false,
+  "step_count": 5,
+  "blockers": [
+    "Planning: no provider accounts discovered",
+    "Implementation: no provider accounts discovered",
+    "Implementation: no provider accounts discovered",
+    "Review: no provider accounts discovered",
+    "Verification: no provider accounts discovered"
+  ],
+  "console_errors": [],
+  "page_errors": [],
+  "request_failures": [
+    "HEAD http://127.0.0.1:43913/wails/custom.js → net::ERR_ABORTED"
+  ]
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveFirstRunReadiness, summarizeHostSessionImport } from './firstRunReadiness';
+import { deriveFirstRunReadiness } from './firstRunReadiness';
 
 describe('first run detection', () => {
   it('does not fabricate a ready account while checks are running or unavailable', () => {
@@ -86,25 +86,6 @@ describe('first run detection', () => {
       'loaded',
     );
     expect(status.canImportSessions).toBe(false);
-  });
-
-  it('summarizes imports without exposing account or credential data', () => {
-    expect(
-      summarizeHostSessionImport([
-        { status: 'IMPORTED' },
-        { status: 'ALREADY_AUTHENTICATED' },
-        { status: 'NO_SESSION' },
-        { status: 'LOGIN_REQUIRED' },
-        { status: 'UNSUPPORTED' },
-        { status: 'FAILED' },
-      ]),
-    ).toEqual({
-      imported: 1,
-      alreadyAuthenticated: 1,
-      notImported: 2,
-      unsupported: 1,
-      failed: 1,
-    });
   });
 
   it('does not block project creation when no CLI is installed', () => {

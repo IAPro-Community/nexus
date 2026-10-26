@@ -72,9 +72,7 @@ const EMBEDDED_URXVT_MOUSE_RE = /\x1b\[(?:[3-9]\d|\d{3,});\d+;\d+M/g;
  */
 export function stripEmbeddedTerminalMetadata(data: string, allowMouse = false): string {
   if (!data) return data;
-  const clean = data
-    .replace(EMBEDDED_FOCUS_RE, '')
-    .replace(EMBEDDED_CPR_RE, '');
+  const clean = data.replace(EMBEDDED_FOCUS_RE, '').replace(EMBEDDED_CPR_RE, '');
   return allowMouse
     ? clean
     : clean

@@ -102,6 +102,7 @@ func (s *ResourceScheduler) Select(
 
 	candidates := s.filterEligible()
 	decision.ExplainPath = append(decision.ExplainPath, fmt.Sprintf("eligible=%d", len(candidates)))
+	decision.ExplainPath = append(decision.ExplainPath, "sort=score-desc,provider/profile/id/display-name")
 
 	// Manual policy with no explicit preference: reject all.
 	if s.policy == PolicyManual && preferProvider == "" {
@@ -127,15 +128,34 @@ func (s *ResourceScheduler) Select(
 		entries = append(entries, scoredEntry{account: acc, score: score, reason: reason})
 	}
 
-	// Sort by score descending.
+	// Sort by score descending, then stable resource identity. Input order can
+	// vary across provider adapters, so equal-score accounts must not change
+	// selection from one discovery pass to the next.
 	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].score > entries[j].score
+		if entries[i].score != entries[j].score {
+			return entries[i].score > entries[j].score
+		}
+		left, right := entries[i].account, entries[j].account
+		if left.Provider != right.Provider {
+			return left.Provider < right.Provider
+		}
+		if left.Profile != right.Profile {
+			return left.Profile < right.Profile
+		}
+		if left.ID != right.ID {
+			return left.ID < right.ID
+		}
+		return left.DisplayName < right.DisplayName
 	})
 
 	if len(entries) > 0 {
 		decision.Selected = entries[0].account
 		decision.Score = entries[0].score
 		decision.Reason = entries[0].reason
+		if len(entries) > 1 && entries[0].score == entries[1].score {
+			decision.Reason = joinReasons([]string{decision.Reason, "deterministic resource identity tie-break"})
+			decision.ExplainPath = append(decision.ExplainPath, "equal-score tie-break applied")
+		}
 		decision.ExplainPath = append(decision.ExplainPath,
 			fmt.Sprintf("selected=%s score=%.2f", entries[0].account.ID, entries[0].score),
 		)

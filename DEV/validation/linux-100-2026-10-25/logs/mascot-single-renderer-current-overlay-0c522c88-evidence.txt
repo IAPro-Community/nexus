@@ -1,0 +1,10 @@
+Mascot single-renderer recheck on Linux homologation source overlay
+Base branch/commit: release/v1.0.0 / 7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+Source fingerprint: 0c522c885e700dc52d6d03a0feb313bc7d5e420915ca0188fe6c554b49fe9841 (1,424 product source files)
+Focused command (cwd web/): bun x vitest run src/features/hud/mascotModel.test.ts src/features/hud/guardianModel.test.ts src/features/hud/hudModel.test.ts src/features/hud/GuardianModeSelector.test.tsx src/features/hud/GuardianMascot.test.tsx
+Result: PASS, 5 files / 29 tests.
+Art command: bun run --cwd web art:nex:check
+Result: PASS, canonical official NEX SVG verified.
+HUD E2E command (cwd web/): NEXUS_E2E_ARTIFACTS_DIR=../DEV/validation/linux-100-2026-10-25/screenshots/mascot-single-renderer-current-overlay-0c522c88 bun run test:e2e:hud
+Result: PASS in isolated Chromium fixture. Evidence covers attention state/actions, expanded and mobile layouts, and Axe checks. This is browser automation, not native Wails or compositor alpha validation.
+Native Wails evidence was not recaptured in this recheck. Earlier native XWayland evidence shows one NEX; alpha and live-provider attention remain BLOCKED.

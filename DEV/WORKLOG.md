@@ -1,3 +1,299 @@
+## 2026-10-26 — reconciliação upstream, versão 1.0.0-beta.11 e validação integral
+
+- Reconciliei 15 commits vindos de `origin/release/v1.0.0` (commit 7a04f1b4 até 9d8d30af: suporte e gating de mouse DECSET/PTY, motion e paridade visual oficial do NEX).
+- Resolvi o conflito em `web/src/features/hud/_hudGuardian.scss`, incorporando as animações oficiais de movimento articulado do NEX mantendo suporte a `data-blink`.
+- Mantive compatibilidade estrutural de `companionModel.ts` reexportando `mascotModel.ts` para satisfazer o contrato visual do mascote sem divergir do modelo unificado.
+- Corrigi teste unitário `TestTerminalOutputScrubberPreservesApplicationCursorNegotiation` em `internal/runtime/terminal_output_test.go` para refletir a nova política que preserva DECCKM (?1) em aplicações TUI.
+- Incrementei a versão de desenvolvimento para `1.0.0-beta.11` sincronizada em `VERSION` e `web/package.json` (`scripts/release-version.mjs` e `scripts/verify-version-contract.go`).
+- PASS em todos os gates de qualidade: `scripts/verify-nex-visual.mjs` PASS, `make version-check` PASS, `make format-check` PASS, Prettier PASS, ESLint PASS, Stylelint PASS, `check:styles` PASS, `tsc --noEmit` PASS, Vitest Web 110 suítes / 684 testes PASS, `make vet` PASS, `go test ./internal/...` PASS, `make security` PASS (govulncheck limpo).
+- Compilação dos binários locais `nexus`, `cmd/nexus-desktop/build/bin/nexus-desktop` e `cmd/nexus-hud/build/bin/nexus-hud` na versão `1.0.0-beta.11`.
+
+## 2026-10-26 — regressão atual do mascote único
+
+- Reafirmei a direção do produto: um NEX, sem Companion 2D ou renderer paralelo; a opção Mascote é o mesmo NEX, e Barra/Bandeja são outras apresentações do HUD. Não havia código 2D ativo que exigisse nova remoção.
+- No checkout atual: 5 suítes/33 testes Vitest PASS, `bun run art:nex:check` PASS e `bun run test:e2e:hud` PASS. O primeiro Vitest não iniciou testes por `/tmp` cheio; a repetição com `TMPDIR` no volume raiz passou. Evidência: `DEV/validation/linux-100-2026-10-25/logs/mascot-current-source-recheck-2026-10-26.txt`.
+- Limite: o recheck confirma contrato e comportamento web; não substitui alpha/Wayland nem interação nativa completa, que seguem pendentes na homologação Linux.
+
+## 2026-10-26 — reconsulta final de PRs/release
+
+- GitHub em 08:57 UTC: HEAD `release/v1.0.0` inalterado; #55 CLOSED; #66/#67 MERGED; #57 OPEN/UNSTABLE, #58/#59/#61 OPEN/DIRTY e #64 OPEN/BLOCKED em `main`. Cinco previews unsigned, sem `v1.0.0` estável.
+- Preservei a decisão de um NEX único e não mesclei PRs draft/conflitantes. Evidências em `PULL_REQUEST_RECONCILIATION_CURRENT.md` e `logs/current-gh-prs-final-recheck-2026-10-26.json`/`current-gh-releases-final-recheck-2026-10-26.txt`.
+
+## 2026-10-26 — suíte Go integral no overlay final
+
+- No fingerprint instalado `047e6f968d64ee7f51ad389a21d43fe305e9ce9fb98b00c750be526b06c2313c`, `go test -count=1 -timeout=20m ./...` passou em todos os pacotes e `go vet ./...` terminou com exit 0. Apenas warnings upstream de APIs X11 depreciadas do Wails/GTK.
+- O frontend não mudou entre o overlay do quality pass e este: os únicos arquivos-fonte diferentes são `internal/desktop/hud_window.go` e seu teste. CLI/Desktop/HUD raw do fingerprint foram compilados e instalados; pacote GoReleaser deste fingerprint não foi produzido. Matriz/JSON: **NO_GO_LINUX — 164 PASS / 1 FAIL / 21 BLOCKED / 0 NOT_RUN (186)**.
+- Logs em `DEV/validation/linux-100-2026-10-25/logs/go-test-full-exact-wayland-geometry-overlay-2026-10-26.txt` e `go-vet-full-exact-wayland-geometry-overlay-2026-10-26.txt`. Sem commit/push.
+
+## 2026-10-26 — soak P9 de oito horas concluído
+
+- `make overnight-soak DURATION=8h` concluiu; saída Go: `ok github.com/IAPro-Community/nexus/internal/nexus/runner 28800.004s`. O executável do teste foi hasheado durante a execução (`ccfa49e1af5cf08fc5fae32339b788b7c8cb788b6914ff2a41abf0a63f096bbe`). Fonte da execução: HEAD/remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b` + overlay `b874bec02f83066daed6f913b4d357fb411dfff9fe1ff97e8290a2f8b4f0ca8d`.
+- P9-003 passou para o harness determinístico. NR-007 permanece BLOCKED: provider real, recuperação de PTY órfão em uso longo e inspeção de restart no dia seguinte não foram cobertos.
+- Matriz/JSON reconciliados: **NO_GO_LINUX — 163 PASS / 1 FAIL / 21 BLOCKED / 0 NOT_RUN (185)**. NEX continua único; sem Companion 2D. App instalado preservado. Sem commit, push, merge, tag ou publicação.
+- Evidências em `DEV/validation/linux-100-2026-10-25/` (`RUNTIME_VALIDATION.md`, `TEST_MATRIX.md`, relatório, JSON e logs P9).
+
+## 2026-10-26 — FIX-034: idle do NEX, build e verificação Go corrente
+
+- Mantido o contrato solicitado: um mascote NEX; sem Companion 2D. A camada de preferência antiga só migra para a opção canônica.
+- Corrigi o custo de repaint idle: WebKit nativo caiu de 86,2% para 1,5%/0,4% no Xvfb; amostra da instalação ativa 0,5%/0,0%. `quality:full` 109/678, E2E HUD, arte, `go test ./...`, `go vet ./...` e race em `./internal/nexus ./internal/control/notify` passaram.
+- CLI/Desktop/HUD AMD64 recompilados, snapshot DEB beta.10 testado em dpkg root isolado, hashes instalados conferidos e Core HTTP 200. Proveniência: HEAD/remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b` + fingerprint atual `b73161ffd4afe7d566bd00cfdc6d6e090e95b0c99e13dbd0653aadd40fdf6eac` (1.428/1.428 verificadas); sem SHA commitado.
+- Matriz **NO_GO_LINUX — 161 PASS / 1 FAIL / 19 BLOCKED / 2 NOT_RUN (183)**. P9 de 8 h permanece ativo. Wayland/alpha/GPU, provider real, updater oficial e proveniência commitada permanecem gates; app instalado não foi encerrado.
+- Relatórios atualizados em `DEV/validation/linux-100-2026-10-25/`; sem commit/push/publicação.
+
+## 2026-10-26 — persistência do HUD no build Linux corrente
+
+- Recompilei `nexus-hud` AMD64 do overlay corrente (`ae95af1a437b3b1282111fae16449d4ce48ea581e82ffffaa5aaa3faa7351e0b`) e executei o Wails em Xvfb/Xfwm com HOME/config/dados isolados.
+- XTest focou a alça e ArrowLeft moveu a janela de `1204,734` para `1188,734`. Estado gravou `1188,734 224×158`; SIGTERM/exit 0; reabertura com o mesmo perfil restaurou exatamente `1188,734 224×158`; segundo exit 0.
+- O caso NR-004 mudou de NOT_RUN para PASS. Xvfb não certifica Wayland, alpha, bandeja, auto-hide ou multimonitor; o resultado geral permanece NO_GO_LINUX. O harness e as capturas estão em `DEV/validation/linux-100-2026-10-25/tools/native_hud_persist_xvfb.sh`, `logs/native-hud-persist-xvfb-2026-10-26.txt` e `screenshots/native-hud-persist-xvfb-2026-10-26/`.
+
+## 2026-10-26 — revalidação Linux das regressões de HUD da PR #59
+
+- Repeti `go test -race -count=1 ./internal/executil ./internal/hudlink ./internal/desktop` e `go vet` nos mesmos pacotes com `TMPDIR`/`GOCACHE` isolados. Race passou em `hudlink` e `desktop`; `executil` não possui testes Linux; vet passou nos três.
+- A tentativa inicial fora do cache isolado não conseguiu escrever no `/tmp` cheio. A repetição passou. Restaram avisos de APIs X11 depreciadas no Wails/GTK; não são falhas Go do projeto.
+- Proveniência: HEAD/remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b` + fingerprint `0f9f1c0912788cf913aff1918111cf3e2b10521e22f70c9079edc6f042a08f28` (1.428 fontes). Sem alteração de código de produto. O smoke real Windows continua não homologado.
+- Evidência: `DEV/validation/linux-100-2026-10-25/logs/p9-recheck-hud-race-vet-2026-10-26.txt`; matriz e [validação do HUD](DEV/validation/linux-100-2026-10-25/HUD_VALIDATION.md) atualizadas.
+- Comparei os heads de #57/#58 com a release: descoberta de worktrees, modo split persistente, paleta contextual e recomendação Direct já estão no HEAD. Os drafts estão atrasados em relação a correções e traduções atuais; portá-los em bloco regrediria o estado. Corrigi também os links ao relatório de reconciliação na matriz. Detalhes em `DEV/validation/linux-100-2026-10-25/PULL_REQUEST_RECONCILIATION_CURRENT.md`.
+
+## 2026-10-26 — reteste de compositor Wayland
+
+- A sessão informa GNOME/Wayland, mas `grim` em uma região 1×1 retornou `no wl_output`. O HUD isolado do overlay atual encerrou antes de produzir janela; a mesma cópia de teste abriu em Xvfb/X11. Isso é `BLOCKED` para esta tentativa, não falha confirmada do produto.
+- Preservei a evidência funcional Wayland anterior e atualizei BLK-010/011 para separar aquele build do overlay atual. Alpha, captura e entrada física seguem sem sign-off.
+- Evidência: `DEV/validation/linux-100-2026-10-25/logs/wayland-direct-probe-current-2026-10-26.txt`; detalhes em `HUD_VALIDATION.md` e `TEST_MATRIX.md`.
+
+## 2026-10-26 — investigação da sessão Cursor existente
+
+- O `cursor-agent status` do host retornou autenticação ativa (exit 0); a saída foi filtrada em memória, sem registrar email ou segredo. Evidência sanitizada em `DEV/validation/linux-100-2026-10-25/logs/cursor-existing-session-status-sanitized-2026-10-26.txt`.
+- A documentação oficial descreve `agent login` e `CURSOR_API_KEY`, sem método documentado para exportar a sessão de navegador já armazenada. Mantive BLK-004: não copiei o banco local de 17 GB nem material de keychain sem API suportada. Perfis Nexus já autenticados seguem reconhecidos sem novo login.
+- Referências atualizadas: `PROVIDER_SESSION_IMPORT_VALIDATION.md` e `TEST_MATRIX.md`. A conclusão é `BLOCKED` para importar essa sessão específica, não para detectar que a CLI está autenticada.
+
+## 2026-10-26 — confirmação final do mascote único
+
+- Mantido o contrato solicitado: um NEX, sem personagem, renderer ou modo Companion 2D. A implementação ativa continua `NexusHud → GuardianMascot → NexPixelSprite`; Barra/Mascote/Bandeja são apresentações do mesmo HUD.
+- Repeti a regressão focada sobre `release/v1.0.0@7a04f1b4cf5950b97b4ea1e156dda31ac513823b` + overlay fonte `0f9f1c0912788cf913aff1918111cf3e2b10521e22f70c9079edc6f042a08f28`: Vitest 6 suítes/38 testes PASS, arte oficial PASS e HUD E2E PASS. Logs em `DEV/validation/linux-100-2026-10-25/logs/mascot-single-nex-*-final-2026-10-26.txt`.
+- A documentação agora distingue a migração da preferência antiga `companionMotion` do armazenamento v1 de adiamentos, que segue preservado para o mesmo NEX. Isso não representa personagem nem modo adicional.
+- Captura nativa Wails/Xvfb mostra um só NEX. Conteúdo integral do popover, alpha/transparência no compositor e interação Wayland do host seguem pendentes; a homologação Linux geral permanece `NO_GO_LINUX`.
+
+## 2026-10-26 — mascote único, recheck e correção de hosts
+
+- Reafirmei e verifiquei no código a direção solicitada: um único NEX, sem modo/personagem Companion 2D. Os três itens do seletor são apresentações do mesmo HUD. 38 testes focados, arte oficial e E2E HUD passaram; screenshot nativo Wails/Xvfb mostra um NEX. Alpha/Wayland e conteúdo integral do popover não estão certificados.
+- Corrigi FIX-033: matching de hosts passou a comparar tokens e preservar aliases/comentários; regressões race x3, pacote web Go e vet passaram. A PR #64 continua aberta na base `main`; só o defeito localizado foi portado, sem merge/commit/push e sem escrita em `/etc/hosts`.
+- Reconcilei evidências locais das PRs #57/#58/#59 e atualizei a matriz para 148 PASS / 1 FAIL / 18 BLOCKED / 4 NOT_RUN (171), ainda `NO_GO_LINUX`.
+- Overlay fonte `0f9f1c0912788cf913aff1918111cf3e2b10521e22f70c9079edc6f042a08f28`; manifesto em `DEV/validation/linux-100-2026-10-25/logs/source-provenance-pr64-hosts-alias-fix-2026-10-26.txt`.
+- Próximo: continuar os gates pendentes sem interromper o soak P9.
+
+## 2026-10-26 — reafirmação do mascote único
+
+- Contrato mantido: um NEX funcional; Companion 2D fora do escopo e ausente do renderer ativo. Nenhum código de produto foi alterado nesta rechecagem porque não havia modo/personagem 2D ativo para remover.
+- A PR #55 foi consultada novamente via GitHub e está `CLOSED`; o relatório histórico de reconciliação foi marcado como superado para não sugerir integração futura.
+- Verificação atual: cinco suítes/33 testes, `art:nex:check` e `test:e2e:hud` passaram. O primeiro E2E não tinha espaço em `/tmp`; repetido com `TMPDIR`/`GOCACHE` no cache local e passou. A captura Wails/Xvfb mostra um único NEX.
+- Evidências: `DEV/validation/linux-100-2026-10-25/MASCOT_VALIDATION.md` e `COMPANION_VALIDATION.md`. Alpha e compositor Wayland permanecem sem validação. Base/remote `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`; overlay fonte atual `ab5629f56e014719c0ce89c88b16b986f5bb0da8c310baac9fa079370140da5c`.
+
+## Continuidade — DIRECT atômico até WorkPlan/MissionRunner e mascote NEX único — 2026-10-26
+
+- HEAD/base local e remoto `release/v1.0.0@7a04f1b4cf5950b97b4ea1e156dda31ac513823b`; overlay fonte `ab5629f56e014719c0ce89c88b16b986f5bb0da8c310baac9fa079370140da5c` (1.428 arquivos; manifesto `DEV/validation/linux-100-2026-10-25/logs/source-provenance-p5-direct-atomic-mission-2026-10-26.txt`). Worktree compartilhada permanece modificada; sem commit/push.
+- O produto mantém um único NEX. `companionModel`/teste e a preferência antiga de movimento como gravação canônica estão removidos; só existe o caminho `NexusHud → GuardianMascot → NexPixelSprite`. Barra/Mascote/Bandeja são apresentações do mesmo HUD. Não existe modo/renderer Companion 2D.
+- PASS: cinco suítes Vitest focadas (30/30), `bun run art:nex:check`, e smoke nativo Wails prévio no mesmo overlay fonte de frontend, Xvfb 224×158, um NEX. Evidência: `DEV/validation/linux-100-2026-10-25/MASCOT_VALIDATION.md` e screenshot `screenshots/native-hud-workspace-fix-2026-10-26/hud-mascot.png`. Xvfb não comprova alpha/Wayland.
+- PASS P5-009: pedido DIRECT explicitamente promovido → WorkPlan de uma etapa → admissão → MissionRunner `COMPLETED_VERIFIED`; uma execução de fixture, `go test ./...` em worktree temporária e duas entradas de evidência durável (pacote/global). Repetição `-race -count=3`, `go vet ./internal/nexus` e suíte completa `go test -count=1 ./internal/nexus` passaram. Isso não é handoff de provider real nem E2E Browser/Wails; P5 continua parcial.
+- Matriz agora: **NO_GO_LINUX — 145 PASS / 1 FAIL / 18 BLOCKED / 4 NOT_RUN (168)**. Motivos pendentes incluem release estável/proveniência congelada, Wayland alpha/GPU, handoff externo autenticado, updater oficial e soak/inspeção final.
+- Relatório: `DEV/validation/linux-100-2026-10-25/LINUX_HOMOLOGATION_REPORT.md`.
+
+## 2026-10-26 — FIX-032 e reavaliação de idle nativo
+
+- Causa reproduzida: deduplicação sem alterações do workspace recriava a identidade da árvore e reacionava o efeito de superfícies fixadas, formando um ciclo de render/effect. A correção preserva identidades inalteradas; o alerta de atualização da Overview também fica estático.
+- Regressões: workspace/Overview 22/22; bun run quality 109 arquivos/678 testes e build frontend passaram. CLI, Desktop e HUD Linux AMD64 recompilados; Desktop/HUD sem bibliotecas ausentes.
+- Wails de produção abriu a Overview em Xvfb; WebKit principal 0,5% de um núcleo/12 s e 0 mutações DOM após estabilização no Inspector. Xvfb não valida GPU/Wayland; NR-010 permanece BLOCKED.
+- Contrato preservado: um NEX único; Barra/Mascote/Bandeja são apresentações do mesmo HUD. Companion 2D não integra o produto.
+- Base HEAD/remoto 7a04f1b4cf5950b97b4ea1e156dda31ac513823b; overlay eb038f52b8555c362a9129a3680746e0769ba4cbe733450b5c7a3b34a3ecbe05; manifesto DEV/validation/linux-100-2026-10-25/logs/source-provenance-workspace-idle-fix-2026-10-26.txt. Serviço instalado e soak de 8 h preservados. Sem commit/push.
+- Evidências: DEV/validation/linux-100-2026-10-25/FIXES_APPLIED.md (FIX-032), TEST_MATRIX.md (NR-010), LINUX_HOMOLOGATION_REPORT.md e screenshot native-production-overview-idle-fixed-2026-10-26.png. Resultado continua NO_GO_LINUX: 144 PASS / 1 FAIL / 18 BLOCKED / 4 NOT_RUN.
+- HUD do overlay final também passou smoke Wails Xvfb: janela 224×158 com um NEX; clique abriu popover. Binário 12e83d1568dd79d082d2dd6640032c96e4e60ad2485d3364ff55e52cbd8a09a4, captura screenshots/native-hud-workspace-fix-2026-10-26/hud-mascot.png, log logs/current-hud-native-workspace-fix-xvfb-2026-10-26.txt. RGB não certifica o conteúdo completo do popover, alpha ou Wayland.
+
+## Continuidade — build/install e perfil Cursor autenticado em fixture — 2026-10-26
+
+- HEAD/base local/remoto `release/v1.0.0@7a04f1b4cf5950b97b4ea1e156dda31ac513823b`; overlay testado/instalado `0df26de4a35641d1e5d02ded7757b257fa7f4f15747220416574c083b4127208` (1.428 fontes; manifesto `DEV/validation/linux-100-2026-10-25/p5-recheck-2026-10-26T0347Z/logs/source-provenance-after-auth-maestro-fixes.txt`). Worktree modificada, sem commit/push.
+- `make build build-desktop-wails build-hud-wails` passou; CLI/Desktop/HUD ELF AMD64 e `ldd` sem ausências. Hashes: `fb45b0a42af24aa3427958983fb9315cbab338c88713b0290c4cb3f708222a8f`, `6bbbafdab42309d2657ceed4ccf90f1d87c4381aee5d7b6d4528903a136dc61f`, `76aabefd32c3eb88b5693546b3402e46f6006006250e2eff47822fa598e33e15`.
+- Desktop e HUD instalados atomicamente com backup e unidade reiniciada; PID do Desktop/HUD vinculado carregam os hashes, Core HTTP 200. Backup: `/home/desenvolvedor/.local/state/ai-manager/nexus-update-backups/20261026T041144Z-import-auth-maestro-fix`.
+- Perfil Cursor fixture já autenticado na UI Wails resultou em `1 já autenticada`, `0 sem suporte`; nenhum login ou token real foi copiado. HUD nativo mostra um único NEX e controles. Companion 2D segue fora do produto.
+- Matriz atual: **NO_GO_LINUX — 144 PASS / 1 FAIL / 18 BLOCKED / 4 NOT_RUN (167)**. Xvfb não certifica alfa/Wayland; provider externo, release estável, updater oficial e árvore imutável continuam sem aprovação. Relatório: `DEV/validation/linux-100-2026-10-25/LINUX_HOMOLOGATION_REPORT.md`.
+
+## Continuidade — regressões de sessão autenticada e perfil Maestro — 2026-10-26
+
+- Branch `release/v1.0.0`; HEAD local/remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`. Overlay atual dos testes Go: `0df26de4a35641d1e5d02ded7757b257fa7f4f15747220416574c083b4127208` (1.428 fontes; manifesto `DEV/validation/linux-100-2026-10-25/p5-recheck-2026-10-26T0347Z/logs/source-provenance-after-auth-maestro-fixes.txt`). Worktree compartilhada modificada, sem commit/push.
+- FIX-030 reconhece perfil Nexus já autenticado antes de exigir importador do host; FIX-031 prioriza raiz isolada e não percorre ancestrais do `HOME`. O Nexus mantém um único mascote NEX, sem Companion 2D.
+- PASS: `go test -count=1 -timeout=4m ./internal/nexus` (103,474 s), `go test -count=1 ./internal/profile`, `go vet ./internal/nexus ./internal/profile`. E2Es Composer passaram no overlay intermediário `1c3aa2c6ca9043f4a43dc3cd7a5ade451930d21c6fe3ff2e07de4cc0ed068693`; saída não pronta é esperada sem provider elegível.
+- Matriz: **NO_GO_LINUX — 141 PASS / 1 FAIL / 18 BLOCKED / 4 NOT_RUN (164)**. Esta correção não fecha release, compositor/alpha, provider real, idle acelerado, updater oficial ou proveniência imutável. O binário Wails instalado não inclui este último overlay ainda. Evidências em `DEV/validation/linux-100-2026-10-25/p5-recheck-2026-10-26T0347Z/`.
+
+## 2026-10-26 — NEX único no build atual e correção de advisories Web
+
+- Reafirmei o contrato de um mascote NEX. Não existe personagem ou modo Companion 2D; o caminho ativo é `NexusHud → GuardianMascot → NexPixelSprite`.
+- HUD Wails AMD64 atual em Xvfb: um NEX em janela 224×158; clique abriu controles. Desktop Wails atual em Xvfb 1440×900: Core HTTP 200, tela Uso/Contas e importação com HOME isolado (0/0/5/1/0). Capturas reais e checksums em `DEV/validation/linux-100-2026-10-25/MASCOT_VALIDATION.md` e `PROVIDER_SESSION_IMPORT_VALIDATION.md`.
+- FIX-029 atualizou Vitest/lockfile para corrigir 23 advisories. Bun 1.3.9 frozen install/audit Web/docs-site, `quality:full` 109/675/build e E2E HUD/Mission Attention passaram; consulta OSV ainda BLOCKED por reset de `api.osv.dev`.
+- Overlay `751cfc1a160c38d950ac5b9807e1febb9746d03981c861c722e5bd965e1ef012`; HEAD local/remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`; sem commit/push/merge/publicação.
+- Matriz **NO_GO_LINUX — 139 PASS / 1 FAIL / 18 BLOCKED / 4 NOT_RUN (162)**. Alpha/Wayland, CPU acelerada, runtime externo, updater oficial, SHA imutável e release estável seguem pendentes. Soak P9 e aplicações instaladas foram preservados.
+
+## 2026-10-26 — correção de animação idle no Wails
+
+- Removi `nx-spin-slow` do indicador de atualização disponível e adicionei regressão para ícone estático.
+- **PASS:** teste focado 6/6, `quality:full` 109/675/build, build Wails AMD64 e smoke real Xvfb com Core HTTP 200. WebKit principal mediu 107,8% versus baseline 196,1% CPU por 20 s (delta direcional: baseline tinha três processos WebKit, reteste um com HUD spawn desativado). Screenshot/logs e SHA do binário em `DEV/validation/linux-100-2026-10-25/LINUX_HOMOLOGATION_REPORT.md`.
+- NR-010 continua BLOCKED por CPU remanescente, ausência de GPU acelerada e compositor Wayland sem captura. Resultado segue NO_GO_LINUX (137/1/20/4); soak P9 não foi interrompido. Overlay `391c5718b3f2cd494fb4fa0e6a9fae6f03a618c002155258a59b7e7e83f27459`; sem commit/push.
+- Recheck GitHub read-only: nenhuma release estável v1.0.0 (cinco previews); #57/#58 Draft, #59/#61 conflitantes, #64 direcionada a main sem checks. REL-001 segue FAIL; nada foi integrado ou publicado.
+- Próxima ação: retomar gates restantes de runtime/distribuição e, para NR-010, repetir benchmark em host com GPU/profiler e captura Wayland.
+
+## 2026-10-25 — recheck final do NEX único e Wails nativo (UTC 26/10)
+
+- Confirmei que a release mantém um único mascote NEX e não possui modo/renderer Companion 2D. `companionModel.ts` e o teste dedicado foram removidos do overlay anterior; `companionMotion` permanece somente para migração de preferências antigas.
+- Reteste de 26/10: cinco suítes focadas passaram (33/33), `bun run art:nex:check` passou e `bun run test:e2e:hud` passou. Logs: `current-one-mascot-contract-tests-2026-10-26.txt`, `current-one-mascot-art-check-2026-10-26.txt` e `current-one-mascot-hud-e2e-2026-10-26.txt`. Nenhum modo Companion 2D estava presente para remover.
+- No overlay atual, `bun run quality:full` passou (109 arquivos/674 testes/build) e o E2E de importação de primeiro acesso passou.
+- Executei Desktop Wails + Core embutido + HUD linkado reais em Xvfb com HOME vazio; clique em Uso/Contas exibiu 0 importadas, 0 já autenticadas, 5 sem sessão, 1 sem suporte e 0 falhas. Captura real mostra um único NEX. Nenhuma sessão real foi lida ou copiada.
+- CLI/Desktop/HUD AMD64 instalados e conferidos por SHA-256; unidade do perfil normal continua ativa, com Core HTTP 200. App mantido aberto para o usuário.
+- Proveniência: base local/remota `7a04f1b4cf5950b97b4ea1e156dda31ac513823b` + overlay `9a66687715414fc8b42d612fd2b4a531370c7f8c4fbfa86338a81ba9728ddcd1` (1.428/1.428 fontes do manifesto coincidentes). Sem commit/push.
+- Reproduzi CPU alta no WebKit após estabilização: 111,5% no perfil normal, e 196,1%/72,4% em dois processos no Wails/Xvfb vazio com tela Uso e ponteiro fora da janela. O compositor virtual não certifica GPU acelerada; `strace` e `perf` não puderam anexar (`ptrace` proibido; `perf_event_paranoid=4`), uma amostra por thread mediu 96,8% do núcleo na thread principal do WebKit; sem stack/callsite, não atribuí causa nem declarei vazamento. Evidências em `logs/current-installed-desktop-resource-retest-2026-10-26.txt` e `logs/current-native-webkit-usage-idle-no-hover-xvfb-2026-10-26.txt` e `logs/current-webkit-thread-usage-2026-10-26.txt`.
+- Relatório, handoff, contexto, spec ativa, índice e verificação foram alinhados. Matriz e JSON reconciliados: **NO_GO_LINUX — 137 PASS / 1 FAIL / 20 BLOCKED / 4 NOT_RUN (162)**. Compositor Wayland/alpha, benchmark idle acelerado e gates de release restantes continuam pendentes; o soak P9 de 8 h permanece em execução.
+
+## 2026-10-25 — P2 nativo fechado no escopo single-user e NEX único
+
+- Na mesma janela Wails/XWayland, a fixture de cinco projetos demonstrou A/D/E → estados ativos sem alerta → A/B/C/D/E; após restart do Core, o drawer recuperou A/B/C/D/E sem F5. O teste não chamou runner/provedor e não declara ACL multiusuário.
+- Atualizei relatório, matriz, JSON, plano P2 e memória corrente com PID/XID, SHA do Desktop de teste, fingerprint de fontes e checksums das capturas. Totais permanecem 126 PASS / 1 FAIL / 16 BLOCKED / 5 NOT_RUN; `NO_GO_LINUX`.
+- Mantida a decisão: um mascote NEX; Companion 2D separado não faz parte do produto. O renderer único passou 29 testes focados, verificação de arte, E2E HUD e captura Wails. Alpha e atenção ligada a agente real continuam pendentes.
+- `node scripts/verify-nex-visual.mjs` passou; `make docs-verify` terminou exit 2 porque o manifesto visual do commit-base não certifica alterações HUD/NEX não commitadas. O gate de proveniência segue bloqueado, e nenhum código de produto foi alterado nesta atualização.
+
+## 2026-10-25 — Recheck corrente do mascote único NEX
+
+- Confirmei no overlay `0c522c885e700dc52d6d03a0feb313bc7d5e420915ca0188fe6c554b49fe9841` um único caminho visual `NexusHud → GuardianMascot → NexPixelSprite`; o modelo/teste `companionModel` separado não existe no frontend ativo. Barra/Mascote/Bandeja são apresentações do mesmo HUD.
+- **PASS:** cinco suítes HUD, 29 testes; verificação da arte SVG oficial; E2E HUD Chromium com fixture, atenção, layouts e Axe. Logs/checksums e quatro capturas em `DEV/validation/linux-100-2026-10-25/`.
+- As capturas são Chromium; Wails não foi recapturado nesta rodada. Evidência Wails anterior mostra um NEX. Alpha e atenção de agente real permanecem BLOCKED.
+
+## 2026-10-25 — P5: feature OAuth multiárea e aprovação stale-safe
+
+- Ampliei `TestComposerApprovedFlowReachesMissionRunner` para prompt OAuth grande por várias áreas, edição após preview, rejeição do token antigo sem criar run e conclusão de ≥4 pacotes a partir do snapshot atualizado.
+- **PASS** — `go test -count=1 -timeout=4m ./internal/nexus/...`, `go vet ./internal/nexus/...` e `go test -race -count=3 -run '^TestComposerApprovedFlowReachesMissionRunner$' ./internal/nexus` no overlay `0c522c885e700dc52d6d03a0feb313bc7d5e420915ca0188fe6c554b49fe9841`. O fake executor revelou contador com race; corrigi apenas o teste com mutex, preservando a falha original e o retry.
+- E2E Chromium Flow/revisão 2 continua evidência no overlay anterior `ee6a9dd…`; não representa Wails/provider real. Logs e manifesto em `DEV/validation/linux-100-2026-10-25/`.
+- O produto mantém um único mascote NEX; Companion 2D separado está fora do produto. Resultado `124 PASS / 1 FAIL / 16 BLOCKED / 5 NOT_RUN (146)`, **NO_GO_LINUX**; provider real, UI Wails final, alpha/Wayland, assinatura/updater e overnight restart seguem pendentes.
+
+## 2026-10-25 — Alinhamento dos documentos correntes de homologação
+
+- Atualizei `DEV/CONTEXT.md`, `DEV/SPECS/ACTIVE.md`, `DEV/INDEX.md` e o plano de gaps para apontarem ao overlay real `d773e38c495781f52cdb3fa208c6a80bd1aae88d5e14bfabee56ac486407e0e1` (1.423 fontes) e ao relatório `SKILL_SESSION_VALIDATION.md`.
+- Reafirmei o contrato de produto: um NEX; Companion 2D separado fora do escopo; Barra/Mascote/Bandeja continuam sendo apresentações do mesmo HUD. Snapshots mais antigos foram rotulados como históricos.
+- **PASS:** manifesto recalculado contra todos os 1.423 arquivos; resumo JSON confere 120 PASS / 1 FAIL / 16 BLOCKED / 5 NOT_RUN; `git diff --check` limpo. HEAD local e remoto continuam `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`.
+
+## 2026-10-25 — P1 Skills: sessão Nexus com CLI fixture isolado
+
+- Adicionei `TestSelectedSkillsReachAnIsolatedProviderSession`: cobre escolha explícita e automática de Skills, passagem do contrato íntegro a um processo supervisionado, flags read-only, perfil temporário sem auth e cleanup. O executável `codex` foi fixture local; nenhuma conta ou rede externa foi usada.
+- **PASS:** repetição 5x, race 3x, `go test -count=1 ./internal/nexus` e `go vet ./internal/nexus`. Evidências em `DEV/validation/linux-100-2026-10-25/SKILL_SESSION_VALIDATION.md` e nos quatro logs `skill-session-*`.
+- Atualizei a linha BLK-008 para separar o PASS técnico do gate ainda **BLOCKED** de provedor real autenticado. Fingerprint atual `d773e38c495781f52cdb3fa208c6a80bd1aae88d5e14bfabee56ac486407e0e1`; resultado global continua NO_GO_LINUX — 120 PASS / 1 FAIL / 16 BLOCKED / 5 NOT_RUN.
+
+## 2026-10-25 — Reconfirmação do NEX único
+
+- Mantive a direção do usuário: um NEX único, sem personagem ou modo Companion 2D. Auditoria atual não encontrou renderer 2D para apagar; Barra/Mascote/Bandeja são apresentações do mesmo HUD. A árvore está no branch `release/v1.0.0`, base/remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`, fingerprint `d3caa597ae3bc061ad0048ad4d390b1b9bb0011cc496e4d213d0ec6119400796`.
+- Revalidei 29 testes focados, a arte oficial e `bun run test:e2e:hud`; tudo passou. Capturas nativas Wails previamente registradas mostram uma figura, seu balão e suas preferências. Logs desta execução em `DEV/validation/linux-100-2026-10-25/logs/mascot-*user-direction*` e detalhes em `MASCOT_VALIDATION.md`.
+- Alpha e atenção gerada por agente real continuam sem validação. Não houve mudança de código de produto; `NO_GO_LINUX` permanece (120 PASS / 1 FAIL / 16 BLOCKED / 5 NOT_RUN).
+
+## 2026-10-25 — Suíte Go integral no overlay atual
+
+- A primeira tentativa com cache Go compartilhado falhou antes de compilar por arquivos temporários de cache ausentes; preservei o cache e registrei o log da falha.
+- Com `GOCACHE=/tmp/nexus-linux-100-2026-10-25/gocache-p5-full-current`, `go test -count=1 -timeout=20m ./...` passou em todos os pacotes e `go vet ./...` terminou com exit 0. Wails emitiu warnings upstream de GDK X11 depreciada.
+- Fingerprint `d3caa597ae3bc061ad0048ad4d390b1b9bb0011cc496e4d213d0ec6119400796`; evidências em `DEV/validation/linux-100-2026-10-25/logs/p5-go-full-tests-current-overlay-2026-10-25.log`, `p5-go-full-tests-current-isolated-cache-2026-10-25.log` e `p5-go-vet-current-overlay-2026-10-25.log`. Matriz: 120 PASS / 1 FAIL / 16 BLOCKED / 5 NOT_RUN; `NO_GO_LINUX`.
+
+## 2026-10-25 — Snapshot Linux do overlay corrente
+
+- GoReleaser v2.18.0 compilou snapshot CLI tar.gz/DEB beta.10 para AMD64. Checksums passaram; os payloads dos pacotes são idênticos. O DEB foi instalado, consultado, executado e removido em dpkg root temporário.
+- Payload SHA-256 `92fed5a2fae1896b112032c14dc37fab62417bc398fb22ec91f94ef5c51d9efe`; artefatos unsigned em `/tmp/nexus-linux-100-p5-current-4d415ihx`. Host e release oficial não foram alterados.
+- Fingerprint `d3caa597ae3bc061ad0048ad4d390b1b9bb0011cc496e4d213d0ec6119400796`. Evidências em `DEV/validation/linux-100-2026-10-25/logs/p5-goreleaser-snapshot-current-overlay-2026-10-25.log`, `p5-goreleaser-package-validation-current-overlay-2026-10-25.txt` e [DISTRIBUTION_VALIDATION.md](validation/linux-100-2026-10-25/DISTRIBUTION_VALIDATION.md).
+- `v1.0.0` estável/updater assinado continuam pendentes; `NO_GO_LINUX`.
+
+## 2026-10-25 — Web quality integral no overlay atual
+
+- `bun run quality:full` passou: verificação CSS Modules/allowlist, Prettier, ESLint, Stylelint, TypeScript, 108 arquivos/673 testes e build de produção (exit 0).
+- O E2E HUD não fez parte desta execução; mantenho a distinção da evidência nativa/Wails. Fingerprint `d3caa597ae3bc061ad0048ad4d390b1b9bb0011cc496e4d213d0ec6119400796`.
+- Log: `DEV/validation/linux-100-2026-10-25/logs/p5-web-quality-full-current-overlay-2026-10-25.log`. Matriz: 119 PASS / 1 FAIL / 16 BLOCKED / 5 NOT_RUN; `NO_GO_LINUX`.
+
+## 2026-10-25 — Regressão do comando de login Codex
+
+- No overlay corrente, `bun x vitest run src/lib/providerLoginCommand.test.ts src/app/providerLoginCommandWiring.test.ts` passou em 4/4 casos. O perfil padrão Codex gera `nexus login codex`; somente perfis explicitamente nomeados adicionam o argumento de perfil. O modal de Contas e o fluxo do terminal de recursos usam o helper comum.
+- A validação é automatizada; não houve captura atual do modal Wails. Log: `DEV/validation/linux-100-2026-10-25/logs/provider-login-command-current-overlay-2026-10-25.txt`.
+
+## 2026-10-25 — Reexecução P9 no overlay atual
+
+- `make overnight-smoke` passou em 15,493 s; `make overnight-soak DURATION=5m` passou em 300,011 s, ambos com executor controlado e fixtures. Nenhum provedor externo ou runtime de usuário foi interrompido.
+- Fingerprint: `d3caa597ae3bc061ad0048ad4d390b1b9bb0011cc496e4d213d0ec6119400796`; os dois casos P9 agora citam esta árvore. Persistência após restart/inspeção no dia seguinte e continuidade de provedor real continuam pendentes.
+- Evidências em `DEV/validation/linux-100-2026-10-25/logs/p9-overnight-smoke-p5-current-2026-10-25.log` e `p9-overnight-soak-5m-p5-current-2026-10-25.log`. `NO_GO_LINUX` permanece.
+
+## 2026-10-25 — P5 E2E Composer de prompt completo até Flow
+
+- `bun run --cwd web test:e2e:composer-spine` passou em fixture isolada: prompt completo persistido, preview WorkPlan com cinco etapas, sem Mission/run ou Agent criado.
+- O fixture não instala contas de provedores; `ready=false` e cinco bloqueios foram registrados, por isso não aprova execução real ou UI nativa. Nenhum erro de página/console; uma requisição HEAD de `wails/custom.js` foi cancelada durante o teardown do harness.
+- Tentei captura nativa adicional via CUA, `grim`, GNOME Screenshot D-Bus e inspeção de janelas XWayland; todos os caminhos ficaram indisponíveis/negados, então a inspeção visual corrente segue BLOCKED. Evidência `DEV/validation/linux-100-2026-10-25/logs/p5-native-capture-alternatives-2026-10-25.txt`.
+- A árvore de produto continuou idêntica ao manifesto verificado: fingerprint `d3caa597ae3bc061ad0048ad4d390b1b9bb0011cc496e4d213d0ec6119400796`, 1.422 fontes, HEAD local/remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`.
+- Evidências: `DEV/validation/linux-100-2026-10-25/logs/p5-composer-complete-large-scenario-2026-10-25.txt` e `composer-spine-p5-20261025T213118Z/`. A matriz ficou em 118 PASS / 1 FAIL / 16 BLOCKED / 5 NOT_RUN; resultado `NO_GO_LINUX`.
+
+## 2026-10-25 — Instalação local do overlay P5
+
+- Fiz backup dos CLI/Desktop/HUD anteriores em `/home/desenvolvedor/.local/state/nexus-homologation/20261025T212822Z-p5-cas-current-install/` e instalei atomicamente os três artefatos AMD64 do fingerprint `d3caa597ae3bc061ad0048ad4d390b1b9bb0011cc496e4d213d0ec6119400796`.
+- Iniciei o Desktop (PID 3618613) e HUD linked (PID 3618685). O Core embutido respondeu HTTP 200, `status=ok`, beta.10.
+- A inspeção visual ficou BLOCKED: a interface CUA não expõe aplicações nem janelas nativas. Não usei screenshot de browser como substituto. Evidências `logs/p5-plan-revision-cas-local-install-2026-10-25.txt` e `logs/p5-native-ui-capture-limit-2026-10-25.txt`.
+- Homologação `NO_GO_LINUX`: 117 PASS / 1 FAIL / 16 BLOCKED / 5 NOT_RUN.
+
+## 2026-10-25 — Build Linux após a correção de revisão WorkPlan
+
+- `make build build-desktop-wails build-hud-wails` concluiu com exit 0 no overlay `d3caa597ae3bc061ad0048ad4d390b1b9bb0011cc496e4d213d0ec6119400796`. CLI, Desktop Wails e HUD Wails foram inspecionados como ELF x86-64; `ldd` não encontrou dependências ausentes.
+- Hashes: CLI `7d983a120bec6debada901bddc7a38748f6112d5d8d98f42b6d2d86efc10b8c6`, Desktop `25134b1e891ad11fc1f2467e0b814a955156a8ad514efaee8b847afd82b498d5`, HUD `a7b62e19456b3e88c0bf15af48b4c4234720339d7bd2928ad74c8b8d146d49d2`. Logs em `DEV/validation/linux-100-2026-10-25/logs/p5-plan-revision-cas-linux-*`. Binários não foram instalados nem usados para um novo teste visual nativo.
+- Resultado global segue NO_GO_LINUX (116 PASS / 1 FAIL / 15 BLOCKED / 5 NOT_RUN). Sem commit/push.
+
+## 2026-10-25 — NEX único revalidado no overlay atual
+
+- Reexecutei cinco suites focadas do HUD (29/29), `bun run art:nex:check` e `node scripts/verify-nex-visual.mjs` no fingerprint `d3caa597ae3bc061ad0048ad4d390b1b9bb0011cc496e4d213d0ec6119400796`.
+- O seletor oferece apenas Barra/Mascote/Bandeja para o mesmo NEX; nenhum modelo, atlas, renderer ou modo Companion 2D está presente. A interação Wails nativa não foi repetida nesta validação.
+- Evidências: `DEV/validation/linux-100-2026-10-25/logs/p5-overlay-single-mascot-regressions-2026-10-25.txt`, `p5-overlay-nex-art-check-2026-10-25.txt` e `p5-overlay-nex-visual-structure-2026-10-25.txt`. Resultado global `NO_GO_LINUX` (115 PASS / 1 FAIL / 15 BLOCKED / 5 NOT_RUN).
+
+## 2026-10-25 — P5 compare-and-swap de revisão WorkPlan
+
+- Reproduzi concorrência obsoleta no store: SQLite retornava erro UNIQUE bruto; endpoint mapeava toda falha para HTTP 400.
+- Corrigi `UpdateWorkPlan` para atualizar somente quando `current_revision` ainda corresponde ao valor esperado e traduzir conflito em `ErrPlanRevisionConflict`; handler agora responde 409.
+- Race focado passou no store (3x), serviços Nexus (2x) e handler (3x). A suíte `store/nexus/control/web` e `go vet` passaram. Evidências e manifesto verificado em `DEV/validation/linux-100-2026-10-25/logs/p5-plan-revision-cas-*`.
+- Fingerprint do overlay: `d3caa597ae3bc061ad0048ad4d390b1b9bb0011cc496e4d213d0ec6119400796` (1.422 fontes; HEAD `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`). P5 oficial permanece parcial; no encerramento daquele follow-up a homologação global estava `NO_GO_LINUX`, 114 PASS / 1 FAIL / 15 BLOCKED / 5 NOT_RUN. Sem commit/push.
+
+## 2026-10-25 — revalidação P1 e confirmação do NEX único
+
+- O código atual segue com um único NEX; não há renderer, modo ou modelo de UI Companion 2D. Mantive nomes legados apenas para migração de preferências e para o processo auxiliar real do HUD. A captura nativa mostra uma arte, e cinco suítes do mascote passaram 29/29.
+- A validação de arte `bun run art:nex:check` também passou para o SVG oficial; evidência em `DEV/validation/linux-100-2026-10-25/logs/current-nex-art-check-2026-10-25.txt` (incorporada ao caso MASCOT-012, sem alterar a contagem de casos).
+- Revalidei com `-race -count=5` as regressões de intervenção do runner, handoff de worker após timeout e decisão HTTP autenticada com restart; todos passaram. Logs `current-p1-all-intervention-regressions-2026-10-25.txt`, `current-p1-worker-timeout-2026-10-25.txt`, `current-p1-http-restart-2026-10-25.txt` e `current-single-mascot-regressions-2026-10-25.txt`.
+- Confirmei que o fingerprint de produto continua em `30223d700c7d7395705571ad72d2ea30055d191e181b`; corrigi o campo Markdown que quebrava a contagem e atualizei matriz/resumo/documentos compactos para 113 PASS / 1 FAIL / 15 BLOCKED / 5 NOT_RUN (134).
+- **PASS** — `go test -count=1 -timeout=20m ./...`, `go vet ./...` e `go test -race -count=1 -timeout=30m ./...` no overlay atual; 83 resultados por comando de teste/race e nenhum race report. Logs `current-go-full-tests-2026-10-25.txt`, `current-go-vet-2026-10-25.txt` e `current-go-full-race-2026-10-25.txt`.
+- **PASS** — `bun run quality:full` (108 arquivos/673 testes) e E2E HUD no overlay atual. Quatro capturas Chromium foram verificadas por checksum; `current-mascot-hud-e2e-evidence-2026-10-25.txt` registra o E2E. A matriz/resumo agora contam 113 PASS / 1 FAIL / 15 BLOCKED / 5 NOT_RUN (134).
+- Não alterei código de produção nem fiz commit/push. Próxima ação: continuar os gates Linux pendentes de runtime live, Wayland/alpha, updater/assinatura e fechar apenas com artefatos verificáveis.
+
+## 2026-10-25 — NEX único: domínio do mascote sem Companion 2D
+
+- A branch `release/v1.0.0` no HEAD-base `7a04f1b4cf5950b97b4ea1e156dda31ac513823b` não contém modo/renderer Companion 2D. Alinhei o frontend ao único NEX: `companionModel`/`hud.companion` e callbacks viraram `mascotModel`/`hud.mascot`; o seletor mantém Barra, Mascote e Bandeja.
+- Mantive leitura/escrita compatível de `companionMotion` e `iapro:nexus:companion:snooze:v1`; testes cobrem preferências e adiamentos antigos.
+- PASS: `bun run --cwd web quality` (108 arquivos/673 testes), build Web, E2E HUD Chromium e 34 testes focados. Capturas em `DEV/validation/linux-100-2026-10-25/screenshots/mascot-single-model-refactor/`; relatório em `MASCOT_VALIDATION.md`.
+- CLI/Desktop/HUD Wails foram recompilados e instalados em `~/.local/bin` após backup; hashes em `logs/local-install-mascot-refactor.sha256`. A janela Desktop abriu em XWayland, health respondeu `ok` e `ldd` não apontou bibliotecas ausentes. O Web Core pertencente ao runtime AGY ativo foi preservado.
+- A captura nativa existente confirma uma arte NEX; esta alteração frontend não foi tratada como novo teste nativo. Nenhuma apresentação visual do NEX foi removida.
+- Sem commit/push; o overlay continua não congelado. `NO_GO_LINUX` geral não muda (97 PASS / 1 FAIL / 15 BLOCKED / 5 NOT_RUN); próxima etapa é P8 segurança/distribuição Linux.
+
+## 2026-10-25 — P7: race integral, PTY e runtime
+
+- `go test -race -count=1 ./...` passou com exit 0 em 82 resultados de pacotes; durações lentas documentadas (nexus 261,558 s; store 79,035 s; capacitymonitor 25,074 s).
+- Corridas focadas passaram para attach/detach/lease, reaper e replacement de processo, continuidade sintética, lease de runner e restart seguro. `NATIVE_RESUME_UNVERIFIED` continua sem ack do provider.
+- Smoke real AGY em perfil disponível retornou `READY`; outro perfil autenticado com quota esgotada retornou HTTP 429 esperado. OpenCode não concluiu resposta final em 90 s e emitiu tool-use; processo foi encerrado e workspace temporário conferido vazio.
+- Handoff same-provider e context handoff cross-provider seguem BLOCKED. Runtimes Codex já ativos foram preservados. Evidência em `DEV/validation/linux-100-2026-10-25/P7_HANDOFF_PTY_VALIDATION.md`.
+- Matriz: 97 PASS / 1 FAIL / 15 BLOCKED / 5 NOT_RUN (118), `NO_GO_LINUX`. Sem commit/push. Mantido NEX único, sem Companion 2D.
+
+## 2026-10-25 — P6 Agents, fallback e ciclo de vida
+
+- Implementei o desempate determinístico do ResourceScheduler e registrei regra/motivo no ExplainPath.
+- Especialistas de missão são agora `EPHEMERAL_WORKER`; PackageRun persiste o tipo de identidade escolhido. Reconciliation de exit/startup limpa apenas workers efêmeros parados/falhos sem referências, preservando ativos, resumíveis, working e persistentes.
+- Regressões RED/GREEN cobrem desempate e identidade; testes cobrem fallback same/cross-provider, quota/rate-limit, modelo indisponível, persistência e limpeza.
+- PASS: `go test ./internal/nexus/... ./internal/control/... -count=1`; regressões focadas `-race -count=5`; `go vet ./internal/nexus/... ./internal/control/...`. Nenhuma sessão de provider externo foi executada. Logs e evidência: `DEV/validation/linux-100-2026-10-25/AGENT_FALLBACK_VALIDATION.md`.
+- Fonte local/remota `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`; overlay `bb575423508a0c773580804a476b0888ff2449135045a74f80aa6efaffedc6e1`, 1.421 arquivos. Sem commit/push. Resultado segue `NO_GO_LINUX`; próximo P7 cobre handoff, PTY e race completo. Mantido o mascote único NEX, sem Companion 2D.
+
+## 2026-10-25 — P4: inventário de projeto e evidência no Composer
+
+- Limitei o envelope do Project Intelligence a 16 KiB, 64 fatos, strings de 512 bytes e listas de 32 itens; adicionei redaction, corte seguro de UTF-8, `identity_digest` e `observed_at` por fato. Caminhos absolutos e warnings locais foram removidos do contexto do modelo.
+- TDD: primeiro falharam os testes de limite, identidade e caminho local; depois passaram os testes para tamanho/segredo/UTF-8, invalidação ao alterar `package.json` e symlink externo.
+- E2E isolada Chromium passou: o Composer responde `vitest run` da fixture com citação `package.json:scripts.test`, confiança HIGH e data; mantém uma pergunta material para objetivo vago e zero blockers para prompt completo. `ai-cli` não existe no PATH; sessão externa real está BLOCKED.
+- O E2E amplo do Composer passou com 2 esclarecimentos e plano de 5 etapas. A primeira leitura de finalização foi prematura; após sincronizar com a resposta HTTP e adicionar assert de armazenamento, o spine passou. Logs preservam a primeira observação e a repetição bem-sucedida.
+- O produto mantém o único mascote NEX, sem Companion 2D. P2 e P5–P9/gates de distribuição continuam pendentes; veredito NO_GO_LINUX.
+
 ## 2026-10-25 — Ativação de Composer & Flow Studio, Telemetria do HUD, Quotas e Portal de Documentação
 
 - **Ativação do Composer & Flow Studio**: Habilitação padrão de `COMPOSER_FLOW_ENABLED` em `web/src/app/composerFlowFlag.ts` e definição no bundler (`web/scripts/build.mjs`), liberando as superfícies `/p/:projectId/work` e `/p/:projectId/missions`, tabs contextuais do workspace e modelos de execução de fluxo. Testes unitários atualizados e spine E2E validado via Playwright com geração de plano de 5 passos.
@@ -5903,3 +6199,254 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - O Desktop Wails compilado após FIX-010 renderizou a tela inicial nativa em XWayland, 1280×800. Registrei NATIVE-007 com binário, fingerprint do overlay, log e screenshot SHA-256; o cartão de prontidão ainda carregava após 8 s e não foi aprovado.
 - Atualizei os totais para 59 PASS, 1 FAIL, 12 BLOCKED, 6 NOT_RUN (78 casos). Escopo confirmado: um único mascote NEX; Companion 2D não existe nesta branch e não deve ser integrado.
 - A recomendação permanece `NO_GO_LINUX`; a árvore está modificada e não foi commitada ou publicada.
+
+## 2026-10-25 — Reteste do HEAD remoto e confirmação do NEX único
+
+- `git fetch origin --prune` confirmou `release/v1.0.0` local/remota em `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`. Proveniência do overlay: `340800c27162b0d340ac10a4d65e32af2efb09f470b1c17a12e9ba594c0ff98f`, 1.413 fontes. Nenhum reset, commit, push, merge ou tag.
+- Seguindo a decisão de produto, mantive um só NEX. A auditoria atual confirma `NexusHud → GuardianMascot → NexPixelSprite`, um ponto de renderização, seletor Barra/Mascote/Bandeja e nenhuma implementação Companion 2D separada. Os SVGs públicos são gerados do mesmo componente e não são outro mascote. Nenhuma funcionalidade do único NEX foi removida.
+- `bun x vitest run` nos cinco módulos do HUD: 27/27; `bun run art:nex:check`: PASS. `make build-hud-wails`: PASS; ELF x86-64 e `ldd` sem biblioteca faltante.
+- O HUD Wails atual iniciou em sessão isolada DBus/Xvfb; janela `nexus-hud` 224×158, captura mostra uma arte NEX. Binário SHA-256 `8c86d450832bfcbdffd765657b9ee93a628ba55aa9ab2ffb4343fc8007de2235`; screenshot SHA-256 `96f73d5fde96630c7b54453e283d5a2223c09d567243fb3aa1f9a51adf92f0a7`. Xvfb não verifica a interação/transparência no compositor real.
+- Mission Attention HTTP em dois projetos passou 10 repetições e 5 com `-race`; a API sem bearer respondeu 401, projeção autenticada/filtros sobreviveram ao close/reopen do store/serviço/servidor HTTP de teste. `bun run test:e2e:hud` passou em Chromium com fixture, snooze, reduced-motion e Axe desktop/mobile.
+- P2 continua IN_PROGRESS: falta restart do processo real `nexus web` enquanto UI conectada, estados vazios/loading/erro e fluxo multi-missão completo; o workspace é single-user, sem ACL por usuário/projeto. Matriz atualizada para 65 PASS / 1 FAIL / 12 BLOCKED / 5 NOT_RUN (83), portanto `NO_GO_LINUX`.
+- Evidências em `DEV/validation/linux-100-2026-10-25/MISSION_ATTENTION_VALIDATION.md`, `MASCOT_VALIDATION.md`, `TEST_MATRIX.md` e logs `attention-http-restart-p2-*`, `attention-hud-web-e2e-p2-*`, `mascot-current-head-*` e `native-hud-current-head-xvfb-*`.
+
+
+## 2026-10-25 — E2E de Mission Attention e consolidação do mascote único
+
+- Reconfirmei HEAD local/remoto `release/v1.0.0` em `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`. Fingerprint efetivo do overlay atual: `ee8a19c0cf340086f8f1cfc258d50a98ec29719952b978401be55c977a693b6` (1.415 fontes), sem commit/push/merge/tag.
+- Mantive o contrato solicitado: um único mascote NEX. O caminho ativo é `NexusHud → GuardianMascot → NexPixelSprite`; Barra/Mascote/Bandeja são apresentações do HUD. A PR #55/Companion 2D não foi integrada e não há segundo mascote/modo a remover.
+- Corrigi dois defeitos com regressão E2E: cards obsoletos permaneciam visíveis após erro HTTP; drawer do Attention Center excedia viewport de 390 px. O novo `bun run test:e2e:mission-attention` passou com 12 requests, cobrindo loading, categorias, filtros, teclado, vazio/erro, navegação para missão e layout móvel. Capturas e checksums em `DEV/validation/linux-100-2026-10-25/screenshots/p2-mission-attention-2026-10-25/` e `logs/mission-attention-screenshots.sha256`.
+- `bun run quality:full` passou (108 arquivos/672 testes), `make web-verify` passou, `go test` da projeção HTTP passou 10x e 5x race, `go vet ./internal/control/web` passou. Retestes do NEX: 27/27, arte e `bun run test:e2e:hud` passaram. Builds Wails Desktop/HUD AMD64 passaram, ELF x86-64 e `ldd` sem ausências; SHA-256 `7dc821c7…` e `8ae8ef9f…`.
+- Desktop Wails do overlay atual abriu em XWayland, mostrou a tela inicial em 1280×800 e encerrou com exit 0; screenshot SHA-256 `f9187aa3b0084552e8f518e511425df812e8b1659b4e2cc43df78a6aaa433334`. A primeira captura, anterior ao paint do WebView, estava preta e foi preservada separadamente.
+- A primeira captura XWayland do rebuild atual selecionou uma janela auxiliar InputOnly e falhou; o reteste filtrado localizou a janela `nexus-hud` visível de 224×158 e a captura mostra um NEX. A tela comprova renderização, não alpha/transparência; fixture e atenção real de agente continuam pendentes.
+- Matriz reconciliada: `NO_GO_LINUX` — 69 PASS / 1 FAIL / 12 BLOCKED / 5 NOT_RUN (87). Continuam abertos restart do processo real com UI conectada, A/B/C/D/E integrado, ACL multiusuário, runtime/skills/roteamento e gates de distribuição/Wayland.
+
+## 2026-10-25 — P8 Linux — scanner e pacotes locais
+
+- `make security`: PASS, govulncheck v1.7.0/Go 1.26.10, `No vulnerabilities found.`; isso não substitui revisão arquitetural.
+- `make release-dry-run`: PASS; build Web/CLI e contrato beta.10 consistentes.
+- GoReleaser v2.18.0 criou snapshot CLI tar.gz/DEB AMD64 em diretório `/tmp` isolado. Checksum, payload igual, `dpkg --force-not-root` instalar/consultar/executar/remover passaram sem tocar no host.
+- Proveniência: HEAD/remote `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`, fingerprint sujo `268a9e9a0036e89e39bcff07eca880869534c9c75cc13765384bb3fa3fc30b32`, 1.421 fontes.
+- Atualizei matriz para 100 PASS / 1 FAIL / 15 BLOCKED / 5 NOT_RUN. `NO_GO_LINUX` permanece: beta.10, sem assinatura/updater oficial, P2/P9 e fluxos reais de continuidade/atenção ainda abertos.
+- Sem commit, push, tag ou publicação.
+
+## 2026-10-25 — P9 — aceitação controlada com fixtures
+
+- `make overnight-smoke`: PASS, executor determinístico em workspace temporário; cobriu plano por etapas, dependência, falha injetada, remediação limitada, revisão/verificação global e terminais explícitos.
+- `make overnight-soak DURATION=5m`: PASS em 300,012 s; o harness exige ciclos não vazios e terminais declarados.
+- P9 segue parcial: sem restart de execução persistente e inspeção na manhã seguinte, sem handoff contínuo autenticado; fixture não prova comportamento externo.
+- Fingerprint `268a9e9a0036e89e39bcff07eca880869534c9c75cc13765384bb3fa3fc30b32`; matriz 102 PASS / 1 FAIL / 15 BLOCKED / 5 NOT_RUN. `NO_GO_LINUX` permanece.
+
+
+## 2026-10-25 — direção única do NEX e reteste CLI/P2
+
+- Reconfirmei a instrução do usuário: um único NEX bem acabado; Companion 2D não deve existir. Source audit confirmou um único renderer; os 20 testes do HUD e `bun run art:nex:check` passaram. Nenhum código visual precisou ser removido nesta retomada; as apresentações Barra/Mascote/Bandeja mostram o mesmo HUD.
+- Corrigi `nexus web --help`/flags inválidas para validar antes de iniciar Core. `go test -tags=gtk3 -count=1 ./internal/app` e `go vet -tags=gtk3 ./internal/app` passaram. Build CLI hash `51b58fe5972f27fcdb55c8284388b3f37998dc57db384b11223719ad6a132905` foi instalado atomicamente com backup; os processos Web/Desktop/HUD existentes foram preservados.
+- Em perfil e porta temporários, `nexus web` iniciou, health retornou 200, recebeu SIGTERM, liberou a porta e reiniciou; dois ciclos passaram. O aviso de limpeza de `nexus.dev` ocorreu por ausência de permissão, e `/etc/hosts` permaneceu inalterado. UI conectada e cenário A/B/C/D/E seguem pendentes.
+- GoReleaser gerou novo snapshot tar/DEB beta.10 validado em raiz dpkg isolada; unsigned e não publicado. Matriz: **104 PASS / 1 FAIL / 15 BLOCKED / 5 NOT_RUN (125)**; `NO_GO_LINUX` permanece. Fingerprint: `a2ed858e013e8e43391cec7c1bb6d6e00324a3170ea9804d0d068bf231e73dfd`. Evidências em `DEV/validation/linux-100-2026-10-25/`; nenhum commit/push.
+
+
+## 2026-10-25 — restart do Core com Desktop nativo conectado
+
+- Em XWayland real, o Desktop Wails anexou ao `nexus web` isolado, permaneceu aberto durante SIGTERM/reinício do Core e renderizou de novo após F5. Os dois ciclos retornaram HTTP 200; ambos os processos de teste saíram com código 0.
+- O banco de dados temporário tinha zero projetos, mas a UI revelou nomes do host pela camada de estado cliente compartilhada. Não houve interação com projetos; as capturas foram removidas por privacidade. O teste valida continuidade de processo/UI, mas não isolamento de perfil cliente nem fluxo cross-project A/B/C/D/E.
+- Evidência sanitizada: `DEV/validation/linux-100-2026-10-25/logs/p2-native-ui-connected-restart-2026-10-25.txt`. Matriz: 105 PASS / 1 FAIL / 15 BLOCKED / 5 NOT_RUN; `NO_GO_LINUX`.
+
+## 2026-10-25 — correção de atribuição do ensaio UI P2
+
+- A conferência de `_NET_WM_PID` mostrou que a janela XWayland observada pertencia ao Desktop Nexus já aberto (PID 1235319), não ao cliente Wails criado pelo ensaio. Como o estado WebKit também revelou dados do host, as capturas foram removidas e nenhum projeto foi manipulado.
+- Reclassifiquei P2-UI-001 como **BLOCKED**; o restart isolado do servidor continua **PASS** em teste separado. Evidência: `DEV/validation/linux-100-2026-10-25/logs/p2-native-ui-connected-restart-2026-10-25.txt`.
+- Contagens reconciliadas no relatório/matriz/JSON: **104 PASS / 1 FAIL / 16 BLOCKED / 5 NOT_RUN (126)**. O resultado segue `NO_GO_LINUX`; é necessário isolar o cliente WebKit antes de repetir o teste nativo conectado.
+- Retestes no overlay a2ed: 20/20 testes focados do NEX, checagem da arte oficial e `go test -count=1 ./internal/nexus/runner ./internal/control/web` passaram. Log: `DEV/validation/linux-100-2026-10-25/logs/mascot-and-go-regression-recheck-2026-10-25.log`.
+## 2026-10-25 — reafirmação do mascote único e reteste nativo P2
+
+- Reconfirmei a direção do usuário: um único NEX, muito bem acabado e funcional; Companion 2D não faz parte do produto. A auditoria mostra um único sprite renderizado por `GuardianMascot`; Barra/Mascote/Bandeja são apresentações do HUD. Não removi o único NEX. Chaves antigas `companionMotion`/`companion:snooze` ficam apenas para compatibilidade; “HUD companion” no Go é o processo auxiliar.
+- **PASS** — quatro testes do HUD/mascote: 20/20; `bun run art:nex:check`; captura Wails XWayland `native-hud-current-overlay-xwayland-visible.png` (SHA-256 `b86f040a0fce2ef2837bc27a3b81a84898d25d555a8d14bf24cff51a6d4a5ad7`) mostra um NEX. Log: `DEV/validation/linux-100-2026-10-25/logs/mascot-single-renderer-recheck-2026-10-25.txt`.
+- **PASS** — P2-UI-001: reteste com cliente Wails isolado por IDs GTK/D-Bus únicos, PID/XID confirmados, health HTTP 200 nos dois lados do restart e reload F5. Build e screenshot têm hashes registrados em `DEV/validation/linux-100-2026-10-25/logs/p2-native-ui-test-build-2026-10-25.txt` e `logs/p2-native-ui-xwayland-isolated-instance-2026-10-25.txt`. A captura inicial aos 5 s estava preta; medir first paint.
+- Corrigi o JSON e o relatório para concordarem com a matriz: 105 PASS / 1 FAIL / 15 BLOCKED / 5 NOT_RUN. A/B/C/D/E e ACL multiusuário continuam pendentes; `NO_GO_LINUX`. Nenhum commit, push, merge ou tag.
+
+## 2026-10-25 — first paint nativo medido
+
+- Repeti o arranque Wails com o D-Bus real do GNOME, XWayland e `HOME`/XDG/NEXUS_DATA_DIR descartáveis. Fundo uniforme até 5,87 s; splash aos 9,54 s; workspace inicial aos 15,78 s, idêntico na amostra de 30,66 s; saída 0. A VM não oferece aceleração 3D utilizável. Sem SLA definido, registrei a latência como observação de desempenho, não como falha.
+- **BLOCKED/inconclusivo** — a tentativa anterior em barramento D-Bus privado gerou erros de portal/FUSE e não localizou a janela até 26,82 s. Mantive o log e documentei por que ele não é representativo; o teste com sessão real é a evidência corrente.
+- Atualizei NATIVE-009, P2-UI-001, relatório e resumo JSON. Matriz continua **105 PASS / 1 FAIL / 15 BLOCKED / 5 NOT_RUN (126)**; E2E A/B/C/D/E integrado, ACL, runtime real e distribuição estável seguem pendentes. Nenhum código-fonte foi alterado nesta investigação.
+
+## 2026-10-25 — P2 E2E A/B/C/D/E e recuperação após restart
+
+- Adicionei um teste determinístico de integração HTTP/SQLite que mantém cinco projetos com estados A/B/C/D/E, incluindo quota remediation tipada e recuperação de checkpoints depois de reconstruir store/serviço/servidor.
+- Resultado antes do restart: Attention contém A/D/E e omite B em execução e C durante remediation; após restart B/C completam uma vez. Contadores B=1 alocação/execução e C=2. Repetições x10, race x5, pacote `internal/control/web` e `go vet` passaram.
+- Atualizei matriz, JSON e relatórios P2 para separar esse PASS backend da UI Wails com cinco missões e da ACL multiusuário, que seguem pendentes. Proveniência efetiva: overlay `30223d700c7d7395705571ad72d2ea30055d191e181b03cb114a922395aef18b`, 1.422 fontes; base Git/remota `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`; worktree não congelada.
+- Próxima ação: reproduzir a jornada A/B/C/D/E na UI nativa conectada durante restart e continuar os blockers Linux. Resultado permanece `NO_GO_LINUX` (106 PASS / 1 FAIL / 15 BLOCKED / 5 NOT_RUN).
+
+## 2026-10-25 — inspeção nativa isolada após instalação P5
+
+- O Desktop instalado atual (hash coincidente com o registro INSTALL-P5-001) iniciou o Core em perfil e D-Bus isolados. AT-SPI confirmou a janela “IAPro Nexus” visível em 1332×889; o conteúdo WebView não ficou acessível. `xwininfo` encontrou somente um helper InputOnly não mapeado de 10×10.
+- Mantive a captura visual como BLOCKED: CUA não expõe apps/janelas, `grim` não funciona neste compositor e o método GNOME Screenshot foi negado. Não substituí a evidência nativa por browser. A instalação do usuário, Desktop e HUD em uso permaneceram intactos.
+- Revisei as capturas Wails já coletadas: modo Mascote com um NEX, balão de atenção junto do mesmo NEX e painel de preferências Barra/Mascote/Bandeja. Não encontrei um segundo personagem; hashes registrados em `COMPANION_VALIDATION.md`.
+- Log sanitizado: `DEV/validation/linux-100-2026-10-25/logs/p5-isolated-native-ui-atspi-2026-10-25.txt`. Contagens seguem 120 PASS / 1 FAIL / 16 BLOCKED / 5 NOT_RUN; `NO_GO_LINUX`.
+
+## 2026-10-25 — P5 Composer até MissionRunner
+
+- Corrigi o roteamento que aplicava especialidades de Agent (`security`, `code_review`) como capabilities obrigatórias do provider. Capacidades de controle explicitamente exigidas, como `read_only_review`, seguem no hard gate.
+- Adicionei regressões para a prévia de recurso e para Composer → WorkPlan com proveniência → preview pronto → aprovação imutável → MissionRunner `COMPLETED_VERIFIED`. Fixture usa CLI/perfil/auth/quota sintéticos, sem chamada externa.
+- **PASS:** `go test ./internal/nexus/... -count=1 -timeout=4m`, `go vet ./internal/nexus/...` e os dois testes focados com `-race -count=3`. Logs: `DEV/validation/linux-100-2026-10-25/logs/p5-composer-mission-fixture-*`.
+- Fonte validada: HEAD base local/remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`, overlay `5e39faee13bd663dc56798cffe435e52e2bca081f5332f6d0619c0a61ddce011` (1.424 fontes; manifesto versionado). Worktree continua modificada, sem commit/push.
+- P5 permanece parcial: cinco cenários oficiais, provider autenticado/continuidade e UI Wails equivalente não foram validados. Resultado global `NO_GO_LINUX` (122 PASS / 1 FAIL / 16 BLOCKED / 5 NOT_RUN).
+
+
+## 2026-10-25 — P5 dispatch boundary and durable continuation
+
+- Reproduced that agent setup can fail before `Launcher.Launch`; classified only those pre-launch errors as proven not sent. Launcher errors remain ambiguous and no automatic replay is permitted.
+- Added regressions for both sides of the launch boundary and extended the large Composer/WorkPlan fixture to persist the safe failure, reopen SQLite, recreate the runner, preserve the approved snapshot, finish at least four packages and detect duplicate successful package dispatches.
+- **PASS:** focused tests; race x3; `go test -count=1 -timeout=4m ./internal/nexus/...`; `go vet ./internal/nexus/...`. Logs and exact source provenance are under `DEV/validation/linux-100-2026-10-25/`.
+- Overlay `2c23ebb0c7726a200acbde9326c23ad6023d8fad0238c2adfef993677203f2fa` over remote/local HEAD `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`. Full verdict remains `NO_GO_LINUX`: 125 PASS / 1 FAIL / 16 BLOCKED / 5 NOT_RUN. Mascot direction remains one NEX; no Companion 2D mode.
+
+
+## 2026-10-25 — pacote Linux no overlay P5 e contrato de mascote único
+
+- GoReleaser v2.18.0 gerou snapshot CLI tar.gz/DEB beta.10 Linux AMD64 do overlay `2c23ebb0c7726a200acbde9326c23ad6023d8fad0238c2adfef993677203f2fa`. `sha256sum -c`, igualdade dos payloads e instalação/consulta/execução/remoção em dpkg root isolado passaram. A primeira tentativa esgotou temporários em `/tmp`; a repetição isolou `GOTMPDIR` e artefatos sob `/home`. Nenhuma publicação ou alteração da instalação do host ocorreu.
+- Atualizei DIST-010, o relatório e o resumo JSON; os totais não mudam porque é uma revalidação do caso existente.
+- Reconfirmei no código ativo o contrato de um só NEX: não há componente, atlas, renderer ou modo Companion 2D. Barra/Mascote/Bandeja são três apresentações do mesmo HUD. O SVG/mood/atenção e os controles existentes permanecem no renderer único; as lacunas de atenção ligada a agente real e alpha Wayland continuam abertas.
+- Resultado global permanece `NO_GO_LINUX`; beta.10 unsigned, updater público/rollback, native screenshot do overlay exato, provedores reais e outros gates continuam pendentes. Sem commit, push, tag ou publicação.
+
+
+## 2026-10-25 — reteste local do atualizador Linux
+
+- No overlay atual, `go test -count=1 ./internal/update`, `go test -race -count=1 ./internal/update` e `go vet ./internal/update` passaram. A cobertura usa `httptest` e chaves Ed25519 sintéticas para políticas de manifesto/artefato, entradas negativas, checksum, assinatura e rollback.
+- Registrei `UPD-001` como PASS técnico e mantive `BLK-012` BLOCKED para a integração de produção: não existe release estável nem chave de confiança de produção. Nenhum request foi feito a uma atualização assinada real. Evidência: `DEV/validation/linux-100-2026-10-25/UPDATER_VALIDATION.md`.
+- Totais atuais: 126 PASS / 1 FAIL / 16 BLOCKED / 5 NOT_RUN (148); `NO_GO_LINUX`. O contrato do mascote segue um único NEX e não há modo Companion 2D no frontend ativo. Sem commit/push/publicação.
+
+
+## 2026-10-25 — quality gate Web no overlay exato
+
+- `bun run quality:full` passou no overlay `2c23ebb0c7726a200acbde9326c23ad6023d8fad0238c2adfef993677203f2fa`: gates de SCSS/style allowlist, formatação, ESLint, Stylelint, TypeScript, 108 arquivos/673 testes e build de produção. E2E HUD já passou separadamente no mesmo overlay.
+- Atualizei WEB-RECHECK-002, relatório, matriz e handoff. A contagem não muda por ser revalidação do caso já existente; total atual 126 PASS / 1 FAIL / 16 BLOCKED / 5 NOT_RUN (148).
+
+
+## 2026-10-25 — security scan no overlay Linux exato
+
+- `make security GO_TAGS=gtk3`: PASS, govulncheck v1.7.0 via Go 1.26.10, saída `No vulnerabilities found.` no fingerprint `2c23ebb0c7726a200acbde9326c23ad6023d8fad0238c2adfef993677203f2fa`. Log: `DEV/validation/linux-100-2026-10-25/logs/p8-current-overlay-make-security-2026-10-25.log`.
+- O resultado cobre somente o scanner e suas fontes de dados; revisão arquitetural, release assinada e ciclo real do updater permanecem bloqueados. `NO_GO_LINUX` não muda.
+
+## 2026-10-25 — direção confirmada do mascote único
+
+- Mantido o contrato de produto: um só NEX; Companion 2D separado não é uma funcionalidade da release. O código não tem segundo modelo/renderer; a apresentação Mascote continua mostrando o mesmo NEX.
+- **PASS:** reexecução de cinco suítes focadas (29/29), `bun run art:nex:check` e E2E HUD Chromium. Wails nativo do overlay `2c23ebb0…` abriu em XWayland com geometria 224×158; amostras em 5/15/30 segundos mostram um NEX. Logs, screenshots e checksums em `DEV/validation/linux-100-2026-10-25/MASCOT_VALIDATION.md` e `HUD_VALIDATION.md`.
+- Verificados os 1.425 arquivos do manifesto de fontes, sem divergência; fingerprint preservado `2c23ebb0…`, HEAD local/remoto `7a04f1b4…`. `NO_GO_LINUX` e totais 126 PASS / 1 FAIL / 16 BLOCKED / 5 NOT_RUN não mudam. Alpha Wayland e atenção conectada a agente real continuam pendentes; nenhuma alteração de código, commit ou publicação nesta atualização.
+
+## 2026-10-25 — recovery de Mission após crash durante dispatch
+
+- Reproduzi falha em processo filho: Nexus reiniciado recebia `ErrLeaseHeld` pela lease ainda válida e abandonava a recuperação.
+- Corrigi o worker em background para aguardar a lease com backoff cancelável; o runner mantém o bloqueio fail-closed e não repete dispatch ambíguo.
+- Teste de processo, race, suíte `go test ./internal/nexus/... -count=1`, `go vet ./internal/nexus/...` e regressão de handoff dos workers sob race passaram. `make build build-desktop-wails build-hud-wails` também passou; os três ELF AMD64 têm bibliotecas nativas resolvidas. Instalei-os atomicamente após backup, reiniciei Core/Desktop e confirmei health HTTP 200. A screenshot deste ciclo segue bloqueada pela captura XWayland; detalhes em `DEV/validation/linux-100-2026-10-25/RUNTIME_VALIDATION.md` e logs `nr007-*`.
+- Reconfirmado o produto com um único NEX; Companion 2D permanece fora do escopo e removido do HUD. O veredito segue `NO_GO_LINUX`; soak de 8 h e outros gates não foram aprovados por inferência.
+
+## 2026-10-25 — NEX único no build Linux instalado e recheck de regressões
+
+- Mantida a direção definida pelo usuário: um só mascote NEX; PR #55/Companion 2D está fechada e não é requisito. Preferências antigas são lidas para migração; novas gravações usam somente `mascotMotion`.
+- Proveniência de produto verificada registro a registro: 1.426/1.426 fontes, fingerprint `f033fa678c1fdeb99373d2456347ac152638ef13f699e607ff5b9bdd12113f2b`, base local/remota `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`. Sem commit imutável; não fiz commit, push ou publicação.
+- **PASS:** cinco suítes do mascote, 30/30; `bun run art:nex:check`; E2E HUD Chromium; `bun run quality:full` (108 arquivos/674 testes/build). CLI/Desktop/HUD AMD64 foram instalados atomicamente após backup; health HTTP 200 e captura Wails/XWayland do mascote único em `screenshots/current-single-mascot-installed-hud-xwayland.png` (`df2698bd013a9c32bfe81d69d46e3c812bbb89cf82de0108371a9a39035762ed`).
+- **PASS:** regressões P1 sob race para replay de dispatch concluído, replanejamento via alocação/compilação e API autenticada através de restart. Log `DEV/validation/linux-100-2026-10-25/logs/p1-code-review-findings-recheck-2026-10-25.txt`.
+- Soak P9 de 8 h segue ativo. A homologação permanece **NO_GO_LINUX — 132 PASS / 1 FAIL / 16 BLOCKED / 5 NOT_RUN (154)**; alpha Wayland, atenção de provider real, assinatura/update oficial e SHA imutável não estão aprovados.
+
+
+## 2026-10-25 — revisão adicional de segurança da homologação Linux
+
+- `make security` passou novamente no overlay do produto. `npm audit` do portal passou com zero vulnerabilidades em 1.298 dependências.
+- Gitleaks v8.24.2 não confirmou segredo ativo no código atual; os candidatos em `internal` foram classificados como fixtures, sentinelas sintéticas, SQL estático ou bundle minificado. Os relatórios não contêm valores.
+- A análise de 1.906 commits encontrou duas URLs antigas de bootstrap local em `DEV/HANDOFF.md`. A árvore atual não as contém e não há listener em `:3000`, mas não é possível provar expiração/invalidação. Mantive o histórico intacto e classifiquei o gate como BLOCKED P1.
+- O frontend principal segue sem advisory scan: `npm audit` rejeita `bun.lock` e `bun pm scan` exige scanner não configurado. Registrei BLOCKED P2; não gerei lockfile alternativo.
+- Atualizei `SECURITY_VALIDATION.md`, matriz, relatório e JSON. Contagem: 133 PASS / 1 FAIL / 18 BLOCKED / 5 NOT_RUN (157), `NO_GO_LINUX`. Produto continua com um mascote NEX; nada do Companion 2D foi reintroduzido. Nenhum commit, push, rewrite de histórico ou publicação.
+
+
+## 2026-10-25 — download interrompido do updater
+
+- Adicionei `TestServiceApplyInterruptedDownloadPreservesBinaryAndConfig`: manifesto Ed25519 sintético válido, artefato com `Content-Length` maior que os bytes enviados, espera por `io.ErrUnexpectedEOF`, igualdade do binário/configuração e ausência de `.tmp`, `.bak` e recibos.
+- PASS: regressão focada, pacote completo `internal/update`, o mesmo pacote sob race e `go vet`; `make security` também voltou a passar. Gitleaks foi reexecutado sem novas detecções.
+- Overlay corrente: HEAD local/remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`, fingerprint `abad854fffba2532c6f3c04bd4273f45747b80688833dddb24d0df418bdc73a8` em `DEV/validation/linux-100-2026-10-25/logs/source-provenance-after-update-interruption-test-2026-10-25.txt` (1.426 fontes, 0 divergências). Só o arquivo de teste mudou desde os binários instalados; fonte de produto e hashes instalados permanecem iguais.
+- NR-006 permanece NOT_RUN para o ciclo de release A→B/rollback; o novo teste fecha apenas a falha de download local. Contagem: 134 PASS / 1 FAIL / 18 BLOCKED / 5 NOT_RUN (158), NO_GO_LINUX.
+
+## 2026-10-25 — Importação de sessões em Uso/Contas
+
+- A importação host só estava acessível no ProjectHub; adicionei em Uso/Contas uma ação para importar sessões das CLIs, atualizar perfis e apresentar apenas contagens de resultado. ProjectHub e Usage compartilham o resumo em `web/src/lib/hostSessionImport.ts`; textos em en/pt-BR/es.
+- PASS: regressão do resumo, E2E `test:e2e:first-run-import` cobre a nova tela e confirma perfil após refresh, `bun run quality:full` (109 arquivos/674 testes/build). Captura real do E2E com fixture e checksum estão em `PROVIDER_SESSION_IMPORT_VALIDATION.md`.
+- PASS: CLI/Desktop/HUD Wails recompilados e instalados em `~/.local/bin`; hashes coincidem, ELF x86-64, `ldd` sem dependências ausentes; Desktop e HUD vinculado iniciados sob unidade transitória do usuário, Core HTTP 200/beta.10. Smoke em `DEV/validation/linux-100-2026-10-25/logs/current-installed-desktop-startup-final-2026-10-26.txt`. Backup em `/home/desenvolvedor/.local/state/nexus-homologation/20261026T014019Z-usage-account-import`.
+- PASS: interação na janela Wails instalada sob Xvfb com clique XTest; Core embutido HTTP 200 e resposta `0 importadas, 0 já autenticadas, 5 sem sessão importável, 1 sem suporte, 0 falharam`. HOME/API credentials/dados isolados; nenhuma sessão real foi lida ou copiada. Capturas e reprodução em `DEV/validation/linux-100-2026-10-25/PROVIDER_SESSION_IMPORT_VALIDATION.md`.
+- BLOCKED: a interação visual no compositor Wayland/XWayland do host segue indisponível: root XWayland 0×0 e `grim` sem `wl_output`. O teste Wails em Xvfb não substitui essa cobertura do compositor. O teste browser também não é usado como evidência nativa.
+- PASS: Gitleaks v8.24.2 via `go run` redigido não encontrou leaks nos nove arquivos `web/src`/`web/scripts` alterados no overlay final; nenhuma ferramenta global ou dependência do projeto foi instalada. Evidências em `DEV/validation/linux-100-2026-10-25/SECURITY_VALIDATION.md`.
+- Observação de performance no perfil normal: em 45 s sem interação manual, cgroup aumentou de 853,5 MiB para 998,9 MiB; acumulou 57,4 CPU s e WebKit principal ficou em 115–116% de CPU. GPU não acelerada e estado de startup/providers não isolado; gate de consumo foi reclassificado BLOCKED P2, sem declarar vazamento. Log em `DEV/validation/linux-100-2026-10-25/logs/current-installed-desktop-resource-observation-2026-10-26.txt`.
+- Overlay `9a66687715414fc8b42d612fd2b4a531370c7f8c4fbfa86338a81ba9728ddcd1`, 1.428 arquivos; HEAD local/remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`. Total atualizado: **137 PASS / 1 FAIL / 20 BLOCKED / 4 NOT_RUN (162), NO_GO_LINUX**. A captura Wails sob Xvfb mostra o mascote único; não há Companion 2D. Sem commit/push.
+# 2026-10-26 — recheck das suítes completas Linux
+
+- No HEAD/base local e remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b` e fingerprint de fontes `0f9f1c0912788cf913aff1918111cf3e2b10521e22f70c9079edc6f042a08f28` (1.428 fontes), `go test -count=1 -timeout=20m ./...`, `go vet ./...` e `bun run quality:full` passaram. A Web validou 109 arquivos, 678 testes e build de produção. Logs: `DEV/validation/linux-100-2026-10-25/logs/go-test-full-current-overlay-2026-10-26.txt`, `go-vet-full-current-overlay-2026-10-26.txt` e `web-quality-full-current-overlay-2026-10-26.txt`.
+- Wails/GTK emitiu avisos upstream de APIs X11 depreciadas, sem falhas de Go/vet. Registrei os dois resultados como novas linhas da matriz. Totais: **151 PASS / 1 FAIL / 18 BLOCKED / 3 NOT_RUN (173), NO_GO_LINUX**.
+- Um único mascote NEX continua sendo o contrato; não existe renderer ou modo Companion 2D separado. Wayland/alpha/GPU, runtime/agente real, updater assinado de produção, proveniência congelada, release estável e o soak P9 em andamento continuam sem aprovação. Nenhum commit, push ou publicação foi feito.
+
+## 2026-10-26 — Xvfb: visibilidade Tray e auto-hide do HUD
+
+- Revalidei `release/v1.0.0`: HEAD local e remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`. Build testado: HUD AMD64 SHA-256 `fbe093cffa25e53a118bb5880a0087645d70ed73776678d55c588f549095c7b3`, proveniente do fingerprint de fontes `b73161ffd4afe7d566bd00cfdc6d6e090e95b0c99e13dbd0653aadd40fdf6eac`.
+- PASS nativo Wails/Xvfb: apresentação `TRAY` iniciou sem janela visível, segunda instância restaurou a janela; Escape ocultou o mascote com auto-hide e outra instância o restaurou. Os processos principais encerraram com exit 0.
+- Script reproduzível: `DEV/validation/linux-100-2026-10-25/tools/native_hud_visibility_xvfb.sh`; saída em `DEV/validation/linux-100-2026-10-25/logs/native-hud-visibility-xvfb-2026-10-26.txt`. Fixtures de foco e tentativas iniciais do detector permanecem separadas em logs de tentativa e não contam como PASS.
+- NR-003 continua BLOCKED para menu da bandeja real, perda/ganho de foco no compositor e múltiplos monitores. Atualizei `HUD_VALIDATION.md`, `TEST_MATRIX.md`, relatório e JSON. Reconciliados 183 IDs entre matriz e JSON; NR-006 está corretamente BLOCKED para A→B/rollback assinado ainda indisponível.
+- Resultado: **NO_GO_LINUX — 161 PASS / 1 FAIL / 20 BLOCKED / 1 NOT_RUN (183)**. O soak P9 permanece ativo; aplicação instalada e health Core HTTP 200 preservados. Um único mascote NEX, sem Companion 2D. Nenhum commit, push ou publicação.
+
+## 2026-10-26 — correção e revalidação do HUD no GNOME/Wayland
+
+- Reproduzi a perda da geometria salva: no Wayland, a janela Wails pode informar 80×48/0,0 ao ser ocultada. Corrigi a captura para preservar geometria em compositores sem posicionamento global e acrescentei regressões RED/GREEN; pacotes Go, `-race` e `go vet` do Desktop/HUD passaram.
+- Recompilei e instalei CLI/Desktop/HUD após backup em `~/.local/state/ai-manager/nexus-update-backups/20261026T080719Z-hud-wayland-geometry-fix/`. Hashes build/instalação coincidem, ELF x86-64, `ldd` sem ausências, Desktop/HUD ativos e Core HTTP 200.
+- No GNOME/Wayland, eventos reais do menu da bandeja `Ocultar`/`Mostrar` mantiveram intactos o checksum e os campos de `hud-window-state.json`; reteste após a geometria 224×158 estabilizar continuou igual após 10 s. Evidências em `DEV/validation/linux-100-2026-10-25/HUD_VALIDATION.md` e `logs/native-hud-tray-hide-show-wayland-geometry-fix-delayed-2026-10-26.txt`.
+- Repouso pós-instalação: duas janelas de 60 s por delta `/proc` mediram Desktop 0,90%/0,87%, HUD 0,43%/0,45%, WebKit até 0,47% e depois 0,28%. Um WebKit subiu 13,53 MiB e depois 0,85 MiB; não apareceu crescimento contínuo nessa repetição, sem declarar que um soak longo está aprovado. CPU cgroup 7,07% em uma janela, health 200; métricas e limites em `HUD_VALIDATION.md`.
+- Capturei novamente o HUD Wails no build exato instalado: a imagem 224×158 mostra um NEX; clique abriu os controles do mesmo HUD. Capturas/hash e limitações alpha/compositor em `MASCOT_VALIDATION.md`.
+- Fingerprint atual de fontes: `047e6f968d64ee7f51ad389a21d43fe305e9ce9fb98b00c750be526b06c2313c`, 1.428 arquivos; HEAD local/remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`. Contagem: **162 PASS / 1 FAIL / 20 BLOCKED / 1 NOT_RUN (184), NO_GO_LINUX**. O soak P9 segue ativo. Produto com um mascote NEX; Companion 2D fora do escopo. Sem commit/push.
+- Reconsulta GitHub 08:19 UTC: #57 UNSTABLE; #58/#59/#61 DIRTY; #64 BLOCKED e direcionada a `main`; #55 CLOSED. Cinco releases, todas previews, nenhuma `v1.0.0` estável. Logs e decisão atualizados em `PULL_REQUEST_RECONCILIATION_CURRENT.md`.
+
+## 2026-10-26 — rechecagem do contrato de mascote único
+
+- Reconfirmei que o HUD ativo tem um único NEX (`NexusHud → GuardianMascot → NexPixelSprite`) e que o seletor apresenta Barra/Mascote/Bandeja, sem opção Companion 2D. A antiga implementação separada e seu teste já estão removidos; não havia código 2D separado adicional nesta rechecagem.
+- PASS: seis suítes Vitest focadas, 35/35 testes; E2E HUD; checagem da arte oficial. Evidência: `DEV/validation/linux-100-2026-10-25/logs/mascot-one-character-recheck-2026-10-26.txt` e `MASCOT_VALIDATION.md`.
+- A captura Wails/XWayland existente mostra uma única arte; esta reexecução não repetiu screenshot nativa. Alpha/interação Wayland continuam pendentes. Nenhuma alteração de produto, commit ou push foi feito.
+
+## 2026-10-26 — preview Composer localizado e instalação atual; mascote único
+
+- Mantive o contrato do usuário: o Nexus tem um único mascote NEX. Não integrar nem recriar o modo/renderer Companion 2D; Barra/Mascote/Bandeja são apresentações do mesmo HUD.
+- Corrigi a cópia do Execution Preview: o mesmo motivo de provider aparecia em `resource.reason` e `blockers`, e a ausência de orçamento local permanecia em inglês. Adicionei normalização/deduplicação e traduções en/pt-BR/es.
+- PASS: unitários focados 20/20; E2E Composer completo e vago em fixture Chromium; `bun run quality:full` com 110 arquivos, 681 testes e build de produção. Os casos continuam sem provider elegível, com preview `ready=false` e sem criar Mission/Agent. Chromium não substitui Wails nativo.
+- Recompilei e instalei CLI/Desktop/HUD AMD64 após backup. Hashes build/instalação coincidem; unidade ativa e Core HTTP 200 na porta 37753. Artefatos continuam `1.0.0-beta.10`, não são release estável.
+- Overlay `101e6e62b8d4b9903cf4d40309caeea54c809183e5dba017d9e6a8770302669c` (1.430 fontes), base local/remota `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`; worktree permanece modificada e sem commit/push. Evidência: `DEV/validation/linux-100-2026-10-25/P5_CURRENT_BROWSER_RECHECK.md`.
+- Atualizei relatório, matriz, JSON, handoff, verify, contexto, spec ativa e índice. Matriz: **NO_GO_LINUX — 166 PASS / 1 FAIL / 21 BLOCKED / 0 NOT_RUN (188)**. Persistem blockers de provider real/P5 nativo, release estável e assinatura, proveniência imutável e alpha/GPU/Wayland.
+
+## 2026-10-26 — snapshot GoReleaser do fingerprint corrente
+
+- No overlay `101e6e62b8d4b9903cf4d40309caeea54c809183e5dba017d9e6a8770302669c`, GoReleaser v2.18.0 criou tar.gz e DEB Linux/AMD64 beta.10 em pasta isolada fora do repositório. Checksum passou; metadados do DEB declaram `amd64`/`1.0.0~beta.10`; instalação, execução e remoção em raiz dpkg isolada passaram.
+- Preservei `dist/` preexistente e não publiquei/tagueei nada. Um primeiro ensaio teve somente aviso de permissão ao tentar registrar `/var/log/dpkg.log`; a repetição direcionou o log para a raiz isolada e passou sem aviso. Artefatos, hashes e logs estão em `DISTRIBUTION_VALIDATION.md` e `p5-current-recheck-2026-10-26-final/logs/`.
+- Matriz/JSON reconciliados: **NO_GO_LINUX — 166 PASS / 1 FAIL / 21 BLOCKED / 0 NOT_RUN (188)**. A release ainda é beta.10 sem assinatura oficial; o produto segue com um mascote NEX único, sem Companion 2D separado.
+
+## 2026-10-26 — importação real de sessão do host e contrato do NEX único
+
+- Reconfirmei o produto com um único NEX (`NexusHud → GuardianMascot → NexPixelSprite`); Companion 2D não existe no caminho ativo. Cinco suítes HUD focadas passaram (33/33) e `bun run art:nex:check` validou a arte oficial. Capturas Wails/XWayland já registradas mostram uma arte NEX e preferências Barra/Mascote/Bandeja do mesmo HUD.
+- Executei `profile.ImportHostSessions` no perfil real: Gemini foi copiado para um perfil Nexus autenticado/padrão; repetição idempotente, um perfil, bytes iguais à origem, ambos `0600`. Codex/AGY/OpenCode/Cursor já estavam autenticados. Claude retornou `NO_SESSION` porque os tokens não existem; nenhum login ou chamada de modelo foi feita. O perfil Gemini requer refresh.
+- Evidências em `DEV/validation/linux-100-2026-10-25/PROVIDER_SESSION_IMPORT_VALIDATION.md` e logs sanitizados `host-session-import-real-profile-idempotency-2026-10-26.txt` / `host-session-import-live-profile-state-2026-10-26.txt`.
+- Matriz/JSON agora registram **NO_GO_LINUX — 167 PASS / 1 FAIL / 21 BLOCKED / 0 NOT_RUN (189)**. O overlay é base `7a04f1b4…` + fingerprint de fontes `101e6e62…`, worktree não congelada; nenhum commit/push foi feito.
+
+
+## 2026-10-26 — smoke Codex real e confirmação do NEX único
+
+- Revalidei o contrato do mascote: o HUD ativo renderiza um NEX por `NexusHud → GuardianMascot → NexPixelSprite`; Barra/Mascote/Bandeja são apresentações do mesmo HUD. Não há modo nem renderer Companion 2D. A captura Wails/XWayland existente mostra uma única arte.
+- PASS: cinco suítes HUD, 33/33; `bun run art:nex:check`; `bun run test:e2e:hud`.
+- O CLI Nexus instalado completou um smoke direto com Codex autenticado (`NEXUS_RUNTIME_SMOKE_OK`, exit 0), efêmero/read-only, sem runtime ativo ao final. O stdout bruto não foi salvo; `RUNTIME_VALIDATION.md` registra isso e o procedimento de repetição. Não considera aprovados handoff/continuidade, Skills ou P5 na janela Wails.
+- Matriz/JSON: **NO_GO_LINUX — 168 PASS / 1 FAIL / 21 BLOCKED / 0 NOT_RUN (190)**. HEAD local/remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`; overlay `101e6e62b8d4b9903cf4d40309caeea54c809183e5dba017d9e6a8770302669c`; worktree segue modificada, sem commit/push.
+
+
+## 2026-10-26 — HUD Wails corrente confirma mascote NEX único
+
+- Recompilei/validei o binário HUD já construído para o overlay `101e6e62…` (SHA-256 `9a143bef1d9be86542dfb92da7248cadb9a3db88c18f508f38c30f78ef83e55a`) em sessão Xvfb isolada. A janela Wails abriu em 224×158, mostrou um NEX e o clique abriu controles; Barra/Mascote/Bandeja são apresentações do mesmo HUD.
+- O primeiro ensaio herdando o D-Bus da sessão ativa não encontrou janela; com `dbus-run-session` o mesmo binário passou. Nenhuma correção de produto foi necessária. O log do primeiro ensaio e o PASS estão preservados; a captura RGB não valida alpha/Wayland/GPU.
+- Cinco suítes HUD passaram (33/33), `bun run art:nex:check` passou e `bun run test:e2e:hud` passou. A remoção de `companionModel.ts`/teste está presente na worktree, e não há modo/renderer Companion 2D no caminho ativo.
+- Matriz/JSON: **NO_GO_LINUX — 169 PASS / 1 FAIL / 21 BLOCKED / 0 NOT_RUN (191)**. HEAD local/remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`; overlay `101e6e62b8d4b9903cf4d40309caeea54c809183e5dba017d9e6a8770302669c`; worktree modificada, sem commit/push.
+
+## 2026-10-26 — Mission Codex isolada e classificação do runtime
+
+- `make build` compilou a CLI `v1.0.0-beta.10`; o binário usado nas tentativas tem SHA-256 `437ccf9a14b04a3bd463ce994cc36ba6fcf947f98d8e452ba990fcd4b5fad51c`. O HEAD remoto/local seguiu `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`; fingerprint de fontes do produto `101e6e62b8d4b9903cf4d40309caeea54c809183e5dba017d9e6a8770302669c`.
+- Em perfil Codex temporário, uma Mission real retornou `COMPLETED_VERIFIED` e package `VERIFIED`, mas a primeira versão do harness não inspecionou o worktree e apagou o fixture. A repetição com verificação do worktree/recibo expirou em 180 s. O runtime ativo foi parado, a contagem final ficou zero, o Core saiu com exit 0 e a raiz temporária foi removida.
+- RT-002 ficou **BLOCKED** por evidência incompleta/repetição em timeout; não classifiquei como defeito de produto nem como aprovação. Detalhes em `validation/linux-100-2026-10-25/RUNTIME_VALIDATION.md`; logs nos dois arquivos `runtime-real-nexus-run-isolated*.log`.
+- Contagem reconciliada: **NO_GO_LINUX — 169 PASS / 1 FAIL / 22 BLOCKED / 0 NOT_RUN (192)**. A direção do mascote permanece um único NEX, sem Companion 2D; nenhum código de produto ou preferência visual foi removido nesta retomada. Nenhum commit/push/publicação.

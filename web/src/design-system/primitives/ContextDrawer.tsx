@@ -3,6 +3,7 @@ import * as RadixDialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { IconButton } from './index';
+import styles from './ContextDrawer.module.scss';
 
 export interface ContextDrawerProps {
   open: boolean;
@@ -47,7 +48,7 @@ export const ContextDrawer: React.FC<ContextDrawerProps> = ({
       <RadixDialog.Portal>
         <RadixDialog.Overlay className="nx-drawer-backdrop" />
         <RadixDialog.Content
-          className="nx-context-drawer"
+          className={`nx-context-drawer ${styles.drawer}`}
           data-side={side}
           style={{ width: typeof width === 'number' ? `${width}px` : width }}
           aria-describedby={description ? 'nx-drawer-desc' : undefined}

@@ -1,0 +1,13 @@
+Current installed native HUD visual recheck
+Branch/HEAD/remote: release/v1.0.0 / 7a04f1b4cf5950b97b4ea1e156dda31ac513823b / 7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+Product source fingerprint: f033fa678c1fdeb99373d2456347ac152638ef13f699e607ff5b9bdd12113f2b (1,426 sources)
+Desktop launch: GDK_BACKEND=x11 NEXUS_DATA_DIR=/tmp/nexus-homologation-single-mascot-2026-10-25/data /home/desenvolvedor/.local/bin/nexus-desktop
+Isolated data dir: /tmp/nexus-homologation-single-mascot-2026-10-25/data
+Desktop PID: 3204040; linked HUD PID: 3204049
+HUD state: MASCOT
+Health: GET http://127.0.0.1:44585/api/v1/health -> HTTP 200 (1.0.0-beta.10)
+Native window: XWayland nexus-hud, XID 0x140000f, 224x158, visible and mapped
+Screenshot: screenshots/current-single-mascot-installed-hud-xwayland.png
+df2698bd013a9c32bfe81d69d46e3c812bbb89cf82de0108371a9a39035762ed  DEV/validation/linux-100-2026-10-25/screenshots/current-single-mascot-installed-hud-xwayland.png
+Visual inspection: exactly one NEX mascot visible. The RGB capture does not certify alpha transparency.
+Session: host Wayland, test app forced to XWayland with GDK_BACKEND=x11; no GPU acceleration.

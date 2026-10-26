@@ -1,0 +1,14 @@
+
+ RUN  v3.2.7 /projetos/nexus/web
+
+ ✓ src/features/hud/mascotModel.test.ts (10 tests) 51ms
+ ✓ src/features/hud/guardianModel.test.ts (3 tests) 11ms
+ ✓ src/features/hud/hudModel.test.ts (9 tests) 137ms
+ ✓ src/features/hud/GuardianModeSelector.test.tsx (1 test) 60ms
+ ✓ src/features/hud/GuardianMascot.test.tsx (6 tests) 90ms
+
+ Test Files  5 passed (5)
+      Tests  29 passed (29)
+   Start at  16:41:25
+   Duration  3.51s (transform 1.94s, setup 0ms, collect 5.21s, tests 349ms, environment 8ms, prepare 1.22s)
+

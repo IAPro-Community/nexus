@@ -1,5 +1,7 @@
 # Nexus 1.0.0 — auditoria de convergência e Companion (22/10/2026)
 
+> **Decisão vigente, 2026-10-26:** o produto deve ter um único mascote NEX. Não desenvolver, integrar nem reabrir o modo/personagem Companion 2D. A PR #55 está `CLOSED` (confirmado no GitHub em 26/10; saída em `DEV/validation/linux-100-2026-10-25/logs/current-pr55-product-scope-2026-10-26.json`). O conteúdo abaixo é a fotografia histórica de 22/10; qualquer sugestão de conciliar ou homologar o Companion 2D foi superada por esta decisão.
+
 > Status: **PARCIAL / NO-GO**. Auditoria documental e comparação GitHub, não certificação nativa. Não declarar 1.0 estável, nem mover tags.
 > Branch canônica: `release/v1.0.0`. Referência de início: `9ff188967eb72b963bad91c4ff0c108ffdbc867e`. HEAD remoto mudou durante a auditoria; o commit que adiciona este relatório deve ser consultado como o novo HEAD, e qualquer validação futura precisa usar seu SHA exato.
 

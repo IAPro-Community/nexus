@@ -1,0 +1,8 @@
+Linux homologation — regressão do comando de login por provedor
+Branch: release/v1.0.0
+HEAD local/remoto: 7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+Fingerprint de fontes: d3caa597ae3bc061ad0048ad4d390b1b9bb0011cc496e4d213d0ec6119400796 (1.422; manifesto sem divergências)
+Comando (cwd web/): bun x vitest run src/lib/providerLoginCommand.test.ts src/app/providerLoginCommandWiring.test.ts
+Exit code: 0
+Resultado: 2 arquivos, 4 testes passaram. `codex` como provedor/perfil padrão gera `nexus login codex`; perfil nomeado `work` gera `nexus login codex work`. O modal de contas e o fluxo do terminal de recursos usam o mesmo formatador.
+Limite: teste automatizado de helper e wiring; não é uma captura nem interação da janela Wails instalada.

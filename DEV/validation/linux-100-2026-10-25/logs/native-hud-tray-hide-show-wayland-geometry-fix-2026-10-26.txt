@@ -1,0 +1,66 @@
+environment=Ubuntu 25.10 GNOME Wayland
+service=org.kde.StatusNotifierItem-2496472-1
+core_health={"status":"ok","timestamp":1793002100,"version":"1.0.0-beta.10"}
+
+pid_hud=2496472
+state_before_sha256=9957c441c81942aa40678b54f7be9bd7c5429798c17e810a75a4cbbcfca0dffd
+state_before={
+  "displayId": "current",
+  "placement": "CUSTOM",
+  "x": 0,
+  "y": 0,
+  "width": 310,
+  "height": 245,
+  "compactWidth": 220,
+  "compactHeight": 60,
+  "expandedWidth": 334,
+  "expandedHeight": 496,
+  "mode": "AUTO",
+  "appearance": "MASCOT",
+  "opacity": 0.96,
+  "alwaysOnTop": true,
+  "autoHide": false,
+  "detachedPopover": true
+}
+menu_event_hide=state_after_hide_sha256=9957c441c81942aa40678b54f7be9bd7c5429798c17e810a75a4cbbcfca0dffd
+state_after_hide={
+  "displayId": "current",
+  "placement": "CUSTOM",
+  "x": 0,
+  "y": 0,
+  "width": 310,
+  "height": 245,
+  "compactWidth": 220,
+  "compactHeight": 60,
+  "expandedWidth": 334,
+  "expandedHeight": 496,
+  "mode": "AUTO",
+  "appearance": "MASCOT",
+  "opacity": 0.96,
+  "alwaysOnTop": true,
+  "autoHide": false,
+  "detachedPopover": true
+}
+menu_event_show=state_after_show_sha256=9957c441c81942aa40678b54f7be9bd7c5429798c17e810a75a4cbbcfca0dffd
+state_after_show={
+  "displayId": "current",
+  "placement": "CUSTOM",
+  "x": 0,
+  "y": 0,
+  "width": 310,
+  "height": 245,
+  "compactWidth": 220,
+  "compactHeight": 60,
+  "expandedWidth": 334,
+  "expandedHeight": 496,
+  "mode": "AUTO",
+  "appearance": "MASCOT",
+  "opacity": 0.96,
+  "alwaysOnTop": true,
+  "autoHide": false,
+  "detachedPopover": true
+}
+hud_process_alive=yes
+core_health_after={"status":"ok","timestamp":1793002104,"version":"1.0.0-beta.10"}
+
+result=PASS

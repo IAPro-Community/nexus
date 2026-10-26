@@ -1,0 +1,42 @@
+Nexus Linux AMD64 — NR-007 active-dispatch process crash/recovery
+Date: 2026-10-25
+Branch: release/v1.0.0
+Git HEAD: 7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+Remote HEAD after fetch: 7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+Working tree: modified; test exercised an uncommitted source overlay.
+
+Reproduction before fix
+Command: go test ./internal/nexus -run '^TestMissionProcessCrashDuringProviderDispatchFailsClosed$' -count=1 -v
+Exit code: 1 (expected regression reproduction)
+Observed: recovery error = mission run lease held by another worker; wanted fail-closed unknown dispatch.
+This showed the startup recovery worker exited on the still-valid SQLite lease after the prior process was killed.
+
+Regression after fix
+Command: go test ./internal/nexus -run '^TestMissionProcessCrashDuringProviderDispatchFailsClosed$' -count=1 -v
+Observed output:
+=== RUN   TestMissionProcessCrashDuringProviderDispatchFailsClosed
+--- PASS: TestMissionProcessCrashDuringProviderDispatchFailsClosed (31.23s)
+PASS
+ok  github.com/IAPro-Community/nexus/internal/nexus 31.238s
+Exit code: 0
+
+The test launches a child test process, persists a Mission dispatch intent to SQLite, blocks inside a controlled executor, kills the child, and reopens the same database. Recovery waits for the persisted lease to expire, then marks the ambiguous dispatch UNKNOWN_EXTERNAL_OUTCOME, preserves its dispatch ID, blocks for human reconciliation, and records zero replacement executor calls.
+
+Race regression
+Command: go test -race ./internal/nexus -run '^TestMissionProcessCrashDuringProviderDispatchFailsClosed$' -count=1 -v
+Observed output:
+=== RUN   TestMissionProcessCrashDuringProviderDispatchFailsClosed
+--- PASS: TestMissionProcessCrashDuringProviderDispatchFailsClosed (32.38s)
+PASS
+ok   github.com/IAPro-Community/nexus/internal/nexus 33.409s
+Exit code: 0
+
+Package validation
+Command: go test ./internal/nexus/... -count=1
+Exit code: 0; elapsed 119.315s for internal/nexus and all listed subpackages.
+Observed packages: internal/nexus, autonomyguard, capacitymonitor, contextsnapshot, externalusage, intelligence, maestrogates, plangraph, promotion, runner, skills, store — all `ok`.
+
+Command: go vet ./internal/nexus/...
+Exit code: 0; no diagnostics.
+
+Scope limitation: the interrupted executor is a deterministic fixture, not a real provider CLI. The test validates process-boundary durability and no-replay recovery; the 8-hour soak, PTY orphan recovery, and real-provider active-task crash remain unverified.

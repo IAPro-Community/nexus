@@ -1,0 +1,12 @@
+environment=Ubuntu GNOME Wayland; StatusNotifierWatcher=registered
+hud_process_pid=2113374
+appearance_before=MASCOT autoHide=False geometry=224x158
+menu_layout=(uint32 2, (0, @a{sv} {}, [<(1, {'enabled': <true>, 'visible': <true>, 'label': <'Mostrar'>}, @av [])>, <(2, {'enabled': <true>, 'visible': <true>, 'label': <'Ocultar'>}, @av [])>, <(3, {'label': <'Guardian: Barra'>, 'enabled': <true>, 'visible': <true>}, @av [])>, <(4, {'visible': <true>, 'label': <'Guardian: Mascote'>, 'enabled': <true>}, @av [])>, <(5, {'enabled': <true>, 'visible': <true>, 'label': <'Guardian: Bandeja'>}, @av [])>, <(6, {'enabled': <true>, 'visible': <true>, 'label': <'Sair'>}, @av [])>]))
+menu_event_hide=()
+menu_event_show=()
+profile_state_sha256_before=e7f2b2c562720940636be309b883a362a60f506719983e938acdb0dcb69d2294
+profile_state_sha256_after=71a4881a78c4a33513b2dad6f9f86a0d8224111f95a901b6a7738f073630f9ab
+hud_process=2113374
+core_health={"status":"ok","timestamp":1793001613,"version":"1.0.0-beta.10"}
+
+result=FAIL

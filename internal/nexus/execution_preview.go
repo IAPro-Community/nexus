@@ -356,12 +356,12 @@ func (n *Nexus) previewWorkPackageExecution(st *store.Store, project store.Proje
 	var selectedCandidate *ResourceCandidate
 	var keepCurrent bool
 	if selectedAgent.ID != "" {
-		selected, keepCurrent = selectCurrentResource(candidateAccounts, agentCfg, req, policy)
+		selected, keepCurrent = selectCurrentResource(candidateAccounts, agentCfg, providerResourceRequirements(req), policy)
 	}
 	if keepCurrent {
 		step.Resource = previewResourceFromAccount(selected, policy, "Keep current healthy compatible resource", len(candidateAccounts), nil)
 	} else {
-		recommendation := RecommendResources(candidateAccounts, req, policy)
+		recommendation := RecommendResources(candidateAccounts, providerResourceRequirements(req), policy)
 		if recommendation.Recommended == nil {
 			step.Ready = false
 			step.Blockers = append(step.Blockers, firstNonEmpty(recommendation.Explanation, "no eligible provider account for this step"))

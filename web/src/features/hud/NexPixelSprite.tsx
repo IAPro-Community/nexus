@@ -87,22 +87,12 @@ export const NexPixelSprite: React.FC<NexPixelSpriteProps> = ({ mood }) => {
       {/* Independent mirrored fins share a fixed frontal anatomy. */}
       <g data-nex-part="fins">
         <g className={styles.nexFinLeft} data-nex-fin="left">
-          <path
-            d="M31 34L33 8l5 0 9 26z"
-            fill="#112C5D"
-            stroke="#4E92F3"
-            strokeWidth="2"
-          />
+          <path d="M31 34L33 8l5 0 9 26z" fill="#112C5D" stroke="#4E92F3" strokeWidth="2" />
           <path d="M35 30l1-19 7 19z" fill={accent} opacity=".92" />
           <path d="M37 20l1-8 2 8z" fill={glint} opacity=".95" />
         </g>
         <g className={styles.nexFinRight} data-nex-fin="right">
-          <path
-            d="M97 34l-9-26h-5l2 26z"
-            fill="#112C5D"
-            stroke="#4E92F3"
-            strokeWidth="2"
-          />
+          <path d="M97 34l-9-26h-5l2 26z" fill="#112C5D" stroke="#4E92F3" strokeWidth="2" />
           <path d="M93 30l-7-19 1 19z" fill={accent} opacity=".92" />
           <path d="M91 20l-2-8 1 8z" fill={glint} opacity=".95" />
         </g>

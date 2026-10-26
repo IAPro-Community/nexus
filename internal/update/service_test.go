@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -284,6 +285,105 @@ func TestServiceCheckAndApply(t *testing.T) {
 	}
 	if receipt.Status != StatusSuccess {
 		t.Fatalf("expected status success, got %s", receipt.Status)
+	}
+}
+
+func TestServiceApplyInterruptedDownloadPreservesBinaryAndConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	binaryPath := filepath.Join(home, "install", "nexus")
+	originalBinary := []byte("existing-nexus-binary")
+	if err := os.MkdirAll(filepath.Dir(binaryPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(binaryPath, originalBinary, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	configPath := filepath.Join(home, ".config", "nexus", "settings.json")
+	originalConfig := []byte(`{"theme":"dark","workspace":"fixture"}`)
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(configPath, originalConfig, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target := fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH)
+	completeArtifact := []byte("complete-new-nexus-binary")
+	checksum := sha256.Sum256(completeArtifact)
+	manifest := Manifest{
+		SchemaVersion: 1,
+		Channel:       "stable",
+		Version:       "1.0.1",
+		ReleaseDate:   time.Now().UTC().Format(time.RFC3339),
+		ExpiresAt:     time.Now().UTC().Add(time.Hour).Format(time.RFC3339),
+		KeyID:         "interrupted-download-test-key",
+		Artifacts:     map[string]Artifact{},
+	}
+	var manifestBytes []byte
+	var signature string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/manifest.json":
+			w.Header().Set("X-Signature-Ed25519", signature)
+			_, _ = w.Write(manifestBytes)
+		case "/artifact":
+			w.Header().Set("Content-Length", fmt.Sprint(len(completeArtifact)))
+			_, _ = w.Write([]byte("partial"))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	manifest.Artifacts[target] = Artifact{
+		URL:    server.URL + "/artifact",
+		Size:   int64(len(completeArtifact)),
+		SHA256: hex.EncodeToString(checksum[:]),
+	}
+	manifestBytes, err = json.Marshal(manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	signature = hex.EncodeToString(ed25519.Sign(privateKey, manifestBytes))
+
+	keyRing := NewKeyRing()
+	keyRing.AddKey(manifest.KeyID, publicKey)
+	service := NewService(ServiceConfig{
+		RegistryURL: server.URL + "/manifest.json",
+		KeyRing:     keyRing,
+		CurrentVer:  "1.0.0",
+		Channel:     "stable",
+		ExecPath:    binaryPath,
+		Method:      MethodStandalone,
+	})
+
+	_, err = service.Apply(context.Background())
+	if !errors.Is(err, io.ErrUnexpectedEOF) {
+		t.Fatalf("Apply error = %v, want interrupted-download unexpected EOF", err)
+	}
+	gotBinary, err := os.ReadFile(binaryPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(gotBinary) != string(originalBinary) {
+		t.Fatalf("binary changed after interrupted download: %q", gotBinary)
+	}
+	gotConfig, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(gotConfig) != string(originalConfig) {
+		t.Fatalf("configuration changed after interrupted download: %q", gotConfig)
+	}
+	for _, path := range []string{binaryPath + ".tmp", binaryPath + ".bak", filepath.Join(home, "receipts")} {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Errorf("interrupted download left update artifact %q (stat error %v)", path, err)
+		}
 	}
 }
 

@@ -1,0 +1,32 @@
+$ node scripts/e2e-hud.mjs
+=== Nexus HUD Web E2E ===
+≈ tailwindcss v4.3.3
+
+Done in 588ms
+
+  dist/bundle.js                                   419.2kb
+  dist/chunks/chunk-NEIF7D32.js                    348.8kb
+  dist/chunks/chunk-25456IRH.js                    280.9kb
+  dist/chunks/chunk-GXEDJIG6.js                    250.1kb
+  dist/chunks/FlowRunsHistorySurface-AU5IVB4J.js   221.4kb
+  dist/bundle.css                                  161.8kb
+  dist/chunks/chunk-M3NSMQ6F.js                    136.4kb
+  dist/chunks/chunk-L6EGD35P.js                     93.7kb
+  dist/chunks/chunk-5HYXVZU4.js                     64.3kb
+  dist/chunks/chunk-O7V4VUIQ.js                     37.0kb
+  dist/chunks/chunk-LPVGUJ7T.js                     35.1kb
+  dist/chunks/chunk-EGXU7ZBT.js                     34.3kb
+  dist/chunks/UsageSurface-EDXIHBAK.js              30.8kb
+  dist/chunks/AgentTerminal-OSH22VVA.js             30.3kb
+  dist/chunks/chunk-SQZDUJVV.js                     27.7kb
+  dist/chunks/FlowRunSurface-USJII72N.js            16.8kb
+  dist/chunks/FlowRunsHistorySurface-2YMTODPA.css   15.5kb
+  dist/chunks/chunk-MXSPH2OL.js                     15.2kb
+  dist/chunks/chunk-UO3PEXKS.js                     15.0kb
+  dist/chunks/chunk-GHPW3E2O.js                     14.9kb
+  ...and 45 more output files...
+
+⚡ Done in 1734ms
+NEX 32-bit official SVG exported: /projetos/nexus/web/public/nex
+Nexus web build complete: /projetos/nexus/web/dist
+Nexus HUD Web E2E: PASS

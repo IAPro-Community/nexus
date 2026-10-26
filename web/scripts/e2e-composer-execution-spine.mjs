@@ -12,7 +12,9 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
-const outDir = path.join(repoRoot, 'DEV/validation/composer-execution-spine');
+const outDir = path.resolve(
+  process.env.NEXUS_E2E_ARTIFACTS_DIR || path.join(repoRoot, 'DEV/validation/composer-execution-spine'),
+);
 mkdirSync(outDir, { recursive: true });
 
 const completePrompt = `Implement OAuth login with Google for the existing React dashboard and Go API.
@@ -129,6 +131,23 @@ async function main() {
   assert.equal(previewResponse.status(), 200, 'Execution Preview API must succeed');
   const preview = await previewResponse.json();
 
+  const untranslatedProviderReason = page
+    .locator('small')
+    .filter({ hasText: /no provider accounts discovered/i });
+  assert.equal(
+    await untranslatedProviderReason.count(),
+    0,
+    'provider discovery blockers must not leak duplicate English detail into the localized preview',
+  );
+  const untranslatedCostBudget = page
+    .locator('small')
+    .filter({ hasText: /no local cost budget is configured/i });
+  assert.equal(
+    await untranslatedCostBudget.count(),
+    0,
+    'the missing local cost budget message must use the active interface language',
+  );
+
   assert.equal(preview.project_id, project.id, 'preview must belong to the fixture project');
   assert.ok(Number(preview.revision) >= 1, 'preview must be bound to a persisted revision');
   assert.ok(Array.isArray(preview.steps) && preview.steps.length >= 4, 'complex prompt needs a multi-step Flow');
@@ -163,7 +182,78 @@ async function main() {
     );
   }
 
+  const firstStep = page.locator('.nx-composer-flow-body [role="list"] button').first();
+  await firstStep.click();
+  const goalEditor = page.locator('.nx-flow-inspector').getByLabel(/goal|objetivo/i);
+  const originalGoal = await goalEditor.inputValue();
+  const semanticEdit = 'NEXUS_E2E_SEMANTIC_REVISION_SENTINEL';
+  await goalEditor.fill(`${originalGoal}\n${semanticEdit}`);
+
+  const planUpdatePromise = page.waitForResponse(
+    (response) =>
+      response.url().includes(`/api/v1/plans/${preview.plan_id}`) &&
+      response.request().method() === 'PUT',
+    { timeout: 30000 },
+  );
+  const updatedPreviewPromise = page.waitForResponse(
+    (response) =>
+      response.url().includes(`/api/v1/plans/${preview.plan_id}/execution-preview`) &&
+      response.request().method() === 'POST',
+    { timeout: 30000 },
+  );
+  await page.getByRole('button', { name: /approve.*run|aprovar.*executar/i }).click();
+
+  const planUpdateResponse = await planUpdatePromise;
+  assert.equal(planUpdateResponse.status(), 200, 'semantic WorkPlan update must persist');
+  const updatedPreviewResponse = await updatedPreviewPromise;
+  assert.equal(updatedPreviewResponse.status(), 200, 'updated revision preview must succeed');
+  const updatedPreview = await updatedPreviewResponse.json();
+  const planDetail = await getJSON(context, `${apiOrigin}/api/v1/plans/${preview.plan_id}`);
+  assert.equal(
+    planDetail.plan.current_revision,
+    Number(preview.revision) + 1,
+    'semantic Flow edit must create a new WorkPlan revision before preview',
+  );
+  assert.equal(
+    updatedPreview.revision,
+    planDetail.plan.current_revision,
+    'updated Execution Preview must bind to the persisted semantic revision',
+  );
+  assert.notEqual(
+    updatedPreview.approval_token,
+    preview.approval_token,
+    'semantic revision must invalidate the prior approval token',
+  );
+  const savedRevision = (planDetail.revisions || []).find(
+    (revision) => Number(revision.revision) === Number(updatedPreview.revision),
+  );
+  assert.ok(savedRevision, 'persisted plan history must contain the edited revision');
+  const savedPlanSnapshot = JSON.parse(savedRevision.snapshot_json);
+  const savedGoals = (savedPlanSnapshot.phases || []).flatMap((phase) =>
+    (phase.packages || []).map((item) => item.goal || ''),
+  );
+  assert.ok(
+    savedGoals.some((goal) => goal.includes(semanticEdit)),
+    'edited Flow goal must be present in the immutable persisted revision snapshot',
+  );
+  const runsAfterSemanticEdit = await getJSON(context, `${apiOrigin}/api/v1/runs`);
+  const agentsAfterSemanticEdit = await getJSON(
+    context,
+    `${apiOrigin}/api/v1/projects/${project.id}/agents`,
+  );
+  assert.equal(
+    runsAfterSemanticEdit.length,
+    runsBefore.length,
+    'editing and refreshing a blocked preview must not create a Mission run',
+  );
+  assert.equal(
+    agentsAfterSemanticEdit.length,
+    agentsBefore.length,
+    'editing and refreshing a blocked preview must not create persistent Agents',
+  );
+
   await page.screenshot({ path: path.join(outDir, 'north-star.png'), fullPage: true });
+  await page.screenshot({ path: path.join(outDir, 'semantic-revision.png'), fullPage: true });
   writeFileSync(
     path.join(outDir, 'north-star.json'),
     JSON.stringify(
@@ -174,6 +264,18 @@ async function main() {
         preview_ready: preview.ready,
         step_count: preview.steps.length,
         blockers: preview.blockers || [],
+        semantic_edit: {
+          persisted: true,
+          plan_revision: planDetail.plan.current_revision,
+          preview_revision: updatedPreview.revision,
+          stale_approval_token_replaced:
+            updatedPreview.approval_token !== preview.approval_token,
+          sentinel_persisted: savedGoals.some((goal) => goal.includes(semanticEdit)),
+          mission_runs_created: runsAfterSemanticEdit.length - runsBefore.length,
+          agents_created: agentsAfterSemanticEdit.length - agentsBefore.length,
+          preview_ready: updatedPreview.ready,
+          blockers: updatedPreview.blockers || [],
+        },
         console_errors: collectors.consoleErrors,
         page_errors: collectors.pageErrors,
         request_failures: collectors.requestFailures,

@@ -64,7 +64,7 @@ describe('PlatformBridge', () => {
     expect(changes).toEqual([true, false]);
   });
 
-  it('routes native Companion bubble geometry through the Wails HUDController binding', async () => {
+  it('routes native Mascot bubble geometry through the Wails HUDController binding', async () => {
     const calls: Array<{ method: string; args: unknown[] }> = [];
     setWailsV3InvokerForTests(async (method, ...args) => {
       calls.push({ method, args });

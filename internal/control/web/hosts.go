@@ -35,13 +35,7 @@ func IsHostsEntryPresent(hostname, ip string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	target := formatHostsLine(ip, hostname)
-	for _, line := range lines {
-		if normalizedLine(line) == normalizedLine(target) {
-			return true, nil
-		}
-	}
-	return false, nil
+	return hostsEntryPresent(lines, ip, hostname), nil
 }
 
 func modifyHostsEntry(hostname, ip string, add bool) error {
@@ -59,45 +53,11 @@ func modifyHostsUnix(hostname, ip string, add bool) error {
 		return fmt.Errorf("reading /etc/hosts: %w", err)
 	}
 
-	target := formatHostsLine(ip, hostname)
-	found := false
-	for _, line := range lines {
-		if normalizedLine(line) == normalizedLine(target) {
-			found = true
-			break
-		}
+	if hostsEntryPresent(lines, ip, hostname) == add {
+		return nil // already present (add) or already absent (remove)
 	}
 
-	if add && found {
-		return nil // already present
-	}
-	if !add && !found {
-		return nil // already absent
-	}
-
-	var newLines []string
-	for _, line := range lines {
-		if normalizedLine(line) == normalizedLine(target) {
-			continue // remove
-		}
-		// Also remove the comment line that precedes this entry
-		if strings.TrimSpace(line) == hostsComment {
-			if len(newLines) > 0 {
-				prev := newLines[len(newLines)-1]
-				if strings.TrimSpace(prev) == hostsComment {
-					newLines = newLines[:len(newLines)-1]
-				}
-			}
-			continue
-		}
-		newLines = append(newLines, line)
-	}
-
-	if add {
-		// Append with a descriptive comment
-		newLines = append(newLines, hostsComment)
-		newLines = append(newLines, target)
-	}
+	newLines := applyHostsChange(lines, hostname, ip, add)
 
 	// Ensure trailing newline
 	content := strings.Join(newLines, "\n")
@@ -159,43 +119,11 @@ func modifyHostsWindows(hostname, ip string, add bool) error {
 		return fmt.Errorf("reading hosts file: %w", err)
 	}
 
-	target := formatHostsLine(ip, hostname)
-	found := false
-	for _, line := range lines {
-		if normalizedLine(line) == normalizedLine(target) {
-			found = true
-			break
-		}
+	if hostsEntryPresent(lines, ip, hostname) == add {
+		return nil // already present (add) or already absent (remove)
 	}
 
-	if add && found {
-		return nil
-	}
-	if !add && !found {
-		return nil
-	}
-
-	var newLines []string
-	for _, line := range lines {
-		if normalizedLine(line) == normalizedLine(target) {
-			continue
-		}
-		if strings.TrimSpace(line) == hostsComment {
-			if len(newLines) > 0 {
-				prev := newLines[len(newLines)-1]
-				if strings.TrimSpace(prev) == hostsComment {
-					newLines = newLines[:len(newLines)-1]
-				}
-			}
-			continue
-		}
-		newLines = append(newLines, line)
-	}
-
-	if add {
-		newLines = append(newLines, hostsComment)
-		newLines = append(newLines, target)
-	}
+	newLines := applyHostsChange(lines, hostname, ip, add)
 
 	content := strings.Join(newLines, "\n")
 	if len(content) > 0 && content[len(content)-1] != '\n' {
@@ -215,8 +143,102 @@ func formatHostsLine(ip, hostname string) string {
 	return ip + "\t" + hostname
 }
 
-func normalizedLine(s string) string {
-	return strings.TrimSpace(s)
+// hostsLineFields parses the address and host aliases before any inline comment.
+func hostsLineFields(line string) []string {
+	if comment := strings.IndexByte(line, '#'); comment >= 0 {
+		line = line[:comment]
+	}
+	return strings.Fields(line)
+}
+
+// hostsEntryMatch compares tokens rather than a whole line, since a hosts entry
+// may share its address with aliases or use a different separator.
+func hostsEntryMatch(line, ip, hostname string) bool {
+	fields := hostsLineFields(line)
+	if len(fields) < 2 || !strings.EqualFold(fields[0], ip) {
+		return false
+	}
+	for _, alias := range fields[1:] {
+		if strings.EqualFold(alias, hostname) {
+			return true
+		}
+	}
+	return false
+}
+
+func hostsEntryPresent(lines []string, ip, hostname string) bool {
+	for _, line := range lines {
+		if hostsEntryMatch(line, ip, hostname) {
+			return true
+		}
+	}
+	return false
+}
+
+// stripHostnameFromLine removes only the requested alias, preserving other
+// aliases and any inline comment on the same hosts-file line.
+func stripHostnameFromLine(line, ip, hostname string) (string, bool) {
+	comment := ""
+	if commentStart := strings.IndexByte(line, '#'); commentStart >= 0 {
+		comment = strings.TrimSpace(line[commentStart:])
+		line = line[:commentStart]
+	}
+	fields := strings.Fields(line)
+	if len(fields) < 2 || !strings.EqualFold(fields[0], ip) {
+		return line, true
+	}
+
+	kept := []string{fields[0]}
+	for _, alias := range fields[1:] {
+		if !strings.EqualFold(alias, hostname) {
+			kept = append(kept, alias)
+		}
+	}
+	if len(kept) == 1 {
+		if comment == "" {
+			return "", false
+		}
+		return comment, true
+	}
+	result := strings.Join(kept, "\t")
+	if comment != "" {
+		result += "\t" + comment
+	}
+	return result, true
+}
+
+// applyHostsChange updates matching aliases without dropping unrelated aliases
+// or comments. It never prunes, rewrites permissions, or touches a real hosts
+// file; callers decide how the returned lines are persisted.
+func applyHostsChange(lines []string, hostname, ip string, add bool) []string {
+	if add && hostsEntryPresent(lines, ip, hostname) {
+		return lines
+	}
+
+	updated := make([]string, 0, len(lines)+2)
+	for _, line := range lines {
+		if add || !hostsEntryMatch(line, ip, hostname) {
+			updated = append(updated, line)
+			continue
+		}
+
+		remaining, keepLine := stripHostnameFromLine(line, ip, hostname)
+		if keepLine {
+			if len(hostsLineFields(remaining)) == 0 && len(updated) > 0 && strings.TrimSpace(updated[len(updated)-1]) == hostsComment {
+				updated = updated[:len(updated)-1]
+			}
+			updated = append(updated, remaining)
+			continue
+		}
+		if len(updated) > 0 && strings.TrimSpace(updated[len(updated)-1]) == hostsComment {
+			updated = updated[:len(updated)-1]
+		}
+	}
+
+	if add {
+		updated = append(updated, hostsComment, formatHostsLine(ip, hostname))
+	}
+	return updated
 }
 
 // EnsureNexusHostsEntry is a convenience wrapper for the standard nexus.dev entry.

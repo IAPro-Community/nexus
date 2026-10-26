@@ -1,0 +1,12 @@
+P9 controlled 8-hour soak — final process observation
+observed_utc=2026-10-26 08:49:14 UTC
+command=make overnight-soak DURATION=8h
+go_test=go test -tags=gtk3 -count=1 -timeout 24h ./internal/nexus/runner -run TestOvernightSoakHarnessBounded
+go_test_output=ok github.com/IAPro-Community/nexus/internal/nexus/runner 28800.004s
+go_test_result=PASS (Go test emitted successful package result)
+test_process_after_result=not present in process table
+test_binary_sha256=ccfa49e1af5cf08fc5fae32339b788b7c8cb788b6914ff2a41abf0a63f096bbe
+base_commit=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+source_fingerprint_at_run=b874bec02f83066daed6f913b4d357fb411dfff9fe1ff97e8290a2f8b4f0ca8d
+fixture=deterministic runner harness with temporary/in-memory dependencies; no external provider or PTY process
+scope_limit=does not validate real-provider continuity, long-duration PTY orphan cleanup, or next-morning persistent app restart

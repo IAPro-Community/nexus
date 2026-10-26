@@ -1,0 +1,23 @@
+timestamp_utc=2026-10-26T08:22:43Z
+cpu_usage_ns_before=68033066000
+memory_current_bytes_before=765313024
+2496460    1930  0.9 211440      15:21 /home/desenvolvedor/.local/bin/nexus-desktop
+2496472 2496460  0.4 188044      15:21 /home/desenvolvedor/.local/bin/nexus-hud --linked
+2496604 2496472  0.0 49164       15:21 /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitNetworkProcess 2 25
+2496607 2496460  0.0 55096       15:21 /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitNetworkProcess 2 35
+2496608 2496472  0.4 249404      15:21 /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitWebProcess 4 25
+2496609 2496460  0.3 286464      15:21 /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitWebProcess 4 35
+cpu_usage_ns_after=72277766000
+memory_current_bytes_after=764555264
+2496460    1930  0.9 210760      16:21 /home/desenvolvedor/.local/bin/nexus-desktop
+2496472 2496460  0.4 188188      16:21 /home/desenvolvedor/.local/bin/nexus-hud --linked
+2496604 2496472  0.0 49164       16:21 /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitNetworkProcess 2 25
+2496607 2496460  0.0 55096       16:21 /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitNetworkProcess 2 35
+2496608 2496472  0.4 249692      16:21 /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitWebProcess 4 25
+2496609 2496460  0.3 286468      16:21 /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitWebProcess 4 35
+cgroup_cpu_percent_60s=7.07
+memory_delta_mib=-0.72
+memory_current_mib=729.14
+health={"status":"ok","timestamp":1793003023,"version":"1.0.0-beta.10"}
+
+result=OBSERVED

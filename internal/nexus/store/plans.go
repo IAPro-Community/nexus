@@ -203,8 +203,9 @@ func (s *Store) ListWorkPlans(projectID string) ([]WorkPlan, error) {
 
 func (s *Store) UpdateWorkPlan(p WorkPlan, changeSummary string) (*WorkPlan, *PlanRevision, error) {
 	now := time.Now().UTC()
+	expectedRevision := p.CurrentRevision
 	p.UpdatedAt = now
-	p.CurrentRevision++
+	p.CurrentRevision = expectedRevision + 1
 
 	phasesJSON, _ := json.Marshal(p.Phases)
 	factsJSON, _ := json.Marshal(p.StructuredFacts)
@@ -215,12 +216,26 @@ func (s *Store) UpdateWorkPlan(p WorkPlan, changeSummary string) (*WorkPlan, *Pl
 	}
 	defer tx.Rollback()
 
-	_, err = tx.Exec(`UPDATE work_plans SET title=?, description=?, status=?, current_revision=?, phases_json=?, facts_json=?, updated_at=?
-		WHERE id=?`,
+	result, err := tx.Exec(`UPDATE work_plans SET title=?, description=?, status=?, current_revision=?, phases_json=?, facts_json=?, updated_at=?
+		WHERE id=? AND current_revision=?`,
 		p.Title, p.Description, p.Status, p.CurrentRevision, string(phasesJSON), string(factsJSON),
-		now.Format(time.RFC3339), p.ID)
+		now.Format(time.RFC3339), p.ID, expectedRevision)
 	if err != nil {
 		return nil, nil, err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return nil, nil, err
+	}
+	if rowsAffected == 0 {
+		var currentRevision int
+		if err := tx.QueryRow(`SELECT current_revision FROM work_plans WHERE id=?`, p.ID).Scan(&currentRevision); err != nil {
+			return nil, nil, err
+		}
+		if err := validateExpectedPlanRevision(expectedRevision, currentRevision); err != nil {
+			return nil, nil, err
+		}
+		return nil, nil, ErrPlanRevisionConflict
 	}
 
 	planBytes, _ := json.Marshal(p)

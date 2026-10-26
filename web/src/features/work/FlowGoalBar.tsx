@@ -3,6 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { Play, Plus, Route, Sparkles } from 'lucide-react';
 import { Badge, Button, Card, Input, Select } from '../../design-system';
 import type { Agent, FlowLeaderPolicy } from '../../types';
+import {
+  executionPreviewDetails,
+  localizeExecutionPreviewMessage,
+} from './executionPreviewDetails';
 import { GENERATE_BUDGET_SEC, type FlowDraftEditorController } from './useFlowDraftEditor';
 import styles from './FlowDraftEditor.module.scss';
 
@@ -162,7 +166,13 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
                   {t('flow.costPolicy', 'Política de custo')} · {executionPreview.cost_budget.level}
                 </span>
                 <small className={styles.preflightCheckSub}>
-                  {executionPreview.cost_budget.message}
+                  {localizeExecutionPreviewMessage(
+                    executionPreview.cost_budget.message,
+                    t(
+                      'flow.executionPreviewNoLocalCostBudget',
+                      'No local cost budget is configured.',
+                    ),
+                  )}
                 </small>
                 {executionPreview.cost_anomaly.triggered ? (
                   <small className={styles.preflightCheckSub}>
@@ -212,6 +222,14 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
                 : step.model.evidence === 'UNKNOWN'
                   ? ` · ${t('flow.executionPreviewModelAuto', 'modelo por evidência em runtime')}`
                   : '';
+              const details = executionPreviewDetails(
+                {
+                  agentReason: step.agent.reason,
+                  resourceReason: step.resource.reason,
+                  blockers: step.blockers,
+                },
+                t('flow.executionPreviewNoProviderAccounts', 'No provider accounts are available.'),
+              );
               return (
                 <div key={step.package_id} className={styles.preflightItem}>
                   <div>
@@ -220,15 +238,7 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
                       {agentLabel} → {resourceLabel}
                       {modelLabel}
                     </small>
-                    <small className={styles.preflightCheckSub}>
-                      {step.agent.reason}
-                      {step.resource.reason ? ` · ${step.resource.reason}` : ''}
-                    </small>
-                    {(step.blockers || []).length > 0 && (
-                      <small className={styles.preflightCheckSub}>
-                        {step.blockers?.join(' · ')}
-                      </small>
-                    )}
+                    <small className={styles.preflightCheckSub}>{details.join(' · ')}</small>
                   </div>
                   <Badge tone={step.ready ? 'success' : 'danger'}>
                     {step.ready

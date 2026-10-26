@@ -1,5 +1,5 @@
 import type { HudRuntimeAttention } from './hudModel';
-import type { CompanionAttention } from './companionModel';
+import type { MascotAttention } from './mascotModel';
 
 // Deep link to the owning Nexus workspace, not just the homepage. When an
 // Agent is known, use the agent terminal surface; otherwise attach directly
@@ -13,7 +13,7 @@ export function hudAttentionRoute(item: HudRuntimeAttention): string {
   return `/p/${project}/terminals/${encodeURIComponent(item.runtime_id)}`;
 }
 
-export function companionAttentionRoute(item: CompanionAttention): string {
+export function mascotAttentionRoute(item: MascotAttention): string {
   if (!item.projectId) return '/projects';
   const project = encodeURIComponent(item.projectId);
   const record = item.recordId ? encodeURIComponent(item.recordId) : undefined;

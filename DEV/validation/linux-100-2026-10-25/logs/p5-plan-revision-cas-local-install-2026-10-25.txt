@@ -1,0 +1,11 @@
+backup_dir=/home/desenvolvedor/.local/state/nexus-homologation/20261025T212822Z-p5-cas-current-install
+prior_nexus_processes=3
+stop pid=1030290 name=nexus exe=/home/desenvolvedor/.local/bin/nexus (deleted) argv=/home/desenvolvedor/.local/bin/nexus web --port 0 --listen 127.0.0.1 --no-open
+stop pid=1030307 name=nexus-hud exe=/home/desenvolvedor/.local/bin/nexus-hud (deleted) argv=/home/desenvolvedor/.local/bin/nexus-hud --linked
+stop pid=1233402 name=nexus exe=/home/desenvolvedor/.local/bin/nexus (deleted) argv=/home/desenvolvedor/.local/bin/nexus web --port 0 --listen 127.0.0.1 --no-open
+installed=/home/desenvolvedor/.local/bin/nexus sha256=7d983a120bec6debada901bddc7a38748f6112d5d8d98f42b6d2d86efc10b8c6 previous_backup=/home/desenvolvedor/.local/state/nexus-homologation/20261025T212822Z-p5-cas-current-install/nexus.previous
+installed=/home/desenvolvedor/.local/bin/nexus-desktop sha256=25134b1e891ad11fc1f2467e0b814a955156a8ad514efaee8b847afd82b498d5 previous_backup=/home/desenvolvedor/.local/state/nexus-homologation/20261025T212822Z-p5-cas-current-install/nexus-desktop.previous
+installed=/home/desenvolvedor/.local/bin/nexus-hud sha256=a7b62e19456b3e88c0bf15af48b4c4234720339d7bd2928ad74c8b8d146d49d2 previous_backup=/home/desenvolvedor/.local/state/nexus-homologation/20261025T212822Z-p5-cas-current-install/nexus-hud.previous
+desktop_started_pid=3618613 binary=/home/desenvolvedor/.local/bin/nexus-desktop
+startup_log=/projetos/nexus/DEV/validation/linux-100-2026-10-25/logs/p5-native-desktop-startup-2026-10-25.txt
+result=PASS

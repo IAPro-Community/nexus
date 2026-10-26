@@ -49,6 +49,7 @@ export const MissionAttentionPanel: React.FC<{
         setError('');
       } catch (cause) {
         if (!active) return;
+        setAttention(null);
         setError(cause instanceof Error ? cause.message : String(cause));
       } finally {
         if (active && initial) setLoading(false);

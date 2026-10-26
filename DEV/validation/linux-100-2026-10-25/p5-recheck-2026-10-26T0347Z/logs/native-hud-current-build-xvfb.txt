@@ -1,0 +1,2 @@
+FAIL: current-build Wails HUD window did not open
+Nexus HUD started an embedded Core at http://127.0.0.1:36785

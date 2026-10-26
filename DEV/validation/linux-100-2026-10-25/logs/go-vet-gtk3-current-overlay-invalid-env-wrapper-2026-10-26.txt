@@ -1,0 +1,7 @@
+attempted_at=2026-10-26T06:31:27Z
+HEAD=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+source_fingerprint=0f9f1c0912788cf913aff1918111cf3e2b10521e22f70c9079edc6f042a08f28
+command=go vet -tags=gtk3 ./...
+status=NOT_RUN
+reason=PATH resolved env to /home/desenvolvedor/.local/bin/env, a local wrapper that printed the command and exited without launching it. The earlier PASS marker was produced by the shell wrapper, not by the requested check.
+correction=Re-run with direct shell environment assignments and verify command output/exit. This attempt is excluded from homologation counts.

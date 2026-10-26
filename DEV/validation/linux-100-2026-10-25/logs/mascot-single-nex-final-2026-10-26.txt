@@ -1,0 +1,18 @@
+identifier=MASCOT-013
+area=HUD / mascote NEX único
+base_commit=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+source_overlay_sha256=0f9f1c0912788cf913aff1918111cf3e2b10521e22f70c9079edc6f042a08f28 (1428 source files; mutable worktree, no commit)
+procedure=cd web && bunx vitest run src/features/hud/hudPresentation.test.ts src/features/hud/mascotModel.test.ts src/features/hud/hudModel.test.ts src/features/hud/GuardianModeSelector.test.tsx src/features/hud/GuardianMascot.test.tsx src/features/hud/attentionNavigation.test.ts
+expected=single NEX model; selector exposes only BAR/MASCOT/TRAY presentations; attention and saved mascot preferences regressions pass
+actual=6 suites passed; 38 tests passed
+status=PASS
+
+
+ RUN  v4.1.12 /projetos/nexus/web
+
+
+ Test Files  6 passed (6)
+      Tests  38 passed (38)
+   Start at  01:32:48
+   Duration  1.06s (transform 855ms, setup 0ms, import 1.81s, tests 92ms, environment 1ms)
+

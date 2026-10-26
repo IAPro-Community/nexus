@@ -1,0 +1,7 @@
+source_manifest=DEV/validation/linux-100-2026-10-25/logs/source-provenance-hud-idle-motion-fix-2026-10-26.txt
+records_checked=1428
+expected_fingerprint=b73161ffd4afe7d566bd00cfdc6d6e090e95b0c99e13dbd0653aadd40fdf6eac
+actual_fingerprint=b73161ffd4afe7d566bd00cfdc6d6e090e95b0c99e13dbd0653aadd40fdf6eac
+file_mismatches=0
+status=PASS
+

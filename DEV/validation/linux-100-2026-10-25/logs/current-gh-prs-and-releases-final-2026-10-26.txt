@@ -1,0 +1,11 @@
+timestamp_utc=2026-10-26T08:18:53Z
+
+open_pull_requests:
+[{"baseRefName":"main","headRefName":"fix/quality-gates-and-hosts-matching","isDraft":false,"mergeStateStatus":"BLOCKED","number":64,"reviewDecision":"","title":"fix: unblock typecheck/stylelint gates and match hosts entries by token","url":"https://github.com/IAPro-Community/nexus/pull/64"},{"baseRefName":"release/v1.0.0","headRefName":"docs/nexus-1.0-portal-20261022","isDraft":true,"mergeStateStatus":"DIRTY","number":61,"reviewDecision":"","title":"docs(site): portal técnico Docusaurus 3 para Nexus 1.0","url":"https://github.com/IAPro-Community/nexus/pull/61"},{"baseRefName":"release/v1.0.0","headRefName":"fix/hud-show-restore-v2","isDraft":false,"mergeStateStatus":"DIRTY","number":59,"reviewDecision":"","title":"fix(hud): restore geometry on WindowShow + CommandNoConsole for linked spawn","url":"https://github.com/IAPro-Community/nexus/pull/59"},{"baseRefName":"release/v1.0.0","headRefName":"feat/v1-contextual-workspace-experience","isDraft":true,"mergeStateStatus":"DIRTY","number":58,"reviewDecision":"","title":"feat(workspace): persistent split terminals, contextual commands and scheduler-guided Direct","url":"https://github.com/IAPro-Community/nexus/pull/58"},{"baseRefName":"release/v1.0.0","headRefName":"feat/orca-worktree-visibility-v1","isDraft":true,"mergeStateStatus":"UNSTABLE","number":57,"reviewDecision":"","title":"feat(workspace): expose parallel Git worktrees in Nexus 1.0","url":"https://github.com/IAPro-Community/nexus/pull/57"}]
+
+releases:
+Nexus 1.0 - Unsigned Preview (f23ed9b88725e9bc4df80ded19a89b2e7f8a326a)	Pre-release	preview-f23ed9b88725e9bc4df80ded19a89b2e7f8a326a	2026-10-22T21:25:33Z
+Nexus 1.0 - Unsigned Preview (40675172f69422d301d8050e184d690e93732776)	Pre-release	preview-40675172f69422d301d8050e184d690e93732776	2026-10-21T21:37:26Z
+Nexus 1.0 - Unsigned Preview (3288dcbc1872d99df22f16305a0636873430ef00)	Pre-release	preview-3288dcbc1872d99df22f16305a0636873430ef00	2026-10-21T21:01:45Z
+Nexus 1.0 - Unsigned Preview (1912b224d05809888108c636ef714fd68984027d)	Pre-release	preview-1912b224d05809888108c636ef714fd68984027d	2026-10-21T20:21:59Z
+Nexus 1.0 - Unsigned Preview (71d5f0b41d2df9418e9df891d89cabf9415187a3)	Pre-release	preview-71d5f0b41d2df9418e9df891d89cabf9415187a3	2026-10-21T18:42:37Z

@@ -238,7 +238,8 @@ func ResolveExecutionTarget(req TaskRequirements, affinity RuntimeAffinityPolicy
 		if affinity.Model.Mode == AffinityPin && strings.TrimSpace(affinity.Model.Value) != "" {
 			return ExecutionTarget{}, RuntimeRoutingDecision{}, fmt.Errorf("pinned model %q is absent from ModelCatalog", affinity.Model.Value)
 		}
-		rec := RecommendResources(accounts, req, PolicyBalanced)
+		resourceRequirements := providerResourceRequirements(req)
+		rec := RecommendResources(accounts, resourceRequirements, PolicyBalanced)
 		if affinity.Provider.Mode == AffinityPin && affinity.Provider.Value != "" {
 			pinned := make([]ProviderAccount, 0)
 			for _, account := range accounts {
@@ -246,7 +247,7 @@ func ResolveExecutionTarget(req TaskRequirements, affinity RuntimeAffinityPolicy
 					pinned = append(pinned, account)
 				}
 			}
-			rec = RecommendResources(pinned, req, PolicyBalanced)
+			rec = RecommendResources(pinned, resourceRequirements, PolicyBalanced)
 		}
 		if rec.Recommended == nil {
 			return ExecutionTarget{}, RuntimeRoutingDecision{}, fmt.Errorf("no eligible execution target: %s", rec.Explanation)

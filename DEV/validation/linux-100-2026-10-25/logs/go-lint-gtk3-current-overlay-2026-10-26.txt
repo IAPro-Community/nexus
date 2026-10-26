@@ -1,0 +1,17 @@
+started_at=2026-10-26T06:40:36Z
+HEAD=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+source_fingerprint=0f9f1c0912788cf913aff1918111cf3e2b10521e22f70c9079edc6f042a08f28
+command=make lint-go GO_TAGS=gtk3
+internal/nexus/conductor_dispatch_test.go:270:29: QF1008: could remove embedded field "composerMissionFixtureExecutor" from selector (staticcheck)
+	if executed, _ := executor.composerMissionFixtureExecutor.counts(); executed != 1 {
+	                           ^
+internal/nexus/conductor_dispatch_test.go:273:28: QF1008: could remove embedded field "composerMissionFixtureExecutor" from selector (staticcheck)
+	if duplicates := executor.composerMissionFixtureExecutor.duplicateDispatches(); duplicates != 0 {
+	                          ^
+internal/nexus/mission_notifications.go:68:71: (*MissionNotificationService).observe - result 0 (bool) is never used (unparam)
+func (s *MissionNotificationService) observe(run *runner.MissionRun) (bool, error) {
+                                                                      ^
+3 issues:
+* staticcheck: 2
+* unparam: 1
+make: *** [Makefile:114: lint-go] Error 1

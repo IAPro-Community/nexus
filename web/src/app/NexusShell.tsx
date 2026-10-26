@@ -187,7 +187,7 @@ export const NexusShell: React.FC<{
                     title={t('settings.updates')}
                     aria-label={t('settings.updates')}
                   >
-                    <ArrowUpCircle size={13} className="nx-spin-slow" />
+                    <ArrowUpCircle size={13} />
                     <span className="nx-update-badge">{t('settings.updates')}</span>
                   </button>
                 )}

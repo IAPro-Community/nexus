@@ -1,0 +1,9 @@
+date=2026-10-26
+branch=release/v1.0.0
+head=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+web command: bun audit --json (Bun 1.4.2), exit 1; audited web/bun.lock; lock parser found 626 packages. `bun pm why` reports Vitest 3.2.7 -> tinypool 1.1.1 and @vitest/mocker 3.2.7.
+docs-site command: bun audit --json, exit 0 with empty advisory object.
+Bun audit fix dry run (without --latest): brace-expansion 1.1.18->1.1.21 and 5.0.9->5.0.12, fast-uri 3.1.7->3.1.9, source-map-js 1.2.1->1.2.2, vite 7.3.6->7.3.7, zod 4.5.4->4.6.6; 5 advisories remain due Vitest dependency ranges.
+Bun audit fix --dry-run --latest: proposes Vitest 3.2.7->4.1.11 and package.json range ^3.0.0->^4.1.11; 4 advisories remain according to dry run.
+OSV-Scanner v2.7.0 official Linux AMD64 binary SHA-256: 160c6253e2922e9e0a6a9771c5c4c40a4b3c6090b34a3cdd5e80c96cc2e4218b; official SHA256SUMS verification passed. Lockfile extraction found 626 web packages and 1,187 docs-site packages; vuln querybatch failed after retries because api.osv.dev reset TCP, exit 127. Empty JSON output from failed scans is not interpreted as clean.
+Bun v1.3.9 official archive digest verified against GitHub Releases API: 4680e80e44e32aa718560ceae85d22ecfbf2efb8f3641782e35e4b7efd65a1aa. Extraction was truncated because /tmp tmpfs was full; no repository package files were changed by this attempt.

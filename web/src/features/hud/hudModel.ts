@@ -208,10 +208,14 @@ export interface HudPresentationPreferences {
   showMissions: boolean;
   showCost: boolean;
   showRecommendation: boolean;
-  companionMotion: boolean;
+  mascotMotion: boolean;
   privacyMode: boolean;
   floatingPosition: { x: number; y: number };
 }
+
+type LegacyHudPresentationPreferences = Partial<HudPresentationPreferences> & {
+  companionMotion?: boolean;
+};
 
 export const HUD_PREFERENCES_KEY = 'iapro:nexus:hud:presentation:v1';
 
@@ -227,7 +231,7 @@ export const defaultHudPreferences: HudPresentationPreferences = {
   showMissions: true,
   showCost: true,
   showRecommendation: true,
-  companionMotion: true,
+  mascotMotion: true,
   privacyMode: false,
   floatingPosition: { x: 24, y: 24 },
 };
@@ -243,26 +247,34 @@ const modes = new Set<HudMode>([
 ]);
 
 export const normalizeHudPreferences = (
-  raw: Partial<HudPresentationPreferences> | null | undefined,
-): HudPresentationPreferences => ({
-  ...defaultHudPreferences,
-  ...(raw || {}),
-  version: 1,
-  mode: raw?.mode && modes.has(raw.mode) ? raw.mode : defaultHudPreferences.mode,
-  companionMotion:
-    typeof raw?.companionMotion === 'boolean'
-      ? raw.companionMotion
-      : defaultHudPreferences.companionMotion,
-  surfaceMode:
-    raw?.surfaceMode === 'floating' || raw?.surfaceMode === 'docked'
-      ? raw.surfaceMode
-      : defaultHudPreferences.surfaceMode,
-  dock: raw?.dock === 'top' || raw?.dock === 'bottom' ? raw.dock : defaultHudPreferences.dock,
-  floatingPosition: {
-    ...defaultHudPreferences.floatingPosition,
-    ...(raw?.floatingPosition || {}),
-  },
-});
+  raw: LegacyHudPresentationPreferences | null | undefined,
+): HudPresentationPreferences => {
+  const { companionMotion: legacyCompanionMotion, ...current } = raw || {};
+  return {
+    ...defaultHudPreferences,
+    ...current,
+    version: 1,
+    mode: current.mode && modes.has(current.mode) ? current.mode : defaultHudPreferences.mode,
+    mascotMotion:
+      typeof current.mascotMotion === 'boolean'
+        ? current.mascotMotion
+        : typeof legacyCompanionMotion === 'boolean'
+          ? legacyCompanionMotion
+          : defaultHudPreferences.mascotMotion,
+    surfaceMode:
+      current.surfaceMode === 'floating' || current.surfaceMode === 'docked'
+        ? current.surfaceMode
+        : defaultHudPreferences.surfaceMode,
+    dock:
+      current.dock === 'top' || current.dock === 'bottom'
+        ? current.dock
+        : defaultHudPreferences.dock,
+    floatingPosition: {
+      ...defaultHudPreferences.floatingPosition,
+      ...(current.floatingPosition || {}),
+    },
+  };
+};
 
 export const loadHudPreferences = (): HudPresentationPreferences => {
   if (typeof window === 'undefined') return defaultHudPreferences;
@@ -278,7 +290,8 @@ export const loadHudPreferences = (): HudPresentationPreferences => {
 
 export const saveHudPreferences = (prefs: HudPresentationPreferences) => {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(HUD_PREFERENCES_KEY, JSON.stringify(normalizeHudPreferences(prefs)));
+  const normalized = normalizeHudPreferences(prefs);
+  window.localStorage.setItem(HUD_PREFERENCES_KEY, JSON.stringify(normalized));
   window.dispatchEvent(new CustomEvent('nexus:hud-preferences'));
 };
 

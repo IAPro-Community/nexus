@@ -22,6 +22,23 @@ type Notifier interface {
 	Notify(payload Payload) error
 }
 
+// AvailabilityReporter lets a best-effort delivery workflow distinguish an
+// unavailable desktop channel from a successful no-op. Implementations that do
+// not report capability are considered available, which keeps test recorders
+// and embedded adapters simple.
+type AvailabilityReporter interface {
+	Available() bool
+}
+
+// IsAvailable reports whether the native desktop notification channel can be
+// used by the given notifier.
+func IsAvailable(notifier Notifier) bool {
+	if reporter, ok := notifier.(AvailabilityReporter); ok {
+		return reporter.Available()
+	}
+	return notifier != nil
+}
+
 type throttledNotifier struct {
 	inner    Notifier
 	mu       sync.Mutex
@@ -47,13 +64,19 @@ func (t *throttledNotifier) Notify(payload Payload) error {
 		key = payload.Title + "|" + payload.Body
 	}
 	t.mu.Lock()
+	defer t.mu.Unlock()
 	if last, ok := t.lastSent[key]; ok && time.Since(last) < t.cooldown {
-		t.mu.Unlock()
 		return nil
 	}
+	if err := t.inner.Notify(payload); err != nil {
+		return err
+	}
 	t.lastSent[key] = time.Now()
-	t.mu.Unlock()
-	return t.inner.Notify(payload)
+	return nil
+}
+
+func (t *throttledNotifier) Available() bool {
+	return IsAvailable(t.inner)
 }
 
 // Recorder captures notifications for tests.
@@ -76,6 +99,22 @@ func (r *Recorder) Reset() {
 }
 
 type desktopNotifier struct{}
+
+func (desktopNotifier) Available() bool {
+	switch runtime.GOOS {
+	case "linux":
+		_, err := exec.LookPath("notify-send")
+		return err == nil
+	case "darwin":
+		_, err := exec.LookPath("osascript")
+		return err == nil
+	case "windows":
+		_, err := exec.LookPath("powershell")
+		return err == nil
+	default:
+		return false
+	}
+}
 
 func (desktopNotifier) Notify(payload Payload) error {
 	title := strings.TrimSpace(payload.Title)

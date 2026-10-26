@@ -1,5 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Cpu, Gauge, PanelRightClose, PanelRightOpen, Plus, RefreshCw, Search } from 'lucide-react';
+import {
+  Cpu,
+  Gauge,
+  KeyRound,
+  PanelRightClose,
+  PanelRightOpen,
+  Plus,
+  RefreshCw,
+  Search,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button, EmptyState, SearchInput, Spinner } from '../../design-system';
 import { nexus } from '../../nexus/api';
@@ -11,6 +20,10 @@ import type {
   RecommendationResult,
 } from '../../types';
 import { asArray } from '../../lib/safeArray';
+import {
+  summarizeHostSessionImports,
+  type HostSessionImportSummary,
+} from '../../lib/hostSessionImport';
 import { AccountLoginModal } from './AccountLoginModal';
 import { CostSummaryStrip } from './CostSummaryStrip';
 import { RegisterProviderModal } from './RegisterProviderModal';
@@ -68,6 +81,10 @@ export const UsageSurface: React.FC<{
     {},
   );
   const [costSummary, setCostSummary] = useState<CostSummary | null>(null);
+  const [importingHostSessions, setImportingHostSessions] = useState(false);
+  const [hostSessionImportSummary, setHostSessionImportSummary] =
+    useState<HostSessionImportSummary | null>(null);
+  const [hostSessionImportError, setHostSessionImportError] = useState('');
 
   // Search & Filtering State
   const [search, setSearch] = useState('');
@@ -246,6 +263,21 @@ export const UsageSurface: React.FC<{
     }
   };
 
+  const importHostSessions = async () => {
+    setImportingHostSessions(true);
+    setHostSessionImportError('');
+    setHostSessionImportSummary(null);
+    try {
+      const result = await nexus.importHostSessions();
+      setHostSessionImportSummary(summarizeHostSessionImports(asArray(result.results)));
+      await load();
+    } catch {
+      setHostSessionImportError(t('usage.importHostSessionsError'));
+    } finally {
+      setImportingHostSessions(false);
+    }
+  };
+
   return (
     <div className={`nx-surface-scroll ${styles.root}`}>
       <div className="nx-page-header">
@@ -260,6 +292,18 @@ export const UsageSurface: React.FC<{
               {t('usage.loadedAt', 'Atualizado')}: {new Date(loadedAt).toLocaleTimeString()}
             </small>
           ) : null}
+          <Button
+            size="sm"
+            tone="default"
+            disabled={loading || refreshing || importingHostSessions}
+            data-testid="usage-import-host-sessions"
+            onClick={() => void importHostSessions()}
+          >
+            <KeyRound size={13} aria-hidden="true" />
+            {importingHostSessions
+              ? t('usage.importHostSessionsLoading')
+              : t('usage.importHostSessions')}
+          </Button>
           <Button
             size="sm"
             tone="brand"
@@ -282,6 +326,20 @@ export const UsageSurface: React.FC<{
           </Button>
         </div>
       </div>
+
+      {installedProviders.some((provider) => provider.installed) ? (
+        <p className={styles.sessionImportHint}>{t('usage.importHostSessionsDescription')}</p>
+      ) : null}
+      {hostSessionImportSummary ? (
+        <p className={styles.sessionImportStatus} role="status" aria-live="polite">
+          {t('usage.importHostSessionsResult', hostSessionImportSummary)}
+        </p>
+      ) : null}
+      {hostSessionImportError ? (
+        <p className="nx-inline-error" role="alert">
+          {hostSessionImportError}
+        </p>
+      ) : null}
 
       {error ? <div className="nx-inline-error">{error}</div> : null}
       {loading ? <Spinner label={t('resources.loading')} /> : null}

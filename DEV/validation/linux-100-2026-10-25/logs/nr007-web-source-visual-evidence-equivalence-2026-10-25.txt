@@ -1,0 +1,10 @@
+Nexus mascot visual-source equivalence check — 2026-10-25
+Reference overlay: 2c23ebb0c7726a200acbde9326c23ad6023d8fad0238c2adfef993677203f2fa
+Current overlay: b874bec02f83066daed6f913b4d357fb411dfff9fe1ff97e8290a2f8b4f0ca8d
+Reference web files: 498
+Current web files: 498
+Web file hash/size differences: 0
+Result: PASS; every frontend file in the current manifest is byte-for-byte identical to the overlay that produced the existing native NEX HUD screenshot.
+Native HUD screenshot: DEV/validation/linux-100-2026-10-25/screenshots/native-hud-first-paint-current-2c23ebb0/hud-first-paint-30s.png
+Screenshot SHA-256: c004a21fc218f052a59f7d06d68a4f6ae96b4569011ed0f20671c700fda4a736
+This proves frontend source equivalence only. It is not a new capture of the currently installed binary.

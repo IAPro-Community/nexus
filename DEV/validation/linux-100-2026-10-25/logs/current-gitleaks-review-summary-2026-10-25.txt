@@ -1,0 +1,16 @@
+Gitleaks v8.24.2 local security review; no secret values are recorded here.
+
+Current product source scan (re-run after the update interruption regression was added):
+- Scope: cmd, internal, web/src, .github, Makefile, VERSION, go.mod, go.sum, .goreleaser.yaml, .golangci.yml.
+- 18 candidate detections in internal: 15 values also appear in test fixtures, one contains an explicit synthetic marker, one is a static SQL identifier sequence, and one is a minified embedded switch-case sequence. cmd, web/src, .github and root manifests had zero detections. No active credential was confirmed in the current product source.
+
+Available Git history scan (--all):
+- 1,906 commits; approximately 81,777,217 bytes; 77 candidate detections. Most were generated bundles, test fixtures, public/test key material, or a deleted patch artifact.
+- Manual review identified two old 64-character loopback bootstrap URLs in historical DEV/HANDOFF.md commits dated 2026-09-03 and 2026-09-05. The current DEV/HANDOFF.md has no token and no process is listening on port 3000. The old tokens' expiry/revocation cannot be proven from this repository; no force-rewrite or external rotation was performed.
+- Other reviewed detections include a commit SHA and SQL identifiers. The redacted report remains available at current-gitleaks-git-history-2026-10-25.json. Treat the old bootstrap-token status as BLOCKED pending owner confirmation that the old Nexus instance/state is gone.
+
+Dependency audit:
+- docs-site npm audit: 0 vulnerabilities across 1,298 dependencies.
+- web uses bun.lock. npm audit exits ENOLOCK, and bun pm scan exits 1 because no security scanner is configured. The web dependency closure is therefore not verified by an advisory scanner.
+
+Source identity: release/v1.0.0 @ 7a04f1b4cf5950b97b4ea1e156dda31ac513823b + product-source fingerprint abad854fffba2532c6f3c04bd4273f45747b80688833dddb24d0df418bdc73a8.

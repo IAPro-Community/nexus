@@ -552,6 +552,16 @@ func (h *HUDController) CaptureHUDWindowState() error {
 	if !ok {
 		return nil
 	}
+	return h.captureHUDWindowState(window)
+}
+
+func (h *HUDController) captureHUDWindowState(window application.Window) error {
+	if !h.GetHUDCapabilities().GlobalPositioning {
+		// Wayland cannot report stable global window geometry. Presentation and
+		// size changes are persisted by their controller methods; sampling the
+		// native window here can overwrite them with Wails' 80x48 initial size.
+		return nil
+	}
 	state := h.manager.Load()
 	state.Width, state.Height = window.Size()
 	state.X, state.Y = window.Position()

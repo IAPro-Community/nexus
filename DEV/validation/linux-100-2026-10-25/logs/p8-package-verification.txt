@@ -1,0 +1,92 @@
+== GoReleaser snapshot package validation ==
+go: github.com/goreleaser/goreleaser/v2@v2.18.0 requires go >= 1.27.0; switching to go1.27.3
+  ____       ____      _
+ / ___| ___ |  _ \ ___| | ___  __ _ ___  ___ _ __
+| |  _ / _ \| |_) / _ \ |/ _ \/ _` / __|/ _ \ '__|
+| |_| | (_) |  _ <  __/ |  __/ (_| \__ \  __/ |
+ \____|\___/|_| \_\___|_|\___|\__,_|___/\___|_|
+goreleaser: Release engineering, simplified.
+https://goreleaser.com
+
+GitVersion:    v2.18.0
+GitCommit:     unknown
+GitTreeState:  unknown
+BuildDate:     unknown
+BuiltBy:       unknown
+GoVersion:     go1.27.3
+Compiler:      gc
+ModuleSum:     h1:wm1GhXmZeNt4fo1/Z6GFXWcf5gxOyM4SUXFjX7JmGMY=
+Platform:      linux/amd64
+nexus_1.0.0-beta.10_linux_amd64.deb: OK
+nexus_Linux_x86_64.tar.gz: OK
+Package: nexus
+Version: 1.0.0~beta.10
+Architecture: amd64
+drwxr-xr-x root/root         0 2026-10-25 15:06 ./usr/
+drwxr-xr-x root/root         0 2026-10-25 15:06 ./usr/local/
+drwxr-xr-x root/root         0 2026-10-25 15:06 ./usr/local/bin/
+-rw-rw-r-- root/root         0 2026-09-23 10:11 ./usr/local/bin/.nexus-deb
+-rwxr-xr-x root/root  25477280 2026-10-25 15:06 ./usr/local/bin/nexus
+drwxr-xr-x root/root         0 2026-10-25 15:06 ./usr/share/
+drwxr-xr-x root/root         0 2026-10-25 15:06 ./usr/share/doc/
+drwxr-xr-x root/root         0 2026-10-25 15:06 ./usr/share/doc/nexus/
+-rw-rw-r-- root/root      3553 2026-10-20 14:57 ./usr/share/doc/nexus/LICENSE
+-rw-rw-r-- root/root     11427 2026-10-23 09:55 ./usr/share/doc/nexus/README.md
+/tmp/nexus-linux-100-p8-20261025.gNjpMg/extract/tar/nexus:               ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linked, Go BuildID=6QpJVUQTQmdzHyCDqHZW/MRj-c5F6wQoDoCOhNNUV/l6C4MKrVXsqAlOybfGuR/QtOSQvlRyEeHEsZnviRz, BuildID[sha1]=17786b8a398fc9e2f2dccbb38ae22ac84eab966f, stripped
+/tmp/nexus-linux-100-p8-20261025.gNjpMg/extract/deb/usr/local/bin/nexus: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linked, Go BuildID=6QpJVUQTQmdzHyCDqHZW/MRj-c5F6wQoDoCOhNNUV/l6C4MKrVXsqAlOybfGuR/QtOSQvlRyEeHEsZnviRz, BuildID[sha1]=17786b8a398fc9e2f2dccbb38ae22ac84eab966f, stripped
+d1fa6eca3763efdb62759087fd5731e5a7db20146aaf2dcd67b8f71f07f92d34  /tmp/nexus-linux-100-p8-20261025.gNjpMg/extract/tar/nexus
+d1fa6eca3763efdb62759087fd5731e5a7db20146aaf2dcd67b8f71f07f92d34  /tmp/nexus-linux-100-p8-20261025.gNjpMg/extract/deb/usr/local/bin/nexus
+-- tar payload version --
+{
+  "arch": "amd64",
+  "build_date": "2026-10-25T19:06:14Z",
+  "commit": "7a04f1b4cf5950b97b4ea1e156dda31ac513823b",
+  "go": "go1.27.3",
+  "os": "linux",
+  "version": "1.0.0-beta.10"
+}
+-- deb extracted payload version --
+{
+  "arch": "amd64",
+  "build_date": "2026-10-25T19:06:14Z",
+  "commit": "7a04f1b4cf5950b97b4ea1e156dda31ac513823b",
+  "go": "go1.27.3",
+  "os": "linux",
+  "version": "1.0.0-beta.10"
+}
+Selecting previously unselected package nexus.
+(Reading database ... 0 files and directories currently installed.)
+Preparing to unpack .../nexus_1.0.0-beta.10_linux_amd64.deb ...
+Unpacking nexus (1.0.0~beta.10) ...
+Setting up nexus (1.0.0~beta.10) ...
+install ok installed
+1.0.0~beta.10
+amd64
+{
+  "arch": "amd64",
+  "build_date": "2026-10-25T19:06:14Z",
+  "commit": "7a04f1b4cf5950b97b4ea1e156dda31ac513823b",
+  "go": "go1.27.3",
+  "os": "linux",
+  "version": "1.0.0-beta.10"
+}
+(Reading database ... 10 files and directories currently installed.)
+Removing nexus (1.0.0~beta.10) ...
+isolated_package_removed=true
+host_command_path=/home/desenvolvedor/.local/bin/nexus
+host_installation_modified=false
+== exact source and snapshot identities ==
+commit=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+fingerprint=268a9e9a0036e89e39bcff07eca880869534c9c75cc13765384bb3fa3fc30b32
+source_files=1421
+git_head=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+remote_head=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+goreleaser=v2.18.0
+artifact_checksums:
+64e6f74b42f3eec6507a3ac4da1ddd7b867c87736d05ce69d4fab57c41a159cb  /tmp/nexus-linux-100-p8-20261025.gNjpMg/dist/nexus_1.0.0-beta.10_linux_amd64.deb
+8ef28f6ef88e630b4c70febec1691fc7195dc3cabbcef9f80fd9cb1d08346d0c  /tmp/nexus-linux-100-p8-20261025.gNjpMg/dist/nexus_Linux_x86_64.tar.gz
+cf76018ea7f4c2e16a29c4db8ffc206b115bd91ae067ea2f18e52c0da4f03dc3  /tmp/nexus-linux-100-p8-20261025.gNjpMg/dist/checksums.txt
+checksum_manifest:
+64e6f74b42f3eec6507a3ac4da1ddd7b867c87736d05ce69d4fab57c41a159cb  nexus_1.0.0-beta.10_linux_amd64.deb
+8ef28f6ef88e630b4c70febec1691fc7195dc3cabbcef9f80fd9cb1d08346d0c  nexus_Linux_x86_64.tar.gz
+validation_exit_code=0

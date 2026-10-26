@@ -1,0 +1,20 @@
+timestamp_utc=2026-10-26T08:26:33Z
+main_pid=2496460
+hud_pid=2496472
+sample_seconds= 60
+before pid=2496460 name=nexus-desktop rss_mib=206.72
+before pid=2496472 name=nexus-hud rss_mib=183.95
+before pid=2496604 name=WebKitNetworkPr rss_mib=48.01
+before pid=2496607 name=WebKitNetworkPr rss_mib=53.80
+before pid=2496608 name=WebKitWebProces rss_mib=247.18
+before pid=2496609 name=WebKitWebProces rss_mib=279.78
+process pid=2496460 name=nexus-desktop cpu_percent=0.87 rss_before_mib=206.72 rss_after_mib=206.07 rss_delta_mib=-0.64
+process pid=2496472 name=nexus-hud cpu_percent=0.45 rss_before_mib=183.95 rss_after_mib=184.36 rss_delta_mib=0.40
+process pid=2496604 name=WebKitNetworkPr cpu_percent=0.00 rss_before_mib=48.01 rss_after_mib=48.01 rss_delta_mib=0.00
+process pid=2496607 name=WebKitNetworkPr cpu_percent=0.00 rss_before_mib=53.80 rss_after_mib=53.80 rss_delta_mib=0.00
+process pid=2496608 name=WebKitWebProces cpu_percent=0.28 rss_before_mib=247.18 rss_after_mib=248.02 rss_delta_mib=0.85
+process pid=2496609 name=WebKitWebProces cpu_percent=0.00 rss_before_mib=279.78 rss_after_mib=279.79 rss_delta_mib=0.00
+memory_current_bytes=881111040
+health={"status":"ok","timestamp":1793003253,"version":"1.0.0-beta.10"}
+
+result=OBSERVED

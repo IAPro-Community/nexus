@@ -1,0 +1,104 @@
+Linux homologation — exact-overlay GoReleaser snapshot validation
+Base/remote HEAD: 7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+Source fingerprint: 2c23ebb0c7726a200acbde9326c23ad6023d8fad0238c2adfef993677203f2fa (1,425 source files)
+GoReleaser snapshot: /home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/dist
+Isolated dpkg root: /home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/package-validation/dpkg-root
+
+== checksums ==
+$ sha256sum -c checksums.txt
+
+nexus_1.0.0-beta.10_linux_amd64.deb: OK
+nexus_Linux_x86_64.tar.gz: OK
+
+exit_code=0
+
+== DEB metadata ==
+$ dpkg-deb --field /home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/dist/nexus_1.0.0-beta.10_linux_amd64.deb Package Version Architecture
+
+Package: nexus
+Version: 1.0.0~beta.10
+Architecture: amd64
+
+exit_code=0
+
+== extract tar ==
+$ tar -xzf /home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/dist/nexus_Linux_x86_64.tar.gz -C /home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/package-validation/tar-extract
+
+
+exit_code=0
+
+== extract DEB ==
+$ dpkg-deb -x /home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/dist/nexus_1.0.0-beta.10_linux_amd64.deb /home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/package-validation/deb-extract
+
+
+exit_code=0
+
+== payload hashes ==
+{
+  "/home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/dist/nexus_linux_amd64_v1/nexus": "f8a250eb61095df94691aa12a7a462469d196aebb671bd93c54512f1e493d145",
+  "/home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/package-validation/tar-extract/nexus": "f8a250eb61095df94691aa12a7a462469d196aebb671bd93c54512f1e493d145",
+  "/home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/package-validation/deb-extract/usr/local/bin/nexus": "f8a250eb61095df94691aa12a7a462469d196aebb671bd93c54512f1e493d145"
+}
+
+== tar CLI version ==
+$ /home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/package-validation/tar-extract/nexus version --json
+
+{
+  "arch": "amd64",
+  "build_date": "2026-10-25T23:44:32Z",
+  "commit": "7a04f1b4cf5950b97b4ea1e156dda31ac513823b",
+  "go": "go1.27.3",
+  "os": "linux",
+  "version": "1.0.0-beta.10"
+}
+
+exit_code=0
+
+== isolated dpkg install ==
+$ dpkg --force-not-root --root=/home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/package-validation/dpkg-root --admindir=/home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/package-validation/dpkg-root/var/lib/dpkg --log=/home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/package-validation/dpkg-root/var/log/dpkg.log --install /home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/dist/nexus_1.0.0-beta.10_linux_amd64.deb
+
+Selecting previously unselected package nexus.
+(Reading database ... 0 files and directories currently installed.)
+Preparing to unpack .../nexus_1.0.0-beta.10_linux_amd64.deb ...
+Unpacking nexus (1.0.0~beta.10) ...
+Setting up nexus (1.0.0~beta.10) ...
+
+exit_code=0
+
+== isolated dpkg query ==
+$ dpkg-query --admindir=/home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/package-validation/dpkg-root/var/lib/dpkg -W -f=${Status} ${Version} ${Architecture} nexus
+
+install ok installed 1.0.0~beta.10 amd64
+exit_code=0
+
+== installed CLI version ==
+$ /home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/package-validation/dpkg-root/usr/local/bin/nexus version --json
+
+{
+  "arch": "amd64",
+  "build_date": "2026-10-25T23:44:32Z",
+  "commit": "7a04f1b4cf5950b97b4ea1e156dda31ac513823b",
+  "go": "go1.27.3",
+  "os": "linux",
+  "version": "1.0.0-beta.10"
+}
+
+exit_code=0
+
+== isolated dpkg remove ==
+$ dpkg --force-not-root --root=/home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/package-validation/dpkg-root --admindir=/home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/package-validation/dpkg-root/var/lib/dpkg --log=/home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/package-validation/dpkg-root/var/log/dpkg.log --remove nexus
+
+(Reading database ... 10 files and directories currently installed.)
+Removing nexus (1.0.0~beta.10) ...
+
+exit_code=0
+
+== isolated dpkg query after remove ==
+$ dpkg-query --admindir=/home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/package-validation/dpkg-root/var/lib/dpkg -W -f=${Status} nexus
+
+dpkg-query: no packages found matching nexus
+
+exit_code=1
+
+host_installation_modified=false
+local_unsigned_snapshot_only=true

@@ -1,0 +1,118 @@
+web_cycle_1_pid=1901353
+web_cycle_1_health=PASS body={"status":"ok","timestamp":1792957135,"version":"1.0.0-beta.10"}
+
+desktop_pid=1901456
+dbus-daemon[1901321]: [session uid=1000 pid=1901321 pidfd=5] Activating service name='org.a11y.Bus' requested by ':1.3' (uid=1000 pid=1901456 comm="/home/desenvolvedor/.local/bin/nexus-desktop" label="unconfined")
+dbus-daemon[1901321]: [session uid=1000 pid=1901321 pidfd=5] Successfully activated service 'org.a11y.Bus'
+dbus-daemon[1901321]: [session uid=1000 pid=1901321 pidfd=5] Activating service name='org.gtk.vfs.Daemon' requested by ':1.2' (uid=1000 pid=1901456 comm="/home/desenvolvedor/.local/bin/nexus-desktop" label="unconfined")
+dbus-daemon[1901321]: [session uid=1000 pid=1901321 pidfd=5] Successfully activated service 'org.gtk.vfs.Daemon'
+fusermount3: failed to access mountpoint /run/user/1000/gvfs: Permission denied
+dbus-daemon[1901321]: [session uid=1000 pid=1901321 pidfd=5] Activating service name='org.freedesktop.portal.Desktop' requested by ':1.2' (uid=1000 pid=1901456 comm="/home/desenvolvedor/.local/bin/nexus-desktop" label="unconfined")
+dbus-daemon[1901321]: [session uid=1000 pid=1901321 pidfd=5] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.6' (uid=1000 pid=1901558 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[1901321]: [session uid=1000 pid=1901321 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'
+dbus-daemon[1901321]: [session uid=1000 pid=1901321 pidfd=5] Activating service name='org.freedesktop.portal.Documents' requested by ':1.6' (uid=1000 pid=1901558 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[1901321]: [session uid=1000 pid=1901321 pidfd=5] Successfully activated service 'org.freedesktop.portal.Documents'
+fusermount3: failed to access mountpoint /run/user/1000/doc: Permission denied
+error: fuse init failed: Can't mount path /run/user/1000/doc
+desktop_attached_to_isolated_web_core=PASS
+
+(/usr/libexec/xdg-desktop-portal:1901558): xdg-desktop-portal-WARNING **: 15:38:56.135: Document portal fuse mount point unknown: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name :1.8 was not provided by any .service files
+dbus-daemon[1901321]: [session uid=1000 pid=1901321 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gnome' requested by ':1.6' (uid=1000 pid=1901558 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+native_window_id=0x600725
+native_window=0x600725 "IAPro Nexus": ("mutter-x11-frames" "mutter-x11-frames")  1330x887+295+115  +295+115
+
+** (xdg-desktop-portal-gnome:1901607): WARNING **: 15:38:56.173: Failed to open service channel Wayland connection, portals dialogs may missbehave (Cannot invoke method; proxy is for the well-known name org.gnome.Mutter.ServiceChannel without an owner, and proxy was constructed with the G_DBUS_PROXY_FLAGS_DO_NOT_AUTO_START flag).
+dbus-daemon[1901321]: [session uid=1000 pid=1901321 pidfd=5] Activating service name='org.gnome.Settings.GlobalShortcutsProvider' requested by ':1.9' (uid=1000 pid=1901607 comm="/usr/libexec/xdg-desktop-portal-gnome" label="unconfined")
+
+** (process:1901716): WARNING **: 15:38:56.408: Failed to open service channel Wayland connection, portals dialogs may missbehave (Cannot invoke method; proxy is for the well-known name org.gnome.Mutter.ServiceChannel without an owner, and proxy was constructed with the G_DBUS_PROXY_FLAGS_DO_NOT_AUTO_START flag).
+dbus-daemon[1901321]: [session uid=1000 pid=1901321 pidfd=5] Successfully activated service 'org.gnome.Settings.GlobalShortcutsProvider'
+dbus-daemon[1901321]: [session uid=1000 pid=1901321 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.gnome'
+dbus-daemon[1901321]: [session uid=1000 pid=1901321 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1000 pid=1901558 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[1901515]: Activating service name='org.a11y.atspi.Registry' requested by ':1.1' (uid=1000 pid=1901812 comm="/usr/libexec/xdg-desktop-portal-gtk" label="unconfined")
+dbus-daemon[1901515]: Successfully activated service 'org.a11y.atspi.Registry'
+SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry
+dbus-daemon[1901321]: [session uid=1000 pid=1901321 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.gtk'
+dbus-daemon[1901321]: [session uid=1000 pid=1901321 pidfd=5] Activating service name='org.freedesktop.secrets' requested by ':1.6' (uid=1000 pid=1901558 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+discover_other_daemon: 1GNOME_KEYRING_CONTROL=/run/user/1000/keyring
+screenshot=DEV/validation/linux-100-2026-10-25/screenshots/p2-ui-restart-2026-10-25/desktop-before-web-restart-xwayland.png bytes=171589
+web_cycle_1_exit_code=0
+native_desktop_stayed_open_during_core_stop=PASS
+web_cycle_2_pid=1902144
+web_cycle_2_health=PASS body={"status":"ok","timestamp":1792957139,"version":"1.0.0-beta.10"}
+
+native_desktop_stayed_open_after_core_restart=PASS
+native_window_reload_key=F5
+screenshot=DEV/validation/linux-100-2026-10-25/screenshots/p2-ui-restart-2026-10-25/desktop-after-web-restart-xwayland.png bytes=171435
+result=PASS: native Desktop stayed open while isolated Web Core restarted and rendered again after reload
+desktop_cleanup_exit_code=0
+web_cleanup_exit_code=0
+temporary_profile=/tmp/nexus-p2-xwayland-ui.hev1_5ot
+
+(/usr/libexec/xdg-desktop-portal:1901558): xdg-desktop-portal-WARNING **: 15:39:21.427: Failed to create secret proxy: Error calling StartServiceByName for org.freedesktop.secrets: The connection is closed
+
+(/usr/libexec/xdg-desktop-portal:1901558): xdg-desktop-portal-WARNING **: 15:39:21.427: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:1901558): GLib-GIO-CRITICAL **: 15:39:21.427: Error while sending AddMatch() message: The connection is closed
+
+(/usr/libexec/xdg-desktop-portal:1901558): GLib-GIO-CRITICAL **: 15:39:21.427: Error while sending AddMatch() message: The connection is closed
+
+(/usr/libexec/xdg-desktop-portal:1901558): xdg-desktop-portal-WARNING **: 15:39:21.427: Failed to create global_shortcuts proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gnome: The connection is closed
+
+(/usr/libexec/xdg-desktop-portal:1901558): xdg-desktop-portal-WARNING **: 15:39:21.427: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:1901558): GLib-GIO-CRITICAL **: 15:39:21.427: Error while sending AddMatch() message: The connection is closed
+
+(/usr/libexec/xdg-desktop-portal:1901558): GLib-GIO-CRITICAL **: 15:39:21.427: Error while sending AddMatch() message: The connection is closed
+
+(/usr/libexec/xdg-desktop-portal:1901558): xdg-desktop-portal-WARNING **: 15:39:21.427: Failed to create dynamic_launcher proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gnome: The connection is closed
+
+(/usr/libexec/xdg-desktop-portal:1901558): xdg-desktop-portal-WARNING **: 15:39:21.427: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:1901558): GLib-GIO-CRITICAL **: 15:39:21.427: Error while sending AddMatch() message: The connection is closed
+
+(/usr/libexec/xdg-desktop-portal:1901558): GLib-GIO-CRITICAL **: 15:39:21.427: Error while sending AddMatch() message: The connection is closed
+
+(/usr/libexec/xdg-desktop-portal:1901558): xdg-desktop-portal-WARNING **: 15:39:21.427: Failed to create screen cast proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gnome: The connection is closed
+
+(/usr/libexec/xdg-desktop-portal:1901558): xdg-desktop-portal-WARNING **: 15:39:21.427: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:1901558): GLib-GIO-CRITICAL **: 15:39:21.427: Error while sending AddMatch() message: The connection is closed
+
+(/usr/libexec/xdg-desktop-portal:1901558): GLib-GIO-CRITICAL **: 15:39:21.427: Error while sending AddMatch() message: The connection is closed
+
+(/usr/libexec/xdg-desktop-portal:1901558): xdg-desktop-portal-WARNING **: 15:39:21.427: Failed to create remote desktop proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gnome: The connection is closed
+
+(/usr/libexec/xdg-desktop-portal:1901558): xdg-desktop-portal-WARNING **: 15:39:21.427: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:1901558): GLib-GIO-CRITICAL **: 15:39:21.427: Error while sending AddMatch() message: The connection is closed
+
+(/usr/libexec/xdg-desktop-portal:1901558): GLib-GIO-CRITICAL **: 15:39:21.427: Error while sending AddMatch() message: The connection is closed
+
+(/usr/libexec/xdg-desktop-portal:1901558): xdg-desktop-portal-WARNING **: 15:39:21.428: Failed to create clipboard: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gnome: The connection is closed
+
+(/usr/libexec/xdg-desktop-portal:1901558): xdg-desktop-portal-WARNING **: 15:39:21.428: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:1901558): GLib-GIO-CRITICAL **: 15:39:21.428: Error while sending AddMatch() message: The connection is closed
+
+(/usr/libexec/xdg-desktop-portal:1901558): GLib-GIO-CRITICAL **: 15:39:21.428: Error while sending AddMatch() message: The connection is closed
+
+(/usr/libexec/xdg-desktop-portal:1901558): xdg-desktop-portal-WARNING **: 15:39:21.428: Failed to create capture input proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gnome: The connection is closed
+
+(/usr/libexec/xdg-desktop-portal:1901558): xdg-desktop-portal-WARNING **: 15:39:21.428: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:1901558): GLib-GIO-CRITICAL **: 15:39:21.428: Error while sending AddMatch() message: The connection is closed
+
+(/usr/libexec/xdg-desktop-portal:1901558): GLib-GIO-CRITICAL **: 15:39:21.428: Error while sending AddMatch() message: The connection is closed
+
+(/usr/libexec/xdg-desktop-portal:1901558): xdg-desktop-portal-WARNING **: 15:39:21.428: Failed to create USB proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gnome: The connection is closed
+
+(/usr/libexec/xdg-desktop-portal:1901558): xdg-desktop-portal-WARNING **: 15:39:21.428: No skeleton to export
+A connection to the bus can't be made
+
+
+Evidence handling and scope:
+The native Desktop remained open during the external Web Core stop/restart, then accepted F5 and rendered again; both server cycles returned HTTP 200 and all test processes exited 0. The backend database was isolated and contained zero project rows. The WebKit/UI data source was not isolated: the view showed host project names, so both screenshots were removed and no project action was taken. This validates process/UI continuity only; cross-project A/B/C/D/E and client-profile isolation are not validated.
+
+## Evidence correction — 2026-10-25
+
+The UI continuity claim above is not attributable to the test process. XWayland client window `0x120000e` reported `_NET_WM_PID=1235319`, matching the pre-existing user Desktop process `/home/desenvolvedor/.local/bin/nexus-desktop`; the test-launched process PID `1901456` had exited. Therefore P2-UI-001 is **BLOCKED**, and this attempt does not validate an isolated Desktop client during Core restart. The isolated Web Core's two HTTP 200/SIGTERM/port-release cycles remain a separate **PASS** (`p2-web-isolated-restart-2026-10-25.log`). Screenshots with host data remain deleted; no project action occurred.

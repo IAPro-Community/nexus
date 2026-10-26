@@ -1,0 +1,2 @@
+inspector_binary=/run/user/1000/nexus-webkit-inspector-build.UONSmP/nexus-desktop-inspector
+inspector_overlay=/run/user/1000/nexus-webkit-inspector-build.UONSmP/overlay.json

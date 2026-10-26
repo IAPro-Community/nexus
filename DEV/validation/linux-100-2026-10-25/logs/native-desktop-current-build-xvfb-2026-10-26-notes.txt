@@ -1,0 +1,11 @@
+Desktop Wails Linux AMD64 — validação do build corrente — 2026-10-26
+
+Build: cmd/nexus-desktop/build/bin/nexus-desktop
+SHA-256: a0190540c4aa14227ad4d4ffd5c0a5adb8438a21d42e0602bee50fae8129f6ff
+Overlay: 751cfc1a160c38d950ac5b9807e1febb9746d03981c861c722e5bd965e1ef012
+
+Tentativa 1600x1000: o harness usa pontos XTest fixos para 1440x900. A janela centralizada ficou deslocada; o screenshot final permaneceu no ProjectHub e não comprova o clique de importação. Log em native-desktop-current-build-xvfb-2026-10-26.log; classificação: INCONCLUSIVE, não PASS.
+
+Reteste 1440x900: PASS. O Desktop Wails real iniciou Core embutido (HTTP 200), criou um projeto Git sintético no HOME isolado, abriu Uso/Contas e clicou em Importar sessões existentes. Resultado visual: 0 importadas, 0 já autenticadas, 5 sem sessão importável, 1 sem suporte, 0 falhas. Nenhuma credencial ou sessão do HOME normal foi lida/copiada. Captura de tela real e checksums em screenshots/native-current-desktop-xvfb-1440-2026-10-26/; log nativo em native-desktop-current-build-xvfb-1440-2026-10-26.log.
+
+A captura Xvfb é RGB e não valida alpha, click-through ou compositor Wayland do host.

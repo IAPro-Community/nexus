@@ -132,12 +132,12 @@ async function main() {
     assert.equal(await page.getByRole('button', { name: /recolher nexus hud/i }).count() > 0, true);
     const expanded = page.locator('section[data-hud-panel][data-expanded="true"]').first();
     await expanded.waitFor({ state: 'visible', timeout: 5000 });
-    const attentionList = page.locator('[data-companion-attention-list]');
+    const attentionList = page.locator('[data-mascot-attention-list]');
     await attentionList.waitFor({ state: 'visible', timeout: 5000 });
     assert.match(
       await attentionList.innerText(),
       /Uma missão precisa da sua atenção/,
-      'Companion attention must use the canonical Attention Center fixture',
+      'Mascot attention must use the canonical Attention Center fixture',
     );
     assert.equal(await attentionList.getByRole('button', { name: 'Abrir' }).count(), 1);
     assert.equal(await attentionList.getByRole('button', { name: 'Adiar' }).count(), 1);
@@ -150,7 +150,7 @@ async function main() {
           ?.includes('fixture-mission'),
       ),
       true,
-      'Companion snooze must be persisted without mutating canonical Attention Center state',
+      'Mascot snooze must be persisted without mutating canonical Attention Center state',
     );
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 15000 });
     await page.waitForSelector('.nx-os-shell', { timeout: 10000 });
@@ -158,9 +158,9 @@ async function main() {
     await page.getByRole('button', { name: /expandir nexus hud/i }).click();
     await page.locator('#nexus-hud-popover').waitFor({ state: 'visible' });
     assert.equal(
-      await page.locator('[data-companion-attention-list]').count(),
+      await page.locator('[data-mascot-attention-list]').count(),
       1,
-      'Snoozing the Companion notification must not hide the canonical Attention Center item',
+      'Snoozing the mascot notification must not hide the canonical Attention Center item',
     );
 
     // Exercise compiled detached-popup styles without claiming native Wails

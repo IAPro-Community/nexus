@@ -1,0 +1,29 @@
+  • starting release
+  • skipping announce, publish, and validate...
+  • cleaning distribution directory
+  • loading environment variables
+  • getting and validating git state
+    • using tags                                     previous=preview-40675172f69422d301d8050e184d690e93732776 current=preview-f23ed9b88725e9bc4df80ded19a89b2e7f8a326a
+    • pipe skipped or partially skipped              reason=disabled during snapshot mode
+  • parsing tag
+    • current tag is not semver                      error=invalid semantic version tag=preview-f23ed9b88725e9bc4df80ded19a89b2e7f8a326a
+    • pipe skipped or partially skipped              reason=validation is disabled
+  • setting defaults
+  • snapshotting
+    • building snapshot...                           version=1.0.0-beta.10
+  • ensuring distribution directory
+  • setting up metadata
+  • writing release metadata
+  • loading go mod information
+  • build prerequisites
+  • building binaries
+    • building                                       paths=cmd/nexus binaries=nexus target=linux_amd64_v1
+      • took: 16s
+  • archives
+    • archiving                                      name=/home/desenvolvedor/.cache/nexus-p5-recheck/nexus-dist-b73161ffd4afe7d5/nexus_Linux_x86_64.tar.gz
+  • linux packages
+    • creating                                       package=nexus format=deb arch=amd64v1 file=/home/desenvolvedor/.cache/nexus-p5-recheck/nexus-dist-b73161ffd4afe7d5/nexus_1.0.0-beta.10_linux_amd64.deb
+  • calculating checksums
+  • writing artifacts metadata
+  • release succeeded after 22s
+  • thanks for using GoReleaser!

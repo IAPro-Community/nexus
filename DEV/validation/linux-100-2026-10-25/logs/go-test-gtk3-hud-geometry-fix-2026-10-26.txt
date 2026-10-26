@@ -1,0 +1,2 @@
+ok  	github.com/IAPro-Community/nexus/internal/desktop	0.048s
+ok  	github.com/IAPro-Community/nexus/cmd/nexus-hud	0.034s

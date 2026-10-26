@@ -1,0 +1,2 @@
+Command: go test -race ./internal/nexus -run '^(TestComposerApprovedFlowReachesMissionRunner|TestProviderResourceRequirementsKeepTaskSpecialtiesOutOfControlGate)$' -count=3
+Result: exit 0; three repetitions completed with no race report. Raw command output was redirected to p5-composer-mission-fixture-go-race-2026-10-25.log (empty, no test verbosity enabled).

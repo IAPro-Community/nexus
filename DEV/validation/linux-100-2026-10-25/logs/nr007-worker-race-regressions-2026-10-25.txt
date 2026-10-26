@@ -1,0 +1,6 @@
+=== RUN   TestMissionWorkerHandoffRetriesAfterOldWorkerExceedsTimeout
+2026/10/25 20:39:21 WARN mission ephemeral Agent cleanup deferred error="nexus store unavailable"
+2026/10/25 20:39:21 WARN mission ephemeral Agent cleanup deferred error="nexus store unavailable"
+--- PASS: TestMissionWorkerHandoffRetriesAfterOldWorkerExceedsTimeout (0.11s)
+PASS
+ok  	github.com/IAPro-Community/nexus/internal/nexus	1.140s

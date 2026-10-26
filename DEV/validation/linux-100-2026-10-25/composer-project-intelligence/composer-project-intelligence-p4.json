@@ -1,0 +1,13 @@
+{
+  "project_id": "prj_06GQEY3RJHNTNQWQXM3WMYBE6G",
+  "vague_session_id": "cmp_06GQEY4BRJ0THDFJ7WXEAVMR2C",
+  "complete_session_id": "cmp_06GQEY4KRA7B0F5QR6H3C2T68C",
+  "frontend_test_command": "test=vitest run · observed 2026-10-26T09:09:10.390031322Z",
+  "source": "package.json",
+  "locator": "scripts.test",
+  "confidence": "HIGH",
+  "vague_goal_blocking_questions": 1,
+  "complete_prompt_blocking_questions": 0,
+  "manifest_fingerprint": "e6ac22e3ac7c9cf34c9242922c2b8cb9abe31459f6fde0cefcb919595f2b5696",
+  "browser_errors": []
+}

@@ -1,0 +1,46 @@
+backup_dir=/home/desenvolvedor/.local/state/ai-manager/nexus-update-backups/20261026T080719Z-hud-wayland-geometry-fix
+branch=release/v1.0.0
+head=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+remote=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+
+installed_hashes:
+9349ed4cd2cf0fa124018ac83c49831d7d64521548cda5c6c8c5c200962614fc  /home/desenvolvedor/.local/bin/nexus
+c91834c27641f5cff8bb133ea268aded7bca50bfc8cf329e3dc63cd7a5c660ff  /home/desenvolvedor/.local/bin/nexus-desktop
+7667b895cc5c884ab687db1ad982d44ccb7d3e9ed162ba98a366ed54cce65350  /home/desenvolvedor/.local/bin/nexus-hud
+
+build_hashes:
+9349ed4cd2cf0fa124018ac83c49831d7d64521548cda5c6c8c5c200962614fc  /projetos/nexus/nexus
+c91834c27641f5cff8bb133ea268aded7bca50bfc8cf329e3dc63cd7a5c660ff  /projetos/nexus/cmd/nexus-desktop/build/bin/nexus-desktop
+7667b895cc5c884ab687db1ad982d44ccb7d3e9ed162ba98a366ed54cce65350  /projetos/nexus/cmd/nexus-hud/build/bin/nexus-hud
+Running as unit: nexus-homologation-final-restored-20261026.service; invocation ID: ea75b2b01f934c1db56cda294c2decaa
+● nexus-homologation-final-restored-20261026.service - [systemd-run] /home/desenvolvedor/.local/bin/nexus-desktop
+     Loaded: loaded (/run/user/1000/systemd/transient/nexus-homologation-final-restored-20261026.service; transient)
+  Transient: yes
+     Active: active (running) since Mon 2026-10-26 04:07:21 -04; 8s ago
+ Invocation: ea75b2b01f934c1db56cda294c2decaa
+   Main PID: 2496460 (nexus-desktop)
+      Tasks: 213 (limit: 74588)
+     Memory: 716M (peak: 975.1M)
+        CPU: 12.753s
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/nexus-homologation-final-restored-20261026.service
+             ├─2496460 /home/desenvolvedor/.local/bin/nexus-desktop
+             ├─2496472 /home/desenvolvedor/.local/bin/nexus-hud --linked
+             ├─2496604 /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitNetworkProcess 2 25
+             ├─2496607 /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitNetworkProcess 2 35
+             ├─2496608 /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitWebProcess 4 25
+             └─2496609 /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitWebProcess 4 35
+
+Oct 26 04:07:21 Dev-Web-Kiver nexus-desktop[2496460]: libEGL warning: DRI2: failed to create screen
+Oct 26 04:07:21 Dev-Web-Kiver nexus-desktop[2496460]: VMware: No 3D enabled (0, Success).
+Oct 26 04:07:21 Dev-Web-Kiver nexus-desktop[2496460]: libEGL warning: egl: failed to create dri2 screen
+Oct 26 04:07:21 Dev-Web-Kiver nexus-desktop[2496460]: libEGL warning: DRI2: failed to create screen
+Oct 26 04:07:22 Dev-Web-Kiver nexus-desktop[2496609]: VMware: No 3D enabled (0, Success).
+Oct 26 04:07:22 Dev-Web-Kiver nexus-desktop[2496609]: libEGL warning: egl: failed to create dri2 screen
+Oct 26 04:07:22 Dev-Web-Kiver nexus-desktop[2496609]: libEGL warning: DRI2: failed to create screen
+Oct 26 04:07:22 Dev-Web-Kiver nexus-desktop[2496609]: VMware: No 3D enabled (0, Success).
+Oct 26 04:07:22 Dev-Web-Kiver nexus-desktop[2496609]: libEGL warning: egl: failed to create dri2 screen
+Oct 26 04:07:22 Dev-Web-Kiver nexus-desktop[2496609]: libEGL warning: DRI2: failed to create screen
+
+core_health=curl: (7) Failed to connect to 127.0.0.1 port 34557 after 0 ms: Could not connect to server
+
+SUPPLEMENTAL_OPERATOR_NOTE: the initial post-start health probe used the previous run's fixed port 34557 and failed to connect; this build selected dynamic port 36135. The service stayed active with Desktop/HUD processes. Journal reported the new port; HTTP 200 and build/install hash equality were verified in current-installed-wayland-geometry-verification-2026-10-26.txt. No rollback was needed.

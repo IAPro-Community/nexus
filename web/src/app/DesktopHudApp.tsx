@@ -4,8 +4,8 @@ import { ThemeProvider } from '../design-system';
 import { initSession } from '../api';
 import { NexusHud } from '../features/hud/NexusHud';
 import type { HudRuntimeAttention } from '../features/hud/hudModel';
-import type { CompanionAttention } from '../features/hud/companionModel';
-import { companionAttentionRoute, hudAttentionRoute } from '../features/hud/attentionNavigation';
+import type { MascotAttention } from '../features/hud/mascotModel';
+import { mascotAttentionRoute, hudAttentionRoute } from '../features/hud/attentionNavigation';
 import { useHudHitRegions } from '../features/hud/useHudHitRegions';
 import { getPlatformBridge, hudV3, isDesktopApp } from '../platform';
 import styles from './DesktopHudApp.module.scss';
@@ -131,12 +131,12 @@ export const DesktopHudApp: React.FC = () => {
     })();
   };
 
-  const openCompanionAttention = (attention: CompanionAttention) => {
+  const openMascotAttention = (attention: MascotAttention) => {
     void (async () => {
       const bridge = getPlatformBridge();
       const bootstrap = await bridge.getBootstrapInfo?.();
       if (!bootstrap?.serverUrl) return;
-      const target = new URL(companionAttentionRoute(attention), bootstrap.serverUrl);
+      const target = new URL(mascotAttentionRoute(attention), bootstrap.serverUrl);
       await bridge.openExternal(target.toString());
     })();
   };
@@ -158,7 +158,7 @@ export const DesktopHudApp: React.FC = () => {
             nativeView={popupView ? 'popover' : 'capsule'}
             onOpenNexus={openNexus}
             onOpenRuntime={openRuntimeAttention}
-            onOpenCompanionAttention={openCompanionAttention}
+            onOpenMascotAttention={openMascotAttention}
             nativeAutoStart={{
               supported: autoStartSupported,
               enabled: autoStartEnabled,

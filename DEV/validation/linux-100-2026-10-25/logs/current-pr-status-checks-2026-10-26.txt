@@ -1,0 +1,65 @@
+captured_utc=2026-10-26T01:10:41+00:00
+PR #57 exit=0
+Browser E2E, Axe & visual smoke	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/120231189772	
+Cross-platform compile guard	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/120231189132	
+Desktop Linux (Wails v3 native build)	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/120231189897	
+Documentation visual capture evidence	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/120231189622	
+Frontend (Format, Lint, Styles, Typecheck, Unit & Build)	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/120231188858	
+GoReleaser Snapshot Build	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/120231190516	
+Linux E2E (Go 1.26.10)	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/120231189549	
+Release configuration	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/120231189051	
+Seal native certification evidence	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/119629170779	
+Security	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/120231189735	
+Smoke DEB install	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/120231190544	
+Windows native certification	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/119629169986	
+Sanitize self-hosted workspace	fail	24h0m0s	https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/119629168919	
+macOS arm64 native certification	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/119629170099
+PR #58 exit=0
+Browser E2E, Axe & visual smoke	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120699964132	
+Cross-platform compile guard	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120699964444	
+Desktop Linux (Wails v3 native build)	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120699964491	
+Documentation visual capture evidence	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120699964103	
+Frontend (Format, Lint, Styles, Typecheck, Unit & Build)	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120699963929	
+GoReleaser Snapshot Build	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120699964928	
+Linux E2E (Go 1.26.10)	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120699964023	
+Release configuration	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120699964077	
+Seal native certification evidence	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120138887294	
+Security	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120699964257	
+Smoke DEB install	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120699965494	
+Windows native certification	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120138887040	
+macOS arm64 native certification	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120138887298	
+Sanitize self-hosted workspace	fail	24h0m1s	https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120138885294
+PR #59 exit=0
+Browser E2E, Axe & visual smoke	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465573	
+Cross-platform compile guard	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465616	
+Desktop Linux (Wails v3 native build)	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465895	
+Documentation visual capture evidence	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465056	
+Frontend (Format, Lint, Styles, Typecheck, Unit & Build)	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465209	
+GoReleaser Snapshot Build	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232466884	
+Linux E2E (Go 1.26.10)	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465798	
+Release configuration	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465378	
+Seal native certification evidence	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/119630520555	
+Security	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465216	
+Smoke DEB install	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232466844	
+Windows native certification	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/119630520352	
+Sanitize self-hosted workspace	fail	24h0m0s	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/119630519015	
+macOS arm64 native certification	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/119630520378
+PR #61 exit=1
+build	fail	28s	https://github.com/IAPro-Community/nexus/actions/runs/39860536773/job/120109796585	
+Browser E2E, Axe & visual smoke	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120661602969	
+Cross-platform compile guard	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120661601928	
+Desktop Linux (Wails v3 native build)	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120661602972	
+Documentation visual capture evidence	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120661602829	
+Frontend (Format, Lint, Styles, Typecheck, Unit & Build)	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120661602929	
+GoReleaser Snapshot Build	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120661602790	
+Linux E2E (Go 1.26.10)	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120661603044	
+Security	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120661601255	
+Smoke DEB install	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120661604049	
+publish	pass	1m1s	https://github.com/IAPro-Community/nexus/actions/runs/39856179675/job/120173280779	
+report-build-status	pass	3s	https://github.com/IAPro-Community/nexus/actions/runs/39860536773/job/120110013709	
+Release configuration	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120661602845	
+Seal native certification evidence	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120094904146	
+deploy	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39860536773/job/120110015568	
+macOS arm64 native certification	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120094902323	
+Sanitize self-hosted workspace	fail	24h0m0s	https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120094900398	
+Windows native certification	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120094902034

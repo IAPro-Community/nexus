@@ -1,0 +1,12 @@
+Linux homologation — tentativas de captura nativa — 2026-10-25T17:34:55-04:00
+Branch: release/v1.0.0
+HEAD local/remoto: 7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+Fingerprint de fontes: d3caa597ae3bc061ad0048ad4d390b1b9bb0011cc496e4d213d0ec6119400796 (1.422; manifesto sem divergências)
+Sessão: GNOME/Wayland; DISPLAY=:0; WAYLAND_DISPLAY=wayland-0.
+
+CUA habilitado: getState retorna apps=[]; listApps/listWindows não existem nesta sessão.
+`grim /tmp/nexus-live-screen.png`: exit 1, `compositor doesn't support wlr-screencopy-unstable-v1`.
+`gdbus call --session --dest org.gnome.Shell --object-path /org/gnome/Shell/Screenshot --method org.gnome.Shell.Screenshot.Screenshot false false /tmp/nexus-live-screen.png`: negado pelo GNOME com `org.freedesktop.DBus.Error.AccessDenied: Screenshot is not allowed`.
+`xwininfo -root -tree`: 18 filhos XWayland; nenhum título Nexus/HUD no root XWayland. A aplicação Wails atual é iniciada diretamente em Wayland.
+
+Desktop e HUD continuam ativos (PID 3618613 e 3618685); o teste anterior registrou Core health HTTP 200. Não foi criada nem registrada captura de tela. A janela não pôde ser inspecionada visualmente neste caminho; manter NATIVE-UI-P5-001 BLOCKED. Não substituir por screenshot de browser.

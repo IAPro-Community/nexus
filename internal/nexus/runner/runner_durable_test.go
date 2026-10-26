@@ -12,19 +12,20 @@ import (
 )
 
 type fakeExecutor struct {
-	mu        sync.Mutex
-	allocated int
-	compiled  int
-	executed  int
-	reviewed  int
-	reviewOK  bool
+	mu           sync.Mutex
+	allocated    int
+	compiled     int
+	executed     int
+	reviewed     int
+	reviewOK     bool
+	identityKind string
 }
 
 func (f *fakeExecutor) Allocate(_ context.Context, run *MissionRun, _ *PackageRun) (AllocationResult, error) {
 	f.mu.Lock()
 	f.allocated++
 	f.mu.Unlock()
-	return AllocationResult{AgentID: "agt-real", Workspace: run.Workspace}, nil
+	return AllocationResult{AgentID: "agt-real", Workspace: run.Workspace, Kind: f.identityKind}, nil
 }
 func (f *fakeExecutor) Compile(context.Context, *MissionRun, *PackageRun) (PromptArtifact, error) {
 	f.mu.Lock()
@@ -60,7 +61,7 @@ func durablePlan() PlanSpec {
 
 func TestMissionRunnerRequiresRealExecutorAndRespectsDependencies(t *testing.T) {
 	repo := NewMemoryRunRepository()
-	exec := &fakeExecutor{reviewOK: true}
+	exec := &fakeExecutor{reviewOK: true, identityKind: string(ExecutionIdentityEphemeralWorker)}
 	r := NewMissionRunner(repo, exec)
 	contract := DefaultAutonomyContract()
 	contract.VerificationCommands = []string{verificationSuccessCommand()}
@@ -99,6 +100,11 @@ func TestMissionRunnerRequiresRealExecutorAndRespectsDependencies(t *testing.T) 
 	}
 	if run.PackageRuns[0].AssignedRuntime != "rt-real" || run.PackageRuns[0].PromptVersionID != "prompt-v1" {
 		t.Fatalf("execution evidence missing: %+v", run.PackageRuns[0])
+	}
+	for _, pkg := range run.PackageRuns {
+		if pkg.AssignedAgentKind != string(ExecutionIdentityEphemeralWorker) {
+			t.Fatalf("allocation identity kind was not preserved for %s: %+v", pkg.PackageID, pkg)
+		}
 	}
 }
 

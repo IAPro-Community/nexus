@@ -1,0 +1,13 @@
+Nexus Desktop Wails first-paint retest — real session D-Bus — 2026-10-25
+display=:0 GDK_BACKEND=x11 dbus_session=present; isolated HOME/XDG/NEXUS_DATA_DIR; working_directory=/tmp
+profile=/tmp/nexus-first-paint-sessionbus-2026-10-25-wxyflq4w; test_only_app_id_suffix=.homologation; HUD child disabled
+desktop_pid=2315079
+t=1s xid=0x140000e pid=2315079 colors=1 mean=0.0431373
+t=2s xid=0x140000e pid=2315079 colors=1 mean=0.0431373
+t=3s xid=0x140000e pid=2315079 colors=1 mean=0.0431373
+t=5s xid=0x140000e pid=2315079 colors=1 mean=0.0431373
+t=8s xid=0x140000e pid=2315079 colors=2969 mean=0.0796867
+first_nonblack_sample=8; elapsed=9.54s; screenshot=screenshots/p2-native-first-paint-sessionbus-visible-2026-10-25.png
+result=PASS: native app content rendered
+desktop_cleanup_exit=0
+screenshot_sha256=c6532ec6dcfc8271e8e1ffea09fcae0cbd5d2c79487fa17286123cb1792479c8  screenshots/p2-native-first-paint-sessionbus-visible-2026-10-25.png

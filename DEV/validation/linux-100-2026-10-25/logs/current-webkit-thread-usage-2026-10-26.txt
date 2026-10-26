@@ -1,0 +1,19 @@
+time_utc=2026-10-26T02:28:12.745898+00:00
+desktop_pid=22800
+webkit_pid=22946
+elapsed_seconds=10.00
+threads_start=42
+threads_end=42
+top_threads:
+  tid=22946 comm=WebKitWebProces cpu_seconds=9.68 cpu_percent=96.8
+  tid=23197 comm=HeapHelper cpu_seconds=0.17 cpu_percent=1.7
+  tid=23196 comm=HeapHelper cpu_seconds=0.17 cpu_percent=1.7
+  tid=23194 comm=HeapHelper cpu_seconds=0.17 cpu_percent=1.7
+  tid=23198 comm=HeapHelper cpu_seconds=0.16 cpu_percent=1.6
+  tid=23200 comm=HeapHelper cpu_seconds=0.15 cpu_percent=1.5
+  tid=23199 comm=HeapHelper cpu_seconds=0.15 cpu_percent=1.5
+  tid=23195 comm=HeapHelper cpu_seconds=0.15 cpu_percent=1.5
+  tid=22993 comm=ReceiveQueue cpu_seconds=0.13 cpu_percent=1.3
+  tid=22967 comm=WebKitWebProces cpu_seconds=0.11 cpu_percent=1.1
+  tid=23201 comm=ollector Thread cpu_seconds=0.08 cpu_percent=0.8
+  tid=23069 comm=JITWorker cpu_seconds=0.08 cpu_percent=0.8

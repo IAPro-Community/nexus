@@ -1,0 +1,28 @@
+$ bun run quality && bun run build
+$ bun run check:styles && bun run format:check && bun run lint && bun run lint:styles && bun run typecheck && bun run test
+$ node --test scripts/check-css-allowlist.node-test.mjs && node scripts/check-css-allowlist.js && node scripts/check-workspace-styles.mjs
+TAP version 13
+# Subtest: Sass partials are scoped to CSS Modules, never exempted for global styles
+ok 1 - Sass partials are scoped to CSS Modules, never exempted for global styles
+  ---
+  duration_ms: 82.436138
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 140.690113
+[32m[OK] Stylesheet architecture check passed: all styles conform to SCSS Modules & global allowlist.[0m
+[OK] Workspace CSS: 17 ordered sections with bounded size
+$ prettier --check "src/**/*.{ts,tsx,css,scss,json}"
+Checking formatting...
+[warn] src/i18n/resources.ts
+[warn] Code style issues found in the above file. Run Prettier with --write to fix.
+error: script "format:check" exited with code 1
+error: script "quality" exited with code 1
+error: script "quality:full" exited with code 1

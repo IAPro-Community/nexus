@@ -125,10 +125,10 @@ export const HudSettings: React.FC = () => {
           label="Cost Intelligence"
         />
         <Switch
-          checked={prefs.companionMotion}
-          onChange={(companionMotion) => patch({ companionMotion })}
-          label={t('hud.companion.motion')}
-          description={t('hud.companion.motionDescription')}
+          checked={prefs.mascotMotion}
+          onChange={(mascotMotion) => patch({ mascotMotion })}
+          label={t('hud.mascot.motion')}
+          description={t('hud.mascot.motionDescription')}
         />
       </Card>
 

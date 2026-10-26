@@ -1,0 +1,6 @@
+release/v1.0.0
+7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+source_manifest_records=1428
+source_fingerprint=b73161ffd4afe7d566bd00cfdc6d6e090e95b0c99e13dbd0653aadd40fdf6eac
+source_manifest_validation=PASS

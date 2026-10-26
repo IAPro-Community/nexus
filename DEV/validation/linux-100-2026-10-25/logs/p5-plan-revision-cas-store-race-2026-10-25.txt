@@ -1,0 +1,26 @@
+=== RUN   TestValidateExpectedPlanRevisionRejectsStaleRevision
+--- PASS: TestValidateExpectedPlanRevisionRejectsStaleRevision (0.00s)
+=== RUN   TestValidateExpectedPlanRevisionAcceptsCurrentRevision
+--- PASS: TestValidateExpectedPlanRevisionAcceptsCurrentRevision (0.00s)
+=== RUN   TestWorkPlan_CRUD_And_Revisions
+--- PASS: TestWorkPlan_CRUD_And_Revisions (0.95s)
+=== RUN   TestUpdateWorkPlanRejectsStaleRevisionWithoutOverwritingCurrent
+--- PASS: TestUpdateWorkPlanRejectsStaleRevisionWithoutOverwritingCurrent (0.93s)
+=== RUN   TestValidateExpectedPlanRevisionRejectsStaleRevision
+--- PASS: TestValidateExpectedPlanRevisionRejectsStaleRevision (0.00s)
+=== RUN   TestValidateExpectedPlanRevisionAcceptsCurrentRevision
+--- PASS: TestValidateExpectedPlanRevisionAcceptsCurrentRevision (0.00s)
+=== RUN   TestWorkPlan_CRUD_And_Revisions
+--- PASS: TestWorkPlan_CRUD_And_Revisions (0.94s)
+=== RUN   TestUpdateWorkPlanRejectsStaleRevisionWithoutOverwritingCurrent
+--- PASS: TestUpdateWorkPlanRejectsStaleRevisionWithoutOverwritingCurrent (0.94s)
+=== RUN   TestValidateExpectedPlanRevisionRejectsStaleRevision
+--- PASS: TestValidateExpectedPlanRevisionRejectsStaleRevision (0.00s)
+=== RUN   TestValidateExpectedPlanRevisionAcceptsCurrentRevision
+--- PASS: TestValidateExpectedPlanRevisionAcceptsCurrentRevision (0.00s)
+=== RUN   TestWorkPlan_CRUD_And_Revisions
+--- PASS: TestWorkPlan_CRUD_And_Revisions (0.93s)
+=== RUN   TestUpdateWorkPlanRejectsStaleRevisionWithoutOverwritingCurrent
+--- PASS: TestUpdateWorkPlanRejectsStaleRevisionWithoutOverwritingCurrent (0.95s)
+PASS
+ok  	github.com/IAPro-Community/nexus/internal/nexus/store	6.656s

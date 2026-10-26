@@ -1,0 +1,8 @@
+command=nexus run agy kivervinicius-gmail -- --print <safe READY prompt>
+status=PASS
+exit_code=0
+duration_seconds=8.2
+exact_ready=true
+quota_error=false
+auth_error=false
+raw_output_suppressed=true

@@ -1,0 +1,21 @@
+Native Wails Usage / Accounts import interaction — Xvfb scope
+Date: 2026-10-26
+Branch: release/v1.0.0
+Base commit: 7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+Product source fingerprint: 9a66687715414fc8b42d612fd2b4a531370c7f8c4fbfa86338a81ba9728ddcd1 (1,428 files)
+Desktop: installed /home/desenvolvedor/.local/bin/nexus-desktop
+Desktop SHA-256: 362c090ea6972cc1548cf883d78a2d071e9de746e42eb8283a4e10867e15fd0e
+Procedure: xvfb-run -a -s '-screen 0 1440x900x24' bash DEV/validation/linux-100-2026-10-25/tools/native_usage_import_xvfb.sh
+Runtime: actual installed Wails Desktop + embedded Core + linked HUD; X11 input uses libXtst; no browser fixture.
+Isolation: fresh HOME, CODEX_HOME, CLAUDE_CONFIG_DIR, XDG dirs and NEXUS_DATA_DIR under /run/user/1000; API-key environment variables cleared; a synthetic empty Git repository was added through the Wails screen. Host provider auth files were not available to the app.
+Core health: HTTP 200; version 1.0.0-beta.10.
+Interaction: opened Uso, clicked “Importar sessões das CLIs” exactly once.
+Observed UI result: “Importação concluída: 0 importadas, 0 já autenticadas, 5 sem sessão importável, 1 sem suporte, 0 falharam.”
+Expected result: native screen calls the embedded import service, shows a localized result, and does not create accounts when the isolated HOME has no sessions.
+Result: PASS for native Wails interaction and empty-session response under Xvfb. No user session was read or copied.
+Screenshot before: screenshots/native-usage-import-xvfb/usage-before-import.png
+Screenshot before SHA-256: 702288ffc5c9581d91e77af9b860ba783590d1c695814949ad0ef4de53e453f3
+Screenshot after: screenshots/native-usage-import-xvfb/usage-after-import.png
+Screenshot after SHA-256: 1ac3905554c20124d7f6ac2af822f1648967cbfce2ef59cb99155a996b17f153
+Limit: Xvfb does not validate the host Wayland compositor, click-through, alpha transparency, or real-provider session copying through this UI. Host compositor capture remains BLOCKED because XWayland reports 0x0 and grim has no wl_output.
+Reproduction script: tools/native_usage_import_xvfb.sh; XTest helper: tools/x11_input.py.

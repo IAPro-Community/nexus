@@ -1,0 +1,131 @@
+started_at=2026-10-26T06:21:25Z
+HEAD=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+source_fingerprint=0f9f1c0912788cf913aff1918111cf3e2b10521e22f70c9079edc6f042a08f28
+?   	github.com/IAPro-Community/nexus/DEV/validation/linux-100-2026-10-25/tools/seed_attention_ui_fixture	[no test files]
+?   	github.com/IAPro-Community/nexus/DEV/validation/production-go-no-go/smoke/workspace	[no test files]
+# github.com/wailsapp/wails/v3/pkg/application
+linux_cgo.c: In function ‘window_move_x11’:
+linux_cgo.c:1013:5: warning: ‘gdk_x11_display_get_xdisplay’ is deprecated [-Wdeprecated-declarations]
+ 1013 |     Display *xdisplay = gdk_x11_display_get_xdisplay(display);
+      |     ^~~~~~~
+In file included from /usr/include/gtk-4.0/gdk/x11/gdkx.h:39,
+                 from linux_cgo.c:6:
+/usr/include/gtk-4.0/gdk/x11/gdkx11display.h:60:15: note: declared here
+   60 | Display *     gdk_x11_display_get_xdisplay     (GdkDisplay  *display);
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+linux_cgo.c:1014:5: warning: ‘gdk_x11_surface_get_xid’ is deprecated [-Wdeprecated-declarations]
+ 1014 |     Window xwindow = gdk_x11_surface_get_xid(GDK_X11_SURFACE(surface));
+      |     ^~~~~~
+In file included from /usr/include/gtk-4.0/gdk/x11/gdkx.h:47:
+/usr/include/gtk-4.0/gdk/x11/gdkx11surface.h:56:10: note: declared here
+   56 | Window   gdk_x11_surface_get_xid           (GdkSurface   *surface);
+      |          ^~~~~~~~~~~~~~~~~~~~~~~
+linux_cgo.c: In function ‘window_get_position_x11’:
+linux_cgo.c:1036:5: warning: ‘gdk_x11_display_get_xdisplay’ is deprecated [-Wdeprecated-declarations]
+ 1036 |     Display *xdisplay = gdk_x11_display_get_xdisplay(display);
+      |     ^~~~~~~
+/usr/include/gtk-4.0/gdk/x11/gdkx11display.h:60:15: note: declared here
+   60 | Display *     gdk_x11_display_get_xdisplay     (GdkDisplay  *display);
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+linux_cgo.c:1037:5: warning: ‘gdk_x11_surface_get_xid’ is deprecated [-Wdeprecated-declarations]
+ 1037 |     Window xwindow = gdk_x11_surface_get_xid(GDK_X11_SURFACE(surface));
+      |     ^~~~~~
+/usr/include/gtk-4.0/gdk/x11/gdkx11surface.h:56:10: note: declared here
+   56 | Window   gdk_x11_surface_get_xid           (GdkSurface   *surface);
+      |          ^~~~~~~~~~~~~~~~~~~~~~~
+linux_cgo.c: In function ‘window_send_always_on_top_x11’:
+linux_cgo.c:1067:5: warning: ‘gdk_x11_display_get_xdisplay’ is deprecated [-Wdeprecated-declarations]
+ 1067 |     Display *xdisplay = gdk_x11_display_get_xdisplay(display);
+      |     ^~~~~~~
+/usr/include/gtk-4.0/gdk/x11/gdkx11display.h:60:15: note: declared here
+   60 | Display *     gdk_x11_display_get_xdisplay     (GdkDisplay  *display);
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+linux_cgo.c:1068:5: warning: ‘gdk_x11_surface_get_xid’ is deprecated [-Wdeprecated-declarations]
+ 1068 |     Window xwindow = gdk_x11_surface_get_xid(GDK_X11_SURFACE(surface));
+      |     ^~~~~~
+/usr/include/gtk-4.0/gdk/x11/gdkx11surface.h:56:10: note: declared here
+   56 | Window   gdk_x11_surface_get_xid           (GdkSurface   *surface);
+      |          ^~~~~~~~~~~~~~~~~~~~~~~
+?   	github.com/IAPro-Community/nexus/cmd/nexus	[no test files]
+?   	github.com/IAPro-Community/nexus/cmd/nexus-desktop	[no test files]
+ok  	github.com/IAPro-Community/nexus/cmd/nexus-hud	1.055s
+ok  	github.com/IAPro-Community/nexus/internal/app	8.971s
+?   	github.com/IAPro-Community/nexus/internal/browser	[no test files]
+?   	github.com/IAPro-Community/nexus/internal/buildinfo	[no test files]
+ok  	github.com/IAPro-Community/nexus/internal/control/driver	4.971s
+ok  	github.com/IAPro-Community/nexus/internal/control/events	1.013s
+ok  	github.com/IAPro-Community/nexus/internal/control/flags	1.014s
+ok  	github.com/IAPro-Community/nexus/internal/control/handoff	1.101s
+ok  	github.com/IAPro-Community/nexus/internal/control/host	1.640s
+ok  	github.com/IAPro-Community/nexus/internal/control/ids	1.025s
+ok  	github.com/IAPro-Community/nexus/internal/control/launchenv	1.012s
+ok  	github.com/IAPro-Community/nexus/internal/control/launcher	6.118s
+ok  	github.com/IAPro-Community/nexus/internal/control/notify	1.013s
+ok  	github.com/IAPro-Community/nexus/internal/control/originpolicy	1.012s
+ok  	github.com/IAPro-Community/nexus/internal/control/protocol	3.538s
+ok  	github.com/IAPro-Community/nexus/internal/control/registry	11.190s
+ok  	github.com/IAPro-Community/nexus/internal/control/terminal	1.018s
+ok  	github.com/IAPro-Community/nexus/internal/control/tui	1.022s
+ok  	github.com/IAPro-Community/nexus/internal/control/web	36.133s
+ok  	github.com/IAPro-Community/nexus/internal/control/websocketio	1.057s
+ok  	github.com/IAPro-Community/nexus/internal/control/workspace	1.019s
+ok  	github.com/IAPro-Community/nexus/internal/conversation	1.021s
+ok  	github.com/IAPro-Community/nexus/internal/core/classifier	1.020s
+ok  	github.com/IAPro-Community/nexus/internal/core/config	1.021s
+ok  	github.com/IAPro-Community/nexus/internal/core/cooldown	1.019s
+ok  	github.com/IAPro-Community/nexus/internal/core/device	1.013s
+ok  	github.com/IAPro-Community/nexus/internal/core/entitlement	1.012s
+?   	github.com/IAPro-Community/nexus/internal/core/exitcode	[no test files]
+ok  	github.com/IAPro-Community/nexus/internal/core/fallback	1.022s
+ok  	github.com/IAPro-Community/nexus/internal/core/flags	1.012s
+?   	github.com/IAPro-Community/nexus/internal/core/model	[no test files]
+ok  	github.com/IAPro-Community/nexus/internal/core/provider	4.926s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/adapters/agy	1.055s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/adapters/claude	1.030s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex	4.744s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/adapters/cursor	1.036s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/adapters/gemini	1.061s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/adapters/opencode	1.030s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/agentprojection	1.013s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/agentprojection/opencode	1.033s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/authcopy	1.016s
+?   	github.com/IAPro-Community/nexus/internal/core/provider/mock	[no test files]
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/oauthutil	1.014s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/spec	4.917s
+ok  	github.com/IAPro-Community/nexus/internal/core/provider/versionprobe	1.014s
+ok  	github.com/IAPro-Community/nexus/internal/core/quota	1.021s
+ok  	github.com/IAPro-Community/nexus/internal/core/scheduler	1.034s
+ok  	github.com/IAPro-Community/nexus/internal/core/security	1.038s
+ok  	github.com/IAPro-Community/nexus/internal/core/session	1.013s
+ok  	github.com/IAPro-Community/nexus/internal/core/telemetry	1.014s
+ok  	github.com/IAPro-Community/nexus/internal/desktop	1.085s
+ok  	github.com/IAPro-Community/nexus/internal/doctor	1.027s
+?   	github.com/IAPro-Community/nexus/internal/executil	[no test files]
+ok  	github.com/IAPro-Community/nexus/internal/hudlink	1.013s
+ok  	github.com/IAPro-Community/nexus/internal/localization	1.016s
+ok  	github.com/IAPro-Community/nexus/internal/nexus	301.981s
+ok  	github.com/IAPro-Community/nexus/internal/nexus/autonomyguard	1.103s
+ok  	github.com/IAPro-Community/nexus/internal/nexus/capacitymonitor	23.045s
+ok  	github.com/IAPro-Community/nexus/internal/nexus/contextsnapshot	1.472s
+ok  	github.com/IAPro-Community/nexus/internal/nexus/externalusage	6.447s
+ok  	github.com/IAPro-Community/nexus/internal/nexus/intelligence	1.026s
+ok  	github.com/IAPro-Community/nexus/internal/nexus/maestrogates	1.012s
+ok  	github.com/IAPro-Community/nexus/internal/nexus/plangraph	1.013s
+ok  	github.com/IAPro-Community/nexus/internal/nexus/promotion	1.026s
+ok  	github.com/IAPro-Community/nexus/internal/nexus/runner	18.479s
+ok  	github.com/IAPro-Community/nexus/internal/nexus/skills	1.025s
+ok  	github.com/IAPro-Community/nexus/internal/nexus/store	79.954s
+ok  	github.com/IAPro-Community/nexus/internal/profile	1.418s
+ok  	github.com/IAPro-Community/nexus/internal/release	1.045s
+ok  	github.com/IAPro-Community/nexus/internal/runtime	4.184s
+?   	github.com/IAPro-Community/nexus/internal/testutil	[no test files]
+?   	github.com/IAPro-Community/nexus/internal/testutil/fakeagent	[no test files]
+ok  	github.com/IAPro-Community/nexus/internal/tui	1.070s
+ok  	github.com/IAPro-Community/nexus/internal/update	1.052s
+ok  	github.com/IAPro-Community/nexus/internal/voice	1.023s
+ok  	github.com/IAPro-Community/nexus/scripts	1.190s
+?   	github.com/IAPro-Community/nexus/scripts/loadtest	[no test files]
+ok  	github.com/IAPro-Community/nexus/scripts/sign-update-manifest	1.017s
+?   	github.com/IAPro-Community/nexus/web/node_modules/flatted/golang/pkg/flatted	[no test files]
+go_race_full=PASS
+finished_at=2026-10-26T06:27:54Z

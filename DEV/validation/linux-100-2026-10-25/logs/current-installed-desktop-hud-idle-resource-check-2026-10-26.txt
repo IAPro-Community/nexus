@@ -1,0 +1,11 @@
+timestamp_utc=2026-10-26T08:21:27Z
+main_pid=2496460
+hud_pid=2496472
+webkit_pids=2496607 2496609 
+before_cpu_ns_memory_bytes=763142144 61831246000 
+after_cpu_ns_memory_bytes=764170240 64804904000 
+cpu_idle_percent=health={"status":"ok","timestamp":1793002907,"version":"1.0.0-beta.10"}
+
+result=OBSERVED
+
+SUPPLEMENTAL_OPERATOR_NOTE: systemctl --value returned properties alphabetically (MemoryCurrent before CPUUsageNSec), so this first attempt printed combined values and did not calculate CPU percentage. It is not counted as a measurement. Corrected 20-second and 60-second observations are recorded in current-installed-desktop-hud-idle-resource-check-corrected-2026-10-26.txt and current-installed-desktop-hud-idle-resource-check-60s-2026-10-26.txt.

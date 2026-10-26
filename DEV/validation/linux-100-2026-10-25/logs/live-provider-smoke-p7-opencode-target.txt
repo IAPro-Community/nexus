@@ -1,0 +1,9 @@
+command=nexus run opencode opencode -- run --standalone --format json <safe READY prompt>
+status=BLOCKED_QUOTA
+exit_code=TIMEOUT
+duration_seconds=90.1
+response_exact_ready=false
+json_events=46 event_types=step_start,text,tool_use,tool_use,tool_use,tool_use,tool_use,step_finish,step_start,text,tool_use,tool_use
+non_json_lines=0
+quota_error=true auth_error=true
+raw_output_suppressed=true

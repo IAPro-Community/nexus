@@ -1,0 +1,12 @@
+$ node scripts/e2e-terminal-split-grid.mjs
+PASS terminal split vertical 20% (960x480)
+PASS terminal split vertical 50% (960x480)
+PASS terminal split vertical 80% (960x480)
+PASS terminal split horizontal 20% (480x720)
+PASS terminal split horizontal 50% (480x720)
+PASS terminal split horizontal 80% (480x720)
+PASS terminal split horizontal 50% (360x640)
+PASS long PTY tab identities remain clipped inside each tab
+PASS compact split terminal toolbars at 520px per PTY keep identity and controls inside each pane
+PASS long PTY tab identities remain clipped inside each tab
+PASS compact split terminal toolbars at 360px per PTY keep identity and controls inside each pane

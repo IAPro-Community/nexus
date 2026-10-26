@@ -1,0 +1,18 @@
+2026-10-26T04:12:28+00:00
+backup_dir=/home/desenvolvedor/.local/state/ai-manager/nexus-update-backups/20261026T041144Z-import-auth-maestro-fix
+47c517d28223ebcdde4bbb9288caf3c7413f9d8058ae20de7f2a672b1ebcbd81  /home/desenvolvedor/.local/state/ai-manager/nexus-update-backups/20261026T041144Z-import-auth-maestro-fix/nexus
+362c090ea6972cc1548cf883d78a2d071e9de746e42eb8283a4e10867e15fd0e  /home/desenvolvedor/.local/state/ai-manager/nexus-update-backups/20261026T041144Z-import-auth-maestro-fix/nexus-desktop
+54925c242a76fc204ae646afdfc7762b88c458ef12dcee8f92765f66641435e1  /home/desenvolvedor/.local/state/ai-manager/nexus-update-backups/20261026T041144Z-import-auth-maestro-fix/nexus-hud
+installed_hashes:
+fb45b0a42af24aa3427958983fb9315cbab338c88713b0290c4cb3f708222a8f  /home/desenvolvedor/.local/bin/nexus
+6bbbafdab42309d2657ceed4ccf90f1d87c4381aee5d7b6d4528903a136dc61f  /home/desenvolvedor/.local/bin/nexus-desktop
+76aabefd32c3eb88b5693546b3402e46f6006006250e2eff47822fa598e33e15  /home/desenvolvedor/.local/bin/nexus-hud
+desktop_pid=899259
+6bbbafdab42309d2657ceed4ccf90f1d87c4381aee5d7b6d4528903a136dc61f  /proc/899259/exe
+ActiveState=active
+SubState=running
+linked_hud_pid=899298
+76aabefd32c3eb88b5693546b3402e46f6006006250e2eff47822fa598e33e15  /proc/899298/exe
+Nexus Desktop started an embedded Core at http://127.0.0.1:33347
+{"status":"ok","timestamp":1792987949,"version":"1.0.0-beta.10"}
+

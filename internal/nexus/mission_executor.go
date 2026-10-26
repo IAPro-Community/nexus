@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -139,11 +140,12 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 	var selected ProviderAccount
 	var keepCurrent bool
 	routingReason := ""
+	resourceRequirements := providerResourceRequirements(req)
 	if !isFailover {
-		selected, keepCurrent = selectCurrentResource(candidateAccounts, current, req, policy)
+		selected, keepCurrent = selectCurrentResource(candidateAccounts, current, resourceRequirements, policy)
 	}
 	if !keepCurrent {
-		recommendation := RecommendResources(candidateAccounts, req, policy)
+		recommendation := RecommendResources(candidateAccounts, resourceRequirements, policy)
 		if recommendation.Recommended == nil {
 			if preferenceMode == AffinityPin {
 				return runner.AllocationResult{}, fmt.Errorf("%w: pinned runtime unavailable for Flow Step %s: %s", ErrBlockedResource, pkg.PackageID, recommendation.Explanation)
@@ -222,7 +224,7 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 			return runner.AllocationResult{}, fmt.Errorf("prepare autonomous package workspace: %w", err)
 		}
 	}
-	return runner.AllocationResult{AgentID: agent.ID, Workspace: workspace}, nil
+	return runner.AllocationResult{AgentID: agent.ID, Workspace: workspace, Kind: agent.IdentityKind}, nil
 }
 
 // buildMissionRoutingDecision projects the concrete allocation made by the
@@ -392,7 +394,10 @@ func createMissionAgent(st *store.Store, projectID string, pkg *runner.PackageRu
 		role = requirements.PreferredRoles[0]
 	}
 	spec := missionAgentSpec(role, requirements)
-	agent, err := st.CreateAgent(store.Agent{ProjectID: projectID, Name: prefix + name, Role: role})
+	agent, err := st.CreateAgent(store.Agent{
+		ProjectID: projectID, Name: prefix + name, Role: role,
+		IdentityKind: string(runner.ExecutionIdentityEphemeralWorker),
+	})
 	if err != nil {
 		return store.Agent{}, err
 	}
@@ -955,6 +960,10 @@ func (e *nexusPackageExecutor) Execute(ctx context.Context, run *runner.MissionR
 	result, err := e.n.executeAgentPrompt(ctx, pkg.AssignedAgent, pkg.Workspace, prompt, agentPromptPolicy{Contract: run.Contract, MissionRunID: run.ID, PackageID: pkg.PackageID})
 	if err != nil {
 		if result == nil {
+			var preDispatchErr *providerDispatchNotAttemptedError
+			if errors.As(err, &preDispatchErr) {
+				return runner.ExecutionResult{}, runner.MarkDispatchNotSent(preDispatchErr)
+			}
 			return runner.ExecutionResult{}, err
 		}
 		return runner.ExecutionResult{RuntimeID: result.RuntimeID, Output: result.Output, Failure: result.Failure}, err

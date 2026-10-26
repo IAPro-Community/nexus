@@ -62,6 +62,25 @@ type RecommendationResult struct {
 	Explanation  string              `json:"explanation"`
 }
 
+// providerResourceRequirements keeps task/Agent specializations out of the
+// provider control-capability hard gate. TaskRequirements.RequiredCapabilities
+// historically carries both kinds of requirements (for example "security"
+// and "code_review" alongside "headless" and "submit_prompt"). Only the
+// capabilities actually advertised by a provider driver can constrain runtime
+// selection; task specializations remain available to the Agent matcher.
+func providerResourceRequirements(req TaskRequirements) TaskRequirements {
+	filtered := make([]string, 0, len(req.RequiredCapabilities))
+	for _, capability := range req.RequiredCapabilities {
+		switch normalizeCapabilityName(capability) {
+		case "process", "terminal", "attach", "structured_events", "sessions", "resume", "fork",
+			"submit_prompt", "cancel_turn", "approvals", "native_ui_attach", "headless", "slash_control", "read_only_review":
+			filtered = append(filtered, capability)
+		}
+	}
+	req.RequiredCapabilities = filtered
+	return req
+}
+
 // RecommendResources evaluates available accounts against task requirements under the chosen policy.
 func RecommendResources(accounts []ProviderAccount, req TaskRequirements, policy SchedulerPolicy) RecommendationResult {
 	if len(req.ProviderPriorities) == 0 {

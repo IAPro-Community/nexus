@@ -1,0 +1,6 @@
+started_at=2026-10-26T06:42:03Z
+HEAD=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+source_fingerprint=3ed0f39001bb18cd8659f0d4fe4c5e3d2c08711a530b41aa3cd6ebf000ecf576
+command=go vet -tags=gtk3 ./...
+go_vet_gtk3=PASS
+finished_at=2026-10-26T06:42:11Z

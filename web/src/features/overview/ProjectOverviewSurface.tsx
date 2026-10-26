@@ -377,7 +377,7 @@ export const ProjectOverviewSurface: React.FC<{
       {updateInfo?.update_available && (
         <Card className={`nx-inline-alert ${styles.updateAlert}`} data-tone="warning">
           <div className={styles.updateAlertContent}>
-            <ArrowUpCircle size={18} className="nx-spin-slow" />
+            <ArrowUpCircle size={18} />
             <div>
               <strong>{t('settings.updates', 'Atualização disponível')}</strong>
               <p className={styles.updateAlertText}>

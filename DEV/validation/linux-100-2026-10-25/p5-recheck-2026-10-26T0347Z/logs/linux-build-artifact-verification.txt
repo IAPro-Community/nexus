@@ -1,0 +1,17 @@
+nexus: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=5a0bec8c1eba7b9d012b7efafb887de61b31b890, stripped
+fb45b0a42af24aa3427958983fb9315cbab338c88713b0290c4cb3f708222a8f  nexus
+ldd_missing=none binary=nexus
+cmd/nexus-desktop/build/bin/nexus-desktop: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=a16b171a442bd6237bffe4d2d8f4759df0fad9be, for GNU/Linux 3.2.0, stripped
+6bbbafdab42309d2657ceed4ccf90f1d87c4381aee5d7b6d4528903a136dc61f  cmd/nexus-desktop/build/bin/nexus-desktop
+ldd_missing=none binary=cmd/nexus-desktop/build/bin/nexus-desktop
+cmd/nexus-hud/build/bin/nexus-hud: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=d9b12442d88b9f3522734a39457fd2303e0156d3, for GNU/Linux 3.2.0, stripped
+76aabefd32c3eb88b5693546b3402e46f6006006250e2eff47822fa598e33e15  cmd/nexus-hud/build/bin/nexus-hud
+ldd_missing=none binary=cmd/nexus-hud/build/bin/nexus-hud
+{
+  "arch": "amd64",
+  "build_date": "2026-10-26T04:03:38Z",
+  "commit": "7a04f1b4",
+  "go": "go1.25.14",
+  "os": "linux",
+  "version": "1.0.0-beta.10"
+}

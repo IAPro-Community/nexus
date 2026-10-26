@@ -1,23 +1,23 @@
 import React from 'react';
 import { GripHorizontal, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { CompanionAttention, CompanionMood } from './companionModel';
+import type { MascotAttention, MascotMood } from './mascotModel';
 import { NexPixelSprite } from './NexPixelSprite';
 import type { GuardianMood } from './guardianModel';
 import styles from './GuardianMascot.module.scss';
 import hudStyles from './NexusHud.module.scss';
 
 interface GuardianMascotProps {
-  mood: CompanionMood;
+  mood: MascotMood;
   count: number;
   expanded: boolean;
   motion: boolean;
-  bubble?: CompanionAttention;
+  bubble?: MascotAttention;
   native?: boolean;
   popoverId?: string;
   onExpand: () => void;
-  onOpenAttention: (item: CompanionAttention) => void;
-  onSnooze: (item: CompanionAttention) => void;
+  onOpenAttention: (item: MascotAttention) => void;
+  onSnooze: (item: MascotAttention) => void;
   onMoveKeys?: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
 }
 
@@ -36,11 +36,39 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
 }) => {
   const { t } = useTranslation();
   const motionEnabled = motion && mood !== 'offline';
+  const [blink, setBlink] = React.useState(false);
   const spriteMood: GuardianMood = mood === 'attention' ? 'warning' : mood;
   const mascotLabel =
     count > 0 && !expanded
-      ? t('hud.companion.openPendingCount', { count })
-      : t(expanded ? 'hud.companion.collapse' : 'hud.companion.expand');
+      ? t('hud.mascot.openPendingCount', { count })
+      : t(expanded ? 'hud.mascot.collapse' : 'hud.mascot.expand');
+
+  React.useEffect(() => {
+    setBlink(false);
+    if (!motionEnabled || mood !== 'idle') return;
+
+    let blinkTimer: number | undefined;
+    let reopenTimer: number | undefined;
+    let disposed = false;
+    const scheduleBlink = () => {
+      blinkTimer = window.setTimeout(() => {
+        if (disposed) return;
+        setBlink(true);
+        reopenTimer = window.setTimeout(() => {
+          if (disposed) return;
+          setBlink(false);
+          scheduleBlink();
+        }, 120);
+      }, 6400);
+    };
+
+    scheduleBlink();
+    return () => {
+      disposed = true;
+      if (blinkTimer !== undefined) window.clearTimeout(blinkTimer);
+      if (reopenTimer !== undefined) window.clearTimeout(reopenTimer);
+    };
+  }, [motionEnabled, mood]);
 
   return (
     <div
@@ -52,14 +80,14 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
       {bubble && !expanded && (
         <aside
           className={styles.speech}
-          aria-label={t('hud.companion.attentionLabel')}
-          data-companion-bubble
+          aria-label={t('hud.mascot.attentionLabel')}
+          data-mascot-bubble
           data-hud-hit-area={native ? 'true' : undefined}
         >
           <button
             className={styles.close}
             type="button"
-            aria-label={t('hud.companion.dismissAttention')}
+            aria-label={t('hud.mascot.dismissAttention')}
             data-hud-hit-area="true"
             onClick={() => onSnooze(bubble)}
           >
@@ -69,10 +97,10 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
           <span>{t(bubble.detailKey)}</span>
           <div className={styles.bubbleActions}>
             <button type="button" data-hud-hit-area="true" onClick={() => onOpenAttention(bubble)}>
-              {t('hud.companion.open')}
+              {t('hud.mascot.open')}
             </button>
             <button type="button" data-hud-hit-area="true" onClick={() => onSnooze(bubble)}>
-              {t('hud.companion.snooze')}
+              {t('hud.mascot.snooze')}
             </button>
           </div>
         </aside>
@@ -105,6 +133,7 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
             className={hudStyles.guardian}
             data-mood={spriteMood}
             data-motion={motionEnabled ? 'on' : 'off'}
+            data-blink={blink ? 'true' : 'false'}
             aria-hidden="true"
           >
             <NexPixelSprite mood={spriteMood} />

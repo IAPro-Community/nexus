@@ -167,10 +167,15 @@ func (n *Nexus) buildComposerContextManifest(
 			value := strings.TrimSpace(fmt.Sprint(fact["value"]))
 			source := strings.TrimSpace(fmt.Sprint(fact["source"]))
 			locator := strings.TrimSpace(fmt.Sprint(fact["locator"]))
+			observedAt := strings.TrimSpace(fmt.Sprint(fact["observed_at"]))
 			if source == "" {
 				source = "project-intelligence"
 			}
-			add("PROJECT_FACT", source, locator, key+"="+value, confidence,
+			summary := key + "=" + value
+			if observedAt != "" && observedAt != "<nil>" {
+				summary += " · observed " + observedAt
+			}
+			add("PROJECT_FACT", source, locator, summary, confidence,
 				"Static project intelligence with provenance.", priority, false)
 		}
 	}

@@ -1,0 +1,92 @@
+Linux homologation — GoReleaser CLI/DEB current overlay package validation
+HEAD/remoto: 7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+Overlay fingerprint: d3caa597ae3bc061ad0048ad4d390b1b9bb0011cc496e4d213d0ec6119400796 (1.422 fontes)
+Snapshot path: /tmp/nexus-linux-100-p5-current-4d415ihx
+Package validation path: /tmp/nexus-linux-100-p5-current-4d415ihx/package-validation-rerun
+
+== checksums ==
+command: sha256sum -c checksums.txt
+exit_code=0
+stdout:
+nexus_1.0.0-beta.10_linux_amd64.deb: OK
+nexus_Linux_x86_64.tar.gz: OK
+
+== deb metadata ==
+command: dpkg-deb --field /tmp/nexus-linux-100-p5-current-4d415ihx/dist/nexus_1.0.0-beta.10_linux_amd64.deb Package Version Architecture
+exit_code=0
+stdout:
+Package: nexus
+Version: 1.0.0~beta.10
+Architecture: amd64
+
+== extract tar ==
+command: tar -xzf /tmp/nexus-linux-100-p5-current-4d415ihx/dist/nexus_Linux_x86_64.tar.gz -C /tmp/nexus-linux-100-p5-current-4d415ihx/package-validation-rerun/tar-extract
+exit_code=0
+
+== extract deb ==
+command: dpkg-deb -x /tmp/nexus-linux-100-p5-current-4d415ihx/dist/nexus_1.0.0-beta.10_linux_amd64.deb /tmp/nexus-linux-100-p5-current-4d415ihx/package-validation-rerun/deb-extract
+exit_code=0
+
+== payload hashes ==
+{
+  "/tmp/nexus-linux-100-p5-current-4d415ihx/dist/nexus_linux_amd64_v1/nexus": "92fed5a2fae1896b112032c14dc37fab62417bc398fb22ec91f94ef5c51d9efe",
+  "/tmp/nexus-linux-100-p5-current-4d415ihx/package-validation-rerun/tar-extract/nexus": "92fed5a2fae1896b112032c14dc37fab62417bc398fb22ec91f94ef5c51d9efe",
+  "/tmp/nexus-linux-100-p5-current-4d415ihx/package-validation-rerun/deb-extract/usr/local/bin/nexus": "92fed5a2fae1896b112032c14dc37fab62417bc398fb22ec91f94ef5c51d9efe"
+}
+
+== tar CLI version ==
+command: /tmp/nexus-linux-100-p5-current-4d415ihx/package-validation-rerun/tar-extract/nexus version --json
+exit_code=0
+stdout:
+{
+  "arch": "amd64",
+  "build_date": "2026-10-25T21:47:00Z",
+  "commit": "7a04f1b4cf5950b97b4ea1e156dda31ac513823b",
+  "go": "go1.27.3",
+  "os": "linux",
+  "version": "1.0.0-beta.10"
+}
+
+== isolated dpkg install ==
+command: dpkg --force-not-root --root=/tmp/nexus-linux-100-p5-current-4d415ihx/package-validation-rerun/dpkg-root --admindir=/tmp/nexus-linux-100-p5-current-4d415ihx/package-validation-rerun/dpkg-root/var/lib/dpkg --install /tmp/nexus-linux-100-p5-current-4d415ihx/dist/nexus_1.0.0-beta.10_linux_amd64.deb
+exit_code=0
+stdout:
+Selecting previously unselected package nexus.
+(Reading database ... 0 files and directories currently installed.)
+Preparing to unpack .../nexus_1.0.0-beta.10_linux_amd64.deb ...
+Unpacking nexus (1.0.0~beta.10) ...
+Setting up nexus (1.0.0~beta.10) ...
+stderr:
+dpkg: could not open log '/var/log/dpkg.log': Permission denied
+
+== isolated dpkg query ==
+command: dpkg-query --admindir=/tmp/nexus-linux-100-p5-current-4d415ihx/package-validation-rerun/dpkg-root/var/lib/dpkg -W -f=${Status} ${Version} ${Architecture}
+ nexus
+exit_code=0
+stdout:
+install ok installed 1.0.0~beta.10 amd64
+
+== installed CLI version ==
+command: /tmp/nexus-linux-100-p5-current-4d415ihx/package-validation-rerun/dpkg-root/usr/local/bin/nexus version --json
+exit_code=0
+stdout:
+{
+  "arch": "amd64",
+  "build_date": "2026-10-25T21:47:00Z",
+  "commit": "7a04f1b4cf5950b97b4ea1e156dda31ac513823b",
+  "go": "go1.27.3",
+  "os": "linux",
+  "version": "1.0.0-beta.10"
+}
+
+== isolated dpkg remove ==
+command: dpkg --force-not-root --root=/tmp/nexus-linux-100-p5-current-4d415ihx/package-validation-rerun/dpkg-root --admindir=/tmp/nexus-linux-100-p5-current-4d415ihx/package-validation-rerun/dpkg-root/var/lib/dpkg --remove nexus
+exit_code=0
+stdout:
+(Reading database ... 10 files and directories currently installed.)
+Removing nexus (1.0.0~beta.10) ...
+stderr:
+dpkg: could not open log '/var/log/dpkg.log': Permission denied
+
+host_installation_modified=false
+local_unsigned_snapshot_only=true

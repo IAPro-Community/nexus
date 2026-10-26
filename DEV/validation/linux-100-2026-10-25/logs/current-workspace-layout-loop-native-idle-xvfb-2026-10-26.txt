@@ -1,0 +1,25 @@
+Nexus Linux AMD64 — workspace rerender loop regression and native idle retest
+
+Branch/base/remote: release/v1.0.0 @ 7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+Product source fingerprint: eb038f52b8555c362a9129a3680746e0769ba4cbe733450b5c7a3b34a3ecbe05 (1,428 files)
+Manifest: source-provenance-workspace-idle-fix-2026-10-26.txt
+Working tree: modified; no immutable commit was created.
+
+Root cause (reproduced before the fix): ensureSurface() called deduplicateWorkspaceSurfaces(), whose tree walk allocated a new model/root even when there were no duplicate surfaces. WorkspaceCoordinator reruns its pinned-surface ensure effect whenever the Workspace context identity changes, so the new identity triggered another ensure/render. In an isolated WebKit inspector session on the previous source build, a 6-second sample recorded 1,024 document.title writes, 1,024 WorkspaceLayoutPersistence 500 ms timer installs and 1,024 DOM mutations. The installed pre-fix process separately measured 111.6% of one CPU core over 12 seconds in logs/current-native-webkit-idle-sample-2026-10-26.txt.
+
+Fixes:
+- deduplicateNode() now preserves unchanged stack/split identities, and deduplicateWorkspaceSurfaces() returns the original model when the tree is unchanged.
+- Removed the always-spinning update-available icon from ProjectOverviewSurface as well as the top bar. Both alerts remain available and actionable.
+- Added model identity/deduplication regressions and an overview update-alert static-animation regression.
+
+Validation:
+- bun run quality: PASS; 109 Vitest files / 678 tests, TypeScript, ESLint, Stylelint, CSS allowlist and formatting.
+- Focused workspace and overview regressions: PASS, 22/22.
+- Native WebKit inspector check after the workspace fix: 0 title writes, 1 initial 500 ms persistence timer, 0 DOM mutations during the 6-second observation. This debug build had DevTools enabled and was not used for the CPU measurement.
+- Production Linux Wails Desktop and linked HUD rebuilt after both fixes. Desktop SHA-256 697f79667cf60ce82fc8bcc828e3bdb258fa8d17c96ea942fed75aabb4e2055b; HUD SHA-256 12e83d1568dd79d082d2dd6640032c96e4e60ad2485d3364ff55e52cbd8a09a4; CLI SHA-256 fdd6b944f4987700277a9906e5c158c049a4603c3fa1e93fe050a93bd2024c40. All are ELF x86-64/AMD64; ldd reported no missing shared libraries for Desktop/HUD.
+- Production Wails Desktop opened as a real native window with the Overview workspace rendered under isolated D-Bus + Xvfb (1280x800), using an isolated profile and no host credentials. HUD spawning and DevTools were disabled.
+- WebKit process PID 1087907: 0.5% of one core over 12 seconds; RSS 456,436 -> 454,408 kB. Measurement used utime+stime deltas from /proc, not ps lifetime averages.
+- Native screenshot: screenshots/native-production-overview-idle-fixed-2026-10-26.png; SHA-256 e964fa2b0fe1a7b0ca84e9d1eb625f894600a54dd6a609815ee59d91bc0e08d0.
+- The local installed Desktop/HUD service and 8-hour soak were not stopped or replaced.
+
+Limitations: the 0.5% result is an isolated Xvfb/software-rendering smoke, not an accelerated GPU benchmark or a controlled A/B against the earlier GNOME/Wayland sample. VMware provides no usable 3D acceleration here; Wayland compositor alpha/click-through remains unverified. NR-010 therefore remains BLOCKED and overall status remains NO_GO_LINUX.

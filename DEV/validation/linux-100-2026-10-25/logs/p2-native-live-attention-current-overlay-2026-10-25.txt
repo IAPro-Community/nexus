@@ -1,0 +1,41 @@
+Nexus Linux P2 native Attention live-state and Core-restart follow-up
+date=2026-10-25
+branch=release/v1.0.0
+head=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+origin_release_head=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+product_source_fingerprint=2c23ebb0c7726a200acbde9326c23ad6023d8fad0238c2adfef993677203f2fa
+product_source_files_hashed=1425
+desktop_test_binary_sha256=46dc4cb910de307ce2c136175da351761ffa8b97f111da68ba14a01884cbaa31
+cli_test_binary_sha256=b149f5145e9ef3337102573d281b71299e8450a450f3d21e8ef405ae8c8f0b6c
+desktop_test_identity=temporary GTK ApplicationID/SingleInstance ID suffix only
+environment=Ubuntu 25.10 AMD64; GNOME 49; Wayland session; Wails in XWayland; 1280x800
+native_capture=ImageMagick import -window 0x1200004; all five PNGs are real Wails window captures
+
+fixture_root=/tmp/nexus-p2-live-ui-final-ytu_vh4u
+web_url=http://127.0.0.1:43162
+core_first_pid=2271425
+core_restarted_pid=2307030
+desktop_pid=2274400
+desktop_window_xid=0x1200004
+desktop_web_attachment=PASS: log reported attachment to existing Web Core at http://127.0.0.1:43162
+health_before_restart=HTTP 200, version dev
+health_after_restart=HTTP 200, version dev
+
+case=P2-UI-MISSION-LIVE-01
+expected=Attention shows A/D/E while B is EXECUTING and C is REMEDIATING; after B/C complete, it shows A/B/C/D/E; one connected Wails window survives a Web Core restart and refreshes without F5.
+observed_initial=PASS: A BLOCKED_NEEDS_USER, D COMPLETED_VERIFIED, E FAILED_NO_PROGRESS; counts needs_you=1, completed=1, failed=1, total=3.
+observed_active=PASS: fixture persisted B EXECUTING and C REMEDIATING; after the 15-second polling interval, the same drawer still showed only A/D/E and counts remained 1/1/1/3.
+observed_completed=PASS: fixture persisted B/C as COMPLETED_VERIFIED; after the polling interval, the same drawer showed five projects/missions and counts needs_you=1, completed=3, failed=1, total=5.
+observed_core_restart=PASS: Core PID 2271425 stopped; port 43162 was unavailable while Desktop PID 2274400 and XID 0x1200004 remained alive. Core restarted as PID 2307030 on the same port; health returned HTTP 200. Without F5, the connected drawer recovered and showed all five missions with counts 1/3/1/5.
+fixture_boundary=The UI state changes were written through store.UpsertMissionRun against the isolated SQLite database after the Core started. This validates the UI projection/polling and restart attachment, not runner execution or a real provider. Runner recovery/execution is covered separately by P2-MISSION-001 with deterministic executor, authenticated HTTP/SQLite recovery and execution counters.
+provider_calls=none
+user_data_mutation=none; isolated data/config/state/cache directories were used
+provider_account=No isolated provider profile was configured; no login was attempted and no authenticated-provider claim is made.
+graphics=VMware virtual GPU has no usable 3D acceleration; libEGL/DRI warnings observed; no GDK critical was observed under G_DEBUG=fatal-criticals.
+screenshots=logs/p2-native-live-attention-screenshots-2026-10-25.sha256
+process_cleanup=PASS: test Desktop/Core exited 0; port 43162 released; pre-existing Nexus Web PID 1447201 and Desktop PID 1448482 remained running.
+
+invalid_exploratory_attempt=An earlier launch omitted the isolated environment because PATH resolved env to a local wrapper. Test PID 2190640 attached read-only to the pre-existing Core at 127.0.0.1:39509; it was terminated immediately. No API mutation, provider command, install, or shutdown was issued. The final test above used explicit environment assignments and confirmed attachment to the isolated Core at port 43162.
+
+reproduction=See P2_NATIVE_LIVE_ATTENTION_VALIDATION in MISSION_ATTENTION_VALIDATION.md; build Desktop with unique temporary GTK/ApplicationID identity, use seed_attention_ui_fixture base/activate/complete phases, and capture the same XID before/after Core restart.
+result=PASS for native multi-mission projection, live polling, and same-window Core restart in the local single-user fixture scope; no live provider, multi-user ACL, alpha, or overall release GO claim.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { companionAttentionRoute, hudAttentionRoute } from './attentionNavigation';
-import type { CompanionAttention } from './companionModel';
+import { mascotAttentionRoute, hudAttentionRoute } from './attentionNavigation';
+import type { MascotAttention } from './mascotModel';
 import type { HudRuntimeAttention } from './hudModel';
 
 const wait: HudRuntimeAttention = {
@@ -29,11 +29,11 @@ describe('HUD runtime attention navigation', () => {
   });
 });
 
-describe('Companion attention navigation', () => {
-  const item: CompanionAttention = {
+describe('Mascot attention navigation', () => {
+  const item: MascotAttention = {
     id: 'mission:project space:run/1',
-    titleKey: 'hud.companion.missionTitle',
-    detailKey: 'hud.companion.missionDetail',
+    titleKey: 'hud.mascot.missionTitle',
+    detailKey: 'hud.mascot.missionDetail',
     severity: 'critical',
     target: 'missions',
     needsUser: true,
@@ -42,16 +42,14 @@ describe('Companion attention navigation', () => {
   };
 
   it('opens the exact Mission, Agent, or project Resources route', () => {
-    expect(companionAttentionRoute(item)).toBe('/p/project%20space/missions/run%2F1');
-    expect(companionAttentionRoute({ ...item, target: 'agents', recordId: 'agent/2' })).toBe(
+    expect(mascotAttentionRoute(item)).toBe('/p/project%20space/missions/run%2F1');
+    expect(mascotAttentionRoute({ ...item, target: 'agents', recordId: 'agent/2' })).toBe(
       '/p/project%20space/agents/agent%2F2',
     );
-    expect(companionAttentionRoute({ ...item, target: 'usage' })).toBe(
-      '/p/project%20space/resources',
-    );
+    expect(mascotAttentionRoute({ ...item, target: 'usage' })).toBe('/p/project%20space/resources');
   });
 
   it('falls back to Projects if verified project context is missing', () => {
-    expect(companionAttentionRoute({ ...item, projectId: undefined })).toBe('/projects');
+    expect(mascotAttentionRoute({ ...item, projectId: undefined })).toBe('/projects');
   });
 });

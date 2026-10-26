@@ -1,0 +1,50 @@
+dbus-daemon[412252]: [session uid=1000 pid=412252 pidfd=5] Activating service name='org.a11y.Bus' requested by ':1.3' (uid=1000 pid=412293 comm="/var/tmp/nexus-webkit-inspector-20261026/nexus-des" label="unconfined")
+dbus-daemon[412252]: [session uid=1000 pid=412252 pidfd=5] Successfully activated service 'org.a11y.Bus'
+dbus-daemon[412252]: [session uid=1000 pid=412252 pidfd=5] Activating service name='org.freedesktop.portal.Desktop' requested by ':1.2' (uid=1000 pid=412293 comm="/var/tmp/nexus-webkit-inspector-20261026/nexus-des" label="unconfined")
+dbus-daemon[412252]: [session uid=1000 pid=412252 pidfd=5] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.5' (uid=1000 pid=412323 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[412252]: [session uid=1000 pid=412252 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'
+dbus-daemon[412252]: [session uid=1000 pid=412252 pidfd=5] Activating service name='org.freedesktop.portal.Documents' requested by ':1.5' (uid=1000 pid=412323 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[412252]: [session uid=1000 pid=412252 pidfd=5] Successfully activated service 'org.freedesktop.portal.Documents'
+fusermount3: mount failed: Permission denied
+error: fuse init failed: Can't mount path /var/tmp/nexus-webkit-inspector-20261026/runtime-parent/doc
+
+(/usr/libexec/xdg-desktop-portal:412323): xdg-desktop-portal-WARNING **: 23:00:12.546: Document portal fuse mount point unknown: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name :1.7 was not provided by any .service files
+dbus-daemon[412252]: [session uid=1000 pid=412252 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gnome' requested by ':1.5' (uid=1000 pid=412323 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+** (xdg-desktop-portal-gnome:412344): WARNING **: 23:00:12.571: Failed to open service channel Wayland connection, portals dialogs may missbehave (Cannot invoke method; proxy is for the well-known name org.gnome.Mutter.ServiceChannel without an owner, and proxy was constructed with the G_DBUS_PROXY_FLAGS_DO_NOT_AUTO_START flag).
+libEGL warning: DRI3 error: Could not get DRI3 device
+libEGL warning: Ensure your X server supports DRI3 to get accelerated rendering
+dbus-daemon[412252]: [session uid=1000 pid=412252 pidfd=5] Activating service name='org.gtk.vfs.Daemon' requested by ':1.8' (uid=1000 pid=412344 comm="/usr/libexec/xdg-desktop-portal-gnome" label="unconfined")
+dbus-daemon[412252]: [session uid=1000 pid=412252 pidfd=5] Successfully activated service 'org.gtk.vfs.Daemon'
+fusermount3: mount failed: Permission denied
+dbus-daemon[412252]: [session uid=1000 pid=412252 pidfd=5] Activating service name='org.gnome.Settings.GlobalShortcutsProvider' requested by ':1.8' (uid=1000 pid=412344 comm="/usr/libexec/xdg-desktop-portal-gnome" label="unconfined")
+
+** (process:412422): WARNING **: 23:00:12.746: Failed to open service channel Wayland connection, portals dialogs may missbehave (Cannot invoke method; proxy is for the well-known name org.gnome.Mutter.ServiceChannel without an owner, and proxy was constructed with the G_DBUS_PROXY_FLAGS_DO_NOT_AUTO_START flag).
+libEGL warning: DRI3 error: Could not get DRI3 device
+libEGL warning: Ensure your X server supports DRI3 to get accelerated rendering
+dbus-daemon[412252]: [session uid=1000 pid=412252 pidfd=5] Successfully activated service 'org.gnome.Settings.GlobalShortcutsProvider'
+dbus-daemon[412252]: [session uid=1000 pid=412252 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.gnome'
+dbus-daemon[412252]: [session uid=1000 pid=412252 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.5' (uid=1000 pid=412323 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[412321]: Activating service name='org.a11y.atspi.Registry' requested by ':1.1' (uid=1000 pid=412468 comm="/usr/libexec/xdg-desktop-portal-gtk" label="unconfined")
+dbus-daemon[412321]: Successfully activated service 'org.a11y.atspi.Registry'
+SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry
+dbus-daemon[412252]: [session uid=1000 pid=412252 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.gtk'
+
+(/usr/libexec/xdg-desktop-portal:412323): xdg-desktop-portal-WARNING **: 23:00:12.982: Failed connect to PipeWire: Couldn't connect to PipeWire
+dbus-daemon[412252]: [session uid=1000 pid=412252 pidfd=5] Activating service name='org.freedesktop.secrets' requested by ':1.5' (uid=1000 pid=412323 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+** Message: 23:00:12.993: couldn't access control socket: /var/tmp/nexus-webkit-inspector-20261026/runtime-parent/keyring/control: No such file or directory
+discover_other_daemon: 0dbus-daemon[412252]: [session uid=1000 pid=412252 pidfd=5] Successfully activated service 'org.freedesktop.secrets'
+dbus-daemon[412252]: [session uid=1000 pid=412252 pidfd=5] Successfully activated service 'org.freedesktop.portal.Desktop'
+root_desktop_pid=412293
+idle_surface=Usage/Accounts after isolated first-run setup; pointer outside app
+webkit_processes_start=1
+webkit_processes_end=1
+webkit_idle_sample_seconds=20
+pid=412553 comm=WebKitWebProces cpu_seconds=21.55 cpu_percent=107.8 rss_kib=719256
+desktop_binary=/var/tmp/nexus-webkit-inspector-20261026/nexus-desktop-fixed
+desktop_sha256=0365a52b1a65d2a31d422115f5478fa7f2994f8dc6813627b0b0e1136cf8361c
+isolated_home=/var/tmp/nexus-webkit-inspector-20261026/runtime-parent/nexus-native-idle-xvfb.3oARxV/home
+core_health={"status":"ok","timestamp":1792983623,"version":"dev"}
+e249cbe3a4f96752dc0eac857cc457011c75259c1285a8c5971613e855e1e679  /projetos/nexus/DEV/validation/linux-100-2026-10-25/screenshots/native-idle-xvfb-fixed-update-indicator-2026-10-26/usage-accounts-idle.png
+no host provider sessions or credentials were exposed to this process
+A connection to the bus can't be made

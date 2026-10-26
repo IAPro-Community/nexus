@@ -391,16 +391,17 @@ func TestTerminalInputScrubberHoldsKnownCSIPrefixBeyondEscapeTimeout(t *testing.
 	}
 }
 
-func TestTerminalOutputScrubberBlocksApplicationCursorNegotiation(t *testing.T) {
+func TestTerminalOutputScrubberPreservesApplicationCursorNegotiation(t *testing.T) {
 	var out bytes.Buffer
 	scrubber := NewTerminalOutputScrubber(&out)
 
-	_, _ = scrubber.Write([]byte("before\x1b[?1hafter\x1b[?1l"))
+	sequence := "before\x1b[?1hafter\x1b[?1l"
+	_, _ = scrubber.Write([]byte(sequence))
 	if err := scrubber.Flush(); err != nil {
 		t.Fatal(err)
 	}
-	if got := out.String(); got != "beforeafter" {
-		t.Fatalf("DECCKM negotiation leaked to outer terminal: %q", got)
+	if got := out.String(); got != sequence {
+		t.Fatalf("DECCKM negotiation was altered: %q, want %q", got, sequence)
 	}
 }
 

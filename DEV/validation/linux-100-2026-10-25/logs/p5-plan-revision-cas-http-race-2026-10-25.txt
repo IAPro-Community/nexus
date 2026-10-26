@@ -1,0 +1,8 @@
+=== RUN   TestUpdatePlanReturnsConflictForStaleRevision
+--- PASS: TestUpdatePlanReturnsConflictForStaleRevision (0.97s)
+=== RUN   TestUpdatePlanReturnsConflictForStaleRevision
+--- PASS: TestUpdatePlanReturnsConflictForStaleRevision (0.04s)
+=== RUN   TestUpdatePlanReturnsConflictForStaleRevision
+--- PASS: TestUpdatePlanReturnsConflictForStaleRevision (0.03s)
+PASS
+ok  	github.com/IAPro-Community/nexus/internal/control/web	2.072s

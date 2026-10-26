@@ -1,0 +1,37 @@
+Linux homologation — exact-overlay native HUD first-paint sampling
+base_commit=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+source_fingerprint=2c23ebb0c7726a200acbde9326c23ad6023d8fad0238c2adfef993677203f2fa
+hud_sha256=61c84e95e5f59d3d2f7f7a04849d3c8a2a8fa4489253983492ca7b6d59d5056b
+method=isolated temporary profile; GDK_BACKEND=x11; identify Wails window by _NET_WM_PID; sample native pixels at 5/15/30s after stable 224x158 geometry
+
+pid=1837916
+window_id=0x120000f title=nexus-hud geometry=224x158 stable=true
+sample_5s=DEV/validation/linux-100-2026-10-25/screenshots/native-hud-first-paint-current-2c23ebb0/hud-first-paint-5s.png sha256=7006231bc46d60eb22a3474156b3a11a4f1c71079c4d6722a431535509b8762c bytes=14766
+sample_15s=DEV/validation/linux-100-2026-10-25/screenshots/native-hud-first-paint-current-2c23ebb0/hud-first-paint-15s.png sha256=195d5a7687854d055af25e0949474d64acd1de1f8fa23cca7015a427fae75721 bytes=14552
+sample_30s=DEV/validation/linux-100-2026-10-25/screenshots/native-hud-first-paint-current-2c23ebb0/hud-first-paint-30s.png sha256=c004a21fc218f052a59f7d06d68a4f6ae96b4569011ed0f20671c700fda4a736 bytes=14702
+exit_after_terminate=0
+--- process output ---
+Nexus HUD started an embedded Core at http://127.0.0.1:34153
+Overriding existing handler for signal 10. Set JSC_SIGNAL_FOR_GC if you want WebKit to use a different signal
+libEGL warning: DRI3 error: Could not get DRI3 device
+libEGL warning: Ensure your X server supports DRI3 to get accelerated rendering
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+
+Manual visual inspection: all three native Wails samples show the same single NEX character in the HUD mascot presentation; no second character or Companion renderer appears. This is native XWayland RGB evidence only; it does not validate Wayland alpha, real-agent attention, or input/focus behavior.

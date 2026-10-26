@@ -44,11 +44,29 @@ type agentPromptPolicy struct {
 	PackageID    string
 }
 
+// providerDispatchNotAttemptedError marks failures that occurred before the
+// launcher boundary. MissionRunner may safely remediate these because no
+// provider process was asked to execute the prompt. Errors returned by
+// Launcher.Launch itself remain ambiguous and must fail closed.
+type providerDispatchNotAttemptedError struct {
+	err error
+}
+
+func (e *providerDispatchNotAttemptedError) Error() string { return e.err.Error() }
+func (e *providerDispatchNotAttemptedError) Unwrap() error { return e.err }
+
 // executeAgentPrompt runs one autonomous, headless provider turn under a real
 // persistent Agent identity and real RuntimeGeneration. It deliberately starts
 // a fresh provider process; durable continuity for autonomous work is the code
 // worktree + immutable prompt/evidence, not a fabricated cross-provider resume.
-func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prompt string, policy agentPromptPolicy) (*agentPromptExecution, error) {
+func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prompt string, policy agentPromptPolicy) (execution *agentPromptExecution, err error) {
+	launchAttempted := false
+	defer func() {
+		if err != nil && !launchAttempted {
+			err = &providerDispatchNotAttemptedError{err: err}
+		}
+	}()
+
 	if strings.TrimSpace(prompt) == "" {
 		return nil, fmt.Errorf("agent prompt is required")
 	}
@@ -148,6 +166,7 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 		pathPrepend = []string{guardDir}
 	}
 
+	launchAttempted = true
 	sess, err := n.launcher.Launch(ctx, launcher.LaunchOptions{
 		AgentID:     agent.ID,
 		ProjectID:   agent.ProjectID,

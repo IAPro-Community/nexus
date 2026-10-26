@@ -3,6 +3,7 @@ import {
   clampRatio,
   closeSurface,
   createWorkspace,
+  deduplicateWorkspaceSurfaces,
   ensureSurface,
   findStackContaining,
   listSurfaces,
@@ -173,6 +174,51 @@ describe('workspace model', () => {
     const before = stack?.activeId;
     ws = ensureSurface(ws, { ...surface('terminals'), type: 'terminals', closable: false });
     expect(findStackContaining(ws.root, 'overview')?.activeId).toBe(before);
+  });
+
+  it('preserves workspace identity when an existing pinned surface is ensured', () => {
+    const ws = createWorkspace({ ...surface('terminals'), type: 'terminals', closable: false });
+
+    expect(ensureSurface(ws, { ...surface('terminals'), type: 'terminals', closable: false })).toBe(
+      ws,
+    );
+    expect(deduplicateWorkspaceSurfaces(ws)).toBe(ws);
+  });
+
+  it('repairs duplicate logical surfaces while keeping unchanged branches stable', () => {
+    const first = {
+      ...surface('overview-1'),
+      logicalKey: 'project:p1:overview',
+    };
+    const duplicate = {
+      ...surface('overview-2'),
+      logicalKey: 'project:p1:overview',
+    };
+    const untouched = { ...surface('settings'), logicalKey: 'project:p1:settings' };
+    const ws = createWorkspace(first);
+    const second = createWorkspace(untouched).root;
+    if (ws.root.kind !== 'stack') throw new Error('Expected a stack workspace fixture');
+    const damaged = {
+      ...ws,
+      root: {
+        kind: 'split' as const,
+        id: 'split-1',
+        direction: 'horizontal' as const,
+        ratio: 0.5,
+        first: { ...ws.root, tabs: [...ws.root.tabs, duplicate] },
+        second,
+      },
+    };
+
+    const repaired = deduplicateWorkspaceSurfaces(damaged);
+
+    expect(
+      listSurfaces(repaired.root).filter((tab) => tab.logicalKey === first.logicalKey),
+    ).toHaveLength(1);
+    expect(repaired.root.kind).toBe('split');
+    if (repaired.root.kind === 'split') {
+      expect(repaired.root.second).toBe(second);
+    }
   });
 
   it('pins an existing Composer tab without stealing focus', () => {

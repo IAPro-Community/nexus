@@ -1,0 +1,9 @@
+
+To use 'bun pm scan', configure a security scanner in bunfig.toml:
+  [install.security]
+  scanner = "package_name"
+
+Security scanners can be npm packages that export a scanner object.
+error: no security scanner configured
+
+EXIT_CODE=1

@@ -1,0 +1,11 @@
+timestamp_utc=2026-10-26T08:22:09Z
+cpu_usage_ns_before=65006780000
+memory_current_bytes_before=763363328
+cpu_usage_ns_after=65448911000
+memory_current_bytes_after=831836160
+cgroup_cpu_percent_20s=2.21
+memory_delta_mib=65.30
+memory_current_mib=793.30
+health={"status":"ok","timestamp":1793002949,"version":"1.0.0-beta.10"}
+
+result=OBSERVED

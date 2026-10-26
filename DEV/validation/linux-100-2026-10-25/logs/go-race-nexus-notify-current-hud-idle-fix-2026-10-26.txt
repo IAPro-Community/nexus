@@ -1,0 +1,2 @@
+ok  	github.com/IAPro-Community/nexus/internal/nexus	298.362s
+ok  	github.com/IAPro-Community/nexus/internal/control/notify	1.012s

@@ -1,0 +1,14 @@
+Browser E2E, Axe & visual smoke	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465573	
+Cross-platform compile guard	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465616	
+Desktop Linux (Wails v3 native build)	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465895	
+Documentation visual capture evidence	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465056	
+Frontend (Format, Lint, Styles, Typecheck, Unit & Build)	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465209	
+GoReleaser Snapshot Build	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232466884	
+Linux E2E (Go 1.26.10)	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465798	
+Release configuration	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465378	
+Seal native certification evidence	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/119630520555	
+Security	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465216	
+Smoke DEB install	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232466844	
+Windows native certification	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/119630520352	
+Sanitize self-hosted workspace	fail	24h0m0s	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/119630519015	
+macOS arm64 native certification	skipping	0	https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/119630520378	

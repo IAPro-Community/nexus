@@ -1,0 +1,25 @@
+Nexus Linux AMD64 — install atual do overlay único mascote
+UTC: 2026-10-26T00:53:22Z
+Branch/HEAD/remoto: release/v1.0.0 / 7a04f1b4cf5950b97b4ea1e156dda31ac513823b / 7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+Backup: /home/desenvolvedor/.local/state/nexus-homologation/20261026T005322Z-mascot-canonical
+
+Build e executáveis instalados (hashes devem coincidir):
+67462546458301e4116262c777e440641b0e8749972273395d4197d51c7a07be  /projetos/nexus/nexus
+67462546458301e4116262c777e440641b0e8749972273395d4197d51c7a07be  /home/desenvolvedor/.local/bin/nexus
+6505a3d266d3f762153d0c6b8cff5a16b533120f3a2bbf2af62a4601407f70d4  /projetos/nexus/cmd/nexus-desktop/build/bin/nexus-desktop
+6505a3d266d3f762153d0c6b8cff5a16b533120f3a2bbf2af62a4601407f70d4  /home/desenvolvedor/.local/bin/nexus-desktop
+a592fc12b1ed33a19aefe8c3d78100e72ab1cca8aa19eedf8c44493ec8e06d31  /projetos/nexus/cmd/nexus-hud/build/bin/nexus-hud
+a592fc12b1ed33a19aefe8c3d78100e72ab1cca8aa19eedf8c44493ec8e06d31  /home/desenvolvedor/.local/bin/nexus-hud
+
+Version command:
+{
+  "arch": "amd64",
+  "build_date": "2026-10-26T00:51:58Z",
+  "commit": "7a04f1b4",
+  "go": "go1.25.14",
+  "os": "linux",
+  "version": "1.0.0-beta.10"
+}
+
+Linked libraries missing:
+none

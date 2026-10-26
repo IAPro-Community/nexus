@@ -25,6 +25,13 @@ describe('Nexus UI version honesty', () => {
     expect(shell).toContain('window.clearInterval(refreshInterval)');
   });
 
+  it('keeps the available-update indicator static while it awaits user action', () => {
+    const indicator = shell.match(/className="nx-update-indicator"[\s\S]*?<\/button>/)?.[0];
+
+    expect(indicator).toContain('<ArrowUpCircle size={13} />');
+    expect(indicator).not.toContain('nx-spin');
+  });
+
   it('does not show a hardcoded release version in the pre-backend splash screen', () => {
     expect(splash).not.toMatch(/v\d+\.\d+\.\d+(?:-[\w.]+)?/);
     expect(splash).toContain('NexusSplashScreen');

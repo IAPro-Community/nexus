@@ -118,6 +118,19 @@ func TestSchedulerPreferProvider(t *testing.T) {
 	}
 }
 
+func TestSchedulerUsesStableResourceIdentityTieBreak(t *testing.T) {
+	accounts := []ProviderAccount{
+		schedulerTestAccount("codex-a", "codex", "default"),
+		schedulerTestAccount("agy-z", "agy", "default"),
+	}
+	for _, candidates := range [][]ProviderAccount{accounts, {accounts[1], accounts[0]}} {
+		decision := NewResourceScheduler(candidates, PolicyBalanced).Select("", "", "", nil)
+		if decision.Selected.ID != "agy-z" {
+			t.Fatalf("equal-score resources must select the same provider/profile/id regardless of input order; selected=%+v", decision.Selected)
+		}
+	}
+}
+
 func TestSchedulerManualOnlyMatchesExplicit(t *testing.T) {
 	accounts := []ProviderAccount{
 		schedulerTestAccount("a1", "claude", "default"),

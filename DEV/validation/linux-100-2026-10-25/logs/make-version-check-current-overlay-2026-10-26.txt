@@ -1,0 +1,8 @@
+started_at=2026-10-26T06:23:30Z
+  VERSION = 1.0.0-beta.10
+  web/package.json.version = 1.0.0-beta.10 ✓
+  @wailsio/runtime = 3.0.0-beta.25 ✓
+  .goreleaser.yaml exists ✓
+VERSION CONTRACT PASS: all sources consistent
+version_check=PASS
+finished_at=2026-10-26T06:23:30Z

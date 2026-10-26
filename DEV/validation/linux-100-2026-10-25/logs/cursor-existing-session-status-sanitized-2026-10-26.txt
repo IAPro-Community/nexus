@@ -1,0 +1,10 @@
+identifier=BLK-004-recheck
+area=Cursor CLI existing-session import
+branch=release/v1.0.0
+base_commit=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+procedure=timeout 15s cursor-agent status; stdout/stderr captured in memory and reduced to auth classification
+expected=determine whether the installed host CLI is already authenticated without exposing account details or tokens
+actual=AUTHENTICATED; exit_code=0; output_bytes=64; account details and raw CLI output were not persisted
+status=BLOCKED for importing this host session into a Nexus profile
+reason=official Cursor CLI documentation describes browser login or CURSOR_API_KEY, but no supported export of the existing browser session was documented; Nexus does not copy undocumented SQLite/keychain data
+official_source=https://prod.cursor.com/help/integrations/cli

@@ -1,0 +1,21 @@
+Nexus Desktop Wails startup-state observation — 2026-10-25
+XWayland DISPLAY=:0; real session D-Bus=present; isolated HOME/XDG/NEXUS_DATA_DIR; cwd=/tmp
+No keyboard event sent during the first 30 seconds; HUD spawn disabled.
+desktop_pid=2327246
+t=1s elapsed=1.84s xid=0x140000e colors=1 mean=0.0431373
+t=2s elapsed=3.03s xid=0x140000e colors=1 mean=0.0431373
+t=3s elapsed=3.82s xid=0x140000e colors=1 mean=0.0431373
+t=5s elapsed=5.87s xid=0x140000e colors=1 mean=0.0431373
+t=8s elapsed=8.86s xid=0x140000e colors=3017 mean=0.0797123
+t=10s elapsed=10.86s xid=0x140000e colors=5108 mean=0.0689923
+t=15s elapsed=15.78s xid=0x140000e colors=5282 mean=0.0844801
+t=20s elapsed=20.70s xid=0x140000e colors=5282 mean=0.0844801
+t=30s elapsed=30.66s xid=0x140000e colors=5282 mean=0.0844801
+screenshots=5s,8s,15s,30s where captured; inspect splash-to-workspace transition separately
+desktop_cleanup_exit=0
+
+Screenshot checksums:
+67b271686e7825c49f90eace3cd7a91d1f7ea2f54b435f6025962362f37dbbd6  screenshots/p2-native-startup-state-5s-2026-10-25.png
+e05d294cc24176b466f3bc05e15effe56a82b57660a69033a24cbcd66b10763c  screenshots/p2-native-startup-state-8s-2026-10-25.png
+32e84f1dc3b3e7ee9863b968044a95b93312d140a9d42fb56a2f8b90d4bf563a  screenshots/p2-native-startup-state-15s-2026-10-25.png
+32e84f1dc3b3e7ee9863b968044a95b93312d140a9d42fb56a2f8b90d4bf563a  screenshots/p2-native-startup-state-30s-2026-10-25.png (identical to 15 s)

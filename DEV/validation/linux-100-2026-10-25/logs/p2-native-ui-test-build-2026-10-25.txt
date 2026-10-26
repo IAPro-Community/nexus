@@ -1,0 +1,14 @@
+Build do Desktop isolado para o reteste P2 — 2026-10-25
+
+Base Git: release/v1.0.0 @ 7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+Fingerprint do produto compilado: a2ed858e013e8e43391cec7c1bb6d6e00324a3170ea9804d0d068bf231e73dfd (1.422 fontes)
+
+Comando:
+  go build -trimpath -buildvcs=false -tags production,gtk3 -overlay=/tmp/nexus-p2-native-ui-test-2026-10-25/overlay.json -o /tmp/nexus-p2-native-ui-test-2026-10-25/nexus-desktop-homologation ./cmd/nexus-desktop
+
+O overlay troca apenas cmd/nexus-desktop/main.go por uma cópia temporária que acrescenta o sufixo .homologation ao SingleInstance ID e ao Linux ApplicationID. Nenhum arquivo-fonte do produto foi editado para esse isolamento; comportamento visual/runtime e backend permanecem os da árvore testada.
+
+Binário temporário: /tmp/nexus-p2-native-ui-test-2026-10-25/nexus-desktop-homologation
+SHA-256: 41eb66aa4cbb944474db97d10da54ba9eafa9e58d16c2410825b5d0249ec9fea
+
+O binário serviu somente ao reteste nativo conectado documentado em p2-native-ui-xwayland-isolated-instance-2026-10-25.log. Não foi instalado ou publicado.

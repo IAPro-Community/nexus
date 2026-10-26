@@ -3,7 +3,12 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { launchFixtureBrowser, startFixtureServer, terminateProcess } from './e2e-fixture.mjs';
+import {
+  launchFixtureBrowser,
+  seedFixtureProject,
+  startFixtureServer,
+  terminateProcess,
+} from './e2e-fixture.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,11 +19,14 @@ if (!existsSync(screenshotDir)) mkdirSync(screenshotDir, { recursive: true });
 
 async function main() {
   console.log('=== Nexus first-run host-session import E2E ===');
-  const { server, bootstrapUrl, isolatedDataDir, getOutput } = await startFixtureServer();
+  const { server, bootstrapUrl, isolatedDataDir, isolatedProjectPath, getOutput } =
+    await startFixtureServer();
   let browser;
   let context;
   let page;
-  let importRequests = 0;
+  let firstRunImportRequests = 0;
+  let usageImportRequests = 0;
+  let usageResourceReads = 0;
 
   try {
     ({ browser, context, page } = await launchFixtureBrowser(bootstrapUrl));
@@ -56,7 +64,8 @@ async function main() {
       }),
     );
     await context.route('**/api/v1/profiles/import-host-sessions**', (route) => {
-      importRequests += 1;
+      if (new URL(page.url()).pathname.endsWith('/resources')) usageImportRequests += 1;
+      else firstRunImportRequests += 1;
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -67,6 +76,33 @@ async function main() {
             { provider: 'gemini', status: 'FAILED' },
           ],
         }),
+      });
+    });
+    await context.route('**/api/v1/resources', (route) => {
+      usageResourceReads += 1;
+      const accounts = usageImportRequests
+        ? [
+            {
+              id: 'codex:default',
+              provider: 'codex',
+              profile: 'default',
+              display_name: 'Codex fixture',
+              authenticated: true,
+              is_default: true,
+              available: true,
+              quota_remaining: 0,
+              quota_total: 0,
+              rate_limited: false,
+              health: 'healthy',
+              last_checked: new Date().toISOString(),
+              quota_view: { status: 'UNKNOWN' },
+            },
+          ]
+        : [];
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ accounts, policy: 'BALANCED' }),
       });
     });
 
@@ -92,10 +128,37 @@ async function main() {
     assert.match(resultText, /1 importadas/);
     assert.match(resultText, /1 sem sessão importável/);
     assert.match(resultText, /1 falharam/);
-    assert.equal(importRequests, 1, 'the import endpoint must be called exactly once');
+    assert.equal(firstRunImportRequests, 1, 'first-run import must call the endpoint once');
     await page.screenshot({ path: path.join(screenshotDir, 'first-run-layout.png'), fullPage: true });
     await result.screenshot({ path: path.join(screenshotDir, 'first-run-import-result.png') });
+
+    const { project, apiOrigin } = await seedFixtureProject(
+      context,
+      bootstrapUrl,
+      isolatedProjectPath,
+    );
+    await page.goto(`${apiOrigin}/p/${encodeURIComponent(project.id)}/resources`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 15000,
+    });
+    const usageImportButton = page.getByTestId('usage-import-host-sessions');
+    await usageImportButton.waitFor({ state: 'visible', timeout: 15000 });
+    await usageImportButton.click();
+
+    const usageResult = page.getByRole('status').filter({ hasText: 'Importação concluída:' });
+    await usageResult.waitFor({ state: 'visible', timeout: 5000 });
+    await page.getByText('Codex fixture', { exact: true }).waitFor({
+      state: 'visible',
+      timeout: 5000,
+    });
+    assert.equal(usageImportRequests, 1, 'Usage / Accounts must call the import endpoint once');
+    assert.ok(usageResourceReads >= 2, 'Usage / Accounts must refresh profiles after import');
+    await page.screenshot({
+      path: path.join(screenshotDir, 'usage-accounts-host-session-import.png'),
+      fullPage: true,
+    });
     console.log('First-run host-session import feedback E2E: PASS');
+    console.log('Usage / Accounts host-session import and profile refresh E2E: PASS');
   } catch (error) {
     console.error(`First-run import E2E server output:\n${getOutput()}`);
     throw error;

@@ -1,0 +1,1135 @@
+GitHub release/PR status recheck (read-only)
+captured_utc=2026-10-26T03:10:05Z
+repository=IAPro-Community/nexus
+release_branch_api_sha=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+local_origin_release_sha=7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+main_branch_api_sha=61b87409ba93f307ce2f95f7ca76348a310e3d95
+
+[gh release list --limit 20]
+[
+  {
+    "createdAt": "2026-10-22T20:54:29Z",
+    "isDraft": false,
+    "isLatest": false,
+    "name": "Nexus 1.0 - Unsigned Preview (f23ed9b88725e9bc4df80ded19a89b2e7f8a326a)",
+    "tagName": "preview-f23ed9b88725e9bc4df80ded19a89b2e7f8a326a"
+  },
+  {
+    "createdAt": "2026-10-21T21:24:10Z",
+    "isDraft": false,
+    "isLatest": false,
+    "name": "Nexus 1.0 - Unsigned Preview (40675172f69422d301d8050e184d690e93732776)",
+    "tagName": "preview-40675172f69422d301d8050e184d690e93732776"
+  },
+  {
+    "createdAt": "2026-10-21T20:49:59Z",
+    "isDraft": false,
+    "isLatest": false,
+    "name": "Nexus 1.0 - Unsigned Preview (3288dcbc1872d99df22f16305a0636873430ef00)",
+    "tagName": "preview-3288dcbc1872d99df22f16305a0636873430ef00"
+  },
+  {
+    "createdAt": "2026-10-21T20:12:43Z",
+    "isDraft": false,
+    "isLatest": false,
+    "name": "Nexus 1.0 - Unsigned Preview (1912b224d05809888108c636ef714fd68984027d)",
+    "tagName": "preview-1912b224d05809888108c636ef714fd68984027d"
+  },
+  {
+    "createdAt": "2026-10-21T18:36:27Z",
+    "isDraft": false,
+    "isLatest": false,
+    "name": "Nexus 1.0 - Unsigned Preview (71d5f0b41d2df9418e9df891d89cabf9415187a3)",
+    "tagName": "preview-71d5f0b41d2df9418e9df891d89cabf9415187a3"
+  }
+]
+
+[gh pr list --state open --limit 50]
+[
+  {
+    "baseRefName": "main",
+    "headRefName": "fix/quality-gates-and-hosts-matching",
+    "isDraft": false,
+    "number": 64,
+    "title": "fix: unblock typecheck/stylelint gates and match hosts entries by token",
+    "url": "https://github.com/IAPro-Community/nexus/pull/64"
+  },
+  {
+    "baseRefName": "release/v1.0.0",
+    "headRefName": "docs/nexus-1.0-portal-20261022",
+    "isDraft": true,
+    "number": 61,
+    "title": "docs(site): portal técnico Docusaurus 3 para Nexus 1.0",
+    "url": "https://github.com/IAPro-Community/nexus/pull/61"
+  },
+  {
+    "baseRefName": "release/v1.0.0",
+    "headRefName": "fix/hud-show-restore-v2",
+    "isDraft": false,
+    "number": 59,
+    "title": "fix(hud): restore geometry on WindowShow + CommandNoConsole for linked spawn",
+    "url": "https://github.com/IAPro-Community/nexus/pull/59"
+  },
+  {
+    "baseRefName": "release/v1.0.0",
+    "headRefName": "feat/v1-contextual-workspace-experience",
+    "isDraft": true,
+    "number": 58,
+    "title": "feat(workspace): persistent split terminals, contextual commands and scheduler-guided Direct",
+    "url": "https://github.com/IAPro-Community/nexus/pull/58"
+  },
+  {
+    "baseRefName": "release/v1.0.0",
+    "headRefName": "feat/orca-worktree-visibility-v1",
+    "isDraft": true,
+    "number": 57,
+    "title": "feat(workspace): expose parallel Git worktrees in Nexus 1.0",
+    "url": "https://github.com/IAPro-Community/nexus/pull/57"
+  }
+]
+
+[gh pr view 57, 58, 59, 61, 64]
+{
+  "57": {
+    "baseRefName": "release/v1.0.0",
+    "baseRefOid": "0ac9d8ed91768205fd0db1ee4b1d016583f0af0e",
+    "files": [
+      {
+        "path": "docs/product/orca-inspired-evolution-v1.md",
+        "additions": 65,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "internal/control/web/handlers_git.go",
+        "additions": 25,
+        "deletions": 16,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "internal/control/web/handlers_git_worktrees.go",
+        "additions": 74,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "internal/control/web/handlers_git_worktrees_test.go",
+        "additions": 66,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "web/src/features/projects/BranchSwitcherModal.module.scss",
+        "additions": 68,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "web/src/features/projects/BranchSwitcherModal.tsx",
+        "additions": 42,
+        "deletions": 1,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "web/src/features/projects/gitWorktrees.test.ts",
+        "additions": 37,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "web/src/features/projects/gitWorktrees.ts",
+        "additions": 12,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "web/src/i18n/resources.ts",
+        "additions": 27,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "web/src/types.ts",
+        "additions": 12,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      }
+    ],
+    "headRefName": "feat/orca-worktree-visibility-v1",
+    "headRefOid": "3d6d57a21d22ca19c723327a38d599846595223d",
+    "isDraft": true,
+    "mergeable": "MERGEABLE",
+    "number": 57,
+    "reviewDecision": "",
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T03:54:34Z",
+        "conclusion": "CANCELLED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/119629168919",
+        "name": "Sanitize self-hosted workspace",
+        "startedAt": "2026-10-22T03:54:34Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-22T03:54:34Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/119629169986",
+        "name": "Windows native certification",
+        "startedAt": "2026-10-22T03:54:34Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-22T03:54:34Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/119629170099",
+        "name": "macOS arm64 native certification",
+        "startedAt": "2026-10-22T03:54:34Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T03:54:34Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/120231188858",
+        "name": "Frontend (Format, Lint, Styles, Typecheck, Unit & Build)",
+        "startedAt": "2026-10-23T03:54:35Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T03:54:34Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/120231189622",
+        "name": "Documentation visual capture evidence",
+        "startedAt": "2026-10-23T03:54:35Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T03:54:34Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/120231189051",
+        "name": "Release configuration",
+        "startedAt": "2026-10-23T03:54:35Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T03:54:34Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/120231189735",
+        "name": "Security",
+        "startedAt": "2026-10-23T03:54:35Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T03:54:34Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/120231189549",
+        "name": "Linux E2E (Go 1.26.10)",
+        "startedAt": "2026-10-23T03:54:35Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T03:54:34Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/120231189132",
+        "name": "Cross-platform compile guard",
+        "startedAt": "2026-10-23T03:54:35Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-22T03:54:34Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/119629170779",
+        "name": "Seal native certification evidence",
+        "startedAt": "2026-10-22T03:54:34Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T03:54:34Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/120231189772",
+        "name": "Browser E2E, Axe & visual smoke",
+        "startedAt": "2026-10-23T03:54:35Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T03:54:34Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/120231189897",
+        "name": "Desktop Linux (Wails v3 native build)",
+        "startedAt": "2026-10-23T03:54:35Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T03:54:34Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/120231190516",
+        "name": "GoReleaser Snapshot Build",
+        "startedAt": "2026-10-23T03:54:35Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T03:54:35Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719416044/job/120231190544",
+        "name": "Smoke DEB install",
+        "startedAt": "2026-10-23T03:54:35Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      }
+    ],
+    "title": "feat(workspace): expose parallel Git worktrees in Nexus 1.0"
+  },
+  "58": {
+    "baseRefName": "release/v1.0.0",
+    "baseRefOid": "e7cfee7c10723031e33afa7010fa8e1916b5d7d6",
+    "files": [
+      {
+        "path": ".github/workflows/ci.yml",
+        "additions": 7,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "DEV/validation/PR58_CONTEXTUAL_WORKSPACE_20261022.md",
+        "additions": 34,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "docs/product/contextual-workspace-experience-v1.md",
+        "additions": 84,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "web/package.json",
+        "additions": 1,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "web/scripts/e2e-terminal-split-grid.mjs",
+        "additions": 96,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "web/src/app/NexusWorkspaceApp.tsx",
+        "additions": 51,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "web/src/app/commands/CommandPalette.module.scss",
+        "additions": 24,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "web/src/app/commands/CommandPalette.tsx",
+        "additions": 23,
+        "deletions": 5,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "web/src/app/commands/registry.test.ts",
+        "additions": 114,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "web/src/app/commands/registry.ts",
+        "additions": 84,
+        "deletions": 20,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "web/src/components/TerminalPane.tsx",
+        "additions": 13,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "web/src/features/work/ContextualResourceSelection.module.scss",
+        "additions": 40,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "web/src/features/work/DirectSessionLauncher.tsx",
+        "additions": 217,
+        "deletions": 29,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "web/src/features/work/directSessionLifecycle.test.ts",
+        "additions": 93,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "web/src/features/work/directSessionLifecycle.ts",
+        "additions": 67,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "web/src/features/work/directSessionModel.test.ts",
+        "additions": 72,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "web/src/features/work/directSessionModel.ts",
+        "additions": 76,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "web/src/i18n/resources.ts",
+        "additions": 113,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "web/src/nexus/api.ts",
+        "additions": 3,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "web/src/services/WorkspaceLayoutService.test.ts",
+        "additions": 23,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "web/src/workspace/TerminalSplit.module.scss",
+        "additions": 80,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "web/src/workspace/WorkspacePresentationProvider.tsx",
+        "additions": 25,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "web/src/workspace/WorkspaceRenderer.tsx",
+        "additions": 164,
+        "deletions": 6,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "web/src/workspace/presentation.test.ts",
+        "additions": 54,
+        "deletions": 1,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "web/src/workspace/presentation.ts",
+        "additions": 90,
+        "deletions": 3,
+        "changeType": "MODIFIED"
+      }
+    ],
+    "headRefName": "feat/v1-contextual-workspace-experience",
+    "headRefOid": "9b523a42ccc085e9ee618081e9d3ecc2d400436b",
+    "isDraft": true,
+    "mergeable": "CONFLICTING",
+    "number": 58,
+    "reviewDecision": "",
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T23:02:41Z",
+        "conclusion": "CANCELLED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120138885294",
+        "name": "Sanitize self-hosted workspace",
+        "startedAt": "2026-10-22T23:02:40Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-22T23:02:40Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120138887040",
+        "name": "Windows native certification",
+        "startedAt": "2026-10-22T23:02:40Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-22T23:02:40Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120138887298",
+        "name": "macOS arm64 native certification",
+        "startedAt": "2026-10-22T23:02:41Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T23:02:41Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120699963929",
+        "name": "Frontend (Format, Lint, Styles, Typecheck, Unit & Build)",
+        "startedAt": "2026-10-23T23:02:41Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T23:02:41Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120699964103",
+        "name": "Documentation visual capture evidence",
+        "startedAt": "2026-10-23T23:02:41Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T23:02:41Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120699964077",
+        "name": "Release configuration",
+        "startedAt": "2026-10-23T23:02:41Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T23:02:41Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120699964257",
+        "name": "Security",
+        "startedAt": "2026-10-23T23:02:41Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T23:02:41Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120699964023",
+        "name": "Linux E2E (Go 1.26.10)",
+        "startedAt": "2026-10-23T23:02:41Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T23:02:41Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120699964444",
+        "name": "Cross-platform compile guard",
+        "startedAt": "2026-10-23T23:02:41Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-22T23:02:40Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120138887294",
+        "name": "Seal native certification evidence",
+        "startedAt": "2026-10-22T23:02:41Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T23:02:41Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120699964132",
+        "name": "Browser E2E, Axe & visual smoke",
+        "startedAt": "2026-10-23T23:02:41Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T23:02:41Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120699964491",
+        "name": "Desktop Linux (Wails v3 native build)",
+        "startedAt": "2026-10-23T23:02:41Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T23:02:41Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120699964928",
+        "name": "GoReleaser Snapshot Build",
+        "startedAt": "2026-10-23T23:02:41Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T23:02:41Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39869151888/job/120699965494",
+        "name": "Smoke DEB install",
+        "startedAt": "2026-10-23T23:02:41Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      }
+    ],
+    "title": "feat(workspace): persistent split terminals, contextual commands and scheduler-guided Direct"
+  },
+  "59": {
+    "baseRefName": "release/v1.0.0",
+    "baseRefOid": "28e59065ff6ccf3f0dad2a7627a94870c2c5f45e",
+    "files": [
+      {
+        "path": "internal/desktop/hud_window.go",
+        "additions": 20,
+        "deletions": 3,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "internal/desktop/hud_window_test.go",
+        "additions": 96,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "internal/executil/command.go",
+        "additions": 10,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "internal/executil/quiet_unix.go",
+        "additions": 3,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "internal/executil/quiet_windows.go",
+        "additions": 12,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "internal/executil/quiet_windows_test.go",
+        "additions": 13,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "internal/hudlink/hudlink.go",
+        "additions": 1,
+        "deletions": 1,
+        "changeType": "MODIFIED"
+      }
+    ],
+    "headRefName": "fix/hud-show-restore-v2",
+    "headRefOid": "36e7cafd40609eb8424ac770e4d8f5f0a07fdb58",
+    "isDraft": false,
+    "mergeable": "CONFLICTING",
+    "number": 59,
+    "reviewDecision": "",
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T03:59:19Z",
+        "conclusion": "CANCELLED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/119630519015",
+        "name": "Sanitize self-hosted workspace",
+        "startedAt": "2026-10-22T03:59:19Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-22T03:59:18Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/119630520352",
+        "name": "Windows native certification",
+        "startedAt": "2026-10-22T03:59:19Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-22T03:59:18Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/119630520378",
+        "name": "macOS arm64 native certification",
+        "startedAt": "2026-10-22T03:59:19Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T03:59:19Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465209",
+        "name": "Frontend (Format, Lint, Styles, Typecheck, Unit & Build)",
+        "startedAt": "2026-10-23T03:59:20Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T03:59:19Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465056",
+        "name": "Documentation visual capture evidence",
+        "startedAt": "2026-10-23T03:59:20Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T03:59:19Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465378",
+        "name": "Release configuration",
+        "startedAt": "2026-10-23T03:59:20Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T03:59:19Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465216",
+        "name": "Security",
+        "startedAt": "2026-10-23T03:59:20Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T03:59:19Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465798",
+        "name": "Linux E2E (Go 1.26.10)",
+        "startedAt": "2026-10-23T03:59:20Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T03:59:19Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465616",
+        "name": "Cross-platform compile guard",
+        "startedAt": "2026-10-23T03:59:20Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-22T03:59:19Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/119630520555",
+        "name": "Seal native certification evidence",
+        "startedAt": "2026-10-22T03:59:19Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T03:59:19Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465573",
+        "name": "Browser E2E, Axe & visual smoke",
+        "startedAt": "2026-10-23T03:59:20Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T03:59:19Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232465895",
+        "name": "Desktop Linux (Wails v3 native build)",
+        "startedAt": "2026-10-23T03:59:20Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T03:59:20Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232466884",
+        "name": "GoReleaser Snapshot Build",
+        "startedAt": "2026-10-23T03:59:20Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T03:59:20Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39719836775/job/120232466844",
+        "name": "Smoke DEB install",
+        "startedAt": "2026-10-23T03:59:20Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      }
+    ],
+    "title": "fix(hud): restore geometry on WindowShow + CommandNoConsole for linked spawn"
+  },
+  "61": {
+    "baseRefName": "release/v1.0.0",
+    "baseRefOid": "cdde6befe4730d80400a82212a8fe750399efb44",
+    "files": [
+      {
+        "path": ".github/workflows/docs-site.yml",
+        "additions": 46,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "docs-site/.gitignore",
+        "additions": 4,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "docs-site/README.md",
+        "additions": 20,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "docs-site/docusaurus.config.js",
+        "additions": 35,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "docs-site/package.json",
+        "additions": 22,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "docs-site/pages.json",
+        "additions": 75,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "docs-site/scripts/prepare-docs.cjs",
+        "additions": 74,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "docs-site/sidebars.cjs",
+        "additions": 8,
+        "deletions": 0,
+        "changeType": "ADDED"
+      },
+      {
+        "path": "docs-site/src/css/custom.css",
+        "additions": 26,
+        "deletions": 0,
+        "changeType": "ADDED"
+      }
+    ],
+    "headRefName": "docs/nexus-1.0-portal-20261022",
+    "headRefOid": "0b64885b8f58d59c0f19552fcb51b0edaf6d1cfb",
+    "isDraft": true,
+    "mergeable": "CONFLICTING",
+    "number": 61,
+    "reviewDecision": "",
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-22T21:51:43Z",
+        "conclusion": "FAILURE",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39860536773/job/120109796585",
+        "name": "build",
+        "startedAt": "2026-10-22T21:51:15Z",
+        "status": "COMPLETED",
+        "workflowName": "pages-build-deployment"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T21:18:37Z",
+        "conclusion": "CANCELLED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120094900398",
+        "name": "Sanitize self-hosted workspace",
+        "startedAt": "2026-10-22T21:18:37Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T00:41:47Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39856179675/job/120173280779",
+        "name": "publish",
+        "startedAt": "2026-10-23T00:40:46Z",
+        "status": "COMPLETED",
+        "workflowName": "Publish Nexus documentation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-22T21:18:37Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120094902034",
+        "name": "Windows native certification",
+        "startedAt": "2026-10-22T21:18:37Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-22T21:51:49Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39860536773/job/120110013709",
+        "name": "report-build-status",
+        "startedAt": "2026-10-22T21:51:46Z",
+        "status": "COMPLETED",
+        "workflowName": "pages-build-deployment"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-22T21:18:37Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120094902323",
+        "name": "macOS arm64 native certification",
+        "startedAt": "2026-10-22T21:18:37Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-22T21:51:43Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39860536773/job/120110015568",
+        "name": "deploy",
+        "startedAt": "2026-10-22T21:51:43Z",
+        "status": "COMPLETED",
+        "workflowName": "pages-build-deployment"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T21:18:37Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120661602929",
+        "name": "Frontend (Format, Lint, Styles, Typecheck, Unit & Build)",
+        "startedAt": "2026-10-23T21:18:38Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T21:18:37Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120661602829",
+        "name": "Documentation visual capture evidence",
+        "startedAt": "2026-10-23T21:18:38Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T21:18:37Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120661602845",
+        "name": "Release configuration",
+        "startedAt": "2026-10-23T21:18:38Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T21:18:37Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120661601255",
+        "name": "Security",
+        "startedAt": "2026-10-23T21:18:38Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T21:18:37Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120661603044",
+        "name": "Linux E2E (Go 1.26.10)",
+        "startedAt": "2026-10-23T21:18:38Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T21:18:37Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120661601928",
+        "name": "Cross-platform compile guard",
+        "startedAt": "2026-10-23T21:18:38Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-22T21:18:37Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120094904146",
+        "name": "Seal native certification evidence",
+        "startedAt": "2026-10-22T21:18:37Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T21:18:38Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120661602969",
+        "name": "Browser E2E, Axe & visual smoke",
+        "startedAt": "2026-10-23T21:18:38Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T21:18:38Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120661602972",
+        "name": "Desktop Linux (Wails v3 native build)",
+        "startedAt": "2026-10-23T21:18:38Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T21:18:38Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120661602790",
+        "name": "GoReleaser Snapshot Build",
+        "startedAt": "2026-10-23T21:18:38Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-23T21:18:38Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/IAPro-Community/nexus/actions/runs/39856187818/job/120661604049",
+        "name": "Smoke DEB install",
+        "startedAt": "2026-10-23T21:18:38Z",
+        "status": "COMPLETED",
+        "workflowName": ".github/workflows/ci.yml"
+      }
+    ],
+    "title": "docs(site): portal técnico Docusaurus 3 para Nexus 1.0"
+  },
+  "64": {
+    "baseRefName": "main",
+    "baseRefOid": "61b87409ba93f307ce2f95f7ca76348a310e3d95",
+    "files": [
+      {
+        "path": "internal/control/web/hosts.go",
+        "additions": 95,
+        "deletions": 81,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "internal/control/web/hosts_test.go",
+        "additions": 100,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "internal/nexus/store/migration_0021_test.go",
+        "additions": 2,
+        "deletions": 2,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "web/bun.lock",
+        "additions": 3,
+        "deletions": 2,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "web/package.json",
+        "additions": 1,
+        "deletions": 0,
+        "changeType": "MODIFIED"
+      },
+      {
+        "path": "web/src/nexus/ExecutionRoleSelector.module.scss",
+        "additions": 1,
+        "deletions": 1,
+        "changeType": "MODIFIED"
+      }
+    ],
+    "headRefName": "fix/quality-gates-and-hosts-matching",
+    "headRefOid": "0caf64085b4d5fd8b39358e69af2a4e8651d6453",
+    "isDraft": false,
+    "mergeable": "MERGEABLE",
+    "number": 64,
+    "reviewDecision": "",
+    "state": "OPEN",
+    "statusCheckRollup": [],
+    "title": "fix: unblock typecheck/stylelint gates and match hosts entries by token"
+  }
+}
+
+[gh pr view 55]
+{
+  "baseRefName": "release/v1.0.0",
+  "baseRefOid": "f62fdec0c571ac6a19a904164d3f580799da6bf3",
+  "headRefName": "feat/nexus-companion-v1.1",
+  "headRefOid": "91d25969bda4c8b0bc6903d577a6e7215947a950",
+  "isDraft": true,
+  "mergeable": "CONFLICTING",
+  "number": 55,
+  "reviewDecision": "",
+  "state": "CLOSED",
+  "title": "feat(v1.0.0): integrate Nexus Companion 2D into canonical HUD"
+}
+
+[stable tag verification]
+command=git ls-remote --tags origin refs/tags/v1.0.0 refs/tags/v1.0.0^{} refs/tags/1.0.0 refs/tags/1.0.0^{}
+output=<empty>
+command=gh api repos/IAPro-Community/nexus/git/ref/tags/v1.0.0
+http_status=1
+output=gh: Not Found (HTTP 404)

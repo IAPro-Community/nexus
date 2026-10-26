@@ -1,0 +1,26 @@
+Branch: release/v1.0.0
+HEAD: 7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+Remote: 7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+Source fingerprint: 9a66687715414fc8b42d612fd2b4a531370c7f8c4fbfa86338a81ba9728ddcd1
+nexus:                                     ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=6f7b02d60d1a4c89e11c0d1b521fa58e61c70051, stripped
+cmd/nexus-desktop/build/bin/nexus-desktop: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=3d8866fa1f95a8540ae01001c4ca927512d25e04, for GNU/Linux 3.2.0, stripped
+cmd/nexus-hud/build/bin/nexus-hud:         ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=011f3f2be5702ec0363b7d13195f2d9b21fd71fc, for GNU/Linux 3.2.0, stripped
+47c517d28223ebcdde4bbb9288caf3c7413f9d8058ae20de7f2a672b1ebcbd81  nexus
+362c090ea6972cc1548cf883d78a2d071e9de746e42eb8283a4e10867e15fd0e  cmd/nexus-desktop/build/bin/nexus-desktop
+54925c242a76fc204ae646afdfc7762b88c458ef12dcee8f92765f66641435e1  cmd/nexus-hud/build/bin/nexus-hud
+
+ldd cmd/nexus-desktop/build/bin/nexus-desktop
+Missing shared libraries: none
+
+ldd cmd/nexus-hud/build/bin/nexus-hud
+Missing shared libraries: none
+
+CLI version:
+{
+  "arch": "amd64",
+  "build_date": "2026-10-26T01:38:46Z",
+  "commit": "7a04f1b4",
+  "go": "go1.25.14",
+  "os": "linux",
+  "version": "1.0.0-beta.10"
+}

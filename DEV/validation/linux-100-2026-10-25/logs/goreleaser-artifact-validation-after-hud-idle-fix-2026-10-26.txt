@@ -1,0 +1,29 @@
+nexus_1.0.0-beta.10_linux_amd64.deb: OK
+nexus_Linux_x86_64.tar.gz: OK
+Package: nexus
+Version: 1.0.0~beta.10
+Architecture: amd64
+drwxr-xr-x root/root         0 2026-10-26 03:06 ./usr/
+drwxr-xr-x root/root         0 2026-10-26 03:06 ./usr/local/
+drwxr-xr-x root/root         0 2026-10-26 03:06 ./usr/local/bin/
+-rw-rw-r-- root/root         0 2026-09-23 10:11 ./usr/local/bin/.nexus-deb
+-rwxr-xr-x root/root  24465592 2026-10-26 03:06 ./usr/local/bin/nexus
+drwxr-xr-x root/root         0 2026-10-26 03:06 ./usr/share/
+drwxr-xr-x root/root         0 2026-10-26 03:06 ./usr/share/doc/
+drwxr-xr-x root/root         0 2026-10-26 03:06 ./usr/share/doc/nexus/
+-rw-rw-r-- root/root      3553 2026-10-20 14:57 ./usr/share/doc/nexus/LICENSE
+-rw-rw-r-- root/root     11427 2026-10-23 09:55 ./usr/share/doc/nexus/README.md
+dpkg: could not open log '/var/log/dpkg.log': Permission denied
+Selecting previously unselected package nexus.
+(Reading database ... 0 files and directories currently installed.)
+Preparing to unpack .../nexus_1.0.0-beta.10_linux_amd64.deb ...
+Unpacking nexus (1.0.0~beta.10) ...
+Setting up nexus (1.0.0~beta.10) ...
+nexus 1.0.0~beta.10 amd64
+IAPro Nexus 1.0.0-beta.10 (linux/amd64, go1.25.14) commit 7a04f1b4cf5950b97b4ea1e156dda31ac513823b built 2026-10-26T07:06:25Z
+dpkg: could not open log '/var/log/dpkg.log': Permission denied
+(Reading database ... 10 files and directories currently installed.)
+Removing nexus (1.0.0~beta.10) ...
+isolated_deb_install_query_run_remove=PASS
+1d1e45099a49b5df57cc81bd5c842cbf7674d73c2dc0616fe3b6753ad8e72c9e  /home/desenvolvedor/.cache/nexus-p5-recheck/nexus-dist-b73161ffd4afe7d5/nexus_1.0.0-beta.10_linux_amd64.deb
+123ea3276eb37c18be7e5de3368a01a4944056480d0899ddee3e35f616be8784  /home/desenvolvedor/.cache/nexus-p5-recheck/nexus-dist-b73161ffd4afe7d5/nexus_Linux_x86_64.tar.gz

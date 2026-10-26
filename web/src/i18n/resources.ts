@@ -47,7 +47,7 @@ export const en = {
     dragLabel: 'Drag HUD. Use the arrow keys to move.',
     dragTitle: 'Drag to move the HUD. Use the arrow keys to adjust the position.',
     attention: 'Attention!',
-    companion: {
+    mascot: {
       attentionLabel: 'NEX mascot attention',
       dismissAttention: 'Snooze this attention item for one hour',
       modeGroupLabel: 'Native Nexus presentation',
@@ -1117,6 +1117,14 @@ export const en = {
     refresh: 'Refresh quota',
     refreshing: 'Refreshing…',
     loadedAt: 'Updated',
+    importHostSessions: 'Import existing CLI sessions',
+    importHostSessionsLoading: 'Importing sessions…',
+    importHostSessionsDescription:
+      'Nexus copies recognized credentials from installed provider CLIs into isolated profiles. Original sessions stay unchanged; only providers without an importable session need a new login.',
+    importHostSessionsResult:
+      'Session import finished: {{imported}} imported, {{alreadyAuthenticated}} already authenticated, {{notImported}} without an importable session, {{unsupported}} unsupported, {{failed}} failed.',
+    importHostSessionsError:
+      'Nexus could not import provider sessions. Check the local service and try again.',
     costTitle: 'Cost Intelligence',
     costEmpty: 'No attributed executions in this period.',
     costWindow: 'Last 7 days',
@@ -1285,6 +1293,8 @@ export const en = {
     approveAndRun: 'Approve & Run',
     clarificationTitle: 'Clarification required before planning',
     clarificationSubtitle: 'Nexus stopped instead of guessing. Answers become durable facts.',
+    executionPreviewNoProviderAccounts: 'No provider accounts are available.',
+    executionPreviewNoLocalCostBudget: 'No local cost budget is configured.',
     continuePlanning: 'Continue planning',
     chooseOption: 'Choose…',
     answerRequired: 'Answer required',
@@ -2172,7 +2182,7 @@ export const ptBR = {
     dragLabel: 'Arrastar HUD. Use as setas para mover.',
     dragTitle: 'Arraste para mover o HUD. Use as setas para ajustar a posição.',
     attention: 'Atenção!',
-    companion: {
+    mascot: {
       attentionLabel: 'Atenção do mascote NEX',
       dismissAttention: 'Adiar esta atenção por uma hora',
       modeGroupLabel: 'Apresentação nativa do NEX',
@@ -3248,6 +3258,14 @@ export const ptBR = {
     refresh: 'Atualizar cota',
     refreshing: 'Atualizando…',
     loadedAt: 'Atualizado',
+    importHostSessions: 'Importar sessões das CLIs',
+    importHostSessionsLoading: 'Importando sessões…',
+    importHostSessionsDescription:
+      'O Nexus copia credenciais reconhecidas das CLIs instaladas para perfis isolados. As sessões originais permanecem intactas; só será necessário fazer novo login nos provedores sem sessão importável.',
+    importHostSessionsResult:
+      'Importação concluída: {{imported}} importadas, {{alreadyAuthenticated}} já autenticadas, {{notImported}} sem sessão importável, {{unsupported}} sem suporte, {{failed}} falharam.',
+    importHostSessionsError:
+      'O Nexus não conseguiu importar as sessões dos provedores. Verifique o serviço local e tente novamente.',
     costTitle: 'Inteligência de custo',
     costEmpty: 'Nenhuma execução atribuída no período.',
     costWindow: 'Últimos 7 dias',
@@ -3419,6 +3437,8 @@ export const ptBR = {
     approveAndRun: 'Aprovar e executar',
     clarificationTitle: 'Esclarecimento necessário antes do planejamento',
     clarificationSubtitle: 'O Nexus parou em vez de adivinhar. As respostas viram fatos duráveis.',
+    executionPreviewNoProviderAccounts: 'Nenhuma conta de provedor foi encontrada.',
+    executionPreviewNoLocalCostBudget: 'Nenhum orçamento de custo local está configurado.',
     continuePlanning: 'Continuar planejamento',
     chooseOption: 'Escolher…',
     answerRequired: 'Resposta obrigatória',
@@ -4310,7 +4330,7 @@ export const es = {
     dragLabel: 'Arrastrar HUD. Usa las flechas para moverlo.',
     dragTitle: 'Arrastra para mover el HUD. Usa las flechas para ajustar la posición.',
     attention: '¡Atención!',
-    companion: {
+    mascot: {
       attentionLabel: 'Atención de la mascota NEX',
       dismissAttention: 'Posponer este elemento de atención durante una hora',
       modeGroupLabel: 'Presentación nativa de Nexus',
@@ -5392,6 +5412,14 @@ export const es = {
     refresh: 'Actualizar cuota',
     refreshing: 'Actualizando…',
     loadedAt: 'Actualizado',
+    importHostSessions: 'Importar sesiones de CLI',
+    importHostSessionsLoading: 'Importando sesiones…',
+    importHostSessionsDescription:
+      'Nexus copia credenciales reconocidas de las CLI instaladas a perfiles aislados. Las sesiones originales permanecen intactas; solo se requiere un nuevo inicio de sesión en los proveedores sin una sesión importable.',
+    importHostSessionsResult:
+      'Importación finalizada: {{imported}} importadas, {{alreadyAuthenticated}} ya autenticadas, {{notImported}} sin sesión importable, {{unsupported}} no compatibles, {{failed}} fallidas.',
+    importHostSessionsError:
+      'Nexus no pudo importar las sesiones de los proveedores. Comprueba el servicio local e inténtalo de nuevo.',
     costTitle: 'Inteligencia de costos',
     costEmpty: 'No hay ejecuciones atribuidas en el período.',
     costWindow: 'Últimos 7 días',
@@ -5564,6 +5592,8 @@ export const es = {
     clarificationTitle: 'Aclaración requerida antes de planificar',
     clarificationSubtitle:
       'Nexus se detuvo en lugar de adivinar. Las respuestas se vuelven hechos durables.',
+    executionPreviewNoProviderAccounts: 'No se encontraron cuentas de proveedores.',
+    executionPreviewNoLocalCostBudget: 'No hay un presupuesto local de costos configurado.',
     continuePlanning: 'Continuar planificación',
     chooseOption: 'Elegir…',
     answerRequired: 'Respuesta obligatoria',

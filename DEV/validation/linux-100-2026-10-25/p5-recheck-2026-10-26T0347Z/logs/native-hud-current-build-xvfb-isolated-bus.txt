@@ -1,0 +1,47 @@
+dbus-daemon[857805]: [session uid=1000 pid=857805 pidfd=5] Activating service name='org.a11y.Bus' requested by ':1.3' (uid=1000 pid=857842 comm="/projetos/nexus/cmd/nexus-hud/build/bin/nexus-hud" label="unconfined")
+dbus-daemon[857805]: [session uid=1000 pid=857805 pidfd=5] Successfully activated service 'org.a11y.Bus'
+dbus-daemon[857805]: [session uid=1000 pid=857805 pidfd=5] Activating service name='org.freedesktop.portal.Desktop' requested by ':1.2' (uid=1000 pid=857842 comm="/projetos/nexus/cmd/nexus-hud/build/bin/nexus-hud" label="unconfined")
+dbus-daemon[857805]: [session uid=1000 pid=857805 pidfd=5] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.5' (uid=1000 pid=857942 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[857805]: [session uid=1000 pid=857805 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'
+dbus-daemon[857805]: [session uid=1000 pid=857805 pidfd=5] Activating service name='org.freedesktop.portal.Documents' requested by ':1.5' (uid=1000 pid=857942 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[857805]: [session uid=1000 pid=857805 pidfd=5] Successfully activated service 'org.freedesktop.portal.Documents'
+fusermount3: failed to access mountpoint /run/user/1000/doc: Permission denied
+error: fuse init failed: Can't mount path /run/user/1000/doc
+
+(/usr/libexec/xdg-desktop-portal:857942): xdg-desktop-portal-WARNING **: 00:06:09.910: Document portal fuse mount point unknown: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name :1.7 was not provided by any .service files
+dbus-daemon[857805]: [session uid=1000 pid=857805 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gnome' requested by ':1.5' (uid=1000 pid=857942 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+** (xdg-desktop-portal-gnome:857984): WARNING **: 00:06:09.940: Failed to open service channel Wayland connection, portals dialogs may missbehave (Cannot invoke method; proxy is for the well-known name org.gnome.Mutter.ServiceChannel without an owner, and proxy was constructed with the G_DBUS_PROXY_FLAGS_DO_NOT_AUTO_START flag).
+dbus-daemon[857805]: [session uid=1000 pid=857805 pidfd=5] Activating service name='org.gtk.vfs.Daemon' requested by ':1.8' (uid=1000 pid=857984 comm="/usr/libexec/xdg-desktop-portal-gnome" label="unconfined")
+dbus-daemon[857805]: [session uid=1000 pid=857805 pidfd=5] Successfully activated service 'org.gtk.vfs.Daemon'
+fusermount3: failed to access mountpoint /run/user/1000/gvfs: Permission denied
+dbus-daemon[857805]: [session uid=1000 pid=857805 pidfd=5] Activating service name='org.gnome.Settings.GlobalShortcutsProvider' requested by ':1.8' (uid=1000 pid=857984 comm="/usr/libexec/xdg-desktop-portal-gnome" label="unconfined")
+
+** (process:858030): WARNING **: 00:06:10.079: Failed to open service channel Wayland connection, portals dialogs may missbehave (Cannot invoke method; proxy is for the well-known name org.gnome.Mutter.ServiceChannel without an owner, and proxy was constructed with the G_DBUS_PROXY_FLAGS_DO_NOT_AUTO_START flag).
+dbus-daemon[857805]: [session uid=1000 pid=857805 pidfd=5] Successfully activated service 'org.gnome.Settings.GlobalShortcutsProvider'
+dbus-daemon[857805]: [session uid=1000 pid=857805 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.gnome'
+dbus-daemon[857805]: [session uid=1000 pid=857805 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.5' (uid=1000 pid=857942 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[857938]: Activating service name='org.a11y.atspi.Registry' requested by ':1.1' (uid=1000 pid=858071 comm="/usr/libexec/xdg-desktop-portal-gtk" label="unconfined")
+dbus-daemon[857938]: Successfully activated service 'org.a11y.atspi.Registry'
+SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry
+dbus-daemon[857805]: [session uid=1000 pid=857805 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.gtk'
+dbus-daemon[857805]: [session uid=1000 pid=857805 pidfd=5] Activating service name='org.freedesktop.secrets' requested by ':1.5' (uid=1000 pid=857942 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+discover_other_daemon: 1GNOME_KEYRING_CONTROL=/run/user/1000/keyring
+
+(/usr/libexec/xdg-desktop-portal:857942): xdg-desktop-portal-WARNING **: 00:06:35.332: Failed to create secret proxy: Error calling StartServiceByName for org.freedesktop.secrets: Timeout was reached
+
+(/usr/libexec/xdg-desktop-portal:857942): xdg-desktop-portal-WARNING **: 00:06:35.332: No skeleton to export
+dbus-daemon[857805]: [session uid=1000 pid=857805 pidfd=5] Successfully activated service 'org.freedesktop.portal.Desktop'
+hud_binary=/projetos/nexus/cmd/nexus-hud/build/bin/nexus-hud
+hud_sha256=76aabefd32c3eb88b5693546b3402e46f6006006250e2eff47822fa598e33e15
+isolated_home=/home/desenvolvedor/.cache/nexus-p5-recheck/tmp/nexus-hud-current-build-xvfb.FUaemF/home
+window_geometry=1204,734 224x158
+initial_hud_capture=/projetos/nexus/DEV/validation/linux-100-2026-10-25/p5-recheck-2026-10-26T0347Z/screenshots/native-hud-isolated-bus/hud-mascot.png
+expanded_hud_capture=/projetos/nexus/DEV/validation/linux-100-2026-10-25/p5-recheck-2026-10-26T0347Z/screenshots/native-hud-isolated-bus/hud-expanded-root.png
+e21a6e0c52bf96e84c2d478ab1bb7f6091a1b5815f65479c87ee033be1978118  /projetos/nexus/DEV/validation/linux-100-2026-10-25/p5-recheck-2026-10-26T0347Z/screenshots/native-hud-isolated-bus/hud-mascot.png
+91a6ccd19748db5d691512e568a32eaf23ebfe7d241ef04a756772ee91849470  /projetos/nexus/DEV/validation/linux-100-2026-10-25/p5-recheck-2026-10-26T0347Z/screenshots/native-hud-isolated-bus/hud-expanded-root.png
+embedded_core_log=/home/desenvolvedor/.cache/nexus-p5-recheck/tmp/nexus-hud-current-build-xvfb.FUaemF/hud.log
+Nexus HUD started an embedded Core at http://127.0.0.1:42431
+Overriding existing handler for signal 10. Set JSC_SIGNAL_FOR_GC if you want WebKit to use a different signal
+Xlib:  extension "DRI2" missing on display ":115".
+A connection to the bus can't be made

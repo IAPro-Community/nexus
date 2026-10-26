@@ -94,6 +94,13 @@ func TestComposerFinalizationCreatesPromptWithoutWorkPlan(t *testing.T) {
 	if artifact.Content == "" || artifact.Version != 1 {
 		t.Fatalf("invalid artifact: %+v", artifact)
 	}
+	finalized, err := st.GetComposerSession(session.Session.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if finalized.State != store.ComposerFinalized {
+		t.Fatalf("finalized prompt artifact must persist FINALIZED session state, got %q", finalized.State)
+	}
 	plans, err := st.ListWorkPlans(project.ID)
 	if err != nil {
 		t.Fatal(err)

@@ -1,0 +1,7 @@
+unit=nexus-homologation-final-restored-20261026.service desktop_pid=2113355
+sample_seconds=20; application started from installed local build; credentials/config values omitted
+service_state=active
+webkit_processes_start=2 webkit_processes_end=2
+pid=2113505 comm=WebKitWebProces cpu_seconds=0.11 cpu_percent=0.5 rss_kib=241656
+pid=2113506 comm=WebKitWebProces cpu_seconds=0.00 cpu_percent=0.0 rss_kib=285540
+desktop_binary=/home/desenvolvedor/.local/bin/nexus-desktop

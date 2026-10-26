@@ -1,0 +1,4 @@
+Atomic local install of the built Nexus CLI, Wails Desktop, and HUD.
+installed=/home/desenvolvedor/.local/bin/nexus sha256=d6591761ca7a29226b5ff52cac832e68aa61a2a6625965245467dbbe0ddb234f previous_backup=/home/desenvolvedor/.local/state/nexus-homologation/20261025T184335188114Z/nexus.previous
+installed=/home/desenvolvedor/.local/bin/nexus-desktop sha256=2f1b97ba5185b7fe948e439559a52ee13571fae64201b20fc270dc091e6e6a0b previous_backup=/home/desenvolvedor/.local/state/nexus-homologation/20261025T184335188114Z/nexus-desktop.previous
+installed=/home/desenvolvedor/.local/bin/nexus-hud sha256=f516a20a052554637de61e49c3f209d18e2f90f12edfb929eba650451f8d8a2d previous_backup=/home/desenvolvedor/.local/state/nexus-homologation/20261025T184335188114Z/nexus-hud.previous

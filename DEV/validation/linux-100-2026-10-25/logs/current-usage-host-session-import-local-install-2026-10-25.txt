@@ -1,0 +1,8 @@
+install_stamp=20261026T014019Z
+backup_dir=/home/desenvolvedor/.local/state/nexus-homologation/20261026T014019Z-usage-account-import
+47c517d28223ebcdde4bbb9288caf3c7413f9d8058ae20de7f2a672b1ebcbd81  nexus
+362c090ea6972cc1548cf883d78a2d071e9de746e42eb8283a4e10867e15fd0e  cmd/nexus-desktop/build/bin/nexus-desktop
+54925c242a76fc204ae646afdfc7762b88c458ef12dcee8f92765f66641435e1  cmd/nexus-hud/build/bin/nexus-hud
+47c517d28223ebcdde4bbb9288caf3c7413f9d8058ae20de7f2a672b1ebcbd81  /home/desenvolvedor/.local/bin/nexus
+362c090ea6972cc1548cf883d78a2d071e9de746e42eb8283a4e10867e15fd0e  /home/desenvolvedor/.local/bin/nexus-desktop
+54925c242a76fc204ae646afdfc7762b88c458ef12dcee8f92765f66641435e1  /home/desenvolvedor/.local/bin/nexus-hud

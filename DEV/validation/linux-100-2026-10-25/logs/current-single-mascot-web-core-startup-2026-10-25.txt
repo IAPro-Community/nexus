@@ -1,0 +1,4 @@
+=== Nexus Control Center (Web UI) ===
+URL:       http://127.0.0.1:40145
+Press Ctrl+C to stop the Web Control Center.
+Reopen from any terminal: nexus web open

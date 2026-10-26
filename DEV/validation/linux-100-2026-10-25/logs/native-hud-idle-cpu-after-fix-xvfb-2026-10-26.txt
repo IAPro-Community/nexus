@@ -1,0 +1,44 @@
+dbus-daemon[2070645]: [session uid=1000 pid=2070645 pidfd=5] Activating service name='org.a11y.Bus' requested by ':1.3' (uid=1000 pid=2070666 comm="/projetos/nexus/cmd/nexus-hud/build/bin/nexus-hud" label="unconfined")
+dbus-daemon[2070645]: [session uid=1000 pid=2070645 pidfd=5] Successfully activated service 'org.a11y.Bus'
+dbus-daemon[2070645]: [session uid=1000 pid=2070645 pidfd=5] Activating service name='org.freedesktop.portal.Desktop' requested by ':1.2' (uid=1000 pid=2070666 comm="/projetos/nexus/cmd/nexus-hud/build/bin/nexus-hud" label="unconfined")
+dbus-daemon[2070645]: [session uid=1000 pid=2070645 pidfd=5] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.5' (uid=1000 pid=2070730 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[2070645]: [session uid=1000 pid=2070645 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'
+dbus-daemon[2070645]: [session uid=1000 pid=2070645 pidfd=5] Activating service name='org.freedesktop.portal.Documents' requested by ':1.5' (uid=1000 pid=2070730 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[2070645]: [session uid=1000 pid=2070645 pidfd=5] Successfully activated service 'org.freedesktop.portal.Documents'
+fusermount3: failed to access mountpoint /run/user/1000/doc: Permission denied
+error: fuse init failed: Can't mount path /run/user/1000/doc
+
+(/usr/libexec/xdg-desktop-portal:2070730): xdg-desktop-portal-WARNING **: 03:02:29.796: Document portal fuse mount point unknown: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name :1.7 was not provided by any .service files
+dbus-daemon[2070645]: [session uid=1000 pid=2070645 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gnome' requested by ':1.5' (uid=1000 pid=2070730 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+** (xdg-desktop-portal-gnome:2070758): WARNING **: 03:02:29.826: Failed to open service channel Wayland connection, portals dialogs may missbehave (Cannot invoke method; proxy is for the well-known name org.gnome.Mutter.ServiceChannel without an owner, and proxy was constructed with the G_DBUS_PROXY_FLAGS_DO_NOT_AUTO_START flag).
+dbus-daemon[2070645]: [session uid=1000 pid=2070645 pidfd=5] Activating service name='org.gtk.vfs.Daemon' requested by ':1.8' (uid=1000 pid=2070758 comm="/usr/libexec/xdg-desktop-portal-gnome" label="unconfined")
+dbus-daemon[2070645]: [session uid=1000 pid=2070645 pidfd=5] Successfully activated service 'org.gtk.vfs.Daemon'
+fusermount3: failed to access mountpoint /run/user/1000/gvfs: Permission denied
+dbus-daemon[2070645]: [session uid=1000 pid=2070645 pidfd=5] Activating service name='org.gnome.Settings.GlobalShortcutsProvider' requested by ':1.8' (uid=1000 pid=2070758 comm="/usr/libexec/xdg-desktop-portal-gnome" label="unconfined")
+
+** (process:2070804): WARNING **: 03:02:29.962: Failed to open service channel Wayland connection, portals dialogs may missbehave (Cannot invoke method; proxy is for the well-known name org.gnome.Mutter.ServiceChannel without an owner, and proxy was constructed with the G_DBUS_PROXY_FLAGS_DO_NOT_AUTO_START flag).
+dbus-daemon[2070645]: [session uid=1000 pid=2070645 pidfd=5] Successfully activated service 'org.gnome.Settings.GlobalShortcutsProvider'
+dbus-daemon[2070645]: [session uid=1000 pid=2070645 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.gnome'
+dbus-daemon[2070645]: [session uid=1000 pid=2070645 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.5' (uid=1000 pid=2070730 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[2070727]: Activating service name='org.a11y.atspi.Registry' requested by ':1.1' (uid=1000 pid=2070830 comm="/usr/libexec/xdg-desktop-portal-gtk" label="unconfined")
+dbus-daemon[2070727]: Successfully activated service 'org.a11y.atspi.Registry'
+dbus-daemon[2070645]: [session uid=1000 pid=2070645 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.gtk'
+SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry
+dbus-daemon[2070645]: [session uid=1000 pid=2070645 pidfd=5] Activating service name='org.freedesktop.secrets' requested by ':1.5' (uid=1000 pid=2070730 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+discover_other_daemon: 1GNOME_KEYRING_CONTROL=/run/user/1000/keyring
+
+(/usr/libexec/xdg-desktop-portal:2070730): xdg-desktop-portal-WARNING **: 03:02:55.193: Failed to create secret proxy: Error calling StartServiceByName for org.freedesktop.secrets: Timeout was reached
+
+(/usr/libexec/xdg-desktop-portal:2070730): xdg-desktop-portal-WARNING **: 03:02:55.193: No skeleton to export
+dbus-daemon[2070645]: [session uid=1000 pid=2070645 pidfd=5] Successfully activated service 'org.freedesktop.portal.Desktop'
+fbe093cffa25e53a118bb5880a0087645d70ed73776678d55c588f549095c7b3  /projetos/nexus/cmd/nexus-hud/build/bin/nexus-hud
+hud_window=0x20000e "nexus-hud": ("nexus-hud" "Nexus-hud")  224x158+1044+634  +1044+634
+hud_idle_sample_seconds=20
+cpu_limit_percent_per_webkit_process=15.0
+webkit_processes_start=2 webkit_processes_end=2
+pid=2073180 comm=WebKitWebProces cpu_seconds=0.30 cpu_percent=1.5 rss_kib=345152
+pid=2073182 comm=WebKitWebProces cpu_seconds=0.08 cpu_percent=0.4 rss_kib=227872
+PASS: all idle WebKit processes stayed at or below 15.0%
+hud_binary=/projetos/nexus/cmd/nexus-hud/build/bin/nexus-hud
+A connection to the bus can't be made

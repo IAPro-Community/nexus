@@ -36,4 +36,13 @@ describe('Overview Recover and Start honest actions', () => {
     expect(overviewSource).toContain('const degraded =');
     expect(overviewSource).toContain("t('overview.degraded'");
   });
+
+  it('keeps the informational update alert static to avoid continuous redraws', () => {
+    const updateAlert = overviewSource.match(
+      /\{updateInfo\?\.update_available && \([\s\S]*?<\/Card>\s*\)}/,
+    )?.[0];
+
+    expect(updateAlert).toContain('<ArrowUpCircle size={18} />');
+    expect(updateAlert).not.toContain('nx-spin');
+  });
 });

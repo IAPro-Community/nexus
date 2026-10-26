@@ -1,0 +1,59 @@
+Building frontend...
+≈ tailwindcss v4.3.3
+
+Done in 367ms
+
+  dist/bundle.js                                   419.2kb
+  dist/chunks/chunk-NEIF7D32.js                    348.8kb
+  dist/chunks/chunk-25456IRH.js                    280.9kb
+  dist/chunks/chunk-GXEDJIG6.js                    250.1kb
+  dist/chunks/FlowRunsHistorySurface-AU5IVB4J.js   221.4kb
+  dist/bundle.css                                  161.8kb
+  dist/chunks/chunk-M3NSMQ6F.js                    136.4kb
+  dist/chunks/chunk-FY36WRUI.js                     93.7kb
+  dist/chunks/chunk-5HYXVZU4.js                     64.3kb
+  dist/chunks/chunk-O7V4VUIQ.js                     37.0kb
+  dist/chunks/chunk-LPVGUJ7T.js                     35.1kb
+  dist/chunks/chunk-EGXU7ZBT.js                     34.3kb
+  dist/chunks/UsageSurface-EDXIHBAK.js              30.8kb
+  dist/chunks/AgentTerminal-OSH22VVA.js             30.3kb
+  dist/chunks/chunk-QKLLPLGV.js                     27.7kb
+  dist/chunks/FlowRunSurface-USJII72N.js            16.8kb
+  dist/chunks/FlowRunsHistorySurface-2YMTODPA.css   15.5kb
+  dist/chunks/chunk-MXSPH2OL.js                     15.2kb
+  dist/chunks/chunk-UO3PEXKS.js                     15.0kb
+  dist/chunks/chunk-GHPW3E2O.js                     14.9kb
+  ...and 45 more output files...
+
+⚡ Done in 1526ms
+NEX 32-bit official SVG exported: /projetos/nexus/web/public/nex
+Nexus web build complete: /projetos/nexus/web/dist
+Frontend bundle ready for embedding
+Building nexus v1.0.0-beta.10 (commit: 7a04f1b4)...
+Built nexus v1.0.0-beta.10 at ./nexus
+=== Release Dry Run ===
+1. Version contract check...
+  VERSION = 1.0.0-beta.10
+  web/package.json.version = 1.0.0-beta.10 ✓
+  @wailsio/runtime = 3.0.0-beta.25 ✓
+  .goreleaser.yaml exists ✓
+VERSION CONTRACT PASS: all sources consistent
+
+2. Build verification...
+   Binary: nexus ✓
+
+3. Quality gates...
+make[1]: Entering directory '/projetos/nexus'
+  VERSION = 1.0.0-beta.10
+  web/package.json.version = 1.0.0-beta.10 ✓
+  @wailsio/runtime = 3.0.0-beta.25 ✓
+  .goreleaser.yaml exists ✓
+VERSION CONTRACT PASS: all sources consistent
+make[1]: Leaving directory '/projetos/nexus'
+
+=== Source Build Dry Run Complete ===
+Build and version contract verified; this is NOT release certification.
+Before publication, require make quality-full and exact-SHA native/signing gates.
+No publication occurs here; there is no 'make release' target.
+command=make release-dry-run
+exit_code=0

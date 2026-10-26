@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/control/events"
@@ -15,8 +16,9 @@ import (
 // MissionRun control. Lifecycle rules remain in Nexus and MissionRunner; this
 // service prevents HTTP handlers from assembling those calls independently.
 type RunApplicationService struct {
-	nexus *Nexus
-	bus   *events.Bus
+	nexus         *Nexus
+	bus           *events.Bus
+	notifications *MissionNotificationService
 }
 
 // RunStartRequest contains the approved inputs needed to create a MissionRun.
@@ -41,7 +43,21 @@ func NewRunApplicationService(n *Nexus) *RunApplicationService {
 }
 
 func NewRunApplicationServiceWithBus(n *Nexus, bus *events.Bus) *RunApplicationService {
-	return &RunApplicationService{nexus: n, bus: bus}
+	service := &RunApplicationService{nexus: n, bus: bus}
+	if n != nil && n.st != nil {
+		service.notifications = NewMissionNotificationService(n.st, nil)
+		if runs, err := n.Runner().ListRuns(context.Background()); err == nil {
+			if err := service.notifications.Recover(context.Background(), runs); err != nil {
+				log.Printf("nexus mission notification recovery deferred: %s", security.Redact(err.Error()))
+			}
+			if _, err := n.reconcileEphemeralMissionAgents(runs, ""); err != nil {
+				log.Printf("nexus mission Agent cleanup deferred: %s", security.Redact(err.Error()))
+			}
+		} else {
+			log.Printf("nexus mission notification recovery deferred: %s", security.Redact(err.Error()))
+		}
+	}
+	return service
 }
 
 func (s *RunApplicationService) ready(ctx context.Context) error {
@@ -471,7 +487,7 @@ func (s *RunApplicationService) AttentionFiltered(ctx context.Context, filter ru
 }
 
 func (s *RunApplicationService) publishRunEvent(run *runner.MissionRun, eventType events.EventType, summary string, data map[string]any) {
-	if s == nil || s.bus == nil || run == nil {
+	if s == nil || run == nil {
 		return
 	}
 	runtimeID, provider, profile := "", "", ""
@@ -489,5 +505,12 @@ func (s *RunApplicationService) publishRunEvent(run *runner.MissionRun, eventTyp
 			eventData["agent_id"] = pkg.AssignedAgent
 		}
 	}
-	s.bus.Publish(events.NewEventWithCorrelation(run.ID, runtimeID, provider, profile, eventType, summary, eventData))
+	if s.bus != nil {
+		s.bus.Publish(events.NewEventWithCorrelation(run.ID, runtimeID, provider, profile, eventType, summary, eventData))
+	}
+	if s.notifications != nil {
+		if err := s.notifications.ObserveRun(run); err != nil {
+			log.Printf("nexus mission notification delivery deferred: %s", security.Redact(err.Error()))
+		}
+	}
 }

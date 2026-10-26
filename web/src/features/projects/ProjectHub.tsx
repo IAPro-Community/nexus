@@ -20,11 +20,10 @@ import styles from './ProjectHub.module.scss';
 import { RegisterProviderModal } from '../usage/RegisterProviderModal';
 import { AccountLoginModal } from '../usage/AccountLoginModal';
 import {
-  deriveFirstRunReadiness,
-  OFFICIAL_PROVIDER_INSTALL_GUIDES,
-  summarizeHostSessionImport,
+  summarizeHostSessionImports,
   type HostSessionImportSummary,
-} from './firstRunReadiness';
+} from '../../lib/hostSessionImport';
+import { deriveFirstRunReadiness, OFFICIAL_PROVIDER_INSTALL_GUIDES } from './firstRunReadiness';
 
 export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = ({ onCreated }) => {
   const { t } = useTranslation();
@@ -108,7 +107,7 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
     setImportingSessions(true);
     try {
       const result = await nexus.importHostSessions();
-      setSessionImportSummary(summarizeHostSessionImport(result.results || []));
+      setSessionImportSummary(summarizeHostSessionImports(result.results || []));
       await detectEnvironment();
     } catch (err) {
       setSetupError(err instanceof Error ? err.message : String(err));

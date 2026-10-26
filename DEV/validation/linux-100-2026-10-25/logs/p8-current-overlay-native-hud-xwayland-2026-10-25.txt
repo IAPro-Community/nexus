@@ -1,0 +1,11 @@
+Linux homologation — exact-overlay isolated native Wails HUD smoke
+Base/local/remote SHA: 7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+Source fingerprint: 2c23ebb0c7726a200acbde9326c23ad6023d8fad0238c2adfef993677203f2fa
+Installed HUD: /home/desenvolvedor/.local/bin/nexus-hud
+Installed HUD SHA-256: 61c84e95e5f59d3d2f7f7a04849d3c8a2a8fa4489253983492ca7b6d59d5056b
+Test profile: /home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/native-hud-current-overlay-xwayland
+Expected: exact PID-owned `nexus-hud` XWayland window, visible native screenshot, normal shutdown, no fatal GTK critical.
+
+launched_pid=1806965
+exit_after_terminate=-15
+--- process output ---

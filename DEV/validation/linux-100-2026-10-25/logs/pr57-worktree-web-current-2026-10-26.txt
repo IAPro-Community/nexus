@@ -1,0 +1,9 @@
+
+ RUN  v4.1.12 /projetos/nexus/web
+
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  01:13:42
+   Duration  804ms (transform 173ms, setup 0ms, import 248ms, tests 22ms, environment 0ms)
+

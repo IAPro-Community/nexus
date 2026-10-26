@@ -1,0 +1,7 @@
+Graceful Nexus runtime shutdown before local overlay install
+codex-06GPYAENJ38GCNPWVD1YN9XQQG: exit_code=0; stdout='✓ Stopped runtime codex-06GPYAENJ38GCNPWVD1YN9XQQG'; stderr=''
+codex-06GPYAENJWDFEKVRQ6F8WVAHZ4: exit_code=0; stdout='✓ Stopped runtime codex-06GPYAENJWDFEKVRQ6F8WVAHZ4'; stderr=''
+codex-06GPYAD2A3R2EGDEE84A6NDED8: exit_code=0; stdout='✓ Stopped runtime codex-06GPYAD2A3R2EGDEE84A6NDED8'; stderr=''
+shell-06GQ54XK5GQHCC8S32F1MX24YG: exit_code=0; stdout='✓ Stopped runtime shell-06GQ54XK5GQHCC8S32F1MX24YG'; stderr=''
+shell-06GQ558SE4MH6YQ6A1NQP9B4CW: exit_code=0; stdout='✓ Stopped runtime shell-06GQ558SE4MH6YQ6A1NQP9B4CW'; stderr=''
+shell-06GQ127QYWDV1NHJS9FY7TGV80: exit_code=0; stdout='✓ Stopped runtime shell-06GQ127QYWDV1NHJS9FY7TGV80'; stderr=''

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"errors"
 	"path/filepath"
 	"testing"
 	"time"
@@ -110,6 +111,56 @@ func TestWorkPlan_CRUD_And_Revisions(t *testing.T) {
 	}
 	if gotSnap.RevisionID != rev2.ID || gotSnap.StateJSON != snap.StateJSON {
 		t.Fatalf("unexpected execution snapshot: %+v", gotSnap)
+	}
+}
+
+func TestUpdateWorkPlanRejectsStaleRevisionWithoutOverwritingCurrent(t *testing.T) {
+	st, err := Open(filepath.Join(t.TempDir(), "stale-plan.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+
+	project, err := st.CreateProject(Project{CanonicalPath: t.TempDir(), Name: "Revision guard"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	created, err := st.CreateWorkPlan(WorkPlan{ProjectID: project.ID, Title: "Original"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	stale, err := st.GetWorkPlan(created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	current, err := st.GetWorkPlan(created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	current.Title = "Current edit"
+	if _, _, err := st.UpdateWorkPlan(*current, "current edit"); err != nil {
+		t.Fatalf("persist current revision: %v", err)
+	}
+
+	stale.Title = "Stale edit"
+	if _, _, err := st.UpdateWorkPlan(*stale, "stale edit"); !errors.Is(err, ErrPlanRevisionConflict) {
+		t.Fatalf("stale revision error = %v, want ErrPlanRevisionConflict", err)
+	}
+
+	latest, err := st.GetWorkPlan(created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if latest.CurrentRevision != 2 || latest.Title != "Current edit" {
+		t.Fatalf("stale update changed current plan: revision=%d title=%q", latest.CurrentRevision, latest.Title)
+	}
+	revisions, err := st.ListPlanRevisions(created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(revisions) != 2 {
+		t.Fatalf("stale update created a revision: got %d revisions, want 2", len(revisions))
 	}
 }
 

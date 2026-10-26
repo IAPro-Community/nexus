@@ -1,0 +1,25 @@
+== CLI process-level regression ==
+binary=/tmp/nexus-p2-cli-web-help.fBTqFD/nexus
+6cd4f469fd7c59622c4becdb36ba034cbfd3d7ea4797febafec1570f8c6745b4  /tmp/nexus-p2-cli-web-help.fBTqFD/nexus
+-- web --help --
+Nexus Web Workspace OS
+
+USAGE:
+  nexus web [flags]
+
+FLAGS:
+  -p, --port <port>    HTTP port; 0 selects an available port (default: 13000 or NEXUS_WEB_PORT)
+  -l, --listen <ip>    IP address to bind (default: 127.0.0.1)
+      --no-open         Do not open a browser automatically
+      --remote          Enable remote access mode
+  -h, --help            Show this help message
+help_exit_code=0
+-- unknown flag --
+nexus: invalid web option: flag provided but not defined: -unknown
+unknown_exit_code=1
+-- missing port value --
+nexus: invalid web option: flag needs an argument: -port
+missing_port_exit_code=1
+isolated_web_port_free_after_commands=true
+created_web_server_process=false
+user_runtime_processes_touched=false

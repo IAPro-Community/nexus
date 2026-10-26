@@ -1,0 +1,23 @@
+Nexus Linux AMD64 — install and startup of current homologation overlay
+Local date: 2026-10-25; UTC install time: 2026-10-26T00:41:07Z
+Branch: release/v1.0.0
+Git HEAD / remote HEAD: 7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+Product source fingerprint: b874bec02f83066daed6f913b4d357fb411dfff9fe1ff97e8290a2f8b4f0ca8d
+Backup directory: /home/desenvolvedor/.local/state/nexus-homologation/20261026T004107Z-nr007-current-install
+
+The existing Web Core PID 1447201 and Desktop PID 1448482 exited after SIGTERM. The three regular binaries were backed up, checksum-verified and atomically replaced. No configuration or database files were touched by the installer. See the installer records below and the build hashes in `nr007-current-linux-artifacts-2026-10-25.txt`.
+
+Installed version command: `/home/desenvolvedor/.local/bin/nexus version --json`
+Output: Linux amd64, Nexus 1.0.0-beta.10, embedded commit 7a04f1b4, Go 1.25.14.
+
+Web Core command: `nexus web --port 0 --listen 127.0.0.1 --no-open`
+PID: 2834606
+URL: http://127.0.0.1:45493
+Health request: `curl -sS -o /tmp/nexus-current-health.json -w 'HTTP %{http_code}\n' http://127.0.0.1:45493/api/v1/health`
+Observed: HTTP 200; body `{"status":"ok","timestamp":1792975338,"version":"1.0.0-beta.10"}`.
+
+Desktop PID: 2835392; stayed alive after startup and attached to the Core URL above. Startup log reports VMware/Mesa EGL messages (`No 3D enabled`) and missing Xlib DRI2 extension; the process remained running. This host has no usable 3D acceleration.
+
+The native window was launched, but this retest did not produce a screenshot: XWD returned `BadMatch (invalid parameter attributes)` and ImageMagick's screen selection timed out. CUA native-app control is unavailable in this environment. Earlier native XWayland screenshots for the unchanged single-NEX HUD source remain in `screenshots/mascot-user-direction-final-2026-10-25/`; they do not constitute a new screenshot of this installed binary.
+
+result=PASS for atomic local install, Web Core HTTP health and Desktop process startup; visual capture of this installed run remains BLOCKED.

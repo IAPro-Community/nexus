@@ -1,0 +1,6 @@
+command: go test -count=1 -timeout=15m ./internal/nexus/store ./internal/nexus ./internal/control/web
+exit_code: 0
+
+ok  	github.com/IAPro-Community/nexus/internal/nexus/store	4.022s
+ok  	github.com/IAPro-Community/nexus/internal/nexus	73.913s
+ok  	github.com/IAPro-Community/nexus/internal/control/web	24.758s

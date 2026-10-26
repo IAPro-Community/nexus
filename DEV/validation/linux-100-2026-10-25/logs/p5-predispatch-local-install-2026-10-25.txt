@@ -1,0 +1,8 @@
+backup_dir=/home/desenvolvedor/.local/state/nexus-homologation/20261025T233536Z-p5-predispatch-current-install
+previous=/home/desenvolvedor/.local/bin/nexus sha256=7d983a120bec6debada901bddc7a38748f6112d5d8d98f42b6d2d86efc10b8c6 backup=/home/desenvolvedor/.local/state/nexus-homologation/20261025T233536Z-p5-predispatch-current-install/nexus.previous
+previous=/home/desenvolvedor/.local/bin/nexus-desktop sha256=25134b1e891ad11fc1f2467e0b814a955156a8ad514efaee8b847afd82b498d5 backup=/home/desenvolvedor/.local/state/nexus-homologation/20261025T233536Z-p5-predispatch-current-install/nexus-desktop.previous
+previous=/home/desenvolvedor/.local/bin/nexus-hud sha256=a7b62e19456b3e88c0bf15af48b4c4234720339d7bd2928ad74c8b8d146d49d2 backup=/home/desenvolvedor/.local/state/nexus-homologation/20261025T233536Z-p5-predispatch-current-install/nexus-hud.previous
+stopped_processes=3618613:nexus-desktop,3618685:nexus-hud,3621903:nexus
+installed=/home/desenvolvedor/.local/bin/nexus sha256=8627da4d3de58bf04360c08c0bb2707a545c3d821e6a9751b0495c8d385d8526 build=/projetos/nexus/nexus
+installed=/home/desenvolvedor/.local/bin/nexus-desktop sha256=52054d6d113ee8d36a75db1cab3f000b455641f4d8635e2c42982e617aeec568 build=/projetos/nexus/cmd/nexus-desktop/build/bin/nexus-desktop
+installed=/home/desenvolvedor/.local/bin/nexus-hud sha256=61c84e95e5f59d3d2f7f7a04849d3c8a2a8fa4489253983492ca7b6d59d5056b build=/projetos/nexus/cmd/nexus-hud/build/bin/nexus-hud

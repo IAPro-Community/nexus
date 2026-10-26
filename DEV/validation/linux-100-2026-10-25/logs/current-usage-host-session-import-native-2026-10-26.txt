@@ -1,0 +1,47 @@
+Nexus Desktop started an embedded Core at http://127.0.0.1:33737
+Overriding existing handler for signal 10. Set JSC_SIGNAL_FOR_GC if you want WebKit to use a different signal
+libEGL warning: DRI3 error: Could not get DRI3 device
+libEGL warning: Ensure your X server supports DRI3 to get accelerated rendering
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+        0x120000e "IAPro Nexus": ("nexus-desktop" "Nexus-desktop")  1280x800+25+62  +-640+-363
+4059159       00:01 /home/desenvolvedor/.local/bin/nexus-desktop
+isolated_xdg=1
+desktop_pid=4063969
+Nexus Desktop started an embedded Core at http://127.0.0.1:36169
+Overriding existing handler for signal 10. Set JSC_SIGNAL_FOR_GC if you want WebKit to use a different signal
+libEGL warning: DRI3 error: Could not get DRI3 device
+libEGL warning: Ensure your X server supports DRI3 to get accelerated rendering
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+        0x120000e "IAPro Nexus": ("nexus-desktop" "Nexus-desktop")  1280x800+25+62  +-640+-363
+4063969       00:01 /home/desenvolvedor/.local/bin/nexus-desktop
+
+Final user-session launch recheck (2026-10-26)
+Desktop PID: 4102943
+Linked HUD PID: 4102971
+Desktop remained active in transient user systemd unit nexus-homologation-final-20261026.service.
+Core: HTTP 200 at /api/v1/health; version 1.0.0-beta.10.
+XWayland root: 0x0; grim: no wl_output.
+Result: native Usage/Accounts click and screenshot remain BLOCKED; no import action was triggered.
+Inspection profile preserved at /tmp/nexus-linux-100-host-import-native-20261026T014019Z. The automated safety review rejected the cleanup command; no provider session was copied into the profile.

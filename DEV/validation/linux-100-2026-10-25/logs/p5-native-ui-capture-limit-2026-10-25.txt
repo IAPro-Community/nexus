@@ -1,0 +1,11 @@
+Nexus native UI follow-up — 2026-10-25
+
+Installed CLI/Desktop/HUD and started `~/.local/bin/nexus-desktop` (PID 3618613); linked HUD process remained active (PID 3618685).
+Embedded Core health check: GET http://127.0.0.1:40289/api/v1/health returned HTTP 200, status=ok, version=1.0.0-beta.10.
+
+Native capture attempts through the available CUA connector:
+- `await cua.getState()` returned `{"apps":[],"browsers":[]}`.
+- `await cua.listApps()` failed: `cua.listApps is not a function`.
+- `await cua.listWindows()` failed: `cua.listWindows is not a function`.
+
+Result: desktop process and embedded Core smoke are operational, but a fresh native-window screenshot/visual interaction could not be collected with the enabled CUA surface. No browser screenshot was substituted and no new visual approval is claimed.

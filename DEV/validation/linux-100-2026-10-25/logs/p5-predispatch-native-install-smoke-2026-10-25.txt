@@ -1,0 +1,11 @@
+desktop_pid=1448482
+desktop_sha256=52054d6d113ee8d36a75db1cab3f000b455641f4d8635e2c42982e617aeec568  /home/desenvolvedor/.local/bin/nexus-desktop
+core_url=http://127.0.0.1:39509
+{"status":"ok","timestamp":1792971381,"version":"1.0.0-beta.10"}
+
+runtime_processes=[]
+
+processes=
+1447201 nexus
+1447212 nexus-hud
+1448482 nexus-desktop

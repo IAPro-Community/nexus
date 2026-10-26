@@ -17,19 +17,19 @@ export const GuardianModeSelector: React.FC<GuardianModeSelectorProps> = ({
 }) => {
   const { t } = useTranslation();
   const modes = {
-    BAR: { label: 'hud.companion.modeBar', title: 'hud.companion.modeBarTitle' },
+    BAR: { label: 'hud.mascot.modeBar', title: 'hud.mascot.modeBarTitle' },
     MASCOT: {
-      label: 'hud.companion.modeMascot',
-      title: 'hud.companion.modeMascotTitle',
+      label: 'hud.mascot.modeMascot',
+      title: 'hud.mascot.modeMascotTitle',
     },
-    TRAY: { label: 'hud.companion.modeTray', title: 'hud.companion.modeTrayTitle' },
+    TRAY: { label: 'hud.mascot.modeTray', title: 'hud.mascot.modeTrayTitle' },
   } as const;
 
   return (
     <div
       className={styles.guardianModeSelector}
       role="group"
-      aria-label={t('hud.companion.modeGroupLabel')}
+      aria-label={t('hud.mascot.modeGroupLabel')}
     >
       {(['BAR', 'MASCOT', 'TRAY'] as const).map((mode) => (
         <button

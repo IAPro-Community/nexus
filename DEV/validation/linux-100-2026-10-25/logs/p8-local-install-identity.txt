@@ -1,0 +1,22 @@
+== rebuilt raw CLI identity ==
+0d611be548d8bcb8710e76c40d7a85455cf0a85b6e02da2e5d688797f61decd1  nexus
+{
+  "arch": "amd64",
+  "build_date": "2026-10-25T18:54:23Z",
+  "commit": "7a04f1b4",
+  "go": "go1.25.14",
+  "os": "linux",
+  "version": "1.0.0-beta.10"
+}
+== installed CLI identity ==
+{
+  "arch": "amd64",
+  "build_date": "2026-10-25T18:54:23Z",
+  "commit": "7a04f1b4",
+  "go": "go1.25.14",
+  "os": "linux",
+  "version": "1.0.0-beta.10"
+}
+== installed Wails binary comparisons ==
+desktop_build_matches_install=true
+hud_build_matches_install=true

@@ -1,0 +1,20 @@
+P5 broad Composer execution spine — observed failure
+Date: 2026-10-25
+Branch: release/v1.0.0
+HEAD base: 7a04f1b4cf5950b97b4ea1e156dda31ac513823b
+Command: bun run --cwd web test:e2e:composer-vague-spine
+Exit: 1
+
+The first replay exposed a test harness ordering mismatch: it selected the first blocking unknown from the API while the UI rendered the highest-priority unknown. The harness was updated to resolve the prompt actually visible in the conversation. The next replay passed that stage and then failed at the existing finalization assertion:
+
+AssertionError [ERR_ASSERTION]: clarified session must finalize normally
++ actual - expected
+
++ 'READY_WITH_GAPS'
+- 'FINALIZED'
+
+    at main (web/scripts/e2e-composer-vague-execution-spine.mjs:328:10)
+
+This is recorded as an open P5 failure. The isolated P4 E2E passes independently. No session or plan was represented as finalized based on the failed result.
+
+Retest update, 2026-10-25: the broad E2E now waits for the HTTP response from `/api/v1/composer-sessions/{id}/finalize` before reading the session. The Go store regression confirms `FINALIZED` is persisted. `bun run --cwd web test:e2e:composer-vague-spine` then passed with two clarifications and a five-step plan. The earlier state observation was a test synchronization false negative; P5-001 is PASS on the rerun. See `logs/composer-vague-spine-p5-repro.log`.

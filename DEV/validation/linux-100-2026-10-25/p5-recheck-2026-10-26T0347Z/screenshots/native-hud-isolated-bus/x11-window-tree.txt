@@ -1,0 +1,12 @@
+
+xwininfo: Window id: 0x1ff (the root window) (has no name)
+
+  Root window id: 0x1ff (the root window) (has no name)
+  Parent window id: 0x0 (none)
+     3 children:
+     0x20000e "nexus-hud": ("nexus-hud" "Nexus-hud")  224x158+1204+734  +1204+734
+        1 child:
+        0x20000f (has no name): ()  1x1+-1+-1  +1203+733
+     0x200014 (has no name): ()  1x1+-1+-1  +-1+-1
+     0x200001 "nexus-hud": ("nexus-hud" "Nexus-hud")  10x10+10+10  +10+10
+

@@ -1,0 +1,107 @@
+$ bun run quality && bun run build
+$ bun run check:styles && bun run format:check && bun run lint && bun run lint:styles && bun run typecheck && bun run test
+$ node --test scripts/check-css-allowlist.node-test.mjs && node scripts/check-css-allowlist.js && node scripts/check-workspace-styles.mjs
+TAP version 13
+# Subtest: Sass partials are scoped to CSS Modules, never exempted for global styles
+ok 1 - Sass partials are scoped to CSS Modules, never exempted for global styles
+  ---
+  duration_ms: 90.717182
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 157.521431
+[32m[OK] Stylesheet architecture check passed: all styles conform to SCSS Modules & global allowlist.[0m
+[OK] Workspace CSS: 17 ordered sections with bounded size
+$ prettier --check "src/**/*.{ts,tsx,css,scss,json}"
+Checking formatting...
+All matched files use Prettier code style!
+$ eslint src
+$ stylelint "src/**/*.{css,scss}"
+$ tsc --noEmit
+$ node --test scripts/process-termination.node-test.mjs scripts/workspace-state.node-test.mjs scripts/e2e-platform.node-test.mjs scripts/css-module-scope.node-test.mjs && vitest run
+TAP version 13
+# Subtest: scopes CSS classes without rewriting asset URLs or declaration values
+ok 1 - scopes CSS classes without rewriting asset URLs or declaration values
+  ---
+  duration_ms: 6.536944
+  type: 'test'
+  ...
+# Subtest: regular E2E builds keep experimental Composer and Flow disabled
+ok 2 - regular E2E builds keep experimental Composer and Flow disabled
+  ---
+  duration_ms: 0.704381
+  type: 'test'
+  ...
+# Subtest: Composer and Flow E2E builds opt in explicitly
+ok 3 - Composer and Flow E2E builds opt in explicitly
+  ---
+  duration_ms: 0.860287
+  type: 'test'
+  ...
+# Subtest: terminateProcess waits until the child has actually exited
+ok 4 - terminateProcess waits until the child has actually exited
+  ---
+  duration_ms: 6.583823
+  type: 'test'
+  ...
+# Subtest: workspace diagnostics summarize local and server layouts in the page context
+ok 5 - workspace diagnostics summarize local and server layouts in the page context
+  ---
+  duration_ms: 2.249872
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 96.936951
+
+ RUN  v4.1.12 /projetos/nexus/web
+
+
+ Test Files  110 passed (110)
+      Tests  681 passed (681)
+   Start at  05:16:02
+   Duration  4.39s (transform 4.09s, setup 0ms, import 9.53s, tests 987ms, environment 12ms)
+
+$ node scripts/build.mjs
+≈ tailwindcss v4.3.3
+
+Done in 197ms
+
+  dist/bundle.js                                   419.5kb
+  dist/chunks/chunk-BWQ3EW4Y.js                    348.8kb
+  dist/chunks/chunk-25456IRH.js                    280.9kb
+  dist/chunks/chunk-3HRB4SUG.js                    252.6kb
+  dist/chunks/FlowRunsHistorySurface-CZH4HKD3.js   221.8kb
+  dist/bundle.css                                  161.8kb
+  dist/chunks/chunk-F2EO56P2.js                    136.4kb
+  dist/chunks/chunk-F6I6ZTMS.js                     93.6kb
+  dist/chunks/chunk-5HYXVZU4.js                     64.3kb
+  dist/chunks/chunk-O7V4VUIQ.js                     37.0kb
+  dist/chunks/chunk-GHGFFS6X.js                     35.1kb
+  dist/chunks/chunk-JYQXCWVN.js                     34.3kb
+  dist/chunks/UsageSurface-AEEH53GU.js              31.8kb
+  dist/chunks/AgentTerminal-6SXLVGKI.js             30.3kb
+  dist/chunks/chunk-DTISPBI5.js                     27.8kb
+  dist/chunks/FlowRunSurface-P5ZZ43HS.js            16.8kb
+  dist/chunks/FlowRunsHistorySurface-2YMTODPA.css   15.5kb
+  dist/chunks/chunk-ACM4V6MS.js                     15.2kb
+  dist/chunks/chunk-UO3PEXKS.js                     15.0kb
+  dist/chunks/chunk-YEJZXWYY.js                     14.9kb
+  ...and 45 more output files...
+
+⚡ Done in 685ms
+NEX 32-bit official SVG exported: /projetos/nexus/web/public/nex
+Nexus web build complete: /projetos/nexus/web/dist

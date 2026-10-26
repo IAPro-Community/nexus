@@ -1,0 +1,28 @@
+go: github.com/goreleaser/goreleaser/v2@v2.18.0 requires go >= 1.27.0; switching to go1.27.3
+
+  Releases the current project                                                                                          
+         
+  USAGE  
+         
+    goreleaser release [--flags]  
+         
+  FLAGS  
+         
+    --auto-snapshot        Automatically sets --snapshot if the repository is dirty
+    --clean                Removes the 'dist' directory
+    -f --config            Load configuration from file
+    --draft                Whether to set the release to draft. Overrides release.draft in the configuration file
+    --fail-fast            Whether to abort the release publishing on the first error
+    -h --help              Help for release
+    -p --parallelism       Amount tasks to run concurrently (default: number of CPUs)
+    --release-footer       Load custom release notes footer from a markdown file
+    --release-footer-tmpl  Load custom release notes footer from a templated markdown file (overrides --release-footer)
+    --release-header       Load custom release notes header from a markdown file
+    --release-header-tmpl  Load custom release notes header from a templated markdown file (overrides --release-header)
+    --release-notes        Load custom release notes from a markdown file (will skip GoReleaser changelog generation)
+    --release-notes-tmpl   Load custom release notes from a templated markdown file (overrides --release-notes)
+    --skip                 Skip the given options (valid options are announce, archive, aur, aur-source, before, chocolatey, docker, flatpak, homebrew, iru, ko, makeself, mcp, nfpm, nix, notarize, publish, sbom, scoop, sign, snapcraft, srpm, validate, winget)
+    --snapshot             Generate an unversioned snapshot release, skipping all validations and without publishing any artifacts (implies --skip=announce,publish,validate)
+    --timeout              Timeout to the entire release process (1h0m0s)
+    --verbose              Enable verbose mode
+

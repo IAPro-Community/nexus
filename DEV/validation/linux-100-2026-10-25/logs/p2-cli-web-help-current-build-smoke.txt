@@ -1,0 +1,50 @@
+== make release-dry-run CLI output ==
+51b58fe5972f27fcdb55c8284388b3f37998dc57db384b11223719ad6a132905  nexus
+{
+  "arch": "amd64",
+  "build_date": "2026-10-25T18:54:23Z",
+  "commit": "7a04f1b4",
+  "go": "go1.25.14",
+  "os": "linux",
+  "version": "1.0.0-beta.10"
+}
+Nexus Web Workspace OS
+
+USAGE:
+  nexus web [flags]
+
+FLAGS:
+  -p, --port <port>    HTTP port; 0 selects an available port (default: 13000 or NEXUS_WEB_PORT)
+  -l, --listen <ip>    IP address to bind (default: 127.0.0.1)
+      --no-open         Do not open a browser automatically
+      --remote          Enable remote access mode
+  -h, --help            Show this help message
+nexus: invalid web option: flag provided but not defined: -unknown
+unknown_exit_code=1
+current_build_help_and_error_do_not_bind_port=true
+validation_exit_code=0
+installed_sha256=51b58fe5972f27fcdb55c8284388b3f37998dc57db384b11223719ad6a132905
+backup=/home/desenvolvedor/.local/state/nexus-homologation/20261025T1940Z-p2-cli-help/nexus.before
+{
+  "arch": "amd64",
+  "build_date": "2026-10-25T19:26:54Z",
+  "commit": "7a04f1b4",
+  "go": "go1.25.14",
+  "os": "linux",
+  "version": "1.0.0-beta.10"
+}
+Nexus Web Workspace OS
+
+USAGE:
+  nexus web [flags]
+
+FLAGS:
+  -p, --port <port>    HTTP port; 0 selects an available port (default: 13000 or NEXUS_WEB_PORT)
+  -l, --listen <ip>    IP address to bind (default: 127.0.0.1)
+      --no-open         Do not open a browser automatically
+      --remote          Enable remote access mode
+  -h, --help            Show this help message
+nexus: invalid web option: flag provided but not defined: -unknown
+unknown_exit_code=1
+test_port_43131_free=true
+active_nexus_processes_preserved=1030290,1030307,1233402,1235319

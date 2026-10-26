@@ -1,0 +1,3 @@
+No vulnerabilities found.
+command=make security
+exit_code=0

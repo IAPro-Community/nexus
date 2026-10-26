@@ -2,13 +2,13 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import '../../i18n';
-import type { CompanionAttention } from './companionModel';
+import type { MascotAttention } from './mascotModel';
 import { GuardianMascot } from './GuardianMascot';
 
-const attention: CompanionAttention = {
+const attention: MascotAttention = {
   id: 'mission:project-1:run-1',
-  titleKey: 'hud.companion.missionTitle',
-  detailKey: 'hud.companion.missionDetail',
+  titleKey: 'hud.mascot.missionTitle',
+  detailKey: 'hud.mascot.missionDetail',
   severity: 'critical',
   target: 'missions',
   needsUser: true,
@@ -44,6 +44,7 @@ describe('NEX single Guardian mascot', () => {
     expect(html).not.toContain('data-companion-sprite="atlas"');
     expect(html).not.toContain('/companion/');
     expect(html).toContain('data-hud-mascot="true"');
+    expect(html).toContain('data-blink="false"');
     expect(html).not.toContain('data-companion-bucket');
     expect(html).toContain('data-hud-hit-area="true"');
     expect(html).toContain('2');
@@ -56,7 +57,7 @@ describe('NEX single Guardian mascot', () => {
     expect(html).toContain('data-nex-fin="left"');
     expect(html).toContain('data-nex-fin="right"');
     expect(html).toContain('data-nex-part="orbit-front"');
-    expect((html.match(/data-nex-module=/g) || [])).toHaveLength(4);
+    expect(html.match(/data-nex-module=/g) || []).toHaveLength(4);
     expect(html).toContain('transform="translate(14 96)"');
     expect(html).toContain('transform="translate(114 96)"');
     expect(html).toContain('transform="translate(30 115)"');
@@ -74,7 +75,7 @@ describe('NEX single Guardian mascot', () => {
   it('shows actionable attention copy only for a real projected item', () => {
     const html = renderGuardian({ bubble: attention });
 
-    expect(html).toContain('data-companion-bubble');
+    expect(html).toContain('data-mascot-bubble');
     expect(html).toContain('Uma missão precisa da sua atenção');
     expect(html).toContain('Abrir');
     expect(html).toContain('Adiar');
@@ -83,14 +84,14 @@ describe('NEX single Guardian mascot', () => {
   it('keeps the actionable attention bubble visible in the native HUD', () => {
     const html = renderGuardian({ bubble: attention, native: true });
 
-    expect(html).toContain('data-companion-bubble');
+    expect(html).toContain('data-mascot-bubble');
     expect(html).toContain('data-hud-hit-area="true"');
     expect(html).toContain('Abrir');
     expect(html).toContain('Adiar');
   });
 
   it('keeps the attention bubble hidden when there is no actionable item', () => {
-    expect(renderGuardian()).not.toContain('data-companion-bubble');
+    expect(renderGuardian()).not.toContain('data-mascot-bubble');
   });
 
   it('turns off sprite motion when disabled and exposes native drag by keyboard', () => {

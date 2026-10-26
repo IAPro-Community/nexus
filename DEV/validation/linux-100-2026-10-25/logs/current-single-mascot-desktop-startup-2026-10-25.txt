@@ -1,0 +1,22 @@
+Nexus Desktop started an embedded Core at http://127.0.0.1:38493
+Overriding existing handler for signal 10. Set JSC_SIGNAL_FOR_GC if you want WebKit to use a different signal
+libEGL warning: failed to get driver name for fd -1
+
+libEGL warning: MESA-LOADER: failed to retrieve device information
+
+libEGL warning: failed to get driver name for fd -1
+
+MESA: error: ZINK: failed to choose pdev
+libEGL warning: egl: failed to create dri2 screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen
+VMware: No 3D enabled (0, Success).
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: DRI2: failed to create screen

@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -388,6 +389,10 @@ func (h *NexusHandler) handlePlanDetail(w http.ResponseWriter, r *http.Request) 
 		body.Plan.ID = planID
 		updated, rev, err := h.plans.Update(r.Context(), body.Plan, body.ChangeSummary)
 		if err != nil {
+			if errors.Is(err, store.ErrPlanRevisionConflict) {
+				writeError(w, http.StatusConflict, "plan revision conflict; reload the current revision before saving")
+				return
+			}
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}

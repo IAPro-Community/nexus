@@ -1,0 +1,6 @@
+WebKit process profiling attempt
+Date: 2026-10-26 UTC
+Target: installed Nexus Desktop WebKit process PID 22946 during the normal-profile idle sample.
+Command: timeout 7s strace -c -p 22946
+Result: BLOCKED — strace attach returned ptrace(PTRACE_SEIZE): Operation not permitted.
+Kernel perf_event_paranoid: 4. No profiler permission was bypassed and no stack/callsite was collected.

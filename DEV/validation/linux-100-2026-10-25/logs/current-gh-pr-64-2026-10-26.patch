@@ -1,0 +1,393 @@
+diff --git a/internal/control/web/hosts.go b/internal/control/web/hosts.go
+index 9d50bbcd5..bc64383cb 100644
+--- a/internal/control/web/hosts.go
++++ b/internal/control/web/hosts.go
+@@ -35,13 +35,7 @@ func IsHostsEntryPresent(hostname, ip string) (bool, error) {
+ 	if err != nil {
+ 		return false, err
+ 	}
+-	target := formatHostsLine(ip, hostname)
+-	for _, line := range lines {
+-		if normalizedLine(line) == normalizedLine(target) {
+-			return true, nil
+-		}
+-	}
+-	return false, nil
++	return hostsEntryPresent(lines, ip, hostname), nil
+ }
+ 
+ func modifyHostsEntry(hostname, ip string, add bool) error {
+@@ -58,46 +52,11 @@ func modifyHostsUnix(hostname, ip string, add bool) error {
+ 	if err != nil {
+ 		return fmt.Errorf("reading /etc/hosts: %w", err)
+ 	}
+-
+-	target := formatHostsLine(ip, hostname)
+-	found := false
+-	for _, line := range lines {
+-		if normalizedLine(line) == normalizedLine(target) {
+-			found = true
+-			break
+-		}
+-	}
+-
+-	if add && found {
+-		return nil // already present
+-	}
+-	if !add && !found {
+-		return nil // already absent
++	if hostsEntryPresent(lines, ip, hostname) == add {
++		return nil // already present (add) or already absent (remove)
+ 	}
+ 
+-	var newLines []string
+-	for _, line := range lines {
+-		if normalizedLine(line) == normalizedLine(target) {
+-			continue // remove
+-		}
+-		// Also remove the comment line that precedes this entry
+-		if strings.TrimSpace(line) == hostsComment {
+-			if len(newLines) > 0 {
+-				prev := newLines[len(newLines)-1]
+-				if strings.TrimSpace(prev) == hostsComment {
+-					newLines = newLines[:len(newLines)-1]
+-				}
+-			}
+-			continue
+-		}
+-		newLines = append(newLines, line)
+-	}
+-
+-	if add {
+-		// Append with a descriptive comment
+-		newLines = append(newLines, hostsComment)
+-		newLines = append(newLines, target)
+-	}
++	newLines := applyHostsChange(lines, hostname, ip, add)
+ 
+ 	// Ensure trailing newline
+ 	content := strings.Join(newLines, "\n")
+@@ -158,44 +117,11 @@ func modifyHostsWindows(hostname, ip string, add bool) error {
+ 	if err != nil {
+ 		return fmt.Errorf("reading hosts file: %w", err)
+ 	}
+-
+-	target := formatHostsLine(ip, hostname)
+-	found := false
+-	for _, line := range lines {
+-		if normalizedLine(line) == normalizedLine(target) {
+-			found = true
+-			break
+-		}
+-	}
+-
+-	if add && found {
+-		return nil
+-	}
+-	if !add && !found {
+-		return nil
+-	}
+-
+-	var newLines []string
+-	for _, line := range lines {
+-		if normalizedLine(line) == normalizedLine(target) {
+-			continue
+-		}
+-		if strings.TrimSpace(line) == hostsComment {
+-			if len(newLines) > 0 {
+-				prev := newLines[len(newLines)-1]
+-				if strings.TrimSpace(prev) == hostsComment {
+-					newLines = newLines[:len(newLines)-1]
+-				}
+-			}
+-			continue
+-		}
+-		newLines = append(newLines, line)
++	if hostsEntryPresent(lines, ip, hostname) == add {
++		return nil // already present (add) or already absent (remove)
+ 	}
+ 
+-	if add {
+-		newLines = append(newLines, hostsComment)
+-		newLines = append(newLines, target)
+-	}
++	newLines := applyHostsChange(lines, hostname, ip, add)
+ 
+ 	content := strings.Join(newLines, "\n")
+ 	if len(content) > 0 && content[len(content)-1] != '\n' {
+@@ -219,6 +145,94 @@ func normalizedLine(s string) string {
+ 	return strings.TrimSpace(s)
+ }
+ 
++// hostsLineFields splits a hosts-file line into its address and hostnames,
++// dropping any inline comment.
++func hostsLineFields(line string) []string {
++	if i := strings.IndexByte(line, '#'); i >= 0 {
++		line = line[:i]
++	}
++	return strings.Fields(line)
++}
++
++// hostsEntryMatch reports whether a hosts-file line already maps ip to
++// hostname. It compares parsed fields instead of the literal line so that the
++// separator (space vs tab), extra aliases and inline comments cannot hide an
++// entry that is already present.
++func hostsEntryMatch(line, ip, hostname string) bool {
++	fields := hostsLineFields(line)
++	if len(fields) < 2 || !strings.EqualFold(fields[0], ip) {
++		return false
++	}
++	for _, name := range fields[1:] {
++		if strings.EqualFold(name, hostname) {
++			return true
++		}
++	}
++	return false
++}
++
++func hostsEntryPresent(lines []string, ip, hostname string) bool {
++	for _, line := range lines {
++		if hostsEntryMatch(line, ip, hostname) {
++			return true
++		}
++	}
++	return false
++}
++
++// stripHostnameFromLine removes hostname from a hosts-file line that maps it to
++// ip, keeping any other aliases. It reports whether an entry remains on the
++// line; when false the caller must drop the whole line.
++func stripHostnameFromLine(line, ip, hostname string) (string, bool) {
++	fields := hostsLineFields(line)
++	if len(fields) < 2 || !strings.EqualFold(fields[0], ip) {
++		return line, true
++	}
++	kept := []string{fields[0]}
++	for _, name := range fields[1:] {
++		if !strings.EqualFold(name, hostname) {
++			kept = append(kept, name)
++		}
++	}
++	if len(kept) == 1 {
++		return "", false
++	}
++	return strings.Join(kept, "	"), true
++}
++
++// applyHostsChange returns the hosts-file lines with hostname mapped to ip
++// added or removed. It is a no-op when the entry is already in the requested
++// state. Removing an entry keeps the other aliases sharing its line.
++func applyHostsChange(lines []string, hostname, ip string, add bool) []string {
++	if add && hostsEntryPresent(lines, ip, hostname) {
++		return lines // already present, leave the file untouched
++	}
++
++	target := formatHostsLine(ip, hostname)
++	out := make([]string, 0, len(lines)+2)
++	for _, line := range lines {
++		if !add && hostsEntryMatch(line, ip, hostname) {
++			if kept, ok := stripHostnameFromLine(line, ip, hostname); ok {
++				out = append(out, kept)
++				continue
++			}
++			// Whole entry removed: drop the descriptive comment we own above it.
++			if len(out) > 0 && strings.TrimSpace(out[len(out)-1]) == hostsComment {
++				out = out[:len(out)-1]
++			}
++			continue
++		}
++		if add && strings.TrimSpace(line) == hostsComment {
++			continue // moved next to the new entry below
++		}
++		out = append(out, line)
++	}
++	if add {
++		out = append(out, hostsComment, target)
++	}
++	return out
++}
++
+ // EnsureNexusHostsEntry is a convenience wrapper for the standard nexus.dev entry.
+ func EnsureNexusHostsEntry() error {
+ 	return EnsureHostsEntry(nexusHostname, nexusIP)
+diff --git a/internal/control/web/hosts_test.go b/internal/control/web/hosts_test.go
+index 5eef7a4da..0dee21a0b 100644
+--- a/internal/control/web/hosts_test.go
++++ b/internal/control/web/hosts_test.go
+@@ -115,6 +115,106 @@ func TestHostsEntryWithCustomHostname(t *testing.T) {
+ 	}
+ }
+ 
++func TestHostsEntryMatch(t *testing.T) {
++	cases := []struct {
++		name     string
++		line     string
++		ip       string
++		hostname string
++		want     bool
++	}{
++		{"space separator", "127.0.0.1 localhost", "127.0.0.1", "localhost", true},
++		{"tab separator", "127.0.0.1\tlocalhost", "127.0.0.1", "localhost", true},
++		{"several spaces", "127.0.0.1    localhost", "127.0.0.1", "localhost", true},
++		{"extra aliases", "127.0.0.1 localhost myhost", "127.0.0.1", "localhost", true},
++		{"alias is second", "127.0.0.1 myhost localhost", "127.0.0.1", "localhost", true},
++		{"inline comment", "127.0.0.1 localhost # loopback", "127.0.0.1", "localhost", true},
++		{"different ip", "127.0.1.1 localhost", "127.0.0.1", "localhost", false},
++		{"different hostname", "127.0.0.1 ip6-localhost", "127.0.0.1", "localhost", false},
++		{"prefix must not match", "127.0.0.1 localhost2", "127.0.0.1", "localhost", false},
++		{"comment line", "# 127.0.0.1 localhost", "127.0.0.1", "localhost", false},
++		{"address only", "127.0.0.1", "127.0.0.1", "localhost", false},
++		{"empty line", "", "127.0.0.1", "localhost", false},
++		{"case insensitive", "127.0.0.1 LOCALHOST", "127.0.0.1", "localhost", true},
++	}
++	for _, tc := range cases {
++		t.Run(tc.name, func(t *testing.T) {
++			if got := hostsEntryMatch(tc.line, tc.ip, tc.hostname); got != tc.want {
++				t.Errorf("hostsEntryMatch(%q, %q, %q) = %v, want %v",
++					tc.line, tc.ip, tc.hostname, got, tc.want)
++			}
++		})
++	}
++}
++
++func TestStripHostnameFromLine(t *testing.T) {
++	cases := []struct {
++		name     string
++		line     string
++		hostname string
++		want     string
++		wantKeep bool
++	}{
++		{"sole alias dropped", "127.0.0.1 nexus.dev", "nexus.dev", "", false},
++		{"sole alias with tab dropped", "127.0.0.1\tnexus.dev", "nexus.dev", "", false},
++		{"keeps other aliases", "127.0.0.1 nexus.dev myhost", "nexus.dev", "127.0.0.1\tmyhost", true},
++		{"keeps first alias", "127.0.0.1 myhost nexus.dev", "nexus.dev", "127.0.0.1\tmyhost", true},
++		{"unrelated line untouched", "127.0.1.1 myhost", "nexus.dev", "127.0.1.1 myhost", true},
++	}
++	for _, tc := range cases {
++		t.Run(tc.name, func(t *testing.T) {
++			got, keep := stripHostnameFromLine(tc.line, "127.0.0.1", tc.hostname)
++			if got != tc.want || keep != tc.wantKeep {
++				t.Errorf("stripHostnameFromLine(%q, %q) = (%q, %v), want (%q, %v)",
++					tc.line, tc.hostname, got, keep, tc.want, tc.wantKeep)
++			}
++		})
++	}
++}
++
++func TestApplyHostsChangeIsIdempotent(t *testing.T) {
++	base := []string{
++		"# comment",
++		"127.0.0.1 localhost",
++		"::1 localhost ip6-localhost",
++	}
++	added := applyHostsChange(base, "nexus.dev", "127.0.0.1", true)
++	if !hostsEntryPresent(added, "127.0.0.1", "nexus.dev") {
++		t.Fatalf("entry missing after add: %v", added)
++	}
++	if !hostsEntryPresent(added, "127.0.0.1", "localhost") {
++		t.Fatalf("existing alias lost after add: %v", added)
++	}
++
++	// Adding again must not duplicate the entry.
++	twice := applyHostsChange(added, "nexus.dev", "127.0.0.1", true)
++	count := 0
++	for _, line := range twice {
++		if hostsEntryMatch(line, "127.0.0.1", "nexus.dev") {
++			count++
++		}
++	}
++	if count != 1 {
++		t.Fatalf("entry duplicated or lost after second add: %v", twice)
++	}
++
++	removed := applyHostsChange(added, "nexus.dev", "127.0.0.1", false)
++	if hostsEntryPresent(removed, "127.0.0.1", "nexus.dev") {
++		t.Fatalf("entry still present after remove: %v", removed)
++	}
++	if !hostsEntryPresent(removed, "127.0.0.1", "localhost") {
++		t.Fatalf("unrelated alias lost after remove: %v", removed)
++	}
++}
++
++func TestApplyHostsChangeKeepsSharedLine(t *testing.T) {
++	base := []string{"127.0.0.1 localhost nexus.dev"}
++	got := applyHostsChange(base, "nexus.dev", "127.0.0.1", false)
++	if len(got) != 1 || got[0] != "127.0.0.1\tlocalhost" {
++		t.Fatalf("shared line not preserved: %v", got)
++	}
++}
++
+ func TestHostsFileBackupNotNeeded(t *testing.T) {
+ 	dir := t.TempDir()
+ 	content := "127.0.0.1\tlocalhost\n::1\t\tlocalhost\n"
+diff --git a/internal/nexus/store/migration_0021_test.go b/internal/nexus/store/migration_0021_test.go
+index 44aa040c0..c92b690a9 100644
+--- a/internal/nexus/store/migration_0021_test.go
++++ b/internal/nexus/store/migration_0021_test.go
+@@ -87,8 +87,8 @@ func TestMerged0021FreshCoversBothHalves(t *testing.T) {
+ 		}
+ 	}
+ 	v, err := s.SchemaVersion()
+-	if err != nil || v != 26 {
+-		t.Fatalf("schema version = %d,%v, want 26 (0021 remains fused; 0022-0025 add cost, schedule diagnostics, and Composer context manifest; 0026 adds runtime execution-role bindings)", v, err)
++	if err != nil || v != 28 {
++		t.Fatalf("schema version = %d,%v, want 28 (0021 remains fused; 0022-0025 add cost, schedule diagnostics, and Composer context manifest; 0026 adds runtime execution-role bindings; 0027 adds agent projection receipts; 0028 adds execution-role enforcement evidence)", v, err)
+ 	}
+ }
+ 
+diff --git a/web/bun.lock b/web/bun.lock
+index d404aa408..92e2a13d7 100644
+--- a/web/bun.lock
++++ b/web/bun.lock
+@@ -29,6 +29,7 @@
+         "@commitlint/config-conventional": "^21.2.2",
+         "@eslint/js": "^9.17.0",
+         "@tailwindcss/cli": "^4.3.3",
++        "@types/node": "^26.6.5",
+         "@types/react": "^19.2.18",
+         "@types/react-dom": "^19.2.5",
+         "eslint": "^9.17.0",
+@@ -516,7 +517,7 @@
+ 
+     "@types/json-schema": ["@types/json-schema@7.0.15", "", {}, "sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA=="],
+ 
+-    "@types/node": ["@types/node@26.4.1", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-k97ENvZWtvA6yqz5/FS6a7duDgOPEeOQOc2iKS/nY6mX6qJUKtLnWzQS+Xj6tXweyj6ZcTAK2Qecetnvi9nCLA=="],
++    "@types/node": ["@types/node@26.6.5", "", { "dependencies": { "undici-types": "~8.9.0" } }, "sha512-uMzsv9stDdofIZBx4UGh4Z9ZgXnGC9seRDscilBcTHAeOFk67MZg/k9bWVfO+bk4qZmG+l52hRnLwUiH2LnJTg=="],
+ 
+     "@types/react": ["@types/react@19.2.18", "", { "dependencies": { "csstype": "^3.2.2" } }, "sha512-AnzbBERsrLKtk2XSfTbYRLjQPdy116Sty4q+T+Bp3IC4l6jNBvreVPAHmpq9qhXQM7CXZPjLVmGMw9sy+hxQ3w=="],
+ 
+@@ -1128,7 +1129,7 @@
+ 
+     "typescript-eslint": ["typescript-eslint@8.68.0", "", { "dependencies": { "@typescript-eslint/eslint-plugin": "8.68.0", "@typescript-eslint/parser": "8.68.0", "@typescript-eslint/typescript-estree": "8.68.0", "@typescript-eslint/utils": "8.68.0" }, "peerDependencies": { "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0", "typescript": ">=4.8.4 <6.1.0" } }, "sha512-MHy0Y0ynqeEbx/S45+i/bBssdy3X6KNBfmJAP35GrgtNxu2TQ5K5xsFDhAnmsq1jvpdoZOPG1LGtJo0HWqYCrQ=="],
+ 
+-    "undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
++    "undici-types": ["undici-types@8.9.0", "", {}, "sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg=="],
+ 
+     "unicorn-magic": ["unicorn-magic@0.4.0", "", {}, "sha512-wH590V9VNgYH9g3lH9wWjTrUoKsjLF6sGLjhR4sH1LWpLmCOH0Zf7PukhDA8BiS7KHe4oPNkcTHqYkj7SOGUOw=="],
+ 
+diff --git a/web/package.json b/web/package.json
+index 6ce44c7e8..e88d364af 100644
+--- a/web/package.json
++++ b/web/package.json
+@@ -58,6 +58,7 @@
+     "@commitlint/config-conventional": "^21.2.2",
+     "@eslint/js": "^9.17.0",
+     "@tailwindcss/cli": "^4.3.3",
++    "@types/node": "^26.6.5",
+     "@types/react": "^19.2.18",
+     "@types/react-dom": "^19.2.5",
+     "eslint": "^9.17.0",
+diff --git a/web/src/nexus/ExecutionRoleSelector.module.scss b/web/src/nexus/ExecutionRoleSelector.module.scss
+index 2f1c20ae1..45df38a9f 100644
+--- a/web/src/nexus/ExecutionRoleSelector.module.scss
++++ b/web/src/nexus/ExecutionRoleSelector.module.scss
+@@ -58,7 +58,7 @@
+   height: 1px;
+   margin: -1px;
+   overflow: hidden;
+-  clip: rect(0 0 0 0);
++  clip-path: inset(50%);
+ }
+ 
+ 

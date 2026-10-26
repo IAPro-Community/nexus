@@ -18,6 +18,24 @@
   font-size: 11.5px;
 }
 
+.sessionImportHint,
+.sessionImportStatus {
+  margin: -8px 0 0;
+  font-size: 12px;
+}
+
+.sessionImportHint {
+  color: var(--nx-muted);
+}
+
+.sessionImportStatus {
+  padding: 9px 12px;
+  color: var(--nx-text);
+  background: var(--nx-surface-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+}
+
 .toolbar {
   display: flex;
   flex-wrap: wrap;

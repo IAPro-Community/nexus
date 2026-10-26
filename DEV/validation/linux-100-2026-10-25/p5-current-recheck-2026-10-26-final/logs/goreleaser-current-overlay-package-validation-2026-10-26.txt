@@ -1,0 +1,54 @@
+source_fingerprint=101e6e62b8d4b9903cf4d40309caeea54c809183e5dba017d9e6a8770302669c
+snapshot_root=/home/desenvolvedor/.local/state/nexus-homologation/20261026-preview-copy-fix-release-snapshot
+
+checksums:
+nexus_1.0.0-beta.10_linux_amd64.deb: OK
+nexus_Linux_x86_64.tar.gz: OK
+
+artifacts:
+artifacts.json 2356 bytes
+checksums.txt 194 bytes
+config.yaml 5525 bytes
+metadata.json 314 bytes
+nexus_1.0.0-beta.10_linux_amd64.deb 10089214 bytes
+nexus_Linux_x86_64.tar.gz 10105837 bytes
+
+archive_payload:
+CHANGELOG.md
+LICENSE
+README.en.md
+README.es.md
+README.md
+nexus
+
+deb_metadata:
+Package: nexus
+Version: 1.0.0~beta.10
+Architecture: amd64
+
+dpkg_install:
+dpkg: could not open log '/var/log/dpkg.log': Permission denied
+Selecting previously unselected package nexus.
+(Reading database ... 0 files and directories currently installed.)
+Preparing to unpack .../nexus_1.0.0-beta.10_linux_amd64.deb ...
+Unpacking nexus (1.0.0~beta.10) ...
+Setting up nexus (1.0.0~beta.10) ...
+
+installed_cli_version:
+IAPro Nexus 1.0.0-beta.10 (linux/amd64, go1.27.3) commit 7a04f1b4cf5950b97b4ea1e156dda31ac513823b built 2026-10-26T09:30:50Z
+
+dpkg_status:
+Package: nexus
+Status: install ok installed
+Architecture: amd64
+Version: 1.0.0~beta.10
+
+dpkg_remove:
+dpkg: could not open log '/var/log/dpkg.log': Permission denied
+(Reading database ... 10 files and directories currently installed.)
+Removing nexus (1.0.0~beta.10) ...
+isolated_install_remove=PASS
+
+artifact_sha256:
+ed36483ebe682644988e12b35dbdfff1d63cfc94a4cc85e1b0d06cb020b79afe  /home/desenvolvedor/.local/state/nexus-homologation/20261026-preview-copy-fix-release-snapshot/dist/nexus_Linux_x86_64.tar.gz
+18a1962646deac4bca2ebf2ffbfc422385e6a1dbcca30bc6e575b14341868819  /home/desenvolvedor/.local/state/nexus-homologation/20261026-preview-copy-fix-release-snapshot/dist/nexus_1.0.0-beta.10_linux_amd64.deb

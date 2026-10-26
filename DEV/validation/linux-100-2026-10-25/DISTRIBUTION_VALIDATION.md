@@ -1,4 +1,68 @@
+## GoReleaser snapshot e ciclo DEB do overlay atual — 2026-10-26
+
+- Base `release/v1.0.0@7a04f1b4cf5950b97b4ea1e156dda31ac513823b`; fingerprint de fonte `101e6e62b8d4b9903cf4d40309caeea54c809183e5dba017d9e6a8770302669c` (1.430 arquivos). `go run github.com/goreleaser/goreleaser/v2@v2.18.0 release --snapshot --clean --config <goreleaser.yaml isolado>` gerou o CLI Linux AMD64 beta.10 em diretório `dist` isolado no estado local; configuração, temporários e GOCACHE foram separados. GoReleaser selecionou Go 1.27.3. Nenhum conteúdo do `dist/` existente do repositório foi apagado.
+- Artefatos fora do Git: `/home/desenvolvedor/.local/state/nexus-homologation/20261026-preview-copy-fix-release-snapshot/dist/nexus_Linux_x86_64.tar.gz` (SHA-256 `ed36483ebe682644988e12b35dbdfff1d63cfc94a4cc85e1b0d06cb020b79afe`) e `nexus_1.0.0-beta.10_linux_amd64.deb` (SHA-256 `18a1962646deac4bca2ebf2ffbfc422385e6a1dbcca30bc6e575b14341868819`). `sha256sum -c checksums.txt` passou; o DEB declara `Package=nexus`, `Version=1.0.0~beta.10`, `Architecture=amd64`; o tar contém CLI, README, LICENSE e changelog.
+- O DEB foi instalado, executado (`nexus --version`) e removido em duas raízes dpkg isoladas. A primeira tentativa executou as operações mas dpkg não conseguiu abrir `/var/log/dpkg.log` fora da raiz devido a permissão; a repetição direcionou `--log` para dentro da raiz e concluiu sem esse aviso. Os logs preservam ambos os ensaios: `p5-current-recheck-2026-10-26-final/logs/goreleaser-current-overlay-package-validation-2026-10-26.txt` e `p5-current-recheck-2026-10-26-final/logs/goreleaser-current-overlay-package-validation-clean-2026-10-26.txt`.
+- Este é um snapshot de homologação não assinado e não publicado. Não substitui a release estável v1.0.0, assinatura de produção nem o ciclo oficial do updater.
+
+## Build e instalação do overlay FIX-035 — histórico — 2026-10-26
+
+- `make build build-desktop-wails build-hud-wails` passou no overlay `047e6f968d64ee7f51ad389a21d43fe305e9ce9fb98b00c750be526b06c2313c`, sobre HEAD `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`. CLI, Desktop e HUD são ELF x86-64; `ldd` não reporta bibliotecas ausentes.
+- Os hashes do build e dos executáveis instalados coincidem: CLI `9349ed4cd2cf0fa124018ac83c49831d7d64521548cda5c6c8c5c200962614fc`, Desktop `c91834c27641f5cff8bb133ea268aded7bca50bfc8cf329e3dc63cd7a5c660ff`, HUD `7667b895cc5c884ab687db1ad982d44ccb7d3e9ed162ba98a366ed54cce65350`. Backup prévio preservado; unidade Desktop/HUD ativa; Core HTTP 200 na porta 36135.
+- **Pacote GoReleaser deste fingerprint atual: NOT_RUN.** Os snapshots beta.10/DEB validados nas seções abaixo são de fingerprints anteriores e não devem ser tratados como pacote idêntico a `047e6f…`. A versão continua beta.10; não há release estável `v1.0.0`, assinatura de produção, assets oficiais nem ciclo oficial de updater/rollback validado.
+- Evidência: [instalação atômica e hashes](logs/install-hud-wayland-geometry-fix-2026-10-26.txt), [verificação final do build ativo e health](logs/current-installed-wayland-geometry-verification-2026-10-26.txt) e [proveniência](logs/source-provenance-wayland-geometry-fix-2026-10-26.txt).
+
+## Build e instalação locais após FIX-030/FIX-031 — 2026-10-26
+
+- `make build build-desktop-wails build-hud-wails`: PASS em Linux AMD64. Artefatos: CLI `fb45b0a42af24aa3427958983fb9315cbab338c88713b0290c4cb3f708222a8f`, Desktop `6bbbafdab42309d2657ceed4ccf90f1d87c4381aee5d7b6d4528903a136dc61f`, HUD `76aabefd32c3eb88b5693546b3402e46f6006006250e2eff47822fa598e33e15`; `ldd` sem dependências ausentes. CLI e Desktop reportam `1.0.0-beta.10`/base `7a04f1b4`.
+- Os três executáveis locais foram substituídos atomicamente após backup em `/home/desenvolvedor/.local/state/ai-manager/nexus-update-backups/20261026T041144Z-import-auth-maestro-fix`. A unidade Desktop/HUD reiniciada está ativa, e Core respondeu HTTP 200.
+- Evidência: `p5-recheck-2026-10-26T0347Z/logs/linux-build-cli-desktop-hud.txt`, `p5-recheck-2026-10-26T0347Z/logs/linux-build-artifact-verification.txt`, `p5-recheck-2026-10-26T0347Z/logs/install-current-overlay-restart.txt`.
+- Este é um build beta local do overlay de fontes `0df26de4a35641d1e5d02ded7757b257fa7f4f15747220416574c083b4127208`. Nenhum pacote GoReleaser foi gerado para este overlay nesta passagem, e não houve release/tag estável.
+
 # Distribuição e atualização Linux
+
+## Revalidação do snapshot exato P5 — 2026-10-25
+
+Base e remoto `release/v1.0.0`: `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`; overlay validado `2c23ebb0c7726a200acbde9326c23ad6023d8fad0238c2adfef993677203f2fa` (1.425 arquivos). GoReleaser v2.18.0 selecionou Go 1.27.3 e gerou CLI tar.gz e DEB Linux/amd64 beta.10 em `/home/desenvolvedor/.local/state/nexus-homologation/20261025T-p5-predispatch-goreleaser-retry/dist`.
+
+| Artefato | SHA-256 |
+| --- | --- |
+| CLI tar.gz | `5f008932c9b7b12b030d59ce3769455b60d335d8ff72d1298cb136fac22ec63d` |
+| DEB amd64 | `19bc2f01353cdc0de9973abc9cdd841a27c54078e4a02218f6c0d3f7703b1fb4` |
+| `checksums.txt` | `58a6799724c9c8496d3ed99be4ec65c3c414f7985c9e4bcb8adddcc83768a361` |
+| Payload CLI comum ao tar/DEB | `f8a250eb61095df94691aa12a7a462469d196aebb671bd93c54512f1e493d145` |
+
+`sha256sum -c` passou; o pacote declara amd64/`1.0.0~beta.10`, e o CLI extraído reporta Linux/amd64 e o SHA-base esperado. O DEB foi instalado, consultado, executado e removido em dpkg root isolado sob `/home`; a instalação do host não foi tocada. A primeira tentativa usou temporários em `/tmp` e falhou antes da validação por falta de espaço temporário. A repetição direcionou `GOTMPDIR` e `dist` para estado isolado em `/home` e passou. Logs: [snapshot bem-sucedido](logs/p5-predispatch-goreleaser-snapshot-retry-2026-10-25.log), [validação de checksum, payload e ciclo dpkg](logs/p5-predispatch-package-validation-2026-10-25.txt) e [tentativa anterior com limite de espaço](logs/p5-predispatch-goreleaser-snapshot-2026-10-25.log).
+
+Este é um snapshot unsigned beta.10, não uma release estável; não houve publicação, alteração de tag ou instalação do pacote no host. O updater oficial, assinatura de produção, assets estáveis e rollback continuam sem validação.
+
+## Snapshot atual após P8 — overlay `268a9e9a…`
+
+- Base e remote: `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`; fingerprint das 1.421 fontes: `268a9e9a0036e89e39bcff07eca880869534c9c75cc13765384bb3fa3fc30b32` (`logs/p8-source-provenance.txt`). A árvore não está congelada.
+- `make release-dry-run`: PASS; frontend, CLI e contratos `VERSION`, `web/package.json`, Wails e GoReleaser passaram.
+- GoReleaser v2.18.0 `release --snapshot --clean` gerou CLI tar.gz e DEB AMD64 em `/tmp/nexus-linux-100-p8-20261025.gNjpMg/dist`. O toolchain do GoReleaser selecionou Go 1.27.3; o CLI do pacote identifica HEAD `7a04f1b4…`.
+- Checksums: DEB `64e6f74b42f3eec6507a3ac4da1ddd7b867c87736d05ce69d4fab57c41a159cb`; tar.gz `8ef28f6ef88e630b4c70febec1691fc7195dc3cabbcef9f80fd9cb1d08346d0c`; manifest `cf76018ea7f4c2e16a29c4db8ffc206b115bd91ae067ea2f18e52c0da4f03dc3`.
+- Payload CLI no tar e no DEB: `d1fa6eca3763efdb62759087fd5731e5a7db20146aaf2dcd67b8f71f07f92d34` em ambos. `sha256sum -c` passou; `file` reportou ELF x86-64 estaticamente linkado; `dpkg-deb` reportou `1.0.0~beta.10`, `amd64`.
+- Instalação, consulta da versão e remoção passaram com `dpkg --force-not-root` numa raiz temporária em `/tmp/nexus-linux-100-p8-20261025.gNjpMg/dpkg-root`. A instalação do host permaneceu intacta. O Desktop e HUD Wails instalados coincidem byte a byte com os binários atualmente compilados; o CLI instalado e o novo `make build` têm o mesmo `build_date`, commit e versão, embora os hashes sejam diferentes. A causa dessa diferença não foi investigada nesta rodada.
+
+Reprodução do snapshot: gerar uma configuração temporária com `dist: /tmp/<diretório>/dist` e `.goreleaser.yaml` do checkout; depois executar `NEXUS_VERSION=$(cat VERSION) NEXUS_UPDATE_PUBLIC_KEY= go run github.com/goreleaser/goreleaser/v2@v2.18.0 release --snapshot --clean --config /tmp/<diretório>/goreleaser.yaml`. Verificar com `(cd /tmp/<diretório>/dist && sha256sum -c checksums.txt)`, `dpkg-deb --field`, extração e comparação do payload. O ciclo isolado usado foi `dpkg --force-not-root --root=<raiz> --admindir=<raiz>/var/lib/dpkg --install/--remove`; nenhum `dpkg` do host foi alterado.
+
+Isso valida um snapshot local, não uma release estável. Não há assinatura de produção, assets `v1.0.0` publicados, descoberta do updater GitHub Releases, download/update interrompido ou rollback nesse ciclo. Os binários e o snapshot ficam em `/tmp`; não foram adicionados ao Git.
+
+## Snapshot GoReleaser no overlay corrente P5 — 2026-10-25
+
+Fontes: HEAD-base/remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b` + fingerprint d3caa597ae3bc061ad0048ad4d390b1b9bb0011cc496e4d213d0ec6119400796 (1.422 fontes). GoReleaser v2.18.0 criou snapshot CLI tar.gz e DEB `1.0.0~beta.10` Linux/amd64 em `/tmp/nexus-linux-100-p5-current-4d415ihx/dist`; o toolchain do GoReleaser selecionou Go 1.27.3.
+
+| Artefato | SHA-256 |
+| --- | --- |
+| CLI tar.gz | `fa55abccb732fb0fc5b269cca57befe6ec83f07378d05493bbad319ca81c0b8b` |
+| DEB amd64 | `f1d7ba24e8c97c3044718436b7940291a02f89494a324cbc9d8b3d17e6061ab9` |
+| `checksums.txt` | `64dbfdc5874caf2f970d1700775629d2e724465fff8e9a44ab08fb5848ad2fa7` |
+| Payload CLI comum ao tar/DEB | `92fed5a2fae1896b112032c14dc37fab62417bc398fb22ec91f94ef5c51d9efe` |
+
+`sha256sum -c` passou; o metadata do DEB declara `amd64`; o CLI extraído reporta beta.10/Linux/amd64/base `7a04f1b4`. O DEB foi instalado, consultado, executado e removido com `dpkg --force-not-root` numa raiz temporária separada; a instalação do host não foi tocada. Logs: [build do snapshot](logs/p5-goreleaser-snapshot-current-overlay-2026-10-25.log) e [validação dos artefatos e ciclo dpkg](logs/p5-goreleaser-package-validation-current-overlay-2026-10-25.txt).
+
+Este é um snapshot local unsigned, não uma release. `v1.0.0` estável, assinatura de produção e ciclo do updater seguem pendentes.
 
 ## Snapshot corrente após FIX-012 — `516b706a…`
 
@@ -109,3 +173,28 @@ O snapshot GoReleaser v2.18.0 do overlay `dac0d00b8410f70ed02c8b4c324780349655fe
 Os tarballs Desktop/HUD gerados conforme o workflow CI correspondem aos payloads, são ELF x86-64 e `ldd` não encontrou dependências ausentes. O smoke do HUD esperou a janela real identificada pelo PID e pelo título X11 `nexus-hud` alcançar 224×158; a captura exibe um NEX e o processo encerrou com exit 0. A primeira tentativa usava o título incorreto `Nexus HUD` e capturou a janela inicial de 80×48 antes da restauração; a repetição corrigida passou, portanto esse falso negativo não representa defeito do aplicativo.
 
 Evidências: [snapshot](logs/goreleaser-cursor-status-snapshot.log), [instalação isolada](logs/distribution-current-overlay-install-remove.log), [smoke do HUD empacotado](logs/native-packaged-hud-current-overlay.txt), [captura do HUD](screenshots/native-hud-packaged-current-overlay-xwayland.png).
+
+
+## Snapshot após FIX-023 — 2026-10-25
+
+- Fonte: `release/v1.0.0@7a04f1b4cf5950b97b4ea1e156dda31ac513823b` + overlay `a2ed858e013e8e43391cec7c1bb6d6e00324a3170ea9804d0d068bf231e73dfd` (1.422 fontes). GoReleaser v2.18.0, Go 1.27.3, Linux AMD64, versão `1.0.0-beta.10`.
+- Artefatos: tar SHA-256 `2c7c2ee8f4d6a1b4b82eed2a5bed869d0dcae55e7939c49c5177a2c731ca7b8f`; DEB `7a5e6363026e90767f059e8fdee5141c73f4c172f8cd9434206dc4871138abde`; checksums `18705a56bdb982d37498436af172de5da98ee09a795fde516869d46b58523c08`. Payload tar/DEB idêntico: `12318eda12de10921f368666a23743ce59a590b5575c52ec0308d668b74521b0`.
+- O DEB foi instalado/consultado/executado/removido em raiz temporária; host intocado. `web --help` do tar e flag desconhecida do DEB passaram. Snapshot unsigned, não publicado. Log: `logs/p2-cli-web-help-package-validation.log`; artefatos em `/tmp/nexus-linux-100-p2-cli-fix.67mSpN/dist`.
+- A CLI instalada fora do pacote tem hash `51b58fe5972f27fcdb55c8284388b3f37998dc57db384b11223719ad6a132905`; veja `logs/p2-cli-web-help-current-build-smoke.txt`.
+
+
+## Download interruption fixture — 2026-10-25
+
+A new local regression serves a valid Ed25519-signed `1.0.1` fixture manifest and an artifact response whose declared `Content-Length` exceeds the bytes sent. `TestServiceApplyInterruptedDownloadPreservesBinaryAndConfig` receives `io.ErrUnexpectedEOF` and proves the existing executable and settings file stay byte-for-byte unchanged; no `.tmp`, `.bak` or update receipt is created. **PASS** in the focused test, package suite, race detector and `go vet`. No official release was queried or installed.
+
+Reproduction: `GOCACHE=/tmp/nexus-linux100-update-recheck-gocache go test -race -count=1 ./internal/update -run '^TestServiceApplyInterruptedDownloadPreservesBinaryAndConfig$' -v`. Log: [interrupted download regression](logs/current-update-interrupted-download-regression-2026-10-25.txt); package evidence: `logs/current-update-tests-2026-10-25.txt`, `logs/current-update-race-2026-10-25.txt`, `logs/current-update-vet-2026-10-25.txt`.
+
+This closes only the local interrupted-download failure case. Official signed release A→B update, installation recovery/rollback and live configuration preservation remain **NOT_RUN/BLOCKED** because stable signed `v1.0.0` assets and a production trust key are absent.
+## Build e snapshot mais recentes — Linux AMD64 — 2026-10-26
+
+- Proveniência: base local/remota `7a04f1b4cf5950b97b4ea1e156dda31ac513823b` + fingerprint de fontes `b73161ffd4afe7d566bd00cfdc6d6e090e95b0c99e13dbd0653aadd40fdf6eac` (1.428 arquivos; `logs/source-provenance-hud-idle-motion-fix-2026-10-26.txt`). Verificação de tamanhos e SHA-256 dos 1.428 arquivos passou; a árvore não está commitada/congelada.
+- `make build build-desktop-wails build-hud-wails` passou. CLI/Desktop/HUD são ELF x86-64/AMD64; `ldd` não encontrou bibliotecas ausentes. SHA-256: CLI `5949669ab400fc63ca4b9e28c96b780e229430d68a7367ea67c99151e92e4e69`; Desktop `570f89398777bd93c36aa9f85d1494efc29aa25ff3bf0222c5d260205f6b8598`; HUD `fbe093cffa25e53a118bb5880a0087645d70ed73776678d55c588f549095c7b3`.
+- GoReleaser v2.18.0 snapshot beta.10 gerou tar.gz e DEB `amd64`; checksums passaram, pacote instalado/consultado/executado/removido em dpkg root isolado. SHA-256 DEB `1d1e45099a49b5df57cc81bd5c842cbf7674d73c2dc0616fe3b6753ad8e72c9e`; tar.gz `123ea3276eb37c18be7e5de3368a01a4944056480d0899ddee3e35f616be8784`; checksums `478e0bda25e930e9f77dbdfc59c7242fab066d8da3c19707edef941fb4de875c`.
+- Os executáveis foram instalados após backup em `/home/desenvolvedor/.local/bin`; hashes instalados coincidem com o build. A unidade de usuário está `active`, Desktop e HUD estão em execução e health retornou HTTP 200. Log: `logs/install-hud-idle-fix-restart-2026-10-26.txt`.
+- A unidade era transitória: depois de parada, o primeiro `systemctl start` não a encontrou porque o systemd a havia descarregado. Recriei-a com `systemd-run`; nenhum binário foi restaurado do backup, e o estado `active`/health 200 foi confirmado. A ocorrência está descrita como nota suplementar no log de instalação.
+- O snapshot é unsigned e local. Não valida assinatura de produção, atualização a partir de GitHub Releases nem rollback contra release estável. Não houve publicação/tag; a distribuição oficial e updater permanecem BLOCKED.
