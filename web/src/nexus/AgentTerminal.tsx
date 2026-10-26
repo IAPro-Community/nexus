@@ -709,8 +709,8 @@ export const AgentTerminal: React.FC<{
           }),
         );
       }
-      if (!shouldForwardTerminalInput(data)) return;
-      const clean = stripEmbeddedTerminalMetadata(data);
+      if (!shouldForwardTerminalInput(data, true)) return;
+      const clean = stripEmbeddedTerminalMetadata(data, true);
       if (!clean) return;
       if (terminalTraceEnabled) {
         const trace = terminalTraceShape(clean);
