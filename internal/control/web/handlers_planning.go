@@ -632,9 +632,26 @@ func (h *NexusHandler) handleRunPlanningReview(w http.ResponseWriter, r *http.Re
 		return
 	}
 	plan, err := h.nexus.GetWorkPlan(r.Context(), run.PlanID)
-	if err != nil || plan.ProjectID != run.ProjectID {
+	if err != nil || plan == nil || plan.ProjectID != run.ProjectID {
 		writeError(w, http.StatusBadRequest, "run plan is missing or belongs to a different project")
 		return
+	}
+	// Use the historical WorkPlan snapshot matching the Mission revision where
+	// available. Never silently describe a later edit as the run's source.
+	sourcePlan := *plan
+	frozenRevisionFound := false
+	if revisions, revisionsErr := h.nexus.ListPlanRevisions(r.Context(), run.PlanID); revisionsErr == nil {
+		for _, revision := range revisions {
+			if revision.Revision != run.PlanRevision {
+				continue
+			}
+			var frozen store.WorkPlan
+			if json.Unmarshal([]byte(revision.SnapshotJSON), &frozen) == nil && frozen.ID == run.PlanID {
+				sourcePlan = frozen
+				frozenRevisionFound = true
+			}
+			break
+		}
 	}
 	var body struct { Reason string `json:"reason"` }
 	if err := json.NewDecoder(io.LimitReader(r.Body, 8192)).Decode(&body); err != nil {
@@ -649,11 +666,16 @@ func (h *NexusHandler) handleRunPlanningReview(w http.ResponseWriter, r *http.Re
 	if reason == "" {
 		reason = "Reavaliar as etapas ainda pendentes e os riscos à luz do estado atual."
 	}
-	goal := "Revisar planejamento: " + plan.Title
+	goal := "Revisar planejamento: " + sourcePlan.Title
+	snapshotEvidence := "O plano histórico desta revisão está indisponível. Não deduza seu conteúdo do plano atual; solicite evidências antes de propor mudanças."
+	if frozenRevisionFound {
+		snapshotEvidence = "O título e a descrição abaixo pertencem à revisão histórica da Mission."
+	}
 	prompt := strings.Join([]string{
 		"Revise o planejamento abaixo sem alterar a execução ativa ou realizar ações externas.",
-		"Projeto e plano: " + plan.ProjectID + " / " + plan.ID,
-		"Descrição do plano: " + strings.TrimSpace(plan.Description),
+		"Projeto e plano: " + sourcePlan.ProjectID + " / " + sourcePlan.ID,
+		"Descrição histórica consultada: " + strings.TrimSpace(sourcePlan.Description),
+		"Proveniência do snapshot: " + snapshotEvidence,
 		"Mission origem: " + run.ID,
 		"Revisão congelada da Mission: " + strconv.Itoa(run.PlanRevision),
 		"Estado atual da Mission: " + string(run.State),
