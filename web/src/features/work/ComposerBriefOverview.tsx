@@ -40,6 +40,13 @@ export const ComposerBriefOverview: React.FC<{ view: ComposerSessionView }> = ({
       label: t('work.composer.overview.criteria', 'Ready criteria'),
       value: criteria.join(' · '),
     },
+    ...(view.brief.recommendations?.length
+      ? [{
+          id: 'recommendations',
+          label: t('work.composer.overview.recommendations', 'Sugestões da IA (a validar)'),
+          value: view.brief.recommendations.map((item) => item.value).join(' · '),
+        }]
+      : []),
   ];
 
   return (
