@@ -380,8 +380,22 @@ func (n *Nexus) AddComposerTurnExpected(ctx context.Context, sessionID, role, co
 				if manifest, manifestErr := n.BuildComposerContextManifest(turnCtx, session.ProjectID, brief); manifestErr == nil {
 					contextData["context_manifest"] = manifest.IntelligenceContext()
 				}
+				// Prefer one model call for solution proposals + material decisions.
+				// Keep legacy AnalyzeIntent support for providers that do not yet
+				// implement the combined discovery response.
+				discoveryCompleted := false
+				if extraction, extractErr := provider.ExtractBrief(turnCtx, content, contextData); extractErr == nil && extraction != nil {
+					applyBriefExtraction(&brief, extraction)
+					if extraction.DiscoveryComplete {
+						MergeIntelligenceUnknowns(&brief, extraction.Clarifications)
+						discoveryCompleted = true
+					}
+				} else if extractErr != nil {
+					intelligenceNotice = turnIntelligenceNotice(extractErr)
+				}
+				if !discoveryCompleted {
 				analysis, analyzeErr := provider.AnalyzeIntent(turnCtx, content, contextData)
-				if analyzeErr != nil {
+				if analyzeErr != nil && intelligenceNotice == "" {
 					intelligenceNotice = turnIntelligenceNotice(analyzeErr)
 				}
 				if analysis != nil {
@@ -402,11 +416,7 @@ func (n *Nexus) AddComposerTurnExpected(ctx context.Context, sessionID, role, co
 						intelligenceNotice = turnIntelligenceNotice(unknownErr)
 					}
 					MergeIntelligenceUnknowns(&brief, unknowns)
-					if extraction, extractErr := provider.ExtractBrief(turnCtx, content, contextData); extractErr == nil {
-						applyBriefExtraction(&brief, extraction)
-					} else if intelligenceNotice == "" {
-						intelligenceNotice = turnIntelligenceNotice(extractErr)
-					}
+				}
 				}
 			} else if providerErr != nil && !errors.Is(providerErr, intelligence.ErrIntelligenceUnavailable) {
 				intelligenceNotice = turnIntelligenceNotice(providerErr)
