@@ -22,9 +22,7 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const {
     selectedPlan,
-    savedPlans,
     deletingPlan,
-    selectSavedPlan,
     deleteSelectedFlow,
     autoGoal,
     setAutoGoal,
@@ -65,38 +63,6 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
         </span>
       </div>
 
-      {savedPlans.length > 0 && (
-        <div className="nx-composer-goal-bar__row">
-          <label htmlFor="flow-saved-plans">
-            {t('flow.savedPlans', 'Flows salvos')}
-          </label>
-          <Select
-            id="flow-saved-plans"
-            value={selectedPlan?.id || ''}
-            placeholder={t('flow.chooseSavedPlan', 'Abrir um Flow salvo…')}
-            onChange={(id) => void selectSavedPlan(id)}
-            options={savedPlans.map((plan) => ({
-              value: plan.id,
-              label: `${plan.title || 'Flow sem nome'} · revisão ${plan.current_revision}`,
-            }))}
-            selectStyle={{ minWidth: 220, maxWidth: 390 }}
-            disabled={generating || runBusy || deletingPlan}
-          />
-          {selectedPlan && (
-            <Button
-              size="sm"
-              tone="danger"
-              disabled={deletingPlan || runBusy || generating}
-              onClick={() => setDeleteOpen(true)}
-            >
-              <Trash2 size={13} />
-              {deletingPlan
-                ? t('flow.deleting', 'Excluindo…')
-                : t('flow.deleteDraft', 'Excluir Flow')}
-            </Button>
-          )}
-        </div>
-      )}
       <ConfirmDialog
         open={deleteOpen}
         title={t('flow.deleteDraft', 'Excluir Flow')}
@@ -155,6 +121,15 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
             )}
           </div>
           <div className={styles.goalBarActions}>
+            <Button
+              size="sm"
+              tone="danger"
+              disabled={deletingPlan || runBusy || generating}
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2 size={13} />
+              {deletingPlan ? t('flow.deleting', 'Excluindo…') : t('flow.deleteDraft', 'Excluir Flow')}
+            </Button>
             <Badge tone={flowDirty ? 'warning' : 'success'}>
               {flowDirty
                 ? t('flow.unsavedChanges', 'Alterações não salvas')
