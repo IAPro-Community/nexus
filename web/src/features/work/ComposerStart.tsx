@@ -1,7 +1,7 @@
 import React, { useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FileText, Lightbulb, MessageCircle, Sparkles } from 'lucide-react';
-import { Button, Card, Input, Select } from '../../design-system';
+import { FileText, Lightbulb, MessageCircle, Sparkles, Trash2 } from 'lucide-react';
+import { Button, Card, ConfirmDialog, Input, Select } from '../../design-system';
 import type { ComposerSession } from '../../types';
 import { composerSessionStateKey, formatComposerSessionTitle } from './composerModel';
 import styles from './ComposerSurface.module.scss';
@@ -24,13 +24,16 @@ export const ComposerStart: React.FC<{
   error?: string;
   onCreate: (args: ComposerStartCreateArgs) => void;
   onResumeSession: (id: string) => void;
-}> = ({ sessions, busy, error, onCreate, onResumeSession }) => {
+  onDeleteSession: (id: string, expectedRevision: number) => void;
+}> = ({ sessions, busy, error, onCreate, onResumeSession, onDeleteSession }) => {
   const { t } = useTranslation();
   const [inputMode, setInputMode] = useState<'IDEA' | 'EXISTING_PROMPT'>('IDEA');
   const [interviewMode, setInterviewMode] = useState<'QUICK' | 'STANDARD' | 'DEEP'>('STANDARD');
   const interviewDepthId = useId();
   const [draft, setDraft] = useState('');
   const [sourcePrompt, setSourcePrompt] = useState('');
+  const [sessionForDeletion, setSessionForDeletion] = useState<ComposerSession | null>(null);
+  const [selectedSavedSession, setSelectedSavedSession] = useState('');
 
   const sessionOptions = useMemo(
     () =>
@@ -159,16 +162,47 @@ export const ComposerStart: React.FC<{
             {t('work.composer.previousSessions', 'Previous elaborations:')}
           </small>
           <Select
-            placeholder={t('work.composer.resumeSession', 'Resume a saved session…')}
-            value=""
-            onChange={(id) => {
-              if (id) onResumeSession(id);
-            }}
+            placeholder={t('work.composer.resumeSession', 'Escolha uma elaboração salva…')}
+            value={selectedSavedSession}
+            onChange={setSelectedSavedSession}
             options={sessionOptions}
             selectClassName={styles.sessionSelect}
           />
+          <Button
+            size="sm"
+            disabled={!selectedSavedSession || busy}
+            onClick={() => onResumeSession(selectedSavedSession)}
+          >
+            {t('work.composer.openSession', 'Abrir')}
+          </Button>
+          <Button
+            size="sm"
+            tone="danger"
+            disabled={!selectedSavedSession || busy}
+            onClick={() => setSessionForDeletion(sessions.find((item) => item.id === selectedSavedSession) || null)}
+          >
+            <Trash2 size={13} /> {t('common.delete', 'Excluir')}
+          </Button>
         </div>
       )}
+      <ConfirmDialog
+        open={Boolean(sessionForDeletion)}
+        title={t('work.composer.deleteElaboration', 'Excluir elaboração')}
+        description={t(
+          'work.composer.deleteElaborationConfirm',
+          'Excluir "{{title}}" e suas mensagens e artefatos? A ação não pode ser desfeita. Elaborações vinculadas a Flows ou entregas ficam protegidas.',
+          { title: sessionForDeletion?.title || '' },
+        )}
+        confirmLabel={t('work.composer.deleteElaboration', 'Excluir elaboração')}
+        onCancel={() => setSessionForDeletion(null)}
+        onConfirm={() => {
+          if (sessionForDeletion) {
+            onDeleteSession(sessionForDeletion.id, sessionForDeletion.revision);
+            setSelectedSavedSession('');
+          }
+          setSessionForDeletion(null);
+        }}
+      />
       {error && <div className={styles.inlineError}>{error}</div>}
     </Card>
   );
