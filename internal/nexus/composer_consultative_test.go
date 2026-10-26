@@ -75,8 +75,12 @@ func TestComposerConsultativeDoesNotReaskGroundedProviderField(t *testing.T) {
     }
 }
 
+type unavailableComposerIntelligence struct { hangIntelligenceProvider }
+func (unavailableComposerIntelligence) Available(context.Context) bool { return false }
+
 func TestComposerRequiresConfiguredIntelligenceBeforePersistingSession(t *testing.T) {
     n := openTestNexus(t)
+    n.intelligenceProviderForTest = unavailableComposerIntelligence{}
     st, err := n.OpenProject()
     if err != nil {
         t.Fatal(err)
