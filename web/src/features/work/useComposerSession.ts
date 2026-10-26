@@ -105,9 +105,20 @@ export function useComposerSession(project: Project) {
     void (async () => {
       try {
         const next = await refreshSessions();
-        const id = selectResumableComposerSession(next);
+        const focusKey = `nexus:composer:focus:${project.id}`;
+        let requestedId = '';
+        try {
+          requestedId = window.sessionStorage.getItem(focusKey) || '';
+          if (requestedId) window.sessionStorage.removeItem(focusKey);
+        } catch {
+          // Browser storage is optional; regular resume remains available.
+        }
+        const id = requestedId || selectResumableComposerSession(next);
         if (id) {
           const loaded = await nexus.getComposerSession(id);
+          if (loaded.session.project_id !== project.id) {
+            throw new Error('A elaboração solicitada pertence a outro projeto.');
+          }
           setView(loaded);
           setArtifact(latestComposerArtifact(loaded));
         }
