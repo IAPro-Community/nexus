@@ -31,6 +31,7 @@ func TestComposerConsultativeRecommendationsKeepProvenanceAndAreIdempotent(t *te
         "Começar com comunicados e confirmação de leitura; validar a necessidade de mensagens privadas.",
         "Experimentar um protótipo de agenda escolar antes de ampliar o escopo.",
     }}
+    initialScope := append([]string{}, brief.Scope.InScope...)
     applyBriefExtraction(&brief, extraction)
     applyBriefExtraction(&brief, extraction)
     refreshComposerBrief(&brief)
@@ -43,8 +44,8 @@ func TestComposerConsultativeRecommendationsKeepProvenanceAndAreIdempotent(t *te
             t.Fatalf("recommendation must not be an approved fact: %+v", recommendation)
         }
     }
-    if len(brief.Scope.InScope) != 0 {
-        t.Fatalf("a recommendation silently entered approved scope: %+v", brief.Scope.InScope)
+    if len(brief.Scope.InScope) != len(initialScope) {
+        t.Fatalf("a recommendation silently entered approved scope: before=%+v after=%+v", initialScope, brief.Scope.InScope)
     }
     if !strings.Contains(brief.Preview, "Suggested approaches") {
         t.Fatalf("prompt artifact lost proposals: %s", brief.Preview)
