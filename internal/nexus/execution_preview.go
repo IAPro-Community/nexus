@@ -132,6 +132,13 @@ func (n *Nexus) previewPlanExecutionWithContract(ctx context.Context, st *store.
 		Steps:       []StepExecutionPreview{},
 		GeneratedAt: time.Now().UTC(),
 	}
+	// A confirmed-gap prompt can be saved as a draft, but cannot be treated as
+	// verified safe to execute. Keep the existing Mission admission gate as
+	// authority; this check only contributes truthful preview blockers.
+	for _, blocker := range composerHandoffExecutionBlockers(plan.StructuredFacts) {
+		preview.Ready = false
+		preview.Blockers = append(preview.Blockers, blocker)
+	}
 	costSummary, costErr := NewCostApplicationService(st).Summary(ctx, plan.ProjectID, 0)
 	if costErr != nil {
 		prefs, prefsErr := st.GetCostPreferences()
