@@ -2,6 +2,7 @@ package nexus
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
@@ -16,6 +17,28 @@ type ComposerApplicationService struct {
 
 func NewComposerApplicationService(n *Nexus) *ComposerApplicationService {
 	return &ComposerApplicationService{nexus: n}
+}
+
+// requireIntelligence guards user-facing Composer mutations. A configured
+// provider must be resolvable and available; heuristic-only elaboration is
+// not a substitute for an AI planning assistant. Direct/Agent remain independent.
+func (s *ComposerApplicationService) requireIntelligence(ctx context.Context, projectID string) error {
+	provider, err := s.nexus.ConfiguredIntelligenceProvider(ctx, projectID)
+	if err != nil {
+		return fmt.Errorf("Composer requer IA configurada em Configurações > Nexus Intelligence: %w", err)
+	}
+	if provider == nil || !provider.Available(ctx) {
+		return fmt.Errorf("Composer requer um provedor de IA disponível em Configurações > Nexus Intelligence")
+	}
+	return nil
+}
+
+func (s *ComposerApplicationService) requireSessionIntelligence(ctx context.Context, sessionID string) error {
+	view, err := s.nexus.GetComposerSession(ctx, sessionID)
+	if err != nil {
+		return err
+	}
+	return s.requireIntelligence(ctx, view.Session.ProjectID)
 }
 
 func (s *ComposerApplicationService) Create(ctx context.Context, projectID, goal, sourcePrompt, inputMode string) (*ComposerSessionView, error) {
@@ -38,6 +61,9 @@ func (s *ComposerApplicationService) CreateWithInterviewModeProgress(
 	projectID, goal, sourcePrompt, inputMode, interviewMode string,
 	sink ComposerProgressSink,
 ) (*ComposerSessionView, error) {
+	if err := s.requireIntelligence(ctx, projectID); err != nil {
+		return nil, err
+	}
 	view, err := s.nexus.CreateComposerSessionWithPromptInterviewModeProgress(
 		ctx,
 		projectID,
@@ -65,6 +91,9 @@ func (s *ComposerApplicationService) Get(ctx context.Context, sessionID string) 
 }
 
 func (s *ComposerApplicationService) AddTurn(ctx context.Context, sessionID, content string, expectedRevision int, attachments []ComposerAttachmentRef) (*ComposerSessionView, error) {
+	if err := s.requireSessionIntelligence(ctx, sessionID); err != nil {
+		return nil, err
+	}
 	return s.nexus.AddComposerTurnExpected(ctx, sessionID, store.ComposerUser, content, expectedRevision, attachments)
 }
 
@@ -81,14 +110,23 @@ func (s *ComposerApplicationService) SelectSkill(ctx context.Context, sessionID,
 }
 
 func (s *ComposerApplicationService) Finalize(ctx context.Context, sessionID string, selectedSkills []string, confirmGaps bool) (*store.PromptArtifact, error) {
+	if err := s.requireSessionIntelligence(ctx, sessionID); err != nil {
+		return nil, err
+	}
 	return s.nexus.FinalizeComposerSession(ctx, sessionID, selectedSkills, confirmGaps)
 }
 
 func (s *ComposerApplicationService) Refine(ctx context.Context, sessionID, refinementGoal string) (*store.PromptArtifact, error) {
+	if err := s.requireSessionIntelligence(ctx, sessionID); err != nil {
+		return nil, err
+	}
 	return s.nexus.RefineComposerArtifact(ctx, sessionID, refinementGoal)
 }
 
 func (s *ComposerApplicationService) ResolveUnknown(ctx context.Context, sessionID, unknownID, answer, status string, expectedRevision int) (*ComposerSessionView, error) {
+	if err := s.requireSessionIntelligence(ctx, sessionID); err != nil {
+		return nil, err
+	}
 	return s.nexus.ResolveComposerUnknownExpected(ctx, sessionID, unknownID, answer, status, expectedRevision)
 }
 
