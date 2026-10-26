@@ -269,6 +269,14 @@ export const WorkspaceSurfaceHost: React.FC<{
           agents={agents}
           onOpenAgent={terminal}
           onOpenResources={() => open('resources')}
+          onOpenComposer={(sessionId) => {
+            try {
+              window.sessionStorage.setItem(`nexus:composer:focus:${project.id}`, sessionId);
+            } catch {
+              /* Navigation still opens the Composer if storage is unavailable. */
+            }
+            open('work');
+          }}
         />
       ) : (
         <EmptyState title="Flow Run unavailable" />
