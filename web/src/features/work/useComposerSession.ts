@@ -128,6 +128,34 @@ export function useComposerSession(project: Project) {
     })();
   }, [project.id, refreshSessions, t]);
 
+  // Work surfaces may remain mounted in a hidden workspace tab. The event
+  // complements sessionStorage so a review created by Flow opens immediately
+  // without depending on an unmount/remount cycle.
+  useEffect(() => {
+    const focus = (event: Event) => {
+      const detail = (event as CustomEvent<{ projectId: string; sessionId: string }>).detail;
+      if (!detail || detail.projectId !== project.id || !detail.sessionId) return;
+      void nexus.getComposerSession(detail.sessionId).then((loaded) => {
+        if (loaded.session.project_id !== project.id) {
+          setError('A revisão pertence a outro projeto.');
+          return;
+        }
+        setView(loaded);
+        setArtifact(latestComposerArtifact(loaded));
+        setError('');
+        try {
+          window.sessionStorage.removeItem(`nexus:composer:focus:${project.id}`);
+        } catch {
+          // Optional browser storage.
+        }
+      }).catch((reason: unknown) => {
+        setError(mapNetworkError(reason, t));
+      });
+    };
+    window.addEventListener('nexus:composer:focus', focus);
+    return () => window.removeEventListener('nexus:composer:focus', focus);
+  }, [project.id, t]);
+
   useEffect(() => {
     void nexus
       .listAgents(project.id)
