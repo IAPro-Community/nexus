@@ -214,6 +214,9 @@ func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID stri
 	if err != nil {
 		return nil, missionPreparationError("plan", err)
 	}
+	if blockers := composerHandoffExecutionBlockers(plan.StructuredFacts); len(blockers) > 0 {
+		return nil, missionAdmissionError("composer_handoff", strings.Join(blockers, "; "))
+	}
 	if err := ensureDelegationApproved(plan); err != nil {
 		return nil, missionAdmissionError("delegation", err.Error())
 	}
@@ -330,6 +333,9 @@ func (n *Nexus) StartMissionRunApprovedWithOptions(ctx context.Context, planID s
 	plan, err := st.GetWorkPlan(planID)
 	if err != nil {
 		return nil, missionPreparationError("plan", err)
+	}
+	if blockers := composerHandoffExecutionBlockers(plan.StructuredFacts); len(blockers) > 0 {
+		return nil, missionAdmissionError("composer_handoff", strings.Join(blockers, "; "))
 	}
 	if err := ensureDelegationApproved(plan); err != nil {
 		return nil, missionAdmissionError("delegation", err.Error())
