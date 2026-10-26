@@ -130,6 +130,38 @@ describe('nexus API request errors', () => {
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(init.signal).toBe(controller.signal);
   });
+  it('sends revision-checked DELETE requests for Composer and Flow without running anything', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ deleted: true }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect((await nexusApi.deleteComposerSession('cmp-1', 3)).deleted).toBe(true);
+    expect((await nexusApi.deletePlan('plan-1', 7)).deleted).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    const [sessionURL, sessionInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [planURL, planInit] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(sessionURL).toContain('/api/v1/composer-sessions/cmp-1?expected_revision=3');
+    expect(planURL).toContain('/api/v1/plans/plan-1?expected_revision=7');
+    expect(sessionInit.method).toBe('DELETE');
+    expect(planInit.method).toBe('DELETE');
+  });
+
+  it('surfaces protected Flow deletion as HTTP 409, not success', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      statusText: 'Conflict',
+      json: () => Promise.resolve({ error: 'Flow possui Missions e não pode ser excluído' }),
+    }));
+
+    await expect(nexusApi.deletePlan('used-flow', 1)).rejects.toMatchObject({
+      status: 409,
+    });
+  });
 });
 
 describe('system metadata API', () => {
