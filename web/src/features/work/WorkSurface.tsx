@@ -28,7 +28,8 @@ export const WorkSurface: React.FC<{
   onDirect: (agent: Agent) => void;
   onFlowRun?: (run: MissionRun) => void;
   onOpenFlowDrafts?: (plan: WorkPlan) => void;
-}> = ({ project, onOpenFlowDrafts }) => {
+  onOpenIntelligenceSettings?: () => void;
+}> = ({ project, onOpenFlowDrafts, onOpenIntelligenceSettings }) => {
   const { t } = useTranslation();
   const [readiness, setReadiness] = useState<ContextReadiness | null>(null);
   const [readinessBusy, setReadinessBusy] = useState(false);
@@ -97,6 +98,33 @@ export const WorkSurface: React.FC<{
       setReadinessBusy(false);
     }
   };
+
+  // Composer is a model-assisted planning experience, not a static form.
+  // Do not render editable sessions or creation until Intelligence is configured.
+  if (!intelligence?.available) {
+    return (
+      <div className={`nx-surface-scroll nx-composer-surface ${styles.workbench}`}>
+        <div className={styles.contextFix} role="status" aria-live="polite">
+          <h2>{t('work.composer.intelligenceRequiredTitle', 'Configure uma IA para usar o Composer')}</h2>
+          <p>
+            {t(
+              'work.composer.intelligenceRequiredDescription',
+              'O Composer utiliza a IA configurada em Nexus Intelligence para compreender sua ideia, investigar alternativas e preparar um plano. Sem ela, não inicia entrevistas por checklist.',
+            )}
+          </p>
+          {intelligence?.error ? <p className="nx-inline-error">{intelligence.error}</p> : null}
+          <div className={styles.contextFix}>
+            <Button tone="brand" onClick={onOpenIntelligenceSettings} disabled={!onOpenIntelligenceSettings}>
+              {t('work.composer.configureIntelligence', 'Abrir Nexus Intelligence')}
+            </Button>
+            <Button onClick={() => void refreshIntelligence()}>
+              <RefreshCw size={13} /> {t('work.composer.retryIntelligence', 'Verificar novamente')}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const materializeFlow = async (artifact: PromptArtifact) => {
     setFlowError('');
