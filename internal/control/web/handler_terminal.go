@@ -475,7 +475,9 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 			startPromotion(line, !decision.ExplicitMissionRequest)
 		}
 	}
-	inputStream := nexusruntime.NewTerminalInputScrubber(terminalInputCommandWriter(func(data []byte) (int, error) {
+	// The host is the final mouse gate: keep reports intact here so a TUI
+	// that negotiated mouse tracking can receive clicks through xterm.
+	inputStream := nexusruntime.NewTerminalInputScrubberAllowMouse(terminalInputCommandWriter(func(data []byte) (int, error) {
 		nexusruntime.TraceTerminalBytes(runtimeID, "web.scrubber.output", data)
 		inputMu.Lock()
 		defer inputMu.Unlock()
