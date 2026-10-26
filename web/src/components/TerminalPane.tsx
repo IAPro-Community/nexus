@@ -412,8 +412,8 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
           }),
         );
       }
-      if (!shouldForwardTerminalInput(data)) return;
-      const clean = stripEmbeddedTerminalMetadata(data);
+      if (!shouldForwardTerminalInput(data, true)) return;
+      const clean = stripEmbeddedTerminalMetadata(data, true);
       if (!clean) return;
       if (ws.readyState === WebSocket.OPEN) {
         if (terminalTraceEnabled) {
