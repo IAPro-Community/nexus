@@ -2,7 +2,7 @@
  * Build an offline, single-file NEX animation QA preview directly from the
  * canonical static exports and the real HUD SCSS. No duplicate robot drawing.
  *
- * Run npm run art:nex first, then npm run art:nex:preview.
+ * Run npm run art:nex:preview (exports artwork and builds this QA page).
  * Output: web/dist/nex-motion-preview.html
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -61,8 +61,6 @@ h1{margin:0;font-size:26px}p{color:#9fb6d5;line-height:1.5}
 .qa-panel{width:100%;height:100%;display:grid;place-items:center}
 .qa-scale{width:92px;height:92px;transform:scale(2.25)}
 .qa-settings{display:flex;align-items:center;gap:10px;margin-top:16px}
-.qa-stage .guardian{animation:nex-entrance 320ms cubic-bezier(.16,1,.3,1) both}
-@media (prefers-reduced-motion:reduce){.qa-stage .guardian{animation:none!important}}
 </style>
 </head><body><main>
 <h1>NEX — prévia técnica de movimentos</h1>
