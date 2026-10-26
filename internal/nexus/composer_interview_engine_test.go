@@ -8,6 +8,14 @@ func TestComposerInterviewPrioritizesWeakestDimension(t *testing.T) {
 	brief.Context.Project = "nexus"
 	brief.Context.Evidence = []string{"repository inspected"}
 	brief.Environment.Stack = []string{"Go"}
+	// A question now requires a concrete intelligence-identified decision.
+	// Missing archetype checklist fields alone must not trigger an interview.
+	brief.Unknowns = append(brief.Unknowns, PromptUnknown{
+		ID: "acceptance", Field: "quality.acceptance_criteria",
+		Question: "What result would best demonstrate success?",
+		Status: PromptUnknownOpen, Severity: PromptUnknownRecommended,
+		Source: "INTELLIGENCE",
+	})
 	refreshComposerBrief(&brief)
 
 	next, ok := selectComposerNextUnknownForBrief(brief)
@@ -43,9 +51,10 @@ func TestComposerInterviewDoesNotReaskInferredProjectFact(t *testing.T) {
 }
 
 func TestComposerInterviewAddsSinglePressurePassNearConvergence(t *testing.T) {
-	brief := newComposerBrief(
+	brief := newComposerBriefWithInterviewMode(
 		"Choose the best provider automatically",
 		"Use automatic provider routing with fallback; success means the request completes, tests cover routing, and verification runs go test.",
+		ComposerInterviewDeep,
 	)
 	brief.Context.Project = "nexus"
 	brief.Context.Evidence = []string{"repository inspected"}
@@ -159,5 +168,31 @@ func TestComposerInterviewRefreshPreservesRealRoundCount(t *testing.T) {
 	refreshComposerBrief(&brief)
 	if brief.Interview.QuestionsAnswered != 3 {
 		t.Fatalf("questions answered = %d, want 3", brief.Interview.QuestionsAnswered)
+	}
+}
+
+func TestComposerDefaultInterviewDoesNotAskArchetypeChecklists(t *testing.T) {
+	brief := newComposerBrief("Quero melhorar a organização do frontend do Diário", "")
+	refreshComposerBrief(&brief)
+	for _, unknown := range brief.Unknowns {
+		if unknown.Status == PromptUnknownOpen && (unknown.Source == "ARCHETYPE" || unknown.Source == "REFINERY") {
+			t.Fatalf("static archetype questionnaire leaked to user: %+v", unknown)
+		}
+	}
+	if _, ok := selectComposerNextUnknownForBrief(brief); ok {
+		t.Fatalf("default interview must not manufacture a decision: %+v", brief.Unknowns)
+	}
+}
+
+func TestComposerQuestionGeneratedByIntelligenceRemainsActionable(t *testing.T) {
+	brief := newComposerBrief("Quero um app de comunicação escolar", "")
+	brief.Unknowns = append(brief.Unknowns, PromptUnknown{
+		ID: "audience", Field: "context.audience", Question: "Quem usará primeiro o aplicativo?",
+		Source: "INTELLIGENCE", Severity: PromptUnknownBlocking, Status: PromptUnknownOpen,
+	})
+	refreshComposerBrief(&brief)
+	question, ok := selectComposerNextUnknownForBrief(brief)
+	if !ok || question.Field != "context.audience" {
+		t.Fatalf("a concrete material decision must be presented: %+v ok=%v", question, ok)
 	}
 }
