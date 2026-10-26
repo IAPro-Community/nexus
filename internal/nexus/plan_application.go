@@ -170,11 +170,15 @@ func (s *PlanApplicationService) Update(ctx context.Context, plan store.WorkPlan
 }
 
 func (s *PlanApplicationService) Delete(ctx context.Context, planID string) error {
+	return s.DeleteExpected(ctx, planID, 0)
+}
+
+// DeleteExpected rejects stale UI confirmations and all WorkPlans with
+// snapshots, Missions or schedules, avoiding SQLite cascaded evidence loss.
+func (s *PlanApplicationService) DeleteExpected(ctx context.Context, planID string, expectedRevision int) error {
 	st, err := s.store(ctx)
-	if err != nil {
-		return err
-	}
-	return st.DeleteWorkPlan(planID)
+	if err != nil { return err }
+	return st.DeleteWorkPlanExpected(planID, expectedRevision)
 }
 
 func (s *PlanApplicationService) Revisions(ctx context.Context, planID string) ([]store.PlanRevision, error) {
