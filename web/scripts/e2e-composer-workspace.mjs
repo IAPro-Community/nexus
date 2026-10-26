@@ -12,6 +12,7 @@ import {
   terminateProcess,
   terminateProcessOnExit,
 } from './e2e-fixture.mjs';
+import { startComposerIntelligenceMock, configureComposerIntelligence } from './e2e-composer-intelligence-mock.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const webDir = path.resolve(__dirname, '..');
@@ -25,6 +26,7 @@ ensureNexusBinary(repoRoot, { composerFlow: true });
 assert.ok(existsSync(binPath), `nexus binary missing at ${binPath}`);
 
 let browser;
+let intelligenceMock;
 
 const isolatedDataDir = path.join(os.tmpdir(), `nexus-composer-e2e-${process.pid}`);
 rmSync(isolatedDataDir, { recursive: true, force: true });
@@ -36,6 +38,7 @@ spawnSync('git', ['init', '-q', projectPath], { stdio: 'ignore' });
 const serverEnv = {
   ...process.env,
   NEXUS_DATA_DIR: isolatedDataDir,
+  NEXUS_CONFIG_DIR: path.join(isolatedDataDir, 'config'),
   AI_CLI_DATA_DIR: isolatedDataDir,
   NEXUS_DOCS_CAPTURE: '1',
 };
@@ -141,6 +144,23 @@ async function main() {
   );
   console.log('project', created.id);
 
+  // Without a provider Composer must fail closed and persist no session.
+  const missingIntelligence = await page.evaluate(async ({ projectId, csrfToken }) => {
+    const response = await fetch(`/api/v1/projects/${projectId}/composer-sessions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+      body: JSON.stringify({ goal: 'Should not be persisted', input_mode: 'IDEA' }),
+    });
+    return response.status;
+  }, { projectId: created.id, csrfToken: session.csrf_token });
+  assert.equal(missingIntelligence, 400, 'Composer must reject writes before AI configuration');
+
+  intelligenceMock = await startComposerIntelligenceMock();
+  const configured = await configureComposerIntelligence(
+    context, origin, session.csrf_token, created.id, intelligenceMock,
+  );
+  assert.equal(configured.available, true, 'mock Intelligence must be configured');
+
   const createdSession = await page.evaluate(
     async ({ projectId, csrfToken }) => {
       const response = await fetch(`/api/v1/projects/${projectId}/composer-sessions`, {
@@ -227,8 +247,15 @@ async function main() {
   await page.getByRole('tab', { name: /contexto|context/i }).waitFor();
   await page.getByRole('tab', { name: /prompt/i }).waitFor();
   await page.getByPlaceholder(/escreva uma mensagem|write a message/i).waitFor();
-  const options = page.getByRole('option');
-  assert.ok((await options.count()) > 0, 'clarification options should be in the thread');
+  const stored = await page.evaluate(async (sessionId) => {
+    const response = await fetch(`/api/v1/composer-sessions/${sessionId}`);
+    if (!response.ok) throw new Error(`read Composer view HTTP ${response.status}`);
+    return response.json();
+  }, listedSessions[0].id);
+  const staticQuestions = (stored.brief?.unknowns || []).filter(
+    (item) => item.status === 'OPEN' && ['ARCHETYPE', 'REFINERY'].includes(item.source),
+  );
+  assert.deepEqual(staticQuestions, [], 'default Composer must not manufacture static checklist questions');
 
   await page.screenshot({ path: path.join(outDir, 'e2e-desktop-1440.png') });
 
@@ -263,6 +290,9 @@ main()
       }
     }
     await stop();
+    if (intelligenceMock) {
+      try { await intelligenceMock.close(); } catch (_) {}
+    }
     try {
       rmSync(isolatedDataDir, { recursive: true, force: true });
     } catch {
