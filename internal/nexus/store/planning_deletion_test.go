@@ -136,3 +136,20 @@ func TestDeleteWorkPlanProtectsSnapshotWithoutMissionRun(t *testing.T) {
     }
     if _, err := st.GetExecutionSnapshot(snapshot.ID); err != nil { t.Fatalf("snapshot lost: %v", err) }
 }
+
+func TestDeleteComposerProtectsImportedHandoffOnly(t *testing.T) {
+    st := openTestStore(t)
+    project := deletionProject(t, st)
+    session, err := st.CreateComposerSession(ComposerSession{ProjectID: project.ID, Title: "Original Composer"})
+    if err != nil { t.Fatal(err) }
+    artifact, err := st.CreatePromptArtifact(PromptArtifact{SessionID: session.ID, Content: "Shared specification"})
+    if err != nil { t.Fatal(err) }
+    otherProject := deletionProject(t, st)
+    handoff := `{"version":1,"session_id":"` + session.ID + `","artifact_id":"` + artifact.ID + `"}`
+    if _, err := st.CreateWorkPlan(WorkPlan{ProjectID: otherProject.ID, Title: "Imported Flow",
+        StructuredFacts: map[string]string{"composer.handoff.v1": handoff},
+    }); err != nil { t.Fatal(err) }
+    if err := st.DeleteComposerSessionExpected(session.ID, session.Revision); !errors.Is(err, ErrComposerDeleteProtected) {
+        t.Fatalf("cross-project imported handoff must protect Composer session: %v", err)
+    }
+}
