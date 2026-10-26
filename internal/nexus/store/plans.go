@@ -268,7 +268,7 @@ func (s *Store) UpdateWorkPlan(p WorkPlan, changeSummary string) (*WorkPlan, *Pl
 
 // ErrPlanDeleteProtected prevents cascaded destruction of durable Mission
 // evidence and scheduled work. A used plan is a historical execution record.
-var ErrPlanDeleteProtected = fmt.Errorf("flow has Mission history or schedules; deletion would destroy execution evidence")
+var ErrPlanDeleteProtected = fmt.Errorf("Este Flow possui execução, evidências, vínculo com Mission ou agendamento. Para preservar o histórico, não pode ser excluído.")
 
 // DeleteWorkPlan removes only an unused draft. SQLite FK cascades otherwise
 // delete Mission runs, execution snapshots and validation receipts: always
