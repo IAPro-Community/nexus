@@ -31,6 +31,7 @@ import type {
 } from '../../types';
 import { asArray, asStringArray } from '../../lib/safeArray';
 import { flowFromWorkPlan } from './flowModel';
+import { normalizeWorkPlan } from '../../nexus/workPlan';
 import { ComposerHandoffSummary } from './ComposerHandoffSummary';
 import { flowRunStateFromMission, packageRunState } from './flowRunModel';
 import styles from './FlowRunSurface.module.scss';
@@ -98,7 +99,9 @@ export const FlowRunSurface: React.FC<{
       setRun(current);
       const [nextEvidence, detail, nextBundle] = await Promise.all([
         nexusApi.getRunEvidence(runId),
-        plan?.id === current.plan_id ? Promise.resolve(null) : nexusApi.getPlan(current.plan_id),
+        plan?.id === current.plan_id && plan.current_revision === current.plan_revision
+          ? Promise.resolve(null)
+          : nexusApi.getPlan(current.plan_id),
         nexusApi.getRunEvidenceBundle(runId).catch(() => null),
       ]);
       if (!guard.isLatest(seq)) return;
@@ -109,7 +112,23 @@ export const FlowRunSurface: React.FC<{
         receipts: asArray<WorkReceipt>(nextEvidence.receipts),
       });
       setEvidenceBundle(nextBundle);
-      if (detail) setPlan(detail.plan);
+      if (detail) {
+        // Missions use an immutable plan revision. Never project the latest
+        // mutable draft as the source of a run that started on an older revision.
+        let runPlan: WorkPlan | null = detail.plan;
+        if (detail.plan.current_revision !== current.plan_revision) {
+          const original = (detail.revisions || []).find(
+            (revision) => revision.revision === current.plan_revision,
+          );
+          try {
+            const historical = original ? normalizeWorkPlan(JSON.parse(original.snapshot_json)) : null;
+            runPlan = historical?.id === current.plan_id ? historical : null;
+          } catch {
+            runPlan = null;
+          }
+        }
+        setPlan(runPlan);
+      }
       setError('');
     } catch (err) {
       if (!guard.isLatest(seq)) return;
