@@ -122,3 +122,10 @@ Em qualquer tarefa sobre **mascote, HUD Guardian, onboarding com NEX, sprites, a
 5. Para código ou documentação que altera NEX, execute `node scripts/verify-nex-visual.mjs`, anexe antes/depois e registre divergências, além dos gates habituais.
 6. Para modificar movimentos, inspecione também [contrato de animação](docs/design/NEX_ANIMATION_CONTRACT.md): movimentos só em camadas internas, nunca no transform de âncora dos módulos; o modo sem animações e `prefers-reduced-motion` precisam desativar tudo, inclusive hover.
 7. Standard/Hero ainda não têm masters de produção; **não** descrever pranchas auxiliares como arte raster original aprovada nem como screenshot real.
+
+## 7. NEX Identity Lock — congelamento após aprovação humana
+
+- O documento `docs/design/nex/IDENTITY_GOVERNANCE.md`, o manifesto `docs/design/nex/identity-lock.json` e as instruções `docs/design/nex/AGENTS.md` regem **toda nova arte NEX** (site, animação, HUD, agentes, avatar e campanhas).
+- A identidade atual segue os contratos da seção 6; as referências recentes são **candidatas**, não um novo master aprovado. Não substitua o sprite da release por artes de conversa.
+- Quando o manifesto mudar para `FROZEN`, nenhum agente poderá alterar a identidade, proporções ou masters/hashes sem mudança de versão, comparação, PR e aprovação explícita do owner.
+- Rode `node scripts/verify-nex-identity-lock.mjs` e registre a versão do lock em toda entrega visual. Esse teste verifica integridade e não substitui inspeção de semelhança visual.

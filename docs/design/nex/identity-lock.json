@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0",
+  "subject": "IAPro Nexus / NEX visual character",
+  "status": "CANDIDATE_PENDING_APPROVAL",
+  "proposed_lock_version": null,
+  "approved_by": null,
+  "approved_at_utc": null,
+  "master": {
+    "file": null,
+    "sha256": null,
+    "kind": null,
+    "editable_source_file": null,
+    "editable_source_sha256": null
+  },
+  "canonical_contracts": {
+    "product_visual_contract": "docs/design/NEX_32BIT_VISUAL_CONTRACT.md",
+    "current_runtime_master": "web/src/features/hud/NexPixelSprite.tsx",
+    "source_visual_manifest": "docs/design/NEX_VISUAL_MANIFEST.json",
+    "animation_contract": "docs/design/NEX_ANIMATION_CONTRACT.md"
+  },
+  "invariants": {
+    "default_pose": "front",
+    "silhouette": "oversized rounded helmet and glossy dark rounded visor",
+    "fins": 2,
+    "ear_couplings": 2,
+    "torso": "compact floating, non-human",
+    "central_reactor": 1,
+    "detached_orbital_modules": 4,
+    "module_layout": "two lateral + two lower",
+    "orbital_ring": "lower half; must not obscure visor",
+    "expression_location": "visor only; no human mouth",
+    "identity_scope": "one visual character for site, HUD and motion"
+  },
+  "allowed_variants": [
+    {
+      "id": "hud-32bit",
+      "usage": "HUD Compact and retro display",
+      "status": "STYLE_DIRECTION_APPROVED_MASTER_PENDING"
+    },
+    {
+      "id": "commercial-polished",
+      "usage": "site hero, launch graphics",
+      "status": "CANDIDATE_NOT_APPROVED"
+    }
+  ],
+  "candidate_references": [
+    {
+      "id": "user-board-01",
+      "filename": "41E62D66-474F-4A6C-AD93-10307F53C020.jpeg",
+      "width": 1448,
+      "height": 1086,
+      "sha256": "cd83845b35a21536cc657f687b3404cad5fe9a9367bd730f75d2694dbe0bdef2",
+      "status": "USER_UPLOADED_NOT_VERSIONED",
+      "notes": "Official pixel-art direction, front view, states, visor expressions, turnarounds, product contexts"
+    },
+    {
+      "id": "user-board-02",
+      "filename": "3B055744-F920-42EF-AC68-F278F016A3F3.jpeg",
+      "width": 1448,
+      "height": 1086,
+      "sha256": "aa841d9156e56120c7702f9e602fa30b02ddbf2128fdc9aa4c510d34119abae9",
+      "status": "USER_UPLOADED_NOT_VERSIONED",
+      "notes": "Front view, five-state application, scale, strict reuse rules"
+    },
+    {
+      "id": "user-board-03",
+      "filename": "1A216FA2-FD1D-41DE-9C96-89C31F0BEB39.jpeg",
+      "width": 1448,
+      "height": 1086,
+      "sha256": "2bb257d39b1dc063df32b7ce89bab2db27f8e7947c405da822ddf48f31258e7a",
+      "status": "USER_UPLOADED_NOT_VERSIONED",
+      "notes": "3/4 support, expanded animation states and expressive poses"
+    }
+  ],
+  "locked_assets": [],
+  "approval_record": null
+}
