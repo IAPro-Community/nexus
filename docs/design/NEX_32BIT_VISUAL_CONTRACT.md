@@ -109,6 +109,10 @@ Não criar diferentes personagens para Compact, Standard e Hero. Alterações de
 - Os ícones de sistema operacional, tray e favicon **continuam exibindo o símbolo institucional do Nexus**, não uma cabeça pixelada pequena e ilegível.
 - Nos sites, a identidade visual pode ser mais rica, mas a pose institucional de NEX é frontal.
 
+## Animação articulada oficial da v1
+
+O [contrato de animação NEX](NEX_ANIMATION_CONTRACT.md) define camadas independentes para aletas espelhadas, quatro módulos magnéticos, olhos, núcleo, sombra e órbita, sem mudar a posição frontal nem criar um novo mecanismo de telemetria. O movimento é CSS/SVG de baixa amplitude (não um atlas quadro a quadro); os cinco estados visuais continuam sendo `idle`, `working`, `warning`, `critical` e `offline`. A preferência explícita de animação desligada e `prefers-reduced-motion` devem congelar também hover e subcomponentes mesmo quando houver estilos específicos por estado.
+
 ## Gates de homologação (independentes da aprovação visual)
 
 O visual foi **aprovado como direção de produto**, mas a release binária **não está automaticamente homologada**.
