@@ -171,6 +171,8 @@ type DecisionExplanation struct {
 // provider returns only what the text actually supports so heuristics stay the
 // primary source and intelligence merely enriches gaps.
 type BriefExtraction struct {
+	// Recommendations are proposed approaches, not verified requirements or repository facts.
+	RecommendedApproaches []string `json:"recommended_approaches,omitempty"`
 	InScope              []string `json:"in_scope,omitempty"`
 	OutOfScope           []string `json:"out_of_scope,omitempty"`
 	ConstraintsTechnical []string `json:"constraints_technical,omitempty"`
