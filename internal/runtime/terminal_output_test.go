@@ -46,8 +46,8 @@ func TestTerminalOutputScrubberDropsKeyboardNegotiation(t *testing.T) {
 		t.Fatalf("Flush: %v", err)
 	}
 
-	if got := out.String(); got != "beforeafter" {
-		t.Fatalf("scrubbed output = %q, want %q", got, "beforeafter")
+	if got, want := out.String(), "before\x1b[?1003hafter"; got != want {
+		t.Fatalf("scrubbed output = %q, want %q", got, want)
 	}
 }
 
@@ -302,15 +302,15 @@ func TestTerminalInputScrubberCoalescesSplitSGRMouseReport(t *testing.T) {
 	}
 }
 
-func TestTerminalOutputScrubberDropsMouseTrackingNegotiation(t *testing.T) {
+func TestTerminalOutputScrubberPreservesCursorAndMouseTrackingNegotiation(t *testing.T) {
 	var out bytes.Buffer
 	scrubber := NewTerminalOutputScrubber(&out)
 
-	_, _ = scrubber.Write([]byte("before\x1b[?1000h\x1b[?1003h\x1b[?1006h\x1b[?1007h\x1b[?1015h\x1b[?1016hafter"))
+	sequence := "before\x1b[?1h\x1b[?1000h\x1b[?1003h\x1b[?1006h\x1b[?1007h\x1b[?1015h\x1b[?1016hafter"
+	_, _ = scrubber.Write([]byte(sequence))
 	_ = scrubber.Flush()
-
-	if got := out.String(); got != "beforeafter" {
-		t.Fatalf("mouse tracking negotiation leaked to outer terminal: %q", got)
+	if got := out.String(); got != sequence {
+		t.Fatalf("TUI cursor/mouse negotiation was altered: %q", got)
 	}
 }
 
@@ -445,5 +445,82 @@ func TestTerminalInputScrubberCloseCancelsPendingEscapeTimer(t *testing.T) {
 	}
 	if err := scrubber.Flush(); err != nil {
 		t.Fatalf("Flush after Close should remain idempotent: %v", err)
+	}
+}
+
+// TestTerminalMouseNegotiationGatesInput verifies the complete output →
+// negotiated mode → input boundary, including fragmented DECSET and resets.
+func TestTerminalMouseNegotiationGatesInput(t *testing.T) {
+	var outgoing, incoming bytes.Buffer
+	state := &TerminalMouseState{}
+	output := NewTerminalOutputScrubberTrackingMouse(&outgoing, state)
+	input := NewTerminalInputScrubberWithMouseState(&incoming, state)
+	defer output.Close()
+	defer input.Close()
+
+	click := []byte("\x1b[<0;14;3M")
+	wheel := []byte("\x1b[M\x60\x48\x28")
+	_, _ = input.Write(click)
+	_, _ = input.Write(wheel)
+	if incoming.Len() != 0 {
+		t.Fatalf("unsolicited mouse input reached shell: %q", incoming.String())
+	}
+
+	_, _ = output.Write([]byte("\x1b[?1h\x1b[?100"))
+	_, _ = output.Write([]byte("0;1006h"))
+	if !state.Enabled() {
+		t.Fatal("combined, fragmented mouse tracking was not enabled")
+	}
+	if got, want := outgoing.String(), "\x1b[?1h\x1b[?1000;1006h"; got != want {
+		t.Fatalf("cursor/mouse modes not preserved: got %q, want %q", got, want)
+	}
+	_, _ = input.Write([]byte("\x1b[A"))
+	_, _ = input.Write(click)
+	_, _ = input.Write(wheel)
+	if got, want := incoming.String(), "\x1b[A"+string(click)+string(wheel); got != want {
+		t.Fatalf("negotiated selector/mouse input changed: got %q want %q", got, want)
+	}
+
+	_, _ = output.Write([]byte("\x1b[?1000l"))
+	if state.Enabled() {
+		t.Fatal("mouse tracking remained enabled after DECRST")
+	}
+	incoming.Reset()
+	_, _ = input.Write(click)
+	_, _ = input.Write(wheel)
+	_, _ = input.Write([]byte("\x1bOB"))
+	if got := incoming.String(); got != "\x1bOB" {
+		t.Fatalf("mouse leak after tracking disabled: %q", got)
+	}
+}
+
+func TestTerminalMouseTrackingMultipleModes(t *testing.T) {
+	state := &TerminalMouseState{}
+	state.ObserveOutputSequence([]byte("\x1b[?1000;1002h"))
+	if !state.Enabled() {
+		t.Fatal("mouse tracking not enabled")
+	}
+	state.ObserveOutputSequence([]byte("\x1b[?1000l"))
+	if !state.Enabled() {
+		t.Fatal("another active tracking mode was incorrectly disabled")
+	}
+	state.ObserveOutputSequence([]byte("\x1b[?1002l"))
+	if state.Enabled() {
+		t.Fatal("mouse tracking was not fully disabled")
+	}
+	state.ObserveOutputSequence([]byte("\x1b[?1006h"))
+	if state.Enabled() {
+		t.Fatal("SGR encoding alone must not enable tracking")
+	}
+}
+
+func TestTerminalInputScrubberAllowMouseStillDropsFocus(t *testing.T) {
+	var out bytes.Buffer
+	input := NewTerminalInputScrubberAllowMouse(&out)
+	defer input.Close()
+	const want = "\x1b[<0;14;3M\x1bOA"
+	_, _ = input.Write([]byte("\x1b[I" + want + "\x1b[12;34R"))
+	if got := out.String(); got != want {
+		t.Fatalf("upstream mouse/keyboard data changed: got %q want %q", got, want)
 	}
 }
