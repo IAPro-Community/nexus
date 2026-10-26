@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/nexus"
@@ -617,6 +618,58 @@ func (h *NexusHandler) handlePlanRun(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, run)
 }
 
+// handleRunPlanningReview creates a new, explicitly requested Composer
+// elaboration linked to an existing Mission. It never changes the Mission,
+// its frozen ExecutionSnapshot or the approved WorkPlan in place.
+func (h *NexusHandler) handleRunPlanningReview(w http.ResponseWriter, r *http.Request, runID string) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "POST required")
+		return
+	}
+	run, err := h.runs.Get(r.Context(), runID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "run not found")
+		return
+	}
+	plan, err := h.nexus.GetWorkPlan(r.Context(), run.PlanID)
+	if err != nil || plan.ProjectID != run.ProjectID {
+		writeError(w, http.StatusBadRequest, "run plan is missing or belongs to a different project")
+		return
+	}
+	var body struct { Reason string `json:"reason"` }
+	if err := json.NewDecoder(io.LimitReader(r.Body, 8192)).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid body")
+		return
+	}
+	reason := strings.TrimSpace(body.Reason)
+	if len([]rune(reason)) > 2000 {
+		writeError(w, http.StatusBadRequest, "review reason is too long")
+		return
+	}
+	if reason == "" {
+		reason = "Reavaliar as etapas ainda pendentes e os riscos à luz do estado atual."
+	}
+	goal := "Revisar planejamento: " + plan.Title
+	prompt := strings.Join([]string{
+		"Revise o planejamento abaixo sem alterar a execução ativa ou realizar ações externas.",
+		"Projeto e plano: " + plan.ProjectID + " / " + plan.ID,
+		"Descrição do plano: " + strings.TrimSpace(plan.Description),
+		"Mission origem: " + run.ID,
+		"Revisão congelada da Mission: " + strconv.Itoa(run.PlanRevision),
+		"Estado atual da Mission: " + string(run.State),
+		"Objetivo da revisão solicitado pelo usuário: " + reason,
+		"Considere o plano original como referência. Recomende um novo plano versionado somente após avaliação das evidências e confirmação humana.",
+	}, "\n")
+	view, err := h.composer.CreateWithInterviewMode(
+		r.Context(), run.ProjectID, goal, prompt, "EXISTING_PROMPT", string(nexus.ComposerInterviewStandard),
+	)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, view)
+}
+
 // handleRunsList GET /api/v1/runs
 func (h *NexusHandler) handleRunsList(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -677,6 +730,10 @@ func (h *NexusHandler) handleRunDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if action == "planning-review" {
+		h.handleRunPlanningReview(w, r, runID)
+		return
+	}
 	if strings.HasPrefix(action, "coordination") {
 		h.handleRunCoordination(w, r, runID, action)
 		return
