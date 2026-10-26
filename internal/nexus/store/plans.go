@@ -282,11 +282,16 @@ func (s *Store) DeleteWorkPlanExpected(id string, expectedRevision int) error {
 	if err != nil { return err }
 	defer tx.Rollback()
 	var currentRevision int
-	if err := tx.QueryRow(`SELECT current_revision FROM work_plans WHERE id=?`, id).Scan(&currentRevision); err != nil {
+	var legacyMissionID, status string
+	if err := tx.QueryRow(`SELECT current_revision, COALESCE(mission_id,''), status FROM work_plans WHERE id=?`, id).
+		Scan(&currentRevision, &legacyMissionID, &status); err != nil {
 		return err
 	}
 	if expectedRevision > 0 && currentRevision != expectedRevision {
 		return ErrPlanRevisionConflict
+	}
+	if legacyMissionID != "" || status == "EXECUTING" || status == "COMPLETED" {
+		return ErrPlanDeleteProtected
 	}
 	for _, query := range []string{
 		`SELECT EXISTS(SELECT 1 FROM mission_runs WHERE plan_id=?)`,
