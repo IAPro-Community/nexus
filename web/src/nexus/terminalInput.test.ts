@@ -42,6 +42,24 @@ describe('shouldForwardTerminalInput', () => {
     expect(shouldForwardTerminalInput(data)).toBe(false);
   });
 
+  it('allows mouse packets through xterm when host will validate negotiated tracking', () => {
+    for (const packet of [
+      '\x1b[<0;10;4M', // SGR click
+      '\x1b[<65;10;4M', // SGR wheel
+      '\x1b[M\x60\x48\x28', // X10 wheel
+      '\x1b[96;40;8M', // URXVT wheel
+    ]) {
+      expect(shouldForwardTerminalInput(packet, true)).toBe(true);
+      expect(stripEmbeddedTerminalMetadata(packet, true)).toBe(packet);
+    }
+    expect(stripEmbeddedTerminalMetadata('start\x1b[<0;10;4M\x1b[Ifinish', true)).toBe(
+      'start\x1b[<0;10;4Mfinish',
+    );
+    expect(shouldForwardTerminalInput('\x1b[I', true)).toBe(false);
+    expect(shouldForwardTerminalInput('\x1b[12;34R', true)).toBe(false);
+    expect(shouldForwardTerminalInput('\x1bOA', true)).toBe(true);
+  });
+
   it('keeps keyboard, UTF-8 and explicit Ctrl+C bytes', () => {
     expect(shouldForwardTerminalInput('\x1b[1;3u')).toBe(true);
     expect(shouldForwardTerminalInput('ação')).toBe(true);
