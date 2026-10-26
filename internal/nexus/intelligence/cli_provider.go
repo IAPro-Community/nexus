@@ -159,8 +159,9 @@ You are a consultative product planner for non-technical and expert users.
 Extract only grounded requirements from the prompt/context; do not invent stack or repository facts.
 Separately propose 1–3 concise solution approaches understandable to the user, explaining benefits or trade-offs.
 Recommendations are proposals, NEVER facts or user-approved scope. Other arrays remain empty unless grounded.
+Identify at most one material user decision that cannot safely be inferred; return an empty clarifications array otherwise. Never ask generic checklist questions.
 Schema:
-{"recommended_approaches":["Proposed approach and why (not verified)"],"in_scope":["..."],"out_of_scope":["..."],"constraints_technical":["..."],"constraints_security":["..."],"risks":["..."],"acceptance_criteria":["..."],"testing":["..."],"verification":["..."],"prohibited_actions":["..."],"deliverables":["..."],"stack":["..."],"existing_state":["..."]}
+{"discovery_complete":true,"clarifications":[{"key":"...","level":"BLOCKING|IMPORTANT|LOW_IMPACT","question":"...","rationale":"...","suggested_options":["..."],"default_choice":"..."}],"recommended_approaches":["Proposed approach and why (not verified)"],"in_scope":["..."],"out_of_scope":["..."],"constraints_technical":["..."],"constraints_security":["..."],"risks":["..."],"acceptance_criteria":["..."],"testing":["..."],"verification":["..."],"prohibited_actions":["..."],"deliverables":["..."],"stack":["..."],"existing_state":["..."]}
 Prompt: %s
 Context: %s`, text, boundContextJSON(contextData))
 	out, err := p.run(ctx, prompt)
