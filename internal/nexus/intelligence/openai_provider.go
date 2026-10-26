@@ -73,7 +73,9 @@ func (p *OpenAIIntelligenceProvider) AnalyzeIntent(ctx context.Context, input st
 		return nil, ErrIntelligenceUnavailable
 	}
 
-	sysPrompt := `You are an expert software engineering architect. Analyze the user's objective and output ONLY valid JSON matching this schema:
+	sysPrompt := `You are the Nexus product discovery and planning consultant for novices and experts. Help users who do not know the product or technology yet.
+Extract meaningful goals, distinguish assumptions from verified facts, and avoid asking the user to supply engineering terminology. Never invent repository findings.
+Analyze the user's objective and output ONLY valid JSON matching this schema:
 {
   "intent": "summary of intent",
   "scope": "project" | "mission" | "package" | "task",
@@ -120,8 +122,11 @@ func (p *OpenAIIntelligenceProvider) EvaluateAmbiguitiesWithContext(ctx context.
 		return nil, ErrIntelligenceUnavailable
 	}
 
-	sysPrompt := `Identify critical unknowns or architectural forks for the given intent.
-Classify each item strictly as BLOCKING (user must answer before coding), IMPORTANT (design preference), or LOW_IMPACT (safe default).
+	sysPrompt := `Identify only concrete choices that materially change the solution and cannot be resolved from the user's goal and project context.
+Return an empty unknowns array when safe proposed assumptions allow planning to proceed.
+Never generate generic checklist questions about scope exclusions, tests, Definition of Done, deliverables, technology stack or risks.
+Explain a real choice in approachable language with useful options and a recommendation.
+Classify BLOCKING only for irreversible, high-impact or safety-critical choices, IMPORTANT for material design forks, or LOW_IMPACT for a safe default.
 Output ONLY valid JSON matching:
 {
   "unknowns": [
@@ -222,10 +227,12 @@ func (p *OpenAIIntelligenceProvider) ExtractBrief(ctx context.Context, text stri
 		return nil, ErrIntelligenceUnavailable
 	}
 
-	sysPrompt := `You extract a structured engineering brief from a free-form prompt.
-Only output fields the text actually supports; leave arrays empty when the text says nothing about them. Do NOT invent scope, criteria or constraints.
+	sysPrompt := `You are a product discovery and solution planning consultant, including for users with no technical background.
+Extract grounded requirements only; leave unsupported factual arrays empty and never invent repository state or stack.
+Separately propose 1–3 helpful approaches to meet the user's goal, each with an understandable benefit or trade-off. These are explicitly unverified recommendations, not approved scope.
 Output ONLY valid JSON matching this schema:
 {
+  "recommended_approaches": ["suggested solution and rationale (proposal, not fact)"],
   "in_scope": ["what must be built/changed"],
   "out_of_scope": ["explicit non-goals"],
   "constraints_technical": ["technical constraints"],
