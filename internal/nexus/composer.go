@@ -394,29 +394,29 @@ func (n *Nexus) AddComposerTurnExpected(ctx context.Context, sessionID, role, co
 					intelligenceNotice = turnIntelligenceNotice(extractErr)
 				}
 				if !discoveryCompleted {
-				analysis, analyzeErr := provider.AnalyzeIntent(turnCtx, content, contextData)
-				if analyzeErr != nil && intelligenceNotice == "" {
-					intelligenceNotice = turnIntelligenceNotice(analyzeErr)
-				}
-				if analysis != nil {
-					brief.Intent.Objective = firstNonEmpty(analysis.Intent, brief.Intent.Objective)
-					brief.Intent.DesiredOutcome = firstNonEmpty(analysis.Intent, brief.Intent.DesiredOutcome)
-					brief.Constraints.Technical = appendUniqueAll(brief.Constraints.Technical, analysis.Constraints)
-					for _, assumption := range analysis.Assumptions {
-						brief.Assumptions = upsertAssumption(brief.Assumptions, PromptAssumption{ID: "intelligence-" + fmt.Sprint(len(brief.Assumptions)+1), Value: assumption, Confidence: "MEDIUM", Status: "INFERRED"})
+					analysis, analyzeErr := provider.AnalyzeIntent(turnCtx, content, contextData)
+					if analyzeErr != nil && intelligenceNotice == "" {
+						intelligenceNotice = turnIntelligenceNotice(analyzeErr)
 					}
-					var unknowns []intelligence.AmbiguityItem
-					var unknownErr error
-					if contextual, contextualOK := provider.(intelligence.ContextualAmbiguityEvaluator); contextualOK {
-						unknowns, unknownErr = contextual.EvaluateAmbiguitiesWithContext(turnCtx, analysis, contextData)
-					} else {
-						unknowns, unknownErr = provider.EvaluateAmbiguities(turnCtx, analysis)
+					if analysis != nil {
+						brief.Intent.Objective = firstNonEmpty(analysis.Intent, brief.Intent.Objective)
+						brief.Intent.DesiredOutcome = firstNonEmpty(analysis.Intent, brief.Intent.DesiredOutcome)
+						brief.Constraints.Technical = appendUniqueAll(brief.Constraints.Technical, analysis.Constraints)
+						for _, assumption := range analysis.Assumptions {
+							brief.Assumptions = upsertAssumption(brief.Assumptions, PromptAssumption{ID: "intelligence-" + fmt.Sprint(len(brief.Assumptions)+1), Value: assumption, Confidence: "MEDIUM", Status: "INFERRED"})
+						}
+						var unknowns []intelligence.AmbiguityItem
+						var unknownErr error
+						if contextual, contextualOK := provider.(intelligence.ContextualAmbiguityEvaluator); contextualOK {
+							unknowns, unknownErr = contextual.EvaluateAmbiguitiesWithContext(turnCtx, analysis, contextData)
+						} else {
+							unknowns, unknownErr = provider.EvaluateAmbiguities(turnCtx, analysis)
+						}
+						if unknownErr != nil && intelligenceNotice == "" {
+							intelligenceNotice = turnIntelligenceNotice(unknownErr)
+						}
+						MergeIntelligenceUnknowns(&brief, unknowns)
 					}
-					if unknownErr != nil && intelligenceNotice == "" {
-						intelligenceNotice = turnIntelligenceNotice(unknownErr)
-					}
-					MergeIntelligenceUnknowns(&brief, unknowns)
-				}
 				}
 			} else if providerErr != nil && !errors.Is(providerErr, intelligence.ErrIntelligenceUnavailable) {
 				intelligenceNotice = turnIntelligenceNotice(providerErr)
