@@ -1,5 +1,5 @@
 /** Returns whether xterm input is safe to forward to the provider PTY. */
-export function shouldForwardTerminalInput(data: string): boolean {
+export function shouldForwardTerminalInput(data: string, allowMouse = false): boolean {
   if (!data) return false;
 
   // Browser focus reporting and CPR responses can leak from xterm while a
@@ -24,21 +24,25 @@ export function shouldForwardTerminalInput(data: string): boolean {
     // eslint-disable-next-line no-control-regex
     /^\x1b\[\d+;\d+R$/.test(data) ||
     /^\[\d+;\d+R$/.test(data) ||
-    // SGR mouse tracking reports (with or without leading ESC) are terminal
-    // metadata, never user input. The host terminal emits these when mouse
-    // tracking modes (?1000/?1003 + ?1006) are active.
-    // eslint-disable-next-line no-control-regex
-    /^\x1b?\[<\d+;\d+;\d+[Mm]$/.test(data) ||
-    // Legacy X10 mouse reports: ESC [ M followed by Cb, Cx and Cy.
-    // eslint-disable-next-line no-control-regex
-    /^\x1b\[M[\x20-\xff]{3}$/.test(data) ||
-    // URXVT 1015 mouse reports (especially wheel button 96/97).
-    // eslint-disable-next-line no-control-regex
-    /^\x1b?\[(?:[3-9]\d|\d{3,});\d+;\d+M$/.test(data)
+    false
   ) {
     return false;
   }
+  // Mouse reports are only useful after the child explicitly enables tracking.
+  // When forwarded through xterm the SessionHost validates that negotiated
+  // state; the frontend must not delete a valid click before it reaches the PTY.
+  if (!allowMouse && isTerminalMouseReport(data)) return false;
   return true;
+}
+
+// Detect full packets only; partial CSI/X10 input is assembled by the host.
+function isTerminalMouseReport(data: string): boolean {
+  // eslint-disable-next-line no-control-regex
+  return /^\x1b?\[<\d+;\d+;\d+[Mm]$/.test(data) ||
+    // eslint-disable-next-line no-control-regex
+    /^\x1b\[M[\x20-\xff]{3}$/.test(data) ||
+    // eslint-disable-next-line no-control-regex
+    /^\x1b?\[(?:[3-9]\d|\d{3,});\d+;\d+M$/.test(data);
 }
 
 // xterm may coalesce a leaked focus/CPR report with real keystrokes in one
@@ -64,14 +68,17 @@ const EMBEDDED_URXVT_MOUSE_RE = /\x1b\[(?:[3-9]\d|\d{3,});\d+;\d+M/g;
  * Heuristic deletion irreversibly corrupts the Codex input buffer.
  * Leave ambiguous chunks byte-transparent; reconstruction belongs at PTY.
  */
-export function stripEmbeddedTerminalMetadata(data: string): string {
+export function stripEmbeddedTerminalMetadata(data: string, allowMouse = false): string {
   if (!data) return data;
-  return data
+  const clean = data
     .replace(EMBEDDED_FOCUS_RE, '')
-    .replace(EMBEDDED_CPR_RE, '')
-    .replace(EMBEDDED_MOUSE_RE, '')
-    .replace(EMBEDDED_X10_MOUSE_RE, '')
-    .replace(EMBEDDED_URXVT_MOUSE_RE, '');
+    .replace(EMBEDDED_CPR_RE, '');
+  return allowMouse
+    ? clean
+    : clean
+        .replace(EMBEDDED_MOUSE_RE, '')
+        .replace(EMBEDDED_X10_MOUSE_RE, '')
+        .replace(EMBEDDED_URXVT_MOUSE_RE, '');
 }
 
 /**
