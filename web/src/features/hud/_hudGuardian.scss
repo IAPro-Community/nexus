@@ -85,12 +85,6 @@
   transition: transform 200ms ease-out;
 }
 
-.guardian[data-motion='off'],
-.guardian[data-motion='off'] * {
-  animation: none;
-  transition: none;
-}
-
 .guardianEyes {
   animation: guardian-blink 6.5s steps(1, end) infinite;
   transform-origin: 64px 59px;
@@ -530,17 +524,6 @@
   }
 }
 
-@keyframes guardian-antenna {
-  0%,
-  100% {
-    transform: rotate(-4deg);
-  }
-
-  50% {
-    transform: rotate(4deg);
-  }
-}
-
 @keyframes nex-fin-left {
   0%,
   100% {
@@ -695,6 +678,10 @@
 .guardian[data-motion='off'] {
   animation: none;
   transition: none;
+}
+
+.mascotButton:hover .guardian[data-motion='off'] .guardianSprite {
+  transform: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
