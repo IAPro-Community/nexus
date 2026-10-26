@@ -100,8 +100,18 @@ export const WorkSurface: React.FC<{
   };
 
   // Composer is a model-assisted planning experience, not a static form.
+  // Avoid showing a misleading "not configured" state while the status loads.
+  if (intelligence === null) {
+    return (
+      <div className={`nx-surface-scroll nx-composer-surface ${styles.workbench}`}>
+        <p role="status" aria-live="polite">
+          {t('work.composer.checkingIntelligence', 'Verificando Nexus Intelligence…')}
+        </p>
+      </div>
+    );
+  }
   // Do not render editable sessions or creation until Intelligence is configured.
-  if (!intelligence?.available) {
+  if (!intelligence.available) {
     return (
       <div className={`nx-surface-scroll nx-composer-surface ${styles.workbench}`}>
         <div className={styles.contextFix} role="status" aria-live="polite">
@@ -114,7 +124,7 @@ export const WorkSurface: React.FC<{
           </p>
           {intelligence?.error ? <p className="nx-inline-error">{intelligence.error}</p> : null}
           <div className={styles.contextFix}>
-            <Button tone="brand" onClick={onOpenIntelligenceSettings} disabled={!onOpenIntelligenceSettings}>
+            <Button tone="brand" onClick={() => onOpenIntelligenceSettings?.()} disabled={!onOpenIntelligenceSettings}>
               {t('work.composer.configureIntelligence', 'Abrir Nexus Intelligence')}
             </Button>
             <Button onClick={() => void refreshIntelligence()}>
