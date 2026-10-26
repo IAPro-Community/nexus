@@ -3,8 +3,11 @@ package nexus
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
+	coreconfig "github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
@@ -99,7 +102,24 @@ func (s *ComposerApplicationService) Delete(ctx context.Context, sessionID strin
 	if err := ctx.Err(); err != nil { return err }
 	st, err := s.nexus.OpenProject()
 	if err != nil { return err }
-	return st.DeleteComposerSessionExpected(sessionID, expectedRevision)
+	// Capture managed attachment references before SQLite cascades remove them.
+	// Disk cleanup is best-effort after the transaction has committed.
+	attachments, _ := st.ListConversationAttachments(sessionID)
+	if err := st.DeleteComposerSessionExpected(sessionID, expectedRevision); err != nil {
+		return err
+	}
+	dataDir, err := coreconfig.DataDir()
+	if err != nil { return nil }
+	managedDir := filepath.Clean(filepath.Join(dataDir, "attachments", sessionID))
+	for _, attachment := range attachments {
+		path := filepath.Clean(attachment.StorageRef)
+		if filepath.Dir(path) != managedDir || filepath.Base(path) != attachment.ID {
+			continue // no arbitrary paths from persisted metadata
+		}
+		_ = os.Remove(path)
+	}
+	_ = os.Remove(managedDir) // only succeeds if empty; never recursive
+	return nil
 }
 
 func (s *ComposerApplicationService) Get(ctx context.Context, sessionID string) (*ComposerSessionView, error) {
