@@ -189,14 +189,19 @@ func (n *Nexus) createComposerSessionWithPromptProgress(
 	// "Starting…" forever — heuristics already seeded the brief above.
 	bootCtx, bootCancel := context.WithTimeout(ctx, composerBootstrapTimeout)
 	progress.Step("extract_brief", "started")
-	n.enrichComposerBriefFromText(bootCtx, projectID, &brief, firstNonEmpty(sourcePrompt, goal), &manifest)
+	discoveryCompleted := n.enrichComposerBriefFromText(bootCtx, projectID, &brief, firstNonEmpty(sourcePrompt, goal), &manifest)
 	if bootCtx.Err() != nil {
 		progress.Step("extract_brief", "skipped")
 	} else {
 		progress.Step("extract_brief", "done")
 	}
 	progress.Step("unknowns", "started")
-	n.seedComposerIntelligenceUnknowns(bootCtx, projectID, &brief, &manifest)
+	// A modern provider can return recommendations and material questions in
+	// the same extraction call. Fall back to legacy two-call analysis only when
+	// the provider did not advertise a complete discovery response.
+	if !discoveryCompleted {
+		n.seedComposerIntelligenceUnknowns(bootCtx, projectID, &brief, &manifest)
+	}
 	if bootCtx.Err() != nil {
 		progress.Step("unknowns", "skipped")
 	} else {
@@ -776,21 +781,26 @@ func composeAssistantReply(brief LivingBrief) string {
 // extract structured brief fields from free-form text and merges them into the
 // brief. It is a no-op when no provider is available, so heuristics remain the
 // deterministic fallback. Provider resolution mirrors seedComposerIntelligenceUnknowns.
-func (n *Nexus) enrichComposerBriefFromText(ctx context.Context, projectID string, brief *LivingBrief, text string, manifest *ComposerContextManifest) {
+func (n *Nexus) enrichComposerBriefFromText(ctx context.Context, projectID string, brief *LivingBrief, text string, manifest *ComposerContextManifest) bool {
 	if brief == nil || strings.TrimSpace(text) == "" {
-		return
+		return false
 	}
 	provider, err := n.ConfiguredIntelligenceProvider(ctx, projectID)
 	if err != nil || provider == nil || !provider.Available(ctx) {
-		return
+		return false
 	}
 	contextData := map[string]any{"project_id": projectID, "brief": compactComposerIntelligenceBrief(*brief)}
 	if manifest != nil {
 		contextData["context_manifest"] = manifest.IntelligenceContext()
 	}
-	if extraction, extractErr := provider.ExtractBrief(ctx, text, contextData); extractErr == nil {
+	if extraction, extractErr := provider.ExtractBrief(ctx, text, contextData); extractErr == nil && extraction != nil {
 		applyBriefExtraction(brief, extraction)
+		if extraction.DiscoveryComplete {
+			MergeIntelligenceUnknowns(brief, extraction.Clarifications)
+			return true
+		}
 	}
+	return false
 }
 
 func (n *Nexus) seedComposerIntelligenceUnknowns(ctx context.Context, projectID string, brief *LivingBrief, manifest *ComposerContextManifest) {
