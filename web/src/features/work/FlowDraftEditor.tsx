@@ -23,11 +23,12 @@ export const FlowDraftEditor: React.FC<{
   project: Project;
   agents: Agent[];
   onRunCreated?: (run: MissionRun) => void;
+  onPlanDeleted?: () => void;
   initialGoal?: string;
   initialPlan?: WorkPlan | null;
-}> = ({ project, agents, onRunCreated, initialGoal = '', initialPlan = null }) => {
+}> = ({ project, agents, onRunCreated, onPlanDeleted, initialGoal = '', initialPlan = null }) => {
   const { t } = useTranslation();
-  const controller = useFlowDraftEditor({ project, onRunCreated, initialGoal, initialPlan });
+  const controller = useFlowDraftEditor({ project, onRunCreated, onPlanDeleted, initialGoal, initialPlan });
   const {
     clarification,
     clarificationAnswers,
