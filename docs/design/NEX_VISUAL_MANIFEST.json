@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "identity": {
     "name": "NEX",
     "brand": "IAPro Nexus",
@@ -17,9 +17,23 @@
       "idle",
       "working",
       "warning",
+      "critical",
       "offline"
     ],
-    "runtime_export_script": "web/scripts/export-nex-art.mjs"
+    "runtime_export_script": "web/scripts/export-nex-art.mjs",
+    "companion_ui_moods": [
+      "idle",
+      "working",
+      "attention",
+      "critical",
+      "offline"
+    ],
+    "mood_projection": {
+      "attention": "warning",
+      "critical": "critical"
+    },
+    "runtime_mood_type": "web/src/features/hud/guardianModel.ts",
+    "companion_mood_type": "web/src/features/hud/companionModel.ts"
   },
   "references": [
     {
@@ -58,8 +72,16 @@
       "id": "approved_high_fidelity_concept",
       "file": null,
       "kind": "original_concept_raster",
-      "status": "AWAITING_BINARY_INGEST",
-      "note": "The prior approved AI-generated art board is not stored in the repository yet; never claim these auxiliary SVGs are pixel-perfect copies."
+      "status": "IDENTIFIED_BINARY_NOT_VERSIONED",
+      "note": "Original approved raster exists in the conversation working environment, but has not been committed to GitHub. Do not treat auxiliary SVGs as identical. Use scripts/import-nex-concept.mjs to ingest bytes with SHA-256 verification.",
+      "expected_repository_path": "docs/design/assets/nex/nex-official-approved-concept-20261023.png",
+      "source_filename": "guia_visual_oficial_do_mascote_nex.png",
+      "format": "PNG",
+      "width": 1448,
+      "height": 1086,
+      "bytes": 2422890,
+      "sha256": "4dff7d9521687f77f666a56dcf04bbe3d04dd4cd895139b1fa98df5f90f35ed5",
+      "provenance": "Approved front-facing 32-bit-inspired style board generated during 2026-10-23 conversation; locally verified 2026-10-26."
     }
   ],
   "anatomy": {
@@ -96,7 +118,8 @@
     "white_metal": "#F2F8FF",
     "steel_shadow": "#AAC4E2",
     "warning": "#FF8A45",
-    "offline": "#71839D"
+    "offline": "#71839D",
+    "critical": "#FF496C"
   },
   "variants": {
     "compact": {
@@ -137,6 +160,7 @@
       "idle",
       "working",
       "warning",
+      "critical",
       "offline"
     ],
     "concept_only_moods": [
@@ -151,8 +175,9 @@
     "script": "scripts/verify-nex-visual.mjs",
     "checklist": "docs/design/NEX_VISUAL_REVIEW_CHECKLIST.md",
     "requires_human_visual_review": true,
-    "release_native_certification_separate": true
+    "release_native_certification_separate": true,
+    "ingest_script": "scripts/import-nex-concept.mjs"
   },
   "manifest_kind": "nex-visual-manifest",
-  "last_contract_revision": "2026-10-23"
+  "last_contract_revision": "2026-10-26"
 }
