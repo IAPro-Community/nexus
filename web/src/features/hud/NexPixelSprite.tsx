@@ -84,16 +84,28 @@ export const NexPixelSprite: React.FC<NexPixelSpriteProps> = ({ mood }) => {
         <path d="M8 100q56-30 112 0" fill="none" stroke="#1B70E7" strokeWidth="1.8" />
       </g>
 
-      {/* Twin upright fins: official front-facing aerodynamic silhouette */}
-      <g className={styles.guardianAntenna} data-nex-part="fins">
-        <path
-          d="M31 34L33 8l5 0 9 26z M97 34l-9-26h-5l2 26z"
-          fill="#112C5D"
-          stroke="#4E92F3"
-          strokeWidth="2"
-        />
-        <path d="M35 30l1-19 7 19z M93 30l-7-19 1 19z" fill={accent} opacity=".92" />
-        <path d="M37 20l1-8 2 8z M91 20l-2-8 1 8z" fill={glint} opacity=".95" />
+      {/* Independent mirrored fins share a fixed frontal anatomy. */}
+      <g data-nex-part="fins">
+        <g className={styles.nexFinLeft} data-nex-fin="left">
+          <path
+            d="M31 34L33 8l5 0 9 26z"
+            fill="#112C5D"
+            stroke="#4E92F3"
+            strokeWidth="2"
+          />
+          <path d="M35 30l1-19 7 19z" fill={accent} opacity=".92" />
+          <path d="M37 20l1-8 2 8z" fill={glint} opacity=".95" />
+        </g>
+        <g className={styles.nexFinRight} data-nex-fin="right">
+          <path
+            d="M97 34l-9-26h-5l2 26z"
+            fill="#112C5D"
+            stroke="#4E92F3"
+            strokeWidth="2"
+          />
+          <path d="M93 30l-7-19 1 19z" fill={accent} opacity=".92" />
+          <path d="M91 20l-2-8 1 8z" fill={glint} opacity=".95" />
+        </g>
       </g>
 
       {/* Compact floating robot torso */}
@@ -215,21 +227,19 @@ export const NexPixelSprite: React.FC<NexPixelSpriteProps> = ({ mood }) => {
             [98, 115, 3],
           ] as const
         ).map(([x, y, index]) => (
-          <g
-            key={index}
-            className={index % 2 === 0 ? styles.nexModuleNear : styles.nexModuleFar}
-            transform={`translate(${x} ${y})`}
-            data-nex-module={index + 1}
-          >
-            <circle cx="0" cy="0" r="7.5" fill="#0A2252" stroke="#ECF8FF" strokeWidth="2.8" />
-            <circle cx="0" cy="0" r="3.5" fill={accent} stroke="#225C9C" strokeWidth="1.6" />
-            <circle cx="-1" cy="-1" r="1" fill={glint} />
+          <g key={index} transform={`translate(${x} ${y})`} data-nex-module={index + 1}>
+            {/* Do not animate the outer transform: it anchors the module to its canonical position. */}
+            <g className={index % 2 === 0 ? styles.nexModuleNear : styles.nexModuleFar}>
+              <circle cx="0" cy="0" r="7.5" fill="#0A2252" stroke="#ECF8FF" strokeWidth="2.8" />
+              <circle cx="0" cy="0" r="3.5" fill={accent} stroke="#225C9C" strokeWidth="1.6" />
+              <circle cx="-1" cy="-1" r="1" fill={glint} />
+            </g>
           </g>
         ))}
       </g>
 
       {/* Lower orbital arc (foreground) */}
-      <g data-nex-part="orbit-front">
+      <g className={styles.nexOrbitFront} data-nex-part="orbit-front">
         <path d="M8 100q56 36 112 0" fill="none" stroke={accent} strokeWidth="2.2" />
         <path d="M26 113h6 M96 113h6" stroke={glint} strokeWidth="1.6" strokeLinecap="round" />
       </g>
