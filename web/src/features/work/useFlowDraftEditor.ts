@@ -53,10 +53,11 @@ export type { FlowStepAction, StudioView } from './flowDraftEditorModel';
 export function useFlowDraftEditor(options: {
   project: Project;
   onRunCreated?: (run: MissionRun) => void;
+  onPlanDeleted?: () => void;
   initialGoal?: string;
   initialPlan?: WorkPlan | null;
 }) {
-  const { project, onRunCreated, initialGoal = '', initialPlan = null } = options;
+  const { project, onRunCreated, onPlanDeleted, initialGoal = '', initialPlan = null } = options;
   const { t } = useTranslation();
 
   const [selectedPlan, setSelectedPlan] = useState<WorkPlan | null>(null);
@@ -284,13 +285,14 @@ export function useFlowDraftEditor(options: {
       setClarification(null);
       setFlowNotice(t('flow.deleted', 'Flow removido. Você pode iniciar outro planejamento.'));
       await refreshSavedPlans();
+      onPlanDeleted?.();
     } catch (error) {
       setPlanError(error instanceof Error ? error.message : String(error));
       await refreshSavedPlans().catch(() => undefined);
     } finally {
       setDeletingPlan(false);
     }
-  }, [selectedPlan, deletingPlan, generating, runBusy, project.id, t, refreshSavedPlans]);
+  }, [selectedPlan, deletingPlan, generating, runBusy, project.id, t, refreshSavedPlans, onPlanDeleted]);
 
   const appliedInitialPlanId = useRef<string | null>(null);
   useEffect(() => {
