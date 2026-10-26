@@ -223,10 +223,11 @@ export const FlowRunSurface: React.FC<{
     setPlanningReviewBusy(true);
     setError('');
     try {
-      const reason = run.paused_reason ||
-        (run.needs_human?.question
-          ? 'Reavaliar decisão pendente e dependências da Mission'
-          : 'Reavaliar o planejamento e as próximas etapas desta Mission');
+      // Provider diagnostic strings can contain private data; only send a
+      // bounded semantic reason. The server independently loads run lineage.
+      const reason = run.needs_human
+        ? 'Reavaliar decisão pendente e dependências da Mission'
+        : 'Reavaliar o planejamento e as próximas etapas desta Mission';
       const composer = await nexusApi.requestMissionPlanningReview(run.id, reason);
       onOpenComposer(composer.session.id);
     } catch (reason) {
