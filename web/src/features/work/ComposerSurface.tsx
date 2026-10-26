@@ -163,6 +163,7 @@ export const ComposerSurface: React.FC<{
           error={error}
           onCreate={(args) => void composer.create(args)}
           onResumeSession={(id) => void composer.loadSession(id)}
+          onDeleteSession={(id, rev) => void composer.deleteSession(id, rev)}
         />
         {bootstrapActivity ? (
           <div className={styles.bootstrapActivity}>
@@ -235,6 +236,7 @@ export const ComposerSurface: React.FC<{
         busy={busy}
         onSelectSession={(id) => void composer.loadSession(id)}
         onNewSession={composer.resetSession}
+        onDeleteSession={(id, rev) => void composer.deleteSession(id, rev)}
         contextState={contextState}
         intelligenceLabel={intelLabel}
         intelligenceReady={intelligenceReady}
