@@ -777,6 +777,16 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
         onPointerDown={() => termRef.current?.focus()}
       />
 
+      {/* Window/mosaic chrome hides the header: never hide the writer lease action. */}
+      {hideHeader && role === 'VIEW_ONLY' && !connecting && !disconnected && (
+        <div className={styles.terminalControlOverlay} role="status">
+          <span>VIEW ONLY</span>
+          <button type="button" onClick={requestControl}>
+            {t('terminal.takeControl')}
+          </button>
+        </div>
+      )}
+
       {/* Smart scroll-to-bottom floating button */}
       {isScrolledUp && (
         <button
