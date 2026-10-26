@@ -358,7 +358,7 @@ export const FlowRunsHistorySurface: React.FC<{
       {track === 'drafts' && (
         <div className={styles.runsList}>
           {draftPlans.map((plan) => (
-            <Card key={plan.id} className="nx-flow-run-history-card">
+            <Card key={plan.id} className={`nx-flow-run-history-card ${styles.planRow}`}>
               <button
                 type="button"
                 onClick={() => setSelectedPlan(plan)}
@@ -380,6 +380,7 @@ export const FlowRunsHistorySurface: React.FC<{
               <Button
                 size="sm"
                 tone="danger"
+                className={styles.deletePlanAction}
                 disabled={deleteBusy || loading}
                 onClick={() => setPlanToDelete(plan)}
                 aria-label={t('flow.deleteFlowNamed', 'Excluir Flow: {{title}}', {
