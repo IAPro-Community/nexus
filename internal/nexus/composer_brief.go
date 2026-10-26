@@ -703,9 +703,33 @@ func computePromptReadiness(brief LivingBrief) PromptReadiness {
 	return PromptReadiness{Score: score, State: state, Summary: summary, Checks: checks}
 }
 
+// annotateComposerInferences stops fields inferred by a model from being
+// rendered as unquestionable user requirements in the executable prompt.
+func annotateComposerInferences(brief LivingBrief, field string, values []string) []string {
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		inferred := false
+		for _, fact := range brief.Facts {
+			if fact.Field == field && fact.Value == value &&
+				fact.SourceType == "INTELLIGENCE" && fact.Status == ComposerFactInferred {
+				inferred = true
+				break
+			}
+		}
+		if inferred {
+			out = append(out, "[AI-INFERRED — verify before treating as approved scope] "+value)
+		} else {
+			out = append(out, value)
+		}
+	}
+	return out
+}
+
 func renderCanonicalPrompt(brief LivingBrief) string {
 	var b strings.Builder
 	writePromptSection(&b, "Role", roleForArchetype(brief.Intent.Archetype))
+	writePromptSection(&b, "Evidence and authorization policy",
+		"Distinguish user-approved decisions and verified project evidence from AI-inferred details and proposed alternatives. Never treat AI proposals as an approved feature request. Verify inferred requirements against the user goal before expanding scope. Do not perform destructive operations, deployment or release actions without explicit authorization.")
 	writePromptSection(&b, "Objective", firstNonEmpty(strings.TrimSpace(brief.Intent.Objective), strings.TrimSpace(brief.Goal)))
 	writePromptList(&b, "Motivation — Problem", factsToLines(brief.Motivation.Problem))
 	writePromptList(&b, "Motivation — Impact", factsToLines(brief.Motivation.Impact))
@@ -714,34 +738,34 @@ func renderCanonicalPrompt(brief LivingBrief) string {
 	writePromptSection(&b, "Audience", brief.Context.Audience)
 	writePromptList(&b, "Context", append(append([]string(nil), brief.Context.Evidence...), brief.Context.ExistingState...))
 	writeReferencedFiles(&b, brief.Context.ReferencedFiles)
-	writePromptList(&b, "Requirements", brief.Scope.InScope)
-	writePromptList(&b, "Out of scope", brief.Scope.OutOfScope)
+	writePromptList(&b, "Requirements", annotateComposerInferences(brief, "scope.in_scope", brief.Scope.InScope))
+	writePromptList(&b, "Out of scope", annotateComposerInferences(brief, "scope.out_of_scope", brief.Scope.OutOfScope))
 	writePromptList(&b, "Decisions", brief.Decisions)
 	writePromptList(&b, "Suggested approaches (AI proposals; validate before implementing)", factsToLines(brief.Recommendations))
 	writePromptList(&b, "Assumptions", flattenAssumptionsToLines(brief.Assumptions))
-	writePromptList(&b, "Constraints — Technical", brief.Constraints.Technical)
+	writePromptList(&b, "Constraints — Technical", annotateComposerInferences(brief, "constraints.technical", brief.Constraints.Technical))
 	writePromptList(&b, "Constraints — Product", brief.Constraints.Product)
-	writePromptList(&b, "Constraints — Security", brief.Constraints.Security)
+	writePromptList(&b, "Constraints — Security", annotateComposerInferences(brief, "constraints.security", brief.Constraints.Security))
 	writePromptList(&b, "Constraints — Compliance", brief.Constraints.Compliance)
 	writePromptList(&b, "Constraints — Schedule", brief.Constraints.Schedule)
 	writePromptList(&b, "Constraints — Budget", brief.Constraints.Budget)
-	writePromptList(&b, "Environment — Stack", brief.Environment.Stack)
+	writePromptList(&b, "Environment — Stack", annotateComposerInferences(brief, "environment.stack", brief.Environment.Stack))
 	writePromptSection(&b, "Environment — Repository", brief.Environment.Repository)
 	writePromptList(&b, "Environment — Operating Systems", brief.Environment.OperatingSystems)
 	writePromptList(&b, "Environment — Infrastructure", brief.Environment.Infrastructure)
 	writePromptSection(&b, "Execution — Autonomy", brief.Execution.Autonomy)
 	writePromptList(&b, "Execution — Allowed actions", brief.Execution.AllowedActions)
-	writePromptList(&b, "Execution — Prohibited actions", brief.Execution.ProhibitedActions)
-	writePromptList(&b, "Risks", brief.Risks)
+	writePromptList(&b, "Execution — Prohibited actions", annotateComposerInferences(brief, "execution.prohibited_actions", brief.Execution.ProhibitedActions))
+	writePromptList(&b, "Risks", annotateComposerInferences(brief, "risks", brief.Risks))
 	writePromptList(&b, "Alternatives rejected", brief.Alternatives)
-	writePromptList(&b, "Acceptance Criteria", brief.Quality.AcceptanceCriteria)
-	writePromptList(&b, "Testing", brief.Quality.Testing)
-	writePromptList(&b, "Verification", brief.Quality.Verification)
+	writePromptList(&b, "Acceptance Criteria", annotateComposerInferences(brief, "quality.acceptance_criteria", brief.Quality.AcceptanceCriteria))
+	writePromptList(&b, "Testing", annotateComposerInferences(brief, "quality.testing", brief.Quality.Testing))
+	writePromptList(&b, "Verification", annotateComposerInferences(brief, "quality.verification", brief.Quality.Verification))
 	writePromptList(&b, "Review", brief.Quality.Review)
 	writePromptList(&b, "Definition of Done", brief.Quality.DefinitionOfDone)
 	writePromptSection(&b, "Deliverable — Type", brief.Deliverable.Type)
 	writePromptSection(&b, "Deliverable — Format", brief.Deliverable.Format)
-	writePromptList(&b, "Deliverables", brief.Deliverable.ExpectedArtifacts)
+	writePromptList(&b, "Deliverables", annotateComposerInferences(brief, "deliverable.expected_artifacts", brief.Deliverable.ExpectedArtifacts))
 	writePromptList(&b, "Accepted gaps", acceptedGapLines(brief))
 	return strings.TrimSpace(b.String())
 }
