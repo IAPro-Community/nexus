@@ -68,10 +68,15 @@ func TestDeleteWorkPlanPreservesMissionRunAndSnapshot(t *testing.T) {
         ID: "run-delete-guard", PlanID: plan.ID, ProjectID: project.ID,
         State: "COMPLETED_VERIFIED", PayloadJSON: "{}",
     }); err != nil { t.Fatal(err) }
+    revision, err := st.GetPlanRevision(plan.ID, 1)
+    if err != nil { t.Fatal(err) }
+    snapshot, err := st.CreateExecutionSnapshot(plan.ID, revision.ID, "{}")
+    if err != nil { t.Fatal(err) }
     if err := st.DeleteWorkPlanExpected(plan.ID, plan.CurrentRevision); !errors.Is(err, ErrPlanDeleteProtected) {
         t.Fatalf("Mission history must be protected: %v", err)
     }
     if _, err := st.GetMissionRun("run-delete-guard"); err != nil { t.Fatalf("Mission was deleted: %v", err) }
+    if _, err := st.GetExecutionSnapshot(snapshot.ID); err != nil { t.Fatalf("ExecutionSnapshot was deleted: %v", err) }
     if _, err := st.GetWorkPlan(plan.ID); err != nil { t.Fatalf("plan was deleted: %v", err) }
 }
 
@@ -99,4 +104,35 @@ func TestDeleteWorkPlanRejectsScheduledAndStalePlan(t *testing.T) {
     if _, err := st.GetPlanRevision(unused.ID, 1); !errors.Is(err, sql.ErrNoRows) {
         t.Fatalf("Flow revision history still persisted: %v", err)
     }
+}
+
+func TestDeleteComposerRefusesPublishedDeliveryReceipt(t *testing.T) {
+    st := openTestStore(t)
+    project := deletionProject(t, st)
+    session, err := st.CreateComposerSession(ComposerSession{ProjectID: project.ID, Title: "External delivery"})
+    if err != nil { t.Fatal(err) }
+    artifact, err := st.CreatePromptArtifact(PromptArtifact{SessionID: session.ID, Content: "Published specification"})
+    if err != nil { t.Fatal(err) }
+    if _, err := st.RecordComposerDestinationReceipt(ComposerDestinationReceipt{
+        ArtifactID: artifact.ID, Destination: "AGENT", Variant: "canonical", Status: "DELIVERED",
+    }); err != nil { t.Fatal(err) }
+    if err := st.DeleteComposerSessionExpected(session.ID, session.Revision); !errors.Is(err, ErrComposerDeleteProtected) {
+        t.Fatalf("delivery evidence must keep Composer session: %v", err)
+    }
+    if _, err := st.GetPromptArtifact(artifact.ID); err != nil { t.Fatalf("published artifact was deleted: %v", err) }
+}
+
+func TestDeleteWorkPlanProtectsSnapshotWithoutMissionRun(t *testing.T) {
+    st := openTestStore(t)
+    project := deletionProject(t, st)
+    plan, err := st.CreateWorkPlan(WorkPlan{ProjectID: project.ID, Title: "Prepared execution"})
+    if err != nil { t.Fatal(err) }
+    revision, err := st.GetPlanRevision(plan.ID, 1)
+    if err != nil { t.Fatal(err) }
+    snapshot, err := st.CreateExecutionSnapshot(plan.ID, revision.ID, "{}")
+    if err != nil { t.Fatal(err) }
+    if err := st.DeleteWorkPlanExpected(plan.ID, plan.CurrentRevision); !errors.Is(err, ErrPlanDeleteProtected) {
+        t.Fatalf("prepared execution snapshot should block deletion, got %v", err)
+    }
+    if _, err := st.GetExecutionSnapshot(snapshot.ID); err != nil { t.Fatalf("snapshot lost: %v", err) }
 }
