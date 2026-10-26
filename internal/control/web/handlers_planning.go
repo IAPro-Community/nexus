@@ -1,6 +1,7 @@
 package web
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"io"
@@ -148,6 +149,32 @@ func (h *NexusHandler) handleComposerSession(w http.ResponseWriter, r *http.Requ
 	id := strings.Trim(strings.TrimPrefix(r.URL.Path, "/api/v1/composer-sessions/"), "/")
 	if id == "" {
 		writeError(w, http.StatusNotFound, "missing composer session id")
+		return
+	}
+	if r.Method == http.MethodDelete {
+		if strings.Contains(id, "/") {
+			writeError(w, http.StatusBadRequest, "only Composer sessions can be deleted")
+			return
+		}
+		expectedRevision, err := strconv.Atoi(r.URL.Query().Get("expected_revision"))
+		if err != nil || expectedRevision <= 0 {
+			writeError(w, http.StatusBadRequest, "expected_revision is required")
+			return
+		}
+		if err := h.composer.Delete(r.Context(), id, expectedRevision); err != nil {
+			switch {
+			case errors.Is(err, store.ErrComposerDeleteProtected):
+				writeError(w, http.StatusConflict, err.Error())
+			case errors.Is(err, store.ErrPlanRevisionConflict):
+				writeError(w, http.StatusConflict, "Composer revision changed; reload before deleting")
+			case errors.Is(err, sql.ErrNoRows):
+				writeError(w, http.StatusNotFound, "Composer session not found")
+			default:
+				writeError(w, http.StatusInternalServerError, err.Error())
+			}
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]bool{"deleted": true})
 		return
 	}
 	if strings.HasSuffix(id, "/attachments") {
@@ -403,8 +430,22 @@ func (h *NexusHandler) handlePlanDetail(w http.ResponseWriter, r *http.Request) 
 		})
 
 	case http.MethodDelete:
-		if err := h.plans.Delete(r.Context(), planID); err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error())
+		expectedRevision, err := strconv.Atoi(r.URL.Query().Get("expected_revision"))
+		if err != nil || expectedRevision <= 0 {
+			writeError(w, http.StatusBadRequest, "expected_revision is required")
+			return
+		}
+		if err := h.plans.DeleteExpected(r.Context(), planID, expectedRevision); err != nil {
+			switch {
+			case errors.Is(err, store.ErrPlanDeleteProtected):
+				writeError(w, http.StatusConflict, err.Error())
+			case errors.Is(err, store.ErrPlanRevisionConflict):
+				writeError(w, http.StatusConflict, "Flow revision changed; reload before deleting")
+			case errors.Is(err, sql.ErrNoRows):
+				writeError(w, http.StatusNotFound, "Flow not found")
+			default:
+				writeError(w, http.StatusInternalServerError, err.Error())
+			}
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]bool{"deleted": true})
