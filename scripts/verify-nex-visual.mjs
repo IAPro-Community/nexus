@@ -50,7 +50,17 @@ check(source.includes('data-nex-art="32bit-official"'), 'runtime lacks official 
 check(source.includes('data-nex-facing="front"'), 'runtime facing must be front');
 check(source.includes('viewBox="0 0 128 128"'), 'Compact viewBox changed without review');
 check(source.includes('data-nex-module='), 'orbital modules not found');
-const coordinates = [...source.matchAll(/\\[\\s*\\d+\\s*,\\s*\\d+\\s*,\\s*[0-3]\\s*\\]/g)];
+const coordinates = source.split('\n').filter((line) => {
+  const tuple = line.trim();
+  if (!tuple.startsWith('[') || !tuple.endsWith('],')) return false;
+  try {
+    const parsed = JSON.parse(tuple.slice(0, -1));
+    return Array.isArray(parsed) && parsed.length === 3
+      && parsed.every(Number.isInteger);
+  } catch {
+    return false;
+  }
+});
 check(coordinates.length === manifest.anatomy.orbital_module_count,
   'module coordinates count differs from canonical anatomy');
 check((source.match(/data-nex-module=/g) || []).length === 1,
@@ -77,7 +87,7 @@ for (const entry of artwork) {
   check(svg.startsWith('<svg') && svg.trimEnd().endsWith('</svg>'),
     `invalid SVG envelope: ${entry.file}`);
   check(svg.includes('data-nex-figure="front"'), `missing frontal figure: ${entry.file}`);
-  check((svg.match(/<g(?:\\s|>)/g) || []).length === (svg.match(/<\\/g>/g) || []).length,
+  check(svg.split('<g').length === svg.split('</g>').length,
     `unbalanced SVG graphic groups: ${entry.file}`);
 }
 const expressions = artwork.find((ref) => ref.id === 'expressions');
