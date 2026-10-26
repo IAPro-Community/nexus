@@ -93,6 +93,15 @@ func (s *ComposerApplicationService) List(ctx context.Context, projectID string)
 	return s.nexus.ListComposerSessions(ctx, projectID)
 }
 
+// Delete is a user-owned cleanup operation. It must remain available even
+// when Nexus Intelligence is offline; creation/refinement still require AI.
+func (s *ComposerApplicationService) Delete(ctx context.Context, sessionID string, expectedRevision int) error {
+	if err := ctx.Err(); err != nil { return err }
+	st, err := s.nexus.OpenProject()
+	if err != nil { return err }
+	return st.DeleteComposerSessionExpected(sessionID, expectedRevision)
+}
+
 func (s *ComposerApplicationService) Get(ctx context.Context, sessionID string) (*ComposerSessionView, error) {
 	return s.nexus.GetComposerSession(ctx, sessionID)
 }
