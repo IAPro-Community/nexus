@@ -43,6 +43,7 @@ export const FlowRunsHistorySurface: React.FC<{
   const [plans, setPlans] = useState<WorkPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [runLoadError, setRunLoadError] = useState('');
   const [track, setTrack] = useState<Track>('drafts');
   const [filterState, setFilterState] = useState<RunFilter>('ALL');
   const [selectedPlan, setSelectedPlan] = useState<WorkPlan | null>(null);
@@ -57,12 +58,20 @@ export const FlowRunsHistorySurface: React.FC<{
     const isLatest = () => loadSeqRef.current === seq;
     setLoading(true);
     setError('');
+    setRunLoadError('');
     try {
-      const [runList, planList] = await Promise.all([
-        nexusApi.getRuns().catch(() => []),
-        nexusApi.getPlans(project.id).catch(() => []),
+      const [runResult, planResult] = await Promise.allSettled([
+        nexusApi.getRuns(),
+        nexusApi.getPlans(project.id),
       ]);
       if (!isLatest()) return;
+      if (planResult.status === 'rejected') throw planResult.reason;
+      const runList = runResult.status === 'fulfilled' ? runResult.value : [];
+      const planList = planResult.value;
+      if (runResult.status === 'rejected') {
+        setRunLoadError(t('flow.runHistoryUnavailable',
+          'Não foi possível consultar as Missions. O histórico pode estar incompleto; tente atualizar.'));
+      }
       const nextRuns = asArray(runList).filter((run): run is MissionRun => {
         const item = run as MissionRun;
         return (
@@ -105,7 +114,7 @@ export const FlowRunsHistorySurface: React.FC<{
     } finally {
       if (isLatest()) setLoading(false);
     }
-  }, [project.id]);
+  }, [project.id, t]);
 
   useEffect(() => {
     void load();
@@ -141,8 +150,10 @@ export const FlowRunsHistorySurface: React.FC<{
 
   const draftPlans = useMemo(() => {
     const runPlanIds = new Set(runs.map((run) => run.plan_id).filter(Boolean));
-    return plans.filter((plan) => plan.status === 'DRAFT' || !runPlanIds.has(plan.id));
-  }, [plans, runs]);
+    // Never classify a READY/EXECUTED plan as unused if the history API failed.
+    return plans.filter((plan) =>
+      plan.status === 'DRAFT' || (!runLoadError && !runPlanIds.has(plan.id)));
+  }, [plans, runs, runLoadError]);
 
   const filtered = useMemo(() => {
     return runs.filter((run) => {
@@ -281,7 +292,8 @@ export const FlowRunsHistorySurface: React.FC<{
           <Spinner />
         </div>
       )}
-      {error && <div className="nx-inline-error">{error}</div>}
+      {error && <div className="nx-inline-error" role="alert">{error}</div>}
+      {runLoadError && <div className="nx-inline-error" role="alert">{runLoadError}</div>}
 
       {!loading && !error && track === 'drafts' && (
         <Card className={styles.newFlowCard}>
@@ -343,7 +355,7 @@ export const FlowRunsHistorySurface: React.FC<{
         />
       )}
 
-      {!loading && !error && track === 'runs' && sorted.length === 0 && (
+      {!loading && !error && !runLoadError && track === 'runs' && sorted.length === 0 && (
         <EmptyState
           title={t('flow.noRuns', 'Nenhuma execução ainda')}
           hint={t('flow.noRunsHint', 'Aprove um rascunho de Flow para ver o histórico aqui.')}
@@ -394,7 +406,7 @@ export const FlowRunsHistorySurface: React.FC<{
         </div>
       )}
 
-      {track === 'runs' && (
+      {track === 'runs' && !runLoadError && (
         <div className={styles.runsList}>
           {sorted.map((run) => {
             const state = flowRunStateFromMission(run.state || '');
