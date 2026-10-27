@@ -91,26 +91,45 @@ func (h *NexusHandler) handleProjectFiles(w http.ResponseWriter, r *http.Request
 	}
 	if r.URL.Query().Has("history") {
 		if r.Method != http.MethodGet {
-			writeError(w, http.StatusMethodNotAllowed, "GET required"); return
+			writeError(w, http.StatusMethodNotAllowed, "GET required")
+			return
 		}
 		dataDir, err := config.DataDir()
-		if err != nil { writeError(w, http.StatusServiceUnavailable, "output history unavailable");return }
+		if err != nil {
+			writeError(w, http.StatusServiceUnavailable, "output history unavailable")
+			return
+		}
 		// Refuse history of paths that are no longer valid, authorized files.
-		if _, err := artifacts.Describe(root, rel); err != nil { writeError(w, http.StatusNotFound, "output unavailable");return }
+		if _, err := artifacts.Describe(root, rel); err != nil {
+			writeError(w, http.StatusNotFound, "output unavailable")
+			return
+		}
 		versions, err := artifacts.ListRevisions(dataDir, projectIDFromPath(r.URL.Path), rel)
-		if err != nil { writeError(w, http.StatusNotFound, "output history unavailable");return }
-		writeJSON(w,http.StatusOK,map[string]any{"versions":versions})
+		if err != nil {
+			writeError(w, http.StatusNotFound, "output history unavailable")
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"versions": versions})
 		return
 	}
 	if numberRaw := r.URL.Query().Get("version"); numberRaw != "" {
 		dataDir, err := config.DataDir()
-		if err != nil { writeError(w, http.StatusServiceUnavailable, "output history unavailable");return }
+		if err != nil {
+			writeError(w, http.StatusServiceUnavailable, "output history unavailable")
+			return
+		}
 		number, err := strconv.Atoi(numberRaw)
-		if err != nil { writeError(w, http.StatusBadRequest, "invalid revision");return }
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid revision")
+			return
+		}
 		// The current project root is resolved before serving any old versions.
-		if _, err := artifacts.Describe(root, rel); err != nil { writeError(w, http.StatusNotFound, "output unavailable");return }
-		if err := artifacts.ServeRevision(w,r,dataDir,projectIDFromPath(r.URL.Path),rel,number);err!=nil {
-			writeError(w,http.StatusNotFound,"output revision unavailable")
+		if _, err := artifacts.Describe(root, rel); err != nil {
+			writeError(w, http.StatusNotFound, "output unavailable")
+			return
+		}
+		if err := artifacts.ServeRevision(w, r, dataDir, projectIDFromPath(r.URL.Path), rel, number); err != nil {
+			writeError(w, http.StatusNotFound, "output revision unavailable")
 		}
 		return
 	}

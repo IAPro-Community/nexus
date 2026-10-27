@@ -36,8 +36,8 @@ type Item struct {
 	Origin    string    `json:"origin"`
 	AgentID   string    `json:"agent_id,omitempty"`
 	RuntimeID string    `json:"runtime_id,omitempty"`
-	Revision int `json:"revision,omitempty"`
-	Revisions int `json:"revisions,omitempty"`
+	Revision  int       `json:"revision,omitempty"`
+	Revisions int       `json:"revisions,omitempty"`
 }
 type Entry struct {
 	Name     string    `json:"name"`

@@ -340,21 +340,26 @@
 }
 
 .versions {
-  display:flex;
-  align-items:center;
-  flex-wrap:wrap;
-  gap:8px;
-  padding:8px 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 0;
 }
-.versions strong { font-size:12px; }
+.versions strong {
+  font-size: 12px;
+}
 .versions button {
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  background:var(--nx-surface,#1c222e);
-  border:1px solid var(--nx-border,#38404f);
-  border-radius:8px;
-  padding:6px;
-  font-size:11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--nx-surface, #1c222e);
+  border: 1px solid var(--nx-border, #38404f);
+  border-radius: 8px;
+  padding: 6px;
+  font-size: 11px;
 }
-.provenance { font-size:11px; opacity:.7; }
+.provenance {
+  font-size: 11px;
+  opacity: 0.7;
+}

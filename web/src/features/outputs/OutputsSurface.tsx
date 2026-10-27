@@ -31,7 +31,13 @@ export type OutputItem = {
   revision?: number;
   revisions?: number;
 };
-type OutputRevision = { number: number; sha256: string; size: number; modified: string; snapshot: boolean };
+type OutputRevision = {
+  number: number;
+  sha256: string;
+  size: number;
+  modified: string;
+  snapshot: boolean;
+};
 type OutputList = {
   items: OutputItem[];
   total: number;
@@ -147,12 +153,23 @@ const OutputPreview: React.FC<{ projectId: string; item: OutputItem; onClose: ()
   const src = useAsset(canPreview ? assetPath(projectId, item.path, 'view') : null);
   const [history, setHistory] = useState<OutputRevision[]>([]);
   useEffect(() => {
-    if ((item.revisions || 0) <= 1) { setHistory([]); return; }
+    if ((item.revisions || 0) <= 1) {
+      setHistory([]);
+      return;
+    }
     let current = true;
-    void request<{ versions: OutputRevision[] }>(`${projectAPI(projectId)}/files?path=${encodeURIComponent(item.path)}&history=1`)
-      .then((data) => { if (current) setHistory(data.versions || []); })
-      .catch(() => { if (current) setHistory([]); });
-    return () => { current = false; };
+    void request<{ versions: OutputRevision[] }>(
+      `${projectAPI(projectId)}/files?path=${encodeURIComponent(item.path)}&history=1`,
+    )
+      .then((data) => {
+        if (current) setHistory(data.versions || []);
+      })
+      .catch(() => {
+        if (current) setHistory([]);
+      });
+    return () => {
+      current = false;
+    };
   }, [projectId, item.path, item.revisions]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -208,14 +225,22 @@ const OutputPreview: React.FC<{ projectId: string; item: OutputItem; onClose: ()
             </p>
           )}
         </div>
-        {item.runtime_id && <div className={styles.provenance}>Gerado pelo runtime {item.runtime_id}{item.agent_id ? ` · agente ${item.agent_id}` : ''}</div>}
+        {item.runtime_id && (
+          <div className={styles.provenance}>
+            Gerado pelo runtime {item.runtime_id}
+            {item.agent_id ? ` · agente ${item.agent_id}` : ''}
+          </div>
+        )}
         {history.length > 0 && (
           <div className={styles.versions} aria-label="Histórico do arquivo">
             <strong>Versões anteriores</strong>
             {history.map((version) => (
-              <button type="button" key={version.number}
+              <button
+                type="button"
+                key={version.number}
                 disabled={!version.snapshot}
-                onClick={() => download(projectId, item.path, item.name, version.number)}>
+                onClick={() => download(projectId, item.path, item.name, version.number)}
+              >
                 <Download size={14} /> v{version.number} · {humanSize(version.size)}
                 {!version.snapshot && ' · original não armazenado'}
               </button>
