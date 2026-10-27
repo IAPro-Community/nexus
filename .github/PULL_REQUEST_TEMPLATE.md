@@ -20,6 +20,8 @@
 - [ ] Respeitei as responsabilidades Composer / WorkPlan / Flow / MissionRunner e a independência do Maestro.
 - [ ] Não criei uma segunda infraestrutura de memória, orquestração, runtime ou editor sem ADR.
 - [ ] Adicionei/atualizei testes de regressão e documentação.
+- [ ] Se a alteração adiciona recurso visível, atualizei o [catálogo de novidades](../docs/product/feature-discovery.md) (`id`, `revision`, rota, alvo, explicação PT/EN/ES e tour contextual) ou justifiquei sua inaplicabilidade. Não anunciei funcionalidades que ainda não existem.
+- [ ] Reutilizei componentes do design system e investiguei bibliotecas open source antes de criar um novo overlay, tour, tooltip ou mecanismo de alertas.
 - [ ] Verifiquei compatibilidade, i18n, acessibilidade e Web/Desktop/CLI quando aplicável.
 - [ ] Rodei gates relevantes e anexei comandos/resultados do SHA testado.
 - [ ] Não incluí segredos, dados pessoais, arquivos de usuário nem material de análise de segurança privada.
