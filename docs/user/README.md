@@ -7,6 +7,7 @@
 - Quero **organizar Agents persistentes** → [Agents](../product/agents.md).
 - Quero **entender custos, disponibilidade e fallback** → [Providers e quota](../product/providers-and-usage.md).
 - Quero **transformar uma ideia em um plano** → [Composer](../product/composer.md).
+- Quero **aprender a usar Composer e Flow com instruções na tela** → [Tours guiados](../product/composer-flow-tour.md).
 - Quero **revisar dependências visualmente** → [Flow](../product/flow.md).
 - Quero **executar uma tarefa longa/multi-Agent** → [Missions](../product/missions.md).
 - Quero **entender como Agents pedem ajuda entre si** → [Coordenação entre Agents](../product/agent-coordination.md).
