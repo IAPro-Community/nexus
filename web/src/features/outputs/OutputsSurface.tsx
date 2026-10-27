@@ -28,7 +28,10 @@ export type OutputItem = {
   origin: string;
   agent_id?: string;
   runtime_id?: string;
+  revision?: number;
+  revisions?: number;
 };
+type OutputRevision = { number: number; sha256: string; size: number; modified: string; snapshot: boolean };
 type OutputList = {
   items: OutputItem[];
   total: number;
@@ -105,8 +108,10 @@ const PreviewThumb: React.FC<{ projectId: string; item: OutputItem }> = ({ proje
   );
 };
 
-function download(projectId: string, rel: string, filename: string) {
-  const url = assetPath(projectId, rel, 'download');
+function download(projectId: string, rel: string, filename: string, version?: number) {
+  const url = version
+    ? `${projectAPI(projectId)}/files?path=${encodeURIComponent(rel)}&version=${version}`
+    : assetPath(projectId, rel, 'download');
   const token = getDesktopAuthToken();
   if (!token) {
     const link = document.createElement('a');
@@ -140,6 +145,15 @@ const OutputPreview: React.FC<{ projectId: string; item: OutputItem; onClose: ()
 }) => {
   const canPreview = item.kind !== 'download' && item.size <= 50 * 1024 * 1024;
   const src = useAsset(canPreview ? assetPath(projectId, item.path, 'view') : null);
+  const [history, setHistory] = useState<OutputRevision[]>([]);
+  useEffect(() => {
+    if ((item.revisions || 0) <= 1) { setHistory([]); return; }
+    let current = true;
+    void request<{ versions: OutputRevision[] }>(`${projectAPI(projectId)}/files?path=${encodeURIComponent(item.path)}&history=1`)
+      .then((data) => { if (current) setHistory(data.versions || []); })
+      .catch(() => { if (current) setHistory([]); });
+    return () => { current = false; };
+  }, [projectId, item.path, item.revisions]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
@@ -194,7 +208,21 @@ const OutputPreview: React.FC<{ projectId: string; item: OutputItem; onClose: ()
             </p>
           )}
         </div>
-        {item.sha256 && <footer className={styles.hash}>SHA-256: {item.sha256}</footer>}
+        {item.runtime_id && <div className={styles.provenance}>Gerado pelo runtime {item.runtime_id}{item.agent_id ? ` · agente ${item.agent_id}` : ''}</div>}
+        {history.length > 0 && (
+          <div className={styles.versions} aria-label="Histórico do arquivo">
+            <strong>Versões anteriores</strong>
+            {history.map((version) => (
+              <button type="button" key={version.number}
+                disabled={!version.snapshot}
+                onClick={() => download(projectId, item.path, item.name, version.number)}>
+                <Download size={14} /> v{version.number} · {humanSize(version.size)}
+                {!version.snapshot && ' · original não armazenado'}
+              </button>
+            ))}
+          </div>
+        )}
+        {item.sha256 && <footer className={styles.hash}>SHA-256: {item.sha256}</footer>
       </div>
     </div>
   );

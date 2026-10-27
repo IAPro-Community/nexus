@@ -108,6 +108,8 @@ func (s *Server) handleBrowserMCP(w http.ResponseWriter, r *http.Request) {
 		}
 		if err := json.Unmarshal(rpc.Params, &params); err != nil {
 			result = browserMCPError("invalid tool arguments")
+		} else if params.Name == "outputs_publish" && runtimeGrant {
+			result = publishRuntimeOutput(r.Context(), runtimeCap, params.Arguments)
 		} else if params.Name == "browser_open" && runtimeGrant {
 			var input struct {
 				URL string `json:"url"`
@@ -151,6 +153,7 @@ func browserMCPTools() []map[string]any {
 		return map[string]any{"type": "string", "description": description}
 	}
 	return []map[string]any{
+		spec("outputs_publish", "Register a generated image, PDF, video, document or other supported project file for immediate viewing in Nexus Outputs on desktop or mobile. Use only a path relative to the current project; the host Nexus Core verifies the runtime's authorization and file.", map[string]any{"path": str("Relative path within current Nexus Project, e.g. outputs/generated.png")}, "path"),
 		spec("browser_open", "Create or reopen this runtime's private Nexus Browser, visible in the same Workspace on desktop/mobile. Call once before other tools.", map[string]any{"url": str("Optional HTTP(S) starting URL")}),
 		spec("browser_state", "Read the browser, input lease and human-handoff state", map[string]any{}),
 		spec("browser_request_control", "Acquire or renew an input lease for this agent only", map[string]any{}),
