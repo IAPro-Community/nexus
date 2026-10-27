@@ -97,6 +97,12 @@ func (b *structuredBackend)Write(p []byte)(int,error){
  return len(p),nil
 }
 func (b *structuredBackend)execute(ctx context.Context,bridge *agentwire.Bridge,line string){
+ if line=="/cancel"{
+  requestCtx,cancel:=context.WithTimeout(ctx,15*1000000000)
+  defer cancel()
+  if err:=bridge.CancelTurn(requestCtx);err!=nil{b.emit("\r\n[Nexus] Cancel request failed.\r\n")}else{b.emit("\r\n[Nexus] Cancel requested.\r\n")}
+  return
+ }
  if strings.HasPrefix(line,"/permit "){
   parts:=strings.Fields(line)
   if len(parts)!=3{
