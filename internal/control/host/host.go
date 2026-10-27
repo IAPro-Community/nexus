@@ -142,7 +142,7 @@ func NewSessionHost(cfg Config) (*SessionHost, error) {
 		// It publishes state via the existing detector / runtime registry.
 		sh.termBackend = newStructuredBackend(protocolMode, cfg.Cwd,
 			func(signal agentwire.WireSignal) {
-				sh.detector.ApplyProviderSignal(signal.State, signal.Kind, signal.Summary, protocolMode)
+				sh.detector.ApplyProviderSignal(signal.State, signal.Kind, signal.Summary, protocolMode, signal.InteractionID)
 			},
 			func(sessionID string) {
 				_ = sh.registry.UpdateProviderSessionID(sh.session.RuntimeID, sessionID)
