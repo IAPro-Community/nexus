@@ -29,10 +29,10 @@ jobs:
         uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - name: Install Go from go.mod
+      - name: Install Go matching the release CI toolchain
         uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version: '1.26.10'
           cache: false
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
@@ -47,7 +47,8 @@ jobs:
         working-directory: web
         run: bun run quality:full
       - name: Go tests (including license consistency checks)
-        run: go test -count=1 ./...
+        # Native GTK/WebKit and packaging validation stay in protected push CI.
+        run: go test -count=1 ./internal/...
 
   community-static-safety:
     name: Community diff hygiene
@@ -64,7 +65,7 @@ jobs:
       - name: Check diff whitespace and conflict markers
         run: |
           git diff --check HEAD^ HEAD
-          if git grep -nE '^(<<<<<<< |>>>>>>> )' -- . ':!web/bun.lock' ':!go.sum'; then
+          if git diff --unified=0 HEAD^ HEAD | grep -E '^\+(<<<<<<< |>>>>>>> )'; then
             echo "Unresolved merge/conflict marker in source" >&2
             exit 1
           fi
