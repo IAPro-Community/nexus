@@ -100,3 +100,33 @@ func TestBridgePiSettledNotAck(t *testing.T){
  if !settled{t.Fatal("agent_settled not forwarded")}
  bridge.Stop()
 }
+
+func TestPiExtensionUIChoiceIsCorrelated(t *testing.T){
+ upstream,downstream:=io.Pipe()
+ clientInput,agentOutput:=io.Pipe()
+ defer upstream.Close();defer downstream.Close()
+ defer clientInput.Close();defer agentOutput.Close()
+ signal:=make(chan WireSignal,1)
+ bridge,err:=NewBridge("pi_rpc",clientInput,downstream,"/workspace/demo",func(s WireSignal){
+  if s.State=="blocked"{signal<-s}
+ },nil)
+ if err!=nil{t.Fatal(err)}
+ bridge.ctx,bridge.cancel=context.WithCancel(context.Background())
+ defer bridge.cancel()
+ request:=[]byte(`{"type":"extension_ui_request","id":"provider-uuid","method":"select","title":"Pick policy","options":["Deny","Allow once"]}`)
+ bridge.piEvent("extension_ui_request",request)
+ var ask WireSignal
+ select{case ask=<-signal:case <-time.After(time.Second):t.Fatal("dialog was not observed")}
+ if ask.InteractionID==""||len(ask.Options)!=2{t.Fatalf("bad dialog %+v",ask)}
+ if err:=bridge.Choose(ask.InteractionID,"Arbitrary grant");err==nil{t.Fatal("forged option accepted")}
+ if err:=bridge.Choose(ask.InteractionID,"Deny");err!=nil{t.Fatal(err)}
+ done:=make(chan json.RawMessage,1)
+ go func(){wire:=NewJSONLines(upstream,io.Discard);response,_:=wire.Read();done<-response}()
+ select{
+ case result:=<-done:
+  var response struct{ID string `json:"id"`;Type string `json:"type"`;Value string `json:"value"`}
+  if err:=json.Unmarshal(result,&response);err!=nil||response.ID!="provider-uuid"||
+   response.Type!="extension_ui_response"||response.Value!="Deny"{t.Fatalf("bad response %s %v",result,err)}
+ case <-time.After(time.Second):t.Fatal("provider never received correlated response")
+ }
+}
