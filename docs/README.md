@@ -23,6 +23,7 @@ estender o Nexus.
 | revisar dependências e execução | [Flow](product/flow.md) |
 | executar trabalho longo/multi-Agent | [Missions](product/missions.md) |
 | entender comunicação entre Agents | [Coordenação entre Agents](product/agent-coordination.md) |
+| explorar Composer e Flow dentro do app | [Tours guiados interativos](product/composer-flow-tour.md) |
 | ver telas reais | [Tour visual](product/visual-tour.md) |
 | consultar identidade, desenhos e referências do mascote NEX | [NEX — direção oficial](design/NEX_32BIT_VISUAL_CONTRACT.md) |
 | instalar | [Getting Started](getting-started/README.md) |
