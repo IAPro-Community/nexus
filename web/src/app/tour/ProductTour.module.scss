@@ -1,0 +1,24 @@
+/* Additional safeguards for the existing global workspace tour chrome. */
+.tourCard {
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.tourCard:focus-within {
+  outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .tourCard {
+    width: calc(100vw - 24px);
+    font-size: .93rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tourCard {
+    scroll-behavior: auto;
+  }
+}
