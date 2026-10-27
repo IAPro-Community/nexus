@@ -147,7 +147,9 @@ func TestChromiumSmokeOptional(t *testing.T) {
 	// resume after the human explicitly completes it.
 	s.ReleaseControl("actor")
 	grant, token, err := m.IssueAgentGrant(info.ID, "Codex smoke")
-	if err != nil { t.Fatalf("grant: %v", err) }
+	if err != nil {
+		t.Fatalf("grant: %v", err)
+	}
 	if _, resolved, valid := m.ResolveAgentGrant(token); !valid || resolved != s {
 		t.Fatal("agent grant did not resolve to the existing browser")
 	}
@@ -163,24 +165,28 @@ func TestChromiumSmokeOptional(t *testing.T) {
 	if _, err := s.BeginHuman("human:integration"); err != nil {
 		t.Fatalf("human takeover: %v", err)
 	}
-	if _, err := s.DoAs(ctx,"human:integration",Action{Type:"fill_selector", Selector:"#login", Text:"secret-123"}); err != nil {
-		t.Fatalf("human password entry: %v",err)
+	if _, err := s.DoAs(ctx, "human:integration", Action{Type: "fill_selector", Selector: "#login", Text: "secret-123"}); err != nil {
+		t.Fatalf("human password entry: %v", err)
 	}
-	if _, err := s.DoAs(ctx,"human:integration",Action{Type:"click_selector", Selector:"#signIn"}); err != nil {
-		t.Fatalf("human sign in: %v",err)
+	if _, err := s.DoAs(ctx, "human:integration", Action{Type: "click_selector", Selector: "#signIn"}); err != nil {
+		t.Fatalf("human sign in: %v", err)
 	}
 	if _, err := s.FinishHuman("human:integration"); err != nil {
-		t.Fatalf("finish human: %v",err)
+		t.Fatalf("finish human: %v", err)
 	}
 	if ok, reason := s.AcquireAgentControl(grant.Actor); !ok {
-		t.Fatalf("agent resume: %s",reason)
+		t.Fatalf("agent resume: %s", reason)
 	}
 	verified, err := s.SnapshotAs(ctx, grant.Actor)
-	if err != nil || !strings.Contains(string(verified),"Authenticated") || strings.Contains(string(verified),"secret-123") {
-		t.Fatalf("resume did not preserve authenticated state or leaked credentials: %v %s",err,verified)
+	if err != nil || !strings.Contains(string(verified), "Authenticated") || strings.Contains(string(verified), "secret-123") {
+		t.Fatalf("resume did not preserve authenticated state or leaked credentials: %v %s", err, verified)
 	}
-	if !m.RevokeAgentGrant(info.ID,grant.ID) { t.Fatal("revoke failed") }
-	if _,_,valid:=m.ResolveAgentGrant(token);valid {t.Fatal("revoked token accepted")}
+	if !m.RevokeAgentGrant(info.ID, grant.ID) {
+		t.Fatal("revoke failed")
+	}
+	if _, _, valid := m.ResolveAgentGrant(token); valid {
+		t.Fatal("revoked token accepted")
+	}
 	if !m.Close(info.ID) {
 		t.Fatal("session did not close")
 	}
