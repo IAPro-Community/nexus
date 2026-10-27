@@ -8,8 +8,6 @@ on:
   push:
     branches: [main, master, 'release/v1.0.0']
     tags: ['v*']
-  pull_request:
-    branches: [main, master, 'release/v1.0.0']
   workflow_dispatch:
     inputs:
       native_target_sha:
@@ -26,6 +24,13 @@ on:
           - windows
           - macos
           - all
+
+# Never execute untrusted fork pull requests on persistent self-hosted
+# Windows/macOS/Linux machines. See community-pr.yml for isolated GitHub-
+# hosted PR validation. Push/dispatch jobs are still protected by repository
+# branch/ruleset permissions and environment approvals.
+permissions:
+  contents: read
 
 env:
   GOTOOLCHAIN: local
