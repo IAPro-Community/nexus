@@ -128,6 +128,9 @@ export const SettingsSurface: React.FC<{
   const [intelligenceResources, setIntelligenceResources] = useState<ProviderAccount[]>([]);
   const [intelligenceSaving, setIntelligenceSaving] = useState(false);
   const [intelligenceError, setIntelligenceError] = useState('');
+  const [intelligenceProbeBusy, setIntelligenceProbeBusy] = useState(false);
+  const [intelligenceProbeResult, setIntelligenceProbeResult] = useState<'IDLE' | 'PASS' | 'FAIL'>('IDLE');
+  const [intelligenceProbeMessage, setIntelligenceProbeMessage] = useState('');
   const [notifyPrefs, setNotifyPrefs] = useState<NotificationPrefs>(() => loadNotificationPrefs());
 
   const updateNotifyPrefs = (patch: Partial<NotificationPrefs>) => {
@@ -180,6 +183,8 @@ export const SettingsSurface: React.FC<{
       ]);
       setIntelligence(status);
       setIntelligenceDraft(status);
+      setIntelligenceProbeResult('IDLE');
+      setIntelligenceProbeMessage('');
       setIntelligenceResources(asArray(resources.accounts));
     } catch (error) {
       setIntelligenceError(error instanceof Error ? error.message : String(error));
@@ -229,6 +234,30 @@ export const SettingsSurface: React.FC<{
     [intelligenceResources, intelligenceDraft],
   );
 
+  const intelligenceConfigChanged = !intelligence || (
+    [
+      'mode', 'provider', 'profile', 'base_url', 'model', 'api_key_env', 'api_key_file',
+    ] as const
+  ).some((field) => (intelligenceDraft[field] || '') !== (intelligence[field] || ''));
+
+  const testIntelligenceConnection = async () => {
+    if (intelligenceProbeBusy || intelligenceSaving || intelligenceConfigChanged) return;
+    setIntelligenceProbeBusy(true);
+    setIntelligenceProbeResult('IDLE');
+    setIntelligenceProbeMessage('');
+    try {
+      await nexus.probeIntelligence();
+      setIntelligenceProbeResult('PASS');
+      setIntelligenceProbeMessage('O modelo respondeu à solicitação real do Nexus Intelligence.');
+    } catch (error) {
+      setIntelligenceProbeResult('FAIL');
+      setIntelligenceProbeMessage(error instanceof Error ? error.message :
+        'Não foi possível concluir o teste. Verifique o provedor e tente novamente.');
+    } finally {
+      setIntelligenceProbeBusy(false);
+    }
+  };
+
   const saveIntelligence = async () => {
     setIntelligenceSaving(true);
     setIntelligenceError('');
@@ -245,6 +274,8 @@ export const SettingsSurface: React.FC<{
       const next = await nexus.updateIntelligence(payload);
       setIntelligence(next);
       setIntelligenceDraft(next);
+      setIntelligenceProbeResult('IDLE');
+      setIntelligenceProbeMessage('');
     } catch (error) {
       setIntelligenceError(error instanceof Error ? error.message : String(error));
     } finally {
@@ -800,7 +831,7 @@ export const SettingsSurface: React.FC<{
                 }
                 title={
                   intelligence.available
-                    ? 'Provedor de Intelligence pronto'
+                    ? 'Provedor configurado (conexão ainda não verificada)'
                     : intelligence.mode === 'OFF'
                       ? 'Intelligence desligada'
                       : 'Provedor não pronto'
@@ -817,6 +848,17 @@ export const SettingsSurface: React.FC<{
                 {intelligenceError}
               </InlineAlert>
             )}
+            {intelligenceProbeResult !== 'IDLE' && (
+              <InlineAlert
+                tone={intelligenceProbeResult === 'PASS' ? 'success' : 'danger'}
+                title={intelligenceProbeResult === 'PASS' ? 'Conexão com a IA verificada' : 'Falha na conexão com a IA'}
+              >
+                {intelligenceProbeMessage}
+              </InlineAlert>
+            )}
+            {intelligenceConfigChanged && intelligenceDraft.mode !== 'OFF' && (
+              <p role="status">Salve as alterações antes de testar a conexão da IA.</p>
+            )}
             <div className={styles.fieldGroupMargin}>
               <Button
                 tone="brand"
@@ -824,6 +866,13 @@ export const SettingsSurface: React.FC<{
                 disabled={intelligenceSaving}
               >
                 {intelligenceSaving ? 'Saving…' : 'Save Intelligence'}
+              </Button>
+              <Button
+                disabled={intelligenceProbeBusy || intelligenceSaving ||
+                  intelligenceConfigChanged || intelligenceDraft.mode === 'OFF'}
+                onClick={() => void testIntelligenceConnection()}
+              >
+                {intelligenceProbeBusy ? 'Testando provedor…' : 'Testar conexão real da IA'}
               </Button>
             </div>
             <IntelligenceMemoriesPanel />
