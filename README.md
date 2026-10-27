@@ -282,15 +282,27 @@ incluindo plataformas nativas e demais gates definidos no programa de fechamento
 
 → [Status autoritativo](docs/release-status.md)
 
-## Licença e contribuições
+## Comunidade, open source e financiamento
 
-O IAPro Nexus está preparado para publicação **source-available** sob a
-[PolyForm Strict License 1.0.0](LICENSE). A licença permite usos não comerciais
-nos fins descritos no texto oficial, mas **não autoriza modificar, redistribuir
-ou comercializar o código**. Não é software open source pela definição da OSI.
+**Visão:** Nexus Community completo, aberto e independente, com Composer,
+Flow, Missions, agentes e terminal sem limites artificiais de assinatura.
+Doações, patrocínios, hospedagem opcional e suporte empresarial poderão
+sustentar o projeto; provedores externos de IA podem cobrar pelo uso.
 
-Leia o [guia de licenciamento](docs/legal/LICENSING.md), o
-[TL;DR](docs/TLDR.md), os [avisos de terceiros](docs/legal/THIRD_PARTY_NOTICES.md)
-e o [CONTRIBUTING](CONTRIBUTING.md). O repositório de source já está público; a auditoria de histórico e a liberação
-de binários/versão estável continuam sujeitas ao
-[checklist de publicação](docs/PUBLICATION_CHECKLIST.md).
+**Licença vigente:** [PolyForm Strict 1.0.0](LICENSE), **source-available,
+não open source OSI**. A licença ainda não autoriza modificar ou redistribuir
+livremente o código. **Licença-alvo:** Apache-2.0, **ainda não vigente**,
+dependente de titularidade, auditoria de terceiros/assets e segurança do
+histórico. Código público não concede por si só permissão de fork modificado.
+
+- [Plano para migração open source](docs/legal/OPEN_SOURCE_TRANSITION.md)
+- [Licenciamento vigente](docs/legal/LICENSING.md)
+- [Como participar e contribuir](CONTRIBUTING.md)
+- [Forks e melhorias upstream](docs/community/FORKS_AND_UPSTREAM.md)
+- [Governança e revisões](GOVERNANCE.md)
+- [Identidade e marca](docs/legal/TRADEMARK_POLICY.md)
+- [Financiamento voluntário](docs/community/FUNDING.md)
+- [Licenças de terceiros](docs/legal/THIRD_PARTY_NOTICES.md)
+
+Abertura jurídica, publicação de código e distribuição certificada são
+processos distintos: [checklist de publicação](docs/PUBLICATION_CHECKLIST.md).
