@@ -1,8 +1,18 @@
 # Aviso atual de homologação da linha v1
 
-> **20/10/2026 — documentação, não certificação:** a branch `release/v1.0.0` declara `1.0.0-beta.10`. A branch continua recebendo alterações, logo evidências de SHAs anteriores não certificam o HEAD atual. O repositório de código está público, mas **não há aqui prova de release v1 estável**. Ver [matriz](reference/feature-matrix.md), [gates](operations/platform-support.md) e [checklist](PUBLICATION_CHECKLIST.md).
+> **27/10/2026 — documentação, não certificação:** a branch `release/v1.0.0` declara `1.0.0-beta.11` nos arquivos VERSION e web/package.json. A branch continua recebendo alterações, logo evidências de SHAs anteriores não certificam o HEAD atual. O repositório de código está público, mas **não há aqui prova de release v1 estável**. Ver [matriz](reference/feature-matrix.md), [gates](operations/platform-support.md) e [checklist](PUBLICATION_CHECKLIST.md).
 
-## Reconciliação beta.10 em 22/10/2026 — código e evidência separadas
+## Certificação atual (27/10/2026)
+
+A versão-fonte declarada `1.0.0-beta.11` está sob mudança contínua.
+A preparação comunitária e jurídica para Apache-2.0 **não constitui uma mudança
+na licença vigente**: o [LICENSE](../LICENSE) ainda é PolyForm Strict.
+Não existe certificação de release estável nem de binários por plataforma
+para o HEAD atual neste registro. Consulte o
+[plano de transição](legal/OPEN_SOURCE_TRANSITION.md) e
+[PUBLICATION_CHECKLIST](PUBLICATION_CHECKLIST.md).
+
+## Reconciliação histórica beta.10 em 22/10/2026 — código e evidência separadas
 
 A branch `release/v1.0.0` recebeu 27 commits de fechamento entre
 `622aa933` e `e98c711e86ffd578111cfca454513722198bacbe`. Eles incluem
