@@ -509,20 +509,28 @@ func TestPublicLicenseMetadataMatchesLicenseFile(t *testing.T) {
 		t.Fatalf("expected the vigente LICENSE file to be PolyForm Strict License 1.0.0, got %q", strings.SplitN(licenseStr, "\n", 2)[0])
 	}
 
-	for _, name := range []string{"README.md", "README.en.md", "README.es.md"} {
+	// During legal clearance the README may describe an Apache-2.0 TARGET,
+	// but must not falsely claim it is the current effective project license.
+	// When LICENSE actually changes, update this assertion together with the
+	// legal-clearance evidence and all language versions, never in isolation.
+	for name, targetQualifier := range map[string]string{
+		"README.md":    "Licença-alvo:",
+		"README.en.md": "Target license:",
+		"README.es.md": "Licencia objetivo:",
+	} {
 		data, err := os.ReadFile(filepath.Join(root, name))
 		if err != nil {
 			t.Fatal(err)
 		}
 		text := string(data)
-		if strings.Contains(strings.ToLower(text), "apache") {
-			t.Errorf("%s still advertises Apache despite the proprietary LICENSE", name)
+		if !strings.Contains(text, "PolyForm Strict") {
+			t.Errorf("%s must identify the effective PolyForm Strict license", name)
+		}
+		if !strings.Contains(text, targetQualifier) || !strings.Contains(text, "Apache-2.0") {
+			t.Errorf("%s must clearly distinguish proposed Apache-2.0 from current license", name)
 		}
 		if strings.Contains(text, "MIT License") || strings.Contains(text, "Licencia MIT") || strings.Contains(text, "licença MIT") {
-			t.Errorf("%s still advertises MIT despite the proprietary LICENSE", name)
-		}
-		if !strings.Contains(strings.ToLower(text), "licen") {
-			t.Errorf("%s does not reference the vigente license", name)
+			t.Errorf("%s must not claim an MIT license while PolyForm Strict remains effective", name)
 		}
 	}
 }
