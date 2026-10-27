@@ -57,6 +57,16 @@ export const FeatureTour: React.FC<{
   const unread = updates.filter((item) => !seen(item));
 
   useEffect(() => {
+    const onUpdated = () => refreshReadState((count) => count + 1);
+    window.addEventListener('storage', onUpdated);
+    window.addEventListener('nexus:feature-discovery-updated', onUpdated);
+    return () => {
+      window.removeEventListener('storage', onUpdated);
+      window.removeEventListener('nexus:feature-discovery-updated', onUpdated);
+    };
+  }, []);
+
+  useEffect(() => {
     setOpen(false);
     setUpdates([]);
     // Target content is rendered alongside this component and may be
