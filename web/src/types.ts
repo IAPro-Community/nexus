@@ -41,9 +41,9 @@ export interface RuntimeSession {
   continuity?: string;
   lineage_id?: string;
   started_at: string;
-  attention_reason?: 'QUESTION' | 'APPROVAL' | 'TASK_COMPLETED' | 'WORKING' | 'IDLE' | 'ERROR';
+  attention_reason?: 'QUESTION' | 'APPROVAL' | 'AUTH' | 'TASK_COMPLETED' | 'WORKING' | 'IDLE' | 'ERROR';
   attention_context?: string;
-  prompt_kind?: 'yn' | 'choice' | 'free_text' | 'none' | '';
+  prompt_kind?: 'yn' | 'choice' | 'free_text' | 'native_status' | 'none' | '';
   attention_kind?: 'needs_user' | 'working' | 'completed' | 'error' | 'idle' | '';
   attention_fingerprint?: string;
   project_id?: string;
