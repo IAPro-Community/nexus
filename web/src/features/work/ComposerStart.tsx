@@ -56,7 +56,7 @@ export const ComposerStart: React.FC<{
     setProbeMessage('');
     setProbeSuccess(false);
     try {
-      const result = await nexus.probeIntelligence(projectId);
+      await nexus.probeIntelligence(projectId);
       setProbeSuccess(true);
       setProbeMessage(
         t('work.composer.probeSuccess', 'A IA respondeu ao teste de conexão. Você pode tentar novamente.'),
