@@ -1,0 +1,46 @@
+name: Proposta de melhoria
+description: Sugira uma funcionalidade ou melhoria para o Nexus Community.
+title: "feat: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Descreva o problema e a necessidade, não apenas uma solução. Consulte as
+        propostas anteriores para evitar duplicação. Sob a licença vigente,
+        não presuma permissão geral para submeter patches de código.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema ou oportunidade
+      description: O que você quer resolver e para quem?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Solução proposta
+      description: Quais comportamentos e interfaces seriam úteis?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas e projetos semelhantes
+      description: Cite ferramentas, links de referência, riscos e trade-offs.
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Área do Nexus
+      options:
+        - Composer / planejamento
+        - Flow / Missions
+        - Agents / CLIs / terminal
+        - Navegador / ferramentas
+        - HUD / NEX / acessibilidade
+        - Documentação / comunidade
+        - Outra área
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critérios de aceitação
+      description: Como saberemos que o problema foi resolvido?
