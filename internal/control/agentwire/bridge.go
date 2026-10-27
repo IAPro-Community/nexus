@@ -154,6 +154,7 @@ func (b *Bridge) Stop() {
 		}
 	}
 	b.mu.Unlock()
+	time.Sleep(10 * time.Millisecond)
 	if b.acp != nil {
 		b.acp.Close()
 	}
@@ -436,6 +437,10 @@ func (b *Bridge) handlePiUI(raw json.RawMessage) {
 		}
 		select {
 		case value := <-p.selected:
+			if value == "" {
+				_ = b.pi.RespondUI(req.ID, map[string]any{"cancelled": true})
+				return
+			}
 			var response map[string]any
 			if req.Method == "confirm" {
 				response = map[string]any{"confirmed": value == "yes"}

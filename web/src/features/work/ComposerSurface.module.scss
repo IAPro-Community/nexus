@@ -850,9 +850,9 @@
   align-items: center;
   gap: 8px;
   color: var(--nx-accent);
-  font-size: .73rem;
+  font-size: 0.73rem;
   font-weight: 750;
-  letter-spacing: .13em;
+  letter-spacing: 0.13em;
 }
 
 .composerWelcomeTitle {
@@ -860,7 +860,7 @@
   color: var(--nx-text);
   font-size: clamp(1.85rem, 3.4vw, 2.9rem);
   line-height: 1.12;
-  letter-spacing: -.045em;
+  letter-spacing: -0.045em;
   font-weight: 720;
 }
 
@@ -868,7 +868,7 @@
   max-width: 620px;
   margin: 0;
   color: var(--nx-text-muted);
-  font-size: clamp(.92rem, 1.15vw, 1.03rem);
+  font-size: clamp(0.92rem, 1.15vw, 1.03rem);
   line-height: 1.65;
 }
 
@@ -891,7 +891,7 @@
   min-height: 132px;
   line-height: 1.65;
   resize: vertical;
-  font-size: .98rem;
+  font-size: 0.98rem;
   padding: 15px 16px;
   border-radius: 12px;
   border-color: color-mix(in srgb, var(--nx-accent) 25%, var(--nx-border));
@@ -906,7 +906,7 @@
 .composerWelcomeInputLabel {
   color: var(--nx-text);
   font-weight: 600;
-  font-size: .91rem;
+  font-size: 0.91rem;
 }
 
 .composerWelcomeHistory {
@@ -922,7 +922,7 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: .88rem;
+  font-size: 0.88rem;
   color: var(--nx-text);
 }
 

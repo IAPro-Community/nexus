@@ -10,8 +10,14 @@
   background: transparent;
   cursor: pointer;
 }
-.trigger:hover, .trigger[data-state='open'] { background: var(--nx-accent-soft); }
-.trigger:focus-visible { outline: 2px solid var(--nx-accent); outline-offset: 2px; }
+.trigger:hover,
+.trigger[data-state='open'] {
+  background: var(--nx-accent-soft);
+}
+.trigger:focus-visible {
+  outline: 2px solid var(--nx-accent);
+  outline-offset: 2px;
+}
 .menu {
   z-index: 750;
   width: min(390px, calc(100vw - 26px));
@@ -31,14 +37,52 @@
   margin-bottom: 5px;
   border-bottom: 1px solid var(--nx-border);
 }
-.heading small { color: var(--nx-text-muted); line-height: 1.4; }
-.item { display: grid; gap: 5px; padding: 11px 12px; border-radius: 9px; cursor: pointer; outline: none; }
-.item:hover, .item[data-highlighted] { background: var(--nx-accent-soft); }
-.title { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 650; font-size: .86rem; }
-.body { color: var(--nx-text-muted); font-size: .78rem; line-height: 1.45; }
-.action { color: var(--nx-accent-text); font-size: .76rem; font-weight: 600; }
-.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--nx-accent); flex: none; }
-@media (prefers-reduced-motion: reduce) { .item { transition: none; } }
+.heading small {
+  color: var(--nx-text-muted);
+  line-height: 1.4;
+}
+.item {
+  display: grid;
+  gap: 5px;
+  padding: 11px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+  outline: none;
+}
+.item:hover,
+.item[data-highlighted] {
+  background: var(--nx-accent-soft);
+}
+.title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 650;
+  font-size: 0.86rem;
+}
+.body {
+  color: var(--nx-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+.action {
+  color: var(--nx-accent-text);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--nx-accent);
+  flex: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .item {
+    transition: none;
+  }
+}
 
 .markRead {
   display: block;
@@ -49,6 +93,8 @@
   outline: none;
   color: var(--nx-accent-text);
   cursor: pointer;
-  font-size: .8rem;
+  font-size: 0.8rem;
 }
-.markRead[data-highlighted] { background: var(--nx-accent-soft); }
+.markRead[data-highlighted] {
+  background: var(--nx-accent-soft);
+}

@@ -85,8 +85,7 @@ export const featureAnnouncements: readonly FeatureAnnouncement[] = [
   },
 ] as const;
 
-export const announcementStorageKey = (id: string) =>
-  `iapro:nexus:feature-announcement:v1:${id}`;
+export const announcementStorageKey = (id: string) => `iapro:nexus:feature-announcement:v1:${id}`;
 
 export function announcementsForSurface(
   surface: FeatureTourSurface,
@@ -102,8 +101,7 @@ export function isAnnouncementUnread(
   storedRevision: string | null,
 ): boolean {
   const previous = Number(storedRevision);
-  return storedRevision === null || !Number.isSafeInteger(previous) ||
-    previous < item.revision;
+  return storedRevision === null || !Number.isSafeInteger(previous) || previous < item.revision;
 }
 
 export function announcementTourIndex(

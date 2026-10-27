@@ -88,7 +88,11 @@ export const ComposerReadOnlyHistory: React.FC<{
   return (
     <div className={`nx-surface-scroll nx-composer-surface ${styles.workbench}`}>
       <FeatureTour projectId={projectId} surface="composer-offline" />
-      <section className={styles.contextFix} aria-label="Nexus Intelligence" data-tour="composer-offline-provider">
+      <section
+        className={styles.contextFix}
+        aria-label="Nexus Intelligence"
+        data-tour="composer-offline-provider"
+      >
         <h2>Configure uma IA para criar ou revisar planejamentos</h2>
         <p>
           O Composer precisa de uma IA funcional em Nexus Intelligence. Sem ela, suas elaborações
@@ -104,7 +108,11 @@ export const ComposerReadOnlyHistory: React.FC<{
           </Button>
         </div>
       </section>
-      <section className={styles.contextFix} aria-label="Histórico do Composer" data-tour="composer-offline-history">
+      <section
+        className={styles.contextFix}
+        aria-label="Histórico do Composer"
+        data-tour="composer-offline-history"
+      >
         <h3>Histórico de planejamentos</h3>
         {loading && <p role="status">Carregando sessões salvas…</p>}
         {error && (

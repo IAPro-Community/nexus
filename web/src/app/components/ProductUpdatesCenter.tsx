@@ -3,7 +3,9 @@ import { Megaphone } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Badge, DropdownMenu } from '../../design-system';
 import {
-  announcementStorageKey, featureAnnouncements, isAnnouncementUnread,
+  announcementStorageKey,
+  featureAnnouncements,
+  isAnnouncementUnread,
 } from '../../features/work/featureAnnouncements';
 import styles from './ProductUpdatesCenter.module.scss';
 
@@ -30,7 +32,10 @@ export const ProductUpdatesCenter: React.FC<{
 
   const unread = featureAnnouncements.filter((item) => {
     try {
-      return isAnnouncementUnread(item, window.localStorage.getItem(announcementStorageKey(item.id)));
+      return isAnnouncementUnread(
+        item,
+        window.localStorage.getItem(announcementStorageKey(item.id)),
+      );
     } catch {
       return false;
     }
@@ -40,7 +45,9 @@ export const ProductUpdatesCenter: React.FC<{
     for (const item of featureAnnouncements) {
       try {
         window.localStorage.setItem(announcementStorageKey(item.id), String(item.revision));
-      } catch { /* Local storage is optional. */ }
+      } catch {
+        /* Local storage is optional. */
+      }
     }
     window.dispatchEvent(new Event('nexus:feature-discovery-updated'));
   };
@@ -52,7 +59,9 @@ export const ProductUpdatesCenter: React.FC<{
           type="button"
           className={styles.trigger}
           title={t('discovery.globalHint', 'Veja os novos recursos desta versão')}
-          aria-label={t('discovery.globalUnread', '{{count}} novidades do Nexus', { count: unread.length })}
+          aria-label={t('discovery.globalUnread', '{{count}} novidades do Nexus', {
+            count: unread.length,
+          })}
         >
           <Megaphone size={16} aria-hidden="true" />
           {unread.length > 0 && <Badge tone="brand">{unread.length}</Badge>}
@@ -62,7 +71,9 @@ export const ProductUpdatesCenter: React.FC<{
         <DropdownMenu.Content className={styles.menu} align="end" sideOffset={8}>
           <div className={styles.heading}>
             <strong>{t('discovery.globalTitle', 'Novidades do Nexus')}</strong>
-            <small>{t('discovery.globalDescription', 'Descubra melhorias na própria interface')}</small>
+            <small>
+              {t('discovery.globalDescription', 'Descubra melhorias na própria interface')}
+            </small>
           </div>
           {featureAnnouncements.map((item) => {
             const newItem = unread.some((entry) => entry.id === item.id);
@@ -75,7 +86,9 @@ export const ProductUpdatesCenter: React.FC<{
               >
                 <span className={styles.title}>
                   {t(item.title)}
-                  {newItem && <span className={styles.dot} aria-label={t('discovery.unread', 'Não lida')} />}
+                  {newItem && (
+                    <span className={styles.dot} aria-label={t('discovery.unread', 'Não lida')} />
+                  )}
                 </span>
                 <span className={styles.body}>{t(item.summary)}</span>
                 <span className={styles.action}>{t('discovery.openArea', 'Abrir área')}</span>

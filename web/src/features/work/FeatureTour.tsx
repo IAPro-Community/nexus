@@ -5,18 +5,26 @@ import { Badge, Button, DropdownMenu, Tooltip } from '../../design-system';
 import { ProductTour } from '../../app/tour/ProductTour';
 import { availableTourSteps } from '../../app/tour/tour';
 import {
-  announcementStorageKey, announcementTourIndex, announcementsForSurface,
-  isAnnouncementUnread, type FeatureAnnouncement,
+  announcementStorageKey,
+  announcementTourIndex,
+  announcementsForSurface,
+  isAnnouncementUnread,
+  type FeatureAnnouncement,
 } from './featureAnnouncements';
 import {
-  featureTourSteps, featureTourStorageKey, parseFeatureTourProgress,
+  featureTourSteps,
+  featureTourStorageKey,
+  parseFeatureTourProgress,
   type FeatureTourSurface,
-} from './featureTour';
+} from './featureTourDefinitions';
 import styles from './FeatureTour.module.scss';
 
 const readProgress = (key: string, length: number): number => {
-  try { return parseFeatureTourProgress(window.localStorage.getItem(key), length); }
-  catch { return 0; }
+  try {
+    return parseFeatureTourProgress(window.localStorage.getItem(key), length);
+  } catch {
+    return 0;
+  }
 };
 
 const visibleTarget = (selector: string) => {
@@ -48,7 +56,10 @@ export const FeatureTour: React.FC<{
   const key = featureTourStorageKey(projectId, surface);
   const seen = (item: FeatureAnnouncement): boolean => {
     try {
-      return !isAnnouncementUnread(item, window.localStorage.getItem(announcementStorageKey(item.id)));
+      return !isAnnouncementUnread(
+        item,
+        window.localStorage.getItem(announcementStorageKey(item.id)),
+      );
     } catch {
       // Do not pester users when persistence is restricted.
       return true;
@@ -81,7 +92,9 @@ export const FeatureTour: React.FC<{
     items.forEach((item) => {
       try {
         window.localStorage.setItem(announcementStorageKey(item.id), String(item.revision));
-      } catch { /* local-only persistence is optional */ }
+      } catch {
+        /* local-only persistence is optional */
+      }
     });
     refreshReadState((current) => current + 1);
     window.dispatchEvent(new Event('nexus:feature-discovery-updated'));
@@ -93,15 +106,21 @@ export const FeatureTour: React.FC<{
     setUpdates(announcementsForSurface(surface, visibleTarget));
   };
   const save = (index: number) => {
-    try { window.localStorage.setItem(key, String(index)); }
-    catch { /* tour remains usable without storage */ }
+    try {
+      window.localStorage.setItem(key, String(index));
+    } catch {
+      /* tour remains usable without storage */
+    }
   };
   const begin = (item?: FeatureAnnouncement) => {
     refreshUpdates();
     const visibleSteps = availableTourSteps(steps, visibleTarget);
     const savedIndex = readProgress(key, visibleSteps.length);
     const first = item
-      ? announcementTourIndex(item, visibleSteps.map((step) => step.id))
+      ? announcementTourIndex(
+          item,
+          visibleSteps.map((step) => step.id),
+        )
       : savedIndex;
     if (item) markRead([item]);
     setInitialIndex(first);
@@ -122,7 +141,11 @@ export const FeatureTour: React.FC<{
           </Button>
         </Tooltip>
         {updates.length > 0 && (
-          <DropdownMenu.Root onOpenChange={(next) => { if (next) refreshUpdates(); }}>
+          <DropdownMenu.Root
+            onOpenChange={(next) => {
+              if (next) refreshUpdates();
+            }}
+          >
             <DropdownMenu.Trigger asChild>
               <Button size="sm" aria-label={t('discovery.updates', 'Novidades desta área')}>
                 <Bell size={14} aria-hidden="true" />
@@ -132,7 +155,9 @@ export const FeatureTour: React.FC<{
             </DropdownMenu.Trigger>
             <DropdownMenu.Portal>
               <DropdownMenu.Content className={styles.menu} align="end" sideOffset={8}>
-                <div className={styles.menuHeading}>{t('discovery.updates', 'Novidades desta área')}</div>
+                <div className={styles.menuHeading}>
+                  {t('discovery.updates', 'Novidades desta área')}
+                </div>
                 {updates.map((item) => (
                   <DropdownMenu.Item
                     key={item.id}
@@ -141,10 +166,17 @@ export const FeatureTour: React.FC<{
                   >
                     <span className={styles.menuTitle}>
                       {t(item.title)}
-                      {!seen(item) && <span className={styles.unreadDot} aria-label={t('discovery.unread', 'Não lida')} />}
+                      {!seen(item) && (
+                        <span
+                          className={styles.unreadDot}
+                          aria-label={t('discovery.unread', 'Não lida')}
+                        />
+                      )}
                     </span>
                     <span className={styles.menuSummary}>{t(item.summary)}</span>
-                    <span className={styles.menuAction}>{t('discovery.showLocation', 'Mostrar no componente')}</span>
+                    <span className={styles.menuAction}>
+                      {t('discovery.showLocation', 'Mostrar no componente')}
+                    </span>
                   </DropdownMenu.Item>
                 ))}
                 {unread.length > 0 && (

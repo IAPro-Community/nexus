@@ -327,7 +327,12 @@ export const FlowRunsHistorySurface: React.FC<{
         <Card className={styles.newFlowCard} data-tour="flow-new">
           <div className={styles.newFlowTitle}>
             <strong>{t('flow.newFlow', 'Novo Flow')}</strong>
-            <p>{t('flow.newFlowExplanation', 'Crie um rascunho manual ou elabore um plano com IA no Composer. Um rascunho não inicia a execução.')}</p>
+            <p>
+              {t(
+                'flow.newFlowExplanation',
+                'Crie um rascunho manual ou elabore um plano com IA no Composer. Um rascunho não inicia a execução.',
+              )}
+            </p>
           </div>
           <div className={styles.newFlowRow}>
             <input
@@ -358,7 +363,9 @@ export const FlowRunsHistorySurface: React.FC<{
               }}
             >
               <Layers size={13} />{' '}
-              {creating ? t('common.loading', '…') : t('flow.createManual', 'Criar rascunho manual')}
+              {creating
+                ? t('common.loading', '…')
+                : t('flow.createManual', 'Criar rascunho manual')}
             </Button>
             {onOpenComposer ? (
               <Button onClick={onOpenComposer}>

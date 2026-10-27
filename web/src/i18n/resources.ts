@@ -698,7 +698,8 @@ export const en = {
     copyAlwaysAvailable: 'Copy remains available.',
     composer: {
       welcomeTitle: 'What should we build?',
-      welcomeDescription: 'Start with an idea, a problem or an existing project. Composer investigates the context, proposes options and helps you approve a plan.',
+      welcomeDescription:
+        'Start with an idea, a problem or an existing project. Composer investigates the context, proposes options and helps you approve a plan.',
       goalLabel: 'Describe your idea or the problem you want to solve',
       interviewDepth: 'Planning depth',
       interviewQuick: 'Quick — fewer questions',
@@ -973,73 +974,98 @@ export const en = {
   },
   discovery: {
     globalHint: 'Explore the improvements included in this build',
-    globalTitle: 'What\'s new in Nexus',
+    globalTitle: "What's new in Nexus",
     globalUnread: '{{count}} new Nexus features',
     globalDescription: 'Open a feature to explore it in the actual workspace',
     openArea: 'Open area',
     depthHintLabel: 'Learn how planning depth works',
-    depthHintBody: 'Quick asks fewer questions; Standard adapts to context; Deep reviews assumptions and trade-offs. None of these modes runs agents.',
+    depthHintBody:
+      'Quick asks fewer questions; Standard adapts to context; Deep reviews assumptions and trade-offs. None of these modes runs agents.',
     graphHintLabel: 'Learn about the Flow views',
-    graphHintBody: 'Pipeline and graph are two projections of the same WorkPlan. The graph visualizes dependencies; switching views does not start a Mission.',
-    updates: 'What\'s new here',
+    graphHintBody:
+      'Pipeline and graph are two projections of the same WorkPlan. The graph visualizes dependencies; switching views does not start a Mission.',
+    updates: "What's new here",
     unread: 'Unread',
     helpHint: 'Interactive walkthrough for this area',
     showLocation: 'Show in context',
     markAllRead: 'Mark all as read',
     dismiss: 'Dismiss',
     composerWorkspaceTitle: 'A better Composer start',
-    composerWorkspaceBody: 'Describe a complete idea in a multiline editor, then decide how deeply to explore it.',
+    composerWorkspaceBody:
+      'Describe a complete idea in a multiline editor, then decide how deeply to explore it.',
     composerInspectorTitle: 'Decisions and briefing',
-    composerInspectorBody: 'Inspect project context, assumptions, decisions and the reviewed artifact in one place.',
+    composerInspectorBody:
+      'Inspect project context, assumptions, decisions and the reviewed artifact in one place.',
     composerOfflineTitle: 'AI connection diagnostics',
-    composerOfflineBody: 'You can check the provider and still access saved planning history while Intelligence is unavailable.',
+    composerOfflineBody:
+      'You can check the provider and still access saved planning history while Intelligence is unavailable.',
     flowJourneyTitle: 'From draft to verified delivery',
     flowJourneyBody: 'Flow separates planning, review, Mission execution and evidence.',
     flowGraphTitle: 'Visual planning and dependencies',
-    flowGraphBody: 'Review the pipeline and inspect dependencies with the graph in the same WorkPlan.',
+    flowGraphBody:
+      'Review the pipeline and inspect dependencies with the graph in the same WorkPlan.',
     flowEvidenceTitle: 'Mission progress and evidence',
     flowEvidenceBody: 'See real execution status and evidence, not just an AI prediction.',
   },
   tour: {
     featureOpen: 'Explore this area',
     composerPurposeTitle: 'What Composer does',
-    composerPurposeBody: 'Composer turns an idea or an existing project into a revisable plan. It does not execute code just by opening a session.',
+    composerPurposeBody:
+      'Composer turns an idea or an existing project into a revisable plan. It does not execute code just by opening a session.',
     composerGoalTitle: 'Describe your goal',
-    composerGoalBody: 'Explain what you want and why. You do not need to know the technology or every requirement.',
+    composerGoalBody:
+      'Explain what you want and why. You do not need to know the technology or every requirement.',
     composerModeTitle: 'Choose how to start',
-    composerModeBody: 'Explore an idea or analyze an existing prompt. Both use the same planning process and require a working Nexus Intelligence provider.',
+    composerModeBody:
+      'Explore an idea or analyze an existing prompt. Both use the same planning process and require a working Nexus Intelligence provider.',
     composerDepthTitle: 'Choose the level of investigation',
-    composerDepthBody: 'Quick asks less; Standard adapts to complexity; Deep scrutinizes assumptions and trade-offs. You can continue the conversation afterward.',
+    composerDepthBody:
+      'Quick asks less; Standard adapts to complexity; Deep scrutinizes assumptions and trade-offs. You can continue the conversation afterward.',
     composerHistoryTitle: 'Resume saved work',
-    composerHistoryBody: 'Reopen an existing planning session. Deleting a session requires confirmation and is blocked when a Flow or delivered artifact depends on it.',
+    composerHistoryBody:
+      'Reopen an existing planning session. Deleting a session requires confirmation and is blocked when a Flow or delivered artifact depends on it.',
     composerSessionTitle: 'Your planning session',
-    composerSessionBody: 'Here you can revisit an elaboration, start another or inspect its current status. The plan stays saved independently of the execution.',
+    composerSessionBody:
+      'Here you can revisit an elaboration, start another or inspect its current status. The plan stays saved independently of the execution.',
     composerConversationTitle: 'Discuss and refine',
-    composerConversationBody: 'Ask follow-up questions, correct assumptions and provide context. Composer prepares a living brief and an immutable artifact after review.',
+    composerConversationBody:
+      'Ask follow-up questions, correct assumptions and provide context. Composer prepares a living brief and an immutable artifact after review.',
     composerInspectorTitle: 'Inspect decisions and delivery',
-    composerInspectorBody: 'The inspector contains the brief, context, assumptions, risks and the approved artifact. You can send it to an Agent or create a Flow draft without automatically running it.',
+    composerInspectorBody:
+      'The inspector contains the brief, context, assumptions, risks and the approved artifact. You can send it to an Agent or create a Flow draft without automatically running it.',
     composerOfflineTitle: 'Configure your AI provider',
-    composerOfflineBody: 'Composer needs an AI provider that answers a real connectivity test. With Intelligence offline, previous plans stay readable and Direct/terminals still work.',
+    composerOfflineBody:
+      'Composer needs an AI provider that answers a real connectivity test. With Intelligence offline, previous plans stay readable and Direct/terminals still work.',
     flowTracksTitle: 'Drafts and executions',
-    flowTracksBody: 'Switch between editable Flow plans and the history of Missions that were actually run. They are different states, not separate execution engines.',
+    flowTracksBody:
+      'Switch between editable Flow plans and the history of Missions that were actually run. They are different states, not separate execution engines.',
     flowNewTitle: 'Create an executable plan',
-    flowNewBody: 'Create a manual Flow draft here, or start in Composer to discover requirements and produce a structured handoff. Creating a draft does not start agents.',
+    flowNewBody:
+      'Create a manual Flow draft here, or start in Composer to discover requirements and produce a structured handoff. Creating a draft does not start agents.',
     flowDraftsTitle: 'Continue existing Flows',
-    flowDraftsBody: 'Open a saved draft and review its revision. Deleting used Flows is blocked to preserve Mission evidence and scheduled work.',
+    flowDraftsBody:
+      'Open a saved draft and review its revision. Deleting used Flows is blocked to preserve Mission evidence and scheduled work.',
     flowGoalTitle: 'Review the goal and gates',
-    flowGoalBody: 'Review the goal, leader, plan revision and preview before starting a Mission. Changes require validation and may require renewed approval.',
+    flowGoalBody:
+      'Review the goal, leader, plan revision and preview before starting a Mission. Changes require validation and may require renewed approval.',
     flowHandoffTitle: 'Where this Flow came from',
-    flowHandoffBody: 'When the Flow originates in Composer, this panel shows its approved decisions, assumptions and remaining blockers. It never silently rewrites the original brief.',
+    flowHandoffBody:
+      'When the Flow originates in Composer, this panel shows its approved decisions, assumptions and remaining blockers. It never silently rewrites the original brief.',
     flowViewsTitle: 'Pipeline or dependency graph',
-    flowViewsBody: 'Pipeline is the default, accessible view. The graph helps inspect dependencies and parallel work; both edit the same persisted WorkPlan.',
+    flowViewsBody:
+      'Pipeline is the default, accessible view. The graph helps inspect dependencies and parallel work; both edit the same persisted WorkPlan.',
     flowCanvasTitle: 'Steps, dependencies and inspection',
-    flowCanvasBody: 'Select a step to inspect or change it. Saving and execution are separate actions; the MissionRunner remains the authority for dispatch and recovery.',
+    flowCanvasBody:
+      'Select a step to inspect or change it. Saving and execution are separate actions; the MissionRunner remains the authority for dispatch and recovery.',
     flowRunStatusTitle: 'Mission state',
-    flowRunStatusBody: 'This is a running or completed Mission, bound to a frozen plan revision. You can see progress and outstanding human decisions.',
+    flowRunStatusBody:
+      'This is a running or completed Mission, bound to a frozen plan revision. You can see progress and outstanding human decisions.',
     flowRunStepsTitle: 'Execution evidence',
-    flowRunStepsBody: 'Each step exposes real status, attempts and evidence. A suggestion or optimistic estimate is not a verified delivery.',
+    flowRunStepsBody:
+      'Each step exposes real status, attempts and evidence. A suggestion or optimistic estimate is not a verified delivery.',
     flowRunActionsTitle: 'Human controls',
-    flowRunActionsBody: 'Review actions, approvals and recovery options here. Replanning in Composer creates a separate elaboration and does not modify an active Mission.',
+    flowRunActionsBody:
+      'Review actions, approvals and recovery options here. Replanning in Composer creates a separate elaboration and does not modify an active Mission.',
     aria: 'IAPro Nexus product tour',
     label: 'Tour · {{current}}/{{total}}',
     close: 'Close tour',
@@ -1351,7 +1377,8 @@ export const en = {
     journeyReview: '2. Review and approve',
     journeyExecute: '3. Run Mission',
     journeyEvidence: '4. Verify evidence',
-    newFlowExplanation: 'Create a manual draft here or develop the requirements with Composer. A draft never starts an execution.',
+    newFlowExplanation:
+      'Create a manual draft here or develop the requirements with Composer. A draft never starts an execution.',
     historyTitle: 'Flow',
     studioTitle: 'Flow Studio',
     tabPlan: 'This plan',
@@ -1370,9 +1397,11 @@ export const en = {
     elaborateInComposer: 'Elaborate in Composer',
     openComposer: 'Open Composer',
     noDrafts: 'No plan yet',
-    noDraftsHint: 'Create a manual draft here, or use Composer for AI-assisted planning and a structured Flow.',
+    noDraftsHint:
+      'Create a manual draft here, or use Composer for AI-assisted planning and a structured Flow.',
     emptyCanvasTitle: 'Empty pipeline',
-    emptyCanvasHint: 'Create a manual structure here, or return to Composer to elaborate the plan with AI.',
+    emptyCanvasHint:
+      'Create a manual structure here, or return to Composer to elaborate the plan with AI.',
     orphanStepsTitle: 'Steps without a phase',
     noRuns: 'No runs yet',
     noRunsHint: 'Approve a Flow draft to see history here.',
@@ -2930,7 +2959,8 @@ export const ptBR = {
     copyAlwaysAvailable: 'Copiar permanece disponível.',
     composer: {
       welcomeTitle: 'O que vamos construir?',
-      welcomeDescription: 'Comece com uma ideia, um problema ou um projeto existente. O Composer investiga o contexto, propõe caminhos e ajuda você a aprovar um plano.',
+      welcomeDescription:
+        'Comece com uma ideia, um problema ou um projeto existente. O Composer investiga o contexto, propõe caminhos e ajuda você a aprovar um plano.',
       goalLabel: 'Descreva sua ideia ou o problema que deseja resolver',
       interviewDepth: 'Profundidade do planejamento',
       interviewQuick: 'Rápido — menos perguntas',
@@ -3211,9 +3241,11 @@ export const ptBR = {
     globalDescription: 'Abra o recurso para conhecê-lo no próprio workspace',
     openArea: 'Abrir área',
     depthHintLabel: 'Entenda a profundidade do planejamento',
-    depthHintBody: 'Rápido faz menos perguntas; Padrão adapta ao contexto; Profundo revisa hipóteses e alternativas. Nenhum desses modos executa agentes.',
+    depthHintBody:
+      'Rápido faz menos perguntas; Padrão adapta ao contexto; Profundo revisa hipóteses e alternativas. Nenhum desses modos executa agentes.',
     graphHintLabel: 'Entenda as visões do Flow',
-    graphHintBody: 'Pipeline e grafo mostram o mesmo WorkPlan. O grafo destaca dependências; trocar a visão não inicia nenhuma Mission.',
+    graphHintBody:
+      'Pipeline e grafo mostram o mesmo WorkPlan. O grafo destaca dependências; trocar a visão não inicia nenhuma Mission.',
     updates: 'Novidades desta área',
     unread: 'Não lida',
     helpHint: 'Tour interativo para conhecer os controles desta área',
@@ -3221,58 +3253,81 @@ export const ptBR = {
     markAllRead: 'Marcar todas como lidas',
     dismiss: 'Dispensar',
     composerWorkspaceTitle: 'Nova entrada do Composer',
-    composerWorkspaceBody: 'Descreva a ideia em várias linhas e escolha quanto deseja aprofundar o planejamento.',
+    composerWorkspaceBody:
+      'Descreva a ideia em várias linhas e escolha quanto deseja aprofundar o planejamento.',
     composerInspectorTitle: 'Decisões e briefing',
-    composerInspectorBody: 'Revise contexto, hipóteses, decisões e o artefato aprovado no mesmo espaço.',
+    composerInspectorBody:
+      'Revise contexto, hipóteses, decisões e o artefato aprovado no mesmo espaço.',
     composerOfflineTitle: 'Diagnóstico de conexão com IA',
-    composerOfflineBody: 'Confira o provedor e continue acessando planejamentos salvos mesmo sem Nexus Intelligence.',
+    composerOfflineBody:
+      'Confira o provedor e continue acessando planejamentos salvos mesmo sem Nexus Intelligence.',
     flowJourneyTitle: 'Do rascunho à entrega verificada',
     flowJourneyBody: 'O Flow separa planejamento, revisão, execução de Mission e evidências.',
     flowGraphTitle: 'Planejamento visual e dependências',
     flowGraphBody: 'Veja a pipeline e explore dependências no grafo usando o mesmo WorkPlan.',
     flowEvidenceTitle: 'Progresso e evidências da Mission',
-    flowEvidenceBody: 'Consulte resultados e estados reais de execução, não apenas previsões da IA.',
+    flowEvidenceBody:
+      'Consulte resultados e estados reais de execução, não apenas previsões da IA.',
   },
   tour: {
     featureOpen: 'Conhecer esta área',
     composerPurposeTitle: 'Para que serve o Composer',
-    composerPurposeBody: 'O Composer transforma uma ideia ou projeto existente em um planejamento revisável. Abrir uma elaboração não executa código.',
+    composerPurposeBody:
+      'O Composer transforma uma ideia ou projeto existente em um planejamento revisável. Abrir uma elaboração não executa código.',
     composerGoalTitle: 'Descreva seu objetivo',
-    composerGoalBody: 'Conte o que deseja e por quê. Não precisa conhecer a tecnologia nem todos os requisitos.',
+    composerGoalBody:
+      'Conte o que deseja e por quê. Não precisa conhecer a tecnologia nem todos os requisitos.',
     composerModeTitle: 'Escolha como começar',
-    composerModeBody: 'Explore uma ideia ou analise um prompt existente. Ambos usam o mesmo planejamento e exigem um provedor funcional em Nexus Intelligence.',
+    composerModeBody:
+      'Explore uma ideia ou analise um prompt existente. Ambos usam o mesmo planejamento e exigem um provedor funcional em Nexus Intelligence.',
     composerDepthTitle: 'Defina o nível de investigação',
-    composerDepthBody: 'Rápido faz menos perguntas; Padrão se adapta; Profundo analisa hipóteses e alternativas. Você pode continuar conversando depois.',
+    composerDepthBody:
+      'Rápido faz menos perguntas; Padrão se adapta; Profundo analisa hipóteses e alternativas. Você pode continuar conversando depois.',
     composerHistoryTitle: 'Continue trabalhos anteriores',
-    composerHistoryBody: 'Retome uma elaboração salva. Excluir exige confirmação e fica bloqueado quando há um Flow ou entrega vinculada.',
+    composerHistoryBody:
+      'Retome uma elaboração salva. Excluir exige confirmação e fica bloqueado quando há um Flow ou entrega vinculada.',
     composerSessionTitle: 'Sua elaboração',
-    composerSessionBody: 'Aqui você retoma, inicia outra elaboração e acompanha o estado. O planejamento fica salvo independentemente da execução.',
+    composerSessionBody:
+      'Aqui você retoma, inicia outra elaboração e acompanha o estado. O planejamento fica salvo independentemente da execução.',
     composerConversationTitle: 'Converse e refine',
-    composerConversationBody: 'Faça perguntas, corrija hipóteses e acrescente contexto. O Composer mantém o briefing e prepara o artefato para revisão.',
+    composerConversationBody:
+      'Faça perguntas, corrija hipóteses e acrescente contexto. O Composer mantém o briefing e prepara o artefato para revisão.',
     composerInspectorTitle: 'Revise decisões e entrega',
-    composerInspectorBody: 'O painel reúne briefing, contexto, hipóteses, riscos e o artefato aprovado. Você pode encaminhá-lo a um Agent ou criar um Flow sem iniciar execução automática.',
+    composerInspectorBody:
+      'O painel reúne briefing, contexto, hipóteses, riscos e o artefato aprovado. Você pode encaminhá-lo a um Agent ou criar um Flow sem iniciar execução automática.',
     composerOfflineTitle: 'Configure a IA',
-    composerOfflineBody: 'O Composer depende de uma IA que responda ao teste real de conexão. Sem ela, o histórico segue disponível e os terminais funcionam normalmente.',
+    composerOfflineBody:
+      'O Composer depende de uma IA que responda ao teste real de conexão. Sem ela, o histórico segue disponível e os terminais funcionam normalmente.',
     flowTracksTitle: 'Planos e execuções',
-    flowTracksBody: 'Alterne entre Flows editáveis e o histórico das Missions executadas. São estados diferentes do mesmo fluxo, não dois motores de execução.',
+    flowTracksBody:
+      'Alterne entre Flows editáveis e o histórico das Missions executadas. São estados diferentes do mesmo fluxo, não dois motores de execução.',
     flowNewTitle: 'Crie um planejamento',
-    flowNewBody: 'Crie aqui um Flow manual ou use o Composer para esclarecer requisitos e gerar um plano estruturado. Criar um rascunho não inicia agentes.',
+    flowNewBody:
+      'Crie aqui um Flow manual ou use o Composer para esclarecer requisitos e gerar um plano estruturado. Criar um rascunho não inicia agentes.',
     flowDraftsTitle: 'Continue Flows salvos',
-    flowDraftsBody: 'Abra um rascunho e revise sua versão. Flows utilizados não podem ser excluídos, para preservar evidências e agendamentos.',
+    flowDraftsBody:
+      'Abra um rascunho e revise sua versão. Flows utilizados não podem ser excluídos, para preservar evidências e agendamentos.',
     flowGoalTitle: 'Revise objetivo e aprovações',
-    flowGoalBody: 'Confira objetivo, líder, revisão e prévia antes de iniciar a Mission. Mudanças exigem validação e podem exigir nova aprovação.',
+    flowGoalBody:
+      'Confira objetivo, líder, revisão e prévia antes de iniciar a Mission. Mudanças exigem validação e podem exigir nova aprovação.',
     flowHandoffTitle: 'Origem deste Flow',
-    flowHandoffBody: 'Quando vem do Composer, o painel preserva decisões aprovadas, hipóteses e bloqueios. O briefing original não é reescrito silenciosamente.',
+    flowHandoffBody:
+      'Quando vem do Composer, o painel preserva decisões aprovadas, hipóteses e bloqueios. O briefing original não é reescrito silenciosamente.',
     flowViewsTitle: 'Pipeline ou grafo de dependências',
-    flowViewsBody: 'Pipeline é a visão inicial. O grafo ajuda a visualizar dependências e paralelismo; ambos utilizam o mesmo WorkPlan.',
+    flowViewsBody:
+      'Pipeline é a visão inicial. O grafo ajuda a visualizar dependências e paralelismo; ambos utilizam o mesmo WorkPlan.',
     flowCanvasTitle: 'Etapas e inspector',
-    flowCanvasBody: 'Selecione uma etapa para examiná-la ou editá-la. Salvar e executar são ações diferentes; o MissionRunner controla despacho e recuperação.',
+    flowCanvasBody:
+      'Selecione uma etapa para examiná-la ou editá-la. Salvar e executar são ações diferentes; o MissionRunner controla despacho e recuperação.',
     flowRunStatusTitle: 'Estado da Mission',
-    flowRunStatusBody: 'Esta Mission usa uma revisão congelada do plano. Veja progresso e decisões pendentes de intervenção.',
+    flowRunStatusBody:
+      'Esta Mission usa uma revisão congelada do plano. Veja progresso e decisões pendentes de intervenção.',
     flowRunStepsTitle: 'Evidências de execução',
-    flowRunStepsBody: 'Cada etapa mostra estado, tentativas e evidências reais. Uma sugestão da IA não equivale a entrega verificada.',
+    flowRunStepsBody:
+      'Cada etapa mostra estado, tentativas e evidências reais. Uma sugestão da IA não equivale a entrega verificada.',
     flowRunActionsTitle: 'Controles humanos',
-    flowRunActionsBody: 'Revise aprovações, recuperação e outras ações. Replanejar no Composer cria nova elaboração sem substituir a Mission ativa.',
+    flowRunActionsBody:
+      'Revise aprovações, recuperação e outras ações. Replanejar no Composer cria nova elaboração sem substituir a Mission ativa.',
     aria: 'Tour do produto IAPro Nexus',
     label: 'Tour · {{current}}/{{total}}',
     close: 'Fechar tour',
@@ -3587,7 +3642,8 @@ export const ptBR = {
     journeyReview: '2. Revisar e aprovar',
     journeyExecute: '3. Executar Mission',
     journeyEvidence: '4. Conferir evidências',
-    newFlowExplanation: 'Crie um rascunho manual ou elabore um plano com IA no Composer. Um rascunho não inicia a execução.',
+    newFlowExplanation:
+      'Crie um rascunho manual ou elabore um plano com IA no Composer. Um rascunho não inicia a execução.',
     historyTitle: 'Flow',
     studioTitle: 'Flow Studio',
     tabPlan: 'Este plano',
@@ -3606,9 +3662,11 @@ export const ptBR = {
     elaborateInComposer: 'Elaborar no Composer',
     openComposer: 'Abrir Composer',
     noDrafts: 'Nenhum plano ainda',
-    noDraftsHint: 'Crie um rascunho manual aqui ou use o Composer para planejamento assistido por IA e um Flow estruturado.',
+    noDraftsHint:
+      'Crie um rascunho manual aqui ou use o Composer para planejamento assistido por IA e um Flow estruturado.',
     emptyCanvasTitle: 'Pipeline vazia',
-    emptyCanvasHint: 'Crie uma estrutura manual ou volte ao Composer para elaborar o planejamento com IA.',
+    emptyCanvasHint:
+      'Crie uma estrutura manual ou volte ao Composer para elaborar o planejamento com IA.',
     orphanStepsTitle: 'Etapas sem fase',
     noRuns: 'Nenhuma execução ainda',
     noRunsHint: 'Aprove um rascunho de Flow para ver o histórico aqui.',
@@ -5176,7 +5234,8 @@ export const es = {
     copyAlwaysAvailable: 'Copiar sigue disponible.',
     composer: {
       welcomeTitle: '¿Qué vamos a construir?',
-      welcomeDescription: 'Comience con una idea, un problema o un proyecto existente. Composer investiga el contexto, propone opciones y le ayuda a aprobar un plan.',
+      welcomeDescription:
+        'Comience con una idea, un problema o un proyecto existente. Composer investiga el contexto, propone opciones y le ayuda a aprobar un plan.',
       goalLabel: 'Describa su idea o el problema que quiere resolver',
       interviewDepth: 'Profundidad de planificación',
       interviewQuick: 'Rápido — menos preguntas',
@@ -5457,9 +5516,11 @@ export const es = {
     globalDescription: 'Abra la función para conocerla en el workspace',
     openArea: 'Abrir área',
     depthHintLabel: 'Conozca los niveles de planificación',
-    depthHintBody: 'Rápido hace menos preguntas; Estándar se adapta; Profundo revisa hipótesis y alternativas. Ninguno ejecuta agentes.',
+    depthHintBody:
+      'Rápido hace menos preguntas; Estándar se adapta; Profundo revisa hipótesis y alternativas. Ninguno ejecuta agentes.',
     graphHintLabel: 'Conozca las vistas de Flow',
-    graphHintBody: 'Pipeline y grafo muestran el mismo WorkPlan. El grafo presenta dependencias; cambiar de vista no inicia una Mission.',
+    graphHintBody:
+      'Pipeline y grafo muestran el mismo WorkPlan. El grafo presenta dependencias; cambiar de vista no inicia una Mission.',
     updates: 'Novedades de esta área',
     unread: 'No leída',
     helpHint: 'Recorrido interactivo de esta área',
@@ -5469,9 +5530,11 @@ export const es = {
     composerWorkspaceTitle: 'Nueva entrada de Composer',
     composerWorkspaceBody: 'Describa la idea en varias líneas y elija cuánto desea investigar.',
     composerInspectorTitle: 'Decisiones y briefing',
-    composerInspectorBody: 'Revise contexto, hipótesis, decisiones y el artefacto aprobado en un mismo lugar.',
+    composerInspectorBody:
+      'Revise contexto, hipótesis, decisiones y el artefacto aprobado en un mismo lugar.',
     composerOfflineTitle: 'Diagnóstico de conexión de IA',
-    composerOfflineBody: 'Compruebe el proveedor y acceda a los planes guardados aunque Intelligence no esté disponible.',
+    composerOfflineBody:
+      'Compruebe el proveedor y acceda a los planes guardados aunque Intelligence no esté disponible.',
     flowJourneyTitle: 'Del borrador a la entrega verificada',
     flowJourneyBody: 'Flow separa planificación, revisión, Mission y evidencias.',
     flowGraphTitle: 'Planificación visual y dependencias',
@@ -5482,43 +5545,62 @@ export const es = {
   tour: {
     featureOpen: 'Conocer esta área',
     composerPurposeTitle: 'Para qué sirve Composer',
-    composerPurposeBody: 'Composer convierte una idea o proyecto existente en un plan revisable. Abrir una elaboración no ejecuta código.',
+    composerPurposeBody:
+      'Composer convierte una idea o proyecto existente en un plan revisable. Abrir una elaboración no ejecuta código.',
     composerGoalTitle: 'Describa su objetivo',
-    composerGoalBody: 'Explique qué desea y por qué. No necesita conocer la tecnología ni todos los requisitos.',
+    composerGoalBody:
+      'Explique qué desea y por qué. No necesita conocer la tecnología ni todos los requisitos.',
     composerModeTitle: 'Elija cómo comenzar',
-    composerModeBody: 'Explore una idea o analice un prompt existente. Ambos requieren un proveedor funcional en Nexus Intelligence.',
+    composerModeBody:
+      'Explore una idea o analice un prompt existente. Ambos requieren un proveedor funcional en Nexus Intelligence.',
     composerDepthTitle: 'Nivel de investigación',
-    composerDepthBody: 'Rápido pregunta menos; Estándar se adapta; Profundo examina hipótesis y alternativas. Puede seguir conversando después.',
+    composerDepthBody:
+      'Rápido pregunta menos; Estándar se adapta; Profundo examina hipótesis y alternativas. Puede seguir conversando después.',
     composerHistoryTitle: 'Continuar el trabajo',
-    composerHistoryBody: 'Retome una elaboración guardada. Eliminar requiere confirmación y se bloquea si existen Flows o entregas asociadas.',
+    composerHistoryBody:
+      'Retome una elaboración guardada. Eliminar requiere confirmación y se bloquea si existen Flows o entregas asociadas.',
     composerSessionTitle: 'Su elaboración',
-    composerSessionBody: 'Aquí puede reanudar, crear otra elaboración y ver el estado. La planificación se guarda independientemente de la ejecución.',
+    composerSessionBody:
+      'Aquí puede reanudar, crear otra elaboración y ver el estado. La planificación se guarda independientemente de la ejecución.',
     composerConversationTitle: 'Conversar y refinar',
-    composerConversationBody: 'Haga preguntas, corrija hipótesis y aporte contexto. Composer prepara el briefing y el artefacto para su revisión.',
+    composerConversationBody:
+      'Haga preguntas, corrija hipótesis y aporte contexto. Composer prepara el briefing y el artefacto para su revisión.',
     composerInspectorTitle: 'Revisar decisiones y entrega',
-    composerInspectorBody: 'El panel reúne briefing, contexto, hipótesis, riesgos y el artefacto aprobado. Puede enviarlo a un Agent o crear un Flow sin iniciarlo automáticamente.',
+    composerInspectorBody:
+      'El panel reúne briefing, contexto, hipótesis, riesgos y el artefacto aprobado. Puede enviarlo a un Agent o crear un Flow sin iniciarlo automáticamente.',
     composerOfflineTitle: 'Configurar IA',
-    composerOfflineBody: 'Composer necesita una IA que pase una prueba real de conexión. Sin ella, el historial sigue disponible y los terminales funcionan.',
+    composerOfflineBody:
+      'Composer necesita una IA que pase una prueba real de conexión. Sin ella, el historial sigue disponible y los terminales funcionan.',
     flowTracksTitle: 'Planes y ejecuciones',
-    flowTracksBody: 'Alterne entre Flows editables y Missions ejecutadas. Son estados del mismo proceso, no motores independientes.',
+    flowTracksBody:
+      'Alterne entre Flows editables y Missions ejecutadas. Son estados del mismo proceso, no motores independientes.',
     flowNewTitle: 'Crear un plan',
-    flowNewBody: 'Cree un Flow manual o utilice Composer para descubrir requisitos y generar un plan estructurado. Un borrador no inicia agentes.',
+    flowNewBody:
+      'Cree un Flow manual o utilice Composer para descubrir requisitos y generar un plan estructurado. Un borrador no inicia agentes.',
     flowDraftsTitle: 'Continuar Flows guardados',
-    flowDraftsBody: 'Abra un borrador y revise su versión. Los Flows usados no se eliminan porque contienen evidencias y programas.',
+    flowDraftsBody:
+      'Abra un borrador y revise su versión. Los Flows usados no se eliminan porque contienen evidencias y programas.',
     flowGoalTitle: 'Revisar objetivo y aprobaciones',
-    flowGoalBody: 'Revise objetivo, líder, revisión y vista previa antes de iniciar una Mission. Los cambios requieren validación.',
+    flowGoalBody:
+      'Revise objetivo, líder, revisión y vista previa antes de iniciar una Mission. Los cambios requieren validación.',
     flowHandoffTitle: 'Origen del Flow',
-    flowHandoffBody: 'Si viene de Composer, este panel conserva decisiones, hipótesis y bloqueos. No reescribe el briefing original.',
+    flowHandoffBody:
+      'Si viene de Composer, este panel conserva decisiones, hipótesis y bloqueos. No reescribe el briefing original.',
     flowViewsTitle: 'Pipeline o grafo',
-    flowViewsBody: 'Pipeline es la vista inicial. El grafo muestra dependencias y paralelismo; ambos usan el mismo WorkPlan.',
+    flowViewsBody:
+      'Pipeline es la vista inicial. El grafo muestra dependencias y paralelismo; ambos usan el mismo WorkPlan.',
     flowCanvasTitle: 'Etapas e inspector',
-    flowCanvasBody: 'Seleccione una etapa para verla o editarla. Guardar y ejecutar son acciones distintas; MissionRunner controla la ejecución.',
+    flowCanvasBody:
+      'Seleccione una etapa para verla o editarla. Guardar y ejecutar son acciones distintas; MissionRunner controla la ejecución.',
     flowRunStatusTitle: 'Estado de Mission',
-    flowRunStatusBody: 'Esta Mission se vincula a una revisión congelada del plan. Consulte progreso y decisiones pendientes.',
+    flowRunStatusBody:
+      'Esta Mission se vincula a una revisión congelada del plan. Consulte progreso y decisiones pendientes.',
     flowRunStepsTitle: 'Evidencias de ejecución',
-    flowRunStepsBody: 'Cada etapa muestra estados, intentos y evidencias reales. Una sugerencia no es una entrega verificada.',
+    flowRunStepsBody:
+      'Cada etapa muestra estados, intentos y evidencias reales. Una sugerencia no es una entrega verificada.',
     flowRunActionsTitle: 'Controles humanos',
-    flowRunActionsBody: 'Revise aprobaciones y recuperación. Replanificar en Composer crea otra elaboración sin modificar la Mission activa.',
+    flowRunActionsBody:
+      'Revise aprobaciones y recuperación. Replanificar en Composer crea otra elaboración sin modificar la Mission activa.',
     aria: 'Recorrido del producto IAPro Nexus',
     label: 'Recorrido · {{current}}/{{total}}',
     close: 'Cerrar recorrido',
@@ -5833,7 +5915,8 @@ export const es = {
     journeyReview: '2. Revisar y aprobar',
     journeyExecute: '3. Ejecutar Mission',
     journeyEvidence: '4. Verificar evidencias',
-    newFlowExplanation: 'Cree un borrador manual o desarrolle los requisitos con Composer. Un borrador no inicia la ejecución.',
+    newFlowExplanation:
+      'Cree un borrador manual o desarrolle los requisitos con Composer. Un borrador no inicia la ejecución.',
     historyTitle: 'Flow',
     studioTitle: 'Flow Studio',
     tabPlan: 'Este plan',
@@ -5852,7 +5935,8 @@ export const es = {
     elaborateInComposer: 'Elaborar en Composer',
     openComposer: 'Abrir Composer',
     noDrafts: 'Aún no hay plan',
-    noDraftsHint: 'Cree un borrador manual o utilice Composer para planificación asistida por IA y un Flow estructurado.',
+    noDraftsHint:
+      'Cree un borrador manual o utilice Composer para planificación asistida por IA y un Flow estructurado.',
     emptyCanvasTitle: 'Pipeline vacía',
     emptyCanvasHint: 'Cree una estructura manual o vuelva a Composer para elaborar el plan con IA.',
     orphanStepsTitle: 'Pasos sin fase',

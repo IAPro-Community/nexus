@@ -5,8 +5,12 @@ import { featureTourSteps, featureTourStorageKey, parseFeatureTourProgress } fro
 describe('Composer and Flow contextual tours', () => {
   it('provides real distinct step identifiers per surface', () => {
     expect(Object.keys(featureTourSteps)).toEqual([
-      'composer-start', 'composer-session', 'composer-offline',
-      'flow-library', 'flow-run', 'flow-editor',
+      'composer-start',
+      'composer-session',
+      'composer-offline',
+      'flow-library',
+      'flow-run',
+      'flow-editor',
     ]);
     for (const [surface, steps] of Object.entries(featureTourSteps)) {
       expect(steps.length, surface).toBeGreaterThan(0);
@@ -23,8 +27,11 @@ describe('Composer and Flow contextual tours', () => {
 
   it('skips absent or hidden targets without inventing features', () => {
     const steps = featureTourSteps['flow-editor'];
-    const visible = availableTourSteps(steps, (selector) =>
-      selector === '[data-tour="flow-goal"]' || selector === '[data-tour="flow-canvas"]');
+    const visible = availableTourSteps(
+      steps,
+      (selector) =>
+        selector === '[data-tour="flow-goal"]' || selector === '[data-tour="flow-canvas"]',
+    );
     expect(visible.map((step) => step.id)).toEqual(['goal', 'canvas']);
   });
 

@@ -993,7 +993,6 @@ func (sh *SessionHost) waitProcess() {
 	}
 
 	sh.mu.Lock()
-	defer sh.mu.Unlock()
 
 	_ = sh.termBackend.Close()
 	sh.releaseCodexTUILockLocked()
@@ -1030,18 +1029,28 @@ func (sh *SessionHost) waitProcess() {
 		State: state, Reason: "", Context: "", Fingerprint: "",
 		PromptKind: PromptKindNone, Kind: AttentionIdle,
 	})
-
 	eventData := sh.lifecycleEventData(map[string]any{"state": string(state)})
+	lineageID := sh.session.LineageID
+	runtimeID := sh.session.RuntimeID
+	providerID := sh.session.ProviderID
+	profileID := sh.session.ProfileID
+	detector := sh.detector
+	sh.mu.Unlock()
+
+	if detector != nil {
+		detector.Clear()
+	}
+
 	if state == registry.StateFailed {
 		for key, value := range runtimeFailureEventMetadata(err, sh.ringBuffer.Bytes()) {
 			eventData[key] = value
 		}
 	}
 	events.DefaultBus().Publish(events.NewEventWithCorrelation(
-		sh.session.LineageID,
-		sh.session.RuntimeID,
-		sh.session.ProviderID,
-		sh.session.ProfileID,
+		lineageID,
+		runtimeID,
+		providerID,
+		profileID,
 		events.EventProcessExited,
 		fmt.Sprintf("Process exited (State: %s)", state),
 		eventData,
@@ -1051,10 +1060,10 @@ func (sh *SessionHost) waitProcess() {
 		runtimeEvent = events.EventRuntimeFailed
 	}
 	events.DefaultBus().Publish(events.NewEventWithCorrelation(
-		sh.session.LineageID,
-		sh.session.RuntimeID,
-		sh.session.ProviderID,
-		sh.session.ProfileID,
+		lineageID,
+		runtimeID,
+		providerID,
+		profileID,
 		runtimeEvent,
 		fmt.Sprintf("Runtime ended (State: %s)", state),
 		eventData,

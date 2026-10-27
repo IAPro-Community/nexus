@@ -538,9 +538,9 @@ func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus, source, in
 	fingerprint := ""
 	if kind == AttentionNeedsUser || kind == AttentionError {
 		fingerprint = attentionFingerprint(d.runtimeID, promptKind, context)
-        if source != "osc7501" && interactionID != "" {
-            fingerprint = attentionFingerprint(d.runtimeID, promptKind, interactionID)
-        }
+		if source != "osc7501" && interactionID != "" {
+			fingerprint = attentionFingerprint(d.runtimeID, promptKind, interactionID)
+		}
 	}
 	if fingerprint != "" && fingerprint == d.lastFingerprint && kind == d.lastKind {
 		return
@@ -568,7 +568,7 @@ func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus, source, in
 			"context":             context,
 			"dynamic_title":       title,
 			"fingerprint":         fingerprint,
-            "interaction_id":      interactionID,
+			"interaction_id":      interactionID,
 			"source":              source,
 			"response_capability": "focus_terminal",
 		}
@@ -646,6 +646,20 @@ func (d *AttentionDetector) ObserveOperatorInput(data []byte) {
 	if d.onAttention != nil {
 		d.onAttention(d.lastReason, "", d.lastTitle, registry.StateRunning)
 	}
+}
+
+// Clear resets all internal attention state, buffers, and prompts.
+func (d *AttentionDetector) Clear() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.buffer.Reset()
+	d.oscTail = ""
+	d.lastReason = ""
+	d.lastKind = AttentionIdle
+	d.lastPrompt = PromptKindNone
+	d.lastFingerprint = ""
+	d.nativeStatus = false
+	d.lastState = registry.StateStopped
 }
 
 func classifyQuestionnaire(lines []string) (context string, promptKind string) {

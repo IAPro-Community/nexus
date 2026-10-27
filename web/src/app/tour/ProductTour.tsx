@@ -1,7 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, Compass, X } from 'lucide-react';
 import { Button, IconButton } from '../../design-system';
-import { availableTourSteps, nextTourIndex, previousTourIndex, productTourSteps, type TourStep } from './tour';
+import {
+  availableTourSteps,
+  nextTourIndex,
+  previousTourIndex,
+  productTourSteps,
+  type TourStep,
+} from './tour';
 import { useTranslation } from 'react-i18next';
 import styles from './ProductTour.module.scss';
 
@@ -13,8 +19,12 @@ export const ProductTour: React.FC<{
   onStepChange?: (index: number) => void;
   onComplete?: () => void;
 }> = ({
-  open, onClose, steps: proposedSteps = productTourSteps, initialIndex = 0,
-  onStepChange, onComplete,
+  open,
+  onClose,
+  steps: proposedSteps = productTourSteps,
+  initialIndex = 0,
+  onStepChange,
+  onComplete,
 }) => {
   const { t } = useTranslation();
   const [index, setIndex] = useState(initialIndex);
@@ -53,7 +63,10 @@ export const ProductTour: React.FC<{
       return;
     }
     const target = document.querySelector(step.target) as HTMLElement | null;
-    if (!target) { setRect(null); return; }
+    if (!target) {
+      setRect(null);
+      return;
+    }
     target.scrollIntoView({
       behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
       block: 'nearest',
@@ -81,13 +94,21 @@ export const ProductTour: React.FC<{
       return;
     }
     if (event.key !== 'Tab' || !modalRef.current) return;
-    const buttons = Array.from(modalRef.current.querySelectorAll<HTMLElement>('button:not([disabled])'));
+    const buttons = Array.from(
+      modalRef.current.querySelectorAll<HTMLElement>('button:not([disabled])'),
+    );
     if (!buttons.length) return;
-    const first = buttons[0], last = buttons[buttons.length - 1];
-    if (event.shiftKey && (document.activeElement === first || document.activeElement === modalRef.current)) {
-      event.preventDefault(); last.focus();
+    const first = buttons[0],
+      last = buttons[buttons.length - 1];
+    if (
+      event.shiftKey &&
+      (document.activeElement === first || document.activeElement === modalRef.current)
+    ) {
+      event.preventDefault();
+      last.focus();
     } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault(); first.focus();
+      event.preventDefault();
+      first.focus();
     }
   };
 

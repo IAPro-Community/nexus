@@ -1,6 +1,15 @@
 import React, { useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, FileText, History, Lightbulb, MessageCircle, RefreshCw, Settings2, Sparkles, Trash2 } from 'lucide-react';
+import {
+  ArrowRight,
+  FileText,
+  History,
+  Lightbulb,
+  RefreshCw,
+  Settings2,
+  Sparkles,
+  Trash2,
+} from 'lucide-react';
 import { Button, Card, ConfirmDialog, Select, Textarea } from '../../design-system';
 import type { ComposerSession } from '../../types';
 import { nexus } from '../../nexus/api';
@@ -62,13 +71,19 @@ export const ComposerStart: React.FC<{
       await nexus.probeIntelligence(projectId);
       setProbeSuccess(true);
       setProbeMessage(
-        t('work.composer.probeSuccess', 'A IA respondeu ao teste de conexão. Você pode tentar novamente.'),
+        t(
+          'work.composer.probeSuccess',
+          'A IA respondeu ao teste de conexão. Você pode tentar novamente.',
+        ),
       );
     } catch (reason) {
       setProbeMessage(
         reason instanceof Error
           ? reason.message
-          : t('work.composer.probeFailed', 'Não foi possível testar a IA. Verifique Nexus Intelligence.'),
+          : t(
+              'work.composer.probeFailed',
+              'Não foi possível testar a IA. Verifique Nexus Intelligence.',
+            ),
       );
     } finally {
       setProbeBusy(false);
@@ -94,163 +109,164 @@ export const ComposerStart: React.FC<{
     <div className={styles.composerWelcome}>
       <div className={styles.composerWelcomeHero} data-tour="composer-purpose">
         <FeatureTour projectId={projectId} surface="composer-start" />
-        <span className={styles.composerWelcomeEyebrow}><Sparkles size={15} /> COMPOSER · NEXUS</span>
+        <span className={styles.composerWelcomeEyebrow}>
+          <Sparkles size={15} /> COMPOSER · NEXUS
+        </span>
         <h1 className={styles.composerWelcomeTitle}>
           {t('work.composer.welcomeTitle', 'O que vamos construir?')}
         </h1>
         <p className={styles.composerWelcomeDescription}>
-          {t('work.composer.welcomeDescription',
-            'Comece com uma ideia, um problema ou um projeto existente. O Composer investiga o contexto, propõe caminhos e transforma suas decisões em um plano revisável.')}
+          {t(
+            'work.composer.welcomeDescription',
+            'Comece com uma ideia, um problema ou um projeto existente. O Composer investiga o contexto, propõe caminhos e transforma suas decisões em um plano revisável.',
+          )}
         </p>
       </div>
       <Card className={styles.composerWelcomeEntry}>
-        <div className={`${styles.goalBarLabel} ${styles.flexRowBetween}`} data-tour="composer-mode">
-        <div className={styles.flexRowGap6}>
-          <Sparkles size={16} />
-          <span>{t('work.composer.startTitle', 'Nova elaboração')}</span>
-        </div>
-        <div className={styles.flexRowGap4}>
-          <Button
-            size="sm"
-            tone={inputMode === 'IDEA' ? 'brand' : 'default'}
-            onClick={() => setInputMode('IDEA')}
-            disabled={busy}
-          >
-            <Lightbulb size={13} /> {t('work.composer.ideaMode', 'Idea / Explore')}
-          </Button>
-          <Button
-            size="sm"
-            tone={inputMode === 'EXISTING_PROMPT' ? 'brand' : 'default'}
-            onClick={() => setInputMode('EXISTING_PROMPT')}
-            disabled={busy}
-          >
-            <FileText size={13} /> {t('work.composer.existingPromptMode', 'Existing prompt')}
-          </Button>
-        </div>
+        <div
+          className={`${styles.goalBarLabel} ${styles.flexRowBetween}`}
+          data-tour="composer-mode"
+        >
+          <div className={styles.flexRowGap6}>
+            <Sparkles size={16} />
+            <span>{t('work.composer.startTitle', 'Nova elaboração')}</span>
+          </div>
+          <div className={styles.flexRowGap4}>
+            <Button
+              size="sm"
+              tone={inputMode === 'IDEA' ? 'brand' : 'default'}
+              onClick={() => setInputMode('IDEA')}
+              disabled={busy}
+            >
+              <Lightbulb size={13} /> {t('work.composer.ideaMode', 'Idea / Explore')}
+            </Button>
+            <Button
+              size="sm"
+              tone={inputMode === 'EXISTING_PROMPT' ? 'brand' : 'default'}
+              onClick={() => setInputMode('EXISTING_PROMPT')}
+              disabled={busy}
+            >
+              <FileText size={13} /> {t('work.composer.existingPromptMode', 'Existing prompt')}
+            </Button>
+          </div>
         </div>
 
         <div className={styles.flexColGap8} data-tour="composer-goal">
-        <label htmlFor={goalId} className={styles.composerWelcomeInputLabel}>
-          {t('work.composer.goalLabel', 'Descreva sua ideia ou o problema que deseja resolver')}
-        </label>
-        <Textarea
-          id={goalId}
-          value={draft}
-          onChange={setDraft}
-          rows={4}
-          className={styles.composerWelcomeGoal}
-          placeholder={
-            inputMode === 'IDEA'
-              ? t(
-                  'work.composer.ideaPlaceholder',
-                  'Descreva o que você quer criar, melhorar ou investigar…',
-                )
-              : t(
-                  'work.composer.existingGoalPlaceholder',
-                  'Qual o objetivo deste prompt?',
-                )
-          }
-          disabled={busy}
-        />
-        {inputMode === 'EXISTING_PROMPT' && (
-          <textarea
-            className={styles.sourceTextarea}
-            value={sourcePrompt}
-            onChange={(e) => setSourcePrompt(e.target.value)}
-            placeholder={t(
-              'work.composer.sourcePlaceholder',
-              'Cole aqui o prompt original para analisarmos lacunas e oportunidades…',
-            )}
-            rows={4}
-            disabled={busy}
-          />
-        )}
-        <div className={styles.flexRowWrapGap8} data-tour="composer-depth">
-          <label htmlFor={interviewDepthId} className={styles.mutedLabel}>
-            {t('work.composer.interviewDepth', 'Interview depth')}
+          <label htmlFor={goalId} className={styles.composerWelcomeInputLabel}>
+            {t('work.composer.goalLabel', 'Descreva sua ideia ou o problema que deseja resolver')}
           </label>
-          <FeatureHint
-            label="discovery.depthHintLabel"
-            content="discovery.depthHintBody"
-          />
-          <Select
-            id={interviewDepthId}
-            value={interviewMode}
-            onChange={(value) => setInterviewMode(value as 'QUICK' | 'STANDARD' | 'DEEP')}
-            options={[
-              {
-                value: 'QUICK',
-                label: t('work.composer.interviewQuick', 'Quick — fewer questions'),
-              },
-              {
-                value: 'STANDARD',
-                label: t('work.composer.interviewStandard', 'Standard — adaptive'),
-              },
-              {
-                value: 'DEEP',
-                label: t('work.composer.interviewDeep', 'Deep — challenge assumptions'),
-              },
-            ]}
+          <Textarea
+            id={goalId}
+            value={draft}
+            onChange={setDraft}
+            rows={4}
+            className={styles.composerWelcomeGoal}
+            placeholder={
+              inputMode === 'IDEA'
+                ? t(
+                    'work.composer.ideaPlaceholder',
+                    'Descreva o que você quer criar, melhorar ou investigar…',
+                  )
+                : t('work.composer.existingGoalPlaceholder', 'Qual o objetivo deste prompt?')
+            }
             disabled={busy}
           />
-        </div>
-        <div className={styles.flexRowEnd}>
-          <Button
-            tone="brand"
-            disabled={disabled}
-            onClick={() =>
-              onCreate({
-                mode: inputMode,
-                interviewMode,
-                draft: draft.trim(),
-                sourcePrompt: sourcePrompt.trim(),
-              })
-            }
-          >
-            <ArrowRight size={14} />{' '}
-            {busy
-              ? t('work.composer.starting', 'Starting…')
-              : inputMode === 'EXISTING_PROMPT'
-                ? t('work.composer.analyzePrompt', 'Analyze prompt')
-                : t('work.composer.converse', 'Converse')}
-          </Button>
-        </div>
+          {inputMode === 'EXISTING_PROMPT' && (
+            <textarea
+              className={styles.sourceTextarea}
+              value={sourcePrompt}
+              onChange={(e) => setSourcePrompt(e.target.value)}
+              placeholder={t(
+                'work.composer.sourcePlaceholder',
+                'Cole aqui o prompt original para analisarmos lacunas e oportunidades…',
+              )}
+              rows={4}
+              disabled={busy}
+            />
+          )}
+          <div className={styles.flexRowWrapGap8} data-tour="composer-depth">
+            <label htmlFor={interviewDepthId} className={styles.mutedLabel}>
+              {t('work.composer.interviewDepth', 'Interview depth')}
+            </label>
+            <FeatureHint label="discovery.depthHintLabel" content="discovery.depthHintBody" />
+            <Select
+              id={interviewDepthId}
+              value={interviewMode}
+              onChange={(value) => setInterviewMode(value as 'QUICK' | 'STANDARD' | 'DEEP')}
+              options={[
+                {
+                  value: 'QUICK',
+                  label: t('work.composer.interviewQuick', 'Quick — fewer questions'),
+                },
+                {
+                  value: 'STANDARD',
+                  label: t('work.composer.interviewStandard', 'Standard — adaptive'),
+                },
+                {
+                  value: 'DEEP',
+                  label: t('work.composer.interviewDeep', 'Deep — challenge assumptions'),
+                },
+              ]}
+              disabled={busy}
+            />
+          </div>
+          <div className={styles.flexRowEnd}>
+            <Button
+              tone="brand"
+              disabled={disabled}
+              onClick={() =>
+                onCreate({
+                  mode: inputMode,
+                  interviewMode,
+                  draft: draft.trim(),
+                  sourcePrompt: sourcePrompt.trim(),
+                })
+              }
+            >
+              <ArrowRight size={14} />{' '}
+              {busy
+                ? t('work.composer.starting', 'Starting…')
+                : inputMode === 'EXISTING_PROMPT'
+                  ? t('work.composer.analyzePrompt', 'Analyze prompt')
+                  : t('work.composer.converse', 'Converse')}
+            </Button>
+          </div>
         </div>
       </Card>
       {sessions.length > 0 && (
         <Card className={styles.composerWelcomeHistory} data-tour="composer-history">
           <div className={styles.composerWelcomeHistoryHeader}>
-          <History size={15} />
-          <strong>{t('work.composer.previousSessions', 'Continuar uma elaboração')}</strong>
-          <span>{sessions.length}</span>
+            <History size={15} />
+            <strong>{t('work.composer.previousSessions', 'Continuar uma elaboração')}</strong>
+            <span>{sessions.length}</span>
           </div>
           <div className={styles.flexRowWrapGap8}>
             <Select
-            placeholder={t('work.composer.resumeSession', 'Escolha uma elaboração salva…')}
-            value={selectedSavedSession}
-            onChange={setSelectedSavedSession}
-            options={sessionOptions}
-            selectClassName={styles.sessionSelect}
-          />
-          <Button
-            size="sm"
-            disabled={!selectedSavedSession || busy}
-            onClick={() => onResumeSession(selectedSavedSession)}
-          >
-            {t('work.composer.openSession', 'Abrir')}
-          </Button>
-          <Button
-            size="sm"
-            tone="danger"
-            disabled={!selectedSavedSession || busy}
-            onClick={() =>
-              setSessionForDeletion(
-                sessions.find((item) => item.id === selectedSavedSession) || null,
-              )
-            }
-          >
-            <Trash2 size={13} /> {t('common.delete', 'Excluir')}
-          </Button>
+              placeholder={t('work.composer.resumeSession', 'Escolha uma elaboração salva…')}
+              value={selectedSavedSession}
+              onChange={setSelectedSavedSession}
+              options={sessionOptions}
+              selectClassName={styles.sessionSelect}
+            />
+            <Button
+              size="sm"
+              disabled={!selectedSavedSession || busy}
+              onClick={() => onResumeSession(selectedSavedSession)}
+            >
+              {t('work.composer.openSession', 'Abrir')}
+            </Button>
+            <Button
+              size="sm"
+              tone="danger"
+              disabled={!selectedSavedSession || busy}
+              onClick={() =>
+                setSessionForDeletion(
+                  sessions.find((item) => item.id === selectedSavedSession) || null,
+                )
+              }
+            >
+              <Trash2 size={13} /> {t('common.delete', 'Excluir')}
+            </Button>
           </div>
         </Card>
       )}
@@ -278,7 +294,8 @@ export const ComposerStart: React.FC<{
           <div className={styles.flexRowWrapGap8}>
             {onOpenIntelligenceSettings && (
               <Button size="sm" onClick={onOpenIntelligenceSettings}>
-                <Settings2 size={13} /> {t('work.composer.openIntelligence', 'Configurar Nexus Intelligence')}
+                <Settings2 size={13} />{' '}
+                {t('work.composer.openIntelligence', 'Configurar Nexus Intelligence')}
               </Button>
             )}
             <Button size="sm" disabled={probeBusy || busy} onClick={() => void testConnection()}>
@@ -288,11 +305,7 @@ export const ComposerStart: React.FC<{
                 : t('work.composer.testConnection', 'Testar conexão da IA')}
             </Button>
           </div>
-          {probeMessage && (
-            <p role={probeSuccess ? 'status' : 'alert'}>
-              {probeMessage}
-            </p>
-          )}
+          {probeMessage && <p role={probeSuccess ? 'status' : 'alert'}>{probeMessage}</p>}
         </div>
       )}
     </div>

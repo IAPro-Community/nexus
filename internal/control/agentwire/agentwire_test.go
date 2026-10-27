@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"sync"
@@ -149,5 +150,262 @@ func TestReducerIdentityAndEpoch(t *testing.T) {
 	got, _ = r.Apply(Observation{RuntimeID: "first", Epoch: 2, Sequence: 1, Turn: TurnRunning})
 	if got.Epoch != 2 || got.Sequence != 1 {
 		t.Fatal("epoch change not fenced")
+	}
+}
+
+func TestJSONLinesWhitespaceAndEmptyLines(t *testing.T) {
+	input := "\n   \n\r\n{\"id\":1}\r\n\n  \n{\"id\":2}\n   \n"
+	j := NewJSONLines(strings.NewReader(input), io.Discard)
+
+	f1, err := j.Read()
+	if err != nil {
+		t.Fatalf("read frame 1 failed: %v", err)
+	}
+	if string(f1) != "{\"id\":1}" {
+		t.Fatalf("unexpected frame 1: %s", string(f1))
+	}
+
+	f2, err := j.Read()
+	if err != nil {
+		t.Fatalf("read frame 2 failed: %v", err)
+	}
+	if string(f2) != "{\"id\":2}" {
+		t.Fatalf("unexpected frame 2: %s", string(f2))
+	}
+
+	_, err = j.Read()
+	if err != io.EOF {
+		t.Fatalf("expected io.EOF after trailing whitespace, got %v", err)
+	}
+}
+
+func TestACPConcurrentOutOfOrderRequests(t *testing.T) {
+	in, out := io.Pipe()
+	clientIn, clientOut := io.Pipe()
+	defer in.Close()
+	defer out.Close()
+	defer clientIn.Close()
+	defer clientOut.Close()
+
+	acp := NewACP(in, clientOut)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	go func() { _ = acp.Pump(ctx) }()
+
+	type testResp struct {
+		Name string `json:"name"`
+	}
+
+	resCh1 := make(chan testResp, 1)
+	errCh1 := make(chan error, 1)
+	resCh2 := make(chan testResp, 1)
+	errCh2 := make(chan error, 1)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		var r testResp
+		err := acp.Call(ctx, "ping1", map[string]any{}, &r)
+		errCh1 <- err
+		resCh1 <- r
+	}()
+
+	go func() {
+		defer wg.Done()
+		var r testResp
+		err := acp.Call(ctx, "ping2", map[string]any{}, &r)
+		errCh2 <- err
+		resCh2 <- r
+	}()
+
+	// Read both requests from clientIn to learn their dynamic IDs
+	wireReader := NewJSONLines(clientIn, io.Discard)
+	req1Raw, err := wireReader.Read()
+	if err != nil {
+		t.Fatalf("failed reading req 1: %v", err)
+	}
+	req2Raw, err := wireReader.Read()
+	if err != nil {
+		t.Fatalf("failed reading req 2: %v", err)
+	}
+
+	var req1, req2 struct {
+		ID     string `json:"id"`
+		Method string `json:"method"`
+	}
+	_ = json.Unmarshal(req1Raw, &req1)
+	_ = json.Unmarshal(req2Raw, &req2)
+
+	// Send responses in reverse order of reception
+	resp2 := fmt.Sprintf("{\"jsonrpc\":\"2.0\",\"id\":%q,\"result\":{\"name\":%q}}\n", req2.ID, req2.Method)
+	resp1 := fmt.Sprintf("{\"jsonrpc\":\"2.0\",\"id\":%q,\"result\":{\"name\":%q}}\n", req1.ID, req1.Method)
+
+	_, _ = out.Write([]byte(resp2))
+	_, _ = out.Write([]byte(resp1))
+
+	wg.Wait()
+
+	if err := <-errCh1; err != nil {
+		t.Fatalf("call 1 failed: %v", err)
+	}
+	if r1 := <-resCh1; r1.Name != "ping1" {
+		t.Fatalf("call 1 expected 'ping1', got '%s'", r1.Name)
+	}
+
+	if err := <-errCh2; err != nil {
+		t.Fatalf("call 2 failed: %v", err)
+	}
+	if r2 := <-resCh2; r2.Name != "ping2" {
+		t.Fatalf("call 2 expected 'ping2', got '%s'", r2.Name)
+	}
+}
+
+func TestACPProcessPipeClosureDuringCall(t *testing.T) {
+	in, out := io.Pipe()
+	written := &synchronizedBuffer{}
+	acp := NewACP(in, written)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	go func() { _ = acp.Pump(ctx) }()
+
+	errCh := make(chan error, 1)
+	go func() {
+		var resp map[string]any
+		errCh <- acp.Call(ctx, "test/hang", map[string]any{}, &resp)
+	}()
+
+	// Wait until request is on wire
+	deadline := time.After(2 * time.Second)
+	for {
+		if written.Len() > 0 {
+			break
+		}
+		select {
+		case <-deadline:
+			t.Fatal("request was not written")
+		default:
+			time.Sleep(5 * time.Millisecond)
+		}
+	}
+
+	// Close pipe to simulate subprocess death
+	_ = in.Close()
+	_ = out.Close()
+
+	select {
+	case err := <-errCh:
+		if err == nil {
+			t.Fatal("expected error on pipe closure, got nil")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("call remained blocked after pipe closure")
+	}
+}
+
+func TestPiRPCConcurrentOutOfOrderCommands(t *testing.T) {
+	in, out := io.Pipe()
+	clientIn, clientOut := io.Pipe()
+	defer in.Close()
+	defer out.Close()
+	defer clientIn.Close()
+	defer clientOut.Close()
+
+	pi := NewPiRPC(in, clientOut)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	go func() { _ = pi.Pump(ctx) }()
+
+	errCh1 := make(chan error, 1)
+	errCh2 := make(chan error, 1)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		errCh1 <- pi.Command(ctx, "cmd_one", map[string]any{"arg": 1}, nil)
+	}()
+
+	go func() {
+		defer wg.Done()
+		errCh2 <- pi.Command(ctx, "cmd_two", map[string]any{"arg": 2}, nil)
+	}()
+
+	wireReader := NewJSONLines(clientIn, io.Discard)
+	raw1, err := wireReader.Read()
+	if err != nil {
+		t.Fatalf("failed reading pi cmd 1: %v", err)
+	}
+	raw2, err := wireReader.Read()
+	if err != nil {
+		t.Fatalf("failed reading pi cmd 2: %v", err)
+	}
+
+	var cmd1, cmd2 struct {
+		ID   string `json:"id"`
+		Type string `json:"type"`
+	}
+	_ = json.Unmarshal(raw1, &cmd1)
+	_ = json.Unmarshal(raw2, &cmd2)
+
+	// Reply out of order: cmd2 first, then cmd1
+	resp2 := fmt.Sprintf("{\"type\":\"response\",\"id\":%q,\"command\":%q,\"success\":true}\n", cmd2.ID, cmd2.Type)
+	resp1 := fmt.Sprintf("{\"type\":\"response\",\"id\":%q,\"command\":%q,\"success\":true}\n", cmd1.ID, cmd1.Type)
+
+	_, _ = out.Write([]byte(resp2))
+	_, _ = out.Write([]byte(resp1))
+
+	wg.Wait()
+
+	if err := <-errCh1; err != nil {
+		t.Fatalf("cmd_one failed: %v", err)
+	}
+	if err := <-errCh2; err != nil {
+		t.Fatalf("cmd_two failed: %v", err)
+	}
+}
+
+func TestPiRPCPipeClosureDuringCommand(t *testing.T) {
+	in, out := io.Pipe()
+	written := &synchronizedBuffer{}
+	pi := NewPiRPC(in, written)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	go func() { _ = pi.Pump(ctx) }()
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- pi.Command(ctx, "hang_cmd", map[string]any{}, nil)
+	}()
+
+	deadline := time.After(2 * time.Second)
+	for {
+		if written.Len() > 0 {
+			break
+		}
+		select {
+		case <-deadline:
+			t.Fatal("command not written")
+		default:
+			time.Sleep(5 * time.Millisecond)
+		}
+	}
+
+	_ = in.Close()
+	_ = out.Close()
+
+	select {
+	case err := <-errCh:
+		if err == nil {
+			t.Fatal("expected error on pipe closure, got nil")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("command remained blocked after pipe closure")
 	}
 }

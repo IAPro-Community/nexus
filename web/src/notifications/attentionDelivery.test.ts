@@ -7,7 +7,7 @@ import {
 
 describe('attention delivery contract', () => {
   it('documents a single browser push authority and display-only attach WS', () => {
-    expect(ATTENTION_PUSH_AUTHORITY).toBe('focused-project-registry-poll');
+    expect(ATTENTION_PUSH_AUTHORITY).toBe('universal-registry-poll');
     expect(ATTENTION_ATTACH_WS_ROLE).toBe('display-only');
   });
 

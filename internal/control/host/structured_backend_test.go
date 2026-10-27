@@ -43,6 +43,37 @@ func TestMockWireAgentProcess(t *testing.T) {
 	}
 	os.Exit(0)
 }
+
+func TestMockPiRPCAgentProcess(t *testing.T) {
+	if os.Getenv("NEXUS_PI_TEST_CHILD") != "1" {
+		return
+	}
+	input := bufio.NewScanner(os.Stdin)
+	w := bufio.NewWriter(os.Stdout)
+	for input.Scan() {
+		var req struct {
+			ID   string `json:"id"`
+			Type string `json:"type"`
+		}
+		if json.Unmarshal(input.Bytes(), &req) != nil {
+			os.Exit(3)
+		}
+		switch req.Type {
+		case "get_state":
+			_ = json.NewEncoder(w).Encode(map[string]any{"type": "response", "id": req.ID, "command": "get_state", "success": true, "data": map[string]string{"sessionId": "pi-sess-100"}})
+		case "prompt":
+			_ = json.NewEncoder(w).Encode(map[string]any{"type": "response", "id": req.ID, "command": "prompt", "success": true})
+			_ = json.NewEncoder(w).Encode(map[string]any{"type": "agent_start"})
+			_ = json.NewEncoder(w).Encode(map[string]any{"type": "agent_settled"})
+		case "abort":
+			_ = json.NewEncoder(w).Encode(map[string]any{"type": "response", "id": req.ID, "command": "abort", "success": true})
+		}
+		if err := w.Flush(); err != nil {
+			os.Exit(4)
+		}
+	}
+	os.Exit(0)
+}
 func TestStructuredBackendSupervisesRealPipeProcess(t *testing.T) {
 	status := make(chan agentwire.WireSignal, 10)
 	sessions := make(chan string, 1)
@@ -89,5 +120,54 @@ func TestStructuredBackendSupervisesRealPipeProcess(t *testing.T) {
 	}
 	if !strings.Contains(backend.Mechanism(), "acp") {
 		t.Fatal("transport incorrectly identified")
+	}
+}
+
+func TestStructuredBackendEmitSanitization(t *testing.T) {
+	backend := newStructuredBackend("acp", t.TempDir(), nil, nil)
+
+	// ANSI escape injection + BEL character
+	malicious := "\x1b[31;1mDanger\x1b[0m\x07 Message\r\n"
+	backend.emit(malicious)
+
+	select {
+	case line := <-backend.lines:
+		if strings.Contains(line, "\x1b") || strings.Contains(line, "\x07") {
+			t.Fatalf("ANSI escape code or BEL was not stripped: %q", line)
+		}
+		if !strings.Contains(line, "Danger") || !strings.Contains(line, "Message") {
+			t.Fatalf("legitimate text corrupted: %q", line)
+		}
+	default:
+		t.Fatal("expected emitted line")
+	}
+
+	// Secret token redaction
+	secretMsg := "Connecting with ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 to GitHub\n"
+	backend.emit(secretMsg)
+
+	select {
+	case line := <-backend.lines:
+		if strings.Contains(line, "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890") {
+			t.Fatalf("secret token was not redacted: %q", line)
+		}
+		if !strings.Contains(line, "[REDACTED") {
+			t.Fatalf("redaction marker missing: %q", line)
+		}
+	default:
+		t.Fatal("expected emitted line")
+	}
+
+	// Length bounding (> 4096 runes)
+	huge := strings.Repeat("A", 5000)
+	backend.emit(huge)
+
+	select {
+	case line := <-backend.lines:
+		if len([]rune(line)) > 4096 {
+			t.Fatalf("emitted line exceeds 4096 runes: %d", len([]rune(line)))
+		}
+	default:
+		t.Fatal("expected emitted line")
 	}
 }

@@ -1317,7 +1317,7 @@ const WorkspaceCoordinator: React.FC<{
     [data, open, project.id, setProject],
   );
 
-  // Attention watcher for the focused project only (radar remains global).
+  // Universal attention delivery across all projects (radar remains global).
   useEffect(() => {
     const prefs = prefsRef.current;
     if (!prefs.notificationsEnabled && !prefs.soundEnabled) return;
@@ -1329,7 +1329,6 @@ const WorkspaceCoordinator: React.FC<{
     const activePtyViewId = presentation.state.activePtyViewId;
 
     for (const runtime of data.runtimes) {
-      if (runtime.project_id && runtime.project_id !== project.id) continue;
       const provider = (runtime.provider_id || runtime.provider || '').toLowerCase();
       if (provider === 'shell') continue;
 
@@ -1348,12 +1347,15 @@ const WorkspaceCoordinator: React.FC<{
       const fingerprint = attentionFingerprintOf(runtime);
       if (!fingerprint || notifiedFingerprints.current.has(fingerprint)) continue;
 
-      const agentSurface = allSurfaces.find(
-        (surface) =>
-          surface.type === 'terminal' &&
-          surface.data?.agentId &&
-          surface.data.agentId === runtime.agent_id,
-      );
+      const isCurrentProject = !runtime.project_id || runtime.project_id === project.id;
+      const agentSurface = isCurrentProject
+        ? allSurfaces.find(
+            (surface) =>
+              surface.type === 'terminal' &&
+              surface.data?.agentId &&
+              surface.data.agentId === runtime.agent_id,
+          )
+        : null;
       const focused = agentSurface
         ? isPtyAttentionFocused({
             terminalsProductSurfaceId: terminalsProductId,
@@ -1374,12 +1376,14 @@ const WorkspaceCoordinator: React.FC<{
         runtime.dynamic_title ||
         runtime.title ||
         undefined;
+      const runtimeProject = data.projects.find((p) => p.id === runtime.project_id);
+      const projName = runtime.project_name || runtimeProject?.name || project.name;
       const body = formatAttentionPushBody({
         reason,
         context: runtime.attention_context || runtime.last_task_summary || '',
         promptKind: runtime.prompt_kind,
         agentName,
-        projectName: runtime.project_name || project.name,
+        projectName: projName,
         rich: false,
       });
       if (!body) continue;
@@ -1389,7 +1393,7 @@ const WorkspaceCoordinator: React.FC<{
       if (prefs.notificationsEnabled) {
         pushNotifications.sendPush({
           runtimeId: runtime.runtime_id,
-          projectName: runtime.project_name || project.name,
+          projectName: projName,
           agentName,
           reason,
           context: runtime.attention_context || runtime.last_task_summary || body,
@@ -1408,6 +1412,7 @@ const WorkspaceCoordinator: React.FC<{
   }, [
     data.runtimes,
     data.agents,
+    data.projects,
     project.id,
     project.name,
     workspace.model.root,

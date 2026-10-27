@@ -23,7 +23,7 @@
   background: var(--nx-bg-elevated);
   border: 1px solid color-mix(in srgb, var(--nx-accent) 33%, var(--nx-border));
   border-radius: 10px;
-  font-size: .8rem;
+  font-size: 0.8rem;
 }
 
 .notice > svg {
@@ -50,7 +50,7 @@
 
 .menuHeading {
   padding: 9px 11px;
-  font-size: .8rem;
+  font-size: 0.8rem;
   font-weight: 750;
   border-bottom: 1px solid var(--nx-border);
   margin-bottom: 5px;
@@ -63,7 +63,7 @@
   border-radius: 8px;
   outline: none;
   cursor: pointer;
-  font-size: .84rem;
+  font-size: 0.84rem;
 }
 
 .menuItem:hover,
@@ -84,7 +84,7 @@
 }
 
 .menuAction {
-  font-size: .75rem;
+  font-size: 0.75rem;
   color: var(--nx-accent-text);
   font-weight: 600;
 }
@@ -104,7 +104,7 @@
   border-top: 1px solid var(--nx-border);
   color: var(--nx-accent-text);
   cursor: pointer;
-  font-size: .8rem;
+  font-size: 0.8rem;
   outline: none;
 }
 
@@ -113,10 +113,17 @@
 }
 
 @media (max-width: 640px) {
-  .root { justify-content: flex-start; }
-  .notice { flex-basis: 100%; }
+  .root {
+    justify-content: flex-start;
+  }
+  .notice {
+    flex-basis: 100%;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .menuItem, .markRead { transition: none; }
+  .menuItem,
+  .markRead {
+    transition: none;
+  }
 }

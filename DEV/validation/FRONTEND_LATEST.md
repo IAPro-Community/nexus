@@ -1,33 +1,65 @@
 # Frontend verification report
 
-- Generated: `2026-10-26T03:36:27Z`
-- Branch/base: `release/v1.0.0` @ `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`
-- Product source overlay: `751cfc1a160c38d950ac5b9807e1febb9746d03981c861c722e5bd965e1ef012` (1,428 files; `DEV/validation/linux-100-2026-10-25/logs/source-provenance-web-dependency-security-fix-2026-10-26.txt`)
-- Verdict: **PASS** (`bun run quality:full`; 109 Vitest files / 675 tests / production build; Bun 1.3.9 frozen install and Bun audit reported zero advisories after FIX-029)
+- Generated: `2026-10-27T18:55:23Z`
+- Branch: `release/v1.0.0` @ `2207f320`
+- Verdict: **PASS** (10 pass / 0 fail)
 - Dirty web/dist tree: **yes**
 
 ## Gates
 
-| Gate | Status | Evidence |
-| --- | --- | --- |
-| CSS Modules, stylesheet allowlist and workspace style bounds | PASS | `check:styles` and Node checks in `logs/current-mascot-web-quality-full-2026-10-25.txt` |
-| Prettier | PASS | `format:check` in the same quality log |
-| ESLint | PASS | `lint` |
-| Stylelint | PASS | `lint:styles` |
-| TypeScript | PASS | `typecheck` |
-| Unit/component tests | PASS | 109 Vitest files, 675 tests, plus the configured Node script checks |
-| Production frontend build | PASS | `quality:full` build output |
-| HUD browser E2E | PASS | `logs/web-e2e-hud-after-audit-fix-2026-10-26.log`; Chromium fixture is not native Wails evidence |
-| Single NEX regression and official SVG | PASS | 30 focused tests and `bun run art:nex:check`; `logs/current-single-mascot-regressions-final-2026-10-25.txt`, `logs/current-nex-art-check-final-2026-10-25.txt` |
+| Gate | Hard | Status | Duration | Detail |
+| --- | --- | --- | --- | --- |
+| Prettier (`prettier --check`) | yes | PASS | 7275ms | Checking formatting...<br>All matched files use Prettier code style! |
+| TypeScript (`tsc --noEmit`) | yes | PASS | 10223ms | ok |
+| ESLint (`eslint src`) | yes | PASS | 5527ms | /projetos/nexus/web/src/features/browser/BrowserSurface.tsx<br>  255:6  warning  React Hook useEffect has missing dependencies: 'projectId' and 'session'. Either include them or remove the dependency array  react-hooks/exhaustive-deps<br>  373:6  warning  React Hook useEffect has a missing dependency: 'session'. Either include it or remove the dependency array                    react-hooks/exhaustive-deps<br>  417:6  warning  React Hook useEffect has a missing dependency: 'session'. Either incl |
+| Stylelint (`stylelint "src/**/*.css"`) | yes | PASS | 1263ms | ok |
+| Null-safe API array access | yes | PASS | 78ms | sem .length/.map direto em campos nullable conhecidos |
+| Vitest (`vitest run`) | yes | PASS | 6233ms | stderr | src/platform/platformBridge.test.ts<br><br>⚠️ Browser Environment Detected <br><br>Only UI previews are available in the browser. For full functionality, please run the application in desktop mode.<br>More information at: https://v3.wails.io/learn/build/#using-a-browser-for-development<br><br><br>stderr | src/features/work/clarificationModel.test.ts<br><br>⚠️ Browser Environment Detected <br><br>Only UI previews are available in the browser. For full functionality, please run the applic |
+| i18n catalog parity | yes | PASS | 693ms | RUN  v4.1.12 /projetos/nexus/web<br><br> ✓ src/i18n/i18n.test.ts (7 tests) 17ms<br><br> Test Files  1 passed (1)<br>      Tests  7 passed (7)<br>   Start at  14:55:54<br>   Duration  421ms (transform 222ms, setup 0ms, import 281ms, tests 17ms, environment 0ms) |
+| Build + embed (`node scripts/build.mjs`) | yes | PASS | 1714ms | NEX 32-bit official SVG exported: /projetos/nexus/web/public/nex<br>Nexus web build complete: /projetos/nexus/web/dist<br>≈ tailwindcss v4.3.3<br><br>Done in 198ms<br><br>  dist/bundle.js                                   425.1kb<br>  dist/chunks/chunk-BONOGKGG.js                    359.1kb<br>  dist/chunks/chunk-QGVOQYY7.js                    281.2kb<br>  dist/chunks/chunk-S3S2TXOM.js                    272.7kb<br>  dist/chunks/FlowRunsHistorySurface-KNDGV3CG.js   226.2kb<br>  dist/bundle.css   |
+| Embed sync (web/dist ≡ internal/.../embedded) | yes | PASS | 1ms | bundles idênticos (435257 bytes) |
+| Critical UI markers in bundle | yes | PASS | 4ms | marcadores críticos presentes (7) |
 
-Native HUD Wails evidence and the structured visual review are in `DEV/validation/linux-100-2026-10-25/MASCOT_VALIDATION.md` and `FRONTEND_VISUAL_REVIEW_2026-10-26.md`. Xvfb shows one NEX and basic click interaction; RGB capture does not validate compositor alpha or attention from a real provider.
+## Residual risks / next operator steps
 
-## Reproduce
+- Automated gates green.
+- If UI still looks broken in the browser: restart `nexus web` so the new embedded bundle is loaded (`make build`).
+- Manual smoke (not automated here): open Project Overview, Radar, one Agent terminal, and a second Project focus switch.
 
-```bash
-bun run quality:full
-bun run test:e2e:hud
-bun run --cwd web art:nex:check
+### Dirty paths
+
+```
+M web/src/app/NexusWorkspaceApp.tsx
+ M web/src/app/components/ProductUpdatesCenter.module.scss
+ M web/src/app/components/ProductUpdatesCenter.tsx
+ M web/src/app/tour/ProductTour.module.scss
+ M web/src/app/tour/ProductTour.tsx
+ M web/src/components/AttentionNotification.test.ts
+ M web/src/components/AttentionNotificationManager.tsx
+ M web/src/features/settings/SettingsSurface.tsx
+ M web/src/features/work/ComposerReadOnlyHistory.tsx
+ M web/src/features/work/ComposerStart.tsx
+ M web/src/features/work/ComposerSurface.module.scss
+ M web/src/features/work/FeatureTour.module.scss
+ M web/src/features/work/FeatureTour.tsx
+ M web/src/features/work/FlowRunsHistorySurface.module.scss
+ M web/src/features/work/FlowRunsHistorySurface.tsx
+ M web/src/features/work/featureAnnouncements.test.ts
+ M web/src/features/work/featureAnnouncements.ts
+ M web/src/features/work/featureTour.test.ts
+ M web/src/features/work/featureTour.ts
+ M web/src/features/work/featureTourAnchors.test.ts
+ M web/src/features/work/featureTourDefinitions.ts
+ M web/src/i18n/resources.ts
+ M web/src/notifications/attentionDelivery.test.ts
+ M web/src/notifications/attentionDelivery.ts
+ M web/src/types.ts
 ```
 
-Full logs: `DEV/validation/linux-100-2026-10-25/logs/web-quality-full-after-audit-fix-2026-10-26.log`, `web-e2e-hud-after-audit-fix-2026-10-26.log`, `web-bun-audit-after-fix-2026-10-26.json`, and `current-one-mascot-contract-tests-2026-10-26.txt`.
+## How to regenerate
+
+```bash
+make web-verify
+# or
+npm --prefix web run verify
+```

@@ -44,17 +44,20 @@ func (j *JSONLines) Read() (json.RawMessage, error) {
 			continue
 		}
 		if err != nil {
-			if err == io.EOF && len(out) == 0 {
+			if err == io.EOF && (len(out) == 0 || len(bytes.TrimSpace(out)) == 0) {
 				return nil, io.EOF
 			}
 			return nil, fmt.Errorf("agentwire: incomplete record: %w", err)
 		}
-		out = bytes.TrimSuffix(out, []byte{'\n'})
-		out = bytes.TrimSuffix(out, []byte{'\r'})
-		if !json.Valid(out) || len(out) == 0 {
+		trimmed := bytes.TrimSpace(out)
+		if len(trimmed) == 0 {
+			out = out[:0]
+			continue
+		}
+		if !json.Valid(trimmed) {
 			return nil, errors.New("agentwire: invalid JSON line")
 		}
-		return json.RawMessage(out), nil
+		return json.RawMessage(trimmed), nil
 	}
 }
 

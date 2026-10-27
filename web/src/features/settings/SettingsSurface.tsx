@@ -129,7 +129,9 @@ export const SettingsSurface: React.FC<{
   const [intelligenceSaving, setIntelligenceSaving] = useState(false);
   const [intelligenceError, setIntelligenceError] = useState('');
   const [intelligenceProbeBusy, setIntelligenceProbeBusy] = useState(false);
-  const [intelligenceProbeResult, setIntelligenceProbeResult] = useState<'IDLE' | 'PASS' | 'FAIL'>('IDLE');
+  const [intelligenceProbeResult, setIntelligenceProbeResult] = useState<'IDLE' | 'PASS' | 'FAIL'>(
+    'IDLE',
+  );
   const [intelligenceProbeMessage, setIntelligenceProbeMessage] = useState('');
   const [notifyPrefs, setNotifyPrefs] = useState<NotificationPrefs>(() => loadNotificationPrefs());
 
@@ -234,11 +236,11 @@ export const SettingsSurface: React.FC<{
     [intelligenceResources, intelligenceDraft],
   );
 
-  const intelligenceConfigChanged = !intelligence || (
-    [
-      'mode', 'provider', 'profile', 'base_url', 'model', 'api_key_env', 'api_key_file',
-    ] as const
-  ).some((field) => (intelligenceDraft[field] || '') !== (intelligence[field] || ''));
+  const intelligenceConfigChanged =
+    !intelligence ||
+    (
+      ['mode', 'provider', 'profile', 'base_url', 'model', 'api_key_env', 'api_key_file'] as const
+    ).some((field) => (intelligenceDraft[field] || '') !== (intelligence[field] || ''));
 
   const testIntelligenceConnection = async () => {
     if (intelligenceProbeBusy || intelligenceSaving || intelligenceConfigChanged) return;
@@ -251,8 +253,11 @@ export const SettingsSurface: React.FC<{
       setIntelligenceProbeMessage('O modelo respondeu à solicitação real do Nexus Intelligence.');
     } catch (error) {
       setIntelligenceProbeResult('FAIL');
-      setIntelligenceProbeMessage(error instanceof Error ? error.message :
-        'Não foi possível concluir o teste. Verifique o provedor e tente novamente.');
+      setIntelligenceProbeMessage(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível concluir o teste. Verifique o provedor e tente novamente.',
+      );
     } finally {
       setIntelligenceProbeBusy(false);
     }
@@ -851,7 +856,11 @@ export const SettingsSurface: React.FC<{
             {intelligenceProbeResult !== 'IDLE' && (
               <InlineAlert
                 tone={intelligenceProbeResult === 'PASS' ? 'success' : 'danger'}
-                title={intelligenceProbeResult === 'PASS' ? 'Conexão com a IA verificada' : 'Falha na conexão com a IA'}
+                title={
+                  intelligenceProbeResult === 'PASS'
+                    ? 'Conexão com a IA verificada'
+                    : 'Falha na conexão com a IA'
+                }
               >
                 {intelligenceProbeMessage}
               </InlineAlert>
@@ -868,8 +877,12 @@ export const SettingsSurface: React.FC<{
                 {intelligenceSaving ? 'Saving…' : 'Save Intelligence'}
               </Button>
               <Button
-                disabled={intelligenceProbeBusy || intelligenceSaving ||
-                  intelligenceConfigChanged || intelligenceDraft.mode === 'OFF'}
+                disabled={
+                  intelligenceProbeBusy ||
+                  intelligenceSaving ||
+                  intelligenceConfigChanged ||
+                  intelligenceDraft.mode === 'OFF'
+                }
                 onClick={() => void testIntelligenceConnection()}
               >
                 {intelligenceProbeBusy ? 'Testando provedor…' : 'Testar conexão real da IA'}
