@@ -101,6 +101,7 @@ func(b *Bridge)Prompt(ctx context.Context,text string)error {
  select {
  case <-b.ready:
  case <-ctx.Done():return ctx.Err()
+ case <-b.ctx.Done():return errors.New("agent protocol terminated before readiness")
  }
  if strings.TrimSpace(text)==""{return errors.New("empty prompt")}
  b.mu.Lock()
