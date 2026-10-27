@@ -85,6 +85,16 @@ func(b *Bridge)Start(ctx context.Context)error{
  } else {
   b.pi.OnEvent(b.piEvent)
   go func(){if err:=b.pi.Pump(b.ctx);err!=nil&&b.ctx.Err()==nil{b.emit(WireSignal{State:"error",Summary:"RPC stream terminated"})}}()
+  verify,cancelVerify:=context.WithTimeout(b.ctx,10*time.Second)
+  defer cancelVerify()
+  var reply json.RawMessage
+  if err:=b.pi.Command(verify,"get_state",nil,&reply);err!=nil{
+   b.cancel();close(b.failed);return fmt.Errorf("Pi RPC get_state handshake: %w",err)
+  }
+  var state struct{SessionID string `json:"sessionId"`}
+  if json.Unmarshal(reply,&state)==nil {
+   b.mu.Lock();b.sessionID=state.SessionID;b.mu.Unlock()
+  }
  }
  close(b.ready)
  b.emit(WireSignal{State:"idle",Summary:"Ready for a prompt"})
