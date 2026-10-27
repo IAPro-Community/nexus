@@ -28,6 +28,8 @@ type permissionWait struct {
  options map[string]bool
  selected chan string
  submitted bool
+ nativeID string
+ method string
 }
 
 // Bridge adapts bidirectional ACP and Pi's JSONL RPC to one session-scoped
@@ -212,8 +214,74 @@ func(b *Bridge)notification(method string,raw json.RawMessage){
   b.emit(WireSignal{State:"working",Summary:"Agent is using tools"})
  }
 }
+// ReplyText handles free-text Pi extension dialogs. It is deliberately
+// distinct from permission-option selection and validates the request type.
+func(b *Bridge)ReplyText(interactionID,text string)error{
+ if len(text)>4096{return errors.New("response exceeds 4096 bytes")}
+ b.mu.Lock();defer b.mu.Unlock()
+ p:=b.pending[interactionID]
+ if p==nil||p.method!="input"&&p.method!="editor"{return errors.New("unknown or non-text dialog")}
+ if p.submitted{return errors.New("response already submitted")}
+ p.submitted=true
+ p.selected<-text
+ return nil
+}
+func(b *Bridge)handlePiUI(raw json.RawMessage){
+ var req struct{
+  ID string `json:"id"`
+  Method string `json:"method"`
+  Title string `json:"title"`
+  Message string `json:"message"`
+  Options []string `json:"options"`
+  Timeout int `json:"timeout"`
+ }
+ if json.Unmarshal(raw,&req)!=nil||len(req.ID)>128||req.ID==""{return}
+ switch req.Method{
+ case "select","confirm","input","editor":
+ default:return
+ }
+ id:=fmt.Sprintf("ui-%d",b.next.Add(1))
+ p:=&permissionWait{options:make(map[string]bool),selected:make(chan string,1),nativeID:req.ID,method:req.Method}
+ choices:=[]PermissionChoice{}
+ if req.Method=="confirm"{
+  p.options["yes"]=true;p.options["no"]=true
+  choices=[]PermissionChoice{{ID:"yes",Name:"Yes"},{ID:"no",Name:"No"}}
+ }else if req.Method=="select"{
+  for _,v:=range req.Options{
+   if v==""||len(v)>200{continue}
+   p.options[v]=true
+   choices=append(choices,PermissionChoice{ID:v,Name:v})
+  }
+  if len(choices)==0{return}
+ }
+ b.mu.Lock();b.pending[id]=p;b.mu.Unlock()
+ title:=strings.TrimSpace(req.Title)
+ if title==""{title="Agent asks for input"}
+ b.emit(WireSignal{State:"blocked",Kind:"question",Summary:title,InteractionID:id,Options:choices})
+ b.print("Question "+id+": "+title+"\n")
+ if req.Message!=""{b.print(req.Message+"\n")}
+ for _,c:=range choices{b.print("  "+c.ID+" — "+c.Name+"\n")}
+ if req.Method=="input"||req.Method=="editor"{b.print("Use /answer "+id+" <text> to respond.\n")
+ }else{b.print("Use /permit "+id+" <option-id> to respond.\n")}
+ go func(){
+  defer func(){b.mu.Lock();delete(b.pending,id);b.mu.Unlock()}()
+  deadline:=req.Timeout
+  var expiry <-chan time.Time
+  if deadline>0 {timer:=time.NewTimer(time.Duration(deadline)*time.Millisecond);defer timer.Stop();expiry=timer.C}
+  select{
+  case value:=<-p.selected:
+   var response map[string]any
+   if req.Method=="confirm"{response=map[string]any{"confirmed":value=="yes"}
+   }else{response=map[string]any{"value":value}}
+   _=b.pi.RespondUI(req.ID,response)
+  case <-expiry: // Pi itself expires dialogs; do not send a late reply.
+  case <-b.ctx.Done():_ = b.pi.RespondUI(req.ID,map[string]any{"cancelled":true})
+  }
+ }()
+}
 func(b *Bridge)piEvent(kind string,raw json.RawMessage){
  switch kind{
+ case "extension_ui_request":b.handlePiUI(raw)
  case "agent_start":b.emit(WireSignal{State:"working",Summary:"Agent started"})
  case "agent_settled":
   b.mu.Lock();b.busy=false;b.mu.Unlock()
