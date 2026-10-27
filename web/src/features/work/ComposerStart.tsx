@@ -7,6 +7,7 @@ import { nexus } from '../../nexus/api';
 import { composerSessionStateKey, formatComposerSessionTitle } from './composerModel';
 import styles from './ComposerSurface.module.scss';
 import { FeatureTour } from './FeatureTour';
+import { FeatureHint } from './FeatureHint';
 
 export type ComposerStartCreateArgs = {
   mode: 'IDEA' | 'EXISTING_PROMPT';
@@ -168,6 +169,10 @@ export const ComposerStart: React.FC<{
           <label htmlFor={interviewDepthId} className={styles.mutedLabel}>
             {t('work.composer.interviewDepth', 'Interview depth')}
           </label>
+          <FeatureHint
+            label="discovery.depthHintLabel"
+            content="discovery.depthHintBody"
+          />
           <Select
             id={interviewDepthId}
             value={interviewMode}
