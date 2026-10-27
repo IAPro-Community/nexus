@@ -123,6 +123,7 @@ export const BrowserSurface: React.FC<{
 }> = ({ projectId, initialSessionId, initialUrl = 'http://localhost:3000', onSessionReady }) => {
   const { t } = useTranslation();
   const [session, setSession] = useState<NexusBrowserInfo | null>(null);
+  const [availableBrowsers, setAvailableBrowsers] = useState<NexusBrowserInfo[]>([]);
   const [address, setAddress] = useState(initialUrl);
   const [text, setText] = useState('');
   const [frame, setFrame] = useState('');
@@ -219,14 +220,16 @@ export const BrowserSurface: React.FC<{
     let disposed = false;
     const poll = async () => {
       try {
-        const [status, activeGrants, browserInfo] = await Promise.all([
+        const [status, activeGrants, browserInfo, browsers] = await Promise.all([
           browserAPI.handoffInfo(session.id),
           browserAPI.grants(session.id),
           browserAPI.get(session.id),
+          browserAPI.list(projectId),
         ]);
         if (!disposed) {
           setHandoff(status);
           setGrants(activeGrants);
+          setAvailableBrowsers(browsers);
           // Keep the visible address in sync with agent-driven navigation
           // without overwriting a human editing the location bar.
           if (
@@ -453,6 +456,21 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
     void perform({ type: 'click', x, y });
   };
 
+  const selectBrowser = (id: string) => {
+    if (!id || id === session?.id) return;
+    void browserAPI.get(id).then((next) => {
+      if (next.project_id !== projectId) return;
+      setWantsControl(false);
+      setController(false);
+      setSession(next);
+      setAddress(next.url);
+      setSnapshot('');
+      setElements([]);
+      setError('');
+      onReady.current?.(next.id);
+    }).catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
+  };
+
   const inspect = () => {
     if (!session) return;
     void browserAPI
@@ -479,6 +497,22 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
         }}
       >
         <Globe size={16} aria-hidden="true" />
+        {availableBrowsers.length > 1 && (
+          <select
+            className={styles.browserSelect}
+            aria-label="Alternar navegador do Workspace"
+            value={session?.id || ''}
+            onChange={(event) => selectBrowser(event.target.value)}
+          >
+            {availableBrowsers.map((candidate) => (
+              <option key={candidate.id} value={candidate.id}>
+                {candidate.owner_runtime_id
+                  ? `Agente · ${candidate.owner_runtime_id.slice(0, 18)}`
+                  : `Manual · ${candidate.id.slice(0, 8)}`}
+              </option>
+            ))}
+          </select>
+        )}
         <button
           type="button"
           disabled={!controller || busy}

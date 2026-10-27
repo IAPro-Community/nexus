@@ -250,3 +250,19 @@ input:focus-visible {
     min-height: 38px;
   }
 }
+
+.browserSelect {
+  min-width: 108px;
+  max-width: 200px;
+  min-height: 30px;
+  background: var(--nx-surface);
+  border: 1px solid var(--nx-border);
+  border-radius: 6px;
+  color: var(--nx-text);
+  font: inherit;
+  font-size: 11px;
+  text-overflow: ellipsis;
+}
+@media (max-width: 640px) {
+  .browserSelect { max-width: 128px; min-width: 90px; }
+}
