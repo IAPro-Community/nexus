@@ -43,7 +43,7 @@ func(d *PreviewHarnessDriver)EffectiveCaps(ctx context.Context,_ model.Profile)E
   Process:evidence,Terminal:terminal,Attach:evidence,
   StructuredEvents:no,Approvals:no,
   Sessions:CapabilityEvidence{Status:CapabilityPartial,Reason:"session semantics require provider E2E validation",Tested:false},
-  Resume:no,Fork:no,
+  Resume:CapabilityEvidence{Status:CapabilityPartial,ProviderVersion:detected.Version,Reason:"CLI resume syntax documented; requires live session E2E",Tested:false},Fork:no,
   SubmitPrompt:no,CancelTurn:no,Headless:no,SlashControl:no,
   ControlLevel:registry.ControlLevelTerminal,
  }
@@ -69,11 +69,22 @@ func(d *PreviewHarnessDriver)BuildCommand(ctx context.Context,p model.Profile,ar
  return bin,args,env,nil
 }
 func(d *PreviewHarnessDriver)CanResume(ctx context.Context,p model.Profile,sessionID string)(bool,string){
- return false,"resume not certified for "+d.id
+ if strings.TrimSpace(sessionID)==""{return false,"missing session identifier"}
+ if d.id=="dsh"{return false,"DSH needs structured ACP resume"}
+ return true,"CLI resume syntax is available but not E2E-verified"
 }
 func(d *PreviewHarnessDriver)BuildResumeArgs(ctx context.Context,p model.Profile,sessionID string)([]string,error){
- return nil,fmt.Errorf("%s resume is not yet certified",d.id)
+ if ok,_:=d.CanResume(ctx,p,sessionID);!ok{return nil,fmt.Errorf("missing or unsupported %s session",d.id)}
+ switch d.id{
+ case "pi","mimo":return []string{"--session",sessionID},nil
+ case "omp":return []string{"--resume",sessionID},nil
+ }
+ return nil,fmt.Errorf("%s resume unsupported",d.id)
 }
 func(d *PreviewHarnessDriver)BuildKickoffArgs(ctx context.Context,p model.Profile,prompt string)([]string,error){
- return nil,fmt.Errorf("%s structured kickoff is not yet certified",d.id)
+ switch d.id{
+ case "pi","omp":return []string{"-p",prompt},nil
+ case "mimo":return []string{"run",prompt},nil
+ }
+ return nil,fmt.Errorf("%s structured kickoff not certified",d.id)
 }
