@@ -65,7 +65,7 @@ jobs:
         run: |
           set -euo pipefail
           git diff --check HEAD^ HEAD
-          if git grep -nE '^(<<<<<<< |>>>>>>> )' -- . ':!web/bun.lock' ':!go.sum'; then
+          if git diff --unified=0 HEAD^ HEAD | grep -E '^\+(<<<<<<< |>>>>>>> )'; then
             echo "Unresolved conflict marker in source" >&2
             exit 1
           fi
