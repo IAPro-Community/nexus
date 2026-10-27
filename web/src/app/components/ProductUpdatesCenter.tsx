@@ -7,9 +7,6 @@ import {
 } from '../../features/work/featureAnnouncements';
 import styles from './ProductUpdatesCenter.module.scss';
 
-const routeForFeature = (id: string): 'work' | 'missions' =>
-  id.startsWith('composer-') ? 'work' : 'missions';
-
 /**
  * Global What's New entry. Uses the same local, versioned catalog as the
  * contextual tours; no duplicated news feed or backend polling is required.
@@ -64,7 +61,7 @@ export const ProductUpdatesCenter: React.FC<{
               <DropdownMenu.Item
                 key={item.id}
                 className={styles.item}
-                onSelect={() => onOpenSurface?.(routeForFeature(item.id))}
+                onSelect={() => onOpenSurface?.(item.openSurface)}
                 disabled={!onOpenSurface}
               >
                 <span className={styles.title}>
