@@ -99,3 +99,27 @@ input:focus-visible {
   overflow-wrap: anywhere;
   font-size: 12px;
 }
+
+.controlBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--nx-border);
+  font-size: 11px;
+  color: var(--nx-text-muted);
+}
+.controlBar button {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  padding: 4px 7px;
+  border: 1px solid var(--nx-border);
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.controlBar button:focus-visible { outline: 2px solid var(--nx-accent); }

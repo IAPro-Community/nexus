@@ -2,12 +2,14 @@ package web
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/browsercontrol"
+	"github.com/gorilla/websocket"
 )
 
 // Browser routes reuse the Nexus authentication, CSRF and tunnel security boundary.
@@ -86,6 +88,28 @@ func (s *Server) handleBrowserSession(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := contextWithTimeout(r, 12*time.Second)
 	defer cancel()
 	switch {
+	case action == "stream" && r.Method == http.MethodGet:
+		s.handleBrowserStream(w, r, session)
+	case action == "control" && r.Method == http.MethodPost:
+		actor := s.auth.AuthenticateRequest(r)
+		if actor == nil { writeError(w, http.StatusUnauthorized, "authentication required"); return }
+		var input struct { Mode string `json:"mode"` }
+		r.Body = http.MaxBytesReader(w, r.Body, 1024)
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid control request"); return
+		}
+		switch input.Mode {
+		case "acquire", "renew":
+			if ok, reason := session.AcquireControl(actor.ID); !ok {
+				writeError(w, http.StatusConflict, reason); return
+			}
+			writeJSON(w, http.StatusOK, map[string]any{"controller": true, "lease_seconds": 25})
+		case "release":
+			session.ReleaseControl(actor.ID)
+			writeJSON(w, http.StatusOK, map[string]any{"controller": false})
+		default:
+			writeError(w, http.StatusBadRequest, "invalid control mode")
+		}
 	case action == "" && r.Method == http.MethodGet:
 		writeJSON(w, http.StatusOK, session.Info())
 	case action == "" && r.Method == http.MethodDelete:
@@ -116,6 +140,12 @@ func (s *Server) handleBrowserSession(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadRequest, "invalid browser action")
 			return
 		}
+		actor := s.auth.AuthenticateRequest(r)
+		if actor == nil { writeError(w, http.StatusUnauthorized, "authentication required"); return }
+		if !session.CanControl(actor.ID) {
+			writeError(w, http.StatusConflict, "browser input requires an active control lease")
+			return
+		}
 		info, err := session.Do(ctx, input)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
@@ -124,5 +154,55 @@ func (s *Server) handleBrowserSession(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, info)
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
+}
+
+// handleBrowserStream broadcasts CDP screencast frames to authenticated Nexus
+// clients. Chromium's DevTools URL is never sent to the frontend.
+func (s *Server) handleBrowserStream(w http.ResponseWriter, r *http.Request, session *browsercontrol.Session) {
+	upgrader := websocket.Upgrader{
+		ReadBufferSize: 1024,
+		WriteBufferSize: 32 * 1024,
+		CheckOrigin: func(req *http.Request) bool { return s.auth.ValidateOrigin(req) },
+	}
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil { return }
+	defer conn.Close()
+	frames, unsubscribe, err := session.SubscribeFrames()
+	if err != nil {
+		_ = conn.WriteJSON(map[string]any{"type": "error", "message": "browser session closed"})
+		return
+	}
+	defer unsubscribe()
+	disconnected := make(chan struct{})
+	go func() {
+		defer close(disconnected)
+		conn.SetReadLimit(1024)
+		for {
+			if _, _, err := conn.ReadMessage(); err != nil { return }
+		}
+	}()
+	// Immediate image fallback while the screencast handshake completes.
+	ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
+	img, shotErr := session.Screenshot(ctx)
+	cancel()
+	if shotErr == nil {
+		_ = conn.SetWriteDeadline(time.Now().Add(8*time.Second))
+		if err := conn.WriteJSON(map[string]any{"type": "frame", "data": base64.StdEncoding.EncodeToString(img)}); err != nil { return }
+	}
+	keepalive := time.NewTicker(20 * time.Second)
+	defer keepalive.Stop()
+	for {
+		select {
+		case <-r.Context().Done(): return
+		case <-disconnected: return
+		case data, ok := <-frames:
+			if !ok { return }
+			_ = conn.SetWriteDeadline(time.Now().Add(8*time.Second))
+			if err := conn.WriteJSON(map[string]any{"type": "frame", "data": string(data)}); err != nil { return }
+		case <-keepalive.C:
+			_ = conn.SetWriteDeadline(time.Now().Add(8*time.Second))
+			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil { return }
+		}
 	}
 }

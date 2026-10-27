@@ -1,0 +1,51 @@
+name: Nexus Browser Verification
+on:
+  push:
+    branches: [release/v1.0.0]
+    paths:
+      - 'internal/browsercontrol/**'
+      - 'internal/control/web/handlers_browser*'
+      - 'internal/control/web/server.go'
+      - 'internal/control/web/routes.go'
+      - 'web/src/features/browser/**'
+      - 'web/src/app/browserSurfaces.test.ts'
+      - 'web/src/app/NexusWorkspaceApp.tsx'
+      - 'web/src/app/WorkspaceSurfaceHost.tsx'
+      - 'web/src/app/surfaces.ts'
+      - 'web/src/workspace/**'
+      - '.github/workflows/nexus-browser-verification.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.9'
+      - name: Check Go formatting
+        shell: bash
+        run: |
+          files=$(gofmt -l internal/browsercontrol internal/control/web/handlers_browser.go)
+          if [ -n "$files" ]; then echo "$files"; exit 1; fi
+      - name: Test browser service and security
+        run: go test ./internal/browsercontrol ./internal/control/web -count=1
+      - name: Smoke test real Chromium if available
+        env:
+          NEXUS_BROWSER_INTEGRATION: '1'
+        run: go test ./internal/browsercontrol -run TestChromiumSmokeOptional -v -count=1
+      - name: Install frontend dependencies
+        run: cd web && bun install --frozen-lockfile
+      - name: Typecheck frontend
+        run: cd web && bun run typecheck
+      - name: Verify browser window tests
+        run: cd web && bunx vitest run src/app/browserSurfaces.test.ts
+      - name: Build frontend
+        run: cd web && bun run build

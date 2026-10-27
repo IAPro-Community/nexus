@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net"
 	"net/url"
 	"os"
 	"os/exec"
@@ -52,11 +53,20 @@ type Session struct {
 	done      chan struct{}
 	directory string
 	closed    bool
+	cdpConn   *websocket.Conn
+	cdpNextID int
+	controller string
+	controllerUntil time.Time
+	streamMu sync.Mutex
+	streamReaders map[chan []byte]struct{}
+	streamCancel context.CancelFunc
 }
 
 type Manager struct {
 	mu       sync.RWMutex
 	sessions map[string]*Session
+	pending int
+	closing bool
 }
 
 func NewManager() *Manager { return &Manager{sessions: make(map[string]*Session)} }
@@ -65,6 +75,11 @@ func ValidURL(raw string) error {
 	u, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil || u == nil || (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" || u.User != nil {
 		return errors.New("browser URL must be an HTTP(S) address without embedded credentials")
+	}
+	host := strings.ToLower(u.Hostname())
+	if host == "metadata.google.internal" || host == "metadata" { return errors.New("cloud metadata destinations are blocked") }
+	if ip := net.ParseIP(host); ip != nil && (ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() || ip.IsMulticast()) {
+		return errors.New("link-local, multicast and metadata addresses are blocked")
 	}
 	return nil
 }
@@ -150,10 +165,18 @@ func (m *Manager) Create(ctx context.Context, projectID, initialURL string) (Inf
 		return Info{}, err
 	}
 	m.mu.Lock()
-	defer m.mu.Unlock()
-	if len(m.sessions) >= MaxSessions {
+	if m.closing { m.mu.Unlock(); return Info{}, errors.New("browser manager is shutting down") }
+	if len(m.sessions)+m.pending >= MaxSessions {
+		m.mu.Unlock()
 		return Info{}, fmt.Errorf("maximum %d browser sessions", MaxSessions)
 	}
+	m.pending++
+	m.mu.Unlock()
+	defer func() {
+		m.mu.Lock()
+		m.pending--
+		m.mu.Unlock()
+	}()
 	binary, err := chromeExecutable()
 	if err != nil {
 		return Info{}, err
@@ -213,11 +236,18 @@ func (m *Manager) Create(ctx context.Context, projectID, initialURL string) (Inf
 		}
 	}
 	s := &Session{info: Info{ID: id, ProjectID: projectID, URL: initialURL, Width: 1280, Height: 800}, wsURL: ws, cmd: cmd, done: done, directory: directory}
-	if err := s.navigate(ctx, initialURL); err != nil {
+	if err := s.navigate(ctx, initialURL); err != nil && !isNetworkNavigationError(err) {
 		cleanup()
 		return Info{}, err
 	}
+	m.mu.Lock()
+	if m.closing {
+		m.mu.Unlock()
+		cleanup()
+		return Info{}, errors.New("browser manager is shutting down")
+	}
 	m.sessions[id] = s
+	m.mu.Unlock()
 	return s.info, nil
 }
 
@@ -252,8 +282,10 @@ func (m *Manager) Close(id string) bool {
 	if !exists {
 		return false
 	}
+	s.stopStream()
 	s.mu.Lock()
 	s.closed = true
+	if s.cdpConn != nil { _ = s.cdpConn.Close(); s.cdpConn = nil }
 	_ = s.cmd.Process.Kill()
 	<-s.done
 	_ = os.RemoveAll(s.directory)
@@ -262,61 +294,54 @@ func (m *Manager) Close(id string) bool {
 }
 
 func (m *Manager) Shutdown() {
-	m.mu.RLock()
+	m.mu.Lock()
+	m.closing = true
 	ids := make([]string, 0, len(m.sessions))
 	for id := range m.sessions {
 		ids = append(ids, id)
 	}
-	m.mu.RUnlock()
+	m.mu.Unlock()
 	for _, id := range ids {
 		m.Close(id)
 	}
 }
 
+// call is serialized by Session.mu. One CDP connection is reused for commands
+// and snapshots. A failed connection is discarded and dialed again next time.
 func (s *Session) call(ctx context.Context, method string, params any, into any) error {
-	if s.closed {
-		return errors.New("browser session closed")
-	}
+	if s.closed { return errors.New("browser session closed") }
 	timeout := 8 * time.Second
 	if deadline, ok := ctx.Deadline(); ok {
-		if remaining := time.Until(deadline); remaining < timeout {
-			timeout = remaining
-		}
+		if remaining := time.Until(deadline); remaining < timeout { timeout = remaining }
 	}
-	if timeout <= 0 {
-		return context.DeadlineExceeded
+	if timeout <= 0 { return context.DeadlineExceeded }
+	if s.cdpConn == nil {
+		dialer := websocket.Dialer{HandshakeTimeout: timeout}
+		conn, _, err := dialer.DialContext(ctx, s.wsURL, nil)
+		if err != nil { return fmt.Errorf("DevTools connect: %w", err) }
+		s.cdpConn = conn
 	}
-	dialer := websocket.Dialer{HandshakeTimeout: timeout}
-	c, _, err := dialer.DialContext(ctx, s.wsURL, nil)
-	if err != nil {
-		return fmt.Errorf("DevTools connect: %w", err)
-	}
-	defer c.Close()
+	c := s.cdpConn
 	_ = c.SetReadDeadline(time.Now().Add(timeout))
 	_ = c.SetWriteDeadline(time.Now().Add(timeout))
-	if err := c.WriteJSON(map[string]any{"id": 1, "method": method, "params": params}); err != nil {
+	s.cdpNextID++
+	id := s.cdpNextID
+	fail := func(err error) error {
+		_ = c.Close()
+		s.cdpConn = nil
 		return err
 	}
+	if err := c.WriteJSON(map[string]any{"id": id, "method": method, "params": params}); err != nil { return fail(err) }
 	for {
 		var msg struct {
-			ID     int             `json:"id"`
+			ID int `json:"id"`
 			Result json.RawMessage `json:"result"`
-			Error  *struct {
-				Message string `json:"message"`
-			} `json:"error"`
+			Error *struct{Message string `json:"message"`} `json:"error"`
 		}
-		if err := c.ReadJSON(&msg); err != nil {
-			return err
-		}
-		if msg.ID != 1 {
-			continue
-		}
-		if msg.Error != nil {
-			return errors.New(msg.Error.Message)
-		}
-		if into != nil {
-			return json.Unmarshal(msg.Result, into)
-		}
+		if err := c.ReadJSON(&msg); err != nil { return fail(err) }
+		if msg.ID != id { continue }
+		if msg.Error != nil { return errors.New(msg.Error.Message) }
+		if into != nil { return json.Unmarshal(msg.Result, into) }
 		return nil
 	}
 }
@@ -325,10 +350,14 @@ func (s *Session) navigate(ctx context.Context, raw string) error {
 	if err := ValidURL(raw); err != nil {
 		return err
 	}
-	if err := s.call(ctx, "Page.navigate", map[string]any{"url": raw}, nil); err != nil {
+	var result struct {
+		ErrorText string `json:"errorText"`
+	}
+	if err := s.call(ctx, "Page.navigate", map[string]any{"url": raw}, &result); err != nil {
 		return err
 	}
 	s.info.URL = raw
+	if result.ErrorText != "" { return &NavigationError{URL: raw, Reason: result.ErrorText} }
 	return nil
 }
 
@@ -342,6 +371,21 @@ func (s *Session) Do(ctx context.Context, a Action) (Info, error) {
 	switch a.Type {
 	case "navigate":
 		err = s.navigate(ctx, a.URL)
+	case "reload":
+		err = s.call(ctx, "Page.reload", map[string]any{"ignoreCache": false}, nil)
+	case "back", "forward":
+		var history struct {
+			CurrentIndex int `json:"currentIndex"`
+			Entries []struct{ ID int `json:"id"` } `json:"entries"`
+		}
+		err = s.call(ctx, "Page.getNavigationHistory", map[string]any{}, &history)
+		if err == nil {
+			target := history.CurrentIndex - 1
+			if a.Type == "forward" { target = history.CurrentIndex + 1 }
+			if target >= 0 && target < len(history.Entries) {
+				err = s.call(ctx, "Page.navigateToHistoryEntry", map[string]any{"entryId": history.Entries[target].ID}, nil)
+			}
+		}
 	case "click":
 		if a.X < 0 || a.Y < 0 || a.X >= float64(s.info.Width) || a.Y >= float64(s.info.Height) {
 			return Info{}, errors.New("click outside viewport")
@@ -422,4 +466,45 @@ func (s *Session) Info() Info {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.info
+}
+
+type NavigationError struct {
+	URL string
+	Reason string
+}
+func (e *NavigationError) Error() string { return "browser navigation failed: " + e.Reason }
+
+// A session on an unreachable development URL must still be usable. The
+// Chromium error page remains interactive and the address can be corrected.
+func isNetworkNavigationError(err error) bool {
+	var nav *NavigationError
+	return errors.As(err, &nav)
+}
+
+// AcquireControl gives one authenticated Nexus session the input lease.
+// An idle controller expires, enabling remote takeover without two devices
+// typing into the same page. Reading frames/snapshots requires no lease.
+func (s *Session) AcquireControl(owner string) (bool, string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if owner == "" || s.closed { return false, "" }
+	now := time.Now()
+	if s.controller != "" && s.controller != owner && now.Before(s.controllerUntil) {
+		return false, "another device controls this browser"
+	}
+	s.controller = owner
+	s.controllerUntil = now.Add(25*time.Second)
+	return true, ""
+}
+func (s *Session) ReleaseControl(owner string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if owner != "" && s.controller == owner { s.controller = ""; s.controllerUntil = time.Time{} }
+}
+func (s *Session) CanControl(owner string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if owner == "" || s.closed || s.controller != owner { return false }
+	if time.Now().After(s.controllerUntil) { s.controller = ""; return false }
+	return true
 }

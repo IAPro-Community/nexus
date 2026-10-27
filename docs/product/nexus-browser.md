@@ -1,74 +1,100 @@
-# Nexus Browser — Workspace browser (v1 experimental)
+# Nexus Browser — Agent Workspace (experimental)
 
-## Scope
-
-Nexus Browser is a managed Chromium session inside the existing Terminals workspace.
-It is presented through the same DESKTOP / MOSAIC / SPLIT / TABS window manager as
-PTYs, but is not itself a PTY. It uses the existing Core API and remote tunnel.
-
-## Prerequisites
-
-Install Chrome, Chromium, or Microsoft Edge on the Nexus host. If it is not on
-PATH, set NEXUS_CHROMIUM_PATH to the trusted executable path. The browser runs
-in headless mode with a temporary, private profile and dynamically chosen
-loopback DevTools port. No new Node or Electron runtime is required.
+The Browser is a first-class `WorkspaceSurface` of type `browser`.
+It shares the existing **Tabs, Split, Desktop and Mosaic** presentation
+with terminal/agent surfaces; there is no second window manager or agent
+orchestrator. Maestro remains independent.
 
 ## Usage
 
-1. Open a Nexus project and select Terminals.
-2. Select **Novo navegador**. A Browser window appears in the same workspace.
-3. Enter an HTTP(S) URL (for example http://localhost:3000).
-4. Click the rendered viewport to interact with the underlying page.
-5. Use the text input to type into a focused page element; Enter and Tab are
-   available as explicit actions. Mouse wheel / mobile swipe scroll the page.
-6. Use **Inspect** to read current visible page text. This is exposed for
-   further agent integrations, but does not authorize independent agents yet.
-7. Arrange, minimize or maximize the Browser with the existing workspace
-   layout controls. Sessions remain alive while the panel is hidden.
+1. Install Chrome, Chromium or Edge on the machine running the Nexus Core.
+   Set `NEXUS_CHROMIUM_PATH` if the executable is not discoverable.
+2. Start Nexus, open a project and go to **Terminais → Novo navegador**.
+3. The Browser starts with `http://localhost:3000` to support the
+   project's local development server. An unavailable URL can show Chrome's
+   network error page without destroying the session; enter another URL.
+4. Use the address bar, Back/Forward, Reload, click-to-control, scroll,
+   text insertion, Enter/Tab/Backspace and Inspect.
+5. The viewport receives JPEG frames via an authenticated Nexus WebSocket
+   backed by Chromium `Page.startScreencast`. It falls back to
+   authenticated JPEG requests if streaming disconnects.
+6. The same project Workspace and browser session can be viewed through the
+   existing remote access tunnel. Use **Assumir controle** / **Liberar controle**
+   to hand off keyboard/mouse control between authenticated devices.
 
-## API
+## Architecture
 
-All routes are behind the existing Nexus session / CSRF middleware and support
-same-origin access over the existing HTTPS remote tunnel.
+```
+Existing Agent Workspace / terminal window manager
+     ├── terminal surfaces (PTY and agent runtime)
+     └── browser surfaces
+              │
+Nexus Core authenticated browser REST/WebSocket API
+              │
+browsercontrol.Manager (max 4 isolated sessions)
+              │
+Chrome / Chromium / Edge (headless, temporary user profile)
+              └── local-only Chrome DevTools Protocol
+```
 
-- GET /api/v1/browser/sessions?project_id=...
-- POST /api/v1/browser/sessions — { "project_id": "...", "url": "https://..." }
-- GET /api/v1/browser/sessions/:id — metadata
-- GET /api/v1/browser/sessions/:id/frame — authenticated JPEG frame
-- GET /api/v1/browser/sessions/:id/snapshot — current URL, title and text/elements
-- POST /api/v1/browser/sessions/:id/action — type: navigate/click/type/scroll/key
-- DELETE /api/v1/browser/sessions/:id — terminates Chrome session and deletes profile
+The control lease is tied to the authenticated Nexus session, lasts 25
+seconds, and can only be renewed by its holder while active. A different
+device can view the stream but cannot send input until the lease is
+released or expires. The frontend releases control when its surface
+becomes invisible. A lease does **not** confer access to a project:
+authentication and any broader Nexus project authorization still apply.
 
-Only HTTP(S) navigation is permitted. Arbitrary JavaScript execution,
-DevTools WebSocket URLs and Chromium debugging endpoints are not exposed via
-the application API. Chromium crashes return errors rather than fabricated success.
+## Core API
 
-## Security and operational bounds
+All REST routes run behind existing Nexus authentication / CSRF checks.
 
-- The Core is the only CDP controller; DevTools binds to loopback.
-- Maximum four Chromium instances; each has an isolated temporary profile.
-- Closing a session deletes its temporary profile; exiting the Core terminates
-  managed Chromium processes.
-- Sessions do NOT persist across a Core restart; reopening a saved workspace
-  will create a new isolated session.
-- The existing tunnel invitation currently grants broad workspace access.
-  Browser-only read/control grants and human-vs-agent control leases are
-  **not yet implemented**. Do not advertise scoped remote access.
-- HTML DOM text may contain personal or confidential information. Avoid
-  logging/storing snapshots; never submit sensitive results to models without
-  user consent and applicable policy checks.
-- Agent-owned autonomous browser use, mission evidence and Maestro integration
-  are **future work**: HTTP endpoints are a foundation, not authorization
-  for the agent to act on the user's behalf.
-- UI uses repeated JPEG captures; it is not WebRTC or low-latency video
-  streaming. Sites needing protected content, media DRM or advanced browser
-  features are not guaranteed to work.
+| Endpoint | Purpose |
+| --- | --- |
+| GET /api/v1/browser/sessions | List managed browser sessions |
+| POST /api/v1/browser/sessions | Create session (`project_id`, `url`) |
+| GET /api/v1/browser/sessions/:id | Session information |
+| POST /api/v1/browser/sessions/:id/control | `acquire`, `renew`, `release` |
+| GET /api/v1/browser/sessions/:id/stream | WebSocket, `{"type":"frame","data":"<base64-jpeg>"}` |
+| GET /api/v1/browser/sessions/:id/frame | JPEG screenshot (fallback) |
+| GET /api/v1/browser/sessions/:id/snapshot | Read-only title/URL/text/element summary |
+| POST /api/v1/browser/sessions/:id/action | `navigate`, `back`, `forward`, `reload`, `click`, `scroll`, `type`, `key` |
+| DELETE /api/v1/browser/sessions/:id | Stop browser and delete temp profile |
 
-## Minimum verification
+REST actions require a **control lease**; screenshots and snapshots
+do not. The streamed frames have no cookies or direct DevTools access.
+No arbitrary `Runtime.evaluate` operation is exposed over Nexus HTTP.
 
-Run Go tests for internal/browsercontrol and internal/control/web,
-then web typecheck, unit tests, stylesheet checks and build. Exercise
-real Chrome on Linux, WebView2 on Windows and WebKitGTK/WKWebView
-on Linux/macOS respectively. Check navigation, click, text, scroll,
-project isolation, CSRF, remote cookie auth, session deletion,
-process cleanup and browser absence diagnostics.
+## Known constraints / not yet available
+
+- **Remote invitations are still Nexus-wide**. Browser-only share tokens,
+  project-level access grants and separate remote identities are **not yet
+  implemented**. Do not share the general Nexus tunnel with untrusted users.
+- A Nexus session is one control identity. Browser-only ACL and hardware
+  device identity are future work.
+- Agent tool schemas and MissionRunner `AutonomyContract` approval are
+  **not wired yet**. Automated write actions must not bypass the existing
+  orchestration/authorization contract. Browser snapshots are a read-only
+  primitive for subsequent tooling.
+- Screenshot media is JPEG and not DRM/AV streaming. Higher-fidelity
+  streaming (WebRTC, audio, camera, download handling) is not included.
+- Temporary profiles are private and removed at close. Logins do **not**
+  survive Core restarts. Never store session cookies or passwords in
+  Mission evidence. URL allow/block rules are not a network sandbox:
+  a page may trigger arbitrary HTTP requests. Use Chrome's OS sandbox.
+- Real Windows WebView2, macOS and Linux desktop UX still require
+  owner/device homologation.
+- The docs screenshot manifest may be stale after unrelated HUD work;
+  refresh the visual evidence rather than bypassing the capture gate.
+
+## Validation
+
+`go test ./internal/browsercontrol ./internal/control/web`
+
+`NEXUS_BROWSER_INTEGRATION=1 go test ./internal/browsercontrol -run TestChromiumSmokeOptional -count=1`
+
+`cd web && bun run typecheck && bunx vitest run src/app/browserSurfaces.test.ts && bun run build`
+
+Manual cases: open with no local development server, navigate to running
+server, inspect, screenshot, resize, minimize, switch product tabs, remote
+viewer, lease conflict, release and takeover, restore layout, close and
+verify process cleanup.
