@@ -32,7 +32,7 @@ func TestDecodeMaestroContextBrief(t *testing.T) {
 }
 
 func TestDecodeMaestroContextBriefRejectsForgedBudgetAndSupportsUnicode(t *testing.T) {
-	content := "Etapa ✅ — contexto validado"
+	content := "Etapa 🚀 — contexto validado"
 	digest := sha256.Sum256([]byte(content))
 	verified := hex.EncodeToString(digest[:])
 	// The emoji consumes two UTF-16 code units in the Maestro JavaScript CLI.
