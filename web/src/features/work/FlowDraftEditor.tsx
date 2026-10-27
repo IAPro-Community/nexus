@@ -8,6 +8,7 @@ import { ClarificationPrompt } from './ClarificationPrompt';
 import { FlowCanvas } from './FlowCanvas';
 import { FlowGoalBar } from './FlowGoalBar';
 import { FeatureTour } from './FeatureTour';
+import { FeatureHint } from './FeatureHint';
 import { ComposerHandoffSummary } from './ComposerHandoffSummary';
 import { FlowPipeline } from './FlowPipeline';
 import { FlowStepInspector } from './FlowStepInspector';
@@ -168,6 +169,7 @@ export const FlowDraftEditor: React.FC<{
                   {t('flow.viewGraph', 'Graph')}
                 </button>
               </div>
+              <FeatureHint label="discovery.graphHintLabel" content="discovery.graphHintBody" />
             </div>
           ) : null}
           {!flowDraft && (
