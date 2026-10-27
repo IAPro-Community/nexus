@@ -198,6 +198,7 @@ export const WorkSurface: React.FC<{
             )
           }
           onTransformFlow={(artifact) => void materializeFlow(artifact)}
+          onOpenIntelligenceSettings={onOpenIntelligenceSettings}
         />
       </div>
     </div>
