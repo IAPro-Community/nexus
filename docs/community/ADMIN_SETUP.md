@@ -53,3 +53,18 @@ Quando a conta real de GitHub Sponsors estiver habilitada para recebimento e rev
 Registre no histórico da decisão: titular autorizado, inventário de terceiros/assets, auditoria privada de segredos, commit de licença, SHA com CI e links dos rulesets/configurações habilitadas, confirmação de teste de PR de fork e canal de vulnerabilidades. Somente após isso chamar a distribuição de "Nexus open source Apache-2.0".
 
 Consulte também [SECURITY](../../SECURITY.md), [PUBLICATION_CHECKLIST](../PUBLICATION_CHECKLIST.md), [GOVERNANCE](../../GOVERNANCE.md) e [guia de revisão](REVIEW_GUIDE.md).
+
+## Implementação preliminar nas duas branches (27/10/2026)
+
+A separação de CI foi aplicada **também à branch padrão `main`**, que até então
+continuava executando `pull_request` no CI self-hosted. Atualmente tanto
+`main` quanto `release/v1.0.0` possuem a pipeline isolada `community-pr.yml`,
+com `ci.yml` reservado a push/dispatch e o teste de regressão
+`internal/release/community_workflow_test.go`.
+
+O fechamento **administrativo** dessa fronteira está acompanhado em
+[issue #96](https://github.com/IAPro-Community/nexus/issues/96).
+Habilitar os rulesets, testar com fork real e confirmar required checks ainda
+são tarefas manuais do administrador; não estão marcadas como concluídas.
+O [reporte privado](https://github.com/IAPro-Community/nexus/issues/65)
+continua dependente da habilitação no GitHub Settings.
