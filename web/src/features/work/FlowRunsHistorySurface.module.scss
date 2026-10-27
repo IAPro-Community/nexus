@@ -248,3 +248,58 @@
     min-height: var(--nx-touch-min, 44px);
   }
 }
+
+/* Flow Studio communicates the execution journey before showing technical
+   controls. All colors derive from the existing Nexus theme tokens. */
+.journeyExplanation {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 1px solid var(--nx-border);
+  border-radius: 12px;
+  background: var(--nx-bg-elevated);
+  color: var(--nx-text-muted);
+  font-size: .8rem;
+}
+
+.journeyExplanation span:nth-child(odd) {
+  color: var(--nx-text);
+  font-weight: 550;
+}
+
+.newFlowCard {
+  padding: clamp(16px, 2vw, 24px);
+  border: 1px solid color-mix(in srgb, var(--nx-accent) 24%, var(--nx-border));
+  border-radius: 14px;
+}
+
+.newFlowTitle {
+  display: grid;
+  gap: 6px;
+}
+
+.newFlowTitle p {
+  margin: 0;
+  color: var(--nx-text-muted);
+  font-size: .87rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .journeyExplanation {
+    padding: 12px;
+    gap: 6px;
+  }
+  .newFlowRow input {
+    flex-basis: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trackToggle button,
+  .filterChip {
+    transition: none;
+  }
+}
