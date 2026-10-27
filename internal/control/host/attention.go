@@ -241,13 +241,26 @@ func (d *AttentionDetector) ProcessChunk(chunk []byte) {
 	// A native status is a self-report, not a remote-approval contract.
 	if !isShellProvider(d.providerID) {
 		d.oscTail += raw
-		if len(d.oscTail) > 4096 { d.oscTail = d.oscTail[len(d.oscTail)-4096:] }
+		if len(d.oscTail) > 4096 {
+			d.oscTail = d.oscTail[len(d.oscTail)-4096:]
+		}
 		if status, ok := extractOSC7501(d.oscTail); ok {
 			d.oscTail = ""
-			d.applyNativeStatusLocked(status)
+			// A child process can also write program-status frames. Never
+			// use a child's completion to mark the coding agent as done.
+			app := strings.ToLower(status.App)
+			provider := strings.ToLower(d.providerID)
+			ownsStatus := app == "" || app == provider ||
+				(provider == "agy" && (app == "antigravity" || app == "antigravity-cli")) ||
+				(provider == "claude" && app == "claude-code")
+			if ownsStatus {
+				d.applyNativeStatusLocked(status)
+				return
+			}
+		}
+		if d.nativeStatus {
 			return
 		}
-		if d.nativeStatus { return }
 	}
 	oscTitle := ExtractOSCTitle(raw)
 	if oscTitle != "" && !isChromeLine(oscTitle) {
@@ -481,11 +494,16 @@ func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus) {
 		// correlated response protocol: show the question, open the terminal.
 		promptKind = "native_status"
 		switch status.Kind {
-		case "permission": reason = "APPROVAL"
-		case "auth": reason = "AUTH"
-		default: reason = "QUESTION"
+		case "permission":
+			reason = "APPROVAL"
+		case "auth":
+			reason = "AUTH"
+		default:
+			reason = "QUESTION"
 		}
-		if context == "" { context = "Agent requires your attention in the terminal" }
+		if context == "" {
+			context = "Agent requires your attention in the terminal"
+		}
 	case "done":
 		reason, kind = "TASK_COMPLETED", AttentionCompleted
 	case "error":
@@ -494,13 +512,19 @@ func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus) {
 		reason, kind = "IDLE", AttentionIdle
 	}
 	title := d.projectName + " · " + strings.ToUpper(d.providerID)
-	if context != "" { title = d.projectName + " · " + truncateRunes(context, 72) }
+	if context != "" {
+		title = d.projectName + " · " + truncateRunes(context, 72)
+	}
 	fingerprint := ""
 	if kind == AttentionNeedsUser || kind == AttentionError {
 		fingerprint = attentionFingerprint(d.runtimeID, promptKind, context)
 	}
-	if fingerprint != "" && fingerprint == d.lastFingerprint && kind == d.lastKind { return }
-	if status.State == "working" && d.lastKind == AttentionWorking && d.nativeStatus { return }
+	if fingerprint != "" && fingerprint == d.lastFingerprint && kind == d.lastKind {
+		return
+	}
+	if status.State == "working" && d.lastKind == AttentionWorking && d.nativeStatus {
+		return
+	}
 	previous := d.lastFingerprint
 	d.nativeStatus = true
 	d.lastState, d.lastReason, d.lastKind = state, reason, kind
@@ -513,19 +537,28 @@ func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus) {
 	})
 	if kind == AttentionNeedsUser && fingerprint != previous {
 		data := map[string]any{
-			"project_id": d.projectID, "project_name": d.projectName,
-			"attention_reason": reason, "attention_kind": kind,
-			"prompt_kind": promptKind, "context": context,
-			"dynamic_title": title, "fingerprint": fingerprint,
-			"source": "osc7501", "response_capability": "focus_terminal",
+			"project_id":       d.projectID,
+			"project_name":     d.projectName,
+			"attention_reason": reason,
+			"attention_kind":   kind,
+			"prompt_kind":      promptKind,
+			"context":          context,
+			"dynamic_title":    title,
+			"fingerprint":      fingerprint,
+			"source":           "osc7501",
+			"response_capability": "focus_terminal",
 		}
-		if d.agentID != "" { data["agent_id"] = d.agentID }
+		if d.agentID != "" {
+			data["agent_id"] = d.agentID
+		}
 		events.DefaultBus().Publish(events.NewEvent(
 			d.runtimeID, d.providerID, d.profileID, events.EventApprovalRequired,
 			"["+d.projectName+"] "+context, data,
 		))
 	}
-	if d.onAttention != nil { d.onAttention(reason, context, title, state) }
+	if d.onAttention != nil {
+		d.onAttention(reason, context, title, state)
+	}
 }
 
 // applyOSCTitleLocked records the raw terminal settitle (OSC 0/2) without
