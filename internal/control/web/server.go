@@ -294,7 +294,7 @@ func (s *Server) withSecurityHeaders(next http.Handler) http.Handler {
 			"default-src 'self' wails:; "+
 				"script-src 'self' wails:; "+
 				"style-src 'self' 'unsafe-inline'; "+
-				"img-src 'self' data: wails:; "+
+				"img-src 'self' data: blob: wails:; "+
 				"font-src 'self' data:; "+
 				"connect-src 'self' ws: wss: wails:; "+
 				"base-uri 'self'; "+
