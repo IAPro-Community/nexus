@@ -140,6 +140,8 @@ type AttentionDetector struct {
 	lastPrompt       string
 	lastTitle        string
 	lastOSCTitle     string
+	oscTail          string
+	nativeStatus     bool
 	lastFingerprint  string
 	lastUpdateAt     time.Time
 	registry         *registry.Registry
@@ -235,6 +237,18 @@ func (d *AttentionDetector) ProcessChunk(chunk []byte) {
 	defer d.mu.Unlock()
 
 	raw := string(chunk)
+	// Parse native program-status messages before any PTY heuristics.
+	// A native status is a self-report, not a remote-approval contract.
+	if !isShellProvider(d.providerID) {
+		d.oscTail += raw
+		if len(d.oscTail) > 4096 { d.oscTail = d.oscTail[len(d.oscTail)-4096:] }
+		if status, ok := extractOSC7501(d.oscTail); ok {
+			d.oscTail = ""
+			d.applyNativeStatusLocked(status)
+			return
+		}
+		if d.nativeStatus { return }
+	}
 	oscTitle := ExtractOSCTitle(raw)
 	if oscTitle != "" && !isChromeLine(oscTitle) {
 		d.applyOSCTitleLocked(oscTitle)
@@ -450,6 +464,68 @@ func (d *AttentionDetector) ProcessChunk(chunk []byte) {
 	if d.onAttention != nil {
 		d.onAttention(reason, attentionCtx, dynamicTitle, state)
 	}
+}
+
+
+func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus) {
+	state := registry.StateRunning
+	reason := "WORKING"
+	kind := AttentionWorking
+	promptKind := PromptKindNone
+	context := status.Message
+	switch status.State {
+	case "blocked":
+		state = registry.StateWaiting
+		kind = AttentionNeedsUser
+		// OSC 7501 signals that an interaction exists, but provides no
+		// correlated response protocol: show the question, open the terminal.
+		promptKind = "native_status"
+		switch status.Kind {
+		case "permission": reason = "APPROVAL"
+		case "auth": reason = "AUTH"
+		default: reason = "QUESTION"
+		}
+		if context == "" { context = "Agent requires your attention in the terminal" }
+	case "done":
+		reason, kind = "TASK_COMPLETED", AttentionCompleted
+	case "error":
+		state, reason, kind = registry.StateFailed, "ERROR", AttentionError
+	case "idle":
+		reason, kind = "IDLE", AttentionIdle
+	}
+	title := d.projectName + " · " + strings.ToUpper(d.providerID)
+	if context != "" { title = d.projectName + " · " + truncateRunes(context, 72) }
+	fingerprint := ""
+	if kind == AttentionNeedsUser || kind == AttentionError {
+		fingerprint = attentionFingerprint(d.runtimeID, promptKind, context)
+	}
+	if fingerprint != "" && fingerprint == d.lastFingerprint && kind == d.lastKind { return }
+	if status.State == "working" && d.lastKind == AttentionWorking && d.nativeStatus { return }
+	previous := d.lastFingerprint
+	d.nativeStatus = true
+	d.lastState, d.lastReason, d.lastKind = state, reason, kind
+	d.lastPrompt, d.lastTitle, d.lastFingerprint = promptKind, title, fingerprint
+	d.lastUpdateAt = time.Now()
+	_ = d.ownerRegistry().UpdateAttentionMeta(d.runtimeID, registry.AttentionUpdate{
+		State: state, Reason: reason, Kind: kind, Context: context,
+		PromptKind: promptKind, Fingerprint: fingerprint,
+		ProjectID: d.projectID, ProjectName: d.projectName, DynamicTitle: title,
+	})
+	if kind == AttentionNeedsUser && fingerprint != previous {
+		data := map[string]any{
+			"project_id": d.projectID, "project_name": d.projectName,
+			"attention_reason": reason, "attention_kind": kind,
+			"prompt_kind": promptKind, "context": context,
+			"dynamic_title": title, "fingerprint": fingerprint,
+			"source": "osc7501", "response_capability": "focus_terminal",
+		}
+		if d.agentID != "" { data["agent_id"] = d.agentID }
+		events.DefaultBus().Publish(events.NewEvent(
+			d.runtimeID, d.providerID, d.profileID, events.EventApprovalRequired,
+			"["+d.projectName+"] "+context, data,
+		))
+	}
+	if d.onAttention != nil { d.onAttention(reason, context, title, state) }
 }
 
 // applyOSCTitleLocked records the raw terminal settitle (OSC 0/2) without
