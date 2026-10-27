@@ -1,3 +1,37 @@
+## 2026-10-27 — auto-recovery de quotas desatualizadas e fallback resiliente no launch supervisionado
+
+- Implementei auto-recovery transparente contra exceções de quota desatualizada no launch supervisionado:
+  1. `internal/app/busy_failover.go`: interceptado `selectionErr` quando decorrente de quotas desatualizadas/não verificadas. O launcher agora consulta atualização oficial em tempo real (`profile.RefreshUsageSnapshotContext`) e retenta o agendador automaticamente antes de falhar.
+  2. Fallback resiliente: caso a consulta externa falhe (ex: offline, timeout ou lock concorrente de manutenção), o launcher realiza fallback seguro para o perfil padrão configurado ou primeiro perfil autenticado e saudável (`HealthHealthy`), desde que não esteja com status de rate limit ativo, evitando que o usuário seja bloqueado no terminal.
+  3. `internal/app/codex_launch_preflight.go`: removido descarte antecipado de perfis com TUI lock ativo, permitindo que a checagem de preflight colete evidências de sessões/rollouts geradas pela própria sessão ativa do Codex.
+  4. `internal/nexus/intelligence_probe_diagnostics.go`: adequação da classificação de erro para utilizar `classifier.Classify`, respeitando o guardrail arquitetural `TestGuardrailNoQuotaSubstringOutsideClassifier`.
+  5. Suíte de testes unitários adicionada em `internal/app/busy_failover_test.go`:
+     - `TestLaunchWithBusyFailoverRescuesStaleQuotaWithRefreshRetry`: valida retentativa automática e seleção pós-refresh.
+     - `TestLaunchWithBusyFailoverFallsBackToHealthyProfileWhenStaleAndCannotRefresh`: valida fallback resiliente para perfil saudável.
+     - `TestLaunchWithBusyFailoverDoesNotFallbackWhenAccountIsRateLimited`: assegura que contas realmente em rate-limit continuem bloqueadas (fail-closed estrito).
+  6. Ajustado perfil default de Codex para `kiver.omegasistemas` no host (`nexus use codex kiver.omegasistemas`).
+
+## 2026-10-27 — homologação integral de AgentWire, suporte universal a harnesses e Centro de Atenção
+
+- Auditoria, correção de defeitos e homologação do suporte a harnesses universais (#97, #98, #99, #100, #101) na branch `release/v1.0.0` (base `2207f3203983c9de6fa46539e4c88e34541e3fc9`).
+- Descoberta e inspeção de binários no host: `agy` v1.4.8 (PTY/OSC 7501), `opencode` v2.1.3 (ACP v1), `omp` v18.4.12 (Pi RPC + ACP v1), `codex` v0.164.0 (PTY). Binários `pi`, `mimo` e `dsh` ausentes no host (classificados honestamente como BLOCKED).
+- Correção de defeito P0 no Centro de Atenção (`web/src/components/AttentionNotificationManager.tsx` e `web/src/app/NexusWorkspaceApp.tsx`): remoção do filtro que restringia alertas visuais/sonoros ao projeto em foco (`focusedProjectId`); alteração da chave de deduplicação de cards para `runtime.runtime_id` (impedindo que agentes distintos colapsassem perguntas com o mesmo texto).
+- Correção de transporte no AgentWire (`internal/control/agentwire/jsonline.go`): suporte resiliente a linhas em branco entre mensagens JSONLines.
+- Higiene de ciclo de vida (`internal/control/host/attention.go` e `host.go`): adição de `AttentionDetector.Clear()` executado ao término de processos, purgando estados pendentes.
+- Cancelamento e fechamento ordenado no AgentWire (`internal/control/agentwire/bridge.go`): tratamento de cancelamento em `handlePiUI` e janela de escrita de 10ms antes de fechar o pipe em `Stop()`.
+- Implementação de suíte de testes de concorrência e resiliência:
+  - `internal/control/agentwire/agentwire_test.go`: requisições e comandos simultâneos fora de ordem, fechamento de pipe durante chamada, linhas vazias.
+  - `internal/control/agentwire/bridge_test.go`: timeout de handshake ACP, requisições de permissão concorrentes independentes, cancelamento durante diálogo de UI.
+  - `internal/control/host/structured_host_integration_test.go`: ciclo de vida completo de processos supervisionados via SessionHost para ACP e Pi RPC, rastreamento de PID, ausência de vazamento de JSON bruto no terminal xterm, `/cancel`, `/permit` e limpeza na saída.
+  - `internal/control/host/structured_backend_test.go`: sanitização de injeção de sequências de escape ANSI e caracteres de controle, redação de credenciais e corte por tamanho máximo.
+  - `internal/control/web/multi_runtime_attention_e2e_test.go`: cenário completo de dois agentes (Alpha/Beta) em projetos diferentes com perguntas idênticas e dois clientes HTTP independentes reconectando e confirmando reconstrução de estado.
+- Gates de qualidade 100% aprovados:
+  - Backend Go: `go test ./internal/control/...` PASS, `go test -race` em `agentwire` e `host` PASS, `go vet` PASS, `go build ./...` PASS, `gofmt` PASS.
+  - Frontend Web: `make web-verify` (10 gates: format, typecheck, lint, stylelint, null-arrays, vitest 117 suítes/725 testes, i18n, build, embed-sync, ui-markers) PASS.
+  - Mascote NEX: `verify-nex-visual.mjs` PASS, `verify-nex-identity-lock.mjs` PASS (`CANDIDATE_PENDING_APPROVAL`).
+- Relatório técnico completo emitido em `DEV/validation/AGENTWIRE_FINAL_HOMOLOGATION.md`.
+- Veredito de release: **APPROVED WITH RESTRICTIONS** (decorrente da ausência física dos binários `pi`, `mimo` e `dsh` no host e cota gratuita da API de `opencode`).
+
 ## 2026-10-27 — beta.11 sincronizado, gates verdes e instalação local macOS
 
 - Branch `release/v1.0.0`; HEAD `b416bb90` (= `origin/release/v1.0.0`). Sincronização de 223 commits via `stash push -u` + `merge --ff-only` + `stash apply`, preservando os stashes de 2026-10-26 e 2026-10-27 como backup.

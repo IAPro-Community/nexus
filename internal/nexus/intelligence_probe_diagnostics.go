@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/IAPro-Community/nexus/internal/core/classifier"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
 )
 
@@ -21,6 +23,15 @@ func IntelligenceProbeFailureReason(err error) string {
 	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
 		return "timeout"
 	}
+	failure := classifier.Classify(err, "")
+	switch failure.Kind {
+	case model.FailureRateLimit, model.FailureQuota:
+		return "rate_limit"
+	case model.FailureAuth:
+		return "authentication"
+	case model.FailureNetwork:
+		return "network"
+	}
 	msg := strings.ToLower(err.Error())
 	switch {
 	case strings.Contains(msg, "401"), strings.Contains(msg, "403"),
@@ -28,9 +39,6 @@ func IntelligenceProbeFailureReason(err error) string {
 		strings.Contains(msg, "invalid api key"), strings.Contains(msg, "authentication"),
 		strings.Contains(msg, "not logged in"), strings.Contains(msg, "login required"):
 		return "authentication"
-	case strings.Contains(msg, "429"), strings.Contains(msg, "rate limit"),
-		strings.Contains(msg, "quota exceeded"), strings.Contains(msg, "insufficient_quota"):
-		return "rate_limit"
 	case strings.Contains(msg, "model not found"), strings.Contains(msg, "model_not_found"),
 		strings.Contains(msg, "model does not exist"), strings.Contains(msg, "unknown model"):
 		return "model"

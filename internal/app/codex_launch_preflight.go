@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/profile"
 )
@@ -58,10 +58,11 @@ func refreshCodexLaunchQuota(
 		if !ok || !acc.Authenticated || !codexLaunchProbeNeeded(acc.Usage, now) {
 			continue
 		}
-		home, err := config.ProfileHome("codex", p.Name)
-		if err != nil || codex.IsTUILocked(home) {
+		if home, err := config.ProfileHome("codex", p.Name); err != nil || strings.TrimSpace(home) == "" {
 			continue
 		}
+		// If TUI is locked, RefreshUsageSnapshotContext safely bypasses app-server
+		// and reads live session rollouts without colliding with the interactive TUI.
 		toProbe = append(toProbe, candidate{profile: p, account: acc})
 	}
 	if len(toProbe) == 0 {

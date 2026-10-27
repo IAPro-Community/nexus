@@ -52,6 +52,7 @@ func TestResolveLaunchProfilePropagatesContextToSelector(t *testing.T) {
 		map[string]model.AccountInfo{},
 		selector,
 		nil,
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("resolve profile: %v", err)
@@ -197,5 +198,147 @@ func TestLaunchWithBusyFailoverExhaustsCandidates(t *testing.T) {
 	}
 	if !bytes.Contains([]byte(err.Error()), []byte("no fallback profiles are available")) {
 		t.Fatalf("err=%v", err)
+	}
+}
+
+type retrySelector struct {
+	calls int
+	err   error
+	order []string
+}
+
+func (s *retrySelector) SelectBestProfile(_ context.Context, _ string, _ string, _ []model.Profile, accounts map[string]model.AccountInfo, excluded []string) (*scheduler.SelectionResult, error) {
+	s.calls++
+	if s.calls == 1 {
+		return &scheduler.SelectionResult{}, s.err
+	}
+	skip := map[string]bool{}
+	for _, name := range excluded {
+		skip[name] = true
+	}
+	for _, name := range s.order {
+		if skip[name] {
+			continue
+		}
+		return &scheduler.SelectionResult{SelectedProfile: &model.Profile{Name: name, Provider: "codex"}}, nil
+	}
+	return &scheduler.SelectionResult{}, errors.New("no usable codex profiles available")
+}
+
+func TestLaunchWithBusyFailoverRescuesStaleQuotaWithRefreshRetry(t *testing.T) {
+	candidates := []model.Profile{{Name: "kiver", Provider: "codex"}}
+	accounts := map[string]model.AccountInfo{
+		"kiver": {
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Email:         "kiver@test.com",
+		},
+	}
+	l := &stubLauncher{}
+	var stderr bytes.Buffer
+	sel := &retrySelector{
+		err:   errors.New("no usable codex profiles available: kiver (Quota desatualizada; atualize antes de selecionar automaticamente)"),
+		order: []string{"kiver"},
+	}
+
+	session, selected, err := launchWithBusyFailover(
+		context.Background(),
+		l,
+		sel,
+		"codex",
+		"",
+		"/tmp",
+		"",
+		candidates,
+		accounts,
+		launcher.LaunchOptions{},
+		&stderr,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if selected != "kiver" || session == nil {
+		t.Fatalf("expected kiver to be selected after refresh retry; got selected=%s sess=%+v", selected, session)
+	}
+	if sel.calls < 2 {
+		t.Fatalf("expected selector to be called again after refresh, calls=%d", sel.calls)
+	}
+}
+
+func TestLaunchWithBusyFailoverFallsBackToHealthyProfileWhenStaleAndCannotRefresh(t *testing.T) {
+	candidates := []model.Profile{{Name: "kiver", Provider: "codex"}}
+	accounts := map[string]model.AccountInfo{
+		"kiver": {
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Email:         "kiver@test.com",
+		},
+	}
+	l := &stubLauncher{}
+	var stderr bytes.Buffer
+	// Selector always fails with stale quota message
+	sel := &stubSelector{
+		err: errors.New("no usable codex profiles available: kiver (Quota desatualizada; atualize antes de selecionar automaticamente)"),
+	}
+
+	session, selected, err := launchWithBusyFailover(
+		context.Background(),
+		l,
+		sel,
+		"codex",
+		"",
+		"/tmp",
+		"kiver",
+		candidates,
+		accounts,
+		launcher.LaunchOptions{},
+		&stderr,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if selected != "kiver" || session == nil {
+		t.Fatalf("expected fallback to kiver, got selected=%s", selected)
+	}
+	if !bytes.Contains(stderr.Bytes(), []byte("fallback resiliente")) {
+		t.Fatalf("expected resilient fallback warning, got %q", stderr.String())
+	}
+}
+
+func TestLaunchWithBusyFailoverDoesNotFallbackWhenAccountIsRateLimited(t *testing.T) {
+	candidates := []model.Profile{{Name: "limited", Provider: "codex"}}
+	accounts := map[string]model.AccountInfo{
+		"limited": {
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Usage: model.UsageSnapshot{
+				Status: model.UsageRateLimited,
+			},
+		},
+	}
+	l := &stubLauncher{}
+	var stderr bytes.Buffer
+	sel := &stubSelector{
+		err: errors.New("no usable codex profiles available: limited (Conta rate-limited)"),
+	}
+
+	session, selected, err := launchWithBusyFailover(
+		context.Background(),
+		l,
+		sel,
+		"codex",
+		"",
+		"/tmp",
+		"limited",
+		candidates,
+		accounts,
+		launcher.LaunchOptions{},
+		&stderr,
+	)
+	if err == nil {
+		t.Fatal("expected error for rate limited profile")
+	}
+	if session != nil || selected != "" {
+		t.Fatalf("rate limited account must not be launched: session=%+v, selected=%s", session, selected)
 	}
 }

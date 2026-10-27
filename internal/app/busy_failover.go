@@ -24,7 +24,10 @@ type profileSelector interface {
 	SelectBestProfile(ctx context.Context, provider string, workspace string, candidates []model.Profile, accounts map[string]model.AccountInfo, excludeProfiles []string) (*scheduler.SelectionResult, error)
 }
 
-func resolveLaunchProfile(ctx context.Context, provider, explicit, workspace, configuredDefault string, candidates []model.Profile, accounts map[string]model.AccountInfo, selector profileSelector, excluded []string) (string, error) {
+func resolveLaunchProfile(ctx context.Context, provider, explicit, workspace, configuredDefault string, candidates []model.Profile, accounts map[string]model.AccountInfo, selector profileSelector, excluded []string, stderr io.Writer) (string, error) {
+	if stderr == nil {
+		stderr = os.Stderr
+	}
 	names := make([]string, 0, len(candidates))
 	for _, candidate := range candidates {
 		if profileNameExcluded(candidate.Name, excluded) {
@@ -53,16 +56,81 @@ func resolveLaunchProfile(ctx context.Context, provider, explicit, workspace, co
 		}
 		return result.SelectedProfile.Name, nil
 	})
-	// Automatic routing must fail closed. Falling back to the configured
-	// default after the selector rejected every candidate can launch an
-	// exhausted or otherwise ineligible account.
+	// Automatic routing must fail closed when accounts are exhausted or unavailable.
+	// However, if the selector rejected candidates solely because quota evidence was
+	// stale or unverified, treat the exception by refreshing remaining authenticated
+	// candidates in real time.
 	if strings.TrimSpace(explicit) == "" && selectionErr != nil {
+		if isStaleOrUnknownQuotaError(selectionErr) {
+			remaining := remainingProfiles(candidates, excluded)
+			refreshedAny := false
+			for _, cand := range remaining {
+				acc, ok := accounts[cand.Name]
+				if !ok || !acc.Authenticated {
+					continue
+				}
+				fmt.Fprintf(stderr, "⚡ [nexus] quota desatualizada em %s:%s; consultando atualização oficial…\n", provider, cand.Name)
+				_ = profile.RefreshUsageSnapshotContext(ctx, provider, cand.Name)
+				acc.Usage = profile.GetSanitizedUsageSnapshot(provider, cand.Name, acc.Email)
+				accounts[cand.Name] = acc
+				refreshedAny = true
+			}
+			if refreshedAny && selector != nil {
+				result, err := selector.SelectBestProfile(ctx, provider, workspace, remaining, accounts, nil)
+				if err == nil && result != nil && result.SelectedProfile != nil {
+					return result.SelectedProfile.Name, nil
+				}
+			}
+			// If live probe could not update (offline/timeout/lock), but healthy authenticated
+			// profiles exist that are not rate-limited, fall back safely.
+			if fallback := findHealthyFallbackProfile(names, configuredDefault, accounts); fallback != "" {
+				fmt.Fprintf(stderr, "⚠ [nexus] quotas em tempo real indisponíveis; iniciando com %s:%s (fallback resiliente)\n", provider, fallback)
+				return fallback, nil
+			}
+		}
 		return "", selectionErr
 	}
 	if !containsProfileName(names, selected) {
 		return "", fmt.Errorf("profile %q is not configured for provider %s", selected, provider)
 	}
 	return selected, nil
+}
+
+func isStaleOrUnknownQuotaError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "desatualizada") ||
+		strings.Contains(msg, "atualize antes de selecionar automaticamente") ||
+		(strings.Contains(msg, "UNKNOWN") && strings.Contains(msg, "inelegível para alocação automática"))
+}
+
+func findHealthyFallbackProfile(names []string, configuredDefault string, accounts map[string]model.AccountInfo) string {
+	if configuredDefault != "" && containsProfileName(names, configuredDefault) {
+		if acc, ok := accounts[configuredDefault]; ok && isAccountHealthyForFallback(acc) {
+			return configuredDefault
+		}
+	}
+	for _, name := range names {
+		if acc, ok := accounts[name]; ok && isAccountHealthyForFallback(acc) {
+			return name
+		}
+	}
+	return ""
+}
+
+func isAccountHealthyForFallback(acc model.AccountInfo) bool {
+	if !acc.Authenticated {
+		return false
+	}
+	if acc.Health != model.HealthHealthy {
+		return false
+	}
+	if acc.Usage.Status == model.UsageRateLimited {
+		return false
+	}
+	return true
 }
 
 func launchWithBusyFailover(
@@ -84,7 +152,7 @@ func launchWithBusyFailover(
 	attempted := map[string]bool{}
 
 	for {
-		selected, err := resolveLaunchProfile(ctx, provider, explicit, workspace, configuredDefault, candidates, accounts, selector, excluded)
+		selected, err := resolveLaunchProfile(ctx, provider, explicit, workspace, configuredDefault, candidates, accounts, selector, excluded, stderr)
 		if err != nil {
 			if lastBusy != "" {
 				return nil, lastBusy, fmt.Errorf("%s profile %s is busy and no fallback profiles are available", provider, lastBusy)
