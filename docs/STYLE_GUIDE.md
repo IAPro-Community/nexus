@@ -15,3 +15,7 @@
 - `DEV/` e `.omx/` são contexto interno/histórico, não onboarding público.
 - Se um documento histórico conflitar com a documentação canônica atual, preserve o histórico e corrija o índice/precedência em vez de reescrever evidência antiga.
 - Não declare `PASS`, suporte nativo ou release publicada antes da evidência do mesmo candidato/revisão.
+
+- Diferencie **licença vigente** de **licença-alvo**; "open source" só quando `LICENSE` for OSI-aprovada e o relicenciamento autorizado.
+- Não invente programa de doações, entidade titular, número de registro de marca ou link de pagamento. Patrocínios só após conta verificada.
+- Ao citar forks, respeite a licença vigente; não prometa direitos de modificação até a abertura jurídica.
