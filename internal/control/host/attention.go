@@ -486,6 +486,11 @@ func (d *AttentionDetector) ApplyProviderSignal(state, kind, summary, source str
  d.mu.Lock()
  defer d.mu.Unlock()
  if source != "acp" && source != "pi_rpc" { return }
+ summary = strings.Map(func(r rune) rune {
+  if unicode.IsControl(r) { return -1 }
+  return r
+ }, summary)
+ summary = truncateRunes(summary, 320)
  d.applyNativeStatusLocked(oscStatus{State:state,Kind:kind,Message:summary,App:d.providerID},source)
 }
 
