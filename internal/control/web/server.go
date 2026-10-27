@@ -469,6 +469,12 @@ func (s *Server) BootstrapToken() string {
 }
 
 func (s *Server) Start() error {
+	// A Nexus CLI process discovers only the loopback broker URL. Browser
+	// grants are separately scoped and cannot authenticate the Nexus UI.
+	if tcp, ok := s.listener.Addr().(*net.TCPAddr); ok {
+		_ = browsercontrol.PublishBrowserEndpoint(tcp.Port, s.pid)
+	}
+	defer browsercontrol.UnpublishBrowserEndpoint(s.pid)
 	err := s.httpServer.Serve(s.listener)
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil
@@ -651,6 +657,7 @@ func (s *Server) handleDesktopBootstrap(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
+	browsercontrol.UnpublishBrowserEndpoint(s.pid)
 	if s.browsers != nil {
 		s.browsers.Shutdown()
 	}

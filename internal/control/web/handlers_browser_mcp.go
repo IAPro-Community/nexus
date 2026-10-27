@@ -54,14 +54,23 @@ func (s *Server) handleBrowserMCP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	auth := r.Header.Get("Authorization")
-	if !strings.HasPrefix(auth, "Bearer nb_") {
+	if !strings.HasPrefix(auth, "Bearer nb_") && !strings.HasPrefix(auth, "Bearer nbr_") {
 		writeError(w, http.StatusUnauthorized, "browser capability token required")
 		return
 	}
-	grant, browser, ok := s.browsers.ResolveAgentGrant(strings.TrimPrefix(auth, "Bearer "))
+	token := strings.TrimPrefix(auth, "Bearer ")
+	grant, browser, ok := s.browsers.ResolveAgentGrant(token)
+	actor := grant.Actor
+	var runtimeCap browsercontrol.RuntimeCapability
+	runtimeGrant := false
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "browser capability expired or revoked")
-		return
+		runtimeCap, runtimeGrant = browsercontrol.ResolveRuntimeCapability(token)
+		if !runtimeGrant {
+			writeError(w, http.StatusUnauthorized, "invalid browser runtime capability")
+			return
+		}
+		actor = "agent:" + runtimeCap.RuntimeID
+		browser, _ = s.browsers.FindRuntimeBrowser(runtimeCap.RuntimeID)
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 20*1024)
 	var rpc struct {
@@ -99,8 +108,20 @@ func (s *Server) handleBrowserMCP(w http.ResponseWriter, r *http.Request) {
 		}
 		if err := json.Unmarshal(rpc.Params, &params); err != nil {
 			result = browserMCPError("invalid tool arguments")
+		} else if params.Name == "browser_open" && runtimeGrant {
+			var input struct { URL string `json:"url"` }
+			if err := json.Unmarshal(params.Arguments, &input); err != nil && len(params.Arguments)>0 {
+				result = browserMCPError("invalid browser_open arguments")
+			} else {
+				ctx, cancel := context.WithTimeout(r.Context(), 35*time.Second)
+				info, openErr := s.browsers.OpenRuntimeBrowser(ctx, runtimeCap, input.URL)
+				cancel()
+				if openErr != nil {result = browserMCPError(openErr.Error())} else {result = browserMCPText(info)}
+			}
+		} else if browser == nil {
+			result = browserMCPError("No browser attached to this runtime. Call browser_open first.")
 		} else {
-			result = browserMCPExecute(r.Context(), browser, grant.Actor, params.Name, params.Arguments)
+			result = browserMCPExecute(r.Context(), browser, actor, params.Name, params.Arguments)
 		}
 	default:
 		writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": rpc.ID,
@@ -124,6 +145,7 @@ func browserMCPTools() []map[string]any {
 		return map[string]any{"type": "string", "description": description}
 	}
 	return []map[string]any{
+		spec("browser_open", "Create or reopen this runtime's private Nexus Browser, visible in the same Workspace on desktop/mobile. Call once before other tools.", map[string]any{"url":str("Optional HTTP(S) starting URL")}),
 		spec("browser_state", "Read the browser, input lease and human-handoff state", map[string]any{}),
 		spec("browser_request_control", "Acquire or renew an input lease for this agent only", map[string]any{}),
 		spec("browser_release_control", "Release this agent's input lease", map[string]any{}),

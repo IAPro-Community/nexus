@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/browsercontrol"
 	"github.com/IAPro-Community/nexus/internal/control/launcher"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/cooldown"
@@ -101,6 +102,23 @@ func executeProviderSupervised(provName, explicitProfile string, args []string, 
 	refreshCodexLaunchQuota(context.Background(), provName, explicitProfile, candidates, accounts)
 	selector := scheduler.NewSelector(cfg, quotaEngine, cooldown.NewTracker())
 	workspace := mustWorkingDirectory()
+	// Supervised standalone CLI invocations have no Agent/Project binding yet.
+	// Resolve the workspace to the same project used by Web/Desktop so their
+	// lazy Browser sessions are visible in the Agent Workspace.
+	browserProjectID := ""
+	if browsercontrol.DiscoverBrowserEndpoint() != "" {
+		if st, openErr := nexus.Default().OpenProject(); openErr == nil {
+			if canonical, canonErr := store.CanonicalPath(workspace); canonErr == nil {
+				project, projectErr := st.GetProjectByPath(canonical)
+				if errors.Is(projectErr, store.ErrNotFound) {
+					project, projectErr = st.CreateProject(store.Project{
+						Name: filepath.Base(canonical), CanonicalPath: canonical,
+					})
+				}
+				if projectErr == nil {browserProjectID = project.ID}
+			}
+		}
+	}
 	session, selected, err := launchWithBusyFailover(
 		context.Background(),
 		launcher.Default(),
@@ -112,6 +130,7 @@ func executeProviderSupervised(provName, explicitProfile string, args []string, 
 		candidates,
 		accounts,
 		launcher.LaunchOptions{
+			ProjectID: browserProjectID,
 			Workspace:  workspace,
 			Args:       args,
 			Standalone: false,

@@ -22,6 +22,7 @@ export type NexusBrowserInfo = {
   url: string;
   width: number;
   height: number;
+  owner_runtime_id?: string;
 };
 
 export type NexusBrowserAction = {
@@ -82,6 +83,7 @@ export const browserAPI = {
       body: JSON.stringify({ project_id: projectId, url }),
     }),
   get: (id: string) => request<NexusBrowserInfo>(browserRoute(id)),
+  list: (projectId: string) => request<NexusBrowserInfo[]>(`${endpoint}?project_id=${encodeURIComponent(projectId)}`),
   action: (id: string, action: NexusBrowserAction) =>
     request<NexusBrowserInfo>(`${browserRoute(id)}/action`, {
       method: 'POST',
@@ -167,24 +169,36 @@ export const BrowserSurface: React.FC<{
       void (async () => {
         try {
           let next: NexusBrowserInfo;
+          let createdNew = false;
           if (initialSessionId) {
             try {
               next = await browserAPI.get(initialSessionId);
               if (next.project_id !== projectId) throw new Error('stale project session');
             } catch {
               next = await browserAPI.create(projectId, initialUrl);
+              createdNew = true;
             }
           } else {
-            next = await browserAPI.create(projectId, initialUrl);
+            // Prefer an existing agent-owned browser so opening Browser in
+            // the Workspace previews the very page the CLI is using.
+            const existing = await browserAPI.list(projectId);
+            const agentOwned = existing.find((candidate) => Boolean(candidate.owner_runtime_id));
+            if (agentOwned) {
+              next = agentOwned;
+            } else {
+              next = await browserAPI.create(projectId, initialUrl);
+              createdNew = true;
+            }
           }
           if (!mounted.current) {
-            // Closing a new surface during Chromium startup must not leak
-            // one of the four managed browser slots.
-            void request<{ status: string }>(`${browserRoute(next.id)}`, {
-              method: 'DELETE',
-            }).catch(() => undefined);
+            if (createdNew) {
+              void request<{ status: string }>(browserRoute(next.id), {
+                method: 'DELETE',
+              }).catch(() => undefined);
+            }
             return;
           }
+          if (next.owner_runtime_id) setWantsControl(false);
           setSession(next);
           setAddress(next.url);
           onReady.current?.(next.id);
@@ -525,6 +539,7 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
       </form>
       <div className={styles.controlBar} role="status">
         <span>{live ? 'Ao vivo' : 'Capturas / reconectando'}</span>
+        {session?.owner_runtime_id && <span>Navegador do agente · {session.owner_runtime_id}</span>}
         <span>
           {handoff.status === 'human_active'
             ? 'Intervenção humana · privada'
@@ -597,8 +612,8 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
       )}
       {session && (
         <details className={styles.agentConnections}>
-          <summary>Conectar Codex / Claude / outro agente via MCP</summary>
-          <p>Conexão local vinculada apenas a esta sessão de navegador.</p>
+          <summary>Conexões avançadas com agentes externos</summary>
+          <p>Agentes iniciados pelo Nexus recebem o Browser automaticamente. Use esta opção apenas para uma conexão externa autorizada.</p>
           <button type="button" onClick={() => void createAgentConnection()}>
             Gerar acesso temporário e copiar configuração
           </button>

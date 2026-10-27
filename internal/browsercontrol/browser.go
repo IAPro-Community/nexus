@@ -33,6 +33,7 @@ type Info struct {
 	URL       string `json:"url"`
 	Width     int    `json:"width"`
 	Height    int    `json:"height"`
+	OwnerRuntimeID string `json:"owner_runtime_id,omitempty"`
 }
 
 type Action struct {
@@ -68,6 +69,7 @@ type Session struct {
 }
 
 type Manager struct {
+	runtimeMu sync.Mutex
 	mu       sync.RWMutex
 	sessions map[string]*Session
 	pending  int

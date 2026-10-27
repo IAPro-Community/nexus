@@ -177,7 +177,7 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 		Model:       cfg.Model,
 		Environment: cfg.Environment,
 		Isolation:   cfg.Isolation,
-		Options:     cfg.Options,
+		Options:     missionBrowserOptions(cfg.Options, policy.Contract.AllowExternalNetwork),
 		PathPrepend: pathPrepend,
 	})
 	if err != nil {
@@ -511,4 +511,15 @@ func workspaceFingerprint(ctx context.Context, workspace string) (string, error)
 		}
 	}
 	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+
+// A browser can reach destinations that provider CLI network guards cannot
+// intercept. Autonomous Missions may only receive the Browser if the Mission
+// contract explicitly permits external network access.
+func missionBrowserOptions(existing map[string]any, allowNetwork bool) map[string]any {
+	out := make(map[string]any, len(existing)+1)
+	for key, value := range existing { out[key] = value }
+	if !allowNetwork { out["nexus_browser_enabled"] = false }
+	return out
 }

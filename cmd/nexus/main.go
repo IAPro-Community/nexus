@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"context"
+	"github.com/IAPro-Community/nexus/internal/browsercontrol"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -19,6 +21,15 @@ func main() {
 		})))
 	}
 
+	// Private MCP subprocess invoked by registered provider drivers. This
+	// is not exposed as a user shell command and writes JSON-RPC to stdout.
+	if len(os.Args) == 2 && os.Args[1] == "__browser-mcp-stdio" {
+		if err := browsercontrol.ServeBrowserMCPStdio(context.Background(), os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintln(os.Stderr, "Nexus Browser MCP:", err)
+			os.Exit(1)
+		}
+		return
+	}
 	base := filepath.Base(os.Args[0])
 	helperBase := strings.TrimSuffix(strings.ToLower(base), ".exe")
 	if helperBase == "nexus-browser" || helperBase == "ai-browser" || helperBase == "xdg-open" {

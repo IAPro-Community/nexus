@@ -1,0 +1,35 @@
+name: Format Browser Auto MCP (one shot)
+on:
+  push:
+    branches: [release/v1.0.0]
+    paths: ['.github/workflows/browser-auto-mcp-format-once.yml']
+permissions:
+  contents: write
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/v1.0.0
+          persist-credentials: true
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.9'
+      - name: Format Go sources
+        run: |
+          gofmt -w internal/browsercontrol/browser.go internal/browsercontrol/runtime_capability.go internal/browsercontrol/browser_runtime_session.go internal/control/launcher/launcher.go internal/control/launcher/browser_auto_mcp.go internal/control/launcher/browser_auto_mcp_test.go internal/control/web/server.go internal/control/web/handlers_browser_mcp.go internal/app/provider_supervised.go internal/nexus/mission_execution.go cmd/nexus/main.go
+      - name: Format Browser UI
+        run: |
+          cd web
+          bun install --frozen-lockfile
+          ./node_modules/.bin/prettier --write src/features/browser/BrowserSurface.tsx
+      - name: Commit and delete workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/browser-auto-mcp-format-once.yml
+          git add internal/browsercontrol internal/control/launcher internal/control/web/server.go internal/control/web/handlers_browser_mcp.go internal/app/provider_supervised.go internal/nexus/mission_execution.go cmd/nexus/main.go web/src/features/browser/BrowserSurface.tsx
+          git commit -m 'style(browser): format automatic provider MCP provisioning'
+          git push origin HEAD:release/v1.0.0

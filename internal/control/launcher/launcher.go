@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/browsercontrol"
 	"github.com/IAPro-Community/nexus/internal/control/driver"
 	"github.com/IAPro-Community/nexus/internal/control/host"
 	"github.com/IAPro-Community/nexus/internal/control/ids"
@@ -181,6 +182,15 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 	if captureShell {
 		traceCaptureShellLaunchStage("command-built")
 	}
+	// Browser capability provisioning is central, never per-model. Custom
+	// remote command templates are deliberately excluded because local
+	// loopback is not necessarily reachable from Docker/SSH targets.
+	if !customCommand {
+		extraArgs, env, err = configureBrowserMCP(opts, env, extraArgs)
+		if err != nil {
+			return nil, fmt.Errorf("prepare Nexus Browser for %s: %w", opts.ProviderID, err)
+		}
+	}
 	if opts.Workspace != "" && !customCommand {
 		info, statErr := os.Stat(opts.Workspace)
 		if statErr != nil {
@@ -281,6 +291,7 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 			traceCaptureShellLaunchStage("cleanup-envelope-remove-start")
 		}
 		removeLaunchEnvelope(opts.RuntimeID)
+		browsercontrol.RevokeRuntimeCapability(opts.RuntimeID)
 		if captureShell {
 			traceCaptureShellLaunchStage("cleanup-envelope-remove-finished")
 		}
@@ -453,6 +464,8 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 // Stop requests a graceful protocol stop, then force-kills only process
 // identities that can be proven to belong to this runtime generation.
 func (l *Launcher) Stop(runtimeID string) error {
+	// Revocation is immediate even if a child process takes time to stop.
+	browsercontrol.RevokeRuntimeCapability(runtimeID)
 	sess, ok := l.reg.Get(runtimeID)
 	var protocolErr error
 	client, err := protocol.NewClient(runtimeID)
