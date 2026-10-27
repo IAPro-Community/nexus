@@ -1,3 +1,8 @@
+## Branch de destino (Nexus 1.0)
+
+- [ ] O campo **base** deste PR é `release/v1.0.0` (não `main`). Se não for, explique o motivo e solicite retarget antes da revisão.
+- [ ] Verifiquei o código atual da release para não reintroduzir uma implementação antiga ou duplicada.
+
 ## Contexto e problema
 
 <!-- Relate issue/proposta, problema real e por que a alteração é necessária. -->
@@ -7,6 +12,7 @@
 - [ ] Confirmei que tenho direito de enviar todos os trechos, assets e dependências propostos.
 - [ ] Li a licença vigente e o plano de migração: **a PolyForm Strict atual não dá autorização geral para contribuições de patches**. Até o relicenciamento, só enviar código com permissão jurídica específica documentada.
 - [ ] Identifiquei partes de terceiros, respectivos autores, termos e avisos quando aplicável.
+- [ ] Para patch de terceiro antes do relicenciamento, a autorização específica e documentada para incorporação e relicenciamento futuro foi verificada pelo mantenedor (ou o PR ficará bloqueado para merge).
 - [ ] Quando o DCO da fase open source estiver ativado, os commits terão `Signed-off-by` (use `git commit -s`).
 
 ## Qualidade e arquitetura
