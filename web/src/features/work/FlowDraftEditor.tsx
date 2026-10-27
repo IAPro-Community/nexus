@@ -7,6 +7,7 @@ import { unresolvedBlocking } from './clarificationModel';
 import { ClarificationPrompt } from './ClarificationPrompt';
 import { FlowCanvas } from './FlowCanvas';
 import { FlowGoalBar } from './FlowGoalBar';
+import { FeatureTour } from './FeatureTour';
 import { ComposerHandoffSummary } from './ComposerHandoffSummary';
 import { FlowPipeline } from './FlowPipeline';
 import { FlowStepInspector } from './FlowStepInspector';
@@ -60,8 +61,13 @@ export const FlowDraftEditor: React.FC<{
 
   return (
     <div className="nx-composer-flow-clean">
-      <FlowGoalBar controller={controller} agents={agents} />
-      <ComposerHandoffSummary plan={controller.selectedPlan} />
+      <FeatureTour projectId={project.id} surface="flow-editor" />
+      <div data-tour="flow-goal">
+        <FlowGoalBar controller={controller} agents={agents} />
+      </div>
+      <div data-tour="flow-handoff">
+        <ComposerHandoffSummary plan={controller.selectedPlan} />
+      </div>
 
       {planError && (
         <InlineAlert
@@ -133,9 +139,9 @@ export const FlowDraftEditor: React.FC<{
       )}
 
       <div className="nx-composer-flow-body" data-has-draft={flowDraft ? 'true' : 'false'}>
-        <div className="nx-composer-flow-canvas-pane">
+        <div className="nx-composer-flow-canvas-pane" data-tour="flow-canvas">
           {flowDraft ? (
-            <div className={styles.studioToolbar}>
+            <div className={styles.studioToolbar} data-tour="flow-views">
               <div
                 className={styles.viewToggle}
                 role="tablist"
