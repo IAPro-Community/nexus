@@ -221,7 +221,8 @@ func (s *Session) call(ctx context.Context, method string, params any, into any)
  c, _, err := dialer.DialContext(ctx, s.wsURL, nil)
  if err != nil { return fmt.Errorf("DevTools connect: %w", err) }
  defer c.Close()
- _ = c.SetDeadline(time.Now().Add(timeout))
+ _ = c.SetReadDeadline(time.Now().Add(timeout))
+ _ = c.SetWriteDeadline(time.Now().Add(timeout))
  if err := c.WriteJSON(map[string]any{"id":1,"method":method,"params":params}); err != nil { return err }
  for {
   var msg struct{
