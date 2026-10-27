@@ -36,6 +36,15 @@ export const ProductUpdatesCenter: React.FC<{
     }
   });
 
+  const markAllRead = () => {
+    for (const item of featureAnnouncements) {
+      try {
+        window.localStorage.setItem(announcementStorageKey(item.id), String(item.revision));
+      } catch { /* Local storage is optional. */ }
+    }
+    window.dispatchEvent(new Event('nexus:feature-discovery-updated'));
+  };
+
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
@@ -73,6 +82,11 @@ export const ProductUpdatesCenter: React.FC<{
               </DropdownMenu.Item>
             );
           })}
+          {unread.length > 0 && (
+            <DropdownMenu.Item className={styles.markRead} onSelect={markAllRead}>
+              {t('discovery.markAllRead', 'Marcar todas como lidas')}
+            </DropdownMenu.Item>
+          )}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
