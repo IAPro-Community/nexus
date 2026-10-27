@@ -63,9 +63,8 @@ func (p *PiRPC) Command(ctx context.Context, command string, fields map[string]a
 	}
 	select {
 	case r := <-ch:
-		if !r.Success {
-			return errors.New("Pi RPC: command rejected")
-		}
+		if r.Command != command { return errors.New("Pi RPC: mismatched command response") }
+  if !r.Success { return errors.New("Pi RPC: command rejected") }
 		if reply != nil {
 			*reply = r.Data
 		}
