@@ -2,6 +2,7 @@ package driver
 
 import (
 	"fmt"
+	"os"
 	"sync"
 )
 
@@ -28,6 +29,15 @@ func DefaultRegistry() *Registry {
 		defaultRegistry.Register(NewCursorDriver())
 		defaultRegistry.Register(NewShellDriver())
 		defaultRegistry.Register(NewFakeDriver())
+		// Experimental harnesses are opt-in until their authenticated
+		// protocol/session E2E coverage is complete. DSH is discoverable
+		// but cannot be launched as an ordinary PTY.
+		if os.Getenv("NEXUS_EXPERIMENTAL_HARNESSES") == "1" {
+			for _, id := range []string{"pi", "omp", "mimo", "dsh"} {
+				defaultRegistry.Register(NewPreviewHarnessDriver(id))
+			}
+		}
+
 	})
 	return defaultRegistry
 }
