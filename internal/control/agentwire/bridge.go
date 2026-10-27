@@ -8,6 +8,7 @@ import (
  "strings"
  "sync"
  "sync/atomic"
+ "time"
 )
 
 // WireSignal is an observation emitted by a provider protocol. A command
@@ -70,7 +71,7 @@ func(b *Bridge)Start(ctx context.Context)error{
   b.acp.OnRequest(b.request)
   b.acp.OnNotification(b.notification)
   go func(){if err:=b.acp.Pump(b.ctx);err!=nil&&b.ctx.Err()==nil{b.emit(WireSignal{State:"error",Summary:"ACP stream terminated"})}}()
-  handshake,cancelHandshake:=context.WithTimeout(b.ctx,20*1000000000)
+  handshake,cancelHandshake:=context.WithTimeout(b.ctx,20*time.Second)
   defer cancelHandshake()
   reply,err:=b.acp.Initialize(handshake,1)
   if err!=nil {b.cancel();return fmt.Errorf("ACP initialize: %w",err)}
