@@ -75,8 +75,13 @@ func TestBridgePiSettledNotAck(t *testing.T){
   wire:=NewJSONLines(providerRead,providerWrite)
   for{
    msg,err:=wire.Read();if err!=nil{return}
-   var p struct{ID string `json:"id"`}
+   var p struct{ID string `json:"id"`;Type string `json:"type"`}
    _=json.Unmarshal(msg,&p)
+   if p.Type=="get_state"{
+    _=wire.Write(map[string]any{"type":"response","id":p.ID,"command":"get_state","success":true,
+     "data":map[string]string{"sessionId":"pi-session-1"}})
+    continue
+   }
    _=wire.Write(map[string]any{"type":"response","id":p.ID,"command":"prompt","success":true})
    _=wire.Write(map[string]any{"type":"agent_end"})
    _=wire.Write(map[string]any{"type":"agent_settled"})
