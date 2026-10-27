@@ -1,5 +1,7 @@
 # Roadmap IAPro Nexus
 
+> **Nova trilha de adoção (27/10/2026):** consulte [Plano de adoção e execução](docs/strategy/NEXUS_ADOPTION_EXECUTION_PLAN_2026.md) para marcos, metas, dependências e issues #76–#93. O documento abaixo preserva o histórico de fechamento da v1; homologação e plataformas seguem [release status](docs/release-status.md) e [platform support](docs/operations/platform-support.md). Não tratar a classificação histórica de Linux-only como autorização para publicar Windows/macOS sem certificação ou excluir gates de plataformas hoje declaradas.
+
 Este roadmap descreve a campanha de fechamento do Nexus 1.0. Não é promessa de prazo.
 O contrato técnico detalhado está em
 [`DEV/SPECS/NEXUS_1_0_CLOSURE.md`](DEV/SPECS/NEXUS_1_0_CLOSURE.md).
@@ -74,7 +76,7 @@ routing/memory reliability, Surface Isolation, Flow recovery e os gates Linux/br
     - signed artifacts;
     - dogfooding e soak;
     - BLOCKER=0 / HIGH=0.
-    - Windows/macOS native certification moves to post-v1 platform expansion.
+    - A certificação nativa de cada plataforma anunciada deve passar no SHA final, conforme a matriz vigente em `docs/operations/platform-support.md`; nunca interpretar esta lista histórica como dispensa de gates.
 
 ## Trilha paralela — abertura comunitária e sustentabilidade
 
@@ -111,5 +113,6 @@ relicenciamento ou autorização de forks modificados.
 
 Somente declarar `NEXUS_1_0_CANDIDATE = GO` quando o candidato final tiver todos
 os gates requeridos verdes no mesmo SHA e evidência nativa das plataformas declaradas.
-Para a v1, a plataforma declarada é Linux amd64; Windows/macOS só entram na regra
-quando forem explicitamente promovidos de DEFERRED para suportados.
+A lista de plataformas e a política de certificação vigentes são definidas em
+`docs/operations/platform-support.md`; o registro histórico deste roadmap não
+substitui essa matriz. Nenhuma plataforma pode ser anunciada sem prova exact-SHA.
