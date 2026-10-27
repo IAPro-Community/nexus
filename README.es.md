@@ -62,4 +62,10 @@ La [integración con Maestro](docs/product/maestro.md) es opcional para el camin
 
 [TL;DR](docs/TLDR.md) · [Documentación](docs/README.md) · [Seguridad](SECURITY.md) · [Soporte](SUPPORT.md) · [Gobernanza](GOVERNANCE.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [PolyForm Strict](LICENSE)
 
-**Licencia:** source-available, usos no comerciales permitidos; no permite modificaciones ni redistribución. No es open source reconocido por la OSI. Vea [guía de licenciamiento](docs/legal/LICENSING.md).
+**Licencia vigente:** [PolyForm Strict 1.0.0](LICENSE), código visible pero **no open source OSI**. No concede permisos generales para modificar o redistribuir el proyecto. **Licencia objetivo:** Apache-2.0, **aún no vigente**. El cambio depende de verificar autoría, derechos de terceros/assets y seguridad del historial. Publicar el código no autoriza distribuir forks modificados.
+
+**Objetivo comunitario:** Nexus Community completo, local, sin límites artificiales en Composer, Flow, Agents o Missions; financiación futura por donaciones, servicios opcionales y soporte empresarial. Los modelos/proveedores externos pueden tener costes propios.
+
+[Plan de transición open source](docs/legal/OPEN_SOURCE_TRANSITION.md) · [Licenciamiento actual](docs/legal/LICENSING.md) · [Contribuciones](CONTRIBUTING.md) · [Forks y upstream](docs/community/FORKS_AND_UPSTREAM.md) · [Marca](docs/legal/TRADEMARK_POLICY.md) · [Financiación](docs/community/FUNDING.md) · [Avisos de terceros](docs/legal/THIRD_PARTY_NOTICES.md).
+
+La versión estable sigue **NO-GO** hasta la validación del SHA exacto.
