@@ -72,7 +72,7 @@ export const FlowDraftEditor: React.FC<{
       {planError && (
         <InlineAlert
           tone="danger"
-          title={t('flow.planErrorTitle', 'Nexus Intelligence could not generate the plan')}
+          title={t('flow.planErrorTitle', 'Verifique o planejamento do Flow')}
         >
           {planError}
         </InlineAlert>
@@ -175,7 +175,7 @@ export const FlowDraftEditor: React.FC<{
               <p>
                 {t(
                   'flow.emptyCanvasHint',
-                  'Generate a draft with AI or create a base structure manually.',
+                  'Crie etapas manualmente ou elabore o planejamento pelo Composer.',
                 )}
               </p>
               <div className={styles.emptyCanvasActions}>
