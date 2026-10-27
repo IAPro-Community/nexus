@@ -136,7 +136,7 @@ func TestWindowsBackendInterruptWritesETXToProviderInput(t *testing.T) {
 func TestWindowsBackendUnknownProviderDefaultsToStandardPipes(t *testing.T) {
 	unsetenv(t, "AI_CLI_ENABLE_CONPTY")
 	unsetenv(t, "AI_CLI_DISABLE_CONPTY")
-	backend := NewBackendForProvider("gemini")
+	backend := NewBackendForProvider("unknown-generic")
 	cmd := exec.Command("cmd.exe")
 	if err := backend.Start(cmd, 24, 80); err != nil {
 		t.Fatalf("failed to start Windows backend: %v", err)
@@ -192,6 +192,9 @@ func TestWindowsBackendUsesConPTYForInteractiveProvidersAndForwardsArrowInputByD
 		{id: "codex", automaticMechanism: "automatic for supervised Codex"},
 		{id: "agy", automaticMechanism: "automatic for supervised AGY"},
 		{id: "opencode", automaticMechanism: "automatic for supervised OpenCode"},
+		{id: "claude", automaticMechanism: "automatic for supervised Claude"},
+		{id: "gemini", automaticMechanism: "automatic for supervised Gemini"},
+		{id: "cursor", automaticMechanism: "automatic for supervised Cursor"},
 		{id: "shell", automaticMechanism: "automatic for interactive Shell"},
 	}
 	for _, provider := range providers {

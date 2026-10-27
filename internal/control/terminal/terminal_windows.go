@@ -28,9 +28,8 @@ import (
 // PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE attribute. If ConPTY is unavailable
 // (e.g. Windows < 10.0.17763), Start falls back to standard pipes and reports
 // the backend truthfully as "standard pipes" (no resize / no raw mode).
-// Standard pipes remain the default for generic runtimes. Codex, AGY, and
-// OpenCode use ConPTY automatically because their interactive CLIs require a
-// console;
+// Standard pipes remain the default for unknown or generic providers. Known
+// interactive coding CLIs use ConPTY automatically for keyboard navigation;
 // AI_CLI_ENABLE_CONPTY=1 opts other providers in and AI_CLI_DISABLE_CONPTY=1
 // preserves the compatibility fallback.
 
@@ -142,6 +141,12 @@ func platformBackendMechanismForProvider(providerID string) string {
 			return "Windows ConPTY (automatic for supervised AGY)"
 		case strings.EqualFold(strings.TrimSpace(providerID), "opencode"):
 			return "Windows ConPTY (automatic for supervised OpenCode)"
+		case strings.EqualFold(strings.TrimSpace(providerID), "claude"):
+			return "Windows ConPTY (automatic for supervised Claude)"
+		case strings.EqualFold(strings.TrimSpace(providerID), "gemini"):
+			return "Windows ConPTY (automatic for supervised Gemini)"
+		case strings.EqualFold(strings.TrimSpace(providerID), "cursor"):
+			return "Windows ConPTY (automatic for supervised Cursor)"
 		case strings.EqualFold(strings.TrimSpace(providerID), "shell"):
 			return "Windows ConPTY (automatic for interactive Shell)"
 		}
@@ -157,7 +162,7 @@ func shouldUseConPTY(providerID string) bool {
 		return true
 	}
 	switch strings.ToLower(strings.TrimSpace(providerID)) {
-	case "codex", "agy", "opencode", "shell":
+	case "codex", "agy", "opencode", "claude", "gemini", "cursor", "shell":
 		return true
 	default:
 		return false
