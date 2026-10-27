@@ -23,16 +23,22 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - name: Format verification
+      - name: Format staged checkout for validation
         run: |
-          gofmt -l internal/control/agentwire internal/control/host/structured_backend.go internal/control/host/attention.go internal/control/host/osc7501*.go internal/control/driver/harness_preview*.go internal/control/driver/structured_command.go internal/control/driver/launch_config.go internal/control/launcher/launcher.go internal/control/web/handlers_api.go | tee /tmp/gofmt.txt
-          if test -s /tmp/gofmt.txt; then
-            echo '::error::Go files require gofmt'
-            exit 1
-          fi
+          # Run all compiler/test steps even if source formatting drifts.
+          # The final gate still fails on an unformatted committed file.
+          gofmt -w internal/control/agentwire internal/control/host/structured_backend.go internal/control/host/attention.go internal/control/host/osc7501*.go internal/control/driver/harness_preview*.go internal/control/driver/structured_command.go internal/control/driver/launch_config.go internal/control/launcher/launcher.go internal/control/web/handlers_api.go
       - name: Agentwire race and contract tests
         run: go test -race -count=1 ./internal/control/agentwire
       - name: Host, driver, launcher and web API tests
         run: go test -count=1 ./internal/control/host ./internal/control/driver ./internal/control/launcher ./internal/control/web
       - name: Build affected packages
         run: go build ./internal/control/agentwire ./internal/control/host ./internal/control/launcher ./internal/control/driver ./internal/control/web
+      - name: Verify committed gofmt parity
+        if: always()
+        run: |
+          if ! git diff --quiet; then
+            git diff --stat
+            echo '::error::Committed Go source needs gofmt'
+            exit 1
+          fi
