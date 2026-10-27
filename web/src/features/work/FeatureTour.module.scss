@@ -1,0 +1,122 @@
+.root {
+  display: flex;
+  position: relative;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-width: 0;
+}
+
+.root > button {
+  white-space: nowrap;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 100%;
+  padding: 7px 10px;
+  color: var(--nx-text);
+  background: var(--nx-bg-elevated);
+  border: 1px solid color-mix(in srgb, var(--nx-accent) 33%, var(--nx-border));
+  border-radius: 10px;
+  font-size: .8rem;
+}
+
+.notice > svg {
+  flex-shrink: 0;
+  color: var(--nx-accent);
+}
+
+.notice > span {
+  font-weight: 600;
+}
+
+.menu {
+  z-index: 750;
+  width: min(340px, calc(100vw - 28px));
+  max-height: min(420px, calc(100dvh - 32px));
+  padding: 8px;
+  overflow-y: auto;
+  background: var(--nx-bg-elevated);
+  color: var(--nx-text);
+  border: 1px solid var(--nx-border);
+  border-radius: 13px;
+  box-shadow: 0 16px 48px color-mix(in srgb, #000 28%, transparent);
+}
+
+.menuHeading {
+  padding: 9px 11px;
+  font-size: .8rem;
+  font-weight: 750;
+  border-bottom: 1px solid var(--nx-border);
+  margin-bottom: 5px;
+}
+
+.menuItem {
+  display: grid;
+  gap: 5px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  outline: none;
+  cursor: pointer;
+  font-size: .84rem;
+}
+
+.menuItem:hover,
+.menuItem[data-highlighted] {
+  background: var(--nx-accent-soft);
+}
+
+.menuTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 650;
+}
+
+.menuSummary {
+  color: var(--nx-text-muted);
+  line-height: 1.45;
+}
+
+.menuAction {
+  font-size: .75rem;
+  color: var(--nx-accent-text);
+  font-weight: 600;
+}
+
+.unreadDot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  background: var(--nx-accent);
+  border-radius: 50%;
+}
+
+.markRead {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border-top: 1px solid var(--nx-border);
+  color: var(--nx-accent-text);
+  cursor: pointer;
+  font-size: .8rem;
+  outline: none;
+}
+
+.markRead[data-highlighted] {
+  background: var(--nx-accent-soft);
+}
+
+@media (max-width: 640px) {
+  .root { justify-content: flex-start; }
+  .notice { flex-basis: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menuItem, .markRead { transition: none; }
+}
