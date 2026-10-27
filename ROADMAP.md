@@ -65,14 +65,32 @@ routing/memory reliability, Surface Isolation, Flow recovery e os gates Linux/br
    - Nexus continua funcional sem Maestro;
    - nenhuma duplicação de método/skills no Core.
 
-10. **Commercial + v1 release certification**
-    - entitlement capability gates server-side;
+10. **Community + v1 release certification**
+    - manter Community funcional sem limitação artificial de Agents, Composer, Flow ou Missions;
+    - licenciamento open source somente após autorização dos titulares e auditoria de terceiros/segredos;
+    - mecanismos de entitlement existentes não devem bloquear o núcleo Community;
     - Linux amd64 same-SHA;
     - install/upgrade/uninstall/update;
     - signed artifacts;
     - dogfooding e soak;
     - BLOCKER=0 / HIGH=0.
     - Windows/macOS native certification moves to post-v1 platform expansion.
+
+## Trilha paralela — abertura comunitária e sustentabilidade
+
+A intenção de produto é **Apache-2.0**, não aplicada ainda. O
+arquivo `LICENSE` mantém **PolyForm Strict 1.0.0** até confirmação de
+titularidade, segurança do histórico, licenças de dependências/assets e
+parecer jurídico. Não classificar uma alteração só documental como
+relicenciamento ou autorização de forks modificados.
+
+- Preparar governança, documentação de contribuições, política de marca e
+  guias de colaboração/upstream (documentação preparada);
+- Fechar [matriz legal e security gate](docs/legal/OPEN_SOURCE_TRANSITION.md);
+- Atualizar licença, avisos, READMEs e testes no commit de abertura;
+- Liberar PRs de código de terceiros sob termos válidos e validação DCO;
+- Ativar patrocínios e, depois da adoção, avaliar suporte/managed service.
+  Nenhum paywall deve ser requisito do Core Community.
 
 ## Fora do Nexus 1.0 salvo blocker
 
