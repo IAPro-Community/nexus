@@ -133,6 +133,7 @@ func (n *Nexus) ListResourcesContext(ctx context.Context) ([]ProviderAccount, er
 			LastChecked:      time.Now(),
 		})
 		accIdx := len(accounts) - 1
+		attachCredentialProvenance(&accounts[accIdx], p.Provider, p.Name, authenticated, acc.ExternalAccountID)
 		elig := quota.EvaluateEligibility(accountEligibilityInput(accounts[accIdx], false))
 		accounts[accIdx].Eligibility = &elig
 	}

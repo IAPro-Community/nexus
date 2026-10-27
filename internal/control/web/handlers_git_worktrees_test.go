@@ -60,7 +60,11 @@ func TestListProjectGitWorktreesReadsLinkedCheckouts(t *testing.T) {
 	if len(worktrees) != 2 || !worktrees[0].IsPrimary || worktrees[1].IsPrimary {
 		t.Fatalf("unexpected worktree list: %+v", worktrees)
 	}
-	if worktrees[1].Branch != "feature/parallel" || worktrees[1].Path != linked {
+	expectedLinked := linked
+	if resolved, err := filepath.EvalSymlinks(linked); err == nil {
+		expectedLinked = resolved
+	}
+	if worktrees[1].Branch != "feature/parallel" || worktrees[1].Path != expectedLinked {
 		t.Fatalf("linked worktree metadata mismatch: %+v", worktrees[1])
 	}
 }

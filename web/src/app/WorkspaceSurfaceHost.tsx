@@ -20,6 +20,7 @@ import type {
 } from '../types';
 import type { WorkspaceSurface } from '../workspace/model';
 import { useTranslation } from 'react-i18next';
+import { providerProfileLabel } from '../features/usage/loginCommand';
 import {
   agentConfigSurface,
   agentTerminalSurface,
@@ -478,11 +479,20 @@ export const WorkspaceSurfaceHost: React.FC<{
               projectShellSurface(
                 project.id,
                 result.runtime.runtime_id,
-                `${login ? 'Login' : 'Provider'} · ${provider}:${profile}`,
+                `${login ? 'Login' : 'Provider'} · ${providerProfileLabel(provider, profile)}`,
               ),
             );
+            // The login dialog already showed the command; repeating it here
+            // duplicated the same instruction twice in a row. The command is
+            // in the clipboard, so the toast only confirms the handoff.
             toast.info(
-              `Execute ${command} no terminal. Copie o comando manualmente se necessário.`,
+              login
+                ? t('surfaces.loginTerminalReady', {
+                    provider,
+                    defaultValue:
+                      'Terminal aberto para o login de {{provider}}. O comando está no seu clipboard.',
+                  })
+                : `Execute ${command} no terminal. Copie o comando manualmente se necessário.`,
             );
           })
           .catch((err) => {

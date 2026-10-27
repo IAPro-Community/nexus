@@ -105,6 +105,26 @@
   color: var(--nx-muted);
 }
 
+.cliDetails {
+  border-top: 1px solid var(--nx-border);
+  padding-top: 10px;
+}
+
+.cliSummary {
+  cursor: pointer;
+  color: var(--nx-muted);
+  font-size: 12px;
+  user-select: none;
+}
+
+.cliSummary:hover {
+  color: var(--nx-text);
+}
+
+.cliDetails[open] .cliSummary {
+  margin-bottom: 8px;
+}
+
 .cliOption {
   display: grid;
   gap: 8px;

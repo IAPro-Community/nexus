@@ -88,8 +88,21 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
     setSubmitting(true);
     setError('');
     try {
-      await nexus.registerProvider(selectedProvider, cleanProfile);
-      toast.success(t('usage.registerSuccess', 'Perfil registrado com sucesso!'));
+      const result = await nexus.registerProvider(selectedProvider, cleanProfile);
+      const linkedFromHost = result.auth_source?.origin === 'host';
+      if (linkedFromHost) {
+        toast.success(t('usage.registerSuccess', 'Perfil registrado com sucesso!'), {
+          description: t('usage.registerLinkedFromHost', {
+            provider: selectedProvider,
+            plan: result.auth_source?.plan || '',
+            defaultValue:
+              'Vinculamos o login de {{provider}} já existente neste computador ({{plan}}). Nada foi digitado e a conta atual continua a mesma.',
+          }),
+          duration: 9000,
+        });
+      } else {
+        toast.success(t('usage.registerSuccess', 'Perfil registrado com sucesso!'));
+      }
       onClose();
       try {
         await onRegistered(selectedProvider, cleanProfile);

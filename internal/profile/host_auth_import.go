@@ -117,7 +117,14 @@ func importHostSession(
 		created = true
 	}
 
-	imported, err := importer.ImportHostAuth(providerCtx, target)
+	// Create may already have adopted a host Codex login. Treat that as the
+	// import result instead of asking the adapter to copy over the credential
+	// it just adopted.
+	imported := created && authProvider.InspectAuth(providerCtx, target).Authenticated
+	var err error
+	if !imported {
+		imported, err = importer.ImportHostAuth(providerCtx, target)
+	}
 	if errors.Is(err, authcopy.ErrDestinationExists) && !created {
 		// Keep an existing invalid/pending profile intact. A separate profile
 		// lets a valid host session be imported without replacing its credentials.

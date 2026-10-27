@@ -1,6 +1,7 @@
 package profile
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/runtime"
 )
@@ -92,6 +94,10 @@ func Create(provider, name string) (model.Profile, error) {
 			return p, err
 		}
 	}
+	// A profile born without a credential adopts the host CLI login once, so
+	// the first run does not end in an unexplained "awaiting authentication"
+	// state. Quota probes still validate the account identity per profile.
+	_, _ = codex.AdoptHostAuth(context.Background(), p)
 	return p, nil
 }
 
@@ -166,6 +172,51 @@ func Rename(provider, oldName, newName string) error {
 	return nil
 }
 
+// recoverLegacyProfile rebuilds profile.json for a profile root that was left
+// without metadata, for example when the process stopped between creating the
+// isolated home and writing the profile. The directory only exists because a
+// profile was requested, so restoring its metadata is safer than hiding an
+// account from `profiles`, `usage` and every other listing.
+func recoverLegacyProfile(provider, name string) error {
+	root, err := config.ProfileRoot(provider, name)
+	if err != nil {
+		return err
+	}
+	info, err := os.Stat(root)
+	if err != nil || !info.IsDir() {
+		return fmt.Errorf("profile %s:%s has no profile root", provider, name)
+	}
+	// Only recover directories that already look like a profile root. An
+	// arbitrary directory must never become a profile by accident.
+	looksLikeProfile := false
+	for _, marker := range []string{"account-scope.json", "home"} {
+		if _, statErr := os.Stat(filepath.Join(root, marker)); statErr == nil {
+			looksLikeProfile = true
+			break
+		}
+	}
+	if !looksLikeProfile {
+		return fmt.Errorf("profile %s:%s is not a profile directory", provider, name)
+	}
+	p := model.Profile{Provider: provider, Name: name, CreatedAt: info.ModTime()}
+	if scope, scopeErr := AccountScope(provider, name, ""); scopeErr == nil {
+		p.AccountScope = scope
+	}
+	b, err := json.MarshalIndent(p, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(root, "profile.json"), append(b, '\n'), 0600); err != nil {
+		return err
+	}
+	// A recovered root is a profile that never finished being created, so it has
+	// no credential of its own. Adopt the host CLI login exactly like Create
+	// does, recording provenance, instead of surfacing an account that can never
+	// report quota.
+	_, _ = codex.AdoptHostAuth(context.Background(), p)
+	return nil
+}
+
 func List() ([]model.Profile, error) {
 	data, err := config.DataDir()
 	if err != nil {
@@ -191,7 +242,13 @@ func List() ([]model.Profile, error) {
 			}
 			raw, err := os.ReadFile(filepath.Join(base, provider, e.Name(), "profile.json"))
 			if err != nil {
-				continue
+				if repairErr := recoverLegacyProfile(provider, e.Name()); repairErr != nil {
+					continue
+				}
+				raw, err = os.ReadFile(filepath.Join(base, provider, e.Name(), "profile.json"))
+				if err != nil {
+					continue
+				}
 			}
 			var p model.Profile
 			if json.Unmarshal(raw, &p) == nil {

@@ -1,6 +1,7 @@
 package profile
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -70,5 +71,109 @@ func TestCursorProfilesAreSupported(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("cursor profile missing from List: %#v", profiles)
+	}
+}
+
+func TestListRecoversProfileRootWithoutMetadata(t *testing.T) {
+	data := t.TempDir()
+	cfg := t.TempDir()
+	t.Setenv("AI_CLI_DATA_DIR", data)
+	t.Setenv("AI_CLI_CONFIG_DIR", cfg)
+
+	// A profile root created before profile.json was written (interrupted
+	// creation, legacy `use` command) must not hide the account from listings.
+	root := filepath.Join(data, "profiles", "codex", "work")
+	if err := os.MkdirAll(filepath.Join(root, "home"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "account-scope.json"), []byte("{\"provider_id\":\"codex\"}\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	ps, err := List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ps) != 1 || ps[0].Provider != "codex" || ps[0].Name != "work" {
+		t.Fatalf("recovered profiles = %+v, want codex:work", ps)
+	}
+	if !Exists("codex", "work") {
+		t.Fatal("recovered profile must be visible to Exists after List")
+	}
+}
+
+func TestListIgnoresUnrelatedDirectories(t *testing.T) {
+	data := t.TempDir()
+	cfg := t.TempDir()
+	t.Setenv("AI_CLI_DATA_DIR", data)
+	t.Setenv("AI_CLI_CONFIG_DIR", cfg)
+
+	root := filepath.Join(data, "profiles", "codex", "not-a-profile")
+	if err := os.MkdirAll(root, 0700); err != nil {
+		t.Fatal(err)
+	}
+	ps, err := List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ps) != 0 {
+		t.Fatalf("profiles = %+v, want none", ps)
+	}
+	if _, err := os.Stat(filepath.Join(root, "profile.json")); !os.IsNotExist(err) {
+		t.Fatal("unrelated directory must not gain a profile.json")
+	}
+}
+
+func TestEnsureHostCredentialRespectsExplicitLogout(t *testing.T) {
+	data := t.TempDir()
+	cfg := t.TempDir()
+	t.Setenv("AI_CLI_DATA_DIR", data)
+	t.Setenv("AI_CLI_CONFIG_DIR", cfg)
+
+	root := filepath.Join(data, "profiles", "codex", "work")
+	if err := os.MkdirAll(filepath.Join(root, "home"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "profile.json"), []byte("{\"provider\":\"codex\",\"name\":\"work\"}\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := SuppressHostAuthLink("codex", "work"); err != nil {
+		t.Fatal(err)
+	}
+	if _, linked := EnsureHostCredential("codex", "work"); linked {
+		t.Fatal("explicit logout must keep automatic host linking off")
+	}
+	if _, err := os.Stat(filepath.Join(root, "home", "auth.json")); !os.IsNotExist(err) {
+		t.Fatal("no credential must be written after explicit logout")
+	}
+}
+
+func TestEnsureHostCredentialNeverOverwritesExistingCredential(t *testing.T) {
+	data := t.TempDir()
+	cfg := t.TempDir()
+	t.Setenv("AI_CLI_DATA_DIR", data)
+	t.Setenv("AI_CLI_CONFIG_DIR", cfg)
+
+	root := filepath.Join(data, "profiles", "codex", "work")
+	home := filepath.Join(root, "home")
+	if err := os.MkdirAll(home, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "profile.json"), []byte("{\"provider\":\"codex\",\"name\":\"work\"}\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	original := []byte(`{"auth_mode":"apikey","tokens":{}}`)
+	if err := os.WriteFile(filepath.Join(home, "auth.json"), original, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, linked := EnsureHostCredential("codex", "work"); linked {
+		t.Fatal("a profile with its own credential must not be linked")
+	}
+	got, err := os.ReadFile(filepath.Join(home, "auth.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(original) {
+		t.Fatalf("credential overwritten: %q", got)
 	}
 }

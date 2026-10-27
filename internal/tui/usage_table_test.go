@@ -656,8 +656,16 @@ func TestBuildUsageRowsCarriesSourceAndRawStatus(t *testing.T) {
 
 func TestBuildUsageRowsWithoutGroupsIsSemDados(t *testing.T) {
 	qv := quota.QuotaView{Provider: "codex", Profile: "novo", Status: string(model.UsageUnknown), Source: string(model.SourceNone)}
-	rows := buildUsageRows("codex", "novo", qv, model.AccountInfo{}, nil)
+	rows := buildUsageRows("codex", "novo", qv, model.AccountInfo{Authenticated: true}, nil)
 	if len(rows) != 1 || rows[0].Status != "SEM DADOS" {
+		t.Fatalf("rows=%#v", rows)
+	}
+}
+
+func TestBuildUsageRowsWithoutLoginIsSemLogin(t *testing.T) {
+	qv := quota.QuotaView{Provider: "codex", Profile: "novo", Status: string(model.UsageUnknown), Source: string(model.SourceNone)}
+	rows := buildUsageRows("codex", "novo", qv, model.AccountInfo{Authenticated: false}, nil)
+	if len(rows) != 1 || rows[0].Status != "SEM LOGIN" {
 		t.Fatalf("rows=%#v", rows)
 	}
 }

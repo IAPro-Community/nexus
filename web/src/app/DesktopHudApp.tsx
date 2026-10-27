@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ThemeProvider } from '../design-system';
+import { toast } from 'sonner';
 import { initSession } from '../api';
+import { nexus } from '../nexus/api';
 import { NexusHud } from '../features/hud/NexusHud';
 import type { HudRuntimeAttention } from '../features/hud/hudModel';
 import type { MascotAttention } from '../features/hud/mascotModel';
@@ -113,6 +115,17 @@ export const DesktopHudApp: React.FC = () => {
       .finally(() => setAutoStartPending(false));
   };
 
+  const openNewAgent = () => {
+    void nexus.requestDesktopCommand('new-agent').catch(() => {
+      toast.info(
+        t(
+          'hud.desktopUnavailable',
+          'Abra o aplicativo Nexus para criar um agente a partir do HUD.',
+        ),
+      );
+    });
+  };
+
   const openNexus = () => {
     void (async () => {
       const bridge = getPlatformBridge();
@@ -159,6 +172,7 @@ export const DesktopHudApp: React.FC = () => {
             onOpenNexus={openNexus}
             onOpenRuntime={openRuntimeAttention}
             onOpenMascotAttention={openMascotAttention}
+            onOpenNewAgent={openNewAgent}
             nativeAutoStart={{
               supported: autoStartSupported,
               enabled: autoStartEnabled,

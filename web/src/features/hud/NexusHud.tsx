@@ -8,6 +8,7 @@ import {
   Clock3,
   ExternalLink,
   GripHorizontal,
+  Plus,
   RefreshCw,
   Settings2,
   ShieldAlert,
@@ -68,6 +69,7 @@ export interface NexusHudProps {
   onOpenRuntime?: (attention: import('./hudModel').HudRuntimeAttention) => void;
   onOpenUsage?: () => void;
   onOpenAgents?: () => void;
+  onOpenNewAgent?: () => void;
   onOpenMissions?: () => void;
   onOpenMascotAttention?: (item: MascotAttention) => void;
   onOpenSettings?: () => void;
@@ -106,6 +108,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   onOpenRuntime,
   onOpenUsage,
   onOpenAgents,
+  onOpenNewAgent,
   onOpenMissions,
   onOpenMascotAttention,
   onOpenSettings,
@@ -1079,9 +1082,14 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               />
             )}
             <div className={styles.footerActions}>
+              {onOpenNewAgent && (
+                <button type="button" onClick={onOpenNewAgent}>
+                  <Plus size={13} /> {t('hud.newAgent', 'Novo agente')}
+                </button>
+              )}
               {(onOpenUsage || onOpenNexus) && (
                 <button type="button" onClick={onOpenUsage || onOpenNexus}>
-                  Abrir Nexus <ExternalLink size={13} />
+                  {t('hud.openNexus', 'Abrir Nexus')} <ExternalLink size={13} />
                 </button>
               )}
               {native && nativeAutoStart?.supported && (

@@ -206,6 +206,15 @@ export interface ProviderAccount {
     account_id?: string;
     identity_version?: string;
   };
+  /** Provenance of the profile credential, when it was adopted from the host CLI. */
+  auth_source?: {
+    origin?: string;
+    linked_at?: string;
+    account_id_hash?: string;
+    plan?: string;
+  };
+  /** Set when the profile credential diverges from the host login account. */
+  account_warning?: string;
   avail_reasons?: {
     exhausted_windows?: string[];
     rate_limited?: boolean;

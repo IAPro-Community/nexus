@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	coreprovider "github.com/IAPro-Community/nexus/internal/core/provider"
 	"github.com/IAPro-Community/nexus/internal/core/provider/authcopy"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 )
 
 type fakeHostSessionProvider struct {
@@ -222,6 +224,14 @@ func TestImportHostSessionsComposesInstalledAdapterWithHostCredential(t *testing
 	if err := os.WriteFile(codexCLI, []byte("#!/bin/sh\nprintf 'codex 0.1.0\\n'\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
+	previousBinaryLookPath := spec.BinaryLookPath
+	spec.BinaryLookPath = func(name string) (string, error) {
+		if name == "codex" {
+			return codexCLI, nil
+		}
+		return "", errors.New("fixture provider is not installed")
+	}
+	t.Cleanup(func() { spec.BinaryLookPath = previousBinaryLookPath })
 	payload, err := json.Marshal(map[string]any{
 		"email":                       "fixture@example.test",
 		"https://api.openai.com/auth": map[string]string{"chatgpt_account_id": "fixture-account"},

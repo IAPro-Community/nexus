@@ -58,6 +58,7 @@ func registerNexusRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/resources/refresh", s.authMiddleware(h.handleResourcesRefresh))
 	mux.HandleFunc("/api/v1/resources/select", s.authMiddleware(h.handleResourceSelect))
 	mux.HandleFunc("/api/v1/resources/recommend", s.authMiddleware(h.handleResourceRecommend))
+	mux.HandleFunc("/api/v1/desktop/commands", s.authMiddleware(h.handleDesktopCommand))
 }
 
 func registerMaestroRoutes(mux *http.ServeMux, deps routeDependencies) {

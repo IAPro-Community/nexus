@@ -476,7 +476,22 @@ func (h *APIHandler) handleProviders(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		writeJSON(w, http.StatusCreated, map[string]any{"profile": created, "state": coreprovider.PendingAuth})
+		// A profile may inherit the host CLI login at creation time. Report the
+		// real state instead of assuming authentication is pending, so the first
+		// run can explain where the credential came from.
+		state := coreprovider.PendingAuth
+		var authSource *model.AuthSource
+		if src, ok := profile.AuthSource(req.Provider, req.Profile); ok {
+			authSource = &src
+			if info := profile.GetAccountInfo(req.Provider, req.Profile); info.Authenticated {
+				state = coreprovider.RegisteredAuthenticated
+			}
+		}
+		writeJSON(w, http.StatusCreated, map[string]any{
+			"profile":     created,
+			"state":       state,
+			"auth_source": authSource,
+		})
 		return
 	}
 	if r.Method != http.MethodGet {
@@ -693,6 +708,10 @@ func (h *APIHandler) handleProfileLogout(w http.ResponseWriter, r *http.Request)
 		_ = os.Remove(filepath.Join(home, "auth.json"))
 		_ = os.Remove(filepath.Join(home, "."+prov, "auth.json"))
 	}
+	_ = profile.ClearAuthSource(prov, name)
+	// Do not let the next quota read silently re-adopt the host login that the
+	// user just disconnected from this profile.
+	_ = profile.SuppressHostAuthLink(prov, name)
 	_ = profile.RefreshUsageSnapshot(prov, name)
 	writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "logged_out": true})
 }

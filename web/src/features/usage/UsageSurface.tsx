@@ -10,6 +10,7 @@ import {
   Search,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { Button, EmptyState, SearchInput, Spinner } from '../../design-system';
 import { nexus } from '../../nexus/api';
 import type {
@@ -133,6 +134,46 @@ export const UsageSurface: React.FC<{
     }
   }, []);
 
+  // Announce, once per profile, that the credential came from the host CLI
+  // login. The link is a convenience, not a silent account switch.
+  const announceLinkedAccounts = useCallback(
+    (items: ProviderAccount[]) => {
+      const storageKey = 'nexus.usage.linkedAccounts';
+      let acknowledged: string[] = [];
+      try {
+        const raw = window.localStorage.getItem(storageKey);
+        acknowledged = raw ? (JSON.parse(raw) as string[]) : [];
+      } catch {
+        acknowledged = [];
+      }
+      const known = new Set(acknowledged);
+      let changed = false;
+      for (const account of items) {
+        if (account.auth_source?.origin !== 'host') continue;
+        const key = `${account.provider}:${account.profile}`;
+        if (known.has(key)) continue;
+        known.add(key);
+        changed = true;
+        toast.info(t('usage.linkedFromHostTitle', 'Conta vinculada do terminal'), {
+          description: t('usage.linkedFromHostDescription', {
+            provider: account.provider,
+            plan: account.auth_source?.plan || '',
+            defaultValue:
+              'Usamos o login de {{provider}} já existente no seu computador ({{plan}}). Troque de conta em Uso/Contas quando quiser.',
+          }),
+        });
+      }
+      if (changed) {
+        try {
+          window.localStorage.setItem(storageKey, JSON.stringify([...known]));
+        } catch {
+          /* storage unavailable: the badge still explains the state */
+        }
+      }
+    },
+    [t],
+  );
+
   const applyPayload = useCallback(
     (
       data: { accounts?: ProviderAccount[]; policy?: string },
@@ -141,6 +182,7 @@ export const UsageSurface: React.FC<{
       const nextAccounts = asArray<ProviderAccount>(data.accounts);
       const nextPolicy = data.policy || 'BALANCED';
       setAccounts(nextAccounts);
+      announceLinkedAccounts(nextAccounts);
       setPolicy(nextPolicy);
       setLoadedAt(Date.now());
       setNow(Date.now());
@@ -148,7 +190,7 @@ export const UsageSurface: React.FC<{
         void loadRecommend(nextPolicy);
       }
     },
-    [loadRecommend],
+    [loadRecommend, announceLinkedAccounts],
   );
 
   const load = useCallback(async () => {

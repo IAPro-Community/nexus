@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/IAPro-Community/nexus/internal/desktopcmd"
 	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/IAPro-Community/nexus/internal/profile"
 )
@@ -142,4 +143,35 @@ func (h *NexusHandler) handleResourceRecommend(w http.ResponseWriter, r *http.Re
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
+}
+
+// handleDesktopCommand POST /api/v1/desktop/commands
+//
+// Lets another local surface (the HUD) ask the Desktop window to open a
+// specific flow. The command is delivered in-process to the Desktop app; when
+// no Desktop window is attached the request fails instead of being queued.
+func (h *NexusHandler) handleDesktopCommand(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	var req struct {
+		Action string `json:"action"`
+	}
+	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<16)).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid body")
+		return
+	}
+	action := strings.TrimSpace(req.Action)
+	switch action {
+	case desktopcmd.ActionNewAgent:
+	default:
+		writeError(w, http.StatusBadRequest, "unknown desktop action")
+		return
+	}
+	if !desktopcmd.Dispatch(action) {
+		writeError(w, http.StatusConflict, "desktop window unavailable")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "dispatched", "action": action})
 }

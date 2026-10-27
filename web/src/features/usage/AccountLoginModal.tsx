@@ -7,6 +7,7 @@ import { providerLoginCommand } from '../../lib/providerLoginCommand';
 import { nexus } from '../../nexus/api';
 import type { ProviderAccount } from '../../types';
 import { isProviderLoginVerified } from './providerLoginVerification';
+import { providerProfileLabel } from './loginCommand';
 import styles from './AccountLoginModal.module.scss';
 
 export interface AccountLoginModalProps {
@@ -106,7 +107,9 @@ export const AccountLoginModal: React.FC<AccountLoginModalProps> = ({
         profile,
         defaultValue: `Configuração de Provedor · opencode (${profile})`,
       })
-    : t('usage.loginDialogTitle', { provider: `${provider} (${profile})` });
+    : t('usage.loginDialogTitle', {
+        provider: providerProfileLabel(provider, profile),
+      });
 
   const dialogSubtitle = isOpencode
     ? t(
@@ -216,20 +219,28 @@ export const AccountLoginModal: React.FC<AccountLoginModalProps> = ({
             </div>
           )}
 
-          <div className={styles.cliOption}>
-            <span className={styles.cliLabel}>
-              {isOpencode
-                ? t('usage.opencodeCliAction', 'Comando para gerenciar provedores no seu terminal:')
-                : t('usage.loginCliAction')}
-            </span>
-            <div className={styles.cliCommand}>
-              <code>{cliCommand}</code>
-              <Button size="sm" onClick={() => void copyCommand()}>
-                {copied ? <Check size={13} /> : <Copy size={13} />}
-                {copied ? t('common.copied', 'Copiado') : t('common.copy', 'Copiar')}
-              </Button>
+          <details className={styles.cliDetails} open={!onStartTerminalLogin}>
+            <summary className={styles.cliSummary}>
+              {t('usage.loginCliAlternative', 'Prefere colar um comando no terminal?')}
+            </summary>
+            <div className={styles.cliOption}>
+              <span className={styles.cliLabel}>
+                {isOpencode
+                  ? t(
+                      'usage.opencodeCliAction',
+                      'Comando para gerenciar provedores no seu terminal:',
+                    )
+                  : t('usage.loginCliAction')}
+              </span>
+              <div className={styles.cliCommand}>
+                <code>{cliCommand}</code>
+                <Button size="sm" onClick={() => void copyCommand()}>
+                  {copied ? <Check size={13} /> : <Copy size={13} />}
+                  {copied ? t('common.copied', 'Copiado') : t('common.copy', 'Copiar')}
+                </Button>
+              </div>
             </div>
-          </div>
+          </details>
         </div>
 
         <div className={styles.footerActions}>

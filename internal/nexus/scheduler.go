@@ -30,6 +30,8 @@ type ProviderAccount struct {
 	CooldownUntil    *time.Time                   `json:"cooldown_until,omitempty"`
 	Health           string                       `json:"health"` // "healthy" | "degraded" | "unhealthy" | "unknown"
 	Scope            model.AccountScope           `json:"account_scope,omitempty"`
+	AuthSource       *model.AuthSource            `json:"auth_source,omitempty"`
+	AccountWarning   string                       `json:"account_warning,omitempty"`
 	LastChecked      time.Time                    `json:"last_checked"`
 }
 

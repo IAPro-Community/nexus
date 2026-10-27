@@ -31,6 +31,7 @@ import { serializeWorkspace } from '../workspace/state';
 import { ProjectRail } from '../features/projects/ProjectRail';
 import { ProjectHub } from '../features/projects/ProjectHub';
 import { NexusHud } from '../features/hud/NexusHud';
+import { subscribeDesktopCommand } from '../platform/desktopEvents';
 import type { NexusCommand } from './commands/registry';
 import type { DirectSessionRequest } from '../features/work/DirectSessionLauncher';
 import { NexusShell } from './NexusShell';
@@ -420,6 +421,16 @@ const WorkspaceCoordinator: React.FC<{
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [maestroControlOpen, setMaestroControlOpen] = useState(false);
   const [newAgentOpen, setNewAgentOpen] = useState(false);
+
+  // The HUD (another window, possibly another process) asks the Core to open
+  // the new agent flow; the native shell relays it here as a desktop command.
+  useEffect(
+    () =>
+      subscribeDesktopCommand((action) => {
+        if (action === 'new-agent') setNewAgentOpen(true);
+      }),
+    [],
+  );
   const [directSession, setDirectSession] = useState<DirectSessionRequest | null>(null);
   const [tour, setTour] = useState(false);
   const [shellError, setShellError] = useState('');
@@ -1506,6 +1517,7 @@ const WorkspaceCoordinator: React.FC<{
         projectId={project.id}
         onOpenUsage={() => openKind('resources')}
         onOpenAgents={() => openKind('agents')}
+        onOpenNewAgent={() => setNewAgentOpen(true)}
         onOpenMissions={COMPOSER_FLOW_ENABLED ? () => openKind('missions') : undefined}
         onOpenSettings={() => {
           setSettingsInitialTab('hud');

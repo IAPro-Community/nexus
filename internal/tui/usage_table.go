@@ -369,9 +369,15 @@ func BuildUsageRowsForTest(provider, profileName string, qv quota.QuotaView, acc
 func buildUsageRows(provider, profileName string, qv quota.QuotaView, acc model.AccountInfo, defaults map[string]string) []UsageTableRow {
 	isDefault := defaults[provider] == profileName
 	if len(qv.ModelGroups) == 0 {
+		status := "SEM DADOS"
+		if !acc.Authenticated {
+			// Distinguish "not logged in yet" from "logged in but the provider
+			// returned no quota": the first has an actionable next step.
+			status = "SEM LOGIN"
+		}
 		return []UsageTableRow{{
 			Provider: provider, Profile: profileName, Account: acc.Email, Plan: acc.Plan,
-			FiveHour: "—", Weekly: "—", Status: "SEM DADOS", ModelName: "—",
+			FiveHour: "—", Weekly: "—", Status: status, ModelName: "—",
 			Source: qv.Source, SnapshotStatus: qv.Status, FetchedAt: qv.FetchedAt,
 			IsDefault: isDefault,
 		}}
@@ -399,6 +405,15 @@ func buildUsageRows(provider, profileName string, qv quota.QuotaView, acc model.
 			LastUpdated: lastUpdated, Source: qv.Source, SnapshotStatus: qv.Status,
 			FetchedAt: qv.FetchedAt, IsDefault: isDefault,
 		})
+	}
+	if !acc.Authenticated {
+		// A profile without a credential cannot have a quota window; label it
+		// with the actionable cause instead of the generic "no data" status.
+		for i := range rows {
+			if rows[i].Status == "SEM DADOS" {
+				rows[i].Status = "SEM LOGIN"
+			}
+		}
 	}
 	return rows
 }
@@ -613,7 +628,7 @@ func RunUnifiedUsage(opts UnifiedUsageOptions) (*SelectionResult, error) {
 				}
 			}
 		}
-		printUsageTable(opts.Rows)
+		printUsageTable(opts.Rows, opts.UnconfiguredCLIs)
 		return nil, nil
 	}
 	p := tea.NewProgram(newUnifiedUsageModel(opts), tea.WithAltScreen())
@@ -648,7 +663,11 @@ func RunUsageTable(rows []UsageTableRow) (*UsageTableRow, error) {
 	return nil, nil
 }
 
-func printUsageTable(rows []UsageTableRow) {
+// printUsageTable renders the non-interactive quota table. Installed CLIs
+// without a profile are listed as informational rows so the output still
+// answers "what is installed on this machine?" when no account is configured;
+// previously the table stopped after the header, which looked like a failure.
+func printUsageTable(rows []UsageTableRow, unconfigured []InstalledProviderInfo) {
 	// Quota cells carry a bar, a percentage and a reset time, so their columns are
 	// wider than the identity ones; narrower widths would misalign every row.
 	const layout = "%-10s %-20s %-20s %-14s %-30s %-30s %-10s\n"
@@ -664,6 +683,44 @@ func printUsageTable(rows []UsageTableRow) {
 			truncateMiddle(row.Weekly, 30),
 			row.Status,
 		)
+	}
+	configured := len(rows)
+	for _, cli := range unconfigured {
+		if !cli.Installed {
+			continue
+		}
+		version := cli.Version
+		if version == "" {
+			version = "instalado"
+		}
+		fmt.Printf(layout,
+			cli.ID,
+			"(sem perfil)",
+			truncateMiddle(cli.Name+" · "+version, 20),
+			"—",
+			"—",
+			"—",
+			"OFF",
+		)
+	}
+	if configured == 0 {
+		fmt.Println()
+		if len(rows) == 0 && len(unconfigured) == 0 {
+			fmt.Println("Nenhum provedor instalado ou perfil configurado ainda.")
+		} else {
+			fmt.Println("Nenhum perfil configurado. Rode `nexus providers register <provedor>` para registrar uma conta e liberar as cotas.")
+		}
+	}
+	needsLogin := false
+	for _, row := range rows {
+		if row.Status == "SEM LOGIN" {
+			needsLogin = true
+			break
+		}
+	}
+	if needsLogin {
+		fmt.Println()
+		fmt.Println("Perfis sem login não mostram cotas. Rode `nexus login <provedor> [perfil]` para autenticar.")
 	}
 }
 

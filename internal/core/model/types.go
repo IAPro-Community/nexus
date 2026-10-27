@@ -156,6 +156,18 @@ type Profile struct {
 	Labels       []string     `json:"labels,omitempty"`
 }
 
+// AuthSource records how a profile obtained its provider credential. It never
+// carries the credential itself, only provenance that the UI can explain.
+type AuthSource struct {
+	Origin        string    `json:"origin"`
+	LinkedAt      time.Time `json:"linked_at"`
+	AccountIDHash string    `json:"account_id_hash,omitempty"`
+	Plan          string    `json:"plan,omitempty"`
+}
+
+// AuthSourceOriginHost marks a credential adopted from the host CLI login.
+const AuthSourceOriginHost = "host"
+
 // AccountInfo summarizes identity and status information for a profile.
 type AccountInfo struct {
 	AccountScope      AccountScope   `json:"account_scope,omitempty"`

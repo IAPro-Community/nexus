@@ -6,6 +6,7 @@ import {
   Clock,
   HelpCircle,
   KeyRound,
+  Link2,
   LogOut,
   MoreVertical,
   Plus,
@@ -104,6 +105,11 @@ export const UsageAccountCard: React.FC<UsageAccountCardProps> = ({
     .slice(0, 5);
 
   const planKey = displayLabelKey(qv?.plan);
+  const linkedFromHost = account.auth_source?.origin === 'host';
+  const linkedFromHostHint = t(
+    'usage.linkedFromHostHint',
+    'Esta conta usa o login do terminal (Codex CLI) já autenticado neste computador.',
+  );
   const age = relativeAge(qv?.fetched_at, now);
   const statusLabel = translateStatus(qv?.status || 'UNKNOWN');
   const freshness = age
@@ -229,6 +235,14 @@ export const UsageAccountCard: React.FC<UsageAccountCardProps> = ({
                             ? t('resources.stale')
                             : t('resources.unknown')}
                 </Badge>
+                {linkedFromHost ? (
+                  <span className={styles.linkedBadge} title={linkedFromHostHint}>
+                    <Badge tone="info">
+                      <Link2 size={10} className={styles.badgeIcon} />
+                      {t('usage.linkedFromHost', 'conta do terminal')}
+                    </Badge>
+                  </span>
+                ) : null}
               </div>
 
               <div className={styles.metaRow}>
@@ -244,6 +258,16 @@ export const UsageAccountCard: React.FC<UsageAccountCardProps> = ({
                   </small>
                 ) : null}
               </div>
+
+              {account.account_warning === 'host_account_changed' ? (
+                <p className={styles.accountWarning} role="status">
+                  <ShieldAlert size={12} aria-hidden="true" />
+                  {t(
+                    'usage.hostAccountChanged',
+                    'O login do terminal mudou de conta. Este perfil continua usando a conta vinculada; refaça o vínculo em Uso/Contas se quiser trocar.',
+                  )}
+                </p>
+              ) : null}
             </div>
           </div>
 

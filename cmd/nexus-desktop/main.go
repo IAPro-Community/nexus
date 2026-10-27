@@ -8,6 +8,7 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/app"
 	"github.com/IAPro-Community/nexus/internal/desktop"
+	"github.com/IAPro-Community/nexus/internal/desktopcmd"
 	"github.com/IAPro-Community/nexus/internal/hudlink"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -101,6 +102,19 @@ func main() {
 		ZoomControlEnabled:         true,
 	})
 	desktop.ConfigureNativeTray(native, window, "IAPro Nexus")
+
+	// Another local surface (the HUD) can ask this window to open a flow. The
+	// request arrives through the Core API and is delivered in-process here.
+	desktopcmd.SetHandler(func(action string) bool {
+		if window == nil {
+			return false
+		}
+		window.Show()
+		window.Focus()
+		native.Event.Emit(desktopcmd.EventName, map[string]any{"action": action})
+		return true
+	})
+	defer desktopcmd.SetHandler(nil)
 
 	if err := native.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Wails v3 application error: %v\n", err)

@@ -70,7 +70,16 @@ export { NexusRequestError as NexusAPIError } from '../api';
 export const nexus = {
   listProviderInstallations: () => request<ProviderInfo[]>('/api/v1/providers'),
   registerProvider: (provider: string, profile?: string) =>
-    request<{ profile: RegisteredProfile; state: string }>('/api/v1/providers', {
+    request<{
+      profile: RegisteredProfile;
+      state: string;
+      auth_source?: {
+        origin?: string;
+        linked_at?: string;
+        account_id_hash?: string;
+        plan?: string;
+      } | null;
+    }>('/api/v1/providers', {
       method: 'POST',
       body: JSON.stringify({ provider, profile }),
     }),
@@ -78,6 +87,11 @@ export const nexus = {
     request<{ results: HostSessionImportResult[] }>('/api/v1/profiles/import-host-sessions', {
       method: 'POST',
       body: '{}',
+    }),
+  requestDesktopCommand: (action: string) =>
+    request<{ status: string; action: string }>('/api/v1/desktop/commands', {
+      method: 'POST',
+      body: JSON.stringify({ action }),
     }),
   listProjects: () => request<Project[]>('/api/v1/projects'),
   listProjectSummaries: () =>

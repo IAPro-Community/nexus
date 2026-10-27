@@ -329,6 +329,9 @@ export const NewAgentModal: React.FC<{
     }
   };
 
+  const selectedPresentation = selectedType ? localizedPresentationFor(selectedType) : null;
+  const SelectedIcon = selectedPresentation?.icon ?? Bot;
+
   return (
     <Dialog open={open} onClose={onClose} title={t('agents.newSpecialistAgent')} wide>
       <div className={styles.modalBody}>
@@ -365,182 +368,229 @@ export const NewAgentModal: React.FC<{
           )}
         </div>
 
-        <div className={styles.fieldGroup}>
-          <label className={styles.sectionLabel}>{t('agents.displayNameField')}</label>
-          <Input value={name} onChange={setName} placeholder={t('agents.namePlaceholder')} />
-        </div>
+        <section className={styles.summaryCard} aria-labelledby="new-agent-summary-title">
+          <header className={styles.summaryHeader}>
+            <span className={styles.summaryIcon} aria-hidden="true">
+              {selectedPresentation ? <SelectedIcon size={16} /> : <Bot size={16} />}
+            </span>
+            <div className={styles.summaryHeading}>
+              <h3 id="new-agent-summary-title" className={styles.summaryTitle}>
+                {t('agents.summaryTitle', 'Resumo')}
+              </h3>
+              <p className={styles.summarySubtitle}>
+                {selectedPresentation?.description ??
+                  t('agents.summaryEmpty', 'Escolha uma especialidade para começar.')}
+              </p>
+            </div>
+          </header>
 
-        <div className={styles.fieldGroup}>
-          <label className={styles.sectionLabel}>{t('agents.executionOrigin')}</label>
-          <div className={styles.buttonRow}>
-            <button
-              type="button"
-              className="nx-button"
-              data-tone={origin === 'native' ? 'brand' : 'default'}
-              data-size="sm"
-              onClick={() => setOrigin('native')}
-            >
-              {t('agents.originNative')}
-            </button>
-            <button
-              type="button"
-              className="nx-button"
-              data-tone={origin === 'custom' ? 'brand' : 'default'}
-              data-size="sm"
-              onClick={() => setOrigin('custom')}
-            >
-              {t('agents.originCustom')}
-            </button>
+          <div className={styles.summaryGrid}>
+            <div className={styles.summaryField}>
+              <label className={styles.summaryFieldLabel} htmlFor="new-agent-name">
+                {t('agents.displayNameField')}
+              </label>
+              <Input
+                id="new-agent-name"
+                value={name}
+                onChange={setName}
+                placeholder={t('agents.namePlaceholder')}
+              />
+            </div>
+            <div className={styles.summaryField}>
+              <label className={styles.summaryFieldLabel} htmlFor="new-agent-provider">
+                {t('agents.providerAndAlias')}
+              </label>
+              <Select
+                id="new-agent-provider"
+                value={provider}
+                onChange={(val) => setProvider(val)}
+                options={NATIVE_PROVIDERS.map((p) => ({
+                  value: p.id,
+                  label: p.label,
+                }))}
+              />
+            </div>
           </div>
 
-          {origin === 'native' ? (
-            <div className={styles.fieldGroup}>
-              <label className={styles.fieldSublabel}>{t('agents.providerAndAlias')}</label>
-              <Select
-                value={provider}
-                onChange={(val) => setProvider(val)}
-                options={NATIVE_PROVIDERS.map((p) => ({
-                  value: p.id,
-                  label: p.label,
-                }))}
-              />
-            </div>
-          ) : (
-            <div className={styles.fieldGroup}>
-              <label className={styles.fieldSublabel}>
-                {t('agents.providerAndAlias', { defaultValue: 'Provider' })}
-              </label>
-              <Select
-                value={provider}
-                onChange={(val) => setProvider(val)}
-                options={NATIVE_PROVIDERS.map((p) => ({
-                  value: p.id,
-                  label: p.label,
-                }))}
-              />
-
-              <label className={styles.fieldSublabel}>
-                {t('agents.customTargetKind', { defaultValue: 'Execution target' })}
-              </label>
-              <Select
-                value={targetKind}
-                onChange={(val) => setTargetKind(val)}
-                options={CUSTOM_TARGET_KINDS.map((target) => ({
-                  value: target.id,
-                  label: target.label,
-                }))}
-              />
-
-              <label className={styles.fieldSublabel}>
-                {t('agents.targetWorkspace', {
-                  defaultValue: 'Workspace path inside target (optional)',
-                })}
-              </label>
-              <Input
-                value={targetWorkspace}
-                onChange={setTargetWorkspace}
-                data-mono="true"
-                placeholder="/workspace"
-              />
-              <small className={styles.hintText}>
-                {t('agents.targetWorkspaceHint', {
-                  defaultValue:
-                    'Use when the target sees the project at a different path. For VPN Dev Workspace on Windows use /workspace. {target_cwd} falls back to the Nexus project path when empty.',
-                })}
-              </small>
-
-              <label className={styles.fieldSublabel}>{t('agents.commandTemplateLabel')}</label>
-              <Input
-                value={commandTemplate}
-                onChange={setCommandTemplate}
-                data-mono="true"
-                placeholder='docker exec -it -w "{target_cwd}" vpn-dev-workspace-terminal-1 {provider} {args}'
-              />
-              <small className={styles.hintText}>
-                {t('agents.commandTemplateHint', {
-                  defaultValue:
-                    'Placeholders: {cwd}, {target_cwd}, {args}, {provider}, {profile}, {profile_home}. Nexus executes argv directly; shell operators remain blocked.',
-                })}
-              </small>
-
-              <label className={styles.fieldSublabel}>
-                {t('agents.targetProfileHome', {
-                  defaultValue: 'Shared target profile home (optional)',
-                })}
-              </label>
-              <Input
-                value={targetProfileHome}
-                onChange={setTargetProfileHome}
-                data-mono="true"
-                placeholder="/home/developer"
-              />
-              <small className={styles.hintText}>
-                {t('agents.targetProfileHomeHint', {
-                  defaultValue:
-                    'Set this only when Nexus and the custom target see the same provider-home files, such as a bind-mounted VPN workspace. This allows native Agent Projection to use that shared home.',
-                })}
-              </small>
-
-              <label className={styles.fieldSublabel}>
-                {t('agents.targetProbeTemplate', {
-                  defaultValue: 'Target version probe (optional)',
-                })}
-              </label>
-              <Input
-                value={targetProbeTemplate}
-                onChange={setTargetProbeTemplate}
-                data-mono="true"
-                placeholder="docker exec vpn-dev-workspace-terminal-1 {provider} {args}"
-              />
-              <small className={styles.hintText}>
-                {t('agents.targetProbeTemplateHint', {
-                  defaultValue:
-                    'Nexus invokes this safely with {args} = --version to detect the provider inside Docker/WSL/SSH before native Agent Projection. Avoid interactive flags such as docker -t.',
-                })}
-              </small>
-            </div>
-          )}
-        </div>
-
-        <div className={styles.fieldGroup}>
-          <label className={styles.sectionLabel}>{t('agents.operationalMode')}</label>
-          <div className={styles.buttonRow}>
-            {(['Safe', 'YOLO'] as const).map((candidateMode) => {
-              const disabled =
-                candidateMode === 'YOLO' && Boolean(selectedType?.read_only_by_default);
-              return (
+          <div className={styles.summaryRow}>
+            <div className={styles.summaryChoice}>
+              <span className={styles.summaryChoiceLabel}>{t('agents.executionOrigin')}</span>
+              <div
+                className={styles.buttonRow}
+                role="group"
+                aria-label={t('agents.executionOrigin')}
+              >
                 <button
-                  key={candidateMode}
                   type="button"
                   className="nx-button"
+                  data-tone={origin === 'native' ? 'brand' : 'default'}
                   data-size="sm"
-                  data-tone={
-                    mode === candidateMode
-                      ? candidateMode === 'YOLO'
-                        ? 'warning'
-                        : 'brand'
-                      : 'default'
-                  }
-                  disabled={disabled}
-                  onClick={() => setMode(candidateMode)}
+                  aria-pressed={origin === 'native'}
+                  onClick={() => setOrigin('native')}
                 >
-                  {candidateMode === 'YOLO' ? t('agents.modeYolo') : t('agents.modeSafe')}
+                  {t('agents.originNative')}
                 </button>
-              );
-            })}
+                <button
+                  type="button"
+                  className="nx-button"
+                  data-tone={origin === 'custom' ? 'brand' : 'default'}
+                  data-size="sm"
+                  aria-pressed={origin === 'custom'}
+                  onClick={() => setOrigin('custom')}
+                >
+                  {t('agents.originCustom')}
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.summaryChoice}>
+              <span className={styles.summaryChoiceLabel}>{t('agents.operationalMode')}</span>
+              <div
+                className={styles.buttonRow}
+                role="group"
+                aria-label={t('agents.operationalMode')}
+              >
+                {(['Safe', 'YOLO'] as const).map((candidateMode) => {
+                  const disabled =
+                    candidateMode === 'YOLO' && Boolean(selectedType?.read_only_by_default);
+                  return (
+                    <button
+                      key={candidateMode}
+                      type="button"
+                      className="nx-button"
+                      data-size="sm"
+                      data-tone={
+                        mode === candidateMode
+                          ? candidateMode === 'YOLO'
+                            ? 'warning'
+                            : 'brand'
+                          : 'default'
+                      }
+                      aria-pressed={mode === candidateMode}
+                      disabled={disabled}
+                      onClick={() => setMode(candidateMode)}
+                    >
+                      {candidateMode === 'YOLO' ? t('agents.modeYolo') : t('agents.modeSafe')}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
+
           {selectedType?.read_only_by_default && (
             <small className={styles.hintText}>{t('agents.agentModeReadOnlyHint')}</small>
           )}
-        </div>
 
-        <div className={styles.previewBox}>
-          <div className={styles.previewHeader}>
-            <Terminal size={12} />
-            <span>{t('agents.finalCommand')}</span>
+          <div className={styles.previewBox}>
+            <div className={styles.previewHeader}>
+              <Terminal size={12} />
+              <span>{t('agents.finalCommand')}</span>
+            </div>
+            <code className={styles.previewCode}>{resolvedPreview}</code>
           </div>
-          <code className={styles.previewCode}>{resolvedPreview}</code>
-        </div>
+        </section>
+
+        <details className={styles.advanced}>
+          <summary className={styles.advancedSummary}>
+            <span>{t('agents.advancedTitle', 'Avançado')}</span>
+            <small>
+              {t('agents.advancedHint', 'Destino personalizado, templates e ponte de perfil.')}
+            </small>
+          </summary>
+          <div className={styles.advancedBody}>
+            {origin === 'native' ? (
+              <p className={styles.hintText}>
+                {t(
+                  'agents.advancedNativeHint',
+                  'A execução nativa não precisa de ajustes. Escolha “Personalizado” para usar Docker, WSL, SSH ou um wrapper.',
+                )}
+              </p>
+            ) : (
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldSublabel}>
+                  {t('agents.customTargetKind', { defaultValue: 'Execution target' })}
+                </label>
+                <Select
+                  value={targetKind}
+                  onChange={(val) => setTargetKind(val)}
+                  options={CUSTOM_TARGET_KINDS.map((target) => ({
+                    value: target.id,
+                    label: target.label,
+                  }))}
+                />
+
+                <label className={styles.fieldSublabel}>
+                  {t('agents.targetWorkspace', {
+                    defaultValue: 'Workspace path inside target (optional)',
+                  })}
+                </label>
+                <Input
+                  value={targetWorkspace}
+                  onChange={setTargetWorkspace}
+                  data-mono="true"
+                  placeholder="/workspace"
+                />
+                <small className={styles.hintText}>
+                  {t('agents.targetWorkspaceHint', {
+                    defaultValue:
+                      'Use when the target sees the project at a different path. For VPN Dev Workspace on Windows use /workspace. {target_cwd} falls back to the Nexus project path when empty.',
+                  })}
+                </small>
+
+                <label className={styles.fieldSublabel}>{t('agents.commandTemplateLabel')}</label>
+                <Input
+                  value={commandTemplate}
+                  onChange={setCommandTemplate}
+                  data-mono="true"
+                  placeholder='docker exec -it -w "{target_cwd}" vpn-dev-workspace-terminal-1 {provider} {args}'
+                />
+                <small className={styles.hintText}>
+                  {t('agents.commandTemplateHint', {
+                    defaultValue:
+                      'Placeholders: {cwd}, {target_cwd}, {args}, {provider}, {profile}, {profile_home}. Nexus executes argv directly; shell operators remain blocked.',
+                  })}
+                </small>
+
+                <label className={styles.fieldSublabel}>
+                  {t('agents.targetProfileHome', {
+                    defaultValue: 'Shared target profile home (optional)',
+                  })}
+                </label>
+                <Input
+                  value={targetProfileHome}
+                  onChange={setTargetProfileHome}
+                  data-mono="true"
+                  placeholder="/home/developer"
+                />
+                <small className={styles.hintText}>
+                  {t('agents.targetProfileHomeHint', {
+                    defaultValue:
+                      'Set this only when Nexus and the custom target see the same provider-home files, such as a bind-mounted VPN workspace. This allows native Agent Projection to use that shared home.',
+                  })}
+                </small>
+
+                <label className={styles.fieldSublabel}>
+                  {t('agents.targetProbeTemplate', {
+                    defaultValue: 'Target version probe (optional)',
+                  })}
+                </label>
+                <Input
+                  value={targetProbeTemplate}
+                  onChange={setTargetProbeTemplate}
+                  data-mono="true"
+                  placeholder="docker exec vpn-dev-workspace-terminal-1 {provider} {args}"
+                />
+                <small className={styles.hintText}>
+                  {t('agents.targetProbeTemplateHint', {
+                    defaultValue:
+                      'Nexus invokes this safely with {args} = --version to detect the provider inside Docker/WSL/SSH before native Agent Projection. Avoid interactive flags such as docker -t.',
+                  })}
+                </small>
+              </div>
+            )}
+          </div>
+        </details>
 
         <div className={styles.actionsRow}>
           <Button onClick={onClose} disabled={busy}>

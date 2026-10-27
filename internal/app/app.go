@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"time"
 
@@ -868,7 +869,7 @@ func resolveLoginTarget(args []string) (string, string, error) {
 }
 
 func loginCmd(args []string) error {
-	prov, name, err := resolveLoginTarget(args)
+	prov, name, err := resolveProfileArgs(args, "login")
 	if err != nil {
 		return err
 	}
@@ -885,6 +886,45 @@ func loginCmd(args []string) error {
 		return authProv.Login(context.Background(), p)
 	}
 	return fmt.Errorf("provider %s does not support login", prov)
+}
+
+// resolveProfileArgs accepts "<provider> <name>" and, when the provider has a
+// single unambiguous profile, the shorter "<provider>" form. The short form
+// keeps the copyable command from the UI from repeating the provider name
+// (`nexus login codex` instead of `nexus login codex codex`).
+func resolveProfileArgs(args []string, verb string) (string, string, error) {
+	if len(args) == 2 {
+		return args[0], args[1], nil
+	}
+	if len(args) != 1 {
+		return "", "", fmt.Errorf("usage: %s %s <provider> [<name>]", progName(), verb)
+	}
+	prov := strings.TrimSpace(args[0])
+	if prov == "" {
+		return "", "", fmt.Errorf("usage: %s %s <provider> [<name>]", progName(), verb)
+	}
+	if profile.Exists(prov, prov) {
+		return prov, prov, nil
+	}
+	all, err := profile.List()
+	if err != nil {
+		return "", "", err
+	}
+	var matches []string
+	for _, p := range all {
+		if p.Provider == prov && !p.Disabled {
+			matches = append(matches, p.Name)
+		}
+	}
+	switch len(matches) {
+	case 1:
+		return prov, matches[0], nil
+	case 0:
+		return "", "", fmt.Errorf("no profile found for provider %s; run %s providers register %s", prov, progName(), prov)
+	default:
+		sort.Strings(matches)
+		return "", "", fmt.Errorf("provider %s has multiple profiles (%s); specify one: %s %s %s <name>", prov, strings.Join(matches, ", "), progName(), verb, prov)
+	}
 }
 
 func logoutCmd(args []string) error {
@@ -1039,6 +1079,16 @@ func usageCmd(args []string) error {
 	ps, err := profile.List()
 	if err != nil {
 		return err
+	}
+	// Asking for quota is an explicit intent to use the account. Profiles that
+	// were never authenticated can inherit the host CLI login once; the notice
+	// keeps the link from being silent, and an explicit logout opts out.
+	for _, p := range ps {
+		if src, linked := profile.EnsureHostCredential(p.Provider, p.Name); linked {
+			fmt.Fprintf(os.Stderr,
+				"Conta %s vinculada ao perfil %s:%s a partir do login do terminal (%s).\n",
+				src.Plan, p.Provider, p.Name, p.Provider)
+		}
 	}
 
 	isJSON := false

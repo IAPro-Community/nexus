@@ -46,6 +46,9 @@ export const en = {
     moveFailed: 'Could not move the HUD.',
     dragLabel: 'Drag HUD. Use the arrow keys to move.',
     dragTitle: 'Drag to move the HUD. Use the arrow keys to adjust the position.',
+    newAgent: 'New agent',
+    openNexus: 'Open Nexus',
+    desktopUnavailable: 'Open the Nexus app to create an agent from the HUD.',
     attention: 'Attention!',
     mascot: {
       attentionLabel: 'NEX mascot attention',
@@ -2181,6 +2184,9 @@ export const ptBR = {
     moveFailed: 'Não foi possível mover o HUD.',
     dragLabel: 'Arrastar HUD. Use as setas para mover.',
     dragTitle: 'Arraste para mover o HUD. Use as setas para ajustar a posição.',
+    newAgent: 'Novo agente',
+    openNexus: 'Abrir Nexus',
+    desktopUnavailable: 'Abra o aplicativo Nexus para criar um agente a partir do HUD.',
     attention: 'Atenção!',
     mascot: {
       attentionLabel: 'Atenção do mascote NEX',
@@ -4329,6 +4335,9 @@ export const es = {
     moveFailed: 'No se pudo mover el HUD.',
     dragLabel: 'Arrastrar HUD. Usa las flechas para moverlo.',
     dragTitle: 'Arrastra para mover el HUD. Usa las flechas para ajustar la posición.',
+    newAgent: 'Nuevo agente',
+    openNexus: 'Abrir Nexus',
+    desktopUnavailable: 'Abre la aplicación Nexus para crear un agente desde el HUD.',
     attention: '¡Atención!',
     mascot: {
       attentionLabel: 'Atención de la mascota NEX',

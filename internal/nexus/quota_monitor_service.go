@@ -227,6 +227,11 @@ func (s *QuotaMonitorService) check() {
 		if scope, scopeErr := profile.AccountScope(p.Provider, p.Name, identity); scopeErr == nil {
 			acc.Scope = scope
 		}
+		attachCredentialProvenance(&acc, p.Provider, p.Name, true, account.ExternalAccountID)
+		if acc.AccountWarning == AccountWarningHostChanged {
+			s.emitDegraded(p.Provider+":"+p.Name+"#authsource",
+				"host Codex login now belongs to another account; this profile keeps its own credential")
+		}
 		if remaining, ok := view.BestGroupRemaining(); ok {
 			acc.QuotaRemaining = remaining / 100
 		} else if !acc.RateLimited {
