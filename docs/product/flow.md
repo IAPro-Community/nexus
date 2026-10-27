@@ -97,3 +97,12 @@ A lista e a seleção local são atualizadas após exclusão bem-sucedida.
 Quando o Flow veio de um Composer, remover esse Flow não remove a elaboração
 original automaticamente; o usuário pode excluí-la separadamente após
 remover todas as dependências.
+
+## Tour guiado e clareza operacional
+
+O Flow Studio oferece **Conhecer esta área** na biblioteca, no editor e
+no acompanhamento de Mission. O tour explica os caminhos
+**Planejar → Revisar e aprovar → Executar Mission → Conferir evidências**
+sem promover um rascunho manual a planejamento gerado por IA. A experiência
+é contextual, acessível e não dispara uma execução. Consulte
+[tours guiados Composer/Flow](composer-flow-tour.md) e suas verificações.
