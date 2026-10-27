@@ -1,39 +1,62 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, Compass, X } from 'lucide-react';
 import { Button, IconButton } from '../../design-system';
-import { availableTourSteps, nextTourIndex, previousTourIndex, productTourSteps } from './tour';
+import { availableTourSteps, nextTourIndex, previousTourIndex, productTourSteps, type TourStep } from './tour';
 import { useTranslation } from 'react-i18next';
 
-export const ProductTour: React.FC<{ open: boolean; onClose: () => void }> = ({
-  open,
-  onClose,
+export const ProductTour: React.FC<{
+  open: boolean;
+  onClose: () => void;
+  steps?: TourStep[];
+  initialIndex?: number;
+  onStepChange?: (index: number) => void;
+  onComplete?: () => void;
+}> = ({
+  open, onClose, steps: proposedSteps = productTourSteps, initialIndex = 0,
+  onStepChange, onComplete,
 }) => {
   const { t } = useTranslation();
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(initialIndex);
   const [rect, setRect] = useState<DOMRect | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
 
-  const steps = useMemo(
-    () =>
-      availableTourSteps(productTourSteps, (selector) => {
-        const el = document.querySelector(selector) as HTMLElement | null;
-        if (!el) return false;
-        const r = el.getBoundingClientRect();
-        return r.width > 0 && r.height > 0 && r.bottom > 0 && r.right > 0;
-      }),
-    [],
-  );
+  // DOM targets must be checked when the tour is opened, not when the
+  // component first mounts: Composer/Flow render different project states.
+  const steps = useMemo(() => {
+    if (!open || typeof document === 'undefined') return [];
+    return availableTourSteps(proposedSteps, (selector) => {
+      const el = document.querySelector(selector) as HTMLElement | null;
+      if (!el) return false;
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 && r.bottom > 0 && r.right > 0;
+    });
+  }, [open, proposedSteps]);
 
   const step = steps[index];
 
   useEffect(() => {
-    if (open) setIndex(0);
-  }, [open]);
+    if (!open) return;
+    returnFocus.current = document.activeElement as HTMLElement | null;
+    setIndex(Math.min(Math.max(0, initialIndex), Math.max(steps.length - 1, 0)));
+    const raf = window.requestAnimationFrame(() => modalRef.current?.focus());
+    return () => {
+      window.cancelAnimationFrame(raf);
+      returnFocus.current?.focus();
+    };
+  }, [open, initialIndex, steps.length]);
 
   useEffect(() => {
-    if (!open || !step) return;
+    if (!open || !step) {
+      setRect(null);
+      return;
+    }
     const target = document.querySelector(step.target) as HTMLElement | null;
-    if (!target) return;
-    target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (!target) { setRect(null); return; }
+    target.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'nearest',
+    });
     const update = () => setRect(target.getBoundingClientRect());
     update();
     window.addEventListener('resize', update);
@@ -44,9 +67,28 @@ export const ProductTour: React.FC<{ open: boolean; onClose: () => void }> = ({
     };
   }, [open, step]);
 
-  useEffect(() => {
-    if (index >= steps.length) setIndex(Math.max(0, steps.length - 1));
-  }, [index, steps.length]);
+  const changeStep = (next: number) => {
+    const clamped = Math.min(Math.max(0, next), Math.max(0, steps.length - 1));
+    setIndex(clamped);
+    onStepChange?.(clamped);
+  };
+
+  const onTourKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      onClose();
+      return;
+    }
+    if (event.key !== 'Tab' || !modalRef.current) return;
+    const buttons = Array.from(modalRef.current.querySelectorAll<HTMLElement>('button:not([disabled])'));
+    if (!buttons.length) return;
+    const first = buttons[0], last = buttons[buttons.length - 1];
+    if (event.shiftKey && (document.activeElement === first || document.activeElement === modalRef.current)) {
+      event.preventDefault(); last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault(); first.focus();
+    }
+  };
 
   if (!open || !step || !rect) return null;
 
@@ -57,7 +99,15 @@ export const ProductTour: React.FC<{ open: boolean; onClose: () => void }> = ({
   const left = Math.min(Math.max(12, rect.left), Math.max(12, window.innerWidth - 380));
 
   return (
-    <div className="nx-tour-layer" role="dialog" aria-modal="true" aria-label={t('tour.aria')}>
+    <div
+      ref={modalRef}
+      className="nx-tour-layer"
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('tour.aria')}
+      tabIndex={-1}
+      onKeyDown={onTourKeyDown}
+    >
       <div
         className="nx-tour-highlight"
         style={{
@@ -83,19 +133,19 @@ export const ProductTour: React.FC<{ open: boolean; onClose: () => void }> = ({
             size="sm"
             tone="ghost"
             disabled={index === 0}
-            onClick={() => setIndex(previousTourIndex(index))}
+            onClick={() => changeStep(previousTourIndex(index))}
           >
             <ArrowLeft size={13} /> {t('tour.back')}
           </Button>
           {index === steps.length - 1 ? (
-            <Button size="sm" tone="brand" onClick={onClose}>
+            <Button size="sm" tone="brand" onClick={onComplete || onClose}>
               <Check size={13} /> {t('tour.finish')}
             </Button>
           ) : (
             <Button
               size="sm"
               tone="brand"
-              onClick={() => setIndex(nextTourIndex(index, steps.length))}
+              onClick={() => changeStep(nextTourIndex(index, steps.length))}
             >
               {t('tour.next')} <ArrowRight size={13} />
             </Button>
