@@ -36,6 +36,16 @@ replay de efeitos colaterais permanece proibido sem prova de segurança.
 Leia o [contrato técnico](../architecture/session-continuity.md) para estados,
 eventos e testes. A execução nativa real no SHA da release segue pendente.
 
+## Barreira de segurança do handoff (source atual)
+
+O handoff de conta ou contexto exige PID de provider conhecido e parada
+comprovada antes de iniciar outro escritor no mesmo workspace. Uma requisição
+de parada ou um timeout, por si só, não autorizam continuidade. Se o destino
+falha após a parada da origem no handoff de contexto, a origem é registrada
+como `STOPPED`, com checkpoint para recuperação explícita; não como
+`RUNNING` por uma alteração de registro. Esse hardening não equivale à
+homologação E2E com os providers reais.
+
 ## Diagnóstico
 
 ```bash

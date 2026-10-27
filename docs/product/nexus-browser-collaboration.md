@@ -1,3 +1,8 @@
+> **Observação de versão:** este documento descreve o caminho MCP manual.
+> A linha release/v1.0.0 também contém injeção automática de MCP em runtimes
+> supervisionados compatíveis. Veja [Browser auto MCP](nexus-browser-auto-mcp.md).
+> A descoberta nativa por todos os CLIs ainda exige homologação real.
+
 # Nexus Browser Collaboration — complete human/agent cycle
 
 ## Product requirement
@@ -137,11 +142,10 @@ End-to-end manual demonstration on a real Nexus Linux host:
 
 ## Boundaries still requiring independent work
 
-- Automatic MCP grant injection into every terminal runtime, mission and
-  worker is **not implemented**. Manual authorized connection works for
-  compatible terminal clients. MissionRunner AutonomyContract integration
-  remains a separate security boundary, not something the Browser MCP can
-  bypass automatically.
+- A injeção automática de MCP foi acrescentada no Launcher comum, para os
+  providers documentados em [Browser auto MCP](nexus-browser-auto-mcp.md).
+  Clientes nativos exigem validação E2E; MissionRunner AutonomyContract
+  permanece uma fronteira de autorização independente.
 - The browser runtime currently has a maximum of **four isolated Chromium
   sessions**. Multi-context Chromium pooling, persistent profiles and
   background session suspension are not included.

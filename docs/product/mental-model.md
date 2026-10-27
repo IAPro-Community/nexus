@@ -22,10 +22,10 @@
 | **ContextCapsule** | handoff limitado de contexto |
 | **WorkReceipt** | resultado/evidência de uma package |
 | **Evidence Bundle** | evidência agregada da execução |
-| **IntelligenceMemory** | memória visível e limitada de hábitos/fatos úteis |
+| **IntelligenceMemory** | memória semântica legada do Nexus; preservada até migração para o Maestro |
 | **ResourceScheduler** | escolhe provider/profile/model conforme policy/capacidade |
 | **AgentMatcher** | escolhe a identidade de Agent adequada |
-| **Maestro** | integração opcional de método, skills, risco e gates |
+| **Maestro** | integração opcional na beta atual; núcleo independente e obrigatório na arquitetura alvo (não implementada) |
 | **COMPLETED_VERIFIED** | Mission concluída após DoD global e evidência |
 
 ## Regra mais importante

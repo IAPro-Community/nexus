@@ -13,5 +13,8 @@ Composer and Flow stay separate surfaces with one clarification contract.
 Installation and project intelligence memories skip repeated habit questions.
 CLI and API preserve existing names for backward compatibility.
 
-Maestro contributes method, skills, risk, review, and quality-gate policy. It
-does not become the Nexus runtime or persistence layer.
+In the current beta, Maestro is optional and contributes method, skills,
+risk, review and quality-gate policy. The approved target architecture makes
+Maestro a required independent semantic memory/context component for Nexus,
+without making Maestro dependent on Nexus. Each execution remains owned by
+its originating runtime. See [Maestro integration](maestro.md).

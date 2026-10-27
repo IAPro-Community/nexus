@@ -26,8 +26,11 @@ ContextCapsule · WorkReceipt · Evidence
 Global DoD → COMPLETED_VERIFIED
 ```
 
-O Maestro é integração opcional de método, skills, risco e gates. Execução,
-estado, scheduling e evidence permanecem no Nexus.
+Na beta atual, Maestro é uma integração opcional de método/skills/gates.
+A [arquitetura alvo](../product/maestro.md) exige Maestro como dependência
+compatível do Nexus e autoridade de contexto/memória semântica. Essa migração
+ainda não foi entregue. O Runtime independente do Maestro mantém ownership
+de seus próprios Runs; os runtimes iniciados pelo Nexus continuam sob o Core.
 
 ## Leia por assunto
 
