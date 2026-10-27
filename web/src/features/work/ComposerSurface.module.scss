@@ -826,3 +826,139 @@
   margin: 1rem auto 0;
   padding: 0 1rem;
 }
+
+/* Composer first-use workspace. The project shell, design tokens and existing
+   conversation runtime stay authoritative; this is presentation only. */
+.composerWelcome {
+  display: grid;
+  align-content: start;
+  gap: clamp(20px, 3vw, 32px);
+  width: min(100%, 930px);
+  margin: clamp(22px, 7vh, 92px) auto 0;
+  padding: 0 clamp(12px, 2.5vw, 28px) 36px;
+}
+
+.composerWelcomeHero {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.composerWelcomeEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--nx-accent);
+  font-size: .73rem;
+  font-weight: 750;
+  letter-spacing: .13em;
+}
+
+.composerWelcomeTitle {
+  margin: 0;
+  color: var(--nx-text);
+  font-size: clamp(1.85rem, 3.4vw, 2.9rem);
+  line-height: 1.12;
+  letter-spacing: -.045em;
+  font-weight: 720;
+}
+
+.composerWelcomeDescription {
+  max-width: 620px;
+  margin: 0;
+  color: var(--nx-text-muted);
+  font-size: clamp(.92rem, 1.15vw, 1.03rem);
+  line-height: 1.65;
+}
+
+.composerWelcomeEntry {
+  display: grid;
+  gap: 18px;
+  padding: clamp(18px, 2.5vw, 28px);
+  background: var(--nx-bg-elevated);
+  border: 1px solid color-mix(in srgb, var(--nx-accent) 27%, var(--nx-border));
+  border-radius: 18px;
+  box-shadow: 0 14px 46px color-mix(in srgb, #000 14%, transparent);
+}
+
+.composerWelcomeEntry :global(input) {
+  min-height: 48px;
+}
+
+.composerWelcomeInputLabel {
+  color: var(--nx-text);
+  font-weight: 600;
+  font-size: .91rem;
+}
+
+.composerWelcomeHistory {
+  display: grid;
+  gap: 14px;
+  padding: 17px 20px;
+  border: 1px solid var(--nx-border);
+  background: color-mix(in srgb, var(--nx-bg-elevated) 80%, transparent);
+  border-radius: 14px;
+}
+
+.composerWelcomeHistoryHeader {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: .88rem;
+  color: var(--nx-text);
+}
+
+.composerWelcomeHistoryHeader > span {
+  margin-left: auto;
+  color: var(--nx-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.composerWelcomeError {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  color: var(--nx-text);
+  border: 1px solid color-mix(in srgb, #f36d6d 40%, var(--nx-border));
+  border-radius: 12px;
+  background: color-mix(in srgb, #e34848 8%, var(--nx-bg-elevated));
+}
+
+@media (max-width: 640px) {
+  .composerWelcome {
+    gap: 22px;
+    margin-top: 22px;
+    padding-inline: 10px;
+  }
+
+  .composerWelcomeHero {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .composerWelcomeEntry,
+  .composerWelcomeHistory {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .composerWelcomeEntry .flexRowBetween {
+    flex-wrap: wrap;
+  }
+
+  .composerWelcomeEntry .flexRowGap4 {
+    flex-wrap: wrap;
+  }
+
+  .composerWelcomeHistory .sessionSelect {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .composerWelcome * {
+    scroll-behavior: auto;
+  }
+}
