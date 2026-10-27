@@ -32,6 +32,21 @@ não foi migrada**. Não declarar a arquitetura alvo como já implementada.
   estado de atualização. Não compartilhar bancos internos nem duplicar
   motores de memória/execução.
 
+## Integração incremental disponível na beta
+
+O Maestro Bridge v1 passou a expor `context.brief` como operação aditiva
+de leitura. O `ContextHandoff` do Nexus consulta esse método via `stdio`,
+aceita somente o manifesto versão 1 com SHA-256 verificável e texto limitado
+a 8.000 caracteres, e injeta o conteúdo apenas no prompt efêmero do destino.
+O checkpoint operacional **não** passa a armazenar essa memória.
+
+O runtime de destino registra `maestro_context=READY` quando a leitura passa
+pelas validações, ou `maestro_context=DEGRADED` em instalações antigas,
+ausentes ou indisponíveis. A degradação permanece explícita, e o provedor
+destino deve reidratar os arquivos canônicos do projeto. Isso não constitui
+prova de continuidade semântica completa nem a migração do
+`IntelligenceMemory`.
+
 ## Caminho de migração seguro
 
 1. Estender aditivamente o Bridge v1 do Maestro para operações de contexto
