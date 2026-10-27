@@ -12,6 +12,28 @@ import (
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 )
 
+func TestRollbackPreservesAgentAndProjectIdentity(t *testing.T) {
+	source := registry.RuntimeSession{
+		RuntimeID: "origin", AgentID: "agent-123", ProjectID: "project-456",
+		ProjectName: "Project", Title: "Persistent Agent",
+		ProviderID: "codex", ProfileID: "work", ProviderSessionID: "session-abc",
+		Workspace: "/worktree", Model: "model", Labels: map[string]string{"role": "reviewer"},
+	}
+	opts := rollbackLaunchOptions(source, "recovered-789", []string{"resume", "session-abc"})
+	if opts.AgentID != source.AgentID || opts.ProjectID != source.ProjectID ||
+		opts.ProjectName != source.ProjectName || opts.Workspace != source.Workspace ||
+		opts.ProviderSessionID != source.ProviderSessionID || opts.Model != source.Model {
+		t.Fatalf("rollback lost stable Agent/project/session identity: %+v", opts)
+	}
+	if opts.RuntimeID == source.RuntimeID || opts.RuntimeID != "recovered-789" {
+		t.Fatalf("rollback must start a new runtime generation: %+v", opts)
+	}
+	opts.Labels["role"] = "changed"
+	if source.Labels["role"] != "reviewer" {
+		t.Fatal("rollback changed source labels instead of cloning them")
+	}
+}
+
 func TestContextHandoffSourceStateNeverRevivesStoppedProcess(t *testing.T) {
 	live := registry.RuntimeSession{PID: os.Getpid(), State: registry.StateWaiting}
 	if got := contextHandoffSourceState(live); got != registry.StateWaiting {

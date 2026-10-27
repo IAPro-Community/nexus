@@ -256,15 +256,7 @@ func (tx *Transaction) rollback(ctx context.Context, d driver.ControlDriver, sou
 	}
 
 	recoverRuntimeID := fmt.Sprintf("%s-recovered-%s", source.ProviderID, ids.NewRuntimeID())
-	recoverSession, err := s.launcher.Launch(ctx, launcher.LaunchOptions{
-		RuntimeID:         recoverRuntimeID,
-		ProviderID:        source.ProviderID,
-		ProfileID:         source.ProfileID,
-		ProviderSessionID: source.ProviderSessionID,
-		Workspace:         source.Workspace,
-		Args:              resumeArgs,
-		Standalone:        false,
-	})
+	recoverSession, err := s.launcher.Launch(ctx, rollbackLaunchOptions(source, recoverRuntimeID, resumeArgs))
 	if err != nil {
 		tx.State = HandoffFailedUnsafe
 		return fmt.Errorf("handoff failed (%w) and rollback execution failed: %v (FAILED_UNSAFE)", cause, err)
@@ -276,6 +268,27 @@ func (tx *Transaction) rollback(ctx context.Context, d driver.ControlDriver, sou
 
 	tx.State = HandoffRolledBack
 	return fmt.Errorf("handoff failed (%w); successfully restored source session on recovery runtime %s (ROLLED_BACK)", cause, recoverRuntimeID)
+}
+
+// rollbackLaunchOptions retains the identity and resource scope of the
+// original Agent. Recovery is a new runtime generation, not a new Agent.
+func rollbackLaunchOptions(source registry.RuntimeSession, runtimeID string, resumeArgs []string) launcher.LaunchOptions {
+	return launcher.LaunchOptions{
+		RuntimeID:         runtimeID,
+		AgentID:           source.AgentID,
+		ProjectID:         source.ProjectID,
+		ProjectName:       source.ProjectName,
+		Title:             source.Title,
+		ProviderID:        source.ProviderID,
+		ProfileID:         source.ProfileID,
+		AccountScope:      source.AccountScope,
+		ProviderSessionID: source.ProviderSessionID,
+		Workspace:         source.Workspace,
+		Args:              resumeArgs,
+		Model:             source.Model,
+		Standalone:        false,
+		Labels:            cloneRuntimeLabels(source.Labels),
+	}
 }
 
 // stopRuntime forcefully terminates a freshly started runtime so a failed
