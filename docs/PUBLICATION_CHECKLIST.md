@@ -20,8 +20,11 @@ redistribuição e uso comercial quando uma licença OSI for efetivamente public
 - [ ] Atualizar testes de metadados de licença, READMEs nos 3 idiomas, pacote
       de distribuição e guias legais **no mesmo commit de relicenciamento**.
 - [ ] Ativar DCO/PRs de terceiros só depois do licenciamento aplicável.
-- [ ] Configurar proteção de branches/revisões e política de releases no
-      GitHub; documentação não substitui settings administrativas.
+- [x] Separar PRs externos em workflow isolado (ubuntu GitHub-hosted, token
+      read-only), retirando `pull_request` da CI que usa runners self-hosted.
+- [ ] Configurar rulesets/required checks (`Community PR Checks`), revisões
+      CODEOWNERS, restrições de pushes e ambientes de assinatura nas configurações
+      administrativas do GitHub; documentação e YAML não substituem settings.
 - [ ] Habilitar GitHub Sponsors e publicar `.github/FUNDING.yml` somente
       com conta de pagamento real e verificada.
 
