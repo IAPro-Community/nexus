@@ -13,11 +13,11 @@ import (
 // Browser routes reuse the Nexus authentication, CSRF and tunnel security boundary.
 // DevTools sockets and Chrome debugging credentials are never exposed to clients.
 func (s *Server) handleBrowserSessions(w http.ResponseWriter, r *http.Request) {
- if s.browserSessions == nil { writeError(w,http.StatusServiceUnavailable,"browser service unavailable"); return }
+ if s.browsers == nil { writeError(w,http.StatusServiceUnavailable,"browser service unavailable"); return }
  w.Header().Set("Cache-Control","no-store")
  switch r.Method {
  case http.MethodGet:
-  writeJSON(w,http.StatusOK,s.browserSessions.List(r.URL.Query().Get("project_id")))
+  writeJSON(w,http.StatusOK,s.browsers.List(r.URL.Query().Get("project_id")))
  case http.MethodPost:
   var req struct{ProjectID string `json:"project_id"`; URL string `json:"url"`}
   r.Body=http.MaxBytesReader(w,r.Body,8192)
@@ -26,7 +26,7 @@ func (s *Server) handleBrowserSessions(w http.ResponseWriter, r *http.Request) {
   if strings.TrimSpace(req.ProjectID)=="" { writeError(w,http.StatusBadRequest,"project_id required"); return }
   if req.URL!="" { if err:=browsercontrol.ValidURL(req.URL); err!=nil { writeError(w,http.StatusBadRequest,err.Error()); return } }
   ctx,cancel:=contextWithTimeout(r,20*time.Second); defer cancel()
-  info,err:=s.browserSessions.Create(ctx,req.ProjectID,req.URL)
+  info,err:=s.browsers.Create(ctx,req.ProjectID,req.URL)
   if err!=nil { writeError(w,http.StatusServiceUnavailable,err.Error()); return }
   writeJSON(w,http.StatusCreated,info)
  default:
@@ -41,12 +41,12 @@ func contextWithTimeout(r *http.Request,d time.Duration)(context.Context,context
 }
 
 func (s *Server) handleBrowserSession(w http.ResponseWriter, r *http.Request) {
- if s.browserSessions==nil { writeError(w,http.StatusServiceUnavailable,"browser service unavailable"); return }
+ if s.browsers==nil { writeError(w,http.StatusServiceUnavailable,"browser service unavailable"); return }
  w.Header().Set("Cache-Control","no-store")
  path:=strings.Trim(strings.TrimPrefix(r.URL.Path,"/api/v1/browser/sessions/"),"/")
  parts:=strings.Split(path,"/")
  if len(parts)<1 || len(parts)>2 || len(parts[0])!=32 { writeError(w,http.StatusNotFound,"browser session not found"); return }
- session,ok:=s.browserSessions.Get(parts[0])
+ session,ok:=s.browsers.Get(parts[0])
  if !ok { writeError(w,http.StatusNotFound,"browser session not found"); return }
  action:=""
  if len(parts)==2 { action=parts[1] }
@@ -56,7 +56,7 @@ func (s *Server) handleBrowserSession(w http.ResponseWriter, r *http.Request) {
  case action=="" && r.Method==http.MethodGet:
   writeJSON(w,http.StatusOK,session.Info())
  case action=="" && r.Method==http.MethodDelete:
-  s.browserSessions.Close(parts[0]);writeJSON(w,http.StatusOK,map[string]string{"status":"closed"})
+  s.browsers.Close(parts[0]);writeJSON(w,http.StatusOK,map[string]string{"status":"closed"})
  case action=="frame" && r.Method==http.MethodGet:
   img,err:=session.Screenshot(ctx)
   if err!=nil { writeError(w,http.StatusBadGateway,"browser screenshot unavailable");return }
