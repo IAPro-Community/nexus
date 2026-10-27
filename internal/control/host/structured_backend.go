@@ -110,6 +110,9 @@ func (b *structuredBackend)Read(p []byte)(int,error){return b.outputReader.Read(
 func (b *structuredBackend)Write(p []byte)(int,error){
  b.mu.Lock()
  if !b.started{b.mu.Unlock();return 0,errors.New("structured backend not started")}
+ // This text-only command surface has no kernel TTY echo. Echo sanitized input
+ // so xterm users can see what they type. Never echo raw protocol JSON.
+ if len(p)>0 && p[0]!=0x1b {b.emit(strings.ReplaceAll(string(p),"\r","\r\n"))}
  for _,c:=range p{
   if c!='\r'&&c!='\n'&&b.input.Len()<16384{_ = b.input.WriteByte(c)}
   if c=='\r'||c=='\n'{
