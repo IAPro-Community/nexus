@@ -74,6 +74,7 @@ export const FeatureTour: React.FC<{
       } catch { /* local-only persistence is optional */ }
     });
     refreshReadState((current) => current + 1);
+    window.dispatchEvent(new Event('nexus:feature-discovery-updated'));
   };
 
   // Explicit scan on opening a menu lets newly mounted conditional controls
