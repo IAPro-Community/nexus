@@ -2,7 +2,7 @@
 
 **Nexus** é uma workstation local e um control plane para coding agents: une projetos, agentes persistentes, CLIs/providers, terminais supervisionados, quota, roteamento de recursos e execução com evidências.
 
-> **Estado:** branch `release/v1.0.0`, source `1.0.0-beta.10` observado em 18/10/2026. **Não é uma release 1.0 estável publicada ou homologada.** Ver [status](release-status.md) e [suporte por plataforma](operations/platform-support.md).
+> **Estado conferido em 27/10/2026:** branch `release/v1.0.0`, source `1.0.0-beta.11`. **Não é uma release 1.0 estável publicada ou homologada.** Ver [status](release-status.md) e [suporte por plataforma](operations/platform-support.md).
 
 ## Em 30 segundos
 
