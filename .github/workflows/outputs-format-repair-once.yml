@@ -1,0 +1,34 @@
+name: Repair Outputs and Format Provenance (one shot)
+on:
+  push:
+    branches: [release/v1.0.0]
+    paths: ['.github/workflows/outputs-format-repair-once.yml']
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/v1.0.0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.9'
+      - name: Format code
+        run: |
+          gofmt -w internal/nexus/artifacts/catalog.go internal/nexus/artifacts/history.go internal/nexus/artifacts/history_test.go internal/control/web/handlers_project_outputs.go internal/control/web/handlers_output_publish_mcp.go internal/control/web/handlers_browser_mcp.go
+          cd web
+          bun install --frozen-lockfile
+          ./node_modules/.bin/prettier --write src/features/outputs/OutputsSurface.tsx src/features/outputs/OutputsSurface.module.scss
+      - name: Commit and clean formatter
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/outputs-format-repair-once.yml
+          git rm -f .github/workflows/outputs-provenance-format-once.yml || true
+          git add internal/nexus/artifacts internal/control/web/handlers_project_outputs.go internal/control/web/handlers_output_publish_mcp.go internal/control/web/handlers_browser_mcp.go web/src/features/outputs
+          git commit -m 'fix(outputs): format provenance, history and gallery'
+          git pull --rebase origin release/v1.0.0
+          git push origin HEAD:release/v1.0.0
