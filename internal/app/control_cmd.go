@@ -22,6 +22,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/control/handoff"
 	"github.com/IAPro-Community/nexus/internal/control/host"
 	"github.com/IAPro-Community/nexus/internal/control/launcher"
+	"github.com/IAPro-Community/nexus/internal/control/launchenv"
 	"github.com/IAPro-Community/nexus/internal/control/protocol"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 	controlterminal "github.com/IAPro-Community/nexus/internal/control/terminal"
@@ -341,7 +342,7 @@ func controlHostCmd(args []string) error {
 	}
 
 	p := model.Profile{Name: sess.ProfileID, Provider: sess.ProviderID}
-	launchArgs, customCommand, envelopeErr := launcher.ConsumeLaunchEnvelope(runtimeID)
+	launchArgs, customCommand, browserEnv, envelopeErr := launcher.ConsumeLaunchEnvelopeWithBrowser(runtimeID)
 	if envelopeErr != nil {
 		// Compatibility for runtimes created before private launch envelopes.
 		launchArgs = sess.Args
@@ -357,6 +358,12 @@ func controlHostCmd(args []string) error {
 		}
 	}
 
+	// Runtimes are reconstructed in a detached host from a registry that
+	// intentionally strips secrets. Deliver only the short-lived browser
+	// capability through the private, consumed-once launch envelope.
+	if len(browserEnv) > 0 {
+		env = launchenv.Merge(env, browserEnv, nil)
+	}
 	sh, err := host.NewSessionHost(host.Config{
 		Session:  sess,
 		Registry: reg,

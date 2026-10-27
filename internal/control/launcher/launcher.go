@@ -186,9 +186,15 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 	// remote command templates are deliberately excluded because local
 	// loopback is not necessarily reachable from Docker/SSH targets.
 	if !customCommand {
+		// Browser support is additive; a missing provider MCP helper must
+		// never prevent an otherwise valid agent runtime from starting.
+		priorArgs := append([]string(nil), extraArgs...)
+		priorEnv := append([]string(nil), env...)
 		extraArgs, env, err = configureBrowserMCP(opts, env, extraArgs)
 		if err != nil {
-			return nil, fmt.Errorf("prepare Nexus Browser for %s: %w", opts.ProviderID, err)
+			slog.Warn("Nexus Browser capability unavailable", "provider", opts.ProviderID, "error", err)
+			extraArgs, env = priorArgs, priorEnv
+			err = nil
 		}
 	}
 	if opts.Workspace != "" && !customCommand {
@@ -384,7 +390,7 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 			return nil, fmt.Errorf("failed to start SessionHost: %w", err)
 		}
 	} else {
-		if err := createLaunchEnvelope(opts.RuntimeID, extraArgs, customCommand); err != nil {
+		if err := createLaunchEnvelopeWithBrowser(opts.RuntimeID, extraArgs, customCommand, env); err != nil {
 			_ = l.reg.UpdateState(opts.RuntimeID, registry.StateFailed)
 			return nil, fmt.Errorf("failed to create private launch envelope: %w", err)
 		}

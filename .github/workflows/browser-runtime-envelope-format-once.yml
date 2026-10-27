@@ -1,0 +1,24 @@
+name: Browser Runtime Envelope Formatter (one shot)
+on:
+  push:
+    branches: [release/v1.0.0]
+    paths: ['.github/workflows/browser-runtime-envelope-format-once.yml']
+permissions:
+  contents: write
+jobs:
+  formatter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/v1.0.0
+      - name: Format runtime and host sources
+        run: gofmt -w internal/control/launcher/envelope.go internal/control/launcher/launcher.go internal/control/launcher/browser_envelope_test.go internal/app/control_cmd.go
+      - name: Commit formatted code and remove workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/browser-runtime-envelope-format-once.yml
+          git add internal/control/launcher/envelope.go internal/control/launcher/launcher.go internal/control/launcher/browser_envelope_test.go internal/app/control_cmd.go
+          git commit -m 'style(browser): format private detached-runtime MCP envelope'
+          git push origin HEAD:release/v1.0.0

@@ -16,6 +16,7 @@ import (
 type launchEnvelope struct {
 	Args          []string `json:"args"`
 	CustomCommand bool     `json:"custom_command,omitempty"`
+	BrowserEnv map[string]string `json:"browser_env,omitempty"`
 }
 
 func launchEnvelopePath(runtimeID string) (string, error) {
@@ -30,6 +31,10 @@ func launchEnvelopePath(runtimeID string) (string, error) {
 }
 
 func createLaunchEnvelope(runtimeID string, args []string, customCommand bool) error {
+	return createLaunchEnvelopeWithBrowser(runtimeID,args,customCommand,nil)
+}
+
+func createLaunchEnvelopeWithBrowser(runtimeID string,args []string,customCommand bool,env []string) error {
 	path, err := launchEnvelopePath(runtimeID)
 	if err != nil {
 		return err
@@ -37,7 +42,16 @@ func createLaunchEnvelope(runtimeID string, args []string, customCommand bool) e
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return err
 	}
-	raw, err := json.Marshal(launchEnvelope{Args: args, CustomCommand: customCommand})
+	browserEnv := map[string]string{}
+	for _, entry := range env {
+		parts := strings.SplitN(entry, "=", 2)
+		if len(parts) != 2 { continue }
+		switch parts[0] {
+		case "NEXUS_BROWSER_TOKEN", "NEXUS_BROWSER_MCP_URL", "OPENCODE_CONFIG_CONTENT":
+			browserEnv[parts[0]] = parts[1]
+		}
+	}
+	raw, err := json.Marshal(launchEnvelope{Args: args, CustomCommand: customCommand, BrowserEnv:browserEnv})
 	if err != nil {
 		return err
 	}
@@ -59,22 +73,27 @@ func createLaunchEnvelope(runtimeID string, args []string, customCommand bool) e
 
 // ConsumeLaunchEnvelope reads and removes an envelope before launching a host.
 func ConsumeLaunchEnvelope(runtimeID string) ([]string, bool, error) {
+	args, custom, _, err := ConsumeLaunchEnvelopeWithBrowser(runtimeID)
+	return args, custom, err
+}
+
+func ConsumeLaunchEnvelopeWithBrowser(runtimeID string) ([]string, bool, map[string]string, error) {
 	path, err := launchEnvelopePath(runtimeID)
 	if err != nil {
-		return nil, false, err
+		return nil, false, nil, err
 	}
 	raw, err := os.ReadFile(path)
 	if err != nil {
-		return nil, false, err
+		return nil, false, nil, err
 	}
 	if err := os.Remove(path); err != nil {
-		return nil, false, err
+		return nil, false, nil, err
 	}
 	var envelope launchEnvelope
 	if err := json.Unmarshal(raw, &envelope); err != nil {
-		return nil, false, err
+		return nil, false, nil, err
 	}
-	return envelope.Args, envelope.CustomCommand, nil
+	return envelope.Args, envelope.CustomCommand, envelope.BrowserEnv, nil
 }
 
 func removeLaunchEnvelope(runtimeID string) {
