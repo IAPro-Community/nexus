@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Check, Compass, X } from 'lucide-react';
 import { Button, IconButton } from '../../design-system';
 import { availableTourSteps, nextTourIndex, previousTourIndex, productTourSteps, type TourStep } from './tour';
 import { useTranslation } from 'react-i18next';
+import styles from './ProductTour.module.scss';
 
 export const ProductTour: React.FC<{
   open: boolean;
@@ -92,10 +93,11 @@ export const ProductTour: React.FC<{
 
   if (!open || !step || !rect) return null;
 
-  const below = rect.bottom + 210 < window.innerHeight;
-  const top = below
-    ? Math.min(window.innerHeight - 210, rect.bottom + 12)
-    : Math.max(12, rect.top - 190);
+  const viewportHeight = window.innerHeight;
+  const cardEstimate = Math.min(300, Math.max(120, viewportHeight - 24));
+  const below = rect.bottom + cardEstimate + 12 <= viewportHeight;
+  const position = below ? rect.bottom + 12 : rect.top - cardEstimate - 12;
+  const top = Math.min(Math.max(12, position), Math.max(12, viewportHeight - cardEstimate - 12));
   const left = Math.min(Math.max(12, rect.left), Math.max(12, window.innerWidth - 380));
 
   return (
@@ -117,7 +119,7 @@ export const ProductTour: React.FC<{
           height: rect.height + 8,
         }}
       />
-      <div className="nx-tour-card" style={{ top, left }}>
+      <div className={`nx-tour-card ${styles.tourCard}`} style={{ top, left }}>
         <header>
           <span>
             <Compass size={15} /> {t('tour.label', { current: index + 1, total: steps.length })}
