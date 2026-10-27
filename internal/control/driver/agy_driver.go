@@ -137,6 +137,13 @@ func (d *AGYDriver) BuildCommand(ctx context.Context, p model.Profile, extraArgs
 	}
 	env := s.OverlayEnv(os.Environ(), home, filepath.Dir(bin), p.Name)
 
+	// AGY >= 1.4.0 emits native status over OSC 7501 when enabled.
+	// Nexus owns this supervised PTY and supports the signal. Respect a
+	// user's explicit opt-out (AGY_CLI_OSC7501=off).
+	if _, explicitlyConfigured := os.LookupEnv("AGY_CLI_OSC7501"); !explicitlyConfigured {
+		env = append(env, "AGY_CLI_OSC7501=on")
+	}
+
 	wrappedBin, wrappedArgs := bin, extraArgs
 	// Keep supervised AGY launches prompt-free by default. The isolated
 	// Secret Service is available as an explicit opt-in for profiles that
