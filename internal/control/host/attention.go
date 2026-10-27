@@ -250,7 +250,7 @@ func (d *AttentionDetector) ProcessChunk(chunk []byte) {
 			// use a child's completion to mark the coding agent as done.
 			app := strings.ToLower(status.App)
 			provider := strings.ToLower(d.providerID)
-			ownsStatus := app == "" || app == provider ||
+			ownsStatus := app == provider ||
 				(provider == "agy" && (app == "antigravity" || app == "antigravity-cli")) ||
 				(provider == "claude" && app == "claude-code")
 			if ownsStatus {
