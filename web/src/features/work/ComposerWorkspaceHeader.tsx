@@ -53,7 +53,7 @@ export const ComposerWorkspaceHeader: React.FC<ComposerWorkspaceHeaderProps> = (
   const active = view.session.state !== 'FINALIZED';
 
   return (
-    <header className={styles.root}>
+    <header className={styles.root} data-tour="composer-session">
       <div className={styles.top}>
         <div className={styles.brand}>
           <span className={styles.icon} aria-hidden>
