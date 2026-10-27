@@ -78,7 +78,7 @@ func TestChromiumSmokeOptional(t *testing.T) {
 	defer local.Close()
 	m := NewManager()
 	defer m.Shutdown()
-	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 	info, err := m.Create(ctx, "p-test", local.URL)
 	if err != nil {

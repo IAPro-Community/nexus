@@ -45,7 +45,7 @@ func (s *Server) handleBrowserSessions(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		ctx, cancel := contextWithTimeout(r, 20*time.Second)
+		ctx, cancel := contextWithTimeout(r, 35*time.Second)
 		defer cancel()
 		info, err := s.browsers.Create(ctx, req.ProjectID, req.URL)
 		if err != nil {

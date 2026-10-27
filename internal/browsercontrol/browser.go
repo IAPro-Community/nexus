@@ -214,7 +214,7 @@ func (m *Manager) Create(ctx context.Context, projectID, initialURL string) (Inf
 	done := make(chan struct{})
 	go func() { _ = cmd.Wait(); close(done) }()
 	cleanup := func() { _ = cmd.Process.Kill(); <-done; _ = os.RemoveAll(directory) }
-	deadline := time.NewTimer(10 * time.Second)
+	deadline := time.NewTimer(25 * time.Second)
 	defer deadline.Stop()
 	var port, ws string
 	start := time.NewTicker(100 * time.Millisecond)
