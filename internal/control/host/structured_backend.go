@@ -133,7 +133,7 @@ func (b *structuredBackend)execute(ctx context.Context,bridge *agentwire.Bridge,
   return
  }
  if strings.HasPrefix(line,"/permit "){
-  parts:=strings.Fields(line)
+  parts:=strings.SplitN(line," ",3)
   if len(parts)!=3{
    b.emit("\r\n[Nexus] Usage: /permit <request-id> <option-id>\r\n")
    return
@@ -141,6 +141,13 @@ func (b *structuredBackend)execute(ctx context.Context,bridge *agentwire.Bridge,
   if err:=bridge.Choose(parts[1],parts[2]);err!=nil{
    b.emit("\r\n[Nexus] Invalid or expired permission selection.\r\n")
   }else{b.emit("\r\n[Nexus] Permission response submitted; awaiting agent status.\r\n")}
+  return
+ }
+ if strings.HasPrefix(line,"/answer "){
+  parts:=strings.SplitN(line," ",3)
+  if len(parts)!=3{b.emit("\r\n[Nexus] Usage: /answer <request-id> <text>\r\n");return}
+  if err:=bridge.ReplyText(parts[1],parts[2]);err!=nil{b.emit("\r\n[Nexus] Invalid or expired text request.\r\n")
+  }else{b.emit("\r\n[Nexus] Response submitted.\r\n")}
   return
  }
  if strings.HasPrefix(line,"/"){b.emit("\r\n[Nexus] Unknown structured command.\r\n");return}
