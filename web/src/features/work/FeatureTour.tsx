@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Compass } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../design-system';
@@ -27,6 +27,10 @@ export const FeatureTour: React.FC<{
   const steps = featureTourSteps[surface];
   const key = featureTourStorageKey(projectId, surface);
   const [initialIndex, setInitialIndex] = useState(0);
+  // Switching projects must not leave a tour for the previous project open.
+  useEffect(() => {
+    setOpen(false);
+  }, [projectId, surface]);
   const save = (index: number) => {
     try { window.localStorage.setItem(key, String(index)); }
     catch { /* No persistence available; tour still usable. */ }
