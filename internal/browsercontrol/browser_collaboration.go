@@ -171,7 +171,16 @@ func (s *Session) BeginHuman(actor string) (Handoff, error) {
 		return Handoff{}, errors.New("human Nexus session required")
 	}
 	if s.handoff.Status != "requested" && s.handoff.Status != "human_active" {
-		return Handoff{}, errors.New("no human intervention pending")
+		// A human may proactively pause an agent. The session lock ensures
+		// that any in-flight CDP action finishes before this transfer.
+		if !strings.HasPrefix(s.controller, "agent:") {
+			return Handoff{}, errors.New("no agent or intervention to take over")
+		}
+		now := time.Now()
+		s.handoff = Handoff{
+			Status: "requested", Reason: "User requested browser control",
+			RequestedBy: s.controller, RequestedAt: now, UpdatedAt: now,
+		}
 	}
 	if s.handoff.Status == "human_active" && s.controller != actor &&
 		s.controller != "" && time.Now().Before(s.controllerUntil) {

@@ -535,9 +535,19 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
                 void browserAPI
                   .control(session.id, 'acquire')
                   .then((result) => setController(result.controller))
-                  .catch((err: unknown) =>
-                    setError(err instanceof Error ? err.message : String(err)),
-                  );
+                  .catch(async () => {
+                    // If an agent owns the page, use an atomic Core handoff
+                    // rather than competing with the agent's input lease.
+                    try {
+                      const state = await browserAPI.handoff(session.id, 'begin');
+                      setHandoff(state);
+                      setPrivateInput(true);
+                      setController(true);
+                    } catch (err) {
+                      setController(false);
+                      setError(err instanceof Error ? err.message : String(err));
+                    }
+                  });
               }
             }}
           >

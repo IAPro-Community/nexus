@@ -133,3 +133,35 @@ func TestBrowserHandoffReasonValidation(t *testing.T) {
 		t.Fatal("cancel not recorded")
 	}
 }
+
+func TestBrowserProactiveHumanTakeover(t *testing.T) {
+	s := &Session{}
+	agent := "agent:coder"
+	human := "human:phone"
+	if ok, _ := s.AcquireAgentControl(agent); !ok {
+		t.Fatal("agent did not acquire browser")
+	}
+	state, err := s.BeginHuman(human)
+	if err != nil || state.Status != "human_active" {
+		t.Fatalf("user could not interrupt agent: %+v %v", state, err)
+	}
+	if !s.CanControl(human) {
+		t.Fatal("human was not given control")
+	}
+	if _, err := s.DoAs(context.Background(), agent, Action{Type: "key", Key: "Enter"}); err == nil {
+		t.Fatal("stale agent command executed after takeover")
+	}
+	info := s.ControlInfo()
+	if info["controller"] != "human" {
+		t.Fatalf("human session ID exposed in control status: %+v", info)
+	}
+	if ok, _ := s.AcquireAgentControl(agent); ok {
+		t.Fatal("agent resumed before completion")
+	}
+	if _, err := s.FinishHuman(human); err != nil {
+		t.Fatal(err)
+	}
+	if ok, reason := s.AcquireAgentControl(agent); !ok {
+		t.Fatalf("agent could not resume: %s", reason)
+	}
+}

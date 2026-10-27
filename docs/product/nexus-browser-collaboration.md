@@ -41,6 +41,10 @@ NOTICE obligations and track upstream security updates.
    to call `browser_request_control`, `browser_navigate`, `browser_snapshot`
    and `browser_click` / `browser_fill`. An existing human controller
    must release control before an agent can acquire it.
+The user can also press **Assumir controle** while an agent is running.
+The Core waits for any in-flight CDP action to finish, pauses the agent
+and gives control to the user. After **Concluído**, the agent may reacquire.
+
 5. When a logged-in page is required, the agent calls:
    `browser_request_human({"reason":"Sign in and select organization"})`.
    Its input lease is released, and subsequent agent snapshots/screenshots
