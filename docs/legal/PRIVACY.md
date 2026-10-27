@@ -21,3 +21,7 @@ Identificar o responsável pelo tratamento, a base legal aplicável e um canal d
 ## Licenciamento
 
 A política do source está em [LICENSING.md](LICENSING.md). O uso de qualquer provider depende adicionalmente dos respectivos contratos.
+
+## Participação comunitária, repositório e doações
+
+Participar em issues e PRs do GitHub expõe os dados de perfil e conteúdo que o próprio contribuinte publicar, sujeitos aos termos da plataforma. Evite reproduzir logs privados ou segredos. O plano de doações não representa, por si só, uma coleta implementada nem o início de um programa de pagamentos: veja [financiamento](../community/FUNDING.md). A futura licença de software não altera automaticamente o tratamento de dados nem as condições dos provedores de IA.
