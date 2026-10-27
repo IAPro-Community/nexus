@@ -1019,7 +1019,17 @@ func (sh *SessionHost) waitProcess() {
 		}
 	}
 	sh.session.State = state
-	_ = sh.registry.UpdateState(sh.session.RuntimeID, state)
+	// Process exit invalidates outstanding terminal and protocol prompts.
+	// Do not leave a stale needs_user notification for a dead runtime.
+	sh.session.AttentionReason = ""
+	sh.session.AttentionContext = ""
+	sh.session.AttentionFingerprint = ""
+	sh.session.PromptKind = PromptKindNone
+	sh.session.AttentionKind = AttentionIdle
+	_ = sh.registry.UpdateAttentionMeta(sh.session.RuntimeID, registry.AttentionUpdate{
+		State: state, Reason: "", Context: "", Fingerprint: "",
+		PromptKind: PromptKindNone, Kind: AttentionIdle,
+	})
 
 	eventData := sh.lifecycleEventData(map[string]any{"state": string(state)})
 	if state == registry.StateFailed {
