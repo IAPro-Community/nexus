@@ -235,7 +235,8 @@ antes de marketing**.
 **Licença vigente:** [PolyForm Strict 1.0.0](../LICENSE), sem autorização geral para modificar/redistribuir; **não anunciar como open source** antes da publicação efetiva da licença OSI. **Proposta:** Apache-2.0 após validação jurídica e de segurança. Veja [plano de transição](legal/OPEN_SOURCE_TRANSITION.md) e [checklist de abertura](PUBLICATION_CHECKLIST.md).
 
 - [Licenciamento atual](legal/LICENSING.md) e [terceiros](legal/THIRD_PARTY_NOTICES.md)
-- [Contribuir](../CONTRIBUTING.md), [governança](../GOVERNANCE.md) e [guia de revisão](community/REVIEW_GUIDE.md)
+- [Portal Community](community/README.md), [contribuir](../CONTRIBUTING.md), [governança](../GOVERNANCE.md) e [guia de revisão](community/REVIEW_GUIDE.md)
+- [Configuração administrativa segura de PRs](community/ADMIN_SETUP.md)
 - [Forks/upstream](community/FORKS_AND_UPSTREAM.md) e [proteção da identidade](legal/TRADEMARK_POLICY.md)
 - [Doações e sustentabilidade](community/FUNDING.md)
 - [Segurança](../SECURITY.md), [conduta](../CODE_OF_CONDUCT.md) e [suporte](../SUPPORT.md)
