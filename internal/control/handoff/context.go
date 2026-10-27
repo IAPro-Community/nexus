@@ -115,7 +115,7 @@ func (s *Service) PerformContextHandoff(ctx context.Context, sourceRuntimeID, ta
 	}
 
 	// 3. Capture Safe Work Checkpoint
-	cp := CaptureWorkCheckpoint(source.Workspace, source.RuntimeID, source.ProviderID, source.ProfileID, source.ProviderSessionID, source.Model, "")
+	cp := CaptureWorkCheckpoint(source.Workspace, source.RuntimeID, source.ProviderID, source.ProfileID, source.ProviderSessionID, source.Model, source.LastTaskSummary)
 	if _, err := SaveCheckpoint(cp); err != nil {
 		return nil, fmt.Errorf("context handoff aborted: failed to persist work checkpoint: %w", err)
 	}
@@ -136,19 +136,28 @@ func (s *Service) PerformContextHandoff(ctx context.Context, sourceRuntimeID, ta
 	// 4b. Resolve model for target provider
 	targetModel := ResolveTargetModel(source.Model, source.ProviderID, targetProvider)
 
-	// 5. Quiesce and gracefully stop source runtime before launching target
-	// to prevent concurrent writers on the same workspace.
+	// 5. A known provider PID is required to prove the writer has stopped.
+	if source.PID <= 0 {
+		return nil, fmt.Errorf("context handoff aborted (FAILED_SAFE): source runtime %s has no verifiable provider PID", sourceRuntimeID)
+	}
 	client, err := protocol.NewClient(sourceRuntimeID)
 	if err == nil {
 		_ = client.Stop()
 		_ = client.Close()
 	}
-	waitForProcessStop(ctx, source.PID, 2*time.Second)
+	stopped := waitForProcessStop(ctx, source.PID, 2*time.Second)
 	if err := ctx.Err(); err != nil {
-		_ = reg.UpdateState(sourceRuntimeID, registry.StateRunning)
+		_ = reg.UpdateState(sourceRuntimeID, contextHandoffSourceState(source))
 		return nil, fmt.Errorf("context handoff canceled before target start: %w", err)
 	}
-	_ = reg.UpdateState(sourceRuntimeID, registry.StateHandoff)
+	// Stop acknowledgements alone do not guarantee the workspace is safe.
+	if !stopped || registry.IsProcessAlive(source.PID) {
+		_ = reg.UpdateState(sourceRuntimeID, contextHandoffSourceState(source))
+		return nil, fmt.Errorf("context handoff aborted (FAILED_SAFE): source runtime %s did not stop; refusing a concurrent workspace writer", sourceRuntimeID)
+	}
+	if err := reg.UpdateState(sourceRuntimeID, registry.StateHandoff); err != nil {
+		return nil, fmt.Errorf("context handoff source stopped but state persistence failed: %w", err)
+	}
 
 	// 6. Launch Target Supervised Runtime via unified launcher (persistent host)
 	newRuntimeID := fmt.Sprintf("%s-continue-%s", targetProvider, ids.NewRuntimeID())
@@ -169,9 +178,9 @@ func (s *Service) PerformContextHandoff(ctx context.Context, sourceRuntimeID, ta
 		Labels:       cloneRuntimeLabels(source.Labels),
 	})
 	if err != nil {
-		// Rollback source state on target launch failure
-		_ = reg.UpdateState(sourceRuntimeID, registry.StateRunning)
-		return nil, fmt.Errorf("failed to start context handoff target runtime: %w", err)
+		// A stopped process cannot be restored by changing a registry label.
+		_ = reg.UpdateState(sourceRuntimeID, registry.StateStopped)
+		return nil, fmt.Errorf("context handoff target failed to start (FAILED_SAFE): %w; source runtime is stopped; checkpoint %s is available for explicit recovery", err, cp.CheckpointID)
 	}
 
 	newSession.ParentRuntimeID = source.RuntimeID
@@ -199,6 +208,17 @@ func (s *Service) PerformContextHandoff(ctx context.Context, sourceRuntimeID, ta
 	events.DefaultBus().Publish(newContextHandoffCompletedEvent(lineageID, source, *newSession, cp.CheckpointID))
 
 	return newSession, nil
+}
+
+// contextHandoffSourceState reports process reality after a failed stop.
+func contextHandoffSourceState(source registry.RuntimeSession) registry.RuntimeState {
+	if source.PID <= 0 {
+		return registry.StateStale
+	}
+	if registry.IsProcessAlive(source.PID) {
+		return source.State
+	}
+	return registry.StateStopped
 }
 
 func newContextHandoffCompletedEvent(lineageID string, source, target registry.RuntimeSession, checkpointID string) events.Event {

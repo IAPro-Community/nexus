@@ -12,6 +12,19 @@ import (
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 )
 
+func TestContextHandoffSourceStateNeverRevivesStoppedProcess(t *testing.T) {
+	live := registry.RuntimeSession{PID: os.Getpid(), State: registry.StateWaiting}
+	if got := contextHandoffSourceState(live); got != registry.StateWaiting {
+		t.Fatalf("live source should retain WAITING, got %s", got)
+	}
+	if got := contextHandoffSourceState(registry.RuntimeSession{PID: 0, State: registry.StateRunning}); got != registry.StateStale {
+		t.Fatalf("unknown PID must never be reported as RUNNING, got %s", got)
+	}
+	if got := contextHandoffSourceState(registry.RuntimeSession{PID: 99999999, State: registry.StateRunning}); got != registry.StateStopped {
+		t.Fatalf("dead source must never be reported as RUNNING, got %s", got)
+	}
+}
+
 func TestHandoffServiceUsesInjectedRuntimeRegistry(t *testing.T) {
 	owned := registry.NewRegistry("")
 	ownedRuntimeID := "handoff-owned-runtime-test"
