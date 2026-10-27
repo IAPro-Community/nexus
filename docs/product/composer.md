@@ -94,3 +94,11 @@ o histórico será preservado.
 
 A exclusão continua disponível mesmo se Nexus Intelligence estiver offline:
 ela é uma operação de gerenciamento do usuário, não geração com IA.
+
+## Tour guiado e primeira experiência
+
+No Composer, **Conhecer esta área** apresenta explicações contextuais na
+abertura, sessão de conversa e histórico sem IA. É opcional, retoma a etapa
+anterior por projeto e não executa ações automaticamente. Consulte
+[tours guiados Composer/Flow](composer-flow-tour.md) para detalhes,
+limitações e critérios de homologação.
