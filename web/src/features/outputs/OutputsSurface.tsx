@@ -222,7 +222,7 @@ const OutputPreview: React.FC<{ projectId: string; item: OutputItem; onClose: ()
             ))}
           </div>
         )}
-        {item.sha256 && <footer className={styles.hash}>SHA-256: {item.sha256}</footer>
+        {item.sha256 && <footer className={styles.hash}>SHA-256: {item.sha256}</footer>}
       </div>
     </div>
   );
