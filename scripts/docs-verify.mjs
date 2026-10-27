@@ -73,6 +73,18 @@ for (const file of publicMarkdownFiles) {
     if (pattern.test(text)) errors.push(`public documentation contains non-synthetic data or stale capture marker: ${path.relative(root, file)} -> ${pattern}`);
   }
 }
+// Link-only mode is a genuine pre-capture preflight. It must not evaluate
+// source-SHA visual evidence: screenshots are recaptured *after* this step.
+// Full docs verification (default mode) still requires immutable provenance.
+if (process.argv.includes('--links-only')) {
+  if (errors.length) {
+    console.error(errors.map((error) => `✗ ${error}`).join('\\n'));
+    process.exit(1);
+  }
+  console.log(`documentation link preflight passed: ${markdownFiles.length} Markdown files`);
+  process.exit(0);
+}
+
 const manifestPath = path.join(root, 'docs/assets/screenshots/manifest.json');
 if (existsSync(manifestPath)) {
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));

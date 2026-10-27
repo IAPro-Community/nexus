@@ -118,7 +118,9 @@ jobs:
 
       - name: Verify public documentation links before expensive screenshot capture
         shell: pwsh
-        run: bun scripts/docs-verify.mjs
+        # Do not enforce screenshot provenance before docs:capture can refresh
+        # it for the exact SHA. The full gate remains after capture.
+        run: bun scripts/docs-verify.mjs --links-only
 
       - name: Install Playwright Chromium for visual evidence
         shell: pwsh
@@ -129,6 +131,10 @@ jobs:
         continue-on-error: true
         shell: pwsh
         run: bun run --cwd web docs:capture
+
+      - name: Verify full documentation contract against fresh captures
+        shell: pwsh
+        run: bun scripts/docs-verify.mjs
 
       - name: Verify exact SHA and generated capture outputs
         shell: pwsh

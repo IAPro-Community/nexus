@@ -6,7 +6,9 @@ on:
       - release/v1.0.0
     paths:
       - .github/workflows/visual-refresh.yml
-      - web/src/features/hud/NexusHud.tsx
+      - web/src/**
+      - internal/desktop/hud_appearance.go
+      - cmd/nexus-desktop/**
       - web/scripts/docs-capture.mjs
   workflow_dispatch:
 
