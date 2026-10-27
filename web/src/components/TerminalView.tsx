@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { RuntimeSession } from '../types';
 import { TerminalPane } from './TerminalPane';
 import { Columns2, Square, Grid2X2 } from 'lucide-react';
+import { normalizeOpenRuntimeIds, visibleTerminalRuntimes, type TerminalSplitMode } from './terminalViewModel';
 
 interface TerminalViewProps {
   runtimes: RuntimeSession[];
@@ -16,19 +17,21 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
   onSelectRuntime,
   onUpdateTitle,
 }) => {
-  const [splitMode, setSplitMode] = useState<'single' | 'split-h' | 'grid'>('single');
+  const [splitMode, setSplitMode] = useState<TerminalSplitMode>('single');
   const [openIds, setOpenIds] = useState<string[]>(() => {
     if (activeRuntimeId) return [activeRuntimeId];
     if (runtimes.length > 0) return [runtimes[0].runtime_id];
     return [];
   });
 
-  // Ensure activeRuntimeId is tracked in openIds
+  // Session selection and split membership are view-only, never a runtime launch.
+  // Normalize when a runtime disappears or the host selects another session.
   React.useEffect(() => {
-    if (activeRuntimeId) {
-      setOpenIds((prev) => (prev.includes(activeRuntimeId) ? prev : [...prev, activeRuntimeId]));
-    }
-  }, [activeRuntimeId]);
+    setOpenIds((prev) => {
+      const next = normalizeOpenRuntimeIds(prev, runtimes, activeRuntimeId);
+      return next.length === prev.length && next.every((id, i) => id === prev[i]) ? prev : next;
+    });
+  }, [runtimes, activeRuntimeId]);
 
   if (runtimes.length === 0) {
     return (
@@ -41,28 +44,25 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
     );
   }
 
-  const handleCloseTab = (id: string) => {
-    setOpenIds((prev) => {
-      const next = prev.filter((item) => item !== id);
-      if (id === activeRuntimeId && next.length > 0) {
-        onSelectRuntime(next[0]);
-      }
-      return next;
-    });
+  const opened = normalizeOpenRuntimeIds(openIds, runtimes, activeRuntimeId);
+  const currentId = activeRuntimeId && runtimes.some((r) => r.runtime_id === activeRuntimeId)
+    ? activeRuntimeId
+    : opened[0];
+  const renderSessions = visibleTerminalRuntimes(runtimes, opened, currentId, splitMode);
+
+  const handleSelectTab = (id: string) => {
+    setOpenIds((prev) => prev.includes(id) ? prev : [...prev, id]);
+    onSelectRuntime(id);
   };
 
-  // Determine which runtimes to render based on split mode
-  const currentId = activeRuntimeId || (openIds.length > 0 ? openIds[0] : runtimes[0].runtime_id);
-  const activeSession = runtimes.find((r) => r.runtime_id === currentId);
-
-  let renderSessions: RuntimeSession[] = [];
-  if (splitMode === 'single') {
-    if (activeSession) renderSessions = [activeSession];
-  } else if (splitMode === 'split-h') {
-    renderSessions = runtimes.slice(0, 2);
-  } else if (splitMode === 'grid') {
-    renderSessions = runtimes.slice(0, 4);
-  }
+  const handleCloseTab = (id: string) => {
+    const remaining = opened.filter((item) => item !== id);
+    // The parent controls activeRuntimeId: keep the final view instead of
+    // appearing to close it and immediately reopening it on the next render.
+    if (remaining.length === 0) return;
+    setOpenIds(remaining);
+    if (id === currentId) onSelectRuntime(remaining[0]);
+  };
 
   return (
     <div className="flex flex-col h-full space-y-2">
@@ -81,7 +81,7 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
             return (
               <button
                 key={r.runtime_id}
-                onClick={() => onSelectRuntime(r.runtime_id)}
+                onClick={() => handleSelectTab(r.runtime_id)}
                 className={`flex items-center space-x-2 px-3 py-1.5 rounded text-xs font-mono transition border ${
                   isActive
                     ? 'bg-[var(--nx-surface)] text-[var(--nx-text)] border-[var(--nx-border-strong)] font-semibold shadow-sm'
