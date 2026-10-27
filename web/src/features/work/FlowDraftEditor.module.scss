@@ -192,3 +192,12 @@
   font-size: var(--nx-font-size-xs);
   color: var(--nx-text-soft);
 }
+
+.studioTourRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px 0;
+}
