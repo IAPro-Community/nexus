@@ -1473,6 +1473,7 @@ const WorkspaceCoordinator: React.FC<{
         onToggleZenMode={presentation.toggleZenMode}
         onOpenRail={() => setRailOpen(true)}
         onOpenSurface={openKind}
+        discoveryEnabled={COMPOSER_FLOW_ENABLED}
         onCommand={() => setPalette(true)}
         onOpenWelcome={() => setWelcomeOpen(true)}
         onOpenProjectManager={() => openKind('projects')}
