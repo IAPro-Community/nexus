@@ -8,8 +8,6 @@ on:
   push:
     branches: [main, master]
     tags: ['v*']
-  pull_request:
-    branches: [main, master]
   workflow_dispatch:
     inputs:
       native_target_sha:
@@ -26,6 +24,12 @@ on:
           - windows
           - macos
           - all
+
+# Untrusted fork PRs run only in isolated community-pr.yml on GitHub-hosted
+# runners. Self-hosted CI jobs remain push/dispatch-only; require protected
+# branches and approval of users permitted to push.
+permissions:
+  contents: read
 
 env:
   GOTOOLCHAIN: local
