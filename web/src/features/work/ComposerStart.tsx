@@ -6,6 +6,7 @@ import type { ComposerSession } from '../../types';
 import { nexus } from '../../nexus/api';
 import { composerSessionStateKey, formatComposerSessionTitle } from './composerModel';
 import styles from './ComposerSurface.module.scss';
+import { FeatureTour } from './FeatureTour';
 
 export type ComposerStartCreateArgs = {
   mode: 'IDEA' | 'EXISTING_PROMPT';
@@ -89,7 +90,8 @@ export const ComposerStart: React.FC<{
 
   return (
     <div className={styles.composerWelcome}>
-      <div className={styles.composerWelcomeHero}>
+      <div className={styles.composerWelcomeHero} data-tour="composer-purpose">
+        <FeatureTour projectId={projectId} surface="composer-start" />
         <span className={styles.composerWelcomeEyebrow}><Sparkles size={15} /> COMPOSER · NEXUS</span>
         <h1 className={styles.composerWelcomeTitle}>
           {t('work.composer.welcomeTitle', 'O que vamos construir?')}
@@ -100,7 +102,7 @@ export const ComposerStart: React.FC<{
         </p>
       </div>
       <Card className={styles.composerWelcomeEntry}>
-        <div className={`${styles.goalBarLabel} ${styles.flexRowBetween}`}>
+        <div className={`${styles.goalBarLabel} ${styles.flexRowBetween}`} data-tour="composer-mode">
         <div className={styles.flexRowGap6}>
           <Sparkles size={16} />
           <span>{t('work.composer.startTitle', 'Nova elaboração')}</span>
@@ -125,7 +127,7 @@ export const ComposerStart: React.FC<{
         </div>
         </div>
 
-        <div className={styles.flexColGap8}>
+        <div className={styles.flexColGap8} data-tour="composer-goal">
         <label className={styles.composerWelcomeInputLabel}>
           {t('work.composer.goalLabel', 'Descreva sua ideia ou o problema que deseja resolver')}
         </label>
@@ -159,7 +161,7 @@ export const ComposerStart: React.FC<{
             disabled={busy}
           />
         )}
-        <div className={styles.flexRowWrapGap8}>
+        <div className={styles.flexRowWrapGap8} data-tour="composer-depth">
           <label htmlFor={interviewDepthId} className={styles.mutedLabel}>
             {t('work.composer.interviewDepth', 'Interview depth')}
           </label>
@@ -208,7 +210,7 @@ export const ComposerStart: React.FC<{
         </div>
       </Card>
       {sessions.length > 0 && (
-        <Card className={styles.composerWelcomeHistory}>
+        <Card className={styles.composerWelcomeHistory} data-tour="composer-history">
           <div className={styles.composerWelcomeHistoryHeader}>
           <History size={15} />
           <strong>{t('work.composer.previousSessions', 'Continuar uma elaboração')}</strong>
