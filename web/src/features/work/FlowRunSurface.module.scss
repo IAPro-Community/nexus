@@ -26,3 +26,9 @@
   font-size: 0.875rem;
   overflow-wrap: anywhere;
 }
+
+.tourRow {
+  display: flex;
+  justify-content: flex-end;
+  padding-bottom: 8px;
+}
