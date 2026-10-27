@@ -92,16 +92,23 @@ func (s *Server) handleBrowserSession(w http.ResponseWriter, r *http.Request) {
 		s.handleBrowserStream(w, r, session)
 	case action == "control" && r.Method == http.MethodPost:
 		actor := s.auth.AuthenticateRequest(r)
-		if actor == nil { writeError(w, http.StatusUnauthorized, "authentication required"); return }
-		var input struct { Mode string `json:"mode"` }
+		if actor == nil {
+			writeError(w, http.StatusUnauthorized, "authentication required")
+			return
+		}
+		var input struct {
+			Mode string `json:"mode"`
+		}
 		r.Body = http.MaxBytesReader(w, r.Body, 1024)
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid control request"); return
+			writeError(w, http.StatusBadRequest, "invalid control request")
+			return
 		}
 		switch input.Mode {
 		case "acquire", "renew":
 			if ok, reason := session.AcquireControl(actor.ID); !ok {
-				writeError(w, http.StatusConflict, reason); return
+				writeError(w, http.StatusConflict, reason)
+				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"controller": true, "lease_seconds": 25})
 		case "release":
@@ -141,7 +148,10 @@ func (s *Server) handleBrowserSession(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		actor := s.auth.AuthenticateRequest(r)
-		if actor == nil { writeError(w, http.StatusUnauthorized, "authentication required"); return }
+		if actor == nil {
+			writeError(w, http.StatusUnauthorized, "authentication required")
+			return
+		}
 		if !session.CanControl(actor.ID) {
 			writeError(w, http.StatusConflict, "browser input requires an active control lease")
 			return
@@ -161,12 +171,14 @@ func (s *Server) handleBrowserSession(w http.ResponseWriter, r *http.Request) {
 // clients. Chromium's DevTools URL is never sent to the frontend.
 func (s *Server) handleBrowserStream(w http.ResponseWriter, r *http.Request, session *browsercontrol.Session) {
 	upgrader := websocket.Upgrader{
-		ReadBufferSize: 1024,
+		ReadBufferSize:  1024,
 		WriteBufferSize: 32 * 1024,
-		CheckOrigin: func(req *http.Request) bool { return s.auth.ValidateOrigin(req) },
+		CheckOrigin:     func(req *http.Request) bool { return s.auth.ValidateOrigin(req) },
 	}
 	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil { return }
+	if err != nil {
+		return
+	}
 	defer conn.Close()
 	frames, unsubscribe, err := session.SubscribeFrames()
 	if err != nil {
@@ -179,7 +191,9 @@ func (s *Server) handleBrowserStream(w http.ResponseWriter, r *http.Request, ses
 		defer close(disconnected)
 		conn.SetReadLimit(1024)
 		for {
-			if _, _, err := conn.ReadMessage(); err != nil { return }
+			if _, _, err := conn.ReadMessage(); err != nil {
+				return
+			}
 		}
 	}()
 	// Immediate image fallback while the screencast handshake completes.
@@ -187,22 +201,32 @@ func (s *Server) handleBrowserStream(w http.ResponseWriter, r *http.Request, ses
 	img, shotErr := session.Screenshot(ctx)
 	cancel()
 	if shotErr == nil {
-		_ = conn.SetWriteDeadline(time.Now().Add(8*time.Second))
-		if err := conn.WriteJSON(map[string]any{"type": "frame", "data": base64.StdEncoding.EncodeToString(img)}); err != nil { return }
+		_ = conn.SetWriteDeadline(time.Now().Add(8 * time.Second))
+		if err := conn.WriteJSON(map[string]any{"type": "frame", "data": base64.StdEncoding.EncodeToString(img)}); err != nil {
+			return
+		}
 	}
 	keepalive := time.NewTicker(20 * time.Second)
 	defer keepalive.Stop()
 	for {
 		select {
-		case <-r.Context().Done(): return
-		case <-disconnected: return
+		case <-r.Context().Done():
+			return
+		case <-disconnected:
+			return
 		case data, ok := <-frames:
-			if !ok { return }
-			_ = conn.SetWriteDeadline(time.Now().Add(8*time.Second))
-			if err := conn.WriteJSON(map[string]any{"type": "frame", "data": string(data)}); err != nil { return }
+			if !ok {
+				return
+			}
+			_ = conn.SetWriteDeadline(time.Now().Add(8 * time.Second))
+			if err := conn.WriteJSON(map[string]any{"type": "frame", "data": string(data)}); err != nil {
+				return
+			}
 		case <-keepalive.C:
-			_ = conn.SetWriteDeadline(time.Now().Add(8*time.Second))
-			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil { return }
+			_ = conn.SetWriteDeadline(time.Now().Add(8 * time.Second))
+			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
 		}
 	}
 }

@@ -1,6 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ArrowLeft, ArrowRight, Camera, Globe, Keyboard, Lock, RefreshCw, Send, Unlock,
+  ArrowLeft,
+  ArrowRight,
+  Camera,
+  Globe,
+  Keyboard,
+  Lock,
+  RefreshCw,
+  Send,
+  Unlock,
 } from 'lucide-react';
 import { getDesktopAuthToken, getWebSocketEndpoint, request } from '../../api';
 import { useTranslation } from 'react-i18next';
@@ -81,10 +89,9 @@ export const BrowserSurface: React.FC<{
   useEffect(() => {
     const target = rootRef.current;
     if (!target || typeof IntersectionObserver === 'undefined') return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setVisible(entry.isIntersecting),
-      { threshold: 0.01 },
-    );
+    const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), {
+      threshold: 0.01,
+    });
     observer.observe(target);
     return () => observer.disconnect();
   }, []);
@@ -109,7 +116,9 @@ export const BrowserSurface: React.FC<{
           if (!mounted.current) {
             // Closing a new surface during Chromium startup must not leak
             // one of the four managed browser slots.
-            void request<{status:string}>(`${browserRoute(next.id)}`, {method:'DELETE'}).catch(() => undefined);
+            void request<{ status: string }>(`${browserRoute(next.id)}`, {
+              method: 'DELETE',
+            }).catch(() => undefined);
             return;
           }
           setSession(next);
@@ -226,9 +235,14 @@ export const BrowserSurface: React.FC<{
     void acquire();
     const interval = window.setInterval(() => {
       if (document.hidden) return;
-      void browserAPI.control(session.id, 'renew')
-        .then((res) => { if (!stopped) setController(res.controller); })
-        .catch(() => { if (!stopped) setController(false); });
+      void browserAPI
+        .control(session.id, 'renew')
+        .then((res) => {
+          if (!stopped) setController(res.controller);
+        })
+        .catch(() => {
+          if (!stopped) setController(false);
+        });
     }, 11000);
     return () => {
       stopped = true;
@@ -238,107 +252,235 @@ export const BrowserSurface: React.FC<{
     };
   }, [session?.id, visible, wantsControl]);
 
-  const perform = useCallback(async (action: NexusBrowserAction) => {
-    if (!session || !controller || busy) return;
-    setBusy(true);
-    try {
-      const next = await browserAPI.action(session.id, action);
-      setSession(next);
-      if (action.type === 'navigate') setAddress(next.url);
-      setError('');
-      window.setTimeout(() => { void refreshImage().catch(() => undefined); }, 450);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  }, [session, busy, controller, refreshImage]);
+  const perform = useCallback(
+    async (action: NexusBrowserAction) => {
+      if (!session || !controller || busy) return;
+      setBusy(true);
+      try {
+        const next = await browserAPI.action(session.id, action);
+        setSession(next);
+        if (action.type === 'navigate') setAddress(next.url);
+        setError('');
+        window.setTimeout(() => {
+          void refreshImage().catch(() => undefined);
+        }, 450);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [session, busy, controller, refreshImage],
+  );
 
   const clickAt = (event: React.MouseEvent<HTMLButtonElement>) => {
-    if (ignoreClick.current) { ignoreClick.current = false; return; }
+    if (ignoreClick.current) {
+      ignoreClick.current = false;
+      return;
+    }
     if (!session || !controller) return;
     const rect = event.currentTarget.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
-    const x = Math.max(0, Math.min(session.width - 1, (event.clientX - rect.left) * session.width / rect.width));
-    const y = Math.max(0, Math.min(session.height - 1, (event.clientY - rect.top) * session.height / rect.height));
-    void perform({type:'click',x,y});
+    const x = Math.max(
+      0,
+      Math.min(session.width - 1, ((event.clientX - rect.left) * session.width) / rect.width),
+    );
+    const y = Math.max(
+      0,
+      Math.min(session.height - 1, ((event.clientY - rect.top) * session.height) / rect.height),
+    );
+    void perform({ type: 'click', x, y });
   };
 
   const inspect = () => {
     if (!session) return;
-    void browserAPI.snapshot(session.id).then((value) => {
-      setSnapshot(value.text);
-      if (value.url) setAddress(value.url);
-    }).catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
+    void browserAPI
+      .snapshot(session.id)
+      .then((value) => {
+        setSnapshot(value.text);
+        if (value.url) setAddress(value.url);
+      })
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
   };
 
   return (
-    <section ref={rootRef} className={styles.root} aria-label={t('browser.title', 'Navegador Nexus')}>
-      <form className={styles.toolbar} onSubmit={(event) => {
-        event.preventDefault();
-        void perform({type:'navigate',url:address.trim()});
-      }}>
+    <section
+      ref={rootRef}
+      className={styles.root}
+      aria-label={t('browser.title', 'Navegador Nexus')}
+    >
+      <form
+        className={styles.toolbar}
+        onSubmit={(event) => {
+          event.preventDefault();
+          void perform({ type: 'navigate', url: address.trim() });
+        }}
+      >
         <Globe size={16} aria-hidden="true" />
-        <button type="button" disabled={!controller || busy} onClick={() => void perform({type:'back'})} aria-label="Voltar"><ArrowLeft size={15}/></button>
-        <button type="button" disabled={!controller || busy} onClick={() => void perform({type:'forward'})} aria-label="Avançar"><ArrowRight size={15}/></button>
-        <input type="url" className={styles.address} aria-label="Endereço da página"
-          value={address} onChange={(e) => setAddress(e.target.value)} required />
-        <button type="submit" disabled={!controller || busy} aria-label="Navegar"><ArrowRight size={15}/></button>
-        <button type="button" disabled={!controller || busy} onClick={() => void perform({type:'reload'})} aria-label="Recarregar página"><RefreshCw size={15}/></button>
-        <button type="button" disabled={!session} onClick={inspect} aria-label="Inspecionar conteúdo"><Camera size={15}/></button>
+        <button
+          type="button"
+          disabled={!controller || busy}
+          onClick={() => void perform({ type: 'back' })}
+          aria-label="Voltar"
+        >
+          <ArrowLeft size={15} />
+        </button>
+        <button
+          type="button"
+          disabled={!controller || busy}
+          onClick={() => void perform({ type: 'forward' })}
+          aria-label="Avançar"
+        >
+          <ArrowRight size={15} />
+        </button>
+        <input
+          type="url"
+          className={styles.address}
+          aria-label="Endereço da página"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          required
+        />
+        <button type="submit" disabled={!controller || busy} aria-label="Navegar">
+          <ArrowRight size={15} />
+        </button>
+        <button
+          type="button"
+          disabled={!controller || busy}
+          onClick={() => void perform({ type: 'reload' })}
+          aria-label="Recarregar página"
+        >
+          <RefreshCw size={15} />
+        </button>
+        <button
+          type="button"
+          disabled={!session}
+          onClick={inspect}
+          aria-label="Inspecionar conteúdo"
+        >
+          <Camera size={15} />
+        </button>
       </form>
       <div className={styles.controlBar} role="status">
         <span>{live ? 'Ao vivo' : 'Capturas / reconectando'}</span>
         <span>{controller ? 'Você controla' : 'Somente visualização'}</span>
-        {session && <button type="button" onClick={() => {
-            if (controller) {
-              setWantsControl(false);
-              setController(false);
-            } else {
-              setWantsControl(true);
-              void browserAPI.control(session.id, 'acquire')
-                .then((result) => setController(result.controller))
-                .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
-            }
-          }}>
-          {controller ? <Unlock size={13}/> : <Lock size={13}/>}
-          {controller ? 'Liberar controle' : 'Assumir controle'}
-        </button>}
+        {session && (
+          <button
+            type="button"
+            onClick={() => {
+              if (controller) {
+                setWantsControl(false);
+                setController(false);
+              } else {
+                setWantsControl(true);
+                void browserAPI
+                  .control(session.id, 'acquire')
+                  .then((result) => setController(result.controller))
+                  .catch((err: unknown) =>
+                    setError(err instanceof Error ? err.message : String(err)),
+                  );
+              }
+            }}
+          >
+            {controller ? <Unlock size={13} /> : <Lock size={13} />}
+            {controller ? 'Liberar controle' : 'Assumir controle'}
+          </button>
+        )}
       </div>
       <div className={styles.viewportScroll}>
-        {frame ? <button type="button" className={styles.viewportButton} onClick={clickAt}
-          onWheel={(event) => {
-            if (!session || !controller) return;
-            void perform({type:'scroll',x:session.width/2,y:session.height/2,delta_y:event.deltaY});
-          }}
-          onTouchStart={(event) => { touchStart.current = event.touches[0]?.clientY ?? null; }}
-          onTouchEnd={(event) => {
-            if (touchStart.current === null || !session) return;
-            const end = event.changedTouches[0]?.clientY;
-            if (end !== undefined && Math.abs(end - touchStart.current) > 25) {
-              ignoreClick.current = true;
-              if (controller) void perform({type:'scroll',x:session.width/2,y:session.height/2,delta_y:(touchStart.current-end)*2});
-            }
-            touchStart.current = null;
-          }}
-          aria-label="Página do navegador (clique para interagir)">
-          <img src={frame} alt="Visualização atual da página" draggable={false}/>
-        </button> : <div className={styles.placeholder}>Iniciando Chromium / aguardando imagem…</div>}
+        {frame ? (
+          <button
+            type="button"
+            className={styles.viewportButton}
+            onClick={clickAt}
+            onWheel={(event) => {
+              if (!session || !controller) return;
+              void perform({
+                type: 'scroll',
+                x: session.width / 2,
+                y: session.height / 2,
+                delta_y: event.deltaY,
+              });
+            }}
+            onTouchStart={(event) => {
+              touchStart.current = event.touches[0]?.clientY ?? null;
+            }}
+            onTouchEnd={(event) => {
+              if (touchStart.current === null || !session) return;
+              const end = event.changedTouches[0]?.clientY;
+              if (end !== undefined && Math.abs(end - touchStart.current) > 25) {
+                ignoreClick.current = true;
+                if (controller)
+                  void perform({
+                    type: 'scroll',
+                    x: session.width / 2,
+                    y: session.height / 2,
+                    delta_y: (touchStart.current - end) * 2,
+                  });
+              }
+              touchStart.current = null;
+            }}
+            aria-label="Página do navegador (clique para interagir)"
+          >
+            <img src={frame} alt="Visualização atual da página" draggable={false} />
+          </button>
+        ) : (
+          <div className={styles.placeholder}>Iniciando Chromium / aguardando imagem…</div>
+        )}
       </div>
-      <form className={styles.inputBar} onSubmit={(event) => {
-        event.preventDefault();
-        if (text) { void perform({type:'type',text}); setText(''); }
-      }}>
-        <Keyboard size={16} aria-hidden="true"/>
-        <input aria-label="Texto para o elemento selecionado" placeholder="Digitar no elemento selecionado"
-          value={text} onChange={(event) => setText(event.target.value)} />
-        <button type="submit" disabled={!controller || !text || busy} aria-label="Enviar texto"><Send size={15}/></button>
-        <button type="button" disabled={!controller || busy} onClick={() => void perform({type:'key',key:'Enter'})}>Enter</button>
-        <button type="button" disabled={!controller || busy} onClick={() => void perform({type:'key',key:'Tab'})}>Tab</button>
-        <button type="button" disabled={!controller || busy} onClick={() => void perform({type:'key',key:'Backspace'})}>⌫</button>
+      <form
+        className={styles.inputBar}
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (text) {
+            void perform({ type: 'type', text });
+            setText('');
+          }
+        }}
+      >
+        <Keyboard size={16} aria-hidden="true" />
+        <input
+          aria-label="Texto para o elemento selecionado"
+          placeholder="Digitar no elemento selecionado"
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+        />
+        <button type="submit" disabled={!controller || !text || busy} aria-label="Enviar texto">
+          <Send size={15} />
+        </button>
+        <button
+          type="button"
+          disabled={!controller || busy}
+          onClick={() => void perform({ type: 'key', key: 'Enter' })}
+        >
+          Enter
+        </button>
+        <button
+          type="button"
+          disabled={!controller || busy}
+          onClick={() => void perform({ type: 'key', key: 'Tab' })}
+        >
+          Tab
+        </button>
+        <button
+          type="button"
+          disabled={!controller || busy}
+          onClick={() => void perform({ type: 'key', key: 'Backspace' })}
+        >
+          ⌫
+        </button>
       </form>
-      {error && <p className={styles.error} role="alert">{error}</p>}
-      {snapshot && <details className={styles.snapshot}><summary>Conteúdo da página</summary><pre>{snapshot}</pre></details>}
+      {error && (
+        <p className={styles.error} role="alert">
+          {error}
+        </p>
+      )}
+      {snapshot && (
+        <details className={styles.snapshot}>
+          <summary>Conteúdo da página</summary>
+          <pre>{snapshot}</pre>
+        </details>
+      )}
     </section>
   );
 };

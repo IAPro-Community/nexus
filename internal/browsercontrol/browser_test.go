@@ -1,13 +1,13 @@
 package browsercontrol
 
 import (
-  "context"
-  "net/http"
-  "net/http/httptest"
-  "os"
-  "strings"
-  "testing"
-  "time"
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"strings"
+	"testing"
+	"time"
 )
 
 func TestValidURL(t *testing.T) {
@@ -35,47 +35,87 @@ func TestManagerEmptyAndClose(t *testing.T) {
 
 // A remote session cannot mutate the viewport while the desktop holds a lease.
 func TestExclusiveControlLease(t *testing.T) {
- s := &Session{}
- if ok, _ := s.AcquireControl("desktop"); !ok { t.Fatal("desktop did not get lease") }
- if !s.CanControl("desktop") || s.CanControl("phone") { t.Fatal("lease is not exclusive") }
- if ok, _ := s.AcquireControl("phone"); ok { t.Fatal("phone stole active desktop lease") }
- s.ReleaseControl("phone")
- if !s.CanControl("desktop") { t.Fatal("different device released owner") }
- s.ReleaseControl("desktop")
- if ok, _ := s.AcquireControl("phone"); !ok { t.Fatal("phone cannot take released lease") }
- s.mu.Lock(); s.controllerUntil = time.Now().Add(-time.Second); s.mu.Unlock()
- if s.CanControl("phone") { t.Fatal("expired lease remains active") }
- if ok, _ := s.AcquireControl("desktop"); !ok { t.Fatal("expired lease not recoverable") }
+	s := &Session{}
+	if ok, _ := s.AcquireControl("desktop"); !ok {
+		t.Fatal("desktop did not get lease")
+	}
+	if !s.CanControl("desktop") || s.CanControl("phone") {
+		t.Fatal("lease is not exclusive")
+	}
+	if ok, _ := s.AcquireControl("phone"); ok {
+		t.Fatal("phone stole active desktop lease")
+	}
+	s.ReleaseControl("phone")
+	if !s.CanControl("desktop") {
+		t.Fatal("different device released owner")
+	}
+	s.ReleaseControl("desktop")
+	if ok, _ := s.AcquireControl("phone"); !ok {
+		t.Fatal("phone cannot take released lease")
+	}
+	s.mu.Lock()
+	s.controllerUntil = time.Now().Add(-time.Second)
+	s.mu.Unlock()
+	if s.CanControl("phone") {
+		t.Fatal("expired lease remains active")
+	}
+	if ok, _ := s.AcquireControl("desktop"); !ok {
+		t.Fatal("expired lease not recoverable")
+	}
 }
 
 func TestChromiumSmokeOptional(t *testing.T) {
- if os.Getenv("NEXUS_BROWSER_INTEGRATION") != "1" { t.Skip("set NEXUS_BROWSER_INTEGRATION=1 for real Chromium smoke test") }
- if _, err := chromeExecutable(); err != nil { t.Skipf("no Chromium available: %v", err) }
- local := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-   w.Header().Set("Content-Type","text/html; charset=utf-8")
-   _, _ = w.Write([]byte(`<html><body><button id="action" onclick="this.innerText='Clicked'">Initial</button><h1>Nexus Browser Smoke</h1></body></html>`))
- }))
- defer local.Close()
- m := NewManager()
- defer m.Shutdown()
- ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
- defer cancel()
- info, err := m.Create(ctx,"p-test",local.URL)
- if err != nil {t.Fatalf("create Chromium: %v",err)}
- s, ok := m.Get(info.ID)
- if !ok {t.Fatal("created session missing")}
- if ok, _ := s.AcquireControl("actor"); !ok { t.Fatal("no control") }
- deadline := time.Now().Add(8*time.Second)
- var snapshot string
- for time.Now().Before(deadline) {
-   data, readErr := s.Snapshot(ctx)
-   if readErr == nil {snapshot=string(data)}
-   if strings.Contains(snapshot,"Nexus Browser Smoke") {break}
-   time.Sleep(200*time.Millisecond)
- }
- if !strings.Contains(snapshot,"Nexus Browser Smoke") {t.Fatalf("page not loaded: %s",snapshot)}
- if _, err := s.Screenshot(ctx); err != nil { t.Fatalf("screenshot: %v",err) }
- if _, err := s.Do(ctx,Action{Type:"reload"}); err != nil {t.Fatalf("reload: %v",err)}
- if !m.Close(info.ID) {t.Fatal("session did not close")}
- if _, ok := m.Get(info.ID); ok {t.Fatal("closed session retained")}
+	if os.Getenv("NEXUS_BROWSER_INTEGRATION") != "1" {
+		t.Skip("set NEXUS_BROWSER_INTEGRATION=1 for real Chromium smoke test")
+	}
+	if _, err := chromeExecutable(); err != nil {
+		t.Skipf("no Chromium available: %v", err)
+	}
+	local := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte(`<html><body><button id="action" onclick="this.innerText='Clicked'">Initial</button><h1>Nexus Browser Smoke</h1></body></html>`))
+	}))
+	defer local.Close()
+	m := NewManager()
+	defer m.Shutdown()
+	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+	defer cancel()
+	info, err := m.Create(ctx, "p-test", local.URL)
+	if err != nil {
+		t.Fatalf("create Chromium: %v", err)
+	}
+	s, ok := m.Get(info.ID)
+	if !ok {
+		t.Fatal("created session missing")
+	}
+	if ok, _ := s.AcquireControl("actor"); !ok {
+		t.Fatal("no control")
+	}
+	deadline := time.Now().Add(8 * time.Second)
+	var snapshot string
+	for time.Now().Before(deadline) {
+		data, readErr := s.Snapshot(ctx)
+		if readErr == nil {
+			snapshot = string(data)
+		}
+		if strings.Contains(snapshot, "Nexus Browser Smoke") {
+			break
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	if !strings.Contains(snapshot, "Nexus Browser Smoke") {
+		t.Fatalf("page not loaded: %s", snapshot)
+	}
+	if _, err := s.Screenshot(ctx); err != nil {
+		t.Fatalf("screenshot: %v", err)
+	}
+	if _, err := s.Do(ctx, Action{Type: "reload"}); err != nil {
+		t.Fatalf("reload: %v", err)
+	}
+	if !m.Close(info.ID) {
+		t.Fatal("session did not close")
+	}
+	if _, ok := m.Get(info.ID); ok {
+		t.Fatal("closed session retained")
+	}
 }

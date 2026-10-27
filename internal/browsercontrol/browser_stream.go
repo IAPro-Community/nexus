@@ -17,9 +17,13 @@ func (s *Session) SubscribeFrames() (<-chan []byte, func(), error) {
 	s.mu.Lock()
 	closed := s.closed
 	s.mu.Unlock()
-	if closed { return nil, nil, errors.New("browser session closed") }
+	if closed {
+		return nil, nil, errors.New("browser session closed")
+	}
 	s.streamMu.Lock()
-	if s.streamReaders == nil { s.streamReaders = make(map[chan []byte]struct{}) }
+	if s.streamReaders == nil {
+		s.streamReaders = make(map[chan []byte]struct{})
+	}
 	ch := make(chan []byte, 2)
 	s.streamReaders[ch] = struct{}{}
 	if s.streamCancel == nil {
@@ -51,15 +55,24 @@ func (s *Session) sendFrame(frame []byte) {
 		case ch <- frame:
 		default:
 			// Drop the oldest frame. Never block the CDP read/ack loop.
-			select { case <-ch: default: }
-			select { case ch <- frame: default: }
+			select {
+			case <-ch:
+			default:
+			}
+			select {
+			case ch <- frame:
+			default:
+			}
 		}
 	}
 }
 
 func (s *Session) stopStream() {
 	s.streamMu.Lock()
-	if s.streamCancel != nil { s.streamCancel(); s.streamCancel = nil }
+	if s.streamCancel != nil {
+		s.streamCancel()
+		s.streamCancel = nil
+	}
 	s.streamMu.Unlock()
 }
 
@@ -68,28 +81,36 @@ func (s *Session) stopStream() {
 // Browser shutdown cancels the loop before killing Chromium.
 func (s *Session) streamLoop(ctx context.Context) {
 	for {
-		if ctx.Err() != nil { return }
+		if ctx.Err() != nil {
+			return
+		}
 		err := s.streamOnce(ctx)
-		if ctx.Err() != nil { return }
+		if ctx.Err() != nil {
+			return
+		}
 		if err != nil {
 			// Make transient Chrome/DevTools interruptions recoverable.
 			select {
-			case <-ctx.Done(): return
-			case <-time.After(650*time.Millisecond):
+			case <-ctx.Done():
+				return
+			case <-time.After(650 * time.Millisecond):
 			}
 		}
 	}
 }
 
 func (s *Session) streamOnce(ctx context.Context) error {
-	dialer := websocket.Dialer{HandshakeTimeout: 5*time.Second}
+	dialer := websocket.Dialer{HandshakeTimeout: 5 * time.Second}
 	conn, _, err := dialer.DialContext(ctx, s.wsURL, nil)
-	if err != nil { return fmt.Errorf("screencast CDP connection: %w", err) }
+	if err != nil {
+		return fmt.Errorf("screencast CDP connection: %w", err)
+	}
 	defer conn.Close()
 	stopClose := make(chan struct{})
 	go func() {
 		select {
-		case <-ctx.Done(): _ = conn.Close()
+		case <-ctx.Done():
+			_ = conn.Close()
 		case <-stopClose:
 		}
 	}()
@@ -97,7 +118,9 @@ func (s *Session) streamOnce(ctx context.Context) error {
 	if err := conn.WriteJSON(map[string]any{
 		"id": 1, "method": "Page.startScreencast",
 		"params": map[string]any{"format": "jpeg", "quality": 65, "everyNthFrame": 1},
-	}); err != nil { return err }
+	}); err != nil {
+		return err
+	}
 
 	// Chromium sends Page.screencastFrame events while the page changes.
 	// Ack is mandatory; without it Chrome throttles or stops the stream.
@@ -106,15 +129,23 @@ func (s *Session) streamOnce(ctx context.Context) error {
 		var message struct {
 			Method string `json:"method"`
 			Params struct {
-				Data string `json:"data"`
-				SessionID int `json:"sessionId"`
+				Data      string `json:"data"`
+				SessionID int    `json:"sessionId"`
 			} `json:"params"`
-			Error *struct { Message string `json:"message"` } `json:"error"`
+			Error *struct {
+				Message string `json:"message"`
+			} `json:"error"`
 			ID int `json:"id"`
 		}
-		if err := conn.ReadJSON(&message); err != nil { return err }
-		if message.ID == 1 && message.Error != nil { return errors.New(message.Error.Message) }
-		if message.Method != "Page.screencastFrame" { continue }
+		if err := conn.ReadJSON(&message); err != nil {
+			return err
+		}
+		if message.ID == 1 && message.Error != nil {
+			return errors.New(message.Error.Message)
+		}
+		if message.Method != "Page.screencastFrame" {
+			continue
+		}
 		if message.Params.Data != "" {
 			// Decode base64 on client. The CDP payload is already JPEG.
 			s.sendFrame([]byte(message.Params.Data))
@@ -122,7 +153,9 @@ func (s *Session) streamOnce(ctx context.Context) error {
 		if err := conn.WriteJSON(map[string]any{
 			"id": nextID, "method": "Page.screencastFrameAck",
 			"params": map[string]any{"sessionId": message.Params.SessionID},
-		}); err != nil { return err }
+		}); err != nil {
+			return err
+		}
 		nextID++
 	}
 }

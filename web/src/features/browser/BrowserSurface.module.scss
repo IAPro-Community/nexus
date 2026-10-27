@@ -122,4 +122,6 @@ input:focus-visible {
   color: inherit;
   cursor: pointer;
 }
-.controlBar button:focus-visible { outline: 2px solid var(--nx-accent); }
+.controlBar button:focus-visible {
+  outline: 2px solid var(--nx-accent);
+}

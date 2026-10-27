@@ -10,8 +10,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
@@ -46,27 +46,27 @@ type Action struct {
 }
 
 type Session struct {
-	mu        sync.Mutex
-	info      Info
-	wsURL     string
-	cmd       *exec.Cmd
-	done      chan struct{}
-	directory string
-	closed    bool
-	cdpConn   *websocket.Conn
-	cdpNextID int
-	controller string
+	mu              sync.Mutex
+	info            Info
+	wsURL           string
+	cmd             *exec.Cmd
+	done            chan struct{}
+	directory       string
+	closed          bool
+	cdpConn         *websocket.Conn
+	cdpNextID       int
+	controller      string
 	controllerUntil time.Time
-	streamMu sync.Mutex
-	streamReaders map[chan []byte]struct{}
-	streamCancel context.CancelFunc
+	streamMu        sync.Mutex
+	streamReaders   map[chan []byte]struct{}
+	streamCancel    context.CancelFunc
 }
 
 type Manager struct {
 	mu       sync.RWMutex
 	sessions map[string]*Session
-	pending int
-	closing bool
+	pending  int
+	closing  bool
 }
 
 func NewManager() *Manager { return &Manager{sessions: make(map[string]*Session)} }
@@ -77,7 +77,9 @@ func ValidURL(raw string) error {
 		return errors.New("browser URL must be an HTTP(S) address without embedded credentials")
 	}
 	host := strings.ToLower(u.Hostname())
-	if host == "metadata.google.internal" || host == "metadata" { return errors.New("cloud metadata destinations are blocked") }
+	if host == "metadata.google.internal" || host == "metadata" {
+		return errors.New("cloud metadata destinations are blocked")
+	}
 	if ip := net.ParseIP(host); ip != nil && (ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() || ip.IsMulticast()) {
 		return errors.New("link-local, multicast and metadata addresses are blocked")
 	}
@@ -165,7 +167,10 @@ func (m *Manager) Create(ctx context.Context, projectID, initialURL string) (Inf
 		return Info{}, err
 	}
 	m.mu.Lock()
-	if m.closing { m.mu.Unlock(); return Info{}, errors.New("browser manager is shutting down") }
+	if m.closing {
+		m.mu.Unlock()
+		return Info{}, errors.New("browser manager is shutting down")
+	}
 	if len(m.sessions)+m.pending >= MaxSessions {
 		m.mu.Unlock()
 		return Info{}, fmt.Errorf("maximum %d browser sessions", MaxSessions)
@@ -285,7 +290,10 @@ func (m *Manager) Close(id string) bool {
 	s.stopStream()
 	s.mu.Lock()
 	s.closed = true
-	if s.cdpConn != nil { _ = s.cdpConn.Close(); s.cdpConn = nil }
+	if s.cdpConn != nil {
+		_ = s.cdpConn.Close()
+		s.cdpConn = nil
+	}
 	_ = s.cmd.Process.Kill()
 	<-s.done
 	_ = os.RemoveAll(s.directory)
@@ -309,16 +317,24 @@ func (m *Manager) Shutdown() {
 // call is serialized by Session.mu. One CDP connection is reused for commands
 // and snapshots. A failed connection is discarded and dialed again next time.
 func (s *Session) call(ctx context.Context, method string, params any, into any) error {
-	if s.closed { return errors.New("browser session closed") }
+	if s.closed {
+		return errors.New("browser session closed")
+	}
 	timeout := 8 * time.Second
 	if deadline, ok := ctx.Deadline(); ok {
-		if remaining := time.Until(deadline); remaining < timeout { timeout = remaining }
+		if remaining := time.Until(deadline); remaining < timeout {
+			timeout = remaining
+		}
 	}
-	if timeout <= 0 { return context.DeadlineExceeded }
+	if timeout <= 0 {
+		return context.DeadlineExceeded
+	}
 	if s.cdpConn == nil {
 		dialer := websocket.Dialer{HandshakeTimeout: timeout}
 		conn, _, err := dialer.DialContext(ctx, s.wsURL, nil)
-		if err != nil { return fmt.Errorf("DevTools connect: %w", err) }
+		if err != nil {
+			return fmt.Errorf("DevTools connect: %w", err)
+		}
 		s.cdpConn = conn
 	}
 	c := s.cdpConn
@@ -331,17 +347,29 @@ func (s *Session) call(ctx context.Context, method string, params any, into any)
 		s.cdpConn = nil
 		return err
 	}
-	if err := c.WriteJSON(map[string]any{"id": id, "method": method, "params": params}); err != nil { return fail(err) }
+	if err := c.WriteJSON(map[string]any{"id": id, "method": method, "params": params}); err != nil {
+		return fail(err)
+	}
 	for {
 		var msg struct {
-			ID int `json:"id"`
+			ID     int             `json:"id"`
 			Result json.RawMessage `json:"result"`
-			Error *struct{Message string `json:"message"`} `json:"error"`
+			Error  *struct {
+				Message string `json:"message"`
+			} `json:"error"`
 		}
-		if err := c.ReadJSON(&msg); err != nil { return fail(err) }
-		if msg.ID != id { continue }
-		if msg.Error != nil { return errors.New(msg.Error.Message) }
-		if into != nil { return json.Unmarshal(msg.Result, into) }
+		if err := c.ReadJSON(&msg); err != nil {
+			return fail(err)
+		}
+		if msg.ID != id {
+			continue
+		}
+		if msg.Error != nil {
+			return errors.New(msg.Error.Message)
+		}
+		if into != nil {
+			return json.Unmarshal(msg.Result, into)
+		}
 		return nil
 	}
 }
@@ -357,7 +385,9 @@ func (s *Session) navigate(ctx context.Context, raw string) error {
 		return err
 	}
 	s.info.URL = raw
-	if result.ErrorText != "" { return &NavigationError{URL: raw, Reason: result.ErrorText} }
+	if result.ErrorText != "" {
+		return &NavigationError{URL: raw, Reason: result.ErrorText}
+	}
 	return nil
 }
 
@@ -376,12 +406,16 @@ func (s *Session) Do(ctx context.Context, a Action) (Info, error) {
 	case "back", "forward":
 		var history struct {
 			CurrentIndex int `json:"currentIndex"`
-			Entries []struct{ ID int `json:"id"` } `json:"entries"`
+			Entries      []struct {
+				ID int `json:"id"`
+			} `json:"entries"`
 		}
 		err = s.call(ctx, "Page.getNavigationHistory", map[string]any{}, &history)
 		if err == nil {
 			target := history.CurrentIndex - 1
-			if a.Type == "forward" { target = history.CurrentIndex + 1 }
+			if a.Type == "forward" {
+				target = history.CurrentIndex + 1
+			}
 			if target >= 0 && target < len(history.Entries) {
 				err = s.call(ctx, "Page.navigateToHistoryEntry", map[string]any{"entryId": history.Entries[target].ID}, nil)
 			}
@@ -469,9 +503,10 @@ func (s *Session) Info() Info {
 }
 
 type NavigationError struct {
-	URL string
+	URL    string
 	Reason string
 }
+
 func (e *NavigationError) Error() string { return "browser navigation failed: " + e.Reason }
 
 // A session on an unreachable development URL must still be usable. The
@@ -487,24 +522,34 @@ func isNetworkNavigationError(err error) bool {
 func (s *Session) AcquireControl(owner string) (bool, string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if owner == "" || s.closed { return false, "" }
+	if owner == "" || s.closed {
+		return false, ""
+	}
 	now := time.Now()
 	if s.controller != "" && s.controller != owner && now.Before(s.controllerUntil) {
 		return false, "another device controls this browser"
 	}
 	s.controller = owner
-	s.controllerUntil = now.Add(25*time.Second)
+	s.controllerUntil = now.Add(25 * time.Second)
 	return true, ""
 }
 func (s *Session) ReleaseControl(owner string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if owner != "" && s.controller == owner { s.controller = ""; s.controllerUntil = time.Time{} }
+	if owner != "" && s.controller == owner {
+		s.controller = ""
+		s.controllerUntil = time.Time{}
+	}
 }
 func (s *Session) CanControl(owner string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if owner == "" || s.closed || s.controller != owner { return false }
-	if time.Now().After(s.controllerUntil) { s.controller = ""; return false }
+	if owner == "" || s.closed || s.controller != owner {
+		return false
+	}
+	if time.Now().After(s.controllerUntil) {
+		s.controller = ""
+		return false
+	}
 	return true
 }
