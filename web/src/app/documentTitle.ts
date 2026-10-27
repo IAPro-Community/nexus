@@ -1,7 +1,7 @@
 import type { RuntimeSession } from '../types';
 import { sanitizeAttentionText } from '../components/attentionText';
 
-export type AttentionPromptKind = 'yn' | 'choice' | 'free_text' | 'none' | '';
+export type AttentionPromptKind = 'yn' | 'choice' | 'free_text' | 'native_status' | 'none' | '';
 
 function honestContext(runtime: RuntimeSession): string {
   return sanitizeAttentionText(runtime.attention_context, '');
