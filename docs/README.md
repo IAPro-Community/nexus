@@ -70,7 +70,7 @@ estender o Nexus.
 - [Terminais e diagnóstico de teclado](product/terminals.md)
 - [Controle interativo e STICKY_LEAD](product/interactive-control.md)
 - [Troca de contas e handoff](product/account-switching.md)
-- [Desktop nativo (Wails v2)](desktop/overview.md)
+- [Desktop nativo (Wails v3)](desktop/overview.md)
 - [Temas e aparência](product/themes.md)
 - [Voz e acessibilidade](product/voice-accessibility.md)
 - [Tour visual](product/visual-tour.md)
@@ -230,9 +230,15 @@ Para evitar confusão:
 Consulte [STYLE_GUIDE.md](STYLE_GUIDE.md). Regra principal: **fato verificável
 antes de marketing**.
 
-## Publicação e licença
+## Comunidade, documentação jurídica e abertura
 
-O source está preparado para a [PolyForm Strict 1.0.0](../LICENSE),
-com usos não comerciais permitidos e sem autorização geral para alterações
-ou redistribuição. Consulte [licenciamento](legal/LICENSING.md) e
-[checklist de abertura](PUBLICATION_CHECKLIST.md). **Não anunciar como open source**.
+**Licença vigente:** [PolyForm Strict 1.0.0](../LICENSE), sem autorização geral para modificar/redistribuir; **não anunciar como open source** antes da publicação efetiva da licença OSI. **Proposta:** Apache-2.0 após validação jurídica e de segurança. Veja [plano de transição](legal/OPEN_SOURCE_TRANSITION.md) e [checklist de abertura](PUBLICATION_CHECKLIST.md).
+
+- [Licenciamento atual](legal/LICENSING.md) e [terceiros](legal/THIRD_PARTY_NOTICES.md)
+- [Contribuir](../CONTRIBUTING.md), [governança](../GOVERNANCE.md) e [guia de revisão](community/REVIEW_GUIDE.md)
+- [Forks/upstream](community/FORKS_AND_UPSTREAM.md) e [proteção da identidade](legal/TRADEMARK_POLICY.md)
+- [Doações e sustentabilidade](community/FUNDING.md)
+- [Segurança](../SECURITY.md), [conduta](../CODE_OF_CONDUCT.md) e [suporte](../SUPPORT.md)
+
+Documentos públicos de produto, histórico de engenharia, clareza jurídica e
+homologação funcional possuem estados independentes.
