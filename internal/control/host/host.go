@@ -18,6 +18,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/control/agentwire"
 	"github.com/IAPro-Community/nexus/internal/control/events"
 	"github.com/IAPro-Community/nexus/internal/control/protocol"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
@@ -89,7 +90,9 @@ func NewSessionHost(cfg Config) (*SessionHost, error) {
 	cmd.Env = nexusruntime.ApplyEmbeddedTerminalCompat(cfg.Env)
 
 	termBackend := cfg.terminalBackend
-	if termBackend == nil {
+	protocolMode := cfg.Session.Labels["nexus.agent_protocol"]
+	structuredMode := protocolMode == "acp" || protocolMode == "pi_rpc"
+	if termBackend == nil && !structuredMode {
 		termBackend = terminal.NewBackendForProvider(cfg.Session.ProviderID)
 	}
 
@@ -132,8 +135,23 @@ func NewSessionHost(cfg Config) (*SessionHost, error) {
 	sh.detector.SetRegistry(cfg.Registry)
 	// PTY regex is TERMINAL fallback only. EVENTS/CONTROL_API (future structured
 	// adapters) must not scrape stdout for agent attention.
-	sh.detector.SetControlPolicy(cfg.Session.ControlLevel, false, cfg.Session.AgentID)
+	sh.detector.SetControlPolicy(cfg.Session.ControlLevel, structuredMode, cfg.Session.AgentID)
 
+	if termBackend == nil && structuredMode {
+		// The wire backend is the sole owner of this provider child process.
+		// It publishes state via the existing detector / runtime registry.
+		sh.termBackend = newStructuredBackend(protocolMode, cfg.Cwd,
+			func(signal agentwire.WireSignal) {
+				sh.detector.ApplyProviderSignal(signal.State, signal.Kind, signal.Summary, protocolMode)
+			},
+			func(sessionID string) {
+				_ = sh.registry.UpdateProviderSessionID(sh.session.RuntimeID, sessionID)
+				sh.mu.Lock()
+				sh.session.ProviderSessionID = sessionID
+				sh.mu.Unlock()
+			},
+		)
+	}
 	return sh, nil
 }
 
