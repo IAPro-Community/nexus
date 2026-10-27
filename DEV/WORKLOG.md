@@ -7,9 +7,9 @@
 - PASS `GOTOOLCHAIN=go1.25.14 make quality`: format-check, ESLint, Stylelint, typecheck, golangci-lint (0 issues), Go tests, Vitest (114 suítes / 710 testes) e version-contract.
 - Commits locais: `5e3eff4e` (feature auth/usage/HUD), `11f3d771` (teclado Codex/PTY), `d61b0dcc` (gates/upstream) e este commit de docs.
 - Push fast-forward `b416bb90..e58b0d60` para `origin/release/v1.0.0`; o helper de credencial do GitHub apontava para `/usr/bin/gh`, foi corrigido para `/usr/local/bin/gh` via `gh auth setup-git` (backup em `~/.gitconfig.bak-20261027`).
-- Build/instalação local macOS amd64: CLI `1.0.0-beta.11` (`b416bb90`); Desktop/HUD instalados em `Applications/IAPro Nexus.app` e `... HUD.app`, com backup em `Applications-backup-20261027-0937` e cópia em `Applications/Run-20261027`.
-- Runtime: Desktop PID 54630, HUD vinculado PID 54635, HTTP 200 em `127.0.0.1:56992`, UI mostra `Nexus v1.0.0-beta.11`; `nexus ps` vazio (nenhum runtime supervisionado).
-- Hashes SHA-256: CLI `790df820ff553119617e251c0cf7b8355b6ff150764c577592edd594081a1f3f`, Desktop `678d21ab99ce14f56828e079e8e75f26fa4a86c1173517f9f60ce847601563ec`, HUD `1109875fcbcf44ac28fead249dd5cd10b3e6d07ed996fcc37ad35d6a83209f02`.
+- Build/instalação local macOS amd64: CLI `1.0.0-beta.11` (`580a99cf`); Desktop/HUD instalados em `Applications/IAPro Nexus.app` e `... HUD.app`, com backup em `Applications-backup-20261027-0937` e cópia em `Applications/Run-20261027`.
+- Runtime: Desktop PID 58863, HUD vinculado PID 58868, HTTP 200 em `127.0.0.1:57271`, UI mostra `Nexus v1.0.0-beta.11`; `nexus ps` vazio (nenhum runtime supervisionado).
+- Hashes SHA-256: CLI `e9d8e998f676f77353a88e3f6f4ae740f254daecb5923c9fff20f8c2b36e4a19`, Desktop `7a9f7744f0ac6d82ec41f1a8b4157bcf3e1d412e558e644c57e27081f060607f`, HUD `2f96da581971ba7d795c377f8fe0b061dd251116b1b338500cef6fe3f91888b2`.
 - Distribuição continua NO-GO: sem Developer ID/notarização e sem certificação arm64.
 
 ## 2026-10-26 — reconciliação upstream, versão 1.0.0-beta.11 e validação integral
