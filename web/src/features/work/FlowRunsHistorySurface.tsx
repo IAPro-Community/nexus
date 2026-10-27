@@ -7,6 +7,7 @@ import type { MissionRun, Project, WorkPlan, Agent } from '../../types';
 import { asArray } from '../../lib/safeArray';
 import { flowRunStateFromMission } from './flowRunModel';
 import { FlowDraftEditor } from './FlowDraftEditor';
+import { FeatureTour } from './FeatureTour';
 import { FLOW_DRAFT_KEY } from './WorkSurface';
 import styles from './FlowRunsHistorySurface.module.scss';
 
@@ -225,8 +226,10 @@ export const FlowRunsHistorySurface: React.FC<{
           <Badge tone="default">{track === 'drafts' ? draftPlans.length : runs.length}</Badge>
         </div>
         <div className={styles.actions}>
+          <FeatureTour projectId={project.id} surface="flow-library" />
           <div
             className={styles.trackToggle}
+            data-tour="flow-tracks"
             role="tablist"
             aria-label={t('flow.tracks', 'Trilhas')}
           >
@@ -311,7 +314,7 @@ export const FlowRunsHistorySurface: React.FC<{
       )}
 
       {!loading && !error && track === 'drafts' && (
-        <Card className={styles.newFlowCard}>
+        <Card className={styles.newFlowCard} data-tour="flow-new">
           <strong>{t('flow.newFlow', 'New Flow')}</strong>
           <div className={styles.newFlowRow}>
             <input
@@ -383,7 +386,7 @@ export const FlowRunsHistorySurface: React.FC<{
       )}
 
       {track === 'drafts' && (
-        <div className={styles.runsList}>
+        <div className={styles.runsList} data-tour="flow-drafts">
           {draftPlans.map((plan) => (
             <Card key={plan.id} className={`nx-flow-run-history-card ${styles.planRow}`}>
               <button
