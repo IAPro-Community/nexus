@@ -37,7 +37,7 @@ jobs:
       - name: Check Go formatting
         shell: bash
         run: |
-          files=$(gofmt -l internal/browsercontrol internal/control/launcher/browser_auto_mcp*.go internal/control/launcher/launcher.go internal/control/web/handlers_browser*.go internal/control/web/server.go internal/app/provider_supervised.go internal/nexus/mission_execution.go cmd/nexus/main.go)
+          files=$(gofmt -l internal/browsercontrol internal/control/launcher/browser_auto_mcp*.go internal/control/launcher/browser_envelope_test.go internal/control/launcher/envelope.go internal/control/launcher/launcher.go internal/control/web/handlers_browser*.go internal/control/web/server.go internal/app/provider_supervised.go internal/app/control_cmd.go internal/nexus/mission_execution.go cmd/nexus/main.go)
           if [ -n "$files" ]; then echo "$files"; exit 1; fi
       - name: Vet browser packages
         run: go vet ./internal/browsercontrol ./internal/control/launcher ./internal/control/web ./internal/app ./internal/nexus
@@ -47,6 +47,8 @@ jobs:
         run: go test ./internal/control/web -run 'TestBrowserMCPRejectsUnauthenticatedAndRemoteRequests|TestBrowserMCPToolSchemas' -count=1
       - name: Verify automatic MCP injection for registered providers
         run: go test ./internal/control/launcher -run TestBrowserAutomaticMCP -count=1
+      - name: Verify private detached runtime capability transfer
+        run: go test ./internal/control/launcher -run TestBrowserLaunchEnvelopeTransportsOnlyScopedRuntimeEnvironment -count=1
       - name: Race test human-agent control and grants
         run: go test -race ./internal/browsercontrol -run 'TestBrowserHumanInterventionWorkflow|TestBrowserCapabilityScopeAndRevocation|TestBrowserHandoffReasonValidation' -count=1
       - name: Smoke test real Chromium if available
