@@ -59,8 +59,16 @@ Bibliotecas utilizadas apenas em build/desenvolvimento também podem impor aviso
 
 1. Gerar SBOM CycloneDX/SPDX para **cada artefato** do exato SHA.
 2. Resolver a árvore transitiva, incluindo dependências Go, Bun, Wails, WebView/NSIS, assets, fontes, logos e binários baixados de terceiros (ex.: `cloudflared`).
-3. Conferir licenças, avisos, atribuições, redistribuição e eventuais conflitos de copyleft com PolyForm Strict; receber parecer jurídico quando aplicável.
+3. Conferir licenças, avisos, atribuições e redistribuição, incluindo compatibilidade com a licença **atual PolyForm Strict** e com a licença **alvo Apache-2.0**, além de obrigações/copyleft que continuem aplicáveis; obter revisão jurídica quando necessária.
 4. Distribuir os textos de licença e notices exigidos no próprio pacote, além do documento legível.
 5. Anexar logs/checksums e auditoria de dependências à evidência da release; `UNKNOWN` não é aprovado.
 
 Regenerar inventários e executar os verificadores quando `go.mod`, `go.sum`, `web/package.json` ou `web/bun.lock` mudarem. Veja [publicação](../PUBLICATION_CHECKLIST.md) e [certificação](../operations/release.md).
+
+## Abertura comunitária planejada
+
+O inventário continua preliminar. A [migração responsável](OPEN_SOURCE_TRANSITION.md)
+não autoriza presumir que logos, fontes, binários empacotados, código de terceiros
+ou assets estejam sob Apache-2.0. Cada componente deve manter licença e atribuição
+próprias; gerar SBOM e notices para o exato artefato distribuído. O estado
+jurídico do source atual permanece conforme [LICENSE](../../LICENSE).
