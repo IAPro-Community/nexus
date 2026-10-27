@@ -176,6 +176,16 @@ func(b *Bridge)request(ctx context.Context,method string,raw json.RawMessage)(an
  }
 }
 // Choose is an explicit, correlated action; raw y/Enter is never an approval.
+// CancelTurn forwards a scoped cancellation; it does not terminate the host.
+func(b *Bridge)CancelTurn(ctx context.Context)error{
+ if b.acp!=nil {
+  id:=b.SessionID()
+  if id==""{return errors.New("no ACP session to cancel")}
+  return b.acp.Cancel(id)
+ }
+ if b.pi!=nil{return b.pi.Command(ctx,"abort",nil,nil)}
+ return errors.New("agent protocol not initialized")
+}
 func(b *Bridge)Choose(interactionID,option string)error{
  b.mu.Lock()
  defer b.mu.Unlock()
