@@ -1316,6 +1316,7 @@ export const en = {
     toggleSidebar: 'Toggle scheduler panel',
   },
   flow: {
+    planErrorTitle: 'Review the Flow plan',
     createEmptyDraft: 'Create empty Flow from goal',
     journeyPlan: '1. Plan',
     journeyReview: '2. Review and approve',
@@ -3522,6 +3523,7 @@ export const ptBR = {
     toggleSidebar: 'Alternar painel do scheduler',
   },
   flow: {
+    planErrorTitle: 'Verifique o planejamento do Flow',
     createEmptyDraft: 'Criar Flow a partir do objetivo',
     journeyPlan: '1. Planejar',
     journeyReview: '2. Revisar e aprovar',
@@ -5738,6 +5740,7 @@ export const es = {
   },
 
   flow: {
+    planErrorTitle: 'Revise la planificación del Flow',
     createEmptyDraft: 'Crear Flow desde el objetivo',
     journeyPlan: '1. Planificar',
     journeyReview: '2. Revisar y aprobar',
