@@ -123,6 +123,18 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 	if captureShell {
 		traceCaptureShellLaunchStage("launch-config-start")
 	}
+	protocolMode, _ := opts.Options["agent_protocol"].(string)
+	if protocolMode != "" {
+		if os.Getenv("NEXUS_EXPERIMENTAL_HARNESSES") != "1" {
+			return nil, fmt.Errorf("structured agent protocol requires NEXUS_EXPERIMENTAL_HARNESSES=1")
+		}
+		if launchModel != "" || len(opts.Args) != 0 {
+			return nil, fmt.Errorf("structured agent protocol requires no unverified model override or interactive arguments")
+		}
+		if template, _ := opts.Options["command_template"].(string); template != "" {
+			return nil, fmt.Errorf("structured protocol cannot use remote command_template")
+		}
+	}
 	configuredArgs, err := driver.ApplyLaunchConfiguration(opts.ProviderID, launchModel, opts.Options, opts.Args)
 	if captureShell {
 		traceCaptureShellLaunchStage("launch-config-finished")
@@ -170,7 +182,11 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		if captureShell {
 			traceCaptureShellLaunchStage("build-command-start")
 		}
-		bin, extraArgs, env, err = d.BuildCommand(ctx, prof, configuredArgs)
+		if protocolMode != "" {
+			bin, extraArgs, env, err = driver.BuildWireCommand(ctx, d, prof, protocolMode, configuredArgs)
+		} else {
+			bin, extraArgs, env, err = d.BuildCommand(ctx, prof, configuredArgs)
+		}
 		if captureShell {
 			traceCaptureShellLaunchStage("build-command-finished")
 		}
@@ -185,7 +201,7 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 	// Browser capability provisioning is central, never per-model. Custom
 	// remote command templates are deliberately excluded because local
 	// loopback is not necessarily reachable from Docker/SSH targets.
-	if !customCommand {
+	if !customCommand && protocolMode == "" {
 		// Browser support is additive; a missing provider MCP helper must
 		// never prevent an otherwise valid agent runtime from starting.
 		priorArgs := append([]string(nil), extraArgs...)
@@ -231,6 +247,10 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 	}
 
 	sessionLabels := cloneLabels(opts.Labels)
+	if protocolMode != "" {
+		if sessionLabels == nil { sessionLabels = map[string]string{} }
+		sessionLabels["nexus.agent_protocol"] = protocolMode
+	}
 	if customCommand {
 		if sessionLabels == nil {
 			sessionLabels = map[string]string{}
@@ -278,6 +298,7 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		Labels:                    sessionLabels,
 	}
 
+	if protocolMode != "" { sess.ControlLevel = registry.ControlLevelEvents }
 	if captureShell {
 		traceCaptureShellLaunchStage("session-register-start")
 	}
