@@ -121,6 +121,16 @@ func (s *Service) PerformContextHandoff(ctx context.Context, sourceRuntimeID, ta
 	}
 
 	kickoffPrompt := FormatKickoffPrompt(cp)
+	maestroContextState := "DEGRADED"
+	if brief, err := fetchMaestroContextBrief(ctx, source.Workspace, cp.Goal); err == nil {
+		kickoffPrompt += "\n\n=== Canonical Maestro Context (digest verified) ===\n" + brief + "\n=== End Maestro Context ===\n"
+		maestroContextState = "READY"
+	} else {
+		// The current beta accepts old standalone Maestro installations, but
+		// never labels unavailable semantic context as successfully hydrated.
+		slog.Warn("Maestro context unavailable for cross-provider handoff", "error", err)
+		kickoffPrompt += "\nMaestro context: DEGRADED. Rehydrate the canonical DEV/ documents before editing.\n"
+	}
 
 	// 4. Get Target Driver & Build Kickoff Command
 	d, err := s.drivers.Get(targetProvider)
@@ -190,6 +200,7 @@ func (s *Service) PerformContextHandoff(ctx context.Context, sourceRuntimeID, ta
 		newSession.Labels = map[string]string{}
 	}
 	newSession.Labels["continuity"] = "CONTEXT_HANDOFF"
+	newSession.Labels["maestro_context"] = maestroContextState
 	_ = reg.Register(*newSession)
 
 	// 7. Record Lineage
