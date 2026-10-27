@@ -6,7 +6,7 @@ import { ProductTour } from '../../app/tour/ProductTour';
 import {
   featureTourSteps, featureTourStorageKey, parseFeatureTourProgress,
   type FeatureTourSurface,
-} from './featureTour';
+} from './featureTourDefinitions';
 
 const readProgress = (key: string, length: number): number => {
   try { return parseFeatureTourProgress(window.localStorage.getItem(key), length); }
