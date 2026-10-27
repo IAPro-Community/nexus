@@ -1,6 +1,6 @@
 # IAPro Nexus
 
-> **Estado (18/10/2026):** el source de `release/v1.0.0` declara `1.0.0-beta.10`. **v1 estable aún no está homologada ni publicada.** No suponga URLs de instaladores a partir de tags antiguas.
+> **Estado comprobado (27/10/2026):** el source de `release/v1.0.0` declara `1.0.0-beta.11`. **v1 estable aún no está homologada ni publicada.** No suponga URLs de instaladores a partir de tags antiguas.
 
 **Una estación de trabajo local para operar coding agents.**
 
@@ -16,7 +16,7 @@ IAPro Nexus es una estación de trabajo local para trabajar con coding agents. O
 
 ## Empieza en minutos
 
-El candidato actual `1.0.0-beta.10` integra plataformas en el código, pero el soporte público depende de pruebas nativas del SHA exacto. El repositorio de source ya es público; la auditoría de historial, licencias y secretos continúa pendiente. No se garantiza un instalador público sin verificar artefactos firmados reales.
+El candidato actual `1.0.0-beta.11` integra plataformas en el código, pero el soporte público depende de pruebas nativas del SHA exacto. El repositorio de source ya es público; la auditoría de historial, licencias y secretos continúa pendiente. No se garantiza un instalador público sin verificar artefactos firmados reales.
 
 ### Desarrolladores (compilar desde el código)
 
