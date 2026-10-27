@@ -2,6 +2,33 @@
 
 > **Observado em 20/10/2026:** o repositório `IAPro-Community/nexus` está **PUBLIC** no GitHub. A varredura automatizada dos refs disponíveis foi executada em 20/10/2026: 82 detecções potenciais no histórico e 17 no HEAD do snapshot auditado (não classificadas; podem incluir duplicações e falsos positivos). **A classificação manual e a remediação permanecem pendentes.** Isso configura uma **exposição pública a avaliar**, não prova de credenciais vazadas. Tornar o repositório privado, se decidido, não remove clones já obtidos. A v1 estável e os binários permanecem **NO-GO**.
 
+## Gate adicional — migração para open source (27/10/2026)
+
+**Decisão de produto:** Nexus Community completo, disponível para forks,
+redistribuição e uso comercial quando uma licença OSI for efetivamente publicada.
+**Licença-alvo:** Apache-2.0; **licença vigente:** PolyForm Strict 1.0.0.
+
+- [x] Documentar o modelo pretendido, instruções comunitárias, revisão, marca,
+      sustentabilidade e limites jurídicos sem conceder permissões fictícias.
+- [ ] Confirmar competência e direitos dos titulares para **cada parte** do
+      código, documentação e assets; obter autorizações quando necessárias.
+- [ ] Classificar/remediar alertas de exposição do histórico; não presumir que
+      flags históricos sejam credenciais ativas.
+- [ ] Auditar dependências completas, licenças, notices e SBOM de distribuição.
+- [ ] Aprovar juridicamente a alteração e substituir `LICENSE` pelo texto
+      oficial Apache-2.0; preservar notices de terceiros.
+- [ ] Atualizar testes de metadados de licença, READMEs nos 3 idiomas, pacote
+      de distribuição e guias legais **no mesmo commit de relicenciamento**.
+- [ ] Ativar DCO/PRs de terceiros só depois do licenciamento aplicável.
+- [ ] Configurar proteção de branches/revisões e política de releases no
+      GitHub; documentação não substitui settings administrativas.
+- [ ] Habilitar GitHub Sponsors e publicar `.github/FUNDING.yml` somente
+      com conta de pagamento real e verificada.
+
+**Bloqueio:** não anunciar "open source Apache-2.0" nem convidar patches de
+código de terceiros até a aprovação da matriz de direitos. Consulte
+[OPEN_SOURCE_TRANSITION](legal/OPEN_SOURCE_TRANSITION.md) para o plano completo.
+
 ## Resposta imediata à abertura já realizada
 
 - [ ] Confirmar quem aprovou a mudança de visibilidade e o inventário de branches/tags/commits que ficaram acessíveis.
@@ -36,7 +63,7 @@ O script interrompe a aprovação quando encontra suspeitas e mantém relatório
 
 ## Gate P0 — verdade documental
 
-- [x] Selecionar modelo source-available não comercial, sem redistribuição/modificação (PolyForm Strict).
+- [x] Modelo **histórico ainda vigente**: source-available não comercial, sem redistribuição/modificação (PolyForm Strict). O objetivo estratégico agora é open source, condicionado ao gate jurídico acima.
 - [x] Criar guia legal e TL;DR; alinhar README e guia rápido ao status do source, sem declarar stable.
 - [x] Iniciar catálogo verificável de recursos, testes e documentos (não equivalente a suite executada).
 - [ ] Confirmar documentação de versão, canais publicados, links de instalação e suporte por plataforma com inventário remoto validado.
