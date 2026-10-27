@@ -4,6 +4,14 @@ O Nexus quer se tornar uma **plataforma open source comunitária** para planejam
 
 Enquanto essa migração não for efetivada, ajude por **issues, sugestões de produto, reprodução de bugs, propostas de arquitetura e feedback de documentação**. Não tratamos a abertura de PR com código de terceiros como autorização presumida para incorporar esse código. Uma contribuição de patch precisa de autorização específica/documentada até a migração.
 
+## Destino de PRs durante a homologação 1.0
+
+**Branch-base para propostas e correções da 1.0: `release/v1.0.0`, não `main`.** O GitHub pode sugerir `main` por ser a branch padrão; confira explicitamente o campo **base** antes de abrir o PR. A regra não significa que um patch de terceiros tenha autorização jurídica para merge: permanecem vigentes as condições de licenciamento descritas acima.
+
+Para PRs de manutenção aceitos excepcionalmente antes do relicenciamento, o mantenedor precisa documentar no próprio PR (ou em registro privado de clearance quando necessário) a autorização do titular da contribuição e de suas dependências para incorporação e futuro relicenciamento proposto. A abertura do PR, o sign-off e o merge não substituem esse consentimento específico. Se a autorização for incerta, não incorporar até esclarecer.
+
+Um PR apontado para `main` será retargeted para `release/v1.0.0` somente se a base for compatível e os testes continuarem válidos; caso contrário, os mantenedores portarão de forma rastreável apenas as correções necessárias, com crédito e vínculo à PR original. Correções já presentes serão encerradas com justificativa de *superseded*, sem sobrescrever implementação mais nova.
+
 ## Onde contribuir desde já
 
 - Bugs: [bug report](https://github.com/IAPro-Community/nexus/issues/new/choose), sempre com versão/SHA, SO e passos de reprodução. Não publicar tokens nem logs privados.
