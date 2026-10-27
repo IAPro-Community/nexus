@@ -71,6 +71,9 @@ const SettingsSurface = React.lazy(() =>
 const MaestroSurface = React.lazy(() =>
   import('../features/maestro/MaestroSurface').then((m) => ({ default: m.MaestroSurface })),
 );
+const BrowserSurface = React.lazy(() =>
+  import('../features/browser/BrowserSurface').then((m) => ({ default: m.BrowserSurface })),
+);
 const ProjectShellSurface = React.lazy(() =>
   import('../features/shell/ProjectShellSurface').then((m) => ({ default: m.ProjectShellSurface })),
 );
@@ -303,6 +306,18 @@ export const WorkspaceSurfaceHost: React.FC<{
       return <AgentConfigurationSurface agent={agent} onApplied={refreshAgents} />;
     }
 
+    if (surface.type === 'browser') {
+      return <BrowserSurface
+        projectId={project.id}
+        initialUrl={surface.data?.initialUrl}
+        initialSessionId={surface.data?.browserSessionId}
+        onSessionReady={(id) => {
+          if (surface.data?.browserSessionId !== id) {
+            updateSurface?.(surface.id, { data: { ...surface.data, browserSessionId: id } });
+          }
+        }}
+      />;
+    }
     if (surface.type === 'project-shell') {
       return surface.data?.runtimeId ? (
         <ProjectShellSurface

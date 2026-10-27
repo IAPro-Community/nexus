@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   AppWindow,
+  Globe,
   Gauge,
   History,
   Home,
@@ -41,7 +42,7 @@ import {
 import { useWorkspace } from './WorkspaceProvider';
 import { useWorkspacePresentation } from './WorkspacePresentationProvider';
 import { useTranslation } from 'react-i18next';
-import { isPtySurface } from '../app/surfaces';
+import { isWorkspaceWindowSurface } from '../app/surfaces';
 import { findTileSplitters } from './arrange';
 import { isWindowedPresentationMode, mosaicDropTargetViewId } from './presentation';
 import { ptyWindowHeading } from './ptyLiveChrome';
@@ -367,6 +368,7 @@ const ArrangeLayoutMenu: React.FC<{
 export type WorkspaceCreateActions = {
   onNewAgent?: () => void;
   onNewAISession?: () => void;
+  onNewBrowser?: () => void;
   onProjectShell?: () => void;
 };
 
@@ -436,7 +438,7 @@ const WorkspaceStackView: React.FC<{
   } | null>(null);
   const productTabs = useMemo(() => {
     const pinnedOrder = ['overview', 'terminals', 'work'];
-    return [...stack.tabs.filter((tab) => !isPtySurface(tab))].sort((a, b) => {
+    return [...stack.tabs.filter((tab) => !isWorkspaceWindowSurface(tab))].sort((a, b) => {
       const ai = pinnedOrder.indexOf(a.type);
       const bi = pinnedOrder.indexOf(b.type);
       if (ai === -1 && bi === -1) return 0;
@@ -449,7 +451,7 @@ const WorkspaceStackView: React.FC<{
   const activeRaw = stack.tabs.find((tab) => isSurfaceMatch(tab, stack.activeId));
   // If a PTY was left as activeId (legacy layouts), treat the Terminais product tab as active.
   const activeProduct =
-    activeRaw && !isPtySurface(activeRaw)
+    activeRaw && !isWorkspaceWindowSurface(activeRaw)
       ? activeRaw
       : productTabs.find((tab) => tab.type === 'terminals') || productTabs[0];
   const activeId = activeProduct?.id || stack.activeId;
@@ -890,6 +892,12 @@ const TerminalsHost: React.FC<{
               </button>
             </div>
           )}
+          {createActions?.onNewBrowser && (
+            <button type="button" className="nx-button" data-size="sm" onClick={createActions.onNewBrowser}>
+              <Globe size={13} />
+              <span>{t('workspace.newBrowser', 'Novo navegador')}</span>
+            </button>
+          )}
           {windowed && (
             <ArrangeLayoutMenu
               activePreset={presentation.state.lastArrangePreset}
@@ -921,6 +929,12 @@ const TerminalsHost: React.FC<{
                   >
                     <TerminalSquare size={13} />
                     <span>{t('workspace.openTerminal', 'Abrir Terminal')}</span>
+                  </button>
+                )}
+                {createActions.onNewBrowser && (
+                  <button type="button" className="nx-button" data-size="sm" onClick={createActions.onNewBrowser}>
+                    <Globe size={13} />
+                    <span>{t('workspace.newBrowser', 'Novo navegador')}</span>
                   </button>
                 )}
                 {createActions.onNewAISession && (

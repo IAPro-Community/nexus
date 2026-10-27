@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/browser"
+	"github.com/IAPro-Community/nexus/internal/browsercontrol"
 	"github.com/IAPro-Community/nexus/internal/control/originpolicy"
 	"github.com/IAPro-Community/nexus/internal/nexus"
 )
@@ -40,6 +41,7 @@ type Server struct {
 	auth       *AuthManager
 	api        *APIHandler
 	terminal   *TerminalHub
+	browsers   *browsercontrol.Manager
 	bootstrap  string
 	url        string
 	pid        int
@@ -116,6 +118,7 @@ func NewServer(opts ServerOptions) (*Server, error) {
 		auth:      auth,
 		api:       api,
 		terminal:  terminalHub,
+		browsers:  browsercontrol.NewManager(),
 		bootstrap: bootstrapToken,
 		url:       fmt.Sprintf("http://%s:%d", opts.Host, tcpAddr.Port),
 		pid:       os.Getpid(),
@@ -648,6 +651,7 @@ func (s *Server) handleDesktopBootstrap(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
+	if s.browsers != nil { s.browsers.Shutdown() }
 	removeListenState(s.pid)
 	if tunnel := s.tunnelManager(); tunnel != nil {
 		tunnel.mu.Lock()

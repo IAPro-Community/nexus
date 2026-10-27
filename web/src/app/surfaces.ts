@@ -132,3 +132,23 @@ export function flowRunSurface(runId: string, title = 'Flow Run'): WorkspaceSurf
     closable: true,
   };
 }
+
+/** Browser lives in the same window manager as terminals, with its own session identity. */
+export function browserSurface(projectId: string): WorkspaceSurface {
+  const browserId = crypto.randomUUID();
+  const logicalKey = `browser:${projectId}:${browserId}`;
+  return {
+    id: logicalKey,
+    viewId: `view:${logicalKey}`,
+    logicalKey,
+    type: 'browser',
+    title: 'Browser',
+    data: { projectId, initialUrl: 'http://localhost:3000' },
+    closable: true,
+  };
+}
+
+/** Presentation-only predicate; a browser is never a PTY runtime. */
+export function isWorkspaceWindowSurface(surface: WorkspaceSurface): boolean {
+  return isPtySurface(surface) || surface.type === 'browser';
+}

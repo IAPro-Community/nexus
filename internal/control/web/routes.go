@@ -22,6 +22,7 @@ func registerRoutes(mux *http.ServeMux, deps routeDependencies) {
 	registerSystemRoutes(mux, deps)
 	registerFilesystemRoutes(mux, deps)
 	registerTunnelRoutes(mux, deps)
+	registerBrowserRoutes(mux, deps)
 }
 
 func registerControlRoutes(mux *http.ServeMux, deps routeDependencies) {
@@ -131,4 +132,11 @@ func registerTunnelRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/tunnel/stop", s.authMiddleware(s.handleTunnelStop))
 	mux.HandleFunc("/api/v1/tunnel/qr", s.authMiddleware(s.handleTunnelQR))
 	mux.HandleFunc("/api/v1/tunnel/invite", s.authMiddleware(s.handleTunnelQR))
+}
+
+// Browser is a workspace capability, not a second orchestration layer.
+func registerBrowserRoutes(mux *http.ServeMux, deps routeDependencies) {
+ s := deps.server
+ mux.HandleFunc("/api/v1/browser/sessions", s.authMiddleware(s.handleBrowserSessions))
+ mux.HandleFunc("/api/v1/browser/sessions/", s.authMiddleware(s.handleBrowserSession))
 }

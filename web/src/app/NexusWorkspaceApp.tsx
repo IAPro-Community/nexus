@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
-import { api, initSession, rotateSession, tryLoopbackReauth, type BrowserSession } from '../api';
+import { api, request, initSession, rotateSession, tryLoopbackReauth, type BrowserSession } from '../api';
 import { setNexusCSRF, nexus } from '../nexus/api';
 import { ThemeProvider } from '../design-system';
 import { NexusSplashScreen } from './NexusSplashScreen';
@@ -57,6 +57,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   agentConfigSurface,
   agentTerminalSurface,
+  browserSurface,
   flowRunSurface,
   isPtySurface,
   projectShellSurface,
@@ -486,6 +487,11 @@ const WorkspaceCoordinator: React.FC<{
     const agentId = target.data?.agentId;
     setCloseTarget(null);
     workspace.close(target.id);
+    if (target.type === 'browser' && target.data?.browserSessionId) {
+      void request<{ status: string }>(`/api/v1/browser/sessions/${encodeURIComponent(target.data.browserSessionId)}`, { method: 'DELETE' })
+        .catch(() => undefined);
+      return;
+    }
     if (!stopRuntime) return;
     void (async () => {
       try {
@@ -1132,6 +1138,7 @@ const WorkspaceCoordinator: React.FC<{
       createActions={{
         onNewAgent: () => setNewAgentOpen(true),
         onNewAISession: openNewAISession,
+        onNewBrowser: () => { open(browserSurface(project.id), false); openTerminals(); },
         onProjectShell: () => {
           void shell();
         },
