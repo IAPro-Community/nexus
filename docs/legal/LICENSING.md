@@ -1,5 +1,13 @@
 # Licenciamento do IAPro Nexus v1
 
+> **Direção aprovada de produto (27/10/2026):** migrar para um modelo open
+> source verdadeiro, com **Apache-2.0 como licença-alvo**, Community completa
+> e doações/serviços opcionais. **Isso ainda não constitui relicenciamento.**
+> A PolyForm Strict vigente permanece obrigatória até a autorização dos
+> titulares e a substituição do arquivo LICENSE. Leia o
+> [plano de migração e gates](OPEN_SOURCE_TRANSITION.md) e a
+> [política de identidade](TRADEMARK_POLICY.md).
+
 **Modelo:** source-available, não comercial — **PolyForm Strict License 1.0.0**.
 
 > Este documento explica a licença; em caso de conflito, prevalece o texto integral de [LICENSE](../../LICENSE). Não é uma licença open source aprovada pela OSI. Como o código já está público, confirmar prioritariamente com o titular dos direitos autorais a autoridade para relicenciar todas as partes de código próprias ou recebidas de terceiros.
@@ -29,7 +37,7 @@ Um repositório público pode ser visualizado e bifurcado no GitHub nos limites 
 
 ## Builds, binários beta antigos e terceiros
 
-- O texto da [LICENSE](../../LICENSE) governa o código do Nexus disponibilizado com esta revisão quando o titular confirmar o relicenciamento.
+- O texto vigente de [LICENSE](../../LICENSE) governa o código próprio do Nexus distribuído sob seus termos, sujeito às questões de titularidade. A futura licença Apache-2.0 **não** está em vigor e não produz autorização retroativa automática.
 - Distribuições beta previamente entregues sob termos proprietários não são automaticamente relicenciadas de forma retroativa; consulte o acordo efetivamente fornecido com cada distribuição.
 - [Termos beta históricos](BETA_TERMS.md) são mantidos para contexto de distribuição anterior. Não constituem autorização para publicar artefatos novos.
 - Bibliotecas, assets e componentes de terceiros permanecem sob suas próprias licenças. Veja [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES.md) e faça auditoria completa de licença/SBOM antes de abrir o repositório.
