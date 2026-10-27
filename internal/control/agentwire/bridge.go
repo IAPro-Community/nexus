@@ -110,7 +110,7 @@ func(b *Bridge)Prompt(ctx context.Context,text string)error {
  b.busy=true
  id:=b.sessionID
  b.mu.Unlock()
- defer func(){b.mu.Lock();b.busy=false;b.mu.Unlock()}()
+ defer func(){if b.acp!=nil {b.mu.Lock();b.busy=false;b.mu.Unlock()}}()
  b.emit(WireSignal{State:"working",Summary:"Agent is working"})
  if b.acp!=nil{
   result,err:=b.acp.Prompt(ctx,id,text)
@@ -126,9 +126,17 @@ func(b *Bridge)Prompt(ctx context.Context,text string)error {
  }
  // Pi acknowledges the command before running. Only agent_settled confirms
  // that work has stopped, so no COMPLETED event is emitted here.
- if err:=b.pi.Command(ctx,"prompt",map[string]any{"message":text},nil);err!=nil{
+ var reply json.RawMessage
+ if err:=b.pi.Command(ctx,"prompt",map[string]any{"message":text},&reply);err!=nil{
+  b.mu.Lock();b.busy=false;b.mu.Unlock()
   b.emit(WireSignal{State:"error",Summary:"Agent prompt rejected"})
   return err
+ }
+ var accepted struct{Disposition string `json:"disposition"`}
+ _=json.Unmarshal(reply,&accepted)
+ if accepted.Disposition=="handled" {
+  b.mu.Lock();b.busy=false;b.mu.Unlock()
+  b.emit(WireSignal{State:"idle",Summary:"Prompt handled without starting a run"})
  }
  return nil
 }
@@ -197,7 +205,9 @@ func(b *Bridge)notification(method string,raw json.RawMessage){
 func(b *Bridge)piEvent(kind string,raw json.RawMessage){
  switch kind{
  case "agent_start":b.emit(WireSignal{State:"working",Summary:"Agent started"})
- case "agent_settled":b.emit(WireSignal{State:"done",Summary:"Agent turn settled"})
+ case "agent_settled":
+  b.mu.Lock();b.busy=false;b.mu.Unlock()
+  b.emit(WireSignal{State:"done",Summary:"Agent turn settled"})
  case "agent_end": // Does not mean settled; retry/follow-ups may follow.
  case "message_update":
   var data struct {AssistantMessageEvent struct{Type string `json:"type"`;Delta string `json:"delta"`}`json:"assistantMessageEvent"`}
