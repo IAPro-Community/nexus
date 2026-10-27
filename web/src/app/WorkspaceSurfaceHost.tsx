@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Button, EmptyState } from '../design-system';
 import { providerLoginCommand } from '../lib/providerLoginCommand';
 import { recoverOrStartAgent } from '../nexus/agentRecover';
+import { withAgentExecutionMode } from '../nexus/agentExecutionMode';
 import { isLiveRuntimeState, runtimeIdFromRecoverResult } from '../nexus/agentTerminalModel';
 import { nexus } from '../nexus/api';
 import { api } from '../api';
@@ -410,21 +411,10 @@ export const WorkspaceSurfaceHost: React.FC<{
             onRestartWithMode={async (newMode: 'Safe' | 'YOLO') => {
               if (!agent) return;
               const currentCfg = await nexus.getAgentConfig(agent.id);
-              const configuredArgs = Array.isArray(currentCfg.config.options?.extra_args)
-                ? currentCfg.config.options.extra_args
-                : [];
-              const extraArgs = configuredArgs.filter(
-                (arg) => arg !== '--plan' && arg !== '--yolo' && arg !== '-y',
-              );
-              if (newMode === 'YOLO') extraArgs.push('--yolo');
               await nexus.applyAgentConfig(agent.id, {
                 ...currentCfg.config,
                 continuity_policy: 'new_session',
-                options: {
-                  ...currentCfg.config.options,
-                  mode: newMode,
-                  extra_args: extraArgs,
-                },
+                options: withAgentExecutionMode(currentCfg.config.options, newMode),
               });
               await refreshAgents();
               const globalData = await refreshGlobal();

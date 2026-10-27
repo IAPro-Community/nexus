@@ -62,6 +62,16 @@ const EMBEDDED_MOUSE_RE = /\x1b\[<\d+;\d+;\d+[Mm]/g;
 const EMBEDDED_X10_MOUSE_RE = /\x1b\[M[\x20-\xff]{3}/g;
 // eslint-disable-next-line no-control-regex
 const EMBEDDED_URXVT_MOUSE_RE = /\x1b\[(?:[3-9]\d|\d{3,});\d+;\d+M/g;
+/* eslint-disable no-control-regex -- ESC bytes identify the terminal mouse protocol. */
+const TERMINAL_MOUSE_INPUT_RE =
+  /(?:\x1b\[<\d+;\d+;\d+[Mm]|\x1b\[M[\x20-\xff]{3}|\x1b\[(?:[3-9]\d|\d{3,});\d+;\d+M)/;
+const TERMINAL_SCROLL_NAVIGATION_RE = /\x1b(?:\[(?:[1-8](?:;\d+)?~|[HF])|O[HF])/;
+/* eslint-enable no-control-regex */
+
+/** Keep user-controlled scroll position when xterm reports a mouse or paging event. */
+export function shouldAutoScrollToBottomOnInput(data: string): boolean {
+  return !TERMINAL_MOUSE_INPUT_RE.test(data) && !TERMINAL_SCROLL_NAVIGATION_RE.test(data);
+}
 
 /**
  * Strip only provably terminal-generated metadata.

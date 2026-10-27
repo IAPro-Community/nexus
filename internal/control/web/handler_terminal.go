@@ -119,6 +119,10 @@ func dialAttachControlBudget(
 
 func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, agentID string, runtimeID string) {
 	traceDocsCaptureTerminalStage("request")
+	if !CheckOrigin(r) {
+		writeError(w, http.StatusForbidden, "invalid origin")
+		return
+	}
 	if h.auth != nil && h.auth.AuthenticateRequest(r) == nil {
 		http.Error(w, "authentication required", http.StatusUnauthorized)
 		return

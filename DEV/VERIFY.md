@@ -2185,3 +2185,9 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - Uma execução real com sessão Codex descartável retornou `COMPLETED_VERIFIED` e package `VERIFIED`, porém o harness inicial não guardou o worktree/recibo. A repetição com inspeção explícita excedeu 180 s; o runtime foi encerrado, contagem final zero, Core exit 0 e raiz temporária removida.
 - RT-002 ficou **BLOCKED** até que worktree, recibo e DoD global sejam inspecionados juntos. Matriz/JSON: **NO_GO_LINUX — 169 PASS / 1 FAIL / 22 BLOCKED / 0 NOT_RUN (192)**.
 - O produto mantém um único mascote NEX, sem Companion 2D separado.
+
+## Terminais e agentes — YOLO e scrollback — 2026-10-26
+
+- Validação de implementação e testes para `--yolo` persistido, atualização do modo Safe/YOLO no terminal e preservação da rolagem manual em mouse/PageUp/PageDown/Home/End: ver `DEV/validation/TERMINALS_AGENTS_YOLO_SCROLL_20261026.md`.
+- Escopo coberto: Codex (alias para a flag nativa), normalização compartilhada do launcher e ambos os componentes PTY, usados por OpenCode e Oh My Pi. Não foi feita chamada a modelo.
+- O binário beta.11 instalado continua aberto e não contém este overlay; há runtime Codex ativo. A atualização/reinício do aplicativo fica pendente para não interromper essa sessão.

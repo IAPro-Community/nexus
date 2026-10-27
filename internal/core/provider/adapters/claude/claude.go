@@ -105,7 +105,7 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 }
 
 func (a *Adapter) Login(ctx context.Context, p model.Profile) error {
-	_, err := a.Run(ctx, p, []string{"login"})
+	_, err := a.Run(ctx, p, []string{"auth", "login"})
 	return err
 }
 

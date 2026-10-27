@@ -34,6 +34,7 @@ import { consumePtyOutputForChrome, extractOscTitle } from '../workspace/ptyLive
 import { usePtyLiveChromeOptional } from '../workspace/PtyLiveChromeContext';
 import { getWebSocketEndpoint } from '../api';
 import {
+  shouldAutoScrollToBottomOnInput,
   shouldForwardTerminalInput,
   stripEmbeddedTerminalMetadata,
   terminalTraceShape,
@@ -399,8 +400,10 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     // Forward terminal input to WebSocket with focus/CPR sequence filtering
     const dataListener = term.onData((data) => {
       if (disposed) return;
-      term.scrollToBottom();
-      setIsScrolledUp(false);
+      if (shouldAutoScrollToBottomOnInput(data)) {
+        term.scrollToBottom();
+        setIsScrolledUp(false);
+      }
       if (ws.readyState === WebSocket.OPEN && terminalTraceEnabled) {
         const trace = terminalTraceShape(data);
         ws.send(

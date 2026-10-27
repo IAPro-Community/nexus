@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  shouldAutoScrollToBottomOnInput,
   shouldForwardTerminalInput,
   stripEmbeddedTerminalMetadata,
   terminalTraceShape,
@@ -72,6 +73,28 @@ describe('shouldForwardTerminalInput', () => {
   it('keeps literal provider text that resembles a control sequence', () => {
     expect(shouldForwardTerminalInput('/e[31m literal')).toBe(true);
     expect(shouldForwardTerminalInput('\\e[31m literal')).toBe(true);
+  });
+});
+
+describe('shouldAutoScrollToBottomOnInput', () => {
+  it.each([
+    '\x1b[<65;58;48M', // SGR wheel
+    '\x1b[M\x60\x48\x28', // X10 wheel
+    '\x1b[96;58;48M', // URXVT wheel
+    '\x1b[5~', // Page Up
+    '\x1b[6;2~', // Shift + Page Down
+    '\x1b[H', // Home / start of terminal buffer
+    '\x1b[7~', // Alternate Home
+    '\x1b[8;2~', // Shift + alternate End
+    '\x1bOH', // Application mode Home
+    '\x1bOF', // Application mode End
+  ])('preserves the current viewport for navigation input %j', (data) => {
+    expect(shouldAutoScrollToBottomOnInput(data)).toBe(false);
+  });
+
+  it('keeps ordinary keyboard input following live output', () => {
+    expect(shouldAutoScrollToBottomOnInput('hello')).toBe(true);
+    expect(shouldAutoScrollToBottomOnInput('\r')).toBe(true);
   });
 });
 

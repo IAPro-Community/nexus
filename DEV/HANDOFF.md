@@ -2670,3 +2670,9 @@ O controle `Popup independente` agora fica imediatamente abaixo do cabeçalho do
 - `make overnight-smoke` e `make overnight-soak DURATION=5m` passaram (15,864 s e 300,012 s). Ambos usam fixtures determinísticas, sem chamadas a provedores ou escrita no workspace do usuário.
 - P9 não está concluído: falta retomar uma execução persistida e gerar inspeção da manhã seguinte; handoffs e continuidade externos seguem sem validação autenticada.
 - Totais: 102 PASS / 1 FAIL / 15 BLOCKED / 5 NOT_RUN (123); status global `NO_GO_LINUX`.
+
+## Continuidade — correções de terminais/agentes — 2026-10-26
+
+- A branch `fix/windows-agent-terminal-reliability` reúne estas alterações. Ver `DEV/validation/TERMINALS_AGENTS_YOLO_SCROLL_20261026.md` para causa, arquivos, verificações e limitações.
+- YOLO agora normaliza aliases vindos das opções persistidas e a UI lê o modo persistido; terminais preservam scrollback ao receber input de mouse/paginação.
+- Antes de testar no app desktop, preparar uma build local com o overlay atual. Não encerrar nem substituir o processo instalado enquanto houver uma sessão de agente Codex em execução, salvo pedido explícito do usuário.

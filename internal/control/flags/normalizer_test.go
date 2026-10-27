@@ -133,6 +133,20 @@ func TestNormalizeCustomUserAliases(t *testing.T) {
 	}
 }
 
+func TestNormalizePreservingRepeatedArgs(t *testing.T) {
+	got := NormalizePreservingRepeatedArgs("codex", []string{
+		"--yolo", "--add-dir", "one", "--add-dir", "two",
+		"--dangerously-bypass-approvals-and-sandbox",
+	}, nil)
+	want := []string{
+		"--dangerously-bypass-approvals-and-sandbox",
+		"--add-dir", "one", "--add-dir", "two",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("NormalizePreservingRepeatedArgs() = %v; want %v", got, want)
+	}
+}
+
 func TestRenderMergedHelp(t *testing.T) {
 	nativeHelp := "Usage: agy [options]\n  --help show help"
 	merged := RenderMergedHelp("agy", nativeHelp)

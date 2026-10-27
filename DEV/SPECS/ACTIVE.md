@@ -493,3 +493,10 @@ Instalação exercitada no perfil do usuário: popup habilitado pelo painel, Mas
 ### Entrega atual — 2026-10-22
 
 Toggle do popup independente no topo do painel (inline e popup), validado por harness no build `9b78fb10` (commit `8d100e96`) e no perfil real; implantado localmente. Pendências inalteradas: assinatura/instalador, smokes interativos de Codex/multi-conta, confirmação visual humana e matriz Linux/macOS.
+
+## Terminais e agentes — modo YOLO e scrollback — 2026-10-26
+
+- O modo escolhido deve ser persistido na configuração do agente, convertido em flags nativas do provedor na inicialização e refletido no controle de modo do terminal.
+- Mudar entre Safe e YOLO deve remover flags de modo conflitantes e preservar opções não relacionadas, inclusive argumentos nativos repetíveis.
+- A rolagem manual deve permanecer no ponto escolhido quando a entrada reporta wheel do mouse ou PageUp/PageDown/Home/End. Isso vale para PTYs padrão e de agentes.
+- Evidência e limites: `DEV/validation/TERMINALS_AGENTS_YOLO_SCROLL_20261026.md`.
