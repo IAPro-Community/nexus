@@ -32,16 +32,20 @@ type structuredBackend struct {
  ctx context.Context
  cancel context.CancelFunc
  started bool
+ ready chan error
+ lines chan string
 }
 func newStructuredBackend(mode,cwd string,onStatus func(agentwire.WireSignal),onSession func(string)) *structuredBackend{
  r,w:=io.Pipe()
- return &structuredBackend{mode:mode,cwd:cwd,outputReader:r,outputWriter:w,onStatus:onStatus,onSession:onSession}
+ return &structuredBackend{mode:mode,cwd:cwd,outputReader:r,outputWriter:w,onStatus:onStatus,onSession:onSession,ready:make(chan error,1),lines:make(chan string,256)}
 }
 func (b *structuredBackend)emit(msg string){
  if msg==""{return}
  msg=security.Redact(msg)
  if len(msg)>4096{msg=msg[:4096]}
- _,_=io.WriteString(b.outputWriter,msg)
+ // A full queue must not stall ACP JSON-RPC input processing. Provider
+ // dialogue remains recoverable from its session; this is display-only.
+ select {case b.lines<-msg:default:}
 }
 func (b *structuredBackend)Start(cmd *exec.Cmd,rows,cols int)error{
  b.mu.Lock()
@@ -52,21 +56,36 @@ func (b *structuredBackend)Start(cmd *exec.Cmd,rows,cols int)error{
  in,err:=cmd.StdinPipe();if err!=nil{return err}
  out,err:=cmd.StdoutPipe();if err!=nil{return err}
  stderr,err:=cmd.StderrPipe();if err!=nil{return err}
- bridge,err:=agentwire.NewBridge(b.mode,out,in,b.cwd,b.onStatus,func(msg string){b.emit(msg)})
+ bridge,err:=agentwire.NewBridge(b.mode,out,in,b.cwd,func(signal agentwire.WireSignal){
+  // SessionHost.mu is held while Start waits for ACP initialize. Never call
+  // its attention callback inline from the protocol reader.
+  if b.onStatus!=nil {go b.onStatus(signal)}
+ },func(msg string){b.emit(msg)})
  if err!=nil{return err}
  if err:=cmd.Start();err!=nil{return err}
  b.ctx,b.cancel=context.WithCancel(context.Background())
  b.bridge=bridge
  b.started=true
+ go func(){
+  for{
+   select{
+   case <-b.ctx.Done():return
+   case line:=<-b.lines:
+    _,_=io.WriteString(b.outputWriter,line)
+   }
+  }
+ }()
  // Do not block the IPC or hold SessionHost.mu during protocol handshake.
  // A failed handshake stops the child rather than leaving a fake session.
  go func(){
   if err:=bridge.Start(b.ctx);err!=nil{
+   b.ready<-err
    b.emit("\r\n[Nexus] Structured protocol handshake failed.\r\n")
-   if b.onStatus!=nil{b.onStatus(agentwire.WireSignal{State:"error",Summary:"Protocol handshake failed"})}
+   if b.onStatus!=nil{go b.onStatus(agentwire.WireSignal{State:"error",Summary:"Protocol handshake failed"})}
    _=cmd.Process.Kill()
    return
   }
+  b.ready<-nil
   if b.onSession!=nil&&bridge.SessionID()!=""{b.onSession(bridge.SessionID())}
   b.emit("\r\n[Nexus] Connected to "+strings.ToUpper(b.mode)+" agent. Enter a prompt.\r\n")
  }()
@@ -75,6 +94,8 @@ func (b *structuredBackend)Start(cmd *exec.Cmd,rows,cols int)error{
   // persist it in the attention registry.
   _,_=io.Copy(io.Discard,stderr)
  }()
+ // Only report runtime readiness after protocol initialization succeeds.
+ if err:=<-b.ready;err!=nil{return fmt.Errorf("agent protocol unavailable: %w",err)}
  return nil
 }
 func (b *structuredBackend)Read(p []byte)(int,error){return b.outputReader.Read(p)}
