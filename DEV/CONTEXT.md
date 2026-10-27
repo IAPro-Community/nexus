@@ -193,3 +193,7 @@ Project Hub corrigido e validado em 775×483; gates web, oito suítes browser, b
 
 - Revisão solicitada para o modo YOLO do Codex e rolagem de OpenCode/Oh My Pi. Correções de código foram feitas em `web/` e no normalizador/launcher Go.
 - Ver `DEV/validation/TERMINALS_AGENTS_YOLO_SCROLL_20261026.md` para evidências e status. A instalação beta.11 permanece servindo a interface; ainda não foi reiniciada com o código novo porque mantém um runtime Codex ativo.
+
+## Estado atual — slice macOS 2026-10-21 integrado ao beta.11 — 2026-10-27
+
+`release/v1.0.0` sincronizado com `origin/release/v1.0.0@b416bb90` (223 commits) preservando o slice local: login do host vinculado ao perfil com proveniência e opt-out, HUD com acesso a novo agente, overview simplificado, dedupe de login, fix do `nexus usage` e compatibilidade de teclado do Codex no PTY embutido (`CODEX_TUI_DISABLE_KEYBOARD_ENHANCEMENT=1`). Versão de fonte `1.0.0-beta.11`. Commits locais `5e3eff4e` (feature), `11f3d771` (teclado/PTY) e `d61b0dcc` (gates); `make quality` PASS com 114 suítes/710 testes. Instalação local em `Applications/IAPro Nexus.app` + HUD (beta.11, HTTP 200, HUD vinculado). Gates e evidências em `DEV/VERIFY.md`. Distribuição segue NO-GO por assinatura/notarização/arm64.

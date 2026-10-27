@@ -1,3 +1,16 @@
+## 2026-10-27 — beta.11 sincronizado, gates verdes e instalação local macOS
+
+- Branch `release/v1.0.0`; HEAD `b416bb90` (= `origin/release/v1.0.0`). Sincronização de 223 commits via `stash push -u` + `merge --ff-only` + `stash apply`, preservando os stashes de 2026-10-26 e 2026-10-27 como backup.
+- Conflitos resolvidos em `DEV/CONTEXT.md` e `web/src/app/DesktopHudApp.tsx`: mantida a renomeação upstream `onOpenMascotAttention` e adicionado `onOpenNewAgent`.
+- Falhas upstream reproduzidas em worktree limpo (`/tmp/nexus-origin-verify`, `b416bb90`) e corrigidas: stub de IA no teste do Composer, brief flow-beneficial congelado antes do `Finalize`, e `nexus_browser_enabled` aceito pelo launcher supervisionado. `planning_deletion_test.go` também recebeu o ponteiro correto.
+- Formatação: 14 arquivos Go (`gofmt`) e 18 arquivos web (Prettier). Lint: exclusões de `misspell` para conteúdo pt-BR, mensagens de erro em minúsculas, De Morgan, remoção de `createLaunchEnvelope` e assignment inefetivo.
+- PASS `GOTOOLCHAIN=go1.25.14 make quality`: format-check, ESLint, Stylelint, typecheck, golangci-lint (0 issues), Go tests, Vitest (114 suítes / 710 testes) e version-contract.
+- Commits locais: `5e3eff4e` (feature auth/usage/HUD), `11f3d771` (teclado Codex/PTY), `d61b0dcc` (gates/upstream) e este commit de docs.
+- Build/instalação local macOS amd64: CLI `1.0.0-beta.11` (`b416bb90`); Desktop/HUD instalados em `Applications/IAPro Nexus.app` e `... HUD.app`, com backup em `Applications-backup-20261027-0937` e cópia em `Applications/Run-20261027`.
+- Runtime: Desktop PID 54630, HUD vinculado PID 54635, HTTP 200 em `127.0.0.1:56992`, UI mostra `Nexus v1.0.0-beta.11`; `nexus ps` vazio (nenhum runtime supervisionado).
+- Hashes SHA-256: CLI `790df820ff553119617e251c0cf7b8355b6ff150764c577592edd594081a1f3f`, Desktop `678d21ab99ce14f56828e079e8e75f26fa4a86c1173517f9f60ce847601563ec`, HUD `1109875fcbcf44ac28fead249dd5cd10b3e6d07ed996fcc37ad35d6a83209f02`.
+- Distribuição continua NO-GO: sem Developer ID/notarização e sem certificação arm64.
+
 ## 2026-10-26 — reconciliação upstream, versão 1.0.0-beta.11 e validação integral
 
 - Reconciliei 15 commits vindos de `origin/release/v1.0.0` (commit 7a04f1b4 até 9d8d30af: suporte e gating de mouse DECSET/PTY, motion e paridade visual oficial do NEX).

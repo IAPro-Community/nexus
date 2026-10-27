@@ -1,3 +1,11 @@
+## Continuidade atual — beta.11 sincronizado e instalado — 2026-10-27
+
+- Branch `release/v1.0.0` em `b416bb90` (= `origin/release/v1.0.0`) + commits locais `5e3eff4e` (feature auth/usage/HUD), `11f3d771` (teclado Codex/PTY), `d61b0dcc` (gates/upstream) e docs. Push ainda pendente nesta rodada.
+- Slice preservado: proveniência/opt-out do login do host, recuperação de perfis no `nexus usage`, ação de novo agente no HUD e compatibilidade de teclado do Codex no PTY embutido.
+- `GOTOOLCHAIN=go1.25.14 make quality` PASS (114 suítes/710 testes, golangci-lint 0 issues, version-contract). Falhas upstream reproduzidas em worktree limpo e corrigidas; detalhes no `DEV/WORKLOG.md`.
+- Instalação local: `Applications/IAPro Nexus.app` + HUD (backup `Applications-backup-20261027-0937`); Desktop PID 54630, HUD vinculado PID 54635, HTTP 200 em `127.0.0.1:56992`, UI em `Nexus v1.0.0-beta.11`; `nexus ps` vazio.
+- Próxima ação: push de `release/v1.0.0`; depois validar o fluxo de Novo Agente pelo HUD e repetir o smoke de teclado Codex com o build instalado. Distribuição segue NO-GO (Developer ID/notarização/arm64).
+
 ## Continuidade atual — versão 1.0.0-beta.11 e reconciliação upstream — 2026-10-26
 
 - Branch `release/v1.0.0`; base `9d8d30afcefb7ec667bc4a0d3c1d1da15faf41b0`. 15 commits do remoto reconciliados e validados.

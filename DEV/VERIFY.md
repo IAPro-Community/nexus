@@ -1,3 +1,13 @@
+## Continuidade atual — beta.11 sincronizado e instalado — 2026-10-27
+
+- Branch `release/v1.0.0` em `b416bb90` (= `origin/release/v1.0.0`); commits locais `5e3eff4e` (feature auth/usage/HUD), `11f3d771` (teclado Codex/PTY) e `d61b0dcc` (gates/upstream), seguidos do commit de docs.
+- PASS — `GOTOOLCHAIN=go1.25.14 make quality` (exit 0): gofmt/Prettier, ESLint, Stylelint, typecheck, golangci-lint (0 issues), Go tests, Vitest 114 suítes/710 testes e version-contract.
+- PASS — falhas upstream reproduzidas em worktree limpo (`/tmp/nexus-origin-verify`, `b416bb90`) e corrigidas; testes focados de `internal/nexus` e do driver passam.
+- PASS — build e instalação local macOS amd64: CLI `1.0.0-beta.11`/`b416bb90`, Desktop/HUD com o mesmo build; backup em `Applications-backup-20261027-0937`.
+- PASS — runtime instalado: Desktop PID 54630 + HUD vinculado PID 54635, HTTP 200 em `127.0.0.1:56992`, UI exibe `Nexus v1.0.0-beta.11`.
+- BLOCKED — Developer ID/notarização, certificação arm64 e `make docs-verify` com árvore não commitada.
+- SHA-256: CLI `790df820ff553119617e251c0cf7b8355b6ff150764c577592edd594081a1f3f`, Desktop `678d21ab99ce14f56828e079e8e75f26fa4a86c1173517f9f60ce847601563ec`, HUD `1109875fcbcf44ac28fead249dd5cd10b3e6d07ed996fcc37ad35d6a83209f02`.
+
 ## Continuidade atual — versão 1.0.0-beta.11 e reconciliação upstream — 2026-10-26
 
 - Branch `release/v1.0.0`; HEAD origin `9d8d30afcefb7ec667bc4a0d3c1d1da15faf41b0`. Reconciliação dos 15 commits remotos concluída e validada.
