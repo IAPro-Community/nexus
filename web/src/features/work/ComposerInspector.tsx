@@ -120,7 +120,7 @@ export const ComposerInspector: React.FC<{
   ];
 
   return (
-    <div className={styles.root}>
+    <div className={styles.root} data-tour="composer-inspector">
       <div
         className={styles.tabs}
         role="tablist"
