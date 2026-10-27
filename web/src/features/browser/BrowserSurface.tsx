@@ -109,8 +109,7 @@ export const browserAPI = {
       method: 'DELETE',
       body: JSON.stringify({ id: grantId }),
     }),
-  snapshot: (id: string) =>
-    request<NexusBrowserSnapshot>(`${browserRoute(id)}/snapshot`),
+  snapshot: (id: string) => request<NexusBrowserSnapshot>(`${browserRoute(id)}/snapshot`),
 };
 
 export const BrowserSurface: React.FC<{
@@ -213,7 +212,8 @@ export const BrowserSurface: React.FC<{
           setHandoff(status);
           setGrants(activeGrants);
           if (status.status === 'human_active') setPrivateInput(true);
-          if (status.status === 'completed' || status.status === 'cancelled') setPrivateInput(false);
+          if (status.status === 'completed' || status.status === 'cancelled')
+            setPrivateInput(false);
         }
       } catch {
         // The browser may have been closed or Core temporarily disconnected.
@@ -221,7 +221,10 @@ export const BrowserSurface: React.FC<{
     };
     void poll();
     const interval = window.setInterval(() => void poll(), 2500);
-    return () => { disposed = true; window.clearInterval(interval); };
+    return () => {
+      disposed = true;
+      window.clearInterval(interval);
+    };
   }, [session?.id]);
 
   const createAgentConnection = async () => {
@@ -233,7 +236,9 @@ export NEXUS_BROWSER_TOKEN='${grant.token}'
 codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXUS_BROWSER_TOKEN`;
       try {
         await navigator.clipboard.writeText(text);
-        setConnectionInfo('Comandos MCP copiados. O token concede acesso apenas a esta sessão e expira em 1 hora.');
+        setConnectionInfo(
+          'Comandos MCP copiados. O token concede acesso apenas a esta sessão e expira em 1 hora.',
+        );
         setGrantFallback('');
       } catch {
         setGrantFallback(text);
@@ -511,7 +516,13 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
       </form>
       <div className={styles.controlBar} role="status">
         <span>{live ? 'Ao vivo' : 'Capturas / reconectando'}</span>
-        <span>{handoff.status === 'human_active' ? 'Intervenção humana · privada' : controller ? 'Você controla' : 'Somente visualização'}</span>
+        <span>
+          {handoff.status === 'human_active'
+            ? 'Intervenção humana · privada'
+            : controller
+              ? 'Você controla'
+              : 'Somente visualização'}
+        </span>
         {session && (
           <button
             type="button"
@@ -537,35 +548,66 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
       </div>
       {(handoff.status === 'requested' || handoff.status === 'human_active') && (
         <div className={styles.handoffPanel} role="status">
-          <strong>{handoff.status === 'requested' ? 'Agente solicita sua intervenção' : 'Você está controlando o navegador'}</strong>
-          <span>{handoff.reason || 'Conclua autenticação ou parâmetros diretamente na página.'}</span>
+          <strong>
+            {handoff.status === 'requested'
+              ? 'Agente solicita sua intervenção'
+              : 'Você está controlando o navegador'}
+          </strong>
+          <span>
+            {handoff.reason || 'Conclua autenticação ou parâmetros diretamente na página.'}
+          </span>
           {handoff.status === 'requested' ? (
-            <button type="button" onClick={() => void respondToHuman('begin')}>Assumir para autenticar</button>
+            <button type="button" onClick={() => void respondToHuman('begin')}>
+              Assumir para autenticar
+            </button>
           ) : (
             <div className={styles.handoffButtons}>
-              <button type="button" onClick={() => void respondToHuman('complete')}>Concluído · devolver ao agente</button>
-              <button type="button" onClick={() => void respondToHuman('cancel')}>Cancelar intervenção</button>
+              <button type="button" onClick={() => void respondToHuman('complete')}>
+                Concluído · devolver ao agente
+              </button>
+              <button type="button" onClick={() => void respondToHuman('cancel')}>
+                Cancelar intervenção
+              </button>
             </div>
           )}
-          <small>O agente permanece pausado e não recebe senhas, capturas ou conteúdo da página durante a intervenção.</small>
+          <small>
+            O agente permanece pausado e não recebe senhas, capturas ou conteúdo da página durante a
+            intervenção.
+          </small>
         </div>
       )}
       {session && (
         <details className={styles.agentConnections}>
           <summary>Conectar Codex / Claude / outro agente via MCP</summary>
           <p>Conexão local vinculada apenas a esta sessão de navegador.</p>
-          <button type="button" onClick={() => void createAgentConnection()}>Gerar acesso temporário e copiar configuração</button>
+          <button type="button" onClick={() => void createAgentConnection()}>
+            Gerar acesso temporário e copiar configuração
+          </button>
           {connectionInfo && <p role="status">{connectionInfo}</p>}
-          {grantFallback && <textarea readOnly value={grantFallback} aria-label="Configuração MCP de uso único" />}
+          {grantFallback && (
+            <textarea readOnly value={grantFallback} aria-label="Configuração MCP de uso único" />
+          )}
           {grants.map((grant) => (
             <div className={styles.grantRow} key={grant.id}>
-              <span>{grant.label} · até {new Date(grant.expires_at).toLocaleTimeString()}</span>
-              <button type="button" onClick={() => {
-                void browserAPI.revokeGrant(session.id, grant.id).then(() => {
-                  setGrants((items) => items.filter((item) => item.id !== grant.id));
-                  setGrantFallback('');
-                }).catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
-              }}>Revogar</button>
+              <span>
+                {grant.label} · até {new Date(grant.expires_at).toLocaleTimeString()}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  void browserAPI
+                    .revokeGrant(session.id, grant.id)
+                    .then(() => {
+                      setGrants((items) => items.filter((item) => item.id !== grant.id));
+                      setGrantFallback('');
+                    })
+                    .catch((err: unknown) =>
+                      setError(err instanceof Error ? err.message : String(err)),
+                    );
+                }}
+              >
+                Revogar
+              </button>
             </div>
           ))}
         </details>
@@ -645,13 +687,21 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
         <input
           type={privateInput ? 'password' : 'text'}
           autoComplete="off"
-          aria-label={privateInput ? 'Texto sensível para login' : 'Texto para o elemento selecionado'}
+          aria-label={
+            privateInput ? 'Texto sensível para login' : 'Texto para o elemento selecionado'
+          }
           placeholder="Digitar no elemento selecionado"
           value={text}
           onChange={(event) => setText(event.target.value)}
         />
-        <button type="button" onClick={() => setPrivateInput((value) => !value)}
-          title="Ocultar caracteres digitados neste campo"> {privateInput ? 'Privado' : 'Ocultar'} </button>
+        <button
+          type="button"
+          onClick={() => setPrivateInput((value) => !value)}
+          title="Ocultar caracteres digitados neste campo"
+        >
+          {' '}
+          {privateInput ? 'Privado' : 'Ocultar'}{' '}
+        </button>
         <button type="submit" disabled={!controller || !text || busy} aria-label="Enviar texto">
           <Send size={15} />
         </button>

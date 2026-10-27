@@ -2,9 +2,9 @@ package web
 
 import (
 	"context"
-	"net"
 	"encoding/base64"
 	"encoding/json"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -96,44 +96,71 @@ func (s *Server) handleBrowserSession(w http.ResponseWriter, r *http.Request) {
 	case action == "grants" && r.Method == http.MethodGet:
 		writeJSON(w, http.StatusOK, s.browsers.ListAgentGrants(parts[0]))
 	case action == "grant" && r.Method == http.MethodPost:
-		var input struct { Label string `json:"label"` }
-		r.Body = http.MaxBytesReader(w,r.Body,1024)
-		if err:=json.NewDecoder(r.Body).Decode(&input);err!=nil {
-			writeError(w,http.StatusBadRequest,"invalid agent grant request");return
+		var input struct {
+			Label string `json:"label"`
 		}
-		grant,token,err:=s.browsers.IssueAgentGrant(parts[0],input.Label)
-		if err!=nil {writeError(w,http.StatusBadRequest,err.Error());return}
-		_,localPort,portErr:=net.SplitHostPort(s.listener.Addr().String())
-		if portErr!=nil {writeError(w,http.StatusInternalServerError,"browser endpoint unavailable");return}
-		writeJSON(w,http.StatusCreated,map[string]any{"grant":grant,"token":token,"mcp_url":"http://127.0.0.1:"+localPort+"/api/v1/browser/mcp"})
+		r.Body = http.MaxBytesReader(w, r.Body, 1024)
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid agent grant request")
+			return
+		}
+		grant, token, err := s.browsers.IssueAgentGrant(parts[0], input.Label)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		_, localPort, portErr := net.SplitHostPort(s.listener.Addr().String())
+		if portErr != nil {
+			writeError(w, http.StatusInternalServerError, "browser endpoint unavailable")
+			return
+		}
+		writeJSON(w, http.StatusCreated, map[string]any{"grant": grant, "token": token, "mcp_url": "http://127.0.0.1:" + localPort + "/api/v1/browser/mcp"})
 	case action == "grant" && r.Method == http.MethodDelete:
-		var input struct { ID string `json:"id"` }
-		r.Body = http.MaxBytesReader(w,r.Body,1024)
-		if err:=json.NewDecoder(r.Body).Decode(&input);err!=nil {
-			writeError(w,http.StatusBadRequest,"invalid revoke request");return
+		var input struct {
+			ID string `json:"id"`
 		}
-		if !s.browsers.RevokeAgentGrant(parts[0],input.ID) {
-			writeError(w,http.StatusNotFound,"grant not found");return
+		r.Body = http.MaxBytesReader(w, r.Body, 1024)
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid revoke request")
+			return
 		}
-		writeJSON(w,http.StatusOK,map[string]any{"revoked":true})
+		if !s.browsers.RevokeAgentGrant(parts[0], input.ID) {
+			writeError(w, http.StatusNotFound, "grant not found")
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"revoked": true})
 	case action == "handoff" && r.Method == http.MethodPost:
-		actor:=s.auth.AuthenticateRequest(r)
-		if actor==nil {writeError(w,http.StatusUnauthorized,"authentication required");return}
-		var input struct { Mode string `json:"mode"` }
-		r.Body=http.MaxBytesReader(w,r.Body,1024)
-		if err:=json.NewDecoder(r.Body).Decode(&input);err!=nil {
-			writeError(w,http.StatusBadRequest,"invalid handoff request");return
+		actor := s.auth.AuthenticateRequest(r)
+		if actor == nil {
+			writeError(w, http.StatusUnauthorized, "authentication required")
+			return
+		}
+		var input struct {
+			Mode string `json:"mode"`
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, 1024)
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid handoff request")
+			return
 		}
 		var state browsercontrol.Handoff
 		var err error
 		switch input.Mode {
-		case "begin":state,err=session.BeginHuman("human:"+actor.ID)
-		case "complete":state,err=session.FinishHuman("human:"+actor.ID)
-		case "cancel":state,err=session.CancelHuman("human:"+actor.ID)
-		default:writeError(w,http.StatusBadRequest,"invalid handoff mode");return
+		case "begin":
+			state, err = session.BeginHuman("human:" + actor.ID)
+		case "complete":
+			state, err = session.FinishHuman("human:" + actor.ID)
+		case "cancel":
+			state, err = session.CancelHuman("human:" + actor.ID)
+		default:
+			writeError(w, http.StatusBadRequest, "invalid handoff mode")
+			return
 		}
-		if err!=nil {writeError(w,http.StatusConflict,err.Error());return}
-		writeJSON(w,http.StatusOK,state)
+		if err != nil {
+			writeError(w, http.StatusConflict, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, state)
 	case action == "stream" && r.Method == http.MethodGet:
 		s.handleBrowserStream(w, r, session)
 	case action == "control" && r.Method == http.MethodPost:
@@ -152,13 +179,13 @@ func (s *Server) handleBrowserSession(w http.ResponseWriter, r *http.Request) {
 		}
 		switch input.Mode {
 		case "acquire", "renew":
-			if ok, reason := session.AcquireControl("human:"+actor.ID); !ok {
+			if ok, reason := session.AcquireControl("human:" + actor.ID); !ok {
 				writeError(w, http.StatusConflict, reason)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"controller": true, "lease_seconds": 25})
 		case "release":
-			session.ReleaseControl("human:"+actor.ID)
+			session.ReleaseControl("human:" + actor.ID)
 			writeJSON(w, http.StatusOK, map[string]any{"controller": false})
 		default:
 			writeError(w, http.StatusBadRequest, "invalid control mode")

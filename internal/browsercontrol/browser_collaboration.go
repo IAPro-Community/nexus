@@ -41,41 +41,61 @@ type grantEntry struct {
 func (m *Manager) IssueAgentGrant(sessionID, label string) (AgentGrant, string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if m.closing { return AgentGrant{}, "", errors.New("browser manager shutting down") }
+	if m.closing {
+		return AgentGrant{}, "", errors.New("browser manager shutting down")
+	}
 	s, ok := m.sessions[sessionID]
-	if !ok { return AgentGrant{}, "", errors.New("browser session not found") }
+	if !ok {
+		return AgentGrant{}, "", errors.New("browser session not found")
+	}
 	s.mu.Lock()
 	closed := s.closed
 	s.mu.Unlock()
-	if closed { return AgentGrant{}, "", errors.New("browser session closed") }
+	if closed {
+		return AgentGrant{}, "", errors.New("browser session closed")
+	}
 	id, err := randomID()
-	if err != nil { return AgentGrant{}, "", err }
+	if err != nil {
+		return AgentGrant{}, "", err
+	}
 	secret := make([]byte, 32)
-	if _, err := rand.Read(secret); err != nil { return AgentGrant{}, "", err }
+	if _, err := rand.Read(secret); err != nil {
+		return AgentGrant{}, "", err
+	}
 	token := "nb_" + hex.EncodeToString(secret)
 	grant := AgentGrant{
-		ID: id, SessionID: sessionID, Actor: "agent:"+id,
+		ID: id, SessionID: sessionID, Actor: "agent:" + id,
 		Label: strings.TrimSpace(label), ExpiresAt: time.Now().Add(agentGrantDuration),
 	}
-	if grant.Label == "" { grant.Label = "Agent browser connection" }
-	if m.grants == nil { m.grants = make(map[[32]byte]grantEntry) }
+	if grant.Label == "" {
+		grant.Label = "Agent browser connection"
+	}
+	if m.grants == nil {
+		m.grants = make(map[[32]byte]grantEntry)
+	}
 	digest := sha256.Sum256([]byte(token))
 	m.grants[digest] = grantEntry{AgentGrant: grant, digest: digest}
 	return grant, token, nil
 }
 
 func (m *Manager) ResolveAgentGrant(token string) (AgentGrant, *Session, bool) {
-	if len(token) != 67 || !strings.HasPrefix(token, "nb_") { return AgentGrant{}, nil, false }
+	if len(token) != 67 || !strings.HasPrefix(token, "nb_") {
+		return AgentGrant{}, nil, false
+	}
 	digest := sha256.Sum256([]byte(token))
 	m.mu.RLock()
 	entry, exists := m.grants[digest]
 	s := m.sessions[entry.SessionID]
 	m.mu.RUnlock()
-	if !exists || s == nil || time.Now().After(entry.ExpiresAt) { return AgentGrant{}, nil, false }
+	if !exists || s == nil || time.Now().After(entry.ExpiresAt) {
+		return AgentGrant{}, nil, false
+	}
 	s.mu.Lock()
 	closed := s.closed
 	s.mu.Unlock()
-	if closed { return AgentGrant{}, nil, false }
+	if closed {
+		return AgentGrant{}, nil, false
+	}
 	return entry.AgentGrant, s, true
 }
 
@@ -97,7 +117,9 @@ func (m *Manager) RevokeAgentGrant(sessionID, id string) bool {
 	for digest, entry := range m.grants {
 		if entry.SessionID == sessionID && entry.ID == id {
 			delete(m.grants, digest)
-			if s := m.sessions[sessionID]; s != nil { s.ReleaseControl(entry.Actor) }
+			if s := m.sessions[sessionID]; s != nil {
+				s.ReleaseControl(entry.Actor)
+			}
 			return true
 		}
 	}
@@ -116,8 +138,12 @@ func (s *Session) HandoffState() Handoff {
 func (s *Session) RequestHuman(actor, reason string) (Handoff, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.closed { return Handoff{}, errors.New("browser session closed") }
-	if !strings.HasPrefix(actor, "agent:") { return Handoff{}, errors.New("agent identity required") }
+	if s.closed {
+		return Handoff{}, errors.New("browser session closed")
+	}
+	if !strings.HasPrefix(actor, "agent:") {
+		return Handoff{}, errors.New("agent identity required")
+	}
 	if s.controller != actor || time.Now().After(s.controllerUntil) {
 		return Handoff{}, errors.New("agent must control browser before requesting help")
 	}
@@ -125,9 +151,11 @@ func (s *Session) RequestHuman(actor, reason string) (Handoff, error) {
 		return Handoff{}, errors.New("human intervention already pending")
 	}
 	reason = strings.TrimSpace(reason)
-	if reason == "" || len(reason) > 500 { return Handoff{}, errors.New("reason must be 1 to 500 characters") }
+	if reason == "" || len(reason) > 500 {
+		return Handoff{}, errors.New("reason must be 1 to 500 characters")
+	}
 	now := time.Now()
-	s.handoff = Handoff{Status:"requested", Reason:reason, RequestedBy:actor, RequestedAt:now, UpdatedAt:now}
+	s.handoff = Handoff{Status: "requested", Reason: reason, RequestedBy: actor, RequestedAt: now, UpdatedAt: now}
 	s.controller = ""
 	s.controllerUntil = time.Time{}
 	return s.handoff, nil
@@ -136,8 +164,12 @@ func (s *Session) RequestHuman(actor, reason string) (Handoff, error) {
 func (s *Session) BeginHuman(actor string) (Handoff, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.closed { return Handoff{}, errors.New("browser session closed") }
-	if actor == "" || strings.HasPrefix(actor, "agent:") { return Handoff{}, errors.New("human Nexus session required") }
+	if s.closed {
+		return Handoff{}, errors.New("browser session closed")
+	}
+	if actor == "" || strings.HasPrefix(actor, "agent:") {
+		return Handoff{}, errors.New("human Nexus session required")
+	}
 	if s.handoff.Status != "requested" && s.handoff.Status != "human_active" {
 		return Handoff{}, errors.New("no human intervention pending")
 	}
@@ -146,7 +178,7 @@ func (s *Session) BeginHuman(actor string) (Handoff, error) {
 		return Handoff{}, errors.New("another user is handling this intervention")
 	}
 	s.controller = actor
-	s.controllerUntil = time.Now().Add(25*time.Second)
+	s.controllerUntil = time.Now().Add(25 * time.Second)
 	s.handoff.Status = "human_active"
 	s.handoff.UpdatedAt = time.Now()
 	return s.handoff, nil
@@ -168,7 +200,9 @@ func (s *Session) FinishHuman(actor string) (Handoff, error) {
 func (s *Session) CancelHuman(actor string) (Handoff, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if actor == "" || strings.HasPrefix(actor, "agent:") { return Handoff{}, errors.New("human Nexus session required") }
+	if actor == "" || strings.HasPrefix(actor, "agent:") {
+		return Handoff{}, errors.New("human Nexus session required")
+	}
 	if s.handoff.Status != "requested" && s.handoff.Status != "human_active" {
 		return Handoff{}, errors.New("no human intervention pending")
 	}
@@ -186,7 +220,9 @@ func (s *Session) CancelHuman(actor string) (Handoff, error) {
 func (s *Session) AcquireAgentControl(actor string) (bool, string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if !strings.HasPrefix(actor, "agent:") || s.closed { return false, "invalid agent" }
+	if !strings.HasPrefix(actor, "agent:") || s.closed {
+		return false, "invalid agent"
+	}
 	if s.handoff.Status == "requested" || s.handoff.Status == "human_active" {
 		return false, "waiting for human intervention"
 	}
@@ -195,7 +231,7 @@ func (s *Session) AcquireAgentControl(actor string) (bool, string) {
 		return false, "another actor controls this browser"
 	}
 	s.controller = actor
-	s.controllerUntil = now.Add(25*time.Second)
+	s.controllerUntil = now.Add(25 * time.Second)
 	return true, ""
 }
 
@@ -205,11 +241,13 @@ func (s *Session) AcquireAgentControl(actor string) (bool, string) {
 func (s *Session) DoAs(ctx context.Context, actor string, action Action) (Info, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.closed { return Info{}, errors.New("browser session closed") }
+	if s.closed {
+		return Info{}, errors.New("browser session closed")
+	}
 	if actor == "" || s.controller != actor || time.Now().After(s.controllerUntil) {
 		return Info{}, errors.New("browser input lease unavailable")
 	}
-	if strings.HasPrefix(actor,"agent:") && (s.handoff.Status == "requested" || s.handoff.Status == "human_active") {
+	if strings.HasPrefix(actor, "agent:") && (s.handoff.Status == "requested" || s.handoff.Status == "human_active") {
 		return Info{}, errors.New("agent paused for human intervention")
 	}
 	return s.doLocked(ctx, action)
@@ -217,18 +255,18 @@ func (s *Session) DoAs(ctx context.Context, actor string, action Action) (Info, 
 
 func (s *Session) SnapshotAs(ctx context.Context, actor string) ([]byte, error) {
 	s.mu.Lock()
-	if strings.HasPrefix(actor,"agent:") && (s.handoff.Status == "requested" || s.handoff.Status == "human_active") {
+	if strings.HasPrefix(actor, "agent:") && (s.handoff.Status == "requested" || s.handoff.Status == "human_active") {
 		s.mu.Unlock()
 		return nil, errors.New("human intervention active; page contents private")
 	}
 	defer s.mu.Unlock()
 	raw, err := s.snapshotLocked(ctx)
-	return []byte(raw),err
+	return []byte(raw), err
 }
 
 func (s *Session) ScreenshotAs(ctx context.Context, actor string) ([]byte, error) {
 	s.mu.Lock()
-	if strings.HasPrefix(actor,"agent:") && (s.handoff.Status == "requested" || s.handoff.Status == "human_active") {
+	if strings.HasPrefix(actor, "agent:") && (s.handoff.Status == "requested" || s.handoff.Status == "human_active") {
 		s.mu.Unlock()
 		return nil, errors.New("human intervention active; screenshots private")
 	}
@@ -240,12 +278,12 @@ func (s *Session) ControlInfo() map[string]any {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return map[string]any{
-		"controller":s.controller,
-		"occupied":s.controller != "" && time.Now().Before(s.controllerUntil),
-		"handoff":s.handoff,
-		"project_id":s.info.ProjectID,
-		"browser_session_id":s.info.ID,
+		"controller":         s.controller,
+		"occupied":           s.controller != "" && time.Now().Before(s.controllerUntil),
+		"handoff":            s.handoff,
+		"project_id":         s.info.ProjectID,
+		"browser_session_id": s.info.ID,
 	}
 }
 
-func (s *Session) String() string { return fmt.Sprintf("BrowserSession(%s)",s.Info().ID) }
+func (s *Session) String() string { return fmt.Sprintf("BrowserSession(%s)", s.Info().ID) }

@@ -61,7 +61,7 @@ type Session struct {
 	cdpNextID       int
 	controller      string
 	controllerUntil time.Time
-	handoff Handoff
+	handoff         Handoff
 	streamMu        sync.Mutex
 	streamReaders   map[chan []byte]struct{}
 	streamCancel    context.CancelFunc
@@ -72,7 +72,7 @@ type Manager struct {
 	sessions map[string]*Session
 	pending  int
 	closing  bool
-	grants map[[32]byte]grantEntry
+	grants   map[[32]byte]grantEntry
 }
 
 func NewManager() *Manager { return &Manager{sessions: make(map[string]*Session)} }
@@ -296,7 +296,9 @@ func (m *Manager) Close(id string) bool {
 	// Immediately revoke every credential scoped to this browser.
 	m.mu.Lock()
 	for digest, entry := range m.grants {
-		if entry.SessionID == id { delete(m.grants, digest) }
+		if entry.SessionID == id {
+			delete(m.grants, digest)
+		}
 	}
 	m.mu.Unlock()
 	s.stopStream()

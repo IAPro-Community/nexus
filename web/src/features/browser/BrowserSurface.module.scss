@@ -186,7 +186,9 @@ input:focus-visible {
   color: var(--nx-text);
   font-size: 12px;
 }
-.handoffPanel small { color: var(--nx-muted); }
+.handoffPanel small {
+  color: var(--nx-muted);
+}
 .handoffPanel button,
 .agentConnections button {
   border: 1px solid var(--nx-border-strong);
@@ -202,15 +204,25 @@ input:focus-visible {
   outline: 2px solid var(--nx-accent);
   outline-offset: 2px;
 }
-.handoffButtons { display: flex; flex-wrap: wrap; gap: 6px; }
+.handoffButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 .agentConnections {
   padding: 8px;
   background: var(--nx-surface-2);
   border-bottom: 1px solid var(--nx-border);
   font-size: 12px;
 }
-.agentConnections summary { cursor: pointer; font-weight: 600; }
-.agentConnections p { margin: 6px 0; color: var(--nx-muted); }
+.agentConnections summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.agentConnections p {
+  margin: 6px 0;
+  color: var(--nx-muted);
+}
 .agentConnections textarea {
   width: 100%;
   min-height: 80px;
@@ -228,8 +240,13 @@ input:focus-visible {
   justify-content: space-between;
   margin: 5px 0;
 }
-.grantRow span { color: var(--nx-muted); overflow-wrap: anywhere; }
+.grantRow span {
+  color: var(--nx-muted);
+  overflow-wrap: anywhere;
+}
 @media (max-width: 640px) {
   .handoffPanel button,
-  .agentConnections button { min-height: 38px; }
+  .agentConnections button {
+    min-height: 38px;
+  }
 }
