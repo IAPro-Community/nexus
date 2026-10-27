@@ -16,6 +16,7 @@
 
 ## Evidências correntes
 
+- [Login Claude Code no Windows — correção `auth login`](validation/CLAUDE_LOGIN_WINDOWS_20261026.md)
 - [Correções Windows de agentes e terminais — YOLO, scrollback e anexação](validation/TERMINALS_AGENTS_YOLO_SCROLL_20261026.md)
 - [Relatório Linux](validation/linux-100-2026-10-25/LINUX_HOMOLOGATION_REPORT.md)
 - [Matriz e resumo JSON](validation/linux-100-2026-10-25/TEST_MATRIX.md) · [NEX único](validation/linux-100-2026-10-25/MASCOT_VALIDATION.md)
