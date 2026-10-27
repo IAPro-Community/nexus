@@ -22,6 +22,11 @@ func TestNativeAGYQuestionPreemptsPTYHeuristic(t *testing.T) {
 	if detector.lastKind != AttentionNeedsUser {
 		t.Fatal("stale PTY narration replaced native blocker")
 	}
+	// Native blocker must remain pending until AGY itself signals a transition.
+	detector.ObserveOperatorInput([]byte("\\r"))
+	if detector.lastKind != AttentionNeedsUser {
+		t.Fatal("Enter prematurely dismissed native AGY approval")
+	}
 	detector.ProcessChunk([]byte("\x1b]7501;state=working:app=agy\x07"))
 	if detector.lastKind != AttentionWorking || detector.lastReason != "WORKING" {
 		t.Fatal("provider working status did not dismiss old attention")
