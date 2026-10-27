@@ -26,6 +26,7 @@ import { ProjectCreateMenu } from '../features/projects/ProjectCreateMenu';
 import type { Agent, AttentionItem, EventRecord, Project, RuntimeSession } from '../types';
 import type { RadarRuntimeItem } from './attentionRadarModel';
 import { VoiceCaptureButton } from '../features/voice/VoiceCaptureButton';
+import { ProductUpdatesCenter } from './components/ProductUpdatesCenter';
 import styles from './NexusShell.module.scss';
 
 export const NexusShell: React.FC<{
@@ -39,6 +40,7 @@ export const NexusShell: React.FC<{
   onToggleZenMode?: () => void;
   onOpenRail: () => void;
   onOpenSurface?: (kind: string) => void;
+  discoveryEnabled?: boolean;
   onCommand: () => void;
   onOpenWelcome: () => void;
   onOpenProjectManager: () => void;
@@ -62,6 +64,7 @@ export const NexusShell: React.FC<{
   onToggleZenMode,
   onOpenRail,
   onOpenSurface,
+  discoveryEnabled = true,
   onCommand,
   onOpenWelcome,
   onOpenProjectManager,
@@ -225,6 +228,7 @@ export const NexusShell: React.FC<{
                 </button>
               </div>
 
+              <ProductUpdatesCenter enabled={discoveryEnabled} onOpenSurface={onOpenSurface} />
               <div className={styles.notificationWrap}>
                 <IconButton
                   label={t('shell.notificationsAndRadar', 'Central de Notificações e Radar')}
