@@ -50,7 +50,8 @@ func (h *NexusHandler) handleIntelligenceProbe(w http.ResponseWriter, r *http.Re
 			writeJSON(w, http.StatusServiceUnavailable, map[string]any{
 				"ok":       false,
 				"error":    "intelligence_unavailable",
-				"detail":   err.Error(),
+				"detail":   nexus.IntelligenceProbeFailureMessage(err),
+				"reason":   nexus.IntelligenceProbeFailureReason(err),
 				"provider": result.Provider,
 			})
 			return
@@ -58,7 +59,8 @@ func (h *NexusHandler) handleIntelligenceProbe(w http.ResponseWriter, r *http.Re
 		writeJSON(w, http.StatusBadGateway, map[string]any{
 			"ok":       false,
 			"error":    "intelligence_probe_failed",
-			"detail":   err.Error(),
+			"detail":   nexus.IntelligenceProbeFailureMessage(err),
+			"reason":   nexus.IntelligenceProbeFailureReason(err),
 			"provider": result.Provider,
 		})
 		return
