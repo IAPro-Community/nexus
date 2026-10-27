@@ -56,7 +56,9 @@ os checks apropriados para PRs e limitar quem pode acionar ambientes com
 segredos. Uma alteração em YAML **não altera as permissões administrativas
 do GitHub**. O canal privado de reporte de vulnerabilidades precisa ser
 ativado nas configurações do repositório, se disponível. Nunca inserir
-segredos de assinatura em variáveis de PRs externos.
+segredos de assinatura em variáveis de PRs externos. Para realizar e
+verificar essas mudanças administrativas, consulte
+[o playbook de segurança do GitHub](docs/community/ADMIN_SETUP.md).
 
 ## Release e supply chain
 
