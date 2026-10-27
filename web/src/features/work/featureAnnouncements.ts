@@ -13,6 +13,8 @@ export interface FeatureAnnouncement {
   id: string;
   revision: number;
   surfaces: readonly FeatureTourSurface[];
+  /** Route kind accepted by the shared Nexus shell. */
+  openSurface: string;
   target: string;
   title: string;
   summary: string;
@@ -25,6 +27,7 @@ export const featureAnnouncements: readonly FeatureAnnouncement[] = [
     id: 'composer-idea-workspace',
     revision: 1,
     surfaces: ['composer-start'],
+    openSurface: 'work',
     target: '[data-tour="composer-goal"]',
     title: 'discovery.composerWorkspaceTitle',
     summary: 'discovery.composerWorkspaceBody',
@@ -34,6 +37,7 @@ export const featureAnnouncements: readonly FeatureAnnouncement[] = [
     id: 'composer-decision-inspector',
     revision: 1,
     surfaces: ['composer-session'],
+    openSurface: 'work',
     target: '[data-tour="composer-inspector"]',
     title: 'discovery.composerInspectorTitle',
     summary: 'discovery.composerInspectorBody',
@@ -43,6 +47,7 @@ export const featureAnnouncements: readonly FeatureAnnouncement[] = [
     id: 'composer-offline-recovery',
     revision: 1,
     surfaces: ['composer-offline'],
+    openSurface: 'work',
     target: '[data-tour="composer-offline-provider"]',
     title: 'discovery.composerOfflineTitle',
     summary: 'discovery.composerOfflineBody',
@@ -52,6 +57,7 @@ export const featureAnnouncements: readonly FeatureAnnouncement[] = [
     id: 'flow-review-journey',
     revision: 1,
     surfaces: ['flow-library'],
+    openSurface: 'missions',
     target: '[data-tour="flow-tracks"]',
     title: 'discovery.flowJourneyTitle',
     summary: 'discovery.flowJourneyBody',
@@ -61,6 +67,7 @@ export const featureAnnouncements: readonly FeatureAnnouncement[] = [
     id: 'flow-pipeline-graph',
     revision: 1,
     surfaces: ['flow-editor'],
+    openSurface: 'missions',
     target: '[data-tour="flow-canvas"]',
     title: 'discovery.flowGraphTitle',
     summary: 'discovery.flowGraphBody',
@@ -70,6 +77,7 @@ export const featureAnnouncements: readonly FeatureAnnouncement[] = [
     id: 'flow-mission-evidence',
     revision: 1,
     surfaces: ['flow-run'],
+    openSurface: 'missions',
     target: '[data-tour="flow-run-status"]',
     title: 'discovery.flowEvidenceTitle',
     summary: 'discovery.flowEvidenceBody',
