@@ -458,17 +458,20 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
 
   const selectBrowser = (id: string) => {
     if (!id || id === session?.id) return;
-    void browserAPI.get(id).then((next) => {
-      if (next.project_id !== projectId) return;
-      setWantsControl(false);
-      setController(false);
-      setSession(next);
-      setAddress(next.url);
-      setSnapshot('');
-      setElements([]);
-      setError('');
-      onReady.current?.(next.id);
-    }).catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
+    void browserAPI
+      .get(id)
+      .then((next) => {
+        if (next.project_id !== projectId) return;
+        setWantsControl(false);
+        setController(false);
+        setSession(next);
+        setAddress(next.url);
+        setSnapshot('');
+        setElements([]);
+        setError('');
+        onReady.current?.(next.id);
+      })
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
   };
 
   const inspect = () => {

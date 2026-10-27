@@ -264,5 +264,8 @@ input:focus-visible {
   text-overflow: ellipsis;
 }
 @media (max-width: 640px) {
-  .browserSelect { max-width: 128px; min-width: 90px; }
+  .browserSelect {
+    max-width: 128px;
+    min-width: 90px;
+  }
 }
