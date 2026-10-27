@@ -50,10 +50,15 @@ describe('release-aware contextual feature discovery', () => {
   });
 
   it('localizes every notice in the three supported languages', () => {
+    const translations = localeSource.split('  discovery: {').slice(1)
+      .map((block) => block.split('  tour: {')[0]);
+    expect(translations).toHaveLength(3);
     for (const item of featureAnnouncements) {
       for (const key of [item.title, item.summary]) {
         const token = key.replace('discovery.', '');
-        expect(localeSource.match(new RegExp(`\\b${token}: `, 'g'))?.length, key).toBe(3);
+        for (const translation of translations) {
+          expect(translation.includes(`    ${token}: '`), key).toBe(true);
+        }
       }
     }
   });
