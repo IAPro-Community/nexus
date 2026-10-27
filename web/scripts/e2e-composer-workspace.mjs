@@ -101,13 +101,17 @@ async function main() {
   });
   page.setDefaultTimeout(12000);
 
-  const listenPath = path.join(isolatedDataDir, 'web-auth', 'listen.json');
+  if (!server.pid) throw new Error('isolated Nexus Web PID unavailable');
+  const listenPath = path.join(isolatedDataDir, 'web-auth', `listen-${server.pid}.json`);
   const deadline = Date.now() + 8000;
   while (!existsSync(listenPath) && Date.now() < deadline) {
     await new Promise((r) => setTimeout(r, 50));
   }
-  assert.ok(existsSync(listenPath), 'listen.json was not created');
+  assert.ok(existsSync(listenPath), 'PID-scoped listen state missing');
   const listenState = JSON.parse(readFileSync(listenPath, 'utf8'));
+  assert.equal(listenState.pid, server.pid);
+  assert.equal(listenState.url, origin);
+  assert.equal(listenState.loopback, true);
   await page.goto(origin, { waitUntil: 'domcontentloaded', timeout: 20000 });
   const boot = await page.evaluate(async (token) => {
     const response = await fetch('/api/v1/auth/bootstrap', {
