@@ -93,3 +93,15 @@ teclado, disponibilidade/offline da IA, Composer inicial e finalizado,
 Flow sem plano, Flow editável e Mission executada. Checar screenshot
 **do SHA da build**, não somente do HEAD do repo. Sem evidência do build,
 o status de design continua **NO_GO**.
+
+## Novidades e ajuda por componente
+
+Além do tour manual, a barra superior oferece **Novidades do Nexus**
+e cada área tem um menu contextual para recursos novos, com **Mostrar no
+componente** e **Dispensar**. O contador usa `id + revision` por recurso;
+uma alteração significativa pode reapresentar o aviso uma vez sem
+interromper trabalhos. A ajuda pontual também utiliza Radix Tooltip
+do design system já instalado. Veja
+[Product Discovery e catálogo de anúncios](feature-discovery.md) para a
+política de inclusão de novidades, componentes avaliados, privacidade
+e limites do processo de publicação.
