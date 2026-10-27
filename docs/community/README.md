@@ -11,6 +11,7 @@ licença**. Enquanto isso, o [LICENSE](../../LICENSE) vigente é PolyForm Strict
 - [Sugerir uma melhoria](https://github.com/IAPro-Community/nexus/issues/new/choose), explicando o problema e critérios de aceite.
 - [Ler orientações de contribuição](../../CONTRIBUTING.md); patches públicos de terceiros dependem de autorização até o relicenciamento.
 - [Consultar o roadmap](../../ROADMAP.md) e a [política de governança](../../GOVERNANCE.md).
+- [Configurar as proteções administrativas do GitHub](ADMIN_SETUP.md) (mantenedores).
 - [Reportar vulnerabilidade de modo privado](../../SECURITY.md), nunca em issue pública.
 
 ## Quando a licença for aberta
