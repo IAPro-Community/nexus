@@ -77,6 +77,18 @@ func (p *PiRPC) Command(ctx context.Context, command string, fields map[string]a
 	}
 }
 
+// RespondUI replies to a provider-origin RPC extension dialog. The ID is
+// correlated by the bridge; it must never be guessed from terminal narration.
+func (p *PiRPC) RespondUI(requestID string, fields map[string]any)error{
+ if requestID=="" {return errors.New("Pi RPC: missing UI request ID")}
+ msg:=map[string]any{"type":"extension_ui_response","id":requestID}
+ for key,value:=range fields{
+  if key=="id"||key=="type"{return errors.New("Pi RPC: reserved response field")}
+  msg[key]=value
+ }
+ return p.wire.Write(msg)
+}
+
 // Pump records events independently of command replies; 'agent_end' is not a
 // settled session. Consumers should wait for 'agent_settled' instead.
 func (p *PiRPC) Pump(ctx context.Context) error {
