@@ -14,7 +14,8 @@ orchestrator. Maestro remains independent.
    project's local development server. An unavailable URL can show Chrome's
    network error page without destroying the session; enter another URL.
 4. Use the address bar, Back/Forward, Reload, click-to-control, scroll,
-   text insertion, Enter/Tab/Backspace and Inspect.
+   text insertion, Enter/Tab/Backspace and Inspect. The zoom control enlarges
+   the remote viewport without changing the underlying Chromium dimensions.
 5. The viewport receives JPEG frames via an authenticated Nexus WebSocket
    backed by Chromium `Page.startScreencast`. It falls back to
    authenticated JPEG requests if streaming disconnects.
@@ -57,11 +58,18 @@ All REST routes run behind existing Nexus authentication / CSRF checks.
 | GET /api/v1/browser/sessions/:id/stream | WebSocket, `{"type":"frame","data":"<base64-jpeg>"}` |
 | GET /api/v1/browser/sessions/:id/frame | JPEG screenshot (fallback) |
 | GET /api/v1/browser/sessions/:id/snapshot | Read-only title/URL/text/element summary |
-| POST /api/v1/browser/sessions/:id/action | `navigate`, `back`, `forward`, `reload`, `click`, `scroll`, `type`, `key` |
+| POST /api/v1/browser/sessions/:id/action | `navigate`, `back`, `forward`, `reload`, `click`, `scroll`, `type`, `key`, `click_selector`, `fill_selector`, `wait_selector` |
 | DELETE /api/v1/browser/sessions/:id | Stop browser and delete temp profile |
 
 REST actions require a **control lease**; screenshots and snapshots
-do not. The streamed frames have no cookies or direct DevTools access.
+do not. Semantic DOM actions take `selector` (CSS string),
+`text` for filling, and optional `timeout_ms` (maximum 5 seconds)
+for waiting. Clicks use Chrome's pointer dispatch after scrolling
+the selected element into view. The Inspect panel shows candidate
+selectors from the current DOM; it never reads password input values.
+Selectors and text are treated as data, and the HTTP API exposes
+no generic JavaScript execution method. The streamed frames
+have no cookies or direct DevTools access.
 No arbitrary `Runtime.evaluate` operation is exposed over Nexus HTTP.
 
 ## Known constraints / not yet available
@@ -71,10 +79,11 @@ No arbitrary `Runtime.evaluate` operation is exposed over Nexus HTTP.
   implemented**. Do not share the general Nexus tunnel with untrusted users.
 - A Nexus session is one control identity. Browser-only ACL and hardware
   device identity are future work.
-- Agent tool schemas and MissionRunner `AutonomyContract` approval are
-  **not wired yet**. Automated write actions must not bypass the existing
-  orchestration/authorization contract. Browser snapshots are a read-only
-  primitive for subsequent tooling.
+- The semantic API makes selectors available for future agents, but agent
+  tool discovery, MissionRunner `AutonomyContract` authorization and
+  auditable action receipts are **not yet wired**. Automated write actions
+  must not bypass the existing orchestration/authorization contract.
+  Read-only snapshots are untrusted page content, not instructions.
 - Screenshot media is JPEG and not DRM/AV streaming. Higher-fidelity
   streaming (WebRTC, audio, camera, download handling) is not included.
 - Temporary profiles are private and removed at close. Logins do **not**

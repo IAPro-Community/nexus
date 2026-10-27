@@ -23,13 +23,42 @@ export type NexusBrowserInfo = {
 };
 
 export type NexusBrowserAction = {
-  type: 'navigate' | 'back' | 'forward' | 'reload' | 'click' | 'scroll' | 'type' | 'key';
+  type:
+    | 'navigate'
+    | 'back'
+    | 'forward'
+    | 'reload'
+    | 'click'
+    | 'scroll'
+    | 'type'
+    | 'key'
+    | 'click_selector'
+    | 'fill_selector'
+    | 'wait_selector';
   url?: string;
   text?: string;
   key?: string;
   x?: number;
   y?: number;
   delta_y?: number;
+  selector?: string;
+  timeout_ms?: number;
+};
+
+export type NexusBrowserElement = {
+  selector: string;
+  tag: string;
+  role: string;
+  label: string;
+  text: string;
+};
+
+export type NexusBrowserSnapshot = {
+  url: string;
+  title: string;
+  untrusted: true;
+  text: string;
+  elements: NexusBrowserElement[];
 };
 
 const endpoint = '/api/v1/browser/sessions';
@@ -53,7 +82,7 @@ export const browserAPI = {
       body: JSON.stringify({ mode }),
     }),
   snapshot: (id: string) =>
-    request<{ url: string; title: string; text: string }>(`${browserRoute(id)}/snapshot`),
+    request<NexusBrowserSnapshot>(`${browserRoute(id)}/snapshot`),
 };
 
 export const BrowserSurface: React.FC<{
@@ -74,6 +103,8 @@ export const BrowserSurface: React.FC<{
   const [live, setLive] = useState(false);
   const [visible, setVisible] = useState(true);
   const [snapshot, setSnapshot] = useState('');
+  const [elements, setElements] = useState<NexusBrowserElement[]>([]);
+  const [zoom, setZoom] = useState(100);
   const rootRef = useRef<HTMLElement>(null);
   const frameObjectURL = useRef('');
   const started = useRef(false);
@@ -300,6 +331,7 @@ export const BrowserSurface: React.FC<{
       .snapshot(session.id)
       .then((value) => {
         setSnapshot(value.text);
+        setElements(value.elements || []);
         if (value.url) setAddress(value.url);
       })
       .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
@@ -389,11 +421,31 @@ export const BrowserSurface: React.FC<{
           </button>
         )}
       </div>
+      <div className={styles.zoomControls} role="group" aria-label="Zoom do navegador">
+        <button
+          type="button"
+          onClick={() => setZoom((value) => Math.max(75, value - 25))}
+          disabled={zoom <= 75}
+          aria-label="Diminuir zoom"
+        >
+          −
+        </button>
+        <span>{zoom}%</span>
+        <button
+          type="button"
+          onClick={() => setZoom((value) => Math.min(250, value + 25))}
+          disabled={zoom >= 250}
+          aria-label="Aumentar zoom"
+        >
+          +
+        </button>
+      </div>
       <div className={styles.viewportScroll}>
         {frame ? (
           <button
             type="button"
             className={styles.viewportButton}
+            style={{ width: `${zoom}%` }}
             onClick={clickAt}
             onWheel={(event) => {
               if (!session || !controller) return;
@@ -477,10 +529,24 @@ export const BrowserSurface: React.FC<{
           {error}
         </p>
       )}
-      {snapshot && (
+      {(snapshot || elements.length > 0) && (
         <details className={styles.snapshot}>
-          <summary>Conteúdo da página</summary>
+          <summary>Inspeção da página · {elements.length} elementos</summary>
+          <div className={styles.inspectionActions}>
+            {elements.map((item, index) => (
+              <button
+                key={`${item.selector}:${index}`}
+                type="button"
+                disabled={!controller || busy}
+                title={item.selector}
+                onClick={() => void perform({ type: 'click_selector', selector: item.selector })}
+              >
+                {item.label || item.text || item.tag}
+              </button>
+            ))}
+          </div>
           <pre>{snapshot}</pre>
+          <small>Conteúdo de sites externos não é confiável.</small>
         </details>
       )}
     </section>

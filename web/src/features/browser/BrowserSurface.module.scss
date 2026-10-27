@@ -82,7 +82,7 @@ input:focus-visible {
   justify-content: center;
   gap: 12px;
   padding: 36px;
-  color: var(--nx-text-muted);
+  color: var(--nx-muted);
 }
 .error {
   color: var(--nx-danger);
@@ -109,7 +109,7 @@ input:focus-visible {
   padding: 5px 8px;
   border-bottom: 1px solid var(--nx-border);
   font-size: 11px;
-  color: var(--nx-text-muted);
+  color: var(--nx-muted);
 }
 .controlBar button {
   display: inline-flex;
@@ -124,4 +124,54 @@ input:focus-visible {
 }
 .controlBar button:focus-visible {
   outline: 2px solid var(--nx-accent);
+}
+
+.zoomControls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 4px 8px;
+  background: var(--nx-surface-2);
+  border-bottom: 1px solid var(--nx-border);
+  color: var(--nx-muted);
+  font-size: 11px;
+}
+.zoomControls button,
+.inspectionActions button {
+  border: 1px solid var(--nx-border);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--nx-text);
+  padding: 4px 7px;
+  cursor: pointer;
+}
+.zoomControls button:disabled,
+.inspectionActions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.zoomControls button:focus-visible,
+.inspectionActions button:focus-visible {
+  outline: 2px solid var(--nx-accent);
+}
+.inspectionActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-block: 6px;
+}
+@media (max-width: 640px) {
+  .toolbar {
+    gap: 3px;
+    padding: 4px;
+  }
+  .toolbar button {
+    padding: 4px;
+    flex-shrink: 0;
+  }
+  .address,
+  .inputBar input {
+    font-size: 16px;
+  }
 }
