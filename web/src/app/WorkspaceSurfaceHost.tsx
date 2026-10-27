@@ -278,9 +278,11 @@ export const WorkspaceSurfaceHost: React.FC<{
             } catch {
               /* Navigation still opens the Composer if storage is unavailable. */
             }
-            window.dispatchEvent(new CustomEvent('nexus:composer:focus', {
-              detail: { projectId: project.id, sessionId },
-            }));
+            window.dispatchEvent(
+              new CustomEvent('nexus:composer:focus', {
+                detail: { projectId: project.id, sessionId },
+              }),
+            );
             open('work');
           }}
         />
@@ -307,16 +309,18 @@ export const WorkspaceSurfaceHost: React.FC<{
     }
 
     if (surface.type === 'browser') {
-      return <BrowserSurface
-        projectId={project.id}
-        initialUrl={surface.data?.initialUrl}
-        initialSessionId={surface.data?.browserSessionId}
-        onSessionReady={(id) => {
-          if (surface.data?.browserSessionId !== id) {
-            updateSurface?.(surface.id, { data: { ...surface.data, browserSessionId: id } });
-          }
-        }}
-      />;
+      return (
+        <BrowserSurface
+          projectId={project.id}
+          initialUrl={surface.data?.initialUrl}
+          initialSessionId={surface.data?.browserSessionId}
+          onSessionReady={(id) => {
+            if (surface.data?.browserSessionId !== id) {
+              updateSurface?.(surface.id, { data: { ...surface.data, browserSessionId: id } });
+            }
+          }}
+        />
+      );
     }
     if (surface.type === 'project-shell') {
       return surface.data?.runtimeId ? (
@@ -526,7 +530,9 @@ export const WorkspaceSurfaceHost: React.FC<{
       return (
         <SettingsSurface
           onTour={onTour}
-          initialTab={surface.data?.settingsTab === 'intelligence' ? 'intelligence' : settingsInitialTab}
+          initialTab={
+            surface.data?.settingsTab === 'intelligence' ? 'intelligence' : settingsInitialTab
+          }
         />
       );
 

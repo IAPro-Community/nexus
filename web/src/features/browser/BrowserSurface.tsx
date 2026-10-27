@@ -69,7 +69,10 @@ export const BrowserSurface: React.FC<{
   // StrictMode and workspace visibility changes must not create duplicate sessions.
   useEffect(() => {
     alive.current = true;
-    if (started.current) return () => { alive.current = false; };
+    if (started.current)
+      return () => {
+        alive.current = false;
+      };
     started.current = true;
     async function start() {
       try {
@@ -166,8 +169,14 @@ export const BrowserSurface: React.FC<{
     const rect = event.currentTarget.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     // CSS preserves the viewport aspect ratio; CDP coordinates are CSS pixels.
-    const x = Math.max(0, Math.min(session.width - 1, (event.clientX - rect.left) / rect.width * session.width));
-    const y = Math.max(0, Math.min(session.height - 1, (event.clientY - rect.top) / rect.height * session.height));
+    const x = Math.max(
+      0,
+      Math.min(session.width - 1, ((event.clientX - rect.left) / rect.width) * session.width),
+    );
+    const y = Math.max(
+      0,
+      Math.min(session.height - 1, ((event.clientY - rect.top) / rect.height) * session.height),
+    );
     void perform({ type: 'click', x, y });
   };
 
@@ -192,7 +201,12 @@ export const BrowserSurface: React.FC<{
         <button type="submit" disabled={!session || busy} aria-label={t('browser.go', 'Navegar')}>
           <ArrowRight size={15} />
         </button>
-        <button type="button" onClick={() => void refresh()} disabled={!session} aria-label={t('browser.refresh', 'Atualizar imagem')}>
+        <button
+          type="button"
+          onClick={() => void refresh()}
+          disabled={!session}
+          aria-label={t('browser.refresh', 'Atualizar imagem')}
+        >
           <RefreshCw size={15} />
         </button>
         <button
@@ -200,13 +214,21 @@ export const BrowserSurface: React.FC<{
           disabled={!session}
           onClick={() => {
             if (!session) return;
-            void browserAPI.snapshot(session.id).then((value) => {
-              setSnapshot(value.text);
-              if (value.url) { setURL(value.url); setSession((current) => current ? { ...current, url: value.url } : current); }
-            }).catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
+            void browserAPI
+              .snapshot(session.id)
+              .then((value) => {
+                setSnapshot(value.text);
+                if (value.url) {
+                  setURL(value.url);
+                  setSession((current) => (current ? { ...current, url: value.url } : current));
+                }
+              })
+              .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
           }}
           aria-label={t('browser.inspect', 'Inspecionar página')}
-        ><Camera size={15} /></button>
+        >
+          <Camera size={15} />
+        </button>
       </form>
       <div className={styles.viewportScroll}>
         {frame ? (
@@ -217,25 +239,43 @@ export const BrowserSurface: React.FC<{
             onWheel={(event) => {
               if (!session) return;
               // Centered wheel support for trackpads and mouse scroll.
-              void perform({ type: 'scroll', x: session.width / 2, y: session.height / 2, delta_y: event.deltaY });
+              void perform({
+                type: 'scroll',
+                x: session.width / 2,
+                y: session.height / 2,
+                delta_y: event.deltaY,
+              });
             }}
-            onTouchStart={(event) => { touchY.current = event.touches[0]?.clientY ?? null; }}
+            onTouchStart={(event) => {
+              touchY.current = event.touches[0]?.clientY ?? null;
+            }}
             onTouchEnd={(event) => {
               if (touchY.current == null || !session) return;
               const end = event.changedTouches[0]?.clientY;
               if (end != null && Math.abs(end - touchY.current) > 30) {
-                void perform({type:'scroll', x:session.width / 2, y:session.height / 2, delta_y:(touchY.current - end) * 2});
+                void perform({
+                  type: 'scroll',
+                  x: session.width / 2,
+                  y: session.height / 2,
+                  delta_y: (touchY.current - end) * 2,
+                });
               }
               touchY.current = null;
             }}
             aria-label={t('browser.viewport', 'Página interativa do navegador')}
           >
-            <img src={frame} alt={t('browser.viewport', 'Página interativa do navegador')} draggable={false} />
+            <img
+              src={frame}
+              alt={t('browser.viewport', 'Página interativa do navegador')}
+              draggable={false}
+            />
           </button>
         ) : (
           <div className={styles.placeholder}>
             <MousePointer2 size={22} />
-            {session ? t('browser.loading', 'Carregando página…') : t('browser.starting', 'Iniciando Chromium…')}
+            {session
+              ? t('browser.loading', 'Carregando página…')
+              : t('browser.starting', 'Iniciando Chromium…')}
           </div>
         )}
       </div>
@@ -243,7 +283,10 @@ export const BrowserSurface: React.FC<{
         className={styles.inputBar}
         onSubmit={(event) => {
           event.preventDefault();
-          if (text) { void perform({ type: 'type', text }); setText(''); }
+          if (text) {
+            void perform({ type: 'type', text });
+            setText('');
+          }
         }}
       >
         <Keyboard size={16} aria-hidden="true" />
@@ -253,12 +296,39 @@ export const BrowserSurface: React.FC<{
           value={text}
           onChange={(event) => setText(event.target.value)}
         />
-        <button type="submit" disabled={!session || !text || busy} aria-label={t('browser.sendText', 'Enviar texto')}><Send size={15}/></button>
-        <button type="button" disabled={!session || busy} onClick={() => void perform({ type: 'key', key: 'Enter' })}>Enter</button>
-        <button type="button" disabled={!session || busy} onClick={() => void perform({ type: 'key', key: 'Tab' })}>Tab</button>
+        <button
+          type="submit"
+          disabled={!session || !text || busy}
+          aria-label={t('browser.sendText', 'Enviar texto')}
+        >
+          <Send size={15} />
+        </button>
+        <button
+          type="button"
+          disabled={!session || busy}
+          onClick={() => void perform({ type: 'key', key: 'Enter' })}
+        >
+          Enter
+        </button>
+        <button
+          type="button"
+          disabled={!session || busy}
+          onClick={() => void perform({ type: 'key', key: 'Tab' })}
+        >
+          Tab
+        </button>
       </form>
-      {error && <p className={styles.error} role="alert">{error}</p>}
-      {snapshot && <details className={styles.snapshot}><summary>{t('browser.inspection', 'Texto da página')}</summary><pre>{snapshot}</pre></details>}
+      {error && (
+        <p className={styles.error} role="alert">
+          {error}
+        </p>
+      )}
+      {snapshot && (
+        <details className={styles.snapshot}>
+          <summary>{t('browser.inspection', 'Texto da página')}</summary>
+          <pre>{snapshot}</pre>
+        </details>
+      )}
     </section>
   );
 };

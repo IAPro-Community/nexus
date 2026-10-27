@@ -893,7 +893,12 @@ const TerminalsHost: React.FC<{
             </div>
           )}
           {createActions?.onNewBrowser && (
-            <button type="button" className="nx-button" data-size="sm" onClick={createActions.onNewBrowser}>
+            <button
+              type="button"
+              className="nx-button"
+              data-size="sm"
+              onClick={createActions.onNewBrowser}
+            >
               <Globe size={13} />
               <span>{t('workspace.newBrowser', 'Novo navegador')}</span>
             </button>
@@ -932,7 +937,12 @@ const TerminalsHost: React.FC<{
                   </button>
                 )}
                 {createActions.onNewBrowser && (
-                  <button type="button" className="nx-button" data-size="sm" onClick={createActions.onNewBrowser}>
+                  <button
+                    type="button"
+                    className="nx-button"
+                    data-size="sm"
+                    onClick={createActions.onNewBrowser}
+                  >
                     <Globe size={13} />
                     <span>{t('workspace.newBrowser', 'Novo navegador')}</span>
                   </button>

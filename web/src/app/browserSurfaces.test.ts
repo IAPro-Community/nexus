@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { browserSurface, isPtySurface, isWorkspaceWindowSurface, projectShellSurface } from './surfaces';
+import {
+  browserSurface,
+  isPtySurface,
+  isWorkspaceWindowSurface,
+  projectShellSurface,
+} from './surfaces';
 import { createPresentationState, syncDesktopWindows } from '../workspace/presentation';
 
 describe('Browser inside terminal workspace', () => {

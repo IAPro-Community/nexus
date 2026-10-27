@@ -651,7 +651,9 @@ func (s *Server) handleDesktopBootstrap(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
-	if s.browsers != nil { s.browsers.Shutdown() }
+	if s.browsers != nil {
+		s.browsers.Shutdown()
+	}
 	removeListenState(s.pid)
 	if tunnel := s.tunnelManager(); tunnel != nil {
 		tunnel.mu.Lock()

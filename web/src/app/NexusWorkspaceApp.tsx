@@ -1,6 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
-import { api, request, initSession, rotateSession, tryLoopbackReauth, type BrowserSession } from '../api';
+import {
+  api,
+  request,
+  initSession,
+  rotateSession,
+  tryLoopbackReauth,
+  type BrowserSession,
+} from '../api';
 import { setNexusCSRF, nexus } from '../nexus/api';
 import { ThemeProvider } from '../design-system';
 import { NexusSplashScreen } from './NexusSplashScreen';
@@ -488,8 +495,10 @@ const WorkspaceCoordinator: React.FC<{
     setCloseTarget(null);
     workspace.close(target.id);
     if (target.type === 'browser' && target.data?.browserSessionId) {
-      void request<{ status: string }>(`/api/v1/browser/sessions/${encodeURIComponent(target.data.browserSessionId)}`, { method: 'DELETE' })
-        .catch(() => undefined);
+      void request<{ status: string }>(
+        `/api/v1/browser/sessions/${encodeURIComponent(target.data.browserSessionId)}`,
+        { method: 'DELETE' },
+      ).catch(() => undefined);
       return;
     }
     if (!stopRuntime) return;
@@ -1138,7 +1147,10 @@ const WorkspaceCoordinator: React.FC<{
       createActions={{
         onNewAgent: () => setNewAgentOpen(true),
         onNewAISession: openNewAISession,
-        onNewBrowser: () => { open(browserSurface(project.id), false); openTerminals(); },
+        onNewBrowser: () => {
+          open(browserSurface(project.id), false);
+          openTerminals();
+        },
         onProjectShell: () => {
           void shell();
         },
