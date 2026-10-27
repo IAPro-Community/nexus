@@ -6,7 +6,7 @@ import type { TourStep } from '../../app/tour/tour';
  */
 export type FeatureTourSurface =
   | 'composer-start' | 'composer-session' | 'composer-offline'
-  | 'flow-library' | 'flow-editor';
+  | 'flow-library' | 'flow-editor' | 'flow-run';
 
 export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
   'composer-start': [
@@ -42,6 +42,14 @@ export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
       title: 'tour.flowNewTitle', body: 'tour.flowNewBody' },
     { id: 'drafts', target: '[data-tour="flow-drafts"]',
       title: 'tour.flowDraftsTitle', body: 'tour.flowDraftsBody' },
+  ],
+  'flow-run': [
+    { id: 'status', target: '[data-tour="flow-run-status"]',
+      title: 'tour.flowRunStatusTitle', body: 'tour.flowRunStatusBody' },
+    { id: 'evidence', target: '[data-tour="flow-run-steps"]',
+      title: 'tour.flowRunStepsTitle', body: 'tour.flowRunStepsBody' },
+    { id: 'actions', target: '[data-tour="flow-run-actions"]',
+      title: 'tour.flowRunActionsTitle', body: 'tour.flowRunActionsBody' },
   ],
   'flow-editor': [
     { id: 'goal', target: '[data-tour="flow-goal"]',
