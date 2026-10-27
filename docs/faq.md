@@ -79,6 +79,30 @@ plataforma. Consulte [suporte de plataformas](operations/platform-support.md).
 Não. Implementação funcional e certificação de release são gates distintos.
 Consulte [status da release](release-status.md).
 
+## O Nexus já é open source? Posso criar um fork e distribuir?
+
+**Ainda não.** O código é público, mas a licença vigente PolyForm Strict
+não permite genericamente modificar ou redistribuir o produto. A licença
+**Apache-2.0 é o objetivo**, ainda dependente de auditoria de direitos
+autorais, componentes de terceiros e segurança do histórico. Até o
+relicenciamento autorizado, sugerimos participar por issues e feedback de
+produto/documentação. Leia [plano de abertura](legal/OPEN_SOURCE_TRANSITION.md).
+
+## Quando aberto, serei obrigado a enviar meu fork de volta?
+
+Sob a licença-alvo permissiva Apache-2.0, não. Queremos atrair melhorias
+pela qualidade do upstream, documentação, processo de revisão e comunidade,
+não por imposição de retorno dos forks. O fork deverá respeitar notices,
+termos de software e identidade visual, conforme as licenças aplicáveis.
+
+## O Composer, Flow e múltiplos agentes serão pagos?
+
+A **Community planejada** manterá essas capacidades funcionais sem uma
+assinatura obrigatória do Nexus. Provedores externos de IA podem cobrar por
+suas próprias APIs, modelos, contas ou limites. Patrocínios, serviços
+gerenciados e suporte empresarial serão opcionais. Não há serviço
+comercial ou programa de doações ativo implicitamente anunciado aqui.
+
 ## Como reporto um erro sem expor dados?
 
 Use `nexus doctor --bundle` quando apropriado, remova tokens, emails, paths e
