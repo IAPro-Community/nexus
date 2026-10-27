@@ -33,6 +33,7 @@ import { asArray, asStringArray } from '../../lib/safeArray';
 import { flowFromWorkPlan } from './flowModel';
 import { selectRunHistoricalPlan } from './flowRunHistoricalPlan';
 import { ComposerHandoffSummary } from './ComposerHandoffSummary';
+import { FeatureTour } from './FeatureTour';
 import { flowRunStateFromMission, packageRunState } from './flowRunModel';
 import styles from './FlowRunSurface.module.scss';
 import { createRefreshGuard } from './flowRefreshGuard';
@@ -290,7 +291,8 @@ export const FlowRunSurface: React.FC<{
 
   return (
     <div className="nx-surface-scroll nx-flow-run-surface" data-run-id={run.id}>
-      <div className="nx-page-header">
+      <FeatureTour projectId={project.id} surface="flow-run" />
+      <div className="nx-page-header" data-tour="flow-run-status">
         <div>
           <span className="nx-eyebrow">
             <Activity size={13} /> {t('flowRun.eyebrow')}
@@ -616,7 +618,7 @@ export const FlowRunSurface: React.FC<{
         </details>
       )}
 
-      <div className="nx-flow-run-grid">
+      <div className="nx-flow-run-grid" data-tour="flow-run-steps">
         {packageRuns.map((pkg, index) => {
           const state = packageRunState(pkg.state);
           const capsule = capsules.get(pkg.package_id);
@@ -712,7 +714,7 @@ export const FlowRunSurface: React.FC<{
         })}
       </div>
 
-      <div className="nx-flow-run-actions">
+      <div className="nx-flow-run-actions" data-tour="flow-run-actions">
         <Button size="sm" onClick={() => void refresh()} disabled={Boolean(busy)}>
           <RefreshCw size={12} /> {t('flowRun.refresh')}
         </Button>
