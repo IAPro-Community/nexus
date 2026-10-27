@@ -82,7 +82,7 @@ async function main() {
 
   await page.getByRole('button', { name: /existing prompt|prompt existente/i }).click();
 
-  const goal = page.getByPlaceholder(/main goal|objetivo principal/i);
+  const goal = page.locator('[data-tour="composer-goal"] textarea');
   await goal.fill('Implement Google OAuth login safely');
 
   const source = page.getByPlaceholder(/original prompt|prompt original/i);
