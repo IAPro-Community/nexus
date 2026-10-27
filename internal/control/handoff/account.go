@@ -131,7 +131,12 @@ func (s *Service) PerformAccountHandoff(ctx context.Context, sourceRuntimeID, ta
 	}
 	tx.State = HandoffCheckpointed
 
-	// 7. Quiesce and gracefully stop source runtime
+	// 7. Quiesce and gracefully stop source runtime. A missing provider PID
+	// cannot be used as proof that the session is safe to resume elsewhere.
+	if source.PID <= 0 {
+		tx.State = HandoffFailedSafe
+		return nil, fmt.Errorf("account handoff aborted (FAILED_SAFE): source runtime %s has no verifiable provider PID", sourceRuntimeID)
+	}
 	client, err := protocol.NewClient(sourceRuntimeID)
 	if err == nil {
 		_ = client.Stop()
@@ -142,14 +147,14 @@ func (s *Service) PerformAccountHandoff(ctx context.Context, sourceRuntimeID, ta
 	waitForProcessStop(ctx, source.PID, 2*time.Second)
 	if err := ctx.Err(); err != nil {
 		tx.State = HandoffFailedSafe
-		_ = reg.UpdateState(sourceRuntimeID, registry.StateRunning)
+		_ = reg.UpdateState(sourceRuntimeID, contextHandoffSourceState(source))
 		return nil, fmt.Errorf("account handoff canceled before target start: %w", err)
 	}
 	// Source stop is a hard barrier (H3): never start the target while the source
 	// may still be a writer for the same provider session.
 	if registry.IsProcessAlive(source.PID) {
 		tx.State = HandoffFailedSafe
-		_ = reg.UpdateState(sourceRuntimeID, registry.StateRunning)
+		_ = reg.UpdateState(sourceRuntimeID, contextHandoffSourceState(source))
 		return nil, fmt.Errorf("account handoff aborted (FAILED_SAFE): source runtime %s did not stop within policy; refusing to start target while source may still write the session", sourceRuntimeID)
 	}
 	_ = reg.UpdateState(sourceRuntimeID, registry.StateHandoff)
