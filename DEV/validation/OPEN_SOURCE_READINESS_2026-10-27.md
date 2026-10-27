@@ -43,3 +43,21 @@ Arquivos e commits foram lidos/escritos via GitHub connector. Não houve checkou
 **RELEASE:** evidência de teste/build/assinaturas e plataformas no exato SHA.
 
 Até esses três gates serem aprovados, não anunciar o Nexus como já licenciado Apache-2.0. Documentação de intenção não é outorga de direitos.
+
+## Adendo de segurança — default branch também coberta (27/10/2026)
+
+A verificação posterior mostrou que `main` ainda tinha o gatilho
+`pull_request` no workflow `ci.yml` com runners self-hosted. A correção
+foi portada diretamente para `main`: CI interna sem PR, workflow de PR
+separado em runners GitHub-hosted e teste de regressão formatado por
+`gofmt`. Foram também refinados os workflows em `release/v1.0.0`, com
+Go 1.26.10 e escopo de teste de pacotes internos no PR (testes nativos
+completos permanecem responsabilidade da CI protegida após push).
+
+Issues de acompanhamento: [#96 rulesets/admin](https://github.com/IAPro-Community/nexus/issues/96),
+[#65 reporte privado](https://github.com/IAPro-Community/nexus/issues/65),
+[#74 contribuições e titularidade](https://github.com/IAPro-Community/nexus/issues/74),
+[#90 abertura comunitária](https://github.com/IAPro-Community/nexus/issues/90).
+
+Essas alterações ainda **não** comprovam a configuração administrativa ou
+execução real dos novos workflows. Status de clearance e de release: NO_GO.
