@@ -61,6 +61,7 @@ type Session struct {
 	cdpNextID       int
 	controller      string
 	controllerUntil time.Time
+	handoff Handoff
 	streamMu        sync.Mutex
 	streamReaders   map[chan []byte]struct{}
 	streamCancel    context.CancelFunc
@@ -71,6 +72,7 @@ type Manager struct {
 	sessions map[string]*Session
 	pending  int
 	closing  bool
+	grants map[[32]byte]grantEntry
 }
 
 func NewManager() *Manager { return &Manager{sessions: make(map[string]*Session)} }
@@ -291,6 +293,12 @@ func (m *Manager) Close(id string) bool {
 	if !exists {
 		return false
 	}
+	// Immediately revoke every credential scoped to this browser.
+	m.mu.Lock()
+	for digest, entry := range m.grants {
+		if entry.SessionID == id { delete(m.grants, digest) }
+	}
+	m.mu.Unlock()
 	s.stopStream()
 	s.mu.Lock()
 	s.closed = true
@@ -398,6 +406,10 @@ func (s *Session) navigate(ctx context.Context, raw string) error {
 func (s *Session) Do(ctx context.Context, a Action) (Info, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.doLocked(ctx, a)
+}
+
+func (s *Session) doLocked(ctx context.Context, a Action) (Info, error) {
 	if s.closed {
 		return Info{}, errors.New("browser session closed")
 	}
@@ -483,6 +495,10 @@ func (s *Session) Do(ctx context.Context, a Action) (Info, error) {
 func (s *Session) Screenshot(ctx context.Context) ([]byte, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.screenshotLocked(ctx)
+}
+
+func (s *Session) screenshotLocked(ctx context.Context) ([]byte, error) {
 	var out struct {
 		Data string `json:"data"`
 	}
@@ -495,6 +511,10 @@ func (s *Session) Screenshot(ctx context.Context) ([]byte, error) {
 func (s *Session) Snapshot(ctx context.Context) (json.RawMessage, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.snapshotLocked(ctx)
+}
+
+func (s *Session) snapshotLocked(ctx context.Context) (json.RawMessage, error) {
 	// Do not expose values of password fields or arbitrary script evaluation.
 	const expression = `(()=>{
 		const path=(el)=>{
@@ -570,6 +590,9 @@ func (s *Session) AcquireControl(owner string) (bool, string) {
 		return false, ""
 	}
 	now := time.Now()
+	if s.handoff.Status == "requested" || (s.handoff.Status == "human_active" && s.controller != owner) {
+		return false, "browser paused for human intervention"
+	}
 	if s.controller != "" && s.controller != owner && now.Before(s.controllerUntil) {
 		return false, "another device controls this browser"
 	}

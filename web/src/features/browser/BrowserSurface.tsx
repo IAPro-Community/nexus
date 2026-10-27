@@ -50,6 +50,12 @@ export type NexusBrowserAction = {
   height?: number;
 };
 
+export type BrowserHandoff = {
+  status: '' | 'requested' | 'human_active' | 'completed' | 'cancelled';
+  reason?: string;
+  requested_by?: string;
+};
+export type AgentGrant = { id: string; label: string; expires_at: string };
 export type NexusBrowserElement = {
   selector: string;
   tag: string;
@@ -86,6 +92,23 @@ export const browserAPI = {
       method: 'POST',
       body: JSON.stringify({ mode }),
     }),
+  handoffInfo: (id: string) => request<BrowserHandoff>(`${browserRoute(id)}/handoff`),
+  handoff: (id: string, mode: 'begin' | 'complete' | 'cancel') =>
+    request<BrowserHandoff>(`${browserRoute(id)}/handoff`, {
+      method: 'POST',
+      body: JSON.stringify({ mode }),
+    }),
+  grant: (id: string) =>
+    request<{ token: string; mcp_url: string; grant: AgentGrant }>(`${browserRoute(id)}/grant`, {
+      method: 'POST',
+      body: JSON.stringify({ label: 'Nexus Workspace agent' }),
+    }),
+  grants: (id: string) => request<AgentGrant[]>(`${browserRoute(id)}/grants`),
+  revokeGrant: (id: string, grantId: string) =>
+    request<{ revoked: boolean }>(`${browserRoute(id)}/grant`, {
+      method: 'DELETE',
+      body: JSON.stringify({ id: grantId }),
+    }),
   snapshot: (id: string) =>
     request<NexusBrowserSnapshot>(`${browserRoute(id)}/snapshot`),
 };
@@ -110,6 +133,11 @@ export const BrowserSurface: React.FC<{
   const [snapshot, setSnapshot] = useState('');
   const [elements, setElements] = useState<NexusBrowserElement[]>([]);
   const [zoom, setZoom] = useState(100);
+  const [handoff, setHandoff] = useState<BrowserHandoff>({ status: '' });
+  const [grants, setGrants] = useState<AgentGrant[]>([]);
+  const [privateInput, setPrivateInput] = useState(false);
+  const [connectionInfo, setConnectionInfo] = useState('');
+  const [grantFallback, setGrantFallback] = useState('');
   const rootRef = useRef<HTMLElement>(null);
   const frameObjectURL = useRef('');
   const started = useRef(false);
@@ -171,6 +199,72 @@ export const BrowserSurface: React.FC<{
       // The Core owns the browser: hidden or remounted panels never kill it.
     };
   }, [initialSessionId, projectId, initialUrl]);
+
+  useEffect(() => {
+    if (!session) return;
+    let disposed = false;
+    const poll = async () => {
+      try {
+        const [status, activeGrants] = await Promise.all([
+          browserAPI.handoffInfo(session.id),
+          browserAPI.grants(session.id),
+        ]);
+        if (!disposed) {
+          setHandoff(status);
+          setGrants(activeGrants);
+          if (status.status === 'human_active') setPrivateInput(true);
+          if (status.status === 'completed' || status.status === 'cancelled') setPrivateInput(false);
+        }
+      } catch {
+        // The browser may have been closed or Core temporarily disconnected.
+      }
+    };
+    void poll();
+    const interval = window.setInterval(() => void poll(), 2500);
+    return () => { disposed = true; window.clearInterval(interval); };
+  }, [session?.id]);
+
+  const createAgentConnection = async () => {
+    if (!session) return;
+    try {
+      const grant = await browserAPI.grant(session.id);
+      const text = `# Execute no host que roda o Nexus Core (ajuste a porta se necessário)
+export NEXUS_BROWSER_TOKEN='${grant.token}'
+codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXUS_BROWSER_TOKEN`;
+      try {
+        await navigator.clipboard.writeText(text);
+        setConnectionInfo('Comandos MCP copiados. O token concede acesso apenas a esta sessão e expira em 1 hora.');
+        setGrantFallback('');
+      } catch {
+        setGrantFallback(text);
+        setConnectionInfo('A cópia automática falhou. Copie os comandos apresentados abaixo.');
+      }
+      setGrants((current) => [...current, grant.grant]);
+      setWantsControl(false);
+      setController(false);
+      void browserAPI.control(session.id, 'release').catch(() => undefined);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const respondToHuman = async (mode: 'begin' | 'complete' | 'cancel') => {
+    if (!session) return;
+    try {
+      const next = await browserAPI.handoff(session.id, mode);
+      setHandoff(next);
+      const takingOver = mode === 'begin';
+      setWantsControl(takingOver);
+      setController(takingOver);
+      setPrivateInput(takingOver);
+      setText('');
+      setSnapshot('');
+      setElements([]);
+      setError('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
 
   const refreshImage = useCallback(async () => {
     if (!session || document.hidden || !visible) return;
@@ -417,7 +511,7 @@ export const BrowserSurface: React.FC<{
       </form>
       <div className={styles.controlBar} role="status">
         <span>{live ? 'Ao vivo' : 'Capturas / reconectando'}</span>
-        <span>{controller ? 'Você controla' : 'Somente visualização'}</span>
+        <span>{handoff.status === 'human_active' ? 'Intervenção humana · privada' : controller ? 'Você controla' : 'Somente visualização'}</span>
         {session && (
           <button
             type="button"
@@ -441,6 +535,41 @@ export const BrowserSurface: React.FC<{
           </button>
         )}
       </div>
+      {(handoff.status === 'requested' || handoff.status === 'human_active') && (
+        <div className={styles.handoffPanel} role="status">
+          <strong>{handoff.status === 'requested' ? 'Agente solicita sua intervenção' : 'Você está controlando o navegador'}</strong>
+          <span>{handoff.reason || 'Conclua autenticação ou parâmetros diretamente na página.'}</span>
+          {handoff.status === 'requested' ? (
+            <button type="button" onClick={() => void respondToHuman('begin')}>Assumir para autenticar</button>
+          ) : (
+            <div className={styles.handoffButtons}>
+              <button type="button" onClick={() => void respondToHuman('complete')}>Concluído · devolver ao agente</button>
+              <button type="button" onClick={() => void respondToHuman('cancel')}>Cancelar intervenção</button>
+            </div>
+          )}
+          <small>O agente permanece pausado e não recebe senhas, capturas ou conteúdo da página durante a intervenção.</small>
+        </div>
+      )}
+      {session && (
+        <details className={styles.agentConnections}>
+          <summary>Conectar Codex / Claude / outro agente via MCP</summary>
+          <p>Conexão local vinculada apenas a esta sessão de navegador.</p>
+          <button type="button" onClick={() => void createAgentConnection()}>Gerar acesso temporário e copiar configuração</button>
+          {connectionInfo && <p role="status">{connectionInfo}</p>}
+          {grantFallback && <textarea readOnly value={grantFallback} aria-label="Configuração MCP de uso único" />}
+          {grants.map((grant) => (
+            <div className={styles.grantRow} key={grant.id}>
+              <span>{grant.label} · até {new Date(grant.expires_at).toLocaleTimeString()}</span>
+              <button type="button" onClick={() => {
+                void browserAPI.revokeGrant(session.id, grant.id).then(() => {
+                  setGrants((items) => items.filter((item) => item.id !== grant.id));
+                  setGrantFallback('');
+                }).catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
+              }}>Revogar</button>
+            </div>
+          ))}
+        </details>
+      )}
       <div className={styles.zoomControls} role="group" aria-label="Zoom do navegador">
         <button
           type="button"
@@ -514,11 +643,15 @@ export const BrowserSurface: React.FC<{
       >
         <Keyboard size={16} aria-hidden="true" />
         <input
-          aria-label="Texto para o elemento selecionado"
+          type={privateInput ? 'password' : 'text'}
+          autoComplete="off"
+          aria-label={privateInput ? 'Texto sensível para login' : 'Texto para o elemento selecionado'}
           placeholder="Digitar no elemento selecionado"
           value={text}
           onChange={(event) => setText(event.target.value)}
         />
+        <button type="button" onClick={() => setPrivateInput((value) => !value)}
+          title="Ocultar caracteres digitados neste campo"> {privateInput ? 'Privado' : 'Ocultar'} </button>
         <button type="submit" disabled={!controller || !text || busy} aria-label="Enviar texto">
           <Send size={15} />
         </button>
