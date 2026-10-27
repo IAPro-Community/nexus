@@ -36,13 +36,15 @@ type Info struct {
 }
 
 type Action struct {
-	Type   string  `json:"type"`
-	URL    string  `json:"url,omitempty"`
-	Text   string  `json:"text,omitempty"`
-	Key    string  `json:"key,omitempty"`
-	X      float64 `json:"x,omitempty"`
-	Y      float64 `json:"y,omitempty"`
-	DeltaY float64 `json:"delta_y,omitempty"`
+	Type      string  `json:"type"`
+	URL       string  `json:"url,omitempty"`
+	Text      string  `json:"text,omitempty"`
+	Selector  string  `json:"selector,omitempty"`
+	TimeoutMS int     `json:"timeout_ms,omitempty"`
+	Key       string  `json:"key,omitempty"`
+	X         float64 `json:"x,omitempty"`
+	Y         float64 `json:"y,omitempty"`
+	DeltaY    float64 `json:"delta_y,omitempty"`
 }
 
 type Session struct {
@@ -401,6 +403,12 @@ func (s *Session) Do(ctx context.Context, a Action) (Info, error) {
 	switch a.Type {
 	case "navigate":
 		err = s.navigate(ctx, a.URL)
+	case "click_selector":
+		err = s.clickSelector(ctx, a.Selector)
+	case "fill_selector":
+		err = s.fillSelector(ctx, a.Selector, a.Text)
+	case "wait_selector":
+		err = s.waitSelector(ctx, a.Selector, a.TimeoutMS)
 	case "reload":
 		err = s.call(ctx, "Page.reload", map[string]any{"ignoreCache": false}, nil)
 	case "back", "forward":
@@ -475,7 +483,30 @@ func (s *Session) Snapshot(ctx context.Context) (json.RawMessage, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	// Do not expose values of password fields or arbitrary script evaluation.
-	const expression = `(()=>({url:location.href,title:document.title,text:(document.body?.innerText||'').slice(0,12000),elements:Array.from(document.querySelectorAll('a,button,input,textarea,select,[role="button"]')).slice(0,80).map((e)=>({tag:e.tagName,role:e.getAttribute('role'),label:e.getAttribute('aria-label')||e.getAttribute('placeholder')||'',text:(e.innerText||'').slice(0,100)}))}))()`
+	const expression = `(()=>{
+		const path=(el)=>{
+			const result=[];
+			for(let node=el;node&&node.nodeType===1&&result.length<10;node=node.parentElement){
+				if(node.id){result.unshift('#'+CSS.escape(node.id));break;}
+				let part=node.tagName.toLowerCase();
+				const testid=node.getAttribute('data-testid');
+				if(testid){part+='[data-testid="'+CSS.escape(testid)+'"]';result.unshift(part);break;}
+				if(node.parentElement){
+					const peers=Array.from(node.parentElement.children).filter(e=>e.tagName===node.tagName);
+					if(peers.length>1)part+=':nth-of-type('+(peers.indexOf(node)+1)+')';
+				}
+				result.unshift(part);
+			}
+			return result.join(' > ');
+		};
+		return {url:location.href,title:document.title,untrusted:true,
+			text:(document.body?.innerText||'').slice(0,12000),
+			elements:Array.from(document.querySelectorAll('a,button,input,textarea,select,[role="button"]')).slice(0,80).map(e=>({
+				selector:path(e),tag:e.tagName,role:e.getAttribute('role'),
+				label:e.getAttribute('aria-label')||e.getAttribute('placeholder')||'',
+				text:(e.innerText||'').slice(0,100)
+			}))};
+	})()`
 	var out struct {
 		Result struct {
 			Value json.RawMessage `json:"value"`

@@ -112,6 +112,16 @@ func TestChromiumSmokeOptional(t *testing.T) {
 	if _, err := s.Do(ctx, Action{Type: "reload"}); err != nil {
 		t.Fatalf("reload: %v", err)
 	}
+	if _, err := s.Do(ctx, Action{Type: "wait_selector", Selector: "#action", TimeoutMS: 4000}); err != nil {
+		t.Fatalf("wait for action button: %v", err)
+	}
+	if _, err := s.Do(ctx, Action{Type: "click_selector", Selector: "#action"}); err != nil {
+		t.Fatalf("semantic click: %v", err)
+	}
+	after, err := s.Snapshot(ctx)
+	if err != nil || !strings.Contains(string(after), "Clicked") {
+		t.Fatalf("semantic click did not update page: %v (%s)", err, after)
+	}
 	if !m.Close(info.ID) {
 		t.Fatal("session did not close")
 	}
