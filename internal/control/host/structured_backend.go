@@ -10,6 +10,7 @@ import (
  "os/exec"
  "strings"
  "sync"
+ "unicode"
 
  "github.com/IAPro-Community/nexus/internal/control/agentwire"
  "github.com/IAPro-Community/nexus/internal/core/security"
@@ -42,7 +43,14 @@ func newStructuredBackend(mode,cwd string,onStatus func(agentwire.WireSignal),on
 func (b *structuredBackend)emit(msg string){
  if msg==""{return}
  msg=security.Redact(msg)
- if len(msg)>4096{msg=msg[:4096]}
+ // Agent output is untrusted text, not a VT command channel.
+ msg=strings.Map(func(r rune)rune{
+  if r=='\n'||r=='\r'||r=='\t'{return r}
+  if unicode.IsControl(r){return -1}
+  return r
+ },msg)
+ chars:=[]rune(msg)
+ if len(chars)>4096{msg=string(chars[:4096])}
  // A full queue must not stall ACP JSON-RPC input processing. Provider
  // dialogue remains recoverable from its session; this is display-only.
  select {case b.lines<-msg:default:}
