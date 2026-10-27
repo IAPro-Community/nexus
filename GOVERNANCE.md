@@ -32,3 +32,12 @@
 ## Revisão comunitária e sustentabilidade
 
 A cada etapa significativa de produto, publicar objetivos, limitações e critérios de aceite. Quando houver capacidade real, triar issues de iniciantes e propostas de integração sem exigir um framework específico. Patrocínios são voluntários e não compram autoridade sobre código ou revisões. Consulte [FUNDING](docs/community/FUNDING.md), [REVIEW_GUIDE](docs/community/REVIEW_GUIDE.md) e [CONTRIBUTING](CONTRIBUTING.md).
+
+## Regras operacionais para receber PRs externos
+
+A CI de pull requests roda na infraestrutura hospedada efêmera do GitHub
+([`community-pr.yml`](.github/workflows/community-pr.yml)). Jobs self-hosted,
+segredos de release e assinatura são restritos à CI de pushes/dispatches
+autorizados. Mantenedores com acesso administrativo devem habilitar proteção
+de branches e checks obrigatórios em GitHub Settings; até essa mudança,
+**não considerar apenas a presença do workflow prova de proteção efetiva**.
