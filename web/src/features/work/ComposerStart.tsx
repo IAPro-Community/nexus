@@ -1,6 +1,6 @@
 import React, { useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FileText, Lightbulb, MessageCircle, RefreshCw, Settings2, Sparkles, Trash2 } from 'lucide-react';
+import { ArrowRight, FileText, History, Lightbulb, MessageCircle, RefreshCw, Settings2, Sparkles, Trash2 } from 'lucide-react';
 import { Button, Card, ConfirmDialog, Input, Select } from '../../design-system';
 import type { ComposerSession } from '../../types';
 import { nexus } from '../../nexus/api';
@@ -88,11 +88,22 @@ export const ComposerStart: React.FC<{
     !draft.trim() || (inputMode === 'EXISTING_PROMPT' && !sourcePrompt.trim()) || busy;
 
   return (
-    <Card className={styles.goalBar}>
+    <div className={styles.composerWelcome}>
+      <div className={styles.composerWelcomeHero}>
+        <span className={styles.composerWelcomeEyebrow}><Sparkles size={15} /> COMPOSER · NEXUS</span>
+        <h1 className={styles.composerWelcomeTitle}>
+          {t('work.composer.welcomeTitle', 'O que vamos construir?')}
+        </h1>
+        <p className={styles.composerWelcomeDescription}>
+          {t('work.composer.welcomeDescription',
+            'Comece com uma ideia, um problema ou um projeto existente. O Composer investiga o contexto, propõe caminhos e transforma suas decisões em um plano revisável.')}
+        </p>
+      </div>
+      <Card className={styles.composerWelcomeEntry}>
       <div className={`${styles.goalBarLabel} ${styles.flexRowBetween}`}>
         <div className={styles.flexRowGap6}>
           <Sparkles size={16} />
-          <span>{t('work.composer.startTitle', 'Start an elaboration')}</span>
+          <span>{t('work.composer.startTitle', 'Nova elaboração')}</span>
         </div>
         <div className={styles.flexRowGap4}>
           <Button
@@ -115,6 +126,9 @@ export const ComposerStart: React.FC<{
       </div>
 
       <div className={styles.flexColGap8}>
+        <label className={styles.composerWelcomeInputLabel}>
+          {t('work.composer.goalLabel', 'Descreva sua ideia ou o problema que deseja resolver')}
+        </label>
         <Input
           value={draft}
           onChange={setDraft}
@@ -183,7 +197,7 @@ export const ComposerStart: React.FC<{
               })
             }
           >
-            <MessageCircle size={14} />{' '}
+            <ArrowRight size={14} />{' '}
             {busy
               ? t('work.composer.starting', 'Starting…')
               : inputMode === 'EXISTING_PROMPT'
@@ -193,12 +207,16 @@ export const ComposerStart: React.FC<{
         </div>
       </div>
 
+      </Card>
       {sessions.length > 0 && (
+        <Card className={styles.composerWelcomeHistory}>
+        <div className={styles.composerWelcomeHistoryHeader}>
+          <History size={15} />
+          <strong>{t('work.composer.previousSessions', 'Continuar uma elaboração')}</strong>
+          <span>{sessions.length}</span>
+        </div>
         <div className={styles.flexRowWrapGap8}>
-          <small className={styles.mutedLabel}>
-            {t('work.composer.previousSessions', 'Previous elaborations:')}
-          </small>
-          <Select
+           <Select
             placeholder={t('work.composer.resumeSession', 'Escolha uma elaboração salva…')}
             value={selectedSavedSession}
             onChange={setSelectedSavedSession}
@@ -225,6 +243,7 @@ export const ComposerStart: React.FC<{
             <Trash2 size={13} /> {t('common.delete', 'Excluir')}
           </Button>
         </div>
+        </Card>
       )}
       <ConfirmDialog
         open={Boolean(sessionForDeletion)}
@@ -245,7 +264,7 @@ export const ComposerStart: React.FC<{
         }}
       />
       {error && (
-        <div role="alert" className={styles.inlineError}>
+        <div role="alert" className={styles.composerWelcomeError}>
           {error}
           <div className={styles.flexRowWrapGap8}>
             {onOpenIntelligenceSettings && (
@@ -267,6 +286,6 @@ export const ComposerStart: React.FC<{
           )}
         </div>
       )}
-    </Card>
+    </div>
   );
 };
