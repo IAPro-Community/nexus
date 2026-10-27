@@ -41,6 +41,8 @@ type Action struct {
 	Text      string  `json:"text,omitempty"`
 	Selector  string  `json:"selector,omitempty"`
 	TimeoutMS int     `json:"timeout_ms,omitempty"`
+	Width     int     `json:"width,omitempty"`
+	Height    int     `json:"height,omitempty"`
 	Key       string  `json:"key,omitempty"`
 	X         float64 `json:"x,omitempty"`
 	Y         float64 `json:"y,omitempty"`
@@ -409,6 +411,17 @@ func (s *Session) Do(ctx context.Context, a Action) (Info, error) {
 		err = s.fillSelector(ctx, a.Selector, a.Text)
 	case "wait_selector":
 		err = s.waitSelector(ctx, a.Selector, a.TimeoutMS)
+	case "viewport":
+		if a.Width < 320 || a.Width > 1920 || a.Height < 240 || a.Height > 1200 {
+			return Info{}, errors.New("viewport dimensions out of range")
+		}
+		err = s.call(ctx, "Emulation.setDeviceMetricsOverride", map[string]any{
+			"width": a.Width, "height": a.Height, "deviceScaleFactor": 1, "mobile": a.Width < 600,
+		}, nil)
+		if err == nil {
+			s.info.Width = a.Width
+			s.info.Height = a.Height
+		}
 	case "reload":
 		err = s.call(ctx, "Page.reload", map[string]any{"ignoreCache": false}, nil)
 	case "back", "forward":

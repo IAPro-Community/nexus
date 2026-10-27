@@ -115,6 +115,12 @@ func TestChromiumSmokeOptional(t *testing.T) {
 	if _, err := s.Do(ctx, Action{Type: "wait_selector", Selector: "#action", TimeoutMS: 4000}); err != nil {
 		t.Fatalf("wait for action button: %v", err)
 	}
+	if _, err := s.Do(ctx, Action{Type: "viewport", Width: 390, Height: 844}); err != nil {
+		t.Fatalf("mobile viewport: %v", err)
+	}
+	if state := s.Info(); state.Width != 390 || state.Height != 844 {
+		t.Fatalf("viewport state not updated: %+v", state)
+	}
 	if _, err := s.Do(ctx, Action{Type: "click_selector", Selector: "#action"}); err != nil {
 		t.Fatalf("semantic click: %v", err)
 	}

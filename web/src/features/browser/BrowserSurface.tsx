@@ -6,8 +6,10 @@ import {
   Globe,
   Keyboard,
   Lock,
+  Monitor,
   RefreshCw,
   Send,
+  Smartphone,
   Unlock,
 } from 'lucide-react';
 import { getDesktopAuthToken, getWebSocketEndpoint, request } from '../../api';
@@ -34,7 +36,8 @@ export type NexusBrowserAction = {
     | 'key'
     | 'click_selector'
     | 'fill_selector'
-    | 'wait_selector';
+    | 'wait_selector'
+    | 'viewport';
   url?: string;
   text?: string;
   key?: string;
@@ -43,6 +46,8 @@ export type NexusBrowserAction = {
   delta_y?: number;
   selector?: string;
   timeout_ms?: number;
+  width?: number;
+  height?: number;
 };
 
 export type NexusBrowserElement = {
@@ -385,6 +390,21 @@ export const BrowserSurface: React.FC<{
           aria-label="Recarregar página"
         >
           <RefreshCw size={15} />
+        </button>
+        <button
+          type="button"
+          disabled={!controller || busy}
+          onClick={() =>
+            void perform(
+              session?.width === 390
+                ? { type: 'viewport', width: 1280, height: 800 }
+                : { type: 'viewport', width: 390, height: 844 },
+            )
+          }
+          aria-label={session?.width === 390 ? 'Viewport desktop' : 'Viewport celular'}
+          title={session?.width === 390 ? 'Viewport desktop' : 'Viewport celular'}
+        >
+          {session?.width === 390 ? <Monitor size={15} /> : <Smartphone size={15} />}
         </button>
         <button
           type="button"

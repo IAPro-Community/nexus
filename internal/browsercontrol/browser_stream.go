@@ -125,6 +125,7 @@ func (s *Session) streamOnce(ctx context.Context) error {
 	// Chromium sends Page.screencastFrame events while the page changes.
 	// Ack is mandatory; without it Chrome throttles or stops the stream.
 	nextID := 2
+	lastPublished := time.Time{}
 	for {
 		var message struct {
 			Method string `json:"method"`
@@ -146,9 +147,11 @@ func (s *Session) streamOnce(ctx context.Context) error {
 		if message.Method != "Page.screencastFrame" {
 			continue
 		}
-		if message.Params.Data != "" {
-			// Decode base64 on client. The CDP payload is already JPEG.
+		if message.Params.Data != "" && (lastPublished.IsZero() || time.Since(lastPublished) >= 100*time.Millisecond) {
+			// Limit remote delivery to 10fps without blocking CDP frame acks.
+			// The CDP payload is already JPEG; decode base64 on clients.
 			s.sendFrame([]byte(message.Params.Data))
+			lastPublished = time.Now()
 		}
 		if err := conn.WriteJSON(map[string]any{
 			"id": nextID, "method": "Page.screencastFrameAck",
