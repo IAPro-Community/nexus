@@ -28,6 +28,9 @@ redistribuição e uso comercial quando uma licença OSI for efetivamente public
 - [ ] Habilitar GitHub Sponsors e publicar `.github/FUNDING.yml` somente
       com conta de pagamento real e verificada.
 
+O procedimento para ativar rulesets, required checks, disclosure privado e
+isolamento de CI está no [playbook do administrador](community/ADMIN_SETUP.md).
+
 **Bloqueio:** não anunciar "open source Apache-2.0" nem convidar patches de
 código de terceiros até a aprovação da matriz de direitos. Consulte
 [OPEN_SOURCE_TRANSITION](legal/OPEN_SOURCE_TRANSITION.md) para o plano completo.
