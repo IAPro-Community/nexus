@@ -9,6 +9,7 @@ import {
   Home,
   Layers,
   LayoutGrid,
+  Images,
   Plus,
   Settings,
   Sparkles,
@@ -51,6 +52,7 @@ export const ProjectRail: React.FC<{
       | 'projects'
       | 'overview'
       | 'agents'
+      | 'outputs'
       | 'resources'
       | 'maestro'
       | 'sessions'
@@ -175,6 +177,7 @@ export const ProjectRail: React.FC<{
       { id: 'work', label: t('nav.work'), icon: Layers },
       { id: 'missions', label: t('nav.missions'), icon: Workflow },
       { id: 'agents', label: t('nav.agents'), icon: TerminalSquare },
+      { id: 'outputs', label: 'Outputs · Arquivos', icon: Images },
       { id: 'resources', label: t('nav.resources'), icon: Gauge },
       { id: 'sessions', label: t('nav.sessions'), icon: History },
       { id: 'projects', label: t('projectManager.desktopsTitle'), icon: LayoutGrid },

@@ -697,6 +697,13 @@ const WorkspaceCoordinator: React.FC<{
         run: () => void shell(),
       },
       {
+        id: 'outputs',
+        label: 'Abrir Outputs · galeria e arquivos',
+        group: t('commands.project'),
+        keywords: ['outputs', 'artefatos', 'arquivos', 'imagens', 'galeria', 'mobile'],
+        run: () => openKind('outputs'),
+      },
+      {
         id: 'agents',
         label: t('commands.open', { name: t('nav.agents') }),
         group: t('commands.project'),

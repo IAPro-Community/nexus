@@ -73,6 +73,9 @@ const SettingsSurface = React.lazy(() =>
 const MaestroSurface = React.lazy(() =>
   import('../features/maestro/MaestroSurface').then((m) => ({ default: m.MaestroSurface })),
 );
+const OutputsSurface = React.lazy(() =>
+  import('../features/outputs/OutputsSurface').then((m) => ({ default: m.OutputsSurface })),
+);
 const BrowserSurface = React.lazy(() =>
   import('../features/browser/BrowserSurface').then((m) => ({ default: m.BrowserSurface })),
 );
@@ -310,6 +313,9 @@ export const WorkspaceSurfaceHost: React.FC<{
       return <AgentConfigurationSurface agent={agent} onApplied={refreshAgents} />;
     }
 
+    if (surface.type === 'outputs') {
+      return <OutputsSurface projectId={project.id} />;
+    }
     if (surface.type === 'browser') {
       return (
         <BrowserSurface

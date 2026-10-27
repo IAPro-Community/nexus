@@ -30,6 +30,10 @@ func (s *Server) routeProject(h *NexusHandler) http.HandlerFunc {
 			return
 		}
 		switch {
+		case strings.HasSuffix(r.URL.Path, "/outputs"):
+			h.handleProjectOutputs(w, r)
+		case strings.HasSuffix(r.URL.Path, "/files"):
+			h.handleProjectFiles(w, r)
 		case strings.HasSuffix(r.URL.Path, "/events"):
 			h.handleProjectEvents(w, r)
 		case strings.HasSuffix(r.URL.Path, "/layout"):

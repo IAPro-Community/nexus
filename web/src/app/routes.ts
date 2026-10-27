@@ -34,6 +34,7 @@ export const validProjectSurfaces = new Set<ProjectSurfaceKind>([
   'missions',
   'terminals',
   'agents',
+  'outputs',
   'maestro',
   'sessions',
   'settings',
