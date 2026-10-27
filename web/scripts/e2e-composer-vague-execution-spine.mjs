@@ -214,7 +214,7 @@ async function main() {
     waitUntil: 'domcontentloaded',
   });
 
-  const idea = page.getByPlaceholder(/which idea or goal|qual ideia|ideia ou objetivo/i);
+  const idea = page.locator('[data-tour="composer-goal"] textarea');
   await idea.fill(vagueGoal);
 
   const createResponsePromise = page.waitForResponse(
