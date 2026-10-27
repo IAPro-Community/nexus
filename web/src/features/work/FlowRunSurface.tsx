@@ -291,7 +291,9 @@ export const FlowRunSurface: React.FC<{
 
   return (
     <div className="nx-surface-scroll nx-flow-run-surface" data-run-id={run.id}>
-      <FeatureTour projectId={project.id} surface="flow-run" />
+      <div className={styles.tourRow}>
+        <FeatureTour projectId={project.id} surface="flow-run" />
+      </div>
       <div className="nx-page-header" data-tour="flow-run-status">
         <div>
           <span className="nx-eyebrow">
