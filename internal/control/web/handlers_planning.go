@@ -701,7 +701,9 @@ func (h *NexusHandler) handleRunPlanningReview(w http.ResponseWriter, r *http.Re
 			break
 		}
 	}
-	var body struct { Reason string `json:"reason"` }
+	var body struct {
+		Reason string `json:"reason"`
+	}
 	if err := json.NewDecoder(io.LimitReader(r.Body, 8192)).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid body")
 		return

@@ -34,6 +34,21 @@ linters:
       - path: internal/nexus/promotion/promoter.go
         linters:
           - misspell
+      # pt-BR product copy and fixtures intentionally use words that the US
+      # dictionary reports as misspellings.
+      - path: internal/nexus/composer\.go
+        linters:
+          - misspell
+      - path: internal/nexus/composer_flow_handoff_v1_test\.go
+        linters:
+          - misspell
+      # "cancelled" is the persisted handoff status consumed by the browser MCP.
+      - path: internal/browsercontrol/browser_collaboration(_test)?\.go
+        linters:
+          - misspell
+      - path: internal/control/web/handlers_browser_mcp\.go
+        linters:
+          - misspell
       - path: internal/app/interactive_submit.go
         linters:
           - unparam

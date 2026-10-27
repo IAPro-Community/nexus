@@ -33,7 +33,11 @@ export function visibleTerminalRuntimes(
   // A newly selected session outside the original window must be visible.
   // Replace the last displayed view rather than changing the other pane IDs.
   const active = opened.find((runtime) => runtime.runtime_id === activeRuntimeId);
-  if (active && visible.length > 0 && !visible.some((runtime) => runtime.runtime_id === activeRuntimeId)) {
+  if (
+    active &&
+    visible.length > 0 &&
+    !visible.some((runtime) => runtime.runtime_id === activeRuntimeId)
+  ) {
     visible[visible.length - 1] = active;
   }
   return visible;

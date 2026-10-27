@@ -42,11 +42,11 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 	}
 	title := firstNonEmpty(brief.Intent.Objective, brief.Goal, "Composer Flow")
 	facts := map[string]string{
-		"nexus.source_artifact_id":       artifact.ID,
-		"nexus.source_artifact_revision": fmt.Sprintf("%d", artifact.Version),
-		"nexus.source_artifact_hash":     artifact.Hash,
+		"nexus.source_artifact_id":         artifact.ID,
+		"nexus.source_artifact_revision":   fmt.Sprintf("%d", artifact.Version),
+		"nexus.source_artifact_hash":       artifact.Hash,
 		"nexus.source_composer_session_id": session.ID,
-		"composer.handoff.schema_version": "1",
+		"composer.handoff.schema_version":  "1",
 	}
 	if strings.TrimSpace(manifest.Fingerprint) != "" {
 		facts["nexus.source_context_manifest_fingerprint"] = manifest.Fingerprint
@@ -144,19 +144,19 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 // immutable PromptArtifact. Structured facts carry it through the Flow editor
 // and into the Mission snapshot without changing the execution engine.
 type composerHandoffContract struct {
-	Version          int               `json:"version"`
-	SessionID        string            `json:"session_id"`
-	ArtifactID       string            `json:"artifact_id"`
-	ArtifactVersion  int               `json:"artifact_version"`
-	ArtifactHash     string            `json:"artifact_hash"`
-	Goal             string            `json:"goal"`
-	ApprovedAnswers  map[string]string `json:"approved_answers,omitempty"`
-	Assumptions      []PromptAssumption `json:"assumptions,omitempty"`
-	Recommendations  []ComposerFact    `json:"recommendations,omitempty"`
-	Unresolved       []PromptUnknown   `json:"unresolved,omitempty"`
-	Acceptance       []string          `json:"acceptance,omitempty"`
-	Risks            []string          `json:"risks,omitempty"`
-	Route            FlowSuitabilityAssessment `json:"route"`
+	Version         int                       `json:"version"`
+	SessionID       string                    `json:"session_id"`
+	ArtifactID      string                    `json:"artifact_id"`
+	ArtifactVersion int                       `json:"artifact_version"`
+	ArtifactHash    string                    `json:"artifact_hash"`
+	Goal            string                    `json:"goal"`
+	ApprovedAnswers map[string]string         `json:"approved_answers,omitempty"`
+	Assumptions     []PromptAssumption        `json:"assumptions,omitempty"`
+	Recommendations []ComposerFact            `json:"recommendations,omitempty"`
+	Unresolved      []PromptUnknown           `json:"unresolved,omitempty"`
+	Acceptance      []string                  `json:"acceptance,omitempty"`
+	Risks           []string                  `json:"risks,omitempty"`
+	Route           FlowSuitabilityAssessment `json:"route"`
 }
 
 func composerHandoffFromArtifact(artifact store.PromptArtifact, session store.ComposerSession, brief LivingBrief) composerHandoffContract {
@@ -174,14 +174,14 @@ func composerHandoffFromArtifact(artifact store.PromptArtifact, session store.Co
 	return composerHandoffContract{
 		Version: 1, SessionID: session.ID, ArtifactID: artifact.ID,
 		ArtifactVersion: artifact.Version, ArtifactHash: artifact.Hash,
-		Goal: firstNonEmpty(brief.Intent.Objective, brief.Goal),
+		Goal:            firstNonEmpty(brief.Intent.Objective, brief.Goal),
 		ApprovedAnswers: approved,
-		Assumptions: append([]PromptAssumption(nil), brief.Assumptions...),
+		Assumptions:     append([]PromptAssumption(nil), brief.Assumptions...),
 		Recommendations: append([]ComposerFact(nil), brief.Recommendations...),
-		Unresolved: unresolved,
-		Acceptance: append([]string(nil), brief.Quality.AcceptanceCriteria...),
-		Risks: append([]string(nil), brief.Risks...),
-		Route: AssessComposerFlowSuitability(brief),
+		Unresolved:      unresolved,
+		Acceptance:      append([]string(nil), brief.Quality.AcceptanceCriteria...),
+		Risks:           append([]string(nil), brief.Risks...),
+		Route:           AssessComposerFlowSuitability(brief),
 	}
 }
 

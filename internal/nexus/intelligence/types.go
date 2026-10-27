@@ -174,22 +174,22 @@ type BriefExtraction struct {
 	// DiscoveryComplete means the provider evaluated whether any user
 	// clarification is actually necessary. It allows Composer to avoid
 	// running a second, expensive LLM interview on every creation.
-	DiscoveryComplete bool `json:"discovery_complete,omitempty"`
-	Clarifications []AmbiguityItem `json:"clarifications,omitempty"`
+	DiscoveryComplete bool            `json:"discovery_complete,omitempty"`
+	Clarifications    []AmbiguityItem `json:"clarifications,omitempty"`
 	// Recommendations are proposed approaches, not verified requirements or repository facts.
 	RecommendedApproaches []string `json:"recommended_approaches,omitempty"`
-	InScope              []string `json:"in_scope,omitempty"`
-	OutOfScope           []string `json:"out_of_scope,omitempty"`
-	ConstraintsTechnical []string `json:"constraints_technical,omitempty"`
-	ConstraintsSecurity  []string `json:"constraints_security,omitempty"`
-	Risks                []string `json:"risks,omitempty"`
-	AcceptanceCriteria   []string `json:"acceptance_criteria,omitempty"`
-	Testing              []string `json:"testing,omitempty"`
-	Verification         []string `json:"verification,omitempty"`
-	ProhibitedActions    []string `json:"prohibited_actions,omitempty"`
-	Deliverables         []string `json:"deliverables,omitempty"`
-	Stack                []string `json:"stack,omitempty"`
-	ExistingState        []string `json:"existing_state,omitempty"`
+	InScope               []string `json:"in_scope,omitempty"`
+	OutOfScope            []string `json:"out_of_scope,omitempty"`
+	ConstraintsTechnical  []string `json:"constraints_technical,omitempty"`
+	ConstraintsSecurity   []string `json:"constraints_security,omitempty"`
+	Risks                 []string `json:"risks,omitempty"`
+	AcceptanceCriteria    []string `json:"acceptance_criteria,omitempty"`
+	Testing               []string `json:"testing,omitempty"`
+	Verification          []string `json:"verification,omitempty"`
+	ProhibitedActions     []string `json:"prohibited_actions,omitempty"`
+	Deliverables          []string `json:"deliverables,omitempty"`
+	Stack                 []string `json:"stack,omitempty"`
+	ExistingState         []string `json:"existing_state,omitempty"`
 }
 
 // IntelligenceProvider defines the provider contract (OpenAI-compatible API or CLI).

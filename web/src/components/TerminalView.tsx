@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { RuntimeSession } from '../types';
 import { TerminalPane } from './TerminalPane';
 import { Columns2, Square, Grid2X2 } from 'lucide-react';
-import { normalizeOpenRuntimeIds, visibleTerminalRuntimes, type TerminalSplitMode } from './terminalViewModel';
+import {
+  normalizeOpenRuntimeIds,
+  visibleTerminalRuntimes,
+  type TerminalSplitMode,
+} from './terminalViewModel';
 
 interface TerminalViewProps {
   runtimes: RuntimeSession[];
@@ -45,13 +49,14 @@ export const TerminalView: React.FC<TerminalViewProps> = ({
   }
 
   const opened = normalizeOpenRuntimeIds(openIds, runtimes, activeRuntimeId);
-  const currentId = activeRuntimeId && runtimes.some((r) => r.runtime_id === activeRuntimeId)
-    ? activeRuntimeId
-    : opened[0];
+  const currentId =
+    activeRuntimeId && runtimes.some((r) => r.runtime_id === activeRuntimeId)
+      ? activeRuntimeId
+      : opened[0];
   const renderSessions = visibleTerminalRuntimes(runtimes, opened, currentId, splitMode);
 
   const handleSelectTab = (id: string) => {
-    setOpenIds((prev) => prev.includes(id) ? prev : [...prev, id]);
+    setOpenIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
     onSelectRuntime(id);
   };
 

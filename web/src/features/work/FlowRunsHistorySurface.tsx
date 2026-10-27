@@ -69,8 +69,12 @@ export const FlowRunsHistorySurface: React.FC<{
       const runList = runResult.status === 'fulfilled' ? runResult.value : [];
       const planList = planResult.value;
       if (runResult.status === 'rejected') {
-        setRunLoadError(t('flow.runHistoryUnavailable',
-          'Não foi possível consultar as Missions. O histórico pode estar incompleto; tente atualizar.'));
+        setRunLoadError(
+          t(
+            'flow.runHistoryUnavailable',
+            'Não foi possível consultar as Missions. O histórico pode estar incompleto; tente atualizar.',
+          ),
+        );
       }
       const nextRuns = asArray(runList).filter((run): run is MissionRun => {
         const item = run as MissionRun;
@@ -138,7 +142,9 @@ export const FlowRunsHistorySurface: React.FC<{
           sessionStorage.removeItem(FLOW_DRAFT_KEY(project.id));
         }
         sessionStorage.removeItem(`nexus:flow:draft-edits:${project.id}:${plan.id}`);
-      } catch { /* optional local cache */ }
+      } catch {
+        /* optional local cache */
+      }
       if (selectedPlan?.id === plan.id) setSelectedPlan(null);
       await load();
     } catch (reason) {
@@ -151,8 +157,9 @@ export const FlowRunsHistorySurface: React.FC<{
   const draftPlans = useMemo(() => {
     const runPlanIds = new Set(runs.map((run) => run.plan_id).filter(Boolean));
     // Never classify a READY/EXECUTED plan as unused if the history API failed.
-    return plans.filter((plan) =>
-      plan.status === 'DRAFT' || (!runLoadError && !runPlanIds.has(plan.id)));
+    return plans.filter(
+      (plan) => plan.status === 'DRAFT' || (!runLoadError && !runPlanIds.has(plan.id)),
+    );
   }, [plans, runs, runLoadError]);
 
   const filtered = useMemo(() => {
@@ -292,8 +299,16 @@ export const FlowRunsHistorySurface: React.FC<{
           <Spinner />
         </div>
       )}
-      {error && <div className="nx-inline-error" role="alert">{error}</div>}
-      {runLoadError && <div className="nx-inline-error" role="alert">{runLoadError}</div>}
+      {error && (
+        <div className="nx-inline-error" role="alert">
+          {error}
+        </div>
+      )}
+      {runLoadError && (
+        <div className="nx-inline-error" role="alert">
+          {runLoadError}
+        </div>
+      )}
 
       {!loading && !error && track === 'drafts' && (
         <Card className={styles.newFlowCard}>

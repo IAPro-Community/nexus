@@ -179,7 +179,11 @@ export const ComposerStart: React.FC<{
             size="sm"
             tone="danger"
             disabled={!selectedSavedSession || busy}
-            onClick={() => setSessionForDeletion(sessions.find((item) => item.id === selectedSavedSession) || null)}
+            onClick={() =>
+              setSessionForDeletion(
+                sessions.find((item) => item.id === selectedSavedSession) || null,
+              )
+            }
           >
             <Trash2 size={13} /> {t('common.delete', 'Excluir')}
           </Button>

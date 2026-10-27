@@ -128,7 +128,9 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
               onClick={() => setDeleteOpen(true)}
             >
               <Trash2 size={13} />
-              {deletingPlan ? t('flow.deleting', 'Excluindo…') : t('flow.deleteDraft', 'Excluir Flow')}
+              {deletingPlan
+                ? t('flow.deleting', 'Excluindo…')
+                : t('flow.deleteDraft', 'Excluir Flow')}
             </Button>
             <Badge tone={flowDirty ? 'warning' : 'success'}>
               {flowDirty

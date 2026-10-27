@@ -177,7 +177,9 @@ func (s *PlanApplicationService) Delete(ctx context.Context, planID string) erro
 // snapshots, Missions or schedules, avoiding SQLite cascaded evidence loss.
 func (s *PlanApplicationService) DeleteExpected(ctx context.Context, planID string, expectedRevision int) error {
 	st, err := s.store(ctx)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	return st.DeleteWorkPlanExpected(planID, expectedRevision)
 }
 

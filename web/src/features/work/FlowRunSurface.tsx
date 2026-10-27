@@ -315,8 +315,8 @@ export const FlowRunSurface: React.FC<{
             {planningReviewBusy ? 'Preparando revisão…' : 'Reavaliar planejamento no Composer'}
           </Button>
           <p>
-            Cria uma nova elaboração vinculada à Mission. A execução aprovada não será
-            alterada automaticamente.
+            Cria uma nova elaboração vinculada à Mission. A execução aprovada não será alterada
+            automaticamente.
           </p>
         </div>
       )}

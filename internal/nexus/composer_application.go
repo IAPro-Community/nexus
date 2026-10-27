@@ -28,10 +28,10 @@ func NewComposerApplicationService(n *Nexus) *ComposerApplicationService {
 func (s *ComposerApplicationService) requireIntelligence(ctx context.Context, projectID string) error {
 	provider, err := s.nexus.ConfiguredIntelligenceProvider(ctx, projectID)
 	if err != nil {
-		return fmt.Errorf("Composer requer IA configurada em Configurações > Nexus Intelligence: %w", err)
+		return fmt.Errorf("composer requer IA configurada em Configurações > Nexus Intelligence: %w", err)
 	}
 	if provider == nil || !provider.Available(ctx) {
-		return fmt.Errorf("Composer requer um provedor de IA disponível em Configurações > Nexus Intelligence")
+		return fmt.Errorf("composer requer um provedor de IA disponível em Configurações > Nexus Intelligence")
 	}
 	return nil
 }
@@ -72,7 +72,7 @@ func (s *ComposerApplicationService) CreateWithInterviewModeProgress(
 	if _, err := s.nexus.ProbeIntelligence(ctx, projectID); err != nil {
 		// Provider errors may contain raw CLI output, filesystem paths or remote
 		// API diagnostics. Do not leak that material through an HTTP response.
-		return nil, fmt.Errorf("A IA configurada não passou no teste de conexão do Composer. Verifique provedor, perfil, credenciais e conectividade em Nexus Intelligence")
+		return nil, fmt.Errorf("a IA configurada não passou no teste de conexão do Composer. Verifique provedor, perfil, credenciais e conectividade em Nexus Intelligence")
 	}
 	view, err := s.nexus.CreateComposerSessionWithPromptInterviewModeProgress(
 		ctx,
@@ -99,9 +99,13 @@ func (s *ComposerApplicationService) List(ctx context.Context, projectID string)
 // Delete is a user-owned cleanup operation. It must remain available even
 // when Nexus Intelligence is offline; creation/refinement still require AI.
 func (s *ComposerApplicationService) Delete(ctx context.Context, sessionID string, expectedRevision int) error {
-	if err := ctx.Err(); err != nil { return err }
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	st, err := s.nexus.OpenProject()
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	// Capture managed attachment references before SQLite cascades remove them.
 	// Disk cleanup is best-effort after the transaction has committed.
 	attachments, _ := st.ListConversationAttachments(sessionID)
@@ -109,7 +113,9 @@ func (s *ComposerApplicationService) Delete(ctx context.Context, sessionID strin
 		return err
 	}
 	dataDir, err := coreconfig.DataDir()
-	if err != nil { return nil }
+	if err != nil {
+		return nil
+	}
 	managedDir := filepath.Clean(filepath.Join(dataDir, "attachments", sessionID))
 	for _, attachment := range attachments {
 		path := filepath.Clean(attachment.StorageRef)

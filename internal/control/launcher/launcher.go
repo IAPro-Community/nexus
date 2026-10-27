@@ -194,7 +194,6 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		if err != nil {
 			slog.Warn("Nexus Browser capability unavailable", "provider", opts.ProviderID, "error", err)
 			extraArgs, env = priorArgs, priorEnv
-			err = nil
 		}
 	}
 	if opts.Workspace != "" && !customCommand {

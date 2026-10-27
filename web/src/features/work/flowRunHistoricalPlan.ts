@@ -17,8 +17,12 @@ export function selectRunHistoricalPlan(
   if (!frozen?.snapshot_json) return null;
   try {
     const plan = normalizeWorkPlan(JSON.parse(frozen.snapshot_json));
-    if (plan.id !== detail.plan.id || plan.project_id !== detail.plan.project_id ||
-        plan.current_revision !== runRevision) return null;
+    if (
+      plan.id !== detail.plan.id ||
+      plan.project_id !== detail.plan.project_id ||
+      plan.current_revision !== runRevision
+    )
+      return null;
     return plan;
   } catch {
     return null;

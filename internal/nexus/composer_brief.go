@@ -190,28 +190,28 @@ type PromptReadiness struct {
 
 // LivingBrief stores the structured, durable understanding assembled by Composer.
 type LivingBrief struct {
-	Goal          string                 `json:"goal"`
-	SourcePrompt  string                 `json:"source_prompt,omitempty"`
-	Intent        BriefIntent            `json:"intent"`
-	Context       BriefContext           `json:"context"`
-	Deliverable   BriefDeliverable       `json:"deliverable"`
-	Scope         BriefScope             `json:"scope"`
-	Environment   BriefEnvironment       `json:"environment"`
-	Constraints   BriefConstraints       `json:"constraints"`
-	Execution     BriefExecution         `json:"execution"`
-	Quality       BriefQuality           `json:"quality"`
-	Decisions     []string               `json:"decisions,omitempty"`
-	Assumptions   []PromptAssumption     `json:"assumptions,omitempty"`
-	Alternatives  []string               `json:"alternatives,omitempty"`
-	Recommendations []ComposerFact       `json:"recommendations,omitempty"`
-	Risks         []string               `json:"risks,omitempty"`
-	Unknowns      []PromptUnknown        `json:"unknowns,omitempty"`
-	OpenQuestions []string               `json:"open_questions,omitempty"`
-	Readiness     PromptReadiness        `json:"readiness"`
-	Interview     ComposerInterviewState `json:"interview"`
-	Motivation    MotivationMap          `json:"motivation,omitempty"`
-	Facts         []ComposerFact         `json:"facts,omitempty"`
-	Preview       string                 `json:"preview,omitempty"`
+	Goal            string                 `json:"goal"`
+	SourcePrompt    string                 `json:"source_prompt,omitempty"`
+	Intent          BriefIntent            `json:"intent"`
+	Context         BriefContext           `json:"context"`
+	Deliverable     BriefDeliverable       `json:"deliverable"`
+	Scope           BriefScope             `json:"scope"`
+	Environment     BriefEnvironment       `json:"environment"`
+	Constraints     BriefConstraints       `json:"constraints"`
+	Execution       BriefExecution         `json:"execution"`
+	Quality         BriefQuality           `json:"quality"`
+	Decisions       []string               `json:"decisions,omitempty"`
+	Assumptions     []PromptAssumption     `json:"assumptions,omitempty"`
+	Alternatives    []string               `json:"alternatives,omitempty"`
+	Recommendations []ComposerFact         `json:"recommendations,omitempty"`
+	Risks           []string               `json:"risks,omitempty"`
+	Unknowns        []PromptUnknown        `json:"unknowns,omitempty"`
+	OpenQuestions   []string               `json:"open_questions,omitempty"`
+	Readiness       PromptReadiness        `json:"readiness"`
+	Interview       ComposerInterviewState `json:"interview"`
+	Motivation      MotivationMap          `json:"motivation,omitempty"`
+	Facts           []ComposerFact         `json:"facts,omitempty"`
+	Preview         string                 `json:"preview,omitempty"`
 }
 
 type composerUnknownBlueprint struct {
@@ -612,7 +612,7 @@ func applyBriefExtraction(brief *LivingBrief, ext *intelligence.BriefExtraction)
 		}
 		if !alreadyProposed {
 			brief.Recommendations = append(brief.Recommendations, ComposerFact{
-				ID: fmt.Sprintf("recommendation-%d", len(brief.Recommendations)+1),
+				ID:    fmt.Sprintf("recommendation-%d", len(brief.Recommendations)+1),
 				Field: "recommendations", Value: value, SourceType: "INTELLIGENCE",
 				Confidence: "MEDIUM", Status: ComposerFactProposed,
 				Revision: 1, UpdatedAt: now,

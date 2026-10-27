@@ -97,6 +97,12 @@ func ApplyLaunchConfiguration(provider, model string, options map[string]any, ba
 			}
 			// This is an Agent policy signal retained in its immutable config revision.
 			continue
+		case "nexus_browser_enabled":
+			if _, ok := value.(bool); !ok {
+				return nil, fmt.Errorf("provider option nexus_browser_enabled must be a boolean")
+			}
+			// Consumed by the launcher's browser MCP provisioning; never a CLI flag.
+			continue
 		case "execution_adapter", "origin", "role_type":
 			// Agent metadata retained in its immutable config revision.
 			continue

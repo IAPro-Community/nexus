@@ -161,7 +161,7 @@ func findPage(port string) (string, error) {
 			return page.WebSocketDebuggerURL, nil
 		}
 	}
-	return "", errors.New("Chromium has no debuggable page")
+	return "", errors.New("chromium has no debuggable page")
 }
 
 func (m *Manager) Create(ctx context.Context, projectID, initialURL string) (Info, error) {
@@ -230,10 +230,10 @@ func (m *Manager) Create(ctx context.Context, projectID, initialURL string) (Inf
 			return Info{}, ctx.Err()
 		case <-done:
 			_ = os.RemoveAll(directory)
-			return Info{}, errors.New("Chromium exited before DevTools became ready")
+			return Info{}, errors.New("chromium exited before DevTools became ready")
 		case <-deadline.C:
 			cleanup()
-			return Info{}, errors.New("Chromium DevTools startup timeout")
+			return Info{}, errors.New("chromium DevTools startup timeout")
 		case <-start.C:
 			b, err := os.ReadFile(filepath.Join(directory, "DevToolsActivePort"))
 			if err != nil {

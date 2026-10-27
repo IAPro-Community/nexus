@@ -69,9 +69,9 @@ func TestComposerHandoffLegacyAndInvalidVersions(t *testing.T) {
 
 func TestComposerSuitabilityUsesDependenciesAndDurability(t *testing.T) {
 	for _, tc := range []struct {
-		name string
+		name  string
 		brief LivingBrief
-		want FlowSuitability
+		want  FlowSuitability
 	}{
 		{"atomic", LivingBrief{Goal: "Corrigir erro de digitação na tela"}, FlowDirectFit},
 		{"multi-agent", LivingBrief{Goal: "Executar com múltiplos agentes simultâneos"}, FlowBeneficial},
@@ -104,9 +104,9 @@ func TestComposerHandoffBlocksAllPreflightRoutes(t *testing.T) {
 		t.Fatal(err)
 	}
 	contract := composerHandoffContract{
-		Version: 1,
+		Version:    1,
 		ArtifactID: "artifact-original",
-		Goal: "Modernizar produto",
+		Goal:       "Modernizar produto",
 		Unresolved: []PromptUnknown{{
 			Field: "constraints.security", Question: "É permitido alterar dados de produção?",
 			Severity: PromptUnknownBlocking, Status: PromptUnknownOpen,

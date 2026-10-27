@@ -3,8 +3,8 @@ package store
 import (
 	"crypto/sha256"
 	"database/sql"
-	"encoding/json"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -177,7 +177,9 @@ var ErrComposerDeleteProtected = fmt.Errorf("elaboração vinculada a um Flow ou
 // affected. A linked WorkPlan must be deleted safely first.
 func (s *Store) DeleteComposerSessionExpected(id string, expectedRevision int) error {
 	tx, err := s.db.Begin()
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	defer tx.Rollback()
 	var revision int
 	if err := tx.QueryRow(`SELECT revision FROM composer_sessions WHERE id=?`, id).Scan(&revision); err != nil {
@@ -188,13 +190,21 @@ func (s *Store) DeleteComposerSessionExpected(id string, expectedRevision int) e
 	}
 	artifacts := map[string]struct{}{}
 	rows, err := tx.Query(`SELECT id FROM prompt_artifacts WHERE session_id=?`, id)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	for rows.Next() {
 		var artifactID string
-		if err := rows.Scan(&artifactID); err != nil { rows.Close(); return err }
+		if err := rows.Scan(&artifactID); err != nil {
+			rows.Close()
+			return err
+		}
 		artifacts[artifactID] = struct{}{}
 	}
-	if err := rows.Err(); err != nil { rows.Close(); return err }
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return err
+	}
 	rows.Close()
 	// Any existing delivery receipt means this planning record was used outside
 	// the current drafting surface. Keep its history rather than deleting proof.
@@ -203,17 +213,29 @@ func (s *Store) DeleteComposerSessionExpected(id string, expectedRevision int) e
 		SELECT 1 FROM composer_destination_receipts r
 		JOIN prompt_artifacts a ON a.id=r.artifact_id
 		WHERE a.session_id=?
-	)`, id).Scan(&delivered); err != nil { return err }
-	if delivered != 0 { return ErrComposerDeleteProtected }
+	)`, id).Scan(&delivered); err != nil {
+		return err
+	}
+	if delivered != 0 {
+		return ErrComposerDeleteProtected
+	}
 
 	// Cross-project plans can retain imported artifact lineage as well.
 	plans, err := tx.Query(`SELECT facts_json FROM work_plans`)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	for plans.Next() {
 		var raw string
-		if err := plans.Scan(&raw); err != nil { plans.Close(); return err }
+		if err := plans.Scan(&raw); err != nil {
+			plans.Close()
+			return err
+		}
 		var facts map[string]string
-		if err := json.Unmarshal([]byte(raw), &facts); err != nil { plans.Close(); return fmt.Errorf("cannot verify WorkPlan lineage before Composer deletion: %w", err) }
+		if err := json.Unmarshal([]byte(raw), &facts); err != nil {
+			plans.Close()
+			return fmt.Errorf("cannot verify WorkPlan lineage before Composer deletion: %w", err)
+		}
 		if facts["nexus.source_composer_session_id"] == id {
 			plans.Close()
 			return ErrComposerDeleteProtected
@@ -226,7 +248,7 @@ func (s *Store) DeleteComposerSessionExpected(id string, expectedRevision int) e
 		// without older flattened nexus.source_artifact_id fields.
 		if raw := strings.TrimSpace(facts["composer.handoff.v1"]); raw != "" {
 			var handoff struct {
-				SessionID string `json:"session_id"`
+				SessionID  string `json:"session_id"`
 				ArtifactID string `json:"artifact_id"`
 			}
 			if err := json.Unmarshal([]byte(raw), &handoff); err != nil {
@@ -243,11 +265,18 @@ func (s *Store) DeleteComposerSessionExpected(id string, expectedRevision int) e
 			}
 		}
 	}
-	if err := plans.Err(); err != nil { plans.Close(); return err }
+	if err := plans.Err(); err != nil {
+		plans.Close()
+		return err
+	}
 	plans.Close()
 	res, err := tx.Exec(`DELETE FROM composer_sessions WHERE id=? AND revision=?`, id, revision)
-	if err != nil { return err }
-	if count, err := res.RowsAffected(); err != nil { return err } else if count != 1 {
+	if err != nil {
+		return err
+	}
+	if count, err := res.RowsAffected(); err != nil {
+		return err
+	} else if count != 1 {
 		return ErrPlanRevisionConflict
 	}
 	return tx.Commit()

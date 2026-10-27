@@ -30,10 +30,6 @@ func launchEnvelopePath(runtimeID string) (string, error) {
 	return filepath.Join(dataDir, "runtime", "launches", runtimeID+".json"), nil
 }
 
-func createLaunchEnvelope(runtimeID string, args []string, customCommand bool) error {
-	return createLaunchEnvelopeWithBrowser(runtimeID, args, customCommand, nil)
-}
-
 func createLaunchEnvelopeWithBrowser(runtimeID string, args []string, customCommand bool, env []string) error {
 	path, err := launchEnvelopePath(runtimeID)
 	if err != nil {

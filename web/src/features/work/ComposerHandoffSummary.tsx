@@ -31,7 +31,8 @@ export function readComposerHandoff(plan: WorkPlan | null): ComposerHandoffContr
       contract.version !== 1 ||
       typeof contract.artifact_id !== 'string' ||
       typeof contract.goal !== 'string'
-    ) return null;
+    )
+      return null;
     return contract as ComposerHandoffContract;
   } catch {
     return null;
@@ -54,11 +55,15 @@ export const ComposerHandoffSummary: React.FC<{
   if (!handoff) return null;
   const pending = countComposerBlockingDecisions(handoff);
   const approved = Object.entries(handoff.approved_answers || {});
-  const assumptions = (Array.isArray(handoff.assumptions) ? handoff.assumptions : [])
-    .filter((item) => Boolean(item?.value));
-  const recommendations = (Array.isArray(handoff.recommendations) ? handoff.recommendations : [])
-    .filter((item) => Boolean(item?.value) && item?.status !== 'DISMISSED');
-  const routeExplanation = (Array.isArray(handoff.route?.reasons) ? handoff.route.reasons : []).join(' · ');
+  const assumptions = (Array.isArray(handoff.assumptions) ? handoff.assumptions : []).filter(
+    (item) => Boolean(item?.value),
+  );
+  const recommendations = (
+    Array.isArray(handoff.recommendations) ? handoff.recommendations : []
+  ).filter((item) => Boolean(item?.value) && item?.status !== 'DISMISSED');
+  const routeExplanation = (
+    Array.isArray(handoff.route?.reasons) ? handoff.route.reasons : []
+  ).join(' · ');
 
   return (
     <Card>
@@ -68,8 +73,8 @@ export const ComposerHandoffSummary: React.FC<{
         {routeExplanation && <p>Estratégia sugerida: {routeExplanation}</p>}
         {pending > 0 && (
           <p role="alert">
-            {pending} decisão(ões) bloqueante(s) ainda não resolvida(s).
-            A execução exige revisão do Composer e nova aprovação do plano.
+            {pending} decisão(ões) bloqueante(s) ainda não resolvida(s). A execução exige revisão do
+            Composer e nova aprovação do plano.
           </p>
         )}
         <details>
@@ -77,25 +82,43 @@ export const ComposerHandoffSummary: React.FC<{
           {approved.length > 0 && (
             <div>
               <strong>Decisões respondidas pelo usuário</strong>
-              <ul>{approved.map(([key, value]) => <li key={key}>{key}: {value}</li>)}</ul>
+              <ul>
+                {approved.map(([key, value]) => (
+                  <li key={key}>
+                    {key}: {value}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
           {assumptions.length > 0 && (
             <div>
               <strong>Hipóteses — não são fatos confirmados</strong>
-              <ul>{assumptions.map((item, index) => <li key={index}>{item.value}</li>)}</ul>
+              <ul>
+                {assumptions.map((item, index) => (
+                  <li key={index}>{item.value}</li>
+                ))}
+              </ul>
             </div>
           )}
           {recommendations.length > 0 && (
             <div>
               <strong>Opções propostas pela IA — não são decisões aprovadas</strong>
-              <ul>{recommendations.map((item, index) => <li key={index}>{item.value}</li>)}</ul>
+              <ul>
+                {recommendations.map((item, index) => (
+                  <li key={index}>{item.value}</li>
+                ))}
+              </ul>
             </div>
           )}
           {(handoff.acceptance || []).length > 0 && (
             <div>
               <strong>Condições de aceite</strong>
-              <ul>{handoff.acceptance?.map((item, index) => <li key={index}>{item}</li>)}</ul>
+              <ul>
+                {handoff.acceptance?.map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
+              </ul>
             </div>
           )}
           <p>

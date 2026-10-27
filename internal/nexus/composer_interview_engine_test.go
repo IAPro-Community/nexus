@@ -13,7 +13,7 @@ func TestComposerInterviewPrioritizesWeakestDimension(t *testing.T) {
 	brief.Unknowns = append(brief.Unknowns, PromptUnknown{
 		ID: "acceptance", Field: "quality.acceptance_criteria",
 		Question: "What result would best demonstrate success?",
-		Status: PromptUnknownOpen, Severity: PromptUnknownRecommended,
+		Status:   PromptUnknownOpen, Severity: PromptUnknownRecommended,
 		Source: "INTELLIGENCE",
 	})
 	refreshComposerBrief(&brief)

@@ -151,12 +151,15 @@ describe('nexus API request errors', () => {
   });
 
   it('surfaces protected Flow deletion as HTTP 409, not success', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      status: 409,
-      statusText: 'Conflict',
-      json: () => Promise.resolve({ error: 'Flow possui Missions e não pode ser excluído' }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 409,
+        statusText: 'Conflict',
+        json: () => Promise.resolve({ error: 'Flow possui Missions e não pode ser excluído' }),
+      }),
+    );
 
     await expect(nexusApi.deletePlan('used-flow', 1)).rejects.toMatchObject({
       status: 409,

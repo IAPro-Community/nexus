@@ -60,7 +60,8 @@ export const ComposerDestinations: React.FC<{
   const [preparationOpen, setPreparationOpen] = useState(false);
   // Recommend an execution path but never force it: both actions remain
   // available. Runtime admission, rather than this heuristic, authorizes GO.
-  const flowPreferred = flowSuitability?.result === 'FLOW_BENEFICIAL' ||
+  const flowPreferred =
+    flowSuitability?.result === 'FLOW_BENEFICIAL' ||
     flowSuitability?.result === 'FLOW_STRONGLY_RECOMMENDED';
   const routeReason = asStringArray(flowSuitability?.reasons).slice(0, 2).join(' · ');
   const selectedAgent = agents.find((agent) => agent.id === selectedAgentId);
@@ -87,7 +88,10 @@ export const ComposerDestinations: React.FC<{
           </strong>
           {routeReason ? ` · ${routeReason}` : ''}
           {' · '}
-          {t('work.composer.routeIsAdvice', 'Você pode escolher outro caminho. A execução depende de aprovação e validação.')}
+          {t(
+            'work.composer.routeIsAdvice',
+            'Você pode escolher outro caminho. A execução depende de aprovação e validação.',
+          )}
         </p>
       ) : null}
       <ComposerPromptReview

@@ -63,11 +63,9 @@ func TestMaterializePromptArtifactDecomposesWhenFlowBeneficial(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	artifact, err := n.FinalizeComposerSession(context.Background(), view.Session.ID, nil, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Persist a flow-beneficial brief (multiple in-scope workstreams + review).
+	// Persist a flow-beneficial brief (multiple in-scope workstreams + review)
+	// before finalizing: the artifact freezes the brief, so updating it after
+	// finalization would only affect future sessions, not this materialization.
 	session, err := st.GetComposerSession(view.Session.ID)
 	if err != nil {
 		t.Fatal(err)
@@ -83,6 +81,10 @@ func TestMaterializePromptArtifactDecomposesWhenFlowBeneficial(t *testing.T) {
 	}
 	session.BriefJSON = mustJSON(brief)
 	if err := st.UpdateComposerSession(*session); err != nil {
+		t.Fatal(err)
+	}
+	artifact, err := n.FinalizeComposerSession(context.Background(), view.Session.ID, nil, true)
+	if err != nil {
 		t.Fatal(err)
 	}
 

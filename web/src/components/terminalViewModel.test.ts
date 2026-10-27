@@ -17,18 +17,24 @@ describe('terminalViewModel', () => {
 
   it('shows only explicitly opened sessions in a split', () => {
     const runtimes = ['a', 'b', 'c', 'd'].map(runtime);
-    expect(visibleTerminalRuntimes(runtimes, ['c', 'a'], 'c', 'split-h').map((r) => r.runtime_id))
-      .toEqual(['c', 'a']);
-    expect(visibleTerminalRuntimes(runtimes, ['d', 'b', 'a'], 'b', 'grid').map((r) => r.runtime_id))
-      .toEqual(['d', 'b', 'a']);
+    expect(
+      visibleTerminalRuntimes(runtimes, ['c', 'a'], 'c', 'split-h').map((r) => r.runtime_id),
+    ).toEqual(['c', 'a']);
+    expect(
+      visibleTerminalRuntimes(runtimes, ['d', 'b', 'a'], 'b', 'grid').map((r) => r.runtime_id),
+    ).toEqual(['d', 'b', 'a']);
   });
 
   it('keeps the active runtime visible when it falls outside the split limit', () => {
     const runtimes = ['a', 'b', 'c', 'd', 'e'].map(runtime);
-    expect(visibleTerminalRuntimes(runtimes, ['a', 'b', 'c'], 'c', 'split-h').map((r) => r.runtime_id))
-      .toEqual(['a', 'c']);
-    expect(visibleTerminalRuntimes(runtimes, ['a', 'b', 'c', 'd', 'e'], 'e', 'grid').map((r) => r.runtime_id))
-      .toEqual(['a', 'b', 'c', 'e']);
+    expect(
+      visibleTerminalRuntimes(runtimes, ['a', 'b', 'c'], 'c', 'split-h').map((r) => r.runtime_id),
+    ).toEqual(['a', 'c']);
+    expect(
+      visibleTerminalRuntimes(runtimes, ['a', 'b', 'c', 'd', 'e'], 'e', 'grid').map(
+        (r) => r.runtime_id,
+      ),
+    ).toEqual(['a', 'b', 'c', 'e']);
   });
 
   it('never renders every runtime as an implicit split view', () => {

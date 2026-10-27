@@ -247,8 +247,11 @@ export function useFlowDraftEditor(options: {
       persistStoredFlowDraft(flowDraftSessionKey(project.id, deletingId), null);
       try {
         const key = `iapro:nexus:flow-draft:${project.id}`;
-        if (window.sessionStorage.getItem(key) === deletingId) window.sessionStorage.removeItem(key);
-      } catch { /* optional local session storage */ }
+        if (window.sessionStorage.getItem(key) === deletingId)
+          window.sessionStorage.removeItem(key);
+      } catch {
+        /* optional local session storage */
+      }
       setSelectedPlan(null);
       setFlowDraft(null);
       setSelectedStepId('');
