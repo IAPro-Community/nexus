@@ -23,8 +23,8 @@ const visibleTarget = (selector: string) => {
   const el = document.querySelector(selector) as HTMLElement | null;
   if (!el) return false;
   const r = el.getBoundingClientRect();
-  return r.width > 0 && r.height > 0 && r.bottom > 0 && r.right > 0 &&
-    r.left < window.innerWidth && r.top < window.innerHeight;
+  // The target may be below the fold; ProductTour scrolls it into view.
+  return r.width > 0 && r.height > 0 && r.bottom > 0 && r.right > 0;
 };
 
 /**
