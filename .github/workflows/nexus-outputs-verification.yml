@@ -41,6 +41,8 @@ jobs:
         run: go test -race ./internal/nexus/artifacts -count=1
       - name: Frontend dependencies
         run: cd web && bun install --frozen-lockfile
+      - name: Frontend formatting
+        run: cd web && ./node_modules/.bin/prettier --check src/features/outputs/OutputsSurface.tsx src/features/outputs/OutputsSurface.module.scss
       - name: Frontend typecheck
         run: cd web && bun run typecheck
       - name: Frontend build
