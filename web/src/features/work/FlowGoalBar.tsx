@@ -92,10 +92,10 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
             disabled={!autoGoal.trim() || generating}
             onClick={() => void generatePlan()}
           >
-            <Sparkles size={14} />{' '}
+            <Plus size={14} />{' '}
             {generating
               ? t('flow.creatingDraft', 'Criando…')
-              : t('flow.createDraft', 'Criar rascunho')}
+              : t('flow.createEmptyDraft', 'Criar Flow a partir do objetivo')}
           </Button>
           <Button tone="default" disabled={generating} onClick={() => void createManualPlan()}>
             <Plus size={14} /> {t('flow.createManual', 'Criar manual')}
