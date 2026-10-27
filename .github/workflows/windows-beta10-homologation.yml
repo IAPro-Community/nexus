@@ -94,6 +94,10 @@ jobs:
         shell: pwsh
         run: go test -count=1 ./internal/control/protocol ./internal/control/driver
 
+      - name: Verify handoff and interactive ConPTY regression tests before visual capture
+        shell: pwsh
+        run: go test -count=1 ./internal/control/handoff ./internal/control/terminal
+
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
