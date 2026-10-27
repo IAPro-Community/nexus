@@ -204,13 +204,22 @@ export const BrowserSurface: React.FC<{
     let disposed = false;
     const poll = async () => {
       try {
-        const [status, activeGrants] = await Promise.all([
+        const [status, activeGrants, browserInfo] = await Promise.all([
           browserAPI.handoffInfo(session.id),
           browserAPI.grants(session.id),
+          browserAPI.get(session.id),
         ]);
         if (!disposed) {
           setHandoff(status);
           setGrants(activeGrants);
+          // Keep the visible address in sync with agent-driven navigation
+          // without overwriting a human editing the location bar.
+          if (
+            browserInfo.url &&
+            document.activeElement?.getAttribute('aria-label') !== 'Endereço da página'
+          ) {
+            setAddress(browserInfo.url);
+          }
           if (status.status === 'human_active') setPrivateInput(true);
           if (status.status === 'completed' || status.status === 'cancelled')
             setPrivateInput(false);
