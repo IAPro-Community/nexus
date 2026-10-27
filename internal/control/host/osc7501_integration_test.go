@@ -45,3 +45,18 @@ func TestNativeSignalHasNoRemoteApprovalContract(t *testing.T) {
 		t.Fatal("auth needs terminal attention without remote reply")
 	}
 }
+
+func TestStructuredRepeatQuestionRetainsDistinctRequestIdentity(t *testing.T) {
+ detector:=NewAttentionDetector("runtime-1","pi","default","/workspace/demo",nil)
+ detector.ApplyProviderSignal("blocked","question","Allow action?","pi_rpc","ui-1")
+ first:=detector.lastFingerprint
+ detector.ApplyProviderSignal("blocked","question","Allow action?","pi_rpc","ui-2")
+ if first==""||detector.lastFingerprint==first {
+  t.Fatal("different native interaction IDs were incorrectly deduplicated")
+ }
+ other:=NewAttentionDetector("runtime-2","pi","default","/workspace/demo",nil)
+ other.ApplyProviderSignal("blocked","question","Allow action?","pi_rpc","ui-2")
+ if detector.lastFingerprint==other.lastFingerprint{
+  t.Fatal("different runtime identities were incorrectly merged")
+ }
+}
