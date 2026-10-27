@@ -1,6 +1,6 @@
 ## Continuidade atual — beta.11 sincronizado e instalado — 2026-10-27
 
-- Branch `release/v1.0.0` em `b416bb90` (= `origin/release/v1.0.0`) + commits locais `5e3eff4e` (feature auth/usage/HUD), `11f3d771` (teclado Codex/PTY), `d61b0dcc` (gates/upstream) e docs; push pendente.
+- Branch `release/v1.0.0` em `b416bb90` (= `origin/release/v1.0.0`) + commits locais `5e3eff4e` (feature auth/usage/HUD), `11f3d771` (teclado Codex/PTY), `d61b0dcc` (gates/upstream) e docs; push fast-forward concluído em `e58b0d60`.
 - `GOTOOLCHAIN=go1.25.14 make quality` PASS (114 suítes/710 testes, golangci-lint 0 issues, version-contract). Falhas upstream reproduzidas em worktree limpo e corrigidas.
 - Instalação local: `Applications/IAPro Nexus.app` + HUD (backup `Applications-backup-20261027-0937`); Desktop + HUD vinculados, HTTP 200 e UI em `Nexus v1.0.0-beta.11`.
 - Próxima ação: push de `release/v1.0.0` e smoke do Novo Agente pelo HUD/teclado Codex no build instalado. Distribuição NO-GO (Developer ID/notarização/arm64).
