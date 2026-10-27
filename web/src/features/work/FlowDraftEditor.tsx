@@ -61,7 +61,9 @@ export const FlowDraftEditor: React.FC<{
 
   return (
     <div className="nx-composer-flow-clean">
-      <FeatureTour projectId={project.id} surface="flow-editor" />
+      <div className={styles.studioTourRow}>
+        <FeatureTour projectId={project.id} surface="flow-editor" />
+      </div>
       <div data-tour="flow-goal">
         <FlowGoalBar controller={controller} agents={agents} />
       </div>
