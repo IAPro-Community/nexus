@@ -30,3 +30,17 @@ func TestDecodeMaestroContextBrief(t *testing.T) {
 		}
 	}
 }
+
+func TestDecodeMaestroContextBriefRejectsForgedBudgetAndSupportsUnicode(t *testing.T) {
+	content := "Etapa ✅ — contexto validado"
+	digest := sha256.Sum256([]byte(content))
+	verified := hex.EncodeToString(digest[:])
+	// The emoji consumes two UTF-16 code units in the Maestro JavaScript CLI.
+	actualUsed := len([]rune(content)) + 1
+	if got, err := decodeMaestroContextBrief(maestroContextFixture(content, actualUsed, 1, verified), maestroContextBudget); err != nil || got != content {
+		t.Fatalf("valid UTF-16 budget rejected: %q: %v", got, err)
+	}
+	if _, err := decodeMaestroContextBrief(maestroContextFixture(content, 1, 1, verified), maestroContextBudget); err == nil {
+		t.Fatal("forged used count must not pass even with correct content digest")
+	}
+}

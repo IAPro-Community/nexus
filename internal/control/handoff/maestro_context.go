@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf16"
 
 	"github.com/IAPro-Community/nexus/internal/core/security"
 	"github.com/IAPro-Community/nexus/internal/executil"
@@ -73,8 +74,11 @@ func decodeMaestroContextBrief(raw []byte, maxChars int) (string, error) {
 		return "", fmt.Errorf("Maestro context method unavailable (%d)", response.Error.Code)
 	}
 	r := response.Result
+	// Maestro's JavaScript builder counts UTF-16 code units, not UTF-8 bytes
+	// or Go runes. Reject a forged budget report before accepting the digest.
+	actualUnits := len(utf16.Encode([]rune(r.Content)))
 	if r.Manifest.Version != 1 || r.Content == "" || r.Used < 1 ||
-		r.Used > maxChars || len([]rune(r.Content)) > maxChars ||
+		r.Used != actualUnits || r.Used > maxChars ||
 		len(r.Content) > maxChars*4 {
 		return "", errors.New("Maestro context budget or manifest invalid")
 	}
