@@ -35,8 +35,12 @@ jobs:
         run: |
           files=$(gofmt -l internal/browsercontrol internal/control/web/handlers_browser.go)
           if [ -n "$files" ]; then echo "$files"; exit 1; fi
+      - name: Vet browser packages
+        run: go vet ./internal/browsercontrol ./internal/control/web
       - name: Test browser service and security
         run: go test ./internal/browsercontrol ./internal/control/web -count=1
+      - name: Race test human-agent control and grants
+        run: go test -race ./internal/browsercontrol -run 'TestBrowserHumanInterventionWorkflow|TestBrowserCapabilityScopeAndRevocation|TestBrowserHandoffReasonValidation' -count=1
       - name: Smoke test real Chromium if available
         env:
           NEXUS_BROWSER_INTEGRATION: '1'

@@ -73,7 +73,7 @@ func TestChromiumSmokeOptional(t *testing.T) {
 	}
 	local := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = w.Write([]byte(`<html><body><button id="action" onclick="this.innerText='Clicked'">Initial</button><h1>Nexus Browser Smoke</h1></body></html>`))
+		_, _ = w.Write([]byte(`<html><body><button id="action" onclick="this.innerText='Clicked'">Initial</button><h1>Nexus Browser Smoke</h1><input id="login" type="password"><button id="signIn" onclick="document.getElementById('logged').textContent='Authenticated'">Sign in</button><p id="logged"></p></body></html>`))
 	}))
 	defer local.Close()
 	m := NewManager()
@@ -142,6 +142,45 @@ func TestChromiumSmokeOptional(t *testing.T) {
 	if err != nil || !strings.Contains(string(after), "Clicked") {
 		t.Fatalf("semantic click did not update page: %v (%s)", err, after)
 	}
+	// Exercise the complete human-in-the-loop flow against real Chromium:
+	// an agent requests help, cannot see the private step, and can only
+	// resume after the human explicitly completes it.
+	s.ReleaseControl("actor")
+	grant, token, err := m.IssueAgentGrant(info.ID, "Codex smoke")
+	if err != nil { t.Fatalf("grant: %v", err) }
+	if _, resolved, valid := m.ResolveAgentGrant(token); !valid || resolved != s {
+		t.Fatal("agent grant did not resolve to the existing browser")
+	}
+	if ok, reason := s.AcquireAgentControl(grant.Actor); !ok {
+		t.Fatalf("agent control: %s", reason)
+	}
+	if _, err := s.RequestHuman(grant.Actor, "Complete test login"); err != nil {
+		t.Fatalf("request human: %v", err)
+	}
+	if _, err := s.ScreenshotAs(ctx, grant.Actor); err == nil {
+		t.Fatal("agent screenshot allowed during private human login")
+	}
+	if _, err := s.BeginHuman("human:integration"); err != nil {
+		t.Fatalf("human takeover: %v", err)
+	}
+	if _, err := s.DoAs(ctx,"human:integration",Action{Type:"fill_selector", Selector:"#login", Text:"secret-123"}); err != nil {
+		t.Fatalf("human password entry: %v",err)
+	}
+	if _, err := s.DoAs(ctx,"human:integration",Action{Type:"click_selector", Selector:"#signIn"}); err != nil {
+		t.Fatalf("human sign in: %v",err)
+	}
+	if _, err := s.FinishHuman("human:integration"); err != nil {
+		t.Fatalf("finish human: %v",err)
+	}
+	if ok, reason := s.AcquireAgentControl(grant.Actor); !ok {
+		t.Fatalf("agent resume: %s",reason)
+	}
+	verified, err := s.SnapshotAs(ctx, grant.Actor)
+	if err != nil || !strings.Contains(string(verified),"Authenticated") || strings.Contains(string(verified),"secret-123") {
+		t.Fatalf("resume did not preserve authenticated state or leaked credentials: %v %s",err,verified)
+	}
+	if !m.RevokeAgentGrant(info.ID,grant.ID) { t.Fatal("revoke failed") }
+	if _,_,valid:=m.ResolveAgentGrant(token);valid {t.Fatal("revoked token accepted")}
 	if !m.Close(info.ID) {
 		t.Fatal("session did not close")
 	}

@@ -277,8 +277,18 @@ func (s *Session) ScreenshotAs(ctx context.Context, actor string) ([]byte, error
 func (s *Session) ControlInfo() map[string]any {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// Human control identities contain Nexus authentication session IDs.
+	// Never expose those credentials through MCP or the browser status API.
+	controllerKind := "none"
+	if strings.HasPrefix(s.controller, "human:") {
+		controllerKind = "human"
+	} else if strings.HasPrefix(s.controller, "agent:") {
+		controllerKind = "agent"
+	} else if s.controller != "" {
+		controllerKind = "other"
+	}
 	return map[string]any{
-		"controller":         s.controller,
+		"controller":         controllerKind,
 		"occupied":           s.controller != "" && time.Now().Before(s.controllerUntil),
 		"handoff":            s.handoff,
 		"project_id":         s.info.ProjectID,
