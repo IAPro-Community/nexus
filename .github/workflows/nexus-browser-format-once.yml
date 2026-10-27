@@ -1,0 +1,41 @@
+name: One-shot Nexus Browser formatting
+on:
+  push:
+    branches:
+      - release/v1.0.0
+    paths:
+      - .github/workflows/nexus-browser-format-once.yml
+permissions:
+  contents: write
+jobs:
+  format-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout the release branch
+        uses: actions/checkout@v4
+        with:
+          ref: release/v1.0.0
+          persist-credentials: true
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+      - name: Install frontend dependencies
+        run: cd web && bun install --frozen-lockfile
+      - name: Format Go sources
+        run: |
+          gofmt -w internal/browsercontrol/browser.go internal/browsercontrol/browser_test.go
+          gofmt -w internal/control/web/handlers_browser.go internal/control/web/server.go internal/control/web/routes.go
+      - name: Format React and SCSS sources
+        run: |
+          cd web
+          ./node_modules/.bin/prettier --write src/app/surfaces.ts src/app/browserSurfaces.test.ts src/app/NexusWorkspaceApp.tsx src/app/WorkspaceSurfaceHost.tsx src/workspace/presentation.ts src/workspace/WorkspaceRenderer.tsx src/features/browser/BrowserSurface.tsx src/features/browser/BrowserSurface.module.scss
+      - name: Remove one-shot workflow and commit formatting
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/nexus-browser-format-once.yml
+          git add internal/browsercontrol internal/control/web/handlers_browser.go internal/control/web/server.go internal/control/web/routes.go web/src/app/surfaces.ts web/src/app/browserSurfaces.test.ts web/src/app/NexusWorkspaceApp.tsx web/src/app/WorkspaceSurfaceHost.tsx web/src/workspace/presentation.ts web/src/workspace/WorkspaceRenderer.tsx web/src/features/browser
+          git commit -m "style(browser): format managed browser implementation"
+          git push origin HEAD:release/v1.0.0
