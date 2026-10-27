@@ -263,12 +263,12 @@ func (h *APIHandler) handleRuntimes(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == http.MethodPost {
 		var req struct {
-			Title      string   `json:"title"`
-			ProviderID string   `json:"provider"`
-			ProfileID  string   `json:"profile"`
-			Workspace  string   `json:"workspace"`
-			Args       []string `json:"args"`
-			AgentProtocol string `json:"agent_protocol,omitempty"`
+			Title         string   `json:"title"`
+			ProviderID    string   `json:"provider"`
+			ProfileID     string   `json:"profile"`
+			Workspace     string   `json:"workspace"`
+			Args          []string `json:"args"`
+			AgentProtocol string   `json:"agent_protocol,omitempty"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid request body")
@@ -284,7 +284,9 @@ func (h *APIHandler) handleRuntimes(w http.ResponseWriter, r *http.Request) {
 		defer cancel()
 
 		options := map[string]any{}
-		if req.AgentProtocol != "" { options["agent_protocol"] = req.AgentProtocol }
+		if req.AgentProtocol != "" {
+			options["agent_protocol"] = req.AgentProtocol
+		}
 		sess, err := h.runtimes.Start(ctx, launcher.LaunchOptions{
 			Title:      req.Title,
 			ProviderID: req.ProviderID,

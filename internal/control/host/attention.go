@@ -479,19 +479,22 @@ func (d *AttentionDetector) ProcessChunk(chunk []byte) {
 	}
 }
 
-
 // ApplyProviderSignal ingests a provider-owned session update. A structured
 // request remains view-only until a correlated response adapter is available.
 func (d *AttentionDetector) ApplyProviderSignal(state, kind, summary, source string) {
- d.mu.Lock()
- defer d.mu.Unlock()
- if source != "acp" && source != "pi_rpc" { return }
- summary = strings.Map(func(r rune) rune {
-  if unicode.IsControl(r) { return -1 }
-  return r
- }, summary)
- summary = truncateRunes(summary, 320)
- d.applyNativeStatusLocked(oscStatus{State:state,Kind:kind,Message:summary,App:d.providerID},source)
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if source != "acp" && source != "pi_rpc" {
+		return
+	}
+	summary = strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) {
+			return -1
+		}
+		return r
+	}, summary)
+	summary = truncateRunes(summary, 320)
+	d.applyNativeStatusLocked(oscStatus{State: state, Kind: kind, Message: summary, App: d.providerID}, source)
 }
 
 func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus, source string) {
@@ -521,7 +524,9 @@ func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus, source str
 	case "done":
 		reason, kind = "TASK_COMPLETED", AttentionCompleted
 	case "error":
-		if source == "osc7501" { state = registry.StateFailed }
+		if source == "osc7501" {
+			state = registry.StateFailed
+		}
 		reason, kind = "ERROR", AttentionError
 	case "idle":
 		reason, kind = "IDLE", AttentionIdle
@@ -552,15 +557,15 @@ func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus, source str
 	})
 	if kind == AttentionNeedsUser && fingerprint != previous {
 		data := map[string]any{
-			"project_id":       d.projectID,
-			"project_name":     d.projectName,
-			"attention_reason": reason,
-			"attention_kind":   kind,
-			"prompt_kind":      promptKind,
-			"context":          context,
-			"dynamic_title":    title,
-			"fingerprint":      fingerprint,
-			"source":           source,
+			"project_id":          d.projectID,
+			"project_name":        d.projectName,
+			"attention_reason":    reason,
+			"attention_kind":      kind,
+			"prompt_kind":         promptKind,
+			"context":             context,
+			"dynamic_title":       title,
+			"fingerprint":         fingerprint,
+			"source":              source,
 			"response_capability": "focus_terminal",
 		}
 		if d.agentID != "" {

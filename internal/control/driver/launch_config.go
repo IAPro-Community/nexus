@@ -87,10 +87,13 @@ func ApplyLaunchConfiguration(provider, model string, options map[string]any, ba
 			continue
 		case "agent_protocol":
 			name, ok := value.(string)
-			if !ok { return nil, fmt.Errorf("provider option agent_protocol must be a string") }
+			if !ok {
+				return nil, fmt.Errorf("provider option agent_protocol must be a string")
+			}
 			switch name {
 			case "", "acp", "pi_rpc":
-			default: return nil, fmt.Errorf("unsupported agent_protocol %q", name)
+			default:
+				return nil, fmt.Errorf("unsupported agent_protocol %q", name)
 			}
 			continue
 		case "agent_mode_id":

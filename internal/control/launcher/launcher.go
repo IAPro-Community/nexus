@@ -248,7 +248,9 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 
 	sessionLabels := cloneLabels(opts.Labels)
 	if protocolMode != "" {
-		if sessionLabels == nil { sessionLabels = map[string]string{} }
+		if sessionLabels == nil {
+			sessionLabels = map[string]string{}
+		}
 		sessionLabels["nexus.agent_protocol"] = protocolMode
 	}
 	if customCommand {
@@ -298,7 +300,9 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 		Labels:                    sessionLabels,
 	}
 
-	if protocolMode != "" { sess.ControlLevel = registry.ControlLevelEvents }
+	if protocolMode != "" {
+		sess.ControlLevel = registry.ControlLevelEvents
+	}
 	if captureShell {
 		traceCaptureShellLaunchStage("session-register-start")
 	}

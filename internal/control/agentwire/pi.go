@@ -63,8 +63,12 @@ func (p *PiRPC) Command(ctx context.Context, command string, fields map[string]a
 	}
 	select {
 	case r := <-ch:
-		if r.Command != command { return errors.New("Pi RPC: mismatched command response") }
-  if !r.Success { return errors.New("Pi RPC: command rejected") }
+		if r.Command != command {
+			return errors.New("Pi RPC: mismatched command response")
+		}
+		if !r.Success {
+			return errors.New("Pi RPC: command rejected")
+		}
 		if reply != nil {
 			*reply = r.Data
 		}
@@ -78,14 +82,18 @@ func (p *PiRPC) Command(ctx context.Context, command string, fields map[string]a
 
 // RespondUI replies to a provider-origin RPC extension dialog. The ID is
 // correlated by the bridge; it must never be guessed from terminal narration.
-func (p *PiRPC) RespondUI(requestID string, fields map[string]any)error{
- if requestID=="" {return errors.New("Pi RPC: missing UI request ID")}
- msg:=map[string]any{"type":"extension_ui_response","id":requestID}
- for key,value:=range fields{
-  if key=="id"||key=="type"{return errors.New("Pi RPC: reserved response field")}
-  msg[key]=value
- }
- return p.wire.Write(msg)
+func (p *PiRPC) RespondUI(requestID string, fields map[string]any) error {
+	if requestID == "" {
+		return errors.New("Pi RPC: missing UI request ID")
+	}
+	msg := map[string]any{"type": "extension_ui_response", "id": requestID}
+	for key, value := range fields {
+		if key == "id" || key == "type" {
+			return errors.New("Pi RPC: reserved response field")
+		}
+		msg[key] = value
+	}
+	return p.wire.Write(msg)
 }
 
 // Pump records events independently of command replies; 'agent_end' is not a
