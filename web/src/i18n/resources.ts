@@ -1302,6 +1302,12 @@ export const en = {
     toggleSidebar: 'Toggle scheduler panel',
   },
   flow: {
+    createEmptyDraft: 'Create empty Flow from goal',
+    journeyPlan: '1. Plan',
+    journeyReview: '2. Review and approve',
+    journeyExecute: '3. Run Mission',
+    journeyEvidence: '4. Verify evidence',
+    newFlowExplanation: 'Create a manual draft here or develop the requirements with Composer. A draft never starts an execution.',
     historyTitle: 'Flow',
     studioTitle: 'Flow Studio',
     tabPlan: 'This plan',
@@ -3488,6 +3494,12 @@ export const ptBR = {
     toggleSidebar: 'Alternar painel do scheduler',
   },
   flow: {
+    createEmptyDraft: 'Criar Flow a partir do objetivo',
+    journeyPlan: '1. Planejar',
+    journeyReview: '2. Revisar e aprovar',
+    journeyExecute: '3. Executar Mission',
+    journeyEvidence: '4. Conferir evidências',
+    newFlowExplanation: 'Crie um rascunho manual ou elabore um plano com IA no Composer. Um rascunho não inicia a execução.',
     historyTitle: 'Flow',
     studioTitle: 'Flow Studio',
     tabPlan: 'Este plano',
@@ -5684,6 +5696,12 @@ export const es = {
   },
 
   flow: {
+    createEmptyDraft: 'Crear Flow desde el objetivo',
+    journeyPlan: '1. Planificar',
+    journeyReview: '2. Revisar y aprobar',
+    journeyExecute: '3. Ejecutar Mission',
+    journeyEvidence: '4. Verificar evidencias',
+    newFlowExplanation: 'Cree un borrador manual o desarrolle los requisitos con Composer. Un borrador no inicia la ejecución.',
     historyTitle: 'Flow',
     studioTitle: 'Flow Studio',
     tabPlan: 'Este plan',
