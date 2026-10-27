@@ -1,8 +1,9 @@
 import React, { useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FileText, Lightbulb, MessageCircle, Sparkles, Trash2 } from 'lucide-react';
+import { FileText, Lightbulb, MessageCircle, RefreshCw, Settings2, Sparkles, Trash2 } from 'lucide-react';
 import { Button, Card, ConfirmDialog, Input, Select } from '../../design-system';
 import type { ComposerSession } from '../../types';
+import { nexus } from '../../nexus/api';
 import { composerSessionStateKey, formatComposerSessionTitle } from './composerModel';
 import styles from './ComposerSurface.module.scss';
 
@@ -19,13 +20,24 @@ export type ComposerStartCreateArgs = {
  * create action. Draft/mode state is local; the orchestrator keeps API + view.
  */
 export const ComposerStart: React.FC<{
+  projectId: string;
+  onOpenIntelligenceSettings?: () => void;
   sessions: ComposerSession[];
   busy: boolean;
   error?: string;
   onCreate: (args: ComposerStartCreateArgs) => void;
   onResumeSession: (id: string) => void;
   onDeleteSession: (id: string, expectedRevision: number) => void;
-}> = ({ sessions, busy, error, onCreate, onResumeSession, onDeleteSession }) => {
+}> = ({
+  projectId,
+  onOpenIntelligenceSettings,
+  sessions,
+  busy,
+  error,
+  onCreate,
+  onResumeSession,
+  onDeleteSession,
+}) => {
   const { t } = useTranslation();
   const [inputMode, setInputMode] = useState<'IDEA' | 'EXISTING_PROMPT'>('IDEA');
   const [interviewMode, setInterviewMode] = useState<'QUICK' | 'STANDARD' | 'DEEP'>('STANDARD');
@@ -34,6 +46,31 @@ export const ComposerStart: React.FC<{
   const [sourcePrompt, setSourcePrompt] = useState('');
   const [sessionForDeletion, setSessionForDeletion] = useState<ComposerSession | null>(null);
   const [selectedSavedSession, setSelectedSavedSession] = useState('');
+  const [probeBusy, setProbeBusy] = useState(false);
+  const [probeMessage, setProbeMessage] = useState('');
+  const [probeSuccess, setProbeSuccess] = useState(false);
+
+  const testConnection = async () => {
+    if (probeBusy) return;
+    setProbeBusy(true);
+    setProbeMessage('');
+    setProbeSuccess(false);
+    try {
+      const result = await nexus.probeIntelligence(projectId);
+      setProbeSuccess(true);
+      setProbeMessage(
+        t('work.composer.probeSuccess', 'A IA respondeu ao teste de conexão. Você pode tentar novamente.'),
+      );
+    } catch (reason) {
+      setProbeMessage(
+        reason instanceof Error
+          ? reason.message
+          : t('work.composer.probeFailed', 'Não foi possível testar a IA. Verifique Nexus Intelligence.'),
+      );
+    } finally {
+      setProbeBusy(false);
+    }
+  };
 
   const sessionOptions = useMemo(
     () =>
@@ -207,7 +244,29 @@ export const ComposerStart: React.FC<{
           setSessionForDeletion(null);
         }}
       />
-      {error && <div className={styles.inlineError}>{error}</div>}
+      {error && (
+        <div role="alert" className={styles.inlineError}>
+          {error}
+          <div className={styles.flexRowWrapGap8}>
+            {onOpenIntelligenceSettings && (
+              <Button size="sm" onClick={onOpenIntelligenceSettings}>
+                <Settings2 size={13} /> {t('work.composer.openIntelligence', 'Configurar Nexus Intelligence')}
+              </Button>
+            )}
+            <Button size="sm" disabled={probeBusy || busy} onClick={() => void testConnection()}>
+              <RefreshCw size={13} />
+              {probeBusy
+                ? t('work.composer.probing', 'Testando conexão…')
+                : t('work.composer.testConnection', 'Testar conexão da IA')}
+            </Button>
+          </div>
+          {probeMessage && (
+            <p role={probeSuccess ? 'status' : 'alert'}>
+              {probeMessage}
+            </p>
+          )}
+        </div>
+      )}
     </Card>
   );
 };
