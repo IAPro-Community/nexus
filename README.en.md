@@ -67,4 +67,10 @@ The [Maestro integration](docs/product/maestro.md) is optional for the Direct pa
 
 [TL;DR](docs/TLDR.md) · [Docs](docs/README.md) · [Security](SECURITY.md) · [Support](SUPPORT.md) · [Governance](GOVERNANCE.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [PolyForm Strict License](LICENSE) · [Licensing guide](docs/legal/LICENSING.md)
 
-**License:** source-available, noncommercial uses only, no derivative works or redistribution under PolyForm Strict 1.0.0; not OSI open source. Third-party components retain their own licenses. The stable release remains NO-GO.
+**Current license:** [PolyForm Strict 1.0.0](LICENSE), source-available, **not OSI open source**. It does not grant general rights to modify or redistribute the project. **Target license:** Apache-2.0, **not yet effective**. Relicensing requires verified ownership, third-party and asset rights, and a private security/history review. Public source visibility is not permission to publish modified forks.
+
+**Community direction:** a fully functional, local Nexus Community with Composer, Flow, agents and Missions, funded voluntarily and eventually through optional managed services and enterprise support—not paywalls on core functionality. External AI providers may charge their own fees.
+
+[Open-source transition plan](docs/legal/OPEN_SOURCE_TRANSITION.md) · [Current licensing terms](docs/legal/LICENSING.md) · [Contributing](CONTRIBUTING.md) · [Forks and upstream](docs/community/FORKS_AND_UPSTREAM.md) · [Trademark/branding](docs/legal/TRADEMARK_POLICY.md) · [Funding](docs/community/FUNDING.md) · [Third-party notices](docs/legal/THIRD_PARTY_NOTICES.md).
+
+Stable release certification remains **NO-GO** pending exact-SHA validation.
