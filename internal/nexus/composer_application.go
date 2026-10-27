@@ -70,9 +70,8 @@ func (s *ComposerApplicationService) CreateWithInterviewModeProgress(
 	// A configured CLI or API endpoint may still be unauthenticated/offline.
 	// Validate a bounded real model round-trip before persisting an elaboration.
 	if _, err := s.nexus.ProbeIntelligence(ctx, projectID); err != nil {
-		// Provider errors may contain raw CLI output, filesystem paths or remote
-		// API diagnostics. Do not leak that material through an HTTP response.
-		return nil, fmt.Errorf("a IA configurada não passou no teste de conexão do Composer. Verifique provedor, perfil, credenciais e conectividade em Nexus Intelligence")
+		// Never expose raw CLI output, filesystem paths or upstream error bodies.
+		return nil, fmt.Errorf("o teste de conexão do Composer falhou: %s", IntelligenceProbeFailureMessage(err))
 	}
 	view, err := s.nexus.CreateComposerSessionWithPromptInterviewModeProgress(
 		ctx,
