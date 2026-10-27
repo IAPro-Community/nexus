@@ -14,6 +14,8 @@ on:
       - 'web/src/app/WorkspaceSurfaceHost.tsx'
       - 'web/src/app/NexusWorkspaceApp.tsx'
       - 'web/src/features/projects/ProjectRail.tsx'
+      - 'web/src/features/work/FeatureTour.tsx'
+      - 'web/src/features/work/featureTourDefinitions.ts'
       - '.github/workflows/nexus-outputs-verification.yml'
   workflow_dispatch:
 permissions:
