@@ -972,6 +972,10 @@ export const en = {
     emptyTimelineHint: 'CLI sessions and interventions will appear here as they run.',
   },
   discovery: {
+    depthHintLabel: 'Learn how planning depth works',
+    depthHintBody: 'Quick asks fewer questions; Standard adapts to context; Deep reviews assumptions and trade-offs. None of these modes runs agents.',
+    graphHintLabel: 'Learn about the Flow views',
+    graphHintBody: 'Pipeline and graph are two projections of the same WorkPlan. The graph visualizes dependencies; switching views does not start a Mission.',
     updates: 'What\'s new here',
     unread: 'Unread',
     helpHint: 'Interactive walkthrough for this area',
@@ -3196,6 +3200,10 @@ export const ptBR = {
     emptyTimelineHint: 'Sessões de CLI e intervenções aparecerão aqui conforme forem executadas.',
   },
   discovery: {
+    depthHintLabel: 'Entenda a profundidade do planejamento',
+    depthHintBody: 'Rápido faz menos perguntas; Padrão adapta ao contexto; Profundo revisa hipóteses e alternativas. Nenhum desses modos executa agentes.',
+    graphHintLabel: 'Entenda as visões do Flow',
+    graphHintBody: 'Pipeline e grafo mostram o mesmo WorkPlan. O grafo destaca dependências; trocar a visão não inicia nenhuma Mission.',
     updates: 'Novidades desta área',
     unread: 'Não lida',
     helpHint: 'Tour interativo para conhecer os controles desta área',
@@ -5433,6 +5441,10 @@ export const es = {
     emptyTimelineHint: 'Las sesiones de CLI e intervenciones aparecerán aquí según se ejecuten.',
   },
   discovery: {
+    depthHintLabel: 'Conozca los niveles de planificación',
+    depthHintBody: 'Rápido hace menos preguntas; Estándar se adapta; Profundo revisa hipótesis y alternativas. Ninguno ejecuta agentes.',
+    graphHintLabel: 'Conozca las vistas de Flow',
+    graphHintBody: 'Pipeline y grafo muestran el mismo WorkPlan. El grafo presenta dependencias; cambiar de vista no inicia una Mission.',
     updates: 'Novedades de esta área',
     unread: 'No leída',
     helpHint: 'Recorrido interactivo de esta área',
