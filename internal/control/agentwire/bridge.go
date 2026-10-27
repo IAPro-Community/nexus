@@ -46,11 +46,12 @@ type Bridge struct {
  pending map[string]*permissionWait
  next atomic.Uint64
  busy bool
+ ready chan struct{}
 }
 
 func NewBridge(mode string, input interface{ Read([]byte)(int,error) }, output interface{ Write([]byte)(int,error) }, cwd string, signals func(WireSignal), terminalOutput func(string)) (*Bridge,error) {
  if cwd=="" {return nil,errors.New("agentwire: workspace required")}
- b:=&Bridge{mode:mode,cwd:cwd,signals:signals,output:terminalOutput,pending:make(map[string]*permissionWait)}
+ b:=&Bridge{mode:mode,cwd:cwd,signals:signals,output:terminalOutput,pending:make(map[string]*permissionWait),ready:make(chan struct{})}
  switch mode {
  case "acp": b.acp=NewACP(input,output)
  case "pi_rpc": b.pi=NewPiRPC(input,output)
@@ -69,16 +70,19 @@ func(b *Bridge)Start(ctx context.Context)error{
   b.acp.OnRequest(b.request)
   b.acp.OnNotification(b.notification)
   go func(){if err:=b.acp.Pump(b.ctx);err!=nil&&b.ctx.Err()==nil{b.emit(WireSignal{State:"error",Summary:"ACP stream terminated"})}}()
-  reply,err:=b.acp.Initialize(b.ctx,1)
+  handshake,cancelHandshake:=context.WithTimeout(b.ctx,20*1000000000)
+  defer cancelHandshake()
+  reply,err:=b.acp.Initialize(handshake,1)
   if err!=nil {b.cancel();return fmt.Errorf("ACP initialize: %w",err)}
   if reply.ProtocolVersion!=1 {b.cancel();return fmt.Errorf("ACP version mismatch %d",reply.ProtocolVersion)}
-  id,err:=b.acp.NewSession(b.ctx,b.cwd)
+  id,err:=b.acp.NewSession(handshake,b.cwd)
   if err!=nil {b.cancel();return fmt.Errorf("ACP new session: %w",err)}
   b.mu.Lock();b.sessionID=id;b.mu.Unlock()
  } else {
   b.pi.OnEvent(b.piEvent)
   go func(){if err:=b.pi.Pump(b.ctx);err!=nil&&b.ctx.Err()==nil{b.emit(WireSignal{State:"error",Summary:"RPC stream terminated"})}}()
  }
+ close(b.ready)
  b.emit(WireSignal{State:"idle",Summary:"Ready for a prompt"})
  return nil
 }
@@ -93,6 +97,10 @@ func(b *Bridge)Stop(){
 }
 
 func(b *Bridge)Prompt(ctx context.Context,text string)error {
+ select {
+ case <-b.ready:
+ case <-ctx.Done():return ctx.Err()
+ }
  if strings.TrimSpace(text)==""{return errors.New("empty prompt")}
  b.mu.Lock()
  if b.busy{b.mu.Unlock();return errors.New("provider turn already running")}
