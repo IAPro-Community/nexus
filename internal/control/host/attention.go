@@ -254,7 +254,7 @@ func (d *AttentionDetector) ProcessChunk(chunk []byte) {
 				(provider == "agy" && (app == "antigravity" || app == "antigravity-cli")) ||
 				(provider == "claude" && app == "claude-code")
 			if ownsStatus {
-				d.applyNativeStatusLocked(status, "osc7501")
+				d.applyNativeStatusLocked(status, "osc7501", "")
 				return
 			}
 		}
@@ -481,7 +481,7 @@ func (d *AttentionDetector) ProcessChunk(chunk []byte) {
 
 // ApplyProviderSignal ingests a provider-owned session update. A structured
 // request remains view-only until a correlated response adapter is available.
-func (d *AttentionDetector) ApplyProviderSignal(state, kind, summary, source string) {
+func (d *AttentionDetector) ApplyProviderSignal(state, kind, summary, source, interactionID string) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if source != "acp" && source != "pi_rpc" {
@@ -494,10 +494,10 @@ func (d *AttentionDetector) ApplyProviderSignal(state, kind, summary, source str
 		return r
 	}, summary)
 	summary = truncateRunes(summary, 320)
-	d.applyNativeStatusLocked(oscStatus{State: state, Kind: kind, Message: summary, App: d.providerID}, source)
+	d.applyNativeStatusLocked(oscStatus{State: state, Kind: kind, Message: summary, App: d.providerID}, source, interactionID)
 }
 
-func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus, source string) {
+func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus, source, interactionID string) {
 	state := registry.StateRunning
 	reason := "WORKING"
 	kind := AttentionWorking
@@ -538,6 +538,9 @@ func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus, source str
 	fingerprint := ""
 	if kind == AttentionNeedsUser || kind == AttentionError {
 		fingerprint = attentionFingerprint(d.runtimeID, promptKind, context)
+        if source != "osc7501" && interactionID != "" {
+            fingerprint = attentionFingerprint(d.runtimeID, promptKind, interactionID)
+        }
 	}
 	if fingerprint != "" && fingerprint == d.lastFingerprint && kind == d.lastKind {
 		return
@@ -565,6 +568,7 @@ func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus, source str
 			"context":             context,
 			"dynamic_title":       title,
 			"fingerprint":         fingerprint,
+            "interaction_id":      interactionID,
 			"source":              source,
 			"response_capability": "focus_terminal",
 		}
