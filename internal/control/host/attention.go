@@ -254,7 +254,7 @@ func (d *AttentionDetector) ProcessChunk(chunk []byte) {
 				(provider == "agy" && (app == "antigravity" || app == "antigravity-cli")) ||
 				(provider == "claude" && app == "claude-code")
 			if ownsStatus {
-				d.applyNativeStatusLocked(status)
+				d.applyNativeStatusLocked(status, "osc7501")
 				return
 			}
 		}
@@ -480,7 +480,16 @@ func (d *AttentionDetector) ProcessChunk(chunk []byte) {
 }
 
 
-func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus) {
+// ApplyProviderSignal ingests a provider-owned session update. A structured
+// request remains view-only until a correlated response adapter is available.
+func (d *AttentionDetector) ApplyProviderSignal(state, kind, summary, source string) {
+ d.mu.Lock()
+ defer d.mu.Unlock()
+ if source != "acp" && source != "pi_rpc" { return }
+ d.applyNativeStatusLocked(oscStatus{State:state,Kind:kind,Message:summary,App:d.providerID},source)
+}
+
+func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus, source string) {
 	state := registry.StateRunning
 	reason := "WORKING"
 	kind := AttentionWorking
@@ -507,7 +516,8 @@ func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus) {
 	case "done":
 		reason, kind = "TASK_COMPLETED", AttentionCompleted
 	case "error":
-		state, reason, kind = registry.StateFailed, "ERROR", AttentionError
+		if source == "osc7501" { state = registry.StateFailed }
+		reason, kind = "ERROR", AttentionError
 	case "idle":
 		reason, kind = "IDLE", AttentionIdle
 	}
@@ -545,7 +555,7 @@ func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus) {
 			"context":          context,
 			"dynamic_title":    title,
 			"fingerprint":      fingerprint,
-			"source":           "osc7501",
+			"source":           source,
 			"response_capability": "focus_terminal",
 		}
 		if d.agentID != "" {
