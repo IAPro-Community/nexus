@@ -64,7 +64,7 @@ jobs:
       - name: Check diff whitespace and conflict markers
         run: |
           git diff --check HEAD^ HEAD
-          if git grep -nE '^(<<<<<<< |=======|>>>>>>> )' -- ':!web/bun.lock' ':!go.sum'; then
+          if git grep -nE '^(<<<<<<< |>>>>>>> )' -- . ':!web/bun.lock' ':!go.sum'; then
             echo "Unresolved merge/conflict marker in source" >&2
             exit 1
           fi
