@@ -26,6 +26,10 @@ import (
 	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
+// tuiLeaseWaitTimeout bounds how long a launch waits for an in-flight quota
+// probe to release the profile lock.
+const tuiLeaseWaitTimeout = 15 * time.Second
+
 // rolloutMaxAge limits how far back we scan rollouts for current quota windows.
 const rolloutMaxAge = 30 * 24 * time.Hour
 
@@ -173,9 +177,20 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 		return model.Failure{Kind: model.FailureProvider, Message: "codex binary not found"}, err
 	}
 	home, _ := config.ProfileHome(string(a.ID()), p.Name)
-	lock, lockErr := AcquireTUILease(home)
+	// A quota probe holds the exclusive maintenance lock while the app-server
+	// starts. Launching right after a refresh (common on the first run, when
+	// the profile adopts the host login) must wait for it instead of failing
+	// with a misleading "unavailable for maintenance" error.
+	lock, acquired, lockErr := TryAcquireTUILease(home)
 	if lockErr != nil {
 		return model.Failure{Kind: model.FailureCommand, Message: lockErr.Error()}, lockErr
+	}
+	if !acquired {
+		fmt.Fprintln(os.Stderr, "Nexus: aguardando a leitura de quota deste perfil terminar…")
+		lock, lockErr = AcquireTUILeaseTimeout(home, tuiLeaseWaitTimeout)
+		if lockErr != nil {
+			return model.Failure{Kind: model.FailureCommand, Message: lockErr.Error()}, lockErr
+		}
 	}
 	defer func() { _ = lock.Release() }()
 
@@ -186,12 +201,12 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 		"CODEX_CONFIG_DIR": home,
 		// xterm.js 5.3, used by Nexus, does not support Kitty/CSI-u keyboard
 		// enhancement. Keep Codex from leaking those sequences into the prompt.
-		"CODEX_TUI_DISABLE_KEYBOARD_ENHANCEMENT": "1",
-		"XDG_CONFIG_HOME":                        filepath.Join(home, ".config"),
-		"XDG_CACHE_HOME":                         filepath.Join(home, ".cache"),
-		"XDG_DATA_HOME":                          filepath.Join(home, ".local", "share"),
-		"XDG_STATE_HOME":                         filepath.Join(home, ".local", "state"),
-		"PATH":                                   runtime.EnhancedPATH(filepath.Dir(bin)),
+		runtime.EnvCodexDisableKeyboardEnhancement: "1",
+		"XDG_CONFIG_HOME":                          filepath.Join(home, ".config"),
+		"XDG_CACHE_HOME":                           filepath.Join(home, ".cache"),
+		"XDG_DATA_HOME":                            filepath.Join(home, ".local", "share"),
+		"XDG_STATE_HOME":                           filepath.Join(home, ".local", "state"),
+		"PATH":                                     runtime.EnhancedPATH(filepath.Dir(bin)),
 	}
 	env := runtime.EnvSet(os.Environ(), envOverrides)
 	args = spec.CodexInteractiveArgs(home, args)

@@ -340,6 +340,38 @@ func NormalizeInteractiveEnv(env []string) []string {
 	return env
 }
 
+// EnvCodexDisableKeyboardEnhancement keeps the Codex TUI on its legacy key
+// encoding. Nexus terminals are xterm.js surfaces, which do not implement the
+// Kitty/CSI-u protocol Codex enables by default; without this switch space and
+// other keys can be dropped or arrive as escape residue.
+const EnvCodexDisableKeyboardEnhancement = "CODEX_TUI_DISABLE_KEYBOARD_ENHANCEMENT"
+
+// ApplyEmbeddedTerminalCompat fills provider-TUI compatibility defaults for
+// any process started inside Nexus' embedded terminal. It only adds keys that
+// are absent, so a value the user set explicitly is never overwritten. The
+// result is a new slice when a key is added; the caller's slice is untouched.
+func ApplyEmbeddedTerminalCompat(env []string) []string {
+	if hasEnvKey(env, EnvCodexDisableKeyboardEnhancement) {
+		return env
+	}
+	out := make([]string, 0, len(env)+1)
+	out = append(out, env...)
+	return append(out, EnvCodexDisableKeyboardEnhancement+"=1")
+}
+
+// hasEnvKey reports whether env already defines key, using the platform's
+// environment-name casing rules.
+func hasEnvKey(env []string, key string) bool {
+	want := envKeyForGOOS(key, stdruntime.GOOS)
+	for _, entry := range env {
+		parts := strings.SplitN(entry, "=", 2)
+		if len(parts) == 2 && envKeyForGOOS(parts[0], stdruntime.GOOS) == want {
+			return true
+		}
+	}
+	return false
+}
+
 // RunCommandCapture executes a command non-interactively and captures its combined stdout and stderr.
 func RunCommandCapture(ctx context.Context, bin string, args []string, env []string, cwd string) (string, error) {
 	resolved, err := ResolveCommand(bin)

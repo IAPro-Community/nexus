@@ -62,6 +62,12 @@ func TestMain(m *testing.M) {
 			_, _ = io.Copy(os.Stdout, os.Stdin)
 			os.Exit(0)
 		}
+		if arg == "-nexus-env-helper" {
+			_, _ = os.Stdout.WriteString("NEXUS_TEST_READY\n")
+			_, _ = os.Stdout.WriteString("NEXUS_CODEX_KEYBOARD_ENV=" + os.Getenv(nexusruntime.EnvCodexDisableKeyboardEnhancement) + "\n")
+			_, _ = io.Copy(os.Stdout, os.Stdin)
+			os.Exit(0)
+		}
 	}
 	testDir, err := os.MkdirTemp("", "ai-control-host-test-*")
 	if err == nil {
@@ -735,6 +741,77 @@ func TestSessionHost_SubmitPromptBypassesSlashRouterWithoutStealingWriterLease(t
 		if readErr != nil {
 			t.Fatalf("prompt was intercepted or lost: %v; got %q", readErr, echoed.String())
 		}
+	}
+}
+
+func TestSessionHost_InjectsEmbeddedTerminalCompatEnv(t *testing.T) {
+	cases := []struct {
+		name string
+		id   string
+		env  []string
+		want string
+	}{
+		{name: "default", id: "rt-env-compat-default", env: []string{"PATH=" + os.Getenv("PATH")}, want: "1"},
+		{name: "explicit-value-preserved", id: "rt-env-compat-explicit", env: []string{"PATH=" + os.Getenv("PATH"), nexusruntime.EnvCodexDisableKeyboardEnhancement + "=0"}, want: "0"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			sess := registry.RuntimeSession{
+				RuntimeID:    tc.id,
+				ProviderID:   "shell",
+				ProfileID:    "local",
+				Workspace:    os.TempDir(),
+				State:        registry.StateStarting,
+				ControlLevel: registry.ControlLevelTerminal,
+			}
+			sh, err := NewSessionHost(Config{Session: sess, Binary: interactiveTestTerminalBinary, Args: []string{"-nexus-env-helper"}, Env: tc.env, Cwd: os.TempDir()})
+			if err != nil {
+				t.Fatalf("create SessionHost: %v", err)
+			}
+			if err := sh.Start(); err != nil {
+				t.Fatalf("start SessionHost: %v", err)
+			}
+			defer sh.Stop()
+			waitForHostEndpoint(t, tc.id)
+
+			client, err := protocol.NewClient(tc.id)
+			if err != nil {
+				t.Fatalf("connect: %v", err)
+			}
+			defer client.Close()
+			attachResponse, err := client.Send(protocol.CmdAttach, nil)
+			if err != nil {
+				t.Fatalf("attach: %v", err)
+			}
+			waitForTerminalReady(t, client, attachResponse.Data)
+
+			_ = client.RawConn().SetReadDeadline(time.Now().Add(5 * time.Second))
+			defer client.ClearDeadline()
+			const marker = "NEXUS_CODEX_KEYBOARD_ENV="
+			var output strings.Builder
+			// Attach may replay both helper lines before the client starts
+			// reading, so inspect the attach payload before waiting for more.
+			output.Write(attachResponse.Data)
+			for {
+				if idx := strings.Index(output.String(), marker); idx >= 0 {
+					value := output.String()[idx+len(marker):]
+					// The attach payload may be a JSON-quoted history string
+					// (escaped \r\n) or plain PTY bytes; stop at either form.
+					if end := strings.IndexAny(value, "\\\"\r\n"); end >= 0 {
+						value = value[:end]
+					}
+					if value != tc.want {
+						t.Fatalf("%s=%q, want %q; output=%q", nexusruntime.EnvCodexDisableKeyboardEnhancement, value, tc.want, output.String())
+					}
+					return
+				}
+				line, readErr := client.Reader().ReadString('\n')
+				output.WriteString(line)
+				if readErr != nil {
+					t.Fatalf("compat env marker not observed: %v; output=%q", readErr, output.String())
+				}
+			}
+		})
 	}
 }
 

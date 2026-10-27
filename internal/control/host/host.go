@@ -83,7 +83,10 @@ func NewSessionHost(cfg Config) (*SessionHost, error) {
 
 	cmd := exec.Command(cfg.Binary, cfg.Args...)
 	cmd.Dir = cfg.Cwd
-	cmd.Env = cfg.Env
+	// The embedded terminal is xterm.js: provider TUIs started by the user
+	// (for example `codex` typed in a project shell) need the same compatibility
+	// defaults as supervised provider runtimes.
+	cmd.Env = nexusruntime.ApplyEmbeddedTerminalCompat(cfg.Env)
 
 	termBackend := cfg.terminalBackend
 	if termBackend == nil {

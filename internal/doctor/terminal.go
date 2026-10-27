@@ -7,6 +7,7 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 	controlterminal "github.com/IAPro-Community/nexus/internal/control/terminal"
+	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
 	"golang.org/x/term"
 )
 
@@ -46,7 +47,7 @@ func BuildTerminalReport(fd int, sessions []registry.RuntimeSession) TerminalRep
 		_, err := term.GetState(fd)
 		termiosReadable = err == nil
 	}
-	value := os.Getenv("CODEX_TUI_DISABLE_KEYBOARD_ENHANCEMENT")
+	value := os.Getenv(nexusruntime.EnvCodexDisableKeyboardEnhancement)
 	if value == "" {
 		value = "unset (Nexus injects 1 for Codex runtimes)"
 	}
