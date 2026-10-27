@@ -165,3 +165,16 @@ func TestBrowserProactiveHumanTakeover(t *testing.T) {
 		t.Fatalf("agent could not resume: %s", reason)
 	}
 }
+
+func TestAgentCannotObserveAnOrdinaryHumanSession(t *testing.T) {
+	s := &Session{}
+	if ok, _ := s.AcquireControl("human:phone"); !ok {
+		t.Fatal("human could not acquire browser")
+	}
+	if _, err := s.SnapshotAs(context.Background(), "agent:codex"); err == nil {
+		t.Fatal("agent read page while another human was in control")
+	}
+	if _, err := s.ScreenshotAs(context.Background(), "agent:codex"); err == nil {
+		t.Fatal("agent captured human-controlled page")
+	}
+}

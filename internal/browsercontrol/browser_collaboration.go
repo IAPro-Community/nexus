@@ -264,7 +264,8 @@ func (s *Session) DoAs(ctx context.Context, actor string, action Action) (Info, 
 
 func (s *Session) SnapshotAs(ctx context.Context, actor string) ([]byte, error) {
 	s.mu.Lock()
-	if strings.HasPrefix(actor, "agent:") && (s.handoff.Status == "requested" || s.handoff.Status == "human_active") {
+	humanControl := strings.HasPrefix(s.controller, "human:") && time.Now().Before(s.controllerUntil)
+	if strings.HasPrefix(actor, "agent:") && (humanControl || s.handoff.Status == "requested" || s.handoff.Status == "human_active") {
 		s.mu.Unlock()
 		return nil, errors.New("human intervention active; page contents private")
 	}
@@ -275,7 +276,8 @@ func (s *Session) SnapshotAs(ctx context.Context, actor string) ([]byte, error) 
 
 func (s *Session) ScreenshotAs(ctx context.Context, actor string) ([]byte, error) {
 	s.mu.Lock()
-	if strings.HasPrefix(actor, "agent:") && (s.handoff.Status == "requested" || s.handoff.Status == "human_active") {
+	humanControl := strings.HasPrefix(s.controller, "human:") && time.Now().Before(s.controllerUntil)
+	if strings.HasPrefix(actor, "agent:") && (humanControl || s.handoff.Status == "requested" || s.handoff.Status == "human_active") {
 		s.mu.Unlock()
 		return nil, errors.New("human intervention active; screenshots private")
 	}
