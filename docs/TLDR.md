@@ -42,7 +42,7 @@ nexus ps --json
 
 ## Licença
 
-**Source-available, não comercial, PolyForm Strict 1.0.0.** Pode estudar e usar nos fins permitidos; **não** recebe autorização para modificar, redistribuir ou explorar comercialmente o código. Existem permissões explícitas para determinadas organizações não comerciais, educacionais e governamentais. Consulte a [licença integral](../LICENSE) e o [guia de licenciamento](legal/LICENSING.md).
+**Vigente: source-available, PolyForm Strict 1.0.0; não é open source OSI.** A autorização geral para modificar, redistribuir ou utilizar comercialmente o código **ainda não está concedida**. A decisão estratégica é migrar para **Apache-2.0 após clearance jurídico e de segurança**, sem tornar Composer, Flow ou Agents premium. Consulte a [licença vigente](../LICENSE), o [guia legal](legal/LICENSING.md), o [plano de abertura](legal/OPEN_SOURCE_TRANSITION.md) e as [orientações de contribuição](../CONTRIBUTING.md).
 
 ## Próximo passo
 
