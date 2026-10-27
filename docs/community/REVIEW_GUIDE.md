@@ -22,3 +22,17 @@ A manutenção do upstream precisa ser acolhedora **sem comprometer a segurança
 ## Aprovação e conflitos
 
 Veja [GOVERNANCE](../../GOVERNANCE.md) para responsáveis, regras de revisão e resolução de impasses. Contribuições permanecem do autor, salvo instrumento próprio válido; nunca presumir cessão de direitos. Relatórios de autoria e segurança são tratados privadamente quando necessário.
+
+## Boundary CI de contribuições externas
+
+A validação de `pull_request` usa exclusivamente
+[`community-pr.yml`](../../.github/workflows/community-pr.yml),
+com runner hospedado efêmero e `contents: read`, sem secrets e
+`persist-credentials: false`. O CI principal no
+[`ci.yml`](../../.github/workflows/ci.yml) contém jobs self-hosted e não
+aceita mais eventos de PR; as máquinas persistentes são reservadas a pushes
+autorizados e certificação controlada. O mantenedor ainda precisa atualizar
+rulesets e os checks obrigatórios nas configurações do GitHub.
+
+Não fazer checkout/executar código arbitrário de um fork no runner interno
+durante a revisão, mesmo que alguém tenha enviado o link em uma issue.
