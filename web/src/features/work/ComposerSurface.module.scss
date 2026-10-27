@@ -886,6 +886,23 @@
   min-height: 48px;
 }
 
+.composerWelcomeGoal {
+  width: 100%;
+  min-height: 132px;
+  line-height: 1.65;
+  resize: vertical;
+  font-size: .98rem;
+  padding: 15px 16px;
+  border-radius: 12px;
+  border-color: color-mix(in srgb, var(--nx-accent) 25%, var(--nx-border));
+  background: var(--nx-bg);
+}
+
+.composerWelcomeGoal:focus-visible {
+  outline: 2px solid var(--nx-accent);
+  outline-offset: 2px;
+}
+
 .composerWelcomeInputLabel {
   color: var(--nx-text);
   font-weight: 600;
