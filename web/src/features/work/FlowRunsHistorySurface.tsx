@@ -285,6 +285,16 @@ export const FlowRunsHistorySurface: React.FC<{
         </div>
       </div>
 
+      <div className={styles.journeyExplanation} role="note">
+        <span>{t('flow.journeyPlan', '1. Planejar')}</span>
+        <span aria-hidden="true">→</span>
+        <span>{t('flow.journeyReview', '2. Revisar e aprovar')}</span>
+        <span aria-hidden="true">→</span>
+        <span>{t('flow.journeyExecute', '3. Executar Mission')}</span>
+        <span aria-hidden="true">→</span>
+        <span>{t('flow.journeyEvidence', '4. Conferir evidências')}</span>
+      </div>
+
       <ConfirmDialog
         open={Boolean(planToDelete)}
         title={t('flow.deleteDraft', 'Excluir Flow')}
@@ -315,7 +325,10 @@ export const FlowRunsHistorySurface: React.FC<{
 
       {!loading && !error && track === 'drafts' && (
         <Card className={styles.newFlowCard} data-tour="flow-new">
-          <strong>{t('flow.newFlow', 'New Flow')}</strong>
+          <div className={styles.newFlowTitle}>
+            <strong>{t('flow.newFlow', 'Novo Flow')}</strong>
+            <p>{t('flow.newFlowExplanation', 'Crie um rascunho manual ou elabore um plano com IA no Composer. Um rascunho não inicia a execução.')}</p>
+          </div>
           <div className={styles.newFlowRow}>
             <input
               className="nx-input"
@@ -344,8 +357,8 @@ export const FlowRunsHistorySurface: React.FC<{
                   .finally(() => setCreating(false));
               }}
             >
-              <Sparkles size={13} />{' '}
-              {creating ? t('common.loading', '…') : t('flow.newFlow', 'New Flow')}
+              <Layers size={13} />{' '}
+              {creating ? t('common.loading', '…') : t('flow.createManual', 'Criar rascunho manual')}
             </Button>
             {onOpenComposer ? (
               <Button onClick={onOpenComposer}>
