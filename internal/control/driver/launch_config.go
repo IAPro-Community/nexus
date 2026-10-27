@@ -19,7 +19,7 @@ func ApplyLaunchConfiguration(provider, model string, options map[string]any, ba
 	model = strings.TrimSpace(model)
 	if model != "" {
 		switch provider {
-		case "codex", "claude", "gemini", "opencode", "agy":
+		case "codex", "claude", "gemini", "opencode", "agy", "pi", "omp", "mimo":
 			args = append(args, "--model", model)
 		case "fake":
 			args = append(args, "--model", model)
