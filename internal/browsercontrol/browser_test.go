@@ -109,8 +109,22 @@ func TestChromiumSmokeOptional(t *testing.T) {
 	if _, err := s.Screenshot(ctx); err != nil {
 		t.Fatalf("screenshot: %v", err)
 	}
+	frames, unsubscribe, err := s.SubscribeFrames()
+	if err != nil {
+		t.Fatalf("subscribe: %v", err)
+	}
+	defer unsubscribe()
+	time.Sleep(300 * time.Millisecond)
 	if _, err := s.Do(ctx, Action{Type: "reload"}); err != nil {
 		t.Fatalf("reload: %v", err)
+	}
+	select {
+	case data := <-frames:
+		if len(data) < 100 {
+			t.Fatal("empty or invalid CDP screencast frame")
+		}
+	case <-time.After(7 * time.Second):
+		t.Fatal("Chromium screencast did not deliver a live frame")
 	}
 	if _, err := s.Do(ctx, Action{Type: "wait_selector", Selector: "#action", TimeoutMS: 4000}); err != nil {
 		t.Fatalf("wait for action button: %v", err)
