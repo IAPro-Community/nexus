@@ -81,6 +81,7 @@ export const BrowserSurface: React.FC<{
   const onReady = useRef(onSessionReady);
   const touchStart = useRef<number | null>(null);
   const ignoreClick = useRef(false);
+  const lastFrameAt = useRef(0);
 
   useEffect(() => {
     onReady.current = onSessionReady;
@@ -180,6 +181,7 @@ export const BrowserSurface: React.FC<{
             URL.revokeObjectURL(frameObjectURL.current);
             frameObjectURL.current = '';
           }
+          lastFrameAt.current = Date.now();
           setFrame(`data:image/jpeg;base64,${payload.data}`);
         } catch {
           // An unexpected message must never crash the Workspace.
@@ -195,7 +197,7 @@ export const BrowserSurface: React.FC<{
     };
     connect();
     const fallback = window.setInterval(() => {
-      if (ws?.readyState !== WebSocket.OPEN) {
+      if (ws?.readyState !== WebSocket.OPEN || Date.now() - lastFrameAt.current > 7000) {
         void refreshImage().catch(() => undefined);
       }
     }, 3500);
