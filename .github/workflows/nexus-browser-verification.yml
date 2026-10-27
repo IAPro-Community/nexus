@@ -57,6 +57,8 @@ jobs:
         run: go test ./internal/browsercontrol -run TestChromiumSmokeOptional -v -count=1
       - name: Install frontend dependencies
         run: cd web && bun install --frozen-lockfile
+      - name: Check Browser UI formatting
+        run: cd web && ./node_modules/.bin/prettier --check src/features/browser/BrowserSurface.tsx src/features/browser/BrowserSurface.module.scss
       - name: Typecheck frontend
         run: cd web && bun run typecheck
       - name: Verify browser window tests
