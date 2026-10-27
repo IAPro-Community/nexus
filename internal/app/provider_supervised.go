@@ -115,7 +115,9 @@ func executeProviderSupervised(provName, explicitProfile string, args []string, 
 						Name: filepath.Base(canonical), CanonicalPath: canonical,
 					})
 				}
-				if projectErr == nil {browserProjectID = project.ID}
+				if projectErr == nil {
+					browserProjectID = project.ID
+				}
 			}
 		}
 	}
@@ -130,7 +132,7 @@ func executeProviderSupervised(provName, explicitProfile string, args []string, 
 		candidates,
 		accounts,
 		launcher.LaunchOptions{
-			ProjectID: browserProjectID,
+			ProjectID:  browserProjectID,
 			Workspace:  workspace,
 			Args:       args,
 			Standalone: false,

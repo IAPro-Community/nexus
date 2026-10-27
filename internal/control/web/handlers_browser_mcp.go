@@ -109,14 +109,20 @@ func (s *Server) handleBrowserMCP(w http.ResponseWriter, r *http.Request) {
 		if err := json.Unmarshal(rpc.Params, &params); err != nil {
 			result = browserMCPError("invalid tool arguments")
 		} else if params.Name == "browser_open" && runtimeGrant {
-			var input struct { URL string `json:"url"` }
-			if err := json.Unmarshal(params.Arguments, &input); err != nil && len(params.Arguments)>0 {
+			var input struct {
+				URL string `json:"url"`
+			}
+			if err := json.Unmarshal(params.Arguments, &input); err != nil && len(params.Arguments) > 0 {
 				result = browserMCPError("invalid browser_open arguments")
 			} else {
 				ctx, cancel := context.WithTimeout(r.Context(), 35*time.Second)
 				info, openErr := s.browsers.OpenRuntimeBrowser(ctx, runtimeCap, input.URL)
 				cancel()
-				if openErr != nil {result = browserMCPError(openErr.Error())} else {result = browserMCPText(info)}
+				if openErr != nil {
+					result = browserMCPError(openErr.Error())
+				} else {
+					result = browserMCPText(info)
+				}
 			}
 		} else if browser == nil {
 			result = browserMCPError("No browser attached to this runtime. Call browser_open first.")
@@ -145,7 +151,7 @@ func browserMCPTools() []map[string]any {
 		return map[string]any{"type": "string", "description": description}
 	}
 	return []map[string]any{
-		spec("browser_open", "Create or reopen this runtime's private Nexus Browser, visible in the same Workspace on desktop/mobile. Call once before other tools.", map[string]any{"url":str("Optional HTTP(S) starting URL")}),
+		spec("browser_open", "Create or reopen this runtime's private Nexus Browser, visible in the same Workspace on desktop/mobile. Call once before other tools.", map[string]any{"url": str("Optional HTTP(S) starting URL")}),
 		spec("browser_state", "Read the browser, input lease and human-handoff state", map[string]any{}),
 		spec("browser_request_control", "Acquire or renew an input lease for this agent only", map[string]any{}),
 		spec("browser_release_control", "Release this agent's input lease", map[string]any{}),

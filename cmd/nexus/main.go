@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"context"
+	"fmt"
 	"github.com/IAPro-Community/nexus/internal/browsercontrol"
 	"log/slog"
 	"os"

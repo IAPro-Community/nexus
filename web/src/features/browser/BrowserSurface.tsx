@@ -83,7 +83,8 @@ export const browserAPI = {
       body: JSON.stringify({ project_id: projectId, url }),
     }),
   get: (id: string) => request<NexusBrowserInfo>(browserRoute(id)),
-  list: (projectId: string) => request<NexusBrowserInfo[]>(`${endpoint}?project_id=${encodeURIComponent(projectId)}`),
+  list: (projectId: string) =>
+    request<NexusBrowserInfo[]>(`${endpoint}?project_id=${encodeURIComponent(projectId)}`),
   action: (id: string, action: NexusBrowserAction) =>
     request<NexusBrowserInfo>(`${browserRoute(id)}/action`, {
       method: 'POST',
@@ -613,7 +614,10 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
       {session && (
         <details className={styles.agentConnections}>
           <summary>Conexões avançadas com agentes externos</summary>
-          <p>Agentes iniciados pelo Nexus recebem o Browser automaticamente. Use esta opção apenas para uma conexão externa autorizada.</p>
+          <p>
+            Agentes iniciados pelo Nexus recebem o Browser automaticamente. Use esta opção apenas
+            para uma conexão externa autorizada.
+          </p>
           <button type="button" onClick={() => void createAgentConnection()}>
             Gerar acesso temporário e copiar configuração
           </button>

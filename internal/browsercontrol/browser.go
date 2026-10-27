@@ -28,11 +28,11 @@ import (
 const MaxSessions = 4
 
 type Info struct {
-	ID        string `json:"id"`
-	ProjectID string `json:"project_id"`
-	URL       string `json:"url"`
-	Width     int    `json:"width"`
-	Height    int    `json:"height"`
+	ID             string `json:"id"`
+	ProjectID      string `json:"project_id"`
+	URL            string `json:"url"`
+	Width          int    `json:"width"`
+	Height         int    `json:"height"`
 	OwnerRuntimeID string `json:"owner_runtime_id,omitempty"`
 }
 
@@ -70,11 +70,11 @@ type Session struct {
 
 type Manager struct {
 	runtimeMu sync.Mutex
-	mu       sync.RWMutex
-	sessions map[string]*Session
-	pending  int
-	closing  bool
-	grants   map[[32]byte]grantEntry
+	mu        sync.RWMutex
+	sessions  map[string]*Session
+	pending   int
+	closing   bool
+	grants    map[[32]byte]grantEntry
 }
 
 func NewManager() *Manager { return &Manager{sessions: make(map[string]*Session)} }
