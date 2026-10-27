@@ -43,7 +43,7 @@ export const FeatureTour: React.FC<{
   const [open, setOpen] = useState(false);
   const [initialIndex, setInitialIndex] = useState(0);
   const [updates, setUpdates] = useState<FeatureAnnouncement[]>([]);
-  const [refresh, setRefresh] = useState(0);
+  const [, refreshReadState] = useState(0);
   const steps = featureTourSteps[surface];
   const key = featureTourStorageKey(projectId, surface);
   const seen = (item: FeatureAnnouncement): boolean => {
@@ -73,7 +73,7 @@ export const FeatureTour: React.FC<{
         window.localStorage.setItem(announcementStorageKey(item.id), String(item.revision));
       } catch { /* local-only persistence is optional */ }
     });
-    setRefresh((current) => current + 1);
+    refreshReadState((current) => current + 1);
   };
 
   // Explicit scan on opening a menu lets newly mounted conditional controls
@@ -101,9 +101,6 @@ export const FeatureTour: React.FC<{
     setOpen(false);
   };
   const first = unread[0];
-  // Suppress unused render output while retaining a state tick after reads.
-  void refresh;
-
   return (
     <>
       <div className={styles.root} data-feature-discovery={surface}>
