@@ -56,6 +56,23 @@ describe('Attention Notification Card sanitization & logic', () => {
     ).toBe(true);
   });
 
+
+  it('does not offer remote input for OSC status-only approval or authentication', () => {
+    for (const reason of ['APPROVAL', 'AUTH'] as const) {
+      const actions = attentionCardActions(
+        rt({
+          attention_reason: reason,
+          attention_kind: 'needs_user',
+          prompt_kind: 'native_status',
+          attention_context: 'Agent requires attention in the terminal',
+        }),
+      );
+      expect(actions.showOpenTerminal).toBe(true);
+      expect(actions.showTextInput).toBe(false);
+      expect(actions.showYesNo).toBe(false);
+    }
+  });
+
   it('shows Yes/No only for prompt_kind yn', () => {
     const yn = attentionCardActions(
       rt({
