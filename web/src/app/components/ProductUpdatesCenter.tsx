@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Megaphone } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Badge, DropdownMenu, IconButton, Tooltip } from '../../design-system';
+import { Badge, DropdownMenu } from '../../design-system';
 import {
   announcementStorageKey, featureAnnouncements, isAnnouncementUnread,
 } from '../../features/work/featureAnnouncements';
@@ -41,19 +41,17 @@ export const ProductUpdatesCenter: React.FC<{
 
   return (
     <DropdownMenu.Root>
-      <Tooltip content={t('discovery.globalHint', 'Veja os novos recursos desta versão')}>
-        <DropdownMenu.Trigger asChild>
-          <div className={styles.trigger}>
-            <IconButton
-              label={t('discovery.globalTitle', 'Novidades do Nexus')}
-              aria-label={t('discovery.globalUnread', '{{count}} novidades do Nexus', { count: unread.length })}
-            >
-              <Megaphone size={16} aria-hidden="true" />
-            </IconButton>
-            {unread.length > 0 && <Badge tone="brand">{unread.length}</Badge>}
-          </div>
-        </DropdownMenu.Trigger>
-      </Tooltip>
+      <DropdownMenu.Trigger asChild>
+        <button
+          type="button"
+          className={styles.trigger}
+          title={t('discovery.globalHint', 'Veja os novos recursos desta versão')}
+          aria-label={t('discovery.globalUnread', '{{count}} novidades do Nexus', { count: unread.length })}
+        >
+          <Megaphone size={16} aria-hidden="true" />
+          {unread.length > 0 && <Badge tone="brand">{unread.length}</Badge>}
+        </button>
+      </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content className={styles.menu} align="end" sideOffset={8}>
           <div className={styles.heading}>
