@@ -100,7 +100,7 @@ export const ComposerStart: React.FC<{
         </p>
       </div>
       <Card className={styles.composerWelcomeEntry}>
-      <div className={`${styles.goalBarLabel} ${styles.flexRowBetween}`}>
+        <div className={`${styles.goalBarLabel} ${styles.flexRowBetween}`}>
         <div className={styles.flexRowGap6}>
           <Sparkles size={16} />
           <span>{t('work.composer.startTitle', 'Nova elaboração')}</span>
@@ -123,9 +123,9 @@ export const ComposerStart: React.FC<{
             <FileText size={13} /> {t('work.composer.existingPromptMode', 'Existing prompt')}
           </Button>
         </div>
-      </div>
+        </div>
 
-      <div className={styles.flexColGap8}>
+        <div className={styles.flexColGap8}>
         <label className={styles.composerWelcomeInputLabel}>
           {t('work.composer.goalLabel', 'Descreva sua ideia ou o problema que deseja resolver')}
         </label>
@@ -136,11 +136,11 @@ export const ComposerStart: React.FC<{
             inputMode === 'IDEA'
               ? t(
                   'work.composer.ideaPlaceholder',
-                  'Which idea or goal do you want to turn into a strong prompt?',
+                  'Descreva o que você quer criar, melhorar ou investigar…',
                 )
               : t(
                   'work.composer.existingGoalPlaceholder',
-                  'What is the main goal of this existing prompt?',
+                  'Qual o objetivo deste prompt?',
                 )
           }
           className={styles.flexGrow}
@@ -153,7 +153,7 @@ export const ComposerStart: React.FC<{
             onChange={(e) => setSourcePrompt(e.target.value)}
             placeholder={t(
               'work.composer.sourcePlaceholder',
-              'Paste the original prompt for gap analysis, completeness and structure…',
+              'Cole aqui o prompt original para analisarmos lacunas e oportunidades…',
             )}
             rows={4}
             disabled={busy}
@@ -205,18 +205,17 @@ export const ComposerStart: React.FC<{
                 : t('work.composer.converse', 'Converse')}
           </Button>
         </div>
-      </div>
-
+        </div>
       </Card>
       {sessions.length > 0 && (
         <Card className={styles.composerWelcomeHistory}>
-        <div className={styles.composerWelcomeHistoryHeader}>
+          <div className={styles.composerWelcomeHistoryHeader}>
           <History size={15} />
           <strong>{t('work.composer.previousSessions', 'Continuar uma elaboração')}</strong>
           <span>{sessions.length}</span>
-        </div>
-        <div className={styles.flexRowWrapGap8}>
-           <Select
+          </div>
+          <div className={styles.flexRowWrapGap8}>
+            <Select
             placeholder={t('work.composer.resumeSession', 'Escolha uma elaboração salva…')}
             value={selectedSavedSession}
             onChange={setSelectedSavedSession}
@@ -242,7 +241,7 @@ export const ComposerStart: React.FC<{
           >
             <Trash2 size={13} /> {t('common.delete', 'Excluir')}
           </Button>
-        </div>
+          </div>
         </Card>
       )}
       <ConfirmDialog
