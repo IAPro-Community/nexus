@@ -318,13 +318,17 @@ try {
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(String(error?.message || error)));
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  const listenStatePath = path.join(dataDir, 'web-auth', 'listen.json');
+  if (!server.pid) throw new Error('isolated Nexus Web PID unavailable');
+  const listenStatePath = path.join(dataDir, 'web-auth', `listen-${server.pid}.json`);
   const stateDeadline = Date.now() + 5000;
   while (!existsSync(listenStatePath) && Date.now() < stateDeadline) {
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
   if (!existsSync(listenStatePath)) throw new Error('isolated web auth state was not created');
   const listenState = JSON.parse(readFileSync(listenStatePath, 'utf8'));
+  if (listenState.pid !== server.pid || listenState.url !== url || !listenState.loopback) {
+    throw new Error('isolated web auth state does not match the launched Nexus process');
+  }
   if (!listenState.bootstrap_token) throw new Error('isolated web auth state has no bootstrap token');
   const bootstrapResponse = await page.evaluate(async (token) => {
     const response = await fetch('/api/v1/auth/bootstrap', {
