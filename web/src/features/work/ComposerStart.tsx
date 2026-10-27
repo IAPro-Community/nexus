@@ -1,7 +1,7 @@
 import React, { useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, FileText, History, Lightbulb, MessageCircle, RefreshCw, Settings2, Sparkles, Trash2 } from 'lucide-react';
-import { Button, Card, ConfirmDialog, Input, Select } from '../../design-system';
+import { Button, Card, ConfirmDialog, Select, Textarea } from '../../design-system';
 import type { ComposerSession } from '../../types';
 import { nexus } from '../../nexus/api';
 import { composerSessionStateKey, formatComposerSessionTitle } from './composerModel';
@@ -43,6 +43,7 @@ export const ComposerStart: React.FC<{
   const [inputMode, setInputMode] = useState<'IDEA' | 'EXISTING_PROMPT'>('IDEA');
   const [interviewMode, setInterviewMode] = useState<'QUICK' | 'STANDARD' | 'DEEP'>('STANDARD');
   const interviewDepthId = useId();
+  const goalId = useId();
   const [draft, setDraft] = useState('');
   const [sourcePrompt, setSourcePrompt] = useState('');
   const [sessionForDeletion, setSessionForDeletion] = useState<ComposerSession | null>(null);
@@ -128,12 +129,15 @@ export const ComposerStart: React.FC<{
         </div>
 
         <div className={styles.flexColGap8} data-tour="composer-goal">
-        <label className={styles.composerWelcomeInputLabel}>
+        <label htmlFor={goalId} className={styles.composerWelcomeInputLabel}>
           {t('work.composer.goalLabel', 'Descreva sua ideia ou o problema que deseja resolver')}
         </label>
-        <Input
+        <Textarea
+          id={goalId}
           value={draft}
           onChange={setDraft}
+          rows={4}
+          className={styles.composerWelcomeGoal}
           placeholder={
             inputMode === 'IDEA'
               ? t(
@@ -145,7 +149,6 @@ export const ComposerStart: React.FC<{
                   'Qual o objetivo deste prompt?',
                 )
           }
-          className={styles.flexGrow}
           disabled={busy}
         />
         {inputMode === 'EXISTING_PROMPT' && (
