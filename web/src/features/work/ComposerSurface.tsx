@@ -7,6 +7,7 @@ import { nexus } from '../../nexus/api';
 import { composerActionPhase, composerReferencedFiles } from './composerModel';
 import type { ComposerGate } from './composerModel';
 import { ComposerStart } from './ComposerStart';
+import { FeatureTour } from './FeatureTour';
 import { ComposerWorkspaceHeader } from './ComposerWorkspaceHeader';
 import { ComposerInspector } from './ComposerInspector';
 import { ClarificationPrompt } from './ClarificationPrompt';
@@ -232,7 +233,8 @@ export const ComposerSurface: React.FC<{
   );
 
   return (
-    <div className={styles.conversationShell}>
+    <div className={styles.conversationShell} data-tour="composer-conversation">
+      <FeatureTour projectId={project.id} surface="composer-session" />
       <ComposerWorkspaceHeader
         view={view}
         sessionOptions={sessionOptions}
