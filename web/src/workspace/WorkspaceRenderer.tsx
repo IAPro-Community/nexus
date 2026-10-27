@@ -393,7 +393,7 @@ export const WorkspaceRenderer: React.FC<{
   const presentation = useWorkspacePresentation();
   const compact = useCompactViewport();
   const surfaces = useMemo(() => listSurfaces(workspace.model.root), [workspace.model.root]);
-  const floatingSurfaces = useMemo(() => surfaces.filter(isPtySurface), [surfaces]);
+  const floatingSurfaces = useMemo(() => surfaces.filter(isWorkspaceWindowSurface), [surfaces]);
   const surfaceSignature = floatingSurfaces.map(surfaceViewId).join('|');
   const windowSignature = Object.keys(presentation.state.windows).sort().join('|');
 
@@ -447,7 +447,7 @@ const WorkspaceStackView: React.FC<{
       return ai - bi;
     });
   }, [stack.tabs]);
-  const ptyTabs = useMemo(() => stack.tabs.filter(isPtySurface), [stack.tabs]);
+  const ptyTabs = useMemo(() => stack.tabs.filter(isWorkspaceWindowSurface), [stack.tabs]);
   const activeRaw = stack.tabs.find((tab) => isSurfaceMatch(tab, stack.activeId));
   // If a PTY was left as activeId (legacy layouts), treat the Terminais product tab as active.
   const activeProduct =
@@ -1302,7 +1302,7 @@ const DesktopWorkspace: React.FC<{
       setWindowMenu(null);
     }
   }, [active]);
-  const terminalSurfaces = surfaces.filter(isPtySurface);
+  const terminalSurfaces = surfaces.filter(isWorkspaceWindowSurface);
   const mosaic = presentation.state.mode === 'MOSAIC';
   // Minimize then move keyboard focus to the shelf restore control — but only
   // when focus was inside the minimized window. Double rAF waits for React to
