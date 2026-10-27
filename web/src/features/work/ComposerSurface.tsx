@@ -34,6 +34,7 @@ export const ComposerSurface: React.FC<{
   memoryCount?: number;
   contextRefreshing?: boolean;
   onRefreshContext?: () => void;
+  onOpenIntelligenceSettings?: () => void;
 }> = ({
   project,
   onTransformFlow,
@@ -44,6 +45,7 @@ export const ComposerSurface: React.FC<{
   memoryCount = 0,
   contextRefreshing = false,
   onRefreshContext,
+  onOpenIntelligenceSettings,
 }) => {
   const { t } = useTranslation();
   const composer = useComposerSession(project);
@@ -158,6 +160,8 @@ export const ComposerSurface: React.FC<{
     return (
       <div className={styles.deliberative}>
         <ComposerStart
+          projectId={project.id}
+          onOpenIntelligenceSettings={onOpenIntelligenceSettings}
           sessions={sessions}
           busy={busy}
           error={error}
