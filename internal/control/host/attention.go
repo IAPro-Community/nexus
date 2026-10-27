@@ -584,6 +584,12 @@ func (d *AttentionDetector) ObserveOperatorInput(data []byte) {
 	if d.lastKind != AttentionNeedsUser || len(data) == 0 {
 		return
 	}
+	// A native status is a provider-owned blocker. Terminal keystrokes only
+	// establish an attempted submission; wait for native WORKING/IDLE/DONE
+	// before clearing the intervention. No optimistic remote approval.
+	if d.lastPrompt == "native_status" {
+		return
+	}
 	submitted := false
 	for _, c := range data {
 		if c == '\r' || c == '\n' {
