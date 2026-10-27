@@ -10,7 +10,6 @@ import (
  "os/exec"
  "strings"
  "sync"
- "time"
 
  "github.com/IAPro-Community/nexus/internal/control/agentwire"
  "github.com/IAPro-Community/nexus/internal/core/security"
@@ -62,8 +61,7 @@ func (b *structuredBackend)Start(cmd *exec.Cmd,rows,cols int)error{
  // Do not block the IPC or hold SessionHost.mu during protocol handshake.
  // A failed handshake stops the child rather than leaving a fake session.
  go func(){
-  ctx,cancel:=context.WithTimeout(b.ctx,20*time.Second);defer cancel()
-  if err:=bridge.Start(ctx);err!=nil{
+  if err:=bridge.Start(b.ctx);err!=nil{
    b.emit("\r\n[Nexus] Structured protocol handshake failed.\r\n")
    if b.onStatus!=nil{b.onStatus(agentwire.WireSignal{State:"error",Summary:"Protocol handshake failed"})}
    _=cmd.Process.Kill()
@@ -181,4 +179,3 @@ var _ interface{
  Supervise()error
 }=(*structuredBackend)(nil)
 
-var _=time.Second
