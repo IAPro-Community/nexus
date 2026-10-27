@@ -74,6 +74,17 @@ Somente promova a release estável quando o status autoritativo mudar com
 evidência correspondente. Até lá, documentação do source candidato não deve ser
 interpretada como anúncio de GA.
 
+## Gate de licenciamento para abertura open source
+
+A meta de licença **Apache-2.0 ainda não está em vigor**. Uma release
+comunitária anunciada como open source exige, além dos gates técnicos,
+comprovação de titularidade, auditoria jurídica/supply-chain, assets e
+histórico, mudança explícita de `LICENSE`, atualização de notices,
+READMEs/metadata e autorização formal de distribuição. Consulte
+[OPEN_SOURCE_TRANSITION](../legal/OPEN_SOURCE_TRANSITION.md) e
+[PUBLICATION_CHECKLIST](../PUBLICATION_CHECKLIST.md). Uma build verde não
+substitui a autorização para relicenciar código de terceiros.
+
 ## Auditoria de exposição do source já público
 
 Com todos os refs acessíveis localmente, execute `git fetch --all --tags --prune` e `bash scripts/audit-publication.sh`. O script usa Gitleaks, e falha quando existem paths internos a classificar. Um PASS automático não dispensa a revisão humana de histórico, dados pessoais, licenças ou dependências. Nunca envie relatórios brutos de segredos para CI ou issues.
