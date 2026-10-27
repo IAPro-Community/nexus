@@ -268,6 +268,7 @@ func (h *APIHandler) handleRuntimes(w http.ResponseWriter, r *http.Request) {
 			ProfileID  string   `json:"profile"`
 			Workspace  string   `json:"workspace"`
 			Args       []string `json:"args"`
+			AgentProtocol string `json:"agent_protocol,omitempty"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid request body")
@@ -282,12 +283,15 @@ func (h *APIHandler) handleRuntimes(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 		defer cancel()
 
+		options := map[string]any{}
+		if req.AgentProtocol != "" { options["agent_protocol"] = req.AgentProtocol }
 		sess, err := h.runtimes.Start(ctx, launcher.LaunchOptions{
 			Title:      req.Title,
 			ProviderID: req.ProviderID,
 			ProfileID:  req.ProfileID,
 			Workspace:  req.Workspace,
 			Args:       req.Args,
+			Options:    options,
 		})
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
