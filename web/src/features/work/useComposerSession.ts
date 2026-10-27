@@ -280,7 +280,10 @@ export function useComposerSession(project: Project) {
           }
           throw err;
         } finally {
-          if (controller.signal.aborted) setBootstrapActivity(null);
+          // A failed provider probe or an interrupted stream must never leave
+          // the startup activity projected as "pending". This block also
+          // runs when fallback JSON creation fails.
+          setBootstrapActivity(null);
           if (conversationAbort.current === controller) conversationAbort.current = null;
         }
       },
