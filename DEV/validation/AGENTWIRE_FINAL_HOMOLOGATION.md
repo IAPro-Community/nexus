@@ -1,3 +1,58 @@
+> **Hardening update — 2026-10-28 (experimental, NOT APPROVED).**
+> Later commits refine structured input safety, concurrency and startup cleanup;
+> none of the earlier PASS statements represent a freshly re-run Go 1.25/CI
+> result at the current release HEAD.
+
+### Further source corrections
+
+- `structured_backend.go` no longer mirrors raw operator input (including
+  `/answer` values) to the terminal output stream. It strips basic xterm
+  control sequences, handles backspace/UTF-8, rejects lines larger than the
+  bounded buffer and enqueues commands rather than creating an uncontrolled
+  goroutine for each line. A dispatcher keeps control operations available
+  while an asynchronous agent prompt is running.
+- The native status queue is bounded and ordered. On saturation the provider
+  is terminated rather than silently dropping a permission signal; startup
+  overflow avoids racing access to the cancel function.
+- A rejected ACP handshake explicitly kills and reaps the child in
+  `Start`, since normal `SessionHost.waitProcess` only begins after successful
+  startup. The incompatible-version child fixture checks `ProcessState`.
+- `NewAgentModal` now requires an **authenticated** selected profile for
+  structured mode, with UI copy localized in EN/PT-BR/ES.
+- Focused race tests were added to the AgentWire workflow for structured
+  input, startup failure, reducer and two supervised mock ACP processes.
+
+### Outstanding gates
+
+**Verification in this ChatGPT GitHub-connected session:** source changes and
+commits were recorded remotely. The environment cannot clone the private repo
+for an integrated build, does not have the required Go 1.25 toolchain, and
+does not expose confirmed push-triggered workflow results. Accordingly all
+fresh Go/frontend run results are **NOT RUN** here. New Go changes **still
+require gofmt and clean same-SHA CI**, and there is no proof yet of authenticated
+two-provider / two-browser E2E. Treat the current universal-harness release gate
+as **NOT APPROVED**, regardless of the older restricted acceptance below.
+
+Recommended exact-SHA commands on a clean checkout:
+
+```bash
+git switch release/v1.0.0
+git pull --ff-only
+git rev-parse HEAD
+gofmt -w internal/control/agentwire internal/control/host internal/control/driver/structured_command.go internal/control/web/handlers_api.go internal/control/web/structured_multiclient_process_e2e_test.go
+git diff --check
+go test -race -count=1 ./internal/control/agentwire ./internal/control/host ./internal/control/web
+go test -count=1 ./internal/control/driver ./internal/control/launcher
+go build ./...
+cd web && bun run format:check && bun run typecheck && bun run test && bun run build
+```
+
+Do not claim these commands PASS from the documentation alone.
+Run them, commit formatted sources if needed, and then revalidate the **new**
+SHA with the GitHub Actions workflow.
+
+---
+
 > **Atualização de auditoria — 27/10/2026 (posterior ao relatório original).** As afirmações PASS abaixo são evidências declaradas na homologação local anterior, não reexecução/CI verificados para o HEAD da release após os commits de continuidade. **O gate do conjunto universal continua NOT APPROVED / E2E REAL PENDENTE** até regressões no SHA final, GO 1.25, formatos, execução com CLIs autenticados e duas interfaces reais. Não converter automaticamente os PASS do relatório anterior para o novo SHA.
 
 ### Continuidade aplicada sobre a release
