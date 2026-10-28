@@ -59,6 +59,10 @@ jobs:
         if: steps.scope.outputs.source_changed == 'true'
         working-directory: web
         run: bun install --frozen-lockfile
+      - name: Frontend quality and build
+        if: steps.scope.outputs.source_changed == 'true'
+        working-directory: web
+        run: bun run quality:full
       - name: Check docs and internal links
         # Documentation-only PRs receive full link/contract checks, not a
         # false visual certificate for a pre-existing source snapshot.
@@ -75,10 +79,6 @@ jobs:
             node scripts/verify-release-docs.mjs
             node scripts/verify-nex-visual.mjs
           fi
-      - name: Frontend quality and build
-        if: steps.scope.outputs.source_changed == 'true'
-        working-directory: web
-        run: bun run quality:full
       - name: Install Wails v3 GTK4/WebKitGTK dependencies for Go tests
         if: steps.scope.outputs.source_changed == 'true'
         run: |
