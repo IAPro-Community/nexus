@@ -59,11 +59,7 @@ describe('structured agent configuration identity', () => {
   });
   it('refuses an unselected profile', () => {
     expect(() =>
-      bindStructuredHarnessProfile(
-        { provider: '', profile: '', isolation: 'project' },
-        'mimo',
-        '',
-      ),
+      bindStructuredHarnessProfile({ provider: '', profile: '', isolation: 'project' }, 'mimo', ''),
     ).toThrow(/explicit registered provider profile/);
   });
 });
