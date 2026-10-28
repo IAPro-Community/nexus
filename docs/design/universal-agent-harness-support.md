@@ -1,6 +1,6 @@
 # Universal Harness Support & Agent Attention — Nexus 1.0
 
-**Status:** PARTIALLY IMPLEMENTED / EXPERIMENTAL / NOT HOMOLOGATED  
+**Status:** PARTIALLY IMPLEMENTED / EXPERIMENTAL / NOT HOMOLOGATED
 **Date:** 2026-10-27  
 **Canonical target:** `release/v1.0.0`  
 **Owner:** Nexus Control Plane. Maestro remains independent and owns planning, orchestration, reasoning and memory.
