@@ -147,3 +147,22 @@ estados sem elementos visíveis. Validar a **build do SHA exato**, não apenas
 o código da branch.
 
 Veja [tours do Composer e Flow](composer-flow-tour.md). A evidência visual da implementação permanece em registros internos de validação e não substitui os gates públicos de homologação por SHA.
+
+## Evolução do roteiro contextual global (28/10/2026)
+
+A central global agora transmite uma **solicitação efêmera de revelação** ao
+workspace com `requestFeatureReveal(item.id, projectId)`. O módulo com
+`FeatureTour` correspondente consome o pedido apenas se o projeto, a
+superfície e o `data-tour` coincidirem. Componentes de carregamento
+tardio são aguardados temporariamente; depois de 30 segundos a solicitação
+expira. Um pedido não consumido não inicia execução nem altera dados.
+
+Contrato: `featureReveal.ts`, `featureReveal.test.ts`,
+`ProductUpdatesCenter.tsx`, `FeatureTour.tsx`. Esta comunicação é somente
+em memória, não usa listener de servidor, rede, telemetry ou novos registros
+de usuário. Uma alteração da interface pode não possuir o contexto exigido
+(ex.: uma Mission não aberta); nesse caso, a central apenas navega para a
+área, e o tour contextual pode ser iniciado ali manualmente.
+
+A migração visual para Driver.js permanece desacoplada como issue #103;
+o contrato de catálogo/notificações não deve depender do renderer.
