@@ -245,5 +245,33 @@
     "idle_animation_master_status": "NOT_CREATED",
     "current_runtime_role": "FALLBACK_VECTOR_SVG",
     "design_selection_date": "2026-10-27"
+  },
+  "site_hero_vector": {
+    "file": "web/public/nex/nex-site-hero.svg",
+    "viewBox": [
+      0,
+      0,
+      1024,
+      1024
+    ],
+    "status": "CANDIDATE_VECTOR_IN_SOURCE_REVIEW_REQUIRED",
+    "role": "SITE_MARKETING_ANIMATABLE_2D_ONLY",
+    "raster_embedded": false,
+    "editable_layers": true,
+    "default_pose": "front",
+    "motion": [
+      "hover",
+      "blink",
+      "fins",
+      "reactor",
+      "orbit",
+      "modules",
+      "limited_2point5d_yaw"
+    ],
+    "true_360_rotation": false,
+    "technical_guide": "docs/design/nex/SITE_HERO_SVG_AND_360_MOTION.md",
+    "preview_script": "web/scripts/nex-site-hero-preview.mjs",
+    "visual_approval_status": "PENDING_ORIGINAL_REFERENCE_COMPARISON",
+    "note": "Layered SVG is a hand-authored vector interpretation, not a pixel-perfect vector trace of the approved PNG."
   }
 }
