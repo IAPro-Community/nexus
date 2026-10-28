@@ -170,6 +170,7 @@ export const NewAgentModal: React.FC<{
   const [origin, setOrigin] = useState<'native' | 'custom'>('native');
   const [provider, setProvider] = useState('codex');
   const [installedProviders, setInstalledProviders] = useState<string[]>([]);
+  const [reportedProtocols, setReportedProtocols] = useState<Record<string, string[]>>({});
   const [agentProtocol, setAgentProtocol] = useState<StructuredHarnessProtocol>('');
   const [mode, setMode] = useState<'Safe' | 'YOLO'>('Safe');
   const [targetKind, setTargetKind] = useState('docker');
@@ -212,14 +213,18 @@ export const NewAgentModal: React.FC<{
     setError('');
     setAgentProtocol('');
     setInstalledProviders([]);
+    setReportedProtocols({});
     void api.getProviders()
       .then((providers) => {
         if (!alive) return;
         // The Core only registers experimental harnesses when its opt-in flag
         // is enabled. A failed probe must not advertise preview support.
         setInstalledProviders(providers.filter((entry) => entry.installed).map((entry) => entry.id));
+        setReportedProtocols(Object.fromEntries(
+          providers.filter((entry) => entry.installed).map((entry) => [entry.id, entry.structured_modes || []]),
+        ));
       })
-      .catch(() => { if (alive) setInstalledProviders([]); });
+      .catch(() => { if (alive) { setInstalledProviders([]); setReportedProtocols({}); } });
     void nexus
       .listAgentModes()
       .then((modes) => {
@@ -263,7 +268,10 @@ export const NewAgentModal: React.FC<{
     setMode(executionModeFor(preset));
   };
 
-  const structuredChoices = structuredProtocolsForProvider(provider, installedProviders.includes(provider));
+  const structuredChoices = structuredProtocolsForProvider(
+    provider,
+    installedProviders.includes(provider),
+  ).filter((mode) => (reportedProtocols[provider] || []).includes(mode));
   const resolvedPreview =
     origin === 'native'
       ? `nexus ${provider}${agentProtocol ? ` [${agentProtocol.toUpperCase()} experimental]` : mode === 'YOLO' ? ' --yolo' : ''}`
