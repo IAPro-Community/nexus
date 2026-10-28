@@ -1,0 +1,682 @@
+{
+  "schemaVersion": 1,
+  "branch": "release/v1.0.0",
+  "target": "1.0.0",
+  "policy": "ALL_REQUIRED_FEATURES_VERIFIED_EXACT_SHA",
+  "sourceAudit": "2026-10-27",
+  "note": "Source status is preliminary, not a release certification. All features require externally produced exact-SHA evidence.",
+  "features": [
+    {
+      "id": "terminal-studio",
+      "name": "Terminal Studio",
+      "category": "experience",
+      "owner": "NEXUS",
+      "sourceStatus": "present",
+      "issue": 78,
+      "releaseRequired": true,
+      "acceptance": [
+        "Native CLI em tab/split sem relançar provider",
+        "Control lease, Ctrl+C, setas, scrollback e resize PTY/ConPTY com dois clientes"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "agent-command-center",
+      "name": "Agent Command Center (Orbit)",
+      "category": "experience",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 104,
+      "releaseRequired": true,
+      "acceptance": [
+        "Cartões de todos os Agents por projeto com estados observados e seleção direta",
+        "Trabalhando/aguardando/erro/concluído sem inferir estado do texto do CLI"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "review-studio",
+      "name": "Review Studio",
+      "category": "experience",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 109,
+      "releaseRequired": true,
+      "acceptance": [
+        "Diff, teste, evidência e terminal no mesmo workspace",
+        "Review read-only por padrão com autorização explícita para aplicar mudanças"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "browser-studio",
+      "name": "Browser Studio",
+      "category": "experience",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 107,
+      "releaseRequired": true,
+      "acceptance": [
+        "BrowserSurface integrada a terminal, diff e Agent Inspector",
+        "Permissões de CDP/MCP, takeover humano e sessão de projeto isolada"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "comparison-lab",
+      "name": "Comparison Lab",
+      "category": "experience",
+      "owner": "NEXUS",
+      "sourceStatus": "missing",
+      "issue": 108,
+      "releaseRequired": true,
+      "acceptance": [
+        "Duas alternativas paralelas com worktrees e execução isolados",
+        "Comparador de testes/diffs/custo e decisão humana sem merge automático"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "remote-companion",
+      "name": "Remote Companion",
+      "category": "experience",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 111,
+      "releaseRequired": true,
+      "acceptance": [
+        "Mobile Inbox e terminal remoto vinculados ao host",
+        "Troca de dispositivo sem reiniciar sessão, com lease e revogação"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "mission-observatory",
+      "name": "Mission Observatory",
+      "category": "experience",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 85,
+      "releaseRequired": true,
+      "acceptance": [
+        "Visualização read-only de Missions, dependências, agentes e provas",
+        "ExecutionOwner controla mutações, retries e cancelamento"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "smart-layouts",
+      "name": "Smart Layouts",
+      "category": "organization",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 105,
+      "releaseRequired": true,
+      "acceptance": [
+        "Layouts sugeridos por atividade sem spawn implícito de processo",
+        "Preservação de surface IDs, foco, splits e restauração"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "workspace-snapshots",
+      "name": "Workspace Snapshots",
+      "category": "organization",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 105,
+      "releaseRequired": true,
+      "acceptance": [
+        "Salvar e restaurar estado visual versionado por projeto",
+        "Não ressuscitar processo morto nem duplicar runtime"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "agent-groups",
+      "name": "Agent Groups",
+      "category": "organization",
+      "owner": "NEXUS",
+      "sourceStatus": "missing",
+      "issue": 105,
+      "releaseRequired": true,
+      "acceptance": [
+        "Agrupar Agents por tarefa, worktree e feature",
+        "Filtrar e reordenar preservando identidade e sessão"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "quick-switcher",
+      "name": "Quick Switcher",
+      "category": "organization",
+      "owner": "NEXUS",
+      "sourceStatus": "present",
+      "issue": 84,
+      "releaseRequired": true,
+      "acceptance": [
+        "Command Palette pesquisa projetos, Agents, ações e superfícies",
+        "Atalhos e foco confiáveis em desktop e mobile"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "follow-agent",
+      "name": "Follow Agent",
+      "category": "organization",
+      "owner": "NEXUS",
+      "sourceStatus": "missing",
+      "issue": 105,
+      "releaseRequired": true,
+      "acceptance": [
+        "Acompanhar visualização selecionada de Agent com pausa explícita",
+        "Não adquirir lease de input sem consentimento"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "floating-inspector",
+      "name": "Floating Inspector",
+      "category": "organization",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 104,
+      "releaseRequired": true,
+      "acceptance": [
+        "Inspector destacável com status, identidade, evidência e lineage",
+        "Somente estado observado e informação já autorizada"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "agent-parking",
+      "name": "Agent Parking",
+      "category": "execution",
+      "owner": "NEXUS",
+      "sourceStatus": "missing",
+      "issue": 114,
+      "releaseRequired": true,
+      "acceptance": [
+        "Diferenciar ocultar superfície de suspender runtime quando suportado",
+        "UI não diz que processo está pausado se só ficou oculto"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "attention-radar",
+      "name": "Attention Radar",
+      "category": "execution",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 100,
+      "releaseRequired": true,
+      "acceptance": [
+        "Consolidar aprovações, perguntas, erros e blockers de CLIs heterogêneos",
+        "Ações direcionadas a geração e provider corretos com dados verificáveis"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "focus-queue",
+      "name": "Focus Queue",
+      "category": "execution",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 100,
+      "releaseRequired": true,
+      "acceptance": [
+        "Fila de pendências priorizadas por severidade e tempo",
+        "Deduplicação, idempotência e resposta sem reabrir ações resolvidas"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "agent-timeline",
+      "name": "Agent Timeline",
+      "category": "execution",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 114,
+      "releaseRequired": true,
+      "acceptance": [
+        "Linha de tempo de launch, attach, quota, handoff e recovery",
+        "Eventos com timestamp, source, runtimeGeneration e correlação"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "resource-recommendations",
+      "name": "Resource Recommendations",
+      "category": "execution",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 87,
+      "releaseRequired": true,
+      "acceptance": [
+        "Recomendações com elegibilidade e motivo para conta/modelo",
+        "LIVE/CACHED/UNKNOWN explícitos; respeitar PIN e quota"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "runtime-health",
+      "name": "Runtime Health",
+      "category": "execution",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 114,
+      "releaseRequired": true,
+      "acceptance": [
+        "Diagnosticar lease, PTY, heartbeat, PID e provider capability",
+        "Erros e UNKNOWN visíveis sem afirmar recuperação falsa"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "agent-compare",
+      "name": "Agent Compare",
+      "category": "multiagent",
+      "owner": "NEXUS",
+      "sourceStatus": "missing",
+      "issue": 108,
+      "releaseRequired": true,
+      "acceptance": [
+        "Comparar duas implementações executadas em worktrees independentes",
+        "Testes e custo com evidência e critérios explícitos"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "review-handoff",
+      "name": "Review Handoff",
+      "category": "multiagent",
+      "owner": "INTEGRATION",
+      "sourceStatus": "partial",
+      "issue": 110,
+      "releaseRequired": true,
+      "acceptance": [
+        "Enviar diff de Agent para revisão independente delimitada",
+        "Resposta e proof vinculados ao dono do Run sem duplicar execução"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "consult-another-agent",
+      "name": "Consult Another Agent",
+      "category": "multiagent",
+      "owner": "INTEGRATION",
+      "sourceStatus": "partial",
+      "issue": 110,
+      "releaseRequired": true,
+      "acceptance": [
+        "Solicitar segunda opinião com contexto/scope do Maestro",
+        "Evitar loops, auto-delegação e ações externas não autorizadas"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "change-radar",
+      "name": "Change Radar",
+      "category": "multiagent",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 109,
+      "releaseRequired": true,
+      "acceptance": [
+        "Arquivos e hunks alterados agrupados por Agent/worktree",
+        "Aviso de colisão com base commit e revisão humana"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "test-matrix",
+      "name": "Test Matrix",
+      "category": "multiagent",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 109,
+      "releaseRequired": true,
+      "acceptance": [
+        "Exibir resultados reais dos comandos de teste por worktree",
+        "Exit code, SHA, timestamp e logs; nenhuma declaração LLM vira PASS"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "release-desk",
+      "name": "Release Desk",
+      "category": "multiagent",
+      "owner": "NEXUS",
+      "sourceStatus": "missing",
+      "issue": 109,
+      "releaseRequired": true,
+      "acceptance": [
+        "Vincular evidências, PRs, issues, diff e gates de uma release",
+        "Sem merge/publicação sem aprovação e checks verificáveis"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "browser-pane",
+      "name": "Browser Pane",
+      "category": "browser",
+      "owner": "NEXUS",
+      "sourceStatus": "present",
+      "issue": 107,
+      "releaseRequired": true,
+      "acceptance": [
+        "Abrir Browser como superfície real do Workspace OS",
+        "Sem iframe como substituto de browser automation"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "design-inspect",
+      "name": "Design Inspect",
+      "category": "browser",
+      "owner": "NEXUS",
+      "sourceStatus": "missing",
+      "issue": 107,
+      "releaseRequired": true,
+      "acceptance": [
+        "Selecionar elemento e coletar DOM/estilos/screenshot sanitizados",
+        "Encaminhar contexto apenas a Agent explicitamente escolhido"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "live-preview",
+      "name": "Live Preview",
+      "category": "browser",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 107,
+      "releaseRequired": true,
+      "acceptance": [
+        "Exibir app web local autorizada vinculada ao processo host",
+        "Não expor host arbitrário nem segredos de sessão"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "browser-automation",
+      "name": "Browser Automation",
+      "category": "browser",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 83,
+      "releaseRequired": true,
+      "acceptance": [
+        "MCP e CDP com capacidades verificáveis e grant temporário",
+        "Intervenção humana para MFA, revoke, isolamento e auditoria"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "visual-diff",
+      "name": "Visual Diff",
+      "category": "browser",
+      "owner": "NEXUS",
+      "sourceStatus": "missing",
+      "issue": 107,
+      "releaseRequired": true,
+      "acceptance": [
+        "Comparar antes/depois por screenshot determinística",
+        "Região e limiar declarados, revisão e artefatos rastreáveis"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "device-preview",
+      "name": "Device Preview",
+      "category": "browser",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 107,
+      "releaseRequired": true,
+      "acceptance": [
+        "Viewports de telefone, tablet e desktop na mesma browser session",
+        "Escalas, foco, acessibilidade e redimensionamento correto"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "mobile-inbox",
+      "name": "Mobile Inbox",
+      "category": "remote",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 111,
+      "releaseRequired": true,
+      "acceptance": [
+        "Perguntas/approvals e jobs no celular vinculados à sessão",
+        "Responder uma vez, inclusive em reconexões ou falhas de rede"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "remote-terminal",
+      "name": "Remote Terminal",
+      "category": "remote",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 111,
+      "releaseRequired": true,
+      "acceptance": [
+        "Conectar ao terminal existente sem criar novo runtime",
+        "Controle único com token scoped, CSRF, expiry e revoke"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "workspace-sharing",
+      "name": "Workspace Sharing",
+      "category": "remote",
+      "owner": "NEXUS",
+      "sourceStatus": "missing",
+      "issue": 112,
+      "releaseRequired": true,
+      "acceptance": [
+        "Compartilhar observação por projeto/Agent sob RBAC",
+        "Viewer-only inicial; cross-project leakage negado e revoke imediato"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "voice-actions",
+      "name": "Voice Actions",
+      "category": "remote",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 114,
+      "releaseRequired": true,
+      "acceptance": [
+        "Ação de voz exige controle explícito e identifica Agent de destino",
+        "Não inserir Enter automaticamente nem ler segredos do prompt"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "contextual-hud",
+      "name": "Contextual HUD",
+      "category": "remote",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 114,
+      "releaseRequired": true,
+      "acceptance": [
+        "HUD exibe apenas estado/sinal real de Agent e atenção",
+        "Não bloquear janelas; reduced-motion e smoke nativo"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "nex-companion",
+      "name": "Nex Operational Companion",
+      "category": "remote",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 114,
+      "releaseRequired": true,
+      "acceptance": [
+        "Mascote abre a ação operacional correspondente a evento confirmado",
+        "Respeitar NEX identity lock, alto contraste e motion reduction"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "workspace-recipes",
+      "name": "Workspace Recipes",
+      "category": "differentiator",
+      "owner": "NEXUS",
+      "sourceStatus": "missing",
+      "issue": 105,
+      "releaseRequired": true,
+      "acceptance": [
+        "Recipes Frontend/Backend/Review/Debug/Release são layouts reutilizáveis",
+        "Receita não inicia Agents ou ações automaticamente"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "parallel-challenge",
+      "name": "Parallel Challenge",
+      "category": "differentiator",
+      "owner": "NEXUS",
+      "sourceStatus": "missing",
+      "issue": 108,
+      "releaseRequired": true,
+      "acceptance": [
+        "Distribuir uma especificação a múltiplos Agents isolados e compará-los",
+        "Sem merge automático, custo UNKNOWN não vira zero"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "change-collision-detector",
+      "name": "Change Collision Detector",
+      "category": "differentiator",
+      "owner": "NEXUS",
+      "sourceStatus": "missing",
+      "issue": 109,
+      "releaseRequired": true,
+      "acceptance": [
+        "Detectar alterações conflitantes por base commit/hunks",
+        "Informar incerteza e permitir revisão antes do merge"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "device-handoff",
+      "name": "Seamless Device Handoff",
+      "category": "differentiator",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 111,
+      "releaseRequired": true,
+      "acceptance": [
+        "Continuar no mobile a sessão do host sem duplicar execução",
+        "Lease, reattach, estados reconciliados e histórico auditável"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "maestro-managed-dependency",
+      "name": "Maestro Mandatory Managed Dependency",
+      "category": "foundation",
+      "owner": "INTEGRATION",
+      "sourceStatus": "missing",
+      "issue": 113,
+      "releaseRequired": true,
+      "acceptance": [
+        "Nexus localiza/instala versão compatível e negocia capacidades",
+        "Maestro permanece standalone sem dependência do Nexus"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "maestro-canonical-memory",
+      "name": "Maestro Canonical Semantic Memory",
+      "category": "foundation",
+      "owner": "INTEGRATION",
+      "sourceStatus": "partial",
+      "issue": 113,
+      "releaseRequired": true,
+      "acceptance": [
+        "Migrar IntelligenceMemory com backup, dry-run, idempotência e rollback",
+        "Nexus retém somente checkpoint operacional e nunca segunda store semântica"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "single-execution-owner",
+      "name": "Single Execution Owner",
+      "category": "foundation",
+      "owner": "INTEGRATION",
+      "sourceStatus": "partial",
+      "issue": 113,
+      "releaseRequired": true,
+      "acceptance": [
+        "Cada Run tem executor único NEXUS ou MAESTRO",
+        "Retry, cancel e terminal input seguem o owner; não há duplo supervisor"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "composer-flow-onboarding",
+      "name": "Composer, Flow e tour da release",
+      "category": "foundation",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 102,
+      "releaseRequired": true,
+      "acceptance": [
+        "Concluir Composer/Flow e tours por componente reutilizável",
+        "E2E na distribuição final, PT/EN/ES, teclado e cenários reais"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "remote-generated-outputs",
+      "name": "Remote Generated Outputs",
+      "category": "foundation",
+      "owner": "NEXUS",
+      "sourceStatus": "partial",
+      "issue": 94,
+      "releaseRequired": true,
+      "acceptance": [
+        "Listar e visualizar imagens, vídeo e arquivos gerados no host",
+        "ACL por projeto, MIME/hash, TTL e não expor filesystem indiscriminadamente"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "two-client-real-e2e",
+      "name": "Two-Client Real Agent Homologation",
+      "category": "foundation",
+      "owner": "NEXUS",
+      "sourceStatus": "missing",
+      "issue": 81,
+      "releaseRequired": true,
+      "acceptance": [
+        "Dois clientes simultâneos e dois Agents em worktrees distintos",
+        "Leases, conflitos, handoffs, browsers e reconexões autenticados"
+      ],
+      "verification": "pending"
+    },
+    {
+      "id": "cross-platform-exact-sha",
+      "name": "Cross-Platform Exact-SHA Certification",
+      "category": "foundation",
+      "owner": "NEXUS",
+      "sourceStatus": "missing",
+      "issue": 27,
+      "releaseRequired": true,
+      "acceptance": [
+        "Linux/Windows/macOS mesma revisão em release candidate",
+        "PTY/ConPTY, Browser, Desktop, HUD, install e artefatos rastreáveis"
+      ],
+      "verification": "pending"
+    }
+  ]
+}
