@@ -17,6 +17,31 @@ Antes de qualquer alteração substancial no frontend ou backend, leia e siga ob
 * `docs/engineering/WEB_ENGINEERING_STANDARDS.md` (Padrões de Engenharia Frontend)
 * `docs/engineering/ENGINEERING_STANDARDS.md` (Padrões Globais do Nexus)
 
+## Product Discovery — regra para novas funcionalidades
+
+Em qualquer PR que introduza ou altere materialmente uma funcionalidade
+visível no Nexus, atualizar o catálogo de anúncios em
+`web/src/features/work/featureAnnouncements.ts` no mesmo commit (ou
+justificar por escrito que o recurso é interno e não deve ser anunciado).
+
+- Adicionar `id` estável, `revision` incremental, `openSurface`, superfície
+  real, seletor `data-tour`, título e descrição localizados PT-BR/EN/ES.
+- Reutilizar `FeatureTour`/`FeatureHint` e o `ProductTour` compartilhado.
+  Não criar um segundo tour engine, ticker ou central de notificações.
+- Para uma área nova, incluir `data-feature-tour-scope` no container do
+  módulo, e manter seletor/etapa dentro dessa instância de UI para não
+  cruzar painéis ou projetos.
+- A experiência é opt-in e não pode executar comandos, disparar agentes,
+  confirmar custos, modificar plano ou revelar dados sigilosos.
+- Cobrir os vínculos de UI, i18n, `featureReveal.test.ts`,
+  `tourTargets.test.ts` e `featureAnnouncements.test.ts`, além de E2E
+  visual no SHA publicado. Sem execução de teste, informar NO_GO.
+- Reutilizar bibliotecas licenciadas adequadamente; antes de instalar
+  novos pacotes, verificar licença, lockfile e build reprodutível. Driver.js
+  1.10.x é candidato documentado em #103, ainda não instalado.
+
+Especificação: `docs/product/feature-discovery.md`.
+
 ## 2. Regras Prescritivas para o Frontend (web/)
 
 1. **Pesquisa Obrigatória Antes de Criar**:
