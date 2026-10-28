@@ -14,6 +14,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 const scriptsDir = dirname(fileURLToPath(import.meta.url));
 const webDir = resolve(scriptsDir, '..');
+const check = process.argv.includes('--check');
 const outArg = process.argv.find((arg) => arg.startsWith('--output-dir='));
 const outputDir = outArg
   ? resolve(outArg.slice('--output-dir='.length))
@@ -24,7 +25,6 @@ if (check && outArg) {
   throw new Error('--check must validate the canonical web/public/nex exports');
 }
 const tempPath = resolve(scriptsDir, `.nex-art-export-${process.pid}.cjs`);
-const check = process.argv.includes('--check');
 
 const result = await build({
   stdin: {
