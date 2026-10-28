@@ -1,0 +1,68 @@
+name: Temporary Web formatting repair (branch-scoped)
+on:
+  push:
+    branches:
+      - fix/workspace-format-windows-diagnostics-20261027
+    paths:
+      - .github/workflows/temporary-web-format-20261027.yml
+permissions:
+  contents: write
+jobs:
+  format-workspace:
+    if: github.ref == 'refs/heads/fix/workspace-format-windows-diagnostics-20261027'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.9'
+      - name: Install locked dependencies
+        run: bun install --cwd web --frozen-lockfile
+      - name: Format only the ten files identified by existing CI
+        working-directory: web
+        run: |
+          bunx prettier --write \
+            src/app/attentionRadarModel.ts \
+            src/app/documentTitle.test.ts \
+            src/app/documentTitle.ts \
+            src/components/attentionToastModel.test.ts \
+            src/features/agents/NewAgentModal.tsx \
+            src/features/agents/structuredHarnessOptions.test.ts \
+            src/features/agents/structuredHarnessOptions.ts \
+            src/features/work/featureReveal.test.ts \
+            src/features/work/featureReveal.ts \
+            src/features/work/FeatureTour.tsx
+      - name: Publish deterministic formatting to this branch only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git add -- \
+            web/src/app/attentionRadarModel.ts \
+            web/src/app/documentTitle.test.ts \
+            web/src/app/documentTitle.ts \
+            web/src/components/attentionToastModel.test.ts \
+            web/src/features/agents/NewAgentModal.tsx \
+            web/src/features/agents/structuredHarnessOptions.test.ts \
+            web/src/features/agents/structuredHarnessOptions.ts \
+            web/src/features/work/featureReveal.test.ts \
+            web/src/features/work/featureReveal.ts \
+            web/src/features/work/FeatureTour.tsx
+          if git diff --cached --quiet; then
+            echo 'No additional formatting changes'
+            exit 0
+          fi
+          git fetch origin fix/workspace-format-windows-diagnostics-20261027
+          test "$(git rev-parse origin/fix/workspace-format-windows-diagnostics-20261027)" = "$(git rev-parse HEAD)" || {
+            echo 'Branch advanced: refusing stale write'
+            exit 1
+          }
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'style(web): normalize remaining release Prettier files'
+          git push origin HEAD:refs/heads/fix/workspace-format-windows-diagnostics-20261027
