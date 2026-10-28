@@ -14,10 +14,10 @@ var ErrAttentionConflict = errors.New("attention response is stale or already su
 // AttentionResponseExpectation binds a quick reply to the exact runtime
 // generation and durable attention revision displayed to its operator.
 type AttentionResponseExpectation struct {
-	Fingerprint        string `json:"attention_fingerprint"`
-	Revision           uint64 `json:"attention_revision"`
-	Generation         string `json:"attention_generation"`
-	InteractionID      string `json:"interaction_id,omitempty"`
+	Fingerprint   string `json:"attention_fingerprint"`
+	Revision      uint64 `json:"attention_revision"`
+	Generation    string `json:"attention_generation"`
+	InteractionID string `json:"interaction_id,omitempty"`
 }
 
 func ValidateAttentionResponse(s RuntimeSession, expected AttentionResponseExpectation) error {

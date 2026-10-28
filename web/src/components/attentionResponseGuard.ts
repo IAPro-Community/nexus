@@ -13,13 +13,15 @@ export function attentionResponseGuardForRuntime(
   runtime: RuntimeSession,
 ): AttentionResponseGuard | null {
   const revision = runtime.attention_revision || 0;
-  if (!isHonestNeedsUser(runtime) ||
-      runtime.attention_source !== 'INFERRED' ||
-      runtime.attention_reason !== 'QUESTION' ||
-      !runtime.attention_fingerprint ||
-      !Number.isSafeInteger(revision) ||
-      revision <= 0 ||
-      runtime.attention_submitted_revision === revision) {
+  if (
+    !isHonestNeedsUser(runtime) ||
+    runtime.attention_source !== 'INFERRED' ||
+    runtime.attention_reason !== 'QUESTION' ||
+    !runtime.attention_fingerprint ||
+    !Number.isSafeInteger(revision) ||
+    revision <= 0 ||
+    runtime.attention_submitted_revision === revision
+  ) {
     return null;
   }
   if (!['yn', 'choice', 'free_text'].includes(runtime.prompt_kind || '')) return null;

@@ -657,7 +657,7 @@ func (d *AttentionDetector) ObserveOperatorInput(data []byte) {
 	_ = d.ownerRegistry().UpdateAttentionMeta(d.runtimeID, registry.AttentionUpdate{
 		State: registry.StateRunning, Reason: d.lastReason, Kind: d.lastKind,
 		PromptKind: PromptKindNone, Fingerprint: "", Context: "",
-		Source: "INFERRED",
+		Source:    "INFERRED",
 		ProjectID: d.projectID, ProjectName: d.projectName,
 		DynamicTitle: d.lastTitle,
 	})

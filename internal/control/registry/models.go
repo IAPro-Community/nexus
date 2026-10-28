@@ -61,56 +61,56 @@ const (
 // RuntimeSession represents a managed execution session under AI Control.
 // Note: Secrets, OAuth tokens, and API keys are NEVER stored in this struct or persisted.
 type RuntimeSession struct {
-	RuntimeID                 string             `json:"runtime_id"`
-	AgentID                   string             `json:"agent_id,omitempty"`
-	Title                     string             `json:"title,omitempty"`
-	ProviderID                string             `json:"provider_id"`
-	ProfileID                 string             `json:"profile_id"`
-	AccountScope              model.AccountScope `json:"account_scope,omitempty"`
-	ProviderSessionID         string             `json:"provider_session_id,omitempty"`
-	Model                     string             `json:"model,omitempty"`
-	Workspace                 string             `json:"workspace"`
-	PID                       int                `json:"pid"`
-	ProviderGeneration        int64              `json:"provider_generation,omitempty"`
-	HostPID                   int                `json:"host_pid,omitempty"`
-	HostGeneration            int64              `json:"host_generation,omitempty"`
-	HostBinaryPath            string             `json:"host_binary_path,omitempty"`
-	HostBinaryFingerprint     string             `json:"host_binary_fingerprint,omitempty"`
-	ProviderBinaryPath        string             `json:"provider_binary_path,omitempty"`
-	ProviderBinaryFingerprint string             `json:"provider_binary_fingerprint,omitempty"`
-	Binary                    string             `json:"-"`
-	Args                      []string           `json:"-"`
-	Env                       []string           `json:"-"`
-	State                     RuntimeState       `json:"state"`
-	StartupStage              StartupStage       `json:"startup_stage,omitempty"`
-	StageChangedAt            time.Time          `json:"stage_changed_at,omitempty"`
-	LastFault                 StartupFault       `json:"last_fault,omitempty"`
-	ControlLevel              ControlLevel       `json:"control_level"`
-	StartedAt                 time.Time          `json:"started_at"`
-	UpdatedAt                 time.Time          `json:"updated_at"`
-	ControlEndpoint           string             `json:"control_endpoint"`
-	ParentRuntimeID           string             `json:"parent_runtime_id,omitempty"`
-	HandoffType               string             `json:"handoff_type,omitempty"`
-	Continuity                string             `json:"continuity,omitempty"`
-	LineageID                 string             `json:"lineage_id,omitempty"`
-	Labels                    map[string]string  `json:"labels,omitempty"`
-	MachineID                 string             `json:"machine_id,omitempty"`
-	Location                  string             `json:"location,omitempty"`
-	Transport                 string             `json:"transport,omitempty"`
-	AttentionReason           string             `json:"attention_reason,omitempty"`
-	AttentionContext          string             `json:"attention_context,omitempty"`
-	PromptKind                string             `json:"prompt_kind,omitempty"`    // yn | choice | free_text | none
-	AttentionKind             string             `json:"attention_kind,omitempty"` // needs_user | working | completed | error | idle
-	AttentionFingerprint      string             `json:"attention_fingerprint,omitempty"`
-	AttentionRevision         uint64             `json:"attention_revision,omitempty"`
-	AttentionSubmittedRevision uint64            `json:"attention_submitted_revision,omitempty"`
-	AttentionGeneration       string             `json:"attention_generation,omitempty"`
-	AttentionSource           string             `json:"attention_source,omitempty"`
-	AttentionInteractionID    string             `json:"attention_interaction_id,omitempty"`
-	ProjectID                 string             `json:"project_id,omitempty"`
-	ProjectName               string             `json:"project_name,omitempty"`
-	LastTaskSummary           string             `json:"last_task_summary,omitempty"`
-	DynamicTitle              string             `json:"dynamic_title,omitempty"`
+	RuntimeID                  string             `json:"runtime_id"`
+	AgentID                    string             `json:"agent_id,omitempty"`
+	Title                      string             `json:"title,omitempty"`
+	ProviderID                 string             `json:"provider_id"`
+	ProfileID                  string             `json:"profile_id"`
+	AccountScope               model.AccountScope `json:"account_scope,omitempty"`
+	ProviderSessionID          string             `json:"provider_session_id,omitempty"`
+	Model                      string             `json:"model,omitempty"`
+	Workspace                  string             `json:"workspace"`
+	PID                        int                `json:"pid"`
+	ProviderGeneration         int64              `json:"provider_generation,omitempty"`
+	HostPID                    int                `json:"host_pid,omitempty"`
+	HostGeneration             int64              `json:"host_generation,omitempty"`
+	HostBinaryPath             string             `json:"host_binary_path,omitempty"`
+	HostBinaryFingerprint      string             `json:"host_binary_fingerprint,omitempty"`
+	ProviderBinaryPath         string             `json:"provider_binary_path,omitempty"`
+	ProviderBinaryFingerprint  string             `json:"provider_binary_fingerprint,omitempty"`
+	Binary                     string             `json:"-"`
+	Args                       []string           `json:"-"`
+	Env                        []string           `json:"-"`
+	State                      RuntimeState       `json:"state"`
+	StartupStage               StartupStage       `json:"startup_stage,omitempty"`
+	StageChangedAt             time.Time          `json:"stage_changed_at,omitempty"`
+	LastFault                  StartupFault       `json:"last_fault,omitempty"`
+	ControlLevel               ControlLevel       `json:"control_level"`
+	StartedAt                  time.Time          `json:"started_at"`
+	UpdatedAt                  time.Time          `json:"updated_at"`
+	ControlEndpoint            string             `json:"control_endpoint"`
+	ParentRuntimeID            string             `json:"parent_runtime_id,omitempty"`
+	HandoffType                string             `json:"handoff_type,omitempty"`
+	Continuity                 string             `json:"continuity,omitempty"`
+	LineageID                  string             `json:"lineage_id,omitempty"`
+	Labels                     map[string]string  `json:"labels,omitempty"`
+	MachineID                  string             `json:"machine_id,omitempty"`
+	Location                   string             `json:"location,omitempty"`
+	Transport                  string             `json:"transport,omitempty"`
+	AttentionReason            string             `json:"attention_reason,omitempty"`
+	AttentionContext           string             `json:"attention_context,omitempty"`
+	PromptKind                 string             `json:"prompt_kind,omitempty"`    // yn | choice | free_text | none
+	AttentionKind              string             `json:"attention_kind,omitempty"` // needs_user | working | completed | error | idle
+	AttentionFingerprint       string             `json:"attention_fingerprint,omitempty"`
+	AttentionRevision          uint64             `json:"attention_revision,omitempty"`
+	AttentionSubmittedRevision uint64             `json:"attention_submitted_revision,omitempty"`
+	AttentionGeneration        string             `json:"attention_generation,omitempty"`
+	AttentionSource            string             `json:"attention_source,omitempty"`
+	AttentionInteractionID     string             `json:"attention_interaction_id,omitempty"`
+	ProjectID                  string             `json:"project_id,omitempty"`
+	ProjectName                string             `json:"project_name,omitempty"`
+	LastTaskSummary            string             `json:"last_task_summary,omitempty"`
+	DynamicTitle               string             `json:"dynamic_title,omitempty"`
 }
 
 // IsActive returns true if the runtime is in an operational lifecycle state.

@@ -429,18 +429,18 @@ func (r *Registry) UpdateTitle(runtimeID, title string) error {
 
 // AttentionUpdate carries fail-closed attention metadata for a runtime.
 type AttentionUpdate struct {
-	State        RuntimeState
-	Reason       string
-	Context      string
-	PromptKind   string
-	Kind         string
-	Fingerprint  string
-	Source       string
+	State         RuntimeState
+	Reason        string
+	Context       string
+	PromptKind    string
+	Kind          string
+	Fingerprint   string
+	Source        string
 	InteractionID string
-	ProjectID    string
-	ProjectName  string
-	TaskSummary  string
-	DynamicTitle string
+	ProjectID     string
+	ProjectName   string
+	TaskSummary   string
+	DynamicTitle  string
 }
 
 // UpdateAttention updates the attention metadata and dynamic title of a runtime session.

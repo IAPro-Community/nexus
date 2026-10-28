@@ -66,9 +66,9 @@ func TestAttentionRevisionAndOneShotClaimAcrossRegistryInstances(t *testing.T) {
 
 func TestAttentionClaimRejectsStaleGenerationNativeStatusAndUnsupportedResponse(t *testing.T) {
 	tests := []struct {
-		name      string
-		change    func(*RuntimeSession)
-		expected  AttentionResponseExpectation
+		name     string
+		change   func(*RuntimeSession)
+		expected AttentionResponseExpectation
 	}{
 		{"old generation", func(s *RuntimeSession) {}, AttentionResponseExpectation{
 			Fingerprint: "fingerprint-a", Revision: 1, Generation: "old-host:old-provider",
