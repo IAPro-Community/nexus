@@ -2,7 +2,7 @@
 /* Verify and optionally promote the binary status of the 2026-10-28 NEX reference pack. */
 import { createHash } from 'node:crypto';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
@@ -13,8 +13,25 @@ const promote=process.argv.includes('--promote');
 const errors=[];
 if(manifest.assets.length!==2)errors.push('Expected exactly two raster references');
 for (const item of manifest.assets) {
+  // Never compare native Windows paths against a hard-coded POSIX slash.
+  // These two references have a fixed, project-owned directory and filename;
+  // reject traversal, absolute paths and unexpected manifest locations.
+  const expectedPath = `docs/design/nex/reference-pack/2026-10-28/${item.filename}`;
+  if (
+    !/^[a-zA-Z0-9][a-zA-Z0-9._-]*\\.png$/.test(item.filename) ||
+    item.path !== expectedPath ||
+    item.path.includes('..') ||
+    item.path.includes('\\\\')
+  ) {
+    errors.push('Unsafe asset path: '+item.path);
+    continue;
+  }
   const path=resolve(root,item.path);
-  if(!path.startsWith(root+'/')) {errors.push('Unsafe asset path: '+item.path);continue;}
+  const rel=relative(root,path);
+  if (!rel || rel==='..' || rel.startsWith('..'+sep) || isAbsolute(rel)) {
+    errors.push('Unsafe asset path: '+item.path);
+    continue;
+  }
   if(!/^[0-9a-f]{64}$/.test(item.sha256))errors.push('Invalid SHA-256: '+item.path);
   if (!existsSync(path)){
     if(strict || item.binary_status==='VERSIONED')errors.push('Missing PNG: '+item.path);
