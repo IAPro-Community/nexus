@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Bell, Compass, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Badge, Button, DropdownMenu, Tooltip } from '../../design-system';
@@ -31,13 +31,17 @@ const readProgress = (key: string, length: number): number => {
   }
 };
 
-const visibleTarget = (selector: string) => {
-  const el = document.querySelector(selector) as HTMLElement | null;
+/** Never search the whole page for contextual tour targets: Nexus can keep
+ * several projects and split workspaces mounted at the same time. */
+export function hasTourTargetInScope(
+  scope: Element | null | undefined,
+  selector: string,
+): boolean {
+  const el = scope?.querySelector(selector) as HTMLElement | null;
   if (!el) return false;
   const r = el.getBoundingClientRect();
-  // The target may be below the fold; ProductTour scrolls it into view.
   return r.width > 0 && r.height > 0 && r.bottom > 0 && r.right > 0;
-};
+}
 
 /**
  * Scope-aware feature discovery, built on the design system's Radix Tooltip
@@ -53,6 +57,15 @@ export const FeatureTour: React.FC<{
 }> = ({ projectId, surface }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const hostRef = useRef<HTMLDivElement>(null);
+  const visibleTarget = useCallback(
+    (selector: string) =>
+      hasTourTargetInScope(
+        hostRef.current?.closest('[data-feature-tour-scope]'),
+        selector,
+      ),
+    [],
+  );
   const [initialIndex, setInitialIndex] = useState(0);
   const [updates, setUpdates] = useState<FeatureAnnouncement[]>([]);
   const [, refreshReadState] = useState(0);
@@ -124,7 +137,7 @@ export const FeatureTour: React.FC<{
       if (frame !== undefined) window.cancelAnimationFrame(frame);
       stopObserving();
     };
-  }, [projectId, surface, steps]);
+  }, [projectId, surface, steps, visibleTarget]);
 
   useEffect(() => {
     setOpen(false);
@@ -135,7 +148,7 @@ export const FeatureTour: React.FC<{
       setUpdates(announcementsForSurface(surface, visibleTarget));
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [projectId, surface]);
+  }, [projectId, surface, visibleTarget]);
 
   const markRead = (items: readonly FeatureAnnouncement[]) => {
     items.forEach((item) => {
@@ -182,7 +195,7 @@ export const FeatureTour: React.FC<{
   const first = unread[0];
   return (
     <>
-      <div className={styles.root} data-feature-discovery={surface}>
+      <div ref={hostRef} className={styles.root} data-feature-discovery={surface}>
         <Tooltip content={t('discovery.helpHint', 'Passo a passo interativo desta área')}>
           <Button size="sm" onClick={() => begin()}>
             <Compass size={14} aria-hidden="true" />
@@ -253,6 +266,7 @@ export const FeatureTour: React.FC<{
       <ProductTour
         open={open}
         steps={steps}
+        targetScope={hostRef.current?.closest('[data-feature-tour-scope]')}
         initialIndex={initialIndex}
         onStepChange={save}
         onClose={() => setOpen(false)}
