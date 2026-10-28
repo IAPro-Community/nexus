@@ -29,6 +29,50 @@ describe('surfaceAttention', () => {
     expect(titled.hasAttention).toBe(true);
   });
 
+  it('does not mark an uncorrelated or stale approval as actionable', () => {
+    const noPrompt = runtime({
+      state: 'WAITING',
+      attention_reason: 'QUESTION',
+      attention_kind: 'needs_user',
+      prompt_kind: 'none',
+      attention_context: '',
+    });
+    const explicitIdle = runtime({
+      state: 'RUNNING',
+      attention_reason: 'APPROVAL',
+      attention_kind: 'idle',
+      prompt_kind: 'yn',
+      attention_context: 'Previous approval',
+    });
+    const stopped = runtime({
+      state: 'STOPPED',
+      attention_reason: 'QUESTION',
+      attention_kind: 'needs_user',
+      prompt_kind: 'yn',
+      attention_context: 'Previous question',
+    });
+    for (const item of [noPrompt, explicitIdle, stopped]) {
+      const title = surfaceTitleFromAgent('Backend', item);
+      expect(title.attentionKind).not.toBe('needs_user');
+      expect(title.statusSuffix).not.toBe('pergunta');
+      expect(title.hasAttention).toBe(false);
+    }
+  });
+
+  it('preserves a legacy question with context but without attention_kind', () => {
+    const result = surfaceTitleFromAgent(
+      'Backend',
+      runtime({
+        state: 'WAITING',
+        attention_reason: 'QUESTION',
+        attention_kind: undefined,
+        attention_context: 'Continue?',
+      }),
+    );
+    expect(result.attentionKind).toBe('needs_user');
+    expect(result.hasAttention).toBe(true);
+  });
+
   it('does not replace the name with dynamic_title', () => {
     const titled = surfaceTitleFromAgent(
       'Frontend',

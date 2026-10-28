@@ -64,7 +64,9 @@ describe('buildDocumentTitle', () => {
       }),
     ];
     expect(distinctAttentionFingerprints(runtimes)).toHaveLength(3);
-    expect(buildDocumentTitle('proxy-nginx', runtimes)).toBe('Nexus · proxy-nginx · 3 esperando input');
+    expect(buildDocumentTitle('proxy-nginx', runtimes)).toBe(
+      'Nexus · proxy-nginx · 3 esperando input',
+    );
     expect(buildDocumentTitle('proxy-nginx', runtimes)).not.toContain('❓');
   });
 
@@ -88,6 +90,50 @@ describe('buildDocumentTitle', () => {
       }),
     ];
     expect(buildDocumentTitle('demo', runtimes)).toBe('Nexus · demo · 2 esperando input');
+  });
+
+  it('does not keep a stale question after a runtime stops, fails or becomes stale', () => {
+    for (const state of ['STOPPING', 'STOPPED', 'FAILED', 'STALE'] as const) {
+      const runtime = rt({
+        runtime_id: 'closed',
+        state,
+        attention_kind: 'needs_user',
+        attention_reason: 'QUESTION',
+        prompt_kind: 'yn',
+        attention_context: 'Old approval?',
+      });
+      expect(distinctAttentionFingerprints([runtime])).toEqual([]);
+      expect(buildDocumentTitle('demo', [runtime])).toBe('Nexus · demo');
+    }
+  });
+
+  it('rejects explicit idle evidence even when a previous QUESTION reason remains', () => {
+    const runtime = rt({
+      attention_kind: 'idle',
+      attention_reason: 'QUESTION',
+      prompt_kind: 'yn',
+      attention_context: 'Stale context?',
+    });
+    expect(distinctAttentionFingerprints([runtime])).toEqual([]);
+  });
+
+  it('keeps legacy QUESTION without attention_kind when its context is usable', () => {
+    const runtime = rt({
+      attention_kind: undefined,
+      attention_reason: 'QUESTION',
+      attention_context: 'Legacy approval?',
+    });
+    expect(distinctAttentionFingerprints([runtime])).toHaveLength(1);
+  });
+
+  it('does not infer a structured answer without an actionable prompt kind', () => {
+    const runtime = rt({
+      attention_kind: 'needs_user',
+      attention_reason: 'APPROVAL',
+      prompt_kind: undefined,
+      attention_context: 'Uncorrelated permission request',
+    });
+    expect(distinctAttentionFingerprints([runtime])).toEqual([]);
   });
 
   it('ignores waits without usable context', () => {

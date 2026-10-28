@@ -6,11 +6,9 @@ export type SurfaceAttentionKind = 'needs_user' | 'completed' | 'error' | 'worki
 
 export function attentionKindFromRuntime(runtime?: RuntimeSession | null): SurfaceAttentionKind {
   if (!runtime) return '';
-  if (
-    isHonestNeedsUser(runtime) ||
-    runtime.attention_reason === 'QUESTION' ||
-    runtime.attention_reason === 'APPROVAL'
-  ) {
+  // Match Radar, document title and toast rules. A stale QUESTION reason
+  // without a live, actionable prompt must not mark this surface unread.
+  if (isHonestNeedsUser(runtime)) {
     return 'needs_user';
   }
   if (

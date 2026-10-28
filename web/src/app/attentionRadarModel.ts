@@ -1,6 +1,10 @@
 import type { RuntimeSession } from '../types';
 import { sanitizeAttentionText } from '../components/attentionText';
-import { attentionFingerprintOf, isHonestNeedsUser } from './documentTitle';
+import {
+  attentionFingerprintOf,
+  isActiveAttentionRuntime,
+  isHonestNeedsUser,
+} from './documentTitle';
 
 export type RadarBadge = 'needs_user' | 'working' | 'completed' | 'error' | 'idle';
 
@@ -43,9 +47,7 @@ function badgeFor(runtime: RuntimeSession): RadarBadge {
 
 export function buildAttentionRadar(runtimes: RuntimeSession[]): RadarProjectGroup[] {
   const list = Array.isArray(runtimes) ? runtimes : [];
-  const active = list.filter((runtime) =>
-    ['STARTING', 'RUNNING', 'WAITING', 'APPROVAL', 'DETACHED', 'HANDOFF'].includes(runtime.state),
-  );
+  const active = list.filter(isActiveAttentionRuntime);
 
   const groups = new Map<string, RadarProjectGroup>();
   for (const runtime of active) {
@@ -54,7 +56,9 @@ export function buildAttentionRadar(runtimes: RuntimeSession[]): RadarProjectGro
     const badge = badgeFor(runtime);
     const honest = isHonestNeedsUser(runtime);
     const sanitizedContext = honest ? sanitizeAttentionText(runtime.attention_context, '') : '';
-    const messageKey = honest ? `${runtime.runtime_id}\0${attentionFingerprintOf(runtime)}` : undefined;
+    const messageKey = honest
+      ? `${runtime.runtime_id}\0${attentionFingerprintOf(runtime)}`
+      : undefined;
     const item: RadarRuntimeItem = {
       runtimeId: runtime.runtime_id,
       agentId: runtime.agent_id || undefined,
