@@ -1,30 +1,31 @@
-import type { AgentConfig } from '../../types';
+import type { AgentConfig, ProviderInfo } from '../../types';
 
-/** Provider-native transports currently exposed by the experimental SessionHost. */
+/** Provider-native transports advertised by the running Core, not authenticated E2E proof. */
 export type StructuredHarnessProtocol = '' | 'acp' | 'pi_rpc';
 
-const protocols: Record<string, Exclude<StructuredHarnessProtocol, ''>[]> = {
-  opencode: ['acp'],
-  pi: ['pi_rpc'],
-  omp: ['acp', 'pi_rpc'],
-  mimo: ['acp'],
-  dsh: ['acp'],
-};
+type ReportedProvider = Pick<ProviderInfo, 'installed' | 'structured_modes'>;
 
+/**
+ * Core is the sole authority for experimental entrypoints. Older Core builds,
+ * unavailable probes and malformed/unknown protocol names must fail closed.
+ * This is discovery only: the launcher still validates and authorizes launch.
+ */
 export function structuredProtocolsForProvider(
-  provider: string,
-  installedAndRegistered: boolean,
+  provider: ReportedProvider | null | undefined,
 ): Exclude<StructuredHarnessProtocol, ''>[] {
-  if (!installedAndRegistered) return [];
-  return protocols[provider.toLowerCase()] ?? [];
+  if (!provider?.installed || !Array.isArray(provider.structured_modes)) return [];
+  return provider.structured_modes
+    .filter(
+      (mode): mode is Exclude<StructuredHarnessProtocol, ''> => mode === 'acp' || mode === 'pi_rpc',
+    )
+    .filter((mode, index, modes) => modes.indexOf(mode) === index);
 }
 
 export function isStructuredProtocolAllowed(
-  provider: string,
+  provider: ReportedProvider | null | undefined,
   mode: StructuredHarnessProtocol,
-  installedAndRegistered: boolean,
 ): boolean {
-  return mode === '' || structuredProtocolsForProvider(provider, installedAndRegistered).includes(mode);
+  return mode === '' || structuredProtocolsForProvider(provider).includes(mode);
 }
 
 /**

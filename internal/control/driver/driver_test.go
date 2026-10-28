@@ -103,3 +103,26 @@ func TestHeadlessKickoffArgsMatchProviderCLIContracts(t *testing.T) {
 		})
 	}
 }
+
+func TestReadOnlyReviewBooleanEvidenceProjection(t *testing.T) {
+	cases := []struct {
+		status CapabilityStatus
+		want   bool
+	}{
+		{CapabilitySupported, true},
+		{CapabilityPartial, false},
+		{CapabilityUnsupported, false},
+		{CapabilityUnknown, false},
+		{CapabilityNotTested, false},
+	}
+	for _, tc := range cases {
+		t.Run(string(tc.status), func(t *testing.T) {
+			caps := EffectiveCapabilities{
+				ReadOnlyReview: CapabilityEvidence{Status: tc.status},
+			}
+			if got := caps.ToBooleanCaps().ReadOnlyReview; got != tc.want {
+				t.Fatalf("read_only_review = %t for %q; want %t", got, tc.status, tc.want)
+			}
+		})
+	}
+}

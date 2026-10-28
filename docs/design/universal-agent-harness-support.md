@@ -1,6 +1,6 @@
 # Universal Harness Support & Agent Attention — Nexus 1.0
 
-**Status:** PROPOSED / NOT IMPLEMENTED / NOT HOMOLOGATED  
+**Status:** PARTIALLY IMPLEMENTED / EXPERIMENTAL / NOT HOMOLOGATED
 **Date:** 2026-10-27  
 **Canonical target:** `release/v1.0.0`  
 **Owner:** Nexus Control Plane. Maestro remains independent and owns planning, orchestration, reasoning and memory.
@@ -15,13 +15,40 @@ Prioritize a shared **ACP client transport** (negotiated protocol version + capa
 
 ## Baseline already in Nexus (inspected on release/v1.0.0)
 
-- `internal/control/driver/{agy,codex,opencode,claude,gemini}_driver.go`: all currently implement terminal-only supervised execution. Existing drivers declare `StructuredEvents=UNSUPPORTED`, including Codex and OpenCode despite upstream protocols.
+- `internal/control/driver/{agy,codex,opencode,claude,gemini}_driver.go`: normal interactive TUI still uses supervised terminals. An explicit experimental `agent_protocol` may use the shared structured `SessionHost` backend; this does not reclassify the normal driver as verified structured control.
 - `internal/control/driver/driver.go`: `EffectiveCapabilities` with evidence and `ControlLevel`. **Extend optional capabilities**, do not add a parallel provider registry or blindly change booleans.
 - `internal/control/host/attention.go`: PTY fallback recognizer, OSC title, prompt detection and `ObserveOperatorInput`.
 - `internal/control/registry` and `internal/control/events`: runtime state and event bus should remain canonical.
 - `web/src/app/attentionRadarModel.ts`, `web/src/workspace/surfaceAttention.ts`, `web/src/notifications/attentionDelivery.ts`: consumer UI; attach WS is display-only; only one notification producer.
 - `internal/nexus/runner/attention_center.go`: MissionRun attention read model; must **not** be replaced or conflated with Direct runtime attention.
 - Existing work: #78 PTY/ConPTY reliability; #81 two-agent runtime QA.
+
+## Source implementation update — 28 October 2026
+
+The release already contains `internal/control/agentwire/{acp,jsonline,pi,bridge,state}.go`,
+a supervised `SessionHost` structured backend and explicit launcher selection for
+`agent_protocol=acp|pi_rpc`. This is implementation of a transport and lifecycle
+foundation, **not** E2E support for every installed CLI.
+
+`GET /api/v1/providers` advertises `structured_modes` only when the Core
+has explicitly enabled experimental harnesses and the corresponding CLI probe
+reports installed. The Web picker reads this field directly; it does not keep
+an independent provider-to-protocol matrix. Unknown or absent values must
+fail closed, leaving the existing PTY mode available. The Go launcher
+revalidates the protocol, launch flags, provider/profile and feature gate;
+a displayed entrypoint is **not** authenticated/verified capability.
+
+Capability evidence from the Core has statuses `SUPPORTED`, `PARTIAL`,
+`UNSUPPORTED`, `UNKNOWN` and `NOT_TESTED`, a separate `tested`
+boolean, and a `read_only_review` field. The TypeScript API models these
+without treating `PARTIAL` or `NOT_TESTED` as `SUPPORTED`; older Cores may
+not return the newer field. The legacy boolean capability projection is
+derived from evidence status, never from the protocol-name picker.
+
+**Remaining:** capability/version negotiation against live binaries, matching
+real accounts, authenticated question/approval round trips, recovery,
+cross-platform correctness and per-provider proof. Preserve the experimental
+flag and `Tested:false` until those checks pass.
 
 ## Provider/harness inventory and integration strategy
 

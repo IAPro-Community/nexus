@@ -16,10 +16,21 @@ import {
 import { Button, Card, Dialog, Input, Select } from '../../design-system';
 import { nexus } from '../../nexus/api';
 import { api } from '../../api';
-import { bindStructuredHarnessProfile, structuredProtocolsForProvider, type StructuredHarnessProtocol } from './structuredHarnessOptions';
+import {
+  bindStructuredHarnessProfile,
+  structuredProtocolsForProvider,
+  type StructuredHarnessProtocol,
+} from './structuredHarnessOptions';
 import { isRequiredResourceSelection } from '../../nexus/agentTerminalModel';
 import { withAgentExecutionMode } from '../../nexus/agentExecutionMode';
-import type { Agent, AgentConfig, AgentMode, ProfileInfo, Project } from '../../types';
+import type {
+  Agent,
+  AgentConfig,
+  AgentMode,
+  ProfileInfo,
+  Project,
+  ProviderInfo,
+} from '../../types';
 import styles from './NewAgentModal.module.scss';
 
 type ModePresentation = {
@@ -169,8 +180,7 @@ export const NewAgentModal: React.FC<{
   const [name, setName] = useState('');
   const [origin, setOrigin] = useState<'native' | 'custom'>('native');
   const [provider, setProvider] = useState('codex');
-  const [installedProviders, setInstalledProviders] = useState<string[]>([]);
-  const [reportedProtocols, setReportedProtocols] = useState<Record<string, string[]>>({});
+  const [providerDiscovery, setProviderDiscovery] = useState<ProviderInfo[]>([]);
   const [availableProfiles, setAvailableProfiles] = useState<ProfileInfo[]>([]);
   const [structuredProfile, setStructuredProfile] = useState('');
   const [agentProtocol, setAgentProtocol] = useState<StructuredHarnessProtocol>('');
@@ -214,24 +224,28 @@ export const NewAgentModal: React.FC<{
     setLoadingModes(true);
     setError('');
     setAgentProtocol('');
-    setInstalledProviders([]);
-    setReportedProtocols({});
+    setProviderDiscovery([]);
     setAvailableProfiles([]);
     setStructuredProfile('');
-    void api.getProfiles()
-      .then((profiles) => { if (alive) setAvailableProfiles(profiles); })
-      .catch(() => { if (alive) setAvailableProfiles([]); });
-    void api.getProviders()
+    void api
+      .getProfiles()
+      .then((profiles) => {
+        if (alive) setAvailableProfiles(profiles);
+      })
+      .catch(() => {
+        if (alive) setAvailableProfiles([]);
+      });
+    void api
+      .getProviders()
       .then((providers) => {
         if (!alive) return;
         // The Core only registers experimental harnesses when its opt-in flag
         // is enabled. A failed probe must not advertise preview support.
-        setInstalledProviders(providers.filter((entry) => entry.installed).map((entry) => entry.id));
-        setReportedProtocols(Object.fromEntries(
-          providers.filter((entry) => entry.installed).map((entry) => [entry.id, entry.structured_modes || []]),
-        ));
+        setProviderDiscovery(providers);
       })
-      .catch(() => { if (alive) { setInstalledProviders([]); setReportedProtocols({}); } });
+      .catch(() => {
+        if (alive) setProviderDiscovery([]);
+      });
     void nexus
       .listAgentModes()
       .then((modes) => {
@@ -276,12 +290,16 @@ export const NewAgentModal: React.FC<{
     setMode(executionModeFor(preset));
   };
 
+  const installedProviders = providerDiscovery
+    .filter((entry) => entry.installed)
+    .map((entry) => entry.id);
   const structuredChoices = structuredProtocolsForProvider(
-    provider,
-    installedProviders.includes(provider),
-  ).filter((mode) => (reportedProtocols[provider] || []).includes(mode));
+    providerDiscovery.find((entry) => entry.id === provider),
+  );
   const structuredProfiles = availableProfiles.filter((entry) => entry.provider === provider);
-  const validStructuredProfile = structuredProfiles.some((entry) => entry.name === structuredProfile);
+  const validStructuredProfile = structuredProfiles.some(
+    (entry) => entry.name === structuredProfile,
+  );
   const resolvedPreview =
     origin === 'native'
       ? `nexus ${provider}${agentProtocol ? ` [${agentProtocol.toUpperCase()} experimental]` : mode === 'YOLO' ? ' --yolo' : ''}`
@@ -299,7 +317,9 @@ export const NewAgentModal: React.FC<{
   const handleCreate = async () => {
     if (!name.trim() || !selectedType) return;
     if (agentProtocol && (!structuredChoices.includes(agentProtocol) || !validStructuredProfile)) {
-      setError('Configure e selecione um perfil registrado antes de iniciar um agente estruturado.');
+      setError(
+        'Configure e selecione um perfil registrado antes de iniciar um agente estruturado.',
+      );
       return;
     }
     setBusy(true);
@@ -486,7 +506,10 @@ export const NewAgentModal: React.FC<{
                   data-tone={origin === 'custom' ? 'brand' : 'default'}
                   data-size="sm"
                   aria-pressed={origin === 'custom'}
-                  onClick={() => { setOrigin('custom'); setAgentProtocol(''); }}
+                  onClick={() => {
+                    setOrigin('custom');
+                    setAgentProtocol('');
+                  }}
                 >
                   {t('agents.originCustom')}
                 </button>
@@ -561,7 +584,9 @@ export const NewAgentModal: React.FC<{
                 {structuredChoices.length > 0 && (
                   <>
                     <label className={styles.fieldSublabel} htmlFor="new-agent-protocol">
-                      {t('agents.structuredProtocol', { defaultValue: 'Agent protocol (experimental)' })}
+                      {t('agents.structuredProtocol', {
+                        defaultValue: 'Agent protocol (experimental)',
+                      })}
                     </label>
                     <Select
                       id="new-agent-protocol"
@@ -572,7 +597,8 @@ export const NewAgentModal: React.FC<{
                           setMode('Safe');
                           setStructuredProfile(
                             structuredProfiles.find((entry) => entry.is_default)?.name ||
-                              structuredProfiles[0]?.name || '',
+                              structuredProfiles[0]?.name ||
+                              '',
                           );
                         } else {
                           setStructuredProfile('');
@@ -582,7 +608,8 @@ export const NewAgentModal: React.FC<{
                         { value: '', label: 'Terminal / PTY (default)' },
                         ...structuredChoices.map((value) => ({
                           value,
-                          label: value === 'acp' ? 'ACP (experimental)' : 'Pi JSONL RPC (experimental)',
+                          label:
+                            value === 'acp' ? 'ACP (experimental)' : 'Pi JSONL RPC (experimental)',
                         })),
                       ]}
                     />
@@ -708,7 +735,10 @@ export const NewAgentModal: React.FC<{
             tone="brand"
             onClick={handleCreate}
             disabled={
-              busy || loadingModes || !selectedType || !name.trim() ||
+              busy ||
+              loadingModes ||
+              !selectedType ||
+              !name.trim() ||
               (Boolean(agentProtocol) && !validStructuredProfile)
             }
           >
