@@ -16,10 +16,21 @@ import {
 import { Button, Card, Dialog, Input, Select } from '../../design-system';
 import { nexus } from '../../nexus/api';
 import { api } from '../../api';
-import { bindStructuredHarnessProfile, structuredProtocolsForProvider, type StructuredHarnessProtocol } from './structuredHarnessOptions';
+import {
+  bindStructuredHarnessProfile,
+  structuredProtocolsForProvider,
+  type StructuredHarnessProtocol,
+} from './structuredHarnessOptions';
 import { isRequiredResourceSelection } from '../../nexus/agentTerminalModel';
 import { withAgentExecutionMode } from '../../nexus/agentExecutionMode';
-import type { Agent, AgentConfig, AgentMode, ProfileInfo, Project, ProviderInfo } from '../../types';
+import type {
+  Agent,
+  AgentConfig,
+  AgentMode,
+  ProfileInfo,
+  Project,
+  ProviderInfo,
+} from '../../types';
 import styles from './NewAgentModal.module.scss';
 
 type ModePresentation = {
