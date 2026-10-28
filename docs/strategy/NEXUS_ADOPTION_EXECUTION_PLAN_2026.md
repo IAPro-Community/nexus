@@ -4,6 +4,19 @@
 >
 > **Princípio:** não aumentar o número de features por si só; maximizar trabalho útil finalizado, rastreável, seguro e reutilizável por desenvolvedores que já usam Codex, Claude, OpenCode e outras CLIs.
 
+## Auditoria de implementação na release (28/10/2026)
+
+- [Matriz de código dos 48 requisitos (SHA, evidência e lacuna)](RELEASE_IMPLEMENTATION_AUDIT_2026-10-28.md).
+- [Plano de execução por 7 ondas / 29 fatias de PR, com dependências e aceites](ACTION_PLAN_2026-10-28.md).
+
+**Leitura obrigatória:** ACP/RPC, Worktrees, Layout, Browser, Outputs e partes de
+Composer/Flow já possuem implementações concretas. As issues do roadmap não
+devem ser interpretadas como código totalmente ausente. Há, porém, experiências
+completas ainda não localizadas e um conflito documental entre escopo
+`releaseRequired` das 48 capacidades e marcos M1/M2/M3 considerados futuros.
+O plano de implementação mantém o contrato v1 como obrigatório até decisão
+expressa do mantenedor; homologação continua separada.
+
 ## Problema de mercado e aposta
 
 O Nexus deve justificar adoção não como um clone de IDE/Orca/N45/Cursor, mas como **workstation local + control plane independente** que reúne execução de agentes diferentes, isolamento de worktrees, supervisão, recursos/custos e entrega com provas verificáveis.

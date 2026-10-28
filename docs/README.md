@@ -34,10 +34,14 @@ estender o Nexus.
 | entender a arquitetura | [Arquitetura](architecture/overview.md) |
 | contribuir | [CONTRIBUTING](../CONTRIBUTING.md) |
 | acompanhar metas e priorização do produto | [Plano de adoção e execução 2026](strategy/NEXUS_ADOPTION_EXECUTION_PLAN_2026.md) |
+| entender o que já existe na release e o que falta implementar | [Auditoria real de implementação (48 capacidades)](strategy/RELEASE_IMPLEMENTATION_AUDIT_2026-10-28.md) |
+| seguir o plano técnico de implementação em PRs e dependências | [Plano de ação — 7 ondas e 29 fatias](strategy/ACTION_PLAN_2026-10-28.md) |
 
 ## Planejamento e metas de adoção
 
 - [Plano de adoção Nexus 2026 — roadmap com issues, critérios de aceite, testes, métricas e dependências](strategy/NEXUS_ADOPTION_EXECUTION_PLAN_2026.md).
+- [Auditoria de implementação da release — evidências de source e delta das 48 capacidades](strategy/RELEASE_IMPLEMENTATION_AUDIT_2026-10-28.md).
+- [Plano técnico incremental — 29 fatias, responsáveis existentes, aceites e dependências](strategy/ACTION_PLAN_2026-10-28.md).
 - A [matriz funcional](reference/feature-matrix.md) e o [status de homologação](release-status.md) continuam fontes de verdade sobre recursos e publicação.
 
 ## Mapa da documentação
