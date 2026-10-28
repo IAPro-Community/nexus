@@ -29,17 +29,6 @@ jobs:
         run: go test -count=1 ./internal/control/driver
       - name: Install locked Web packages
         run: bun install --cwd web --frozen-lockfile
-      - name: Show precise Prettier changes for reviewed files
-        working-directory: web
-        shell: bash
-        run: |
-          set -euo pipefail
-          for path in src/features/agents/structuredHarnessOptions.ts src/features/agents/structuredHarnessOptions.test.ts src/features/agents/NewAgentModal.tsx; do
-            expected="${RUNNER_TEMP}/$(basename "$path").expected"
-            bunx prettier "$path" > "$expected"
-            echo "### Prettier diff: $path"
-            diff -u "$path" "$expected" || true
-          done
       - name: Check TypeScript, lint and formatting
         working-directory: web
         shell: bash
