@@ -157,6 +157,12 @@ func (b *structuredBackend) Start(cmd *exec.Cmd, rows, cols int) error {
 	}()
 	// Only report runtime readiness after protocol initialization succeeds.
 	if err := <-b.ready; err != nil {
+        // SessionHost does not start waitProcess after a failed backend Start.
+        // Reap this child here so handshake errors cannot accumulate zombies.
+        if cmd.Process != nil { _ = cmd.Process.Kill() }
+        _ = cmd.Wait()
+        if b.cancel != nil { b.cancel() }
+        _ = b.outputWriter.Close()
 		return fmt.Errorf("agent protocol unavailable: %w", err)
 	}
 	return nil
