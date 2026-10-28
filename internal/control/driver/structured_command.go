@@ -12,6 +12,21 @@ import (
 	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
+// WireProtocolsForProvider declares preview entrypoints. This is not proof
+// of capability for a particular CLI version or authenticated account.
+func WireProtocolsForProvider(id string) []string {
+ switch id {
+ case "opencode", "mimo", "dsh":
+  return []string{"acp"}
+ case "pi":
+  return []string{"pi_rpc"}
+ case "omp":
+  return []string{"acp", "pi_rpc"}
+ default:
+  return nil
+ }
+}
+
 // BuildWireCommand selects an explicit provider-native structured entrypoint.
 // It is not a transparent conversion of an existing interactive TUI session.
 // No flags or model overrides are silently discarded.
