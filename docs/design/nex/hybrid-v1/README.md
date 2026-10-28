@@ -28,6 +28,20 @@
 
 `idle_head_tilt` e `idle_fin_twitch` são **protótipos** de linguagem de movimento. A evolução definitiva requer recorte com preenchimento da cabeça/fin próprio e validação visual.
 
+## Importação automatizada do ZIP original
+
+Existe agora `scripts/import-nex-hybrid-package.py` (Python padrão, sem bibliotecas externas), que **verifica todos os 14 assets e o gerador antes de escrever qualquer arquivo**, sem recodificar o PNG e sem criar commits automaticamente:
+
+```bash
+python scripts/import-nex-hybrid-package.py /caminho/nex_hybrid_github_assets_v1_1.zip
+node scripts/verify-nex-hybrid-assets.mjs --require-binaries
+git add web/public/nex/hybrid-v1 docs/design/nex/hybrid-v1
+git commit -m "assets(nex): import source-faithful Hero v1.1 layers"
+git push
+```
+
+O ZIP original foi inspecionado em 28/10/2026: **15 arquivos internos**, incluindo OpenRaster, PNG original idêntico byte a byte, camadas e gerador portátil. A importação foi exercitada em um checkout de teste local com os mesmos 15 arquivos. O script não consegue transferir sozinho bytes entre o ambiente de conversa e o GitHub remoto; requer um clone com autenticação Git e o ZIP local. Até o commit final, o manifesto permanece em `NOT_COMMITTED`.
+
 ## Entrega ao GitHub / integração
 
 O conteúdo binário **não entra no GitHub apenas por aparecer neste documento**. O pacote **revisado** `nex_hybrid_github_assets_v1_1.zip` disponível na conversa contém os PNGs, o HTML, as fontes ORA e o código de corte com os caminhos corretos para extrair na raiz de um clone Nexus.
