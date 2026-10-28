@@ -1,0 +1,38 @@
+{
+  "schema_version": "1.0",
+  "collection": "NEX visual parity references, 2026-10-28",
+  "provenance": "AI generated during ChatGPT conversation; source PNG files in user-exportable ZIP",
+  "status": "PENDING_BINARY_UPLOAD",
+  "artwork_scope": "CONCEPT_REFERENCE_NOT_PRODUCTION_MASTER",
+  "asset_count": 2,
+  "assets": [
+    {
+      "filename": "nex-visual-audit-2026-10-28.png",
+      "path": "docs/design/nex/reference-pack/2026-10-28/nex-visual-audit-2026-10-28.png",
+      "role": "concept_visual_audit",
+      "width": 1672,
+      "height": 941,
+      "mode": "RGB",
+      "bytes": 2211957,
+      "sha256": "d20f834f682c62d203499fde578882ad1a71d18a1e2d40a350aafa379a61fc92",
+      "binary_status": "NOT_COMMITTED",
+      "notes": "Auditoria de paridade visual gerada na conversa; não é SVG."
+    },
+    {
+      "filename": "nex-hero-raster-2026-10-28.png",
+      "path": "docs/design/nex/reference-pack/2026-10-28/nex-hero-raster-2026-10-28.png",
+      "role": "hero_raster_reference",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 1679808,
+      "sha256": "ef7a4aeb7b24d2ab5f199f913d351414b8fafb0b6208b3ab2b665013adcb9118",
+      "binary_status": "NOT_COMMITTED",
+      "notes": "NEX isolado com transparência; imagem raster, não vetor editável nem master aprovado."
+    }
+  ],
+  "canonical_character": "docs/design/nex/identity-lock.json",
+  "hero_svg": "web/public/nex/nex-site-hero.svg",
+  "do_not_claim_svg_pixel_perfect": true,
+  "files_uploaded_to_github": false
+}
