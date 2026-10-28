@@ -4,6 +4,8 @@
 
 **Documento-mãe:** [NEX — contrato visual](NEX_32BIT_VISUAL_CONTRACT.md). **Arte de execução:** `web/src/features/hud/NexPixelSprite.tsx`. **Estilos:** `web/src/features/hud/_hudGuardian.scss` e `web/src/features/hud/GuardianMascot.module.scss`.
 
+> **Evolução artística escolhida:** a implementação CSS/SVG atual continua funcional, mas deve ser substituída por **sprites HD de pixel art de jogo retrô, com 12 ações de idle**. A referência do personagem e os critérios de substituição estão em [Retro Game + Idle](nex/RETRO_GAME_IDLE_DIRECTION.md). Não marcar as 12 ações como implementadas antes de existirem frames versionados e preview do mesmo SHA.
+
 ## Intenção
 
 NEX mantém a **vista frontal**, a mesma cabeça, visor, aletas, núcleo e **exatamente quatro** módulos flutuantes. A animação apresenta estados existentes, mas não torna NEX um agente, assistente autônomo ou sensor de atividade. Nenhum frame deve alterar a anatomia, a perspectiva frontal ou o modo do HUD.
