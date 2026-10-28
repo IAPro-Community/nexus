@@ -1,3 +1,5 @@
+import type { AgentConfig } from '../../types';
+
 /** Provider-native transports currently exposed by the experimental SessionHost. */
 export type StructuredHarnessProtocol = '' | 'acp' | 'pi_rpc';
 
@@ -23,4 +25,19 @@ export function isStructuredProtocolAllowed(
   installedAndRegistered: boolean,
 ): boolean {
   return mode === '' || structuredProtocolsForProvider(provider, installedAndRegistered).includes(mode);
+}
+
+/**
+ * Structured sessions must bind to the requested profile. A mere scheduler
+ * preference can silently choose a different provider on a quota fallback.
+ */
+export function bindStructuredHarnessProfile(
+  config: AgentConfig,
+  provider: string,
+  profile: string,
+): AgentConfig {
+  if (!provider.trim() || !profile.trim()) {
+    throw new Error('Structured sessions require an explicit registered provider profile');
+  }
+  return { ...config, provider, profile, allocation: undefined };
 }
