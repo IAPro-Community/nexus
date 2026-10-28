@@ -72,9 +72,9 @@ type SessionHost struct {
 	stopOnce      sync.Once
 	doneOnce      sync.Once
 	codexTUILock  interface{ Release() error }
-    wireReducer    *agentwire.Reducer
-    wireEpoch      uint64
-    wireSequence   atomic.Uint64
+	wireReducer   *agentwire.Reducer
+	wireEpoch     uint64
+	wireSequence  atomic.Uint64
 }
 
 // NewSessionHost creates a new SessionHost for a given runtime.
@@ -142,8 +142,8 @@ func NewSessionHost(cfg Config) (*SessionHost, error) {
 	sh.detector.SetControlPolicy(cfg.Session.ControlLevel, structuredMode, cfg.Session.AgentID)
 
 	if termBackend == nil && structuredMode {
-        sh.wireReducer = agentwire.NewReducer()
-        sh.wireEpoch = uint64(time.Now().UnixNano())
+		sh.wireReducer = agentwire.NewReducer()
+		sh.wireEpoch = uint64(time.Now().UnixNano())
 		// The wire backend is the sole owner of this provider child process.
 		// It publishes state via the existing detector / runtime registry.
 		sh.termBackend = newStructuredBackend(protocolMode, cfg.Cwd,
@@ -393,29 +393,29 @@ func (sh *SessionHost) streamReader(r io.Reader) {
 // reducer for each runtime. Non-authoritative progress cannot silently clear a
 // pending approval, and stale provider generations are isolated by epoch.
 func (sh *SessionHost) observeStructuredSignal(signal agentwire.WireSignal, source string) {
-    sh.mu.RLock()
-    state := sh.session.State
-    runtimeID := sh.session.RuntimeID
-    sh.mu.RUnlock()
-    if state == registry.StateStopping || state == registry.StateStopped || state == registry.StateFailed {
-        return
-    }
-    if sh.wireReducer != nil {
-        observation, err := sh.wireReducer.ObserveWireSignal(
-            runtimeID, sh.wireEpoch, sh.wireSequence.Add(1), signal,
-        )
-        if err != nil {
-            slog.Warn("invalid structured event", "runtime_id", runtimeID, "error", err)
-            return
-        }
-        // A fresh tool/progress event is not proof that the provider accepted
-        // an outstanding answer. Keep the correlated request visible until
-        // a trustworthy turn-settled event or terminal process teardown.
-        if len(observation.Attention) != 0 && (signal.State == "working" || signal.State == "idle") {
-            return
-        }
-    }
-    sh.detector.ApplyProviderSignal(signal.State, signal.Kind, signal.Summary, source, signal.InteractionID)
+	sh.mu.RLock()
+	state := sh.session.State
+	runtimeID := sh.session.RuntimeID
+	sh.mu.RUnlock()
+	if state == registry.StateStopping || state == registry.StateStopped || state == registry.StateFailed {
+		return
+	}
+	if sh.wireReducer != nil {
+		observation, err := sh.wireReducer.ObserveWireSignal(
+			runtimeID, sh.wireEpoch, sh.wireSequence.Add(1), signal,
+		)
+		if err != nil {
+			slog.Warn("invalid structured event", "runtime_id", runtimeID, "error", err)
+			return
+		}
+		// A fresh tool/progress event is not proof that the provider accepted
+		// an outstanding answer. Keep the correlated request visible until
+		// a trustworthy turn-settled event or terminal process teardown.
+		if len(observation.Attention) != 0 && (signal.State == "working" || signal.State == "idle") {
+			return
+		}
+	}
+	sh.detector.ApplyProviderSignal(signal.State, signal.Kind, signal.Summary, source, signal.InteractionID)
 }
 
 // isHostProtocolControlFrame detects Nexus Control RPC lines that must never

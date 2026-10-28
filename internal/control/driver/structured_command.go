@@ -15,16 +15,16 @@ import (
 // WireProtocolsForProvider declares preview entrypoints. This is not proof
 // of capability for a particular CLI version or authenticated account.
 func WireProtocolsForProvider(id string) []string {
- switch id {
- case "opencode", "mimo", "dsh":
-  return []string{"acp"}
- case "pi":
-  return []string{"pi_rpc"}
- case "omp":
-  return []string{"acp", "pi_rpc"}
- default:
-  return nil
- }
+	switch id {
+	case "opencode", "mimo", "dsh":
+		return []string{"acp"}
+	case "pi":
+		return []string{"pi_rpc"}
+	case "omp":
+		return []string{"acp", "pi_rpc"}
+	default:
+		return nil
+	}
 }
 
 // BuildWireCommand selects an explicit provider-native structured entrypoint.
