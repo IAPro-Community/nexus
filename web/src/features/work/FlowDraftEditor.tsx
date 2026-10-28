@@ -61,7 +61,7 @@ export const FlowDraftEditor: React.FC<{
   } = controller;
 
   return (
-    <div className="nx-composer-flow-clean">
+    <div className="nx-composer-flow-clean" data-feature-tour-scope>
       <div className={styles.studioTourRow}>
         <FeatureTour projectId={project.id} surface="flow-editor" />
       </div>
