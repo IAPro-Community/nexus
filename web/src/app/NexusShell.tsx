@@ -228,7 +228,11 @@ export const NexusShell: React.FC<{
                 </button>
               </div>
 
-              <ProductUpdatesCenter enabled={discoveryEnabled} onOpenSurface={onOpenSurface} />
+              <ProductUpdatesCenter
+                enabled={discoveryEnabled}
+                projectId={project.id}
+                onOpenSurface={onOpenSurface}
+              />
               <div className={styles.notificationWrap}>
                 <IconButton
                   label={t('shell.notificationsAndRadar', 'Central de Notificações e Radar')}
