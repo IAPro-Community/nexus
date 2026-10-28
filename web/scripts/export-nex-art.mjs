@@ -14,7 +14,15 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 const scriptsDir = dirname(fileURLToPath(import.meta.url));
 const webDir = resolve(scriptsDir, '..');
-const outputDir = resolve(webDir, 'public/nex');
+const outArg = process.argv.find((arg) => arg.startsWith('--output-dir='));
+const outputDir = outArg
+  ? resolve(outArg.slice('--output-dir='.length))
+  : resolve(webDir, 'public/nex');
+// --check validates the committed exports; an explicit alternate destination
+// is for generated build output, not a way to change the provenance target.
+if (check && outArg) {
+  throw new Error('--check must validate the canonical web/public/nex exports');
+}
 const tempPath = resolve(scriptsDir, `.nex-art-export-${process.pid}.cjs`);
 const check = process.argv.includes('--check');
 
