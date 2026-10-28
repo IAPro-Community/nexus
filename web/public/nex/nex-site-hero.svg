@@ -64,6 +64,7 @@
  </defs>
  <!-- Independent anchors allow CSS/WAAPI to animate only local children, not module positions. -->
  <g id="nex-shadow" opacity=".52"><ellipse cx="512" cy="983" rx="240" ry="19" fill="#073B84"/><ellipse cx="512" cy="983" rx="157" ry="8" fill="#10D2FF" opacity=".36"/></g>
+ <g id="nex-yaw-stage">
  <g id="nex-figure">
  <g id="nex-orbit-back"><ellipse cx="512" cy="900" rx="301" ry="74" fill="none" stroke="#0D64D7" stroke-width="14" opacity=".5"/><path d="M212 895Q512 794 812 895" stroke="#25BFFF" stroke-width="6" opacity=".6" fill="none"/></g>
  <g id="nex-fin-left" class="nex-fin" transform="translate(314 299) scale(1 1)"><g class="nex-fin-motion">
@@ -240,6 +241,7 @@
  <path d="M211 900Q512 1003 813 900" fill="none" stroke="#2ABEFF" stroke-width="10" opacity=".96"/>
  <path d="M259 919Q512 991 765 919" fill="none" stroke="#B6FFFF" stroke-width="3" opacity=".91"/>
  <path d="M479 974h66v5h-66Z" fill="#EFFFFF"/>
+ </g>
  </g>
  </g>
  </svg>
