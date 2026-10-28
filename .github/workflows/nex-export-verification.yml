@@ -1,0 +1,35 @@
+name: NEX Export Source Isolation
+on:
+  push:
+    branches: [release/v1.0.0]
+    paths:
+      - 'web/scripts/build.mjs'
+      - 'web/scripts/export-nex-art.mjs'
+      - 'web/scripts/export-nex-art.test.mjs'
+      - 'web/src/features/hud/NexPixelSprite.tsx'
+      - 'web/public/nex/**'
+      - '.github/workflows/nex-export-verification.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+      - run: bun install --cwd web --frozen-lockfile
+      - name: Verify NEX runtime renders are isolated
+        run: node --test web/scripts/export-nex-art.test.mjs
+      - name: Compile production Web bundle
+        run: bun run --cwd web build
+      - name: Assert production build does not rewrite versioned NEX assets
+        run: git diff --exit-code -- web/public/nex
+      - name: Verify NEX visual identity contract
+        run: node scripts/verify-nex-visual.mjs
