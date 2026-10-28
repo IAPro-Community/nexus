@@ -63,21 +63,20 @@ jobs:
         if: steps.scope.outputs.source_changed == 'true'
         working-directory: web
         run: bun run quality:full
-      - name: Check docs and internal links
-        # Documentation-only PRs receive full link/contract checks, not a
-        # false visual certificate for a pre-existing source snapshot.
+      - name: Validate documentation contracts without certifying native captures
+        # Community PR checks are not a release certificate. Immutable visual
+        # source provenance is enforced by the protected release CI after merge.
+        shell: bash
         env:
           PR_SOURCE_CHANGED: ${{ steps.scope.outputs.source_changed }}
-        shell: bash
         run: |
           set -euo pipefail
+          node scripts/docs-verify.mjs --links-only
+          node scripts/verify-feature-catalog.mjs
+          node scripts/verify-release-docs.mjs
+          node scripts/verify-nex-visual.mjs
           if [[ "$PR_SOURCE_CHANGED" == "true" ]]; then
-            node scripts/docs-verify.mjs
-          else
-            node scripts/docs-verify.mjs --links-only
-            node scripts/verify-feature-catalog.mjs
-            node scripts/verify-release-docs.mjs
-            node scripts/verify-nex-visual.mjs
+            echo "::warning::Visual screenshots require protected exact-SHA recapture before release certification"
           fi
       - name: Install Wails v3 GTK4/WebKitGTK dependencies for Go tests
         if: steps.scope.outputs.source_changed == 'true'
