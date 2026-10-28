@@ -608,7 +608,8 @@ export const NewAgentModal: React.FC<{
                         { value: '', label: 'Terminal / PTY (default)' },
                         ...structuredChoices.map((value) => ({
                           value,
-                          label: value === 'acp' ? 'ACP (experimental)' : 'Pi JSONL RPC (experimental)',
+                          label:
+                            value === 'acp' ? 'ACP (experimental)' : 'Pi JSONL RPC (experimental)',
                         })),
                       ]}
                     />
