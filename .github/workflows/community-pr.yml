@@ -147,4 +147,3 @@ jobs:
         if: steps.scope.outputs.source_changed == 'true'
         shell: pwsh
         run: bun run --cwd web typecheck
-
