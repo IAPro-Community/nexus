@@ -529,11 +529,11 @@
       "name": "Workspace Recipes",
       "category": "differentiator",
       "owner": "NEXUS",
-      "sourceStatus": "missing",
+      "sourceStatus": "partial",
       "issue": 105,
       "releaseRequired": true,
       "acceptance": [
-        "Recipes Frontend/Backend/Review/Debug/Release são layouts reutilizáveis",
+        "Cinco receitas Frontend/Backend/Review/Debug/Release selecionáveis no menu; evolução para receitas personalizadas e persistência por projeto ainda pendente",
         "Receita não inicia Agents ou ações automaticamente"
       ],
       "verification": "pending"
