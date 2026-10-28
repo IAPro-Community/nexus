@@ -89,7 +89,6 @@ export const FeatureTour: React.FC<{
     // Conditional panels may mount after the workspace itself.
     let observer: MutationObserver | null = null;
     let expiry: number | undefined;
-    let frame: number | undefined;
     const stopObserving = () => {
       observer?.disconnect();
       observer = null;
@@ -120,10 +119,10 @@ export const FeatureTour: React.FC<{
       expiry = window.setTimeout(stopObserving, 30_000);
     };
     window.addEventListener(FEATURE_REVEAL_REQUEST_EVENT, onRequest);
-    frame = window.requestAnimationFrame(onRequest);
+    const frame = window.requestAnimationFrame(onRequest);
     return () => {
       window.removeEventListener(FEATURE_REVEAL_REQUEST_EVENT, onRequest);
-      if (frame !== undefined) window.cancelAnimationFrame(frame);
+      window.cancelAnimationFrame(frame);
       stopObserving();
     };
   }, [projectId, surface, steps, visibleTarget]);
