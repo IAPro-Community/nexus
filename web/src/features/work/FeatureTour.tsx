@@ -119,7 +119,15 @@ export const FeatureTour: React.FC<{
       observer = new MutationObserver(() => {
         tryReveal();
       });
-      observer.observe(document.body, {
+      // Observe only the active workspace pane, never unrelated terminals or
+      // projects. Each pane can contain controls with the same data-tour key.
+      const scope = hostRef.current?.closest('[data-feature-tour-scope]');
+      if (!scope) {
+        observer.disconnect();
+        observer = null;
+        return;
+      }
+      observer.observe(scope, {
         childList: true,
         subtree: true,
         attributes: true,
