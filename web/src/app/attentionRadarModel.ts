@@ -1,6 +1,6 @@
 import type { RuntimeSession } from '../types';
 import { sanitizeAttentionText } from '../components/attentionText';
-import { attentionMessageKey, isHonestNeedsUser } from './documentTitle';
+import { attentionFingerprintOf, isHonestNeedsUser } from './documentTitle';
 
 export type RadarBadge = 'needs_user' | 'working' | 'completed' | 'error' | 'idle';
 
@@ -54,7 +54,7 @@ export function buildAttentionRadar(runtimes: RuntimeSession[]): RadarProjectGro
     const badge = badgeFor(runtime);
     const honest = isHonestNeedsUser(runtime);
     const sanitizedContext = honest ? sanitizeAttentionText(runtime.attention_context, '') : '';
-    const messageKey = honest ? attentionMessageKey(runtime) : undefined;
+    const messageKey = honest ? `${runtime.runtime_id}\0${attentionFingerprintOf(runtime)}` : undefined;
     const item: RadarRuntimeItem = {
       runtimeId: runtime.runtime_id,
       agentId: runtime.agent_id || undefined,
@@ -77,9 +77,9 @@ export function buildAttentionRadar(runtimes: RuntimeSession[]): RadarProjectGro
       });
       continue;
     }
-    // Collapse identical needs_user messages to one radar row (count + list).
+    // Each independently actionable runtime gets a separate row and counter.
     if (item.badge === 'needs_user' && item.fingerprint) {
-      const already = existing.items.some((other) => other.fingerprint === item.fingerprint);
+      const already = existing.items.some((other) => other.runtimeId === item.runtimeId);
       if (already) continue;
       existing.needsUserCount += 1;
     }
