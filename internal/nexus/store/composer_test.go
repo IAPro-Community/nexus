@@ -218,3 +218,63 @@ func TestComposerV2MigrationPersistsVariantsAndReceipts(t *testing.T) {
 		t.Fatalf("variants: %+v %v", variants, err)
 	}
 }
+
+func TestCreatePromptArtifactIdempotentOnDuplicateContentHash(t *testing.T) {
+	st := openTestStore(t)
+	project, err := st.CreateProject(Project{Name: "Idempotent Artifacts", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	session, err := st.CreateComposerSession(ComposerSession{ProjectID: project.ID, BriefJSON: `{}`})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 1. First creation produces version 1
+	a1, err := st.CreatePromptArtifact(PromptArtifact{
+		SessionID:   session.ID,
+		Content:     "Plan and implement the feature",
+		ContextJSON: `{"context": "initial"}`,
+	})
+	if err != nil {
+		t.Fatalf("first artifact creation failed: %v", err)
+	}
+	if a1.Version != 1 {
+		t.Fatalf("expected version 1, got %d", a1.Version)
+	}
+
+	// 2. Second creation with identical content must not fail UNIQUE(session_id, content_hash)
+	// It must return the existing artifact and optionally update metadata
+	a2, err := st.CreatePromptArtifact(PromptArtifact{
+		SessionID:   session.ID,
+		Content:     "Plan and implement the feature",
+		ContextJSON: `{"context": "updated"}`,
+	})
+	if err != nil {
+		t.Fatalf("duplicate artifact creation failed with unique constraint: %v", err)
+	}
+	if a2.ID != a1.ID {
+		t.Fatalf("expected same artifact ID %s, got %s", a1.ID, a2.ID)
+	}
+	if a2.Version != 1 {
+		t.Fatalf("expected version to remain 1, got %d", a2.Version)
+	}
+	if a2.ContextJSON != `{"context": "updated"}` {
+		t.Fatalf("expected context_json to be updated, got %s", a2.ContextJSON)
+	}
+
+	// 3. Artifact with different content creates version 2
+	a3, err := st.CreatePromptArtifact(PromptArtifact{
+		SessionID: session.ID,
+		Content:   "Plan and implement the feature with browser tests",
+	})
+	if err != nil {
+		t.Fatalf("second artifact creation failed: %v", err)
+	}
+	if a3.Version != 2 {
+		t.Fatalf("expected version 2, got %d", a3.Version)
+	}
+	if a3.ID == a1.ID {
+		t.Fatalf("expected new artifact ID, got same %s", a3.ID)
+	}
+}

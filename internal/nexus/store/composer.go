@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -470,10 +471,51 @@ func (s *Store) CreatePromptArtifact(in PromptArtifact) (*PromptArtifact, error)
 		return nil, err
 	}
 	defer tx.Rollback()
+
+	// Idempotency: if an artifact with this exact content hash already exists for this session,
+	// return the existing artifact instead of violating UNIQUE(session_id, content_hash).
+	var existing PromptArtifact
+	var created string
+	err = tx.QueryRow(`SELECT id,session_id,version,content,content_hash,context_json,skill_ids_json,created_at FROM prompt_artifacts WHERE session_id=? AND content_hash=?`, in.SessionID, in.Hash).
+		Scan(&existing.ID, &existing.SessionID, &existing.Version, &existing.Content, &existing.Hash, &existing.ContextJSON, &existing.SkillIDsJSON, &created)
+	if err == nil {
+		existing.CreatedAt, _ = time.Parse(time.RFC3339Nano, created)
+		updated := false
+		if in.ContextJSON != "" && in.ContextJSON != "{}" && in.ContextJSON != existing.ContextJSON {
+			existing.ContextJSON = in.ContextJSON
+			updated = true
+		}
+		if in.SkillIDsJSON != "" && in.SkillIDsJSON != "[]" && in.SkillIDsJSON != existing.SkillIDsJSON {
+			existing.SkillIDsJSON = in.SkillIDsJSON
+			updated = true
+		}
+		if updated {
+			if _, err := tx.Exec(`UPDATE prompt_artifacts SET context_json=?, skill_ids_json=? WHERE id=?`, existing.ContextJSON, existing.SkillIDsJSON, existing.ID); err != nil {
+				return nil, err
+			}
+		}
+		if err := tx.Commit(); err != nil {
+			return nil, err
+		}
+		return &existing, nil
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
+	}
+
 	if err := tx.QueryRow(`SELECT COALESCE(MAX(version),0)+1 FROM prompt_artifacts WHERE session_id=?`, in.SessionID).Scan(&in.Version); err != nil {
 		return nil, err
 	}
 	if _, err := tx.Exec(`INSERT INTO prompt_artifacts(id,session_id,version,content,content_hash,context_json,skill_ids_json,created_at) VALUES(?,?,?,?,?,?,?,?)`, in.ID, in.SessionID, in.Version, in.Content, in.Hash, in.ContextJSON, in.SkillIDsJSON, in.CreatedAt.Format(time.RFC3339Nano)); err != nil {
+		if strings.Contains(err.Error(), "prompt_artifacts.session_id, prompt_artifacts.content_hash") {
+			_ = tx.Rollback()
+			var existing PromptArtifact
+			var created string
+			if getErr := s.db.QueryRow(`SELECT id,session_id,version,content,content_hash,context_json,skill_ids_json,created_at FROM prompt_artifacts WHERE session_id=? AND content_hash=?`, in.SessionID, in.Hash).
+				Scan(&existing.ID, &existing.SessionID, &existing.Version, &existing.Content, &existing.Hash, &existing.ContextJSON, &existing.SkillIDsJSON, &created); getErr == nil {
+				existing.CreatedAt, _ = time.Parse(time.RFC3339Nano, created)
+				return &existing, nil
+			}
+		}
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {

@@ -1,3 +1,12 @@
+## 2026-10-28 — correção de erro UNIQUE constraint em prompt_artifacts no Composer
+
+- Diagnóstico e correção do erro `constraint failed: UNIQUE constraint failed: prompt_artifacts.session_id, prompt_artifacts.content_hash (2067)` no Composer:
+  - Causa raiz: Ao re-finalizar uma sessão ou refinar com conteúdo idêntico, `CreatePromptArtifact` tentava inserir um novo registro com novo número de versão mas com o mesmo `content_hash`, violando a constraint `UNIQUE(session_id, content_hash)` da tabela `prompt_artifacts`.
+  - Correção em `internal/nexus/store/composer.go`: `CreatePromptArtifact` tornou-se estritamente idempotente. Caso um artefato com o mesmo par `(session_id, content_hash)` já exista, o método atualiza metadados (`context_json`, `skill_ids_json`) se fornecidos e retorna o artefato existente sem falhar. Adicionada também proteção de rollback e recuperação caso ocorra colisão concorrente.
+  - Testes unitários e de integração adicionados:
+    - `internal/nexus/store/composer_test.go`: `TestCreatePromptArtifactIdempotentOnDuplicateContentHash` valida re-criação com hash idêntico e transição para novas versões com hash distinto.
+    - `internal/nexus/composer_test.go`: `TestComposerFinalizeIdempotentWhenRepeatedWithIdenticalContent` valida finalizações repetidas e refinamentos sem alteração de prompt direto no motor do Composer.
+
 ## 2026-10-28 — atualização completa da release v1.0.0, compilação e reinstalação local
 
 - Limpeza radical e reconstrução completa de raiz:

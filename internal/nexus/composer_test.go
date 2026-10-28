@@ -405,6 +405,52 @@ func TestComposerRefinementCreatesNextVersion(t *testing.T) {
 	}
 }
 
+func TestComposerFinalizeIdempotentWhenRepeatedWithIdenticalContent(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "IdempotentFinalize", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	view, err := n.CreateComposerSession(context.Background(), project.ID, "Improve frontend architecture for notes app")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// First finalization
+	v1, err := n.FinalizeComposerSession(context.Background(), view.Session.ID, nil, true)
+	if err != nil {
+		t.Fatalf("first finalization failed: %v", err)
+	}
+	if v1.Version != 1 {
+		t.Fatalf("expected version 1, got %d", v1.Version)
+	}
+
+	// Repeated finalization with identical content must succeed idempotently (no UNIQUE constraint failure)
+	v2, err := n.FinalizeComposerSession(context.Background(), view.Session.ID, nil, true)
+	if err != nil {
+		t.Fatalf("repeated finalization failed with constraint error: %v", err)
+	}
+	if v2.ID != v1.ID {
+		t.Fatalf("expected same artifact ID %s, got %s", v1.ID, v2.ID)
+	}
+	if v2.Version != 1 {
+		t.Fatalf("expected version 1, got %d", v2.Version)
+	}
+
+	// Refinement with empty/noop goal must also succeed idempotently
+	v3, err := n.RefineComposerArtifact(context.Background(), view.Session.ID, "")
+	if err != nil {
+		t.Fatalf("noop refinement failed with constraint error: %v", err)
+	}
+	if v3.ID != v1.ID {
+		t.Fatalf("expected same artifact ID %s, got %s", v1.ID, v3.ID)
+	}
+}
+
 func TestResolveComposerUnknown(t *testing.T) {
 	n := openTestNexus(t)
 	st, err := n.OpenProject()
