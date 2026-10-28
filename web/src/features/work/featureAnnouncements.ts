@@ -1,4 +1,4 @@
-import type { FeatureTourSurface } from './featureTour';
+import type { FeatureTourSurface } from './featureTourDefinitions';
 
 /**
  * Product discovery catalog, bundled with the actual application version.
