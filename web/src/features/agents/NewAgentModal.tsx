@@ -506,7 +506,10 @@ export const NewAgentModal: React.FC<{
                   data-tone={origin === 'custom' ? 'brand' : 'default'}
                   data-size="sm"
                   aria-pressed={origin === 'custom'}
-                  onClick={() => { setOrigin('custom'); setAgentProtocol(''); }}
+                  onClick={() => {
+                    setOrigin('custom');
+                    setAgentProtocol('');
+                  }}
                 >
                   {t('agents.originCustom')}
                 </button>
