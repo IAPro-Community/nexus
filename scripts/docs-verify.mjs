@@ -187,6 +187,8 @@ const nexVisualGate = spawnSync(process.execPath, [path.join(root, 'scripts/veri
 if (nexVisualGate.status !== 0) errors.push('NEX official mascot visual contract failed: ' + (nexVisualGate.stderr || nexVisualGate.stdout || 'unknown error').trim());
 const nexHeroGate = spawnSync(process.execPath, [path.join(root, 'scripts/verify-nex-site-hero.mjs')], { cwd: root, encoding: 'utf8' });
 if (nexHeroGate.status !== 0) errors.push('NEX site Hero SVG structural gate failed: ' + (nexHeroGate.stderr || nexHeroGate.stdout || 'unknown error').trim());
+const nexVisualAuditGate = spawnSync(process.execPath, [path.join(root, 'scripts/verify-nex-image-references.mjs')], { cwd: root, encoding: 'utf8' });
+if (nexVisualAuditGate.status !== 0) errors.push('NEX Oct 2026 visual audit manifest failed: ' + (nexVisualAuditGate.stderr || nexVisualAuditGate.stdout || 'unknown error').trim());
 const nexReferenceGate = spawnSync(process.execPath, [path.join(root, 'scripts/verify-nex-reference-pack.mjs')], { cwd: root, encoding: 'utf8' });
 if (nexReferenceGate.status !== 0) errors.push('NEX pixel-art reference pack failed: ' + (nexReferenceGate.stderr || nexReferenceGate.stdout || 'unknown error').trim());
 const catalogGate = spawnSync(process.execPath, [path.join(root, 'scripts/verify-feature-catalog.mjs')], { cwd: root, encoding: 'utf8' });
