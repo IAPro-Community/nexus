@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -133,6 +134,10 @@ func stableErrorCode(status int, message string) string {
 }
 
 func sanitizeSession(s registry.RuntimeSession) registry.RuntimeSession {
+	// Expose process generations as exact decimal text. Go int64 generation
+	// tokens can exceed JS's safe integer range, so client-side numeric
+	// equality is not a valid attention response precondition.
+	s.AttentionGeneration = fmt.Sprintf("%d:%d", s.HostGeneration, s.ProviderGeneration)
 	s.Env = nil
 	s.Args = nil
 	s.Binary = ""
