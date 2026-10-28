@@ -431,6 +431,16 @@ export const en = {
     cannotRecoverRuntime:
       'Could not start or recover agent runtime. Check configured provider and account.',
     newSpecialistAgent: 'New Specialist Agent',
+    structuredProtocol: 'Agent protocol (experimental)',
+    structuredProtocolPTY: 'Terminal / PTY (default)',
+    structuredProtocolACP: 'ACP (experimental)',
+    structuredProtocolRPC: 'Pi JSONL RPC (experimental)',
+    structuredProfile: 'Provider profile',
+    structuredProfileChoose: 'Choose an authenticated profile',
+    structuredProfileAuthRequired: ' (authentication required)',
+    structuredProfileError: 'Choose an authenticated provider profile before starting a structured agent.',
+    structuredProtocolWarning:
+      'Requires NEXUS_EXPERIMENTAL_HARNESSES=1 on Core, a compatible CLI and an authenticated profile. Structured sessions use a text-only command surface, not PTY. Permissions require opening the terminal.',
     agentModesLoading: 'Loading specialties…',
     agentModeReadOnlyHint:
       'This specialty is read-only by default for autonomous work; changes must be delegated to an implementation task.',
@@ -2700,6 +2710,16 @@ export const ptBR = {
     cannotRecoverRuntime:
       'Não foi possível iniciar ou recuperar o runtime do agente. Verifique o provedor e a conta configurados.',
     newSpecialistAgent: 'Novo Agente Especialista',
+    structuredProtocol: 'Protocolo do agente (experimental)',
+    structuredProtocolPTY: 'Terminal / PTY (padrão)',
+    structuredProtocolACP: 'ACP (experimental)',
+    structuredProtocolRPC: 'Pi JSONL RPC (experimental)',
+    structuredProfile: 'Perfil do provedor',
+    structuredProfileChoose: 'Selecione um perfil autenticado',
+    structuredProfileAuthRequired: ' (autenticação necessária)',
+    structuredProfileError: 'Selecione um perfil autenticado antes de iniciar um agente estruturado.',
+    structuredProtocolWarning:
+      'Requer NEXUS_EXPERIMENTAL_HARNESSES=1 no Core, CLI compatível e perfil autenticado. Sessões estruturadas usam comandos de texto, não PTY. Para permissões, abra o terminal.',
     agentModesLoading: 'Carregando especialidades…',
     agentModeReadOnlyHint:
       'Esta especialidade é somente leitura por padrão no trabalho autônomo; alterações devem ser delegadas a uma tarefa de implementação.',
@@ -4986,6 +5006,16 @@ export const es = {
     cannotRecoverRuntime:
       'No se pudo iniciar o recuperar el runtime del agente. Verifique el proveedor y la cuenta configurados.',
     newSpecialistAgent: 'Nuevo Agente Especialista',
+    structuredProtocol: 'Protocolo del agente (experimental)',
+    structuredProtocolPTY: 'Terminal / PTY (predeterminado)',
+    structuredProtocolACP: 'ACP (experimental)',
+    structuredProtocolRPC: 'Pi JSONL RPC (experimental)',
+    structuredProfile: 'Perfil del proveedor',
+    structuredProfileChoose: 'Selecciona un perfil autenticado',
+    structuredProfileAuthRequired: ' (requiere autenticación)',
+    structuredProfileError: 'Selecciona un perfil autenticado antes de iniciar un agente estructurado.',
+    structuredProtocolWarning:
+      'Requiere NEXUS_EXPERIMENTAL_HARNESSES=1 en Core, CLI compatible y perfil autenticado. Las sesiones estructuradas usan comandos de texto, no PTY. Para permisos, abre la terminal.',
     agentModesLoading: 'Cargando especialidades…',
     agentModeReadOnlyHint:
       'Esta especialidad es de solo lectura por defecto en trabajo autónomo; los cambios deben delegarse a una tarea de implementación.',
