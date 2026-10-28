@@ -1,0 +1,39 @@
+name: Temporary attention contract verification
+on:
+  pull_request:
+    branches: [release/v1.0.0]
+    paths:
+      - web/src/app/attentionRadarModel.ts
+      - web/src/app/attentionRadarModel.test.ts
+      - web/src/app/documentTitle.ts
+      - web/src/app/documentTitle.test.ts
+      - web/src/workspace/surfaceAttention.ts
+      - web/src/workspace/surfaceAttention.test.ts
+      - .github/workflows/temporary-attention-contract-20261028.yml
+permissions:
+  contents: read
+jobs:
+  attention-focused:
+    name: Attention state focused tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+      - name: Install frozen dependencies
+        run: bun install --cwd web --frozen-lockfile
+      - name: Check TypeScript and changed file quality
+        working-directory: web
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun run typecheck
+          bunx eslint src/app/documentTitle.ts src/app/documentTitle.test.ts src/app/attentionRadarModel.ts src/app/attentionRadarModel.test.ts src/workspace/surfaceAttention.ts src/workspace/surfaceAttention.test.ts
+          bunx prettier --check src/app/documentTitle.ts src/app/documentTitle.test.ts src/app/attentionRadarModel.ts src/app/attentionRadarModel.test.ts src/workspace/surfaceAttention.ts src/workspace/surfaceAttention.test.ts
+      - name: Regression tests for all attention presentation projections
+        working-directory: web
+        run: bunx vitest run src/app/documentTitle.test.ts src/app/attentionRadarModel.test.ts src/workspace/surfaceAttention.test.ts src/components/AttentionNotification.test.ts
