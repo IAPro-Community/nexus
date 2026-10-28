@@ -6,5 +6,5 @@ import { attentionFingerprintOf } from '../app/documentTitle';
  * Context text is not an identity: two providers can ask the same question.
  */
 export function attentionToastKey(runtime: RuntimeSession): string {
-  return `${runtime.runtime_id}\0${attentionFingerprintOf(runtime)}`;
+  return `${runtime.runtime_id}\0${runtime.host_generation || 0}:${runtime.provider_generation || 0}:${runtime.attention_revision || 0}\0${attentionFingerprintOf(runtime)}`;
 }
