@@ -28,22 +28,19 @@ export function attentionFingerprintOf(runtime: RuntimeSession): string {
   return `${runtime.runtime_id}|${kind}|${ctx}`;
 }
 
-/**
- * Cross-runtime message key: identical question text collapses to one title/radar count
- * even when several Agents share the same prompt.
- */
+/** Semantic message key for presentation grouping only, never authorization identity. */
 export function attentionMessageKey(runtime: RuntimeSession): string {
   const ctx = honestContext(runtime).toLowerCase().replace(/\s+/g, ' ');
   const kind = runtime.prompt_kind || 'none';
   return `${kind}|${ctx}`;
 }
 
-/** Distinct honest waits by message content (not by runtime_id). */
+/** Count separately actionable waits by runtime + correlated provider fingerprint. */
 export function distinctAttentionFingerprints(runtimes: RuntimeSession[]): string[] {
   const seen = new Set<string>();
   for (const runtime of runtimes) {
     if (!isHonestNeedsUser(runtime)) continue;
-    seen.add(attentionMessageKey(runtime));
+    seen.add(`${runtime.runtime_id}\0${attentionFingerprintOf(runtime)}`);
   }
   return [...seen];
 }
@@ -56,7 +53,7 @@ export function buildDocumentTitle(projectName: string, runtimes: RuntimeSession
   }
   if (fingerprints.length === 1) {
     const sample = runtimes.find(
-      (runtime) => isHonestNeedsUser(runtime) && attentionMessageKey(runtime) === fingerprints[0],
+      (runtime) => isHonestNeedsUser(runtime) && `${runtime.runtime_id}\0${attentionFingerprintOf(runtime)}` === fingerprints[0],
     );
     const question = honestContext(sample || ({} as RuntimeSession)).split(/\n/)[0] || '';
     const short = question.length > 64 ? `${question.slice(0, 61)}...` : question;
