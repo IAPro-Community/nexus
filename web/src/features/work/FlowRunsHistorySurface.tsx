@@ -217,7 +217,7 @@ export const FlowRunsHistorySurface: React.FC<{
   }
 
   return (
-    <div className={`nx-surface-scroll ${styles.root}`}>
+    <div className={`nx-surface-scroll ${styles.root}`} data-feature-tour-scope>
       <div className={styles.header}>
         <div className={styles.title}>
           <History size={16} />
