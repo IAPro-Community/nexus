@@ -102,6 +102,10 @@ type RuntimeSession struct {
 	PromptKind                string             `json:"prompt_kind,omitempty"`    // yn | choice | free_text | none
 	AttentionKind             string             `json:"attention_kind,omitempty"` // needs_user | working | completed | error | idle
 	AttentionFingerprint      string             `json:"attention_fingerprint,omitempty"`
+	AttentionRevision         uint64             `json:"attention_revision,omitempty"`
+	AttentionSubmittedRevision uint64            `json:"attention_submitted_revision,omitempty"`
+	AttentionSource           string             `json:"attention_source,omitempty"`
+	AttentionInteractionID    string             `json:"attention_interaction_id,omitempty"`
 	ProjectID                 string             `json:"project_id,omitempty"`
 	ProjectName               string             `json:"project_name,omitempty"`
 	LastTaskSummary           string             `json:"last_task_summary,omitempty"`
