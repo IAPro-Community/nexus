@@ -8,7 +8,7 @@ nova tag, instalador certificado ou prova de aprovação dos testes.
 - Composer e Flow têm tours contextuais e ajuda por componente que reutilizam
   Radix UI e `ProductTour`, sem criar outro motor de execução ou notificação.
 - Menu global **Novidades do Nexus** usa um catálogo versionado por
-  funcionalidade e componente com badges, dispensa e preferências locais.
+  funcionalidade e componente com badges, dispensa e estado local de leitura.
 - Ao selecionar uma novidade global, o Nexus abre sua área e tenta destacar
   o componente certo, respeitando o projeto e a visibilidade do painel; um
   pedido sem alvo expira em 30 segundos sem causar efeitos colaterais.
