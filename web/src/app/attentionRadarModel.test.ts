@@ -98,6 +98,44 @@ describe('buildAttentionRadar', () => {
     expect(groups[0].items).toHaveLength(3);
   });
 
+  it('ignores stopped questions and no longer reports stale approval reasons', () => {
+    const groups = buildAttentionRadar([
+      rt({
+        runtime_id: 'closed',
+        project_id: 'p1',
+        state: 'STOPPED',
+        attention_kind: 'needs_user',
+        prompt_kind: 'yn',
+        attention_reason: 'QUESTION',
+        attention_context: 'Old question?',
+      }),
+      rt({
+        runtime_id: 'idle',
+        project_id: 'p1',
+        state: 'RUNNING',
+        attention_kind: 'idle',
+        prompt_kind: 'yn',
+        attention_reason: 'APPROVAL',
+        attention_context: 'Stale approval?',
+      }),
+      rt({
+        runtime_id: 'active',
+        project_id: 'p1',
+        state: 'WAITING',
+        attention_kind: 'needs_user',
+        prompt_kind: 'yn',
+        attention_reason: 'QUESTION',
+        attention_context: 'Live question?',
+      }),
+    ]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].needsUserCount).toBe(1);
+    expect(groups[0].items.map((item) => [item.runtimeId, item.badge])).toEqual([
+      ['idle', 'idle'],
+      ['active', 'needs_user'],
+    ]);
+  });
+
   it('rejects replacement-character-only context as dishonest', () => {
     const groups = buildAttentionRadar([
       rt({
