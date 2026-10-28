@@ -14,7 +14,11 @@ novos avisos e pontos de entrada separadamente em cada área.
 O Nexus agora tem **um catálogo declarativo de recursos** para compor:
 
 1. **Novidades do Nexus (global):** ícone na barra superior com total de
-   entradas não lidas. Ao abrir uma entrada, encaminha à área real da função.
+   entradas não lidas. Ao escolher um item, abre a área real **e solicita o
+   destaque no componente correspondente**. Se o componente estiver montado
+   ou surgir durante a navegação, o tour começa na etapa específica. Caso
+   não exista naquele estado, a área abre sem simular o recurso; a
+   solicitação expira em 30 segundos para não interromper outra tarefa.
 2. **Novidades desta área (contextual):** ao abrir Composer ou Flow com novos
    recursos instalados, surge aviso pequeno e dispensável. O menu guarda as
    descrições com ações **Mostrar no componente**.
@@ -68,6 +72,15 @@ O desenvolvedor adiciona **uma entrada no mesmo PR da funcionalidade** em
 - `title` e `summary`: chaves i18n em EN/PT-BR/ES;
 - `tourStep`: id do passo local que explica a função, quando houver.
 
+O registro declara a rota em `openSurface`. A seleção global usa
+`featureReveal.ts` como passagem **efêmera e isolada por projectId**, não
+como segunda camada de roteamento ou histórico. Um alvo condicionado por
+sessão, painel, plano ou Mission pode não existir no primeiro acesso. Nesse
+caso, não são disparados cliques artificiais nem criação de rascunhos
+para encontrá-lo: o usuário pode continuar navegando e a solicitação
+expira. A implementação observa montagem de DOM por prazo limitado,
+sem monitoramento permanente.
+
 Adicionar/atualizar etapas em `featureTour.ts` **somente se necessário**.
 Se o usuário já conheceu o recurso na revisão 1, não verá novamente o aviso
 até que o mantenedor incremente `revision`. Como o catálogo é compilado na
@@ -97,6 +110,20 @@ futuro separado. Nenhuma telemetria ou serviço comercial é necessário.
 - Para recurso futuro em módulo novo, incluir seu identificador de
   superfície e montar `FeatureTour`; **isso não é descoberta automática de
   todo JSX**.
+
+## Decisão sobre Driver.js 1.10.2
+
+A versão **1.10.2** possui API nativa para tours, **hints** e **checklists**,
+inclui correções de popover em dialogs e rolagem de alvos em containers, e
+é MIT. [Referência oficial](https://driverjs.com/docs/changelog). Isso
+fortalece a candidatura para substituir o renderer `ProductTour`, mas
+**não foi incorporada como dependência**: o ambiente de edição não consegue
+instalar/verificar o tarball nem regenerar `bun.lock`. Inserir manualmente
+uma resolução sem instalar ou testar comprometeria uma release reproduzível.
+A migração está acompanhada na [issue #103](https://github.com/IAPro-Community/nexus/issues/103).
+
+A versão atual reutiliza componentes Radix já instalados. Ao migrar,
+reaproveitar catálogo e contratos; não deixar dois sistemas de foco em paralelo.
 
 ## Testes de conformidade
 
