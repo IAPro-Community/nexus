@@ -9,7 +9,7 @@ import {
   featureAnnouncements,
   isAnnouncementUnread,
 } from './featureAnnouncements';
-import { featureTourSteps } from './featureTour';
+import { featureTourSteps } from './featureTourDefinitions';
 
 const folder = dirname(fileURLToPath(import.meta.url));
 const sourcePaths = [
