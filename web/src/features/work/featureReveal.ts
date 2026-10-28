@@ -31,7 +31,14 @@ export function requestFeatureReveal(
   }
   pending = { itemId, projectId, createdAt: now };
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new Event(FEATURE_REVEAL_REQUEST_EVENT));
+    // Radix must first close its menu and React must activate the chosen
+    // workspace; otherwise popover focus may be stolen by the menu trigger.
+    window.requestAnimationFrame(() => {
+      if (pending?.itemId === itemId && pending.projectId === projectId &&
+          pending.createdAt === now) {
+        window.dispatchEvent(new Event(FEATURE_REVEAL_REQUEST_EVENT));
+      }
+    });
   }
   return true;
 }
