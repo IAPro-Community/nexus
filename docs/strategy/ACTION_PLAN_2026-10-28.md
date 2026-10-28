@@ -14,7 +14,7 @@
 6. Atualizar `docs/reference/agent-workspace-v1.json` e catálogo de claims apenas quando código e testes sustentarem a mudança; `docs/release-status.md` e gates de assinatura continuam fontes de certificação.
 7. Se o recurso já existir, preferir **refatoração de integração** e remoção de caminhos redundantes; não reabrir épico como implementação do zero.
 
-## 1. Ordem executável: 7 ondas, 23 fatias de PR
+## 1. Ordem executável: 7 ondas, 29 fatias de PR
 
 Cada fatia cabe idealmente em 1 PR revisável; algumas dependem de refatoração prévia e podem ser partidas. P0 = funcionalidade estruturante; P1 = diferencial de uso; P2 = ampliação. Tamanho S/M/L é complexidade relativa, **não cronograma**.
 
