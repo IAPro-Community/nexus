@@ -75,3 +75,29 @@ O código de novidades só poderá ser anunciado como homologado se a issue
 de testes reais e visual QA do mesmo SHA. A estratégia de aproveitar Driver.js,
 React Joyride ou FeatureDrop, com o filtro de licença/maturidade, está descrita
 em [docs/product/feature-discovery.md](../../docs/product/feature-discovery.md).
+
+## Adendo — navegação global contextual e isolamento de painéis (28/10/2026)
+
+A revisão de navegação identificou uma lacuna: a central global só abria a
+área, sem encaminhar o componente selecionado ao tour. Foram adicionados
+`featureReveal.ts` e `featureReveal.test.ts` para o handoff efêmero,
+associado a projeto e superfície, com expiração em 30 segundos. O menu global
+passa a enviar a solicitação com a navegação; o módulo a consome quando o
+`data-tour` relevante estiver disponível. O renderizador continua o
+`ProductTour` original com escopo local.
+
+Na inspeção de 28/10, ComposerStart, ComposerSurface,
+ComposerReadOnlyHistory, FlowRunsHistorySurface, FlowDraftEditor e
+FlowRunSurface possuem `data-feature-tour-scope` no elemento raiz da área.
+A observação de componentes tardios foi restringida ao **painel ativo**,
+evitando observar alterações em terminais e outros projetos.
+
+**Limite funcional:** para recursos que exigem abrir manualmente uma
+elaboração/Flow/Mission inexistente na tela atual, a navegação global abre a
+área correspondente, mas não deve inventar sessão nem executar ação para
+exibir o alvo. O pedido expira se o contexto adequado não aparecer.
+
+**Estado:** código e testes escritos, verificações estáticas concluídas.
+Ainda faltam CI real, Playwright, pacote instalado e homologação de
+acessibilidade. O foco do controle e a interação Radix/menu → tour precisam
+ser exercitados na UI real antes de aprovar a release.
