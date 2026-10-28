@@ -227,10 +227,16 @@ export const NewAgentModal: React.FC<{
     setProviderDiscovery([]);
     setAvailableProfiles([]);
     setStructuredProfile('');
-    void api.getProfiles()
-      .then((profiles) => { if (alive) setAvailableProfiles(profiles); })
-      .catch(() => { if (alive) setAvailableProfiles([]); });
-    void api.getProviders()
+    void api
+      .getProfiles()
+      .then((profiles) => {
+        if (alive) setAvailableProfiles(profiles);
+      })
+      .catch(() => {
+        if (alive) setAvailableProfiles([]);
+      });
+    void api
+      .getProviders()
       .then((providers) => {
         if (!alive) return;
         // The Core only registers experimental harnesses when its opt-in flag
