@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.0.0-beta.11 — melhorias de descoberta e tours — 2026-10-27 (source, não homologado)
+
+Estas alterações foram integradas à `release/v1.0.0`, mas não representam uma
+nova tag, instalador certificado ou prova de aprovação dos testes.
+
+- Composer e Flow têm tours contextuais e ajuda por componente que reutilizam
+  Radix UI e `ProductTour`, sem criar outro motor de execução ou notificação.
+- Menu global **Novidades do Nexus** usa um catálogo versionado por
+  funcionalidade e componente com badges, dispensa e preferências locais.
+- Ao selecionar uma novidade global, o Nexus abre sua área e tenta destacar
+  o componente certo, respeitando o projeto e a visibilidade do painel; um
+  pedido sem alvo expira em 30 segundos sem causar efeitos colaterais.
+- Tours e anúncios agora procuram controles **dentro da instância correta**
+  do workspace, evitando selecionar elementos de outros projetos em abas
+  ou painéis divididos.
+- Novos testes de contrato verificam catálogo, i18n, versões, foco contextual,
+  expiração e escopo de seletores.
+- `AGENTS.md`, PR template e documentação exigem registrar novidades
+  de recursos públicos na mesma entrega, sem anunciar funções incompletas.
+- A migração do spotlight próprio para **Driver.js 1.10.x** permanece em
+  [#103](https://github.com/IAPro-Community/nexus/issues/103): não houve
+  instalação nem alteração manual do lockfile nesta revisão.
+- Matriz de homologação e limitações: [Product Discovery](DEV/validation/PRODUCT_DISCOVERY_2026-10-27.md).
+  Nenhuma build, CI, teste de navegador ou plataforma foi certificada por este adendo.
+
+**Estado:** código integrado, homologação **NO_GO** até validação no SHA instalado.
+
 ## 1.0.0-beta.10 — adendo de source — 2026-10-22 (não homologado)
 
 Esta atualização documenta a reconciliação de 27 commits entre
