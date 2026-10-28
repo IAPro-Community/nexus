@@ -16,19 +16,18 @@ var ErrAttentionConflict = errors.New("attention response is stale or already su
 type AttentionResponseExpectation struct {
 	Fingerprint        string `json:"attention_fingerprint"`
 	Revision           uint64 `json:"attention_revision"`
-	ProviderGeneration int64  `json:"provider_generation"`
-	HostGeneration     int64  `json:"host_generation"`
+	Generation         string `json:"attention_generation"`
 	InteractionID      string `json:"interaction_id,omitempty"`
 }
 
 func ValidateAttentionResponse(s RuntimeSession, expected AttentionResponseExpectation) error {
 	conflict := func(why string) error { return fmt.Errorf("%w: %s", ErrAttentionConflict, why) }
 	if expected.Revision == 0 || expected.Fingerprint == "" ||
-		(expected.ProviderGeneration <= 0 && expected.HostGeneration <= 0) {
+		(s.ProviderGeneration <= 0 && s.HostGeneration <= 0) || expected.Generation == "" {
 		return conflict("missing intervention or process-generation precondition")
 	}
 	if s.AttentionRevision != expected.Revision || s.AttentionFingerprint != expected.Fingerprint ||
-		s.HostGeneration != expected.HostGeneration || s.ProviderGeneration != expected.ProviderGeneration ||
+		fmt.Sprintf("%d:%d", s.HostGeneration, s.ProviderGeneration) != expected.Generation ||
 		s.AttentionInteractionID != expected.InteractionID {
 		return conflict("intervention identity changed")
 	}
