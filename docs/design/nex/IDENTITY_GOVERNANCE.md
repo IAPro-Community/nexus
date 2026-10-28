@@ -13,6 +13,10 @@ Eliminar deriva visual: **uma identidade, múltiplas representações**. Uma pe�
 3. `../../..//web/src/features/hud/NexPixelSprite.tsx` (caminho do root: `web/src/features/hud/NexPixelSprite.tsx`) representa a implementação Compact da release, não um master Hero.
 4. Pranchas de referência (incluindo JPEGs do usuário), drafts, mockups e saídas de IA **não** são masters; não promover sem aprovação.
 
+## Estudos complementares em imagens separadas
+
+O conjunto [NEX Retro Reference Pack](reference-pack/README.md) contém estudos recentes do personagem, expressões e animações idle, com [manifesto de procedência](reference-pack/manifest.json). É um **material de referência gerado**; não tem autoridade para substituir a imagem original escolhida pelo usuário e **não contém 12 animações executáveis**. Os arquivos PNG somente contam como versionados após importação com hash validado, enquanto os contratos de produção permanecem inalterados.
+
 ## Decisão visual selecionada
 
 A identidade central é **o robô original, frontal, branco/azul, de visor escuro e cinco elementos orbitais/energéticos (quatro módulos e anel)**; X-Fold, N-Core, Flux e outros redesigns são explorações arquivadas e **não devem substituir o personagem escolhido**. Mudar de estilo 3D polido para 32-bit pixel art **não autoriza** mudar a topologia. O asset final deve ser desenhado manualmente em grade e ter uma versão HUD opticamente adaptada. [Biblioteca detalhada de 12 idles](RETRO_GAME_IDLE_DIRECTION.md).

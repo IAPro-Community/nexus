@@ -4,6 +4,12 @@
 
 **Status:** `CHARACTER_SELECTED_PIXEL_MASTER_PENDING`. A escolha de **personagem** está feita, mas **ainda não** existe sprite master em camadas homologado, nem atlas de animações na release. Não congelar `identity-lock.json` como `FROZEN` sem os binários, hashes e aprovação do master final. Essa escolha **substitui explorações de personagem X-Fold/Flux/N-Core como candidatas principais**, sem apagar seu histórico.
 
+## Novas pranchas de apoio (27/10/2026)
+
+Criei um **pacote visual de dez imagens separadas** para consulta de outros agentes e para orientar desenho dos sprites: personagem principal, turnaround, expressões, anatomia, catálogo de 12 idles, cinco estados operacionais, ações ilustrativas, contextos de uso, paleta e prancha original integral do novo estudo. Consulte [inventário e proveniência](reference-pack/README.md) e [SHA-256 de cada recorte](reference-pack/manifest.json).
+
+**Estas imagens não são o arquivo original selecionado pelo usuário:** foram geradas posteriormente e os nove recortes vêm de **uma única composição**. A autoridade do personagem continua em `identity-lock.json.selection_record`. O pacote está marcado **`PENDING_BINARY_INGEST`** enquanto os PNGs não estiverem commitados; não divulgar a referência como master em sprites, atlas de animação ou assets que já existem no runtime. Para incorporar os arquivos originais do pacote, usar o importador com validação de hash documentado na pasta.
+
 ## Referência realmente selecionada
 
 - Original enviado nesta conversa: imagem PNG 1536 × 1024, 2.130.804 bytes, SHA-256 `08dcb5446a1f12a34c913104e2f9991be8b94595e1e6ccb76d1e5e2c0b351b66`.

@@ -10,6 +10,8 @@ Estas instruções complementam o `AGENTS.md` da raiz. **Antes de produzir qualq
 
 **Decisão de personagem:** o usuário selecionou o robô da referência primária em 27/10/2026; consulte [Retro Game + Idle](RETRO_GAME_IDLE_DIRECTION.md) e `identity-lock.json.selection_record`. O status candidato descreve apenas a ausência de master de produção congelado. **Não voltar a gerar outros mascotes, letras X/N ou identidades alternativas.**
 
+**Referências por categoria:** além da referência principal do usuário, consulte [imagens separadas de referência](reference-pack/README.md) e seu [manifesto SHA-256](reference-pack/manifest.json). Se o manifesto indicar `PENDING_BINARY_INGEST`, **não** inventar que o arquivo está no GitHub; não usar imagens ilustrativas como spritesheets reais. Os 12 idles devem derivar de master editável aprovado e compartilhar pivôs.
+
 Regras de execução:
 
 - Se `status=CANDIDATE_PENDING_APPROVAL`, **não** declare uma sprite sheet como master final sem fonte editável, bytes versionados, checksum e aprovação humana; respeite o personagem principal já selecionado. Apresente comparação e registre desvios.

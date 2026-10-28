@@ -11,6 +11,12 @@ O usuário confirmou **o robô da prancha NEX apresentada na conversa** como **p
 
 **Regra anti-deriva:** não recriar o personagem como X-Fold, N-Core, Flux ou outro mascote de forma diferente. A anatomia desta referência é preservada na arte pixelada final. O `NexPixelSprite.tsx` e suas animações CSS existentes são **fallback funcional**, não prova de que o sprite HD pixel art já foi entregue. Antes de atualizar HUD/site, criar um master editável em camadas e animações por frames com inspeção humana.
 
+## Pranchas visuais detalhadas por função (estudo complementar)
+
+O [pacote de referências pixel art retrô](nex/reference-pack/README.md) documenta a mesma composição em dez arquivos: imagem geral, personagem, vistas, expressões, anatomia, doze ideias de idle, cinco estados, ações de interação, usos e paleta. O [manifesto](nex/reference-pack/manifest.json) registra hashes e se os PNGs **estão efetivamente versionados**. Até a ingestão binária, o novo material deve ser usado apenas como apoio neste chat, sem links quebrados ou declarações falsas no GitHub.
+
+**Precedência:** arquivo original selecionado pelo usuário → contratos de identidade e animação → referências conceituais auxiliares → SVG/CSS fallback do HUD. O resultado de IA pode conter rótulos imprecisos ou diferenças entre miniaturas e **não é** sprite sheet nem master editável. A interpretação final exige desenho manual com pivôs e revisão humana.
+
 ## Personagem canônico
 
 NEX é um robô flutuante, simpático sem ser infantil, de silhueta simétrica e cabeça dominante.
