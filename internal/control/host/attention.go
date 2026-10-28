@@ -523,6 +523,8 @@ func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus, source, in
 		}
 	case "done":
 		reason, kind = "TASK_COMPLETED", AttentionCompleted
+    case "cancelled":
+        reason, kind = "CANCELLED", AttentionIdle
 	case "error":
 		if source == "osc7501" {
 			state = registry.StateFailed
