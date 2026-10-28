@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -431,6 +432,30 @@ func (h *APIHandler) handleRuntimeDetail(w http.ResponseWriter, r *http.Request)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "title": payload.Title})
+			return
+
+		case "respond-attention":
+			var payload struct {
+				Input string `json:"input"`
+				registry.AttentionResponseExpectation
+			}
+			if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 8192)).Decode(&payload); err != nil {
+				writeError(w, http.StatusBadRequest, "invalid attention response payload")
+				return
+			}
+			err := h.runtimes.RespondToAttention(r.Context(), runtimeID, payload.AttentionResponseExpectation, payload.Input)
+			switch {
+			case errors.Is(err, registry.ErrAttentionConflict):
+				writeError(w, http.StatusConflict, "attention changed or already submitted; open the terminal")
+			case errors.Is(err, nexus.ErrAttentionInput):
+				writeError(w, http.StatusBadRequest, "invalid single-turn response")
+			case err != nil:
+				writeError(w, http.StatusBadGateway, "attention delivery uncertain; open the terminal")
+			default:
+				writeJSON(w, http.StatusAccepted, map[string]string{
+					"status": "submitted", "runtime_id": runtimeID,
+				})
+			}
 			return
 
 		case "respond":
