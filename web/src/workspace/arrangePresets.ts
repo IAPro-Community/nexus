@@ -9,18 +9,10 @@ import {
 
 /** Canonical UI presets (Portuguese menu). Legacy names remain accepted as aliases. */
 export type ArrangeMenuPreset =
-  | 'automatic'
-  | 'two-columns'
-  | 'three-columns'
-  | 'terminal-focus'
-  | 'focus-mode';
+  'automatic' | 'two-columns' | 'three-columns' | 'terminal-focus' | 'focus-mode';
 
 export type ArrangePresetName =
-  | ArrangeMenuPreset
-  | 'terminal-chat'
-  | 'terminal-flow'
-  | 'agents'
-  | 'restore-default';
+  ArrangeMenuPreset | 'terminal-chat' | 'terminal-flow' | 'agents' | 'restore-default';
 
 export const ARRANGE_MENU_PRESETS: ReadonlyArray<{
   id: ArrangeMenuPreset;
