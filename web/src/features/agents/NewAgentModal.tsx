@@ -735,7 +735,10 @@ export const NewAgentModal: React.FC<{
             tone="brand"
             onClick={handleCreate}
             disabled={
-              busy || loadingModes || !selectedType || !name.trim() ||
+              busy ||
+              loadingModes ||
+              !selectedType ||
+              !name.trim() ||
               (Boolean(agentProtocol) && !validStructuredProfile)
             }
           >
