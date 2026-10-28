@@ -36,7 +36,7 @@ describe('buildDocumentTitle', () => {
     );
   });
 
-  it('collapses identical fingerprints instead of counting (N ❓)', () => {
+  it('counts identical questions from separate runtimes as separate interventions', () => {
     const runtimes = [
       rt({
         runtime_id: 'rt-1',
@@ -63,8 +63,8 @@ describe('buildDocumentTitle', () => {
         attention_fingerprint: 'fp-rt3',
       }),
     ];
-    expect(distinctAttentionFingerprints(runtimes)).toHaveLength(1);
-    expect(buildDocumentTitle('proxy-nginx', runtimes)).toBe('Nexus · proxy-nginx · Continue?');
+    expect(distinctAttentionFingerprints(runtimes)).toHaveLength(3);
+    expect(buildDocumentTitle('proxy-nginx', runtimes)).toBe('Nexus · proxy-nginx · 3 esperando input');
     expect(buildDocumentTitle('proxy-nginx', runtimes)).not.toContain('❓');
   });
 
