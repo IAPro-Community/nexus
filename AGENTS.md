@@ -148,7 +148,11 @@ Em qualquer tarefa sobre **mascote, HUD Guardian, onboarding com NEX, sprites, a
 6. Para modificar movimentos, inspecione também [contrato de animação](docs/design/NEX_ANIMATION_CONTRACT.md): movimentos só em camadas internas, nunca no transform de âncora dos módulos; o modo sem animações e `prefers-reduced-motion` precisam desativar tudo, inclusive hover.
 7. Standard/Hero ainda não têm masters de produção; **não** descrever pranchas auxiliares como arte raster original aprovada nem como screenshot real.
 
-## 7. NEX Identity Lock — congelamento após aprovação humana
+## Direção Hero de alta fidelidade (28/10/2026)
+
+**Regra:** o desenho SVG anterior do NEX não passou na comparação perceptual com o PNG. Antes de redesenhar novamente, consultar `docs/design/nex/hybrid-v1/README.md` e `asset-manifest.json`: a abordagem preferida para o site preserva o PNG original como raster e anima recortes autênticos (2 olhos, 4 módulos e reflexos de aletas). Não alegar que a existência dos arquivos em manifesto significa que os bytes já foram commitados. A revisão visual é obrigatória antes de substituir assets do site/HUD. Atlas 360° continua pendente da produção de perspectivas reais.
+
+## 7. NEX Identity Lock — congelamento após aprovação humana## 7. NEX Identity Lock — congelamento após aprovação humana
 **Direção escolhida em 27/10/2026:** manter o personagem robô original selecionado pelo usuário, reinterpretá-lo em pixel art HD retrô de game (não filtro aplicado ao SVG) e criar 12 ações de idle detalhadas. Leia `docs/design/nex/RETRO_GAME_IDLE_DIRECTION.md` e `docs/design/nex/identity-lock.json.selection_record`; não propor outra silhueta. O lock continua pendente de master editável, hashes e aprovação visual do sprite final, portanto não declarar código atual como retro HD concluído.
 
 - O documento `docs/design/nex/IDENTITY_GOVERNANCE.md`, o manifesto `docs/design/nex/identity-lock.json` e as instruções `docs/design/nex/AGENTS.md` regem **toda nova arte NEX** (site, animação, HUD, agentes, avatar e campanhas).
