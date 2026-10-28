@@ -1,7 +1,54 @@
 <svg xmlns="http://www.w3.org/2000/svg" id="nex-site-hero" viewBox="0 0 1024 1024" role="img"
- aria-labelledby="nex-hero-title nex-hero-description" data-nex-art="site-hero-layered-v1" data-facing="front">
+ aria-labelledby="nex-hero-title nex-hero-description" data-nex-art="site-hero-layered-v1" data-facing="front" data-state="idle" data-motion="on">
  <title id="nex-hero-title">NEX — robô oficial IAPro Nexus, arte SVG vetorial em camadas</title>
  <desc id="nex-hero-description">Mascote frontal com capacete branco técnico, visor navy com olhos ciano, duas aletas azuis, duas orelhas energéticas, núcleo no peito, quatro módulos flutuantes e anel azul; fundo transparente e grupos preparados para animação.</desc>
+<style><![CDATA[
+/* NEX site Hero: genuine layered SVG animation, no 3D engine and no external JS.
+   Direct <img> plays idle only. Inline this SVG to change its data-state.
+   Never use rotateY(360deg) to pretend the reverse of this front drawing exists. */
+#nex-site-hero { --nex-accent: #26CFFF; overflow: visible; }
+#nex-site-hero[data-state="warning"] { --nex-accent: #FF8A45; }
+#nex-site-hero[data-state="critical"] { --nex-accent: #FF496C; }
+#nex-site-hero[data-state="offline"] { --nex-accent: #71839D; }
+#nex-figure { transform-origin: 512px 655px; animation: nexFloat 4.6s ease-in-out infinite; }
+#nex-shadow { transform-origin: 512px 983px; animation: nexShadow 4.6s ease-in-out infinite; }
+#nex-fin-left .nex-fin-motion, #nex-fin-right .nex-fin-motion {
+ transform-box: fill-box; transform-origin: 50% 92%;
+ animation: nexFin 5.5s ease-in-out infinite;
+}
+#nex-fin-right .nex-fin-motion { animation-name: nexFinMirror; }
+.nex-module-motion { transform-box: fill-box; transform-origin: center; animation: nexModule 4.8s ease-in-out infinite; }
+#nex-module-2 .nex-module-motion { animation-delay: -1.7s; }
+#nex-module-3 .nex-module-motion { animation-delay: -3.0s; }
+#nex-module-4 .nex-module-motion { animation-delay: -2.2s; }
+#nex-face { transform-origin: 512px 474px; animation: nexBlink 8.4s linear infinite; }
+#nex-reactor { transform-origin: 512px 765px; animation: nexCore 4.6s ease-in-out infinite; }
+#nex-orbit-front { animation: nexOrbit 4.6s ease-in-out infinite; }
+#nex-site-hero[data-state="working"] #nex-figure { animation-duration: 2.4s; }
+#nex-site-hero[data-state="working"] #nex-reactor { animation-duration: 1.2s; }
+#nex-site-hero[data-state="warning"] #nex-figure { animation: nexSignal 3.6s ease-in-out infinite; }
+#nex-site-hero[data-state="critical"] #nex-figure { animation: nexCritical 2.4s ease-in-out infinite; }
+#nex-site-hero[data-state="critical"] #nex-fin-left .nex-fin-motion,
+#nex-site-hero[data-state="critical"] #nex-fin-right .nex-fin-motion { animation: none; }
+#nex-site-hero[data-state="offline"] #nex-figure { filter: saturate(.28) brightness(.7); }
+#nex-site-hero[data-state="offline"] *, #nex-site-hero[data-motion="off"] * {
+ animation: none !important; transition: none !important;
+}
+#nex-site-hero[data-motion="off"] #nex-figure { transform: none !important; }
+@keyframes nexFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes nexShadow { 0%,100% { opacity:.52; transform:scaleX(1); } 50% { opacity:.30; transform:scaleX(.9); } }
+@keyframes nexFin { 0%,100% { transform:rotate(0); } 50% { transform:rotate(-1.5deg); } }
+@keyframes nexFinMirror { 0%,100% { transform:rotate(0); } 50% { transform:rotate(1.5deg); } }
+@keyframes nexModule { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-4px); } }
+@keyframes nexBlink { 0%,90%,92%,100% { transform:scaleY(1); } 90.5%,91.2% { transform:scaleY(.06); } }
+@keyframes nexCore { 0%,100% { opacity:.92; transform:scale(1); } 50% { opacity:1; transform:scale(1.025); } }
+@keyframes nexOrbit { 0%,100% { opacity:.8; } 50% { opacity:1; } }
+@keyframes nexSignal { 0%,12%,100% { transform:translateX(0); } 3%,9% { transform:translateX(-3px); } 6% { transform:translateX(3px); } }
+@keyframes nexCritical { 0%,100% { transform:scale(1); } 50% { transform:scale(1.008); } }
+@media (prefers-reduced-motion: reduce) {
+  #nex-site-hero *, #nex-site-hero { animation:none !important; transition:none !important; }
+}
+]]></style>
  <defs>
   <linearGradient id="nx-shell" x1=".08" y1=".02" x2=".85" y2=".99"><stop stop-color="#FFFFFF"/><stop offset=".23" stop-color="#F7FCFF"/><stop offset=".57" stop-color="#DCEAFF"/><stop offset=".79" stop-color="#A2BFE6"/><stop offset="1" stop-color="#567EB9"/></linearGradient>
   <linearGradient id="nx-metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#E3F2FF"/><stop offset=".43" stop-color="#A5C5E9"/><stop offset=".75" stop-color="#4678BA"/><stop offset="1" stop-color="#163D83"/></linearGradient>
