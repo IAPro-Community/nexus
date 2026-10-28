@@ -1,4 +1,4 @@
-# NEX Hero híbrido — implementação de fidelidade v1 (P0)
+# NEX Hero híbrido — implementação de fidelidade v1.1 (P0)
 
 **Objetivo:** manter a aparência real do PNG de NEX (`mascote_robô_nexus_em_neon_azul.png`, 1254×1254, transparência) e obter movimentos leves **sem tentar redesenhar o personagem em SVG**.
 
@@ -13,7 +13,7 @@
 - `index.html`: QA visual independente com cinco estados e as seis microações P0.
 - `reconstructed_idle.png`: imagem composta a partir das camadas.
 
-**QA da reconstrução por pixels:** canais RGB idênticos aos originais após a recomposição estática; diferença média de canal alpha de ~0,562/255, afetando cerca de 1,81% dos pixels nas bordas e máscaras das peças. O resultado ainda requer revisão humana do piscar e das bordas durante movimento — **a comparação estática não certifica a animação**.
+**QA da reconstrução v1.1:** testes reais no Chromium encontraram **áreas retangulares atrás dos olhos** durante a piscada, apesar da boa aparência em repouso. A base do visor foi refeita com preenchimento navy suave e transparência restaurada, sem modificar o PNG original. A diferença média contra a referência passa a **0,787/255 nos canais RGB** e **0,168/255 no alpha**; aproximadamente **12,31% dos pixels** da recomposição têm alguma diferença, em geral localizada no visor. A escolha prioriza uma piscada visualmente correta em vez de paridade RGB estática absoluta. **Aprovação perceptual humana permanece pendente.**
 
 ## Animações P0 — escopo real
 
@@ -30,11 +30,11 @@
 
 ## Entrega ao GitHub / integração
 
-O conteúdo binário **não entra no GitHub apenas por aparecer neste documento**. O pacote `nex_hybrid_github_assets_v1.zip` disponível na conversa contém os PNGs, o HTML, as fontes ORA e o código de corte com os caminhos corretos para extrair na raiz de um clone Nexus.
+O conteúdo binário **não entra no GitHub apenas por aparecer neste documento**. O pacote **revisado** `nex_hybrid_github_assets_v1_1.zip` disponível na conversa contém os PNGs, o HTML, as fontes ORA e o código de corte com os caminhos corretos para extrair na raiz de um clone Nexus.
 
 ```bash
 # Em um checkout da branch release/v1.0.0 ou uma branch de trabalho:
-unzip -o /caminho/nex_hybrid_github_assets_v1.zip -d .
+unzip -o /caminho/nex_hybrid_github_assets_v1_1.zip -d .
 node scripts/verify-nex-hybrid-assets.mjs --require-binaries
 node scripts/verify-nex-hybrid-assets.mjs --promote
 git add web/public/nex/hybrid-v1 docs/design/nex/hybrid-v1/asset-manifest.json docs/design/nex/hybrid-v1/nex_hybrid_master.ora
@@ -43,6 +43,8 @@ git push
 ```
 
 Antes da ingestão, `asset-manifest.json.status=BINARY_INGEST_PENDING_VISUAL_APPROVAL`; depois do `--promote`, o status passa a `ASSETS_VERSIONED_PENDING_VISUAL_APPROVAL`. **A promoção dos arquivos não promove o personagem como master artístico final.**
+
+Após importar os binários e instalar as dependências do web, rode `cd web && npm run art:nex:hybrid:qa`. O comando executa Chromium com o **HTML e PNGs originais versionados**, gera `web/dist/nex-hybrid-qa/` (idle, olhos fechados, offline e resultado JSON) e verifica as cinco projeções, seis ações P0, preempção, modo offline e movimento reduzido. Esse QA é web, não homologa o HUD.
 
 Abra `web/public/nex/hybrid-v1/index.html` por servidor HTTP (ou diretamente no navegador, conforme política de arquivos locais). O protótipo é completamente local, sem rede, sem dependências React/Three.js e sem LLM.
 
