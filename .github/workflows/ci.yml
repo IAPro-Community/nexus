@@ -71,6 +71,8 @@ jobs:
         run: bun scripts/docs-verify.mjs
       - working-directory: web
         run: bun install --frozen-lockfile
+      - name: Verify NEX generated art does not mutate versioned assets
+        run: node --test web/scripts/export-nex-art.test.mjs
       - name: Verify complete V1 Workspace scope inventory (not a certification)
         run: |
           node --test scripts/verify-agent-workspace-v1.test.mjs
