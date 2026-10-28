@@ -65,7 +65,7 @@ export interface RuntimeControlResponse {
 }
 
 export interface CapabilityEvidence {
-  status: 'SUPPORTED' | 'PARTIAL' | 'UNSUPPORTED' | 'UNKNOWN';
+  status: 'SUPPORTED' | 'PARTIAL' | 'UNSUPPORTED' | 'UNKNOWN' | 'NOT_TESTED';
   provider_version?: string;
   mechanism?: string;
   reason?: string;
@@ -86,6 +86,7 @@ export interface EffectiveCapabilities {
   native_ui_attach: CapabilityEvidence;
   headless: CapabilityEvidence;
   slash_control: CapabilityEvidence;
+  read_only_review: CapabilityEvidence;
   control_level: string;
 }
 
