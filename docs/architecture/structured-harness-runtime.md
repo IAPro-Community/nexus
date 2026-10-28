@@ -25,6 +25,32 @@ The shared `agentwire` library owns ACP JSON-RPC (initialization, session creati
 
 Executable discovery and version probing are provided by the existing `ControlDriver` system. The four added preview drivers register only when the environment flag is active. They must not be labeled `SUPPORTED` for structured control in provider metadata before same-version E2E passes.
 
+## Experimental agent creation in the UI
+
+The existing **New Agent** modal now provides an **Agent protocol (experimental)**
+selector inside *Advanced* for compatible installed providers. The selector
+is populated exclusively from `GET /api/v1/providers[].structured_modes`, which
+the Core returns only with `NEXUS_EXPERIMENTAL_HARNESSES=1` and a detected CLI.
+Terminal/PTY remains the default; the user must choose a registered profile
+for ACP or Pi RPC. The experimental selection pins the chosen provider and
+profile (no scheduler fallback), and disables YOLO mode for structured runs.
+
+These are *declared preview entrypoints*, not version-certified capabilities.
+A provider with a recognized binary can still fail handshake or require auth.
+When Core opt-in is off, this selector is not offered.
+
+**Validation layering:** two supervised mock ACP subprocesses plus two
+authenticated HTTP clients are now covered in
+`internal/control/web/structured_multiclient_process_e2e_test.go`. That test
+crosses the real SessionHost/IPC/JSON-RPC/Registry/HTTP boundaries and never
+manipulates Registry attention state to pretend a reply. It does **not**
+replace authenticated-provider testing or a genuine two-browser UI test.
+
+`agentwire.Reducer` now participates in live structured event handling and
+retains pending interventions across uncorrelated progress. Browser toasts are
+also refreshed on changed request fingerprints rather than solely on runtime
+identity.
+
 ## How to start a test runtime
 
 1. Install and authenticate the provider CLI **outside** Nexus using its official flow.
