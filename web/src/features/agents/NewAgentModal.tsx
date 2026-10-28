@@ -597,7 +597,8 @@ export const NewAgentModal: React.FC<{
                           setMode('Safe');
                           setStructuredProfile(
                             structuredProfiles.find((entry) => entry.is_default)?.name ||
-                              structuredProfiles[0]?.name || '',
+                              structuredProfiles[0]?.name ||
+                              '',
                           );
                         } else {
                           setStructuredProfile('');
