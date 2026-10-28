@@ -1,6 +1,6 @@
 # NEX Identity Lock — modelo final, derivação e governança
 
-> **Estado atual: CANDIDATE_PENDING_APPROVAL.** As três pranchas fornecidas pelo usuário em 26/10/2026 são referências de exploração, **não** a nova arte mestre congelada. O contrato v1 existente e o sprite Compact continuam válidos. Não substituir a identidade oficial por experimentos.
+> **Decisão atual: personagem principal selecionado em 27/10/2026.** O usuário escolheu explicitamente o robô da prancha retrô-futurista original como **identidade de personagem**, solicitando tratamento em **pixel art detalhada de jogo retrô** e **ampla biblioteca de animações idle**. A seleção do personagem está registrada em `identity-lock.json.selection_record`. O lock geral continua em `CANDIDATE_PENDING_APPROVAL` **somente porque falta o master artístico editável versionado e sua aprovação visual**, não porque a decisão de personagem esteja aberta. O atual sprite Compact pode permanecer como fallback temporário, sem ser apresentado como master final. Veja [direção Retro Game + Idle](RETRO_GAME_IDLE_DIRECTION.md).
 
 ## Intenção
 
@@ -12,6 +12,10 @@ Eliminar deriva visual: **uma identidade, múltiplas representações**. Uma pe�
 2. O contrato existente `../NEX_32BIT_VISUAL_CONTRACT.md` define anatomia permitida e os limites de runtime; não reclassificar situações falsas como estados reais.
 3. `../../..//web/src/features/hud/NexPixelSprite.tsx` (caminho do root: `web/src/features/hud/NexPixelSprite.tsx`) representa a implementação Compact da release, não um master Hero.
 4. Pranchas de referência (incluindo JPEGs do usuário), drafts, mockups e saídas de IA **não** são masters; não promover sem aprovação.
+
+## Decisão visual selecionada
+
+A identidade central é **o robô original, frontal, branco/azul, de visor escuro e cinco elementos orbitais/energéticos (quatro módulos e anel)**; X-Fold, N-Core, Flux e outros redesigns são explorações arquivadas e **não devem substituir o personagem escolhido**. Mudar de estilo 3D polido para 32-bit pixel art **não autoriza** mudar a topologia. O asset final deve ser desenhado manualmente em grade e ter uma versão HUD opticamente adaptada. [Biblioteca detalhada de 12 idles](RETRO_GAME_IDLE_DIRECTION.md).
 
 ## Fluxo de aprovação e congelamento
 
