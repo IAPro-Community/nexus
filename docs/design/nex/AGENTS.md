@@ -20,3 +20,7 @@ Regras de execução:
 - Em qualquer PR ou arte: informar `identity_lock_version`, origem dos assets, output, escala de uso, tabela de diferenças, evidência lado a lado e testes. Quando não houver master, escrever `UNVERIFIED`, não `APPROVED`.
 - Mudança de identidade exige PR separado, before/after, registro e aprovação humana explícita. Solicitação de animação/marketing não autoriza essa mudança.
 - Não usar o mesmo arquivo raster para simular 3D polido e pixel-art sem adaptação ótica; preservar topologia e proporções em ambos os masters derivados.
+
+## SVG Hero para site, sem fingir 3D
+
+Ao animar NEX no site, consultar [contrato técnico SVG/360°](SITE_HERO_SVG_AND_360_MOTION.md) e usar `web/public/nex/nex-site-hero.svg` como base vetorial para movimentos 2D. A versão Hero é um **candidato artístico** sujeito a paridade, não substitui o personagem aprovado ou o master em pixel art do HUD. Um `rotateY(360deg)` da frente **não cria a vista traseira**; giro real requer atlas de 16–24 vistas alinhadas, com aprovação humana. Preservar redução de movimento e a semântica do Core.
