@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"unicode/utf8"
 	"sync"
 	"unicode"
 
@@ -36,11 +37,14 @@ type structuredBackend struct {
 	ready        chan error
 	lines        chan string
 	statusUpdates chan agentwire.WireSignal
+    inputLines chan string
+    escapeState uint8
+    discardInput bool
 }
 
 func newStructuredBackend(mode, cwd string, onStatus func(agentwire.WireSignal), onSession func(string)) *structuredBackend {
 	r, w := io.Pipe()
-	return &structuredBackend{mode: mode, cwd: cwd, outputReader: r, outputWriter: w, onStatus: onStatus, onSession: onSession, ready: make(chan error, 1), lines: make(chan string, 256), statusUpdates: make(chan agentwire.WireSignal, 512)}
+	return &structuredBackend{mode: mode, cwd: cwd, outputReader: r, outputWriter: w, onStatus: onStatus, onSession: onSession, ready: make(chan error, 1), lines: make(chan string, 256), statusUpdates: make(chan agentwire.WireSignal, 512), inputLines: make(chan string, 64)}
 }
 func (b *structuredBackend) emit(msg string) {
 	if msg == "" {
@@ -110,6 +114,7 @@ func (b *structuredBackend) Start(cmd *exec.Cmd, rows, cols int) error {
 	b.ctx, b.cancel = context.WithCancel(context.Background())
 	b.bridge = bridge
 	b.started = true
+    go b.dispatchInputs()
     go func() {
         for {
             select {
@@ -156,33 +161,93 @@ func (b *structuredBackend) Start(cmd *exec.Cmd, rows, cols int) error {
 	return nil
 }
 func (b *structuredBackend) Read(p []byte) (int, error) { return b.outputReader.Read(p) }
+// Write consumes the text-only command surface. A raw PTY keystroke is not
+// itself an operator approval; requests must carry their native interaction ID.
+// Input is never mirrored back to the terminal (it may contain secrets).
 func (b *structuredBackend) Write(p []byte) (int, error) {
-	b.mu.Lock()
-	if !b.started {
-		b.mu.Unlock()
-		return 0, errors.New("structured backend not started")
-	}
-	// This text-only command surface has no kernel TTY echo. Echo sanitized input
-	// so xterm users can see what they type. Never echo raw protocol JSON.
-	if len(p) > 0 && p[0] != 0x1b {
-		b.emit(strings.ReplaceAll(string(p), "\r", "\r\n"))
-	}
-	for _, c := range p {
-		if c != '\r' && c != '\n' && b.input.Len() < 16384 {
-			_ = b.input.WriteByte(c)
-		}
-		if c == '\r' || c == '\n' {
-			line := strings.TrimSpace(b.input.String())
-			b.input.Reset()
-			if line != "" {
-				bridge := b.bridge
-				ctx := b.ctx
-				go b.execute(ctx, bridge, line)
-			}
-		}
-	}
-	b.mu.Unlock()
-	return len(p), nil
+    b.mu.Lock()
+    defer b.mu.Unlock()
+    if !b.started || b.ctx == nil {
+        return 0, errors.New("structured backend not started")
+    }
+    for _, c := range p {
+        // Drop xterm cursor/control sequences rather than forwarding "[A"
+        // as the literal start of a model prompt.
+        if b.escapeState != 0 {
+            switch b.escapeState {
+            case 1:
+                if c == '[' || c == 'O' { b.escapeState = 2 } else { b.escapeState = 0 }
+            case 2:
+                if c >= 0x40 && c <= 0x7e { b.escapeState = 0 }
+            }
+            continue
+        }
+        if c == 0x1b { b.escapeState = 1; continue }
+        if c == 0x7f || c == '\b' {
+            raw := b.input.Bytes()
+            if len(raw) != 0 {
+                _, length := utf8.DecodeLastRune(raw)
+                b.input.Truncate(len(raw)-length)
+            }
+            continue
+        }
+        if c == '\r' || c == '\n' {
+            line := strings.TrimSpace(b.input.String())
+            tooLong := b.discardInput
+            b.input.Reset()
+            b.discardInput = false
+            if tooLong {
+                b.emit("\r\n[Nexus] Input too long; discarded.\r\n")
+                continue
+            }
+            if line == "" { continue }
+            select {
+            case b.inputLines <- line:
+                b.emit("\r\n[Nexus] Input submitted.\r\n")
+            default:
+                return 0, errors.New("structured input queue full; retry after previous commands complete")
+            }
+            continue
+        }
+        if c < 0x20 { continue }
+        if b.discardInput { continue }
+        if b.input.Len() >= 16384 {
+            b.input.Reset()
+            b.discardInput = true
+            continue
+        }
+        _ = b.input.WriteByte(c)
+    }
+    return len(p), nil
+}
+
+// dispatchInputs keeps command ordering deterministic while allowing the
+// ongoing provider prompt to await a later /permit, /answer, or /cancel.
+func (b *structuredBackend) dispatchInputs() {
+    promptActive := false
+    completed := make(chan struct{}, 1)
+    for {
+        select {
+        case <-b.ctx.Done():
+            return
+        case <-completed:
+            promptActive = false
+        case line := <-b.inputLines:
+            if strings.HasPrefix(line, "/") {
+                b.execute(b.ctx, b.bridge, line)
+                continue
+            }
+            if promptActive {
+                b.emit("\r\n[Nexus] Agent is already processing a prompt.\r\n")
+                continue
+            }
+            promptActive = true
+            go func(prompt string) {
+                b.execute(b.ctx, b.bridge, prompt)
+                select { case completed <- struct{}{}: case <-b.ctx.Done(): }
+            }(line)
+        }
+    }
 }
 func (b *structuredBackend) execute(ctx context.Context, bridge *agentwire.Bridge, line string) {
 	if line == "/cancel" {
