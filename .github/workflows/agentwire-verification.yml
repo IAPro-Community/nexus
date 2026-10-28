@@ -33,7 +33,7 @@ jobs:
         run: |
           # Run all compiler/test steps even if source formatting drifts.
           # The final gate still fails on an unformatted committed file.
-          gofmt -w internal/control/agentwire internal/control/host/structured_backend.go internal/control/host/attention.go internal/control/host/osc7501*.go internal/control/driver/harness_preview*.go internal/control/driver/structured_command.go internal/control/driver/launch_config.go internal/control/launcher/launcher.go internal/control/web/handlers_api.go
+          gofmt -w internal/control/agentwire internal/control/host internal/control/driver/harness_preview*.go internal/control/driver/structured_command.go internal/control/driver/launch_config.go internal/control/launcher/launcher.go internal/control/web/handlers_api.go internal/control/web/structured_multiclient_process_e2e_test.go
       - name: Agentwire race and contract tests
         run: go test -race -count=1 ./internal/control/agentwire
       - name: Host, driver, launcher and web API tests
