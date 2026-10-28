@@ -86,7 +86,8 @@ export interface EffectiveCapabilities {
   native_ui_attach: CapabilityEvidence;
   headless: CapabilityEvidence;
   slash_control: CapabilityEvidence;
-  read_only_review: CapabilityEvidence;
+  /** Older Core versions may omit this newer capability. */
+  read_only_review?: CapabilityEvidence;
   control_level: string;
 }
 
