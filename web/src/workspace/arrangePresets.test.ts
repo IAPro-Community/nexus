@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { ARRANGE_MENU_PRESETS, WORKSPACE_RECIPES, arrangeByPreset, resolveArrangePreset } from './arrangePresets';
+import {
+  ARRANGE_MENU_PRESETS,
+  WORKSPACE_RECIPES,
+  arrangeByPreset,
+  resolveArrangePreset,
+} from './arrangePresets';
 
 describe('arrangeByPreset', () => {
   const bounds = { x: 8, y: 8, width: 1200, height: 800 };
@@ -23,7 +28,11 @@ describe('arrangeByPreset', () => {
 
   it('offers task recipes without creating sessions or inventing new layouts', () => {
     expect(WORKSPACE_RECIPES.map((recipe) => recipe.id)).toEqual([
-      'frontend', 'backend', 'review', 'debug', 'release',
+      'frontend',
+      'backend',
+      'review',
+      'debug',
+      'release',
     ]);
     const ids = ['agent-codex', 'agent-claude', 'browser', 'review'];
     for (const recipe of WORKSPACE_RECIPES) {
