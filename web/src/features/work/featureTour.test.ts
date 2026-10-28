@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { availableTourSteps } from '../../app/tour/tour';
-import { featureTourSteps, featureTourStorageKey, parseFeatureTourProgress } from './featureTour';
+import { featureTourSteps, featureTourStorageKey, parseFeatureTourProgress } from './featureTourDefinitions';
 
 describe('Composer and Flow contextual tours', () => {
   it('provides real distinct step identifiers per surface', () => {
