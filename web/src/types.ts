@@ -95,6 +95,8 @@ export interface ProviderInfo {
   version: string;
   registration_state?: string;
   binary_path?: string;
+  /** Core opt-in entrypoints, not evidence of authenticated E2E support. */
+  structured_modes?: string[];
   control_level: string;
   capabilities: EffectiveCapabilities;
 }
