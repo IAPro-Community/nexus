@@ -86,7 +86,7 @@ export const ComposerReadOnlyHistory: React.FC<{
   };
 
   return (
-    <div className={`nx-surface-scroll nx-composer-surface ${styles.workbench}`}>
+    <div className={`nx-surface-scroll nx-composer-surface ${styles.workbench}`} data-feature-tour-scope>
       <FeatureTour projectId={projectId} surface="composer-offline" />
       <section
         className={styles.contextFix}
