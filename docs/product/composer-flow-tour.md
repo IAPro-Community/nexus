@@ -105,3 +105,13 @@ do design system já instalado. Veja
 [Product Discovery e catálogo de anúncios](feature-discovery.md) para a
 política de inclusão de novidades, componentes avaliados, privacidade
 e limites do processo de publicação.
+
+## Abrir uma novidade global no contexto
+
+Quando o usuário seleciona um recurso no menu global **Novidades do Nexus**,
+a aplicação abre a área declarada e, se o controle estiver disponível,
+inicia o tour **na etapa daquele recurso**. A ligação é efêmera,
+específica do projeto e expira em 30 segundos. Uma funcionalidade que
+depende de uma Mission, Flow ou sessão ainda não aberta **não** é
+simulada nem iniciada automaticamente. Consulte
+[o contrato de Product Discovery](feature-discovery.md).
