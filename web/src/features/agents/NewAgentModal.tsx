@@ -19,7 +19,7 @@ import { api } from '../../api';
 import { structuredProtocolsForProvider, type StructuredHarnessProtocol } from './structuredHarnessOptions';
 import { isRequiredResourceSelection } from '../../nexus/agentTerminalModel';
 import { withAgentExecutionMode } from '../../nexus/agentExecutionMode';
-import type { Agent, AgentConfig, AgentMode, Project } from '../../types';
+import type { Agent, AgentConfig, AgentMode, ProfileInfo, Project } from '../../types';
 import styles from './NewAgentModal.module.scss';
 
 type ModePresentation = {
@@ -171,6 +171,8 @@ export const NewAgentModal: React.FC<{
   const [provider, setProvider] = useState('codex');
   const [installedProviders, setInstalledProviders] = useState<string[]>([]);
   const [reportedProtocols, setReportedProtocols] = useState<Record<string, string[]>>({});
+  const [availableProfiles, setAvailableProfiles] = useState<ProfileInfo[]>([]);
+  const [structuredProfile, setStructuredProfile] = useState('');
   const [agentProtocol, setAgentProtocol] = useState<StructuredHarnessProtocol>('');
   const [mode, setMode] = useState<'Safe' | 'YOLO'>('Safe');
   const [targetKind, setTargetKind] = useState('docker');
@@ -214,6 +216,11 @@ export const NewAgentModal: React.FC<{
     setAgentProtocol('');
     setInstalledProviders([]);
     setReportedProtocols({});
+    setAvailableProfiles([]);
+    setStructuredProfile('');
+    void api.getProfiles()
+      .then((profiles) => { if (alive) setAvailableProfiles(profiles); })
+      .catch(() => { if (alive) setAvailableProfiles([]); });
     void api.getProviders()
       .then((providers) => {
         if (!alive) return;
@@ -265,6 +272,7 @@ export const NewAgentModal: React.FC<{
     setName(localizedPresentationFor(preset).name);
     setProvider(preset.default_provider || 'codex');
     setAgentProtocol('');
+    setStructuredProfile('');
     setMode(executionModeFor(preset));
   };
 
@@ -272,6 +280,8 @@ export const NewAgentModal: React.FC<{
     provider,
     installedProviders.includes(provider),
   ).filter((mode) => (reportedProtocols[provider] || []).includes(mode));
+  const structuredProfiles = availableProfiles.filter((entry) => entry.provider === provider);
+  const validStructuredProfile = structuredProfiles.some((entry) => entry.name === structuredProfile);
   const resolvedPreview =
     origin === 'native'
       ? `nexus ${provider}${agentProtocol ? ` [${agentProtocol.toUpperCase()} experimental]` : mode === 'YOLO' ? ' --yolo' : ''}`
@@ -288,6 +298,10 @@ export const NewAgentModal: React.FC<{
 
   const handleCreate = async () => {
     if (!name.trim() || !selectedType) return;
+    if (agentProtocol && (!structuredChoices.includes(agentProtocol) || !validStructuredProfile)) {
+      setError('Configure e selecione um perfil registrado antes de iniciar um agente estruturado.');
+      return;
+    }
     setBusy(true);
     setError('');
     let created: Agent | undefined;
@@ -325,15 +339,20 @@ export const NewAgentModal: React.FC<{
         }
       }
 
-      await nexus.applyAgentConfig(
-        created.id,
-        buildNewAgentConfig(
-          selectedType,
-          provider,
-          project.canonical_path || undefined,
-          configOptions,
-        ),
+      const config = buildNewAgentConfig(
+        selectedType,
+        provider,
+        project.canonical_path || undefined,
+        configOptions,
       );
+      if (agentProtocol) {
+        // An explicit wire runtime must never silently fail over to a
+        // different provider or use a guessed profile.
+        config.provider = provider;
+        config.profile = structuredProfile;
+        config.allocation = undefined;
+      }
+      await nexus.applyAgentConfig(created.id, config);
 
       onCreated(created);
       onClose();
@@ -435,6 +454,7 @@ export const NewAgentModal: React.FC<{
                 onChange={(val) => {
                   setProvider(val);
                   setAgentProtocol('');
+                  setStructuredProfile('');
                 }}
                 options={[
                   ...NATIVE_PROVIDERS.map((p) => ({ value: p.id, label: p.label })),
@@ -552,7 +572,15 @@ export const NewAgentModal: React.FC<{
                       value={agentProtocol}
                       onChange={(value) => {
                         setAgentProtocol(value as StructuredHarnessProtocol);
-                        if (value) setMode('Safe');
+                        if (value) {
+                          setMode('Safe');
+                          setStructuredProfile(
+                            structuredProfiles.find((entry) => entry.is_default)?.name ||
+                              structuredProfiles[0]?.name || '',
+                          );
+                        } else {
+                          setStructuredProfile('');
+                        }
                       }}
                       options={[
                         { value: '', label: 'Terminal / PTY (default)' },
@@ -562,6 +590,25 @@ export const NewAgentModal: React.FC<{
                         })),
                       ]}
                     />
+                    {agentProtocol && (
+                      <>
+                        <label className={styles.fieldSublabel} htmlFor="new-agent-profile">
+                          {t('agents.structuredProfile', { defaultValue: 'Provider profile' })}
+                        </label>
+                        <Select
+                          id="new-agent-profile"
+                          value={structuredProfile}
+                          onChange={setStructuredProfile}
+                          options={[
+                            { value: '', label: 'Choose a registered profile' },
+                            ...structuredProfiles.map((entry) => ({
+                              value: entry.name,
+                              label: `${entry.name}${entry.authenticated ? '' : ' (authentication required)'}`,
+                            })),
+                          ]}
+                        />
+                      </>
+                    )}
                     <small className={styles.hintText}>
                       {t('agents.structuredProtocolWarning', {
                         defaultValue:
@@ -664,7 +711,10 @@ export const NewAgentModal: React.FC<{
           <Button
             tone="brand"
             onClick={handleCreate}
-            disabled={busy || loadingModes || !selectedType || !name.trim()}
+            disabled={
+              busy || loadingModes || !selectedType || !name.trim() ||
+              (Boolean(agentProtocol) && !validStructuredProfile)
+            }
           >
             <Play size={13} /> {busy ? t('agents.creating') : t('agents.createAndOpenTerminal')}
           </Button>
