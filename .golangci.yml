@@ -42,11 +42,17 @@ linters:
       - path: internal/nexus/composer_flow_handoff_v1_test\.go
         linters:
           - misspell
-      # "cancelled" is the persisted handoff status consumed by the browser MCP.
+      # "cancelled" is the persisted handoff status consumed by the browser MCP and ACP protocol.
       - path: internal/browsercontrol/browser_collaboration(_test)?\.go
         linters:
           - misspell
       - path: internal/control/web/handlers_browser_mcp\.go
+        linters:
+          - misspell
+      - path: internal/control/agentwire/.*
+        linters:
+          - misspell
+      - path: internal/control/host/attention\.go
         linters:
           - misspell
       - path: internal/app/interactive_submit.go

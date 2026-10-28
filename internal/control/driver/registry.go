@@ -37,7 +37,6 @@ func DefaultRegistry() *Registry {
 				defaultRegistry.Register(NewPreviewHarnessDriver(id))
 			}
 		}
-
 	})
 	return defaultRegistry
 }

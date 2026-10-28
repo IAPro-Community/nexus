@@ -66,7 +66,7 @@ func (b *structuredBackend) emit(msg string) {
 		msg = string(chars[:4096])
 	}
 	// A full queue must not stall ACP JSON-RPC input processing. Provider
-	// dialogue remains recoverable from its session; this is display-only.
+	// dialog remains recoverable from its session; this is display-only.
 	select {
 	case b.lines <- msg:
 	default:

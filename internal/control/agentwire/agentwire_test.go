@@ -280,10 +280,7 @@ func TestACPProcessPipeClosureDuringCall(t *testing.T) {
 
 	// Wait until request is on wire
 	deadline := time.After(2 * time.Second)
-	for {
-		if written.Len() > 0 {
-			break
-		}
+	for written.Len() == 0 {
 		select {
 		case <-deadline:
 			t.Fatal("request was not written")
@@ -385,10 +382,7 @@ func TestPiRPCPipeClosureDuringCommand(t *testing.T) {
 	}()
 
 	deadline := time.After(2 * time.Second)
-	for {
-		if written.Len() > 0 {
-			break
-		}
+	for written.Len() == 0 {
 		select {
 		case <-deadline:
 			t.Fatal("command not written")

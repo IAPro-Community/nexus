@@ -126,7 +126,7 @@ func (b *Bridge) Start(ctx context.Context) error {
 		if err := b.pi.Command(verify, "get_state", nil, &reply); err != nil {
 			b.cancel()
 			close(b.failed)
-			return fmt.Errorf("Pi RPC get_state handshake: %w", err)
+			return fmt.Errorf("pi RPC get_state handshake: %w", err)
 		}
 		var state struct {
 			SessionID string `json:"sessionId"`

@@ -150,7 +150,7 @@ func inspected(root *os.Root, rel string) (*os.File, fs.FileInfo, string, string
 	detected := http.DetectContentType(head[:n])
 	switch kind {
 	case "image":
-		if detected != expected && !(expected == "image/webp" && strings.HasPrefix(string(head[:n]), "RIFF") && n >= 12 && string(head[8:12]) == "WEBP") {
+		if detected != expected && (expected != "image/webp" || !strings.HasPrefix(string(head[:n]), "RIFF") || n < 12 || string(head[8:12]) != "WEBP") {
 			f.Close()
 			return nil, nil, "", "", ErrUnsupported
 		}

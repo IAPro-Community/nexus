@@ -39,7 +39,7 @@ func (p *PiRPC) OnEvent(callback func(string, json.RawMessage)) {
 }
 func (p *PiRPC) Command(ctx context.Context, command string, fields map[string]any, reply *json.RawMessage) error {
 	if command == "" {
-		return errors.New("Pi RPC: empty command")
+		return errors.New("pi RPC: empty command")
 	}
 	id := strconv.FormatUint(p.sequence.Add(1), 10)
 	ch := make(chan piReply, 1)
@@ -54,7 +54,7 @@ func (p *PiRPC) Command(ctx context.Context, command string, fields map[string]a
 	msg := map[string]any{"type": command, "id": id}
 	for k, v := range fields {
 		if k == "id" || k == "type" {
-			return errors.New("Pi RPC: reserved field")
+			return errors.New("pi RPC: reserved field")
 		}
 		msg[k] = v
 	}
@@ -64,10 +64,10 @@ func (p *PiRPC) Command(ctx context.Context, command string, fields map[string]a
 	select {
 	case r := <-ch:
 		if r.Command != command {
-			return errors.New("Pi RPC: mismatched command response")
+			return errors.New("pi RPC: mismatched command response")
 		}
 		if !r.Success {
-			return errors.New("Pi RPC: command rejected")
+			return errors.New("pi RPC: command rejected")
 		}
 		if reply != nil {
 			*reply = r.Data
@@ -84,12 +84,12 @@ func (p *PiRPC) Command(ctx context.Context, command string, fields map[string]a
 // correlated by the bridge; it must never be guessed from terminal narration.
 func (p *PiRPC) RespondUI(requestID string, fields map[string]any) error {
 	if requestID == "" {
-		return errors.New("Pi RPC: missing UI request ID")
+		return errors.New("pi RPC: missing UI request ID")
 	}
 	msg := map[string]any{"type": "extension_ui_response", "id": requestID}
 	for key, value := range fields {
 		if key == "id" || key == "type" {
-			return errors.New("Pi RPC: reserved response field")
+			return errors.New("pi RPC: reserved response field")
 		}
 		msg[key] = value
 	}
