@@ -79,7 +79,7 @@ try {
             if ($Id -eq 'web-first-run-typecheck' -and (Test-Path -LiteralPath $script:activeLog)) {
                 $rawDiagnostics = Get-Content -LiteralPath $script:activeLog -Raw -ErrorAction SilentlyContinue
                 $codes = @(
-                    [regex]::Matches([string]$rawDiagnostics, '\\bTS[0-9]{4,5}\\b') |
+                    [regex]::Matches([string]$rawDiagnostics, '\bTS[0-9]{4,5}\b') |
                         ForEach-Object { $_.Value } |
                         Sort-Object -Unique |
                         Select-Object -First 12
