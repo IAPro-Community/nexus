@@ -438,7 +438,8 @@ export const en = {
     structuredProfile: 'Provider profile',
     structuredProfileChoose: 'Choose an authenticated profile',
     structuredProfileAuthRequired: ' (authentication required)',
-    structuredProfileError: 'Choose an authenticated provider profile before starting a structured agent.',
+    structuredProfileError:
+      'Choose an authenticated provider profile before starting a structured agent.',
     structuredProtocolWarning:
       'Requires NEXUS_EXPERIMENTAL_HARNESSES=1 on Core, a compatible CLI and an authenticated profile. Structured sessions use a text-only command surface, not PTY. Permissions require opening the terminal.',
     agentModesLoading: 'Loading specialties…',
@@ -2717,7 +2718,8 @@ export const ptBR = {
     structuredProfile: 'Perfil do provedor',
     structuredProfileChoose: 'Selecione um perfil autenticado',
     structuredProfileAuthRequired: ' (autenticação necessária)',
-    structuredProfileError: 'Selecione um perfil autenticado antes de iniciar um agente estruturado.',
+    structuredProfileError:
+      'Selecione um perfil autenticado antes de iniciar um agente estruturado.',
     structuredProtocolWarning:
       'Requer NEXUS_EXPERIMENTAL_HARNESSES=1 no Core, CLI compatível e perfil autenticado. Sessões estruturadas usam comandos de texto, não PTY. Para permissões, abra o terminal.',
     agentModesLoading: 'Carregando especialidades…',
@@ -5013,7 +5015,8 @@ export const es = {
     structuredProfile: 'Perfil del proveedor',
     structuredProfileChoose: 'Selecciona un perfil autenticado',
     structuredProfileAuthRequired: ' (requiere autenticación)',
-    structuredProfileError: 'Selecciona un perfil autenticado antes de iniciar un agente estructurado.',
+    structuredProfileError:
+      'Selecciona un perfil autenticado antes de iniciar un agente estructurado.',
     structuredProtocolWarning:
       'Requiere NEXUS_EXPERIMENTAL_HARNESSES=1 en Core, CLI compatible y perfil autenticado. Las sesiones estructuradas usan comandos de texto, no PTY. Para permisos, abre la terminal.',
     agentModesLoading: 'Cargando especialidades…',

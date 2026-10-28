@@ -233,7 +233,11 @@ export const ComposerSurface: React.FC<{
   );
 
   return (
-    <div className={styles.conversationShell} data-tour="composer-conversation" data-feature-tour-scope>
+    <div
+      className={styles.conversationShell}
+      data-tour="composer-conversation"
+      data-feature-tour-scope
+    >
       <div className={styles.composerTourRow}>
         <FeatureTour projectId={project.id} surface="composer-session" />
       </div>

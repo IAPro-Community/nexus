@@ -290,7 +290,11 @@ export const FlowRunSurface: React.FC<{
     packageRuns.some((pkg) => providerIssuePattern.test(pkg.error_message || ''));
 
   return (
-    <div className="nx-surface-scroll nx-flow-run-surface" data-run-id={run.id} data-feature-tour-scope>
+    <div
+      className="nx-surface-scroll nx-flow-run-surface"
+      data-run-id={run.id}
+      data-feature-tour-scope
+    >
       <div className={styles.tourRow}>
         <FeatureTour projectId={project.id} surface="flow-run" />
       </div>

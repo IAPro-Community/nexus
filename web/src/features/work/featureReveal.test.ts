@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
-  cancelFeatureReveal, consumeFeatureReveal, hasPendingFeatureReveal,
+  cancelFeatureReveal,
+  consumeFeatureReveal,
+  hasPendingFeatureReveal,
   requestFeatureReveal,
 } from './featureReveal';
 
@@ -22,8 +24,12 @@ describe('global feature announcement handoff', () => {
   it('waits until its real target has mounted, then consumes only once', () => {
     requestFeatureReveal('flow-pipeline-graph', 'project-A', 1000);
     expect(consumeFeatureReveal('project-A', 'flow-editor', () => false, 1001)).toBeNull();
-    const item = consumeFeatureReveal('project-A', 'flow-editor', (target) =>
-      target === '[data-tour="flow-canvas"]', 1002);
+    const item = consumeFeatureReveal(
+      'project-A',
+      'flow-editor',
+      (target) => target === '[data-tour="flow-canvas"]',
+      1002,
+    );
     expect(item?.id).toBe('flow-pipeline-graph');
     expect(consumeFeatureReveal('project-A', 'flow-editor', () => true, 1003)).toBeNull();
   });
@@ -38,7 +44,8 @@ describe('global feature announcement handoff', () => {
     requestFeatureReveal('composer-idea-workspace', 'project-A', 1000);
     requestFeatureReveal('flow-review-journey', 'project-A', 1001);
     expect(hasPendingFeatureReveal('project-A', 'composer-start', 1002)).toBe(false);
-    expect(consumeFeatureReveal('project-A', 'flow-library', () => true, 1002)?.id)
-      .toBe('flow-review-journey');
+    expect(consumeFeatureReveal('project-A', 'flow-library', () => true, 1002)?.id).toBe(
+      'flow-review-journey',
+    );
   });
 });

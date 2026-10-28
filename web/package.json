@@ -12,7 +12,7 @@
     "lint:styles:fix": "stylelint \"src/**/*.{css,scss}\" --fix",
     "check:styles": "node --test scripts/check-css-allowlist.node-test.mjs && node scripts/check-css-allowlist.js && node scripts/check-workspace-styles.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "node --test scripts/process-termination.node-test.mjs scripts/workspace-state.node-test.mjs scripts/e2e-platform.node-test.mjs scripts/css-module-scope.node-test.mjs && vitest run",
+    "test": "node --test scripts/process-termination.node-test.mjs scripts/workspace-state.node-test.mjs scripts/e2e-platform.node-test.mjs scripts/css-module-scope.node-test.mjs scripts/export-nex-art.test.mjs && vitest run",
     "test:watch": "vitest",
     "build:css": "node node_modules/@tailwindcss/cli/dist/index.mjs -i src/index.css -o dist/bundle.css --minify",
     "build:js": "node scripts/build.mjs",

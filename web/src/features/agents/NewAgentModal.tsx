@@ -605,7 +605,9 @@ export const NewAgentModal: React.FC<{
                         ...structuredChoices.map((value) => ({
                           value,
                           label:
-                            value === 'acp' ? t('agents.structuredProtocolACP') : t('agents.structuredProtocolRPC'),
+                            value === 'acp'
+                              ? t('agents.structuredProtocolACP')
+                              : t('agents.structuredProtocolRPC'),
                         })),
                       ]}
                     />

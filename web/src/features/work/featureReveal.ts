@@ -1,6 +1,4 @@
-import {
-  featureAnnouncements, type FeatureAnnouncement,
-} from './featureAnnouncements';
+import { featureAnnouncements, type FeatureAnnouncement } from './featureAnnouncements';
 import type { FeatureTourSurface } from './featureTourDefinitions';
 
 /**
@@ -34,8 +32,11 @@ export function requestFeatureReveal(
     // Radix must first close its menu and React must activate the chosen
     // workspace; otherwise popover focus may be stolen by the menu trigger.
     window.requestAnimationFrame(() => {
-      if (pending?.itemId === itemId && pending.projectId === projectId &&
-          pending.createdAt === now) {
+      if (
+        pending?.itemId === itemId &&
+        pending.projectId === projectId &&
+        pending.createdAt === now
+      ) {
         window.dispatchEvent(new Event(FEATURE_REVEAL_REQUEST_EVENT));
       }
     });

@@ -19,7 +19,8 @@ import {
   type FeatureTourSurface,
 } from './featureTourDefinitions';
 import {
-  FEATURE_REVEAL_REQUEST_EVENT, consumeFeatureReveal,
+  FEATURE_REVEAL_REQUEST_EVENT,
+  consumeFeatureReveal,
   hasPendingFeatureReveal,
 } from './featureReveal';
 import styles from './FeatureTour.module.scss';
@@ -49,10 +50,7 @@ export const FeatureTour: React.FC<{
   const hostRef = useRef<HTMLDivElement>(null);
   const visibleTarget = useCallback(
     (selector: string) =>
-      Boolean(findTourTarget(
-        hostRef.current?.closest('[data-feature-tour-scope]'),
-        selector,
-      )),
+      Boolean(findTourTarget(hostRef.current?.closest('[data-feature-tour-scope]'), selector)),
     [],
   );
   const [initialIndex, setInitialIndex] = useState(0);
@@ -100,20 +98,31 @@ export const FeatureTour: React.FC<{
       if (!item) return false;
       stopObserving();
       const visibleSteps = availableTourSteps(steps, visibleTarget);
-      setInitialIndex(announcementTourIndex(item, visibleSteps.map((step) => step.id)));
+      setInitialIndex(
+        announcementTourIndex(
+          item,
+          visibleSteps.map((step) => step.id),
+        ),
+      );
       setOpen(true);
       try {
         window.localStorage.setItem(announcementStorageKey(item.id), String(item.revision));
-      } catch { /* read marker is local-only and optional */ }
+      } catch {
+        /* read marker is local-only and optional */
+      }
       window.dispatchEvent(new Event('nexus:feature-discovery-updated'));
       return true;
     };
     const onRequest = () => {
       if (tryReveal()) return;
       if (observer || !hasPendingFeatureReveal(projectId, surface)) return;
-      observer = new MutationObserver(() => { tryReveal(); });
+      observer = new MutationObserver(() => {
+        tryReveal();
+      });
       observer.observe(document.body, {
-        childList: true, subtree: true, attributes: true,
+        childList: true,
+        subtree: true,
+        attributes: true,
         attributeFilter: ['hidden', 'style', 'aria-hidden'],
       });
       expiry = window.setTimeout(stopObserving, 30_000);
