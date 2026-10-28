@@ -243,7 +243,9 @@ export const NewAgentModal: React.FC<{
         // is enabled. A failed probe must not advertise preview support.
         setProviderDiscovery(providers);
       })
-      .catch(() => { if (alive) setProviderDiscovery([]); });
+      .catch(() => {
+        if (alive) setProviderDiscovery([]);
+      });
     void nexus
       .listAgentModes()
       .then((modes) => {
