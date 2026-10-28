@@ -9,8 +9,8 @@
   "assets": [
     {
       "filename": "nex_source_original.png",
-      "bytes": 1607113,
-      "sha256": "87e419e27a94aecfd4dfa1093c5af53ca09a5ee00ae9bcdeaab6738847bdf554",
+      "bytes": 1679808,
+      "sha256": "ef7a4aeb7b24d2ab5f199f913d351414b8fafb0b6208b3ab2b665013adcb9118",
       "path": "web/public/nex/hybrid-v1/nex_source_original.png",
       "status": "NOT_COMMITTED"
     },
@@ -100,8 +100,8 @@
     },
     {
       "filename": "nex_hybrid_master.ora",
-      "bytes": 5266928,
-      "sha256": "663486dec030a4c59be2baff9ea2188ee0f8ab7c1cfc0c9ad670c49cf5b5c3c6",
+      "bytes": 5339623,
+      "sha256": "68a9b3b90722721bacd4067bac3e9d6560acf144898ae60c3d7968692c652f32",
       "path": "docs/design/nex/hybrid-v1/nex_hybrid_master.ora",
       "status": "NOT_COMMITTED"
     }
@@ -118,7 +118,9 @@
     "validated_in_headless_chromium": true,
     "real_browser_visual_qa": "PASS_FOR_OBSERVED_STATES",
     "native_platform_qa": "NOT_RUN",
-    "human_art_approval": "PENDING"
+    "human_art_approval": "PENDING",
+    "original_binary_byte_identical": true,
+    "original_encoded_png_replacement_corrected": true
   },
   "idle_p0": [
     {
@@ -154,11 +156,11 @@
     "not natively integrated HUD",
     "assets not yet in GitHub git objects"
   ],
-  "asset_revision": "v1.1",
+  "asset_revision": "v1.1-raw-source",
   "generator": {
     "file": "docs/design/nex/hybrid-v1/build_layers.py",
-    "sha256": "0e28f38e1d78b52024e7d7d65cd167c24865894cfe0a4cd3d4068ed0bb94e1bb",
-    "bytes": 8396,
+    "sha256": "7865a69650dc4eaf519b820642ff49b9132b1c6f8ec3ef42a7f7a16c8de958de",
+    "bytes": 8432,
     "path": "docs/design/nex/hybrid-v1/build_layers.py",
     "portable": true
   }

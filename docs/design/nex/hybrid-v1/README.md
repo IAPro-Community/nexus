@@ -4,7 +4,7 @@
 
 ## Entregas realizadas no ambiente de produção de arte
 
-- `nex_source_original.png`: PNG original sem modificação. SHA-256 `ef7a4aeb7b24d2ab5f199f913d351414b8fafb0b6208b3ab2b665013adcb9118`.
+- `nex_source_original.png`: PNG original **idêntico byte a byte ao arquivo aprovado** (não apenas igual em pixels). SHA-256 `ef7a4aeb7b24d2ab5f199f913d351414b8fafb0b6208b3ab2b665013adcb9118`; 1.679.808 bytes. O pacote final foi revisado para evitar recodificação PNG acidental.
 - `body_base.png`: base com visor escurecido sob os olhos e módulos separados.
 - `eye_left.png`, `eye_right.png`: olhos extraídos do PNG original para piscada e olhar.
 - `module_1.png` até `module_4.png`: peças móveis recortadas sem redesenho, pivôs no `manifest.json`.
@@ -13,7 +13,7 @@
 - `index.html`: QA visual independente com cinco estados e as seis microações P0.
 - `reconstructed_idle.png`: imagem composta a partir das camadas.
 
-**QA da reconstrução v1.1:** testes reais no Chromium encontraram **áreas retangulares atrás dos olhos** durante a piscada, apesar da boa aparência em repouso. A base do visor foi refeita com preenchimento navy suave e transparência restaurada, sem modificar o PNG original. A diferença média contra a referência passa a **0,787/255 nos canais RGB** e **0,168/255 no alpha**; aproximadamente **12,31% dos pixels** da recomposição têm alguma diferença, em geral localizada no visor. A escolha prioriza uma piscada visualmente correta em vez de paridade RGB estática absoluta. **Aprovação perceptual humana permanece pendente.**
+**QA da reconstrução v1.1 (fonte original preservada byte a byte):** testes reais no Chromium encontraram **áreas retangulares atrás dos olhos** durante a piscada, apesar da boa aparência em repouso. A base do visor foi refeita com preenchimento navy suave e transparência restaurada, sem modificar o PNG original. A diferença média contra a referência passa a **0,787/255 nos canais RGB** e **0,168/255 no alpha**; aproximadamente **12,31% dos pixels** da recomposição têm alguma diferença, em geral localizada no visor. A escolha prioriza uma piscada visualmente correta em vez de paridade RGB estática absoluta. **Aprovação perceptual humana permanece pendente.**
 
 ## Animações P0 — escopo real
 
