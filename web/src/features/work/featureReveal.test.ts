@@ -40,6 +40,16 @@ describe('global feature announcement handoff', () => {
     expect(consumeFeatureReveal('project-A', 'composer-start', () => true, 32_001)).toBeNull();
   });
 
+  it('does not reveal a project feature merely because another panel has the same marker', () => {
+    requestFeatureReveal('flow-pipeline-graph', 'project-A', 1000);
+    const anotherPanelHasTarget = true;
+    expect(anotherPanelHasTarget).toBe(true);
+    expect(consumeFeatureReveal('project-A', 'flow-editor', () => false, 1001)).toBeNull();
+    expect(hasPendingFeatureReveal('project-A', 'flow-editor', 1002)).toBe(true);
+    expect(consumeFeatureReveal('project-A', 'flow-editor', () => true, 1003)?.id)
+      .toBe('flow-pipeline-graph');
+  });
+
   it('replaces a pending request when the user chooses another feature', () => {
     requestFeatureReveal('composer-idea-workspace', 'project-A', 1000);
     requestFeatureReveal('flow-review-journey', 'project-A', 1001);
