@@ -284,8 +284,15 @@
     "runtime_source_unchanged": true,
     "early_idles": "6 P0 prototypes in local HTML preview",
     "master_type": "OpenRaster (.ora) candidate",
-    "source_reconstruction_mean_rgb_delta": 0,
-    "source_reconstruction_mean_alpha_delta": 0.562,
-    "no_fake_360": true
+    "source_reconstruction_mean_rgb_delta": 0.78704,
+    "source_reconstruction_mean_alpha_delta": 0.16822,
+    "no_fake_360": true,
+    "asset_revision": "v1.1",
+    "source_reconstruction_changed_pixel_fraction": 0.123111,
+    "blink_underpainting_repaired": true,
+    "browser_qa": "OBSERVED_PASS_CHROMIUM_HYBRID_PREVIEW",
+    "browser_qa_script": "web/scripts/nex-hybrid-browser-qa.mjs",
+    "human_approval": "PENDING",
+    "native_hud_qa": "NOT_RUN"
   }
 }
