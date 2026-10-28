@@ -273,5 +273,19 @@
     "preview_script": "web/scripts/nex-site-hero-preview.mjs",
     "visual_approval_status": "PENDING_ORIGINAL_REFERENCE_COMPARISON",
     "note": "Layered SVG is a hand-authored vector interpretation, not a pixel-perfect vector trace of the approved PNG."
+  },
+  "fidelity_revision_20261028": {
+    "status": "PIXEL_FIDELITY_HERO_LAYERED_CANDIDATE",
+    "source": "mascote_robô_nexus_em_neon_azul.png",
+    "sha256": "ef7a4aeb7b24d2ab5f199f913d351414b8fafb0b6208b3ab2b665013adcb9118",
+    "asset_manifest": "docs/design/nex/hybrid-v1/asset-manifest.json",
+    "binary_status": "NOT_COMMITTED",
+    "review_guide": "docs/design/nex/hybrid-v1/README.md",
+    "runtime_source_unchanged": true,
+    "early_idles": "6 P0 prototypes in local HTML preview",
+    "master_type": "OpenRaster (.ora) candidate",
+    "source_reconstruction_mean_rgb_delta": 0,
+    "source_reconstruction_mean_alpha_delta": 0.562,
+    "no_fake_360": true
   }
 }

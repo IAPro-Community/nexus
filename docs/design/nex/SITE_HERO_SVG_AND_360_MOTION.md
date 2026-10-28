@@ -10,7 +10,11 @@
 
 A diferença percebida pelo usuário entre a referência raster e o SVG anterior foi documentada em [referências comparativas do NEX](reference-pack/2026-10-28/README.md) e no respectivo [manifesto de hashes](reference-pack/2026-10-28/manifest.json). Há uma prancha de auditoria visual e uma versão Hero PNG transparente, porém seus binários permanecem **PENDING_BINARY_UPLOAD** até serem importados por um commit posterior. **Não** alegar que o SVG atual corresponde pixel a pixel ao PNG; a correção de silhueta e riqueza visual requer revisão comparativa, não só keyframes CSS.
 
-## O que está realmente disponível agora
+## Atualização: Hero híbrido fiel ao PNG (28/10/2026)
+
+Foi desenvolvido um **candidato raster em camadas** que conserva os próprios pixels do PNG selecionado: [manifesto dos assets](hybrid-v1/asset-manifest.json), [guia de revisão](hybrid-v1/README.md). A fonte editável é um projeto OpenRaster (`.ora`) com oito camadas recortadas além da base, e um protótipo HTML oferece seis idles. A recomposição estática mantém os canais RGB originais; o alpha tem diferenças pequenas nas bordas das máscaras. A prévia raster **não foi ainda publicada como arte do site** nem homologada. Enquanto os PNGs não estiverem commitados, o SVG antigo continua apenas como alternativa vetorial candidata, não como substituto fiel.
+
+## O que está realmente disponível agora## O que está realmente disponível agora
 
 O SVG em `viewBox=1024×1024` tem fundo transparente e grupos identificáveis, mantendo a geometria base e permitindo movimentos separados. As peças possuem **âncoras fixas**; CSS anima somente elementos internos onde necessário:
 
