@@ -27,6 +27,9 @@ func (r *Reducer) ObserveWireSignal(runtimeID string, epoch, sequence uint64, si
   observation.Turn = TurnRunning
  case "idle":
   observation.Turn = TurnIdle
+ case "cancelled":
+  observation.Turn = TurnCancelled
+  observation.Evidence = Authoritative
  case "done":
   // ACP prompt completion and Pi agent_settled are protocol-owned terminal
   // turn events. Only these can close all pending requests in this adapter.
