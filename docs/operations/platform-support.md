@@ -1,7 +1,10 @@
 # Suporte de plataformas
 
 A linha **Nexus 1.0 ainda está em beta**. O trabalho que estava separado como
-“1.1” foi incorporado à linha de desenvolvimento da v1; o source candidato declara `1.0.0-beta.10` (ainda sem certificação exact-SHA).
+“1.1” foi incorporado à linha de desenvolvimento da v1. A versão-fonte corrente
+é declarada em `VERSION` e `web/package.json`; a situação de homologação
+vigente está em [status da release](../release-status.md). A presença de uma
+versão beta no source não constitui certificação exact-SHA.
 
 O registro histórico da última beta anterior menciona `v1.0.0-beta.1` (Linux amd64); a disponibilidade pública atual dos artefatos exige verificação independente.
 O source candidato seguinte integra Linux amd64, Windows amd64 e macOS arm64,

@@ -119,5 +119,4 @@ múltiplos projetos, armazenamento bloqueado, Zoom 200%, teclado, temas e
 estados sem elementos visíveis. Validar a **build do SHA exato**, não apenas
 o código da branch.
 
-Veja [tours do Composer e Flow](composer-flow-tour.md) e
-[gate de visual QA](../../DEV/validation/COMPOSER_FLOW_GUIDED_UX_2026-10-27.md).
+Veja [tours do Composer e Flow](composer-flow-tour.md). A evidência visual da implementação permanece em registros internos de validação e não substitui os gates públicos de homologação por SHA.
