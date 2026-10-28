@@ -31,6 +31,16 @@ describe('attention toast identity', () => {
       attentionToastKey(waiting('rt-a', 'question-2')),
     );
   });
+  it('does not reuse a dismissed toast after a restarted process or repeated prompt', () => {
+    const original = waiting('rt-a', 'same-text');
+    original.host_generation = 11;
+    original.provider_generation = 21;
+    original.attention_revision = 1;
+    const repeat = { ...original, attention_revision: 2 };
+    const restarted = { ...original, host_generation: 12 };
+    expect(attentionToastKey(original)).not.toBe(attentionToastKey(repeat));
+    expect(attentionToastKey(original)).not.toBe(attentionToastKey(restarted));
+  });
   it('keeps the same identity through repeated polling of the same question', () => {
     expect(attentionToastKey(waiting('rt-a', 'question-1'))).toBe(
       attentionToastKey(waiting('rt-a', 'question-1')),
