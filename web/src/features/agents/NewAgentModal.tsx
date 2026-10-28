@@ -317,7 +317,9 @@ export const NewAgentModal: React.FC<{
   const handleCreate = async () => {
     if (!name.trim() || !selectedType) return;
     if (agentProtocol && (!structuredChoices.includes(agentProtocol) || !validStructuredProfile)) {
-      setError('Configure e selecione um perfil registrado antes de iniciar um agente estruturado.');
+      setError(
+        'Configure e selecione um perfil registrado antes de iniciar um agente estruturado.',
+      );
       return;
     }
     setBusy(true);
