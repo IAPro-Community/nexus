@@ -45,15 +45,30 @@ jobs:
         working-directory: web
         run: bun install --frozen-lockfile
       - name: Check docs and internal links
-        # Full visual provenance remains mandatory for source/assets changes
-        # and for the protected release CI. A documentation-only PR must not
-        # forge a new visual certificate or be blocked by *pre-existing*
-        # screenshots that the PR did not modify.
+        # Full provenance remains mandatory when source or visual assets change.
+        # Documentation-only PRs cannot repair stale source visual evidence;
+        # those gates remain enforced separately on protected release CI.
         shell: bash
         run: |
           set -euo pipefail
-          changed="$(git diff --name-only HEAD^1 HEAD)"
-          non_doc="$(printf '%s\n' "$changed" | grep -Ev '^(README(\\.[[:alnum:]_-]+)?\\.md|ROADMAP\\.md|docs/.*\\.md|\\.github/workflows/community-pr\\.yml)      - name: Frontend quality and build
+          needs_visual_gate=0
+          while IFS= read -r changed_path; do
+            case "$changed_path" in
+              docs/*.md|README.md|README.en.md|README.es.md|ROADMAP.md|.github/workflows/community-pr.yml) ;;
+              *) needs_visual_gate=1 ;;
+            esac
+          done < <(git diff --name-only HEAD^1 HEAD)
+          if [[ "$needs_visual_gate" == 1 ]]; then
+            echo 'Source or assets changed: enforce full visual provenance'
+            node scripts/docs-verify.mjs
+          else
+            echo 'Documentation-only: enforce links and standalone source/document contracts'
+            node scripts/docs-verify.mjs --links-only
+            node scripts/verify-feature-catalog.mjs
+            node scripts/verify-release-docs.mjs
+            node scripts/verify-nex-visual.mjs
+          fi
+      - name: Frontend quality and build
         working-directory: web
         run: bun run quality:full
       - name: Go tests (including license consistency checks)
