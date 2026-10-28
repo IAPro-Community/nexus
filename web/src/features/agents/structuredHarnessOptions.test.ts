@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isStructuredProtocolAllowed, structuredProtocolsForProvider } from './structuredHarnessOptions';
+import { bindStructuredHarnessProfile, isStructuredProtocolAllowed, structuredProtocolsForProvider } from './structuredHarnessOptions';
 
 describe('experimental structured harness picker', () => {
   it('preserves terminal mode as the default for every provider', () => {
@@ -14,5 +14,24 @@ describe('experimental structured harness picker', () => {
     expect(structuredProtocolsForProvider('pi', true)).toEqual(['pi_rpc']);
     expect(isStructuredProtocolAllowed('codex', 'acp', true)).toBe(false);
     expect(isStructuredProtocolAllowed('pi', 'acp', true)).toBe(false);
+  });
+});
+
+describe('structured agent configuration identity', () => {
+  it('pins one selected provider and profile without scheduler failover', () => {
+    const original = {
+      provider: '', profile: '', allocation: { prefer_provider: 'opencode' },
+      isolation: 'project',
+    };
+    const configured = bindStructuredHarnessProfile(original, 'omp', 'connected-profile');
+    expect(configured.provider).toBe('omp');
+    expect(configured.profile).toBe('connected-profile');
+    expect(configured.allocation).toBeUndefined();
+    expect(original.provider).toBe('');
+  });
+  it('refuses an unselected profile', () => {
+    expect(() => bindStructuredHarnessProfile(
+      { provider: '', profile: '', isolation: 'project' }, 'mimo', '',
+    )).toThrow(/explicit registered provider profile/);
   });
 });
