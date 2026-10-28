@@ -1,3 +1,21 @@
+> **Atualização de auditoria — 27/10/2026 (posterior ao relatório original).** As afirmações PASS abaixo são evidências declaradas na homologação local anterior, não reexecução/CI verificados para o HEAD da release após os commits de continuidade. **O gate do conjunto universal continua NOT APPROVED / E2E REAL PENDENTE** até regressões no SHA final, GO 1.25, formatos, execução com CLIs autenticados e duas interfaces reais. Não converter automaticamente os PASS do relatório anterior para o novo SHA.
+
+### Continuidade aplicada sobre a release
+- **Centro de Atenção (UI):** correção de toasts desatualizados quando um runtime faz perguntas consecutivas; supressão/identidade por `runtime_id + attention_fingerprint`; título/radar agora contam intervenções separadas por runtime, mesmo com texto idêntico. Novas regressões `web/src/components/attentionToastModel.test.ts`, `web/src/app/documentTitle.test.ts`, `web/src/app/attentionRadarModel.test.ts`.
+- **Seleção ACP/RPC:** o modal **Novo Agente** agora apresenta modos experimentais somente quando o Core os anuncia via `GET /api/v1/providers` (flag `NEXUS_EXPERIMENTAL_HARNESSES=1`, binário instalado). Exige perfil selecionado e mantém PTY como default; modo YOLO é desabilitado em transporte estruturado. Novas regressões de seleção/perfil em `web/src/features/agents/structuredHarnessOptions.test.ts`.
+- **Reducer ativo:** eventos ACP/RPC de `SessionHost` atravessam `agentwire.Reducer`, por runtime/epoch/sequência e com distinção de evidência. Progresso genérico não resolve permissão; turn settled do protocolo ou morte do processo encerram. Novas regressões de reducer e integração de host.
+- **Ordem de eventos:** `structuredBackend` entrega status em fila ordenada; saturação do canal derruba a sessão com segurança em vez de descartar silenciosamente uma solicitação de permissão.
+- **E2E process-backed:** `internal/control/web/structured_multiclient_process_e2e_test.go` inicia **dois processos ACP simulados reais via pipes**, dois clientes HTTP com cookies independentes, perguntas iguais, e resposta real pelo protocolo/IPC somente em um runtime. É cobertura automatizada do backend com processos e HTTP, mas **não** é teste em dois navegadores reais nem autenticação do CLI OpenCode/OMP.
+- **Workflow:** `.github/workflows/agentwire-verification.yml` foi ampliado para testes process-backed e frontend. **Ainda não há nesta auditoria prova do workflow verde** em mesmo SHA. Devem ser corrigidos quaisquer falhas e divergências de gofmt no CI.
+
+### Bloqueadores explícitos antes de promover a estável
+1. Reexecutar Go/race/frontend no SHA atualizado, corrigir gofmt e anexar logs/CI de execução — não apenas o YAML.
+2. Executar dois navegadores autênticos + dois harnesses autenticados, incluindo permissão real, resposta remota e reconexão.
+3. Validar versão/capacidades ACP, ciclo de vida Win/macOS/Linux, terminal de texto e cobertura E2E Pi/MiMo/DSH.
+4. Manter issues #97–#101 abertas até critérios completos; não marcar `SUPPORTED` para modos experimentais apenas por CLI detectado.
+
+---
+
 # Relatório Final de Auditoria e Homologação — AgentWire e Centro de Atenção Universal Nexus
 
 **Data:** 27 de Outubro de 2026  
