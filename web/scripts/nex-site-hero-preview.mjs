@@ -46,6 +46,7 @@ input[type=range]{width:100%;accent-color:#31D5FF}
 .small{font-size:12px;line-height:1.4;color:#8DAFCC}
 .info{border-top:1px solid #214B72;padding-top:12px}
 #nex-yaw-stage{transform-origin:512px 500px;transition:transform 220ms ease-out}
+#nex-site-hero[data-motion=off] #nex-yaw-stage{transition:none}
 @media (max-width:770px){.stage{grid-template-columns:1fr}.figure{min-height:330px}}
 @media (prefers-reduced-motion:reduce){#nex-yaw-stage{transition:none}}
 </style></head>
