@@ -106,7 +106,7 @@ export const ComposerStart: React.FC<{
     !draft.trim() || (inputMode === 'EXISTING_PROMPT' && !sourcePrompt.trim()) || busy;
 
   return (
-    <div className={styles.composerWelcome}>
+    <div className={styles.composerWelcome} data-feature-tour-scope>
       <div className={styles.composerWelcomeHero} data-tour="composer-purpose">
         <FeatureTour projectId={projectId} surface="composer-start" />
         <span className={styles.composerWelcomeEyebrow}>
