@@ -9,6 +9,7 @@ import {
   type TourStep,
 } from './tour';
 import { useTranslation } from 'react-i18next';
+import { findTourTarget } from './tourTargets';
 import styles from './ProductTour.module.scss';
 
 export const ProductTour: React.FC<{
@@ -40,10 +41,7 @@ export const ProductTour: React.FC<{
   const steps = useMemo(() => {
     if (!open || typeof document === 'undefined') return [];
     return availableTourSteps(proposedSteps, (selector) => {
-      const el = (targetScope || document).querySelector(selector) as HTMLElement | null;
-      if (!el) return false;
-      const r = el.getBoundingClientRect();
-      return r.width > 0 && r.height > 0 && r.bottom > 0 && r.right > 0;
+      return Boolean(findTourTarget(targetScope || document, selector));
     });
   }, [open, proposedSteps, targetScope]);
 
@@ -65,7 +63,7 @@ export const ProductTour: React.FC<{
       setRect(null);
       return;
     }
-    const target = (targetScope || document).querySelector(step.target) as HTMLElement | null;
+    const target = findTourTarget(targetScope || document, step.target);
     if (!target) {
       setRect(null);
       return;
