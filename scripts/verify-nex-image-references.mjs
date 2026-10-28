@@ -18,10 +18,10 @@ for (const item of manifest.assets) {
   // reject traversal, absolute paths and unexpected manifest locations.
   const expectedPath = `docs/design/nex/reference-pack/2026-10-28/${item.filename}`;
   if (
-    !/^[a-zA-Z0-9][a-zA-Z0-9._-]*\\.png$/.test(item.filename) ||
+    !/^[a-zA-Z0-9][a-zA-Z0-9._-]*\.png$/.test(item.filename) ||
     item.path !== expectedPath ||
     item.path.includes('..') ||
-    item.path.includes('\\\\')
+    item.path.includes('\\')
   ) {
     errors.push('Unsafe asset path: '+item.path);
     continue;
