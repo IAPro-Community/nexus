@@ -156,7 +156,7 @@ export const AttentionNotificationCard: React.FC<AttentionNotificationCardProps>
             className="nx-uui-notification__hint"
             style={{ margin: '4px 0 0', fontSize: '0.786rem', color: 'var(--nx-muted)' }}
           >
-            {promptKind === 'native_status'
+            {!actions.showTextInput
               ? t('attention.openTerminalToRespond', 'Open the agent terminal to respond securely.')
               : t('attention.hint', 'Reply here or open the agent terminal.')}
           </p>
