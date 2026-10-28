@@ -1,0 +1,41 @@
+name: Temporary AgentWire handshake test formatting
+on:
+  push:
+    branches: [fix/agentwire-handshake-test-gofmt-20261028]
+    paths:
+      - .github/workflows/temporary-agentwire-handshake-gofmt.yml
+permissions:
+  contents: write
+jobs:
+  format-test:
+    if: github.ref == 'refs/heads/fix/agentwire-handshake-test-gofmt-20261028'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: Apply gofmt to the newly added handshake regression
+        run: |
+          gofmt -w internal/control/host/structured_handshake_failure_test.go
+          git diff --check
+      - name: Verify host tests
+        run: go test -count=1 ./internal/control/host
+      - name: Commit only the mechanical formatting on this branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -- internal/control/host/structured_handshake_failure_test.go
+          if git diff --cached --quiet; then exit 0; fi
+          git fetch origin fix/agentwire-handshake-test-gofmt-20261028
+          test "$(git rev-parse origin/fix/agentwire-handshake-test-gofmt-20261028)" = "$(git rev-parse HEAD)" || exit 1
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'style(host): gofmt handshake failure regression'
+          git push origin HEAD:refs/heads/fix/agentwire-handshake-test-gofmt-20261028
