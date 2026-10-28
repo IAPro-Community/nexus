@@ -1,0 +1,48 @@
+name: Nexus release Linux smoke (GitHub-hosted)
+on:
+  push:
+    branches: [release/v1.0.0]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: linux-release-smoke-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    name: Linux integrated smoke, exact source SHA
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      GOTOOLCHAIN: auto
+      GOFLAGS: -mod=readonly
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.9'
+      - name: NEX reference integrity and cross-platform path regression
+        run: |
+          node --test scripts/tests/nex-reference-path.test.mjs
+          node scripts/verify-nex-image-references.mjs
+      - name: Verify project browser/outputs/runtime packages
+        run: |
+          go vet ./internal/browsercontrol ./internal/nexus/artifacts ./internal/control/launcher ./internal/control/web ./internal/control/driver
+          go test -count=1 ./internal/browsercontrol ./internal/nexus/artifacts ./internal/control/launcher ./internal/control/web ./internal/control/driver
+          go test -race -count=1 ./internal/nexus/artifacts
+      - name: Build Nexus Linux CLI
+        run: go build -trimpath -o "${{ runner.temp }}/nexus" ./cmd/nexus
+      - name: Install locked UI dependencies
+        run: bun install --cwd web --frozen-lockfile
+      - name: Verify Web typecheck, unit tests and build
+        run: |
+          cd web
+          bun run typecheck
+          bun run test
+          bun run build
