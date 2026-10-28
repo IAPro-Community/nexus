@@ -2,8 +2,11 @@ package nexus
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/IAPro-Community/nexus/internal/control/driver"
 	"github.com/IAPro-Community/nexus/internal/control/handoff"
@@ -185,6 +188,54 @@ func (s *RuntimeApplicationService) MarkStopped(ctx context.Context, runtimeID s
 		return err
 	}
 	return s.registry.TransitionState(runtimeID, registry.StateStopped)
+}
+
+// ErrAttentionInput indicates an unsafe or malformed single-turn quick reply.
+var ErrAttentionInput = errors.New("invalid quick response input")
+
+// RespondToAttention is separate from the legacy raw terminal input endpoint.
+// It reserves exactly one revision under the cross-process registry lock, and
+// does not optimistically mark the provider request as resolved. On uncertain
+// IPC delivery the reservation stays consumed to prevent replay into a new turn.
+func (s *RuntimeApplicationService) RespondToAttention(
+	ctx context.Context, runtimeID string, expected registry.AttentionResponseExpectation, input string,
+) error {
+	if err := s.ready(ctx); err != nil {
+		return err
+	}
+	if strings.TrimSpace(input) == "" || len(input) > 4096 {
+		return ErrAttentionInput
+	}
+	for _, ch := range input {
+		if unicode.IsControl(ch) {
+			return ErrAttentionInput
+		}
+	}
+	sess, err := s.Get(ctx, runtimeID)
+	if err != nil {
+		return fmt.Errorf("%w: runtime not found", registry.ErrAttentionConflict)
+	}
+	if err := registry.ValidateAttentionResponse(sess, expected); err != nil {
+		return err
+	}
+	if sess.PromptKind == "yn" && !strings.EqualFold(input, "y") && !strings.EqualFold(input, "n") {
+		return ErrAttentionInput
+	}
+	// Claim BEFORE opening the transport, so competing tabs cannot both send
+	// input. A failed IPC attempt remains uncertain: use the terminal to retry.
+	if err := s.registry.ClaimAttentionResponse(runtimeID, expected); err != nil {
+		return err
+	}
+	client, err := protocol.NewClient(runtimeID)
+	if err != nil {
+		return fmt.Errorf("attention response delivery uncertain: %w", err)
+	}
+	defer client.Close()
+	_, err = client.SendContext(ctx, protocol.CmdInput, protocol.InputPayload{Data: input + "\n"})
+	if err != nil {
+		return fmt.Errorf("attention response delivery uncertain: %w", err)
+	}
+	return nil
 }
 
 // Respond sends interactive input through the existing runtime protocol.
