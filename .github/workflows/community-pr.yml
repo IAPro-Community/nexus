@@ -30,32 +30,44 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+      - name: Detect PR change scope
+        id: scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_changed=false
+          while IFS= read -r changed_path; do
+            case "$changed_path" in
+              docs/*.md|README.md|README.en.md|README.es.md|ROADMAP.md|.github/workflows/community-pr.yml) ;;
+              *) source_changed=true ;;
+            esac
+          done < <(git diff --name-only HEAD^1 HEAD)
+          echo "source_changed=$source_changed" >> "$GITHUB_OUTPUT"
+          echo "PR source/assets changed: $source_changed"
       - name: Install Go matching the release CI toolchain
+        if: steps.scope.outputs.source_changed == 'true'
         uses: actions/setup-go@v6
         with:
           go-version: '1.26.10'
           cache: false
       - name: Install Bun
+        if: steps.scope.outputs.source_changed == 'true'
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.9
       - name: Install frontend dependencies without lock changes
+        if: steps.scope.outputs.source_changed == 'true'
         working-directory: web
         run: bun install --frozen-lockfile
       - name: Check docs and internal links
-        # Check all visual provenance for source/assets PRs; never certify
-        # screenshots simply because a docs-only PR didn't modify them.
+        # Documentation-only PRs receive full link/contract checks, not a
+        # false visual certificate for a pre-existing source snapshot.
+        env:
+          PR_SOURCE_CHANGED: ${{ steps.scope.outputs.source_changed }}
         shell: bash
         run: |
           set -euo pipefail
-          needs_visual_gate=0
-          while IFS= read -r changed_path; do
-            case "$changed_path" in
-              docs/*.md|README.md|README.en.md|README.es.md|ROADMAP.md|.github/workflows/community-pr.yml) ;;
-              *) needs_visual_gate=1 ;;
-            esac
-          done < <(git diff --name-only HEAD^1 HEAD)
-          if [[ "$needs_visual_gate" == 1 ]]; then
+          if [[ "$PR_SOURCE_CHANGED" == "true" ]]; then
             node scripts/docs-verify.mjs
           else
             node scripts/docs-verify.mjs --links-only
@@ -64,14 +76,17 @@ jobs:
             node scripts/verify-nex-visual.mjs
           fi
       - name: Frontend quality and build
+        if: steps.scope.outputs.source_changed == 'true'
         working-directory: web
         run: bun run quality:full
       - name: Install Wails v3 GTK4/WebKitGTK dependencies for Go tests
+        if: steps.scope.outputs.source_changed == 'true'
         run: |
           sudo apt-get update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev
       - name: Go tests (including license consistency checks)
+        if: steps.scope.outputs.source_changed == 'true'
         # Host-side Go build/test coverage; GUI interaction and signed
         # packaging still require the separate protected native gates.
         run: go test -count=1 ./internal/...
