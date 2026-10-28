@@ -72,8 +72,23 @@ try {
             & $Action
             Add-Gate $Id 'PASS' ("completed in " + $timer.ElapsedMilliseconds + ' ms')
         } catch {
-            # Do not put raw stderr, account data or paths in the public JSON.
-            Add-Gate $Id 'FAIL' ("see private-logs/" + $Id + '.log')
+            # Do not put raw stderr, account data or absolute paths in the public JSON.
+            # For TypeScript, reveal diagnostic identifiers only; keep source lines
+            # and potentially sensitive values in local private logs.
+            $detail = "see private-logs/" + $Id + '.log'
+            if ($Id -eq 'web-first-run-typecheck' -and (Test-Path -LiteralPath $script:activeLog)) {
+                $rawDiagnostics = Get-Content -LiteralPath $script:activeLog -Raw -ErrorAction SilentlyContinue
+                $codes = @(
+                    [regex]::Matches([string]$rawDiagnostics, '\bTS[0-9]{4,5}\b') |
+                        ForEach-Object { $_.Value } |
+                        Sort-Object -Unique |
+                        Select-Object -First 12
+                )
+                if ($codes.Count -gt 0) {
+                    $detail = 'TypeScript diagnostic codes: ' + ($codes -join ', ') + '; see private log'
+                }
+            }
+            Add-Gate $Id 'FAIL' $detail
             $_.Exception.ToString() | Out-File -LiteralPath $script:activeLog -Append -Encoding utf8
         } finally {
             $timer.Stop()

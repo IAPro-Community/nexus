@@ -110,3 +110,41 @@ jobs:
             echo "Unresolved merge/conflict marker in source" >&2
             exit 1
           fi
+
+  windows-web-typecheck:
+    name: Windows Web TypeScript
+    runs-on: windows-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout pull request (no persistent credentials)
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Detect source or frontend changes
+        id: scope
+        shell: pwsh
+        run: |
+          $sourceChanged = $false
+          foreach ($file in @(git diff --name-only HEAD^1 HEAD)) {
+            if ($file -notmatch '^(docs/.*\.md|README(?:\.[A-Za-z0-9_-]+)?\.md|ROADMAP\.md|\.github/workflows/community-pr\.yml)$') {
+              $sourceChanged = $true
+              break
+            }
+          }
+          "source_changed=$($sourceChanged.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+      - name: Install Bun
+        if: steps.scope.outputs.source_changed == 'true'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+      - name: Install locked Web dependencies
+        if: steps.scope.outputs.source_changed == 'true'
+        shell: pwsh
+        run: bun install --cwd web --frozen-lockfile
+      - name: Verify TypeScript on Windows
+        if: steps.scope.outputs.source_changed == 'true'
+        shell: pwsh
+        run: bun run --cwd web typecheck
