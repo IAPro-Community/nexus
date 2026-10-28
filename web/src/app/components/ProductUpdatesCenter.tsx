@@ -7,6 +7,7 @@ import {
   featureAnnouncements,
   isAnnouncementUnread,
 } from '../../features/work/featureAnnouncements';
+import { requestFeatureReveal } from '../../features/work/featureReveal';
 import styles from './ProductUpdatesCenter.module.scss';
 
 /**
@@ -15,8 +16,9 @@ import styles from './ProductUpdatesCenter.module.scss';
  */
 export const ProductUpdatesCenter: React.FC<{
   enabled: boolean;
+  projectId: string;
   onOpenSurface?: (kind: string) => void;
-}> = ({ enabled, onOpenSurface }) => {
+}> = ({ enabled, projectId, onOpenSurface }) => {
   const { t } = useTranslation();
   const [, refresh] = useState(0);
   useEffect(() => {
@@ -81,7 +83,11 @@ export const ProductUpdatesCenter: React.FC<{
               <DropdownMenu.Item
                 key={item.id}
                 className={styles.item}
-                onSelect={() => onOpenSurface?.(item.openSurface)}
+                onSelect={() => {
+                  if (!onOpenSurface) return;
+                  requestFeatureReveal(item.id, projectId);
+                  onOpenSurface(item.openSurface);
+                }}
                 disabled={!onOpenSurface}
               >
                 <span className={styles.title}>
