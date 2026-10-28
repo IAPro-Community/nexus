@@ -509,6 +509,7 @@ func (h *APIHandler) handleProviders(w http.ResponseWriter, r *http.Request) {
 		Installed         bool                         `json:"installed"`
 		Version           string                       `json:"version"`
 		ControlLevel      registry.ControlLevel        `json:"control_level"`
+        StructuredModes   []string                     `json:"structured_modes,omitempty"`
 		Capabilities      driver.EffectiveCapabilities `json:"capabilities"`
 		RegistrationState string                       `json:"registration_state,omitempty"`
 		BinaryPath        string                       `json:"binary_path,omitempty"`
@@ -563,6 +564,11 @@ func (h *APIHandler) handleProviders(w http.ResponseWriter, r *http.Request) {
 				Capabilities: caps,
 				BinaryPath:   det.BinaryPath,
 			}
+            // Discovery is an explicit experimental declaration, not a claim
+            // that the installed CLI version passed authenticated E2E.
+            if det.Installed && os.Getenv("NEXUS_EXPERIMENTAL_HARNESSES") == "1" {
+                res[idx].StructuredModes = driver.WireProtocolsForProvider(drv.ProviderID())
+            }
 			if profilesErr != nil {
 				if det.Installed {
 					res[idx].RegistrationState = string(coreprovider.RegistrationUnknown)
