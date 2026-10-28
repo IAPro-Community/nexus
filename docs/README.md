@@ -33,6 +33,12 @@ estender o Nexus.
 | desenvolver provider | [Provider development](provider-development.md) |
 | entender a arquitetura | [Arquitetura](architecture/overview.md) |
 | contribuir | [CONTRIBUTING](../CONTRIBUTING.md) |
+| acompanhar metas e priorização do produto | [Plano de adoção e execução 2026](strategy/NEXUS_ADOPTION_EXECUTION_PLAN_2026.md) |
+
+## Planejamento e metas de adoção
+
+- [Plano de adoção Nexus 2026 — roadmap com issues, critérios de aceite, testes, métricas e dependências](strategy/NEXUS_ADOPTION_EXECUTION_PLAN_2026.md).
+- A [matriz funcional](reference/feature-matrix.md) e o [status de homologação](release-status.md) continuam fontes de verdade sobre recursos e publicação.
 
 ## Mapa da documentação
 
