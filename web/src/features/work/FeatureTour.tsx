@@ -17,6 +17,10 @@ import {
   parseFeatureTourProgress,
   type FeatureTourSurface,
 } from './featureTourDefinitions';
+import {
+  FEATURE_REVEAL_REQUEST_EVENT, consumeFeatureReveal,
+  hasPendingFeatureReveal,
+} from './featureReveal';
 import styles from './FeatureTour.module.scss';
 
 const readProgress = (key: string, length: number): number => {
@@ -76,6 +80,51 @@ export const FeatureTour: React.FC<{
       window.removeEventListener('nexus:feature-discovery-updated', onUpdated);
     };
   }, []);
+
+  useEffect(() => {
+    // An explicit selection in the global "What's New" menu opens the
+    // appropriate workspace first, then points the tour at its real control.
+    // Conditional panels may mount after the workspace itself.
+    let observer: MutationObserver | null = null;
+    let expiry: number | undefined;
+    let frame: number | undefined;
+    const stopObserving = () => {
+      observer?.disconnect();
+      observer = null;
+      if (expiry !== undefined) window.clearTimeout(expiry);
+      expiry = undefined;
+    };
+    const tryReveal = () => {
+      const item = consumeFeatureReveal(projectId, surface, visibleTarget);
+      if (!item) return false;
+      stopObserving();
+      const visibleSteps = availableTourSteps(steps, visibleTarget);
+      setInitialIndex(announcementTourIndex(item, visibleSteps.map((step) => step.id)));
+      setOpen(true);
+      try {
+        window.localStorage.setItem(announcementStorageKey(item.id), String(item.revision));
+      } catch { /* read marker is local-only and optional */ }
+      window.dispatchEvent(new Event('nexus:feature-discovery-updated'));
+      return true;
+    };
+    const onRequest = () => {
+      if (tryReveal()) return;
+      if (observer || !hasPendingFeatureReveal(projectId, surface)) return;
+      observer = new MutationObserver(() => { tryReveal(); });
+      observer.observe(document.body, {
+        childList: true, subtree: true, attributes: true,
+        attributeFilter: ['hidden', 'style', 'aria-hidden'],
+      });
+      expiry = window.setTimeout(stopObserving, 30_000);
+    };
+    window.addEventListener(FEATURE_REVEAL_REQUEST_EVENT, onRequest);
+    frame = window.requestAnimationFrame(onRequest);
+    return () => {
+      window.removeEventListener(FEATURE_REVEAL_REQUEST_EVENT, onRequest);
+      if (frame !== undefined) window.cancelAnimationFrame(frame);
+      stopObserving();
+    };
+  }, [projectId, surface, steps]);
 
   useEffect(() => {
     setOpen(false);
