@@ -60,7 +60,7 @@ describe('buildAttentionRadar', () => {
     expect(groups[0].items[0].badge).toBe('idle');
   });
 
-  it('collapses identical needs_user messages to one radar row', () => {
+  it('shows identical questions from independent runtimes as separate actionable rows', () => {
     const groups = buildAttentionRadar([
       rt({
         runtime_id: 'a',
@@ -94,8 +94,8 @@ describe('buildAttentionRadar', () => {
       }),
     ]);
     expect(groups).toHaveLength(1);
-    expect(groups[0].needsUserCount).toBe(1);
-    expect(groups[0].items).toHaveLength(1);
+    expect(groups[0].needsUserCount).toBe(3);
+    expect(groups[0].items).toHaveLength(3);
   });
 
   it('rejects replacement-character-only context as dishonest', () => {
