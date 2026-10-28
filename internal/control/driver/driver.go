@@ -81,6 +81,7 @@ func (ec EffectiveCapabilities) ToBooleanCaps() ControlCapabilities {
 		Headless:         ec.Headless.Status == CapabilitySupported,
 		SlashControl:     ec.SlashControl.Status == CapabilitySupported,
 		ReadOnlyReview:   ec.ReadOnlyReview.Status == CapabilitySupported,
+		ReadOnlyReview:   ec.ReadOnlyReview.Status == CapabilitySupported,
 		ControlLevel:     ec.ControlLevel,
 	}
 }
