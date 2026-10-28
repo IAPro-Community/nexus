@@ -66,8 +66,14 @@ jobs:
       - name: Frontend quality and build
         working-directory: web
         run: bun run quality:full
+      - name: Install Wails v3 GTK4/WebKitGTK dependencies for Go tests
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev
       - name: Go tests (including license consistency checks)
-        # Native GTK/WebKit and packaging validation stay in protected push CI.
+        # Host-side Go build/test coverage; GUI interaction and signed
+        # packaging still require the separate protected native gates.
         run: go test -count=1 ./internal/...
 
   community-static-safety:
