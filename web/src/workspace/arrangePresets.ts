@@ -9,10 +9,18 @@ import {
 
 /** Canonical UI presets (Portuguese menu). Legacy names remain accepted as aliases. */
 export type ArrangeMenuPreset =
-  'automatic' | 'two-columns' | 'three-columns' | 'terminal-focus' | 'focus-mode';
+  | 'automatic'
+  | 'two-columns'
+  | 'three-columns'
+  | 'terminal-focus'
+  | 'focus-mode';
 
 export type ArrangePresetName =
-  ArrangeMenuPreset | 'terminal-chat' | 'terminal-flow' | 'agents' | 'restore-default';
+  | ArrangeMenuPreset
+  | 'terminal-chat'
+  | 'terminal-flow'
+  | 'agents'
+  | 'restore-default';
 
 export const ARRANGE_MENU_PRESETS: ReadonlyArray<{
   id: ArrangeMenuPreset;
@@ -29,11 +37,36 @@ export const ARRANGE_MENU_PRESETS: ReadonlyArray<{
 /** User-facing workspace recipes reuse existing layout primitives.
  * They never spawn Agents, terminals or browsers. */
 export const WORKSPACE_RECIPES = [
-  { id: 'frontend', preset: 'two-columns', labelKey: 'workspace.recipeFrontend', hintKey: 'workspace.recipeFrontendHint' },
-  { id: 'backend', preset: 'terminal-focus', labelKey: 'workspace.recipeBackend', hintKey: 'workspace.recipeBackendHint' },
-  { id: 'review', preset: 'three-columns', labelKey: 'workspace.recipeReview', hintKey: 'workspace.recipeReviewHint' },
-  { id: 'debug', preset: 'two-columns', labelKey: 'workspace.recipeDebug', hintKey: 'workspace.recipeDebugHint' },
-  { id: 'release', preset: 'automatic', labelKey: 'workspace.recipeRelease', hintKey: 'workspace.recipeReleaseHint' },
+  {
+    id: 'frontend',
+    preset: 'two-columns',
+    labelKey: 'workspace.recipeFrontend',
+    hintKey: 'workspace.recipeFrontendHint',
+  },
+  {
+    id: 'backend',
+    preset: 'terminal-focus',
+    labelKey: 'workspace.recipeBackend',
+    hintKey: 'workspace.recipeBackendHint',
+  },
+  {
+    id: 'review',
+    preset: 'three-columns',
+    labelKey: 'workspace.recipeReview',
+    hintKey: 'workspace.recipeReviewHint',
+  },
+  {
+    id: 'debug',
+    preset: 'two-columns',
+    labelKey: 'workspace.recipeDebug',
+    hintKey: 'workspace.recipeDebugHint',
+  },
+  {
+    id: 'release',
+    preset: 'automatic',
+    labelKey: 'workspace.recipeRelease',
+    hintKey: 'workspace.recipeReleaseHint',
+  },
 ] as const satisfies ReadonlyArray<{
   id: string;
   preset: ArrangeMenuPreset;
