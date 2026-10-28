@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Badge, Button, DropdownMenu, Tooltip } from '../../design-system';
 import { ProductTour } from '../../app/tour/ProductTour';
 import { availableTourSteps } from '../../app/tour/tour';
+import { findTourTarget } from '../../app/tour/tourTargets';
 import {
   announcementStorageKey,
   announcementTourIndex,
@@ -31,18 +32,6 @@ const readProgress = (key: string, length: number): number => {
   }
 };
 
-/** Never search the whole page for contextual tour targets: Nexus can keep
- * several projects and split workspaces mounted at the same time. */
-export function hasTourTargetInScope(
-  scope: Element | null | undefined,
-  selector: string,
-): boolean {
-  const el = scope?.querySelector(selector) as HTMLElement | null;
-  if (!el) return false;
-  const r = el.getBoundingClientRect();
-  return r.width > 0 && r.height > 0 && r.bottom > 0 && r.right > 0;
-}
-
 /**
  * Scope-aware feature discovery, built on the design system's Radix Tooltip
  * and DropdownMenu and the already-installed ProductTour. No second tour
@@ -60,10 +49,10 @@ export const FeatureTour: React.FC<{
   const hostRef = useRef<HTMLDivElement>(null);
   const visibleTarget = useCallback(
     (selector: string) =>
-      hasTourTargetInScope(
+      Boolean(findTourTarget(
         hostRef.current?.closest('[data-feature-tour-scope]'),
         selector,
-      ),
+      )),
     [],
   );
   const [initialIndex, setInitialIndex] = useState(0);
