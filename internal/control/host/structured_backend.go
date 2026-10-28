@@ -35,11 +35,12 @@ type structuredBackend struct {
 	started      bool
 	ready        chan error
 	lines        chan string
+	statusUpdates chan agentwire.WireSignal
 }
 
 func newStructuredBackend(mode, cwd string, onStatus func(agentwire.WireSignal), onSession func(string)) *structuredBackend {
 	r, w := io.Pipe()
-	return &structuredBackend{mode: mode, cwd: cwd, outputReader: r, outputWriter: w, onStatus: onStatus, onSession: onSession, ready: make(chan error, 1), lines: make(chan string, 256)}
+	return &structuredBackend{mode: mode, cwd: cwd, outputReader: r, outputWriter: w, onStatus: onStatus, onSession: onSession, ready: make(chan error, 1), lines: make(chan string, 256), statusUpdates: make(chan agentwire.WireSignal, 512)}
 }
 func (b *structuredBackend) emit(msg string) {
 	if msg == "" {
@@ -90,12 +91,16 @@ func (b *structuredBackend) Start(cmd *exec.Cmd, rows, cols int) error {
 		return err
 	}
 	bridge, err := agentwire.NewBridge(b.mode, out, in, b.cwd, func(signal agentwire.WireSignal) {
-		// SessionHost.mu is held while Start waits for ACP initialize. Never call
-		// its attention callback inline from the protocol reader.
-		if b.onStatus != nil {
-			go b.onStatus(signal)
-		}
-	}, func(msg string) { b.emit(msg) })
+        // Preserve provider event order. Never silently drop an approval when
+        // the bounded stream is saturated; terminate this unhealthy session.
+        select {
+        case b.statusUpdates <- signal:
+        default:
+            b.emit("\r\n[Nexus] Agent status overflow; stopping session.\r\n")
+            if b.cancel != nil { b.cancel() }
+            if cmd.Process != nil { _ = cmd.Process.Kill() }
+        }
+    }, func(msg string) { b.emit(msg) })
 	if err != nil {
 		return err
 	}
@@ -105,6 +110,15 @@ func (b *structuredBackend) Start(cmd *exec.Cmd, rows, cols int) error {
 	b.ctx, b.cancel = context.WithCancel(context.Background())
 	b.bridge = bridge
 	b.started = true
+    go func() {
+        for {
+            select {
+            case <-b.ctx.Done(): return
+            case signal := <-b.statusUpdates:
+                if b.onStatus != nil { b.onStatus(signal) }
+            }
+        }
+    }()
 	go func() {
 		for {
 			select {
@@ -121,9 +135,6 @@ func (b *structuredBackend) Start(cmd *exec.Cmd, rows, cols int) error {
 		if err := bridge.Start(b.ctx); err != nil {
 			b.ready <- err
 			b.emit("\r\n[Nexus] Structured protocol handshake failed.\r\n")
-			if b.onStatus != nil {
-				go b.onStatus(agentwire.WireSignal{State: "error", Summary: "Protocol handshake failed"})
-			}
 			_ = cmd.Process.Kill()
 			return
 		}
