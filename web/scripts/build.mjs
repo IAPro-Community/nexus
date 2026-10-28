@@ -97,18 +97,20 @@ if (collectedStyles.length > 0) {
 }
 
 await cp(resolve(webDir, 'index.html'), resolve(distDir, 'index.html'));
-// Produce site/docs-ready NEX SVGs from the same React master as the native HUD.
-const nexArt = spawnSync(process.execPath, [resolve(webDir, 'scripts/export-nex-art.mjs')], {
-  cwd: webDir,
-  stdio: 'inherit',
-});
-if (nexArt.status !== 0) {
-  throw new Error(`NEX asset generation failed (exit: ${nexArt.status ?? 'unknown'})`);
-}
-
+// Copy static assets first, then generate the canonical NEX renders *into
+// dist only*. A build must never mutate checked-in web/public source assets:
+// exact-SHA CI and Windows homologation verify a clean source worktree.
 const publicDir = resolve(webDir, 'public');
 if (existsSync(publicDir)) {
   await cp(publicDir, distDir, { recursive: true });
+}
+const nexArt = spawnSync(
+  process.execPath,
+  [resolve(webDir, 'scripts/export-nex-art.mjs'), `--output-dir=${resolve(distDir, 'nex')}`],
+  { cwd: webDir, stdio: 'inherit' },
+);
+if (nexArt.status !== 0) {
+  throw new Error(`NEX asset generation failed (exit: ${nexArt.status ?? 'unknown'})`);
 }
 const logo = existsSync(resolve(webDir, 'public/logo.png')) ? resolve(webDir, 'public/logo.png') : resolve(repoDir, 'logo.png');
 if (existsSync(logo)) await cp(logo, resolve(distDir, 'logo.png'));
