@@ -78,6 +78,10 @@ Todas as ações abaixo são **comportamentos não operacionais** que acontecem 
 4. Entregar atlas com PNG transparente e JSON estruturado + source editável + preview GIF/APNG/WebP **somente como demonstração**, não como master obrigatório.
 5. Para cada ação, registrar before/after em tamanho HUD real; requer aprovação humana com comparativo ao PNG de referência selecionado.
 
+## Hero SVG alternativo para animação do site
+
+Um asset vetorial de grande resolução, `web/public/nex/nex-site-hero.svg`, foi criado como **candidato animável** para o site. Ele permite idle, olhos, núcleo, aletas e quatro módulos independentes, mas mantém frontalidade e **não** equivale ao master artístico em pixel art HD (nem ao atlas 360°). A documentação [SVG Hero + pseudo-3D + giro real](SITE_HERO_SVG_AND_360_MOTION.md) separa implementação atual de metas de arte futura; o master retrô da issue #119 continua pendente.
+
 ## Fases e critérios de pronto
 
 - **P0 — identidade de game:** master frontal Hero/Standard/Compact do mesmo personagem, paleta, silhueta, export sem fundo e seis primeiros idles testáveis no HUD, todos sem movimento quando solicitado.

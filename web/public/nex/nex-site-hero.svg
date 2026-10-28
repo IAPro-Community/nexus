@@ -1,0 +1,247 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="nex-site-hero" viewBox="0 0 1024 1024" role="img"
+ aria-labelledby="nex-hero-title nex-hero-description" data-nex-art="site-hero-layered-v1" data-facing="front" data-state="idle" data-motion="on">
+ <title id="nex-hero-title">NEX — robô oficial IAPro Nexus, arte SVG vetorial em camadas</title>
+ <desc id="nex-hero-description">Mascote frontal com capacete branco técnico, visor navy com olhos ciano, duas aletas azuis, duas orelhas energéticas, núcleo no peito, quatro módulos flutuantes e anel azul; fundo transparente e grupos preparados para animação.</desc>
+<style><![CDATA[
+/* NEX site Hero: genuine layered SVG animation, no 3D engine and no external JS.
+   Direct <img> plays idle only. Inline this SVG to change its data-state.
+   Never use rotateY(360deg) to pretend the reverse of this front drawing exists. */
+#nex-site-hero { --nex-accent: #26CFFF; overflow: visible; }
+#nex-site-hero[data-state="warning"] { --nex-accent: #FF8A45; }
+#nex-site-hero[data-state="critical"] { --nex-accent: #FF496C; }
+#nex-site-hero[data-state="offline"] { --nex-accent: #71839D; }
+#nex-figure { transform-origin: 512px 655px; animation: nexFloat 4.6s ease-in-out infinite; }
+#nex-shadow { transform-origin: 512px 983px; animation: nexShadow 4.6s ease-in-out infinite; }
+#nex-fin-left .nex-fin-motion, #nex-fin-right .nex-fin-motion {
+ transform-box: fill-box; transform-origin: 50% 92%;
+ animation: nexFin 5.5s ease-in-out infinite;
+}
+#nex-fin-right .nex-fin-motion { animation-name: nexFinMirror; }
+.nex-module-motion { transform-box: fill-box; transform-origin: center; animation: nexModule 4.8s ease-in-out infinite; }
+#nex-module-2 .nex-module-motion { animation-delay: -1.7s; }
+#nex-module-3 .nex-module-motion { animation-delay: -3.0s; }
+#nex-module-4 .nex-module-motion { animation-delay: -2.2s; }
+#nex-face { transform-origin: 512px 474px; animation: nexBlink 8.4s linear infinite; }
+#nex-reactor { transform-origin: 512px 765px; animation: nexCore 4.6s ease-in-out infinite; }
+#nex-orbit-front { animation: nexOrbit 4.6s ease-in-out infinite; }
+#nex-site-hero[data-state="working"] #nex-figure { animation-duration: 2.4s; }
+#nex-site-hero[data-state="working"] #nex-reactor { animation-duration: 1.2s; }
+#nex-site-hero[data-state="warning"] #nex-figure { animation: nexSignal 3.6s ease-in-out infinite; }
+#nex-site-hero[data-state="critical"] #nex-figure { animation: nexCritical 2.4s ease-in-out infinite; }
+#nex-site-hero[data-state="critical"] #nex-fin-left .nex-fin-motion,
+#nex-site-hero[data-state="critical"] #nex-fin-right .nex-fin-motion { animation: none; }
+#nex-site-hero[data-state="offline"] #nex-figure { filter: saturate(.28) brightness(.7); }
+#nex-site-hero[data-state="offline"] *, #nex-site-hero[data-motion="off"] * {
+ animation: none !important; transition: none !important;
+}
+#nex-site-hero[data-motion="off"] #nex-figure { transform: none !important; }
+@keyframes nexFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes nexShadow { 0%,100% { opacity:.52; transform:scaleX(1); } 50% { opacity:.30; transform:scaleX(.9); } }
+@keyframes nexFin { 0%,100% { transform:rotate(0); } 50% { transform:rotate(-1.5deg); } }
+@keyframes nexFinMirror { 0%,100% { transform:rotate(0); } 50% { transform:rotate(1.5deg); } }
+@keyframes nexModule { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-4px); } }
+@keyframes nexBlink { 0%,90%,92%,100% { transform:scaleY(1); } 90.5%,91.2% { transform:scaleY(.06); } }
+@keyframes nexCore { 0%,100% { opacity:.92; transform:scale(1); } 50% { opacity:1; transform:scale(1.025); } }
+@keyframes nexOrbit { 0%,100% { opacity:.8; } 50% { opacity:1; } }
+@keyframes nexSignal { 0%,12%,100% { transform:translateX(0); } 3%,9% { transform:translateX(-3px); } 6% { transform:translateX(3px); } }
+@keyframes nexCritical { 0%,100% { transform:scale(1); } 50% { transform:scale(1.008); } }
+@media (prefers-reduced-motion: reduce) {
+  #nex-site-hero *, #nex-site-hero { animation:none !important; transition:none !important; }
+}
+]]></style>
+ <defs>
+  <linearGradient id="nx-shell" x1=".08" y1=".02" x2=".85" y2=".99"><stop stop-color="#FFFFFF"/><stop offset=".23" stop-color="#F7FCFF"/><stop offset=".57" stop-color="#DCEAFF"/><stop offset=".79" stop-color="#A2BFE6"/><stop offset="1" stop-color="#567EB9"/></linearGradient>
+  <linearGradient id="nx-metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#E3F2FF"/><stop offset=".43" stop-color="#A5C5E9"/><stop offset=".75" stop-color="#4678BA"/><stop offset="1" stop-color="#163D83"/></linearGradient>
+  <linearGradient id="nx-blue" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="#C9F7FF"/><stop offset=".35" stop-color="#37B5FF"/><stop offset=".72" stop-color="#057DD5"/><stop offset="1" stop-color="#014DA7"/></linearGradient>
+  <linearGradient id="nx-fin" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFFFFF"/><stop offset=".5" stop-color="#9DC4F1"/><stop offset="1" stop-color="#184F9F"/></linearGradient>
+  <linearGradient id="nx-finlight" x1="0" y1="0" x2=".85" y2="1"><stop stop-color="#EEFFFF"/><stop offset=".24" stop-color="#6EEDFF"/><stop offset=".68" stop-color="#019FFF"/><stop offset="1" stop-color="#0046B7"/></linearGradient>
+  <linearGradient id="nx-visor" x1=".13" y1="0" x2=".8" y2="1"><stop stop-color="#293A6F"/><stop offset=".19" stop-color="#0A1B43"/><stop offset=".7" stop-color="#030A22"/><stop offset="1" stop-color="#010416"/></linearGradient>
+  <radialGradient id="nx-core"><stop stop-color="#FFFFFF"/><stop offset=".18" stop-color="#E5FFFF"/><stop offset=".42" stop-color="#7FFAFF"/><stop offset=".77" stop-color="#0BC5FF"/><stop offset="1" stop-color="#0453BD"/></radialGradient>
+  <filter id="nx-miniglow" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="1.8"/></filter>
+  <filter id="nx-neon" x="-30%" y="-40%" width="160%" height="180%"><feGaussianBlur stdDeviation="3"/></filter>
+  <pattern id="nx-visor-pixels" width="13" height="13" patternUnits="userSpaceOnUse"><path d="M2 3h6v6H2z" fill="#274D80" opacity=".27"/></pattern>
+  <clipPath id="nx-faceclip"><path d="M336 332Q512 288 688 332L733 388Q765 467 723 536Q680 585 512 594Q344 585 301 536Q259 467 291 388Z"/></clipPath>
+ </defs>
+ <!-- Independent anchors allow CSS/WAAPI to animate only local children, not module positions. -->
+ <g id="nex-shadow" opacity=".52"><ellipse cx="512" cy="983" rx="240" ry="19" fill="#073B84"/><ellipse cx="512" cy="983" rx="157" ry="8" fill="#10D2FF" opacity=".36"/></g>
+ <g id="nex-yaw-stage">
+ <g id="nex-figure">
+ <g id="nex-orbit-back"><ellipse cx="512" cy="900" rx="301" ry="74" fill="none" stroke="#0D64D7" stroke-width="14" opacity=".5"/><path d="M212 895Q512 794 812 895" stroke="#25BFFF" stroke-width="6" opacity=".6" fill="none"/></g>
+ <g id="nex-fin-left" class="nex-fin" transform="translate(314 327) scale(1 1)"><g class="nex-fin-motion">
+  <path d="M-43 17-37-111-20-225 1-280Q15-301 34-287L49-260 49-7 25 22Z" fill="#06152E" stroke="#0D285C" stroke-width="11" stroke-linejoin="round"/>
+  <path d="M-36 11-29-129-12-230 8-277Q20-287 27-276L39-251 41-7 25 13Z" fill="url(#nx-fin)" stroke="#74A3D5" stroke-width="6"/>
+  <path d="M-23 4-14-152-1-242 17-271 24-256 31-36 13 6Z" fill="#0E448D" stroke="#0F69D0" stroke-width="6"/>
+  <path d="M-13-10-5-153 5-229 16-252 22-222 25-56 10-9Z" fill="url(#nx-finlight)"/>
+  <path d="M-3-81 8-196 16-229 19-176 15-75Z" fill="#BFFFFF" opacity=".88"/>
+  <path d="M-43 6-31-61-4-49 5-8-11 24Z" fill="#F1F8FF" stroke="#28568B" stroke-width="6"/>
+  <path d="M-36 0-23-47-4-41-20 5Z" fill="#FFFFFF"/>
+  <path d="M-14-255-3-282 14-292 25-281 24-263Z" fill="#BFFBFF"/>
+  <path d="M-22-138h5v-28h4v-24h4v60h-5v21h-8Z" fill="#FFFFFF" opacity=".67"/>
+  <rect x="21" y="-202" width="4" height="28" fill="#A9FFFF"/>
+</g></g><g id="nex-fin-right" class="nex-fin" transform="translate(710 327) scale(-1 1)"><g class="nex-fin-motion">
+  <path d="M-43 17-37-111-20-225 1-280Q15-301 34-287L49-260 49-7 25 22Z" fill="#06152E" stroke="#0D285C" stroke-width="11" stroke-linejoin="round"/>
+  <path d="M-36 11-29-129-12-230 8-277Q20-287 27-276L39-251 41-7 25 13Z" fill="url(#nx-fin)" stroke="#74A3D5" stroke-width="6"/>
+  <path d="M-23 4-14-152-1-242 17-271 24-256 31-36 13 6Z" fill="#0E448D" stroke="#0F69D0" stroke-width="6"/>
+  <path d="M-13-10-5-153 5-229 16-252 22-222 25-56 10-9Z" fill="url(#nx-finlight)"/>
+  <path d="M-3-81 8-196 16-229 19-176 15-75Z" fill="#BFFFFF" opacity=".88"/>
+  <path d="M-43 6-31-61-4-49 5-8-11 24Z" fill="#F1F8FF" stroke="#28568B" stroke-width="6"/>
+  <path d="M-36 0-23-47-4-41-20 5Z" fill="#FFFFFF"/>
+  <path d="M-14-255-3-282 14-292 25-281 24-263Z" fill="#BFFBFF"/>
+  <path d="M-22-138h5v-28h4v-24h4v60h-5v21h-8Z" fill="#FFFFFF" opacity=".67"/>
+  <rect x="21" y="-202" width="4" height="28" fill="#A9FFFF"/>
+</g></g>
+ <g id="nex-body">
+  <path d="M401 645Q512 621 623 645L674 683 685 767 657 844 591 895 433 895 367 844 339 767 350 683Z" fill="#051731" stroke="#0D2D62" stroke-width="11"/>
+  <path d="M405 653Q512 635 619 653L659 687 671 766 645 836 585 882 439 882 379 836 353 766 365 687Z" fill="url(#nx-shell)" stroke="#7EA6D2" stroke-width="6"/>
+  <path d="M382 687Q508 641 642 685L635 706Q512 667 391 708Z" fill="#FFFFFF" opacity=".9"/>
+  <path d="M376 791Q393 844 443 867H580Q631 844 647 790" fill="none" stroke="#538BCA" stroke-width="11" opacity=".75"/>
+  <path d="M440 677L469 702 461 736H426L414 704Z M584 677L555 702 563 736H598L610 704Z" fill="url(#nx-metal)" stroke="#28518D" stroke-width="4"/>
+  <path d="M391 740L420 751 432 804 408 833 376 794Z M633 740L604 751 592 804 616 833 648 794Z" fill="#2E79C0" stroke="#0B4385" stroke-width="5"/>
+  <path d="M389 759L414 767 421 797 406 815Z M635 759L610 767 603 797 618 815Z" fill="url(#nx-finlight)"/>
+  <path d="M350 723h6v3h-6Z" fill="#397EDA" opacity=".28"/><path d="M386 723h9v3h-9Z" fill="#9FDCFF" opacity=".28"/><path d="M422 723h12v3h-12Z" fill="#397EDA" opacity=".28"/><path d="M458 723h6v3h-6Z" fill="#9FDCFF" opacity=".28"/><path d="M494 723h9v3h-9Z" fill="#397EDA" opacity=".28"/><path d="M530 723h12v3h-12Z" fill="#9FDCFF" opacity=".28"/><path d="M566 723h6v3h-6Z" fill="#397EDA" opacity=".28"/><path d="M602 723h9v3h-9Z" fill="#9FDCFF" opacity=".28"/><path d="M638 723h12v3h-12Z" fill="#397EDA" opacity=".28"/><path d="M350 752h6v3h-6Z" fill="#9FDCFF" opacity=".28"/><path d="M386 752h9v3h-9Z" fill="#397EDA" opacity=".28"/><path d="M422 752h12v3h-12Z" fill="#9FDCFF" opacity=".28"/><path d="M458 752h6v3h-6Z" fill="#397EDA" opacity=".28"/><path d="M494 752h9v3h-9Z" fill="#9FDCFF" opacity=".28"/><path d="M530 752h12v3h-12Z" fill="#397EDA" opacity=".28"/><path d="M566 752h6v3h-6Z" fill="#9FDCFF" opacity=".28"/><path d="M602 752h9v3h-9Z" fill="#397EDA" opacity=".28"/><path d="M638 752h12v3h-12Z" fill="#9FDCFF" opacity=".28"/>
+  <g id="nex-reactor" class="nex-reactor">
+   <circle cx="512" cy="765" r="107" fill="#06162D" stroke="#2E5F9F" stroke-width="11"/>
+   <circle cx="512" cy="765" r="95" fill="#1C4481" stroke="#E4F6FF" stroke-width="12"/>
+   <circle cx="512" cy="765" r="80" fill="#072554" stroke="#2F99E2" stroke-width="10"/>
+   <circle cx="512" cy="765" r="63" fill="url(#nx-blue)" stroke="#65D6FF" stroke-width="9"/>
+   <circle cx="512" cy="765" r="47" fill="url(#nx-core)" stroke="#C8FFFF" stroke-width="4" filter="url(#nx-miniglow)"/>
+   <circle cx="512" cy="765" r="29" fill="#EFFFFF" opacity=".97"/>
+   <circle cx="512" cy="765" r="12" fill="#FFFFFF"/>
+   <rect x="599" y="760" width="10" height="10" rx="2" transform="rotate(0 604 765)" fill="#E8FCFF"/><rect x="587" y="806" width="10" height="10" rx="2" transform="rotate(30 592 811)" fill="#6FC6FC"/><rect x="553" y="840" width="10" height="10" rx="2" transform="rotate(60 558 845)" fill="#E8FCFF"/><rect x="507" y="852" width="10" height="10" rx="2" transform="rotate(90 512 857)" fill="#6FC6FC"/><rect x="461" y="840" width="10" height="10" rx="2" transform="rotate(120 466 845)" fill="#E8FCFF"/><rect x="427" y="806" width="10" height="10" rx="2" transform="rotate(150 432 811)" fill="#6FC6FC"/><rect x="415" y="760" width="10" height="10" rx="2" transform="rotate(180 420 765)" fill="#E8FCFF"/><rect x="427" y="714" width="10" height="10" rx="2" transform="rotate(210 432 719)" fill="#6FC6FC"/><rect x="461" y="680" width="10" height="10" rx="2" transform="rotate(240 466 685)" fill="#E8FCFF"/><rect x="507" y="668" width="10" height="10" rx="2" transform="rotate(270 512 673)" fill="#6FC6FC"/><rect x="553" y="680" width="10" height="10" rx="2" transform="rotate(300 558 685)" fill="#E8FCFF"/><rect x="587" y="714" width="10" height="10" rx="2" transform="rotate(330 592 719)" fill="#6FC6FC"/>
+   <path d="M485 725Q512 708 537 726" fill="none" stroke="#FFFFFF" stroke-width="7" opacity=".8"/>
+  </g>
+ </g>
+ <g id="nex-ear-left" class="nex-ear" transform="translate(180 429)">
+  <circle r="95" fill="#041227" stroke="#071E42" stroke-width="12"/>
+  <circle r="87" fill="url(#nx-shell)" stroke="#A2BFDC" stroke-width="7"/>
+  <path d="M-67-48 Q-23-86 42-68" fill="none" stroke="#FFFFFF" stroke-width="13" opacity=".95"/>
+  <path d="M-79 21 Q-48 90 34 72" fill="none" stroke="#528CCC" stroke-width="12" opacity=".8"/>
+  <path d="M-81 5l-7-8M63-54l13 8M51 69l10 12" stroke="#2E548D" stroke-width="6"/>
+  <circle r="69" fill="#102B5B" stroke="#5A84B4" stroke-width="7"/>
+  <circle r="59" fill="#08172F" stroke="#183D75" stroke-width="10"/>
+  <circle r="49" fill="url(#nx-blue)" stroke="#67B8FF" stroke-width="7"/>
+  <circle r="33" fill="url(#nx-core)" stroke="#9DFBFF" stroke-width="5" filter="url(#nx-miniglow)"/>
+  <circle r="17" fill="#F0FFFF" opacity=".98"/>
+  <circle r="7" fill="#FFFFFF"/>
+  <rect x="74" y="-4" width="8" height="8" rx="1.5" fill="#2B9AFF" stroke="#204977" stroke-width="1.5"/><rect x="51" y="51" width="8" height="8" rx="1.5" fill="#FFFFFF" stroke="#204977" stroke-width="1.5"/><rect x="-4" y="74" width="8" height="8" rx="1.5" fill="#2B9AFF" stroke="#204977" stroke-width="1.5"/><rect x="-59" y="51" width="8" height="8" rx="1.5" fill="#FFFFFF" stroke="#204977" stroke-width="1.5"/><rect x="-82" y="-4" width="8" height="8" rx="1.5" fill="#2B9AFF" stroke="#204977" stroke-width="1.5"/><rect x="-59" y="-59" width="8" height="8" rx="1.5" fill="#FFFFFF" stroke="#204977" stroke-width="1.5"/><rect x="-4" y="-82" width="8" height="8" rx="1.5" fill="#2B9AFF" stroke="#204977" stroke-width="1.5"/><rect x="51" y="-59" width="8" height="8" rx="1.5" fill="#FFFFFF" stroke="#204977" stroke-width="1.5"/>
+  </g><g id="nex-ear-right" class="nex-ear" transform="translate(844 429)">
+  <circle r="95" fill="#041227" stroke="#071E42" stroke-width="12"/>
+  <circle r="87" fill="url(#nx-shell)" stroke="#A2BFDC" stroke-width="7"/>
+  <path d="M-67-48 Q-23-86 42-68" fill="none" stroke="#FFFFFF" stroke-width="13" opacity=".95"/>
+  <path d="M-79 21 Q-48 90 34 72" fill="none" stroke="#528CCC" stroke-width="12" opacity=".8"/>
+  <path d="M-81 5l-7-8M63-54l13 8M51 69l10 12" stroke="#2E548D" stroke-width="6"/>
+  <circle r="69" fill="#102B5B" stroke="#5A84B4" stroke-width="7"/>
+  <circle r="59" fill="#08172F" stroke="#183D75" stroke-width="10"/>
+  <circle r="49" fill="url(#nx-blue)" stroke="#67B8FF" stroke-width="7"/>
+  <circle r="33" fill="url(#nx-core)" stroke="#9DFBFF" stroke-width="5" filter="url(#nx-miniglow)"/>
+  <circle r="17" fill="#F0FFFF" opacity=".98"/>
+  <circle r="7" fill="#FFFFFF"/>
+  <rect x="74" y="-4" width="8" height="8" rx="1.5" fill="#2B9AFF" stroke="#204977" stroke-width="1.5"/><rect x="51" y="51" width="8" height="8" rx="1.5" fill="#FFFFFF" stroke="#204977" stroke-width="1.5"/><rect x="-4" y="74" width="8" height="8" rx="1.5" fill="#2B9AFF" stroke="#204977" stroke-width="1.5"/><rect x="-59" y="51" width="8" height="8" rx="1.5" fill="#FFFFFF" stroke="#204977" stroke-width="1.5"/><rect x="-82" y="-4" width="8" height="8" rx="1.5" fill="#2B9AFF" stroke="#204977" stroke-width="1.5"/><rect x="-59" y="-59" width="8" height="8" rx="1.5" fill="#FFFFFF" stroke="#204977" stroke-width="1.5"/><rect x="-4" y="-82" width="8" height="8" rx="1.5" fill="#2B9AFF" stroke="#204977" stroke-width="1.5"/><rect x="51" y="-59" width="8" height="8" rx="1.5" fill="#FFFFFF" stroke="#204977" stroke-width="1.5"/>
+  </g>
+ <g id="nex-head" class="nex-head">
+  <path d="M328 177Q512 93 696 177L747 215Q794 275 806 363L818 446Q815 574 730 618Q628 678 512 681Q396 678 294 618Q209 574 206 446L218 363Q230 275 277 215Z"
+    fill="#06172C" stroke="#0B3268" stroke-width="13"/>
+  <path d="M335 187Q512 111 689 187L740 223Q782 287 793 363L807 444Q804 559 719 606Q624 661 512 663Q400 661 305 606Q220 559 217 444L231 363Q242 287 284 223Z"
+    fill="url(#nx-shell)" stroke="#6E9CC7" stroke-width="7"/>
+  <path d="M334 196Q512 121 690 196L745 229Q765 255 774 280Q512 200 250 280Q259 255 279 229Z" fill="#F9FDFF" opacity=".95"/>
+  <path d="M350 223l20-3 7 10-20 4Z" fill="#FFFFFF" opacity=".48"/><path d="M378 221l20-3 7 10-20 4Z" fill="#CDE3FC" opacity=".48"/><path d="M406 219l20-3 7 10-20 4Z" fill="#CDE3FC" opacity=".48"/><path d="M434 217l20-3 7 10-20 4Z" fill="#FFFFFF" opacity=".48"/><path d="M462 215l20-3 7 10-20 4Z" fill="#CDE3FC" opacity=".48"/><path d="M490 213l20-3 7 10-20 4Z" fill="#CDE3FC" opacity=".48"/><path d="M518 211l20-3 7 10-20 4Z" fill="#FFFFFF" opacity=".48"/><path d="M546 213l20-3 7 10-20 4Z" fill="#CDE3FC" opacity=".48"/><path d="M574 215l20-3 7 10-20 4Z" fill="#CDE3FC" opacity=".48"/><path d="M602 217l20-3 7 10-20 4Z" fill="#FFFFFF" opacity=".48"/><path d="M630 219l20-3 7 10-20 4Z" fill="#CDE3FC" opacity=".48"/><path d="M658 221l20-3 7 10-20 4Z" fill="#CDE3FC" opacity=".48"/>
+  <path d="M336 193Q512 141 688 193" fill="none" stroke="#FFF" stroke-width="10" opacity=".84"/>
+  <path d="M271 267L303 232 318 289 278 324Z M753 267L721 232 706 289 746 324Z" fill="#C3DDF7" stroke="#447BB7" stroke-width="6"/>
+  <path d="M298 602Q512 689 726 602L693 638Q512 716 331 638Z" fill="#6397CD" opacity=".48"/>
+  <path d="M350 624Q512 680 674 624" fill="none" stroke="#E8F5FF" stroke-width="13" opacity=".96"/>
+  <path d="M348 250Q512 205 676 250L730 303 756 384 746 514Q724 587 647 610Q512 639 377 610Q300 587 278 514L268 384 294 303Z"
+   fill="#19385E" stroke="#376AA6" stroke-width="12"/>
+  <path d="M343 273Q512 226 681 273L717 317Q758 405 732 508Q700 577 632 590Q512 616 392 590Q324 577 292 508Q266 405 307 317Z" fill="url(#nx-visor)" stroke="#091B39" stroke-width="11"/>
+  <path d="M343 273Q512 226 681 273L717 317Q758 405 732 508Q700 577 632 590Q512 616 392 590Q324 577 292 508Q266 405 307 317Z" fill="url(#nx-visor-pixels)" opacity=".45"/>
+  <g clip-path="url(#nx-faceclip)">
+   <path d="M312 315Q474 258 670 296L722 328Q515 280 324 342Z" fill="#E0F7FF" opacity=".1"/>
+   <path d="M624 295l65 7 21 20-82-9Z" fill="#F7FFFF" opacity=".73"/>
+   <path d="M334 355l28-30 47-10-40 32Z" fill="#D8F9FF" opacity=".12"/>
+  </g>
+  <path d="M289 428v84l19 35M736 428v84l-19 35" stroke="#227EC4" stroke-width="9" fill="none"/>
+  <path d="M313 550Q512 602 711 550" fill="none" stroke="#5488C2" stroke-width="7" opacity=".35"/>
+  <circle cx="765.0" cy="450.0" r="4" fill="#F8FFFF" opacity=".67"/><circle cx="745.7" cy="535.0" r="2.5" fill="#5F85B3" opacity=".67"/><circle cx="690.9" cy="607.0" r="2.5" fill="#F8FFFF" opacity=".67"/><circle cx="608.8" cy="655.1" r="2.5" fill="#5F85B3" opacity=".67"/><circle cx="512.0" cy="672.0" r="4" fill="#F8FFFF" opacity=".67"/><circle cx="415.2" cy="655.1" r="2.5" fill="#5F85B3" opacity=".67"/><circle cx="333.1" cy="607.0" r="2.5" fill="#F8FFFF" opacity=".67"/><circle cx="278.3" cy="535.0" r="2.5" fill="#5F85B3" opacity=".67"/><circle cx="259.0" cy="450.0" r="4" fill="#F8FFFF" opacity=".67"/><circle cx="278.3" cy="365.0" r="2.5" fill="#5F85B3" opacity=".67"/><circle cx="333.1" cy="293.0" r="2.5" fill="#F8FFFF" opacity=".67"/><circle cx="415.2" cy="244.9" r="2.5" fill="#5F85B3" opacity=".67"/><circle cx="512.0" cy="228.0" r="4" fill="#F8FFFF" opacity=".67"/><circle cx="608.8" cy="244.9" r="2.5" fill="#5F85B3" opacity=".67"/><circle cx="690.9" cy="293.0" r="2.5" fill="#F8FFFF" opacity=".67"/><circle cx="745.7" cy="365.0" r="2.5" fill="#5F85B3" opacity=".67"/>
+  <g id="nex-face" class="nex-face" data-expression="happy">
+  <g class="nex-eye" transform="translate(343 408)">
+ <path d="M0 99h18V77h19V57h18V36h23V23h30v13h23v21h19v20h18v22h-19V82h-18V63h-23V50H78v13H55v19H37v17H18v15H0Z" fill="#0074E2" opacity=".55" transform="translate(3 8)"/>
+ <path d="M0 99h18V77h19V57h18V36h23V23h30v13h23v21h19v20h18v22h-19V82h-18V63h-23V50H78v13H55v19H37v17H18v15H0Z" fill="#0C65EA" filter="url(#nx-neon)"/>
+ <path d="M0 99h18V77h19V57h18V36h23V23h30v13h23v21h19v20h18v22h-19V82h-18V63h-23V50H78v13H55v19H37v17H18v15H0Z" fill="var(--nex-accent,#26CFFF)" stroke="#C4FFFF" stroke-width="1.5"/>
+ <path d="M37 62h19V42h22V34h23v6H82v10H65v13H56v11H37Z" fill="#E8FFFF" opacity=".94"/>
+ <path d="M17 90h19v-12H17Z" fill="#078AED"/>
+ </g><g class="nex-eye" transform="translate(533 408)">
+ <path d="M0 99h18V77h19V57h18V36h23V23h30v13h23v21h19v20h18v22h-19V82h-18V63h-23V50H78v13H55v19H37v17H18v15H0Z" fill="#0074E2" opacity=".55" transform="translate(3 8)"/>
+ <path d="M0 99h18V77h19V57h18V36h23V23h30v13h23v21h19v20h18v22h-19V82h-18V63h-23V50H78v13H55v19H37v17H18v15H0Z" fill="#0C65EA" filter="url(#nx-neon)"/>
+ <path d="M0 99h18V77h19V57h18V36h23V23h30v13h23v21h19v20h18v22h-19V82h-18V63h-23V50H78v13H55v19H37v17H18v15H0Z" fill="var(--nex-accent,#26CFFF)" stroke="#C4FFFF" stroke-width="1.5"/>
+ <path d="M37 62h19V42h22V34h23v6H82v10H65v13H56v11H37Z" fill="#E8FFFF" opacity=".94"/>
+ <path d="M17 90h19v-12H17Z" fill="#078AED"/>
+ </g>
+  </g>
+  <g id="nex-top-light">
+   <path d="M434 177L457 153Q512 146 567 153L590 177 568 200H456Z" fill="#102D66" stroke="#8BBBE9" stroke-width="6"/>
+   <path d="M460 165Q512 158 564 165L577 177 560 187H464L447 177Z" fill="url(#nx-finlight)" stroke="#5EE8FF" stroke-width="5"/>
+   <path d="M473 170h78" stroke="#F1FFFF" stroke-width="5" opacity=".9"/>
+  </g>
+  <g id="nex-nameplate"><text x="512" y="246" text-anchor="middle" font-family="ui-monospace,monospace" font-size="28" font-weight="900" letter-spacing="2.5" fill="#3559A2">NEX</text></g>
+ </g>
+ <g id="nex-module-1" class="nex-module" transform="translate(126 702)">
+   <g class="nex-module-motion" data-nex-module="1">
+   <circle r="81" fill="#051932" stroke="#074580" stroke-width="5"/>
+   <circle r="75" fill="url(#nx-shell)" stroke="#8EAEDF" stroke-width="6"/>
+   <path d="M-50.25 -30.15 Q0 -87 50.25 -40.2" fill="none" stroke="#FFFFFF" stroke-width="11" opacity=".95"/>
+   <path d="M-64.5 27.75 Q-15 82.5 42.74999999999999 55.5" fill="none" stroke="#6898D5" stroke-width="9" opacity=".86"/>
+   <g transform="translate(61 0) rotate(0)"><path d="M-8-4h16l-3 9H-5Z" fill="#285EAB" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(43 43) rotate(45)"><path d="M-8-4h16l-3 9H-5Z" fill="#E7F6FF" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(0 61) rotate(90)"><path d="M-8-4h16l-3 9H-5Z" fill="#285EAB" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(-43 43) rotate(135)"><path d="M-8-4h16l-3 9H-5Z" fill="#E7F6FF" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(-61 0) rotate(180)"><path d="M-8-4h16l-3 9H-5Z" fill="#285EAB" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(-43 -43) rotate(225)"><path d="M-8-4h16l-3 9H-5Z" fill="#E7F6FF" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(0 -61) rotate(270)"><path d="M-8-4h16l-3 9H-5Z" fill="#285EAB" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(43 -43) rotate(315)"><path d="M-8-4h16l-3 9H-5Z" fill="#E7F6FF" stroke="#3C70AA" stroke-width="1.5"/></g>
+   <circle r="41.25" fill="#071A3F" stroke="#214F93" stroke-width="8"/>
+   <circle r="32.25" fill="url(#nx-blue)" stroke="#A6D9F8" stroke-width="5"/>
+   <circle r="21.75" fill="url(#nx-core)" stroke="#D1FFFF" stroke-width="4" filter="url(#nx-miniglow)"/>
+   <circle r="9" fill="#FFFFFF"/>
+   <path d="M-34.5 -45h24.75v5h-24.75Z" fill="#F8FFFF"/>
+   </g>
+ </g><g id="nex-module-2" class="nex-module" transform="translate(898 702)">
+   <g class="nex-module-motion" data-nex-module="2">
+   <circle r="81" fill="#051932" stroke="#074580" stroke-width="5"/>
+   <circle r="75" fill="url(#nx-shell)" stroke="#8EAEDF" stroke-width="6"/>
+   <path d="M-50.25 -30.15 Q0 -87 50.25 -40.2" fill="none" stroke="#FFFFFF" stroke-width="11" opacity=".95"/>
+   <path d="M-64.5 27.75 Q-15 82.5 42.74999999999999 55.5" fill="none" stroke="#6898D5" stroke-width="9" opacity=".86"/>
+   <g transform="translate(61 0) rotate(0)"><path d="M-8-4h16l-3 9H-5Z" fill="#285EAB" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(43 43) rotate(45)"><path d="M-8-4h16l-3 9H-5Z" fill="#E7F6FF" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(0 61) rotate(90)"><path d="M-8-4h16l-3 9H-5Z" fill="#285EAB" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(-43 43) rotate(135)"><path d="M-8-4h16l-3 9H-5Z" fill="#E7F6FF" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(-61 0) rotate(180)"><path d="M-8-4h16l-3 9H-5Z" fill="#285EAB" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(-43 -43) rotate(225)"><path d="M-8-4h16l-3 9H-5Z" fill="#E7F6FF" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(0 -61) rotate(270)"><path d="M-8-4h16l-3 9H-5Z" fill="#285EAB" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(43 -43) rotate(315)"><path d="M-8-4h16l-3 9H-5Z" fill="#E7F6FF" stroke="#3C70AA" stroke-width="1.5"/></g>
+   <circle r="41.25" fill="#071A3F" stroke="#214F93" stroke-width="8"/>
+   <circle r="32.25" fill="url(#nx-blue)" stroke="#A6D9F8" stroke-width="5"/>
+   <circle r="21.75" fill="url(#nx-core)" stroke="#D1FFFF" stroke-width="4" filter="url(#nx-miniglow)"/>
+   <circle r="9" fill="#FFFFFF"/>
+   <path d="M-34.5 -45h24.75v5h-24.75Z" fill="#F8FFFF"/>
+   </g>
+ </g><g id="nex-module-3" class="nex-module" transform="translate(292 876)">
+   <g class="nex-module-motion" data-nex-module="3">
+   <circle r="73" fill="#051932" stroke="#074580" stroke-width="5"/>
+   <circle r="67" fill="url(#nx-shell)" stroke="#8EAEDF" stroke-width="6"/>
+   <path d="M-44.89 -26.934 Q0 -77.72 44.89 -35.912" fill="none" stroke="#FFFFFF" stroke-width="11" opacity=".95"/>
+   <path d="M-57.62 24.79 Q-13.4 73.7 38.19 49.58" fill="none" stroke="#6898D5" stroke-width="9" opacity=".86"/>
+   <g transform="translate(55 0) rotate(0)"><path d="M-8-4h16l-3 9H-5Z" fill="#285EAB" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(39 39) rotate(45)"><path d="M-8-4h16l-3 9H-5Z" fill="#E7F6FF" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(0 55) rotate(90)"><path d="M-8-4h16l-3 9H-5Z" fill="#285EAB" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(-39 39) rotate(135)"><path d="M-8-4h16l-3 9H-5Z" fill="#E7F6FF" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(-55 0) rotate(180)"><path d="M-8-4h16l-3 9H-5Z" fill="#285EAB" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(-39 -39) rotate(225)"><path d="M-8-4h16l-3 9H-5Z" fill="#E7F6FF" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(0 -55) rotate(270)"><path d="M-8-4h16l-3 9H-5Z" fill="#285EAB" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(39 -39) rotate(315)"><path d="M-8-4h16l-3 9H-5Z" fill="#E7F6FF" stroke="#3C70AA" stroke-width="1.5"/></g>
+   <circle r="36.85" fill="#071A3F" stroke="#214F93" stroke-width="8"/>
+   <circle r="28.81" fill="url(#nx-blue)" stroke="#A6D9F8" stroke-width="5"/>
+   <circle r="19.43" fill="url(#nx-core)" stroke="#D1FFFF" stroke-width="4" filter="url(#nx-miniglow)"/>
+   <circle r="8.04" fill="#FFFFFF"/>
+   <path d="M-30.82 -40.199999999999996h22.11v5h-22.11Z" fill="#F8FFFF"/>
+   </g>
+ </g><g id="nex-module-4" class="nex-module" transform="translate(732 876)">
+   <g class="nex-module-motion" data-nex-module="4">
+   <circle r="73" fill="#051932" stroke="#074580" stroke-width="5"/>
+   <circle r="67" fill="url(#nx-shell)" stroke="#8EAEDF" stroke-width="6"/>
+   <path d="M-44.89 -26.934 Q0 -77.72 44.89 -35.912" fill="none" stroke="#FFFFFF" stroke-width="11" opacity=".95"/>
+   <path d="M-57.62 24.79 Q-13.4 73.7 38.19 49.58" fill="none" stroke="#6898D5" stroke-width="9" opacity=".86"/>
+   <g transform="translate(55 0) rotate(0)"><path d="M-8-4h16l-3 9H-5Z" fill="#285EAB" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(39 39) rotate(45)"><path d="M-8-4h16l-3 9H-5Z" fill="#E7F6FF" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(0 55) rotate(90)"><path d="M-8-4h16l-3 9H-5Z" fill="#285EAB" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(-39 39) rotate(135)"><path d="M-8-4h16l-3 9H-5Z" fill="#E7F6FF" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(-55 0) rotate(180)"><path d="M-8-4h16l-3 9H-5Z" fill="#285EAB" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(-39 -39) rotate(225)"><path d="M-8-4h16l-3 9H-5Z" fill="#E7F6FF" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(0 -55) rotate(270)"><path d="M-8-4h16l-3 9H-5Z" fill="#285EAB" stroke="#3C70AA" stroke-width="1.5"/></g><g transform="translate(39 -39) rotate(315)"><path d="M-8-4h16l-3 9H-5Z" fill="#E7F6FF" stroke="#3C70AA" stroke-width="1.5"/></g>
+   <circle r="36.85" fill="#071A3F" stroke="#214F93" stroke-width="8"/>
+   <circle r="28.81" fill="url(#nx-blue)" stroke="#A6D9F8" stroke-width="5"/>
+   <circle r="19.43" fill="url(#nx-core)" stroke="#D1FFFF" stroke-width="4" filter="url(#nx-miniglow)"/>
+   <circle r="8.04" fill="#FFFFFF"/>
+   <path d="M-30.82 -40.199999999999996h22.11v5h-22.11Z" fill="#F8FFFF"/>
+   </g>
+ </g>
+ <g id="nex-orbit-front">
+ <path d="M202 900Q512 1017 822 900" fill="none" stroke="#0C3C99" stroke-width="17" opacity=".64"/>
+ <path d="M211 900Q512 1003 813 900" fill="none" stroke="#2ABEFF" stroke-width="10" opacity=".96"/>
+ <path d="M259 919Q512 991 765 919" fill="none" stroke="#B6FFFF" stroke-width="3" opacity=".91"/>
+ <path d="M479 974h66v5h-66Z" fill="#EFFFFF"/>
+ </g>
+ </g>
+ </g>
+ </svg>
