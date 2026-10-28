@@ -47,7 +47,7 @@ import { findTileSplitters } from './arrange';
 import { isWindowedPresentationMode, mosaicDropTargetViewId } from './presentation';
 import { ptyWindowHeading } from './ptyLiveChrome';
 import { liveChromeFor, usePtyLiveChromeOptional } from './PtyLiveChromeContext';
-import { ARRANGE_MENU_PRESETS, type ArrangeMenuPreset } from './arrangePresets';
+import { ARRANGE_MENU_PRESETS, WORKSPACE_RECIPES, type ArrangeMenuPreset } from './arrangePresets';
 import { resolveTerminalSplitViews } from './presentation';
 import splitStyles from './TerminalSplit.module.scss';
 import ptyTabStyles from './PtyTabs.module.scss';
@@ -345,6 +345,21 @@ const ArrangeLayoutMenu: React.FC<{
                 </DropdownMenu.RadioItem>
               ))}
             </DropdownMenu.RadioGroup>
+
+            <DropdownMenu.Separator className="nx-arrange-menu__separator" />
+            <DropdownMenu.Label className="nx-arrange-menu__item">
+              <span>{t('workspace.recipes', 'Receitas de trabalho')}</span>
+            </DropdownMenu.Label>
+            {WORKSPACE_RECIPES.map((recipe) => (
+              <DropdownMenu.Item
+                key={recipe.id}
+                className="nx-arrange-menu__item"
+                onSelect={() => onSelect(recipe.preset)}
+              >
+                <span>{t(recipe.labelKey)}</span>
+                <small>{t(recipe.hintKey)}</small>
+              </DropdownMenu.Item>
+            ))}
 
             {onReset && (
               <>

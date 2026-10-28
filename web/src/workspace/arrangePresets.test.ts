@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ARRANGE_MENU_PRESETS, arrangeByPreset, resolveArrangePreset } from './arrangePresets';
+import { ARRANGE_MENU_PRESETS, WORKSPACE_RECIPES, arrangeByPreset, resolveArrangePreset } from './arrangePresets';
 
 describe('arrangeByPreset', () => {
   const bounds = { x: 8, y: 8, width: 1200, height: 800 };
@@ -19,6 +19,20 @@ describe('arrangeByPreset', () => {
       'Principal + fila',
       'Só a ativa',
     ]);
+  });
+
+  it('offers task recipes without creating sessions or inventing new layouts', () => {
+    expect(WORKSPACE_RECIPES.map((recipe) => recipe.id)).toEqual([
+      'frontend', 'backend', 'review', 'debug', 'release',
+    ]);
+    const ids = ['agent-codex', 'agent-claude', 'browser', 'review'];
+    for (const recipe of WORKSPACE_RECIPES) {
+      expect(ARRANGE_MENU_PRESETS.some((preset) => preset.id === recipe.preset)).toBe(true);
+      const arranged = arrangeByPreset(recipe.preset, bounds, ids);
+      expect(arranged.length).toBeGreaterThan(0);
+      expect(arranged.every((tile) => ids.includes(tile.viewId))).toBe(true);
+      expect(new Set(arranged.map((tile) => tile.viewId)).size).toBe(arranged.length);
+    }
   });
 
   it('resolves legacy aliases without breaking arrangeByPreset', () => {
