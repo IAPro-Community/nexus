@@ -15,8 +15,8 @@ export function structuredProtocolsForProvider(
 ): Exclude<StructuredHarnessProtocol, ''>[] {
   if (!provider?.installed || !Array.isArray(provider.structured_modes)) return [];
   return provider.structured_modes
-    .filter((mode): mode is Exclude<StructuredHarnessProtocol, ''> =>
-      mode === 'acp' || mode === 'pi_rpc',
+    .filter(
+      (mode): mode is Exclude<StructuredHarnessProtocol, ''> => mode === 'acp' || mode === 'pi_rpc',
     )
     .filter((mode, index, modes) => modes.indexOf(mode) === index);
 }
