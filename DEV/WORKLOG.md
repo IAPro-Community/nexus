@@ -1,3 +1,45 @@
+## 2026-10-28 — atualização completa da release v1.0.0, compilação e reinstalação local
+
+- Limpeza radical e reconstrução completa de raiz:
+  - Purga de todos os diretórios de build: `web/dist`, `cmd/nexus-desktop/build/bin`, `cmd/nexus-hud/build/bin`.
+  - Remoção de todos os arquivos embutidos de frontend em `internal/control/web/embedded/` (preservando apenas `.keep`).
+  - Purga do cache de compilação Go (`go clean -cache`).
+  - Exclusão total de binários anteriores em `~/.local/bin/nexus*`.
+- Sincronização upstream da branch `release/v1.0.0` com `origin/release/v1.0.0` (commit `f8315c81`, fast-forward de 93 commits):
+  - AgentWire input hardening, testes de falha de handshake com descarte de processo órfão, suporte estruturado multicliente E2E e opções localizadas de harnesses.
+  - Exportação e previews do mascote oficial NEX (SVG animável Hero e motion 360°).
+  - Documentação atualizada de adoção e aceitação do Agent Workspace V1.
+- Resolução e alinhamento de testes de frontend:
+  - Adição de `web/vitest.config.ts` isolando suítes Vitest para `src/**/*.{test,spec}.{ts,tsx}`.
+  - Atualização do script `test` em `web/package.json` para executar `scripts/export-nex-art.test.mjs` via `node --test` em conjunto com os demais scripts Node.
+  - Execução de `npm run format` aplicando Prettier nos arquivos TypeScript recém-mesclados.
+- Homologação e qualidade:
+  - Frontend: `make web-verify` 100% verde (10/10 gates: Prettier, TypeScript, ESLint, Stylelint, safe arrays, Vitest 121 arquivos / 750 testes unitários + 7 testes Node.js, i18n, build, embed-sync, UI markers).
+  - Backend: `go vet ./...` PASS, `go test ./internal/control/...` PASS, `go test -race` em `agentwire`, `host` e `driver` PASS.
+  - Contratos NEX: `verify-nex-visual.mjs`, `verify-nex-identity-lock.mjs`, `verify-agent-workspace-v1.mjs`, `verify-nex-image-references.mjs`, `verify-nex-reference-pack.mjs` e `verify-nex-site-hero.mjs` todos PASS.
+- Recompilação completa de binários do zero absoluto com Go 1.25.14:
+  - `nexus` CLI (25MB)
+  - `nexus-desktop` (27MB)
+  - `nexus-hud` (28MB)
+  - Variantes Wails: `cmd/nexus-desktop/build/bin/nexus-desktop` e `cmd/nexus-hud/build/bin/nexus-hud`
+- Instalação atômica em `~/.local/bin/`:
+  - `~/.local/bin/nexus`: `a8610289043224c11533141ea1fc0c4c0ba52ba0cb067ebac8c85ec9b2eb5694`
+  - `~/.local/bin/nexus-desktop`: `64224548a149eb37b628352179e4faa02ca4aa916922e7d9fba93027a3524f25`
+  - `~/.local/bin/nexus-hud`: `ca403a4c0df1bcc8144bb29f153a3cf0727ec6abc8ad5ac86528487764b1deb6`
+- Validação e homologação integral de todas as novas funcionalidades:
+  - AgentWire Input Hardening (`internal/control/host/structured_input_test.go`): sanitização de cursores, redação de credenciais sem echo, fail-closed por limite de tamanho e fila limitada.
+  - ACP Handshake & Child Reaping (`internal/control/host/structured_handshake_failure_test.go`): descarte limpo e sem processos órfãos em handshakes incompatíveis.
+  - Projeção de turnos cancelados (`internal/control/agentwire/projection_test.go`): classificação autoritativa de cancelamento sem falsa conclusão.
+  - E2E Multicliente e Multiagente Supervisionado (`internal/control/web/structured_multiclient_process_e2e_test.go` e `multi_runtime_attention_e2e_test.go`): dois processos reais ACP com dois clientes HTTP autenticados e isolados.
+  - Centro de Atenção e Indicadores Workspace (`web/src/components/attentionToastModel.test.ts`, `web/src/app/attentionRadarModel.test.ts`, `web/src/app/documentTitle.test.ts`, `web/src/workspace/surfaceAttention.test.ts`): contadores por ID de runtime e prevenção de colapso de perguntas idênticas entre agentes.
+  - Novas Recipes de Layout Workspace (`web/src/workspace/arrangePresets.test.ts`): 5 presets de organização sem spawns indesejados.
+  - Product Feature Discovery & Scoped Tours (`web/src/features/work/featureReveal.test.ts`, `web/src/app/tour/tourTargets.test.ts`): reveal contextual de itens de What's New para componentes montados específicos do projeto.
+  - Localização e UI de Harnesses Experimentais no New Agent Modal (`web/src/features/agents/structuredHarnessOptions.test.ts`, `web/src/features/agents/NewAgentModal.test.tsx`): suporte a modos de transporte ACP/RPC com validação estrita de autenticação e opções localizadas PT-BR/EN/ES.
+  - NEX Visual Hero & Assets (`web/scripts/export-nex-art.test.mjs`, `web/scripts/nex-site-hero-preview.mjs`, `scripts/verify-nex-site-hero.mjs`): SVG 32-bit animável Hero sem mutação de arquivos versionados da pasta public.
+  - Ajustes de linters (`golangci-lint`): adequação de strings de erro minúsculas em `pi.go`/`bridge.go`, simplificação de loop em `agentwire_test.go`, lei de De Morgan em `catalog.go` e exclusão de protocolo ACP "cancelled" no `.golangci.yml`.
+  - Gate global `make quality`: 100% verde (format, typecheck, eslint, stylelint, golangci-lint com 0 issues, go tests, vitest 121 arquivos/750 testes, version-check).
+- Smoke checks concluídos: `nexus version` confirma commit `f8315c81` gerado em 2026-10-28T12:22:09Z; `nexus doctor --json` reporta PASS em todos os 11 checks de sistema e providers.
+
 ## 2026-10-27 — auto-recovery de quotas desatualizadas e fallback resiliente no launch supervisionado
 
 - Implementei auto-recovery transparente contra exceções de quota desatualizada no launch supervisionado:
