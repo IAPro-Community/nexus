@@ -40,7 +40,8 @@
     "art:nex": "node scripts/export-nex-art.mjs",
     "art:nex:check": "node scripts/export-nex-art.mjs --check",
     "art:nex:preview": "node scripts/export-nex-art.mjs && node scripts/nex-motion-preview.mjs",
-    "art:nex:hero:preview": "node scripts/nex-site-hero-preview.mjs"
+    "art:nex:hero:preview": "node scripts/nex-site-hero-preview.mjs",
+    "art:nex:hybrid:qa": "node scripts/nex-hybrid-browser-qa.mjs --require-assets"
   },
   "dependencies": {
     "@assistant-ui/react": "^0.15.20",
