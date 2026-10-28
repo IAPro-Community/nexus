@@ -584,7 +584,9 @@ export const NewAgentModal: React.FC<{
                 {structuredChoices.length > 0 && (
                   <>
                     <label className={styles.fieldSublabel} htmlFor="new-agent-protocol">
-                      {t('agents.structuredProtocol', { defaultValue: 'Agent protocol (experimental)' })}
+                      {t('agents.structuredProtocol', {
+                        defaultValue: 'Agent protocol (experimental)',
+                      })}
                     </label>
                     <Select
                       id="new-agent-protocol"
