@@ -37,6 +37,18 @@ for(const a of manifest.assets){
   if(a.filename.endsWith('.png')&&(bytes.subarray(0,8).toString('hex')!=='89504e470d0a1a0a'))issues.push('Invalid PNG signature: '+a.path);
   if(a.filename.endsWith('.ora') && bytes.subarray(0,2).toString('hex')!=='504b')issues.push('Invalid ORA zip header: '+a.path);
 }
+if(manifest.generator){
+  const generatorPath=safe(manifest.generator.path||manifest.generator.file);
+  if(!existsSync(generatorPath)){
+    if(requireBinaries)issues.push('Missing portable art generator: '+generatorPath);
+  }else{
+    const bytes=readFileSync(generatorPath);
+    if(sha(bytes)!==manifest.generator.sha256 || bytes.length!==manifest.generator.bytes)
+      issues.push('Portable art generator SHA-256 mismatch');
+    if(bytes.toString('utf8').includes('/mnt/data/'))
+      issues.push('Art generator still contains temporary container paths');
+  }
+}
 if(issues.length){for(const error of issues)console.error('FAIL:',error);process.exitCode=1;}
 else if(promote){
   manifest.status='ASSETS_VERSIONED_PENDING_VISUAL_APPROVAL';
