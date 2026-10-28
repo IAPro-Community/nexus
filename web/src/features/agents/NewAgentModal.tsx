@@ -297,7 +297,9 @@ export const NewAgentModal: React.FC<{
     providerDiscovery.find((entry) => entry.id === provider),
   );
   const structuredProfiles = availableProfiles.filter((entry) => entry.provider === provider);
-  const validStructuredProfile = structuredProfiles.some((entry) => entry.name === structuredProfile);
+  const validStructuredProfile = structuredProfiles.some(
+    (entry) => entry.name === structuredProfile,
+  );
   const resolvedPreview =
     origin === 'native'
       ? `nexus ${provider}${agentProtocol ? ` [${agentProtocol.toUpperCase()} experimental]` : mode === 'YOLO' ? ' --yolo' : ''}`
