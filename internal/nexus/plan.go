@@ -101,23 +101,18 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 		}
 	}
 
-	// Unify the Composer -> Flow path: when the brief benefits from multi-step
-	// orchestration, decompose it into a real Flow DAG instead of a single
-	// package. DIRECT_FIT briefs keep the lean 1-package materialization. Either
-	// way the durable Composer lineage facts remain attached.
-	suitability := AssessComposerFlowSuitability(brief)
-	if suitability.Result == FlowBeneficial || suitability.Result == FlowStronglyRecommended {
-		proposal, decomposeErr := n.DecomposePromptIntoFlowProposal(ctx, FlowDecompositionRequest{
-			ProjectID:      session.ProjectID,
-			ArtifactID:     artifact.ID,
-			Goal:           firstNonEmpty(brief.Goal, brief.Intent.Objective),
-			SourcePrompt:   artifact.Content,
-			SkillIDs:       decodeStringArray(artifact.SkillIDsJSON),
-			DelegationMode: DelegationAuto,
-		})
-		if decomposeErr != nil {
-			return nil, decomposeErr
-		}
+	// Unify the Composer -> Flow path: decompose the brief into a real Flow DAG
+	// with structured layers (Planning, Implementation, Review, Verification or
+	// delegated workstreams) instead of collapsing into a single package.
+	proposal, decomposeErr := n.DecomposePromptIntoFlowProposal(ctx, FlowDecompositionRequest{
+		ProjectID:      session.ProjectID,
+		ArtifactID:     artifact.ID,
+		Goal:           firstNonEmpty(brief.Goal, brief.Intent.Objective),
+		SourcePrompt:   artifact.Content,
+		SkillIDs:       decodeStringArray(artifact.SkillIDsJSON),
+		DelegationMode: DelegationAuto,
+	})
+	if decomposeErr == nil && len(proposal.Flow.Phases) > 0 {
 		flowPlan := WorkPlanFromFlow(proposal.Flow)
 		for key, value := range flowPlan.StructuredFacts {
 			if _, exists := facts[key]; !exists {

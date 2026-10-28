@@ -34,10 +34,21 @@ func progressAnchor(run *MissionRun) time.Time {
 	if run == nil {
 		return time.Time{}
 	}
-	if !run.LastProgressAt.IsZero() {
-		return run.LastProgressAt
+	anchor := run.LastProgressAt
+	if anchor.IsZero() {
+		anchor = run.StartedAt
 	}
-	return run.StartedAt
+	if run.NeedsHuman != nil && run.NeedsHuman.Resolved && run.NeedsHuman.ResolvedAt != nil && run.NeedsHuman.ResolvedAt.After(anchor) {
+		anchor = *run.NeedsHuman.ResolvedAt
+	}
+	if run.ResumeRequest != nil {
+		if run.ResumeRequest.StartedAt != nil && !run.ResumeRequest.StartedAt.IsZero() && run.ResumeRequest.StartedAt.After(anchor) {
+			anchor = *run.ResumeRequest.StartedAt
+		} else if !run.ResumeRequest.RequestedAt.IsZero() && run.ResumeRequest.RequestedAt.After(anchor) {
+			anchor = run.ResumeRequest.RequestedAt
+		}
+	}
+	return anchor
 }
 
 func runIsInFlight(run *MissionRun) bool {

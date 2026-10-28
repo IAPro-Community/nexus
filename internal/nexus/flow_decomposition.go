@@ -136,7 +136,7 @@ func (n *Nexus) DecomposePromptIntoFlowProposal(ctx context.Context, req FlowDec
 		strings.Contains(lowerGoal, "quick fix") ||
 		strings.Contains(lowerGoal, "simple fix")
 	isAtomic := req.Simple || explicitAtomic ||
-		(!delegation.Delegate &&
+		(req.ArtifactID == "" && !delegation.Delegate &&
 			len(strings.Fields(planningText)) <= 12 &&
 			!strings.Contains(lowerGoal, "refactor") &&
 			!strings.Contains(lowerGoal, "e2e") &&

@@ -41,6 +41,7 @@ func (s *Server) handleBrowserSessions(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if req.URL != "" {
+			req.URL = browsercontrol.NormalizeURL(req.URL)
 			if err := browsercontrol.ValidURL(req.URL); err != nil {
 				writeError(w, http.StatusBadRequest, err.Error())
 				return
@@ -219,6 +220,9 @@ func (s *Server) handleBrowserSession(w http.ResponseWriter, r *http.Request) {
 		if err := d.Decode(&input); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid browser action")
 			return
+		}
+		if input.Type == "navigate" && input.URL != "" {
+			input.URL = browsercontrol.NormalizeURL(input.URL)
 		}
 		actor := s.auth.AuthenticateRequest(r)
 		if actor == nil {

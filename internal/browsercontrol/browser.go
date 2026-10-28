@@ -79,7 +79,45 @@ type Manager struct {
 
 func NewManager() *Manager { return &Manager{sessions: make(map[string]*Session)} }
 
+// NormalizeURL prepends an appropriate HTTP or HTTPS scheme to a raw URL string
+// when no scheme is supplied, trimming surrounding whitespace.
+// Localhost, loopback and zero addresses default to http://; domain names default to https://.
+func NormalizeURL(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ""
+	}
+	lower := strings.ToLower(raw)
+	if strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") {
+		return raw
+	}
+	if strings.HasPrefix(lower, "//") {
+		return "https:" + raw
+	}
+	// If it already has an explicit scheme (e.g. ftp://, file://, javascript:, data:, about:)
+	if strings.Contains(raw, "://") ||
+		strings.HasPrefix(lower, "javascript:") ||
+		strings.HasPrefix(lower, "data:") ||
+		strings.HasPrefix(lower, "about:") ||
+		strings.HasPrefix(lower, "mailto:") {
+		return raw
+	}
+	host := raw
+	if idx := strings.IndexAny(host, "/?#"); idx != -1 {
+		host = host[:idx]
+	}
+	lowerHost := strings.ToLower(host)
+	if lowerHost == "localhost" || strings.HasPrefix(lowerHost, "localhost:") ||
+		lowerHost == "127.0.0.1" || strings.HasPrefix(lowerHost, "127.0.0.1:") ||
+		lowerHost == "0.0.0.0" || strings.HasPrefix(lowerHost, "0.0.0.0:") ||
+		lowerHost == "[::1]" || strings.HasPrefix(lowerHost, "[::1]:") {
+		return "http://" + raw
+	}
+	return "https://" + raw
+}
+
 func ValidURL(raw string) error {
+	raw = NormalizeURL(raw)
 	u, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil || u == nil || (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" || u.User != nil {
 		return errors.New("browser URL must be an HTTP(S) address without embedded credentials")
@@ -170,6 +208,8 @@ func (m *Manager) Create(ctx context.Context, projectID, initialURL string) (Inf
 	}
 	if initialURL == "" {
 		initialURL = "https://example.org"
+	} else {
+		initialURL = NormalizeURL(initialURL)
 	}
 	if err := ValidURL(initialURL); err != nil {
 		return Info{}, err
@@ -391,6 +431,7 @@ func (s *Session) call(ctx context.Context, method string, params any, into any)
 }
 
 func (s *Session) navigate(ctx context.Context, raw string) error {
+	raw = NormalizeURL(raw)
 	if err := ValidURL(raw); err != nil {
 		return err
 	}

@@ -3,10 +3,13 @@ package nexus
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/control/driver"
 	coreconfig "github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
 	"github.com/IAPro-Community/nexus/internal/profile"
 	"github.com/IAPro-Community/nexus/internal/runtime"
@@ -151,6 +154,43 @@ func (n *Nexus) cliIntelligenceProvider(ctx context.Context, projectID string, c
 			}
 		}
 	}
+
+	// Discover candidate profiles within the same provider family for automatic failover
+	// when the primary profile experiences quota exhaustion or rate limits.
+	candidates := []model.Profile{prof}
+	seen := map[string]struct{}{
+		strings.ToLower(prof.Name): {},
+	}
+	if allProfiles, listErr := profile.List(); listErr == nil {
+		for _, p := range allProfiles {
+			if !strings.EqualFold(p.Provider, providerID) || p.Disabled {
+				continue
+			}
+			lowerName := strings.ToLower(p.Name)
+			if _, already := seen[lowerName]; already {
+				continue
+			}
+			pCaps := d.EffectiveCaps(ctx, p)
+			if pCaps.Headless.Status == driver.CapabilitySupported && pCaps.SubmitPrompt.Status == driver.CapabilitySupported {
+				candidates = append(candidates, p)
+				seen[lowerName] = struct{}{}
+			}
+		}
+	}
+
+	// If the primary profile is known to have exhausted quota, prioritize an available candidate from the family.
+	if len(candidates) > 1 && isProfileQuotaExhausted(providerID, candidates[0].Name) {
+		for i := 1; i < len(candidates); i++ {
+			if !isProfileQuotaExhausted(providerID, candidates[i].Name) {
+				slog.Info("primary intelligence profile quota is exhausted; prioritizing available profile in family",
+					"provider", providerID, "primary", candidates[0].Name, "fallback", candidates[i].Name)
+				available := candidates[i]
+				candidates = append([]model.Profile{available}, append(candidates[:i], candidates[i+1:]...)...)
+				break
+			}
+		}
+	}
+
 	runner := func(runCtx context.Context, prompt string) (string, error) {
 		args, err := intelligence.HeadlessPromptArgs(providerID, prompt)
 		if err != nil {
@@ -160,11 +200,52 @@ func (n *Nexus) cliIntelligenceProvider(ctx context.Context, projectID string, c
 		if err != nil {
 			return "", err
 		}
-		bin, builtArgs, env, err := d.BuildCommand(runCtx, prof, args)
-		if err != nil {
-			return "", err
+		var lastErr error
+		for i, cand := range candidates {
+			bin, builtArgs, env, err := d.BuildCommand(runCtx, cand, args)
+			if err != nil {
+				lastErr = fmt.Errorf("profile %s:%s build command: %w", providerID, cand.Name, err)
+				continue
+			}
+			out, err := runtime.RunCommandCapture(runCtx, bin, builtArgs, env, cwd)
+			if err == nil {
+				trimmed := strings.TrimSpace(out)
+				lower := strings.ToLower(trimmed)
+				if trimmed != "" &&
+					!strings.Contains(lower, "quota exceeded") &&
+					!strings.Contains(lower, "resource_exhausted") &&
+					!strings.Contains(lower, "rate limit") {
+					return out, nil
+				}
+				if trimmed == "" {
+					lastErr = fmt.Errorf("profile %s:%s returned empty output", providerID, cand.Name)
+				} else {
+					lastErr = fmt.Errorf("profile %s:%s reported quota/limit: %s", providerID, cand.Name, trimmed)
+				}
+			} else {
+				lastErr = fmt.Errorf("profile %s:%s error: %w", providerID, cand.Name, err)
+			}
+			slog.Warn("intelligence profile execution failed, attempting failover",
+				"provider", providerID,
+				"profile", cand.Name,
+				"error", lastErr,
+				"has_more_candidates", i+1 < len(candidates))
 		}
-		return runtime.RunCommandCapture(runCtx, bin, builtArgs, env, cwd)
+		return "", lastErr
 	}
 	return intelligence.NewCLIProvider(providerID, profileName, true, runner), nil
+}
+
+func isProfileQuotaExhausted(provider, profileName string) bool {
+	snap, found := quota.NewEngine(quota.LastKnownTTL).GetCachedUsage(provider, profileName)
+	if !found {
+		return false
+	}
+	for _, w := range snap.Windows {
+		if (w.RemainingPercent != nil && *w.RemainingPercent <= 0) ||
+			(w.UsedPercent != nil && *w.UsedPercent >= 100) {
+			return true
+		}
+	}
+	return false
 }

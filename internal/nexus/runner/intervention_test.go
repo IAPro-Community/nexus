@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 )
@@ -784,5 +785,78 @@ func TestSaveRunRejectsBlockedMissionWithoutActionableIntervention(t *testing.T)
 	err := r.saveRun(context.Background(), &MissionRun{ID: "blocked-without-question", State: StateBlockedNeedsUser})
 	if err == nil {
 		t.Fatal("expected blocked mission without intervention to be rejected")
+	}
+}
+
+func TestResolveInterventionAndExecute_DoesNotStallAfterLongBlock(t *testing.T) {
+	ctx := context.Background()
+	repo := NewMemoryRunRepository()
+	exec := &interventionSideEffectExecutor{}
+	r := NewMissionRunner(repo, exec)
+	now := time.Now().UTC()
+	blockedAt := now.Add(-48 * time.Hour)
+
+	run := &MissionRun{
+		ID:             "run_long_blocked",
+		State:          StateBlockedNeedsUser,
+		StartedAt:      blockedAt,
+		LastProgressAt: blockedAt,
+		UpdatedAt:      blockedAt,
+		Contract: AutonomyContract{
+			StallTimeoutSeconds: 900,
+			EscalateOnFailure:   true,
+			MaxRetries:          3,
+			MaxTotalIterations:  10,
+		},
+		PackageRuns: []PackageRun{
+			{
+				PackageID:     "pkg_plan",
+				State:         StateFailed,
+				DispatchState: DispatchNone,
+				ErrorMessage:  "npm error ERR_INVALID_AUTH",
+			},
+		},
+		NeedsHuman: &HumanIntervention{
+			ID:        "intv_replan",
+			MissionID: "run_long_blocked",
+			TaskID:    "pkg_plan",
+			Timestamp: blockedAt,
+			Version:   1,
+			Scope:     "PACKAGE",
+			Options: []InterventionOption{
+				{
+					ID:        "replan-package",
+					Operation: InterventionReplanPackage,
+					Label:     "Replan package",
+					PackageID: "pkg_plan",
+				},
+			},
+		},
+	}
+	if err := repo.SaveRun(ctx, run); err != nil {
+		t.Fatal(err)
+	}
+
+	resolved, err := r.ResolveIntervention(ctx, run.ID, "intv_replan", 1, "replan-package", "tester")
+	if err != nil {
+		t.Fatalf("resolve failed: %v", err)
+	}
+	if resolved.State != StateExecuting {
+		t.Fatalf("expected EXECUTING, got %s", resolved.State)
+	}
+	if resolved.LastProgressAt.Before(now.Add(-time.Minute)) {
+		t.Fatalf("LastProgressAt was not reset to now: %v", resolved.LastProgressAt)
+	}
+	if resolved.PackageRuns[0].ErrorMessage != "" {
+		t.Fatalf("replan-package must clear previous error message, got: %q", resolved.PackageRuns[0].ErrorMessage)
+	}
+
+	// Now execute next step — this must NOT trip the stall watchdog!
+	updated, _, stepErr := r.ExecuteNextStep(ctx, run.ID)
+	if stepErr != nil && strings.Contains(stepErr.Error(), "stalled") {
+		t.Fatalf("ExecuteNextStep incorrectly tripped stall watchdog: %v", stepErr)
+	}
+	if updated.State == StateFailedNoProgress {
+		t.Fatalf("mission was incorrectly marked FAILED_NO_PROGRESS: %s", updated.PausedReason)
 	}
 }

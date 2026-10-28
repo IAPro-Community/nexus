@@ -197,6 +197,15 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 		return run, false, fmt.Errorf("mission run is paused: %s", run.PausedReason)
 	}
 	now := time.Now().UTC()
+	if run.ResumeRequest != nil && run.ResumeRequest.Status == "PENDING" {
+		run.ResumeRequest.Status = "STARTED"
+		run.ResumeRequest.StartedAt = &now
+		run.LastProgressAt = now
+		run.UpdatedAt = now
+		if err := r.saveRun(ctx, run); err != nil {
+			return run, false, fmt.Errorf("claim durable mission resume: %w", err)
+		}
+	}
 	if ApplyProgressWatchdog(run, now) {
 		if err := r.saveRun(ctx, run); err != nil {
 			return run, false, err
@@ -204,15 +213,6 @@ func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*Mis
 		return run, false, fmt.Errorf("mission stalled: no durable progress within stall timeout")
 	}
 	run.watchFingerprint = progressFingerprint(run)
-	if run.ResumeRequest != nil && run.ResumeRequest.Status == "PENDING" {
-		now := time.Now().UTC()
-		run.ResumeRequest.Status = "STARTED"
-		run.ResumeRequest.StartedAt = &now
-		run.UpdatedAt = now
-		if err := r.saveRun(ctx, run); err != nil {
-			return run, false, fmt.Errorf("claim durable mission resume: %w", err)
-		}
-	}
 
 	run.TotalIterations++
 	if run.TotalIterations > run.Contract.MaxTotalIterations {
@@ -797,9 +797,11 @@ func (r *MissionRunner) ResumeRun(ctx context.Context, runID string) (*MissionRu
 	if run.State != StatePaused {
 		return nil, fmt.Errorf("mission run %s cannot resume from %s", runID, run.State)
 	}
+	now := time.Now().UTC()
 	run.State = StateExecuting
 	run.PausedReason = ""
-	run.UpdatedAt = time.Now().UTC()
+	run.LastProgressAt = now
+	run.UpdatedAt = now
 	if err := r.saveRun(ctx, run); err != nil {
 		return nil, err
 	}
@@ -887,6 +889,7 @@ func (r *MissionRunner) resolveIntervention(ctx context.Context, runID, interven
 	}
 	run.State = StateExecuting
 	run.PausedReason = ""
+	run.LastProgressAt = now
 	run.ResumeRequest = &MissionResumeRequest{ID: "resume_" + key, IdempotencyKey: key, Status: "PENDING", RequestedAt: now}
 	run.UpdatedAt = now
 
@@ -987,6 +990,10 @@ func applyInterventionOption(pkg *PackageRun, option InterventionOption) error {
 		pkg.PromptVersionID = ""
 		pkg.CompiledPrompt = ""
 		pkg.State = StateAllocating
+		pkg.WorkReceipt = nil
+		pkg.FinishedAt = nil
+		pkg.ErrorMessage = ""
+		pkg.FailureKind = model.FailureNone
 	case InterventionReplanPackage:
 		if pkg.State == StateVerified || pkg.ReplayProhibited || pkg.DispatchState == DispatchIntent || pkg.DispatchState == DispatchUnknownExternalOutcome || pkg.DispatchState == DispatchFailed {
 			return fmt.Errorf("%w: package %s requires external outcome reconciliation before replanning", ErrInterventionPolicyDenied, pkg.PackageID)
@@ -995,6 +1002,10 @@ func applyInterventionOption(pkg *PackageRun, option InterventionOption) error {
 		pkg.PromptVersionID = ""
 		pkg.CompiledPrompt = ""
 		pkg.State = StateAllocating
+		pkg.WorkReceipt = nil
+		pkg.FinishedAt = nil
+		pkg.ErrorMessage = ""
+		pkg.FailureKind = model.FailureNone
 	default:
 		return fmt.Errorf("%w: unsupported operation %s", ErrInvalidInterventionOption, option.Operation)
 	}

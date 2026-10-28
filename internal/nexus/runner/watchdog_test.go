@@ -116,3 +116,51 @@ func TestFinalizeStallIfNeededPromotesCanceledToFailedNoProgress(t *testing.T) {
 		t.Fatalf("state=%s want FAILED_NO_PROGRESS", run.State)
 	}
 }
+
+func TestProgressWatchdogIgnoresResumedRunAfterLongBlock(t *testing.T) {
+	now := time.Now().UTC()
+	requestedAt := now.Add(-10 * time.Second)
+	run := &MissionRun{
+		ID:             "run_resumed_long_block",
+		State:          StateExecuting,
+		StartedAt:      now.Add(-48 * time.Hour),
+		LastProgressAt: now.Add(-48 * time.Hour),
+		Contract:       AutonomyContract{StallTimeoutSeconds: 900},
+		PackageRuns:    []PackageRun{{PackageID: "pkg", State: StateExecuting}},
+		ResumeRequest: &MissionResumeRequest{
+			ID:          "resume_1",
+			Status:      "PENDING",
+			RequestedAt: requestedAt,
+		},
+	}
+	if ApplyProgressWatchdog(run, now) {
+		t.Fatal("mission with recent resume request must not be treated as stalled")
+	}
+	if run.State != StateExecuting {
+		t.Fatalf("state mutated: %s", run.State)
+	}
+}
+
+func TestProgressWatchdogIgnoresResolvedInterventionAfterLongBlock(t *testing.T) {
+	now := time.Now().UTC()
+	resolvedAt := now.Add(-10 * time.Second)
+	run := &MissionRun{
+		ID:             "run_resolved_long_block",
+		State:          StateExecuting,
+		StartedAt:      now.Add(-48 * time.Hour),
+		LastProgressAt: now.Add(-48 * time.Hour),
+		Contract:       AutonomyContract{StallTimeoutSeconds: 900},
+		PackageRuns:    []PackageRun{{PackageID: "pkg", State: StateExecuting}},
+		NeedsHuman: &HumanIntervention{
+			ID:         "intv_1",
+			Resolved:   true,
+			ResolvedAt: &resolvedAt,
+		},
+	}
+	if ApplyProgressWatchdog(run, now) {
+		t.Fatal("mission with recent resolved intervention must not be treated as stalled")
+	}
+	if run.State != StateExecuting {
+		t.Fatalf("state mutated: %s", run.State)
+	}
+}

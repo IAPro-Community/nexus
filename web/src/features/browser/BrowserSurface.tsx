@@ -16,6 +16,31 @@ import { getDesktopAuthToken, getWebSocketEndpoint, request } from '../../api';
 import { useTranslation } from 'react-i18next';
 import styles from './BrowserSurface.module.scss';
 
+export function normalizeBrowserURL(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed) return trimmed;
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(trimmed)) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('//')) {
+    return `https:${trimmed}`;
+  }
+  const host = trimmed.split(/[/?#]/)[0].toLowerCase();
+  if (
+    host === 'localhost' ||
+    host.startsWith('localhost:') ||
+    host === '127.0.0.1' ||
+    host.startsWith('127.0.0.1:') ||
+    host === '0.0.0.0' ||
+    host.startsWith('0.0.0.0:') ||
+    host === '[::1]' ||
+    host.startsWith('[::1]:')
+  ) {
+    return `http://${trimmed}`;
+  }
+  return `https://${trimmed}`;
+}
+
 export type NexusBrowserInfo = {
   id: string;
   project_id: string;
@@ -494,9 +519,12 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
     >
       <form
         className={styles.toolbar}
+        noValidate
         onSubmit={(event) => {
           event.preventDefault();
-          void perform({ type: 'navigate', url: address.trim() });
+          const target = normalizeBrowserURL(address);
+          setAddress(target);
+          void perform({ type: 'navigate', url: target });
         }}
       >
         <Globe size={16} aria-hidden="true" />
@@ -533,7 +561,8 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
           <ArrowRight size={15} />
         </button>
         <input
-          type="url"
+          type="text"
+          inputMode="url"
           className={styles.address}
           aria-label="Endereço da página"
           value={address}

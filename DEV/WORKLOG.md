@@ -1,3 +1,61 @@
+## 2026-10-28 — auto-correção de URL do navegador, decomposição em camadas de Flow no Composer e failover de quota no Nexus Intelligence
+
+- **Auto-correção de URLs sem protocolo no Nexus Browser (Frontend & Backend)**:
+  - Causa raiz: O campo de endereço em `BrowserSurface.tsx` utilizava `<input type="url">` dentro de um formulário sem `noValidate`. Ao digitar URLs sem esquema explícito (`localhost:3000`, `google.com`), a validação nativa HTML5 do navegador bloqueava a submissão. Além disso, `ValidURL` no backend exigia estritamente esquemas `http://` ou `https://`.
+  - Correção no Backend (`internal/browsercontrol/browser.go`):
+    - Implementada a função `NormalizeURL(raw string) string`: endereços locais (`localhost`, `127.0.0.1`, `0.0.0.0`, `[::1]`) recebem prefixo `http://`; domínios recebem prefixo `https://`; protocolos explícitos (`http://`, `https://`, `file://`, `javascript:`, etc.) e esquemas relativos (`//`) são respeitados.
+    - `ValidURL`, `Session.navigate` e `Manager.Create` agora invocam `NormalizeURL`.
+    - Handlers HTTP em `internal/control/web/handlers_browser.go` normalizam a URL nas requisições de criação e na ação `navigate`.
+  - Correção no Frontend (`web/src/features/browser/BrowserSurface.tsx`):
+    - Exportada a função `normalizeBrowserURL(input: string): string`.
+    - Formulário atualizado com `noValidate` e normalização imediata em `onSubmit`.
+    - Campo de input migrado para `type="text" inputMode="url"`, permitindo que o usuário digite livremente sem travamento de validação do browser.
+  - Testes:
+    - `internal/browsercontrol/browser_test.go`: `TestNormalizeURL` e `TestValidURL` com casos de endereços locais e remotos com e sem protocolo.
+    - `web/src/features/browser/BrowserSurface.test.ts`: testes unitários em Vitest validando a normalização de domínios, loopback e esquemas existentes.
+
+- **Persistência de autenticação no Navegador Nexus**:
+  - Investigado e confirmado o comportamento do armazenamento de credenciais:
+    - Durante o ciclo de vida da sessão ativa do Chromium no Core, todos os cookies, tokens, localStorage e sessões de login ficam preservados no `--user-data-dir` (`/tmp/nexus-chromium-*`). O usuário pode trocar de abas, fechar e reabrir o painel ou delegar o controle para o agente (Handoff) mantendo a autenticação.
+    - Ao encerrar explicitamente a sessão do navegador (`Close(id)`) ou reiniciar o processo do Core, o diretório temporário é excluído pelo Nexus por isolamento de segurança e conformidade, não persistindo permanentemente em disco após o término da sessão.
+
+- **Decomposição em camadas (Layers/Phases) ao transformar Composer em Flow**:
+  - Causa raiz: Ao acionar a materialização de artefatos do Composer em Flow (`MaterializePromptArtifactAsFlow`), o sistema verificava `AssessComposerFlowSuitability`. Se a heurística retornasse `FlowDirectFit` (comum para metas concisas), o fluxo de decomposição era ignorado e era criado um único pacote em uma única fase direta. Além disso, `DecomposePromptIntoFlowProposal` tratava metas com menos de 12 palavras como atômicas (`isAtomic = true`), ignorando o pipeline de fases do Mission Team.
+  - Correção:
+    - Em `internal/nexus/plan.go`: `MaterializePromptArtifactAsFlow` agora sempre invoca `DecomposePromptIntoFlowProposal`, respeitando a intenção explícita do usuário de transformar a ideia do Composer em uma esteira de entrega em camadas.
+    - Em `internal/nexus/flow_decomposition.go`: requisições com `ArtifactID != ""` (provenientes do Composer) não são mais rebaixadas para execução atômica baseada na brevidade do título (`isAtomic`), preservando a esteira de entrega do Mission Team (`PresetFeatureDelivery`, `PresetBugFix`, etc.).
+    - Em `internal/nexus/mission_team.go`: `missionTeamStep` agora propaga `CompiledPrompt: missionGoal` para todos os passos gerados, garantindo paridade de prompt e rastreabilidade em todas as fases (Planning, Implementation, Review, Verification).
+
+- **Failover automático entre contas da mesma família no Nexus Intelligence (Quota / Degradação)**:
+  - Causa raiz: `cliIntelligenceProvider` (`internal/nexus/intelligence_provider.go`) estava rigidamente acoplado a um único perfil fixo (`cfg.Profile`), falhando por completo quando a conta configurada (ex: `agy:kiveromegasistemas`) esgotava sua quota de Gemini (0% restante) mesmo havendo outra conta da mesma família configurada e com capacidade (ex: `agy:kivervinicius-gmail` com 20% semanal e 57% 5h).
+  - Correção em `internal/nexus/intelligence_provider.go`:
+    - Enumeração automática de todos os perfis ativos da mesma família (`providerID`) com capacidade headless + submit_prompt via `profile.List()`.
+    - Priorização proativa por quota: se a quota do perfil primário estiver com 0% restante no snapshot de capacidade, o sistema prioriza o perfil disponível da mesma família.
+    - Failover reativo no executor: se a execução do CLI falhar, retornar erro de processo ou indicar esgotamento de quota/limite de taxa (`quota exceeded`, `resource_exhausted`, `rate limit`), o runner realiza failover automático para o próximo perfil da família com log de advertência estruturado (`slog.Warn`), evitando a quebra de serviços que dependem do Nexus Intelligence (análise de intenção, Composer, refinamento).
+  - Testes:
+    - `internal/nexus/intelligence_failover_test.go` cobrindo o verificador de exaustão de quota.
+    - Suíte de 30+ testes do Composer e Intelligence passando com sucesso.
+
+- **Build e reinstalação local**:
+  - Frontend verificado (`typecheck`, `lint`, `format:check`, `check:styles`, `build`).
+  - `make install-local` executado com sucesso: binário compilado, instalado em `~/.local/bin/nexus` e `nexus web` reiniciado (PID 4057661).
+
+## 2026-10-28 — correção de falso positivo no watchdog de progresso ao retomar Flow Runs
+
+- Diagnóstico e correção do erro `watchdog: no durable progress within stall timeout` ao resolver intervenções humanas ou despausar Flow Runs:
+  - Causa raiz: `progressAnchor(run)` utilizava estritamente `run.LastProgressAt`. Quando uma Mission ficava pausada ou bloqueada aguardando intervenção humana (`BLOCKED_NEEDS_USER`) por um intervalo superior ao `stall_timeout_seconds` (padrão de 15 minutos / 900s), `run.LastProgressAt` mantinha o timestamp da última execução anterior (que podia ser de horas ou dias atrás). Ao resolver a intervenção ou invocar `ExecuteNextStep`, `ApplyProgressWatchdog` era acionado antes de registrar o início da retomada (`ResumeRequest`) e comparava o tempo atual com a âncora antiga de 48h, marcando imediatamente a Mission como `FAILED_NO_PROGRESS` em ~15ms. Além disso, `ResumeRun` e `resolveIntervention` não redefiniam `run.LastProgressAt` para o tempo atual, o timer de `armStallWatchdog` disparava de imediato com deadline no passado, e opções de replanejamento (`replan-package` e `retry-package`) preservavam mensagens de erro antigas no pacote.
+  - Correção em `internal/nexus/runner/watchdog.go`:
+    - `progressAnchor` agora considera o momento da ação humana (`run.NeedsHuman.ResolvedAt`) e solicitações de retomada (`run.ResumeRequest.StartedAt` / `run.ResumeRequest.RequestedAt`), impedindo que o tempo ocioso em espera de decisão humana seja computado como stall de execução do agente.
+  - Correção em `internal/nexus/runner/runner.go`:
+    - Em `ExecuteNextStep`: a transição de `ResumeRequest` (de `PENDING` para `STARTED`) agora é reivindicada e persiste `run.LastProgressAt = now` antes da avaliação de `ApplyProgressWatchdog`.
+    - Em `ResumeRun`: redefine `run.LastProgressAt = now`.
+    - Em `resolveIntervention`: redefine `run.LastProgressAt = now`.
+    - Em `applyInterventionOption`: limpa `ErrorMessage`, `WorkReceipt`, `FinishedAt` e `FailureKind` ao executar `InterventionRetrySafePackage` e `InterventionReplanPackage`.
+  - Testes unitários e de integração adicionados:
+    - `internal/nexus/runner/watchdog_test.go`: `TestProgressWatchdogIgnoresResumedRunAfterLongBlock` e `TestProgressWatchdogIgnoresResolvedInterventionAfterLongBlock` validam que missões retomadas após bloqueios longos (ex: 48h) não são consideradas estagnadas.
+    - `internal/nexus/runner/intervention_test.go`: `TestResolveInterventionAndExecute_DoesNotStallAfterLongBlock` valida o ciclo completo de resolução humana de intervenção bloqueada há 48h seguida de `ExecuteNextStep`, garantindo limpeza de mensagens de erro e avanço sem acionamento do watchdog.
+- Binário recompilado e reinstalado em `~/.local/bin/nexus`.
+
 ## 2026-10-28 — correção de erro UNIQUE constraint em prompt_artifacts no Composer
 
 - Diagnóstico e correção do erro `constraint failed: UNIQUE constraint failed: prompt_artifacts.session_id, prompt_artifacts.content_hash (2067)` no Composer:

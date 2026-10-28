@@ -10,8 +10,36 @@ import (
 	"time"
 )
 
+func TestNormalizeURL(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected string
+	}{
+		{"localhost:3000", "http://localhost:3000"},
+		{"localhost:3000/app", "http://localhost:3000/app"},
+		{"127.0.0.1:8080", "http://127.0.0.1:8080"},
+		{"0.0.0.0:4000", "http://0.0.0.0:4000"},
+		{"[::1]:3000", "http://[::1]:3000"},
+		{"google.com", "https://google.com"},
+		{"google.com/search?q=nexus", "https://google.com/search?q=nexus"},
+		{"http://localhost:3000", "http://localhost:3000"},
+		{"https://example.org", "https://example.org"},
+		{"//example.org/path", "https://example.org/path"},
+		{"   ", ""},
+	}
+	for _, tc := range cases {
+		got := NormalizeURL(tc.input)
+		if got != tc.expected {
+			t.Errorf("NormalizeURL(%q) = %q, want %q", tc.input, got, tc.expected)
+		}
+	}
+}
+
 func TestValidURL(t *testing.T) {
-	for _, raw := range []string{"http://localhost:3000", "https://example.org/path?q=1", "http://127.0.0.1:8080"} {
+	for _, raw := range []string{
+		"http://localhost:3000", "https://example.org/path?q=1", "http://127.0.0.1:8080",
+		"localhost:3000", "127.0.0.1:8080", "example.org",
+	} {
 		if err := ValidURL(raw); err != nil {
 			t.Errorf("%q should be valid: %v", raw, err)
 		}
