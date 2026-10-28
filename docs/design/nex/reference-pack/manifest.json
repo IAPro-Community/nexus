@@ -1,0 +1,148 @@
+{
+  "schema_version": "1.0",
+  "id": "NEX-retro-game-concept-reference-pack-2026-10-27",
+  "status": "PREVIEW_GENERATED_REFERENCES_NOT_APPROVED_AS_PRODUCTION_MASTER",
+  "production_status": "NOT_A_SPRITESHEET",
+  "context": "User chose the existing white/blue NEX robot and requested highly detailed retro-game 32-bit-inspired pixel art and many idle actions.",
+  "source": {
+    "kind": "AI_GENERATED_CONCEPT_SHEET",
+    "reference_scope": "NEW_EDITORIAL_SUPPORTING_REFERENCE",
+    "sha256": "414a912b5836978ecce375d295c88c8b6d42edb55b533c64e15b58d8c8f6b1b9",
+    "filename": "00_nex_guia_conceitual_completo.png",
+    "note": "The previously user-selected source PNG in identity-lock.json is a DIFFERENT file, and remains higher priority for character identity. This pack is a new supporting exploration, not a replacement."
+  },
+  "commit_status": "PENDING_BINARY_INGEST",
+  "local_package_name": "nex_retro_references_2026_10_27.zip",
+  "expected_directory": "docs/design/nex/reference-pack/",
+  "assets": [
+    {
+      "id": "full-board",
+      "filename": "00_nex_guia_conceitual_completo.png",
+      "expected_repository_path": "docs/design/nex/reference-pack/00_nex_guia_conceitual_completo.png",
+      "sha256": "414a912b5836978ecce375d295c88c8b6d42edb55b533c64e15b58d8c8f6b1b9",
+      "bytes": 2223032,
+      "width": 1536,
+      "height": 1024,
+      "description": "Prancha editorial completa",
+      "kind": "GENERATED_CONCEPT_BOARD",
+      "status": "NOT_VERSIONED"
+    },
+    {
+      "id": "ref-01",
+      "filename": "01_nex_personagem_principal.png",
+      "expected_repository_path": "docs/design/nex/reference-pack/01_nex_personagem_principal.png",
+      "sha256": "088de7c12c1bbbeac2139fe4c3db4837f69ee5bca63e0e57a935c0c028a1bbb7",
+      "bytes": 393772,
+      "width": 536,
+      "height": 538,
+      "description": "Proporções e acabamento do NEX",
+      "kind": "UNMODIFIED_CROP_OF_SAME_BOARD",
+      "status": "NOT_VERSIONED"
+    },
+    {
+      "id": "ref-02",
+      "filename": "02_nex_vistas_frente_34_perfil_costas.png",
+      "expected_repository_path": "docs/design/nex/reference-pack/02_nex_vistas_frente_34_perfil_costas.png",
+      "sha256": "4c6f179523e7e1c5d08b3efce13e60ef38b85152fa6b66b9bd5b90802ab947c2",
+      "bytes": 326450,
+      "width": 782,
+      "height": 316,
+      "description": "Turnaround em vistas auxiliares",
+      "kind": "UNMODIFIED_CROP_OF_SAME_BOARD",
+      "status": "NOT_VERSIONED"
+    },
+    {
+      "id": "ref-03",
+      "filename": "03_nex_expressoes_visor.png",
+      "expected_repository_path": "docs/design/nex/reference-pack/03_nex_expressoes_visor.png",
+      "sha256": "c13feeacc6ad1551f017727c462316a8acd927d589e915fe429e4246ab347757",
+      "bytes": 126829,
+      "width": 478,
+      "height": 219,
+      "description": "Expressões projetadas no visor",
+      "kind": "UNMODIFIED_CROP_OF_SAME_BOARD",
+      "status": "NOT_VERSIONED"
+    },
+    {
+      "id": "ref-04",
+      "filename": "04_nex_detalhes_anatomia.png",
+      "expected_repository_path": "docs/design/nex/reference-pack/04_nex_detalhes_anatomia.png",
+      "sha256": "dd7a64bb94e117d7035e8f56a5dd792232ddf1a1520499ef01709f2f58a16817",
+      "bytes": 179243,
+      "width": 573,
+      "height": 220,
+      "description": "Anatomia e material metálico",
+      "kind": "UNMODIFIED_CROP_OF_SAME_BOARD",
+      "status": "NOT_VERSIONED"
+    },
+    {
+      "id": "ref-05",
+      "filename": "05_nex_idle_12_acoes.png",
+      "expected_repository_path": "docs/design/nex/reference-pack/05_nex_idle_12_acoes.png",
+      "sha256": "be5dd9706f85d18cdf85a335d96265d2556950f4c652e9daeb9bef2ee624ffc8",
+      "bytes": 434756,
+      "width": 1536,
+      "height": 216,
+      "description": "Doze gestos idle conceituais",
+      "kind": "UNMODIFIED_CROP_OF_SAME_BOARD",
+      "status": "NOT_VERSIONED"
+    },
+    {
+      "id": "ref-06",
+      "filename": "06_nex_estados_operacionais.png",
+      "expected_repository_path": "docs/design/nex/reference-pack/06_nex_estados_operacionais.png",
+      "sha256": "b933e2b533c60f52c45063aea0c751f6a9016c13ec62d9a086171b2c1ef322b7",
+      "bytes": 272945,
+      "width": 768,
+      "height": 266,
+      "description": "Cinco estados operacionais",
+      "kind": "UNMODIFIED_CROP_OF_SAME_BOARD",
+      "status": "NOT_VERSIONED"
+    },
+    {
+      "id": "ref-07",
+      "filename": "07_nex_acoes_interacao.png",
+      "expected_repository_path": "docs/design/nex/reference-pack/07_nex_acoes_interacao.png",
+      "sha256": "c734d6b9f8a550139e019ea8c5989de4663a9aa5955a77099bfa9238b16e128f",
+      "bytes": 188319,
+      "width": 505,
+      "height": 266,
+      "description": "Ações e gestos ilustrativos",
+      "kind": "UNMODIFIED_CROP_OF_SAME_BOARD",
+      "status": "NOT_VERSIONED"
+    },
+    {
+      "id": "ref-08",
+      "filename": "08_nex_contextos_de_uso.png",
+      "expected_repository_path": "docs/design/nex/reference-pack/08_nex_contextos_de_uso.png",
+      "sha256": "10da14707d155d2ce94e193287d4646e48067e9f718ef38822a04ee4b4267280",
+      "bytes": 91072,
+      "width": 269,
+      "height": 266,
+      "description": "Cenários HUD, Docs e site",
+      "kind": "UNMODIFIED_CROP_OF_SAME_BOARD",
+      "status": "NOT_VERSIONED"
+    },
+    {
+      "id": "ref-09",
+      "filename": "09_nex_paleta.png",
+      "expected_repository_path": "docs/design/nex/reference-pack/09_nex_paleta.png",
+      "sha256": "0c8da981e870f8f7d8247e55059f083c175c16b9e4537f1c8e961611812a2d29",
+      "bytes": 80145,
+      "width": 222,
+      "height": 322,
+      "description": "Paleta editorial",
+      "kind": "UNMODIFIED_CROP_OF_SAME_BOARD",
+      "status": "NOT_VERSIONED"
+    }
+  ],
+  "rules": {
+    "same_source_for_all_crops": true,
+    "keep_user_selected_identity_as_authority": true,
+    "do_not_claim_pixel_perfect_animation": true,
+    "requires_art_master_approval": true,
+    "do_not_upgrade_identity_lock_automatically": true,
+    "do_not_change_runtime_moods": true,
+    "do_not_overwrite_existing_concept_reference": true
+  }
+}
