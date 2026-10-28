@@ -163,6 +163,24 @@ jobs:
               ;;
           esac
 
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Verify V1 Agent Workspace mandatory scope and exact-SHA evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ github.sha }}
+          CI_RUN_ID: ${{ steps.verify.outputs.ci-run-id }}
+        run: |
+          set -euo pipefail
+          # Artifact must come from the same verified push CI run. Never
+          # accept a manually edited source-tree JSON as release proof.
+          mkdir -p "$RUNNER_TEMP/nexus-v1-workspace-acceptance"
+          gh run download "$CI_RUN_ID" --name "nexus-v1-workspace-acceptance-$EXPECTED_SHA" \
+            --dir "$RUNNER_TEMP/nexus-v1-workspace-acceptance"
+          node scripts/verify-agent-workspace-v1.mjs --release \
+            --sha "$EXPECTED_SHA" --ci-run-id "$CI_RUN_ID" \
+            --evidence "$RUNNER_TEMP/nexus-v1-workspace-acceptance/evidence.json"
   release:
     needs: same-sha-gate
     runs-on: [self-hosted, Linux, X64, nexus-ci]

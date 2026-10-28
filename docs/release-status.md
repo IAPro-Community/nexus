@@ -1,5 +1,8 @@
 # Aviso atual de homologação da linha v1
 
+> **Nexus 1.0 — escopo integral obrigatório:** o [contrato Agent Workspace v1](product/agent-workspace-v1-acceptance.md) rastreia 48 entregas e possui gate fail-closed no Signed Release. O código ainda está incompleto e não há evidence artifact aprovado: **NO-GO**. A execução do verificador estrutural no CI não equivale à certificação.
+
+
 > **27/10/2026 — documentação, não certificação:** a branch `release/v1.0.0` declara `1.0.0-beta.11` nos arquivos VERSION e web/package.json. A branch continua recebendo alterações, logo evidências de SHAs anteriores não certificam o HEAD atual. O repositório de código está público, mas **não há aqui prova de release v1 estável**. Ver [matriz](reference/feature-matrix.md), [gates](operations/platform-support.md) e [checklist](PUBLICATION_CHECKLIST.md).
 
 ## Certificação atual (27/10/2026)

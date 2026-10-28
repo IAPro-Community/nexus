@@ -59,8 +59,29 @@ Docker não certifica Desktop nativo.
 
 ## Maestro
 
-Maestro é opt-in. Não deve ser instalado silenciosamente nem virar dependência
-da execução básica do Nexus.
+Na beta atual o Maestro ainda é opcional. A arquitetura aprovada para Nexus
+1.0 exige o Maestro como dependência gerenciada e autoridade de contexto/skills/
+memória semântica; Maestro permanece independente. A migração deve manter
+backup e rollback e não alterar uma instalação externa sem autorização. O
+[contrato obrigatório de aceite do Workspace](../product/agent-workspace-v1-acceptance.md)
+rastreia o fechamento deste requisito.
+
+## Gate de escopo integral — Agent Workspace v1
+
+A meta Nexus 1.0 inclui **todas as 48 obrigações** do
+[contrato de aceite](../product/agent-workspace-v1-acceptance.md), não uma
+seleção arbitrária das features já presentes no código. O Signed Release
+bloqueia até existir um artifact
+`nexus-v1-workspace-acceptance-<SHA>/evidence.json`, emitido **pelo CI do
+próprio SHA**, cobrindo cada feature, duas sessões/clientes nos casos aplicáveis
+e as plataformas prometidas.
+
+`node scripts/verify-agent-workspace-v1.mjs` valida a integridade do catálogo
+durante o desenvolvimento e **não representa GO**. A chamada `--release`
+exige evidence externa, run CI correto e SHA exatamente igual ao checkout.
+Não se pode substituir essa evidência por um JSON versionado no repositório.
+O produtor E2E do artifact ainda é pendência: **até sua entrega a release fica
+NO-GO intencionalmente**.
 
 ## Stable v1
 

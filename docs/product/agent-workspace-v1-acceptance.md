@@ -97,7 +97,7 @@ Legenda: **present** indica código-base localizado; **partial** significa lacun
 | `change-collision-detector` | Change Collision Detector | missing | [#109](https://github.com/IAPro-Community/nexus/issues/109) | Detectar alterações conflitantes por base commit/hunks; Informar incerteza e permitir revisão antes do merge |
 | `device-handoff` | Seamless Device Handoff | partial | [#111](https://github.com/IAPro-Community/nexus/issues/111) | Continuar no mobile a sessão do host sem duplicar execução; Lease, reattach, estados reconciliados e histórico auditável |
 
-### Dependências obrigatórias e certificação (8)
+### Dependências obrigatórias e certificação (7)
 
 | ID | Requisito da V1 | Source | Issue | Evidência mínima |
 | --- | --- | --- | --- | --- |

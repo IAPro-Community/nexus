@@ -77,6 +77,21 @@ O script interrompe a aprovação quando encontra suspeitas e mantém relatório
 - [ ] Executar `node scripts/docs-verify.mjs` e `git diff --check` no SHA exato da publicação, salvando evidência.
 - [ ] Validar README, instalação e primeiro uso em instalação limpa Linux, Windows e macOS, declarando somente os targets certificados.
 
+## Gate obrigatório — escopo integral do Agent Workspace 1.0
+
+- [x] Formalizar as 48 obrigações funcionais/arquiteturais em
+      [matriz de aceite](product/agent-workspace-v1-acceptance.md).
+- [x] Criar contrato machine-readable e verificador fail-closed na linha
+      `release/v1.0.0`.
+- [ ] Implementar e integrar todas as capacidades marcadas `partial` ou `missing`.
+- [ ] Completar Maestro como dependência gerenciada e migrar memória reversivelmente.
+- [ ] Produzir evidências reais do CI no artifact `nexus-v1-workspace-acceptance-<SHA>`.
+- [ ] Passar o verificador `--release` e gates multiplataforma no mesmo SHA.
+- [ ] Concluir gates legais, titularidade, licença e auditoria de exposição.
+
+A inclusão de escopo **não** equivale a implementação ou homologação. Sem
+evidências, a promoção da v1 continua NO-GO.
+
 ## Gate P0 — release de software
 
 - [ ] Congelar SHA de candidata e executar Go/tests/race/vet/lint, frontend e browser E2E no mesmo SHA.

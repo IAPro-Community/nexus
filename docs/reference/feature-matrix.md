@@ -4,6 +4,12 @@
 >
 > Fonte dos recursos: [catálogo auditável](features.json). Atualize o catálogo e execute `node scripts/verify-feature-catalog.mjs --write` para regenerar esta tabela.
 
+O [contrato integral do Agent Workspace Nexus 1.0](../product/agent-workspace-v1-acceptance.md)
+é uma **matriz de aceite de release separada** deste inventário de código:
+engloba 48 obrigações (incluindo as 30 capacidades UX) e bloqueia promoção
+enquanto faltar implementação e prova exact-SHA. Não interpretar
+`implemented` abaixo como `VERIFIED`.
+
 <!-- FEATURE_CATALOG_START -->
 | ID | Recurso e documentação | Superfícies no source | Estado no source | Evidência de testes | Certificação nativa |
 | --- | --- | --- | --- | --- | --- |
