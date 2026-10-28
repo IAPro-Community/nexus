@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { Button, Card, Dialog, Input, Select } from '../../design-system';
 import { nexus } from '../../nexus/api';
+import { api } from '../../api';
+import { structuredProtocolsForProvider, type StructuredHarnessProtocol } from './structuredHarnessOptions';
 import { isRequiredResourceSelection } from '../../nexus/agentTerminalModel';
 import { withAgentExecutionMode } from '../../nexus/agentExecutionMode';
 import type { Agent, AgentConfig, AgentMode, Project } from '../../types';
@@ -167,6 +169,8 @@ export const NewAgentModal: React.FC<{
   const [name, setName] = useState('');
   const [origin, setOrigin] = useState<'native' | 'custom'>('native');
   const [provider, setProvider] = useState('codex');
+  const [installedProviders, setInstalledProviders] = useState<string[]>([]);
+  const [agentProtocol, setAgentProtocol] = useState<StructuredHarnessProtocol>('');
   const [mode, setMode] = useState<'Safe' | 'YOLO'>('Safe');
   const [targetKind, setTargetKind] = useState('docker');
   const [targetWorkspace, setTargetWorkspace] = useState('');
@@ -206,6 +210,16 @@ export const NewAgentModal: React.FC<{
     let alive = true;
     setLoadingModes(true);
     setError('');
+    setAgentProtocol('');
+    setInstalledProviders([]);
+    void api.getProviders()
+      .then((providers) => {
+        if (!alive) return;
+        // The Core only registers experimental harnesses when its opt-in flag
+        // is enabled. A failed probe must not advertise preview support.
+        setInstalledProviders(providers.filter((entry) => entry.installed).map((entry) => entry.id));
+      })
+      .catch(() => { if (alive) setInstalledProviders([]); });
     void nexus
       .listAgentModes()
       .then((modes) => {
@@ -245,12 +259,14 @@ export const NewAgentModal: React.FC<{
     setSelectedType(preset);
     setName(localizedPresentationFor(preset).name);
     setProvider(preset.default_provider || 'codex');
+    setAgentProtocol('');
     setMode(executionModeFor(preset));
   };
 
+  const structuredChoices = structuredProtocolsForProvider(provider, installedProviders.includes(provider));
   const resolvedPreview =
     origin === 'native'
-      ? `nexus ${provider}${mode === 'YOLO' ? ' --yolo' : ''}`
+      ? `nexus ${provider}${agentProtocol ? ` [${agentProtocol.toUpperCase()} experimental]` : mode === 'YOLO' ? ' --yolo' : ''}`
       : commandTemplate
           .replaceAll('{cwd}', project.canonical_path || '/workspace')
           .replaceAll(
@@ -294,6 +310,11 @@ export const NewAgentModal: React.FC<{
         }
       } else {
         configOptions.execution_adapter = 'native_alias';
+        if (agentProtocol && structuredChoices.includes(agentProtocol)) {
+          // Keep protocol choice in the existing AgentConfig -> LaunchOptions path.
+          // The launcher performs the final feature-gate and provider validation.
+          configOptions.agent_protocol = agentProtocol;
+        }
       }
 
       await nexus.applyAgentConfig(
@@ -403,11 +424,16 @@ export const NewAgentModal: React.FC<{
               <Select
                 id="new-agent-provider"
                 value={provider}
-                onChange={(val) => setProvider(val)}
-                options={NATIVE_PROVIDERS.map((p) => ({
-                  value: p.id,
-                  label: p.label,
-                }))}
+                onChange={(val) => {
+                  setProvider(val);
+                  setAgentProtocol('');
+                }}
+                options={[
+                  ...NATIVE_PROVIDERS.map((p) => ({ value: p.id, label: p.label })),
+                  ...(['pi', 'omp', 'mimo', 'dsh'] as const)
+                    .filter((id) => installedProviders.includes(id))
+                    .map((id) => ({ value: id, label: `${id.toUpperCase()} (experimental)` })),
+                ]}
               />
             </div>
           </div>
@@ -436,7 +462,7 @@ export const NewAgentModal: React.FC<{
                   data-tone={origin === 'custom' ? 'brand' : 'default'}
                   data-size="sm"
                   aria-pressed={origin === 'custom'}
-                  onClick={() => setOrigin('custom')}
+                  onClick={() => { setOrigin('custom'); setAgentProtocol(''); }}
                 >
                   {t('agents.originCustom')}
                 </button>
@@ -452,7 +478,8 @@ export const NewAgentModal: React.FC<{
               >
                 {(['Safe', 'YOLO'] as const).map((candidateMode) => {
                   const disabled =
-                    candidateMode === 'YOLO' && Boolean(selectedType?.read_only_by_default);
+                    candidateMode === 'YOLO' &&
+                    (Boolean(selectedType?.read_only_by_default) || Boolean(agentProtocol));
                   return (
                     <button
                       key={candidateMode}
@@ -500,12 +527,42 @@ export const NewAgentModal: React.FC<{
           </summary>
           <div className={styles.advancedBody}>
             {origin === 'native' ? (
-              <p className={styles.hintText}>
-                {t(
-                  'agents.advancedNativeHint',
-                  'A execução nativa não precisa de ajustes. Escolha “Personalizado” para usar Docker, WSL, SSH ou um wrapper.',
+              <div className={styles.fieldGroup}>
+                <p className={styles.hintText}>
+                  {t(
+                    'agents.advancedNativeHint',
+                    'A execução nativa não precisa de ajustes. Escolha “Personalizado” para usar Docker, WSL, SSH ou um wrapper.',
+                  )}
+                </p>
+                {structuredChoices.length > 0 && (
+                  <>
+                    <label className={styles.fieldSublabel} htmlFor="new-agent-protocol">
+                      {t('agents.structuredProtocol', { defaultValue: 'Agent protocol (experimental)' })}
+                    </label>
+                    <Select
+                      id="new-agent-protocol"
+                      value={agentProtocol}
+                      onChange={(value) => {
+                        setAgentProtocol(value as StructuredHarnessProtocol);
+                        if (value) setMode('Safe');
+                      }}
+                      options={[
+                        { value: '', label: 'Terminal / PTY (default)' },
+                        ...structuredChoices.map((value) => ({
+                          value,
+                          label: value === 'acp' ? 'ACP (experimental)' : 'Pi JSONL RPC (experimental)',
+                        })),
+                      ]}
+                    />
+                    <small className={styles.hintText}>
+                      {t('agents.structuredProtocolWarning', {
+                        defaultValue:
+                          'Requires NEXUS_EXPERIMENTAL_HARNESSES=1 on Core, a compatible installed CLI and an authenticated profile. Structured sessions use a text command surface, not PTY. Permissions still require terminal focus.',
+                      })}
+                    </small>
+                  </>
                 )}
-              </p>
+              </div>
             ) : (
               <div className={styles.fieldGroup}>
                 <label className={styles.fieldSublabel}>
