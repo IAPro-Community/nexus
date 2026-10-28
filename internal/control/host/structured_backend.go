@@ -101,7 +101,8 @@ func (b *structuredBackend) Start(cmd *exec.Cmd, rows, cols int) error {
         case b.statusUpdates <- signal:
         default:
             b.emit("\r\n[Nexus] Agent status overflow; stopping session.\r\n")
-            if b.cancel != nil { b.cancel() }
+            // Do not touch b.cancel here: the protocol reader may run while
+            // Start is still installing context/ownership under b.mu.
             if cmd.Process != nil { _ = cmd.Process.Kill() }
         }
     }, func(msg string) { b.emit(msg) })
