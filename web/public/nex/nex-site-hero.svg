@@ -67,7 +67,7 @@
  <g id="nex-yaw-stage">
  <g id="nex-figure">
  <g id="nex-orbit-back"><ellipse cx="512" cy="900" rx="301" ry="74" fill="none" stroke="#0D64D7" stroke-width="14" opacity=".5"/><path d="M212 895Q512 794 812 895" stroke="#25BFFF" stroke-width="6" opacity=".6" fill="none"/></g>
- <g id="nex-fin-left" class="nex-fin" transform="translate(314 299) scale(1 1)"><g class="nex-fin-motion">
+ <g id="nex-fin-left" class="nex-fin" transform="translate(314 327) scale(1 1)"><g class="nex-fin-motion">
   <path d="M-43 17-37-111-20-225 1-280Q15-301 34-287L49-260 49-7 25 22Z" fill="#06152E" stroke="#0D285C" stroke-width="11" stroke-linejoin="round"/>
   <path d="M-36 11-29-129-12-230 8-277Q20-287 27-276L39-251 41-7 25 13Z" fill="url(#nx-fin)" stroke="#74A3D5" stroke-width="6"/>
   <path d="M-23 4-14-152-1-242 17-271 24-256 31-36 13 6Z" fill="#0E448D" stroke="#0F69D0" stroke-width="6"/>
@@ -78,7 +78,7 @@
   <path d="M-14-255-3-282 14-292 25-281 24-263Z" fill="#BFFBFF"/>
   <path d="M-22-138h5v-28h4v-24h4v60h-5v21h-8Z" fill="#FFFFFF" opacity=".67"/>
   <rect x="21" y="-202" width="4" height="28" fill="#A9FFFF"/>
-</g></g><g id="nex-fin-right" class="nex-fin" transform="translate(710 299) scale(-1 1)"><g class="nex-fin-motion">
+</g></g><g id="nex-fin-right" class="nex-fin" transform="translate(710 327) scale(-1 1)"><g class="nex-fin-motion">
   <path d="M-43 17-37-111-20-225 1-280Q15-301 34-287L49-260 49-7 25 22Z" fill="#06152E" stroke="#0D285C" stroke-width="11" stroke-linejoin="round"/>
   <path d="M-36 11-29-129-12-230 8-277Q20-287 27-276L39-251 41-7 25 13Z" fill="url(#nx-fin)" stroke="#74A3D5" stroke-width="6"/>
   <path d="M-23 4-14-152-1-242 17-271 24-256 31-36 13 6Z" fill="#0E448D" stroke="#0F69D0" stroke-width="6"/>
