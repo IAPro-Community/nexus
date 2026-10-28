@@ -58,6 +58,20 @@ export function consumeFeatureReveal(
   return item;
 }
 
+export function hasPendingFeatureReveal(
+  projectId: string,
+  surface: FeatureTourSurface,
+  now: number = Date.now(),
+): boolean {
+  if (!pending || pending.projectId !== projectId) return false;
+  if (now < pending.createdAt || now - pending.createdAt > MAX_REVEAL_AGE_MS) {
+    pending = null;
+    return false;
+  }
+  const item = featureAnnouncements.find((entry) => entry.id === pending?.itemId);
+  return Boolean(item && item.surfaces.includes(surface));
+}
+
 export function cancelFeatureReveal(): void {
   pending = null;
 }
