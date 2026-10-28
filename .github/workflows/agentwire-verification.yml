@@ -15,6 +15,7 @@ on:
       - 'web/src/features/agents/NewAgentModal.tsx'
       - 'web/src/features/agents/structuredHarnessOptions*'
       - 'web/src/types.ts'
+      - 'web/src/i18n/resources.ts'
       - '.github/workflows/agentwire-verification.yml'
   workflow_dispatch:
 permissions:
@@ -40,8 +41,8 @@ jobs:
         run: go test -count=1 ./internal/control/host ./internal/control/driver ./internal/control/launcher ./internal/control/web
       - name: Process-backed integration and cross-client E2E
         run: |
-          go test -count=1 -timeout 5m ./internal/control/host -run 'TestSessionHostKeepsNativePermissionUntilAuthoritativeSettlement'
-          go test -count=1 -timeout 5m ./internal/control/web -run 'TestTwoSupervisedACPProcessesAndTwoAuthenticatedHTTPClients'
+          go test -race -count=1 -timeout 5m ./internal/control/host -run 'TestSessionHostKeepsNativePermissionUntilAuthoritativeSettlement|TestStructuredInput|TestStructuredBackendReapsProcessOnFailedHandshake'
+          go test -race -count=1 -timeout 5m ./internal/control/web -run 'TestTwoSupervisedACPProcessesAndTwoAuthenticatedHTTPClients'
       - name: Build affected packages
         run: go build ./internal/control/agentwire ./internal/control/host ./internal/control/launcher ./internal/control/driver ./internal/control/web
       - name: Verify committed gofmt parity
