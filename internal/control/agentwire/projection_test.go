@@ -28,3 +28,16 @@ func TestWireProjectionRuntimeAndEpochIsolation(t *testing.T) {
  stale,_:=r.ObserveWireSignal("beta",20,99,WireSignal{State:"blocked",Kind:"question",InteractionID:"stale"})
  if len(stale.Attention)!=0{t.Fatal("stale generation request accepted")}
 }
+
+func TestWireProjectionCancelClosesPendingWithoutPretendingCompletion(t *testing.T) {
+    r:=NewReducer()
+    _,err:=r.ObserveWireSignal("runtime-cancel",1,1,WireSignal{
+        State:"blocked",Kind:"question",Summary:"Text?",InteractionID:"ui-1",
+    })
+    if err!=nil{t.Fatal(err)}
+    final,err:=r.ObserveWireSignal("runtime-cancel",1,2,WireSignal{State:"cancelled"})
+    if err!=nil{t.Fatal(err)}
+    if final.Turn!=TurnCancelled||len(final.Attention)!=0{
+        t.Fatalf("cancellation was misrepresented: %+v",final)
+    }
+}
