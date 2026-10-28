@@ -19,7 +19,7 @@ import { api } from '../../api';
 import { bindStructuredHarnessProfile, structuredProtocolsForProvider, type StructuredHarnessProtocol } from './structuredHarnessOptions';
 import { isRequiredResourceSelection } from '../../nexus/agentTerminalModel';
 import { withAgentExecutionMode } from '../../nexus/agentExecutionMode';
-import type { Agent, AgentConfig, AgentMode, ProfileInfo, Project } from '../../types';
+import type { Agent, AgentConfig, AgentMode, ProfileInfo, Project, ProviderInfo } from '../../types';
 import styles from './NewAgentModal.module.scss';
 
 type ModePresentation = {
@@ -169,8 +169,7 @@ export const NewAgentModal: React.FC<{
   const [name, setName] = useState('');
   const [origin, setOrigin] = useState<'native' | 'custom'>('native');
   const [provider, setProvider] = useState('codex');
-  const [installedProviders, setInstalledProviders] = useState<string[]>([]);
-  const [reportedProtocols, setReportedProtocols] = useState<Record<string, string[]>>({});
+  const [providerDiscovery, setProviderDiscovery] = useState<ProviderInfo[]>([]);
   const [availableProfiles, setAvailableProfiles] = useState<ProfileInfo[]>([]);
   const [structuredProfile, setStructuredProfile] = useState('');
   const [agentProtocol, setAgentProtocol] = useState<StructuredHarnessProtocol>('');
@@ -214,8 +213,7 @@ export const NewAgentModal: React.FC<{
     setLoadingModes(true);
     setError('');
     setAgentProtocol('');
-    setInstalledProviders([]);
-    setReportedProtocols({});
+    setProviderDiscovery([]);
     setAvailableProfiles([]);
     setStructuredProfile('');
     void api.getProfiles()
@@ -226,12 +224,9 @@ export const NewAgentModal: React.FC<{
         if (!alive) return;
         // The Core only registers experimental harnesses when its opt-in flag
         // is enabled. A failed probe must not advertise preview support.
-        setInstalledProviders(providers.filter((entry) => entry.installed).map((entry) => entry.id));
-        setReportedProtocols(Object.fromEntries(
-          providers.filter((entry) => entry.installed).map((entry) => [entry.id, entry.structured_modes || []]),
-        ));
+        setProviderDiscovery(providers);
       })
-      .catch(() => { if (alive) { setInstalledProviders([]); setReportedProtocols({}); } });
+      .catch(() => { if (alive) setProviderDiscovery([]); });
     void nexus
       .listAgentModes()
       .then((modes) => {
@@ -276,10 +271,12 @@ export const NewAgentModal: React.FC<{
     setMode(executionModeFor(preset));
   };
 
+  const installedProviders = providerDiscovery
+    .filter((entry) => entry.installed)
+    .map((entry) => entry.id);
   const structuredChoices = structuredProtocolsForProvider(
-    provider,
-    installedProviders.includes(provider),
-  ).filter((mode) => (reportedProtocols[provider] || []).includes(mode));
+    providerDiscovery.find((entry) => entry.id === provider),
+  );
   const structuredProfiles = availableProfiles.filter((entry) => entry.provider === provider);
   const validStructuredProfile = structuredProfiles.some((entry) => entry.name === structuredProfile);
   const resolvedPreview =
