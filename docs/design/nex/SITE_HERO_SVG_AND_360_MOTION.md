@@ -6,6 +6,10 @@
 
 > Não confundir: o SVG desta entrega é uma **reconstrução vetorial animável** baseada na anatomia escolhida e exige revisão de fidelidade. Ele **não é** uma vetorização geometricamente idêntica do PNG selecionado, não é um personagem 3D e não entrega giro real de 360°. O código atual do HUD permanece inalterado.
 
+## Revisão de fidelidade — imagens geradas em 28/10/2026
+
+A diferença percebida pelo usuário entre a referência raster e o SVG anterior foi documentada em [referências comparativas do NEX](reference-pack/2026-10-28/README.md) e no respectivo [manifesto de hashes](reference-pack/2026-10-28/manifest.json). Há uma prancha de auditoria visual e uma versão Hero PNG transparente, porém seus binários permanecem **PENDING_BINARY_UPLOAD** até serem importados por um commit posterior. **Não** alegar que o SVG atual corresponde pixel a pixel ao PNG; a correção de silhueta e riqueza visual requer revisão comparativa, não só keyframes CSS.
+
 ## O que está realmente disponível agora
 
 O SVG em `viewBox=1024×1024` tem fundo transparente e grupos identificáveis, mantendo a geometria base e permitindo movimentos separados. As peças possuem **âncoras fixas**; CSS anima somente elementos internos onde necessário:

@@ -21,6 +21,10 @@
 
 O `manifest.json` guarda dimensões, bytes e SHA-256 **calculados sobre os arquivos reais**. Todos os derivados são recortes sem reinterpretação da mesma prancha; assim, não há nove redesenhos autônomos que provoquem deriva de personagem.
 
+## Avaliação de paridade mais recente (28/10/2026)
+
+Uma nova [prancha de auditoria e PNG Hero isolado](2026-10-28/README.md) registra a diferença identificada entre o SVG de site e a imagem de referência. Os arquivos estão disponíveis no chat em um ZIP e os metadados e SHA-256 estão no [manifesto](2026-10-28/manifest.json); não estão versionados como PNG no GitHub enquanto o manifesto indicar `PENDING_BINARY_UPLOAD`.
+
 ## Estado dos binários no GitHub
 
 **`PENDING_BINARY_INGEST`** — a criação de uma lista de nomes e hashes em um commit GitHub **não significa que as imagens PNG tenham sido commitadas**. Os binários são entregues neste chat como arquivos e como pacote ZIP; devem ser copiados para este diretório no repositório e verificados com:
