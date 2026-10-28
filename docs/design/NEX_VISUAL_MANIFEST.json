@@ -225,5 +225,25 @@
     "turnaroundDefault": "front",
     "spriteSheetPublished": false,
     "heroAnimationPublished": false
+  },
+  "selected_style_direction": {
+    "status": "CHARACTER_SELECTED_PIXEL_MASTER_PENDING",
+    "primary_reference": {
+      "source": "user-uploaded-conversation-image",
+      "file": null,
+      "filename": "user_selected_nex_character_board_2026-10-27.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 2130804,
+      "sha256": "08dcb5446a1f12a34c913104e2f9991be8b94595e1e6ccb76d1e5e2c0b351b66",
+      "repo_status": "NOT_VERSIONED"
+    },
+    "production_look": "DETAILED_HAND_DRAWN_RETRO_32BIT_GAME_PIXEL_ART",
+    "specification": "docs/design/nex/RETRO_GAME_IDLE_DIRECTION.md",
+    "identity_lock": "docs/design/nex/identity-lock.json",
+    "idle_actions_target": 12,
+    "idle_animation_master_status": "NOT_CREATED",
+    "current_runtime_role": "FALLBACK_VECTOR_SVG",
+    "design_selection_date": "2026-10-27"
   }
 }

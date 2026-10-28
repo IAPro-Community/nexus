@@ -8,9 +8,11 @@ Estas instruções complementam o `AGENTS.md` da raiz. **Antes de produzir qualq
 4. `docs/design/NEX_ANIMATION_CONTRACT.md`
 5. `docs/design/assets/nex/README.md`
 
+**Decisão de personagem:** o usuário selecionou o robô da referência primária em 27/10/2026; consulte [Retro Game + Idle](RETRO_GAME_IDLE_DIRECTION.md) e `identity-lock.json.selection_record`. O status candidato descreve apenas a ausência de master de produção congelado. **Não voltar a gerar outros mascotes, letras X/N ou identidades alternativas.**
+
 Regras de execução:
 
-- Se `status=CANDIDATE_PENDING_APPROVAL`, **não** promova referências e geração de IA como modelo final, nem altere o personagem canônico. Apresente comparação e registre desvios.
+- Se `status=CANDIDATE_PENDING_APPROVAL`, **não** declare uma sprite sheet como master final sem fonte editável, bytes versionados, checksum e aprovação humana; respeite o personagem principal já selecionado. Apresente comparação e registre desvios.
 - Se `status=FROZEN`, use **exclusivamente** a versão de identidade e os masters/hashes referenciados. Sem autorização para mudar silhueta/anatomia/contagens por conveniência técnica, estilo ou prompt.
 - No site, reinterprete **materiais e apresentação**; nunca o personagem. No HUD, preserve estados ancorados em telemetria real e o mesmo contrato anatômico.
 - Em qualquer PR ou arte: informar `identity_lock_version`, origem dos assets, output, escala de uso, tabela de diferenças, evidência lado a lado e testes. Quando não houver master, escrever `UNVERIFIED`, não `APPROVED`.

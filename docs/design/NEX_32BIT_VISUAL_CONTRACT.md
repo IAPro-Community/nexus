@@ -5,6 +5,12 @@
 **Estética:** pixel art retrofuturista *32-bit-inspired*; pose **frontal** como padrão.  
 **Mascote:** NEX. **Marca institucional:** logotipo Nexus permanece independente.
 
+## Atualização de direção — 27/10/2026
+
+O usuário confirmou **o robô da prancha NEX apresentada na conversa** como **personagem principal**, mas pediu **uma transposição para pixel art de jogo retrô com detalhamento muito maior** e muitas expressões e **ações de idle**. A identidade do personagem e a direção estética são decisões de produto; a **arte-mestre de produção ainda não foi congelada nem incorporada como binário**. A especificação executável está em [Retro Game + 12 idles](nex/RETRO_GAME_IDLE_DIRECTION.md) e a procedência da imagem principal escolhida está em [identity-lock.json](nex/identity-lock.json), com SHA-256 do arquivo enviado.
+
+**Regra anti-deriva:** não recriar o personagem como X-Fold, N-Core, Flux ou outro mascote de forma diferente. A anatomia desta referência é preservada na arte pixelada final. O `NexPixelSprite.tsx` e suas animações CSS existentes são **fallback funcional**, não prova de que o sprite HD pixel art já foi entregue. Antes de atualizar HUD/site, criar um master editável em camadas e animações por frames com inspeção humana.
+
 ## Personagem canônico
 
 NEX é um robô flutuante, simpático sem ser infantil, de silhueta simétrica e cabeça dominante.

@@ -35,7 +35,7 @@
     {
       "id": "hud-32bit",
       "usage": "HUD Compact and retro display",
-      "status": "STYLE_DIRECTION_APPROVED_MASTER_PENDING"
+      "status": "CHARACTER_SELECTED_PIXEL_MASTER_PENDING"
     },
     {
       "id": "commercial-polished",
@@ -73,5 +73,25 @@
     }
   ],
   "locked_assets": [],
-  "approval_record": null
+  "approval_record": null,
+  "selection_record": {
+    "status": "CHARACTER_SELECTED_PRODUCTION_MASTER_PENDING",
+    "selected_on": "2026-10-27",
+    "selected_from": "explicit_user_uploaded_visual_reference",
+    "selected_reference": {
+      "filename": "user_selected_nex_character_board_2026-10-27.png",
+      "format": "PNG",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 2130804,
+      "sha256": "08dcb5446a1f12a34c913104e2f9991be8b94595e1e6ccb76d1e5e2c0b351b66",
+      "repository_file": null,
+      "note": "Selected user-supplied primary robot identity, binary not yet committed"
+    },
+    "production_direction": "HAND_DRAWN_HIGH_DETAIL_RETRO_GAME_32BIT_PIXEL_ART",
+    "require_numerous_idle_animations": true,
+    "idle_art_contract": "docs/design/nex/RETRO_GAME_IDLE_DIRECTION.md",
+    "source_master_status": "NOT_VERSIONED_NOT_APPROVED",
+    "runtime_replacement_allowed_only_after_master_review": true
+  }
 }

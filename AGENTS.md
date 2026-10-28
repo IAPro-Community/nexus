@@ -124,6 +124,7 @@ Em qualquer tarefa sobre **mascote, HUD Guardian, onboarding com NEX, sprites, a
 7. Standard/Hero ainda não têm masters de produção; **não** descrever pranchas auxiliares como arte raster original aprovada nem como screenshot real.
 
 ## 7. NEX Identity Lock — congelamento após aprovação humana
+**Direção escolhida em 27/10/2026:** manter o personagem robô original selecionado pelo usuário, reinterpretá-lo em pixel art HD retrô de game (não filtro aplicado ao SVG) e criar 12 ações de idle detalhadas. Leia `docs/design/nex/RETRO_GAME_IDLE_DIRECTION.md` e `docs/design/nex/identity-lock.json.selection_record`; não propor outra silhueta. O lock continua pendente de master editável, hashes e aprovação visual do sprite final, portanto não declarar código atual como retro HD concluído.
 
 - O documento `docs/design/nex/IDENTITY_GOVERNANCE.md`, o manifesto `docs/design/nex/identity-lock.json` e as instruções `docs/design/nex/AGENTS.md` regem **toda nova arte NEX** (site, animação, HUD, agentes, avatar e campanhas).
 - A identidade atual segue os contratos da seção 6; as referências recentes são **candidatas**, não um novo master aprovado. Não substitua o sprite da release por artes de conversa.
