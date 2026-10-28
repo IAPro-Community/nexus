@@ -7,17 +7,29 @@ function honestContext(runtime: RuntimeSession): string {
   return sanitizeAttentionText(runtime.attention_context, '');
 }
 
+/** A stopped, failed or stale runtime cannot still request operator input. */
+export function isActiveAttentionRuntime(runtime: RuntimeSession): boolean {
+  return ['STARTING', 'RUNNING', 'WAITING', 'APPROVAL', 'DETACHED', 'HANDOFF'].includes(
+    runtime.state,
+  );
+}
+
 export function isHonestNeedsUser(runtime: RuntimeSession): boolean {
+  if (!isActiveAttentionRuntime(runtime)) return false;
   const context = honestContext(runtime);
   if (!context) return false;
   if (runtime.attention_kind === 'needs_user') {
-    return runtime.prompt_kind !== 'none' && runtime.prompt_kind !== '';
+    return (
+      runtime.prompt_kind === 'yn' ||
+      runtime.prompt_kind === 'choice' ||
+      runtime.prompt_kind === 'free_text' ||
+      runtime.prompt_kind === 'native_status'
+    );
   }
-  // Legacy payloads without attention_kind: require QUESTION/APPROVAL + real context.
-  if (runtime.attention_reason !== 'QUESTION' && runtime.attention_reason !== 'APPROVAL') {
-    return false;
-  }
-  return true;
+  // Explicit working/idle/completed/error clears a previous QUESTION reason.
+  // Only legacy payloads without attention_kind may infer a wait from reason.
+  if (runtime.attention_kind) return false;
+  return runtime.attention_reason === 'QUESTION' || runtime.attention_reason === 'APPROVAL';
 }
 
 /** Per-runtime key used to suppress re-notify of the same wait on one terminal. */
