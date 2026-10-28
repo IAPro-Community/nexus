@@ -64,7 +64,9 @@ describe('buildDocumentTitle', () => {
       }),
     ];
     expect(distinctAttentionFingerprints(runtimes)).toHaveLength(3);
-    expect(buildDocumentTitle('proxy-nginx', runtimes)).toBe('Nexus · proxy-nginx · 3 esperando input');
+    expect(buildDocumentTitle('proxy-nginx', runtimes)).toBe(
+      'Nexus · proxy-nginx · 3 esperando input',
+    );
     expect(buildDocumentTitle('proxy-nginx', runtimes)).not.toContain('❓');
   });
 
