@@ -37,12 +37,12 @@ O conteúdo binário **não entra no GitHub apenas por aparecer neste documento*
 unzip -o /caminho/nex_hybrid_github_assets_v1_1.zip -d .
 node scripts/verify-nex-hybrid-assets.mjs --require-binaries
 node scripts/verify-nex-hybrid-assets.mjs --promote
-git add web/public/nex/hybrid-v1 docs/design/nex/hybrid-v1/asset-manifest.json docs/design/nex/hybrid-v1/nex_hybrid_master.ora
+git add web/public/nex/hybrid-v1 docs/design/nex/hybrid-v1/asset-manifest.json docs/design/nex/hybrid-v1/nex_hybrid_master.ora docs/design/nex/hybrid-v1/build_layers.py
 git commit -m "assets(nex): import verified layered Hero PNGs and original"
 git push
 ```
 
-Antes da ingestão, `asset-manifest.json.status=BINARY_INGEST_PENDING_VISUAL_APPROVAL`; depois do `--promote`, o status passa a `ASSETS_VERSIONED_PENDING_VISUAL_APPROVAL`. **A promoção dos arquivos não promove o personagem como master artístico final.**
+Antes da ingestão, `asset-manifest.json.status=BINARY_INGEST_PENDING_VISUAL_APPROVAL`; depois do `--promote`, o status passa a `ASSETS_VERSIONED_PENDING_VISUAL_APPROVAL`. **A promoção dos arquivos não promove o personagem como master artístico final.** A revisão v1.1 inclui um gerador portável em `docs/design/nex/hybrid-v1/build_layers.py`; os PNGs exportados foram reproduzidos e comparados byte a byte, mas o arquivo `.ora` pode diferir em metadados ZIP quando regenerado.
 
 Após importar os binários e instalar as dependências do web, rode `cd web && npm run art:nex:hybrid:qa`. O comando executa Chromium com o **HTML e PNGs originais versionados**, gera `web/dist/nex-hybrid-qa/` (idle, olhos fechados, offline e resultado JSON) e verifica as cinco projeções, seis ações P0, preempção, modo offline e movimento reduzido. Esse QA é web, não homologa o HUD.
 
