@@ -298,7 +298,7 @@ export const NewAgentModal: React.FC<{
   );
   const structuredProfiles = availableProfiles.filter((entry) => entry.provider === provider);
   const validStructuredProfile = structuredProfiles.some(
-    (entry) => entry.name === structuredProfile,
+    (entry) => entry.name === structuredProfile && entry.authenticated,
   );
   const resolvedPreview =
     origin === 'native'
@@ -317,9 +317,7 @@ export const NewAgentModal: React.FC<{
   const handleCreate = async () => {
     if (!name.trim() || !selectedType) return;
     if (agentProtocol && (!structuredChoices.includes(agentProtocol) || !validStructuredProfile)) {
-      setError(
-        'Configure e selecione um perfil registrado antes de iniciar um agente estruturado.',
-      );
+      setError(t('agents.structuredProfileError'));
       return;
     }
     setBusy(true);
@@ -584,9 +582,7 @@ export const NewAgentModal: React.FC<{
                 {structuredChoices.length > 0 && (
                   <>
                     <label className={styles.fieldSublabel} htmlFor="new-agent-protocol">
-                      {t('agents.structuredProtocol', {
-                        defaultValue: 'Agent protocol (experimental)',
-                      })}
+                      {t('agents.structuredProtocol')}
                     </label>
                     <Select
                       id="new-agent-protocol"
@@ -605,38 +601,35 @@ export const NewAgentModal: React.FC<{
                         }
                       }}
                       options={[
-                        { value: '', label: 'Terminal / PTY (default)' },
+                        { value: '', label: t('agents.structuredProtocolPTY') },
                         ...structuredChoices.map((value) => ({
                           value,
                           label:
-                            value === 'acp' ? 'ACP (experimental)' : 'Pi JSONL RPC (experimental)',
+                            value === 'acp' ? t('agents.structuredProtocolACP') : t('agents.structuredProtocolRPC'),
                         })),
                       ]}
                     />
                     {agentProtocol && (
                       <>
                         <label className={styles.fieldSublabel} htmlFor="new-agent-profile">
-                          {t('agents.structuredProfile', { defaultValue: 'Provider profile' })}
+                          {t('agents.structuredProfile')}
                         </label>
                         <Select
                           id="new-agent-profile"
                           value={structuredProfile}
                           onChange={setStructuredProfile}
                           options={[
-                            { value: '', label: 'Choose a registered profile' },
+                            { value: '', label: t('agents.structuredProfileChoose') },
                             ...structuredProfiles.map((entry) => ({
                               value: entry.name,
-                              label: `${entry.name}${entry.authenticated ? '' : ' (authentication required)'}`,
+                              label: `${entry.name}${entry.authenticated ? '' : t('agents.structuredProfileAuthRequired')}`,
                             })),
                           ]}
                         />
                       </>
                     )}
                     <small className={styles.hintText}>
-                      {t('agents.structuredProtocolWarning', {
-                        defaultValue:
-                          'Requires NEXUS_EXPERIMENTAL_HARNESSES=1 on Core, a compatible installed CLI and an authenticated profile. Structured sessions use a text command surface, not PTY. Permissions still require terminal focus.',
-                      })}
+                      {t('agents.structuredProtocolWarning')}
                     </small>
                   </>
                 )}
