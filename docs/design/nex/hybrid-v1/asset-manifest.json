@@ -157,7 +157,9 @@
   "asset_revision": "v1.1",
   "generator": {
     "file": "docs/design/nex/hybrid-v1/build_layers.py",
-    "sha256": "9b0cf7df941ce47f8840af1b04d3f1c95b1274a2fe66baf2947038e628106ef2",
-    "bytes": 8382
+    "sha256": "0e28f38e1d78b52024e7d7d65cd167c24865894cfe0a4cd3d4068ed0bb94e1bb",
+    "bytes": 8396,
+    "path": "docs/design/nex/hybrid-v1/build_layers.py",
+    "portable": true
   }
 }
