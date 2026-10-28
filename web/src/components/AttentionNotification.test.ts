@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { sanitizeAttentionText } from './attentionText';
 import { attentionCardActions, shouldRenderAttentionCard } from './AttentionNotificationCard';
+import { attentionResponseGuardForRuntime } from './attentionResponseGuard';
 import type { RuntimeSession } from '../types';
 
 function rt(partial: Partial<RuntimeSession>): RuntimeSession {
@@ -13,6 +14,10 @@ function rt(partial: Partial<RuntimeSession>): RuntimeSession {
     control_level: 'TERMINAL',
     control_endpoint: '',
     started_at: '',
+    attention_source: 'INFERRED',
+    attention_revision: 1,
+    attention_generation: '987654321987654321:123456789123456789',
+    attention_fingerprint: 'fp-current',
     ...partial,
   };
 }
@@ -105,6 +110,38 @@ describe('Attention Notification Card sanitization & logic', () => {
     );
     expect(choice.showYesNo).toBe(false);
     expect(choice.showOpenTerminal).toBe(true);
+  });
+
+  it('only allows quick replies to exact current inferred PTY questions', () => {
+    const real = rt({
+      attention_reason: 'QUESTION',
+      attention_kind: 'needs_user',
+      prompt_kind: 'yn',
+      attention_context: 'Continue? [y/N]',
+    });
+    expect(attentionResponseGuardForRuntime(real)).toEqual({
+      attention_fingerprint: 'fp-current',
+      attention_revision: 1,
+      attention_generation: '987654321987654321:123456789123456789',
+      interaction_id: '',
+    });
+    expect(attentionCardActions(real).showYesNo).toBe(true);
+    for (const changed of [
+      { attention_source: 'SIGNALLED' as const },
+      { attention_source: 'AUTHORITATIVE' as const },
+      { attention_revision: undefined },
+      { attention_generation: undefined },
+      { attention_submitted_revision: 1 },
+      { attention_reason: 'AUTH' as const },
+      { state: 'STOPPED' as const },
+    ]) {
+      const candidate = { ...real, ...changed };
+      expect(attentionResponseGuardForRuntime(candidate)).toBeNull();
+      expect(attentionCardActions(candidate).showTextInput).toBe(false);
+      expect(attentionCardActions(candidate).showOpenTerminal).toBe(
+        shouldRenderAttentionCard(candidate),
+      );
+    }
   });
 
   it('keeps identical questions in separate runtimes distinct by runtime identity', () => {

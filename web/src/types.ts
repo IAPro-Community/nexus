@@ -54,6 +54,11 @@ export interface RuntimeSession {
   prompt_kind?: 'yn' | 'choice' | 'free_text' | 'native_status' | 'none' | '';
   attention_kind?: 'needs_user' | 'working' | 'completed' | 'error' | 'idle' | '';
   attention_fingerprint?: string;
+  attention_revision?: number;
+  attention_generation?: string;
+  attention_submitted_revision?: number;
+  attention_source?: 'INFERRED' | 'SIGNALLED' | 'AUTHORITATIVE';
+  attention_interaction_id?: string;
   project_id?: string;
   project_name?: string;
   last_task_summary?: string;

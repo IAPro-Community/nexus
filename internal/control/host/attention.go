@@ -414,6 +414,7 @@ func (d *AttentionDetector) ProcessChunk(chunk []byte) {
 		PromptKind:   promptKind,
 		Kind:         kind,
 		Fingerprint:  fingerprint,
+		Source:       "INFERRED",
 		ProjectID:    d.projectID,
 		ProjectName:  d.projectName,
 		TaskSummary:  attentionCtx,
@@ -476,6 +477,19 @@ func (d *AttentionDetector) ProcessChunk(chunk []byte) {
 
 	if d.onAttention != nil {
 		d.onAttention(reason, attentionCtx, dynamicTitle, state)
+	}
+}
+
+// attentionEvidenceSource describes the provenance of a provider status,
+// not authorization to send replies over its native interaction protocol.
+func attentionEvidenceSource(source string) string {
+	switch source {
+	case "acp", "pi_rpc":
+		return "AUTHORITATIVE"
+	case "osc7501":
+		return "SIGNALLED"
+	default:
+		return "INFERRED"
 	}
 }
 
@@ -558,6 +572,7 @@ func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus, source, in
 	_ = d.ownerRegistry().UpdateAttentionMeta(d.runtimeID, registry.AttentionUpdate{
 		State: state, Reason: reason, Kind: kind, Context: context,
 		PromptKind: promptKind, Fingerprint: fingerprint,
+		Source: attentionEvidenceSource(source), InteractionID: interactionID,
 		ProjectID: d.projectID, ProjectName: d.projectName, DynamicTitle: title,
 	})
 	if kind == AttentionNeedsUser && fingerprint != previous {
@@ -642,6 +657,7 @@ func (d *AttentionDetector) ObserveOperatorInput(data []byte) {
 	_ = d.ownerRegistry().UpdateAttentionMeta(d.runtimeID, registry.AttentionUpdate{
 		State: registry.StateRunning, Reason: d.lastReason, Kind: d.lastKind,
 		PromptKind: PromptKindNone, Fingerprint: "", Context: "",
+		Source:    "INFERRED",
 		ProjectID: d.projectID, ProjectName: d.projectName,
 		DynamicTitle: d.lastTitle,
 	})

@@ -429,16 +429,18 @@ func (r *Registry) UpdateTitle(runtimeID, title string) error {
 
 // AttentionUpdate carries fail-closed attention metadata for a runtime.
 type AttentionUpdate struct {
-	State        RuntimeState
-	Reason       string
-	Context      string
-	PromptKind   string
-	Kind         string
-	Fingerprint  string
-	ProjectID    string
-	ProjectName  string
-	TaskSummary  string
-	DynamicTitle string
+	State         RuntimeState
+	Reason        string
+	Context       string
+	PromptKind    string
+	Kind          string
+	Fingerprint   string
+	Source        string
+	InteractionID string
+	ProjectID     string
+	ProjectName   string
+	TaskSummary   string
+	DynamicTitle  string
 }
 
 // UpdateAttention updates the attention metadata and dynamic title of a runtime session.
@@ -472,7 +474,16 @@ func (r *Registry) UpdateAttentionMeta(runtimeID string, update AttentionUpdate)
 		s.AttentionContext = update.Context
 		s.PromptKind = update.PromptKind
 		s.AttentionKind = update.Kind
+		// A new actionable episode receives a new durable revision even if the
+		// provider repeats identical text. Polls of the same episode do not.
+		if update.Kind == "needs_user" && update.Fingerprint != "" &&
+			(s.AttentionKind != "needs_user" || s.AttentionFingerprint != update.Fingerprint ||
+				s.AttentionInteractionID != update.InteractionID) {
+			s.AttentionRevision++
+		}
 		s.AttentionFingerprint = update.Fingerprint
+		s.AttentionSource = update.Source
+		s.AttentionInteractionID = update.InteractionID
 		if update.ProjectID != "" {
 			s.ProjectID = update.ProjectID
 		}

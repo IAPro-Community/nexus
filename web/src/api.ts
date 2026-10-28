@@ -419,6 +419,18 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ title }),
     }),
+  respondAttention: (
+    id: string,
+    input: string,
+    guard: import('./components/attentionResponseGuard').AttentionResponseGuard,
+  ) =>
+    request<{ status: 'submitted'; runtime_id: string }>(
+      `/api/v1/runtimes/${id}/respond-attention`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ input, ...guard }),
+      },
+    ),
   respondRuntime: (id: string, input: string) =>
     request<{ status: string; sent: string }>(`/api/v1/runtimes/${id}/respond`, {
       method: 'POST',

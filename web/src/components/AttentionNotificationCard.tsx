@@ -5,6 +5,7 @@ import { api } from '../api';
 import type { RuntimeSession } from '../types';
 import { sanitizeAttentionText } from './attentionText';
 import { isHonestNeedsUser } from '../app/documentTitle';
+import { attentionResponseGuardForRuntime } from './attentionResponseGuard';
 
 export interface AttentionNotificationCardProps {
   runtime: RuntimeSession;
@@ -26,9 +27,11 @@ export function attentionCardActions(runtime: RuntimeSession): {
     return { showYesNo: false, showTextInput: false, showOpenTerminal: false };
   }
   const promptKind = runtime.prompt_kind || 'free_text';
+  const canReply = attentionResponseGuardForRuntime(runtime) !== null;
   return {
-    showYesNo: promptKind === 'yn',
-    showTextInput: promptKind === 'yn' || promptKind === 'free_text' || promptKind === 'choice',
+    showYesNo: canReply && promptKind === 'yn',
+    showTextInput:
+      canReply && (promptKind === 'yn' || promptKind === 'free_text' || promptKind === 'choice'),
     showOpenTerminal: true,
   };
 }
@@ -41,6 +44,8 @@ export const AttentionNotificationCard: React.FC<AttentionNotificationCardProps>
   const { t } = useTranslation();
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [responseError, setResponseError] = useState('');
 
   const projName = sanitizeAttentionText(runtime.project_name, t('rail.projects', 'Project'));
   const promptKind = runtime.prompt_kind || 'free_text';
@@ -55,14 +60,24 @@ export const AttentionNotificationCard: React.FC<AttentionNotificationCardProps>
   }
 
   const handleSend = async (text: string) => {
-    if (!text.trim() || sending) return;
+    const guard = attentionResponseGuardForRuntime(runtime);
+    if (!text.trim() || sending || submitted || !guard) return;
     setSending(true);
+    setResponseError('');
     try {
-      await api.respondRuntime(runtime.runtime_id, text);
+      await api.respondAttention(runtime.runtime_id, text, guard);
       setInputText('');
-      onDismiss(runtime.runtime_id);
-    } catch (err) {
-      console.error('[AttentionNotification] Falha ao enviar resposta:', err);
+      // 202 means submitted to the runtime, NOT confirmed by its provider.
+      // Preserve the card until an authoritative new state arrives or the
+      // user explicitly dismisses it.
+      setSubmitted(true);
+    } catch {
+      setResponseError(
+        t(
+          'attention.responseStale',
+          'The request may have changed or the delivery is uncertain. Open the terminal to verify.',
+        ),
+      );
     } finally {
       setSending(false);
     }
@@ -141,11 +156,24 @@ export const AttentionNotificationCard: React.FC<AttentionNotificationCardProps>
             className="nx-uui-notification__hint"
             style={{ margin: '4px 0 0', fontSize: '0.786rem', color: 'var(--nx-muted)' }}
           >
-            {promptKind === 'native_status'
+            {!actions.showTextInput
               ? t('attention.openTerminalToRespond', 'Open the agent terminal to respond securely.')
               : t('attention.hint', 'Reply here or open the agent terminal.')}
           </p>
 
+          {submitted ? (
+            <p role="status" className="nx-uui-notification__hint">
+              {t(
+                'attention.submittedAwaitingProvider',
+                'Response submitted. Awaiting confirmation from the agent.',
+              )}
+            </p>
+          ) : null}
+          {responseError ? (
+            <p role="alert" className="nx-uui-notification__hint">
+              {responseError}
+            </p>
+          ) : null}
           <div className="nx-uui-notification__footer">
             <div className="nx-uui-notification__quick-actions">
               {actions.showYesNo ? (
@@ -154,7 +182,7 @@ export const AttentionNotificationCard: React.FC<AttentionNotificationCardProps>
                     type="button"
                     className="nx-uui-btn nx-uui-btn--primary"
                     onClick={() => handleSend('y')}
-                    disabled={sending}
+                    disabled={sending || submitted}
                   >
                     <Check size={13} />
                     <span>{t('attention.yes', 'Yes (y)')}</span>
@@ -163,7 +191,7 @@ export const AttentionNotificationCard: React.FC<AttentionNotificationCardProps>
                     type="button"
                     className="nx-uui-btn nx-uui-btn--secondary"
                     onClick={() => handleSend('n')}
-                    disabled={sending}
+                    disabled={sending || submitted}
                   >
                     <span>{t('attention.no', 'No (n)')}</span>
                   </button>
@@ -199,12 +227,12 @@ export const AttentionNotificationCard: React.FC<AttentionNotificationCardProps>
                   }
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  disabled={sending}
+                  disabled={sending || submitted}
                 />
                 <button
                   type="submit"
                   className="nx-uui-btn nx-uui-btn--icon-submit"
-                  disabled={!inputText.trim() || sending}
+                  disabled={!inputText.trim() || sending || submitted}
                   aria-label={t('attention.sendResponse', 'Send response')}
                   title={t('attention.sendResponse', 'Send response')}
                 >
