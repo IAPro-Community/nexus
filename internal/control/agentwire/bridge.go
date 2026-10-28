@@ -202,7 +202,7 @@ func (b *Bridge) Prompt(ctx context.Context, text string) error {
 		_ = json.Unmarshal(result, &response)
 		switch response.StopReason {
 		case "cancelled":
-			b.emit(WireSignal{State: "idle", Summary: "Agent turn cancelled"})
+			b.emit(WireSignal{State: "cancelled", Summary: "Agent turn cancelled"})
 		case "":
 			b.emit(WireSignal{State: "idle", Summary: "Agent response received"})
 		default:
