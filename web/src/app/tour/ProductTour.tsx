@@ -18,6 +18,8 @@ export const ProductTour: React.FC<{
   initialIndex?: number;
   onStepChange?: (index: number) => void;
   onComplete?: () => void;
+  /** Keeps a contextual tour within the workspace pane that opened it. */
+  targetScope?: Element | null;
 }> = ({
   open,
   onClose,
@@ -25,6 +27,7 @@ export const ProductTour: React.FC<{
   initialIndex = 0,
   onStepChange,
   onComplete,
+  targetScope,
 }) => {
   const { t } = useTranslation();
   const [index, setIndex] = useState(initialIndex);
@@ -37,12 +40,12 @@ export const ProductTour: React.FC<{
   const steps = useMemo(() => {
     if (!open || typeof document === 'undefined') return [];
     return availableTourSteps(proposedSteps, (selector) => {
-      const el = document.querySelector(selector) as HTMLElement | null;
+      const el = (targetScope || document).querySelector(selector) as HTMLElement | null;
       if (!el) return false;
       const r = el.getBoundingClientRect();
       return r.width > 0 && r.height > 0 && r.bottom > 0 && r.right > 0;
     });
-  }, [open, proposedSteps]);
+  }, [open, proposedSteps, targetScope]);
 
   const step = steps[index];
 
@@ -62,7 +65,7 @@ export const ProductTour: React.FC<{
       setRect(null);
       return;
     }
-    const target = document.querySelector(step.target) as HTMLElement | null;
+    const target = (targetScope || document).querySelector(step.target) as HTMLElement | null;
     if (!target) {
       setRect(null);
       return;
@@ -79,7 +82,7 @@ export const ProductTour: React.FC<{
       window.removeEventListener('resize', update);
       window.removeEventListener('scroll', update, true);
     };
-  }, [open, step]);
+  }, [open, step, targetScope]);
 
   const changeStep = (next: number) => {
     const clamped = Math.min(Math.max(0, next), Math.max(0, steps.length - 1));
