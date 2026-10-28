@@ -16,7 +16,7 @@ import {
 import { Button, Card, Dialog, Input, Select } from '../../design-system';
 import { nexus } from '../../nexus/api';
 import { api } from '../../api';
-import { structuredProtocolsForProvider, type StructuredHarnessProtocol } from './structuredHarnessOptions';
+import { bindStructuredHarnessProfile, structuredProtocolsForProvider, type StructuredHarnessProtocol } from './structuredHarnessOptions';
 import { isRequiredResourceSelection } from '../../nexus/agentTerminalModel';
 import { withAgentExecutionMode } from '../../nexus/agentExecutionMode';
 import type { Agent, AgentConfig, AgentMode, ProfileInfo, Project } from '../../types';
@@ -345,14 +345,10 @@ export const NewAgentModal: React.FC<{
         project.canonical_path || undefined,
         configOptions,
       );
-      if (agentProtocol) {
-        // An explicit wire runtime must never silently fail over to a
-        // different provider or use a guessed profile.
-        config.provider = provider;
-        config.profile = structuredProfile;
-        config.allocation = undefined;
-      }
-      await nexus.applyAgentConfig(created.id, config);
+      const finalConfig = agentProtocol
+        ? bindStructuredHarnessProfile(config, provider, structuredProfile)
+        : config;
+      await nexus.applyAgentConfig(created.id, finalConfig);
 
       onCreated(created);
       onClose();
