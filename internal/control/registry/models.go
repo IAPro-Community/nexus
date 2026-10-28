@@ -104,6 +104,7 @@ type RuntimeSession struct {
 	AttentionFingerprint      string             `json:"attention_fingerprint,omitempty"`
 	AttentionRevision         uint64             `json:"attention_revision,omitempty"`
 	AttentionSubmittedRevision uint64            `json:"attention_submitted_revision,omitempty"`
+	AttentionGeneration       string             `json:"attention_generation,omitempty"`
 	AttentionSource           string             `json:"attention_source,omitempty"`
 	AttentionInteractionID    string             `json:"attention_interaction_id,omitempty"`
 	ProjectID                 string             `json:"project_id,omitempty"`
