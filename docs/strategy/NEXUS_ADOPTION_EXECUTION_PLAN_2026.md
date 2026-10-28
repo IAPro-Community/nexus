@@ -117,6 +117,7 @@ As metas orientam testes; nenhum número desta seção é alegação de desempen
 - [ ] Negativas: sem credenciais em logs/artefatos, sem escalada de autorização, sem acesso cruzado de worktree/projeto.
 - [ ] Responsivo, foco por teclado, i18n e tema preservados; código segue `AGENTS.md` e padrões de engenharia.
 - [ ] Docs e evidências atualizadas; release status e feature matrix não alterados sem lastro.
+- [ ] A CI de PR documental valida links e contratos sem fabricar evidência visual; mudanças no código/assets seguem a verificação de proveniência completa, e a certificação de release depende de gates próprios same-SHA.
 - [ ] PR revisado pelo maintainer; mudanças de arquitetura, licença, segurança e APIs passam por RFC/ADR quando aplicável.
 
 ## Registro de decisões e anti-metas
