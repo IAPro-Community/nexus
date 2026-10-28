@@ -25,6 +25,15 @@ The shared `agentwire` library owns ACP JSON-RPC (initialization, session creati
 
 Executable discovery and version probing are provided by the existing `ControlDriver` system. The four added preview drivers register only when the environment flag is active. They must not be labeled `SUPPORTED` for structured control in provider metadata before same-version E2E passes.
 
+## Feature discovery decision
+
+The experimental ACP/RPC selector is not promoted as a public feature
+announcement or guided tour yet: this modal lacks an official feature-tour
+surface, and the transport remains unverified end-to-end. Announcing it as
+ready would misrepresent the release. After authenticated E2E certification,
+register a real modal-scoped tour target and localize its announcement in all
+supported languages, following `AGENTS.md` and the product discovery contract.
+
 ## Experimental agent creation in the UI
 
 The existing **New Agent** modal now provides an **Agent protocol (experimental)**
