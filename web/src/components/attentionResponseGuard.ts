@@ -5,8 +5,7 @@ import { isHonestNeedsUser } from '../app/documentTitle';
 export interface AttentionResponseGuard {
   attention_fingerprint: string;
   attention_revision: number;
-  provider_generation: number;
-  host_generation: number;
+  attention_generation: string;
   interaction_id: string;
 }
 
@@ -24,14 +23,13 @@ export function attentionResponseGuardForRuntime(
     return null;
   }
   if (!['yn', 'choice', 'free_text'].includes(runtime.prompt_kind || '')) return null;
-  const providerGeneration = runtime.provider_generation || 0;
-  const hostGeneration = runtime.host_generation || 0;
-  if (providerGeneration <= 0 && hostGeneration <= 0) return null;
+  // Exact decimal Go int64 generations must not be round-tripped through
+  // JavaScript numbers, which can silently lose precision.
+  if (!runtime.attention_generation) return null;
   return {
     attention_fingerprint: runtime.attention_fingerprint,
     attention_revision: revision,
-    provider_generation: providerGeneration,
-    host_generation: hostGeneration,
+    attention_generation: runtime.attention_generation,
     interaction_id: runtime.attention_interaction_id || '',
   };
 }
