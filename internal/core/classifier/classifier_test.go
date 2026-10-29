@@ -31,6 +31,13 @@ func TestClassifyFailures(t *testing.T) {
 			wantDuration: 45 * time.Second,
 		},
 		{
+			name:         "Structured provider resource exhausted",
+			err:          nil,
+			output:       "RESOURCE_EXHAUSTED: request limit reached",
+			wantKind:     model.FailureRateLimit,
+			wantDuration: 0,
+		},
+		{
 			name:         "Auth required",
 			err:          errors.New("exit status 1"),
 			output:       "Please run /login to authenticate with your Google account.",
