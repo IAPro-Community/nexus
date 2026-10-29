@@ -520,6 +520,13 @@ func usage() {
   %s config <show|validate>       Manage control plane settings
   %s update                       Update Nexus only (use 'maestro update' explicitly for Maestro)
   %s maestro <status|doctor|update> Manage optional Maestro integration explicitly
+  nexus maestro memory-preview --project-id <id>  Preview legacy memory without exposing values
+  nexus maestro memory-backup --project-id <id> --confirm-local-backup
+                                  Create a private 0600 snapshot; never import or delete
+  nexus maestro memory-restore-preview --project-id <id> --backup-path <file> --backup-sha256 <hex>
+                                  Verify backup and show source drift; no apply
+  nexus maestro memory-restore-stage --project-id <id> --backup-path <file> --backup-sha256 <hex> --confirm-restore-stage
+                                  Stage metadata-only intent; no apply
   %s completion <bash|zsh|fish>   Generate shell completion scripts
   %s version [--json]             Display build and platform information
   %s release                      Interactively bump, build, install and validate Nexus

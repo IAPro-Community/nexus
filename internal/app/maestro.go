@@ -12,6 +12,9 @@ import (
 // handled by the shared Update Service; Maestro is optional and may only be
 // inspected or changed through this explicit namespace.
 func maestroCmd(args []string) error {
+	if len(args) > 0 && (args[0] == "memory-preview" || args[0] == "memory-backup" || args[0] == "memory-restore-preview" || args[0] == "memory-restore-stage") {
+		return maestroMemoryMigrationCmd(args)
+	}
 	subcmd := "status"
 	asJSON := false
 	for _, arg := range args {
@@ -24,7 +27,7 @@ func maestroCmd(args []string) error {
 	}
 
 	if subcmd != "status" && subcmd != "doctor" && subcmd != "update" {
-		return fmt.Errorf("unknown maestro command %q; use status, doctor, or update", subcmd)
+		return fmt.Errorf("unknown maestro command %q; use status, doctor, update, memory-preview, or memory-backup", subcmd)
 	}
 
 	if subcmd == "update" {
