@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -138,7 +139,7 @@ func TestLegacyMemoryBackupPrivateExactSnapshotAndTamperDetection(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Mode().Perm()&0077 != 0 {
+	if runtime.GOOS != "windows" && info.Mode().Perm()&0077 != 0 {
 		t.Fatalf("backup readable by group/others: %o", info.Mode().Perm())
 	}
 	if err := os.WriteFile(receipt.Path, append(data, 'x'), 0600); err != nil {
