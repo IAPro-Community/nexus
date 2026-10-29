@@ -34,5 +34,10 @@ export function isPtyAttentionFocused(input: {
  * must produce independent notifications; repeated polls stay idempotent.
  */
 export function attentionPushKey(runtime: RuntimeSession): string {
-  return `${attentionToastKey(runtime)}\0${runtime.attention_reason || ''}\0${runtime.attention_kind || ''}`;
+  // JSON preserves field boundaries and escapes NUL separators for Notification.tag.
+  return JSON.stringify([
+    attentionToastKey(runtime),
+    runtime.attention_reason || '',
+    runtime.attention_kind || '',
+  ]);
 }
