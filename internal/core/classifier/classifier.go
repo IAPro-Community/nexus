@@ -14,6 +14,7 @@ var (
 		regexp.MustCompile(`(?i)\b(rate[ -]?limit(ed)?|too many requests|http 429|status 429)\b`),
 		regexp.MustCompile(`(?i)\b(quota exceeded|usage limit reached|exceeded your current quota)\b`),
 		regexp.MustCompile(`(?i)\b(capacity reached|temporarily rate-limited)\b`),
+		regexp.MustCompile(`(?i)\bresource_exhausted\b`),
 	}
 
 	authPatterns = []*regexp.Regexp{
