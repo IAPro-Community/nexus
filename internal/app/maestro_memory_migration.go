@@ -17,46 +17,8 @@ import (
 )
 
 
-var safeLegacyProjectID = regexp.MustCompile(`^prj_[A-Za-z0-9_-]{1,120}package app
-
-import (
-	"context"
-	"encoding/json"
-	"errors"
-	"flag"
-	"fmt"
-	"io"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
-
-	"github.com/IAPro-Community/nexus/internal/core/config"
-	"github.com/IAPro-Community/nexus/internal/nexus"
-)
-
-
-)
-var safeLegacyDigest = regexp.MustCompile(`^[a-f0-9]{64}package app
-
-import (
-	"context"
-	"encoding/json"
-	"errors"
-	"flag"
-	"fmt"
-	"io"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
-
-	"github.com/IAPro-Community/nexus/internal/core/config"
-	"github.com/IAPro-Community/nexus/internal/nexus"
-)
-
-
-)
+var safeLegacyProjectID = regexp.MustCompile(`^prj_[A-Za-z0-9_-]{1,120}$`)
+var safeLegacyDigest = regexp.MustCompile(`^[a-f0-9]{64}$`)
 
 type maestroMemoryMigrationArgs struct {
 	Command            string
