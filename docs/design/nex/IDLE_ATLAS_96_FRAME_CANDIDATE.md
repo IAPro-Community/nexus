@@ -6,6 +6,6 @@ O protótipo de 12 idles recebeu um atlas de **1024 × 1536 px**, contendo **12 
 
 **Limitação artística fundamental:** estes 96 quadros são um **estudo de movimento em camadas extraídas do PNG original**, reconstruído por deslocamento, escala e rotação pequena, e **não** 96 sprites desenhados manualmente. Algumas ações são quase imperceptíveis a 128px; especialmente aletas, inclinação e curiosidade exigem rig de cabeça, novas formas de olhos e preenchimento manual das áreas ocultas. Este atlas **não está pronto para HUD**.
 
-O ZIP e os PNGs existem na conversa, mas **não estão versionados como binários no GitHub**. Esta documentação guarda proveniência e não altera `RELEASE_READINESS.json` (BLOCKED).
+**Atualização 29/10/2026:** o PNG do atlas, o storyboard e o manifesto de 96 quadros estão versionados na [release](https://github.com/IAPro-Community/nexus/tree/release/v1.0.0/docs/design/nex/experimental-atlas) pela PR #147. O pacote continua **CANDIDATE_NOT_APPROVED**, e `RELEASE_READINESS.json` permanece `BLOCKED`: versionar um atlas de estudo não o torna master retrô aprovado.
 
 **Para produção:** redesenhar optical-specific os 64/128px a partir do master aprovado, refazer os 12 ciclos como quadros de sprite consistentes e validar em Windows/macOS/Linux. Integrar o `NexIdleDirector` apenas quando o atlas for aprovado. O giro 360° real **não pode ser construído** deste atlas frontal: requer 16 vistas próprias (ângulos 0°–337,5°).

@@ -57,11 +57,11 @@ git commit -m "assets(nex): import source-faithful Hero v1.1 layers"
 git push
 ```
 
-O ZIP original foi inspecionado em 28/10/2026: **15 arquivos internos**, incluindo OpenRaster, PNG original idêntico byte a byte, camadas e gerador portátil. A importação foi exercitada em um checkout de teste local com os mesmos 15 arquivos. O script não consegue transferir sozinho bytes entre o ambiente de conversa e o GitHub remoto; requer um clone com autenticação Git e o ZIP local. Até o commit final, o manifesto permanece em `NOT_COMMITTED`.
+O pacote original de 15 arquivos foi importado e verificado; **não é necessário obter o ZIP da conversa novamente**. A PR #147 adicionou os PNGs e o gerador como arquivos reais ao GitHub. O OpenRaster editável é recuperado dos seis fragmentos versionados executando `node scripts/restore-nex-openraster.mjs`, com SHA-256 verificado. O manifesto de origem indica arquivos versionados ou reconstruíveis, sem atribuir aprovação artística.
 
 ## Entrega ao GitHub / integração
 
-O conteúdo binário **não entra no GitHub apenas por aparecer neste documento**. O pacote **revisado** `nex_hybrid_github_assets_v1_1.zip` disponível na conversa contém os PNGs, o HTML, as fontes ORA e o código de corte com os caminhos corretos para extrair na raiz de um clone Nexus.
+**Fonte canônica de trabalho:** `web/public/nex/hybrid-v1/` e `docs/design/nex/hybrid-v1/` na `release/v1.0.0`. Para recuperar a fonte editável OpenRaster, usar `node scripts/restore-nex-openraster.mjs`. Para validar bytes do checkout, `node scripts/verify-nex-hybrid-assets.mjs --require-binaries`. Não promover a arte ao site/HUD público até aprovação dos gates de movimento, pixel art e 360°.
 
 ```bash
 # Em um checkout da branch release/v1.0.0 ou uma branch de trabalho:

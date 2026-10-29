@@ -35,7 +35,7 @@ node scripts/verify-nex-release-readiness.mjs --require-ready
 
 ## Bloqueios atuais (não confundir com implementação concluída)
 
-- PNG/ORA/HTML do pacote híbrido existem em conversa, mas **não há blobs dos 14 assets versionados no GitHub** (ver `hybrid-v1/asset-manifest.json`).
+- **Resolvido em 29/10:** os PNGs originais, camadas, HTML, gerador e atlas candidato de 96 quadros constam na `release/v1.0.0` via [PR #147](https://github.com/IAPro-Community/nexus/pull/147). O OpenRaster é reconstruível a partir de seis fragmentos Git e validado por SHA-256; o desenho permanece candidato até aprovação visual. Não repetir importação nem depender de ZIPs da conversa.
 - Master pixel art final 64/128px, 12 idles **em produção no HUD**, e 16 vistas 360° aprovadas **não estão entregues**.
 - O laboratório do Nexus-Site é apenas QA isolado; a homepage não exibe o NEX.
 - Não há aprovação visual definitiva ou certificação nativa abrangente. A release permanece **BLOCKED**.
