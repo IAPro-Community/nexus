@@ -1,3 +1,6 @@
+import type { RuntimeSession } from '../types';
+import { attentionToastKey } from '../components/attentionToastModel';
+
 /**
  * Attention delivery contract (agents vs terminals).
  *
@@ -23,4 +26,13 @@ export function isPtyAttentionFocused(input: {
   if (!input.stackActiveIds.has(input.terminalsProductSurfaceId)) return false;
   if (!input.agentViewId || !input.activePtyViewId) return false;
   return input.agentViewId === input.activePtyViewId;
+}
+
+/**
+ * Per-intervention push identity, never the provider text fingerprint alone.
+ * The same question from two agents, a new episode or a restarted process
+ * must produce independent notifications; repeated polls stay idempotent.
+ */
+export function attentionPushKey(runtime: RuntimeSession): string {
+  return `${attentionToastKey(runtime)}\0${runtime.attention_reason || ''}\0${runtime.attention_kind || ''}`;
 }
