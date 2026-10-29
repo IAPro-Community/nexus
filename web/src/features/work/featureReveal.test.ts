@@ -46,8 +46,9 @@ describe('global feature announcement handoff', () => {
     expect(anotherPanelHasTarget).toBe(true);
     expect(consumeFeatureReveal('project-A', 'flow-editor', () => false, 1001)).toBeNull();
     expect(hasPendingFeatureReveal('project-A', 'flow-editor', 1002)).toBe(true);
-    expect(consumeFeatureReveal('project-A', 'flow-editor', () => true, 1003)?.id)
-      .toBe('flow-pipeline-graph');
+    expect(consumeFeatureReveal('project-A', 'flow-editor', () => true, 1003)?.id).toBe(
+      'flow-pipeline-graph',
+    );
   });
 
   it('replaces a pending request when the user chooses another feature', () => {
