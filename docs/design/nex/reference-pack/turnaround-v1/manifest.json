@@ -1,0 +1,215 @@
+{
+  "schema_version": "1.0",
+  "collection": "NEX six distinct camera pose candidates",
+  "status": "REFERENCE_CANDIDATE_NOT_360",
+  "source": "six independently generated illustrations from the conversation",
+  "canonical_reference": "docs/design/nex/identity-lock.json",
+  "resolution": [
+    256,
+    256
+  ],
+  "alpha": false,
+  "fidelity_policy": "high-quality Lanczos reduction from 1254 original; not redraw; original master retained separately",
+  "turntable_activation": false,
+  "poses": [
+    {
+      "id": "front",
+      "pose": "front",
+      "angle_degrees_verified": 0,
+      "original_source_file": "robô_mascote_neon_flutuante.png",
+      "original_size": [
+        1254,
+        1254
+      ],
+      "source_sha256": "4d39263f855fc56584cd494f27caea1574ca9aba92e0f1177fdc470275abbe72",
+      "webp": {
+        "path": "front-256.webp",
+        "sha256": "93d797dbab31250d7d16160cfd37fb7e7ebe25013d08b281ffcb9095cd022460",
+        "bytes": 76178,
+        "size": [
+          256,
+          256
+        ],
+        "alpha": false,
+        "lossless": true
+      },
+      "png": {
+        "path": "front-256.png",
+        "sha256": "52afae66ddd195beb33cf8edcb42199249969acc0697df96cd8429d8a843708b",
+        "bytes": 94702,
+        "size": [
+          256,
+          256
+        ],
+        "alpha": false
+      }
+    },
+    {
+      "id": "right_shallow",
+      "pose": "front_right_shallow",
+      "angle_degrees_verified": null,
+      "original_source_file": "mascote_robótico_flutuante_neon_retro.png",
+      "original_size": [
+        1254,
+        1254
+      ],
+      "source_sha256": "e637db330d338cc91f3b81ab74c80268a9f245f3ceeccef456d2d7a41f2266ba",
+      "webp": {
+        "path": "right_shallow-256.webp",
+        "sha256": "8501ef8e472f106c508090dd25a5b1b213f3c6a7f490e9edd8250f6b014ef00a",
+        "bytes": 78610,
+        "size": [
+          256,
+          256
+        ],
+        "alpha": false,
+        "lossless": true
+      },
+      "png": {
+        "path": "right_shallow-256.png",
+        "sha256": "2bec5ad12b79a819fc93a8c082a36142ce0d4ca67948d037be9c42c06ce085d7",
+        "bytes": 97311,
+        "size": [
+          256,
+          256
+        ],
+        "alpha": false
+      }
+    },
+    {
+      "id": "right_three_quarter",
+      "pose": "front_right_three_quarter",
+      "angle_degrees_verified": null,
+      "original_source_file": "robô_neon_flutuante_em_perfil.png",
+      "original_size": [
+        1254,
+        1254
+      ],
+      "source_sha256": "d3868ddedd5cfe85f21609245c0eb6cc141fe2b31f3ee759ded91dbae11ea73c",
+      "webp": {
+        "path": "right_three_quarter-256.webp",
+        "sha256": "210c31d5b270f0292681f44feda60a129d1583863540be97797a41c61172f614",
+        "bytes": 72064,
+        "size": [
+          256,
+          256
+        ],
+        "alpha": false,
+        "lossless": true
+      },
+      "png": {
+        "path": "right_three_quarter-256.png",
+        "sha256": "af21c837df93197933a2e551f4cf25f9fca6d867bb70abcb5fd86d0eb2ec339e",
+        "bytes": 89632,
+        "size": [
+          256,
+          256
+        ],
+        "alpha": false
+      }
+    },
+    {
+      "id": "rear",
+      "pose": "back",
+      "angle_degrees_verified": 180,
+      "original_source_file": "robô_neon_flutuante_em_visão_traseira.png",
+      "original_size": [
+        1254,
+        1254
+      ],
+      "source_sha256": "583057ce50e4132f08c399222a9507a3f204ccf39f90c9ddbc8cd15a697ad1a0",
+      "webp": {
+        "path": "rear-256.webp",
+        "sha256": "0da3992ce40fb031b02b60bd90c250defc4218b58060d6528f7af58569fb2182",
+        "bytes": 75630,
+        "size": [
+          256,
+          256
+        ],
+        "alpha": false,
+        "lossless": true
+      },
+      "png": {
+        "path": "rear-256.png",
+        "sha256": "19a6cbac2228cdfc2f518949723ac77136a18b0ba97ea79446de09a4a9ff872f",
+        "bytes": 94322,
+        "size": [
+          256,
+          256
+        ],
+        "alpha": false
+      }
+    },
+    {
+      "id": "left_three_quarter",
+      "pose": "front_left_three_quarter",
+      "angle_degrees_verified": null,
+      "original_source_file": "robô_mascote_neon_em_perfil.png",
+      "original_size": [
+        1254,
+        1254
+      ],
+      "source_sha256": "f036d707089ba72f19e284f896ba7069e042bc2d40baa0518dfa9121f6b5bf62",
+      "webp": {
+        "path": "left_three_quarter-256.webp",
+        "sha256": "400029e7243771ba38cf2da4d57d64661396dddb14013ab20aeec7c95fbe8354",
+        "bytes": 73626,
+        "size": [
+          256,
+          256
+        ],
+        "alpha": false,
+        "lossless": true
+      },
+      "png": {
+        "path": "left_three_quarter-256.png",
+        "sha256": "9bde4d07266691a9f610882dfbb918efdaa682c07506668768b27960545e8d56",
+        "bytes": 91788,
+        "size": [
+          256,
+          256
+        ],
+        "alpha": false
+      }
+    },
+    {
+      "id": "left_shallow",
+      "pose": "front_left_shallow",
+      "angle_degrees_verified": null,
+      "original_source_file": "robô_mascote_neon_em_órbita.png",
+      "original_size": [
+        1254,
+        1254
+      ],
+      "source_sha256": "0f2b4b2cd97bacaab2d7bb3ce3da7709cc95f753aa4cd96ee14f0a17a2f413d5",
+      "webp": {
+        "path": "left_shallow-256.webp",
+        "sha256": "b6028b51fe34b44545179c1a3f08415305c7554c6b3cf1c0b048c07890eae60a",
+        "bytes": 78240,
+        "size": [
+          256,
+          256
+        ],
+        "alpha": false,
+        "lossless": true
+      },
+      "png": {
+        "path": "left_shallow-256.png",
+        "sha256": "57ba8d445fa33dd261c23dbd0a39cf028e339908cdee8f62669549f83ed13813",
+        "bytes": 96701,
+        "size": [
+          256,
+          256
+        ],
+        "alpha": false
+      }
+    }
+  ],
+  "missing_angles": "All 16 canonical yaw views need authored, consistent perspective and occlusion. Six views here are not precise yaw measurements.",
+  "warnings": [
+    "These assets use opaque navy background, not transparent sprite sheets.",
+    "Do not call independent generated views continuous animation frames.",
+    "A true 360 atlas remains blocked.",
+    "Preserve master source and historical assets; do not overwrite approved HUD imagery."
+  ]
+}
