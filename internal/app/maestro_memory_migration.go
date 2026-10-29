@@ -17,18 +17,60 @@ import (
 )
 
 
-var safeLegacyProjectID = regexp.MustCompile(`^prj_[A-Za-z0-9_-]{1,120}$`)
+var safeLegacyProjectID = regexp.MustCompile(`^prj_[A-Za-z0-9_-]{1,120}package app
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"flag"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/nexus"
+)
+
+
+)
+var safeLegacyDigest = regexp.MustCompile(`^[a-f0-9]{64}package app
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"flag"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/nexus"
+)
+
+
+)
 
 type maestroMemoryMigrationArgs struct {
 	Command            string
 	ProjectID          string
 	ConfirmLocalBackup bool
+	ConfirmRestoreStage bool
+	BackupPath         string
+	BackupSHA256       string
 	JSON               bool
 }
 
 func parseMaestroMemoryMigrationArgs(args []string) (maestroMemoryMigrationArgs, error) {
 	var result maestroMemoryMigrationArgs
-	if len(args) == 0 || (args[0] != "memory-preview" && args[0] != "memory-backup") {
+	if len(args) == 0 || (args[0] != "memory-preview" && args[0] != "memory-backup" && args[0] != "memory-restore-preview" && args[0] != "memory-restore-stage") {
 		return result, errors.New("use maestro memory-preview or memory-backup")
 	}
 	result.Command = args[0]
@@ -36,6 +78,9 @@ func parseMaestroMemoryMigrationArgs(args []string) (maestroMemoryMigrationArgs,
 	set.SetOutput(io.Discard)
 	set.StringVar(&result.ProjectID, "project-id", "", "Nexus project ID")
 	set.BoolVar(&result.ConfirmLocalBackup, "confirm-local-backup", false, "write a private local backup (never imports data)")
+	set.BoolVar(&result.ConfirmRestoreStage, "confirm-restore-stage", false, "stage a metadata-only restore intent (does not apply restore)")
+	set.StringVar(&result.BackupPath, "backup-path", "", "local Nexus-managed backup path")
+	set.StringVar(&result.BackupSHA256, "backup-sha256", "", "expected SHA-256 of backup file")
 	set.BoolVar(&result.JSON, "json", false, "machine-readable output")
 	if err := set.Parse(args[1:]); err != nil {
 		return maestroMemoryMigrationArgs{}, fmt.Errorf("invalid memory migration flags: %w", err)
@@ -49,12 +94,22 @@ func parseMaestroMemoryMigrationArgs(args []string) (maestroMemoryMigrationArgs,
 	}
 	switch result.Command {
 	case "memory-preview":
-		if result.ConfirmLocalBackup {
+		if result.ConfirmLocalBackup || result.ConfirmRestoreStage || result.BackupPath != "" || result.BackupSHA256 != "" {
 			return maestroMemoryMigrationArgs{}, errors.New("memory-preview must not create backups")
 		}
 	case "memory-backup":
-		if !result.ConfirmLocalBackup {
-			return maestroMemoryMigrationArgs{}, errors.New("memory-backup requires --confirm-local-backup")
+		if !result.ConfirmLocalBackup || result.ConfirmRestoreStage || result.BackupPath != "" || result.BackupSHA256 != "" {
+			return maestroMemoryMigrationArgs{}, errors.New("memory-backup requires --confirm-local-backup and no restore arguments")
+		}
+	case "memory-restore-preview", "memory-restore-stage":
+		if result.ConfirmLocalBackup || result.BackupPath == "" || !safeLegacyDigest.MatchString(result.BackupSHA256) {
+			return maestroMemoryMigrationArgs{}, errors.New("restore preview/stage requires --backup-path and --backup-sha256")
+		}
+		if result.Command == "memory-restore-stage" && !result.ConfirmRestoreStage {
+			return maestroMemoryMigrationArgs{}, errors.New("restore staging requires --confirm-restore-stage")
+		}
+		if result.Command == "memory-restore-preview" && result.ConfirmRestoreStage {
+			return maestroMemoryMigrationArgs{}, errors.New("restore preview cannot stage an intent")
 		}
 	}
 	return result, nil
@@ -95,6 +150,10 @@ func maestroMemoryMigrationCmd(args []string) error {
 		output, err = service.PreviewLegacyIntelligenceMemoryMigration(context.Background(), parsed.ProjectID)
 	case "memory-backup":
 		output, err = service.BackupLegacyIntelligenceMemories(context.Background(), parsed.ProjectID)
+	case "memory-restore-preview":
+		output, err = service.PreviewLegacyMemoryRestore(context.Background(), parsed.ProjectID, parsed.BackupPath, parsed.BackupSHA256)
+	case "memory-restore-stage":
+		output, err = service.StageLegacyMemoryRestore(context.Background(), parsed.ProjectID, parsed.BackupPath, parsed.BackupSHA256, parsed.ConfirmRestoreStage)
 	}
 	if err != nil {
 		return err
