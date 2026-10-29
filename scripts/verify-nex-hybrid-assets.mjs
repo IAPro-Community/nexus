@@ -35,7 +35,7 @@ for(const a of manifest.assets){
       const chunks=JSON.parse(readFileSync(metaPath,'utf8'));
       const buffers=[];
       for(const chunk of chunks.segments){
-        if(!/^nex_hybrid_master\\.ora\\.part-\\d{3}\\.b64$/.test(chunk.file)){issues.push('Unsafe ORA chunk');continue;}
+        if(!/^nex_hybrid_master\.ora\.part-\d{3}\.b64$/.test(chunk.file)){issues.push('Unsafe ORA chunk');continue;}
         const chunkFile=resolve(root,'docs/design/nex/hybrid-v1/chunks',chunk.file);
         if(!existsSync(chunkFile)){issues.push('Missing ORA chunk: '+chunk.file);continue;}
         const part=Buffer.from(readFileSync(chunkFile,'utf8').trim(),'base64');
