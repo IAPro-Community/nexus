@@ -163,7 +163,7 @@ if (existsSync(manifestPath)) {
       );
     } else {
       const actualRenderChanges = (diff.stdout || '')
-        .split(/\\r?\\n/)
+        .split(/\r?\n/)
         .map((item) => item.trim())
         .filter(Boolean)
         .filter(isRenderingChange);
