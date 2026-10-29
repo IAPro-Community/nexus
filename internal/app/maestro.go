@@ -12,7 +12,7 @@ import (
 // handled by the shared Update Service; Maestro is optional and may only be
 // inspected or changed through this explicit namespace.
 func maestroCmd(args []string) error {
-	if len(args) > 0 && (args[0] == "memory-preview" || args[0] == "memory-backup") {
+	if len(args) > 0 && (args[0] == "memory-preview" || args[0] == "memory-backup" || args[0] == "memory-restore-preview" || args[0] == "memory-restore-stage") {
 		return maestroMemoryMigrationCmd(args)
 	}
 	subcmd := "status"
