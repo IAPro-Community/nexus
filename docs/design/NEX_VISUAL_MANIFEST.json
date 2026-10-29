@@ -279,7 +279,7 @@
     "source": "mascote_robô_nexus_em_neon_azul.png",
     "sha256": "ef7a4aeb7b24d2ab5f199f913d351414b8fafb0b6208b3ab2b665013adcb9118",
     "asset_manifest": "docs/design/nex/hybrid-v1/asset-manifest.json",
-    "binary_status": "NOT_COMMITTED",
+    "binary_status": "VERSIONED_GIT_ORA_IN_VERIFIED_CHUNKS",
     "review_guide": "docs/design/nex/hybrid-v1/README.md",
     "runtime_source_unchanged": true,
     "early_idles": "6 P0 prototypes in local HTML preview",
@@ -293,6 +293,8 @@
     "browser_qa": "OBSERVED_PASS_CHROMIUM_HYBRID_PREVIEW",
     "browser_qa_script": "web/scripts/nex-hybrid-browser-qa.mjs",
     "human_approval": "PENDING",
-    "native_hud_qa": "NOT_RUN"
+    "native_hud_qa": "NOT_RUN",
+    "binary_ingest_pr": 148,
+    "editable_source_restore": "node scripts/restore-nex-hybrid-master.mjs --restore"
   }
 }
