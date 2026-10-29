@@ -253,6 +253,11 @@ func (sh *SessionHost) Start() error {
 
 	setStage(registry.StartupTerminalReady, "")
 
+	// Fence every attention event to this exact SessionHost incarnation.
+	// Install the identity BEFORE the output reader can publish callbacks.
+	generation := time.Now().UnixNano()
+	sh.detector.SetRuntimeGeneration(generation, generation)
+
 	// Drain terminal output independently and let lifecycle finalization wait for
 	// the reader to observe EOF. This prevents Windows cleanup from racing live
 	// ConPTY/pipe handles after the provider process has already exited.
@@ -263,7 +268,6 @@ func (sh *SessionHost) Start() error {
 
 	// Update session details
 	sh.session.PID = sh.termBackend.PID()
-	generation := time.Now().UnixNano()
 	sh.session.ProviderGeneration = generation
 	sh.session.HostPID = os.Getpid()
 	sh.session.HostGeneration = generation
@@ -1063,6 +1067,7 @@ func (sh *SessionHost) waitProcess() {
 	_ = sh.registry.UpdateAttentionMeta(sh.session.RuntimeID, registry.AttentionUpdate{
 		State: state, Reason: "", Context: "", Fingerprint: "",
 		PromptKind: PromptKindNone, Kind: AttentionIdle,
+		Generation: fmt.Sprintf("%d:%d", sh.session.HostGeneration, sh.session.ProviderGeneration),
 	})
 	eventData := sh.lifecycleEventData(map[string]any{"state": string(state)})
 	lineageID := sh.session.LineageID
