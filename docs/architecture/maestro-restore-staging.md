@@ -12,7 +12,19 @@ A memória legado Nexus pode existir em `config.json` (escopo INSTALL) e no SQLi
 - `StageLegacyMemoryRestore(ctx, projectID, backupPath, sha256, confirmed)`: exige confirmação explícita, revalida backup e contexto e grava apenas uma *intenção operacional* em `migration-restore-intents` no diretório de dados local. A intenção contém metadados, não observações, e informa status inequívoco `STAGED_NO_APPLY`.
 - Testes unitários de identidade, checksum, drift, autorização, ausência de modificação e contenção de segredos.
 
-**Ainda não existe um comando CLI conectado para invocar a intenção de restore** neste incremento; o ponto de entrada deve ser integrado e testado antes da homologação. Os comandos de inventário e backup de #156 continuam separados.
+**Comandos locais explicitamente conectados ao CLI (candidatos, não homologados):**
+
+```bash
+nexus maestro memory-restore-preview --project-id prj_EXEMPLO \
+  --backup-path /path/to/nexus/migration-backups/legacy-intelligence-EXEMPLO.json \
+  --backup-sha256 <64-hex> --json
+
+nexus maestro memory-restore-stage --project-id prj_EXEMPLO \
+  --backup-path /path/to/nexus/migration-backups/legacy-intelligence-EXEMPLO.json \
+  --backup-sha256 <64-hex> --confirm-restore-stage --json
+```
+
+Os dois comandos verificam o checksum e a identidade do projeto; `memory-restore-stage` apenas registra a intenção `STAGED_NO_APPLY` e exige confirmação própria. **Eles não aplicam alterações aos storages.** Antes de uso em produção, testar o CLI real no SHA candidato em Linux/Windows e confirmar permissões locais.
 
 ## Antes de implementar `restore apply`
 
