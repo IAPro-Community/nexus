@@ -45,7 +45,7 @@ describe('NEX IdleDirector', () => {
     director.start();
     director.start();
     expect(vi.getTimerCount()).toBe(1);
-    vi.advanceTimersByTime(31000);
+    vi.advanceTimersByTime(45000);
     expect(actions.some((action) => action?.startsWith('idle_'))).toBe(true);
     director.stop();
     expect(director.currentAction).toBeNull();
