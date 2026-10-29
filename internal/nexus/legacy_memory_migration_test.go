@@ -1,6 +1,7 @@
 package nexus
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -155,5 +156,59 @@ func TestLegacyMemoryBackupRejectsInvalidSchemaAndDigest(t *testing.T) {
 	}
 	if err := VerifyLegacyMemoryBackup(filepath.Join(t.TempDir(), "not-existing"), strings.Repeat("z", 64)); err == nil {
 		t.Fatal("invalid digest accepted")
+	}
+}
+
+func TestLegacyMigrationInventoryReadsRealStoresWithoutMutation(t *testing.T) {
+	n := openTestNexus(t)
+	t.Setenv("NEXUS_CONFIG_DIR", t.TempDir())
+	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Migration Inventory", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.UpsertIntelligenceMemory(store.IntelligenceMemory{
+		ProjectID: project.ID, Key: "quality.verification", Value: "make quality", Source: "composer",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.UpsertIntelligenceMemory(store.IntelligenceMemory{
+		ProjectID: project.ID, Key: "pending.quality.testing", Value: "temporary hypothesis", Source: "composer",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	preview, err := n.PreviewLegacyIntelligenceMemoryMigration(ctx, project.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview.ProjectCount != 2 || preview.PendingCount != 1 || !preview.RequiresApproval {
+		t.Fatalf("inventory missed raw pending records: %+v", preview)
+	}
+	backup, err := n.BackupLegacyIntelligenceMemories(ctx, project.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := VerifyLegacyMemoryBackup(backup.Path, backup.SHA256); err != nil {
+		t.Fatal(err)
+	}
+	blob, err := os.ReadFile(backup.Path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var snapshot LegacyMemorySnapshot
+	if err := json.Unmarshal(blob, &snapshot); err != nil {
+		t.Fatal(err)
+	}
+	if len(snapshot.Project) != 2 || snapshot.Project[1].ProjectID != project.ID && snapshot.Project[0].ProjectID != project.ID {
+		t.Fatalf("backup lost project data: %+v", snapshot)
+	}
+	rows, err := st.ListIntelligenceMemories(project.ID)
+	if err != nil || len(rows) != 2 {
+		t.Fatalf("inventory or backup changed original records: %v %+v", err, rows)
 	}
 }
