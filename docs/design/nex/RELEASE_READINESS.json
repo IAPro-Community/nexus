@@ -1,0 +1,114 @@
+{
+  "schema_version": "1.0",
+  "product": "IAPro Nexus",
+  "character": "NEX",
+  "release_target": "v1.0.0",
+  "publication_policy": "ATOMIC_HUD_AND_SITE",
+  "status": "BLOCKED",
+  "public_site_allowed": false,
+  "replace_hud_allowed": false,
+  "reference_commit": null,
+  "release_artifact_sha256": null,
+  "approval": {
+    "approved_by": null,
+    "approved_at": null,
+    "approved_commit": null
+  },
+  "requirements": [
+    {
+      "id": "master_source",
+      "title": "Master do personagem em camadas, original versionado com SHA-256",
+      "contract": "docs/design/nex/identity-lock.json",
+      "status": "BLOCKED",
+      "evidence": [],
+      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+    },
+    {
+      "id": "site_hero",
+      "title": "Hero final com silhueta idêntica, animações em camadas e revisão visual",
+      "contract": "docs/design/nex/hybrid-v1/README.md",
+      "status": "BLOCKED",
+      "evidence": [],
+      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+    },
+    {
+      "id": "hud_compact",
+      "title": "Compact 64px e Standard 128px desenhados opticamente em pixel art",
+      "contract": "docs/design/nex/RETRO_GAME_IDLE_DIRECTION.md",
+      "status": "BLOCKED",
+      "evidence": [],
+      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+    },
+    {
+      "id": "idle_12",
+      "title": "12 ações idle com frames consistentes, pivôs e agendador sem repetição artificial",
+      "contract": "docs/design/nex/RETRO_GAME_IDLE_DIRECTION.md",
+      "status": "BLOCKED",
+      "evidence": [],
+      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+    },
+    {
+      "id": "operational_5",
+      "title": "5 estados reais idle/working/warning/critical/offline com cancelamento",
+      "contract": "docs/design/NEX_ANIMATION_CONTRACT.md",
+      "status": "BLOCKED",
+      "evidence": [],
+      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+    },
+    {
+      "id": "turnaround_360",
+      "title": "16 vistas 0–337,5° de 22,5° com oclusão correta + manifesto",
+      "contract": "docs/design/nex/MOTION_ARCHITECTURE_V2.md",
+      "status": "BLOCKED",
+      "evidence": [],
+      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+    },
+    {
+      "id": "hud_integration",
+      "title": "Novo atlas/rig validado no HUD com BAR/MASCOT/TRAY intactos",
+      "contract": "docs/product/hud-guardian-v1.md",
+      "status": "BLOCKED",
+      "evidence": [],
+      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+    },
+    {
+      "id": "site_integration",
+      "title": "Hero e 360° integrados no Nexus-Site com versões PT/EN responsivas",
+      "contract": "docs/design/nex/SITE_HERO_SVG_AND_360_MOTION.md",
+      "status": "BLOCKED",
+      "evidence": [],
+      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+    },
+    {
+      "id": "runtime_qa",
+      "title": "Testes nativos Windows/macOS/Linux X11/Wayland, DPI e acessibilidade",
+      "contract": "docs/design/NEX_VISUAL_REVIEW_CHECKLIST.md",
+      "status": "BLOCKED",
+      "evidence": [],
+      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+    },
+    {
+      "id": "site_qa",
+      "title": "Build, Chrome/Firefox/Safari/mobile, LCP e reduced motion aprovados",
+      "contract": "docs/design/nex/hybrid-v1/BROWSER_QA_20261028.md",
+      "status": "BLOCKED",
+      "evidence": [],
+      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+    },
+    {
+      "id": "owner_visual_approval",
+      "title": "Aprovação humana final das duas superfícies e arte-mestre",
+      "contract": "docs/design/nex/IDENTITY_GOVERNANCE.md",
+      "status": "BLOCKED",
+      "evidence": [],
+      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+    }
+  ],
+  "history": [
+    {
+      "date": "2026-10-28",
+      "event": "Owner requires full HUD and Site delivery before public site use.",
+      "status": "BLOCKED"
+    }
+  ]
+}

@@ -152,10 +152,18 @@ Em qualquer tarefa sobre **mascote, HUD Guardian, onboarding com NEX, sprites, a
 
 **Regra:** o desenho SVG anterior do NEX não passou na comparação perceptual com o PNG. Antes de redesenhar novamente, consultar `docs/design/nex/hybrid-v1/README.md` e `asset-manifest.json`: a abordagem preferida para o site preserva o PNG original como raster e anima recortes autênticos (2 olhos, 4 módulos e reflexos de aletas). Não alegar que a existência dos arquivos em manifesto significa que os bytes já foram commitados. A revisão visual é obrigatória antes de substituir assets do site/HUD. Atlas 360° continua pendente da produção de perspectivas reais.
 
-## 7. NEX Identity Lock — congelamento após aprovação humana## 7. NEX Identity Lock — congelamento após aprovação humana
+## 7. NEX Identity Lock — congelamento após aprovação humana
 **Direção escolhida em 27/10/2026:** manter o personagem robô original selecionado pelo usuário, reinterpretá-lo em pixel art HD retrô de game (não filtro aplicado ao SVG) e criar 12 ações de idle detalhadas. Leia `docs/design/nex/RETRO_GAME_IDLE_DIRECTION.md` e `docs/design/nex/identity-lock.json.selection_record`; não propor outra silhueta. O lock continua pendente de master editável, hashes e aprovação visual do sprite final, portanto não declarar código atual como retro HD concluído.
 
 - O documento `docs/design/nex/IDENTITY_GOVERNANCE.md`, o manifesto `docs/design/nex/identity-lock.json` e as instruções `docs/design/nex/AGENTS.md` regem **toda nova arte NEX** (site, animação, HUD, agentes, avatar e campanhas).
 - A identidade atual segue os contratos da seção 6; as referências recentes são **candidatas**, não um novo master aprovado. Não substitua o sprite da release por artes de conversa.
 - Quando o manifesto mudar para `FROZEN`, nenhum agente poderá alterar a identidade, proporções ou masters/hashes sem mudança de versão, comparação, PR e aprovação explícita do owner.
 - Rode `node scripts/verify-nex-identity-lock.mjs` e registre a versão do lock em toda entrega visual. Esse teste verifica integridade e não substitui inspeção de semelhança visual.
+
+## 8. NEX — entrega conjunta obrigatória HUD + Site
+
+A decisão final do usuário é **não inserir NEX na página pública até o pacote completo estar pronto nas duas superfícies**. Antes de alterar o mascote, leia [plano completo](docs/design/nex/COMPLETE_DELIVERY_PLAN.md) e [gates rastreáveis](docs/design/nex/RELEASE_READINESS.json).
+
+**Proibido:** publicar Hero parcial, chamar SVG genérico de master aprovado, declarar giro 360° enquanto faltarem vistas reais, substituir o HUD por sprite não homologado ou alterar `status` para READY sem 11 evidências e aprovação explícita do owner no SHA exato.
+
+Execute `node scripts/verify-nex-release-readiness.mjs` para verificar consistência; `--require-ready` deve falhar enquanto restarem pendências. Essa política vale também para o repositório Nexus-Site; a homepage deve permanecer sem NEX enquanto o gate for BLOCKED.
