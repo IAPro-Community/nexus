@@ -28,26 +28,31 @@ import (
 const MaxSessions = 4
 
 type Info struct {
-	ID             string `json:"id"`
-	ProjectID      string `json:"project_id"`
-	URL            string `json:"url"`
-	Width          int    `json:"width"`
-	Height         int    `json:"height"`
-	OwnerRuntimeID string `json:"owner_runtime_id,omitempty"`
+	ID             string    `json:"id"`
+	ProjectID      string    `json:"project_id"`
+	URL            string    `json:"url"`
+	Title          string    `json:"title,omitempty"`
+	Width          int       `json:"width"`
+	Height         int       `json:"height"`
+	OwnerRuntimeID string    `json:"owner_runtime_id,omitempty"`
+	ActiveActor    string    `json:"active_actor,omitempty"`
+	LastActiveAt   time.Time `json:"last_active_at,omitempty"`
 }
 
 type Action struct {
-	Type      string  `json:"type"`
-	URL       string  `json:"url,omitempty"`
-	Text      string  `json:"text,omitempty"`
-	Selector  string  `json:"selector,omitempty"`
-	TimeoutMS int     `json:"timeout_ms,omitempty"`
-	Width     int     `json:"width,omitempty"`
-	Height    int     `json:"height,omitempty"`
-	Key       string  `json:"key,omitempty"`
-	X         float64 `json:"x,omitempty"`
-	Y         float64 `json:"y,omitempty"`
-	DeltaY    float64 `json:"delta_y,omitempty"`
+	Type       string  `json:"type"`
+	URL        string  `json:"url,omitempty"`
+	Text       string  `json:"text,omitempty"`
+	Selector   string  `json:"selector,omitempty"`
+	TimeoutMS  int     `json:"timeout_ms,omitempty"`
+	Width      int     `json:"width,omitempty"`
+	Height     int     `json:"height,omitempty"`
+	Key        string  `json:"key,omitempty"`
+	X          float64 `json:"x,omitempty"`
+	Y          float64 `json:"y,omitempty"`
+	DeltaY     float64 `json:"delta_y,omitempty"`
+	ClickCount int     `json:"click_count,omitempty"`
+	Button     string  `json:"button,omitempty"`
 }
 
 type Session struct {
@@ -288,7 +293,10 @@ func (m *Manager) Create(ctx context.Context, projectID, initialURL string) (Inf
 			ws, _ = findPage(port)
 		}
 	}
-	s := &Session{info: Info{ID: id, ProjectID: projectID, URL: initialURL, Width: 1280, Height: 800}, wsURL: ws, cmd: cmd, done: done, directory: directory}
+	s := &Session{info: Info{ID: id, ProjectID: projectID, URL: initialURL, Width: 1280, Height: 800, LastActiveAt: time.Now()}, wsURL: ws, cmd: cmd, done: done, directory: directory}
+	_ = s.call(ctx, "Emulation.setDeviceMetricsOverride", map[string]any{
+		"width": 1280, "height": 800, "deviceScaleFactor": 1, "mobile": false,
+	}, nil)
 	if err := s.navigate(ctx, initialURL); err != nil && !isNetworkNavigationError(err) {
 		cleanup()
 		return Info{}, err
@@ -311,7 +319,13 @@ func (m *Manager) List(projectID string) []Info {
 	for _, s := range m.sessions {
 		s.mu.Lock()
 		if projectID == "" || s.info.ProjectID == projectID {
-			result = append(result, s.info)
+			item := s.info
+			if s.controller != "" && time.Now().Before(s.controllerUntil) {
+				item.ActiveActor = s.controller
+			} else {
+				item.ActiveActor = ""
+			}
+			result = append(result, item)
 		}
 		s.mu.Unlock()
 	}
@@ -442,6 +456,7 @@ func (s *Session) navigate(ctx context.Context, raw string) error {
 		return err
 	}
 	s.info.URL = raw
+	s.info.LastActiveAt = time.Now()
 	if result.ErrorText != "" {
 		return &NavigationError{URL: raw, Reason: result.ErrorText}
 	}
@@ -458,6 +473,7 @@ func (s *Session) doLocked(ctx context.Context, a Action) (Info, error) {
 	if s.closed {
 		return Info{}, errors.New("browser session closed")
 	}
+	s.info.LastActiveAt = time.Now()
 	var err error
 	switch a.Type {
 	case "navigate":
@@ -502,13 +518,60 @@ func (s *Session) doLocked(ctx context.Context, a Action) (Info, error) {
 		if a.X < 0 || a.Y < 0 || a.X >= float64(s.info.Width) || a.Y >= float64(s.info.Height) {
 			return Info{}, errors.New("click outside viewport")
 		}
-		p := map[string]any{"x": a.X, "y": a.Y, "button": "left", "clickCount": 1}
+		btn := a.Button
+		if btn != "right" && btn != "middle" {
+			btn = "left"
+		}
+		count := a.ClickCount
+		if count <= 0 {
+			count = 1
+		}
+		p := map[string]any{"x": a.X, "y": a.Y, "button": btn, "clickCount": count}
 		p["type"] = "mousePressed"
 		err = s.call(ctx, "Input.dispatchMouseEvent", p, nil)
 		if err == nil {
 			p["type"] = "mouseReleased"
 			err = s.call(ctx, "Input.dispatchMouseEvent", p, nil)
 		}
+	case "mouse_down":
+		if a.X < 0 || a.Y < 0 || a.X >= float64(s.info.Width) || a.Y >= float64(s.info.Height) {
+			return Info{}, errors.New("click outside viewport")
+		}
+		btn := a.Button
+		if btn != "right" && btn != "middle" {
+			btn = "left"
+		}
+		count := a.ClickCount
+		if count <= 0 {
+			count = 1
+		}
+		p := map[string]any{"x": a.X, "y": a.Y, "button": btn, "clickCount": count, "type": "mousePressed"}
+		err = s.call(ctx, "Input.dispatchMouseEvent", p, nil)
+	case "mouse_up":
+		if a.X < 0 || a.Y < 0 || a.X >= float64(s.info.Width) || a.Y >= float64(s.info.Height) {
+			return Info{}, errors.New("click outside viewport")
+		}
+		btn := a.Button
+		if btn != "right" && btn != "middle" {
+			btn = "left"
+		}
+		count := a.ClickCount
+		if count <= 0 {
+			count = 1
+		}
+		p := map[string]any{"x": a.X, "y": a.Y, "button": btn, "clickCount": count, "type": "mouseReleased"}
+		err = s.call(ctx, "Input.dispatchMouseEvent", p, nil)
+	case "mouse_move":
+		if a.X < 0 || a.Y < 0 || a.X >= float64(s.info.Width) || a.Y >= float64(s.info.Height) {
+			return Info{}, errors.New("click outside viewport")
+		}
+		p := map[string]any{"x": a.X, "y": a.Y, "type": "mouseMoved"}
+		err = s.call(ctx, "Input.dispatchMouseEvent", p, nil)
+	case "select_all":
+		var out struct{}
+		err = s.call(ctx, "Runtime.evaluate", map[string]any{
+			"expression": "document.execCommand('selectAll', false, null)",
+		}, &out)
 	case "scroll":
 		err = s.call(ctx, "Input.dispatchMouseEvent", map[string]any{"type": "mouseWheel", "x": a.X, "y": a.Y, "deltaX": 0, "deltaY": a.DeltaY}, nil)
 	case "type":
@@ -517,16 +580,25 @@ func (s *Session) doLocked(ctx context.Context, a Action) (Info, error) {
 		}
 		err = s.call(ctx, "Input.insertText", map[string]any{"text": a.Text}, nil)
 	case "key":
-		codes := map[string]int{"Enter": 13, "Tab": 9, "Escape": 27, "Backspace": 8, "ArrowUp": 38, "ArrowDown": 40, "ArrowLeft": 37, "ArrowRight": 39, "Delete": 46}
-		code, ok := codes[a.Key]
-		if !ok {
-			return Info{}, errors.New("unsupported key")
+		codes := map[string]int{
+			"Enter": 13, "Tab": 9, "Escape": 27, "Backspace": 8,
+			"ArrowUp": 38, "ArrowDown": 40, "ArrowLeft": 37, "ArrowRight": 39,
+			"Delete": 46, "Home": 36, "End": 35, "PageUp": 33, "PageDown": 34,
+			"Space": 32,
 		}
-		p := map[string]any{"type": "keyDown", "key": a.Key, "windowsVirtualKeyCode": code, "nativeVirtualKeyCode": code}
-		err = s.call(ctx, "Input.dispatchKeyEvent", p, nil)
-		if err == nil {
-			p["type"] = "keyUp"
+		if a.Key == " " || a.Key == "Space" {
+			err = s.call(ctx, "Input.insertText", map[string]any{"text": " "}, nil)
+		} else if code, ok := codes[a.Key]; ok {
+			p := map[string]any{"type": "keyDown", "key": a.Key, "windowsVirtualKeyCode": code, "nativeVirtualKeyCode": code}
 			err = s.call(ctx, "Input.dispatchKeyEvent", p, nil)
+			if err == nil {
+				p["type"] = "keyUp"
+				err = s.call(ctx, "Input.dispatchKeyEvent", p, nil)
+			}
+		} else if len(a.Key) > 0 {
+			err = s.call(ctx, "Input.insertText", map[string]any{"text": a.Key}, nil)
+		} else {
+			return Info{}, errors.New("unsupported key")
 		}
 	default:
 		return Info{}, errors.New("unsupported browser action")
@@ -579,6 +651,7 @@ func (s *Session) snapshotLocked(ctx context.Context) (json.RawMessage, error) {
 		};
 		return {url:location.href,title:document.title,untrusted:true,
 			text:(document.body?.innerText||'').slice(0,12000),
+			selection:(window.getSelection()?.toString()||'').slice(0,4000),
 			elements:Array.from(document.querySelectorAll('a,button,input,textarea,select,[role="button"]')).slice(0,80).map(e=>({
 				selector:path(e),tag:e.tagName,role:e.getAttribute('role'),
 				label:e.getAttribute('aria-label')||e.getAttribute('placeholder')||'',
@@ -597,10 +670,16 @@ func (s *Session) snapshotLocked(ctx context.Context) (json.RawMessage, error) {
 		return json.RawMessage("{}"), nil
 	}
 	var meta struct {
-		URL string `json:"url"`
+		URL   string `json:"url"`
+		Title string `json:"title"`
 	}
-	if json.Unmarshal(out.Result.Value, &meta) == nil && meta.URL != "" {
-		s.info.URL = meta.URL
+	if json.Unmarshal(out.Result.Value, &meta) == nil {
+		if meta.URL != "" {
+			s.info.URL = meta.URL
+		}
+		if meta.Title != "" {
+			s.info.Title = meta.Title
+		}
 	}
 	return out.Result.Value, nil
 }
@@ -608,7 +687,13 @@ func (s *Session) snapshotLocked(ctx context.Context) (json.RawMessage, error) {
 func (s *Session) Info() Info {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.info
+	item := s.info
+	if s.controller != "" && time.Now().Before(s.controllerUntil) {
+		item.ActiveActor = s.controller
+	} else {
+		item.ActiveActor = ""
+	}
+	return item
 }
 
 type NavigationError struct {
@@ -638,11 +723,20 @@ func (s *Session) AcquireControl(owner string) (bool, string) {
 	if s.handoff.Status == "requested" || (s.handoff.Status == "human_active" && s.controller != owner) {
 		return false, "browser paused for human intervention"
 	}
+	if strings.HasPrefix(owner, "human:") && strings.HasPrefix(s.controller, "agent:") {
+		s.controller = owner
+		s.controllerUntil = now.Add(25 * time.Second)
+		s.info.ActiveActor = owner
+		s.info.LastActiveAt = now
+		return true, ""
+	}
 	if s.controller != "" && s.controller != owner && now.Before(s.controllerUntil) {
 		return false, "another device controls this browser"
 	}
 	s.controller = owner
 	s.controllerUntil = now.Add(25 * time.Second)
+	s.info.ActiveActor = owner
+	s.info.LastActiveAt = now
 	return true, ""
 }
 func (s *Session) ReleaseControl(owner string) {
@@ -651,6 +745,7 @@ func (s *Session) ReleaseControl(owner string) {
 	if owner != "" && s.controller == owner {
 		s.controller = ""
 		s.controllerUntil = time.Time{}
+		s.info.ActiveActor = ""
 	}
 }
 func (s *Session) CanControl(owner string) bool {

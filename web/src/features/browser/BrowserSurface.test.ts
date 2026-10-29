@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeBrowserURL } from './BrowserSurface';
+import { formatTabTitle, normalizeBrowserURL, type NexusBrowserInfo } from './BrowserSurface';
 
 describe('normalizeBrowserURL', () => {
   it('keeps existing http and https schemes intact', () => {
@@ -24,5 +24,53 @@ describe('normalizeBrowserURL', () => {
   it('handles empty or whitespace strings', () => {
     expect(normalizeBrowserURL('')).toBe('');
     expect(normalizeBrowserURL('   ')).toBe('');
+  });
+});
+
+describe('formatTabTitle', () => {
+  it('prefers explicit page title when present', () => {
+    const candidate: NexusBrowserInfo = {
+      id: 'session-1',
+      project_id: 'p1',
+      url: 'https://example.com/docs',
+      title: 'Documentation · IAPro Nexus',
+      width: 1280,
+      height: 800,
+    };
+    expect(formatTabTitle(candidate)).toBe('Documentation · IAPro Nexus');
+  });
+
+  it('formats clean domain and path when title is absent', () => {
+    const candidate: NexusBrowserInfo = {
+      id: 'session-2',
+      project_id: 'p1',
+      url: 'https://github.com/IAPro-Community/nexus',
+      width: 1280,
+      height: 800,
+    };
+    expect(formatTabTitle(candidate)).toBe('github.com/IAPro-Communi');
+  });
+
+  it('formats agent label for agent-owned sessions without URL or title', () => {
+    const candidate: NexusBrowserInfo = {
+      id: 'session-3',
+      project_id: 'p1',
+      url: '',
+      owner_runtime_id: 'agy-06GQFCC3DFS0TGZHM3QC',
+      width: 1280,
+      height: 800,
+    };
+    expect(formatTabTitle(candidate)).toBe('Agente · agy-06GQ');
+  });
+
+  it('falls back to session ID slice when no other identifiers exist', () => {
+    const candidate: NexusBrowserInfo = {
+      id: 'abcdef1234567890',
+      project_id: 'p1',
+      url: '',
+      width: 1280,
+      height: 800,
+    };
+    expect(formatTabTitle(candidate)).toBe('Aba · abcdef');
   });
 });

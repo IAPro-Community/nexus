@@ -1,3 +1,91 @@
+## 2026-10-28 — sistema de abas nativas no Navegador Nexus com foco automático no agente e indicadores de atividade
+
+- **Barra de abas nativa integrada no navegador (Frontend & Backend)**:
+  - Contexto e Requisito: Substituição do menu dropdown (combobox) por uma barra de abas nativa dentro da janela do navegador quando houver múltiplas abas/sessões abertas, com foco automático na aba em que o agente está operando e indicadores visuais de atualização e atividade em tempo real.
+  - Backend (`internal/browsercontrol/browser.go` e `browser_collaboration.go`):
+    - `Info`: enriquecida com os campos `Title` (título extraído do DOM da página), `ActiveActor` (ator que detém o lease de controle ativo) e `LastActiveAt` (carimbo da última operação).
+    - `Session.navigate`, `doLocked`, `DoAs` e `AcquireControl`: atualizam `s.info.LastActiveAt` e `s.info.ActiveActor` a cada comando executado.
+    - `Manager.List` e `Session.Info()`: propagam `ActiveActor` quando o lease do controlador estiver ativo (`time.Now().Before(s.controllerUntil)`).
+  - Frontend (`web/src/features/browser/`):
+    - `BrowserSurface.tsx`:
+      - **Substituição do combobox por `<div className={styles.tabBar} role="tablist">`**: abas renderizadas no topo da janela do navegador com navegação por teclado (`ArrowLeft`, `ArrowRight`, `Home`, `End`), ícones conceituais (`Bot` para agentes autônomos, `Globe` para sessões manuais) e título formatado inteligente via `formatTabTitle`.
+      - **Foco automático no agente em operação**: durante o polling de atualização, se uma aba secundária tiver atividade recente disparada por um agente (`candidate.active_actor?.startsWith('agent:')` ou `candidate.owner_runtime_id`), o foco é transferido automaticamente para ela, a menos que o usuário esteja digitando ativamente no campo de endereço.
+      - **Indicador de aba operada**: crachá pulsante (`Operando` com `pulse-animation`) exibido na aba enquanto o agente estiver atuando.
+      - **Indicador de aba atualizada**: ponto de notificação (`updateDot`) que marca abas atualizadas em segundo plano, sendo limpo automaticamente assim que o usuário seleciona e visualiza a aba.
+      - **Ações de aba**: botão de fechamento de aba individual (`X`) com chamada para `browserAPI.close(id)` e botão de nova aba (`+`) que permite criar até 4 sessões ativas.
+    - `BrowserSurface.module.scss`:
+      - Classes modulares para `.tabBar`, `.tabList`, `.tabItem`, `.tabButton`, `.tabIcon`, `.tabLabel`, `.tabCloseButton`, `.addTabButton`, `.operatingBadge`, `.pulseDot`, `@keyframes pulse-animation` e `.updateDot`, utilizando estritamente tokens semânticos (`--nx-surface`, `--nx-surface-2`, `--nx-border`, `--nx-accent`, `--nx-info`, etc.).
+  - Testes e Qualidade:
+    - `web/src/features/browser/BrowserSurface.test.ts`: adicionados testes unitários para a função `formatTabTitle` (prioridade de título, fallback para domínio/caminho, identificação de agente e slice de sessão).
+    - `npm --prefix web run typecheck`: 0 erros.
+    - `npm --prefix web run lint`: 0 erros.
+    - `npm --prefix web run lint:styles`: 0 erros.
+    - `npm --prefix web run test`: 122 suítes (759 testes) aprovadas.
+    - `go test -v ./internal/browsercontrol/...`: 100% dos testes aprovados.
+    - `make web` & `make install-local`: binário recompilado e daemon `nexus web` reiniciado com sucesso (PID 743530).
+
+## 2026-10-28 — paridade completa de interação, seleção de texto, teclado direto e alinhamento de viewport no Navegador Nexus
+
+- **Alinhamento de coordenadas e sincronização de viewport (Backend & Frontend)**:
+  - Causa raiz:
+    1. O Chromium headless inicializava com `--window-size=1280,800`, mas em ambientes Linux com plataforma ozone o viewport interno da página ficava limitado a 1280x713 devido ao espaço reservado para barra de título e omnibox. Sem a chamada explícita de `Emulation.setDeviceMetricsOverride`, havia um desvio vertical de até 87 pixels na área da página. Todo clique efetuado pelo usuário caía abaixo do alvo desejado.
+    2. O cálculo de coordenadas em `clickAt` lia o bounding rect do botão (`<button>`) em vez do elemento de imagem renderizado (`<img>`), introduzindo distorções em zooms diferentes de 100% ou layouts responsivos.
+    3. `perform` descartava cliques silenciosamente sempre que `busy == true`. Durante um clique duplo para selecionar uma palavra, o segundo clique chegava enquanto a primeira requisição HTTP ainda estava em voo, sendo sumariamente ignorado.
+    4. O componente só escutava `onClick`, não possuindo handlers para `onMouseDown`, `onMouseMove` ou `onMouseUp`. Qualquer tentativa de arrastar o mouse para selecionar texto resultava em nada no Chromium.
+    5. Não havia captura de eventos de teclado físico na viewport. Para digitar em qualquer input da página, o usuário era forçado a usar o campo de texto auxiliar no rodapé da tela.
+    6. Quando um agente mantinha o lease ativo no backend, `AcquireControl` bloqueava a tomada de controle humana com erro 409 (`another device controls this browser`), sem preempção automática.
+  - Correção no Backend (`internal/browsercontrol/browser.go`):
+    - `Manager.Create`: chama imediatamente `Emulation.setDeviceMetricsOverride` com largura 1280, altura 800 e escala 1, garantindo que o viewport interno do Chromium seja exatamente 1280x800 antes da primeira navegação.
+    - `Action`: expandida com suporte a `button: "left" | "right" | "middle"`.
+    - `doLocked`:
+      - Casos `mouse_down`, `mouse_up` e `mouse_move`: despacham eventos nativos `mousePressed`, `mouseReleased` e `mouseMoved` no CDP.
+      - Caso `select_all`: executa seleção nativa completa via `document.execCommand('selectAll')`.
+      - Caso `key`: suporta teclas de navegação (Enter, Tab, Escape, Backspace, Delete, Arrows, Home, End, PageUp/Down, Space) e insere caracteres imprimíveis individuais diretamente via `Input.insertText`.
+      - `snapshotLocked`: inclui `selection: window.getSelection().toString()` no payload da inspeção.
+    - `AcquireControl`: usuários humanos (`strings.HasPrefix(owner, "human:")`) agora têm preempção garantida sobre agentes autônomos (`strings.HasPrefix(s.controller, "agent:")`), assumindo o controle imediatamente.
+  - Correção no Frontend (`web/src/features/browser/`):
+    - `BrowserSurface.tsx`:
+      - **Fila assíncrona de ações (`queueRef` + `processQueue`)**: cliques rápidos e cliques duplos/triplos não são mais descartados por concorrência de `busy`. Cada evento é enfileirado e executado sequencialmente em FIFO.
+      - **Cálculo exato de coordenadas (`toViewportCoords`)**: mede diretamente a caixa do elemento `<img>` e projeta coordenadas relativas exatas com corte e arredondamento rigoroso nas dimensões do viewport do Chromium.
+      - **Seleção de texto por arrasto**: implementados `handleMouseDown`, `handleMouseMove` e `handleMouseUp`. Movimentos superiores a 5px disparam `mouse_down`, `mouse_move` contínuo e `mouse_up`, permitindo selecionar blocos de texto no documento web com arrasto do mouse.
+      - **Suporte a clique duplo e triplo**: propaga `event.detail` como `click_count`, permitindo selecionar palavras (2 cliques) e parágrafos inteiros (3 cliques).
+      - **Menu de contexto com botão direito**: `handleContextMenu` intercepta o menu local e repassa o clique com botão direito para a página remota.
+      - **Digitação direta pelo teclado**: listener `handleKeyDown` na viewport focada direciona teclas digitadas (letras, números, acentos, backspace, enter, setas, tab) diretamente para o elemento focado dentro do navegador.
+      - **Cópia de texto para área de transferência**: atalho `Ctrl+C` / `Cmd+C` e botão dedicado "Copiar seleção" na barra de controles recuperam o texto selecionado na página via snapshot e gravam no clipboard do sistema operacional.
+    - `BrowserSurface.module.scss`:
+      - Cursor em repouso: `cursor: default`.
+      - Cursor durante arrasto de seleção: `cursor: text`.
+  - Verificação e Entrega:
+    - `npm --prefix web run typecheck`: 0 erros.
+    - `npm --prefix web run lint`: 0 erros.
+    - `npm --prefix web run lint:styles`: 0 erros.
+    - `npm --prefix web run test`: 122 suítes (755 testes) passando.
+    - `go test -v ./internal/browsercontrol/... ./internal/control/web/...`: 100% dos testes passando.
+    - `make web` e `make install-local`: binário compilado com assets embutidos e daemon `nexus web` reiniciado (PID 596403).
+
+## 2026-10-28 — correção de cursor crosshair e habilitação de clique e seleção no Navegador Nexus
+
+- **Eliminação do cursor crosshair e restauração da interação direta**:
+  - Causa raiz:
+    1. O estilo `.viewportButton` em `BrowserSurface.module.scss` definia rigidamente `cursor: crosshair`, fazendo o ponteiro do mouse parecer uma mira/cruz estática sobre a tela do navegador.
+    2. O controle do navegador (`controller`) dependia de `visible` no array de dependências do `useEffect`. Variações no `IntersectionObserver` disparavam a limpeza do efeito chamando `setController(false)` e liberando o lease de controle no backend, deixando o usuário em modo somente visualização silenciosamente.
+    3. Quando `controller == false`, `clickAt` retornava imediatamente sem fazer nada, e todos os botões da barra de ferramentas e de ação estavam bloqueados (`disabled={!controller || busy}`), impedindo qualquer clique, navegação ou digitação.
+    4. O clique na viewport não suportava contagem de cliques (`clickCount`), inviabilizando cliques duplos/triplos para selecionar palavras/textos no Chromium.
+  - Correção no Frontend (`web/src/features/browser/`):
+    - `BrowserSurface.module.scss`: substituído `cursor: crosshair` por `cursor: default` em repouso e hover no `.viewportButton`, com `cursor: inherit` na imagem da viewport.
+    - `BrowserSurface.tsx`:
+      - `NexusBrowserAction`: adicionado campo `click_count?: number`.
+      - `perform`: agora adquire o controle automaticamente no backend caso o usuário ainda não detenha o lease, em vez de rejeitar a ação silenciosamente.
+      - `clickAt`: removido bloqueio quando `controller == false`; agora propaga `click_count: event.detail || 1`, permitindo seleção de texto com duplo clique e cliques diretos em botões e links.
+      - `useEffect` do lease: removida a dependência instável de `visible` no ciclo do lease para evitar liberações acidentais em transições de layout.
+      - Controles da barra de ferramentas (Voltar, Avançar, Navegar, Recarregar, Viewport celular, Enviar texto, Enter, Tab, Backspace) liberados para uso direto sem bloqueio de `!controller`.
+  - Correção no Backend (`internal/browsercontrol/browser.go`):
+    - `Action`: adicionado `ClickCount int json:"click_count,omitempty"`.
+    - `doLocked` no caso `click`: passa `a.ClickCount` (padrão 1) para o evento CDP `Input.dispatchMouseEvent`, habilitando cliques duplos de seleção.
+  - Scripts:
+    - `scripts/restart-web.sh`: implementado loop com polling de espera para encerramento gracioso do PID anterior antes de iniciar nova instância do `nexus web`, evitando erro `bind: address already in use` na porta 13000.
+- Recompilação com `make install-local` e `nexus web` reiniciado com sucesso.
+
 ## 2026-10-28 — auto-correção de URL do navegador, decomposição em camadas de Flow no Composer e failover de quota no Nexus Intelligence
 
 - **Auto-correção de URLs sem protocolo no Nexus Browser (Frontend & Backend)**:

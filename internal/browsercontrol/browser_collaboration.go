@@ -241,6 +241,8 @@ func (s *Session) AcquireAgentControl(actor string) (bool, string) {
 	}
 	s.controller = actor
 	s.controllerUntil = now.Add(25 * time.Second)
+	s.info.ActiveActor = actor
+	s.info.LastActiveAt = now
 	return true, ""
 }
 
@@ -259,6 +261,8 @@ func (s *Session) DoAs(ctx context.Context, actor string, action Action) (Info, 
 	if strings.HasPrefix(actor, "agent:") && (s.handoff.Status == "requested" || s.handoff.Status == "human_active") {
 		return Info{}, errors.New("agent paused for human intervention")
 	}
+	s.info.ActiveActor = actor
+	s.info.LastActiveAt = time.Now()
 	return s.doLocked(ctx, action)
 }
 

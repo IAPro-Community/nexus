@@ -46,7 +46,16 @@ FLAGS=$(echo "$RAW" | sed 's|.*nexus web||' | sed 's/^ *//')
 echo "⟳  Restarting nexus web (PID $PID, flags: $FLAGS)..."
 
 kill "$PID" 2>/dev/null || true
-sleep 0.5
+for _ in {1..30}; do
+  if ! kill -0 "$PID" 2>/dev/null; then
+    break
+  fi
+  sleep 0.1
+done
+if kill -0 "$PID" 2>/dev/null; then
+  kill -9 "$PID" 2>/dev/null || true
+  sleep 0.2
+fi
 
 # Fully detach: new session + redirect all std fds + disown.
 # shellcheck disable=SC2086

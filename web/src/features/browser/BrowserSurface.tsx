@@ -2,15 +2,19 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
+  Bot,
   Camera,
+  Copy,
   Globe,
   Keyboard,
   Lock,
   Monitor,
+  Plus,
   RefreshCw,
   Send,
   Smartphone,
   Unlock,
+  X,
 } from 'lucide-react';
 import { getDesktopAuthToken, getWebSocketEndpoint, request } from '../../api';
 import { useTranslation } from 'react-i18next';
@@ -45,10 +49,35 @@ export type NexusBrowserInfo = {
   id: string;
   project_id: string;
   url: string;
+  title?: string;
   width: number;
   height: number;
   owner_runtime_id?: string;
+  active_actor?: string;
+  last_active_at?: string;
 };
+
+export function formatTabTitle(candidate: NexusBrowserInfo): string {
+  if (candidate.title && candidate.title.trim()) {
+    return candidate.title.trim();
+  }
+  if (candidate.url) {
+    try {
+      const parsed = new URL(candidate.url);
+      const host = parsed.hostname;
+      if (host) {
+        const path = parsed.pathname !== '/' ? parsed.pathname : '';
+        return `${host}${path}`.slice(0, 24);
+      }
+    } catch {
+      return candidate.url.slice(0, 24);
+    }
+  }
+  if (candidate.owner_runtime_id) {
+    return `Agente · ${candidate.owner_runtime_id.slice(0, 8)}`;
+  }
+  return `Aba · ${candidate.id.slice(0, 6)}`;
+}
 
 export type NexusBrowserAction = {
   type:
@@ -57,9 +86,13 @@ export type NexusBrowserAction = {
     | 'forward'
     | 'reload'
     | 'click'
+    | 'mouse_down'
+    | 'mouse_up'
+    | 'mouse_move'
     | 'scroll'
     | 'type'
     | 'key'
+    | 'select_all'
     | 'click_selector'
     | 'fill_selector'
     | 'wait_selector'
@@ -74,6 +107,8 @@ export type NexusBrowserAction = {
   timeout_ms?: number;
   width?: number;
   height?: number;
+  click_count?: number;
+  button?: 'left' | 'right' | 'middle';
 };
 
 export type BrowserHandoff = {
@@ -95,6 +130,7 @@ export type NexusBrowserSnapshot = {
   title: string;
   untrusted: true;
   text: string;
+  selection?: string;
   elements: NexusBrowserElement[];
 };
 
@@ -138,6 +174,10 @@ export const browserAPI = {
       body: JSON.stringify({ id: grantId }),
     }),
   snapshot: (id: string) => request<NexusBrowserSnapshot>(`${browserRoute(id)}/snapshot`),
+  close: (id: string) =>
+    request<{ status: string }>(browserRoute(id), {
+      method: 'DELETE',
+    }),
 };
 
 export const BrowserSurface: React.FC<{
@@ -166,6 +206,12 @@ export const BrowserSurface: React.FC<{
   const [privateInput, setPrivateInput] = useState(false);
   const [connectionInfo, setConnectionInfo] = useState('');
   const [grantFallback, setGrantFallback] = useState('');
+  const [dragging, setDragging] = useState(false);
+  const [selectionText, setSelectionText] = useState('');
+  const [updatedTabs, setUpdatedTabs] = useState<Set<string>>(new Set());
+  const previousBrowserState = useRef<
+    Map<string, { lastActiveAt: string; url: string; activeActor: string }>
+  >(new Map());
   const rootRef = useRef<HTMLElement>(null);
   const frameObjectURL = useRef('');
   const started = useRef(false);
@@ -174,6 +220,11 @@ export const BrowserSurface: React.FC<{
   const touchStart = useRef<number | null>(null);
   const ignoreClick = useRef(false);
   const lastFrameAt = useRef(0);
+  const queueRef = useRef<NexusBrowserAction[]>([]);
+  const processingRef = useRef(false);
+  const isDragging = useRef(false);
+  const dragStart = useRef<{ x: number; y: number; clientX: number; clientY: number } | null>(null);
+  const lastMoveAt = useRef(0);
 
   useEffect(() => {
     onReady.current = onSessionReady;
@@ -240,6 +291,69 @@ export const BrowserSurface: React.FC<{
     };
   }, [initialSessionId, projectId, initialUrl]);
 
+  const selectBrowser = useCallback(
+    (id: string) => {
+      if (!id) return;
+      setUpdatedTabs((prevSet) => {
+        if (!prevSet.has(id)) return prevSet;
+        const next = new Set(prevSet);
+        next.delete(id);
+        return next;
+      });
+      if (id === session?.id) return;
+      void browserAPI
+        .get(id)
+        .then((next) => {
+          if (next.project_id !== projectId) return;
+          setWantsControl(false);
+          setController(false);
+          setSession(next);
+          setAddress(next.url);
+          setSnapshot('');
+          setElements([]);
+          setError('');
+          onReady.current?.(next.id);
+        })
+        .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
+    },
+    [projectId, session?.id],
+  );
+
+  const closeBrowser = useCallback(
+    async (id: string) => {
+      try {
+        await browserAPI.close(id);
+        setAvailableBrowsers((prev) => prev.filter((b) => b.id !== id));
+        setUpdatedTabs((prevSet) => {
+          const next = new Set(prevSet);
+          next.delete(id);
+          return next;
+        });
+        previousBrowserState.current.delete(id);
+        if (session?.id === id) {
+          const remaining = availableBrowsers.filter((b) => b.id !== id);
+          if (remaining.length > 0) {
+            selectBrowser(remaining[0].id);
+          }
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [availableBrowsers, selectBrowser, session?.id],
+  );
+
+  const createNewBrowser = useCallback(async () => {
+    if (availableBrowsers.length >= 4) return;
+    try {
+      const next = await browserAPI.create(projectId, 'https://example.org');
+      setAvailableBrowsers((prev) => [...prev, next]);
+      selectBrowser(next.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }, [availableBrowsers.length, projectId, selectBrowser]);
+
   useEffect(() => {
     if (!session) return;
     let disposed = false;
@@ -255,6 +369,54 @@ export const BrowserSurface: React.FC<{
           setHandoff(status);
           setGrants(activeGrants);
           setAvailableBrowsers(browsers);
+
+          let agentTabToFocus: string | null = null;
+          for (const candidate of browsers) {
+            const prev = previousBrowserState.current.get(candidate.id);
+            if (prev) {
+              const urlChanged = Boolean(candidate.url && candidate.url !== prev.url);
+              const activityChanged = Boolean(
+                candidate.last_active_at && candidate.last_active_at !== prev.lastActiveAt,
+              );
+              const actorChanged = Boolean(
+                candidate.active_actor && candidate.active_actor !== prev.activeActor,
+              );
+              const hasChanged = urlChanged || activityChanged || actorChanged;
+
+              if (hasChanged && candidate.id !== session.id) {
+                setUpdatedTabs((prevSet) => {
+                  const next = new Set(prevSet);
+                  next.add(candidate.id);
+                  return next;
+                });
+
+                const isAgentActing = Boolean(
+                  candidate.active_actor?.startsWith('agent:') ||
+                    (candidate.owner_runtime_id && (urlChanged || activityChanged)),
+                );
+                if (isAgentActing && !agentTabToFocus) {
+                  agentTabToFocus = candidate.id;
+                }
+              }
+            }
+            previousBrowserState.current.set(candidate.id, {
+              lastActiveAt: candidate.last_active_at || '',
+              url: candidate.url || '',
+              activeActor: candidate.active_actor || '',
+            });
+          }
+
+          if (agentTabToFocus && session.id !== agentTabToFocus) {
+            const activeEl = document.activeElement;
+            const userIsTyping =
+              activeEl &&
+              (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA') &&
+              activeEl.getAttribute('aria-label') === 'Endereço da página';
+            if (!userIsTyping) {
+              selectBrowser(agentTabToFocus);
+            }
+          }
+
           // Keep the visible address in sync with agent-driven navigation
           // without overwriting a human editing the location bar.
           if (
@@ -277,7 +439,7 @@ export const BrowserSurface: React.FC<{
       disposed = true;
       window.clearInterval(interval);
     };
-  }, [session?.id]);
+  }, [session?.id, session, projectId, selectBrowser]);
 
   const createAgentConnection = async () => {
     if (!session) return;
@@ -408,7 +570,7 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
   // Other desktop/mobile clients can watch, and gain control when released
   // or when its heartbeat expires.
   useEffect(() => {
-    if (!session || !visible || !wantsControl) {
+    if (!session || !wantsControl) {
       setController(false);
       return;
     }
@@ -439,64 +601,264 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
       setController(false);
       void browserAPI.control(session.id, 'release').catch(() => undefined);
     };
-  }, [session?.id, visible, wantsControl]);
+  }, [session?.id, wantsControl]);
+
+  const processQueue = useCallback(async () => {
+    if (processingRef.current || !session) return;
+    processingRef.current = true;
+    setBusy(true);
+    try {
+      while (queueRef.current.length > 0) {
+        const action = queueRef.current.shift();
+        if (!action) break;
+        if (!controller) {
+          try {
+            const res = await browserAPI.control(session.id, 'acquire');
+            if (res.controller) {
+              setController(true);
+              setWantsControl(true);
+            } else {
+              try {
+                const state = await browserAPI.handoff(session.id, 'begin');
+                setHandoff(state);
+                setPrivateInput(true);
+                setController(true);
+                setWantsControl(true);
+              } catch {
+                setError('Não foi possível assumir o controle do navegador.');
+                break;
+              }
+            }
+          } catch {
+            try {
+              const state = await browserAPI.handoff(session.id, 'begin');
+              setHandoff(state);
+              setPrivateInput(true);
+              setController(true);
+              setWantsControl(true);
+            } catch (acquireErr) {
+              setError(acquireErr instanceof Error ? acquireErr.message : String(acquireErr));
+              break;
+            }
+          }
+        }
+        try {
+          const next = await browserAPI.action(session.id, action);
+          setSession(next);
+          if (action.type === 'navigate') setAddress(next.url);
+          setError('');
+        } catch (err) {
+          setError(err instanceof Error ? err.message : String(err));
+        }
+      }
+    } finally {
+      processingRef.current = false;
+      setBusy(false);
+      window.setTimeout(() => void refreshImage().catch(() => undefined), 100);
+      window.setTimeout(() => void refreshImage().catch(() => undefined), 350);
+    }
+  }, [session, controller, refreshImage]);
 
   const perform = useCallback(
-    async (action: NexusBrowserAction) => {
-      if (!session || !controller || busy) return;
-      setBusy(true);
-      try {
-        const next = await browserAPI.action(session.id, action);
-        setSession(next);
-        if (action.type === 'navigate') setAddress(next.url);
-        setError('');
-        window.setTimeout(() => {
-          void refreshImage().catch(() => undefined);
-        }, 450);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
-      } finally {
-        setBusy(false);
-      }
+    (action: NexusBrowserAction) => {
+      queueRef.current.push(action);
+      void processQueue();
     },
-    [session, busy, controller, refreshImage],
+    [processQueue],
   );
 
-  const clickAt = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const toViewportCoords = (clientX: number, clientY: number, target: HTMLElement | null) => {
+    if (!session || !target) return null;
+    const img = (target.querySelector('img') as HTMLImageElement | null) || (target as HTMLElement);
+    const rect = img.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    const rawX = ((clientX - rect.left) / rect.width) * session.width;
+    const rawY = ((clientY - rect.top) / rect.height) * session.height;
+    const x = Math.max(0, Math.min(session.width - 1, Math.round(rawX)));
+    const y = Math.max(0, Math.min(session.height - 1, Math.round(rawY)));
+    return { x, y };
+  };
+
+  const handleMouseDown = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (event.button !== 0 && event.button !== 2) return;
+    if (!session) return;
+    const coords = toViewportCoords(event.clientX, event.clientY, event.currentTarget);
+    if (!coords) return;
+    dragStart.current = { ...coords, clientX: event.clientX, clientY: event.clientY };
+    isDragging.current = false;
+  };
+
+  const handleMouseMove = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (!session || !dragStart.current) return;
+    const distance = Math.hypot(
+      event.clientX - dragStart.current.clientX,
+      event.clientY - dragStart.current.clientY,
+    );
+    if (distance > 5) {
+      const coords = toViewportCoords(event.clientX, event.clientY, event.currentTarget);
+      if (!coords) return;
+      if (!isDragging.current) {
+        isDragging.current = true;
+        setDragging(true);
+        perform({
+          type: 'mouse_down',
+          x: dragStart.current.x,
+          y: dragStart.current.y,
+          button: 'left',
+        });
+      }
+      const now = Date.now();
+      if (now - lastMoveAt.current > 50) {
+        lastMoveAt.current = now;
+        perform({ type: 'mouse_move', x: coords.x, y: coords.y });
+      }
+    }
+  };
+
+  const handleMouseUp = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (!session) return;
+    const coords = toViewportCoords(event.clientX, event.clientY, event.currentTarget);
+    if (isDragging.current) {
+      isDragging.current = false;
+      setDragging(false);
+      dragStart.current = null;
+      if (coords) {
+        perform({
+          type: 'mouse_up',
+          x: coords.x,
+          y: coords.y,
+          button: 'left',
+        });
+      }
+      window.setTimeout(() => {
+        void browserAPI
+          .snapshot(session.id)
+          .then((snap) => {
+            if (snap.selection) setSelectionText(snap.selection);
+          })
+          .catch(() => undefined);
+      }, 250);
+      return;
+    }
+    dragStart.current = null;
+  };
+
+  const handleMouseLeave = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (isDragging.current && session) {
+      isDragging.current = false;
+      setDragging(false);
+      const coords = toViewportCoords(event.clientX, event.clientY, event.currentTarget);
+      if (coords) {
+        perform({ type: 'mouse_up', x: coords.x, y: coords.y, button: 'left' });
+      }
+    }
+    dragStart.current = null;
+  };
+
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (ignoreClick.current) {
       ignoreClick.current = false;
       return;
     }
-    if (!session || !controller) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    const x = Math.max(
-      0,
-      Math.min(session.width - 1, ((event.clientX - rect.left) * session.width) / rect.width),
-    );
-    const y = Math.max(
-      0,
-      Math.min(session.height - 1, ((event.clientY - rect.top) * session.height) / rect.height),
-    );
-    void perform({ type: 'click', x, y });
+    if (isDragging.current) {
+      return;
+    }
+    if (!session) return;
+    const coords = toViewportCoords(event.clientX, event.clientY, event.currentTarget);
+    if (!coords) return;
+    const clickCount = event.detail || 1;
+    perform({
+      type: 'click',
+      x: coords.x,
+      y: coords.y,
+      click_count: clickCount,
+      button: event.button === 2 ? 'right' : 'left',
+    });
+    if (clickCount >= 2) {
+      window.setTimeout(() => {
+        void browserAPI
+          .snapshot(session.id)
+          .then((snap) => {
+            if (snap.selection) setSelectionText(snap.selection);
+          })
+          .catch(() => undefined);
+      }, 250);
+    }
   };
 
-  const selectBrowser = (id: string) => {
-    if (!id || id === session?.id) return;
-    void browserAPI
-      .get(id)
-      .then((next) => {
-        if (next.project_id !== projectId) return;
-        setWantsControl(false);
-        setController(false);
-        setSession(next);
-        setAddress(next.url);
-        setSnapshot('');
-        setElements([]);
-        setError('');
-        onReady.current?.(next.id);
-      })
-      .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
+  const handleContextMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    if (!session) return;
+    const coords = toViewportCoords(event.clientX, event.clientY, event.currentTarget);
+    if (coords) {
+      perform({ type: 'click', x: coords.x, y: coords.y, click_count: 1, button: 'right' });
+    }
+  };
+
+  const copySelection = async () => {
+    if (!session) return;
+    try {
+      const snap = await browserAPI.snapshot(session.id);
+      if (snap.selection) {
+        await navigator.clipboard.writeText(snap.selection);
+        setSelectionText(snap.selection);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (
+      document.activeElement &&
+      document.activeElement !== event.currentTarget &&
+      ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)
+    ) {
+      return;
+    }
+    if (!session) return;
+
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'c') {
+      void copySelection();
+      return;
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
+      event.preventDefault();
+      perform({ type: 'select_all' });
+      return;
+    }
+
+    if (
+      [
+        'ArrowUp',
+        'ArrowDown',
+        'ArrowLeft',
+        'ArrowRight',
+        'Space',
+        ' ',
+        'Tab',
+        'Backspace',
+        'Enter',
+      ].includes(event.key)
+    ) {
+      event.preventDefault();
+    }
+
+    if (
+      event.key === 'Backspace' ||
+      event.key === 'Delete' ||
+      event.key === 'Enter' ||
+      event.key === 'Tab' ||
+      event.key === 'Escape' ||
+      event.key.startsWith('Arrow')
+    ) {
+      perform({ type: 'key', key: event.key });
+    } else if (event.key === ' ') {
+      perform({ type: 'key', key: ' ' });
+    } else if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      perform({ type: 'key', key: event.key });
+    }
   };
 
   const inspect = () => {
@@ -517,6 +879,111 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
       className={styles.root}
       aria-label={t('browser.title', 'Navegador Nexus')}
     >
+      {availableBrowsers.length > 1 && (
+        <div
+          className={styles.tabBar}
+          role="tablist"
+          aria-label={t('browser.tabs', 'Abas do navegador')}
+          onKeyDown={(event) => {
+            if (
+              event.key !== 'ArrowRight' &&
+              event.key !== 'ArrowLeft' &&
+              event.key !== 'Home' &&
+              event.key !== 'End'
+            )
+              return;
+            const tabs = Array.from(
+              event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'),
+            );
+            const current = tabs.indexOf(document.activeElement as HTMLButtonElement);
+            if (current === -1) return;
+            event.preventDefault();
+            const next =
+              event.key === 'Home'
+                ? 0
+                : event.key === 'End'
+                  ? tabs.length - 1
+                  : (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+            tabs[next]?.focus();
+          }}
+        >
+          <div className={styles.tabList}>
+            {availableBrowsers.map((candidate) => {
+              const isActive = candidate.id === session?.id;
+              const isAgent = Boolean(candidate.owner_runtime_id);
+              const isOperating = Boolean(
+                candidate.active_actor && candidate.active_actor.startsWith('agent:'),
+              );
+              const isUpdated = updatedTabs.has(candidate.id) && !isActive;
+              const title = formatTabTitle(candidate);
+
+              return (
+                <div
+                  key={candidate.id}
+                  className={styles.tabItem}
+                  data-active={isActive ? 'true' : 'false'}
+                  data-operating={isOperating ? 'true' : 'false'}
+                  data-updated={isUpdated ? 'true' : 'false'}
+                >
+                  <button
+                    type="button"
+                    role="tab"
+                    id={`nx-browser-tab-${candidate.id}`}
+                    aria-selected={isActive}
+                    className={styles.tabButton}
+                    onClick={() => selectBrowser(candidate.id)}
+                    title={`${title} (${candidate.url})`}
+                  >
+                    <span className={styles.tabIcon} aria-hidden="true">
+                      {isAgent ? <Bot size={13} /> : <Globe size={13} />}
+                    </span>
+                    <span className={styles.tabLabel}>{title}</span>
+                    {isOperating && (
+                      <span
+                        className={styles.operatingBadge}
+                        title={t('browser.agentOperating', 'Agente operando nesta aba')}
+                      >
+                        <span className={styles.pulseDot} aria-hidden="true" />
+                        <span className={styles.badgeText}>{t('browser.operating', 'Operando')}</span>
+                      </span>
+                    )}
+                    {isUpdated && !isOperating && (
+                      <span
+                        className={styles.updateDot}
+                        title={t('browser.tabUpdated', 'Aba atualizada')}
+                        aria-label={t('browser.tabUpdated', 'Aba atualizada')}
+                      />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.tabCloseButton}
+                    aria-label={t('browser.closeTab', 'Fechar aba')}
+                    title={t('browser.closeTab', 'Fechar aba')}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void closeBrowser(candidate.id);
+                    }}
+                  >
+                    <X size={12} aria-hidden="true" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          {availableBrowsers.length < 4 && (
+            <button
+              type="button"
+              className={styles.addTabButton}
+              onClick={() => void createNewBrowser()}
+              aria-label={t('browser.newTab', 'Nova aba')}
+              title={t('browser.newTab', 'Nova aba')}
+            >
+              <Plus size={14} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      )}
       <form
         className={styles.toolbar}
         noValidate
@@ -528,25 +995,9 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
         }}
       >
         <Globe size={16} aria-hidden="true" />
-        {availableBrowsers.length > 1 && (
-          <select
-            className={styles.browserSelect}
-            aria-label="Alternar navegador do Workspace"
-            value={session?.id || ''}
-            onChange={(event) => selectBrowser(event.target.value)}
-          >
-            {availableBrowsers.map((candidate) => (
-              <option key={candidate.id} value={candidate.id}>
-                {candidate.owner_runtime_id
-                  ? `Agente · ${candidate.owner_runtime_id.slice(0, 18)}`
-                  : `Manual · ${candidate.id.slice(0, 8)}`}
-              </option>
-            ))}
-          </select>
-        )}
         <button
           type="button"
-          disabled={!controller || busy}
+          disabled={!session || busy}
           onClick={() => void perform({ type: 'back' })}
           aria-label="Voltar"
         >
@@ -554,7 +1005,7 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
         </button>
         <button
           type="button"
-          disabled={!controller || busy}
+          disabled={!session || busy}
           onClick={() => void perform({ type: 'forward' })}
           aria-label="Avançar"
         >
@@ -569,12 +1020,12 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
           onChange={(e) => setAddress(e.target.value)}
           required
         />
-        <button type="submit" disabled={!controller || busy} aria-label="Navegar">
+        <button type="submit" disabled={!session || busy} aria-label="Navegar">
           <ArrowRight size={15} />
         </button>
         <button
           type="button"
-          disabled={!controller || busy}
+          disabled={!session || busy}
           onClick={() => void perform({ type: 'reload' })}
           aria-label="Recarregar página"
         >
@@ -582,7 +1033,7 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
         </button>
         <button
           type="button"
-          disabled={!controller || busy}
+          disabled={!session || busy}
           onClick={() =>
             void perform(
               session?.width === 390
@@ -612,7 +1063,7 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
             ? 'Intervenção humana · privada'
             : controller
               ? 'Você controla'
-              : 'Somente visualização'}
+              : 'Somente visualização (clique na página para controlar)'}
         </span>
         {session && (
           <button
@@ -719,6 +1170,23 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
       <div className={styles.zoomControls} role="group" aria-label="Zoom do navegador">
         <button
           type="button"
+          onClick={() => void copySelection()}
+          aria-label="Copiar seleção para área de transferência"
+          title={
+            selectionText
+              ? `Copiar "${selectionText.slice(0, 40)}${selectionText.length > 40 ? '…' : ''}" (Ctrl+C)`
+              : 'Copiar texto selecionado (Ctrl+C)'
+          }
+        >
+          <Copy size={13} aria-hidden="true" />
+          <span>
+            {selectionText
+              ? `Copiar seleção (${selectionText.length})`
+              : 'Copiar seleção'}
+          </span>
+        </button>
+        <button
+          type="button"
           onClick={() => setZoom((value) => Math.max(75, value - 25))}
           disabled={zoom <= 75}
           aria-label="Diminuir zoom"
@@ -739,12 +1207,18 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
         {frame ? (
           <button
             type="button"
-            className={styles.viewportButton}
+            className={`${styles.viewportButton} ${dragging ? styles.isDragging : ''}`}
             style={{ width: `${zoom}%` }}
-            onClick={clickAt}
+            onClick={handleClick}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
+            onContextMenu={handleContextMenu}
+            onKeyDown={handleKeyDown}
             onWheel={(event) => {
-              if (!session || !controller) return;
-              void perform({
+              if (!session) return;
+              perform({
                 type: 'scroll',
                 x: session.width / 2,
                 y: session.height / 2,
@@ -759,17 +1233,16 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
               const end = event.changedTouches[0]?.clientY;
               if (end !== undefined && Math.abs(end - touchStart.current) > 25) {
                 ignoreClick.current = true;
-                if (controller)
-                  void perform({
-                    type: 'scroll',
-                    x: session.width / 2,
-                    y: session.height / 2,
-                    delta_y: (touchStart.current - end) * 2,
-                  });
+                perform({
+                  type: 'scroll',
+                  x: session.width / 2,
+                  y: session.height / 2,
+                  delta_y: (touchStart.current - end) * 2,
+                });
               }
               touchStart.current = null;
             }}
-            aria-label="Página do navegador (clique para interagir)"
+            aria-label="Página do navegador (clique para interagir, arraste para selecionar, digite diretamente)"
           >
             <img src={frame} alt="Visualização atual da página" draggable={false} />
           </button>
@@ -806,26 +1279,26 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
           {' '}
           {privateInput ? 'Privado' : 'Ocultar'}{' '}
         </button>
-        <button type="submit" disabled={!controller || !text || busy} aria-label="Enviar texto">
+        <button type="submit" disabled={!session || !text || busy} aria-label="Enviar texto">
           <Send size={15} />
         </button>
         <button
           type="button"
-          disabled={!controller || busy}
+          disabled={!session || busy}
           onClick={() => void perform({ type: 'key', key: 'Enter' })}
         >
           Enter
         </button>
         <button
           type="button"
-          disabled={!controller || busy}
+          disabled={!session || busy}
           onClick={() => void perform({ type: 'key', key: 'Tab' })}
         >
           Tab
         </button>
         <button
           type="button"
-          disabled={!controller || busy}
+          disabled={!session || busy}
           onClick={() => void perform({ type: 'key', key: 'Backspace' })}
         >
           ⌫
@@ -844,7 +1317,7 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
               <button
                 key={`${item.selector}:${index}`}
                 type="button"
-                disabled={!controller || busy}
+                disabled={!session || busy}
                 title={item.selector}
                 onClick={() => void perform({ type: 'click_selector', selector: item.selector })}
               >
