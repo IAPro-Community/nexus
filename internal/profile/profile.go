@@ -230,6 +230,9 @@ func List() ([]model.Profile, error) {
 	base := filepath.Join(data, "profiles")
 	var out []model.Profile
 	providers := []string{"agy", "codex", "claude", "cursor", "opencode", "gemini"}
+	if os.Getenv("NEXUS_EXPERIMENTAL_HARNESSES") == "1" {
+		providers = append(providers, "omp")
+	}
 
 	cfg, _ := config.LoadConfig()
 
