@@ -14,7 +14,7 @@
 
 ## Laboratório com os 12 gestos
 
-Um ZIP `NEX_12_Idles_Workbench.zip` foi criado nesta conversa (SHA-256 `f860436f3f6c21203f0cf58eb37029bf81be0ba255d990edc42873f821dc06e0`) com **PNG original byte-identical**, olhos, aletas e quatro módulos extraídos, HTML com 12 controles e catálogo JSON.
+Um ZIP `NEX_12_Idles_Workbench.zip` foi criado nesta conversa (SHA-256 `9021960dc1416c665d9f1834afd11e42f6479b489ad88769b9e15efa01b7b20c`) com **PNG original byte-identical**, olhos, aletas e quatro módulos extraídos, HTML com 12 controles e catálogo JSON.
 
 O Chromium real carregou **10 camadas de imagem (zero quebradas)**, expôs 12 botões e 4 módulos, acionou manualmente os seis gestos novos `module_inspect`, `orbit_shuffle`, `curiosity`, `micro_stretch`, `drowse`, `wake`, e não produziu erro JavaScript. `motion=off` resultou em `animation-name=none`; `critical` interrompeu a ação ativa.
 
