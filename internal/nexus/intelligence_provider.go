@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/control/driver"
+	"github.com/IAPro-Community/nexus/internal/core/classifier"
 	coreconfig "github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
@@ -210,11 +211,8 @@ func (n *Nexus) cliIntelligenceProvider(ctx context.Context, projectID string, c
 			out, err := runtime.RunCommandCapture(runCtx, bin, builtArgs, env, cwd)
 			if err == nil {
 				trimmed := strings.TrimSpace(out)
-				lower := strings.ToLower(trimmed)
-				if trimmed != "" &&
-					!strings.Contains(lower, "quota exceeded") &&
-					!strings.Contains(lower, "resource_exhausted") &&
-					!strings.Contains(lower, "rate limit") {
+				failure := classifier.Classify(nil, trimmed)
+				if trimmed != "" && failure.Kind != model.FailureQuota && failure.Kind != model.FailureRateLimit {
 					return out, nil
 				}
 				if trimmed == "" {
