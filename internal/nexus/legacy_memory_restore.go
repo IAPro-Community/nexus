@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -60,6 +59,10 @@ func readLocalLegacyRestoreBackup(filePath, expectedSHA256 string) (LegacyMemory
 	}
 	data, err := os.ReadFile(absolute)
 	if err != nil { return zero, err }
+	readHash := sha256.Sum256(data)
+	if hex.EncodeToString(readHash[:]) != expectedSHA256 {
+		return zero, errors.New("restore backup changed between validation and read")
+	}
 	var snapshot LegacyMemorySnapshot
 	if err := json.Unmarshal(data, &snapshot); err != nil { return zero, err }
 	if snapshot.ProjectID == "" || snapshot.ProjectPath == "" ||
