@@ -140,7 +140,11 @@ if (existsSync(manifestPath)) {
     // still invalidate captures exactly as before.
     const isRenderingChange = (name) =>
       !/\.(?:test|spec)\.(?:ts|tsx)$/.test(name) &&
-      name !== 'web/src/features/hud/nexIdleDirector.ts';
+      name !== 'web/src/features/hud/nexIdleDirector.ts' &&
+      // These source-verified files are an *unreferenced* isolated QA lab.
+      // They do not change the rendered workspace captures VIS-001..VIS-011.
+      // A future import into live HUD components is NOT exempt.
+      !name.startsWith('web/public/nex/hybrid-v1/');
     const visualPaths = [
       'web/src',
       'web/public',
@@ -204,7 +208,7 @@ const nexHeroGate = spawnSync(process.execPath, [path.join(root, 'scripts/verify
 if (nexHeroGate.status !== 0) errors.push('NEX site Hero SVG structural gate failed: ' + (nexHeroGate.stderr || nexHeroGate.stdout || 'unknown error').trim());
 const nexJointGate = spawnSync(process.execPath, [path.join(root, 'scripts/verify-nex-release-readiness.mjs')], { cwd: root, encoding: 'utf8' });
 if (nexJointGate.status !== 0) errors.push('NEX atomic HUD+Site release declaration invalid: ' + (nexJointGate.stderr || nexJointGate.stdout || 'unknown error').trim());
-const nexHybridGate = spawnSync(process.execPath, [path.join(root, 'scripts/verify-nex-hybrid-assets.mjs')], { cwd: root, encoding: 'utf8' });
+const nexHybridGate = spawnSync(process.execPath, [path.join(root, 'scripts/verify-nex-hybrid-assets.mjs'), '--require-binaries'], { cwd: root, encoding: 'utf8' });
 if (nexHybridGate.status !== 0) errors.push('NEX layered Hero raster manifest failed: ' + (nexHybridGate.stderr || nexHybridGate.stdout || 'unknown error').trim());
 const nexVisualAuditGate = spawnSync(process.execPath, [path.join(root, 'scripts/verify-nex-image-references.mjs')], { cwd: root, encoding: 'utf8' });
 if (nexVisualAuditGate.status !== 0) errors.push('NEX Oct 2026 visual audit manifest failed: ' + (nexVisualAuditGate.stderr || nexVisualAuditGate.stdout || 'unknown error').trim());
