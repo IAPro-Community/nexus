@@ -6,5 +6,14 @@ import { attentionFingerprintOf } from '../app/documentTitle';
  * Context text is not an identity: two providers can ask the same question.
  */
 export function attentionToastKey(runtime: RuntimeSession): string {
-  return `${runtime.runtime_id}\0${runtime.host_generation || 0}:${runtime.provider_generation || 0}:${runtime.attention_revision || 0}\0${attentionFingerprintOf(runtime)}`;
+  // Go int64 generation tokens must be compared as exact decimal text: JavaScript
+  // numbers cannot distinguish neighboring generations above 2^53.
+  const generation =
+    runtime.attention_generation ||
+    `${runtime.host_generation || 0}:${runtime.provider_generation || 0}`;
+  return [
+    runtime.runtime_id,
+    `${generation}:${runtime.attention_revision || 0}`,
+    attentionFingerprintOf(runtime),
+  ].join('\0');
 }

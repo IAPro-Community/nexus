@@ -80,7 +80,7 @@ import {
   type GlobalSurfaceKind,
   type ParsedRoute,
 } from './routes';
-import { attentionFingerprintOf, buildDocumentTitle, isHonestNeedsUser } from './documentTitle';
+import { buildDocumentTitle, isHonestNeedsUser } from './documentTitle';
 import { planFocusAttention, type RadarRuntimeItem } from './attentionRadarModel';
 import { resolveProjectSelection, resolveStaleProjectRoute } from './projectSelection';
 import { useNexusData } from './useNexusData';
@@ -92,7 +92,7 @@ import { KeyboardShortcutRegistry } from '../keyboard/KeyboardShortcutRegistry';
 import { pushNotifications } from '../notifications/PushNotificationManager';
 import { loadNotificationPrefs, playAttentionSound } from '../notifications/notificationPrefs';
 import { formatAttentionPushBody } from '../notifications/attentionPushCopy';
-import { isPtyAttentionFocused } from '../notifications/attentionDelivery';
+import { attentionPushKey, isPtyAttentionFocused } from '../notifications/attentionDelivery';
 import { interpretNexusVoiceCommand } from '../features/voice/voiceCommand';
 import {
   COMPOSER_FLOW_ENABLED,
@@ -1344,7 +1344,7 @@ const WorkspaceCoordinator: React.FC<{
       if (reason === 'QUESTION' || reason === 'APPROVAL') {
         if (!isHonestNeedsUser(runtime)) continue;
       }
-      const fingerprint = attentionFingerprintOf(runtime);
+      const fingerprint = attentionPushKey(runtime);
       if (!fingerprint || notifiedFingerprints.current.has(fingerprint)) continue;
 
       const isCurrentProject = !runtime.project_id || runtime.project_id === project.id;

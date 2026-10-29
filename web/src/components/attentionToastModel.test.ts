@@ -41,6 +41,17 @@ describe('attention toast identity', () => {
     expect(attentionToastKey(original)).not.toBe(attentionToastKey(repeat));
     expect(attentionToastKey(original)).not.toBe(attentionToastKey(restarted));
   });
+  it('uses exact decimal generation text instead of lossy JavaScript numbers', () => {
+    const original = waiting('rt-a', 'same-question');
+    original.attention_revision = 12;
+    original.attention_generation = '9007199254740992:9007199254740994';
+    const restarted = {
+      ...original,
+      attention_generation: '9007199254740993:9007199254740994',
+    };
+    expect(attentionToastKey(original)).not.toBe(attentionToastKey(restarted));
+    expect(attentionToastKey(original)).toBe(attentionToastKey({ ...original }));
+  });
   it('keeps the same identity through repeated polling of the same question', () => {
     expect(attentionToastKey(waiting('rt-a', 'question-1'))).toBe(
       attentionToastKey(waiting('rt-a', 'question-1')),
