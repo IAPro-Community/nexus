@@ -28,11 +28,7 @@ describe('NEX IdleDirector', () => {
   it('chooses deterministically and avoids immediate repeats', () => {
     const randomA = createNexRandom(1729);
     const randomB = createNexRandom(1729);
-    expect([randomA(), randomA(), randomA()]).toEqual([
-      randomB(),
-      randomB(),
-      randomB(),
-    ]);
+    expect([randomA(), randomA(), randomA()]).toEqual([randomB(), randomB(), randomB()]);
     expect(chooseNexIdleAction(() => 0, 'idle_blink')).not.toBe('idle_blink');
   });
 
@@ -68,11 +64,7 @@ describe('NEX IdleDirector', () => {
   });
 
   it('pauses on reduced-motion, invisibility and disabled motion', () => {
-    for (const change of [
-      { reducedMotion: true },
-      { visible: false },
-      { motionEnabled: false },
-    ]) {
+    for (const change of [{ reducedMotion: true }, { visible: false }, { motionEnabled: false }]) {
       vi.useFakeTimers();
       const director = new NexIdleDirector(() => undefined);
       director.updateEnvironment(IDLE);
