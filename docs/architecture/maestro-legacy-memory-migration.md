@@ -12,6 +12,20 @@ A memória legada existe em duas fontes distintas:
 
 Já o Maestro identifica repositório Git, branch, worktree, commit e task; seu `repositoryId` não é o `projectID` interno do Nexus. Converter INSTALL em repository ou PROJECT em branch sem revisão muda a semântica e pode vazar preferências entre projetos. O primeiro incremento faz apenas **prévia e backup local**.
 
+## Comandos locais de operação (sem importação)
+
+```bash
+# Prévia apenas de metadados, sem alterar memória existente:
+nexus maestro memory-preview --project-id prj_EXAMPLE --json
+
+# Backup explícito, com confirmação exigida:
+nexus maestro memory-backup --project-id prj_EXAMPLE --confirm-local-backup --json
+```
+
+O backup só é gerado por invocação do operador. `nexus maestro memory-backup` sem `--confirm-local-backup` falha antes de abrir a store. O CLI abre a Store local diretamente, evitando iniciar o scheduler da instância Nexus Default. Ambos os comandos retornam JSON: a prévia inclui apenas metadados e estados; o recibo do backup informa caminho local, SHA-256 e tamanho, **não** o conteúdo. O `project-id` deve corresponder a um projeto local existente.
+
+**Não existe comando `memory-migrate` nem `memory-restore` neste incremento.** Esses comportamentos dependem de contrato de escrita, mapeamento de escopo, verificação de idempotência e aprovação explícita. Não copiar o arquivo bruto para o repositório nem usá-lo como entrada sem revisar a política de privacidade.
+
 ## API interna de migração
 
 - `PreviewLegacyIntelligenceMemoryMigration(ctx, projectID)` lê os dados atuais dos dois storages e retorna somente IDs, chaves, contagens, classes e digest SHA-256 do conjunto fonte; não retorna valores, fontes textuais nem paths de usuário.
