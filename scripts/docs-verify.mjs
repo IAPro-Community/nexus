@@ -135,14 +135,12 @@ if (existsSync(manifestPath)) {
   }
   if (manifest.source_sha) {
     // Visual capture provenance must track rendered UI, not a new inactive
-    // scheduler module and its unit test. Ignore ONLY these two pure sources.
-    // GuardianMascot, NexPixelSprite, styles or any actual rendered UI still
-    // invalidate snapshots as before.
+    // scheduler module and test-only code. Test/spec files do not ship to the
+    // renderer. GuardianMascot, NexPixelSprite, styles and other runtime UI
+    // still invalidate captures exactly as before.
     const isRenderingChange = (name) =>
-      ![
-        'web/src/features/hud/nexIdleDirector.ts',
-        'web/src/features/hud/nexIdleDirector.test.ts',
-      ].includes(name);
+      !/\\.(?:test|spec)\\.(?:ts|tsx)$/.test(name) &&
+      name !== 'web/src/features/hud/nexIdleDirector.ts';
     const visualPaths = [
       'web/src',
       'web/public',
