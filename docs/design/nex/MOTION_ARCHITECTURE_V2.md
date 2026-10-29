@@ -2,7 +2,7 @@
 
 **Data da revisão:** 28/10/2026  
 **Identidade:** o robô frontal branco/azul do PNG escolhido, sem redesenhar capacete, visor, aletas, torso, núcleo ou quatro módulos.  
-**Estado verificado em 29/10/2026:** o player 360° já existe no `IAPro-Community/Nexus-Site`, mas as **16 vistas reais NÃO foram produzidas**. A [PR #147](https://github.com/IAPro-Community/nexus/pull/147) incorporou na release os PNGs originais, camadas e atlas experimental de 96 quadros. O master OpenRaster é recuperável byte a byte a partir de seis partes rastreadas no Git por `node scripts/restore-nex-openraster.mjs`. **Esses assets ainda são candidatos, não aprovados para o HUD/site público.**  
+**Estado verificado em 29/10/2026:** o player 360° já existe no `IAPro-Community/Nexus-Site`, mas as **16 vistas reais NÃO foram produzidas**. A [PR #147](https://github.com/IAPro-Community/nexus/pull/147) incorporou na release os PNGs originais, camadas e atlas experimental de 96 quadros. O master OpenRaster é recuperável byte a byte a partir de seis partes rastreadas no Git por `node scripts/restore-nex-openraster.mjs`. **Esses assets ainda são candidatos, não aprovados para o HUD/site público.**
 
 ## Classificação de viabilidade
 
