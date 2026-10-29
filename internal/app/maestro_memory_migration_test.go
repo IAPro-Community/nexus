@@ -51,3 +51,30 @@ func TestMaestroMemoryPreviewDoesNotCreateMissingProjectDatabase(t *testing.T) {
 		t.Fatalf("inventory unexpectedly created a database: %v", err)
 	}
 }
+
+
+func TestParseMaestroRestoreSubcommandsRequireProvenanceAndConfirmation(t *testing.T) {
+	sum := strings.Repeat("a", 64)
+	valid := [][]string{
+		{"memory-restore-preview", "--project-id", "prj_example", "--backup-path", "/tmp/legacy-intelligence-example.json", "--backup-sha256", sum},
+		{"memory-restore-stage", "--project-id", "prj_example", "--backup-path", "/tmp/legacy-intelligence-example.json", "--backup-sha256", sum, "--confirm-restore-stage"},
+	}
+	for _, argv := range valid {
+		got, err := parseMaestroMemoryMigrationArgs(argv)
+		if err != nil || got.ProjectID != "prj_example" {
+			t.Fatalf("valid restore args rejected: %v", err)
+		}
+	}
+	invalid := [][]string{
+		{"memory-restore-preview", "--project-id", "prj_example"},
+		{"memory-restore-preview", "--project-id", "prj_example", "--backup-path", "/tmp/test.json", "--backup-sha256", "bad"},
+		{"memory-restore-preview", "--project-id", "prj_example", "--backup-path", "/tmp/test.json", "--backup-sha256", sum, "--confirm-restore-stage"},
+		{"memory-restore-stage", "--project-id", "prj_example", "--backup-path", "/tmp/test.json", "--backup-sha256", sum},
+		{"memory-restore-stage", "--project-id", "prj_example", "--backup-path", "/tmp/test.json", "--backup-sha256", sum, "--confirm-local-backup", "--confirm-restore-stage"},
+	}
+	for _, argv := range invalid {
+		if _, err := parseMaestroMemoryMigrationArgs(argv); err == nil {
+			t.Fatalf("unsafe restore args accepted: %v", argv)
+		}
+	}
+}
