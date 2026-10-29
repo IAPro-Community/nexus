@@ -16,25 +16,8 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus"
 )
 
-var safeLegacyProjectID = regexp.MustCompile(`^prj_[A-Za-z0-9_-]{1,120}package app
 
-import (
-	"context"
-	"encoding/json"
-	"errors"
-	"flag"
-	"fmt"
-	"io"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
-
-	"github.com/IAPro-Community/nexus/internal/core/config"
-	"github.com/IAPro-Community/nexus/internal/nexus"
-)
-
-)
+var safeLegacyProjectID = regexp.MustCompile(`^prj_[A-Za-z0-9_-]{1,120}$`)
 
 type maestroMemoryMigrationArgs struct {
 	Command            string
