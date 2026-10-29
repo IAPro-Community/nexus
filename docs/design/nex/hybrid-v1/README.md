@@ -1,5 +1,22 @@
 # NEX Hero híbrido — implementação de fidelidade v1.1 (P0)
 
+## Atualização — binários agora realmente versionados no Git (29/10/2026)
+
+A fonte PNG original (SHA-256 `ef7a4aeb7b24d2ab5f199f913d351414b8fafb0b6208b3ab2b665013adcb9118`), as 8 camadas individuais, os PNGs de base/reconstrução, o HTML e o gerador `build_layers.py` **foram adicionados como blobs binários Git** nesta branch. O atlas experimental de 96 quadros também foi incluído em `docs/design/nex/experimental-atlas/`, ainda sem aprovação artística.
+
+A fonte editável OpenRaster (5.339.623 bytes) é **reconstituível byte a byte** a partir de seis partes base64 versionadas em `docs/design/nex/hybrid-v1/ora-parts/`. Para recuperá-la, executar:
+
+```bash
+node scripts/restore-nex-openraster.mjs
+node scripts/verify-nex-hybrid-assets.mjs --require-binaries
+```
+
+O verificador valida as seis partes diretamente em memória, mesmo antes da restauração. O SHA-256 reconstruído deve ser `68a9b3b90722721bacd4067bac3e9d6560acf144898ae60c3d7968692c652f32`.
+
+**Atenção:** versionamento correto dos bytes **não é homologação da identidade**, não significa que o master pixel art Compact/Standard esteja pronto e não libera o NEX no site comercial. O gate conjunto `RELEASE_READINESS.json` permanece `BLOCKED`. O estágio local `/nex-lab` pode ser usado somente para QA.
+
+
+
 **Objetivo:** manter a aparência real do PNG de NEX (`mascote_robô_nexus_em_neon_azul.png`, 1254×1254, transparência) e obter movimentos leves **sem tentar redesenhar o personagem em SVG**.
 
 ## Entregas realizadas no ambiente de produção de arte

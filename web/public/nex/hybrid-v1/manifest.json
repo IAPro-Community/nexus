@@ -1,0 +1,127 @@
+{
+  "schema_version": "1.0",
+  "status": "CANDIDATE_LAYERED_RASTER_NOT_YET_HUMAN_APPROVED",
+  "source": "nex_source_original.png",
+  "source_sha256": "ef7a4aeb7b24d2ab5f199f913d351414b8fafb0b6208b3ab2b665013adcb9118",
+  "canvas": [
+    1254,
+    1254
+  ],
+  "original_png_dimensions": [
+    1254,
+    1254
+  ],
+  "base": "body_base.png",
+  "layers": [
+    {
+      "id": "module_1",
+      "file": "module_1.png",
+      "x": 41,
+      "y": 656,
+      "width": 253,
+      "height": 249,
+      "role": "floating-module",
+      "anchor": [
+        164,
+        780
+      ]
+    },
+    {
+      "id": "module_2",
+      "file": "module_2.png",
+      "x": 977,
+      "y": 658,
+      "width": 240,
+      "height": 246,
+      "role": "floating-module",
+      "anchor": [
+        1096,
+        784
+      ]
+    },
+    {
+      "id": "module_3",
+      "file": "module_3.png",
+      "x": 204,
+      "y": 888,
+      "width": 215,
+      "height": 207,
+      "role": "floating-module",
+      "anchor": [
+        311,
+        992
+      ]
+    },
+    {
+      "id": "module_4",
+      "file": "module_4.png",
+      "x": 830,
+      "y": 894,
+      "width": 199,
+      "height": 215,
+      "role": "floating-module",
+      "anchor": [
+        929,
+        1001
+      ]
+    },
+    {
+      "id": "eye_left",
+      "file": "eye_left.png",
+      "x": 368,
+      "y": 412,
+      "width": 221,
+      "height": 172,
+      "role": "visor-expression",
+      "anchor": [
+        478,
+        498
+      ]
+    },
+    {
+      "id": "eye_right",
+      "file": "eye_right.png",
+      "x": 672,
+      "y": 411,
+      "width": 225,
+      "height": 174,
+      "role": "visor-expression",
+      "anchor": [
+        784,
+        498
+      ]
+    },
+    {
+      "id": "fin_left",
+      "file": "fin_left.png",
+      "x": 241,
+      "y": 17,
+      "width": 162,
+      "height": 340,
+      "role": "fin-glint",
+      "anchor": [
+        330,
+        360
+      ]
+    },
+    {
+      "id": "fin_right",
+      "file": "fin_right.png",
+      "x": 862,
+      "y": 30,
+      "width": 171,
+      "height": 325,
+      "role": "fin-glint",
+      "anchor": [
+        937,
+        360
+      ]
+    }
+  ],
+  "source_reconstruction_mean_abs_rgb_delta": 0.78704,
+  "source_reconstruction_max_channel_delta": 63,
+  "note": "Static source file is kept unmodified. Extracted layers used for approximate motion; static parity must be visually reviewed, especially visor underlayers. No complete 360 atlas.",
+  "source_reconstruction_mean_abs_alpha_delta": 0.16822,
+  "source_reconstruction_changed_pixel_fraction": 0.123111,
+  "repaired_visor_underpaint": "Feathered navy elliptical reconstruction, opacity restored for blink; source PNG unchanged."
+}

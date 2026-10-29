@@ -140,7 +140,10 @@ if (existsSync(manifestPath)) {
     // still invalidate captures exactly as before.
     const isRenderingChange = (name) =>
       !/\.(?:test|spec)\.(?:ts|tsx)$/.test(name) &&
-      name !== 'web/src/features/hud/nexIdleDirector.ts';
+      name !== 'web/src/features/hud/nexIdleDirector.ts' &&
+      // These source candidates are not imported by the live HUD or current
+      // screenshot scenarios. Their own hash + browser QA gate is separate.
+      !name.startsWith('web/public/nex/hybrid-v1/');
     const visualPaths = [
       'web/src',
       'web/public',

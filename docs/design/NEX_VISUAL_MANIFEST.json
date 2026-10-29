@@ -279,7 +279,7 @@
     "source": "mascote_robô_nexus_em_neon_azul.png",
     "sha256": "ef7a4aeb7b24d2ab5f199f913d351414b8fafb0b6208b3ab2b665013adcb9118",
     "asset_manifest": "docs/design/nex/hybrid-v1/asset-manifest.json",
-    "binary_status": "NOT_COMMITTED",
+    "binary_status": "GIT_VERSIONED_SOURCE_ORA_RECONSTRUCTIBLE",
     "review_guide": "docs/design/nex/hybrid-v1/README.md",
     "runtime_source_unchanged": true,
     "early_idles": "6 P0 prototypes in local HTML preview",
@@ -293,6 +293,14 @@
     "browser_qa": "OBSERVED_PASS_CHROMIUM_HYBRID_PREVIEW",
     "browser_qa_script": "web/scripts/nex-hybrid-browser-qa.mjs",
     "human_approval": "PENDING",
-    "native_hud_qa": "NOT_RUN"
+    "native_hud_qa": "NOT_RUN",
+    "source_png": "web/public/nex/hybrid-v1/nex_source_original.png",
+    "layer_assets_directory": "web/public/nex/hybrid-v1/",
+    "editable_master_source": "docs/design/nex/hybrid-v1/ora-parts/",
+    "editable_master_restore": "scripts/restore-nex-openraster.mjs",
+    "candidate_atlas": "docs/design/nex/experimental-atlas/nex-idle-atlas-128.png",
+    "art_approval": "PENDING",
+    "hud_runtime_unchanged": true,
+    "site_public_unchanged": true
   }
 }
