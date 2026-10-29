@@ -200,19 +200,6 @@ for (const file of ['README.md', 'README.en.md', 'README.es.md']) {
     if (!text.includes(phrase)) errors.push(`${file} missing required phrase: ${phrase}`);
   }
 }
-// TEMP: emit formatter output for two newly added NEX files in CI logs.
-const nexFormatter = await import('../web/node_modules/prettier/index.mjs');
-for (const target of ['nexIdleDirector.ts', 'nexIdleDirector.test.ts']) {
-  const absolute = path.join(root, 'web/src/features/hud', target);
-  const formatted = await nexFormatter.format(readFileSync(absolute, 'utf8'), {
-    parser: 'typescript',
-    printWidth: 100,
-    singleQuote: true,
-  });
-  console.log('NEX_PRETTIER_BEGIN:' + target);
-  console.log(formatted);
-  console.log('NEX_PRETTIER_END:' + target);
-}
 const nexVisualGate = spawnSync(process.execPath, [path.join(root, 'scripts/verify-nex-visual.mjs')], { cwd: root, encoding: 'utf8' });
 if (nexVisualGate.status !== 0) errors.push('NEX official mascot visual contract failed: ' + (nexVisualGate.stderr || nexVisualGate.stdout || 'unknown error').trim());
 const nexHeroGate = spawnSync(process.execPath, [path.join(root, 'scripts/verify-nex-site-hero.mjs')], { cwd: root, encoding: 'utf8' });
