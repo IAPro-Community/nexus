@@ -91,10 +91,7 @@ export function chooseNexIdleAction(
 ): NexIdleAction {
   const choices = STANDARD_ACTIONS.filter((action) => action !== previous);
   const value = random();
-  const index = Math.min(
-    choices.length - 1,
-    Math.floor(Math.max(0, value) * choices.length),
-  );
+  const index = Math.min(choices.length - 1, Math.floor(Math.max(0, value) * choices.length));
   return choices[index];
 }
 
