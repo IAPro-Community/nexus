@@ -212,3 +212,11 @@ Gates transversais:
 - docs/design/universal-agent-harness-support.md
 - docs/architecture/session-continuity.md
 - docs/product/nexus-browser-auto-mcp.md
+
+## Complemento: padrões concretos extraídos do source OMP
+
+- **Direção e recuperação:** vibe/runtime.ts mantém worker owner+parentSessionId, eventos de spawn/turn/tombstone em vibe/lifecycle.ts, filas para next-turn quando steering em andamento não é suportado. No Nexus, owner/generation fence e fila tipada devem substituir qualquer tentativa de transcrever o worker em memória própria.
+- **Jobs confiáveis:** async/job-manager.ts possui estados tipados, max running, retry/backoff de entrega e descarte/cleanup após consumo. A evolução Nexus aproveita essas **invariantes** em Mission/Run/notification existentes, sem importar o JobManager OMP.
+- **Browser lifecycle:** tools/browser/tab-supervisor.ts diferencia criador da aba de quem a reutilizou, controla sessões vivas/mortas, cancelamento de operações pendentes quando uma aba fecha, lifetime/idle cleanup. Nexus precisa preservar esses atributos em seus próprios grants/leasing por runtime, evitando que um viewer encerre aba de outro owner.
+- **Telemetria:** packages/agent/src/telemetry.ts utiliza campos tipados compatíveis com OpenTelemetry para input/output/cache-read/cache-write, erro e custo estimado, além de atributos próprios e distinção de cache de gateway versus cache de prompt. Na evolução Nexus, adaptar a semântica, não a implementação, mantendo unknown em dados ausentes e nenhuma equivalência API confundida com cobrança.
+- **Ordem de validação:** primeiro contrato e evidência de source; depois UI; depois E2E, com PRs menores e guard rails de permissões. Fonte source pin OMP main@d33a0edb.
