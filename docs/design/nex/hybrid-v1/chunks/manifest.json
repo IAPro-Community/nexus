@@ -1,0 +1,53 @@
+{
+  "format": "nex-openraster-chunks-v1",
+  "source_file": "nex_hybrid_master.ora",
+  "size": 5339623,
+  "sha256": "68a9b3b90722721bacd4067bac3e9d6560acf144898ae60c3d7968692c652f32",
+  "segments": [
+    {
+      "file": "nex_hybrid_master.ora.part-000.b64",
+      "decoded_bytes": 640000,
+      "decoded_sha256": "97a5aa1ec6f5586ae14232052bc4219c16e5c788e902e0536daa02c90fd244e9"
+    },
+    {
+      "file": "nex_hybrid_master.ora.part-001.b64",
+      "decoded_bytes": 640000,
+      "decoded_sha256": "d4aca7be503e89e41161d44b2ddb1202a40af377960765013836c7e5894db62e"
+    },
+    {
+      "file": "nex_hybrid_master.ora.part-002.b64",
+      "decoded_bytes": 640000,
+      "decoded_sha256": "fa0e8c24ff43772d9998607efacb09f9baa2d899a0f477b4c581e0dab37ded9b"
+    },
+    {
+      "file": "nex_hybrid_master.ora.part-003.b64",
+      "decoded_bytes": 640000,
+      "decoded_sha256": "49f80bc605a0128851321efc13c8f33232df481604bac0a155896fc56a6c8d96"
+    },
+    {
+      "file": "nex_hybrid_master.ora.part-004.b64",
+      "decoded_bytes": 640000,
+      "decoded_sha256": "b7554fb2c9bc9a6fda7636f68e7b9de862084b14660a354799edf2d4d4d416c6"
+    },
+    {
+      "file": "nex_hybrid_master.ora.part-005.b64",
+      "decoded_bytes": 640000,
+      "decoded_sha256": "2c0765b990adfc6bcf29be3dd56dbe68cc56c372e8620593bf2bf723beb21df1"
+    },
+    {
+      "file": "nex_hybrid_master.ora.part-006.b64",
+      "decoded_bytes": 640000,
+      "decoded_sha256": "6d097b8aefc1849f47e70c4334f744690baa6d94ddd22a9b395fa5c44f8752e5"
+    },
+    {
+      "file": "nex_hybrid_master.ora.part-007.b64",
+      "decoded_bytes": 640000,
+      "decoded_sha256": "69c388b4dfafe88fe49f702c828fe97eb6a3916da3caae9a1ddcf8e6b949700b"
+    },
+    {
+      "file": "nex_hybrid_master.ora.part-008.b64",
+      "decoded_bytes": 219623,
+      "decoded_sha256": "e32cbbab6dcd17feaa13da14052a92cac21bf4775f1bd9ed6ae6da54b8751673"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "id": "nex-hero-hybrid-p0-2026-10-28",
-  "status": "BINARY_INGEST_PENDING_VISUAL_APPROVAL",
+  "status": "ASSETS_VERSIONED_SOURCE_CHUNKED_PENDING_VISUAL_APPROVAL",
   "authoritative_source": "/mnt/data/mascote_robô_nexus_em_neon_azul.png",
   "source_sha256": "ef7a4aeb7b24d2ab5f199f913d351414b8fafb0b6208b3ab2b665013adcb9118",
   "master_art_status": "LAYERED_RASTER_CANDIDATE_NOT_FROZEN",
@@ -12,98 +12,98 @@
       "bytes": 1679808,
       "sha256": "ef7a4aeb7b24d2ab5f199f913d351414b8fafb0b6208b3ab2b665013adcb9118",
       "path": "web/public/nex/hybrid-v1/nex_source_original.png",
-      "status": "NOT_COMMITTED"
+      "status": "VERSIONED"
     },
     {
       "filename": "body_base.png",
       "bytes": 1486529,
       "sha256": "3e0e9a9b71da2d45a2582039f02a09067ff5624950b81072209606cd9c7db3d6",
       "path": "web/public/nex/hybrid-v1/body_base.png",
-      "status": "NOT_COMMITTED"
+      "status": "VERSIONED"
     },
     {
       "filename": "reconstructed_idle.png",
       "bytes": 1578410,
       "sha256": "77eb9b2afc3c89e4b9ab69da85863a8b3e165ec38e7dafa9c77b8fa70451970d",
       "path": "web/public/nex/hybrid-v1/reconstructed_idle.png",
-      "status": "NOT_COMMITTED"
+      "status": "VERSIONED"
     },
     {
       "filename": "eye_left.png",
       "bytes": 51158,
       "sha256": "e3c1cac4e8fda0fe75856f9878a824238d207badad5519bcf0ae2d77e0b73048",
       "path": "web/public/nex/hybrid-v1/eye_left.png",
-      "status": "NOT_COMMITTED"
+      "status": "VERSIONED"
     },
     {
       "filename": "eye_right.png",
       "bytes": 52110,
       "sha256": "6631978e9eff4506270ffefd1a202626e64eefc5178721b9b3c93e730ee73c7c",
       "path": "web/public/nex/hybrid-v1/eye_right.png",
-      "status": "NOT_COMMITTED"
+      "status": "VERSIONED"
     },
     {
       "filename": "module_1.png",
       "bytes": 99935,
       "sha256": "5c98158e3840ff3391a247b46d3a18b665c830f3f1f6a0d7f863f775cfdff61f",
       "path": "web/public/nex/hybrid-v1/module_1.png",
-      "status": "NOT_COMMITTED"
+      "status": "VERSIONED"
     },
     {
       "filename": "module_2.png",
       "bytes": 95930,
       "sha256": "9df5f33ca06ff8eb0365c59626ce1d8c90b261d2cdde748588c0cc05c2d68662",
       "path": "web/public/nex/hybrid-v1/module_2.png",
-      "status": "NOT_COMMITTED"
+      "status": "VERSIONED"
     },
     {
       "filename": "module_3.png",
       "bytes": 73461,
       "sha256": "849e0ca638bc14cde49080c20565e928a2cb7d0862bd2ca18a0cbe13619abd75",
       "path": "web/public/nex/hybrid-v1/module_3.png",
-      "status": "NOT_COMMITTED"
+      "status": "VERSIONED"
     },
     {
       "filename": "module_4.png",
       "bytes": 72979,
       "sha256": "702a4c0d72aa2a567a538631d0da05630b03693a442fb8922edff8c218514c68",
       "path": "web/public/nex/hybrid-v1/module_4.png",
-      "status": "NOT_COMMITTED"
+      "status": "VERSIONED"
     },
     {
       "filename": "fin_left.png",
       "bytes": 73610,
       "sha256": "401a66c4f759e4ec8faeccc27533f8482e68f17c504cf099b27754f64623b3c1",
       "path": "web/public/nex/hybrid-v1/fin_left.png",
-      "status": "NOT_COMMITTED"
+      "status": "VERSIONED"
     },
     {
       "filename": "fin_right.png",
       "bytes": 72751,
       "sha256": "6a89c3e328757e4f29b354bd8c701c34f569c7cd3a9f27b34c46ff60897ecfc1",
       "path": "web/public/nex/hybrid-v1/fin_right.png",
-      "status": "NOT_COMMITTED"
+      "status": "VERSIONED"
     },
     {
       "filename": "index.html",
       "bytes": 12049,
       "sha256": "cce35f46409d812228830d2acf350b287cb1a58a6a1898f1366ffb484d7d9778",
       "path": "web/public/nex/hybrid-v1/index.html",
-      "status": "NOT_COMMITTED"
+      "status": "VERSIONED"
     },
     {
       "filename": "manifest.json",
       "bytes": 2680,
       "sha256": "b31269ebd14d16b9caab6a93c38f1eb067a8473a49ca6d36ee146c1661bb3022",
       "path": "web/public/nex/hybrid-v1/manifest.json",
-      "status": "NOT_COMMITTED"
+      "status": "VERSIONED"
     },
     {
       "filename": "nex_hybrid_master.ora",
       "bytes": 5339623,
       "sha256": "68a9b3b90722721bacd4067bac3e9d6560acf144898ae60c3d7968692c652f32",
       "path": "docs/design/nex/hybrid-v1/nex_hybrid_master.ora",
-      "status": "NOT_COMMITTED"
+      "status": "VERSIONED_AS_VERIFIED_CHUNKS"
     }
   ],
   "render_qa": {
@@ -163,5 +163,11 @@
     "bytes": 8432,
     "path": "docs/design/nex/hybrid-v1/build_layers.py",
     "portable": true
+  },
+  "artwork_binary": {
+    "storage": "GIT_BASE64_CHUNKS",
+    "chunk_manifest": "docs/design/nex/hybrid-v1/chunks/manifest.json",
+    "restore_command": "node scripts/restore-nex-hybrid-master.mjs --restore",
+    "required_original_sha256": "68a9b3b90722721bacd4067bac3e9d6560acf144898ae60c3d7968692c652f32"
   }
 }

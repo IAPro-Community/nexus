@@ -29,6 +29,23 @@ for(const a of manifest.assets){
   if(!/^[a-f0-9]{64}$/.test(a.sha256))issues.push('Invalid SHA: '+a.filename);
   const file=safe(a.path);
   if(!existsSync(file)){
+    if(a.filename==='nex_hybrid_master.ora' && a.status==='VERSIONED_AS_VERIFIED_CHUNKS'){
+      const metaPath=safe(manifest.artwork_binary?.chunk_manifest||'');
+      if(!existsSync(metaPath)){issues.push('ORA chunk manifest missing');continue;}
+      const chunks=JSON.parse(readFileSync(metaPath,'utf8'));
+      const buffers=[];
+      for(const chunk of chunks.segments){
+        if(!/^nex_hybrid_master\\.ora\\.part-\\d{3}\\.b64$/.test(chunk.file)){issues.push('Unsafe ORA chunk');continue;}
+        const chunkFile=resolve(root,'docs/design/nex/hybrid-v1/chunks',chunk.file);
+        if(!existsSync(chunkFile)){issues.push('Missing ORA chunk: '+chunk.file);continue;}
+        const part=Buffer.from(readFileSync(chunkFile,'utf8').trim(),'base64');
+        if(part.length!==chunk.decoded_bytes||sha(part)!==chunk.decoded_sha256)issues.push('Invalid ORA chunk: '+chunk.file);
+        buffers.push(part);
+      }
+      const merged=Buffer.concat(buffers);
+      if(merged.length!==a.bytes||sha(merged)!==a.sha256)issues.push('Reconstructed ORA checksum mismatch');
+      continue;
+    }
     if(requireBinaries||a.status==='VERSIONED')issues.push('Missing asset: '+a.path);
     continue;
   }
@@ -51,8 +68,10 @@ if(manifest.generator){
 }
 if(issues.length){for(const error of issues)console.error('FAIL:',error);process.exitCode=1;}
 else if(promote){
-  manifest.status='ASSETS_VERSIONED_PENDING_VISUAL_APPROVAL';
-  for(const a of manifest.assets)a.status='VERSIONED';
+  if(manifest.status!=='ASSETS_VERSIONED_SOURCE_CHUNKED_PENDING_VISUAL_APPROVAL') {
+    manifest.status='ASSETS_VERSIONED_PENDING_VISUAL_APPROVAL';
+    for(const a of manifest.assets)a.status='VERSIONED';
+  }
   writeFileSync(path,JSON.stringify(manifest,null,2)+'\n','utf8');
   console.log('NEX assets pass checksum checks. Stage the PNGs/ORA/HTML plus manifest in a Git commit; visual approval is still pending.');
 }else{
