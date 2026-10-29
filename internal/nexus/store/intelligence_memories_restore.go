@@ -132,20 +132,16 @@ func sameRestoreRows(a, b []IntelligenceMemory) bool {
 	if len(a) != len(b) {
 		return false
 	}
-	key := func(rows []IntelligenceMemory) []string {
-		out := make([]string, len(rows))
-		for i, v := range rows {
-			out[i] = v.ID + "\x00" + v.ProjectID + "\x00" + v.Key + "\x00" +
-				v.Value + "\x00" + v.Source + "\x00" +
-				v.CreatedAt.UTC().Format(time.RFC3339Nano) + "\x00" +
-				v.UpdatedAt.UTC().Format(time.RFC3339Nano)
-		}
-		sort.Strings(out)
-		return out
-	}
-	left, right := key(a), key(b)
+	left := append([]IntelligenceMemory(nil), a...)
+	right := append([]IntelligenceMemory(nil), b...)
+	sort.Slice(left, func(i, j int) bool { return left[i].ID < left[j].ID })
+	sort.Slice(right, func(i, j int) bool { return right[i].ID < right[j].ID })
 	for i := range left {
-		if left[i] != right[i] {
+		x, y := left[i], right[i]
+		if x.ID != y.ID || x.ProjectID != y.ProjectID || x.Key != y.Key ||
+			x.Value != y.Value || x.Source != y.Source ||
+			x.CreatedAt.UTC().Format(time.RFC3339Nano) != y.CreatedAt.UTC().Format(time.RFC3339Nano) ||
+			x.UpdatedAt.UTC().Format(time.RFC3339Nano) != y.UpdatedAt.UTC().Format(time.RFC3339Nano) {
 			return false
 		}
 	}
