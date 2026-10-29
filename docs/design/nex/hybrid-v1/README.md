@@ -40,11 +40,11 @@ git commit -m "assets(nex): import source-faithful Hero v1.1 layers"
 git push
 ```
 
-O ZIP original foi inspecionado em 28/10/2026: **15 arquivos internos**, incluindo OpenRaster, PNG original idêntico byte a byte, camadas e gerador portátil. A importação foi exercitada em um checkout de teste local com os mesmos 15 arquivos. O script não consegue transferir sozinho bytes entre o ambiente de conversa e o GitHub remoto; requer um clone com autenticação Git e o ZIP local. Até o commit final, o manifesto permanece em `NOT_COMMITTED`.
+O ZIP original foi inspecionado em 28/10/2026: **15 arquivos internos**, incluindo OpenRaster, PNG original idêntico byte a byte, camadas e gerador portátil. A importação foi exercitada em um checkout de teste local com os mesmos 15 arquivos. O script não consegue transferir sozinho bytes entre o ambiente de conversa e o GitHub remoto; requer um clone com autenticação Git e o ZIP local. Agora os arquivos PNG, HTML e gerador estão versionados na PR #148; o master OpenRaster é reconstruível a partir de nove segmentos verificados por SHA-256.
 
 ## Entrega ao GitHub / integração
 
-O conteúdo binário **não entra no GitHub apenas por aparecer neste documento**. O pacote **revisado** `nex_hybrid_github_assets_v1_1.zip` disponível na conversa contém os PNGs, o HTML, as fontes ORA e o código de corte com os caminhos corretos para extrair na raiz de um clone Nexus.
+O conteúdo binário foi incorporado ao GitHub na PR #148; consulte `GITHUB_BINARY_ASSETS.md` e execute `node scripts/restore-nex-hybrid-master.mjs --restore` para recuperar a fonte editável. O pacote **revisado** `nex_hybrid_github_assets_v1_1.zip` disponível na conversa contém os PNGs, o HTML, as fontes ORA e o código de corte com os caminhos corretos para extrair na raiz de um clone Nexus.
 
 ```bash
 # Em um checkout da branch release/v1.0.0 ou uma branch de trabalho:
@@ -58,7 +58,7 @@ git push
 
 Antes da ingestão, `asset-manifest.json.status=BINARY_INGEST_PENDING_VISUAL_APPROVAL`; depois do `--promote`, o status passa a `ASSETS_VERSIONED_PENDING_VISUAL_APPROVAL`. **A promoção dos arquivos não promove o personagem como master artístico final.** A revisão v1.1 inclui um gerador portável em `docs/design/nex/hybrid-v1/build_layers.py`; os PNGs exportados foram reproduzidos e comparados byte a byte, mas o arquivo `.ora` pode diferir em metadados ZIP quando regenerado.
 
-Após importar os binários e instalar as dependências do web, rode `cd web && npm run art:nex:hybrid:qa`. O comando executa Chromium com o **HTML e PNGs originais versionados**, gera `web/dist/nex-hybrid-qa/` (idle, olhos fechados, offline e resultado JSON) e verifica as cinco projeções, seis ações P0, preempção, modo offline e movimento reduzido. Esse QA é web, não homologa o HUD.
+Após baixar a branch com os assets e instalar as dependências do web, rode `cd web && npm run art:nex:hybrid:qa`. O comando executa Chromium com o **HTML e PNGs originais versionados**, gera `web/dist/nex-hybrid-qa/` (idle, olhos fechados, offline e resultado JSON) e verifica as cinco projeções, seis ações P0, preempção, modo offline e movimento reduzido. Esse QA é web, não homologa o HUD.
 
 Abra `web/public/nex/hybrid-v1/index.html` por servidor HTTP (ou diretamente no navegador, conforme política de arquivos locais). O protótipo é completamente local, sem rede, sem dependências React/Three.js e sem LLM.
 
