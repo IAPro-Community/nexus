@@ -3,6 +3,7 @@ package host
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -123,29 +124,30 @@ func ExtractOSCTitle(raw string) string {
 // PTY regex is only a TERMINAL-mode fallback: when ControlLevel is EVENTS/CONTROL_API
 // (structured provider events), ProcessChunk is a no-op for classification.
 type AttentionDetector struct {
-	mu               sync.Mutex
-	runtimeID        string
-	providerID       string
-	profileID        string
-	workspace        string
-	projectID        string
-	projectName      string
-	agentID          string
-	controlLevel     registry.ControlLevel
-	structuredEvents bool
-	buffer           strings.Builder
-	lastState        registry.RuntimeState
-	lastReason       string
-	lastKind         string
-	lastPrompt       string
-	lastTitle        string
-	lastOSCTitle     string
-	oscTail          string
-	nativeStatus     bool
-	lastFingerprint  string
-	lastUpdateAt     time.Time
-	registry         *registry.Registry
-	onAttention      func(reason, context, dynamicTitle string, state registry.RuntimeState)
+	mu                sync.Mutex
+	runtimeID         string
+	providerID        string
+	profileID         string
+	workspace         string
+	projectID         string
+	projectName       string
+	agentID           string
+	controlLevel      registry.ControlLevel
+	structuredEvents  bool
+	buffer            strings.Builder
+	lastState         registry.RuntimeState
+	lastReason        string
+	lastKind          string
+	lastPrompt        string
+	lastTitle         string
+	lastOSCTitle      string
+	oscTail           string
+	nativeStatus      bool
+	lastFingerprint   string
+	runtimeGeneration string
+	lastUpdateAt      time.Time
+	registry          *registry.Registry
+	onAttention       func(reason, context, dynamicTitle string, state registry.RuntimeState)
 }
 
 // NewAttentionDetector creates an attention detector for a session.
@@ -197,6 +199,14 @@ func (d *AttentionDetector) SetRegistry(reg *registry.Registry) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.registry = reg
+}
+
+// SetRuntimeGeneration binds this detector to one SessionHost incarnation.
+// Delayed events from an old host cannot rewrite an equivalent runtime ID.
+func (d *AttentionDetector) SetRuntimeGeneration(hostGeneration, providerGeneration int64) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.runtimeGeneration = fmt.Sprintf("%d:%d", hostGeneration, providerGeneration)
 }
 
 func (d *AttentionDetector) ownerRegistry() *registry.Registry {
@@ -415,6 +425,7 @@ func (d *AttentionDetector) ProcessChunk(chunk []byte) {
 		Kind:         kind,
 		Fingerprint:  fingerprint,
 		Source:       "INFERRED",
+		Generation:   d.runtimeGeneration,
 		ProjectID:    d.projectID,
 		ProjectName:  d.projectName,
 		TaskSummary:  attentionCtx,
@@ -573,7 +584,8 @@ func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus, source, in
 		State: state, Reason: reason, Kind: kind, Context: context,
 		PromptKind: promptKind, Fingerprint: fingerprint,
 		Source: attentionEvidenceSource(source), InteractionID: interactionID,
-		ProjectID: d.projectID, ProjectName: d.projectName, DynamicTitle: title,
+		Generation: d.runtimeGeneration,
+		ProjectID:  d.projectID, ProjectName: d.projectName, DynamicTitle: title,
 	})
 	if kind == AttentionNeedsUser && fingerprint != previous {
 		data := map[string]any{
@@ -657,7 +669,7 @@ func (d *AttentionDetector) ObserveOperatorInput(data []byte) {
 	_ = d.ownerRegistry().UpdateAttentionMeta(d.runtimeID, registry.AttentionUpdate{
 		State: registry.StateRunning, Reason: d.lastReason, Kind: d.lastKind,
 		PromptKind: PromptKindNone, Fingerprint: "", Context: "",
-		Source:    "INFERRED",
+		Source: "INFERRED", Generation: d.runtimeGeneration,
 		ProjectID: d.projectID, ProjectName: d.projectName,
 		DynamicTitle: d.lastTitle,
 	})
