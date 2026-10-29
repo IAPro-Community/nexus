@@ -201,7 +201,7 @@ for (const file of ['README.md', 'README.en.md', 'README.es.md']) {
   }
 }
 // TEMP: emit formatter output for two newly added NEX files in CI logs.
-const nexFormatter = await import('prettier');
+const nexFormatter = await import('../web/node_modules/prettier/index.mjs');
 for (const target of ['nexIdleDirector.ts', 'nexIdleDirector.test.ts']) {
   const absolute = path.join(root, 'web/src/features/hud', target);
   const formatted = await nexFormatter.format(readFileSync(absolute, 'utf8'), {
