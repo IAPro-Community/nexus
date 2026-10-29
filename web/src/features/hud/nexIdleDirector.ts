@@ -91,7 +91,7 @@ export function chooseNexIdleAction(
 ): NexIdleAction {
   const choices = STANDARD_ACTIONS.filter((action) => action !== previous);
   const value = random();
-  const index = Math.min(choices.length - 1, Math.floor(Math.max(0, value) * choices.length));
+  const index = Math.min(\n    choices.length - 1,\n    Math.floor(Math.max(0, value) * choices.length),\n  );
   return choices[index];
 }
 
@@ -197,7 +197,7 @@ export class NexIdleDirector {
   private schedule(): void {
     if (!this.allowed() || this.timer !== null || this.endTimer !== null) return;
     // Keep the HUD calm. Do not exceed roughly 2 special gestures/minute.
-    const delayMs = 12000 + Math.floor(this.random() * 18000);
+    const delayMs = 24000 + Math.floor(this.random() * 12000);
     this.timer = this.timing.setTimeout(() => {
       this.timer = null;
       if (!this.allowed()) return;
