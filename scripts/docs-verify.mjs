@@ -139,7 +139,7 @@ if (existsSync(manifestPath)) {
     // renderer. GuardianMascot, NexPixelSprite, styles and other runtime UI
     // still invalidate captures exactly as before.
     const isRenderingChange = (name) =>
-      !/\\.(?:test|spec)\\.(?:ts|tsx)$/.test(name) &&
+      !/\.(?:test|spec)\.(?:ts|tsx)$/.test(name) &&
       name !== 'web/src/features/hud/nexIdleDirector.ts';
     const visualPaths = [
       'web/src',
