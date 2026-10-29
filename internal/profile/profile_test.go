@@ -177,3 +177,17 @@ func TestEnsureHostCredentialNeverOverwritesExistingCredential(t *testing.T) {
 		t.Fatalf("credential overwritten: %q", got)
 	}
 }
+
+func TestOMPProfileValidationRequiresExplicitPreview(t *testing.T) {
+	t.Setenv("NEXUS_EXPERIMENTAL_HARNESSES", "")
+	if err := ValidateProvider("omp"); err == nil {
+		t.Fatal("OMP provider must stay gated by experimental opt-in")
+	}
+	t.Setenv("NEXUS_EXPERIMENTAL_HARNESSES", "1")
+	if err := ValidateProvider("omp"); err != nil {
+		t.Fatalf("OMP profile should be valid with opt-in: %v", err)
+	}
+	if err := ValidateProvider("unrecognized-harness"); err == nil {
+		t.Fatal("unknown providers must not be enabled by OMP opt-in")
+	}
+}
