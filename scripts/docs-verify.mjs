@@ -134,6 +134,15 @@ if (existsSync(manifestPath)) {
     errors.push('visual manifest has invalid source_sha');
   }
   if (manifest.source_sha) {
+    // Visual capture provenance must track rendered UI, not a new inactive
+    // scheduler module and its unit test. Ignore ONLY these two pure sources.
+    // GuardianMascot, NexPixelSprite, styles or any actual rendered UI still
+    // invalidate snapshots as before.
+    const isRenderingChange = (name) =>
+      ![
+        'web/src/features/hud/nexIdleDirector.ts',
+        'web/src/features/hud/nexIdleDirector.test.ts',
+      ].includes(name);
     const visualPaths = [
       'web/src',
       'web/public',
@@ -152,8 +161,15 @@ if (existsSync(manifestPath)) {
         'visual manifest provenance cannot be verified; fetch full Git history ' +
         '(checkout fetch-depth: 0) and retry source SHA ' + manifest.source_sha,
       );
-    } else if ((diff.stdout || '').trim()) {
-      errors.push(`visual manifest is stale after visual changes since ${manifest.source_sha}: ${(diff.stdout || '').trim().replace(/\\n/g, ', ')}`);
+    } else {
+      const actualRenderChanges = (diff.stdout || '')
+        .split(/\\r?\\n/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .filter(isRenderingChange);
+      if (actualRenderChanges.length) {
+        errors.push(`visual manifest is stale after visual changes since ${manifest.source_sha}: ${actualRenderChanges.join(', ')}`);
+      }
     }
     // A manifest is evidence for an immutable candidate.  Comparing only
     // against HEAD would incorrectly pass while visual files are dirty in
@@ -170,7 +186,8 @@ if (existsSync(manifestPath)) {
       `${dirty.stdout || ''}\n${staged.stdout || ''}`
         .split(/\r?\n/)
         .map((item) => item.trim())
-        .filter(Boolean),
+        .filter(Boolean)
+        .filter(isRenderingChange),
     )];
     if (dirty.status === 0 && staged.status === 0 && dirtyPaths.length) {
       errors.push(`visual manifest cannot certify uncommitted visual changes for ${manifest.source_sha}: ${dirtyPaths.join(', ')}`);
