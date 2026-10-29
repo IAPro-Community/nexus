@@ -11,5 +11,5 @@ export function attentionToastKey(runtime: RuntimeSession): string {
   const generation =
     runtime.attention_generation ||
     `${runtime.host_generation || 0}:${runtime.provider_generation || 0}`;
-  return `${runtime.runtime_id}\0${generation}:${runtime.attention_revision || 0}\0${attentionFingerprintOf(runtime)}`;
+  return [runtime.runtime_id, `${generation}:${runtime.attention_revision || 0}`, attentionFingerprintOf(runtime)].join('\0');
 }
