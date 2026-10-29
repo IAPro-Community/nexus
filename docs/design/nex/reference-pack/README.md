@@ -4,6 +4,12 @@
 
 **Atenção:** as imagens deste pacote foram **geradas nesta conversa**; não são a referência original enviada pelo usuário e **não são quadros válidos de animação**. Podem conter microvariações, rótulos imperfeitos e frames incompatíveis. O original escolhido pelo usuário segue registrado em `../identity-lock.json.selection_record` e tem precedência em caso de conflito.
 
+## Coleção atual para comparar poses (29/10/2026)
+
+A [nova coleção de seis vistas em 256 px](turnaround-v1/README.md) substitui **apenas a indicação de comparação de perspectivas anteriores**. Inclui arte frontal, dois desvios leves, dois ângulos de 3/4 e costas, com [manifesto SHA-256](turnaround-v1/manifest.json), [prancha](turnaround-v1/contact-sheet.webp) e página de revisão. A arte é 256px WebP lossless, derivada de seis imagens de 1254px geradas independentemente.
+
+**Não** substituir o master ou a arte de HUD por esse material ainda: ele tem fundo opaco, ângulos intermediários não certificados e nenhum giro 360° pronto. Os conjuntos anteriores continuam preservados para auditoria e comparação histórica.
+
 ## Inventário do pacote
 
 | Imagem | Finalidade |
