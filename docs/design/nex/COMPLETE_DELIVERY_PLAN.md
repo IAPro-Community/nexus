@@ -35,7 +35,7 @@ node scripts/verify-nex-release-readiness.mjs --require-ready
 
 ## Bloqueios atuais (não confundir com implementação concluída)
 
-- PNG/ORA/HTML do pacote híbrido existem em conversa, mas **não há blobs dos 14 assets versionados no GitHub** (ver `hybrid-v1/asset-manifest.json`).
+- Os PNGs/HTML estão versionados no GitHub; o master `.ora` pode ser reconstruído byte a byte dos nove chunks versionados. A aprovação visual final continua pendente (ver `hybrid-v1/asset-manifest.json`).
 - Master pixel art final 64/128px, 12 idles **em produção no HUD**, e 16 vistas 360° aprovadas **não estão entregues**.
 - O laboratório do Nexus-Site é apenas QA isolado; a homepage não exibe o NEX.
 - Não há aprovação visual definitiva ou certificação nativa abrangente. A release permanece **BLOCKED**.
