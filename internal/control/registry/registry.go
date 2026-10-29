@@ -437,6 +437,7 @@ type AttentionUpdate struct {
 	Fingerprint   string
 	Source        string
 	InteractionID string
+	Generation    string // exact decimal HostGeneration:ProviderGeneration of the producing host
 	ProjectID     string
 	ProjectName   string
 	TaskSummary   string
@@ -460,13 +461,29 @@ func (r *Registry) UpdateAttentionMeta(runtimeID string, update AttentionUpdate)
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	var notFound bool
+	var notFound, staleGeneration bool
 	err := r.saveLocked(func(fresh map[string]RuntimeSession) {
 		s, ok := fresh[runtimeID]
 		if !ok {
 			notFound = true
 			return
 		}
+		// A delayed callback from a prior SessionHost must never mutate a
+		// re-registered runtime with the same identifier.
+		if update.Generation != "" &&
+			update.Generation != fmt.Sprintf("%d:%d", s.HostGeneration, s.ProviderGeneration) {
+			staleGeneration = true
+			return
+		}
+		// A late PTY chunk/OSC event must not resurrect a terminal runtime.
+		// The owning host may still finalize STOPPING with STOPPED or FAILED.
+		if s.State == StateStopping || s.State == StateStopped ||
+			s.State == StateFailed || s.State == StateStale {
+			if update.State != StateStopped && update.State != StateFailed {
+				return
+			}
+		}
+		previousKind := s.AttentionKind
 		if update.State != "" {
 			s.State = update.State
 		}
@@ -477,7 +494,7 @@ func (r *Registry) UpdateAttentionMeta(runtimeID string, update AttentionUpdate)
 		// A new actionable episode receives a new durable revision even if the
 		// provider repeats identical text. Polls of the same episode do not.
 		if update.Kind == "needs_user" && update.Fingerprint != "" &&
-			(s.AttentionKind != "needs_user" || s.AttentionFingerprint != update.Fingerprint ||
+			(previousKind != "needs_user" || s.AttentionFingerprint != update.Fingerprint ||
 				s.AttentionInteractionID != update.InteractionID) {
 			s.AttentionRevision++
 		}
@@ -505,6 +522,9 @@ func (r *Registry) UpdateAttentionMeta(runtimeID string, update AttentionUpdate)
 	}
 	if notFound {
 		return fmt.Errorf("runtime %q not found", runtimeID)
+	}
+	if staleGeneration {
+		return fmt.Errorf("%w: runtime generation changed", ErrAttentionConflict)
 	}
 	return nil
 }
