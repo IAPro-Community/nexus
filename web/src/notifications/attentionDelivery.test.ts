@@ -40,7 +40,7 @@ describe('attention delivery contract', () => {
     expect(attentionPushKey(original)).toBe(attentionPushKey(samePoll));
     expect(attentionPushKey(original)).not.toBe(attentionPushKey(newEpisode));
     expect(attentionPushKey(original)).not.toBe(attentionPushKey(newGeneration));
-    expect(attentionPushKey(original)).not.toContain('\\0');
+    expect(attentionPushKey(original)).not.toContain('\0');
   });
 
   it('distinguishes a question from an error with the same provider context', () => {
