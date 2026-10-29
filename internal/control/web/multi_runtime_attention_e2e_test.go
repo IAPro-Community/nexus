@@ -32,6 +32,7 @@ func TestTwoAgentsTwoClientsAttentionScenario(t *testing.T) {
 		PID:              10001,
 		HostPID:          10001,
 		HostGeneration:   time.Now().UnixNano(),
+		Transport:        "mock", // fixture has no live SessionHost process
 		Binary:           "/usr/bin/opencode",
 		State:            registry.StateRunning,
 		ControlLevel:     registry.ControlLevelEvents,
@@ -53,6 +54,7 @@ func TestTwoAgentsTwoClientsAttentionScenario(t *testing.T) {
 		PID:             10002,
 		HostPID:         10002,
 		HostGeneration:  time.Now().UnixNano(),
+		Transport:       "mock", // fixture has no live SessionHost process
 		Binary:          "/usr/bin/omp",
 		State:           registry.StateRunning,
 		ControlLevel:    registry.ControlLevelEvents,
