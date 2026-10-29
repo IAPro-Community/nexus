@@ -7,9 +7,33 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 
+	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/nexus"
+)
+
+var safeLegacyProjectID = regexp.MustCompile(`^prj_[A-Za-z0-9_-]{1,120}package app
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"flag"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+
+	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/nexus"
+)
+
 )
 
 type maestroMemoryMigrationArgs struct {
@@ -37,7 +61,7 @@ func parseMaestroMemoryMigrationArgs(args []string) (maestroMemoryMigrationArgs,
 		strings.TrimSpace(result.ProjectID) != result.ProjectID {
 		return maestroMemoryMigrationArgs{}, errors.New("--project-id is required and positional args are not supported")
 	}
-	if !strings.HasPrefix(result.ProjectID, "prj_") || len(result.ProjectID) > 128 {
+	if !safeLegacyProjectID.MatchString(result.ProjectID) {
 		return maestroMemoryMigrationArgs{}, errors.New("invalid Nexus project ID")
 	}
 	switch result.Command {
@@ -61,6 +85,20 @@ func maestroMemoryMigrationCmd(args []string) error {
 	parsed, err := parseMaestroMemoryMigrationArgs(args)
 	if err != nil {
 		return err
+	}
+	// Never create a new empty SQLite database merely because an operator
+	// requested an inventory of existing memory.
+	dataDir, err := config.DataDir()
+	if err != nil {
+		return err
+	}
+	database := filepath.Join(dataDir, "nexus.db")
+	info, err := os.Lstat(database)
+	if err != nil {
+		return fmt.Errorf("existing Nexus project database required: %w", err)
+	}
+	if !info.Mode().IsRegular() {
+		return errors.New("Nexus project database must be a regular file")
 	}
 	st, err := nexus.OpenStore()
 	if err != nil {
