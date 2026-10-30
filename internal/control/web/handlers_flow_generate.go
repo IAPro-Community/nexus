@@ -44,7 +44,7 @@ func (h *NexusHandler) handleFlowGenerate(w http.ResponseWriter, r *http.Request
    writeJSON(w, http.StatusConflict, map[string]any{
     "error": "clarification_required",
     "message": "Blocking decisions require clarification before Flow planning",
-    "checkpoint": clarification.Checkpoint,
+    "clarification": clarification.Checkpoint,
    })
    return
   }
