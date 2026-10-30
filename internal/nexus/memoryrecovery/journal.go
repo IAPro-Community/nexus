@@ -92,6 +92,15 @@ func Inspect(dataDir string) (Inspection, error) {
   if entry.Name() == ".active.lock" {
    result.LockPresent = true
    result.Blocked = true
+   lockInfo, lockErr := os.Lstat(filepath.Join(root, entry.Name()))
+   if lockErr != nil || !lockInfo.Mode().IsRegular() || lockInfo.Size() != 32 {
+    result.Problems = append(result.Problems, "INVALID_RECOVERY_LOCK")
+   } else {
+    owner, readErr := os.ReadFile(filepath.Join(root, entry.Name()))
+    if readErr != nil || !safeOp.Match(owner) {
+     result.Problems = append(result.Problems, "INVALID_RECOVERY_LOCK")
+    }
+   }
    continue
   }
   if !safeOp.MatchString(entry.Name()) || !entry.IsDir() {
@@ -136,22 +145,19 @@ func Begin(dataDir, projectID, backupPath, backupSHA, sourceSHA string) (*Journa
  before, err := Inspect(dataDir)
  if err != nil { return nil, err }
  if before.Blocked { return nil, errors.New("unfinished or locked recovery requires human review") }
+ nonce := make([]byte, 16)
+ if _, err := rand.Read(nonce); err != nil { return nil, err }
+ id := hex.EncodeToString(nonce)
  lockPath := filepath.Join(root, ".active.lock")
  file, err := os.OpenFile(lockPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
  if err != nil { return nil, fmt.Errorf("recovery journal is already locked: %w", err) }
- // Once locked, recheck the journal to close the competing-Begin race.
- // Ignore our own lock but reject all other unfinished operations.
+ if _, err := file.WriteString(id); err != nil { _ = file.Close(); return nil, err }
+ if err := file.Sync(); err != nil { _ = file.Close(); return nil, err }
  after, err := Inspect(dataDir)
  if err != nil || len(after.Problems) != 0 || unfinished(after.Operations) {
   _ = file.Close()
-  _ = os.Remove(lockPath)
   return nil, errors.New("journal changed while acquiring recovery lock")
  }
- nonce := make([]byte,16)
- if _, err := rand.Read(nonce); err != nil {
-  _ = file.Close(); _ = os.Remove(lockPath); return nil, err
- }
- id := hex.EncodeToString(nonce)
  opDir := filepath.Join(root,id)
  if err := os.Mkdir(opDir,0700); err != nil {
   _ = file.Close(); _ = os.Remove(lockPath); return nil, err
@@ -189,6 +195,14 @@ func (j *Journal) Close() error {
  // journal write. This intentionally blocks any new restore until reviewed.
  if !terminal(j.last.Stage) { return errors.New("unfinished recovery journal; lock retained for review") }
  if err != nil { return err }
+ lockInfo, err := os.Lstat(j.lockPath)
+ if err != nil || !lockInfo.Mode().IsRegular() {
+  return errors.New("recovery lock disappeared or changed type")
+ }
+ owner, err := os.ReadFile(j.lockPath)
+ if err != nil || string(owner) != j.last.OperationID {
+  return errors.New("recovery lock ownership changed; manual review required")
+ }
  return os.Remove(j.lockPath)
 }
 
@@ -226,7 +240,12 @@ func (j *Journal) write(event Event) error {
  // Syncing the parent directory strengthens rename/create durability on
  // POSIX. Windows directory sync support is platform-specific.
  if runtime.GOOS!="windows" {
-  if d,e:=os.Open(j.directory);e==nil { _=d.Sync();_=d.Close() }
+  d,e:=os.Open(j.directory)
+  if e!=nil { return fmt.Errorf("open journal directory for sync: %w",e) }
+  syncErr:=d.Sync()
+  closeErr:=d.Close()
+  if syncErr!=nil { return fmt.Errorf("sync journal directory: %w",syncErr) }
+  if closeErr!=nil { return closeErr }
  }
  j.last=event
  return nil
