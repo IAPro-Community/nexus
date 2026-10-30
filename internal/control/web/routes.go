@@ -74,6 +74,7 @@ func registerMaestroRoutes(mux *http.ServeMux, deps routeDependencies) {
 func registerPlanningRoutes(mux *http.ServeMux, deps routeDependencies) {
 	s, h := deps.server, deps.nexusHandler
 	mux.HandleFunc("/api/v1/intelligence", s.authMiddleware(h.handleIntelligence))
+	mux.HandleFunc("/api/v1/flow/generate", s.authMiddleware(h.handleFlowGenerate))
 	mux.HandleFunc("/api/v1/intelligence/probe", s.authMiddleware(h.handleIntelligenceProbe))
 	mux.HandleFunc("/api/v1/intelligence/memories", s.authMiddleware(h.handleIntelligenceMemories))
 	mux.HandleFunc("/api/v1/intelligence/memories/recall", s.authMiddleware(h.handleIntelligenceMemoryRecall))
