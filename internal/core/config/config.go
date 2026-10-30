@@ -64,6 +64,7 @@ type Config struct {
 	Intelligence         IntelligenceConfig             `json:"intelligence,omitempty"`
 	IntelligenceMemories []IntelligenceMemory           `json:"intelligence_memories,omitempty"`
 	FlagAliases          map[string]map[string][]string `json:"flag_aliases,omitempty"` // alias -> provider -> flags
+	installMemoryBaseline string `json:"-"`
 }
 
 var configMu sync.RWMutex
@@ -338,6 +339,7 @@ func LoadConfig() (Config, error) {
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
+			cfg.installMemoryBaseline = installMemoryBaseline(cfg.IntelligenceMemories)
 			return cfg, nil
 		}
 		return cfg, err
@@ -397,6 +399,7 @@ func LoadConfig() (Config, error) {
 		cfg.Intelligence.Mode = IntelligenceOff
 	}
 
+	cfg.installMemoryBaseline = installMemoryBaseline(cfg.IntelligenceMemories)
 	return cfg, nil
 }
 
@@ -426,6 +429,9 @@ func saveConfigLocked(cfg Config) error {
 	}
 
 	configPath := filepath.Join(dir, "config.json")
+	if err := checkInstallMemoryBaseline(configPath, cfg); err != nil {
+		return err
+	}
 	tmpPath := fmt.Sprintf("%s.tmp.%d", configPath, time.Now().UnixNano())
 
 	data, err := json.MarshalIndent(cfg, "", "  ")
