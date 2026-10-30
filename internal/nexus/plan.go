@@ -436,28 +436,46 @@ func (e *ClarificationRequiredError) Error() string {
 // semantic, reviewable WorkPlan from a goal or complete prompt. Composer is not
 // required. It never starts a Mission and rejects malformed AI topology.
 func (n *Nexus) GeneratePlanFromIntent(ctx context.Context, projectID, goal string) (*store.WorkPlan, error) {
+	intent, outlines, facts, err := n.generateSemanticFlowOutlines(ctx, projectID, goal, nil)
+	if err != nil {
+		return nil, err
+	}
+	return n.createPlanFromOutlines(ctx, projectID, goal, intent, outlines, facts)
+}
+
+// generateSemanticFlowOutlines shares the same provider, clarification,
+// dependency and acceptance gates between direct Flow and finalized Composer
+// artifacts. The frozenContext is never substituted with a live session.
+func (n *Nexus) generateSemanticFlowOutlines(ctx context.Context, projectID, goal string, frozenContext map[string]any) (*intelligence.IntentAnalysis, []intelligence.WorkPackageOutline, map[string]string, error) {
 	ctx, cancel := context.WithTimeout(ctx, intelligence.PlanGenerationTimeout)
 	defer cancel()
 
-	contextData, err := n.ComposerContextData(projectID)
-	if err != nil {
-		return nil, err
-	}
-	if memFacts, memErr := n.MemoryFactsMap(ctx, projectID); memErr == nil && len(memFacts) > 0 {
-		contextData["intelligence_memories"] = memFacts
+	// The Composer handoff supplies frozen, artifact-scoped context rather than
+	// using a later mutable Composer session or a fresh semantic-memory read.
+	contextData := frozenContext
+	if contextData == nil {
+		var err error
+		contextData, err = n.ComposerContextData(projectID)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		if memFacts, memErr := n.MemoryFactsMap(ctx, projectID); memErr == nil && len(memFacts) > 0 {
+			contextData["intelligence_memories"] = memFacts
+		}
 	}
 	provider, err := n.ConfiguredIntelligenceProvider(ctx, projectID)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 	engine := intelligence.NewNexusEngine(provider).WithContextData(contextData)
 
 	intent, unknowns, outlines, err := engine.PlanFromGoal(ctx, goal, projectID)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
 	state := &intelligence.ClarificationState{Unknowns: unknowns, StructuredFacts: map[string]string{}}
+	if frozenContext == nil {
 	if memFacts, memErr := n.MemoryFactsMap(ctx, projectID); memErr == nil {
 		for key, value := range memFacts {
 			state.StructuredFacts[key] = value
@@ -473,6 +491,7 @@ func (n *Nexus) GeneratePlanFromIntent(ctx context.Context, projectID, goal stri
 			}
 		}
 	}
+	}
 	// Non-blocking defaults are explicit decisions. Blocking items always require a user answer.
 	for i := range state.Unknowns {
 		item := state.Unknowns[i]
@@ -483,24 +502,24 @@ func (n *Nexus) GeneratePlanFromIntent(ctx context.Context, projectID, goal stri
 	if hasBlockingUnknowns(state.Unknowns) {
 		checkpoint, err := n.persistClarification(projectID, goal, intent, state.Unknowns, state.StructuredFacts)
 		if err != nil {
-			return nil, err
+			return nil, nil, nil, err
 		}
-		return nil, &ClarificationRequiredError{Checkpoint: checkpoint}
+		return nil, nil, nil, &ClarificationRequiredError{Checkpoint: checkpoint}
 	}
 
 	if len(outlines) == 0 {
 		outlines, err = engine.GeneratePlan(ctx, intent, state.StructuredFacts)
 		if err != nil {
-			return nil, err
+			return nil, nil, nil, err
 		}
 	}
 	// A response from an AI provider is not proof that it is executable.
 	// Fail before writing a WorkPlan when tasks, dependencies or acceptance
 	// evidence are incomplete; never silently downgrade to one generic step.
 	if err := validateGeneratedFlowOutlines(goal, outlines); err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
-	return n.createPlanFromOutlines(ctx, projectID, goal, intent, outlines, state.StructuredFacts)
+	return intent, outlines, state.StructuredFacts, nil
 }
 
 func hasBlockingUnknowns(items []intelligence.AmbiguityItem) bool {
