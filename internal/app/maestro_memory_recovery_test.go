@@ -6,7 +6,7 @@ import (
  "strings"
  "testing"
 
- "github.com/IAPro-Community/nexus/internal/nexus/memoryrecovery"
+ "github.com/IAPro-Community/nexus/internal/core/memoryrecovery"
 )
 
 func TestMaestroRecoveryStatusIsReadOnlyAndNoJournalIsClean(t *testing.T) {
