@@ -122,18 +122,12 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 
 	// Reuse the SAME work package materialization as direct Flow. Only the
 	// transport-specific Composer metadata and frozen provenance are added.
-	packages := packagesFromOutlines(sourcePrompt, outlines)
-	project, err := st.GetProject(session.ProjectID)
+	packages, err := n.projectPackagesFromOutlines(session.ProjectID, sourcePrompt, outlines)
 	if err != nil {
 		return nil, err
 	}
-	verification := detectVerificationCommands(project.CanonicalPath)
 	skills := decodeStringArray(artifact.SkillIDsJSON)
 	for i := range packages {
-		if len(packages[i].VerificationRequirements) == 0 {
-			packages[i].VerificationRequirements = append([]string(nil), verification...)
-		}
-		packages[i].TaskRequirements = taskRequirementsJSON(packages[i].Goal, packages[i].Role)
 		packages[i].SkillIDs = append([]string(nil), skills...)
 		packages[i].MaestroSkills = append([]string(nil), skills...)
 	}
@@ -810,7 +804,11 @@ func packagesFromOutlines(goal string, outlines []intelligence.WorkPackageOutlin
 	return pkgs
 }
 
-func (n *Nexus) createPlanFromOutlines(ctx context.Context, projectID, goal string, intent *intelligence.IntentAnalysis, outlines []intelligence.WorkPackageOutline, facts map[string]string) (*store.WorkPlan, error) {
+// projectPackagesFromOutlines is the shared materialization contract for
+// direct-prompt Flow and Composer PromptArtifact Flow. Both paths resolve
+// dependencies, classify per-step requirements and attach verified project
+// commands before WorkPlan persistence. It never starts a Mission.
+func (n *Nexus) projectPackagesFromOutlines(projectID, goal string, outlines []intelligence.WorkPackageOutline) ([]store.WorkPackage, error) {
 	pkgs := packagesFromOutlines(goal, outlines)
 	st, err := n.OpenProject()
 	if err != nil {
@@ -825,6 +823,15 @@ func (n *Nexus) createPlanFromOutlines(ctx context.Context, projectID, goal stri
 		if len(pkgs[i].VerificationRequirements) == 0 {
 			pkgs[i].VerificationRequirements = append([]string(nil), verification...)
 		}
+		pkgs[i].TaskRequirements = taskRequirementsJSON(pkgs[i].Goal, pkgs[i].Role)
+	}
+	return pkgs, nil
+}
+
+func (n *Nexus) createPlanFromOutlines(ctx context.Context, projectID, goal string, intent *intelligence.IntentAnalysis, outlines []intelligence.WorkPackageOutline, facts map[string]string) (*store.WorkPlan, error) {
+	pkgs, err := n.projectPackagesFromOutlines(projectID, goal, outlines)
+	if err != nil {
+		return nil, err
 	}
 	phase := store.PlanPhase{ID: "phase_" + ids.NewRuntimeID(), Title: "Execution Phase", Order: 1, Packages: pkgs}
 	mergedFacts := map[string]string{}
