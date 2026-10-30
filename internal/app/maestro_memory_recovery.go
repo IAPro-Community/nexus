@@ -6,7 +6,7 @@ import (
  "fmt"
 
  "github.com/IAPro-Community/nexus/internal/core/config"
- "github.com/IAPro-Community/nexus/internal/nexus/memoryrecovery"
+ "github.com/IAPro-Community/nexus/internal/core/memoryrecovery"
 )
 
 // Only status inspection is exposed. Starting, advancing, unlocking and
