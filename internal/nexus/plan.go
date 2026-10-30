@@ -101,38 +101,62 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 		}
 	}
 
-	// Unify the Composer -> Flow path: decompose the brief into a real Flow DAG
-	// with structured layers (Planning, Implementation, Review, Verification or
-	// delegated workstreams) instead of collapsing into a single package.
-	proposal, decomposeErr := n.DecomposePromptIntoFlowProposal(ctx, FlowDecompositionRequest{
-		ProjectID:      session.ProjectID,
-		ArtifactID:     artifact.ID,
-		Goal:           firstNonEmpty(brief.Goal, brief.Intent.Objective),
-		SourcePrompt:   artifact.Content,
-		SkillIDs:       decodeStringArray(artifact.SkillIDsJSON),
-		DelegationMode: DelegationAuto,
-	})
-	if decomposeErr == nil && len(proposal.Flow.Phases) > 0 {
-		flowPlan := WorkPlanFromFlow(proposal.Flow)
-		for key, value := range flowPlan.StructuredFacts {
-			if _, exists := facts[key]; !exists {
-				facts[key] = value
-			}
-		}
-		return n.CreateWorkPlan(ctx, session.ProjectID, title, "Materialized from Composer PromptArtifact via Flow decomposition", flowPlan.Phases, facts)
+	// The immutable PromptArtifact is the ONLY source prompt for this handoff.
+	// The planner may propose activities, but cannot rewrite approved Composer
+	// decisions or silently fall back to one generic work package.
+	sourcePrompt := strings.TrimSpace(artifact.Content)
+	if sourcePrompt == "" {
+		return nil, fmt.Errorf("Composer artifact %s has no finalized prompt", artifact.ID)
 	}
+	frozenHandoff := composerHandoffFromArtifact(*artifact, *session, brief)
+	intent, outlines, generatedFacts, err := n.generateSemanticFlowOutlines(ctx, session.ProjectID, sourcePrompt, map[string]any{
+		"source":               "FINALIZED_COMPOSER_ARTIFACT",
+		"source_artifact_id":   artifact.ID,
+		"source_artifact_version": artifact.Version,
+		"source_artifact_hash": artifact.Hash,
+		"approved_handoff":    frozenHandoff,
+		"context_manifest_fingerprint": manifest.Fingerprint,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("decompose finalized Composer artifact %s: %w", artifact.ID, err)
+	}
+	for key, value := range generatedFacts {
+		if _, frozen := facts[key]; !frozen {
+			facts[key] = value
+		}
+	}
+	facts["scope"] = intent.Scope
+	facts["risk_level"] = intent.RiskLevel
 
-	phaseID := "phase_" + ids.NewRuntimeID()
-	plan, err := n.CreateWorkPlan(ctx, session.ProjectID, title, "Materialized from Composer PromptArtifact", []store.PlanPhase{{
-		ID: phaseID, Title: "Composer Flow", Order: 1, Packages: []store.WorkPackage{{
-			ID: "pkg_" + ids.NewRuntimeID(), Title: title, Goal: brief.Goal, Priority: "HIGH", Status: "READY", Role: "implementer",
-			SkillIDs: decodeStringArray(artifact.SkillIDsJSON), MaestroSkills: decodeStringArray(artifact.SkillIDsJSON), AcceptanceCriteria: append([]string(nil), brief.Quality.AcceptanceCriteria...), CompiledPrompt: artifact.Content,
-		}},
-	}}, facts)
+	// Reuse the SAME work package materialization as direct Flow. Only the
+	// transport-specific Composer metadata and frozen provenance are added.
+	packages := packagesFromOutlines(sourcePrompt, outlines)
+	project, err := st.GetProject(session.ProjectID)
 	if err != nil {
 		return nil, err
 	}
-	return plan, nil
+	verification := detectVerificationCommands(project.CanonicalPath)
+	skills := decodeStringArray(artifact.SkillIDsJSON)
+	for i := range packages {
+		if len(packages[i].VerificationRequirements) == 0 {
+			packages[i].VerificationRequirements = append([]string(nil), verification...)
+		}
+		packages[i].TaskRequirements = taskRequirementsJSON(packages[i].Goal, packages[i].Role)
+		packages[i].SkillIDs = append([]string(nil), skills...)
+		packages[i].MaestroSkills = append([]string(nil), skills...)
+	}
+	if len(packages) == 1 {
+		// Direct/atomic execution must preserve the standalone complete prompt.
+		// Multi-step work is compiled from each task's scoped goal instead.
+		packages[0].CompiledPrompt = artifact.Content
+	}
+	phase := store.PlanPhase{
+		ID: "phase_" + ids.NewRuntimeID(), Title: "Composer Flow",
+		Order: 1, Packages: packages,
+	}
+	return n.CreateWorkPlan(ctx, session.ProjectID, title,
+		"Materialized from Composer PromptArtifact via Flow decomposition",
+		[]store.PlanPhase{phase}, facts)
 }
 
 // composerHandoffContract is a versioned, self-contained interpretation of the
@@ -472,6 +496,9 @@ func (n *Nexus) generateSemanticFlowOutlines(ctx context.Context, projectID, goa
 	intent, unknowns, outlines, err := engine.PlanFromGoal(ctx, goal, projectID)
 	if err != nil {
 		return nil, nil, nil, err
+	}
+	if intent == nil {
+		return nil, nil, nil, fmt.Errorf("intelligence planner returned no intent")
 	}
 
 	state := &intelligence.ClarificationState{Unknowns: unknowns, StructuredFacts: map[string]string{}}
