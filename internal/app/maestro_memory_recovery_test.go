@@ -37,7 +37,9 @@ func TestMaestroRecoveryStatusRejectsCorruptJournalWithoutDeleting(t *testing.T)
  if err:=os.MkdirAll(root,0700);err!=nil{t.Fatal(err)}
  file:=filepath.Join(root,"corrupt-record")
  if err:=os.WriteFile(file,[]byte("not a journal"),0600);err!=nil{t.Fatal(err)}
- if err:=maestroMemoryRecoveryStatusCmd([]string{"--json"});err!=nil{t.Fatal(err)}
+ if err:=maestroMemoryRecoveryStatusCmd([]string{"--json"});err==nil{
+  t.Fatal("corrupt journal must return nonzero exit status")
+ }
  report,err:=memoryrecovery.Inspect(dir)
  if err!=nil||!report.Blocked||!strings.Contains(strings.Join(report.Problems,","),"UNKNOWN_JOURNAL_ENTRY"){
   t.Fatalf("corrupt records must fail closed without deletion: %+v %v",report,err)
