@@ -520,6 +520,8 @@ func usage() {
   %s config <show|validate>       Manage control plane settings
   %s update                       Update Nexus only (use 'maestro update' explicitly for Maestro)
   %s maestro <status|doctor|update> Manage optional Maestro integration explicitly
+  nexus maestro memory-recovery-status [--json]
+                                  Read-only check for incomplete restoration journals
   %s completion <bash|zsh|fish>   Generate shell completion scripts
   %s version [--json]             Display build and platform information
   %s release                      Interactively bump, build, install and validate Nexus
