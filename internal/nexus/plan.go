@@ -632,6 +632,11 @@ func (n *Nexus) ResolveClarificationAndGeneratePlan(ctx context.Context, id stri
 	if err != nil {
 		return nil, checkpoint, err
 	}
+	// Answering clarifications must not bypass the same semantic DAG gate.
+	// Keep the checkpoint unresolved if the new plan is still untrustworthy.
+	if err := validateGeneratedFlowOutlines(checkpoint.Goal, outlines); err != nil {
+		return nil, checkpoint, err
+	}
 	row.Status = store.ClarificationResolved
 	if err := st.UpdateClarification(*row); err != nil {
 		return nil, checkpoint, err
