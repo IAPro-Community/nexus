@@ -89,17 +89,9 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 			facts[key] = fact.Value
 		}
 	}
-	if memFacts, memErr := n.MemoryFactsMap(ctx, session.ProjectID); memErr == nil {
-		for key, value := range memFacts {
-			if strings.HasPrefix(key, "memory.") {
-				facts[key] = value
-				continue
-			}
-			if _, exists := facts[key]; !exists {
-				facts["memory."+key] = value
-			}
-		}
-	}
+	// Do not enrich this frozen artifact with fresh semantic-memory values.
+	// Composer's approved context was captured when the artifact was finalized;
+	// new Maestro facts must not silently rewrite the approved handoff.
 
 	// The immutable PromptArtifact is the ONLY source prompt for this handoff.
 	// The planner may propose activities, but cannot rewrite approved Composer
@@ -503,21 +495,21 @@ func (n *Nexus) generateSemanticFlowOutlines(ctx context.Context, projectID, goa
 
 	state := &intelligence.ClarificationState{Unknowns: unknowns, StructuredFacts: map[string]string{}}
 	if frozenContext == nil {
-	if memFacts, memErr := n.MemoryFactsMap(ctx, projectID); memErr == nil {
-		for key, value := range memFacts {
-			state.StructuredFacts[key] = value
-		}
-		// Resolve blocking unknowns already covered by durable memories.
-		for i := range state.Unknowns {
-			item := &state.Unknowns[i]
-			if item.IsResolved {
-				continue
+		if memFacts, memErr := n.MemoryFactsMap(ctx, projectID); memErr == nil {
+			for key, value := range memFacts {
+				state.StructuredFacts[key] = value
 			}
-			if value := memoryCoversAmbiguity(*item, memFacts); value != "" {
-				engine.ResolveClarification(state, item.Key, value)
+			// Resolve blocking unknowns already covered by durable memories.
+			for i := range state.Unknowns {
+				item := &state.Unknowns[i]
+				if item.IsResolved {
+					continue
+				}
+				if value := memoryCoversAmbiguity(*item, memFacts); value != "" {
+					engine.ResolveClarification(state, item.Key, value)
+				}
 			}
 		}
-	}
 	}
 	// Non-blocking defaults are explicit decisions. Blocking items always require a user answer.
 	for i := range state.Unknowns {
@@ -527,6 +519,11 @@ func (n *Nexus) generateSemanticFlowOutlines(ctx context.Context, projectID, goa
 		}
 	}
 	if hasBlockingUnknowns(state.Unknowns) {
+		if frozenContext != nil {
+			// A generic clarification continuation would lose the artifact
+			// lineage. Require a revised, finalized Composer artifact instead.
+			return nil, nil, nil, fmt.Errorf("Composer prompt contains unresolved blocking questions; revise and finalize the Composer artifact before converting it to Flow")
+		}
 		checkpoint, err := n.persistClarification(projectID, goal, intent, state.Unknowns, state.StructuredFacts)
 		if err != nil {
 			return nil, nil, nil, err
