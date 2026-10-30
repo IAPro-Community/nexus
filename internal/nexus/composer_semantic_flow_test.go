@@ -41,6 +41,15 @@ func TestComposerSemanticFlowPreservesFrozenProvenanceAndGranularSteps(t *testin
 
 	plan,err:=n.MaterializePromptArtifactAsFlow(context.Background(),artifact.ID)
 	if err!=nil {t.Fatal(err)}
+	provider := n.intelligenceProviderForTest.(*flowPlannerFixtureProvider)
+	if provider.lastGoal != artifact.Content || provider.lastContext["source_artifact_id"] != artifact.ID ||
+		provider.lastContext["source_artifact_hash"] != artifact.Hash ||
+		provider.lastContext["source"] != "FINALIZED_COMPOSER_ARTIFACT" {
+		t.Fatalf("planner did not receive the exact immutable Composer prompt and artifact identity")
+	}
+	if provider.lastContext["intelligence_memories"] != nil {
+		t.Fatal("a finalized Composer prompt must not be enriched with new mutable memories")
+	}
 	if len(plan.Phases)!=1 || len(plan.Phases[0].Packages)!=4 {
 		t.Fatalf("prompt was not decomposed into specific activities: %+v",plan.Phases)
 	}
@@ -68,7 +77,7 @@ func TestComposerSemanticFlowPreservesFrozenProvenanceAndGranularSteps(t *testin
 	if err!=nil||len(plans)!=1 {t.Fatalf("expected one reviewable Flow: %v %+v",err,plans)}
 }
 
-func TestComposerSemanticFlowFailsClosedWithoutProvider(t *testing.T) {
+func TestComposerSemanticFlowRejectsInvalidProviderPlanWithoutFallback(t *testing.T) {
 	n:=openTestNexus(t)
 	st,err:=n.OpenProject()
 	if err!=nil {t.Fatal(err)}
@@ -94,4 +103,31 @@ func TestComposerSemanticFlowFailsClosedWithoutProvider(t *testing.T) {
 	if err!=nil||saved.Content!=artifact.Content||saved.Hash!=artifact.Hash {
 		t.Fatalf("finalized source artifact changed during failed handoff: %v",err)
 	}
+}
+
+func TestComposerSemanticFlowBlocksProviderClarificationWithoutLosingLineage(t *testing.T) {
+	n:=openTestNexus(t)
+	st,err:=n.OpenProject()
+	if err!=nil {t.Fatal(err)}
+	project,err:=st.CreateProject(store.Project{Name:"ComposerClarificationSafe",CanonicalPath:t.TempDir()})
+	if err!=nil {t.Fatal(err)}
+	view,err:=n.CreateComposerSessionWithPrompt(context.Background(),project.ID,
+		"Build secure backend and React interface","Implement backend API, React frontend and integration tests with security review")
+	if err!=nil {t.Fatal(err)}
+	artifact,err:=n.FinalizeComposerSession(context.Background(),view.Session.ID,nil,true)
+	if err!=nil {t.Fatal(err)}
+	composerSemanticFixture(n,false)
+	provider:=n.intelligenceProviderForTest.(*flowPlannerFixtureProvider)
+	provider.unknowns=[]intelligence.AmbiguityItem{{
+		Key:"credential_strategy",
+		Level:intelligence.AmbiguityBlocking,
+		Question:"Which identity provider is approved?",
+		IsResolved:false,
+	}}
+	if _,err=n.MaterializePromptArtifactAsFlow(context.Background(),artifact.ID);err==nil ||
+		!strings.Contains(err.Error(),"revise and finalize") {
+		t.Fatalf("Composer must not create a generic continuation without frozen lineage: %v",err)
+	}
+	plans,err:=st.ListWorkPlans(project.ID)
+	if err!=nil || len(plans)!=0 {t.Fatalf("blocked Composer Flow was persisted: %v %+v",err,plans)}
 }
