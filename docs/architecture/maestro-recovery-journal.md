@@ -1,12 +1,12 @@
 # Etapa 00F — journal operacional de recuperação
 
-**Status:** componente de recuperação preventiva, PR draft, sem `restore apply`, sem migração, sem substituição da memória do Maestro.
+**Status:** journal e fencing cooperativo dos escritores legados, PR draft, sem `restore apply`, sem migração, sem substituição da memória do Maestro.
 
 ## Escopo implementado
 
-- O pacote `internal/nexus/memoryrecovery` usa exclusivamente o DataDir já existente do Nexus. Ele não cria nenhuma memória semântica nem índice de conhecimento.
+- O pacote `internal/core/memoryrecovery` usa exclusivamente o DataDir já existente do Nexus. Ele não cria nenhuma memória semântica nem índice de conhecimento.
 - `Begin` verifica nome e localização do backup legado, tamanho, permissões POSIX, SHA-256 do conteúdo, versão e projeto do snapshot. Exige também um digest de origem informado pelo chamador; esse segundo digest **não é revalidado no armazenamento ativo nesta etapa**.
-- Uma única operação de recovery por diretório de dados pode possuir o arquivo `.active.lock`, criado com `O_EXCL` e vinculado a um ID aleatório de operação. O lock é **cooperativo entre coordenadores de recuperação**, não bloqueia automaticamente `UpsertIntelligenceMemory`, `SaveConfig` ou outros escritores legados de outros processos.
+- Um único participante por diretório de dados pode possuir `.active.lock`, criado com `O_EXCL` e owner aleatório. A função `WithLegacyWriter` reutiliza esse mecanismo na gravação de config e no CRUD de memórias PROJECT, inclusive entre processos que compartilham o mesmo DataDir. Escritores já existentes que não passem por esses pontos ou usem um DataDir diferente **ainda não estão cobertos**.
 - Os eventos são arquivos imutáveis, sequenciais e privados (`0000.json`, `0001.json` etc.), com hash encadeado para detectar corrupção acidental ou edição sem recomputar a cadeia. Esse hash **não é assinatura/autenticação**.
 - Transições permitidas: PREPARED → PROJECT_COMMITTED → INSTALL_COMMITTED → VERIFIED, com NEEDS_RECOVERY em pontos intermediários e ABORTED apenas antes de qualquer commit. Os estados registram alegações operacionais do futuro coordenador, não evidência automática de que SQL ou config foram realmente escritos.
 - `Close` retira o lock apenas após VERIFIED/ABORTED, e somente se o lock ainda pertence à sessão. Para estados intermediários, lock permanece e toda operação nova falha; não há desbloqueio/repair silencioso.
@@ -16,7 +16,7 @@
 ## Limites de segurança obrigatórios
 
 1. Não ativar restore apply: o arquivo INSTALL e o SQLite PROJECT não compartilham transação. Os componentes #162 e #163 fazem apenas operações CAS locais.
-2. O atual lock não é universal: escrituras legadas continuam possíveis sem consultá-lo. Requer modo manutenção/fencing dos escritores em TODAS as instâncias, inclusive clientes remotos, e confirmação de quiescência antes de aplicar.
+2. O lock agora é aplicado a `SaveConfig` e a `Store.UpsertIntelligenceMemory` / `DeleteIntelligenceMemory` / `DeleteIntelligenceMemoryByKey`. A configuração carregada por `LoadConfig` mantém um baseline hash de memórias; `SaveConfig` exige que o conjunto em disco ainda corresponda ao baseline para não reintroduzir dados antigos. O mecanismo permanece cooperativo: processos executando binários antigos, writers via SQL direto, instâncias com DataDir diferentes ou ferramentas externas não respeitam o lock. Exigir quiescência universal antes de apply.
 3. Exigir rollback automático/compensatório testado para crash entre SQL commit e config rename. O journal sozinho não executa rollback.
 4. Retenção de locks órfãos é proposital: somente recuperação humana explicitamente autorizada, com verificação dos dois storages e geração do runtime, poderá liberar o lock.
 5. O evento VERIFIED não pode ser registrado pelo futuro coordenador sem verificar hashes pós-commit e os dados lidos de ambas as origens. O pacote atual ainda não implementa essa integração.
@@ -41,4 +41,4 @@ Testes adicionados para encadeamento e replay, bloqueio de recuperações interr
 
 ## Próxima etapa 00G
 
-Implementar e provar writer fencing em todos os pontos legados, incorporar recibos de operações reais nos eventos (com hashes), recuperar falhas intercaladas com crash injection, e só então expor comando de aplicação explicitamente confirmado. PRs de dependência: Nexus #156, #162 e #163; Maestro #42/#43; Nexus #155.
+Completar a auditoria dos escritores fora dos caminhos protegidos (incluindo SQL direto, binários antigos e ferramentas externas), incorporar recibos reais nos eventos (com hashes), recuperar falhas intercaladas com crash injection e testar todos os caminhos em dois processos antes de expor aplicação explicitamente confirmada. PRs de dependência: Nexus #156, #162 e #163; Maestro #42/#43; Nexus #155.
