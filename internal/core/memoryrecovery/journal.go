@@ -153,6 +153,10 @@ func Begin(dataDir, projectID, backupPath, backupSHA, sourceSHA string) (*Journa
  if err != nil { return nil, fmt.Errorf("recovery journal is already locked: %w", err) }
  if _, err := file.WriteString(id); err != nil { _ = file.Close(); return nil, err }
  if err := file.Sync(); err != nil { _ = file.Close(); return nil, err }
+ if err := syncRecoveryDirectory(root); err != nil {
+  _ = file.Close()
+  return nil, fmt.Errorf("recovery lock durability unverified: %w", err)
+ }
  after, err := Inspect(dataDir)
  if err != nil || len(after.Problems) != 0 || unfinished(after.Operations) {
   _ = file.Close()
@@ -161,6 +165,10 @@ func Begin(dataDir, projectID, backupPath, backupSHA, sourceSHA string) (*Journa
  opDir := filepath.Join(root,id)
  if err := os.Mkdir(opDir,0700); err != nil {
   _ = file.Close(); _ = os.Remove(lockPath); return nil, err
+ }
+ if err := syncRecoveryDirectory(root); err != nil {
+  _ = file.Close()
+  return nil, fmt.Errorf("recovery operation directory durability unverified: %w", err)
  }
  journal := &Journal{directory: opDir,lockPath: lockPath,lock:file}
  first := Event{Version:1,OperationID:id,ProjectID:projectID,
@@ -239,13 +247,8 @@ func (j *Journal) write(event Event) error {
  if err=f.Close();err!=nil{return err}
  // Syncing the parent directory strengthens rename/create durability on
  // POSIX. Windows directory sync support is platform-specific.
- if runtime.GOOS!="windows" {
-  d,e:=os.Open(j.directory)
-  if e!=nil { return fmt.Errorf("open journal directory for sync: %w",e) }
-  syncErr:=d.Sync()
-  closeErr:=d.Close()
-  if syncErr!=nil { return fmt.Errorf("sync journal directory: %w",syncErr) }
-  if closeErr!=nil { return closeErr }
+ if err := syncRecoveryDirectory(j.directory); err != nil {
+  return fmt.Errorf("journal event durability unverified: %w", err)
  }
  j.last=event
  return nil
