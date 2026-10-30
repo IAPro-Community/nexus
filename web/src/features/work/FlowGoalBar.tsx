@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Play, Plus, Route, Sparkles, Trash2 } from 'lucide-react';
-import { Badge, Button, Card, ConfirmDialog, Input, Select } from '../../design-system';
+import { Badge, Button, Card, ConfirmDialog, Input, Select, Textarea } from '../../design-system';
 import type { Agent, FlowLeaderPolicy } from '../../types';
 import {
   executionPreviewDetails,
@@ -81,10 +81,14 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
 
       {!flowDraft && (
         <div className="nx-composer-goal-bar__row">
-          <Input
+          <Textarea
             value={autoGoal}
             onChange={setAutoGoal}
-            placeholder={t('flow.goalPlaceholderShort', 'Descreva o objetivo do Flow…')}
+            rows={5}
+            placeholder={t(
+              'flow.promptPlaceholder',
+              'Cole o prompt completo ou descreva a entrega. O Flow vai separar as atividades, dependências e critérios de aceite.',
+            )}
             className={styles.goalInput}
           />
           <Button
@@ -94,8 +98,8 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
           >
             <Plus size={14} />{' '}
             {generating
-              ? t('flow.creatingDraft', 'Criando…')
-              : t('flow.createEmptyDraft', 'Criar Flow a partir do objetivo')}
+              ? t('flow.generatingActivities', 'Planejando…')
+              : t('flow.generateActivities', 'Gerar atividades')}
           </Button>
           <Button tone="default" disabled={generating} onClick={() => void createManualPlan()}>
             <Plus size={14} /> {t('flow.createManual', 'Criar manual')}
