@@ -432,17 +432,32 @@ func saveConfigLocked(cfg Config) error {
 	if err := checkInstallMemoryBaseline(configPath, cfg); err != nil {
 		return err
 	}
-	tmpPath := fmt.Sprintf("%s.tmp.%d", configPath, time.Now().UnixNano())
-
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	if err := os.WriteFile(tmpPath, append(data, '\n'), 0600); err != nil {
+	tmp, err := os.CreateTemp(dir, ".nexus-config-*.tmp")
+	if err != nil {
 		return err
 	}
-
+	tmpPath := tmp.Name()
+	defer os.Remove(tmpPath)
+	if err := tmp.Chmod(0600); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if _, err := tmp.Write(append(data, '\n')); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
 	return os.Rename(tmpPath, configPath)
 }
 
