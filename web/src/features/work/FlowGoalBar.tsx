@@ -81,16 +81,22 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
 
       {!flowDraft && (
         <div className="nx-composer-goal-bar__row">
-          <Textarea
-            value={autoGoal}
-            onChange={setAutoGoal}
-            rows={5}
-            placeholder={t(
-              'flow.promptPlaceholder',
-              'Cole o prompt completo ou descreva a entrega. O Flow vai separar as atividades, dependências e critérios de aceite.',
-            )}
-            className={styles.goalInput}
-          />
+          <div className={styles.promptInputGroup} data-tour="flow-prompt">
+            <label htmlFor="flow-prompt-input" className={styles.promptInputLabel}>
+              {t('flow.promptLabel', 'Prompt ou objetivo a decompor')}
+            </label>
+            <Textarea
+              id="flow-prompt-input"
+              value={autoGoal}
+              onChange={setAutoGoal}
+              rows={5}
+              placeholder={t(
+                'flow.promptPlaceholder',
+                'Cole o prompt completo ou descreva a entrega. O Flow vai separar as atividades, dependências e critérios de aceite.',
+              )}
+              className={styles.goalInput}
+            />
+          </div>
           <Button
             tone="brand"
             disabled={!autoGoal.trim() || generating}
