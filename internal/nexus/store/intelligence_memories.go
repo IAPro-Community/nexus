@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/core/memoryrecovery"
 )
 
 // IntelligenceMemory is a visible, deletable habit fact for a project.
@@ -38,18 +39,23 @@ func (s *Store) UpsertIntelligenceMemory(m IntelligenceMemory) (*IntelligenceMem
 		m.CreatedAt = now
 	}
 	m.UpdatedAt = now
-	_, err := s.db.Exec(`INSERT INTO intelligence_memories(id,project_id,key,value,source,created_at,updated_at)
-		VALUES(?,?,?,?,?,?,?)
-		ON CONFLICT(project_id, key) DO UPDATE SET
-			value=excluded.value,
-			source=excluded.source,
-			updated_at=excluded.updated_at`,
-		m.ID, m.ProjectID, m.Key, m.Value, m.Source,
-		m.CreatedAt.Format(time.RFC3339Nano), m.UpdatedAt.Format(time.RFC3339Nano))
-	if err != nil {
-		return nil, fmt.Errorf("upsert intelligence memory: %w", err)
-	}
-	return s.GetIntelligenceMemoryByKey(m.ProjectID, m.Key)
+	var saved *IntelligenceMemory
+	err := memoryrecovery.WithLegacyWriter(s.memoryFenceDir, func() error {
+		_, err := s.db.Exec(`INSERT INTO intelligence_memories(id,project_id,key,value,source,created_at,updated_at)
+			VALUES(?,?,?,?,?,?,?)
+			ON CONFLICT(project_id, key) DO UPDATE SET
+				value=excluded.value,
+				source=excluded.source,
+				updated_at=excluded.updated_at`,
+			m.ID, m.ProjectID, m.Key, m.Value, m.Source,
+			m.CreatedAt.Format(time.RFC3339Nano), m.UpdatedAt.Format(time.RFC3339Nano))
+		if err != nil {
+			return fmt.Errorf("upsert intelligence memory: %w", err)
+		}
+		saved, err = s.GetIntelligenceMemoryByKey(m.ProjectID, m.Key)
+		return err
+	})
+	return saved, err
 }
 
 func (s *Store) GetIntelligenceMemoryByKey(projectID, key string) (*IntelligenceMemory, error) {
@@ -77,20 +83,24 @@ func (s *Store) ListIntelligenceMemories(projectID string) ([]IntelligenceMemory
 }
 
 func (s *Store) DeleteIntelligenceMemory(projectID, id string) error {
-	res, err := s.db.Exec(`DELETE FROM intelligence_memories WHERE project_id=? AND id=?`, projectID, id)
-	if err != nil {
-		return err
-	}
-	n, _ := res.RowsAffected()
-	if n == 0 {
-		return sql.ErrNoRows
-	}
-	return nil
+	return memoryrecovery.WithLegacyWriter(s.memoryFenceDir, func() error {
+		res, err := s.db.Exec(`DELETE FROM intelligence_memories WHERE project_id=? AND id=?`, projectID, id)
+		if err != nil {
+			return err
+		}
+		n, _ := res.RowsAffected()
+		if n == 0 {
+			return sql.ErrNoRows
+		}
+		return nil
+	})
 }
 
 func (s *Store) DeleteIntelligenceMemoryByKey(projectID, key string) error {
-	_, err := s.db.Exec(`DELETE FROM intelligence_memories WHERE project_id=? AND key=?`, projectID, key)
-	return err
+	return memoryrecovery.WithLegacyWriter(s.memoryFenceDir, func() error {
+		_, err := s.db.Exec(`DELETE FROM intelligence_memories WHERE project_id=? AND key=?`, projectID, key)
+		return err
+	})
 }
 
 type memoryScanner interface {
