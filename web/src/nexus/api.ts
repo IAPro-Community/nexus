@@ -599,6 +599,15 @@ export const nexus = {
       `/api/v1/plans/${encodeURIComponent(planId)}?expected_revision=${expectedRevision}`,
       { method: 'DELETE' },
     ),
+  // Direct-to-Flow semantic planning. No Agent or Mission is launched.
+  generateFlowPlan: async (projectId: string, prompt: string, init?: RequestInit) =>
+    normalizeWorkPlan(
+      await request<import('../types').WorkPlan>('/api/v1/flow/generate', {
+        method: 'POST',
+        body: JSON.stringify({ project_id: projectId, prompt }),
+        ...init,
+      }),
+    ),
   createPlan: async (
     projectId: string,
     data: {

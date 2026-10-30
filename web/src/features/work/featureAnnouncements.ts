@@ -64,6 +64,16 @@ export const featureAnnouncements: readonly FeatureAnnouncement[] = [
     tourStep: 'tracks',
   },
   {
+    id: 'flow-semantic-planner',
+    revision: 1,
+    surfaces: ['flow-editor'],
+    openSurface: 'missions',
+    target: '[data-tour="flow-goal"]',
+    title: 'discovery.flowPromptTitle',
+    summary: 'discovery.flowPromptBody',
+    tourStep: 'goal',
+  },
+  {
     id: 'flow-pipeline-graph',
     revision: 1,
     surfaces: ['flow-editor'],

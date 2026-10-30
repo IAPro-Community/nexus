@@ -89,50 +89,60 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 			facts[key] = fact.Value
 		}
 	}
-	if memFacts, memErr := n.MemoryFactsMap(ctx, session.ProjectID); memErr == nil {
-		for key, value := range memFacts {
-			if strings.HasPrefix(key, "memory.") {
-				facts[key] = value
-				continue
-			}
-			if _, exists := facts[key]; !exists {
-				facts["memory."+key] = value
-			}
-		}
-	}
+	// Do not enrich this frozen artifact with fresh semantic-memory values.
+	// Composer's approved context was captured when the artifact was finalized;
+	// new Maestro facts must not silently rewrite the approved handoff.
 
-	// Unify the Composer -> Flow path: decompose the brief into a real Flow DAG
-	// with structured layers (Planning, Implementation, Review, Verification or
-	// delegated workstreams) instead of collapsing into a single package.
-	proposal, decomposeErr := n.DecomposePromptIntoFlowProposal(ctx, FlowDecompositionRequest{
-		ProjectID:      session.ProjectID,
-		ArtifactID:     artifact.ID,
-		Goal:           firstNonEmpty(brief.Goal, brief.Intent.Objective),
-		SourcePrompt:   artifact.Content,
-		SkillIDs:       decodeStringArray(artifact.SkillIDsJSON),
-		DelegationMode: DelegationAuto,
+	// The immutable PromptArtifact is the ONLY source prompt for this handoff.
+	// The planner may propose activities, but cannot rewrite approved Composer
+	// decisions or silently fall back to one generic work package.
+	sourcePrompt := strings.TrimSpace(artifact.Content)
+	if sourcePrompt == "" {
+		return nil, fmt.Errorf("Composer artifact %s has no finalized prompt", artifact.ID)
+	}
+	frozenHandoff := composerHandoffFromArtifact(*artifact, *session, brief)
+	intent, outlines, generatedFacts, err := n.generateSemanticFlowOutlines(ctx, session.ProjectID, sourcePrompt, map[string]any{
+		"source":               "FINALIZED_COMPOSER_ARTIFACT",
+		"source_artifact_id":   artifact.ID,
+		"source_artifact_version": artifact.Version,
+		"source_artifact_hash": artifact.Hash,
+		"approved_handoff":    frozenHandoff,
+		"context_manifest_fingerprint": manifest.Fingerprint,
 	})
-	if decomposeErr == nil && len(proposal.Flow.Phases) > 0 {
-		flowPlan := WorkPlanFromFlow(proposal.Flow)
-		for key, value := range flowPlan.StructuredFacts {
-			if _, exists := facts[key]; !exists {
-				facts[key] = value
-			}
-		}
-		return n.CreateWorkPlan(ctx, session.ProjectID, title, "Materialized from Composer PromptArtifact via Flow decomposition", flowPlan.Phases, facts)
+	if err != nil {
+		return nil, fmt.Errorf("decompose finalized Composer artifact %s: %w", artifact.ID, err)
 	}
+	for key, value := range generatedFacts {
+		if _, frozen := facts[key]; !frozen {
+			facts[key] = value
+		}
+	}
+	facts["scope"] = intent.Scope
+	facts["risk_level"] = intent.RiskLevel
 
-	phaseID := "phase_" + ids.NewRuntimeID()
-	plan, err := n.CreateWorkPlan(ctx, session.ProjectID, title, "Materialized from Composer PromptArtifact", []store.PlanPhase{{
-		ID: phaseID, Title: "Composer Flow", Order: 1, Packages: []store.WorkPackage{{
-			ID: "pkg_" + ids.NewRuntimeID(), Title: title, Goal: brief.Goal, Priority: "HIGH", Status: "READY", Role: "implementer",
-			SkillIDs: decodeStringArray(artifact.SkillIDsJSON), MaestroSkills: decodeStringArray(artifact.SkillIDsJSON), AcceptanceCriteria: append([]string(nil), brief.Quality.AcceptanceCriteria...), CompiledPrompt: artifact.Content,
-		}},
-	}}, facts)
+	// Reuse the SAME work package materialization as direct Flow. Only the
+	// transport-specific Composer metadata and frozen provenance are added.
+	packages, err := n.projectPackagesFromOutlines(session.ProjectID, sourcePrompt, outlines)
 	if err != nil {
 		return nil, err
 	}
-	return plan, nil
+	skills := decodeStringArray(artifact.SkillIDsJSON)
+	for i := range packages {
+		packages[i].SkillIDs = append([]string(nil), skills...)
+		packages[i].MaestroSkills = append([]string(nil), skills...)
+	}
+	if len(packages) == 1 {
+		// Direct/atomic execution must preserve the standalone complete prompt.
+		// Multi-step work is compiled from each task's scoped goal instead.
+		packages[0].CompiledPrompt = artifact.Content
+	}
+	phase := store.PlanPhase{
+		ID: "phase_" + ids.NewRuntimeID(), Title: "Composer Flow",
+		Order: 1, Packages: packages,
+	}
+	return n.CreateWorkPlan(ctx, session.ProjectID, title,
+		"Materialized from Composer PromptArtifact via Flow decomposition",
+		[]store.PlanPhase{phase}, facts)
 }
 
 // composerHandoffContract is a versioned, self-contained interpretation of the
@@ -432,44 +442,66 @@ func (e *ClarificationRequiredError) Error() string {
 // It persists BLOCKING ambiguities and never falls back to fabricated packages.
 // CLI providers use a single-shot PlanFromGoal call; OpenAI-compatible keeps multi-call.
 //
-// Deprecated: the web path is retired (auto_plan now returns an error; users go
-// through Composer -> Turn into Flow). This function is retained only for the
-// legacy `nexus plan create` CLI command and its tests. Do not add new callers.
+// GeneratePlanFromIntent uses the configured intelligence provider to create a
+// semantic, reviewable WorkPlan from a goal or complete prompt. Composer is not
+// required. It never starts a Mission and rejects malformed AI topology.
 func (n *Nexus) GeneratePlanFromIntent(ctx context.Context, projectID, goal string) (*store.WorkPlan, error) {
+	intent, outlines, facts, err := n.generateSemanticFlowOutlines(ctx, projectID, goal, nil)
+	if err != nil {
+		return nil, err
+	}
+	return n.createPlanFromOutlines(ctx, projectID, goal, intent, outlines, facts)
+}
+
+// generateSemanticFlowOutlines shares the same provider, clarification,
+// dependency and acceptance gates between direct Flow and finalized Composer
+// artifacts. The frozenContext is never substituted with a live session.
+func (n *Nexus) generateSemanticFlowOutlines(ctx context.Context, projectID, goal string, frozenContext map[string]any) (*intelligence.IntentAnalysis, []intelligence.WorkPackageOutline, map[string]string, error) {
 	ctx, cancel := context.WithTimeout(ctx, intelligence.PlanGenerationTimeout)
 	defer cancel()
 
-	contextData, err := n.ComposerContextData(projectID)
-	if err != nil {
-		return nil, err
-	}
-	if memFacts, memErr := n.MemoryFactsMap(ctx, projectID); memErr == nil && len(memFacts) > 0 {
-		contextData["intelligence_memories"] = memFacts
+	// The Composer handoff supplies frozen, artifact-scoped context rather than
+	// using a later mutable Composer session or a fresh semantic-memory read.
+	contextData := frozenContext
+	if contextData == nil {
+		var err error
+		contextData, err = n.ComposerContextData(projectID)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		if memFacts, memErr := n.MemoryFactsMap(ctx, projectID); memErr == nil && len(memFacts) > 0 {
+			contextData["intelligence_memories"] = memFacts
+		}
 	}
 	provider, err := n.ConfiguredIntelligenceProvider(ctx, projectID)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 	engine := intelligence.NewNexusEngine(provider).WithContextData(contextData)
 
 	intent, unknowns, outlines, err := engine.PlanFromGoal(ctx, goal, projectID)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
+	}
+	if intent == nil {
+		return nil, nil, nil, fmt.Errorf("intelligence planner returned no intent")
 	}
 
 	state := &intelligence.ClarificationState{Unknowns: unknowns, StructuredFacts: map[string]string{}}
-	if memFacts, memErr := n.MemoryFactsMap(ctx, projectID); memErr == nil {
-		for key, value := range memFacts {
-			state.StructuredFacts[key] = value
-		}
-		// Resolve blocking unknowns already covered by durable memories.
-		for i := range state.Unknowns {
-			item := &state.Unknowns[i]
-			if item.IsResolved {
-				continue
+	if frozenContext == nil {
+		if memFacts, memErr := n.MemoryFactsMap(ctx, projectID); memErr == nil {
+			for key, value := range memFacts {
+				state.StructuredFacts[key] = value
 			}
-			if value := memoryCoversAmbiguity(*item, memFacts); value != "" {
-				engine.ResolveClarification(state, item.Key, value)
+			// Resolve blocking unknowns already covered by durable memories.
+			for i := range state.Unknowns {
+				item := &state.Unknowns[i]
+				if item.IsResolved {
+					continue
+				}
+				if value := memoryCoversAmbiguity(*item, memFacts); value != "" {
+					engine.ResolveClarification(state, item.Key, value)
+				}
 			}
 		}
 	}
@@ -481,20 +513,31 @@ func (n *Nexus) GeneratePlanFromIntent(ctx context.Context, projectID, goal stri
 		}
 	}
 	if hasBlockingUnknowns(state.Unknowns) {
+		if frozenContext != nil {
+			// A generic clarification continuation would lose the artifact
+			// lineage. Require a revised, finalized Composer artifact instead.
+			return nil, nil, nil, fmt.Errorf("Composer prompt contains unresolved blocking questions; revise and finalize the Composer artifact before converting it to Flow")
+		}
 		checkpoint, err := n.persistClarification(projectID, goal, intent, state.Unknowns, state.StructuredFacts)
 		if err != nil {
-			return nil, err
+			return nil, nil, nil, err
 		}
-		return nil, &ClarificationRequiredError{Checkpoint: checkpoint}
+		return nil, nil, nil, &ClarificationRequiredError{Checkpoint: checkpoint}
 	}
 
 	if len(outlines) == 0 {
 		outlines, err = engine.GeneratePlan(ctx, intent, state.StructuredFacts)
 		if err != nil {
-			return nil, err
+			return nil, nil, nil, err
 		}
 	}
-	return n.createPlanFromOutlines(ctx, projectID, goal, intent, outlines, state.StructuredFacts)
+	// A response from an AI provider is not proof that it is executable.
+	// Fail before writing a WorkPlan when tasks, dependencies or acceptance
+	// evidence are incomplete; never silently downgrade to one generic step.
+	if err := validateGeneratedFlowOutlines(goal, outlines); err != nil {
+		return nil, nil, nil, err
+	}
+	return intent, outlines, state.StructuredFacts, nil
 }
 
 func hasBlockingUnknowns(items []intelligence.AmbiguityItem) bool {
@@ -626,6 +669,11 @@ func (n *Nexus) ResolveClarificationAndGeneratePlan(ctx context.Context, id stri
 	if err != nil {
 		return nil, checkpoint, err
 	}
+	// Answering clarifications must not bypass the same semantic DAG gate.
+	// Keep the checkpoint unresolved if the new plan is still untrustworthy.
+	if err := validateGeneratedFlowOutlines(checkpoint.Goal, outlines); err != nil {
+		return nil, checkpoint, err
+	}
 	row.Status = store.ClarificationResolved
 	if err := st.UpdateClarification(*row); err != nil {
 		return nil, checkpoint, err
@@ -712,14 +760,18 @@ func packagesFromOutlines(goal string, outlines []intelligence.WorkPackageOutlin
 		}}
 	}
 	byID := make(map[string]struct{}, len(pkgs))
-	byTitle := make(map[string]string, len(pkgs))
-	for _, pkg := range pkgs {
+	byTitle := make(map[string]string, len(pkgs)*4)
+	for position, pkg := range pkgs {
 		byID[pkg.ID] = struct{}{}
 		key := strings.ToLower(strings.TrimSpace(pkg.Title))
 		if key != "" {
 			if _, exists := byTitle[key]; !exists {
 				byTitle[key] = pkg.ID
 			}
+		}
+		ordinal := fmt.Sprintf("%d", position+1)
+		for _, alias := range []string{ordinal, "#"+ordinal, "step "+ordinal, "etapa "+ordinal, "atividade "+ordinal} {
+			byTitle[alias] = pkg.ID
 		}
 	}
 	for i := range pkgs {
@@ -745,11 +797,18 @@ func packagesFromOutlines(goal string, outlines []intelligence.WorkPackageOutlin
 			resolved = append(resolved, id)
 		}
 		pkgs[i].Dependencies = resolved
+		if len(resolved) > 0 {
+			pkgs[i].Status = "PENDING"
+		}
 	}
 	return pkgs
 }
 
-func (n *Nexus) createPlanFromOutlines(ctx context.Context, projectID, goal string, intent *intelligence.IntentAnalysis, outlines []intelligence.WorkPackageOutline, facts map[string]string) (*store.WorkPlan, error) {
+// projectPackagesFromOutlines is the shared materialization contract for
+// direct-prompt Flow and Composer PromptArtifact Flow. Both paths resolve
+// dependencies, classify per-step requirements and attach verified project
+// commands before WorkPlan persistence. It never starts a Mission.
+func (n *Nexus) projectPackagesFromOutlines(projectID, goal string, outlines []intelligence.WorkPackageOutline) ([]store.WorkPackage, error) {
 	pkgs := packagesFromOutlines(goal, outlines)
 	st, err := n.OpenProject()
 	if err != nil {
@@ -764,6 +823,15 @@ func (n *Nexus) createPlanFromOutlines(ctx context.Context, projectID, goal stri
 		if len(pkgs[i].VerificationRequirements) == 0 {
 			pkgs[i].VerificationRequirements = append([]string(nil), verification...)
 		}
+		pkgs[i].TaskRequirements = taskRequirementsJSON(pkgs[i].Goal, pkgs[i].Role)
+	}
+	return pkgs, nil
+}
+
+func (n *Nexus) createPlanFromOutlines(ctx context.Context, projectID, goal string, intent *intelligence.IntentAnalysis, outlines []intelligence.WorkPackageOutline, facts map[string]string) (*store.WorkPlan, error) {
+	pkgs, err := n.projectPackagesFromOutlines(projectID, goal, outlines)
+	if err != nil {
+		return nil, err
 	}
 	phase := store.PlanPhase{ID: "phase_" + ids.NewRuntimeID(), Title: "Execution Phase", Order: 1, Packages: pkgs}
 	mergedFacts := map[string]string{}

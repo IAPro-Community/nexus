@@ -50,6 +50,7 @@ Do not push, merge, deploy, or weaken existing authentication controls.`
 	if err != nil {
 		t.Fatalf("complete imported prompt must finalize without confirm-gaps bypass: %v", err)
 	}
+	composerSemanticFixture(n, false)
 	plan, err := n.MaterializePromptArtifactAsFlow(context.Background(), artifact.ID)
 	if err != nil {
 		t.Fatal(err)
