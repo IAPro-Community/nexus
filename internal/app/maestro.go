@@ -12,6 +12,9 @@ import (
 // handled by the shared Update Service; Maestro is optional and may only be
 // inspected or changed through this explicit namespace.
 func maestroCmd(args []string) error {
+	if len(args) > 0 && args[0] == "memory-recovery-status" {
+		return maestroMemoryRecoveryStatusCmd(args[1:])
+	}
 	subcmd := "status"
 	asJSON := false
 	for _, arg := range args {
