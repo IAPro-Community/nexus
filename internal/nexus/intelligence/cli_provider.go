@@ -123,6 +123,9 @@ func (p *CLIProvider) GeneratePlanOutline(ctx context.Context, intent *IntentAna
 	prompt := fmt.Sprintf(`Return ONLY a JSON object. Do not wrap it in prose.
 Decompose the engineering objective into independently reviewable WorkPackages. Do NOT invent Maestro skill identifiers. The skills array must be empty; Maestro is a separate authority.
 Use real titles and goals derived from the objective. Never copy schema punctuation or field names as values.
+Break a complex prompt into distinct domain-specific deliverables, not generic Planning/Implementation/Review labels. Split independent backend, frontend, data, integration and verification work when the prompt requires them.
+Preserve real prerequisites and explicit opportunities for parallel execution. Acceptance must be observable; do not invent a successful test or inspected repository evidence.
+For an atomic task, one WorkPackage is appropriate. Do not invent work just to increase the count.
 dependencies must be titles of OTHER packages in this same list, or [].
 Schema: {"packages":[{"title":"short unique name","goal":"measurable objective","priority":"CRITICAL|HIGH|NORMAL|LOW","dependencies":[],"role":"implementer|reviewer|tester|architect","skills":[],"acceptance":["done when ..."]}]}
 Input: %s`, input)
@@ -191,6 +194,9 @@ Do NOT invent Maestro skill identifiers; packages.skills must be [].
 BLOCKING unknowns mean execution cannot safely continue; IMPORTANT changes design; LOW_IMPACT has a safe default_choice.
 Never copy schema examples, ellipses, or schema field names as real values.
 packages[].title and packages[].goal must be concrete strings derived from the objective.
+For multi-workstream prompts, break down distinct backend/frontend/data/integration/verification deliverables and explicit dependencies. Do not return one generic activity or a boilerplate fixed phase sequence.
+Keep independent workstreams parallel when safe. Acceptance criteria must be measurable, not claims of tests that have already passed.
+An atomic request can produce a single activity; never invent extra work solely for cardinality.
 packages[].dependencies is an array of titles of OTHER packages in this same list. Use [] when there is no prerequisite.
 Schema:
 {

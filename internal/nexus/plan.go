@@ -432,9 +432,9 @@ func (e *ClarificationRequiredError) Error() string {
 // It persists BLOCKING ambiguities and never falls back to fabricated packages.
 // CLI providers use a single-shot PlanFromGoal call; OpenAI-compatible keeps multi-call.
 //
-// Deprecated: the web path is retired (auto_plan now returns an error; users go
-// through Composer -> Turn into Flow). This function is retained only for the
-// legacy `nexus plan create` CLI command and its tests. Do not add new callers.
+// GeneratePlanFromIntent uses the configured intelligence provider to create a
+// semantic, reviewable WorkPlan from a goal or complete prompt. Composer is not
+// required. It never starts a Mission and rejects malformed AI topology.
 func (n *Nexus) GeneratePlanFromIntent(ctx context.Context, projectID, goal string) (*store.WorkPlan, error) {
 	ctx, cancel := context.WithTimeout(ctx, intelligence.PlanGenerationTimeout)
 	defer cancel()
@@ -493,6 +493,12 @@ func (n *Nexus) GeneratePlanFromIntent(ctx context.Context, projectID, goal stri
 		if err != nil {
 			return nil, err
 		}
+	}
+	// A response from an AI provider is not proof that it is executable.
+	// Fail before writing a WorkPlan when tasks, dependencies or acceptance
+	// evidence are incomplete; never silently downgrade to one generic step.
+	if err := validateGeneratedFlowOutlines(goal, outlines); err != nil {
+		return nil, err
 	}
 	return n.createPlanFromOutlines(ctx, projectID, goal, intent, outlines, state.StructuredFacts)
 }
@@ -626,6 +632,11 @@ func (n *Nexus) ResolveClarificationAndGeneratePlan(ctx context.Context, id stri
 	if err != nil {
 		return nil, checkpoint, err
 	}
+	// Answering clarifications must not bypass the same semantic DAG gate.
+	// Keep the checkpoint unresolved if the new plan is still untrustworthy.
+	if err := validateGeneratedFlowOutlines(checkpoint.Goal, outlines); err != nil {
+		return nil, checkpoint, err
+	}
 	row.Status = store.ClarificationResolved
 	if err := st.UpdateClarification(*row); err != nil {
 		return nil, checkpoint, err
@@ -712,14 +723,18 @@ func packagesFromOutlines(goal string, outlines []intelligence.WorkPackageOutlin
 		}}
 	}
 	byID := make(map[string]struct{}, len(pkgs))
-	byTitle := make(map[string]string, len(pkgs))
-	for _, pkg := range pkgs {
+	byTitle := make(map[string]string, len(pkgs)*4)
+	for position, pkg := range pkgs {
 		byID[pkg.ID] = struct{}{}
 		key := strings.ToLower(strings.TrimSpace(pkg.Title))
 		if key != "" {
 			if _, exists := byTitle[key]; !exists {
 				byTitle[key] = pkg.ID
 			}
+		}
+		ordinal := fmt.Sprintf("%d", position+1)
+		for _, alias := range []string{ordinal, "#"+ordinal, "step "+ordinal, "etapa "+ordinal, "atividade "+ordinal} {
+			byTitle[alias] = pkg.ID
 		}
 	}
 	for i := range pkgs {
@@ -745,6 +760,9 @@ func packagesFromOutlines(goal string, outlines []intelligence.WorkPackageOutlin
 			resolved = append(resolved, id)
 		}
 		pkgs[i].Dependencies = resolved
+		if len(resolved) > 0 {
+			pkgs[i].Status = "PENDING"
+		}
 	}
 	return pkgs
 }
