@@ -13,6 +13,9 @@ import (
 // without calling cloud APIs, spawning an Agent or starting a Mission.
 type flowPlannerFixtureProvider struct {
 	outlines []intelligence.WorkPackageOutline
+	unknowns []intelligence.AmbiguityItem
+	lastGoal string
+	lastContext map[string]any
 }
 
 func (p *flowPlannerFixtureProvider) Name() string { return "test-flow-planner" }
@@ -29,8 +32,10 @@ func (p *flowPlannerFixtureProvider) GeneratePlanOutline(context.Context, *intel
 func (p *flowPlannerFixtureProvider) ExtractBrief(context.Context, string, map[string]any) (*intelligence.BriefExtraction, error) {
 	return &intelligence.BriefExtraction{}, nil
 }
-func (p *flowPlannerFixtureProvider) PlanFromGoal(context.Context, string, map[string]any) (*intelligence.IntentAnalysis, []intelligence.AmbiguityItem, []intelligence.WorkPackageOutline, error) {
-	return &intelligence.IntentAnalysis{Intent: "Ship login", Scope: "project", RiskLevel: "medium"}, nil, p.outlines, nil
+func (p *flowPlannerFixtureProvider) PlanFromGoal(_ context.Context, goal string, contextData map[string]any) (*intelligence.IntentAnalysis, []intelligence.AmbiguityItem, []intelligence.WorkPackageOutline, error) {
+	p.lastGoal = goal
+	p.lastContext = contextData
+	return &intelligence.IntentAnalysis{Intent: "Ship login", Scope: "project", RiskLevel: "medium"}, p.unknowns, p.outlines, nil
 }
 
 func TestGenerateFlowFromPromptCreatesReviewableWorkPlanWithDependencies(t *testing.T) {
