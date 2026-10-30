@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/memoryrecovery"
 )
 
 const CurrentConfigVersion = 1
@@ -401,8 +402,20 @@ func LoadConfig() (Config, error) {
 
 // SaveConfig atomically persists configuration to disk.
 func SaveConfig(cfg Config) error {
-	configMu.Lock()
-	defer configMu.Unlock()
+	dataDir, err := DataDir()
+	if err != nil {
+		return err
+	}
+	return memoryrecovery.WithLegacyWriter(dataDir, func() error {
+		configMu.Lock()
+		defer configMu.Unlock()
+		return saveConfigLocked(cfg)
+	})
+}
+
+// saveConfigLocked is called with configMu held and with the cross-process
+// memory recovery writer fence owned by the caller.
+func saveConfigLocked(cfg Config) error {
 
 	dir, err := ConfigDir()
 	if err != nil {
