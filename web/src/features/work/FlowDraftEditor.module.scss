@@ -2,8 +2,23 @@
 @use '../../styles/typography';
 @use '../../styles/mixins';
 
+.promptInputGroup {
+  display: flex;
+  flex: 1 1 360px;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.promptInputLabel {
+  font-size: var(--nx-font-size-sm);
+  font-weight: 600;
+  color: var(--nx-text);
+}
+
 .goalInput {
   flex: 1;
+  width: 100%;
 }
 
 .goalBarRow {

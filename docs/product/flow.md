@@ -10,12 +10,20 @@ Flow é o **studio de pipeline** do WorkPlan canônico: Plan → Build → Revie
 
 Use Flow quando houver dependências, paralelismo, múltiplos agentes, gates, longa duração, recovery ou isolamento. Para uma tarefa curta, Direct ou Composer → Copy/Agent é suficiente.
 
-Criar um draft não inicia Agent, MissionRun ou runtime. Prefira trazer um prompt refinado do Composer (**Turn into Flow**). **Novo Flow** cria um draft vazio editável — `auto_plan` / geração automática de plano na Web foi aposentado; decomposição rica passa pelo Composer (ou pelo Conductor na CLI).
+Criar um draft não inicia Agent, MissionRun ou runtime. O usuário pode **colar um prompt completo diretamente no Flow** e usar **Gerar atividades**: a Nexus Intelligence configurada produz WorkPackages com objetivos, dependências, papéis e critérios de aceite, que são validados antes da persistência. **Criar manualmente** continua disponível e não depende de IA. O antigo parâmetro `auto_plan` de criação genérica permanece desativado; a geração semântica usa a API própria `POST /api/v1/flow/generate` e não dispara execução.
+
+**Composer → Turn into Flow** usa o mesmo planejador semântico do prompt direto nesta branch de continuidade (#166, dependente do PR #168): parte do PromptArtifact finalizado, preserva ID, versão, hash, decisões e manifesto de contexto congelados; gera WorkPackages com objetivos, dependências e critérios de aceite. **Sem provider, com saída inadequada ou dúvida bloqueante, a conversão falha explicitamente e mantém o artefato inalterado.** Uma nova dúvida bloqueante exige revisão e nova finalização no Composer, em vez de seguir a clarificação genérica e perder a proveniência. O Composer continua produzindo prompts completos e não se torna um executor.
 
 Dúvidas críticas reutilizam o mesmo contrato de esclarecimento do Composer e não repregunta o que sessão ou memória já cobriram.
 
 No modo Execution (`FlowRunSurface`), observe estados, attempts, artifacts, blockers e verification reais.
 
+
+## Planejamento semântico e limites
+
+A geração direta requer provider Nexus Intelligence explicitamente configurado. Uma saída de modelo com atividades ambíguas, critérios de aceite ausentes, dependências desconhecidas, ciclos ou colapso evidente de trabalho multiárea em uma só atividade é **rejeitada**, sem criar Flow substituto. A validação normaliza dependências por título/ordinal (`step 1`, `etapa 2`) e mantém etapas dependentes em `PENDING`.
+
+O Flow é um rascunho revisável: o usuário deve inspecionar atividades, independência/paralelismo, papéis, evidências e custo no Execution Preview antes de aprovar GO. **Goal Loop** de reavaliação e reparação seletiva permanece pendente, especificado em [#167](https://github.com/IAPro-Community/nexus/issues/167); não confundir verificações atuais com um ciclo autônomo de correção.
 
 ## Coordenação dinâmica no Flow Run
 

@@ -48,7 +48,7 @@ export type { FlowStepAction, StudioView } from './flowDraftEditorModel';
  * Encapsulates the Flow draft editor lifecycle: goal capture, manual draft
  * creation, leader policy, preflight, local step edits and Approve & Run. Draft
  * edits never execute work until {@link launchRun} persists and runs the plan.
- * Rich multi-step decomposition belongs in Composer → Turn into Flow.
+ * Both complete prompts and Composer artifacts can produce an inspectable Flow DAG.
  */
 export function useFlowDraftEditor(options: {
   project: Project;
@@ -342,8 +342,9 @@ export function useFlowDraftEditor(options: {
   }, []);
 
   const generatePlan = useCallback(async () => {
-    if (!autoGoal.trim()) return;
-    const history = recordGoalHistory(composerHistoryKey, autoGoal.trim());
+    const prompt = autoGoal.trim();
+    if (!prompt || generating) return;
+    const history = recordGoalHistory(composerHistoryKey, prompt);
     setGoalChips((current) => (current.length ? current : history.slice(0, 5)));
     generateAbortRef.current?.abort();
     const controller = new AbortController();
@@ -354,33 +355,29 @@ export function useFlowDraftEditor(options: {
       setClarification(null);
       setGenerateHeartbeat(false);
       setGenerateProvider('');
-      setGenerateStage(t('flow.stageAssemble', 'Montando o Flow…'));
-      // auto_plan is retired: rich multi-step plans come from Composer → Turn into Flow.
-      // This button opens an empty editable draft seeded with the goal as title.
-      const plan = await nexusApi.createPlan(
-        project.id,
-        {
-          title: autoGoal.trim(),
-          goal: autoGoal.trim(),
-          description: t(
-            'flow.draftFromGoal',
-            'Draft criado a partir do objetivo. Elabore no Composer para um plano multi-step, ou edite as etapas aqui.',
-          ),
-          auto_plan: false,
-        },
-        { signal: controller.signal },
-      );
+      setGenerateStage(t('flow.stageDecompose', 'Analisando o prompt e organizando atividades…'));
+      // Flow accepts a complete prompt directly, without a Composer session.
+      // The provider produces an explicit, validated DAG; on failure we keep
+      // the input and never create a misleading empty or generic Flow.
+      const plan = await nexusApi.generateFlowPlan(project.id, prompt, {
+        signal: controller.signal,
+      });
+      if (controller.signal.aborted) return;
       selectGeneratedPlan(plan);
       setFlowNotice(
         t(
-          'flow.draftCreatedUseComposer',
-          'Rascunho criado. Para decomposição rica, use Composer → Turn into Flow.',
+          'flow.generatedReview',
+          'Atividades geradas. Revise objetivos, dependências, responsáveis e verificações antes de executar.',
         ),
       );
     } catch (e) {
       if (controller.signal.aborted) {
         setPlanError(t('flow.generateCanceled', 'Geração cancelada.'));
         return;
+      }
+      const checkpoint = clarificationFromError(e);
+      if (checkpoint) {
+        setClarification(checkpoint);
       }
       setPlanError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -389,7 +386,7 @@ export function useFlowDraftEditor(options: {
       setGenerateStage('');
       setGenerateHeartbeat(false);
     }
-  }, [autoGoal, composerHistoryKey, project.id, selectGeneratedPlan, t]);
+  }, [autoGoal, generating, composerHistoryKey, project.id, selectGeneratedPlan, t]);
 
   const resolveClarification = useCallback(async () => {
     if (!clarification) return;

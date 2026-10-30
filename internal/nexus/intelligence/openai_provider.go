@@ -172,7 +172,10 @@ func (p *OpenAIIntelligenceProvider) GeneratePlanOutline(ctx context.Context, in
 	}
 
 	sysPrompt := `Decompose the intent into a series of structured, reviewable WorkPackages.
-Each package must have clear acceptance criteria. Do NOT invent Maestro skill identifiers; skills must be an empty array because Maestro is a separate authority.
+Each package must have clear, observable acceptance criteria. Do NOT invent Maestro skill identifiers; skills must be an empty array because Maestro is a separate authority.
+For substantial prompts, decompose concrete backend/frontend/data/integration/verification deliverables with explicit dependencies and parallelizable workstreams; do not produce one generic activity or merely copy the same objective to fixed phases.
+A genuinely atomic task may have one package. Never fabricate repository evidence or report unexecuted tests as passing.
+dependencies must reference exact unique titles of other packages in this output; never invent or silently omit an unresolved dependency.
 Output ONLY valid JSON matching:
 {
   "packages": [
