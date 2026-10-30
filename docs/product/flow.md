@@ -12,7 +12,7 @@ Use Flow quando houver dependências, paralelismo, múltiplos agentes, gates, lo
 
 Criar um draft não inicia Agent, MissionRun ou runtime. O usuário pode **colar um prompt completo diretamente no Flow** e usar **Gerar atividades**: a Nexus Intelligence configurada produz WorkPackages com objetivos, dependências, papéis e critérios de aceite, que são validados antes da persistência. **Criar manualmente** continua disponível e não depende de IA. O antigo parâmetro `auto_plan` de criação genérica permanece desativado; a geração semântica usa a API própria `POST /api/v1/flow/generate` e não dispara execução.
 
-O caminho **Composer → Turn into Flow** ainda utiliza decomposição heurística na `release/v1.0.0` até a paridade definida em [#166](https://github.com/IAPro-Community/nexus/issues/166). O Composer continua tendo como saída principal um PromptArtifact completo; não deve virar orquestrador ou scheduler do Flow.
+**Composer → Turn into Flow** usa o mesmo planejador semântico do prompt direto nesta branch de continuidade (#166, dependente do PR #168): parte do PromptArtifact finalizado, preserva ID, versão, hash, decisões e manifesto de contexto congelados; gera WorkPackages com objetivos, dependências e critérios de aceite. **Sem provider, com saída inadequada ou dúvida bloqueante, a conversão falha explicitamente e mantém o artefato inalterado.** Uma nova dúvida bloqueante exige revisão e nova finalização no Composer, em vez de seguir a clarificação genérica e perder a proveniência. O Composer continua produzindo prompts completos e não se torna um executor.
 
 Dúvidas críticas reutilizam o mesmo contrato de esclarecimento do Composer e não repregunta o que sessão ou memória já cobriram.
 
