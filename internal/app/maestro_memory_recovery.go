@@ -30,6 +30,7 @@ func maestroMemoryRecoveryStatusCmd(args []string) error {
   bytes,err:=json.MarshalIndent(report,"","  ")
   if err!=nil{return err}
   fmt.Println(string(bytes))
+  if report.Blocked { return errors.New("recovery journal requires manual review") }
   return nil
  }
  fmt.Printf("Nexus recovery journal: %d operation(s)\n",len(report.Operations))
@@ -44,5 +45,6 @@ func maestroMemoryRecoveryStatusCmd(args []string) error {
  for _,problem:=range report.Problems{
   fmt.Printf("  integrity problem: %s\n",problem)
  }
+ if report.Blocked { return errors.New("recovery journal requires manual review") }
  return nil
 }
