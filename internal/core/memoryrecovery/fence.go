@@ -7,6 +7,7 @@ import (
  "fmt"
  "os"
  "path/filepath"
+ "runtime"
  "time"
 )
 
@@ -34,7 +35,10 @@ func WithLegacyWriter(dataDir string, write func() error) error {
  for attempt := 0; attempt < 40; attempt++ {
   lock, err = os.OpenFile(lockPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
   if err == nil { break }
-  if !os.IsExist(err) { return fmt.Errorf("%w: %v", ErrLegacyWriteFenced, err) }
+  // Windows file sharing can surface a contended lock as access denied
+  // instead of EEXIST. Retry only within the same strict time bound.
+  contention := os.IsExist(err) || (runtime.GOOS=="windows" && os.IsPermission(err))
+  if !contention { return fmt.Errorf("%w: %v", ErrLegacyWriteFenced, err) }
   if attempt < 39 { time.Sleep(25 * time.Millisecond) }
  }
  if lock == nil { return ErrLegacyWriteFenced }
