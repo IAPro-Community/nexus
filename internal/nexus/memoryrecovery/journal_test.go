@@ -7,6 +7,7 @@ import (
  "os"
  "path/filepath"
  "strings"
+ "sync"
  "testing"
 )
 
@@ -117,4 +118,42 @@ func TestJournalRejectsUnknownEntries(t *testing.T){
  if err:=os.WriteFile(filepath.Join(dir,"unknown-entry"),[]byte("bad"),0600);err!=nil{t.Fatal(err)}
  info,err:=Inspect(root)
  if err!=nil||!info.Blocked||len(info.Problems)!=1{t.Fatalf("unsafe recovery ignored: %+v %v",info,err)}
+}
+
+func TestJournalConcurrentBeginsOnlyOneOwner(t *testing.T) {
+ root, backup, hash := journalFixture(t)
+ type outcome struct { session *Journal; err error }
+ result := make(chan outcome, 2)
+ var group sync.WaitGroup
+ for i:=0;i<2;i++ {
+  group.Add(1)
+  go func() {
+   defer group.Done()
+   session,err:=Begin(root,"prj_test",backup,hash,strings.Repeat("f",64))
+   result<-outcome{session,err}
+  }()
+ }
+ group.Wait()
+ close(result)
+ owners, failures:=0,0
+ for next:=range result {
+  if next.err!=nil { failures++;continue }
+  owners++
+  if err:=next.session.Advance(Aborted);err!=nil{t.Fatal(err)}
+  if err:=next.session.Close();err!=nil{t.Fatal(err)}
+ }
+ if owners!=1||failures!=1 { t.Fatalf("cross-process exclusive lock algorithm failed: owners=%d failures=%d",owners,failures) }
+}
+
+func TestJournalRefusesToUnlockChangedOwner(t *testing.T) {
+ root,backup,hash:=journalFixture(t)
+ j,err:=Begin(root,"prj_test",backup,hash,strings.Repeat("f",64))
+ if err!=nil{t.Fatal(err)}
+ if err:=j.Advance(Aborted);err!=nil{t.Fatal(err)}
+ lockPath:=filepath.Join(root,"memory-recovery-journal",".active.lock")
+ other:=strings.Repeat("a",32)
+ if err:=os.WriteFile(lockPath,[]byte(other),0600);err!=nil{t.Fatal(err)}
+ if err:=j.Close();err==nil{t.Fatal("journal released a lock belonging to another session")}
+ state,err:=Inspect(root)
+ if err!=nil||!state.Blocked||!state.LockPresent{t.Fatalf("owner mismatch not retained: %+v %v",state,err)}
 }
