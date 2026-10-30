@@ -2,7 +2,9 @@ package memoryrecovery
 
 import (
  "errors"
+ "fmt"
  "os"
+ "os/exec"
  "path/filepath"
  "strings"
  "sync"
@@ -118,4 +120,31 @@ func TestWriterFenceCrossProcessStyleConcurrentEntrants(t *testing.T){
  }
  close(release)
  group.Wait()
+}
+
+func TestWriterFenceSubprocessHelper(t *testing.T){
+ if os.Getenv("NEXUS_FENCE_SUBPROCESS_HELPER")!="1"{return}
+ dir:=os.Getenv("NEXUS_FENCE_SUBPROCESS_DIR")
+ if dir==""{t.Fatal("missing helper directory")}
+ if err:=WithLegacyWriter(dir,func()error{return nil});err!=nil{
+  t.Fatalf("subprocess fence refused: %v",err)
+ }
+}
+
+func TestWriterFenceHoldsAcrossIndependentOSProcesses(t *testing.T){
+ if os.Getenv("NEXUS_FENCE_SUBPROCESS_HELPER")=="1"{return}
+ root:=t.TempDir()
+ helper:=func()error{
+  cmd:=exec.Command(os.Args[0],"-test.run=^TestWriterFenceSubprocessHelper$")
+  cmd.Env=append(os.Environ(),"NEXUS_FENCE_SUBPROCESS_HELPER=1","NEXUS_FENCE_SUBPROCESS_DIR="+root)
+  output,err:=cmd.CombinedOutput()
+  if err!=nil {return fmt.Errorf("child exit: %w (%s)",err,output)}
+  return nil
+ }
+ held:=WithLegacyWriter(root,func()error{
+  if err:=helper();err==nil{t.Fatal("independent process bypassed lock")}
+  return nil
+ })
+ if held!=nil{t.Fatal(held)}
+ if err:=helper();err!=nil{t.Fatalf("independent process cannot write after unlock: %v",err)}
 }
