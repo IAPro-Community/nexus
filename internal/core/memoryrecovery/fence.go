@@ -45,6 +45,11 @@ func WithLegacyWriter(dataDir string, write func() error) error {
  if _, err := lock.WriteString(owner); err != nil { _ = lock.Close(); return err }
  if err := lock.Sync(); err != nil { _ = lock.Close(); return err }
  if err := lock.Close(); err != nil { return err }
+ if err := syncRecoveryDirectory(root); err != nil {
+  // Keep the lock: persistence is uncertain, and a recovery coordinator
+  // must not proceed until a human inspects the directory.
+  return fmt.Errorf("legacy memory fence lock durability is uncertain: %w", err)
+ }
 
  // We own the lock, so Inspect().Blocked is expected. However, any
  // incomplete journal, unknown entry or broken hash chain is not.
