@@ -1755,6 +1755,18 @@ export interface RunCoordinationResult {
   child?: PackageRun;
 }
 
+/** Read-only, persisted MissionRunner evidence projection; never a retry authorization. */
+export interface GoalLoopPreview {
+  run_id: string;
+  decision: 'VERIFIED' | 'REPAIR_CANDIDATE' | 'BLOCKED_NEEDS_USER';
+  reason: string;
+  failed_package_id?: string;
+  failure_fingerprint?: string;
+  affected_package_ids?: string[];
+  preserved_package_ids?: string[];
+  requires_approval: boolean;
+}
+
 export interface MissionRun {
   id: string;
   plan_id: string;
