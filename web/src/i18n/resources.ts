@@ -1011,7 +1011,8 @@ export const en = {
     composerOfflineBody:
       'You can check the provider and still access saved planning history while Intelligence is unavailable.',
     flowPromptTitle: 'Generate a Flow from a complete prompt',
-    flowPromptBody: 'Paste a full prompt and generate an inspectable activity plan. Review dependencies and approval gates before running.',
+    flowPromptBody:
+      'Paste a full prompt and generate an inspectable activity plan. Review dependencies and approval gates before running.',
     flowJourneyTitle: 'From draft to verified delivery',
     flowJourneyBody: 'Flow separates planning, review, Mission execution and evidence.',
     flowGraphTitle: 'Visual planning and dependencies',
@@ -1385,10 +1386,12 @@ export const en = {
   },
   flow: {
     promptLabel: 'Prompt or objective to break down',
-    promptPlaceholder: 'Paste the complete prompt or describe the deliverable. Flow will identify activities, dependencies and acceptance criteria.',
+    promptPlaceholder:
+      'Paste the complete prompt or describe the deliverable. Flow will identify activities, dependencies and acceptance criteria.',
     generatingActivities: 'Planning…',
     generateActivities: 'Generate activities',
-    generatedReview: 'Activities generated. Review goals, dependencies, roles and verification before running.',
+    generatedReview:
+      'Activities generated. Review goals, dependencies, roles and verification before running.',
     stageDecompose: 'Analyzing the prompt and organizing activities…',
     planErrorTitle: 'Review the Flow plan',
     createEmptyDraft: 'Create empty Flow from goal',
@@ -3303,7 +3306,8 @@ export const ptBR = {
     composerOfflineBody:
       'Confira o provedor e continue acessando planejamentos salvos mesmo sem Nexus Intelligence.',
     flowPromptTitle: 'Gerar um Flow a partir de um prompt completo',
-    flowPromptBody: 'Cole um prompt e gere atividades revisáveis. Confira dependências e critérios antes de autorizar a execução.',
+    flowPromptBody:
+      'Cole um prompt e gere atividades revisáveis. Confira dependências e critérios antes de autorizar a execução.',
     flowJourneyTitle: 'Do rascunho à entrega verificada',
     flowJourneyBody: 'O Flow separa planejamento, revisão, execução de Mission e evidências.',
     flowGraphTitle: 'Planejamento visual e dependências',
@@ -3680,10 +3684,12 @@ export const ptBR = {
   },
   flow: {
     promptLabel: 'Prompt ou objetivo a decompor',
-    promptPlaceholder: 'Cole o prompt completo ou descreva a entrega. O Flow identificará atividades, dependências e critérios de aceite.',
+    promptPlaceholder:
+      'Cole o prompt completo ou descreva a entrega. O Flow identificará atividades, dependências e critérios de aceite.',
     generatingActivities: 'Planejando…',
     generateActivities: 'Gerar atividades',
-    generatedReview: 'Atividades geradas. Revise objetivos, dependências, papéis e verificações antes de executar.',
+    generatedReview:
+      'Atividades geradas. Revise objetivos, dependências, papéis e verificações antes de executar.',
     stageDecompose: 'Analisando o prompt e organizando atividades…',
     planErrorTitle: 'Verifique o planejamento do Flow',
     createEmptyDraft: 'Criar Flow a partir do objetivo',
@@ -5607,7 +5613,8 @@ export const es = {
     composerOfflineBody:
       'Compruebe el proveedor y acceda a los planes guardados aunque Intelligence no esté disponible.',
     flowPromptTitle: 'Generar un Flow desde un prompt completo',
-    flowPromptBody: 'Pega un prompt y genera actividades revisables. Comprueba las dependencias y criterios antes de autorizar la ejecución.',
+    flowPromptBody:
+      'Pega un prompt y genera actividades revisables. Comprueba las dependencias y criterios antes de autorizar la ejecución.',
     flowJourneyTitle: 'Del borrador a la entrega verificada',
     flowJourneyBody: 'Flow separa planificación, revisión, Mission y evidencias.',
     flowGraphTitle: 'Planificación visual y dependencias',
@@ -5983,10 +5990,12 @@ export const es = {
 
   flow: {
     promptLabel: 'Prompt u objetivo para descomponer',
-    promptPlaceholder: 'Pega el prompt completo o describe la entrega. Flow identificará actividades, dependencias y criterios de aceptación.',
+    promptPlaceholder:
+      'Pega el prompt completo o describe la entrega. Flow identificará actividades, dependencias y criterios de aceptación.',
     generatingActivities: 'Planificando…',
     generateActivities: 'Generar actividades',
-    generatedReview: 'Actividades generadas. Revisa objetivos, dependencias, roles y verificaciones antes de ejecutar.',
+    generatedReview:
+      'Actividades generadas. Revisa objetivos, dependencias, roles y verificaciones antes de ejecutar.',
     stageDecompose: 'Analizando el prompt y organizando actividades…',
     planErrorTitle: 'Revise la planificación del Flow',
     createEmptyDraft: 'Crear Flow desde el objetivo',
