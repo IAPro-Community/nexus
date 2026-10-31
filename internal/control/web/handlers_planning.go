@@ -786,6 +786,17 @@ func (h *NexusHandler) handleRunDetail(w http.ResponseWriter, r *http.Request) {
 		h.handleRunEvidence(w, r, runID)
 		return
 	}
+	if r.Method == http.MethodGet && action == "goal-loop-preview" {
+		// Read-only projection of persisted MissionRunner state. It never
+		// dispatches, retries, resolves interventions or modifies plans.
+		run, err := h.runs.Get(r.Context(), runID)
+		if err != nil {
+			writeError(w, http.StatusNotFound, "run not found")
+			return
+		}
+		writeJSON(w, http.StatusOK, nexus.PreviewGoalLoopFromPersistedRun(run))
+		return
+	}
 	if r.Method == http.MethodGet && action == "coordination" {
 		run, err := h.runs.Get(r.Context(), runID)
 		if err != nil {
