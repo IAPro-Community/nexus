@@ -185,6 +185,7 @@ func TestComposerArtifactExecutionContextExcludesDroppedAndReferenceOnlySources(
 		t.Fatal(err)
 	}
 
+	composerSemanticFixture(n, false)
 	plan, err := n.MaterializePromptArtifactAsFlow(context.Background(), artifact.ID)
 	if err != nil {
 		t.Fatal(err)
