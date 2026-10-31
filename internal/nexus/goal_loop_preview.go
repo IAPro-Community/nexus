@@ -55,11 +55,35 @@ func PreviewGoalLoop(run *runner.MissionRun, assessment GoalAssessment, failedPa
 		}
 		byID[pkg.PackageID] = pkg
 	}
-	for i := range run.PackageRuns {
-		for _, dep := range run.PackageRuns[i].Dependencies {
-			if _, exists := byID[dep]; !exists {
-				return block(fmt.Sprintf("WorkPackage %s has an unknown dependency", run.PackageRuns[i].PackageID))
+	// An invalid or cyclic DAG can make the repair radius meaningless.
+	// Validate the topology, including every dependency path, before
+	// proposing any corrective action or declaring an end-to-end PASS.
+	visitState := make(map[string]uint8, len(byID))
+	var visit func(string) bool
+	visit = func(id string) bool {
+		if visitState[id] == 1 {
+			return false
+		}
+		if visitState[id] == 2 {
+			return true
+		}
+		visitState[id] = 1
+		for _, dep := range byID[id].Dependencies {
+			if _, exists := byID[dep]; !exists || !visit(dep) {
+				return false
 			}
+		}
+		visitState[id] = 2
+		return true
+	}
+	for _, pkg := range run.PackageRuns {
+		for _, dependency := range pkg.Dependencies {
+			if _, exists := byID[dependency]; !exists {
+				return block(fmt.Sprintf("WorkPackage %s has an unknown dependency", pkg.PackageID))
+			}
+		}
+		if !visit(pkg.PackageID) {
+			return block("MissionRun contains circular WorkPackage dependencies")
 		}
 	}
 	switch assessment.Result {
@@ -90,13 +114,29 @@ func PreviewGoalLoop(run *runner.MissionRun, assessment GoalAssessment, failedPa
 	if !ok {
 		return block("failed package does not belong to this MissionRun")
 	}
+	// A model-provided FAIL with an arbitrary package ID must never become
+	// an actionable repair proposal. The runner must have persisted failure
+	// evidence on that same package, or the state is not yet trustworthy.
+	switch source.State {
+	case runner.StateFailed, runner.StateFailedVerification, runner.StateFailedNoProgress,
+		runner.StateRemediating:
+		if strings.TrimSpace(source.ErrorMessage) == "" &&
+			strings.TrimSpace(source.RemediationContext) == "" &&
+			len(source.Verifications) == 0 {
+			return block("failed package has no persisted failure evidence")
+		}
+	default:
+		return block("the selected package has no persisted failed or remediating state")
+	}
 	if run.NeedsHuman != nil {
 		return block("the MissionRunner already has a pending human intervention")
 	}
 	switch run.State {
-	case runner.StateCanceledByUser, runner.StateCompletedVerified,
-		runner.StateFailedNoProgress, runner.StateFailedBudgetExceeded:
-		return block("the MissionRun state disallows unattended repair")
+	case runner.StateFailedVerification, runner.StateFailed, runner.StateRemediating,
+		runner.StatePaused:
+		// Proposal only: execution and restart admission remain in MissionRunner.
+	default:
+		return block("the MissionRun is not in a reviewable failed or paused state")
 	}
 	if source.ReplayProhibited ||
 		source.DispatchState == runner.DispatchIntent ||
