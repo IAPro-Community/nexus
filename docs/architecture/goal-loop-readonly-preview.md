@@ -17,6 +17,14 @@ A função `PreviewGoalLoop(run, assessment, failedPackageID, fingerprint)` é p
 - Bloqueios: despacho com `INTENT`/resultado externo incerto, `ReplayProhibited`, falha repetida sem progresso, `MaxRetries`, `MaxTotalIterations`, `MaxNoProgress`, `AutoRemediate=false`, cancelamento e intervenção humana já pendente.
 - `REPAIR_CANDIDATE` significa apenas que há uma sugestão de correção com escopo definido. **Nunca equivale à autorização para executá-la**.
 
+## Consulta pela API e interface
+
+O endpoint autenticado `GET /api/v1/runs/{runID}/goal-loop-preview` usa `h.runs.Get` e `PreviewGoalLoopFromPersistedRun`. **Não recebe um veredito de IA do cliente nem grava no banco**. Para um run concluído verifica recibos persistidos; em falha só sugere impacto se encontrar exatamente uma WorkPackage falha, assinatura persistida e evidência de falha. Múltiplas falhas ou assinatura ausente retornam bloqueio explícito.
+
+O **Flow Run** permite inspecionar essa projeção sob demanda, com quantidade de atividades afetadas e verificadas preservadas. Não oferece botão de retry neste painel; intervenção e execução continuam sob o MissionRunner e os controles humanos existentes. Há tradução PT-BR, EN e ES e anúncio no tour compartilhado. O motivo técnico bruto permanece disponível em detalhe expansível.
+
+O preview **não** constitui GoalAssessment persistido, não comprova custos nem valida automaticamente que um reparo pode acontecer; `REPAIR_CANDIDATE` continua sendo uma sugestão informativa. Não usar como autorização para `MaterializeCoordinationWork`.
+
 ## Etapas pendentes antes de chamar de Goal Loop completo
 
 1. Integrar preview aos registros reais de verificação/assessment do `MissionRunner`, sem inferir `failed_package_id` de texto livre.
