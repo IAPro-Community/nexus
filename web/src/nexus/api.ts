@@ -703,6 +703,10 @@ export const nexus = {
     }),
   getRuns: () => request<import('../types').MissionRun[]>('/api/v1/runs'),
   getRun: (runId: string) => request<import('../types').MissionRun>(`/api/v1/runs/${runId}`),
+  getRunGoalLoopPreview: (runId: string) =>
+    request<import('../types').GoalLoopPreview>(
+      `/api/v1/runs/${encodeURIComponent(runId)}/goal-loop-preview`,
+    ),
   requestMissionPlanningReview: (runId: string, reason: string) =>
     request<import('../types').ComposerSessionView>(`/api/v1/runs/${runId}/planning-review`, {
       method: 'POST',
