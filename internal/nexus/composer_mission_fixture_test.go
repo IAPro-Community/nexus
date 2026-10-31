@@ -59,6 +59,7 @@ Do not push, merge, deploy, or weaken existing authentication controls.`
 	if err != nil {
 		t.Fatalf("finalize complete Composer brief: %v", err)
 	}
+	composerSemanticFixture(n, false)
 	plan, err := n.MaterializePromptArtifactAsFlow(context.Background(), artifact.ID)
 	if err != nil {
 		t.Fatalf("materialize Composer artifact as Flow: %v", err)
