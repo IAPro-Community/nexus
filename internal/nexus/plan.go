@@ -3,6 +3,7 @@ package nexus
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -441,7 +442,16 @@ func (n *Nexus) GeneratePlanFromIntent(ctx context.Context, projectID, goal stri
 
 	contextData, err := n.ComposerContextData(projectID)
 	if err != nil {
-		return nil, err
+		// A direct Flow prompt does not require a Composer session or READY
+		// context. All other context errors remain fatal.
+		var notReady *ComposerContextNotReadyError
+		if !errors.As(err, &notReady) {
+			return nil, err
+		}
+		contextData = map[string]any{
+			"project_id": projectID,
+			"context_readiness": string(notReady.Readiness.State),
+		}
 	}
 	if memFacts, memErr := n.MemoryFactsMap(ctx, projectID); memErr == nil && len(memFacts) > 0 {
 		contextData["intelligence_memories"] = memFacts
