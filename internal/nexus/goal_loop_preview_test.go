@@ -15,7 +15,7 @@ func goalLoopFixture() *runner.MissionRun {
 		PackageRuns: []runner.PackageRun{
 			{PackageID:"architecture",State:runner.StateVerified,Attempt:1,WorkReceipt:&runner.WorkReceipt{Status:"COMPLETED"}},
 			{PackageID:"backend",Dependencies:[]string{"architecture"},State:runner.StateVerified,Attempt:1,WorkReceipt:&runner.WorkReceipt{Status:"COMPLETED"}},
-			{PackageID:"frontend",Dependencies:[]string{"architecture"},State:runner.StateFailedVerification,Attempt:1,LastFailureSignature:"older-failure"},
+			{PackageID:"frontend",Dependencies:[]string{"architecture"},State:runner.StateFailedVerification,Attempt:1,LastFailureSignature:"older-failure",ErrorMessage:"frontend integration test failed"},
 			{PackageID:"qa",Dependencies:[]string{"backend","frontend"},State:runner.StateVerified,Attempt:1,WorkReceipt:&runner.WorkReceipt{Status:"COMPLETED"}},
 		},
 	}
@@ -93,6 +93,25 @@ func TestGoalLoopPreviewBlocksUncertainDispatchAndRepeatedFailures(t *testing.T)
 	check("run cancelled",func(r *runner.MissionRun){r.State=runner.StateCanceledByUser})
 }
 
+func TestGoalLoopPreviewBlocksSuccessStatesOrUnprovenFailures(t *testing.T) {
+	run := goalLoopFixture()
+	run.PackageRuns[2].State = runner.StateVerified
+	got := PreviewGoalLoop(run, GoalAssessment{Result: GoalAssessmentFail,
+		Violations: []string{"model alleged a failure"}}, "frontend", "fingerprint")
+	if got.Decision != "BLOCKED_NEEDS_USER" {
+		t.Fatalf("model-only FAIL incorrectly authorizes repair: %+v", got)
+	}
+	run.PackageRuns[2].State = runner.StateFailedVerification
+	run.PackageRuns[2].ErrorMessage = ""
+	run.PackageRuns[2].RemediationContext = ""
+	run.PackageRuns[2].Verifications = nil
+	got = PreviewGoalLoop(run, GoalAssessment{Result: GoalAssessmentFail,
+		Violations: []string{"unproven failure"}}, "frontend", "fingerprint")
+	if got.Decision != "BLOCKED_NEEDS_USER" {
+		t.Fatalf("unproven runner failure incorrectly suggested repair: %+v", got)
+	}
+}
+
 func TestGoalLoopPreviewRequiresFactualEvidenceForPass(t *testing.T) {
 	run:=goalLoopFixture()
 	run.State=runner.StateCompletedVerified
@@ -117,5 +136,12 @@ func TestGoalLoopPreviewRejectsBrokenTopology(t *testing.T) {
 	got:=PreviewGoalLoop(run,GoalAssessment{Result:GoalAssessmentFail,Violations:[]string{"QA failed"}},"frontend","digest")
 	if got.Decision!="BLOCKED_NEEDS_USER" {
 		t.Fatalf("broken DAG dependencies were ignored: %+v",got)
+	}
+	run = goalLoopFixture()
+	run.PackageRuns[0].Dependencies = []string{"qa"}
+	got = PreviewGoalLoop(run, GoalAssessment{Result: GoalAssessmentFail,
+		Violations: []string{"frontend integration failure"}}, "frontend", "digest")
+	if got.Decision != "BLOCKED_NEEDS_USER" || !strings.Contains(got.Reason, "circular") {
+		t.Fatalf("cyclic DAG was admitted as a repair candidate: %+v", got)
 	}
 }
