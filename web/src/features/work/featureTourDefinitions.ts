@@ -101,6 +101,12 @@ export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
   ],
   'flow-run': [
     {
+      id: 'goal-loop',
+      target: '[data-tour="flow-run-goal-loop"]',
+      title: 'discovery.goalLoopTitle',
+      body: 'discovery.goalLoopBody',
+    },
+    {
       id: 'status',
       target: '[data-tour="flow-run-status"]',
       title: 'tour.flowRunStatusTitle',
