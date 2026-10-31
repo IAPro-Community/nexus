@@ -59,22 +59,6 @@ jobs:
         if: steps.scope.outputs.source_changed == 'true'
         working-directory: web
         run: bun install --frozen-lockfile
-      - name: Check docs and internal links
-        # Documentation-only PRs receive full link/contract checks, not a
-        # false visual certificate for a pre-existing source snapshot.
-        env:
-          PR_SOURCE_CHANGED: ${{ steps.scope.outputs.source_changed }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ "$PR_SOURCE_CHANGED" == "true" ]]; then
-            node scripts/docs-verify.mjs
-          else
-            node scripts/docs-verify.mjs --links-only
-            node scripts/verify-feature-catalog.mjs
-            node scripts/verify-release-docs.mjs
-            node scripts/verify-nex-visual.mjs
-          fi
       - name: Frontend quality and build
         if: steps.scope.outputs.source_changed == 'true'
         working-directory: web
@@ -90,6 +74,25 @@ jobs:
         # Host-side Go build/test coverage; GUI interaction and signed
         # packaging still require the separate protected native gates.
         run: go test -count=1 ./internal/...
+      - name: Check docs and internal links
+        # Keep the visual-evidence gate mandatory, but run it after source
+        # quality so stale captures do not conceal lint/build/test failures.
+        if: always()
+        # Documentation-only PRs receive full link/contract checks, not a
+        # false visual certificate for a pre-existing source snapshot.
+        env:
+          PR_SOURCE_CHANGED: ${{ steps.scope.outputs.source_changed }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$PR_SOURCE_CHANGED" == "true" ]]; then
+            node scripts/docs-verify.mjs
+          else
+            node scripts/docs-verify.mjs --links-only
+            node scripts/verify-feature-catalog.mjs
+            node scripts/verify-release-docs.mjs
+            node scripts/verify-nex-visual.mjs
+          fi
 
   community-static-safety:
     name: Community diff hygiene
