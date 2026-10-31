@@ -84,6 +84,16 @@ export const featureAnnouncements: readonly FeatureAnnouncement[] = [
     tourStep: 'canvas',
   },
   {
+    id: 'flow-goal-loop-preview',
+    revision: 1,
+    surfaces: ['flow-run'],
+    openSurface: 'missions',
+    target: '[data-tour="flow-run-goal-loop"]',
+    title: 'discovery.goalLoopTitle',
+    summary: 'discovery.goalLoopBody',
+    tourStep: 'goal-loop',
+  },
+  {
     id: 'flow-mission-evidence',
     revision: 1,
     surfaces: ['flow-run'],
