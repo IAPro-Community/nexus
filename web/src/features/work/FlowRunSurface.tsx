@@ -21,6 +21,7 @@ import type {
   ContextCapsule,
   CoordinationRequest,
   FlowRunEvidence,
+  GoalLoopPreview,
   InterventionOption,
   MissionEvidenceBundle,
   MissionRun,
@@ -62,6 +63,9 @@ export const FlowRunSurface: React.FC<{
     receipts: [],
   });
   const [evidenceBundle, setEvidenceBundle] = useState<MissionEvidenceBundle | null>(null);
+  const [goalLoopPreview, setGoalLoopPreview] = useState<GoalLoopPreview | null>(null);
+  const [goalLoopBusy, setGoalLoopBusy] = useState(false);
+  const [goalLoopError, setGoalLoopError] = useState('');
   const [plan, setPlan] = useState<WorkPlan | null>(null);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
@@ -90,6 +94,20 @@ export const FlowRunSurface: React.FC<{
     },
     [t],
   );
+
+  const inspectGoalLoop = useCallback(async () => {
+    setGoalLoopBusy(true);
+    setGoalLoopError('');
+    try {
+      // A read-only projection of persisted runner evidence, not a retry or GO.
+      const preview = await nexusApi.getRunGoalLoopPreview(runId);
+      setGoalLoopPreview(preview);
+    } catch (err) {
+      setGoalLoopError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setGoalLoopBusy(false);
+    }
+  }, [runId]);
 
   const refresh = useCallback(async () => {
     const guard = refreshGuardRef.current;
@@ -355,6 +373,51 @@ export const FlowRunSurface: React.FC<{
           </span>
         </div>
       </Card>
+
+      {(needsAction || resumable || run.state === 'COMPLETED_VERIFIED') && (
+        <Card className={styles.status} data-tour="flow-run-goal-loop">
+          <div className={styles.statusRow}>
+            <strong className={styles.statusLabel}>
+              {t('flowRun.goalLoopTitle', 'Diagnóstico do Goal Loop')}
+            </strong>
+            <span className={styles.statusValue}>
+              {t(
+                'flowRun.goalLoopReadOnly',
+                'Analisa evidências persistidas e atividades afetadas, sem executar correções.',
+              )}
+            </span>
+          </div>
+          <div className={styles.statusRow}>
+            <Button size="sm" disabled={goalLoopBusy} onClick={() => void inspectGoalLoop()}>
+              <ShieldCheck size={13} />{' '}
+              {goalLoopBusy
+                ? t('flowRun.goalLoopInspecting', 'Analisando…')
+                : t('flowRun.goalLoopInspect', 'Inspecionar evidências')}
+            </Button>
+          </div>
+          {goalLoopPreview?.run_id === runId && (
+            <div className={styles.statusRow} role="status">
+              <Badge tone={goalLoopPreview.decision === 'VERIFIED' ? 'success' : 'warning'}>
+                {t(`flowRun.goalLoopDecision.${goalLoopPreview.decision}`, goalLoopPreview.decision)}
+              </Badge>
+              <span className={styles.statusValue}>
+                {t('flowRun.goalLoopAffected', 'Atividades afetadas: {{count}}', {
+                  count: asStringArray(goalLoopPreview.affected_package_ids).length,
+                })}
+                {' · '}
+                {t('flowRun.goalLoopPreserved', 'Verificadas preservadas: {{count}}', {
+                  count: asStringArray(goalLoopPreview.preserved_package_ids).length,
+                })}
+              </span>
+              <details>
+                <summary>{t('flowRun.goalLoopTechnicalDetails', 'Motivo técnico')}</summary>
+                <span className={styles.statusValue}>{goalLoopPreview.reason}</span>
+              </details>
+            </div>
+          )}
+          {goalLoopError && <InlineAlert tone="danger">{goalLoopError}</InlineAlert>}
+        </Card>
+      )}
 
       {evidenceBundle && (
         <Card
