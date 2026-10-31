@@ -1018,6 +1018,9 @@ export const en = {
     flowGraphTitle: 'Visual planning and dependencies',
     flowGraphBody:
       'Review the pipeline and inspect dependencies with the graph in the same WorkPlan.',
+    goalLoopTitle: 'Inspect the Goal Loop safely',
+    goalLoopBody:
+      'Review factual Mission evidence, see affected tasks and protect independent verified work. This does not retry anything.',
     flowEvidenceTitle: 'Mission progress and evidence',
     flowEvidenceBody: 'See real execution status and evidence, not just an AI prediction.',
   },
@@ -1454,6 +1457,19 @@ export const en = {
     },
   },
   flowRun: {
+    goalLoopTitle: 'Goal Loop diagnostic',
+    goalLoopReadOnly:
+      'Inspect persisted evidence and affected tasks without executing any repair.',
+    goalLoopInspect: 'Inspect evidence',
+    goalLoopInspecting: 'Inspecting…',
+    goalLoopAffected: 'Affected activities: {{count}}',
+    goalLoopPreserved: 'Verified work preserved: {{count}}',
+    goalLoopTechnicalDetails: 'Technical reason',
+    goalLoopDecision: {
+      VERIFIED: 'Verified',
+      REPAIR_CANDIDATE: 'Repair candidate · approval required',
+      BLOCKED_NEEDS_USER: 'Needs human review',
+    },
     eyebrow: 'FLOW RUN',
     subtitle: 'Durable Mission Runner execution · Project {{project}}',
     loading: 'Loading Flow Run…',
@@ -3312,6 +3328,9 @@ export const ptBR = {
     flowJourneyBody: 'O Flow separa planejamento, revisão, execução de Mission e evidências.',
     flowGraphTitle: 'Planejamento visual e dependências',
     flowGraphBody: 'Veja a pipeline e explore dependências no grafo usando o mesmo WorkPlan.',
+    goalLoopTitle: 'Inspecione o Goal Loop com segurança',
+    goalLoopBody:
+      'Confira evidências reais, atividades afetadas e trabalhos verificados preservados, sem reiniciar nenhuma execução.',
     flowEvidenceTitle: 'Progresso e evidências da Mission',
     flowEvidenceBody:
       'Consulte resultados e estados reais de execução, não apenas previsões da IA.',
@@ -3752,6 +3771,19 @@ export const ptBR = {
     },
   },
   flowRun: {
+    goalLoopTitle: 'Diagnóstico do Goal Loop',
+    goalLoopReadOnly:
+      'Analisa evidências persistidas e atividades afetadas, sem executar correções.',
+    goalLoopInspect: 'Inspecionar evidências',
+    goalLoopInspecting: 'Analisando…',
+    goalLoopAffected: 'Atividades afetadas: {{count}}',
+    goalLoopPreserved: 'Verificadas preservadas: {{count}}',
+    goalLoopTechnicalDetails: 'Motivo técnico',
+    goalLoopDecision: {
+      VERIFIED: 'Verificado',
+      REPAIR_CANDIDATE: 'Correção candidata · aprovação necessária',
+      BLOCKED_NEEDS_USER: 'Precisa de revisão humana',
+    },
     eyebrow: 'FLOW RUN',
     subtitle: 'Execução do Mission Runner durável · Projeto {{project}}',
     loading: 'Carregando Flow Run…',
@@ -5619,6 +5651,9 @@ export const es = {
     flowJourneyBody: 'Flow separa planificación, revisión, Mission y evidencias.',
     flowGraphTitle: 'Planificación visual y dependencias',
     flowGraphBody: 'Examine el pipeline y las dependencias en el grafo del mismo WorkPlan.',
+    goalLoopTitle: 'Inspecciona el Goal Loop de forma segura',
+    goalLoopBody:
+      'Revisa las evidencias reales, tareas afectadas y trabajo verificado preservado sin reiniciar ninguna ejecución.',
     flowEvidenceTitle: 'Progreso y evidencias de Mission',
     flowEvidenceBody: 'Consulte estados y resultados reales, no solo previsiones de IA.',
   },
@@ -6058,6 +6093,19 @@ export const es = {
     },
   },
   flowRun: {
+    goalLoopTitle: 'Diagnóstico del Goal Loop',
+    goalLoopReadOnly:
+      'Analiza evidencias persistidas y actividades afectadas sin ejecutar reparaciones.',
+    goalLoopInspect: 'Inspeccionar evidencias',
+    goalLoopInspecting: 'Analizando…',
+    goalLoopAffected: 'Actividades afectadas: {{count}}',
+    goalLoopPreserved: 'Verificadas preservadas: {{count}}',
+    goalLoopTechnicalDetails: 'Motivo técnico',
+    goalLoopDecision: {
+      VERIFIED: 'Verificado',
+      REPAIR_CANDIDATE: 'Reparación propuesta · requiere aprobación',
+      BLOCKED_NEEDS_USER: 'Requiere revisión humana',
+    },
     eyebrow: 'FLOW RUN',
     subtitle: 'Ejecución durable de Mission Runner · Proyecto {{project}}',
     loading: 'Cargando Flow Run…',
