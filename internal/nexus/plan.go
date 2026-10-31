@@ -3,6 +3,7 @@ package nexus
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -467,7 +468,16 @@ func (n *Nexus) generateSemanticFlowOutlines(ctx context.Context, projectID, goa
 		var err error
 		contextData, err = n.ComposerContextData(projectID)
 		if err != nil {
-			return nil, nil, nil, err
+			// Composer handoffs use frozenContext; direct Flow can plan
+			// from its prompt without a READY Composer repository snapshot.
+			var notReady *ComposerContextNotReadyError
+			if !errors.As(err, &notReady) {
+				return nil, nil, nil, err
+			}
+			contextData = map[string]any{
+				"project_id": projectID,
+				"context_readiness": string(notReady.Readiness.State),
+			}
 		}
 		if memFacts, memErr := n.MemoryFactsMap(ctx, projectID); memErr == nil && len(memFacts) > 0 {
 			contextData["intelligence_memories"] = memFacts
