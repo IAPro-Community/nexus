@@ -41,6 +41,7 @@
     "art:nex:check": "node scripts/export-nex-art.mjs --check",
     "art:nex:preview": "node scripts/export-nex-art.mjs && node scripts/nex-motion-preview.mjs",
     "art:nex:motion:qa": "npm run art:nex:preview && node scripts/nex-motion-preview-browser-qa.mjs",
+    "art:nex:site:qa": "node scripts/nex-site-lab-browser-qa.mjs",
     "art:nex:hero:preview": "node scripts/nex-site-hero-preview.mjs",
     "art:nex:hybrid:qa": "node scripts/nex-hybrid-browser-qa.mjs --require-assets"
   },
