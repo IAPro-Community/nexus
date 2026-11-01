@@ -1218,6 +1218,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               <button
                 type="button"
                 className={styles.capsule}
+                data-hud-capsule="true"
                 data-hud-hit-area="true"
                 data-tone={tone}
                 data-evidence={quotaEvidence}
