@@ -225,7 +225,6 @@
 .root[data-nex-behavior='still'] .guardianButton svg * {
   animation: none;
   transition: none;
-  transform: none;
 }
 
 .root[data-nex-behavior='greet'] .guardianButton svg [data-nex-fin='left'] {
@@ -259,35 +258,79 @@
 }
 
 @keyframes nex-companion-greet-left {
-  0%, 100% { transform: rotate(0); }
-  35% { transform: rotate(-5deg); }
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+
+  35% {
+    transform: rotate(-5deg);
+  }
 }
 
 @keyframes nex-companion-greet-right {
-  0%, 100% { transform: rotate(0); }
-  35% { transform: rotate(5deg); }
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+
+  35% {
+    transform: rotate(5deg);
+  }
 }
 
 @keyframes nex-companion-notice {
-  0%, 100% { transform: translateY(0); }
-  30% { transform: translateY(-2px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  30% {
+    transform: translateY(-2px);
+  }
 }
 
 @keyframes nex-companion-error {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  45% { transform: scale(0.92); opacity: 0.85; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  45% {
+    transform: scale(0.92);
+    opacity: 0.85;
+  }
 }
 
 @keyframes nex-companion-resolved {
-  0%, 100% { transform: translateY(0); }
-  35% { transform: translateY(-3px); }
-  65% { transform: translateY(1px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  35% {
+    transform: translateY(-3px);
+  }
+
+  65% {
+    transform: translateY(1px);
+  }
 }
 
 @keyframes nex-companion-nod {
-  0%, 100% { transform: rotate(0); }
-  38% { transform: rotate(2deg); }
-  65% { transform: rotate(-1deg); }
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+
+  38% {
+    transform: rotate(2deg);
+  }
+
+  65% {
+    transform: rotate(-1deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
