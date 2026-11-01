@@ -107,8 +107,7 @@ describe('NEX IdleDirector', () => {
 
 it('does not leave a timer when the renderer preempts synchronously on notification', () => {
   vi.useFakeTimers();
-  let director: NexIdleDirector;
-  director = new NexIdleDirector((action) => {
+  const director = new NexIdleDirector((action) => {
     if (action) director.updateEnvironment({ ...IDLE, mood: 'critical' });
   });
   director.updateEnvironment(IDLE);
