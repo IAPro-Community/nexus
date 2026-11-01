@@ -218,6 +218,78 @@
   }
 }
 
+
+/* Lightweight Clippy-like microgestures. Reuses the current official SVG groups;
+   never expands the native window, changes hit regions, or starts its own RAF. */
+.root[data-nex-behavior='still'] .guardianButton svg,
+.root[data-nex-behavior='still'] .guardianButton svg * {
+  animation: none;
+  transition: none;
+  transform: none;
+}
+
+.root[data-nex-behavior='greet'] .guardianButton svg [data-nex-fin='left'] {
+  animation: nex-companion-greet-left 750ms ease-in-out 1 both;
+}
+
+.root[data-nex-behavior='greet'] .guardianButton svg [data-nex-fin='right'] {
+  animation: nex-companion-greet-right 750ms ease-in-out 1 both;
+}
+
+.root[data-nex-behavior='look'] .guardianButton svg [data-nex-part='face'] {
+  transform: translateX(2px);
+  transition: transform 160ms ease-out;
+}
+
+.root[data-nex-behavior='attention'] .guardianButton svg [data-nex-part='face'] {
+  animation: nex-companion-notice 800ms ease-out 1 both;
+}
+
+.root[data-nex-behavior='error'] .guardianButton svg [data-nex-part='reactor'] {
+  animation: nex-companion-error 750ms ease-in-out 1 both;
+}
+
+.root[data-nex-behavior='resolved'] .guardianButton svg [data-nex-module] > g {
+  animation: nex-companion-resolved 1150ms ease-in-out 1 both;
+}
+
+.root[data-nex-behavior='resolved'] .guardianButton svg [data-nex-part='head-assembly'] {
+  animation: nex-companion-nod 1150ms ease-in-out 1 both;
+  transform-origin: 64px 66px;
+}
+
+@keyframes nex-companion-greet-left {
+  0%, 100% { transform: rotate(0); }
+  35% { transform: rotate(-5deg); }
+}
+
+@keyframes nex-companion-greet-right {
+  0%, 100% { transform: rotate(0); }
+  35% { transform: rotate(5deg); }
+}
+
+@keyframes nex-companion-notice {
+  0%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-2px); }
+}
+
+@keyframes nex-companion-error {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  45% { transform: scale(0.92); opacity: 0.85; }
+}
+
+@keyframes nex-companion-resolved {
+  0%, 100% { transform: translateY(0); }
+  35% { transform: translateY(-3px); }
+  65% { transform: translateY(1px); }
+}
+
+@keyframes nex-companion-nod {
+  0%, 100% { transform: rotate(0); }
+  38% { transform: rotate(2deg); }
+  65% { transform: rotate(-1deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .guardianButton svg,
   .guardianButton,
