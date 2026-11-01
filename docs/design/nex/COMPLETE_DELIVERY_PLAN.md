@@ -1,49 +1,53 @@
-# NEX 1.0 — Entrega completa e simultânea (HUD + Site)
+# NEX 1.0 — Entrega conjunta HUD + Site (Companion 2D)
 
-**Decisão do proprietário em 28/10/2026:** NEX **não será apresentado no site público** até que ambas as versões — personagem Hero do site e pixel art Compact/Standard do HUD — estejam **completas, visualmente coerentes, animadas e homologadas**. O giro 360° faz parte do escopo obrigatório desta entrega, não é um acessório opcional. Não propor publicação de Hero parcial, teaser ou mudança do HUD antes disso.
+**Direção atualizada em 2026-11-01:** o objetivo passa a ser um **assistente 2D contextual e expressivo, inspirado no comportamento do Office Assistant/Clippy**, preservando o robô NEX original. O giro 360° e um runtime Three.js **saem do escopo obrigatório** do MVP. Esta decisão substitui somente a obrigatoriedade anterior de 16 vistas, mantendo a necessidade de uma experiência coerente em HUD e Nexus-Site, fidelidade visual e homologação com aprovação humana.
 
-## Fonte única da identidade
-Manter o robô da referência aprovada: capacete branco arredondado, visor navy expressivo, duas aletas, dois acoplamentos laterais, núcleo ciano no peito, quatro módulos flutuantes e órbita inferior. Preservar anatomia ao trocar de pose, escala ou estado. O PNG editorial é **referência**, não um sprite atlas nem substituto do master editável.
+**Contrato vigente:** [COMPANION_2D_CLIPPY_LITE.md](COMPANION_2D_CLIPPY_LITE.md). **Catálogo histórico de 12 idles:** [RETRO_GAME_IDLE_DIRECTION.md](RETRO_GAME_IDLE_DIRECTION.md) — pode permanecer implementado e evoluir, sem exigir 12 sprite sheets exclusivos. **Giro futuro:** [MOTION_ARCHITECTURE_V2.md](MOTION_ARCHITECTURE_V2.md) / issue #129.
 
-- Decisão do personagem: [identity-lock](identity-lock.json), [direção pixel art](RETRO_GAME_IDLE_DIRECTION.md).
-- Hero híbrido 2D: [pacote de trabalho](hybrid-v1/README.md). O SVG frontal anterior **não tem paridade suficiente** para substituir o PNG.
-- Roteiro de movimento: [motion architecture](MOTION_ARCHITECTURE_V2.md) e [animações reais](../NEX_ANIMATION_CONTRACT.md).
-- Estado de entrega único em formato de máquina: [RELEASE_READINESS.json](RELEASE_READINESS.json). Nenhuma conclusão baseada apenas em issue fechada ou texto em PR.
+## Por que reduzir
 
-## Sequência de produção obrigatória
+O repositório já contém uma base React/SVG no `GuardianMascot` e `NexPixelSprite`, um `NexIdleDirector` em PR #171, referências raster verificáveis, um laboratório de Hero e um catálogo de gestos. Produzir um modelo 3D, 16 novas vistas ou outro motor antes de provar a usabilidade gastaria recursos sem resolver o problema principal: reagir com clareza aos estados reais do produto.
 
-**Fase A — Master e assets de origem.** Incorporar imagens, PNG aprovado e fonte editável (OpenRaster ou Aseprite) por hash ao GitHub. Criar master frontal de alta resolução em camadas com pormenores de capacete, visor, olhos, aletas, módulos, anel, núcleo e preenchimento das áreas ocultas. Validar piscada e todas as bordas em movimento. Entregar um inventário único com SHA, licença, pivôs, origem e comparação contra referência.
+## Fonte de identidade e de estados
 
-**Fase B — Rig e 12 idles.** Implementar 12 ações do catálogo oficial com **frames/curvas aprovados**, incluindo hover, blink, glance, orbit breathe, head tilt, fin twitch, module inspect, orbit shuffle, curiosity, stretch, drowse e wake. Programar scheduler determinístico em testes, microações não repetitivas e preempção imediata nos cinco estados reais. `prefers-reduced-motion`/off, janela oculta e offline congelam tudo. Não simular sucesso, trabalho ou progresso.
+- Personagem escolhido: [identity-lock.json](identity-lock.json), [referência visual](hybrid-v1/README.md), sem copiar o Clippy nem reinventar a anatomia do Nex.
+- Fonte operacional: `mascotModel.ts` + Centro de Atenção, sem novas consultas ao provider e sem estados fictícios.
+- Núcleo visual: `NexIdleDirector`, `NexPixelSprite`, `GuardianMascot`; animação 2D por SVG/CSS/WAAPI e camadas raster somente após comparação visual. Sem dependências de render pesadas como requisito.
+- Oito comportamentos UX: `ambient`, `greet`, `look`, `thinking`, `attention`, `error`, `resolved`, `rest`. A reação `resolved` depende estritamente de um evento de conclusão real e deduplicável; na sua ausência, não tocar a animação em produção.
+- Cinco moods operacionais: `idle`, `working`, `attention/warning`, `critical`, `offline`, com preempção e movimento desativado no offline.
 
-**Fase C — Versão HUD Retro Game.** Derivar **Compact 64×64** e **Standard 128×128** com clusters de pixel art desenhados à mão, não reduzir Hero e aplicar filtro. Atlas leve e anti-jitter, testes em 48/64/92px, barra/bandeja/mascote, drag/click-through, foco e transparência. A versão nativa deve manter o Core e os sinais reais intactos.
+## Etapas implementáveis
 
-**Fase D — Hero e 360° real do site.** Versão Hero fiel ao mesmo master, com movimentos expressivos em camadas; produzir 16 vistas genuínas (0° a 337,5°), 22,5° por passo, com costas e perfis reais, sem espelhamento da frontal. Atlas transparente ou WebP lossless, lazy-load e controlador com teclado/arraste, pausa fora da tela e reduced-motion. Site PT e EN; layout responsivo. Não trocar o Hero público antecipadamente.
+### A — Reuso e baseline
+Conferir PR #171 e branches recentes antes de tocar código; preservar assets do PR #147 e CSS/frames existentes. Proibir motor 3D novo, segunda máquina de estado e sprites artificiais de "360°". Tirar snapshots do HUD existente para comparação.
 
-**Fase E — Homologação e release única.** Validar source SHA, asset hashes, 12 idles, 16 vistas, as cinco reações reais, navegadores desktop/mobile, acessibilidade, consumo CPU/RAM/LCP, e smoke Windows/macOS/Linux X11/Wayland. Comparar as duas versões lado a lado. Aprovação explícita do owner do master final e do release commit antes de ativar Nexus-Site e substituir o HUD. `--require-ready` deve passar.
+### B — Oito comportamentos composicionais
+Mapear eventos reais + microgestos em uma função pura. Não gerar oito conjuntos de arte. Implementar idle suave, olhar/cumprimentar, trabalho, atenção, erro, conclusão verificável e repouso/despertar, com reset e cancelamento correto. Manter bolhas, snooze, atalhos, drag e hit regions do HUD intactos.
 
-## Critérios irredutíveis para GO
+### C — Integração 2D HUD + Site
+No HUD, garantir leitura nos tamanhos Compact/Standard usando fallback atual ou camadas fidelizadas. No site, reutilizar o laboratório Hero como demo com oito estados e labels de simulação. Sem colocar o Nex na homepage antes de passar os gates conjuntos.
 
-São 11 gates em `RELEASE_READINESS.json`: master, Hero, pixel art Compact/Standard, 12 idles, cinco estados, atlas 360, integração HUD, integração Site, QA nativa, QA web, aprovação humana. Todos devem conter **evidências concretas e rastreáveis por SHA**. O gate `READY` exige aprovação no commit de publicação exato. Um teste de protótipo não equivale a um teste do instalador.
+### D — QA e aceite
+Verificar testes do scheduler/cleanup, cinco moods, oito cenários, teclado, touch, `prefers-reduced-motion`, visibilidade/offscreen, real browser 390px, ergonomia do HUD nativo, uso de CPU e fidelidade em 64/92/128px. Registrar o que **não foi executado**, e obter aprovação visual humana no SHA final.
+
+## Gate de publicação
+
+Continuam onze gates em [RELEASE_READINESS.json](RELEASE_READINESS.json), todos inicialmente `BLOCKED`: master, Hero, Compact/Standard, oito comportamentos, cinco moods, segurança de interação, HUD, Site, QA nativa, QA web e aceite humano. `--require-ready` deve **falhar** enquanto qualquer gate estiver bloqueado. Os artefatos não são publicados como completos sem aprovação explícita.
+
+A exigência antiga `turnaround_360` e o gate de "12 sprite sheets" **foram substituídos no MVP**, não marcados `PASSED`. O catálogo e o histórico permanecem nos documentos anteriores.
 
 ```bash
 node scripts/verify-nex-release-readiness.mjs
-# auditoria comum: passa enquanto manifesta BLOCKED de forma honesta
-node scripts/verify-nex-release-readiness.mjs --require-ready
-# exigência de publicação: deve falhar até todos os gates estarem PASSED
+node scripts/verify-nex-release-readiness.mjs --require-ready  # falha até GO
 ```
 
-## Bloqueios atuais (não confundir com implementação concluída)
+## Rastreabilidade
 
-- **Resolvido em 29/10:** os PNGs originais, camadas, HTML, gerador e atlas candidato de 96 quadros constam na `release/v1.0.0` via [PR #147](https://github.com/IAPro-Community/nexus/pull/147). O OpenRaster é reconstruível a partir de seis fragmentos Git e validado por SHA-256; o desenho permanece candidato até aprovação visual. Não repetir importação nem depender de ZIPs da conversa.
-- Master pixel art final 64/128px, 12 idles **em produção no HUD**, e 16 vistas 360° aprovadas **não estão entregues**.
-- O laboratório do Nexus-Site é apenas QA isolado; a homepage não exibe o NEX.
-- Não há aprovação visual definitiva ou certificação nativa abrangente. A release permanece **BLOCKED**.
+- #141 — umbrella, atualizar requisitos para Companion 2D.
+- #119 — identidade, source e Compact/Standard continuam.
+- #120 — catálogo e scheduler de 12 idles existentes; apenas 8 comportamentos UX no MVP.
+- #129 — **futuro**, não bloqueia Companion 2D.
+- PR #171 — base prioritária de integração já em desenvolvimento; reconciliar antes de desenvolver outro motor.
+- Nexus-Site — laboratório existente permanece privado/noindex até revisão e homologação.
 
-## Relação com as issues
-
-- [#119 — Master em pixel art](https://github.com/IAPro-Community/nexus/issues/119).
-- [#120 — Biblioteca idle](https://github.com/IAPro-Community/nexus/issues/120).
-- [#129 — Atlas 360°](https://github.com/IAPro-Community/nexus/issues/129).
-
-**Regra para agentes:** não alegar “NEX pronto”, “no site” ou “HUD atualizado” sem gate `READY`, arte aprovada e SHA das duas integrações. Nenhuma versão parcial será liberada por conveniência.
+**Regra:** não afirmar "completo", "publicado" ou "homologado" com base em documentação ou teste isolado. Não alterar o estado canônico do Core para viabilizar animação.
