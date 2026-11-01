@@ -1,3 +1,5 @@
+> **NEX Companion 2D — decisão de escopo 2026-11-01:** para qualquer implementação do mascote NEX, leia `docs/design/nex/COMPANION_2D_CLIPPY_LITE.md` primeiro. O MVP deve compor oito comportamentos UX a partir do `NexIdleDirector` existente (PR #171), sem engine Three.js, 12 spritesheets obrigatórias ou 16 vistas 360° como gate. O 360° é backlog #129. Preservar a identidade visual e a liberação conjunta HUD + Site com QA/aceite humano no SHA exato. **Não duplicar código nem apagar evidências de QA do PR #171.**
+
 # IAPro Nexus — Contrato Oficial para Coding Agents
 
 ## STYLE RULES
