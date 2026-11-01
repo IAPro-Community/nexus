@@ -66,6 +66,8 @@ Continuar com os 12 IDs em [RETRO_GAME_IDLE_DIRECTION.md](RETRO_GAME_IDLE_DIRECT
 
 **Fases de integração:** preservar arte aprovada → integrar raster fiel no laboratório QA → homologar seis idles → gerar novas vistas → ativar giro sob demanda → comparar LCP/CLS/FPS mobile → promover Hero público.
 
+**Atualização técnica 2026-11-01:** o protótipo HUD atual conecta o `NexIdleDirector` ao `GuardianMascot` e seleciona ações CSS no SVG composto existente. O preview de navegador executa todos os 12 IDs com preempção, estado reduced-motion e viewports 390/768/1280. Os cinco estados usam a projeção existente; animação especial é permitida apenas em `idle`. Isso valida mecânica do candidato e não substitui frames pixel-art nem certifica a qualidade da arte. Inclinação da cabeça e aletas seguem as limitações descritas em `hybrid-v1/README.md`. Decisão comparativa registrada em [ADR NEX-001](ADR-2026-11-01-renderer.md). A rotação e o master seguem bloqueados.
+
 ## 4. Atlas real de rotação: contrato
 
 **Primeiro aceite técnico:** 16 vistas distintas em passos de **22,5°**, resolução artística inicial **512×512 RGBA**, mesmo centro/pivô, transparência e iluminação. A troca deve manter olhos, contorno, módulos, encaixe das aletas e oclusão correta entre frente, 3/4, perfil e costas.

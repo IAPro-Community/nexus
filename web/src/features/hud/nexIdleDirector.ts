@@ -43,6 +43,7 @@ const DEFAULT_TIMING: NexIdleTiming = {
 };
 
 const STANDARD_ACTIONS: readonly NexIdleAction[] = [
+  'idle_hover',
   'idle_blink',
   'idle_glance',
   'idle_orbit_breathe',

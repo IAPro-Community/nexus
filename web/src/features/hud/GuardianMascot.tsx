@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { MascotAttention, MascotMood } from './mascotModel';
 import { NexPixelSprite } from './NexPixelSprite';
 import type { GuardianMood } from './guardianModel';
+import { NexIdleDirector, type NexIdleAction, type NexIdleMood } from './nexIdleDirector';
 import styles from './GuardianMascot.module.scss';
 import hudStyles from './NexusHud.module.scss';
 
@@ -36,39 +37,43 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
 }) => {
   const { t } = useTranslation();
   const motionEnabled = motion && mood !== 'offline';
-  const [blink, setBlink] = React.useState(false);
+  const [idleAction, setIdleAction] = React.useState<NexIdleAction | null>(null);
   const spriteMood: GuardianMood = mood === 'attention' ? 'warning' : mood;
+  const idleMood: NexIdleMood = mood === 'attention' ? 'warning' : mood;
+  const idleDirector = React.useMemo(() => new NexIdleDirector(setIdleAction), []);
   const mascotLabel =
     count > 0 && !expanded
       ? t('hud.mascot.openPendingCount', { count })
       : t(expanded ? 'hud.mascot.collapse' : 'hud.mascot.expand');
 
+  const updateIdleEnvironment = React.useCallback(() => {
+    idleDirector.updateEnvironment({
+      mood: idleMood,
+      motionEnabled: motion,
+      visible: typeof document !== 'undefined' && document.visibilityState === 'visible',
+      reducedMotion:
+        typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    });
+  }, [idleDirector, idleMood, motion]);
+
   React.useEffect(() => {
-    setBlink(false);
-    if (!motionEnabled || mood !== 'idle') return;
-
-    let blinkTimer: number | undefined;
-    let reopenTimer: number | undefined;
-    let disposed = false;
-    const scheduleBlink = () => {
-      blinkTimer = window.setTimeout(() => {
-        if (disposed) return;
-        setBlink(true);
-        reopenTimer = window.setTimeout(() => {
-          if (disposed) return;
-          setBlink(false);
-          scheduleBlink();
-        }, 120);
-      }, 6400);
-    };
-
-    scheduleBlink();
+    updateIdleEnvironment();
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    document.addEventListener('visibilitychange', updateIdleEnvironment);
+    media.addEventListener('change', updateIdleEnvironment);
     return () => {
-      disposed = true;
-      if (blinkTimer !== undefined) window.clearTimeout(blinkTimer);
-      if (reopenTimer !== undefined) window.clearTimeout(reopenTimer);
+      document.removeEventListener('visibilitychange', updateIdleEnvironment);
+      media.removeEventListener('change', updateIdleEnvironment);
     };
-  }, [motionEnabled, mood]);
+  }, [updateIdleEnvironment]);
+
+  React.useEffect(() => {
+    idleDirector.start();
+    return () => idleDirector.stop();
+  }, [idleDirector]);
+
+  const notifyInteraction = () => idleDirector.notifyInteraction();
 
   return (
     <div
@@ -126,17 +131,25 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
           aria-expanded={expanded}
           aria-controls={expanded ? popoverId : undefined}
           data-hud-hit-area="true"
-          onClick={onExpand}
+          onClick={() => {
+            notifyInteraction();
+            onExpand();
+          }}
+          onPointerEnter={notifyInteraction}
+          onFocus={notifyInteraction}
           data-hud-mascot="true"
         >
           <span
             className={hudStyles.guardian}
             data-mood={spriteMood}
             data-motion={motionEnabled ? 'on' : 'off'}
-            data-blink={blink ? 'true' : 'false'}
+            data-blink={idleAction === 'idle_blink' ? 'true' : 'false'}
             aria-hidden="true"
           >
-            <NexPixelSprite mood={spriteMood} />
+            <NexPixelSprite
+              mood={spriteMood}
+              idleAction={motionEnabled && mood === 'idle' ? idleAction : null}
+            />
           </span>
           {count > 0 && (
             <span className={styles.badge} aria-hidden="true">

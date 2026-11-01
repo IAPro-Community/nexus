@@ -32,6 +32,14 @@ describe('NEX IdleDirector', () => {
     expect(chooseNexIdleAction(() => 0, 'idle_blink')).not.toBe('idle_blink');
   });
 
+  it('can schedule every one of the ten non-special idle actions, including hover', () => {
+    const selected = new Set(
+      Array.from({ length: 20 }, (_, index) => chooseNexIdleAction(() => index / 20, null)),
+    );
+    expect(selected).toContain('idle_hover');
+    expect(selected).toHaveLength(10);
+  });
+
   it('keeps one timer chain and emits no synthetic operational state', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-10-29T10:00:00Z'));
