@@ -55,6 +55,21 @@ const STANDARD_ACTIONS: readonly NexIdleAction[] = [
   'idle_micro_stretch',
 ];
 
+export const NEX_IDLE_COOLDOWN_MS: Readonly<Record<NexIdleAction, number>> = {
+  idle_hover: 30000,
+  idle_blink: 45000,
+  idle_glance: 45000,
+  idle_orbit_breathe: 60000,
+  idle_head_tilt: 90000,
+  idle_fin_twitch: 60000,
+  idle_module_inspect: 90000,
+  idle_orbit_shuffle: 120000,
+  idle_curiosity: 90000,
+  idle_micro_stretch: 120000,
+  idle_drowse: 180000,
+  idle_wake: 5000,
+};
+
 export const NEX_IDLE_DURATION_MS: Readonly<Record<NexIdleAction, number>> = {
   idle_hover: 2400,
   idle_blink: 650,
@@ -89,8 +104,17 @@ export function createNexRandom(seed: number): () => number {
 export function chooseNexIdleAction(
   random: () => number,
   previous: NexIdleAction | null,
-): NexIdleAction {
-  const choices = STANDARD_ACTIONS.filter((action) => action !== previous);
+  lastPlayedAt: ReadonlyMap<NexIdleAction, number> = new Map(),
+  now = Date.now(),
+): NexIdleAction | null {
+  const choices = STANDARD_ACTIONS.filter((action) => {
+    const lastPlayed = lastPlayedAt.get(action);
+    return (
+      action !== previous &&
+      (lastPlayed === undefined || now - lastPlayed >= NEX_IDLE_COOLDOWN_MS[action])
+    );
+  });
+  if (choices.length === 0) return null;
   const value = random();
   const index = Math.min(choices.length - 1, Math.floor(Math.max(0, value) * choices.length));
   return choices[index];
@@ -106,6 +130,7 @@ export class NexIdleDirector {
   private running = false;
   private current: NexIdleAction | null = null;
   private previous: NexIdleAction | null = null;
+  private readonly lastPlayedAt = new Map<NexIdleAction, number>();
   private lastInteraction: number;
   private drowsed = false;
   private generation = 0;
@@ -183,6 +208,7 @@ export class NexIdleDirector {
   private setCurrent(action: NexIdleAction | null): void {
     if (this.current === action) return;
     this.current = action;
+    if (action) this.lastPlayedAt.set(action, this.timing.now());
     this.onChange(action);
   }
 
@@ -211,7 +237,14 @@ export class NexIdleDirector {
         this.drowsed = true;
         this.play('idle_drowse');
       } else if (!this.drowsed) {
-        this.play(chooseNexIdleAction(this.random, this.previous));
+        const action = chooseNexIdleAction(
+          this.random,
+          this.previous,
+          this.lastPlayedAt,
+          this.timing.now(),
+        );
+        if (action) this.play(action);
+        else this.schedule();
       }
     }, delayMs);
   }

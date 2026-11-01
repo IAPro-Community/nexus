@@ -3,6 +3,7 @@ import {
   chooseNexIdleAction,
   createNexRandom,
   NEX_IDLE_ACTIONS,
+  NEX_IDLE_COOLDOWN_MS,
   NexIdleDirector,
   type NexIdleAction,
   type NexIdleEnvironment,
@@ -30,6 +31,20 @@ describe('NEX IdleDirector', () => {
     const randomB = createNexRandom(1729);
     expect([randomA(), randomA(), randomA()]).toEqual([randomB(), randomB(), randomB()]);
     expect(chooseNexIdleAction(() => 0, 'idle_blink')).not.toBe('idle_blink');
+  });
+
+  it('honors per-action cooldowns using the injected clock', () => {
+    const now = 100_000;
+    const recent = new Map<NexIdleAction, number>([
+      ['idle_hover', now - 1000],
+      ['idle_blink', now - 5000],
+    ]);
+    expect(chooseNexIdleAction(() => 0, null, recent, now)).toBe('idle_glance');
+
+    const cooled = new Map<NexIdleAction, number>([
+      ['idle_blink', now - NEX_IDLE_COOLDOWN_MS.idle_blink],
+    ]);
+    expect(chooseNexIdleAction(() => 0.11, null, cooled, now)).toBe('idle_blink');
   });
 
   it('can schedule every one of the ten non-special idle actions, including hover', () => {
