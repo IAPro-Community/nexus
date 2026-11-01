@@ -92,7 +92,7 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
                 style.visibility !== 'hidden' &&
                 style.display !== 'none' &&
                 Number(style.opacity) > 0;
-              setVisualVisible(idleVisibility.current);
+              setVisualVisible(document.visibilityState === 'visible' && idleVisibility.current);
               updateIdleEnvironment();
             },
             { threshold: 0.01 },
@@ -101,7 +101,7 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
     if (root && observer) observer.observe(root);
     else {
       idleVisibility.current = Boolean(root?.getClientRects().length);
-      setVisualVisible(idleVisibility.current);
+      setVisualVisible(document.visibilityState === 'visible' && idleVisibility.current);
     }
     updateIdleEnvironment();
     const syncReducedMotion = () => setReducedMotion(media.matches);
