@@ -1,3 +1,5 @@
+> **Atualização de escopo (2026-11-01):** este documento preserva a direção artística e o catálogo técnico de 12 microgestos. Na primeira entrega, o NEX é um Companion 2D estilo Clippy com **8 comportamentos UX compostos**, sem exigência de 12 spritesheets exclusivos. A especificação vigente de produto é [COMPANION_2D_CLIPPY_LITE.md](COMPANION_2D_CLIPPY_LITE.md); preservar o `NexIdleDirector` do PR #171.
+
 # NEX — Direção escolhida: Retro Game Deluxe + biblioteca de idles
 
 **Decisão do proprietário (27/10/2026):** manter como personagem principal **o robô da prancha NEX enviada pelo usuário nesta conversa** (capacete branco arredondado, visor largo azul-preto, duas aletas técnicas, duas orelhas/acoplamentos, núcleo azul no peito, quatro módulos esféricos separados e anel de estabilização). O **tratamento de produção** desejado é **pixel art de game retrô com alto detalhamento e muitas ações de idle**.
