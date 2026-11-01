@@ -51,6 +51,7 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
   const motionEnabled = motion && mood !== 'offline' && !reducedMotion && visualVisible;
   const [idleAction, setIdleAction] = React.useState<NexIdleAction | null>(null);
   const [interaction, setInteraction] = React.useState<NexCompanionInteraction>('none');
+  const [lookSide, setLookSide] = React.useState<'left' | 'right'>('right');
   const [resolutionPlaying, setResolutionPlaying] = React.useState(false);
   const lastResolutionId = React.useRef<string | null>(null);
   const greetingAt = React.useRef(0);
@@ -153,6 +154,7 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
       data-motion={motionEnabled ? 'on' : 'off'}
       data-native={native ? 'true' : 'false'}
       data-nex-behavior={behavior}
+      data-nex-look={lookSide}
     >
       {bubble && !expanded && (
         <aside
@@ -214,9 +216,10 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
             notifyInteraction();
           }}
           onPointerMove={(event) => {
-            if (event.pointerType === 'mouse' && Date.now() - greetingAt.current > 500) {
-              setInteraction('look');
-            }
+            if (event.pointerType !== 'mouse' || Date.now() - greetingAt.current <= 500) return;
+            const rect = event.currentTarget.getBoundingClientRect();
+            setLookSide(event.clientX < rect.left + rect.width / 2 ? 'left' : 'right');
+            setInteraction('look');
           }}
           onPointerLeave={() => setInteraction('none')}
           onFocus={() => {
