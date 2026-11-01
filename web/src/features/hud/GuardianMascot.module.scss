@@ -235,8 +235,13 @@
   animation: nex-companion-greet-right 750ms ease-in-out 1 both;
 }
 
-.root[data-nex-behavior='look'] .guardianButton svg [data-nex-part='face'] {
+.root[data-nex-behavior='look'][data-nex-look='right'] .guardianButton svg [data-nex-part='face'] {
   transform: translateX(2px);
+  transition: transform 160ms ease-out;
+}
+
+.root[data-nex-behavior='look'][data-nex-look='left'] .guardianButton svg [data-nex-part='face'] {
+  transform: translateX(-2px);
   transition: transform 160ms ease-out;
 }
 
