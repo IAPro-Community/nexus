@@ -21,7 +21,7 @@
       "contract": "docs/design/nex/identity-lock.json",
       "status": "BLOCKED",
       "evidence": [
-        "PARTIAL 2026-11-01 | Windows 11 | Nexus source commit aebbfdda83fe5b60e46afab07c6fbc6988a074cc | node scripts/verify-nex-hybrid-assets.mjs --require-binaries | PASS 14/14 candidate source assets and reconstructible OpenRaster; original Hero PNG SHA-256 ef7a4aeb7b24d2ab5f199f913d351414b8fafb0b6208b3ab2b665013adcb9118 | docs/design/nex/hybrid-v1/asset-manifest.json | Not the approved hand-drawn pixel master."
+        "PARTIAL 2026-11-01 | Windows 11 | Nexus source commit c431ae36ad6b7e844288514c66f8c7a9dc4ab439 | node scripts/verify-nex-hybrid-assets.mjs --require-binaries | PASS 14/14 candidate source assets and reconstructible OpenRaster; original Hero PNG SHA-256 ef7a4aeb7b24d2ab5f199f913d351414b8fafb0b6208b3ab2b665013adcb9118 | docs/design/nex/hybrid-v1/asset-manifest.json | Not the approved hand-drawn pixel master."
       ],
       "notes": "BLOCKED: selected editorial reference is not the approved layered 256/320px pixel master; owner approval and locked hashes are absent."
     },
@@ -31,8 +31,8 @@
       "contract": "docs/design/nex/hybrid-v1/README.md",
       "status": "BLOCKED",
       "evidence": [
-        "PARTIAL 2026-11-01 | Nexus source commit aebbfdda83fe5b60e46afab07c6fbc6988a074cc | Windows 11 / Node 24 / Chromium 153 | npm run art:nex:hybrid:qa | PASS 39 browser mechanics checks against candidate raster layers | web/dist/nex-hybrid-qa/result.json | Art approval and production Hero remain pending.",
-        "PARTIAL 2026-11-01 | Nexus source commit aebbfdda83fe5b60e46afab07c6fbc6988a074cc; Nexus-Site commit caf71a75cdf952b60fb33d4df210b9b53c18b130 | npm run build; npm --prefix C:/Dev/nexus-nex-motion/web run art:nex:site:qa -- --url=http://127.0.0.1:4330/nex-lab/ | PASS 9 static pages and local lab mechanics | DEV/evidence/nex-lab/README.md | PR https://github.com/IAPro-Community/Nexus-Site/pull/9 remains draft/noindex."
+        "PARTIAL 2026-11-01 | Nexus source commit c431ae36ad6b7e844288514c66f8c7a9dc4ab439 | Windows 11 / Node 24 / Chromium 153 | npm run art:nex:hybrid:qa | PASS 39 browser mechanics checks against candidate raster layers | web/dist/nex-hybrid-qa/result.json | Art approval and production Hero remain pending.",
+        "PARTIAL 2026-11-01 | Nexus source commit c431ae36ad6b7e844288514c66f8c7a9dc4ab439; Nexus-Site commit caf71a75cdf952b60fb33d4df210b9b53c18b130 | npm run build; npm --prefix C:/Dev/nexus-nex-motion/web run art:nex:site:qa -- --url=http://127.0.0.1:4330/nex-lab/ | PASS 9 static pages and local lab mechanics | DEV/evidence/nex-lab/README.md | PR https://github.com/IAPro-Community/Nexus-Site/pull/9 remains draft/noindex."
       ],
       "notes": "BLOCKED: candidate layered raster mechanics are verified; no approved Hero, cross-browser/mobile/performance evidence, or owner visual approval."
     },
@@ -42,7 +42,7 @@
       "contract": "docs/design/nex/RETRO_GAME_IDLE_DIRECTION.md",
       "status": "BLOCKED",
       "evidence": [
-        "PARTIAL 2026-11-01 | Nexus source commit aebbfdda83fe5b60e46afab07c6fbc6988a074cc | Windows 11 | npm run art:nex:check | PASS: checked-in SVG fallback exports match the current renderer | web/public/nex/nex-idle.svg | No optically drawn 64px/128px pixel-art master exists."
+        "PARTIAL 2026-11-01 | Nexus source commit c431ae36ad6b7e844288514c66f8c7a9dc4ab439 | Windows 11 | npm run art:nex:check | PASS: checked-in SVG fallback exports match the current renderer | web/public/nex/nex-idle.svg | No optically drawn 64px/128px pixel-art master exists."
       ],
       "notes": "BLOCKED: current SVG is a fallback and does not satisfy the hand-drawn Compact/Standard pixel-art contract."
     },
@@ -52,7 +52,7 @@
       "contract": "docs/design/nex/RETRO_GAME_IDLE_DIRECTION.md",
       "status": "BLOCKED",
       "evidence": [
-        "PARTIAL 2026-11-01 | Windows 11 / Node 24 / Chromium 153 | npm run art:nex:motion:qa | PASS_BROWSER_MECHANICS_ONLY: all 12 candidate CSS actions changed rendered transforms; five moods, reduced motion, 390/768/1280px | web/dist/nex-motion-preview-qa/result.json | Not final pixel-art frames or an approved rig."
+        "PARTIAL 2026-11-01 | Windows 11 / Node 24 / Chromium 153 | npm run art:nex:motion:qa | PASS_BROWSER_MECHANICS_ONLY: all 12 candidate CSS actions changed rendered transforms; five moods, reduced motion, 390/768/1280px; IdleDirector visibility pause/resume tests passed | web/dist/nex-motion-preview-qa/result.json | Not final pixel-art frames or an approved rig."
       ],
       "notes": "BLOCKED: twelve CSS candidate behaviors run; final authored sprite frames, rig/fidelity review, idle-pause platform coverage, and exact-SHA approval are pending."
     },
@@ -62,7 +62,7 @@
       "contract": "docs/design/NEX_ANIMATION_CONTRACT.md",
       "status": "BLOCKED",
       "evidence": [
-        "PARTIAL 2026-11-01 | Nexus source commit aebbfdda83fe5b60e46afab07c6fbc6988a074cc | Windows 11 / Node 24 / Chromium 153 | npm run art:nex:motion:qa; npm test | PASS: candidate previews exercise idle/working/warning/critical/offline and reduced motion; app suite 774 tests | web/dist/nex-motion-preview-qa/result.json | Existing mascotMood remains source; event-ID dedupe and native runtime events not certified."
+        "PARTIAL 2026-11-01 | Nexus source commit c431ae36ad6b7e844288514c66f8c7a9dc4ab439 | Windows 11 / Node 24 / Chromium 153 | npm run art:nex:motion:qa; npm test | PASS: candidate previews exercise idle/working/warning/critical/offline and reduced motion; app suite 775 tests | web/dist/nex-motion-preview-qa/result.json | Existing mascotMood remains source; event-ID dedupe and native runtime events not certified."
       ],
       "notes": "BLOCKED: browser mechanics use the existing mood projection, but runtime event adapter/dedupe coverage, cross-platform and native QA are not complete."
     },
@@ -82,7 +82,7 @@
       "contract": "docs/product/hud-guardian-v1.md",
       "status": "BLOCKED",
       "evidence": [
-        "PARTIAL 2026-11-01 | Nexus source commit aebbfdda83fe5b60e46afab07c6fbc6988a074cc | Windows 11 | npm run test:e2e:hud; npm run build | PASS: current browser HUD suite/build and accessible existing SVG fallback | web/src/features/hud/GuardianMascot.tsx | Native Wails geometry/platform certification not run; final atlas not installed."
+        "PARTIAL 2026-11-01 | Nexus source commit c431ae36ad6b7e844288514c66f8c7a9dc4ab439 | Windows 11 | npm run test:e2e:hud; npm run build | PASS: browser HUD suite/build, accessible fallback, click and keyboard Enter/Space activation, attention snooze, reduced-motion, and offscreen idle pause/resume | web/src/features/hud/GuardianMascot.tsx | Native Wails geometry/platform certification not run; final atlas not installed."
       ],
       "notes": "BLOCKED: candidate motion is wired into the current React HUD, but final approved atlas integration and native Wails validation remain pending."
     },
@@ -110,7 +110,7 @@
       "contract": "docs/design/nex/hybrid-v1/BROWSER_QA_20261028.md",
       "status": "BLOCKED",
       "evidence": [
-        "PARTIAL 2026-11-01 | Nexus source commit aebbfdda83fe5b60e46afab07c6fbc6988a074cc; Nexus-Site commit caf71a75cdf952b60fb33d4df210b9b53c18b130 | Windows 11 / Node 24 / Chromium 153 | npm run art:nex:motion:qa; npm run art:nex:site:qa -- --url=http://127.0.0.1:4330/nex-lab/ | PASS: browser mechanics only, 12 candidate actions/five moods/3 CSS widths; site build 9 routes | web/dist/nex-motion-preview-qa/result.json; Nexus-Site/DEV/evidence/nex-lab/README.md | Safari/Firefox/mobile-real/LCP/FPS/CPU not run."
+        "PARTIAL 2026-11-01 | Nexus source commit c431ae36ad6b7e844288514c66f8c7a9dc4ab439; Nexus-Site commit caf71a75cdf952b60fb33d4df210b9b53c18b130 | Windows 11 / Node 24 / Chromium 153 | npm run art:nex:motion:qa; npm run art:nex:site:qa -- --url=http://127.0.0.1:4330/nex-lab/ | PASS: browser mechanics only, 12 candidate actions/five moods/3 CSS widths; HUD keyboard/E2E passed; site build 9 routes | web/dist/nex-motion-preview-qa/result.json; Nexus-Site/DEV/evidence/nex-lab/README.md | Safari/Firefox/mobile-real/LCP/FPS/CPU not run."
       ],
       "notes": "BLOCKED: only local Chromium browser mechanics are verified; required cross-browser, device, accessibility, and performance acceptance remains incomplete."
     },
@@ -127,7 +127,7 @@
     {
       "date": "2026-11-01",
       "event": "NEX browser-tested motion prototype and private hash-verified Nexus-Site lab added; no art/platform approval; all public gates remain blocked.",
-      "source_commit": "aebbfdda83fe5b60e46afab07c6fbc6988a074cc",
+      "source_commit": "c431ae36ad6b7e844288514c66f8c7a9dc4ab439",
       "site_commit": "caf71a75cdf952b60fb33d4df210b9b53c18b130",
       "platform": "Windows 11 / Node 24 / Chromium 153",
       "commands": [
