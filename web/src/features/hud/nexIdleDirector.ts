@@ -107,6 +107,7 @@ export class NexIdleDirector {
   private previous: NexIdleAction | null = null;
   private lastInteraction: number;
   private drowsed = false;
+  private generation = 0;
 
   constructor(
     onChange: (action: NexIdleAction | null) => void,
@@ -170,6 +171,7 @@ export class NexIdleDirector {
   }
 
   private cancel(): void {
+    this.generation += 1;
     if (this.timer !== null) this.timing.clearTimeout(this.timer);
     if (this.endTimer !== null) this.timing.clearTimeout(this.endTimer);
     this.timer = null;
@@ -185,8 +187,11 @@ export class NexIdleDirector {
 
   private play(action: NexIdleAction): void {
     if (!this.allowed()) return;
+    const generation = this.generation;
     this.previous = action;
     this.setCurrent(action);
+    // The renderer may synchronously change environment or stop the director.
+    if (generation !== this.generation || !this.allowed()) return;
     this.endTimer = this.timing.setTimeout(() => {
       this.endTimer = null;
       this.setCurrent(null);

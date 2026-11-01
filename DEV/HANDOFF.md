@@ -2684,3 +2684,7 @@ O controle `Popup independente` agora fica imediatamente abaixo do cabeçalho do
 - A branch `fix/windows-agent-terminal-reliability` reúne estas alterações. Ver `DEV/validation/TERMINALS_AGENTS_YOLO_SCROLL_20261026.md` para causa, arquivos, verificações e limitações.
 - YOLO agora normaliza aliases vindos das opções persistidas e a UI lê o modo persistido; terminais preservam scrollback ao receber input de mouse/paginação.
 - Antes de testar no app desktop, preparar uma build local com o overlay atual. Não encerrar nem substituir o processo instalado enquanto houver uma sessão de agente Codex em execução, salvo pedido explícito do usuário.
+
+## NEX motion — 2026-11-01
+
+Estado parcial e próximo passo: `validation/NEX_MOTION_AUDIT_20261101.md`. Nenhum gate de publicação aprovado; continuar pela arte/rig e testes com dependências reproduzíveis.

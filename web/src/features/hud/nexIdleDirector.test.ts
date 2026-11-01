@@ -104,3 +104,17 @@ describe('NEX IdleDirector', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 });
+
+it('does not leave a timer when the renderer preempts synchronously on notification', () => {
+  vi.useFakeTimers();
+  let director: NexIdleDirector;
+  director = new NexIdleDirector((action) => {
+    if (action) director.updateEnvironment({ ...IDLE, mood: 'critical' });
+  });
+  director.updateEnvironment(IDLE);
+  director.start();
+  vi.advanceTimersByTime(36000);
+  expect(director.currentAction).toBeNull();
+  expect(vi.getTimerCount()).toBe(0);
+  director.stop();
+});

@@ -94,7 +94,7 @@ try {
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(String(error)));
   await page.setContent(html, { waitUntil: 'load', timeout: 30_000 });
-  await page.locator('.module').first.waitFor();
+  await page.locator('.module').first().waitFor();
   await page.getByLabel('Microações aleatórias discretas').uncheck();
   check(await page.locator('.module').count() === 4, '4 independent modules');
   check(await page.locator('.eyes').count() === 2, '2 independently animatable visor eyes');
@@ -134,7 +134,7 @@ try {
     check(!await page.locator('#nex').getAttribute('data-action'),
       `${mood} preempts idle action`);
   }
-  const offlineAnimation = await page.locator('.module').first.evaluate(
+  const offlineAnimation = await page.locator('.module').first().evaluate(
     (node) => getComputedStyle(node).animationName);
   check(offlineAnimation === 'none', 'offline disables module animations');
   await page.screenshot({ path: resolve(output, 'offline.png') });
@@ -147,7 +147,7 @@ try {
   await page.getByRole('button', { name: 'idle', exact: true }).click();
   await page.getByLabel('Movimento ativo').check();
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  const reduced = await page.locator('.module').first.evaluate(
+  const reduced = await page.locator('.module').first().evaluate(
     (node) => getComputedStyle(node).animationName);
   check(reduced === 'none', 'prefers-reduced-motion disables animations');
 
