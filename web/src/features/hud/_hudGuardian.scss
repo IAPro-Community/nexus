@@ -849,12 +849,13 @@
 }
 
 @keyframes nex-idle-drowse {
-  0%,
-  100% {
+  0% {
     transform: scaleY(1);
   }
+
   45%,
-  72% {
+  72%,
+  100% {
     transform: scaleY(0.72);
   }
 }
