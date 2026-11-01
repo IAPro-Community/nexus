@@ -20,64 +20,81 @@
       "title": "Master do personagem em camadas, original versionado com SHA-256",
       "contract": "docs/design/nex/identity-lock.json",
       "status": "BLOCKED",
-      "evidence": [],
-      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+      "evidence": [
+        "PARTIAL 2026-11-01 | Windows 11 | Nexus source commit aebbfdda83fe5b60e46afab07c6fbc6988a074cc | node scripts/verify-nex-hybrid-assets.mjs --require-binaries | PASS 14/14 candidate source assets and reconstructible OpenRaster; original Hero PNG SHA-256 ef7a4aeb7b24d2ab5f199f913d351414b8fafb0b6208b3ab2b665013adcb9118 | docs/design/nex/hybrid-v1/asset-manifest.json | Not the approved hand-drawn pixel master."
+      ],
+      "notes": "BLOCKED: selected editorial reference is not the approved layered 256/320px pixel master; owner approval and locked hashes are absent."
     },
     {
       "id": "site_hero",
       "title": "Hero final com silhueta idêntica, animações em camadas e revisão visual",
       "contract": "docs/design/nex/hybrid-v1/README.md",
       "status": "BLOCKED",
-      "evidence": [],
-      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+      "evidence": [
+        "PARTIAL 2026-11-01 | Nexus source commit aebbfdda83fe5b60e46afab07c6fbc6988a074cc | Windows 11 / Node 24 / Chromium 153 | npm run art:nex:hybrid:qa | PASS 39 browser mechanics checks against candidate raster layers | web/dist/nex-hybrid-qa/result.json | Art approval and production Hero remain pending.",
+        "PARTIAL 2026-11-01 | Nexus source commit aebbfdda83fe5b60e46afab07c6fbc6988a074cc; Nexus-Site commit caf71a75cdf952b60fb33d4df210b9b53c18b130 | npm run build; npm --prefix C:/Dev/nexus-nex-motion/web run art:nex:site:qa -- --url=http://127.0.0.1:4330/nex-lab/ | PASS 9 static pages and local lab mechanics | DEV/evidence/nex-lab/README.md | PR https://github.com/IAPro-Community/Nexus-Site/pull/9 remains draft/noindex."
+      ],
+      "notes": "BLOCKED: candidate layered raster mechanics are verified; no approved Hero, cross-browser/mobile/performance evidence, or owner visual approval."
     },
     {
       "id": "hud_compact",
       "title": "Compact 64px e Standard 128px desenhados opticamente em pixel art",
       "contract": "docs/design/nex/RETRO_GAME_IDLE_DIRECTION.md",
       "status": "BLOCKED",
-      "evidence": [],
-      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+      "evidence": [
+        "PARTIAL 2026-11-01 | Nexus source commit aebbfdda83fe5b60e46afab07c6fbc6988a074cc | Windows 11 | npm run art:nex:check | PASS: checked-in SVG fallback exports match the current renderer | web/public/nex/nex-idle.svg | No optically drawn 64px/128px pixel-art master exists."
+      ],
+      "notes": "BLOCKED: current SVG is a fallback and does not satisfy the hand-drawn Compact/Standard pixel-art contract."
     },
     {
       "id": "idle_12",
       "title": "12 ações idle com frames consistentes, pivôs e agendador sem repetição artificial",
       "contract": "docs/design/nex/RETRO_GAME_IDLE_DIRECTION.md",
       "status": "BLOCKED",
-      "evidence": [],
-      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+      "evidence": [
+        "PARTIAL 2026-11-01 | Windows 11 / Node 24 / Chromium 153 | npm run art:nex:motion:qa | PASS_BROWSER_MECHANICS_ONLY: all 12 candidate CSS actions changed rendered transforms; five moods, reduced motion, 390/768/1280px | web/dist/nex-motion-preview-qa/result.json | Not final pixel-art frames or an approved rig."
+      ],
+      "notes": "BLOCKED: twelve CSS candidate behaviors run; final authored sprite frames, rig/fidelity review, idle-pause platform coverage, and exact-SHA approval are pending."
     },
     {
       "id": "operational_5",
       "title": "5 estados reais idle/working/warning/critical/offline com cancelamento",
       "contract": "docs/design/NEX_ANIMATION_CONTRACT.md",
       "status": "BLOCKED",
-      "evidence": [],
-      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+      "evidence": [
+        "PARTIAL 2026-11-01 | Nexus source commit aebbfdda83fe5b60e46afab07c6fbc6988a074cc | Windows 11 / Node 24 / Chromium 153 | npm run art:nex:motion:qa; npm test | PASS: candidate previews exercise idle/working/warning/critical/offline and reduced motion; app suite 774 tests | web/dist/nex-motion-preview-qa/result.json | Existing mascotMood remains source; event-ID dedupe and native runtime events not certified."
+      ],
+      "notes": "BLOCKED: browser mechanics use the existing mood projection, but runtime event adapter/dedupe coverage, cross-platform and native QA are not complete."
     },
     {
       "id": "turnaround_360",
       "title": "16 vistas 0–337,5° de 22,5° com oclusão correta + manifesto",
       "contract": "docs/design/nex/MOTION_ARCHITECTURE_V2.md",
       "status": "BLOCKED",
-      "evidence": [],
-      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+      "evidence": [
+        "BLOCKER EVIDENCE 2026-11-01 | Nexus-Site commit caf71a75cdf952b60fb33d4df210b9b53c18b130 | Windows 11 | npm run test:nex:turntable | PASS: incomplete atlas fails closed; node scripts/verify-nex-turntable.mjs reports PENDING_ARTWORK | Nexus-Site/public/nex/turntable/manifest.json | Zero of 16 genuine authored yaw views supplied."
+      ],
+      "notes": "BLOCKED: no genuine 16-view artwork exists; no mirrored front, rotated plane, or invented turnaround was accepted."
     },
     {
       "id": "hud_integration",
       "title": "Novo atlas/rig validado no HUD com BAR/MASCOT/TRAY intactos",
       "contract": "docs/product/hud-guardian-v1.md",
       "status": "BLOCKED",
-      "evidence": [],
-      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+      "evidence": [
+        "PARTIAL 2026-11-01 | Nexus source commit aebbfdda83fe5b60e46afab07c6fbc6988a074cc | Windows 11 | npm run test:e2e:hud; npm run build | PASS: current browser HUD suite/build and accessible existing SVG fallback | web/src/features/hud/GuardianMascot.tsx | Native Wails geometry/platform certification not run; final atlas not installed."
+      ],
+      "notes": "BLOCKED: candidate motion is wired into the current React HUD, but final approved atlas integration and native Wails validation remain pending."
     },
     {
       "id": "site_integration",
       "title": "Hero e 360° integrados no Nexus-Site com versões PT/EN responsivas",
       "contract": "docs/design/nex/SITE_HERO_SVG_AND_360_MOTION.md",
       "status": "BLOCKED",
-      "evidence": [],
-      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+      "evidence": [
+        "PARTIAL 2026-11-01 | Windows 11 / Node 24 / Chromium 153 | npm run build; npm run art:nex:site:qa -- --url=http://127.0.0.1:4330/nex-lab/ | PASS: private 12-action lab rendered at 390/768/1280; source commit 2cd1e7825f3b37b9807f0361b7d251e6cd1d2744 | Nexus-Site PR https://github.com/IAPro-Community/Nexus-Site/pull/9 | noindex; public homepage unchanged."
+      ],
+      "notes": "BLOCKED: private candidate lab is integrated; public Hero/turntable, production approval, and PT/EN product integration remain gated."
     },
     {
       "id": "runtime_qa",
@@ -85,15 +102,17 @@
       "contract": "docs/design/NEX_VISUAL_REVIEW_CHECKLIST.md",
       "status": "BLOCKED",
       "evidence": [],
-      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+      "notes": "BLOCKED: native Wails was not run; macOS, Linux/X11, Linux/Wayland, DPI scales, CPU/FPS/input latency are not measured."
     },
     {
       "id": "site_qa",
       "title": "Build, Chrome/Firefox/Safari/mobile, LCP e reduced motion aprovados",
       "contract": "docs/design/nex/hybrid-v1/BROWSER_QA_20261028.md",
       "status": "BLOCKED",
-      "evidence": [],
-      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+      "evidence": [
+        "PARTIAL 2026-11-01 | Nexus source commit aebbfdda83fe5b60e46afab07c6fbc6988a074cc; Nexus-Site commit caf71a75cdf952b60fb33d4df210b9b53c18b130 | Windows 11 / Node 24 / Chromium 153 | npm run art:nex:motion:qa; npm run art:nex:site:qa -- --url=http://127.0.0.1:4330/nex-lab/ | PASS: browser mechanics only, 12 candidate actions/five moods/3 CSS widths; site build 9 routes | web/dist/nex-motion-preview-qa/result.json; Nexus-Site/DEV/evidence/nex-lab/README.md | Safari/Firefox/mobile-real/LCP/FPS/CPU not run."
+      ],
+      "notes": "BLOCKED: only local Chromium browser mechanics are verified; required cross-browser, device, accessibility, and performance acceptance remains incomplete."
     },
     {
       "id": "owner_visual_approval",
@@ -101,10 +120,38 @@
       "contract": "docs/design/nex/IDENTITY_GOVERNANCE.md",
       "status": "BLOCKED",
       "evidence": [],
-      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+      "notes": "BLOCKED: no owner approval was given for the candidate art, exact release SHA, or both product surfaces."
     }
   ],
   "history": [
+    {
+      "date": "2026-11-01",
+      "event": "NEX browser-tested motion prototype and private hash-verified Nexus-Site lab added; no art/platform approval; all public gates remain blocked.",
+      "source_commit": "aebbfdda83fe5b60e46afab07c6fbc6988a074cc",
+      "site_commit": "caf71a75cdf952b60fb33d4df210b9b53c18b130",
+      "platform": "Windows 11 / Node 24 / Chromium 153",
+      "commands": [
+        "npm test",
+        "npm run build",
+        "npm run test:e2e:hud",
+        "npm run art:nex:check",
+        "npm run art:nex:hybrid:qa",
+        "npm run art:nex:motion:qa",
+        "npm run art:nex:site:qa -- --url=http://127.0.0.1:4330/nex-lab/",
+        "node scripts/verify-nex-hybrid-assets.mjs --require-binaries",
+        "node scripts/verify-nex-release-readiness.mjs"
+      ],
+      "result": "PARTIAL; 0/11 gates PASSED; public_site_allowed=false; genuine 16-view art, native QA, and human approval remain blocked.",
+      "evidence_paths": [
+        "web/dist/nex-motion-preview-qa/result.json",
+        "web/dist/nex-site-lab-qa/result.json",
+        "docs/design/nex/hybrid-v1/asset-manifest.json",
+        "C:/Dev/nexus-site-motion/DEV/evidence/nex-lab/README.md",
+        "https://github.com/IAPro-Community/nexus/pull/171",
+        "https://github.com/IAPro-Community/Nexus-Site/pull/9"
+      ],
+      "status": "BLOCKED"
+    },
     {
       "date": "2026-10-28",
       "event": "Owner requires full HUD and Site delivery before public site use.",
