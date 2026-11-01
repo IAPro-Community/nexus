@@ -127,6 +127,9 @@ describe('NEX IdleDirector', () => {
     director.start();
     vi.advanceTimersByTime(230000);
     expect(actions).toContain('idle_drowse');
+    vi.advanceTimersByTime(12_000);
+    expect(director.currentAction).toBe('idle_drowse');
+    expect(vi.getTimerCount()).toBe(0);
     director.notifyInteraction();
     expect(director.currentAction).toBe('idle_wake');
     vi.advanceTimersByTime(1700);
