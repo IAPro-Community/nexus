@@ -5,6 +5,10 @@ import type { MascotAttention, MascotMood } from './mascotModel';
 import { NexPixelSprite } from './NexPixelSprite';
 import type { GuardianMood } from './guardianModel';
 import { NexIdleDirector, type NexIdleAction, type NexIdleMood } from './nexIdleDirector';
+import {
+  resolveNexCompanionBehavior,
+  type NexCompanionInteraction,
+} from './nexCompanionBehavior';
 import styles from './GuardianMascot.module.scss';
 import hudStyles from './NexusHud.module.scss';
 
@@ -20,6 +24,8 @@ interface GuardianMascotProps {
   onOpenAttention: (item: MascotAttention) => void;
   onSnooze: (item: MascotAttention) => void;
   onMoveKeys?: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
+  /** Event ID from the canonical Attention Center completed bucket, never inferred. */
+  completionEventId?: string | null;
 }
 
 export const GuardianMascot: React.FC<GuardianMascotProps> = ({
@@ -34,10 +40,20 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
   onOpenAttention,
   onSnooze,
   onMoveKeys,
+  completionEventId,
 }) => {
   const { t } = useTranslation();
-  const motionEnabled = motion && mood !== 'offline';
+  const [reducedMotion, setReducedMotion] = React.useState(() =>
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
+  const [visualVisible, setVisualVisible] = React.useState(false);
+  const motionEnabled = motion && mood !== 'offline' && !reducedMotion && visualVisible;
   const [idleAction, setIdleAction] = React.useState<NexIdleAction | null>(null);
+  const [interaction, setInteraction] = React.useState<NexCompanionInteraction>('none');
+  const [resolutionPlaying, setResolutionPlaying] = React.useState(false);
+  const lastResolutionId = React.useRef<string | null>(null);
+  const greetingAt = React.useRef(0);
   const mascotRoot = React.useRef<HTMLDivElement>(null);
   const idleVisibility = React.useRef(false);
   const spriteMood: GuardianMood = mood === 'attention' ? 'warning' : mood;
@@ -56,11 +72,9 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
         typeof document !== 'undefined' &&
         document.visibilityState === 'visible' &&
         idleVisibility.current,
-      reducedMotion:
-        typeof window !== 'undefined' &&
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+      reducedMotion,
     });
-  }, [idleDirector, idleMood, motion]);
+  }, [idleDirector, idleMood, motion, reducedMotion]);
 
   React.useEffect(() => {
     updateIdleEnvironment();
@@ -77,20 +91,29 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
                 style.visibility !== 'hidden' &&
                 style.display !== 'none' &&
                 Number(style.opacity) > 0;
+              setVisualVisible(idleVisibility.current);
               updateIdleEnvironment();
             },
             { threshold: 0.01 },
           )
         : null;
     if (root && observer) observer.observe(root);
-    else idleVisibility.current = Boolean(root?.getClientRects().length);
+    else {
+      idleVisibility.current = Boolean(root?.getClientRects().length);
+      setVisualVisible(idleVisibility.current);
+    }
     updateIdleEnvironment();
-    document.addEventListener('visibilitychange', updateIdleEnvironment);
-    media.addEventListener('change', updateIdleEnvironment);
+    const syncReducedMotion = () => setReducedMotion(media.matches);
+    const syncVisibility = () => {
+      setVisualVisible(document.visibilityState === 'visible' && idleVisibility.current);
+      updateIdleEnvironment();
+    };
+    document.addEventListener('visibilitychange', syncVisibility);
+    media.addEventListener('change', syncReducedMotion);
     return () => {
       observer?.disconnect();
-      document.removeEventListener('visibilitychange', updateIdleEnvironment);
-      media.removeEventListener('change', updateIdleEnvironment);
+      document.removeEventListener('visibilitychange', syncVisibility);
+      media.removeEventListener('change', syncReducedMotion);
     };
   }, [updateIdleEnvironment]);
 
@@ -98,6 +121,27 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
     idleDirector.start();
     return () => idleDirector.stop();
   }, [idleDirector]);
+
+  React.useEffect(() => {
+    if (!completionEventId || completionEventId === lastResolutionId.current) return;
+    lastResolutionId.current = completionEventId;
+    if (!motionEnabled || mood !== 'idle') return;
+    setResolutionPlaying(true);
+    const timer = window.setTimeout(() => setResolutionPlaying(false), 1400);
+    return () => window.clearTimeout(timer);
+  }, [completionEventId, motionEnabled, mood]);
+
+  React.useEffect(() => {
+    if (!motionEnabled || mood !== 'idle') setResolutionPlaying(false);
+  }, [motionEnabled, mood]);
+
+  const behavior = resolveNexCompanionBehavior({
+    mood,
+    idleAction,
+    interaction,
+    resolved: resolutionPlaying,
+    motionAllowed: motionEnabled,
+  });
 
   const notifyInteraction = () => idleDirector.notifyInteraction();
 
@@ -108,6 +152,7 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
       data-mood={mood}
       data-motion={motionEnabled ? 'on' : 'off'}
       data-native={native ? 'true' : 'false'}
+      data-nex-behavior={behavior}
     >
       {bubble && !expanded && (
         <aside
@@ -160,10 +205,25 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
           data-hud-hit-area="true"
           onClick={() => {
             notifyInteraction();
+            setInteraction('greet');
             onExpand();
           }}
-          onPointerEnter={notifyInteraction}
-          onFocus={notifyInteraction}
+          onPointerEnter={() => {
+            greetingAt.current = Date.now();
+            setInteraction('greet');
+            notifyInteraction();
+          }}
+          onPointerMove={(event) => {
+            if (event.pointerType === 'mouse' && Date.now() - greetingAt.current > 500) {
+              setInteraction('look');
+            }
+          }}
+          onPointerLeave={() => setInteraction('none')}
+          onFocus={() => {
+            setInteraction('greet');
+            notifyInteraction();
+          }}
+          onBlur={() => setInteraction('none')}
           data-hud-mascot="true"
         >
           <span
