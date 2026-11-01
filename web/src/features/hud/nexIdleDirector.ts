@@ -219,6 +219,9 @@ export class NexIdleDirector {
     this.setCurrent(action);
     // The renderer may synchronously change environment or stop the director.
     if (generation !== this.generation || !this.allowed()) return;
+    // Drowse is a held resting pose, not a short idle that immediately smiles again.
+    // No active timer remains until a real user interaction calls notifyInteraction().
+    if (action === 'idle_drowse') return;
     this.endTimer = this.timing.setTimeout(() => {
       this.endTimer = null;
       this.setCurrent(null);
