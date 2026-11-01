@@ -49,16 +49,15 @@ export interface NexCompletedRecord {
 }
 
 export function nexCompletedEventId(record: NexCompletedRecord): string | null {
-  if (
-    !record.project_id ||
-    !record.mission_id ||
-    !/^(COMPLETED|SUCCEEDED|SUCCESS)$/.test(record.state.toUpperCase())
-  ) return null;
+  const state = typeof record.state === 'string' ? record.state.toUpperCase() : '';
+  if (!record.project_id || !record.mission_id || !/^(COMPLETED|SUCCEEDED|SUCCESS)$/.test(state)) {
+    return null;
+  }
   // An old completed record must not trigger a new celebration.
   if (!Number.isFinite(record.age_seconds) || record.age_seconds < 0 || record.age_seconds > 90) {
     return null;
   }
-  return `${record.project_id}:${record.mission_id}:${record.state.toUpperCase()}`;
+  return `${record.project_id}:${record.mission_id}:${state}`;
 }
 
 /**
