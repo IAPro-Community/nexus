@@ -86,6 +86,23 @@ describe('NEX IdleDirector', () => {
     }
   });
 
+  it('resumes one timer chain when visibility returns', () => {
+    vi.useFakeTimers();
+    const actions: Array<NexIdleAction | null> = [];
+    const director = new NexIdleDirector((action) => actions.push(action), { seed: 1 });
+    director.updateEnvironment(IDLE);
+    director.start();
+    director.updateEnvironment({ ...IDLE, visible: false });
+    expect(vi.getTimerCount()).toBe(0);
+
+    director.updateEnvironment(IDLE);
+    expect(vi.getTimerCount()).toBe(1);
+    vi.advanceTimersByTime(36000);
+    expect(actions.some((action) => action?.startsWith('idle_'))).toBe(true);
+    director.stop();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it('allows waking only after an actual drowse and user interaction', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-10-29T10:00:00Z'));

@@ -38,6 +38,8 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
   const { t } = useTranslation();
   const motionEnabled = motion && mood !== 'offline';
   const [idleAction, setIdleAction] = React.useState<NexIdleAction | null>(null);
+  const mascotRoot = React.useRef<HTMLDivElement>(null);
+  const idleVisibility = React.useRef(false);
   const spriteMood: GuardianMood = mood === 'attention' ? 'warning' : mood;
   const idleMood: NexIdleMood = mood === 'attention' ? 'warning' : mood;
   const idleDirector = React.useMemo(() => new NexIdleDirector(setIdleAction), []);
@@ -50,7 +52,10 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
     idleDirector.updateEnvironment({
       mood: idleMood,
       motionEnabled: motion,
-      visible: typeof document !== 'undefined' && document.visibilityState === 'visible',
+      visible:
+        typeof document !== 'undefined' &&
+        document.visibilityState === 'visible' &&
+        idleVisibility.current,
       reducedMotion:
         typeof window !== 'undefined' &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches,
@@ -60,9 +65,30 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
   React.useEffect(() => {
     updateIdleEnvironment();
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const root = mascotRoot.current;
+    const observer =
+      root && typeof IntersectionObserver !== 'undefined'
+        ? new IntersectionObserver(
+            ([entry]) => {
+              const style = getComputedStyle(entry.target);
+              idleVisibility.current =
+                entry.isIntersecting &&
+                entry.intersectionRatio > 0 &&
+                style.visibility !== 'hidden' &&
+                style.display !== 'none' &&
+                Number(style.opacity) > 0;
+              updateIdleEnvironment();
+            },
+            { threshold: 0.01 },
+          )
+        : null;
+    if (root && observer) observer.observe(root);
+    else idleVisibility.current = Boolean(root?.getClientRects().length);
+    updateIdleEnvironment();
     document.addEventListener('visibilitychange', updateIdleEnvironment);
     media.addEventListener('change', updateIdleEnvironment);
     return () => {
+      observer?.disconnect();
       document.removeEventListener('visibilitychange', updateIdleEnvironment);
       media.removeEventListener('change', updateIdleEnvironment);
     };
@@ -77,6 +103,7 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
 
   return (
     <div
+      ref={mascotRoot}
       className={styles.root}
       data-mood={mood}
       data-motion={motionEnabled ? 'on' : 'off'}
