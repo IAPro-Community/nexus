@@ -14,11 +14,11 @@ func routingPreviewFixture() (MaestroRoutePreviewRequest, json.RawMessage) {
 	sum := sha256.Sum256([]byte(content))
 	req := MaestroRoutePreviewRequest{
 		ArtifactID: "prompt-42", Version: 2, Content: content,
-		SHA256: hex.EncodeToString(sum[:]),
+		SHA256:   hex.EncodeToString(sum[:]),
 		Proposal: json.RawMessage(`{"tasks":[{"id":"a","title":"Frontend","objective":"Build frontend","acceptanceCriteria":["Frontend works"]},{"id":"b","title":"Backend","objective":"Build backend","acceptanceCriteria":["Backend works"]}]}`),
 		Assignments: []MaestroWorkAssignment{
-			{TaskID:"a", ProviderID:"agy", Model:"frontend-model", Sandbox:"enabled", WorktreePath:"/repo/agy"},
-			{TaskID:"b", ProviderID:"opencode", Sandbox:"none", WorktreePath:"/repo/opencode"},
+			{TaskID: "a", ProviderID: "agy", Model: "frontend-model", Sandbox: "enabled", WorktreePath: "/repo/agy"},
+			{TaskID: "b", ProviderID: "opencode", Sandbox: "none", WorktreePath: "/repo/opencode"},
 		},
 	}
 	body := fmt.Sprintf(`{"schemaVersion":1,"authority":"MAESTRO","previewOnly":true,"executable":false,"approvalRequired":true,"ready":true,"plan":{"authority":"MAESTRO","artifact":{"id":%q,"version":%d,"sha256":%q}},"assignments":[{"taskId":"a","providerId":"agy","model":"frontend-model","status":"READY_FOR_REVIEW"},{"taskId":"b","providerId":"opencode","model":"default","status":"READY_FOR_REVIEW"}],"blockers":[]}`, req.ArtifactID, req.Version, req.SHA256)
@@ -45,7 +45,9 @@ func TestMaestroRoutePreviewNegotiatesCapability(t *testing.T) {
 func TestMaestroRoutePreviewVerifiesExactProviderSelectionAndProvenance(t *testing.T) {
 	req, raw := routingPreviewFixture()
 	preview, err := decodeMaestroRoutePreview(raw, req)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !preview.Ready || len(preview.Assignments) != 2 ||
 		preview.Assignments[0].ProviderID != "agy" || preview.Assignments[1].ProviderID != "opencode" {
 		t.Fatalf("provider routing changed: %+v", preview)
@@ -85,9 +87,9 @@ func TestMaestroRoutePreviewVerifiesExactProviderSelectionAndProvenance(t *testi
 func TestMaestroRoutePreviewRefusesMalformedArtifactsWithoutCallingExternalTool(t *testing.T) {
 	req, _ := routingPreviewFixture()
 	for _, bad := range []MaestroRoutePreviewRequest{
-		{ArtifactID: "../bad", Version: req.Version, Content: req.Content, SHA256: req.SHA256, Proposal:req.Proposal, Assignments:req.Assignments},
-		{ArtifactID: req.ArtifactID, Version:req.Version, Content:req.Content, SHA256:strings.Repeat("0",64), Proposal:req.Proposal, Assignments:req.Assignments},
-		{ArtifactID:req.ArtifactID, Version:req.Version, Content:req.Content, SHA256:req.SHA256, Proposal:req.Proposal, Assignments:[]MaestroWorkAssignment{req.Assignments[0], req.Assignments[0]}},
+		{ArtifactID: "../bad", Version: req.Version, Content: req.Content, SHA256: req.SHA256, Proposal: req.Proposal, Assignments: req.Assignments},
+		{ArtifactID: req.ArtifactID, Version: req.Version, Content: req.Content, SHA256: strings.Repeat("0", 64), Proposal: req.Proposal, Assignments: req.Assignments},
+		{ArtifactID: req.ArtifactID, Version: req.Version, Content: req.Content, SHA256: req.SHA256, Proposal: req.Proposal, Assignments: []MaestroWorkAssignment{req.Assignments[0], req.Assignments[0]}},
 	} {
 		if _, err := FetchMaestroRoutePreview(t.Context(), "/unused", bad); err == nil {
 			t.Fatal("malformed local artifact was not rejected")

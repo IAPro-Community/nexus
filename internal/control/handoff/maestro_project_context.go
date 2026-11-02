@@ -47,8 +47,8 @@ type maestroBridgeEnvelope struct {
 type maestroBridgeInit struct {
 	ProtocolVersion int `json:"protocolVersion"`
 	Capabilities    struct {
-		ProjectContext bool `json:"projectContext"`
-		ContextBrief   bool `json:"contextBrief"`
+		ProjectContext    bool `json:"projectContext"`
+		ContextBrief      bool `json:"contextBrief"`
 		PlansRoutePreview bool `json:"plansRoutePreview"`
 	} `json:"capabilities"`
 }
@@ -153,9 +153,13 @@ func maestroBridgeCall(parent context.Context, workspace string, timeout time.Du
 	defer cancel()
 	cmd := executil.CommandContext(ctx, binary, "bridge", "--stdio", "--project-path", workspace)
 	stdin, err := cmd.StdinPipe()
-	if err != nil { return nil, "", err }
+	if err != nil {
+		return nil, "", err
+	}
 	stdout, err := cmd.StdoutPipe()
-	if err != nil { return nil, "", err }
+	if err != nil {
+		return nil, "", err
+	}
 	if err := cmd.Start(); err != nil {
 		return nil, "", fmt.Errorf("could not start Maestro Bridge: %w", err)
 	}
@@ -176,7 +180,9 @@ func maestroBridgeCall(parent context.Context, workspace string, timeout time.Du
 			Params  map[string]any `json:"params"`
 		}{JSONRPC: "2.0", ID: id, Method: method, Params: args}
 		payload, err := json.Marshal(request)
-		if err != nil { return nil, fmt.Errorf("Maestro Bridge request encoding: %w", err) }
+		if err != nil {
+			return nil, fmt.Errorf("Maestro Bridge request encoding: %w", err)
+		}
 		if len(payload) > maestroBridgeReplyLimit {
 			return nil, errors.New("Maestro Bridge request exceeds limit")
 		}
@@ -187,7 +193,9 @@ func maestroBridgeCall(parent context.Context, workspace string, timeout time.Du
 	}
 
 	initResult, err := send(1, "initialize", map[string]any{"protocolVersion": maestroBridgeProtocolVersion})
-	if err != nil { return nil, "", err }
+	if err != nil {
+		return nil, "", err
+	}
 	var init maestroBridgeInit
 	if err := json.Unmarshal(initResult, &init); err != nil {
 		return nil, "", errors.New("invalid Maestro Bridge initialize result")
@@ -196,9 +204,13 @@ func maestroBridgeCall(parent context.Context, workspace string, timeout time.Du
 		return nil, "", fmt.Errorf("unsupported Maestro Bridge protocol version %d", init.ProtocolVersion)
 	}
 	method, err := selectMethod(init)
-	if err != nil { return nil, "", err }
+	if err != nil {
+		return nil, "", err
+	}
 	result, err := send(2, method, params)
-	if err != nil { return nil, "", err }
+	if err != nil {
+		return nil, "", err
+	}
 	if err := stdin.Close(); err != nil {
 		return nil, "", fmt.Errorf("Maestro Bridge stdin closure failed: %w", err)
 	}
@@ -217,10 +229,14 @@ func FetchMaestroProjectContext(parent context.Context, workspace, task string) 
 	params := map[string]any{"projectPath": workspace, "maxChars": maestroContextBudget}
 	if task != "" {
 		runes := []rune(security.Redact(task))
-		if len(runes) > 400 { runes = runes[:400] }
+		if len(runes) > 400 {
+			runes = runes[:400]
+		}
 		params["task"] = string(runes)
 	}
 	result, method, err := maestroBridgeCall(parent, workspace, 5*time.Second, maestroContextMethod, params)
-	if err != nil { return MaestroProjectContext{}, err }
+	if err != nil {
+		return MaestroProjectContext{}, err
+	}
 	return decodeMaestroProjectResult(method, result)
 }

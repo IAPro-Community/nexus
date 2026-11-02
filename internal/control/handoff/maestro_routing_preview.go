@@ -27,40 +27,40 @@ type MaestroWorkAssignment struct {
 // MaestroRoutePreviewRequest carries an existing finalized Composer artifact
 // and caller-selected task assignments. The proposal remains validated by Maestro.
 type MaestroRoutePreviewRequest struct {
-	ArtifactID string
-	Version    int
-	Content    string
-	SHA256     string
-	Proposal   json.RawMessage
+	ArtifactID  string
+	Version     int
+	Content     string
+	SHA256      string
+	Proposal    json.RawMessage
 	Assignments []MaestroWorkAssignment
 }
 
 type MaestroRouteAssignment struct {
-	TaskID string `json:"taskId"`
-	ProviderID string `json:"providerId"`
-	Model string `json:"model"`
+	TaskID      string `json:"taskId"`
+	ProviderID  string `json:"providerId"`
+	Model       string `json:"model"`
 	WorkspaceID string `json:"workspaceId"`
-	Status string `json:"status"`
-	Code string `json:"code,omitempty"`
+	Status      string `json:"status"`
+	Code        string `json:"code,omitempty"`
 }
 
 type MaestroRouteBlocker struct {
-	Code string `json:"code"`
-	TaskID string `json:"taskId,omitempty"`
+	Code       string `json:"code"`
+	TaskID     string `json:"taskId,omitempty"`
 	ProviderID string `json:"providerId,omitempty"`
-	Message string `json:"message,omitempty"`
+	Message    string `json:"message,omitempty"`
 }
 
 type MaestroRoutePreview struct {
-	SchemaVersion int `json:"schemaVersion"`
-	Authority string `json:"authority"`
-	PreviewOnly bool `json:"previewOnly"`
-	Executable bool `json:"executable"`
-	ApprovalRequired bool `json:"approvalRequired"`
-	Ready bool `json:"ready"`
-	Plan json.RawMessage `json:"plan"`
-	Assignments []MaestroRouteAssignment `json:"assignments"`
-	Blockers []MaestroRouteBlocker `json:"blockers"`
+	SchemaVersion    int                      `json:"schemaVersion"`
+	Authority        string                   `json:"authority"`
+	PreviewOnly      bool                     `json:"previewOnly"`
+	Executable       bool                     `json:"executable"`
+	ApprovalRequired bool                     `json:"approvalRequired"`
+	Ready            bool                     `json:"ready"`
+	Plan             json.RawMessage          `json:"plan"`
+	Assignments      []MaestroRouteAssignment `json:"assignments"`
+	Blockers         []MaestroRouteBlocker    `json:"blockers"`
 }
 
 func maestroRoutePreviewMethod(init maestroBridgeInit) (string, error) {
@@ -82,10 +82,10 @@ func decodeMaestroRoutePreview(result json.RawMessage, request MaestroRoutePrevi
 	}
 	var plan struct {
 		Authority string `json:"authority"`
-		Artifact struct {
-			ID string `json:"id"`
-			Version int `json:"version"`
-			SHA256 string `json:"sha256"`
+		Artifact  struct {
+			ID      string `json:"id"`
+			Version int    `json:"version"`
+			SHA256  string `json:"sha256"`
 		} `json:"artifact"`
 	}
 	if err := json.Unmarshal(preview.Plan, &plan); err != nil ||
@@ -112,7 +112,9 @@ func decodeMaestroRoutePreview(result json.RawMessage, request MaestroRoutePrevi
 }
 
 func firstMaestroModel(model string) string {
-	if model == "" { return "default" }
+	if model == "" {
+		return "default"
+	}
 	return model
 }
 
@@ -145,11 +147,15 @@ func FetchMaestroRoutePreview(parent context.Context, workspace string, req Maes
 			"id": req.ArtifactID, "version": req.Version,
 			"content": req.Content, "sha256": req.SHA256,
 		},
-		"proposal": req.Proposal,
+		"proposal":    req.Proposal,
 		"assignments": req.Assignments,
 	}
 	result, method, err := maestroBridgeCall(parent, workspace, 20*time.Second, maestroRoutePreviewMethod, params)
-	if err != nil { return MaestroRoutePreview{}, fmt.Errorf("Maestro routing preview unavailable: %w", err) }
-	if method != "plans.routePreview" { return MaestroRoutePreview{}, errors.New("invalid Maestro routing method") }
+	if err != nil {
+		return MaestroRoutePreview{}, fmt.Errorf("Maestro routing preview unavailable: %w", err)
+	}
+	if method != "plans.routePreview" {
+		return MaestroRoutePreview{}, errors.New("invalid Maestro routing method")
+	}
 	return decodeMaestroRoutePreview(result, req)
 }

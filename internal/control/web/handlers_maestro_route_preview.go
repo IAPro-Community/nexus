@@ -64,11 +64,11 @@ func (h *NexusHandler) handleProjectMaestroRoutePreview(w http.ResponseWriter, r
 	// Never accept content/hash/version from the browser. The project-bound
 	// persisted artifact is the only source of those immutable fields.
 	preview, err := handoff.FetchMaestroRoutePreview(r.Context(), project.CanonicalPath, handoff.MaestroRoutePreviewRequest{
-		ArtifactID: artifact.ID,
-		Version: artifact.Version,
-		Content: artifact.Content,
-		SHA256: artifact.Hash,
-		Proposal: body.Proposal,
+		ArtifactID:  artifact.ID,
+		Version:     artifact.Version,
+		Content:     artifact.Content,
+		SHA256:      artifact.Hash,
+		Proposal:    body.Proposal,
 		Assignments: body.Assignments,
 	})
 	if err != nil {
