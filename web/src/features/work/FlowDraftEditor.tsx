@@ -84,9 +84,7 @@ export const FlowDraftEditor: React.FC<{
                 ? {
                     ...current,
                     steps: current.steps.map((step) =>
-                      step.id === taskId
-                        ? { ...step, provider: providerId || undefined }
-                        : step,
+                      step.id === taskId ? { ...step, provider: providerId || undefined } : step,
                     ),
                   }
                 : current,
