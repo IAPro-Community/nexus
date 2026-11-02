@@ -110,8 +110,7 @@ func TestMaestroBridgeReplyChecksIdentityAndSize(t *testing.T) {
 	}
 	// Oversized replies must not consume memory beyond the configured limit.
 	oversized := bytes.Repeat([]byte("x"), maestroBridgeReplyLimit+1)
-	if _, err := readMaestroBridgeReply(bufio.NewReader(bytes.NewReader(append(oversized, '
-'))), 2); err == nil {
+	if _, err := readMaestroBridgeReply(bufio.NewReader(bytes.NewReader(append(oversized, '\n'))), 2); err == nil {
 		t.Fatal("oversized Bridge response accepted")
 	}
 }
