@@ -159,7 +159,9 @@ export function MaestroRoutingPreview({
         );
       }
     } finally {
-      if (version === requestVersion.current) setLoading(false);
+      // Only one preview can run at a time. Edits invalidate its result, but
+      // must never leave the submit control stuck in a loading state.
+      setLoading(false);
     }
   };
 
