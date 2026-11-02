@@ -62,11 +62,13 @@ export function MaestroRoutingPreview({
   plan,
   draft,
   dirty,
+  onProviderChange,
 }: {
   project: Project;
   plan: WorkPlan;
   draft: FlowDraftModel;
   dirty: boolean;
+  onProviderChange: (taskId: string, providerId: SelectedProvider) => void;
 }) {
   const { t } = useTranslation();
   const artifactId = plan.structured_facts?.['nexus.source_artifact_id'] || '';
@@ -85,6 +87,7 @@ export function MaestroRoutingPreview({
       step.dependencies,
       step.acceptanceCriteria,
       step.role,
+      step.provider,
     ]),
   });
 
@@ -101,7 +104,19 @@ export function MaestroRoutingPreview({
   }, [project.id, plan.id]);
 
   const selected = useCallback(
-    (step: FlowStepModel) => assignments[step.id] || suggested(step),
+    (step: FlowStepModel) => {
+      const existing = assignments[step.id];
+      const savedProvider = PROVIDERS.find((id) => id === step.provider) || '';
+      if (existing && savedProvider && existing.providerId !== savedProvider) {
+        return {
+          ...existing,
+          providerId: savedProvider,
+          sandbox: defaultSandbox(savedProvider),
+          model: '',
+        };
+      }
+      return existing || suggested(step);
+    },
     [assignments],
   );
   const patchAssignment = (step: FlowStepModel, patch: Partial<AssignmentDraft>) => {
@@ -212,6 +227,7 @@ export function MaestroRoutingPreview({
                             sandbox: defaultSandbox(provider),
                             model: '',
                           });
+                          onProviderChange(step.id, provider);
                         }}
                       >
                         <option value="">{t('flow.selectProvider', 'Selecione…')}</option>
