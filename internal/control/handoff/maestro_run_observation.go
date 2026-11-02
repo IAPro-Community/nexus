@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"time"
 )
@@ -57,7 +58,7 @@ func decodeMaestroRunObservation(raw json.RawMessage, runID string, limit int) (
 		return MaestroRunObservation{}, errors.New("invalid or unexpected Maestro run observation fields")
 	}
 	var trailing any
-	if err := dec.Decode(&trailing); !errors.Is(err, errors.New("EOF")) && err == nil {
+	if err := dec.Decode(&trailing); err != io.EOF {
 		return MaestroRunObservation{}, errors.New("unexpected trailing Maestro run result")
 	}
 	if out.SchemaVersion != 1 || out.Authority != "MAESTRO" || out.ExecutionOwner != "MAESTRO" ||
@@ -72,12 +73,21 @@ func decodeMaestroRunObservation(raw json.RawMessage, runID string, limit int) (
 			return MaestroRunObservation{}, errors.New("Maestro run event cursor invalid")
 		}
 		seen[event.ID] = true
+		if event.OccurredAt != nil {
+			if len(*event.OccurredAt) > 64 { return MaestroRunObservation{}, errors.New("oversized event time") }
+			if _, err := time.Parse(time.RFC3339Nano, *event.OccurredAt); err != nil {
+				return MaestroRunObservation{}, errors.New("invalid lifecycle event timestamp")
+			}
+		}
 		if _, ok := maestroLifecycleEvents[event.Type]; !ok {
 			return MaestroRunObservation{}, errors.New("untrusted Maestro lifecycle event")
 		}
 	}
 	if out.NextCursor != nil && !maestroRunID.MatchString(*out.NextCursor) {
 		return MaestroRunObservation{}, errors.New("invalid Maestro lifecycle cursor")
+	}
+	if len(out.Events) > 0 && (out.NextCursor == nil || *out.NextCursor != out.Events[len(out.Events)-1].ID) {
+		return MaestroRunObservation{}, errors.New("run cursor does not match last returned lifecycle event")
 	}
 	if out.HasMore && len(out.Events) == 0 {
 		return MaestroRunObservation{}, errors.New("Maestro run claims additional events without a cursorable page")
