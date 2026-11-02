@@ -1,6 +1,5 @@
 import {
-  CANVAS_SIZE, clamp01, lerp, smoothstep, idlePose, blinkScale, orbitPose,
-  ORBIT_ANGULAR_SPEED,
+  CANVAS_SIZE, clamp01, lerp, idlePose, blinkScale, orbitPose,
 } from './nex-motion-core.mjs';
 
 /**
@@ -155,8 +154,8 @@ export class NexRigPlayer {
     // Accumulate elapsed time continuously, but only rasterize at target FPS.
     this.time += dt;
     const amount = this.mode === 'orbit' ? 1 : 0;
-    const change = clamp01(dt / 0.92);
-    this.blend = lerp(this.blend, amount, smoothstep(change) * 6.5);
+    // Exponential damping is frame-rate independent (30/60Hz match on mobile).
+    this.blend = lerp(this.blend, amount, 1 - Math.exp(-dt * 3.0));
     if (Math.abs(this.blend - amount) < 0.001) this.blend = amount;
     if (this.blend > 0.002) this.orbitTime += dt;
     if (this.frame >= fpsInterval) {
