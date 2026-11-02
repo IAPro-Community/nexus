@@ -264,10 +264,14 @@ export function MaestroRoutingPreview({
               )}
             </p>
             {dirty && (
-              <InlineAlert tone="warning" title={t('flow.maestroUnsaved', 'Salve a revisão do Flow antes da pré-validação.')} />
+              <InlineAlert tone="warning" title={t('flow.maestroUnsaved', 'Revisão não salva')}>
+                Salve o Flow antes da pré-validação.
+              </InlineAlert>
             )}
             {!hasCriteria && (
-              <InlineAlert tone="warning" title={t('flow.maestroMissingCriteria', 'Inclua critérios de aceite verificáveis em cada etapa.')} />
+              <InlineAlert tone="warning" title={t('flow.maestroMissingCriteria', 'Critérios de aceite incompletos')}>
+                Inclua critérios verificáveis em cada etapa antes de consultar o Maestro.
+              </InlineAlert>
             )}
             <Button disabled={!canPreview} onClick={() => void runPreview()}>
               {loading
