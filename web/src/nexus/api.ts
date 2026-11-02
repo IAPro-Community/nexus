@@ -664,6 +664,32 @@ export const nexus = {
     request<import('../types').PlanExecutionPreview>(`/api/v1/plans/${planId}/execution-preview`, {
       method: 'POST',
     }),
+  previewMaestroRouting: (
+    projectId: string,
+    artifactId: string,
+    proposal: {
+      tasks: Array<{
+        id: string;
+        title: string;
+        objective: string;
+        dependsOn: string[];
+        acceptanceCriteria: string[];
+        requiredCapabilities: string[];
+      }>;
+    },
+    assignments: import('../types').MaestroWorkAssignmentInput[],
+  ) =>
+    request<import('../types').MaestroRoutePreviewResult>(
+      `/api/v1/projects/${encodeURIComponent(projectId)}/maestro/route-preview`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          artifact_id: artifactId,
+          proposal,
+          assignments,
+        }),
+      },
+    ),
   preflightFlow: (planId: string) =>
     request<import('../types').FlowPreflightReport>(`/api/v1/plans/${planId}/preflight`, {
       method: 'POST',
