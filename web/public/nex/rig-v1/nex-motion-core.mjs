@@ -53,6 +53,36 @@ export function blinkScale(timeSec) {
 }
 
 /**
+ * Idle's independent secondary motion. Each floating companion drifts a little
+ * even when the full orbital choreography is inactive; drift is intentionally
+ * smaller than 0.5% of the 1254px artboard.
+ */
+export function idleModulePose(index, timeSec) {
+  if (!Number.isInteger(index) || index < 0 || index >= HOME.length) {
+    throw new RangeError('NEX has exactly four orbiting modules');
+  }
+  const phase = index * Math.PI / 2 + 0.4;
+  return {
+    dx: Math.sin(timeSec * 0.91 + phase) * 3.2,
+    dy: Math.sin(timeSec * 1.13 + phase) * 4.4,
+    rotation: Math.sin(timeSec * 0.62 + phase) * 0.018,
+    scale: 1 + Math.sin(timeSec * 1.02 + phase) * 0.007,
+  };
+}
+
+/**
+ * A pair of compositing weights instead of abrupt z-index switching.
+ * Rear/foreground paints overlap across a shallow 3D crossing zone.
+ * At idle every module must be fully in front of the base, matching the
+ * source's reconstructed silhouette.
+ */
+export function orbitFrontWeight(depth, blend) {
+  const engaged = smoothstep(clamp01(blend * 1.5));
+  const crossing = smoothstep(clamp01((depth + 0.22) / 0.44));
+  return lerp(1, crossing, engaged);
+}
+
+/**
  * Orbit occupies a tilted elliptical path around NEX, not an in-place jitter.
  * depth sign determines real front/back occlusion. Home anchors are preserved
  * exactly at blend=0 to avoid resting-image silhouette drift.
@@ -75,6 +105,7 @@ export function orbitPose(index, orbitTime, blend) {
     rotation: w * (Math.sin(orbitTime * 1.05 + index * 1.73) * 0.16),
     depth: w * depth,
     alpha: lerp(1, lerp(0.75, 1, (depth + 1) / 2), w),
+    frontWeight: orbitFrontWeight(depth, w),
     behind: w > 0.45 && depth < -0.14,
   };
 }
