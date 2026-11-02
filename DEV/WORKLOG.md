@@ -6706,3 +6706,7 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 ## NEX motion — 2026-11-01
 
 Auditoria parcial da base `8123c9ff`, ADR e correção de cancelamento reentrante no IdleDirector; QA híbrido corrigido e executado. 12 idles renderizáveis, 360°, HUD/Site e aprovação seguem pendentes. Ver `validation/NEX_MOTION_AUDIT_20261101.md` e `DECISIONS/NEX_INTERACTIVE_RENDERER_20261101.md`.
+
+## NEX homologação — checkpoint na release — 2026-11-02
+
+Os commits NEX foram reaplicados localmente em release/v1.0.0 sobre f15481d2. Frozen-lockfile, Stylelint, arquitetura CSS e build passaram; Prettier falhou em quatro arquivos e Vitest teve 782/783, com falha na expectativa de movimento do GuardianMascot em mood working. Lint/TypeScript foram interrompidos após pedido de pausa. Sem push à release. Próxima ação: corrigir a regressão de renderização, repetir gates exatos e só então avaliar publicação do commit. Detalhes: validation/NEX_RELEASE_CONTINUATION_CHECKPOINT_20261102.md; logs em D:\Dev\nexus-remediation\nexus-homologation-tools\evidence\nex\release-eaf77085\logs.
