@@ -18,7 +18,7 @@ A separação por owner é mandatória:
 | DAG e atribuição de provider para cada tarefa delegada | Maestro, após revisão do operador | Editor e intermediador de intenções |
 | Run delegado a AGY, OpenCode, Codex ou Claude | Maestro | Inicia por API pública e acompanha o run |
 | Retry, cancel, resumption e Goal Loop de run Maestro | Maestro | Envia pedido e mostra recibo; não altera diretamente o estado |
-| Terminal e sessão Direct de usuário | Nexus (PT Y/ConPTY) | Dono local explícito, independente do Maestro |
+| Terminal e sessão Direct de usuário | Nexus (PTY/ConPTY) | Dono local explícito, independente do Maestro |
 | Código e branches/worktrees | Git e checkout real | Visualiza, inspeciona e permite revisão |
 
 **Nexus NÃO pode converter toda tarefa delegada em Codex** nem substituir AGY/OpenCode silenciosamente. A presença de Codex como única opção inicial de **planejamento read-only** no PR Maestro #51 é uma limitação de sandbox do *planejador*, não do *executor*. O provider de planejamento e o provider de execução são dimensões independentes.
