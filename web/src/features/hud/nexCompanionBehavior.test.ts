@@ -46,6 +46,30 @@ describe('NEX Companion 2D', () => {
       .toBeNull();
   });
 
+  it('recognizes verified Mission completion without replaying older records', () => {
+    const seen = new Set<string>();
+    const baseline = [
+      { project_id: 'p', mission_id: 'old', state: 'COMPLETED_VERIFIED', age_seconds: 5 },
+    ];
+    const newCompletion = [
+      ...baseline,
+      { project_id: 'p', mission_id: 'new', state: 'COMPLETED_VERIFIED', age_seconds: 1 },
+    ];
+
+    expect(nexCompletedEventId(baseline[0])).toBe('p:old:COMPLETED_VERIFIED');
+    expect(consumeNexNewCompletion(baseline, seen, false)).toBeNull();
+    expect(consumeNexNewCompletion(newCompletion, seen, true)).toBe('p:new:COMPLETED_VERIFIED');
+    expect(consumeNexNewCompletion(newCompletion, seen, true)).toBeNull();
+    expect(
+      nexCompletedEventId({
+        project_id: 'p',
+        mission_id: 'unverified',
+        state: 'COMPLETED_UNVERIFIED',
+        age_seconds: 1,
+      }),
+    ).toBeNull();
+  });
+
   it('baselines first fetch, deduplicates refreshing and emits only newly completed missions', () => {
     const seen = new Set<string>();
     const first = [{ project_id: 'p', mission_id: 'old', state: 'COMPLETED', age_seconds: 3 }];
