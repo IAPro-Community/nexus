@@ -27,9 +27,7 @@ const LABELS: Record<MaestroRoutingProvider, string> = {
   codex: 'Codex',
   claude: 'Claude',
 };
-const defaultSandbox = (
-  providerId: SelectedProvider,
-): MaestroWorkAssignmentInput['sandbox'] =>
+const defaultSandbox = (providerId: SelectedProvider): MaestroWorkAssignmentInput['sandbox'] =>
   providerId === 'agy' ? 'enabled' : providerId === 'codex' ? 'workspace-write' : 'none';
 
 function suggested(step: FlowStepModel): AssignmentDraft {
@@ -81,8 +79,12 @@ export function MaestroRoutingPreview({
     id: draft.id,
     revision: draft.revision,
     steps: draft.steps.map((step) => [
-      step.id, step.title, step.goal, step.dependencies,
-      step.acceptanceCriteria, step.role,
+      step.id,
+      step.title,
+      step.goal,
+      step.dependencies,
+      step.acceptanceCriteria,
+      step.role,
     ]),
   });
 
@@ -102,10 +104,7 @@ export function MaestroRoutingPreview({
     (step: FlowStepModel) => assignments[step.id] || suggested(step),
     [assignments],
   );
-  const patchAssignment = (
-    step: FlowStepModel,
-    patch: Partial<AssignmentDraft>,
-  ) => {
+  const patchAssignment = (step: FlowStepModel, patch: Partial<AssignmentDraft>) => {
     requestVersion.current += 1;
     setPreview(null);
     setError('');
@@ -115,15 +114,22 @@ export function MaestroRoutingPreview({
     }));
   };
 
-  const hasCriteria = draft.steps.every(
-    (step) => step.acceptanceCriteria?.some((item) => item.trim().length >= 3),
+  const hasCriteria = draft.steps.every((step) =>
+    step.acceptanceCriteria?.some((item) => item.trim().length >= 3),
   );
-  const hasSelections = draft.steps.length > 0 && draft.steps.every((step) => {
-    const row = selected(step);
-    return row.providerId !== '' && row.worktreePath.trim().length > 0;
-  });
-  const canPreview = Boolean(artifactId) && !dirty && hasCriteria &&
-    hasSelections && !loading && draft.steps.length <= 32;
+  const hasSelections =
+    draft.steps.length > 0 &&
+    draft.steps.every((step) => {
+      const row = selected(step);
+      return row.providerId !== '' && row.worktreePath.trim().length > 0;
+    });
+  const canPreview =
+    Boolean(artifactId) &&
+    !dirty &&
+    hasCriteria &&
+    hasSelections &&
+    !loading &&
+    draft.steps.length <= 32;
 
   const runPreview = async () => {
     if (!canPreview) return;
@@ -178,7 +184,10 @@ export function MaestroRoutingPreview({
           )}
         </p>
         {!artifactId ? (
-          <InlineAlert tone="warning" title={t('flow.maestroNeedsComposer', 'Origem do Composer obrigatória')}>
+          <InlineAlert
+            tone="warning"
+            title={t('flow.maestroNeedsComposer', 'Origem do Composer obrigatória')}
+          >
             {t(
               'flow.maestroNeedsComposerText',
               'Use um Flow derivado de um PromptArtifact finalizado no Composer para validar sua origem.',
@@ -207,7 +216,9 @@ export function MaestroRoutingPreview({
                       >
                         <option value="">{t('flow.selectProvider', 'Selecione…')}</option>
                         {PROVIDERS.map((provider) => (
-                          <option key={provider} value={provider}>{LABELS[provider]}</option>
+                          <option key={provider} value={provider}>
+                            {LABELS[provider]}
+                          </option>
                         ))}
                       </select>
                     </label>
@@ -231,8 +242,12 @@ export function MaestroRoutingPreview({
                           })
                         }
                       >
-                        <option value="none">{t('flow.maestroSandboxNone', 'Sem sandbox declarado')}</option>
-                        {item.providerId === 'agy' && <option value="enabled">Sandbox do AGY</option>}
+                        <option value="none">
+                          {t('flow.maestroSandboxNone', 'Sem sandbox declarado')}
+                        </option>
+                        {item.providerId === 'agy' && (
+                          <option value="enabled">Sandbox do AGY</option>
+                        )}
                         {item.providerId === 'codex' && (
                           <>
                             <option value="read-only">Somente leitura</option>
@@ -269,7 +284,10 @@ export function MaestroRoutingPreview({
               </InlineAlert>
             )}
             {!hasCriteria && (
-              <InlineAlert tone="warning" title={t('flow.maestroMissingCriteria', 'Critérios de aceite incompletos')}>
+              <InlineAlert
+                tone="warning"
+                title={t('flow.maestroMissingCriteria', 'Critérios de aceite incompletos')}
+              >
                 Inclua critérios verificáveis em cada etapa antes de consultar o Maestro.
               </InlineAlert>
             )}
@@ -278,7 +296,14 @@ export function MaestroRoutingPreview({
                 ? t('flow.maestroValidating', 'Validando com Maestro…')
                 : t('flow.maestroPreview', 'Pré-validar atribuições')}
             </Button>
-            {error && <InlineAlert tone="danger" title={t('flow.maestroPreviewFailed', 'Pré-validação indisponível')}>{error}</InlineAlert>}
+            {error && (
+              <InlineAlert
+                tone="danger"
+                title={t('flow.maestroPreviewFailed', 'Pré-validação indisponível')}
+              >
+                {error}
+              </InlineAlert>
+            )}
             {preview && (
               <div className={styles.result} aria-live="polite">
                 <strong>
@@ -296,7 +321,8 @@ export function MaestroRoutingPreview({
                   {preview.blockers.map((blocker, index) => (
                     <li key={`${blocker.code}-${blocker.taskId || index}`}>
                       {blocker.taskId ? `${blocker.taskId}: ` : ''}
-                      {blocker.code}{blocker.message ? ` — ${blocker.message}` : ''}
+                      {blocker.code}
+                      {blocker.message ? ` — ${blocker.message}` : ''}
                     </li>
                   ))}
                 </ul>
