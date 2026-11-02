@@ -70,3 +70,16 @@ npm run test:nex:rig
 - [ ] integração/QA nativo HUD Wails
 
 **Não declarar os checkboxes não homologados como concluídos.**
+
+## Adendo v0.2 — polimento incremental (2026-11-01)
+
+- Microgestos independentes em `idleModulePose(index, t)`: quatro módulos conservam personalidade própria, sem sincronização robótica nem exceder ~4,4px da arte de 1254px.
+- `orbitFrontWeight(z, blend)`: transição em `smoothstep` entre passes de composição traseiro e frontal; remove a troca discreta de `z-index` durante o crossover e no retorno ao idle.
+- Renderer continua um único Canvas2D com fonte pixel-original e um RAF pausável; nada de novos `setInterval`, LLM, modelo de status ou efeito global.
+- Modo QA opcional **Mostrar pivôs e órbita** desenha elipse e IDs dos quatro módulos sem alterar arquivos PNG nem manter HUD telemetry.
+- Testes acrescentados para continuidade de peso de oclusão, âncoras estáticas e microdrifts independentes.
+- **Limite artístico permanece**: o Canvas faz `crossfade` em cruzamentos; isso pode apresentar semi-transparência transitória. Com master/rig final editável, substituir por máscaras de oclusão ou malha para manter opacidade física sem pop. Não certificar como render físico 3D.
+- **Não** implementa nova articulação cabeça/torso/aletas porque a fonte atual não contém peças completas nem regiões ocultas restauradas. Separação correta exige novo master supervisionado, bloqueada por #174.
+
+### Testes / revisão pendente
+Rodar `npm run test:nex:rig`, conferir PR do Nexus-Site com deploy e comparar fisicamente as capturas ao master. Testar frame crossing a 25/50/75% da órbita nos modos 390px, 768px e 1280px; verificar reduced-motion, aba suspensa, contexto Canvas perdido e native Wails.
