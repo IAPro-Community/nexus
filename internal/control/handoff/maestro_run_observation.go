@@ -14,33 +14,33 @@ import (
 var maestroRunID = regexp.MustCompile(`^[A-Za-z0-9._:-]{1,128}$`)
 
 type MaestroLifecycleEvent struct {
-	ID string `json:"id"`
-	Type string `json:"type"`
+	ID         string  `json:"id"`
+	Type       string  `json:"type"`
 	OccurredAt *string `json:"occurredAt"`
 }
 
 type MaestroRunObservation struct {
-	SchemaVersion int `json:"schemaVersion"`
-	Authority string `json:"authority"`
-	ExecutionOwner string `json:"executionOwner"`
-	RunID string `json:"runId"`
-	TaskID string `json:"taskId"`
-	ProviderID *string `json:"providerId"`
-	Status string `json:"status"`
-	ReplayKind string `json:"replayKind"`
-	LiveOutputAvailable bool `json:"liveOutputAvailable"`
-	Events []MaestroLifecycleEvent `json:"events"`
-	NextCursor *string `json:"nextCursor"`
-	HasMore bool `json:"hasMore"`
+	SchemaVersion       int                     `json:"schemaVersion"`
+	Authority           string                  `json:"authority"`
+	ExecutionOwner      string                  `json:"executionOwner"`
+	RunID               string                  `json:"runId"`
+	TaskID              string                  `json:"taskId"`
+	ProviderID          *string                 `json:"providerId"`
+	Status              string                  `json:"status"`
+	ReplayKind          string                  `json:"replayKind"`
+	LiveOutputAvailable bool                    `json:"liveOutputAvailable"`
+	Events              []MaestroLifecycleEvent `json:"events"`
+	NextCursor          *string                 `json:"nextCursor"`
+	HasMore             bool                    `json:"hasMore"`
 }
 
 var maestroLifecycleEvents = map[string]struct{}{
-	"run.created":{}, "run.started":{}, "run.completed":{},
-	"run.failed":{}, "run.blocked":{}, "run.cancelled":{}, "run.canceled":{},
-	"verification.started":{}, "verification.completed":{}, "verification.failed":{},
-	"review.started":{}, "review.completed":{}, "review.failed":{},
-	"execution.started":{}, "execution.completed":{}, "execution.failed":{},
-	"artifact.created":{},
+	"run.created": {}, "run.started": {}, "run.completed": {},
+	"run.failed": {}, "run.blocked": {}, "run.cancelled": {}, "run.canceled": {},
+	"verification.started": {}, "verification.completed": {}, "verification.failed": {},
+	"review.started": {}, "review.completed": {}, "review.failed": {},
+	"execution.started": {}, "execution.completed": {}, "execution.failed": {},
+	"artifact.created": {},
 }
 
 func maestroObservationMethod(init maestroBridgeInit) (string, error) {
@@ -74,7 +74,9 @@ func decodeMaestroRunObservation(raw json.RawMessage, runID string, limit int) (
 		}
 		seen[event.ID] = true
 		if event.OccurredAt != nil {
-			if len(*event.OccurredAt) > 64 { return MaestroRunObservation{}, errors.New("oversized event time") }
+			if len(*event.OccurredAt) > 64 {
+				return MaestroRunObservation{}, errors.New("oversized event time")
+			}
 			if _, err := time.Parse(time.RFC3339Nano, *event.OccurredAt); err != nil {
 				return MaestroRunObservation{}, errors.New("invalid lifecycle event timestamp")
 			}
@@ -103,9 +105,15 @@ func FetchMaestroRunObservation(parent context.Context, workspace, runID, afterC
 		return MaestroRunObservation{}, errors.New("invalid Maestro run observation input")
 	}
 	params := map[string]any{"runId": runID, "limit": limit}
-	if afterCursor != "" { params["afterEventId"] = afterCursor }
+	if afterCursor != "" {
+		params["afterEventId"] = afterCursor
+	}
 	result, method, err := maestroBridgeCall(parent, workspace, 10*time.Second, maestroObservationMethod, params)
-	if err != nil { return MaestroRunObservation{}, fmt.Errorf("Maestro run observation unavailable: %w", err) }
-	if method != "runs.observe" { return MaestroRunObservation{}, errors.New("unexpected Maestro observation method") }
+	if err != nil {
+		return MaestroRunObservation{}, fmt.Errorf("Maestro run observation unavailable: %w", err)
+	}
+	if method != "runs.observe" {
+		return MaestroRunObservation{}, errors.New("unexpected Maestro observation method")
+	}
 	return decodeMaestroRunObservation(result, runID, limit)
 }

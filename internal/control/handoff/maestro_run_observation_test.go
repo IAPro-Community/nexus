@@ -30,7 +30,9 @@ func TestMaestroRunObservationCapabilityNegotiation(t *testing.T) {
 
 func TestMaestroRunObservationPreservesRunAndSanitizesLifecycle(t *testing.T) {
 	got, err := decodeMaestroRunObservation(validMaestroRunObservation(), "run-7", 2)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if got.ExecutionOwner != "MAESTRO" || got.ProviderID == nil || *got.ProviderID != "agy" ||
 		got.RunID != "run-7" || got.Status != "running" || got.LiveOutputAvailable ||
 		len(got.Events) != 1 || got.Events[0].Type != "run.started" {
@@ -65,13 +67,18 @@ func TestMaestroRunObservationRejectsForeignIdentityAndExtraOutput(t *testing.T)
 }
 
 func TestMaestroRunObservationRejectsInvalidInputBeforeStartingProcess(t *testing.T) {
-	for _, tc := range []struct { runID, cursor string; limit int }{
+	for _, tc := range []struct {
+		runID, cursor string
+		limit         int
+	}{
 		{"../other", "", 10},
 		{"run-1", "../other", 10},
 		{"run-1", "", 0},
 		{"run-1", "", 101},
 	} {
 		_, err := FetchMaestroRunObservation(t.Context(), "/not-a-real-project", tc.runID, tc.cursor, tc.limit)
-		if err == nil { t.Fatal(fmt.Sprintf("invalid request accepted: %+v", tc)) }
+		if err == nil {
+			t.Fatal(fmt.Sprintf("invalid request accepted: %+v", tc))
+		}
 	}
 }
