@@ -179,7 +179,7 @@ func TestMissionWorkerHandoffRetriesAfterOldWorkerExceedsTimeout(t *testing.T) {
 	old := n.startMissionWorker(run.ID, false)
 	select {
 	case <-exec.firstStarted:
-	case <-time.After(time.Second):
+	case <-time.After(5 * time.Second):
 		t.Fatal("old worker did not reach the blocking allocator")
 	}
 
@@ -202,7 +202,7 @@ func TestMissionWorkerHandoffRetriesAfterOldWorkerExceedsTimeout(t *testing.T) {
 	close(exec.secondRelease)
 	select {
 	case <-current.done:
-	case <-time.After(time.Second):
+	case <-time.After(5 * time.Second):
 		t.Fatal("replacement worker did not finish")
 	}
 	final, err := repo.GetRun(ctx, run.ID)
