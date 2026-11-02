@@ -47,8 +47,9 @@ type maestroBridgeEnvelope struct {
 type maestroBridgeInit struct {
 	ProtocolVersion int `json:"protocolVersion"`
 	Capabilities    struct {
-		ProjectContext bool `json:"projectContext"`
-		ContextBrief   bool `json:"contextBrief"`
+		ProjectContext    bool `json:"projectContext"`
+		ContextBrief      bool `json:"contextBrief"`
+		PlansRoutePreview bool `json:"plansRoutePreview"`
 	} `json:"capabilities"`
 }
 
@@ -136,31 +137,31 @@ func readMaestroBridgeReply(reader *bufio.Reader, expectedID int) (json.RawMessa
 	return reply.Result, nil
 }
 
-// FetchMaestroProjectContext reads canonical project context from the external
-// Maestro executable. Both calls use ONE project-scoped Bridge process. There
-// is no fallback to Nexus semantic memory, provider calls, or a cloud service.
-func FetchMaestroProjectContext(parent context.Context, workspace, task string) (MaestroProjectContext, error) {
+// maestroBridgeCall is the only subprocess JSON-RPC transport for context
+// and preview reads. Each call starts ONE external, project-scoped Maestro
+// process; it does not implement local semantic fallback or provider dispatch.
+func maestroBridgeCall(parent context.Context, workspace string, timeout time.Duration,
+	selectMethod func(maestroBridgeInit) (string, error), params map[string]any) (json.RawMessage, string, error) {
 	if strings.TrimSpace(workspace) == "" {
-		return MaestroProjectContext{}, errors.New("Maestro project workspace is required")
+		return nil, "", errors.New("Maestro project workspace is required")
 	}
 	binary, err := runtime.LookPath("orquestrador-maestro")
 	if err != nil {
-		return MaestroProjectContext{}, fmt.Errorf("Maestro CLI unavailable: %w", err)
+		return nil, "", fmt.Errorf("Maestro CLI unavailable: %w", err)
 	}
-
-	ctx, cancel := context.WithTimeout(parent, 5*time.Second)
+	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
 	cmd := executil.CommandContext(ctx, binary, "bridge", "--stdio", "--project-path", workspace)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return MaestroProjectContext{}, err
+		return nil, "", err
 	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return MaestroProjectContext{}, err
+		return nil, "", err
 	}
 	if err := cmd.Start(); err != nil {
-		return MaestroProjectContext{}, fmt.Errorf("could not start Maestro Bridge: %w", err)
+		return nil, "", fmt.Errorf("could not start Maestro Bridge: %w", err)
 	}
 	waited := false
 	defer func() {
@@ -170,17 +171,22 @@ func FetchMaestroProjectContext(parent context.Context, workspace, task string) 
 			_ = cmd.Wait()
 		}
 	}()
-
-	// Include the buffer read-ahead in the bounded stream budget.
 	reader := bufio.NewReader(io.LimitReader(stdout, 2*maestroBridgeReplyLimit+1))
-	send := func(id int, method string, params map[string]any) (json.RawMessage, error) {
+	send := func(id int, method string, args map[string]any) (json.RawMessage, error) {
 		request := struct {
 			JSONRPC string         `json:"jsonrpc"`
 			ID      int            `json:"id"`
 			Method  string         `json:"method"`
 			Params  map[string]any `json:"params"`
-		}{JSONRPC: "2.0", ID: id, Method: method, Params: params}
-		if err := json.NewEncoder(stdin).Encode(request); err != nil {
+		}{JSONRPC: "2.0", ID: id, Method: method, Params: args}
+		payload, err := json.Marshal(request)
+		if err != nil {
+			return nil, fmt.Errorf("Maestro Bridge request encoding: %w", err)
+		}
+		if len(payload) > maestroBridgeReplyLimit {
+			return nil, errors.New("Maestro Bridge request exceeds limit")
+		}
+		if _, err := stdin.Write(append(payload, '\n')); err != nil {
 			return nil, fmt.Errorf("Maestro Bridge request failed: %w", err)
 		}
 		return readMaestroBridgeReply(reader, id)
@@ -188,16 +194,38 @@ func FetchMaestroProjectContext(parent context.Context, workspace, task string) 
 
 	initResult, err := send(1, "initialize", map[string]any{"protocolVersion": maestroBridgeProtocolVersion})
 	if err != nil {
-		return MaestroProjectContext{}, err
+		return nil, "", err
 	}
 	var init maestroBridgeInit
 	if err := json.Unmarshal(initResult, &init); err != nil {
-		return MaestroProjectContext{}, errors.New("invalid Maestro Bridge initialize result")
+		return nil, "", errors.New("invalid Maestro Bridge initialize result")
 	}
-	method, err := maestroContextMethod(init)
+	if init.ProtocolVersion != maestroBridgeProtocolVersion {
+		return nil, "", fmt.Errorf("unsupported Maestro Bridge protocol version %d", init.ProtocolVersion)
+	}
+	method, err := selectMethod(init)
 	if err != nil {
-		return MaestroProjectContext{}, err
+		return nil, "", err
 	}
+	result, err := send(2, method, params)
+	if err != nil {
+		return nil, "", err
+	}
+	if err := stdin.Close(); err != nil {
+		return nil, "", fmt.Errorf("Maestro Bridge stdin closure failed: %w", err)
+	}
+	if err := cmd.Wait(); err != nil {
+		waited = true
+		return nil, "", fmt.Errorf("Maestro Bridge exited unsuccessfully: %w", err)
+	}
+	waited = true
+	return result, method, nil
+}
+
+// FetchMaestroProjectContext reads canonical project context from the external
+// Maestro executable. Both calls use one Bridge process and preserve the
+// manifest/hash/redaction verifiers. There is no Nexus-owned semantic fallback.
+func FetchMaestroProjectContext(parent context.Context, workspace, task string) (MaestroProjectContext, error) {
 	params := map[string]any{"projectPath": workspace, "maxChars": maestroContextBudget}
 	if task != "" {
 		runes := []rune(security.Redact(task))
@@ -206,21 +234,9 @@ func FetchMaestroProjectContext(parent context.Context, workspace, task string) 
 		}
 		params["task"] = string(runes)
 	}
-	result, err := send(2, method, params)
+	result, method, err := maestroBridgeCall(parent, workspace, 5*time.Second, maestroContextMethod, params)
 	if err != nil {
 		return MaestroProjectContext{}, err
 	}
-	projectContext, err := decodeMaestroProjectResult(method, result)
-	if err != nil {
-		return MaestroProjectContext{}, err
-	}
-	if err := stdin.Close(); err != nil {
-		return MaestroProjectContext{}, fmt.Errorf("Maestro Bridge stdin closure failed: %w", err)
-	}
-	if err := cmd.Wait(); err != nil {
-		waited = true
-		return MaestroProjectContext{}, fmt.Errorf("Maestro Bridge exited unsuccessfully: %w", err)
-	}
-	waited = true
-	return projectContext, nil
+	return decodeMaestroProjectResult(method, result)
 }
