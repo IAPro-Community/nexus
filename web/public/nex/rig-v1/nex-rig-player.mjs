@@ -30,6 +30,7 @@ export class NexRigPlayer {
     this.onError = onError;
     this.onFrame = onFrame;
     this.mode = 'idle';
+    this.debugRig = false;
     this.wantsMotion = true;
     this.media = window.matchMedia('(prefers-reduced-motion: reduce)');
     this.smallScreen = window.matchMedia('(max-width: 680px)');
@@ -110,6 +111,11 @@ export class NexRigPlayer {
   setMotion(allowed) {
     this.wantsMotion = Boolean(allowed);
     this.sync();
+  }
+
+  setRigOverlay(enabled) {
+    this.debugRig = Boolean(enabled);
+    if (this.loaded) this.render(!this.motionActive);
   }
 
   get motionActive() {
@@ -262,6 +268,30 @@ export class NexRigPlayer {
       if (motion.frontWeight > 0.001) {
         this.paintLayer(layer, motion, motion.frontWeight);
       }
+    }
+    if (this.debugRig) this.drawRigOverlay(orbit);
+    ctx.restore();
+  }
+
+  /** Optional review aid: show exactly which modules have independent pivots. */
+  drawRigOverlay(modules) {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.lineWidth = 2.6;
+    ctx.strokeStyle = 'rgba(67,230,255,.72)';
+    ctx.setLineDash([10, 12]);
+    ctx.beginPath();
+    ctx.ellipse(627, 800, 446, 186, 0, 0, 2 * Math.PI);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = 'bold 29px ui-sans-serif, sans-serif';
+    for (const { motion, layer } of modules) {
+      ctx.fillStyle = motion.frontWeight < 0.5
+        ? 'rgba(255,171,95,.96)' : 'rgba(83,236,255,.96)';
+      ctx.beginPath();
+      ctx.arc(motion.x, motion.y, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillText(layer.id, motion.x + 16, motion.y - 15);
     }
     ctx.restore();
   }
