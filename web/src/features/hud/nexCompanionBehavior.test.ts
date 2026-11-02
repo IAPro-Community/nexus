@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canPlayNexGreeting,
   consumeNexNewCompletion,
   nexCompletedEventId,
   resolveNexCompanionBehavior,
@@ -15,6 +16,13 @@ const base: NexCompanionInput = {
 };
 
 describe('NEX Companion 2D', () => {
+  it('limits greet replays to one per session cooldown while keeping the first interaction immediate', () => {
+    expect(canPlayNexGreeting(null, 10_000)).toBe(true);
+    expect(canPlayNexGreeting(10_000, 24_999)).toBe(false);
+    expect(canPlayNexGreeting(10_000, 25_000)).toBe(true);
+    expect(canPlayNexGreeting(null, Number.NaN)).toBe(false);
+  });
+
   it('maps the eight contextual behaviors using the existing five operational moods', () => {
     expect(resolveNexCompanionBehavior(base)).toBe('ambient');
     expect(resolveNexCompanionBehavior({ ...base, interaction: 'greet' })).toBe('greet');
@@ -37,13 +45,17 @@ describe('NEX Companion 2D', () => {
     expect(resolveNexCompanionBehavior({ ...base, motionAllowed: false })).toBe('still');
   });
 
-  it('refuses to infer a success from missing IDs, failures or stale history', () => {
-    expect(nexCompletedEventId({ project_id: '', mission_id: 'a', state: 'COMPLETED', age_seconds: 2 }))
-      .toBeNull();
-    expect(nexCompletedEventId({ project_id: 'p', mission_id: 'a', state: 'FAILED', age_seconds: 2 }))
-      .toBeNull();
-    expect(nexCompletedEventId({ project_id: 'p', mission_id: 'a', state: 'COMPLETED', age_seconds: 3600 }))
-      .toBeNull();
+  it('accepts only a recent COMPLETED_VERIFIED record from the Attention Center bucket', () => {
+    const record = { project_id: 'p', mission_id: 'a', state: 'COMPLETED_VERIFIED', age_seconds: 2 };
+    expect(nexCompletedEventId(record)).toBe('p:a:COMPLETED_VERIFIED');
+
+    for (const state of ['COMPLETED', 'SUCCEEDED', 'SUCCESS', 'COMPLETED_UNVERIFIED', 'FAILED']) {
+      expect(nexCompletedEventId({ ...record, state })).toBeNull();
+    }
+
+    expect(nexCompletedEventId({ ...record, project_id: '' })).toBeNull();
+    expect(nexCompletedEventId({ ...record, mission_id: '' })).toBeNull();
+    expect(nexCompletedEventId({ ...record, age_seconds: 3600 })).toBeNull();
   });
 
   it('recognizes verified Mission completion without replaying older records', () => {
@@ -72,10 +84,25 @@ describe('NEX Companion 2D', () => {
 
   it('baselines first fetch, deduplicates refreshing and emits only newly completed missions', () => {
     const seen = new Set<string>();
-    const first = [{ project_id: 'p', mission_id: 'old', state: 'COMPLETED', age_seconds: 3 }];
-    const added = [...first, { project_id: 'p', mission_id: 'new', state: 'COMPLETED', age_seconds: 1 }];
+    const first = [
+      { project_id: 'p', mission_id: 'old', state: 'COMPLETED_VERIFIED', age_seconds: 3 },
+    ];
+    const added = [
+      ...first,
+      { project_id: 'p', mission_id: 'new', state: 'COMPLETED_VERIFIED', age_seconds: 1 },
+    ];
     expect(consumeNexNewCompletion(first, seen, false)).toBeNull();
-    expect(consumeNexNewCompletion(added, seen, true)).toBe('p:new:COMPLETED');
+    expect(consumeNexNewCompletion(added, seen, true)).toBe('p:new:COMPLETED_VERIFIED');
     expect(consumeNexNewCompletion(added, seen, true)).toBeNull();
+  });
+
+  it('does not emit resolved behavior for unverified records, even when they are new', () => {
+    const seen = new Set<string>();
+    const records = [
+      { project_id: 'p', mission_id: 'unverified', state: 'SUCCESS', age_seconds: 1 },
+    ];
+
+    expect(consumeNexNewCompletion(records, seen, true)).toBeNull();
+    expect(seen).toEqual(new Set());
   });
 });

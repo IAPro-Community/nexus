@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Restore NEX's exact approved-source OpenRaster project from tracked Git shards.
+ * Reconstruct the candidate-source OpenRaster project from tracked Git shards.
+ * The source is reproducible but the NEX identity remains pending approval.
  * Splitting as base64 text makes the 5.34 MB original reproducibly versionable
  * where the GitHub connector cannot transport one large binary request.
  */
