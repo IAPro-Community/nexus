@@ -1,5 +1,8 @@
 # Integração Nexus ↔ Orquestrador Maestro
 
+> **Decisão arquitetural de 01/11/2026 (obrigatória para novos PRs):** o Maestro é a autoridade independente de contexto, memória semântica, composição, orquestração e execução dos runs delegados. Nexus consome apenas seu Bridge/API pública, sem integrar código interno, banco ou executor. As seções abaixo descrevem a **beta atual e sua transição**, não autorização para duplicar responsabilidades. Consulte [ADR Maestro externo](../architecture/MAESTRO_EXTERNAL_AUTHORITY_ADR.md) e [issue #176](https://github.com/IAPro-Community/nexus/issues/176).
+
+
 O [Orquestrador Maestro](https://github.com/IAPro-Community/Orquestrador-Maestro)
 é um produto independente: seu CLI, Protocol, Runtime e Bridge funcionam
 sem Nexus. O Nexus não pode se tornar uma dependência do Maestro.
