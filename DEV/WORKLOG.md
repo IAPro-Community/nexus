@@ -6706,3 +6706,7 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 ## NEX motion — 2026-11-01
 
 Auditoria parcial da base `8123c9ff`, ADR e correção de cancelamento reentrante no IdleDirector; QA híbrido corrigido e executado. 12 idles renderizáveis, 360°, HUD/Site e aprovação seguem pendentes. Ver `validation/NEX_MOTION_AUDIT_20261101.md` e `DECISIONS/NEX_INTERACTIVE_RENDERER_20261101.md`.
+
+## NEX Codex — execução parcial Windows — 2026-11-02
+
+Implementei e testei localmente o stack NEX iniciado no handoff #186 e PRs relacionadas. A suíte Go completa de NEX/handoff/Desktop passou no Windows sem cache após corrigir fixtures que usavam shell POSIX e um limite temporal curto; verificações Node do rig e do contrato 5/8/12 passaram. Os gates de frontend seguem bloqueados por dependências ausentes, e a captura Edge não certifica o HUD Wails nativo nem a identidade artística. Relatório, comandos, logs e hashes: validation/NEX_CODEX_IMPLEMENTATION_20261102.md e D:\Dev\nexus-remediation\nexus-homologation-tools\evidence\nex\20261102\.

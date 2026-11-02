@@ -1,0 +1,112 @@
+{
+  "sha": "6fbd31340fbc0371853dd9c9657ba7eece5fd3d1",
+  "tested_commit_sha": "6fbd31340fbc0371853dd9c9657ba7eece5fd3d1",
+  "source_state": "native Windows test run against committed code at tested_commit_sha; remote branch feat/nex-codex-implementation-20261102; PR #189 draft",
+  "version": "1.0.0-beta.11",
+  "platform": "Windows 10.0.26200 x64/AMD64",
+  "environment": {
+    "powershell": "7.6.5",
+    "go": "1.25.14",
+    "bun": "1.3.9",
+    "node": "24.21.0",
+    "git": "2.56.0",
+    "edge": "156.0.4314.50"
+  },
+  "gates": {
+    "go_nex_handoff_desktop": "PASS",
+    "go_focused_windows_regressions": "PASS",
+    "node_rig_tests": "PASS",
+    "direct_behavior_contract_5_8_12": "PASS",
+    "candidate_asset_integrity": "PASS_14_OF_14",
+    "identity_structural_gate": "PASS_STRUCTURAL_ONLY",
+    "identity_art_approval": "BLOCKED",
+    "css_stylesheet_gates": "PASS",
+    "edge_rig_screenshots": "PASS_PREVIEW_ONLY",
+    "frontend_format_lint_typecheck_vitest_build": "BLOCKED_MISSING_WEB_DEPENDENCIES",
+    "native_wails_webview2_hud": "NOT_RUN",
+    "production_site_integration": "NOT_RUN",
+    "release_readiness": "BLOCKED_0_OF_11"
+  },
+  "failures": [
+    {
+      "check": "initial go test ./internal/nexus/...",
+      "status": "RESOLVED",
+      "details": "isolated Codex fixture used POSIX scripts on Windows; skill fixture exited before output capture; worker handoff test allowed only 1 second. Fixed fixture portability/output lifetime and test completion timeout; final full relevant suite passed."
+    },
+    {
+      "check": "bun run --cwd web test",
+      "status": "BLOCKED",
+      "exit_code": 1,
+      "details": "5 of 7 Node tests passed; remaining tests could not load postcss and esbuild because web/node_modules is absent."
+    },
+    {
+      "check": "frontend typecheck/lint/stylelint/format/build",
+      "status": "BLOCKED",
+      "exit_code": 1,
+      "details": "tsc, eslint, stylelint, prettier and esbuild are not installed in this checkout; dependencies were not installed."
+    }
+  ],
+  "blockers": [
+    "Frontend lockfile dependencies are absent; formatting, lint, typecheck, Vitest and build remain blocked.",
+    "Selected identity reference binary is not versioned and character master approval remains pending.",
+    "Native Wails/WebView2 HUD and production Nexus-Site integration were not exercised."
+  ],
+  "artifacts": {
+    "report": "DEV/validation/NEX_CODEX_IMPLEMENTATION_20261102.md",
+    "screenshots": "D:/Dev/nexus-remediation/nexus-homologation-tools/evidence/nex/20261102/screenshots/rig-v1",
+    "logs": "D:/Dev/nexus-remediation/nexus-homologation-tools/evidence/nex/20261102/logs",
+    "screenshot_sha256": [
+      [
+        "nex-rig-idle-390x844.png",
+        "290F508D1EFD9A703BEC55C5B07BBBAFE37229718EEC60BD76335D6E6391E00A"
+      ],
+      [
+        "nex-rig-idle-768x1024.png",
+        "0396B02DFD718C9200C4729236216B13E78B639125BB32FCFB799471F8EFC78B"
+      ],
+      [
+        "nex-rig-idle-1280x900.png",
+        "019F91F5CC9D91882020129F4C42E4C6343B37425B49159BB2A2637F0175FA67"
+      ],
+      [
+        "nex-rig-orbit-390x844.png",
+        "7390BF0BB8850D5B3CD14AF8D96A99E20A93E810A23ABD23F2F961C9088F25BD"
+      ],
+      [
+        "nex-rig-orbit-768x1024.png",
+        "160F443EA8AB70261539854F9FE7C36531E3A0BEE6852FE41D2CCADCDFAEFE65"
+      ],
+      [
+        "nex-rig-orbit-1280x900.png",
+        "4F52DF7BD790894BF4A17978D17A4B0094284D632D718C2B34E7AB233C174CF0"
+      ]
+    ]
+  },
+  "manual_checks": [
+    {
+      "item": "Local Microsoft Edge headless rig preview, idle/orbit at 390x844, 768x1024, 1280x900",
+      "status": "PASS_PREVIEW_ONLY"
+    },
+    {
+      "item": "Actual Wails HUD window, hover, keyboard, expansion, DPI, monitor switching",
+      "status": "NOT_RUN"
+    },
+    {
+      "item": "Provider accounts, API calls, authentication",
+      "status": "NOT_RUN_NO_REAL_CREDENTIALS_OR_PAID_CALLS"
+    },
+    {
+      "item": "Selected character reference and pixel-art master approval",
+      "status": "BLOCKED"
+    }
+  ],
+  "verdict": "INCONCLUSIVE_NEX_INTEGRATION; code-level progress and selected tests passed, but frontend gates, native integration, and identity approval remain incomplete.",
+  "pull_request": {
+    "draft": true,
+    "number": 189,
+    "head": "feat/nex-codex-implementation-20261102",
+    "url": "https://github.com/IAPro-Community/nexus/pull/189",
+    "base": "docs/nex-codex-production-handoff-20261102"
+  },
+  "base_sha": "081fc5bc3e292fd9db1d186e83caebcf5dc6684a"
+}
