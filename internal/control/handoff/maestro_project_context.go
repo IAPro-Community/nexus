@@ -78,7 +78,7 @@ func decodeMaestroProjectResult(method string, result json.RawMessage) (MaestroP
 		var projected struct {
 			SchemaVersion int                     `json:"schemaVersion"`
 			Authority     string                  `json:"authority"`
-			Project       *MaestroProjectIdentity  `json:"project"`
+			Project       *MaestroProjectIdentity `json:"project"`
 			Context       json.RawMessage         `json:"context"`
 		}
 		if err := json.Unmarshal(result, &projected); err != nil ||
