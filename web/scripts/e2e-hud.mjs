@@ -122,14 +122,25 @@ async function main() {
 
     // Compact capsule must remain informative without becoming a dashboard.
     const expand = page.getByRole('button', { name: /expandir nexus hud/i });
+    const hudToggle = page.locator('button[data-hud-capsule="true"]');
     assert.equal(await expand.getAttribute('aria-expanded'), 'false');
     await expand.hover();
     await page.getByRole('tooltip').waitFor({ state: 'visible', timeout: 3000 });
 
-    // The same capsule opens the contextual, accessible provider popover.
-    await expand.click();
+    // Native keyboard activation remains the same real button action.
+    await hudToggle.press('Enter');
     await page.locator('#nexus-hud-popover').waitFor({ state: 'visible' });
     assert.equal(await page.getByRole('button', { name: /recolher nexus hud/i }).count() > 0, true);
+    await hudToggle.press('Space');
+    await page.locator('#nexus-hud-popover').waitFor({ state: 'hidden' });
+    await hudToggle.press('Space');
+    await page.locator('#nexus-hud-popover').waitFor({ state: 'visible' });
+    await hudToggle.press('Space');
+    await page.locator('#nexus-hud-popover').waitFor({ state: 'hidden' });
+
+    // Pointer click opens the same contextual, accessible provider popover.
+    await hudToggle.click();
+    await page.locator('#nexus-hud-popover').waitFor({ state: 'visible' });
     const expanded = page.locator('section[data-hud-panel][data-expanded="true"]').first();
     await expanded.waitFor({ state: 'visible', timeout: 5000 });
     const attentionList = page.locator('[data-mascot-attention-list]');

@@ -4,6 +4,8 @@
 
 **Status:** `CHARACTER_SELECTED_PIXEL_MASTER_PENDING`. A escolha de **personagem** está feita, mas **ainda não** existe sprite master em camadas homologado, nem atlas de animações na release. Não congelar `identity-lock.json` como `FROZEN` sem os binários, hashes e aprovação do master final. Essa escolha **substitui explorações de personagem X-Fold/Flux/N-Core como candidatas principais**, sem apagar seu histórico.
 
+**Implementação candidata em 2026-11-01:** `NexIdleDirector` agora agenda os 12 IDs contratados com PRNG seedável, uma ação por vez, cooldown individual declarado em `NEX_IDLE_COOLDOWN_MS`, prevenção de repetição consecutiva, cancelamento por geração e pausa para mood não-idle, movimento desativado, documento oculto, mascote fora do viewport ou redução de movimento. O retorno da visibilidade agenda uma única cadeia de timer. Os 12 movimentos CSS são selecionáveis e verificados no HUD/preview de navegador; permanecem protótipos sobre o SVG/raster atual. Não há frames de pixel art finais, e a execução do protótipo não muda o gate do master nem os gates de aprovação visual/nativa.
+
 ## Novas pranchas de apoio (27/10/2026)
 
 Criei um **pacote visual de dez imagens separadas** para consulta de outros agentes e para orientar desenho dos sprites: personagem principal, turnaround, expressões, anatomia, catálogo de 12 idles, cinco estados operacionais, ações ilustrativas, contextos de uso, paleta e prancha original integral do novo estudo. Consulte [inventário e proveniência](reference-pack/README.md) e [SHA-256 de cada recorte](reference-pack/manifest.json).

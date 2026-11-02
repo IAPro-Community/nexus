@@ -15,6 +15,8 @@ const strict=process.argv.includes('--require-binaries')||process.argv.includes(
 const errors=[];
 const safe=(rel)=>{const p=resolve(root,rel);if(!p.startsWith(root+sep))throw Error('Unsafe path: '+rel);return p};
 const hash=(b)=>createHash('sha256').update(b).digest('hex');
+const canonicalText=(path,bytes)=>/\.(html|json|py|mjs)$/.test(path)
+  ?Buffer.from(bytes.toString('utf8').replace(/\r\n/g,'\n'),'utf8'):bytes;
 const check=(ok,msg)=>{if(!ok)errors.push(msg)};
 check(manifest.assets.length===14,'Expected exactly 14 assets');
 check(manifest.source_sha256==='ef7a4aeb7b24d2ab5f199f913d351414b8fafb0b6208b3ab2b665013adcb9118','Source identity drift');
@@ -39,6 +41,7 @@ for(const a of manifest.assets){
     if(strict||a.status==='VERSIONED'||a.status==='RECONSTRUCTIBLE_FROM_VERSIONED_PARTS')errors.push('Missing versioned asset: '+a.path);
     continue;
   }
+  b=canonicalText(a.path,b);
   check(b.length===a.bytes&&hash(b)===a.sha256,'Asset mismatch: '+a.path);
   if(a.filename.endsWith('.png'))check(b.subarray(0,8).toString('hex')==='89504e470d0a1a0a','Invalid PNG signature: '+a.filename);
   if(a.filename.endsWith('.ora'))check(b.subarray(0,2).toString('hex')==='504b','Invalid ORA ZIP signature');
@@ -48,7 +51,7 @@ if(manifest.generator){
  const path=safe(manifest.generator.path||manifest.generator.file);
  if(!existsSync(path)){if(strict)errors.push('Missing generator');}
  else{
-   const b=readFileSync(path);
+   const b=canonicalText(path,readFileSync(path));
    check(b.length===manifest.generator.bytes&&hash(b)===manifest.generator.sha256,'Generator SHA mismatch');
    check(!b.toString('utf8').includes('/mnt/data/'),'Generator contains ephemeral path');
  }

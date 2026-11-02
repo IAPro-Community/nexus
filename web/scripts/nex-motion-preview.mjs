@@ -13,34 +13,80 @@ import * as sass from 'sass';
 const webDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const moods = [
   { id: 'idle', label: 'Idle', description: 'Flutuação discreta, olhos alegres e núcleo lento' },
-  { id: 'working', label: 'Working', description: 'Movimento curto e núcleo pulsando durante execução' },
+  {
+    id: 'working',
+    label: 'Working',
+    description: 'Movimento curto e núcleo pulsando durante execução',
+  },
   { id: 'warning', label: 'Warning', description: 'Atenção real, alerta laranja e sinal luminoso' },
-  { id: 'critical', label: 'Critical', description: 'Atenção crítica, pulso controlado e aletas estáveis' },
+  {
+    id: 'critical',
+    label: 'Critical',
+    description: 'Atenção crítica, pulso controlado e aletas estáveis',
+  },
   { id: 'offline', label: 'Offline', description: 'Sem atividade aparente; sinais desativados' },
+];
+const idles = [
+  { id: 'idle_hover', label: 'Flutuar', target: '.guardianSprite' },
+  { id: 'idle_blink', label: 'Piscar', target: '.guardianEyes' },
+  { id: 'idle_glance', label: 'Olhar', target: '.guardianEyes' },
+  { id: 'idle_orbit_breathe', label: 'Respirar órbita', target: '.nexModuleNear' },
+  { id: 'idle_head_tilt', label: 'Inclinar cabeça', target: '[data-nex-part="head-assembly"]' },
+  { id: 'idle_fin_twitch', label: 'Ajustar aletas', target: '.nexFinLeft' },
+  {
+    id: 'idle_module_inspect',
+    label: 'Inspecionar módulo',
+    target: '[data-nex-module="1"] .nexModuleNear',
+  },
+  {
+    id: 'idle_orbit_shuffle',
+    label: 'Reorganizar órbita',
+    target: '[data-nex-module="1"] .nexModuleNear',
+  },
+  { id: 'idle_curiosity', label: 'Curiosidade', target: '.guardianEyes' },
+  { id: 'idle_micro_stretch', label: 'Alongar', target: '.guardianBody' },
+  { id: 'idle_drowse', label: 'Cochilar', target: '.guardianEyes' },
+  { id: 'idle_wake', label: 'Acordar', target: '.guardianEyes' },
 ];
 
 const scss = sass.compile(resolve(webDir, 'src/features/hud/_hudGuardian.scss')).css;
-const sprites = await Promise.all(moods.map(async ({ id }) => {
-  const svg = await readFile(resolve(webDir, 'public/nex', `nex-${id}.svg`), 'utf8');
-  if (!svg.includes('data-nex-art="32bit-official"') ||
-      !svg.includes('data-nex-facing="front"')) {
-    throw new Error(`NEX official SVG export is missing/invalid: nex-${id}.svg`);
-  }
-  return { id, svg };
-}));
+const sprites = await Promise.all(
+  moods.map(async ({ id }) => {
+    const svg = await readFile(resolve(webDir, 'public/nex', `nex-${id}.svg`), 'utf8');
+    if (
+      !svg.includes('data-nex-art="32bit-official"') ||
+      !svg.includes('data-nex-facing="front"')
+    ) {
+      throw new Error(`NEX official SVG export is missing/invalid: nex-${id}.svg`);
+    }
+    return { id, svg };
+  }),
+);
 
-const optionButtons = moods.map((mood, index) =>
-  `<button type="button" class="qa-choice" data-select="${mood.id}" aria-pressed="${index === 0}">${mood.label}</button>`
-).join('');
-const panels = sprites.map(({ id, svg }, index) => `
+const optionButtons = moods
+  .map(
+    (mood, index) =>
+      `<button type="button" class="qa-choice" data-select="${mood.id}" aria-pressed="${index === 0}">${mood.label}</button>`,
+  )
+  .join('');
+const idleButtons = idles
+  .map(
+    ({ id, label }, index) =>
+      `<button type="button" class="qa-choice" data-idle="${id}" aria-pressed="${index === 0}">${label}</button>`,
+  )
+  .join('');
+const panels = sprites
+  .map(
+    ({ id, svg }, index) => `
   <div class="qa-panel" data-panel="${id}" ${index > 0 ? 'hidden' : ''}>
     <div class="qa-scale">
       <span class="guardian" data-mood="${id}" data-motion="${id === 'offline' ? 'off' : 'on'}" aria-hidden="true">
         ${svg}
       </span>
     </div>
-  </div>`
-).join('');
+  </div>`,
+  )
+  .join('');
 const html = `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -67,15 +113,20 @@ h1{margin:0;font-size:26px}p{color:#9fb6d5;line-height:1.5}
 <p>Renderiza os cinco SVGs derivados do componente oficial e os keyframes do HUD.
 Isto é QA visual local, <strong>não</strong> captura do HUD nativo nem certificação de release.</p>
 <div class="qa-choices" role="group" aria-label="Estado do NEX">${optionButtons}</div>
+<h2>Biblioteca de movimentos</h2>
+<div class="qa-choices" role="group" aria-label="Movimentos idle do NEX">${idleButtons}</div>
 <div class="qa-stage">${panels}</div>
-<p id="qa-description" aria-live="polite">${moods[0].description}</p>
+<p id="qa-description" role="status" aria-live="polite">${moods[0].description} · ${idles[0].label}</p>
 <label class="qa-settings"><input type="checkbox" id="qa-reduced"/> Desativar animações</label>
 <p class="qa-note">Os movimentos não alteram telemetria, roteamento, geometria nativa ou foco. 
 Em sistema configurado para reduzir movimentos, os elementos já devem aparecer imóveis.</p>
 </main><script>
 const states=${JSON.stringify(moods)};
+const idles=${JSON.stringify(idles)};
 let selected='idle';
+let selectedIdle='idle_hover';
 const freeze=document.getElementById('qa-reduced');
+const systemReduced=matchMedia('(prefers-reduced-motion: reduce)');
 const render=()=>{
   document.querySelectorAll('[data-select]').forEach(button=>{
     button.setAttribute('aria-pressed',String(button.dataset.select===selected));
@@ -83,16 +134,29 @@ const render=()=>{
   document.querySelectorAll('[data-panel]').forEach(panel=>{
     const active=panel.dataset.panel===selected;
     panel.hidden=!active;
-    panel.querySelector('.guardian').dataset.motion=
-      freeze.checked||selected==='offline'?'off':'on';
+    const sprite=panel.querySelector('.guardian');
+    const motionEnabled=!freeze.checked&&!systemReduced.matches&&selected!=='offline';
+    sprite.dataset.motion=motionEnabled?'on':'off';
+    const svg=sprite.querySelector('svg');
+    if(active&&selected==='idle'&&motionEnabled)svg.dataset.idleAction=selectedIdle;
+    else delete svg.dataset.idleAction;
   });
   document.getElementById('qa-description').textContent=
-    states.find(state=>state.id===selected)?.description||'';
+    (states.find(state=>state.id===selected)?.description||'')+
+    (selected==='idle'?' · '+(idles.find(action=>action.id===selectedIdle)?.label||''):'');
+  document.querySelectorAll('[data-idle]').forEach(button=>{
+    button.setAttribute('aria-pressed',String(button.dataset.idle===selectedIdle));
+    button.disabled=selected!=='idle'||freeze.checked||systemReduced.matches;
+  });
 };
 document.querySelectorAll('[data-select]').forEach(button=>
   button.addEventListener('click',()=>{selected=button.dataset.select;render();})
 );
 freeze.addEventListener('change',render);
+document.querySelectorAll('[data-idle]').forEach(button=>
+  button.addEventListener('click',()=>{selectedIdle=button.dataset.idle;render();})
+);
+systemReduced.addEventListener?.('change',render);
 render();
 </script></body></html>`;
 const output = resolve(webDir, 'dist/nex-motion-preview.html');

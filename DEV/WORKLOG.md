@@ -6702,3 +6702,7 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - O terminal de agente consulta a configuração persistida para exibir o modo Safe/YOLO correto. A criação de agente e o alternador de modo usam o mesmo helper para gravar o modo e limpar flags conflitantes.
 - Removi o salto automático ao fim do buffer quando o terminal recebe eventos de roda do mouse e navegação por PageUp/PageDown/Home/End. A correção é compartilhada pelo PTY comum e pelo PTY de agente, incluindo OpenCode e Oh My Pi.
 - Cobertura adicionada para normalização do Codex, preservação de flags repetíveis, persistência do modo e navegação do scrollback. Validação final e limites documentados em `DEV/validation/TERMINALS_AGENTS_YOLO_SCROLL_20261026.md`.
+
+## NEX motion — 2026-11-01
+
+Auditoria parcial da base `8123c9ff`, ADR e correção de cancelamento reentrante no IdleDirector; QA híbrido corrigido e executado. 12 idles renderizáveis, 360°, HUD/Site e aprovação seguem pendentes. Ver `validation/NEX_MOTION_AUDIT_20261101.md` e `DECISIONS/NEX_INTERACTIVE_RENDERER_20261101.md`.

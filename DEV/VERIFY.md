@@ -2203,3 +2203,7 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - Escopo coberto: Codex (alias para a flag nativa), normalização compartilhada do launcher e ambos os componentes PTY, usados por OpenCode e Oh My Pi. Não foi feita chamada a modelo.
 - O binário beta.11 instalado continua aberto e não contém este overlay; há runtime Codex ativo. A atualização/reinício do aplicativo fica pendente para não interromper essa sessão.
 
+
+## NEX motion — 2026-11-01
+
+Vitest focado 8/8, checagem de arte e QA híbrido Chromium 18 verificações passaram sob as condições registradas em `validation/NEX_MOTION_AUDIT_20261101.md`; quality completo e QA nativa permanecem pendentes.

@@ -1,5 +1,13 @@
 # NEX Hero híbrido — implementação de fidelidade v1.1 (P0)
 
+## Atualização — 2026-11-01: laboratório de movimento (ainda candidato)
+
+A branch `feat/nex-interactive-motion-complete` amplia o preview local para cinco estados e 12 seletores de movimento e integra o `NexIdleDirector` ao `GuardianMascot`. A automação de navegador verifica os 12 IDs com movimento observável, preempção e `prefers-reduced-motion`; isso é evidência de mecânica do protótipo, **não** aprovação artística nem aprovação nativa. O preview está em `web/dist/nex-motion-preview/index.html` depois de `npm run art:nex:preview`; as capturas reproduzíveis ficam em `web/dist/nex-motion-preview-qa/` depois de `npm run art:nex:motion:qa`.
+
+Os doze movimentos usam CSS sobre as camadas atuais. `idle_head_tilt` ainda inclina o conjunto da cabeça montada, `idle_fin_twitch` move reflexos/highlights sem dobrar a geometria, e `idle_micro_stretch` é uma transformação visual, não um novo desenho pixel art. Não há sprite master Compact 64/Standard 128 aprovado, nem ângulos traseiros/perfis reais. A issue #129 e o player do site continuam `PENDING_ARTWORK`; nenhum giro é simulado.
+
+O site sincroniza os mesmos 13 arquivos candidatos por SHA-256 para seu laboratório privado/noindex. Isso não altera a homepage nem `nex-publication.json` (`BLOCKED`, `public_enabled=false`). Ver [ADR do renderer](../ADR-2026-11-01-renderer.md) para a decisão e seus limites de medição.
+
 ## Atualização — binários agora realmente versionados no Git (29/10/2026)
 
 A fonte PNG original (SHA-256 `ef7a4aeb7b24d2ab5f199f913d351414b8fafb0b6208b3ab2b665013adcb9118`), as 8 camadas individuais, os PNGs de base/reconstrução, o HTML e o gerador `build_layers.py` **foram adicionados como blobs binários Git** nesta branch. O atlas experimental de 96 quadros também foi incluído em `docs/design/nex/experimental-atlas/`, ainda sem aprovação artística.
@@ -27,7 +35,7 @@ O verificador valida as seis partes diretamente em memória, mesmo antes da rest
 - `module_1.png` até `module_4.png`: peças móveis recortadas sem redesenho, pivôs no `manifest.json`.
 - `fin_left.png`, `fin_right.png`: reflexos localizados nas aletas, para microajustes de brilho (não geometria 3D real).
 - `nex_hybrid_master.ora`: fonte editável OpenRaster em camadas para GIMP/Krita.
-- `index.html`: QA visual independente com cinco estados e as seis microações P0.
+- `index.html`: QA visual independente com cinco estados e doze seletores candidatos.
 - `reconstructed_idle.png`: imagem composta a partir das camadas.
 
 **QA da reconstrução v1.1 (fonte original preservada byte a byte):** testes reais no Chromium encontraram **áreas retangulares atrás dos olhos** durante a piscada, apesar da boa aparência em repouso. A base do visor foi refeita com preenchimento navy suave e transparência restaurada, sem modificar o PNG original. A diferença média contra a referência passa a **0,787/255 nos canais RGB** e **0,168/255 no alpha**; aproximadamente **12,31% dos pixels** da recomposição têm alguma diferença, em geral localizada no visor. A escolha prioriza uma piscada visualmente correta em vez de paridade RGB estática absoluta. **Aprovação perceptual humana permanece pendente.**
@@ -40,7 +48,7 @@ O verificador valida as seis partes diretamente em memória, mesmo antes da rest
 | `idle_blink` | escala vertical dos próprios olhos extraídos | visor sob os olhos tem preenchimento reconstruído |
 | `idle_glance` | deslocamento pequeno dos olhos | não produz pupilas 3D |
 | `idle_orbit_breathe` | quatro módulos separados com deslocamentos locais | sem troca de oclusão real |
-| `idle_head_tilt` | rotação de ±1,8° do personagem completo | **a cabeça ainda não tem rig totalmente separado** |
+| `idle_head_tilt` | rotação de ±1,8° do conjunto do personagem | **a cabeça ainda não tem rig totalmente separado** |
 | `idle_fin_twitch` | reflexos das aletas oscilam | **não é dobramento geométrico** |
 
 `idle_head_tilt` e `idle_fin_twitch` são **protótipos** de linguagem de movimento. A evolução definitiva requer recorte com preenchimento da cabeça/fin próprio e validação visual.

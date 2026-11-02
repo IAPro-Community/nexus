@@ -20,7 +20,9 @@ p{color:#9db7d2;line-height:1.55;margin:.4em 0 1.2em}
 .figure .original{z-index:9;opacity:0}
 .figure .fin{z-index:4;opacity:0}
 .figure .eyes{z-index:7;transform-origin:center center;}
+.figure .eyes{transition:transform 180ms ease-out}
 .figure .module{z-index:8;transform-origin:center center;animation:mod-breathe 4.2s ease-in-out infinite}
+.figure .module{transition:transform 180ms ease-out}
 .figure .module[data-id="module_2"]{animation-delay:-1.4s}
 .figure .module[data-id="module_3"]{animation-delay:-2.8s}
 .figure .module[data-id="module_4"]{animation-delay:-.65s}
@@ -33,6 +35,19 @@ p{color:#9db7d2;line-height:1.55;margin:.4em 0 1.2em}
 .figure[data-action="idle_head_tilt"]{animation:head-tilt 2.2s ease-in-out 1}
 .figure[data-action="idle_fin_twitch"] .fin{animation:fin-shine-fast 1.3s ease-in-out 1}
 .figure[data-action="idle_hover"]{animation:hover 3.4s ease-in-out infinite}
+.figure[data-action="idle_module_inspect"] .module[data-id="module_1"]{animation:module-inspect 1.8s ease-in-out 1 both}
+.figure[data-action="idle_module_inspect"] .eyes{animation:inspect-glance 1.8s ease-in-out 1 both}
+.figure[data-action="idle_orbit_shuffle"] .module{animation:orbit-shuffle 1.9s ease-in-out 1 both}
+.figure[data-action="idle_orbit_shuffle"] .module[data-id="module_2"]{animation-delay:-.18s}
+.figure[data-action="idle_orbit_shuffle"] .module[data-id="module_3"]{animation-delay:-.34s}
+.figure[data-action="idle_orbit_shuffle"] .module[data-id="module_4"]{animation-delay:-.52s}
+.figure[data-action="idle_curiosity"]{animation:head-tilt 1.8s ease-in-out 1 both}
+.figure[data-action="idle_curiosity"] .eyes{animation:curiosity 1.8s ease-in-out 1 both}
+.figure[data-action="idle_micro_stretch"]{animation:micro-stretch 1.8s ease-in-out 1 both}
+.figure[data-action="idle_drowse"] .eyes{animation:drowse 2.8s ease-in-out 1 both}
+.figure[data-action="idle_drowse"] .base{filter:brightness(.94) saturate(.88)}
+.figure[data-action="idle_wake"] .eyes{animation:wake 1.3s steps(1,end) 1 both}
+.figure[data-action="idle_wake"] .base{animation:wake-light 1.3s ease-out 1 both}
 .figure[data-state="working"] .module{animation-duration:2s}
 .figure[data-state="working"]{animation-duration:3s}
 .figure[data-state="warning"]{filter:drop-shadow(0 0 16px #ff8a4540)}
@@ -59,6 +74,14 @@ small{font-size:11px;color:#83a5ca;line-height:1.5}.status{padding:12px;backgrou
 @keyframes head-tilt{0%,100%{transform:rotate(0)}38%{transform:rotate(-1.8deg)}68%{transform:rotate(1deg)}}
 @keyframes fin-shine{0%,89%,100%{opacity:0;filter:brightness(1)}91%,94%{opacity:.33;filter:brightness(1.4)}}
 @keyframes fin-shine-fast{0%,100%{opacity:0;filter:brightness(1)}33%,55%{opacity:.40;filter:brightness(1.5)}}
+@keyframes module-inspect{0%,100%{transform:translate(0,0) scale(1)}38%,65%{transform:translate(1px,-4px) scale(1.12)}}
+@keyframes inspect-glance{0%,100%{transform:translateX(0)}42%,65%{transform:translateX(-4px)}}
+@keyframes orbit-shuffle{0%,100%{transform:translate(0,0)}38%{transform:translate(2px,-2px)}68%{transform:translate(-2px,2px)}}
+@keyframes curiosity{0%,100%{transform:translateY(0) scale(1)}38%,64%{transform:translateY(-2px) scale(1.04)}}
+@keyframes micro-stretch{0%,100%{transform:scaleY(1)}40%,65%{transform:scaleY(1.025)}}
+@keyframes drowse{0%,100%{transform:scaleY(1)}45%,72%{transform:scaleY(.72)}}
+@keyframes wake{0%,22%,42%,100%{transform:scaleY(1)}28%,35%{transform:scaleY(.12)}}
+@keyframes wake-light{from{filter:brightness(.94) saturate(.88)}to{filter:none}}
 @media(max-width:900px){.shell{grid-template-columns:1fr}.viewport{min-height:320px}.figure{width:min(100%,520px)}}
 @media(prefers-reduced-motion:reduce){.figure,.figure *{animation:none!important;transition:none!important}}
 </style></head>
@@ -72,35 +95,36 @@ small{font-size:11px;color:#83a5ca;line-height:1.5}.status{padding:12px;backgrou
 </div></div>
 <section class="controls" aria-label="Controle de animações NEX">
 <div><strong>Estados operacionais</strong><div class="buttons" id="states"></div></div>
-<div><strong>Seis ações idle</strong><div class="buttons" id="idles"></div></div>
+<div><strong>Doze movimentos candidatos</strong><div class="buttons" id="idles"></div></div>
 <div><label><input id="auto" type="checkbox" checked/> Microações aleatórias discretas</label>
 <label><input id="motion" type="checkbox" checked/> Movimento ativo</label>
 <label><input id="compare" type="checkbox"/> Comparar PNG sem camadas (original)</label></div>
 <div class="status" id="status"><span class="swatch"></span> Idle · Movimento mínimo</div>
-<small>Os módulos usam as âncoras originais; pixels sob olhos e módulos são preenchimentos de restauração para permitir gestos. Arte em camadas ainda exige aprovação humana. O modo reduzido respeita o sistema operacional.</small>
-<small>Não contém rotação 360°, atlas retro por frames, integração com Core ou validação do HUD nativo.</small>
+<small>Os módulos usam as âncoras originais; pixels sob olhos e módulos são preenchimentos de restauração. Inclinação ainda move a composição completa e o movimento de aletas deste raster é um reflexo, sem dobramento geométrico. A arte permanece candidata e exige aprovação humana. O modo reduzido respeita o sistema operacional.</small>
+<small>O catálogo exercita 12 IDs, mas esta prévia não é o atlas retro Compact/Standard nem integra estados do Core. Não contém rotação 360° ou validação do HUD nativo.</small>
 </section></div>
 </main><script>
 const figure=document.getElementById('nex');const manifest={"layers": [{"id": "module_1", "file": "module_1.png", "x": 41, "y": 656, "width": 253, "height": 249, "role": "floating-module", "anchor": [164, 780]}, {"id": "module_2", "file": "module_2.png", "x": 977, "y": 658, "width": 240, "height": 246, "role": "floating-module", "anchor": [1096, 784]}, {"id": "module_3", "file": "module_3.png", "x": 204, "y": 888, "width": 215, "height": 207, "role": "floating-module", "anchor": [311, 992]}, {"id": "module_4", "file": "module_4.png", "x": 830, "y": 894, "width": 199, "height": 215, "role": "floating-module", "anchor": [929, 1001]}, {"id": "eye_left", "file": "eye_left.png", "x": 368, "y": 412, "width": 221, "height": 172, "role": "visor-expression", "anchor": [478, 498]}, {"id": "eye_right", "file": "eye_right.png", "x": 672, "y": 411, "width": 225, "height": 174, "role": "visor-expression", "anchor": [784, 498]}, {"id": "fin_left", "file": "fin_left.png", "x": 241, "y": 17, "width": 162, "height": 340, "role": "fin-glint", "anchor": [330, 360]}, {"id": "fin_right", "file": "fin_right.png", "x": 862, "y": 30, "width": 171, "height": 325, "role": "fin-glint", "anchor": [937, 360]}]};
 const states=['idle','working','warning','critical','offline'];
-const idles=[['idle_hover','Flutuar'],['idle_blink','Piscar'],['idle_glance','Olhar'],['idle_orbit_breathe','Módulos'],['idle_head_tilt','Inclinar'],['idle_fin_twitch','Aletas']];
+const idles=[['idle_hover','Flutuar'],['idle_blink','Piscar'],['idle_glance','Olhar'],['idle_orbit_breathe','Respirar órbita'],['idle_head_tilt','Inclinar cabeça'],['idle_fin_twitch','Ajustar aletas'],['idle_module_inspect','Inspecionar módulo'],['idle_orbit_shuffle','Reorganizar órbita'],['idle_curiosity','Curiosidade'],['idle_micro_stretch','Alongar'],['idle_drowse','Cochilar'],['idle_wake','Acordar']];
 const renderButtons=(id,values,label)=>document.getElementById(id).innerHTML=values.map(([value,text])=>'<button type="button" data-action-value="'+value+'" aria-pressed="'+String(value==='idle')+'">'+text+'</button>').join('');
 renderButtons('states',states.map(x=>[x,x]),'Estado');renderButtons('idles',idles,'Gesto');
 const stateButtons=[...document.querySelectorAll('#states button')];
 const btns=[...document.querySelectorAll('#idles button')];
-let state='idle',current=null,nextTimer=null,finishTimer=null,seq=1729;
+let state='idle',current=null,previous=null,nextTimer=null,finishTimer=null,seq=1729,lastInteraction=Date.now(),drowsed=false;
 const rng=()=>{seq=(seq*1664525+1013904223)>>>0;return seq/4294967296};
 const enabled=()=>document.getElementById('motion').checked&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&state==='idle'&&!document.hidden;
 const stop=()=>{clearTimeout(nextTimer);clearTimeout(finishTimer);nextTimer=finishTimer=null;current=null;figure.dataset.action='';btns.forEach(b=>b.setAttribute('aria-pressed','false'))};
-const act=(id)=>{if(!enabled())return;stop();current=id;figure.dataset.action=id;for(const b of btns)b.setAttribute('aria-pressed',String(b.dataset.actionValue===id));document.getElementById('status').textContent='Idle: '+(idles.find(a=>a[0]===id)?.[1]||id);finishTimer=setTimeout(()=>{stop();schedule()},id==='idle_hover'?2700:2300)};
-const schedule=()=>{clearTimeout(nextTimer);if(!enabled()||!document.getElementById('auto').checked)return;nextTimer=setTimeout(()=>{const options=idles.filter(x=>x[0]!=='idle_hover');const pick=options[Math.floor(rng()*options.length)][0];act(pick)},12000+Math.floor(rng()*18000))};
-stateButtons.forEach(button=>button.addEventListener('click',()=>{stop();state=button.dataset.actionValue;figure.dataset.state=state;stateButtons.forEach(x=>x.setAttribute('aria-pressed',String(x===button)));document.getElementById('status').textContent='Estado: '+state;if(state==='idle')schedule()}));
-btns.forEach(button=>button.addEventListener('click',()=>act(button.dataset.actionValue)));
-document.getElementById('motion').addEventListener('change',e=>{figure.dataset.motion=e.target.checked?'on':'off';stop();schedule()});
+const duration=(id)=>({idle_hover:2800,idle_blink:650,idle_glance:1700,idle_orbit_breathe:1700,idle_head_tilt:1800,idle_fin_twitch:1300,idle_module_inspect:1800,idle_orbit_shuffle:1900,idle_curiosity:1800,idle_micro_stretch:1800,idle_drowse:2800,idle_wake:1300}[id]||1800);
+const act=(id)=>{if(!enabled())return;stop();current=id;previous=id;figure.dataset.action=id;for(const b of btns)b.setAttribute('aria-pressed',String(b.dataset.actionValue===id));document.getElementById('status').textContent='Idle: '+(idles.find(a=>a[0]===id)?.[1]||id);if(id==='idle_drowse')drowsed=true;if(id==='idle_wake')drowsed=false;finishTimer=setTimeout(()=>{stop();schedule()},duration(id))};
+const schedule=()=>{clearTimeout(nextTimer);if(!enabled()||!document.getElementById('auto').checked||drowsed)return;nextTimer=setTimeout(()=>{if(Date.now()-lastInteraction>=180000){act('idle_drowse');return}const options=idles.filter(x=>!['idle_drowse','idle_wake'].includes(x[0])&&x[0]!==previous);const pick=options[Math.floor(rng()*options.length)][0];act(pick)},24000+Math.floor(rng()*12000))};
+stateButtons.forEach(button=>button.addEventListener('click',()=>{stop();state=button.dataset.actionValue;figure.dataset.state=state;stateButtons.forEach(x=>x.setAttribute('aria-pressed',String(x===button)));document.getElementById('status').textContent='Estado: '+state;if(state==='idle'){lastInteraction=Date.now();schedule()}}));
+btns.forEach(button=>button.addEventListener('click',()=>{lastInteraction=Date.now();if(drowsed)drowsed=false;act(button.dataset.actionValue)}));
+document.getElementById('motion').addEventListener('change',e=>{figure.dataset.motion=e.target.checked?'on':'off';stop();if(e.target.checked)lastInteraction=Date.now();schedule()});
 document.getElementById('auto').addEventListener('change',schedule);
 document.getElementById('compare').addEventListener('change',e=>{figure.dataset.reconstruction=e.target.checked?'off':'on';stop();schedule()});
-document.addEventListener('visibilitychange',()=>{stop();schedule()});
-const mq=matchMedia('(prefers-reduced-motion: reduce)');mq.addEventListener?.('change',()=>{stop();schedule()});
+document.addEventListener('visibilitychange',()=>{stop();if(!document.hidden)schedule()});
+const mq=matchMedia('(prefers-reduced-motion: reduce)');mq.addEventListener?.('change',()=>{stop();if(!mq.matches)schedule()});
 const canvas=1254;for(const item of manifest.layers){
   const img=document.createElement('img');img.src=item.file;img.alt='';img.draggable=false;img.dataset.id=item.id;
   img.className='layer '+(item.role==='floating-module'?'module':item.role==='visor-expression'?'eyes':'fin');
