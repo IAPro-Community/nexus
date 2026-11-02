@@ -114,3 +114,33 @@ func TestMaestroBridgeReplyChecksIdentityAndSize(t *testing.T) {
 		t.Fatal("oversized Bridge response accepted")
 	}
 }
+
+func TestMaestroProjectIdentityRequiresEvidence(t *testing.T) {
+	content := "# Canonical project context"
+	good := maestroProjectionJSON(content)
+	var envelope map[string]any
+	if err := json.Unmarshal(good, &envelope); err != nil {
+		t.Fatal(err)
+	}
+	project, ok := envelope["project"].(map[string]any)
+	if !ok {
+		t.Fatal("project envelope missing")
+	}
+	// A known project without a stable identity cannot be presented to
+	// Composer/Flow as verified canonical context.
+	project["id"] = ""
+	raw, err := json.Marshal(envelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := decodeMaestroProjectResult("project.context", raw); err == nil {
+		t.Fatal("known Maestro project without an ID was accepted")
+	}
+
+	// Older Bridge versions may provide verified brief content, but must
+	// not be shown as carrying a fabricated Maestro project identity.
+	legacy, err := decodeMaestroProjectResult("context.brief", maestroVerifiedContextJSON(content))
+	if err != nil || legacy.Project != nil || legacy.Method != "context.brief" {
+		t.Fatalf("legacy projected a fake identity: %+v, %v", legacy, err)
+	}
+}
