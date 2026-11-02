@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   CANVAS_SIZE, clamp01, smoothstep, idlePose, blinkScale, orbitPose,
+  orbitFrontWeight, idleModulePose,
   ORBIT_ANGULAR_SPEED,
 } from '../public/nex/rig-v1/nex-motion-core.mjs';
 
@@ -51,4 +52,40 @@ test('Invalid rig parameters are bounded or rejected', () => {
   assert.equal(smoothstep(5), 1);
   assert.throws(() => orbitPose(4, 1, 1), RangeError);
   assert.throws(() => orbitPose(-1, 1, 1), RangeError);
+});
+
+test('NEX idle: all modules have small, distinct non-repetitive secondary drift', () => {
+  const poses = [0, 1, 2, 3].map((i) => idleModulePose(i, 4.25));
+  const displacements = new Set(poses.map((p) => p.dx.toFixed(3) + ':' + p.dy.toFixed(3)));
+  assert.equal(displacements.size, 4, 'modules should not all float in sync');
+  for (const p of poses) {
+    assert.ok(Math.abs(p.dx) <= 3.2 && Math.abs(p.dy) <= 4.4);
+    assert.ok(Math.abs(p.rotation) <= 0.018);
+    assert.ok(p.scale > 0.99 && p.scale < 1.01);
+  }
+  assert.deepEqual(poses, [0, 1, 2, 3].map((i) => idleModulePose(i, 4.25)));
+});
+
+test('NEX orbital crossing: no abrupt full-sprite jump between front and rear', () => {
+  assert.equal(orbitFrontWeight(-1, 0), 1, 'idle preserves canonical front layer');
+  assert.equal(orbitFrontWeight(-1, 1), 0, 'fully rear goes behind body');
+  assert.equal(orbitFrontWeight(1, 1), 1, 'fully front stays in front');
+  const middle = orbitFrontWeight(0, 1);
+  assert.ok(middle > 0.45 && middle < 0.55, 'at crossing both passes blend');
+  let prev = orbitFrontWeight(-1, 1);
+  for (let step = 1; step <= 1000; step++) {
+    const now = orbitFrontWeight(-1 + step * 0.002, 1);
+    assert.ok(now >= prev, 'front weight cannot reverse its depth priority');
+    assert.ok(Math.abs(now - prev) < 0.02, 'opacity crossing must be continuous');
+    prev = now;
+  }
+});
+
+test('NEX orbital painting weights change continuously while returning to idle', () => {
+  let before = orbitFrontWeight(-0.9, 0);
+  for (let step = 1; step <= 100; step++) {
+    const after = orbitFrontWeight(-0.9, step / 100);
+    assert.ok(Math.abs(after - before) < 0.04);
+    before = after;
+  }
 });
