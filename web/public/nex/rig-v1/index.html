@@ -58,10 +58,11 @@ footer{display:flex;justify-content:space-between;gap:18px;font-size:11px;color:
  <div class="modes" role="group" aria-label="Selecionar animação">
   <button id="idle" type="button" class="mode" aria-pressed="true"><strong>01 · Idle</strong><span>Flutuar, respirar, piscar e observar</span></button>
   <button id="orbit" type="button" class="mode" aria-pressed="false"><strong>02 · Orbit</strong><span>Quatro módulos em órbita com profundidade</span></button>
- </div><p class="description" id="description">Idle: flutuação suave em ritmos diferentes, olhos atentos, piscadas discretas, reflexos e núcleo respirando.</p></section>
+ </div><p class="description" id="description">Idle: flutuação suave em ritmos diferentes, quatro módulos com tempos próprios, olhos atentos, piscadas discretas, reflexos e núcleo respirando.</p></section>
  <section class="card"><h2>Controles da prévia</h2>
  <label class="switch"><input id="motion" type="checkbox" checked> Animação ativa</label>
  <label class="switch"><input id="compare" type="checkbox"> Comparar PNG original imóvel</label>
+ <label class="switch"><input id="rigOverlay" type="checkbox"> Mostrar pivôs e órbita (QA)</label>
  <p class="notice">Desabilitar movimento ou ativar a comparação exibe o arquivo original sem nenhuma recomposição.</p></section>
  <section class="card"><h2>Separação real de elementos</h2>
  <div class="evidence">
@@ -73,7 +74,7 @@ footer{display:flex;justify-content:space-between;gap:18px;font-size:11px;color:
  <section class="card"><h2>Fidelidade e limites</h2>
  <p class="notice">Este <strong>PNG de 1254 px é um candidato</strong>, não o master pixel art da prancha selecionada de 1536 × 1024 px. Ainda não existe um arquivo Rive .riv homologado. Este protótipo executa animação real de camadas em Canvas 2D. <a href="https://github.com/IAPro-Community/nexus/issues/174">Issue de fidelidade #174</a>.</p></section>
 </aside></div>
-<footer><span>Prévia sem telemetria do Core, noindex e não integrada ao HUD de produção.</span><span>Rig v0.1 · Idle + Orbit · IAPro-Community / Nexus</span></footer></main>
+<footer><span>Prévia sem telemetria do Core, noindex e não integrada ao HUD de produção.</span><span>Rig v0.2 · Idle + Orbit · IAPro-Community / Nexus</span></footer></main>
 <script type="module">
 import { NexRigPlayer } from './nex-rig-player.mjs';
 const canvas = document.getElementById('nex-canvas');
@@ -84,6 +85,7 @@ const idle = document.getElementById('idle');
 const orbit = document.getElementById('orbit');
 const motion = document.getElementById('motion');
 const compare = document.getElementById('compare');
+const rigOverlay = document.getElementById('rigOverlay');
 let player;
 try {
   player = new NexRigPlayer(canvas, {
@@ -109,7 +111,7 @@ function setMode(mode) {
   status.textContent = mode.toUpperCase() + ' · 8 CAMADAS';
   description.textContent = mode === 'idle'
     ? 'Idle: flutuação suave, respiração em dois ritmos, olhos atentos, blink não repetitivo, reflexos de aleta e luz do núcleo.'
-    : 'Orbit: quatro módulos seguem uma elipse em torno do Nex. Quando cruzam o fundo, ficam atrás do torso; ao voltarem, passam para a frente com perspectiva, escala e tempos próprios.';
+    : 'Orbit: quatro módulos seguem uma elipse em torno do Nex. O cruzamento frente/trás é interpolado para evitar saltos bruscos de profundidade.';
 }
 function syncMotion() {
   player?.setMotion(motion.checked && !compare.checked);
@@ -120,5 +122,6 @@ idle.addEventListener('click', () => setMode('idle'));
 orbit.addEventListener('click', () => setMode('orbit'));
 motion.addEventListener('change', syncMotion);
 compare.addEventListener('change', syncMotion);
+rigOverlay.addEventListener('change', () => player?.setRigOverlay(rigOverlay.checked));
 window.addEventListener('pagehide', () => player?.destroy(), { once: true });
 </script></body></html>
