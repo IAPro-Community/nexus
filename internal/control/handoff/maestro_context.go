@@ -9,12 +9,9 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 	"unicode/utf16"
 
 	"github.com/IAPro-Community/nexus/internal/core/security"
-	"github.com/IAPro-Community/nexus/internal/executil"
-	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 const maestroContextBudget = 8000
@@ -35,36 +32,15 @@ type maestroContextReply struct {
 	} `json:"error"`
 }
 
-// A read-only Maestro Bridge request; semantic content is kept solely in
-// the ephemeral handoff prompt, not copied into the Nexus checkpoint store.
+// fetchMaestroContextBrief is retained for the handoff call site, but now
+// negotiates the canonical project.context method before accepting a bounded
+// context.brief result from a compatible older external Maestro installation.
 func fetchMaestroContextBrief(parent context.Context, workspace, task string) (string, error) {
-	binary, err := runtime.LookPath("orquestrador-maestro")
-	if err != nil {
-		return "", fmt.Errorf("maestro CLI unavailable: %w", err)
-	}
-	ctx, cancel := context.WithTimeout(parent, 5*time.Second)
-	defer cancel()
-	params := map[string]any{"maxChars": maestroContextBudget}
-	if task != "" {
-		runes := []rune(security.Redact(task))
-		if len(runes) > 400 {
-			runes = runes[:400]
-		}
-		params["task"] = string(runes)
-	}
-	request, err := json.Marshal(map[string]any{
-		"jsonrpc": "2.0", "id": 1, "method": "context.brief", "params": params,
-	})
+	projectContext, err := FetchMaestroProjectContext(parent, workspace, task)
 	if err != nil {
 		return "", err
 	}
-	cmd := executil.CommandContext(ctx, binary, "bridge", "--stdio", "--project-path", workspace)
-	cmd.Stdin = bytes.NewReader(append(request, '\n'))
-	out, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("maestro context request failed: %w", err)
-	}
-	return decodeMaestroContextBrief(out)
+	return projectContext.Context, nil
 }
 
 func decodeMaestroContextBrief(raw []byte) (string, error) {
