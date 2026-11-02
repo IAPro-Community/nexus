@@ -28,13 +28,15 @@ const LABELS: Record<MaestroRoutingProvider, string> = {
   claude: 'Claude',
 };
 const defaultSandbox = (providerId: SelectedProvider): MaestroWorkAssignmentInput['sandbox'] =>
-  providerId === 'agy' ? 'enabled' : providerId === 'codex' ? 'workspace-write' : 'none';
+  providerId === 'agy' ? 'enabled' : providerId === 'codex' ? 'read-only' : 'none';
 
 function suggested(step: FlowStepModel): AssignmentDraft {
   const provider = PROVIDERS.find((id) => id === step.provider) || '';
   return {
     providerId: provider,
-    model: step.profile || '',
+    // Flow profile identifies an account/profile, not a provider model.
+    // Model selection remains explicitly editable in this preview.
+    model: '',
     sandbox: defaultSandbox(provider),
     worktreePath: '',
   };
