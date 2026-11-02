@@ -50,9 +50,11 @@ export interface NexCompletedRecord {
 
 export function nexCompletedEventId(record: NexCompletedRecord): string | null {
   const state = typeof record.state === 'string' ? record.state.toUpperCase() : '';
-  if (!record.project_id ||
+  if (
+    !record.project_id ||
     !record.mission_id ||
-    !/^(COMPLETED_VERIFIED|COMPLETED|SUCCEEDED|SUCCESS)$/.test(state)) {
+    !/^(COMPLETED_VERIFIED|COMPLETED|SUCCEEDED|SUCCESS)$/.test(state)
+  ) {
     return null;
   }
   // An old completed record must not trigger a new celebration.
