@@ -10,6 +10,7 @@ import { FlowGoalBar } from './FlowGoalBar';
 import { FeatureTour } from './FeatureTour';
 import { FeatureHint } from './FeatureHint';
 import { ComposerHandoffSummary } from './ComposerHandoffSummary';
+import { MaestroRoutingPreview } from './MaestroRoutingPreview';
 import { FlowPipeline } from './FlowPipeline';
 import { FlowStepInspector } from './FlowStepInspector';
 import type { FlowDraftModel } from './flowModel';
@@ -71,6 +72,14 @@ export const FlowDraftEditor: React.FC<{
       <div data-tour="flow-handoff">
         <ComposerHandoffSummary plan={controller.selectedPlan} />
       </div>
+      {controller.selectedPlan && flowDraft && (
+        <MaestroRoutingPreview
+          project={project}
+          plan={controller.selectedPlan}
+          draft={flowDraft}
+          dirty={controller.flowDirty}
+        />
+      )}
 
       {planError && (
         <InlineAlert
