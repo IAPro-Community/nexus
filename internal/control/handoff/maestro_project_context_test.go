@@ -101,8 +101,7 @@ func TestMaestroBridgeReplyChecksIdentityAndSize(t *testing.T) {
 		`{"jsonrpc":"2.0","id":2,"error":{"code":-32601}}` + "\n",
 		makeReply(2, "null"),
 		"not-json\n",
-		`{"jsonrpc":"2.0","id":2,"result":` + strings.Repeat("x", maestroBridgeReplyLimit) + "
-",
+		`{"jsonrpc":"2.0","id":2,"result":` + strings.Repeat("x", maestroBridgeReplyLimit) + "\n",
 	}
 	for _, input := range cases {
 		if _, err := readMaestroBridgeReply(bufio.NewReader(strings.NewReader(input)), 2); err == nil {
