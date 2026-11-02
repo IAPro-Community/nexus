@@ -7,6 +7,7 @@ import type { FSInspectResult, Project } from '../../types';
 import { DirectoryBrowserModal } from './DirectoryBrowserModal';
 import { ProjectScanModal } from './ProjectScanModal';
 import { selectProjectDirectory } from './projectDirectoryPicker';
+import { getRepositoryPathPlaceholderKey } from './repositoryPathPlaceholder';
 
 export const AddProjectModal: React.FC<{
   open: boolean;
@@ -14,6 +15,9 @@ export const AddProjectModal: React.FC<{
   onCreated: (project: Project) => void;
 }> = ({ open, onClose, onCreated }) => {
   const { t } = useTranslation();
+  const pathPlaceholder = t(
+    getRepositoryPathPlaceholderKey(typeof navigator === 'undefined' ? '' : navigator.userAgent),
+  );
   const [path, setPath] = useState('');
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
@@ -113,7 +117,7 @@ export const AddProjectModal: React.FC<{
                 value={path}
                 onChange={setPath}
                 onEnter={handleCreate}
-                placeholder="/home/user/my-repository"
+                placeholder={pathPlaceholder}
                 mono
                 autoFocus
               />

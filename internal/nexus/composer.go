@@ -167,15 +167,16 @@ func (n *Nexus) createComposerSessionWithPromptProgress(
 	}
 
 	progress.Step("project_intel", "started")
-	if grounded, groundedErr := n.BoundedProjectIntelligenceContext(ctx, projectID); groundedErr == nil {
-		applySnapshotFactsToBrief(&brief, grounded)
+	groundedContext, groundedContextErr := n.BoundedProjectIntelligenceContext(ctx, projectID)
+	if groundedContextErr == nil {
+		applySnapshotFactsToBrief(&brief, groundedContext)
 		progress.Step("project_intel", "done")
 	} else {
 		progress.Step("project_intel", "skipped")
 	}
 
 	progress.Step("context_discovery", "started")
-	manifest, manifestErr := n.BuildComposerContextManifest(ctx, projectID, brief)
+	manifest, manifestErr := n.buildComposerContextManifest(ctx, projectID, brief, groundedContext, groundedContextErr, true)
 	if manifestErr != nil {
 		progress.Step("context_discovery", "skipped")
 	} else {
@@ -211,7 +212,7 @@ func (n *Nexus) createComposerSessionWithPromptProgress(
 	if memFacts, memErr := n.MemoryFactsMap(ctx, projectID); memErr == nil {
 		MarkMemoryCoveredUnknowns(&brief, memFacts)
 	}
-	if finalManifest, finalManifestErr := n.BuildComposerContextManifest(ctx, projectID, brief); finalManifestErr == nil {
+	if finalManifest, finalManifestErr := n.buildComposerContextManifest(ctx, projectID, brief, groundedContext, groundedContextErr, true); finalManifestErr == nil {
 		manifest = finalManifest
 	}
 	briefJSON, _ := json.Marshal(brief)

@@ -109,6 +109,30 @@ func TestDiscoverReturnsStructuredFactsWithProvenance(t *testing.T) {
 	}
 }
 
+func TestDiscoverWithIdentityReusesCallerObservation(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "AGENTS.md"), []byte("Project conventions"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	identity := CodeIdentity{
+		RepositoryKind: "filesystem",
+		State:          CodeIdentityNonGit,
+		Complete:       true,
+		IdentityDigest: "caller-observed-identity",
+	}
+
+	snapshot, err := DiscoverWithIdentity(root, Metadata{ProjectID: "project-cached"}, identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snapshot.Identity.IdentityDigest != identity.IdentityDigest {
+		t.Fatalf("discovery identity=%q, want supplied identity %q", snapshot.Identity.IdentityDigest, identity.IdentityDigest)
+	}
+	if snapshot.ProjectID != "project-cached" || len(snapshot.Facts) == 0 {
+		t.Fatalf("unexpected snapshot metadata or facts: %+v", snapshot)
+	}
+}
+
 func TestDiscoverExtractsOperationalProjectIntelligence(t *testing.T) {
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, "packages", "web"), 0700); err != nil {

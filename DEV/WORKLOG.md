@@ -1,5 +1,14 @@
 # Worklog: IAPro Nexus Evolution & Project Alignment
 
+## 2026-10-08 — Reteste Windows ProjectHub e auditoria de branches
+
+- Repetido o E2E hardening no Windows com Node 24.19.0; viewport 775×483, alerta 403, CTA e criação legítima passaram. `quality:full` passou com 83 arquivos/490 testes/build.
+- Corrigidos os placeholders POSIX nos formulários de projeto com exemplos Windows/macOS/POSIX localizados; teste do seletor 3/3. Smoke Desktop com ID temporário, diretórios isolados e captura nativa visível passaram.
+- Tentados os smokes TTY Codex/AGY sem enviar prompts; Nexus bloqueou por não haver perfis habilitados. OpenCode, CI GitHub, assinatura e NSIS continuam indisponíveis.
+- Auditadas refs vivas: release e56c091f; nenhuma branch Beta 7 nova pendente. KIVER ancestral; fixes de terminal cobertos; beta8/v1.1 fora do escopo; gap-closure não deve ser integrada em bloco.
+- `docs-verify` recusou o manifesto visual devido aos arquivos frontend sem commit; fluxo seguinte é capturar/atualizar manifesto contra SHA imutável após aprovação explícita de commit.
+- Atualizados relatório Windows, status, verify e handoff. Worktree está dirty; sem commit/push; distribuição permanece NO-GO.
+
 ## 2026-10-07 — Smoke Windows WebView2 e auditoria de branches
 
 - Isolados perfis Wails Desktop/HUD em LOCALAPPDATA, com IDs de instância de smoke separados dos IDs de distribuição. Workflow passa a compilar executáveis próprios e exige diretórios WebView2 criados.
@@ -5214,3 +5223,10 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Nenhuma branch nova foi criada. `fix/beta7-windows-KIVER-20261007` continua em `d14154d2`, ancestral do candidato, sem integração pendente.
 - A tag `v1.0.0-beta.7` continua ausente. `gh` não está instalado e o Actions API não autenticado retornou 404; CI pós-push não foi confirmado. Nenhum release público foi publicado.
 - A sincronização documental posterior foi enviada por fast-forward de `f1928d0f` para `5a08a1807c4489395dca86ed198f268ea676d2e4`; `git ls-remote` confirmou esse HEAD antes do registro final de status. O código homologado `d840797b` permanece ancestral, a árvore está limpa e não há gate Linux nesta rodada.
+
+## Continuidade Windows beta.7 no snapshot remoto — 2026-10-08
+
+- Atualizado o estado com ref cacheada `origin/release/v1.0.0=81dea07b`; checkout principal em `e56c091f`, dirty; `VERSION=1.0.0-beta.7`.
+- Go fmt/vet/lint/govulncheck/tests e Bun frozen install passaram no worktree temporário Windows. `quality:full` bruto falhou; passou somente com duas alterações locais de teste, portanto não fecha o gate do SHA.
+- Oito E2E, builds CLI/Desktop/HUD e smokes nativos Desktop/HUD passaram com as limitações registradas. KIVER `d14154d2` está 18 atrás/0 à frente nas refs cacheadas; nenhuma integração pendente conhecida.
+- `git ls-remote` falhou por DNS; estado remoto ao vivo, tag e branches criadas após último fetch permanecem não revalidados. Release segue NO-GO; sem gates Linux, commit, push ou tag.

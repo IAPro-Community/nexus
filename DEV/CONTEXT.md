@@ -9,7 +9,7 @@
   o registro final apague a geração usada pelo attach.
 - A instalação local reinicia apenas o `nexus web` associado ao binário
   instalado, evitando hosts Web em memória com executável `(deleted)`.
-- Branch ativa neste checkout Windows: release/v1.0.0, HEAD-base 52f35c04181b85379219ab55fc3192c63a5440a8; a árvore suja contém ajustes locais de homologação. Não há merge Beta 7 pendente. Gates Windows locais passaram; NSIS exato compilado e variante isolada com payload real passaram; Desktop Wails/WebView2 validado por 10s com cleanup limitado ao perfil Nexus. Exact-SHA, gate docs-verify (manifesto visual stale em 2892f301), renderização visual, CI nativo, Authenticode e update trust root continuam NO-GO; host sem runner Windows, Windows SDK/signtool e certificado.
+- Branch canônica: `release/v1.0.0`; HEAD local `e56c091f5038a8c972c339f47a960167077e45d8`, ref cacheada `origin/release/v1.0.0=81dea07b3fba6d08fbf80c71c17c09518435aa64`; atualização viva bloqueada por DNS. `VERSION=1.0.0-beta.7`. No Windows, Go gates passaram em 81dea07b, mas `bun run quality:full` bruto falhou em formatação/teste obsoleto; apenas a cópia isolada com duas alterações locais de teste passou. KIVER d14154d2 está 18 commits atrás/0 à frente nas refs cacheadas; nenhuma integração pendente conhecida. Release NO-GO; foco Windows, sem gates Linux nesta continuidade.
 - Versão-fonte: arquivo `VERSION`.
 - Launcher destacado usa envelopes privados de uso único para argumentos opacos.
 - Motor de Flags Canônicas e Normalização (`internal/control/flags`): mapeamento transparente de `--yolo`, `-y`, `--continue`, `-c`, `--resume`, `-r`, `--print`, `-p`, `--effort`, `--plan` e suporte a `Merged Help` (`nexus <provider> --help`).

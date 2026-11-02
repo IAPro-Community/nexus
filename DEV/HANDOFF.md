@@ -2,13 +2,23 @@
 
 ## Estado atual — homologação Windows beta.7 — 2026-10-08
 
-Código validado: `release/v1.0.0` em `d840797bbd975a5c7edc54ebe23f3dfef56ff947`, `VERSION=1.0.0-beta.7`. Os gates automatizados locais Windows passaram: Go fmt/vet/lint/security/testes, Bun frozen install + `quality:full`, oito suítes browser E2E, Axe/visual e builds CLI/Desktop/HUD. Smokes isolados Desktop/WebView2 (9 s) e HUD (8 s) passaram. Relatório: `DEV/validation/BETA7_WINDOWS_FINAL_20261008.md`; evidências/hash: `DEV/validation/local-beta/1.0.0-beta.7/d840797bbd975a5c7edc54ebe23f3dfef56ff947/windows-AMD64/`.
+O checkout principal está em `release/v1.0.0` no SHA `e56c091f5038a8c972c339f47a960167077e45d8`, um commit atrás da ref cacheada `origin/release/v1.0.0=81dea07b3fba6d08fbf80c71c17c09518435aa64`. A tentativa de atualização viva falhou porque `github.com` não resolveu por DNS. `VERSION=1.0.0-beta.7`. O worktree principal já estava dirty; a validação isolada ocorreu em worktree temporário Windows AMD64.
 
-A consulta viva ao remoto confirmou `origin/release/v1.0.0` em `52f35c04181b85379219ab55fc3192c63a5440a8` antes desta continuidade; o código validado e os relatórios foram enviados por fast-forward a f1928d0f, seguidos por uma sincronização documental em `5a08a1807c4489395dca86ed198f268ea676d2e4`. O SHA de código validado `d840797b` é ancestral. A branch KIVER `d14154d2` é ancestral do candidato local. Nenhuma branch Beta 7 nova foi criada e não há cherry-pick/merge necessário.
+No SHA `81dea07b`, `gofmt`, `go vet`, `golangci-lint`, `govulncheck` e `go test -count=1 ./...` passaram. Bun frozen install passou. O `quality:full` bruto falhou em Prettier em `ptyLiveChrome.test.ts`; após formatação local, falhou a expectativa antiga em `taskbarHonesty.test.ts`. O gate passou (82 arquivos/488 testes/build) somente depois de alterações locais e não commitadas nesses dois testes. Oito suítes E2E, builds CLI/Desktop/HUD e smokes nativos Desktop/HUD passaram no worktree temporário, que também tem evidências E2E geradas modificadas.
 
-Veredito é PASS técnico local, **não GO de distribuição**. Não há `gh`, `signtool.exe`, `makensis.exe` ou secrets de assinatura neste host; CI exact-SHA, Authenticode, instalador exato e smokes manuais de provider/Mission/Voice permanecem pendentes. Binários e ZIPs são `NotSigned`. O diagnóstico encontrou Gemini CLI acoplado a Node 18.12.1, sem smoke provider aprovado. Nenhum gate Linux foi executado nesta continuação. Não criar tag/publicar até resolver os gates externos e manuais.
+Nas refs cacheadas, KIVER `d14154d2` está 18 commits atrás e zero à frente da release. Não há integração pendente conhecida. O inventário remoto ao vivo não foi atualizado por DNS; não afirmar que branches criadas após o último fetch foram auditadas.
 
-## Próxima ação — fechamento Windows beta.7 — 2026-10-07
+**Veredito: NO-GO.** Não criar tag nem publicar enquanto `quality:full` bruto não passar num SHA limpo e imutável e permanecerem pendentes CI exact-SHA, assinatura/trust root e instalador Windows. Nenhum gate Linux foi executado nesta continuidade.
+
+## Próxima ação — fechar pendências Windows
+
+1. Revisar os dois ajustes de teste locais em `ptyLiveChrome.test.ts` e `taskbarHonesty.test.ts`, integrá-los por fluxo humano autorizado e criar um SHA imutável para a validação.
+2. Repetir `bun install --cwd web --frozen-lockfile` e `bun run --cwd web quality:full` sem modificações locais; então repetir os gates Windows aplicáveis nesse mesmo SHA.
+3. Atualizar refs quando DNS estiver disponível e reauditar branches/tag; fechar CI Windows exact-SHA, assinatura/trust root e instalador final.
+4. Manter tag e publicação bloqueadas até todos os gates e aprovações de release passarem.
+
+Esta continuidade não criou commit, push, merge, cherry-pick, tag ou publicação.
+## Histórico de fechamento Windows beta.7 — 2026-10-07
 
 Checkout: release/v1.0.0, HEAD-base 52f35c04181b85379219ab55fc3192c63a5440a8, VERSION 1.0.0-beta.7. A árvore continua dirty, portanto os gates desta rodada validam o worktree baseado nesse SHA, não um SHA congelado.
 

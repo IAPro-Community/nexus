@@ -27,11 +27,19 @@ func (n *Nexus) BoundedProjectIntelligenceContext(ctx context.Context, projectID
 		return nil, err
 	}
 	var snapshot *contextsnapshot.ProjectContextSnapshot
+	var inspectedIdentity *contextsnapshot.CodeIdentity
 	if view, viewErr := n.GetProjectIntelligence(ctx, projectID); viewErr == nil {
 		snapshot = view.CurrentSnapshot
+		inspectedIdentity = &view.Identity
 	}
 	if snapshot == nil {
-		discovered, discoverErr := contextsnapshot.Discover(project.CanonicalPath, contextsnapshot.Metadata{ProjectID: projectID})
+		var discovered contextsnapshot.ProjectContextSnapshot
+		var discoverErr error
+		if inspectedIdentity != nil {
+			discovered, discoverErr = contextsnapshot.DiscoverWithIdentity(project.CanonicalPath, contextsnapshot.Metadata{ProjectID: projectID}, *inspectedIdentity)
+		} else {
+			discovered, discoverErr = contextsnapshot.Discover(project.CanonicalPath, contextsnapshot.Metadata{ProjectID: projectID})
+		}
 		if discoverErr != nil {
 			return nil, fmt.Errorf("discover bounded project intelligence: %w", discoverErr)
 		}

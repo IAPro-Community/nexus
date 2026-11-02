@@ -17,10 +17,14 @@ import { useTranslation } from 'react-i18next';
 import { DirectoryBrowserModal } from './DirectoryBrowserModal';
 import { ProjectScanModal } from './ProjectScanModal';
 import { selectProjectDirectory } from './projectDirectoryPicker';
+import { getRepositoryPathPlaceholderKey } from './repositoryPathPlaceholder';
 import styles from './ProjectHub.module.scss';
 
 export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = ({ onCreated }) => {
   const { t } = useTranslation();
+  const pathPlaceholder = t(
+    getRepositoryPathPlaceholderKey(typeof navigator === 'undefined' ? '' : navigator.userAgent),
+  );
   const [path, setPath] = useState('');
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
@@ -107,7 +111,7 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
                 value={path}
                 onChange={setPath}
                 onEnter={() => create()}
-                placeholder="/home/user/my-repository"
+                placeholder={pathPlaceholder}
                 mono
               />
               <IconButton
