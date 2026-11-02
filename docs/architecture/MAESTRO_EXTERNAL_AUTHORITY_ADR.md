@@ -6,6 +6,8 @@
 - **Issue de migração:** [Nexus #176](https://github.com/IAPro-Community/nexus/issues/176)
 - **Contrato de origem:** [Maestro #45](https://github.com/IAPro-Community/Orquestrador-Maestro/issues/45)
 
+> **Adendo obrigatório de 02/11/2026:** a arquitetura Maestro canônica **não remove a função do Nexus como intermediador de várias aplicações e agentes**. AGY, OpenCode, Codex e Claude permanecem provedores distintos, selecionados por WorkPackage e por sessão. Ver [Contrato de interoperabilidade multi-provider](MULTI_PROVIDER_INTEROP_CONTRACT.md) e [Maestro #53](https://github.com/IAPro-Community/Orquestrador-Maestro/issues/53).
+
 ## Invariantes
 
 1. **Maestro deve funcionar plenamente sem Nexus.** Projetos, contexto, memória, Skills, composição, workflows, orquestração, runtime de runs e verificação pertencem ao Maestro.
