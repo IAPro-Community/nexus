@@ -1,5 +1,6 @@
 # Flow
 
+> **Contrato-alvo, ainda não implementado:** Maestro é o dono da composição canônica e da execução de trabalhos delegados; Flow é editor e visualização. As referências abaixo ao `MissionRunner` descrevem o código da beta para runs de owner `NEXUS` e não autorizam duplicar scheduler/Goal Loop para runs de owner `MAESTRO`. Ver [ADR](../architecture/MAESTRO_EXTERNAL_AUTHORITY_ADR.md) e [#176](https://github.com/IAPro-Community/nexus/issues/176).\n\n
 Flow é o **studio de pipeline** do WorkPlan canônico: Plan → Build → Review → Verify (e fases extras do preset quando existirem). Não é um segundo planner nem uma fonte paralela de verdade — projeta o plano e devolve mutações válidas ao runtime.
 
 ## Superfície
