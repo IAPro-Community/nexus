@@ -1,6 +1,6 @@
 # Capturas e evidências visuais — Nexus 1.0
 
-O [manifesto](../assets/screenshots/manifest.json) contém screenshots gerados com fixture sintética. Seu SHA de origem antecede alterações recentes no HUD, terminal e Desktop; imagens antigas **não** certificam a interface atual.
+O [manifesto](../assets/screenshots/manifest.json) contém screenshots gerados com fixture sintética. A recaptura associada ao PR #181 foi executada sobre `a3fbd4478bbcdf143d62fdad03e534c821270850`, com `bun run docs:capture` e `node scripts/docs-verify.mjs` em CI; a evidência nativa Desktop (`VIS-011`) continua classificada como **HISTORICAL**, não PASS da versão atual. Imagens Web sintéticas não certificam homologação Desktop ou release 1.0.
 
 ## Como recapturar
 
