@@ -45,7 +45,10 @@ if (missing.length) {
 
 const asDataUrl = {};
 for (const asset of required) {
-  const bytes = readFileSync(resolve(root, asset.path));
+  const rawBytes = readFileSync(resolve(root, asset.path));
+  const bytes = /\.(html|json)$/.test(asset.filename)
+    ? Buffer.from(rawBytes.toString('utf8').replace(/\r\n/g, '\n'))
+    : rawBytes;
   const sha = createHash('sha256').update(bytes).digest('hex');
   if (sha !== asset.sha256 || bytes.length !== asset.bytes) {
     throw new Error(`NEX hybrid asset SHA-256/size mismatch: ${asset.filename}`);
@@ -55,7 +58,7 @@ for (const asset of required) {
   }
 }
 
-let html = readFileSync(resolve(assetDirectory, 'index.html'), 'utf8');
+let html = readFileSync(resolve(assetDirectory, 'index.html'), 'utf8').replace(/\r\n/g, '\n');
 for (const [name, dataUrl] of Object.entries(asDataUrl)) {
   html = html.split(`"${name}"`).join(`"${dataUrl}"`);
 }
@@ -94,17 +97,28 @@ try {
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(String(error)));
   await page.setContent(html, { waitUntil: 'load', timeout: 30_000 });
-  await page.locator('.module').first.waitFor();
+  await page.locator('.module').first().waitFor();
   await page.getByLabel('Microações aleatórias discretas').uncheck();
   check(await page.locator('.module').count() === 4, '4 independent modules');
   check(await page.locator('.eyes').count() === 2, '2 independently animatable visor eyes');
-  check(await page.locator('#idles button').count() === 6, '6 P0 idle actions');
+  check(await page.locator('#idles button').count() === 12, '12 candidate idle actions');
 
   await page.screenshot({ path: resolve(output, 'idle.png') });
 
-  await page.getByRole('button', { name: 'Piscar' }).click();
-  check(await page.locator('#nex').getAttribute('data-action') === 'idle_blink',
-    'blink triggered');
+  const actionTargets = {
+    idle_hover: '.figure', idle_blink: '.eyes', idle_glance: '.eyes',
+    idle_orbit_breathe: '.module', idle_head_tilt: '.figure', idle_fin_twitch: '.fin',
+    idle_module_inspect: '.module[data-id="module_1"]',
+    idle_orbit_shuffle: '.module[data-id="module_1"]', idle_curiosity: '.eyes',
+    idle_micro_stretch: '.figure', idle_drowse: '.eyes', idle_wake: '.eyes',
+  };
+  for (const [id, target] of Object.entries(actionTargets)) {
+    await page.locator(`#idles button[data-action-value="${id}"]`).click();
+    check(await page.locator('#nex').getAttribute('data-action') === id, `${id} selected`);
+    const animation = await page.locator(target).first().evaluate((node) =>
+      getComputedStyle(node).animationName);
+    check(animation !== 'none', `${id} has a visible CSS animation`);
+  }
   // Capture a deterministic closed-eyes frame for human review.
   await page.locator('.eyes').evaluateAll((nodes) => {
     for (const node of nodes) {
@@ -120,13 +134,6 @@ try {
     }
   });
 
-  await page.getByRole('button', { name: 'Olhar' }).click();
-  check(await page.locator('#nex').getAttribute('data-action') === 'idle_glance',
-    'glance triggered');
-  await page.getByRole('button', { name: 'Módulos' }).click();
-  check(await page.locator('#nex').getAttribute('data-action') === 'idle_orbit_breathe',
-    'module breathing triggered');
-
   for (const mood of ['working', 'warning', 'critical', 'offline']) {
     await page.getByRole('button', { name: mood, exact: true }).click();
     check(await page.locator('#nex').getAttribute('data-state') === mood,
@@ -134,7 +141,7 @@ try {
     check(!await page.locator('#nex').getAttribute('data-action'),
       `${mood} preempts idle action`);
   }
-  const offlineAnimation = await page.locator('.module').first.evaluate(
+  const offlineAnimation = await page.locator('.module').first().evaluate(
     (node) => getComputedStyle(node).animationName);
   check(offlineAnimation === 'none', 'offline disables module animations');
   await page.screenshot({ path: resolve(output, 'offline.png') });
@@ -147,7 +154,7 @@ try {
   await page.getByRole('button', { name: 'idle', exact: true }).click();
   await page.getByLabel('Movimento ativo').check();
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  const reduced = await page.locator('.module').first.evaluate(
+  const reduced = await page.locator('.module').first().evaluate(
     (node) => getComputedStyle(node).animationName);
   check(reduced === 'none', 'prefers-reduced-motion disables animations');
 

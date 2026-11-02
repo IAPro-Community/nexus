@@ -1,9 +1,11 @@
 import React from 'react';
 import type { GuardianMood } from './guardianModel';
+import type { NexIdleAction } from './nexIdleDirector';
 import styles from './NexusHud.module.scss';
 
 type NexPixelSpriteProps = {
   mood: GuardianMood;
+  idleAction?: NexIdleAction | null;
 };
 
 const MOOD_COLORS: Record<GuardianMood, { accent: string; accentDark: string; glint: string }> = {
@@ -23,7 +25,7 @@ const MOOD_COLORS: Record<GuardianMood, { accent: string; accentDark: string; gl
  * All anatomy remains stable across states. No network, GIF, WebGL, provider
  * probing or second state machine.
  */
-export const NexPixelSprite: React.FC<NexPixelSpriteProps> = ({ mood }) => {
+export const NexPixelSprite: React.FC<NexPixelSpriteProps> = ({ mood, idleAction = null }) => {
   const gradientPrefix = React.useId().replace(/:/g, '_');
   const shell = `url(#${gradientPrefix}-shell)`;
   const glass = `url(#${gradientPrefix}-glass)`;
@@ -40,6 +42,7 @@ export const NexPixelSprite: React.FC<NexPixelSpriteProps> = ({ mood }) => {
       shapeRendering="geometricPrecision"
       data-nex-art="32bit-official"
       data-nex-facing="front"
+      data-idle-action={idleAction ?? undefined}
       role="presentation"
       focusable="false"
     >
@@ -124,87 +127,89 @@ export const NexPixelSprite: React.FC<NexPixelSpriteProps> = ({ mood }) => {
         <path d="M63.2 94.5h1.6v9h-1.6z M59.5 98.2h9v1.6h-9z" fill={glint} opacity=".85" />
       </g>
 
-      {/* Concentric circular ear couplings */}
-      <g data-nex-part="ear-couplings">
-        <g transform="translate(21 54)">
-          <circle cx="0" cy="0" r="14" fill="#102F65" stroke="#DCE9FB" strokeWidth="4" />
-          <circle cx="0" cy="0" r="9.5" fill="#15498D" stroke="#5284CB" strokeWidth="2.2" />
-          <circle cx="0" cy="0" r="5.5" fill={coreGlow} />
-          <circle cx="-1.5" cy="-1.5" r="1.8" fill={glint} opacity=".9" />
-        </g>
-        <g transform="translate(107 54)">
-          <circle cx="0" cy="0" r="14" fill="#102F65" stroke="#DCE9FB" strokeWidth="4" />
-          <circle cx="0" cy="0" r="9.5" fill="#15498D" stroke="#5284CB" strokeWidth="2.2" />
-          <circle cx="0" cy="0" r="5.5" fill={coreGlow} />
-          <circle cx="-1.5" cy="-1.5" r="1.8" fill={glint} opacity=".9" />
-        </g>
-      </g>
-
-      {/* Canonical big rounded helmet and dark glass visor */}
-      <g data-nex-part="helmet">
-        <path
-          d="M40 24q24-11 48 0l11 12 5 20-4 19-14 12q-22 7-44 0l-14-12-4-19 5-20z"
-          fill={shell}
-          stroke="#0C2955"
-          strokeWidth="3"
-        />
-        <path
-          d="M45 32q19-7 38 0l8 8 4 16-4 16-10 7q-18 4-36 0l-10-7-4-16 4-16z"
-          fill={glass}
-          stroke="#5C85BA"
-          strokeWidth="2.5"
-        />
-        <path d="M46 26q18-8 36 0l5 5h-46z" fill="#FFFFFF" opacity=".7" />
-        <path d="M43 36q13-8 26-6l-7 3q-9-1-19 5z" fill="#91B6E8" opacity=".38" />
-        <path d="M77 31l5 2 3 4-4-1z" fill="#A6DCFF" opacity=".58" />
-      </g>
-
-      {/* Expressive eyes corresponding to canonical moods */}
-      <g className={styles.guardianEyes} data-nex-part="face">
-        {warning || critical ? (
-          <>
-            <g fill={accent}>
-              <rect x="48" y="49" width="10" height="13" rx="3" />
-              <rect x="70" y="49" width="10" height="13" rx="3" />
-            </g>
-            <circle cx="53" cy="53" r="1.8" fill={glint} />
-            <circle cx="75" cy="53" r="1.8" fill={glint} />
-          </>
-        ) : offline ? (
-          <g stroke="#8195AF" strokeWidth="4" strokeLinecap="round">
-            <path d="M47 56h14 M67 56h14" />
+      <g data-nex-part="head-assembly">
+        {/* Concentric circular ear couplings */}
+        <g data-nex-part="ear-couplings">
+          <g transform="translate(21 54)">
+            <circle cx="0" cy="0" r="14" fill="#102F65" stroke="#DCE9FB" strokeWidth="4" />
+            <circle cx="0" cy="0" r="9.5" fill="#15498D" stroke="#5284CB" strokeWidth="2.2" />
+            <circle cx="0" cy="0" r="5.5" fill={coreGlow} />
+            <circle cx="-1.5" cy="-1.5" r="1.8" fill={glint} opacity=".9" />
           </g>
-        ) : mood === 'working' ? (
-          <>
-            <g fill="none" stroke="#31D5FF" strokeWidth="4" strokeLinecap="square">
-              <path d="M48 57l9-8 5 8 M80 57l-9-8-5 8" />
+          <g transform="translate(107 54)">
+            <circle cx="0" cy="0" r="14" fill="#102F65" stroke="#DCE9FB" strokeWidth="4" />
+            <circle cx="0" cy="0" r="9.5" fill="#15498D" stroke="#5284CB" strokeWidth="2.2" />
+            <circle cx="0" cy="0" r="5.5" fill={coreGlow} />
+            <circle cx="-1.5" cy="-1.5" r="1.8" fill={glint} opacity=".9" />
+          </g>
+        </g>
+
+        {/* Canonical big rounded helmet and dark glass visor */}
+        <g data-nex-part="helmet">
+          <path
+            d="M40 24q24-11 48 0l11 12 5 20-4 19-14 12q-22 7-44 0l-14-12-4-19 5-20z"
+            fill={shell}
+            stroke="#0C2955"
+            strokeWidth="3"
+          />
+          <path
+            d="M45 32q19-7 38 0l8 8 4 16-4 16-10 7q-18 4-36 0l-10-7-4-16 4-16z"
+            fill={glass}
+            stroke="#5C85BA"
+            strokeWidth="2.5"
+          />
+          <path d="M46 26q18-8 36 0l5 5h-46z" fill="#FFFFFF" opacity=".7" />
+          <path d="M43 36q13-8 26-6l-7 3q-9-1-19 5z" fill="#91B6E8" opacity=".38" />
+          <path d="M77 31l5 2 3 4-4-1z" fill="#A6DCFF" opacity=".58" />
+        </g>
+
+        {/* Expressive eyes corresponding to canonical moods */}
+        <g className={styles.guardianEyes} data-nex-part="face">
+          {warning || critical ? (
+            <>
+              <g fill={accent}>
+                <rect x="48" y="49" width="10" height="13" rx="3" />
+                <rect x="70" y="49" width="10" height="13" rx="3" />
+              </g>
+              <circle cx="53" cy="53" r="1.8" fill={glint} />
+              <circle cx="75" cy="53" r="1.8" fill={glint} />
+            </>
+          ) : offline ? (
+            <g stroke="#8195AF" strokeWidth="4" strokeLinecap="round">
+              <path d="M47 56h14 M67 56h14" />
             </g>
-            <path
-              d="M53 48l3-2 M75 48l3-2"
-              stroke="#DBFFFF"
-              strokeWidth="1.4"
-              opacity=".6"
-              strokeLinecap="round"
-            />
-            <circle cx="54" cy="54" r="1" fill="#FFFFFF" />
-            <circle cx="74" cy="54" r="1" fill="#FFFFFF" />
-          </>
-        ) : (
-          <>
-            <g fill="none" stroke="#31D5FF" strokeWidth="4" strokeLinecap="round">
-              <path d="M47 55q8-13 16 0 M65 55q8-13 16 0" />
-            </g>
-            <path
-              d="M53 48l3-2 M75 48l3-2"
-              stroke="#DBFFFF"
-              strokeWidth="1.4"
-              opacity=".6"
-              strokeLinecap="round"
-            />
-            <circle cx="55" cy="53" r="1" fill="#FFFFFF" />
-            <circle cx="73" cy="53" r="1" fill="#FFFFFF" />
-          </>
-        )}
+          ) : mood === 'working' ? (
+            <>
+              <g fill="none" stroke="#31D5FF" strokeWidth="4" strokeLinecap="square">
+                <path d="M48 57l9-8 5 8 M80 57l-9-8-5 8" />
+              </g>
+              <path
+                d="M53 48l3-2 M75 48l3-2"
+                stroke="#DBFFFF"
+                strokeWidth="1.4"
+                opacity=".6"
+                strokeLinecap="round"
+              />
+              <circle cx="54" cy="54" r="1" fill="#FFFFFF" />
+              <circle cx="74" cy="54" r="1" fill="#FFFFFF" />
+            </>
+          ) : (
+            <>
+              <g fill="none" stroke="#31D5FF" strokeWidth="4" strokeLinecap="round">
+                <path d="M47 55q8-13 16 0 M65 55q8-13 16 0" />
+              </g>
+              <path
+                d="M53 48l3-2 M75 48l3-2"
+                stroke="#DBFFFF"
+                strokeWidth="1.4"
+                opacity=".6"
+                strokeLinecap="round"
+              />
+              <circle cx="55" cy="53" r="1" fill="#FFFFFF" />
+              <circle cx="73" cy="53" r="1" fill="#FFFFFF" />
+            </>
+          )}
+        </g>
       </g>
 
       {/* Exactly four magnetic modules. Always visible, identical canonical anatomy. */}

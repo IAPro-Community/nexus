@@ -3,6 +3,7 @@ import {
   chooseNexIdleAction,
   createNexRandom,
   NEX_IDLE_ACTIONS,
+  NEX_IDLE_COOLDOWN_MS,
   NexIdleDirector,
   type NexIdleAction,
   type NexIdleEnvironment,
@@ -30,6 +31,28 @@ describe('NEX IdleDirector', () => {
     const randomB = createNexRandom(1729);
     expect([randomA(), randomA(), randomA()]).toEqual([randomB(), randomB(), randomB()]);
     expect(chooseNexIdleAction(() => 0, 'idle_blink')).not.toBe('idle_blink');
+  });
+
+  it('honors per-action cooldowns using the injected clock', () => {
+    const now = 100_000;
+    const recent = new Map<NexIdleAction, number>([
+      ['idle_hover', now - 1000],
+      ['idle_blink', now - 5000],
+    ]);
+    expect(chooseNexIdleAction(() => 0, null, recent, now)).toBe('idle_glance');
+
+    const cooled = new Map<NexIdleAction, number>([
+      ['idle_blink', now - NEX_IDLE_COOLDOWN_MS.idle_blink],
+    ]);
+    expect(chooseNexIdleAction(() => 0.11, null, cooled, now)).toBe('idle_blink');
+  });
+
+  it('can schedule every one of the ten non-special idle actions, including hover', () => {
+    const selected = new Set(
+      Array.from({ length: 20 }, (_, index) => chooseNexIdleAction(() => index / 20, null)),
+    );
+    expect(selected).toContain('idle_hover');
+    expect(selected).toHaveLength(10);
   });
 
   it('keeps one timer chain and emits no synthetic operational state', () => {
@@ -78,6 +101,23 @@ describe('NEX IdleDirector', () => {
     }
   });
 
+  it('resumes one timer chain when visibility returns', () => {
+    vi.useFakeTimers();
+    const actions: Array<NexIdleAction | null> = [];
+    const director = new NexIdleDirector((action) => actions.push(action), { seed: 1 });
+    director.updateEnvironment(IDLE);
+    director.start();
+    director.updateEnvironment({ ...IDLE, visible: false });
+    expect(vi.getTimerCount()).toBe(0);
+
+    director.updateEnvironment(IDLE);
+    expect(vi.getTimerCount()).toBe(1);
+    vi.advanceTimersByTime(36000);
+    expect(actions.some((action) => action?.startsWith('idle_'))).toBe(true);
+    director.stop();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it('allows waking only after an actual drowse and user interaction', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-10-29T10:00:00Z'));
@@ -87,6 +127,9 @@ describe('NEX IdleDirector', () => {
     director.start();
     vi.advanceTimersByTime(230000);
     expect(actions).toContain('idle_drowse');
+    vi.advanceTimersByTime(12_000);
+    expect(director.currentAction).toBe('idle_drowse');
+    expect(vi.getTimerCount()).toBe(0);
     director.notifyInteraction();
     expect(director.currentAction).toBe('idle_wake');
     vi.advanceTimersByTime(1700);
@@ -103,4 +146,17 @@ describe('NEX IdleDirector', () => {
     director.stop();
     expect(vi.getTimerCount()).toBe(0);
   });
+});
+
+it('does not leave a timer when the renderer preempts synchronously on notification', () => {
+  vi.useFakeTimers();
+  const director = new NexIdleDirector((action) => {
+    if (action) director.updateEnvironment({ ...IDLE, mood: 'critical' });
+  });
+  director.updateEnvironment(IDLE);
+  director.start();
+  vi.advanceTimersByTime(36000);
+  expect(director.currentAction).toBeNull();
+  expect(vi.getTimerCount()).toBe(0);
+  director.stop();
 });
