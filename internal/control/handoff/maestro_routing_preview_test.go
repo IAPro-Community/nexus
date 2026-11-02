@@ -87,6 +87,19 @@ func TestMaestroRoutePreviewVerifiesExactProviderSelectionAndProvenance(t *testi
 	}
 }
 
+func TestMaestroRoutePreviewRejectsContradictoryReadyState(t *testing.T) {
+	req, valid := routingPreviewFixture()
+	cases := []string{
+		strings.Replace(string(valid), `"status":"READY_FOR_REVIEW"`, `"status":"BLOCKED"`, 1),
+		strings.Replace(string(valid), `"blockers":[]`, `"blockers":[{"code":"PROVIDER_UNAVAILABLE"}]`, 1),
+	}
+	for _, raw := range cases {
+		if _, err := decodeMaestroRoutePreview(json.RawMessage(raw), req); err == nil {
+			t.Fatalf("accepted contradictory READY route: %s", raw)
+		}
+	}
+}
+
 func TestMaestroRoutePreviewRefusesMalformedArtifactsWithoutCallingExternalTool(t *testing.T) {
 	req, _ := routingPreviewFixture()
 	for _, bad := range []MaestroRoutePreviewRequest{
