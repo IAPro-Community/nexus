@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -69,17 +70,13 @@ func TestSelectedSkillsReachAnIsolatedProviderSession(t *testing.T) {
 			t.Setenv("NEXUS_SKILL_FIXTURE_ENV", environmentPath)
 			t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 
-			fixtureCLI := "#!/bin/sh\n" +
-				"if [ \"$1\" = \"--version\" ]; then printf '%s\\n' 'codex fixture 1.0'; exit 0; fi\n" +
-				"printf '%s\\0' \"$@\" > \"$NEXUS_SKILL_FIXTURE_CAPTURE\"\n" +
-				"printf 'HOME=%s\\nCODEX_HOME=%s\\n' \"$HOME\" \"$CODEX_HOME\" > \"$NEXUS_SKILL_FIXTURE_ENV\"\n" +
-				"printf '%s\\n' 'FIXTURE_SKILL_SESSION_COMPLETED'\n" +
-				"sleep 1\n"
-			if err := os.WriteFile(filepath.Join(binDir, "codex"), []byte(fixtureCLI), 0o700); err != nil {
-				t.Fatalf("write fake provider CLI: %v", err)
-			}
+			installCodexSkillSessionFixture(t, binDir)
 			resolvedCLI, err := exec.LookPath("codex")
-			if err != nil || resolvedCLI != filepath.Join(binDir, "codex") {
+			expectedCLI := filepath.Join(binDir, "codex")
+			if runtime.GOOS == "windows" {
+				expectedCLI += ".exe"
+			}
+			if err != nil || !strings.EqualFold(resolvedCLI, expectedCLI) {
 				t.Fatalf("runtime would not resolve to the isolated fixture CLI: path=%q err=%v", resolvedCLI, err)
 			}
 
