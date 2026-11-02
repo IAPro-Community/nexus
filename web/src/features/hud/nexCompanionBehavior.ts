@@ -19,6 +19,17 @@ export type NexCompanionBehavior =
 
 export type NexCompanionInteraction = 'none' | 'greet' | 'look';
 
+export const NEX_GREET_COOLDOWN_MS = 15_000;
+
+export function canPlayNexGreeting(lastPlayedAt: number | null, now: number): boolean {
+  if (!Number.isFinite(now)) return false;
+  return (
+    lastPlayedAt === null ||
+    !Number.isFinite(lastPlayedAt) ||
+    now - lastPlayedAt >= NEX_GREET_COOLDOWN_MS
+  );
+}
+
 export interface NexCompanionInput {
   mood: MascotMood;
   idleAction: NexIdleAction | null;
@@ -51,9 +62,11 @@ export interface NexCompletedRecord {
 export function nexCompletedEventId(record: NexCompletedRecord): string | null {
   const state = typeof record.state === 'string' ? record.state.toUpperCase() : '';
   if (
-    !record.project_id ||
-    !record.mission_id ||
-    !/^(COMPLETED_VERIFIED|COMPLETED|SUCCEEDED|SUCCESS)$/.test(state)
+    typeof record.project_id !== 'string' ||
+    !record.project_id.trim() ||
+    typeof record.mission_id !== 'string' ||
+    !record.mission_id.trim() ||
+    state !== 'COMPLETED_VERIFIED'
   ) {
     return null;
   }

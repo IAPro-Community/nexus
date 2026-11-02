@@ -6,6 +6,7 @@ import { NexPixelSprite } from './NexPixelSprite';
 import type { GuardianMood } from './guardianModel';
 import { NexIdleDirector, type NexIdleAction, type NexIdleMood } from './nexIdleDirector';
 import {
+  canPlayNexGreeting,
   resolveNexCompanionBehavior,
   type NexCompanionInteraction,
 } from './nexCompanionBehavior';
@@ -54,6 +55,7 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
   const [lookSide, setLookSide] = React.useState<'left' | 'right'>('right');
   const [resolutionPlaying, setResolutionPlaying] = React.useState(false);
   const lastResolutionId = React.useRef<string | null>(null);
+  const lastGreetingAt = React.useRef<number | null>(null);
   const greetingAt = React.useRef(0);
   const mascotRoot = React.useRef<HTMLDivElement>(null);
   const idleVisibility = React.useRef(false);
@@ -145,6 +147,12 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
   });
 
   const notifyInteraction = () => idleDirector.notifyInteraction();
+  const notifyGreeting = () => {
+    const now = Date.now();
+    if (!canPlayNexGreeting(lastGreetingAt.current, now)) return;
+    lastGreetingAt.current = now;
+    setInteraction('greet');
+  };
 
   return (
     <div
@@ -207,12 +215,12 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
           data-hud-hit-area="true"
           onClick={() => {
             notifyInteraction();
-            setInteraction('greet');
+            notifyGreeting();
             onExpand();
           }}
           onPointerEnter={() => {
             greetingAt.current = Date.now();
-            setInteraction('greet');
+            notifyGreeting();
             notifyInteraction();
           }}
           onPointerMove={(event) => {
@@ -223,7 +231,7 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
           }}
           onPointerLeave={() => setInteraction('none')}
           onFocus={() => {
-            setInteraction('greet');
+            notifyGreeting();
             notifyInteraction();
           }}
           onBlur={() => setInteraction('none')}
