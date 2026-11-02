@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   CANVAS_SIZE, clamp01, smoothstep, idlePose, blinkScale, orbitPose,
   orbitFrontWeight, idleModulePose,
@@ -88,4 +89,14 @@ test('NEX orbital painting weights change continuously while returning to idle',
     assert.ok(Math.abs(after - before) < 0.04);
     before = after;
   }
+});
+
+test('NEX mobile page keeps canvas unobscured and controls available without scrolling', () => {
+  const html = readFileSync(new URL('../public/nex/rig-v1/index.html', import.meta.url), 'utf8');
+  assert.match(html, /id="quick-orbit"/);
+  assert.match(html, /id="quick-idle"/);
+  assert.match(html, /\.stage\{min-height:500px\}/);
+  assert.match(html, /\.stage-shortcuts\{display:flex\}/);
+  assert.match(html, /document\.getElementById\('quick-orbit'\)\.addEventListener\('click'/);
+  assert.match(html, /document\.getElementById\('quick-idle'\)\.addEventListener\('click'/);
 });
