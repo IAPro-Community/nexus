@@ -1,0 +1,159 @@
+{
+  "schema_version": "1.0",
+  "created_on": "2026-11-02",
+  "purpose": "Codex handoff inventory; NOT an approved character manifest or release readiness evidence",
+  "policy": "REUSE_EXISTING_ASSETS; REJECT_SYNTHETIC_DRIFT; NO_PUBLICATION_WITHOUT_OWNER_APPROVAL",
+  "authorities": {
+    "product_scope_issue": "https://github.com/IAPro-Community/nexus/issues/141",
+    "identity_blocker_issue": "https://github.com/IAPro-Community/nexus/issues/174",
+    "idle_catalog_issue": "https://github.com/IAPro-Community/nexus/issues/120",
+    "visual_contract": "docs/design/NEX_32BIT_VISUAL_CONTRACT.md",
+    "identity_lock": "docs/design/nex/identity-lock.json",
+    "publication_gate": "docs/design/nex/RELEASE_READINESS.json",
+    "engineering": "AGENTS.md",
+    "latest_scope": {
+      "moods": [
+        "idle",
+        "working",
+        "attention",
+        "critical",
+        "offline"
+      ],
+      "behaviors": [
+        "ambient",
+        "greet",
+        "look",
+        "thinking",
+        "attention",
+        "error",
+        "resolved",
+        "rest"
+      ],
+      "idle_actions": [
+        "idle_hover",
+        "idle_blink",
+        "idle_glance",
+        "idle_orbit_breathe",
+        "idle_head_tilt",
+        "idle_fin_twitch",
+        "idle_module_inspect",
+        "idle_orbit_shuffle",
+        "idle_curiosity",
+        "idle_micro_stretch",
+        "idle_drowse",
+        "idle_wake"
+      ],
+      "turnaround_360": "DEFERRED_NOT_V1_RELEASE_GATE"
+    }
+  },
+  "art_sources": [
+    {
+      "id": "selected_character_reference",
+      "source": "Guia Visual Futurista do Mascote NEX.png",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "08dcb5446a1f12a34c913104e2f9991be8b94595e1e6ccb76d1e5e2c0b351b66",
+      "status": "SELECTED_REFERENCE_BINARY_NOT_FOUND_IN_GIT",
+      "allowed_for_approval": false,
+      "notes": "Selected character geometry is authoritative, but bytes were not located in the inspected Nexus Git source; validate any later import byte-for-byte."
+    },
+    {
+      "id": "versioned_hybrid_candidate",
+      "source": "web/public/nex/hybrid-v1/nex_source_original.png",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "sha256": "ef7a4aeb7b24d2ab5f199f913d351414b8fafb0b6208b3ab2b665013adcb9118",
+      "status": "VERSIONED_RASTER_CANDIDATE_PENDING_ART_APPROVAL",
+      "allowed_for_approval": false,
+      "notes": "Available for internal engineering and QA only; not byte-identical to selected 1536x1024 reference."
+    },
+    {
+      "id": "layered_openraster_candidate",
+      "source": "docs/design/nex/hybrid-v1/nex_hybrid_master.ora",
+      "sha256": "68a9b3b90722721bacd4067bac3e9d6560acf144898ae60c3d7968692c652f32",
+      "status": "RECONSTRUCTIBLE_FROM_GIT_TRACKED_BASE64_PARTS_NOT_APPROVED",
+      "restore_command": "node scripts/restore-nex-openraster.mjs",
+      "verify_command": "node scripts/verify-nex-hybrid-assets.mjs --require-binaries",
+      "allowed_for_approval": false
+    },
+    {
+      "id": "existing_rig",
+      "source": "web/public/nex/rig-v1/",
+      "status": "EXISTS_ON_FEATURE_BRANCH_NOT_CANONICAL_MASTER",
+      "branch": "feat/nex-rig-idle-orbit-polish-20261101",
+      "notes": "Inspect repo branch before integration; not full independent articulated rig."
+    },
+    {
+      "id": "compact_fallback",
+      "source": "web/src/features/hud/NexPixelSprite.tsx",
+      "status": "FALLBACK_SVG_ONLY",
+      "notes": "Never upscale to Hero or substitute for selected final pixel art master."
+    }
+  ],
+  "assistant_generated_studies_20261102": {
+    "status": "REJECTED_OR_UNVERIFIED_NOT_VERSIONED_IN_GIT",
+    "reason": "Image-generation output introduced cat-like ears, human-like arms, green lighting, anatomy drift, and fake turnaround views; these are conceptual only.",
+    "no_production_consumption": true,
+    "local_artifacts_not_required_for_codex": true,
+    "files": [
+      {
+        "name": "concept_01_overview_REJECTED.png",
+        "sha256": "efa5c783bcc61bd0dd8d593422bdf7211691664cd3194f5759b2479c5b8f7111",
+        "status": "REJECTED"
+      },
+      {
+        "name": "concept_02_production_overview_REJECTED.png",
+        "sha256": "32ca6a1415b4d0c28526472f07f1e3a3dc9b31c143c48b29ff86d4a0d7de0f9d",
+        "status": "REJECTED"
+      },
+      {
+        "name": "concept_03_turnaround_bible_UNVERIFIED.png",
+        "sha256": "fd546f6d757428cad1a5503e30408f84c99885fe470ed26cfd8e4a08d1cab7aa",
+        "status": "UNVERIFIED"
+      },
+      {
+        "name": "concept_04_turnaround_keyframes_REJECTED.png",
+        "sha256": "477225eb6d1c026abf93498322125bbe28c8ecf2d65573ddce9ba61b5119f6cd",
+        "status": "REJECTED"
+      }
+    ]
+  },
+  "integration_references": [
+    {
+      "pr": 171,
+      "subject": "12 idle director candidate"
+    },
+    {
+      "pr": 172,
+      "subject": "2D Companion scope"
+    },
+    {
+      "pr": 173,
+      "subject": "eight contextual behaviors"
+    },
+    {
+      "pr": 175,
+      "subject": "Canvas2D rig candidate"
+    },
+    {
+      "pr": 178,
+      "subject": "orbit/microgesture refinement"
+    },
+    {
+      "pr": 183,
+      "subject": "canonical COMPLETED_VERIFIED event behavior regression",
+      "stacked_on": "feat/nex-rig-idle-orbit-polish-20261101"
+    }
+  ],
+  "quality_gates": {
+    "production_publish_status": "BLOCKED",
+    "may_mark_ready": false,
+    "require_visual_comparison": true,
+    "require_real_browser_and_native_evidence": true,
+    "require_exact_commit_approval": true
+  }
+}
