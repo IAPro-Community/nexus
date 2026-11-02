@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"runtime"
-	"path/filepath"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
