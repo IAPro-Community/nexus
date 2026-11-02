@@ -1,0 +1,37 @@
+name: One-shot Maestro run observation Go contracts
+on:
+  push:
+    branches: [feat/maestro-run-observation-client-20261102]
+permissions:
+  contents: write
+jobs:
+  go-observation:
+    if: github.repository == 'IAPro-Community/nexus'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Format changed Go contracts
+        run: |
+          gofmt -w internal/control/handoff/maestro_project_context.go internal/control/handoff/maestro_run_observation.go internal/control/handoff/maestro_run_observation_test.go internal/control/web/handlers_maestro_run_observation.go internal/control/web/routes_projects_agents.go
+      - name: Run Go package regression
+        run: go test ./internal/control/handoff ./internal/control/web -count=1 -timeout 8m
+      - name: Run race-check on new observer contracts
+        run: go test -race ./internal/control/handoff -count=1 -run 'TestMaestroRunObservation' -timeout 8m
+      - name: Remove helper and commit clean sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -- .github/workflows/validate-maestro-run-observe-once-20261102.yml
+          git add -- internal/control/handoff/maestro_project_context.go internal/control/handoff/maestro_run_observation.go internal/control/handoff/maestro_run_observation_test.go internal/control/web/handlers_maestro_run_observation.go internal/control/web/routes_projects_agents.go
+          git diff --cached --name-only
+          git commit -m "test(go): certify scoped Maestro run observation contract"
+          git push origin HEAD:feat/maestro-run-observation-client-20261102
