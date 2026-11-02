@@ -78,6 +78,20 @@ export const FlowDraftEditor: React.FC<{
           plan={controller.selectedPlan}
           draft={flowDraft}
           dirty={controller.flowDirty}
+          onProviderChange={(taskId, providerId) =>
+            setFlowDraft((current) =>
+              current
+                ? {
+                    ...current,
+                    steps: current.steps.map((step) =>
+                      step.id === taskId
+                        ? { ...step, provider: providerId || undefined }
+                        : step,
+                    ),
+                  }
+                : current,
+            )
+          }
         />
       )}
 
