@@ -45,7 +45,8 @@
     "art:nex:hero:preview": "node scripts/nex-site-hero-preview.mjs",
     "art:nex:hybrid:qa": "node scripts/nex-hybrid-browser-qa.mjs --require-assets",
     "art:nex:companion:preview": "node scripts/export-nex-art.mjs --check && node scripts/nex-companion-preview.mjs",
-    "art:nex:companion:qa": "npm run art:nex:companion:preview && node scripts/nex-companion-preview-qa.mjs"
+    "art:nex:companion:qa": "npm run art:nex:companion:preview && node scripts/nex-companion-preview-qa.mjs",
+    "test:nex:rig": "node --test scripts/nex-rig-v1.node-test.mjs"
   },
   "dependencies": {
     "@assistant-ui/react": "^0.15.20",
