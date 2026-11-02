@@ -106,7 +106,13 @@ func decodeMaestroRoutePreview(result json.RawMessage, request MaestroRoutePrevi
 			(row.Status != "READY_FOR_REVIEW" && row.Status != "BLOCKED") {
 			return MaestroRoutePreview{}, errors.New("Maestro route preview changed provider/model or duplicated a task")
 		}
+		if preview.Ready && row.Status != "READY_FOR_REVIEW" {
+			return MaestroRoutePreview{}, errors.New("Maestro preview cannot be ready with blocked assignments")
+		}
 		seen[row.TaskID] = true
+	}
+	if preview.Ready && len(preview.Blockers) != 0 {
+		return MaestroRoutePreview{}, errors.New("Maestro preview cannot be ready with blockers")
 	}
 	return preview, nil
 }
