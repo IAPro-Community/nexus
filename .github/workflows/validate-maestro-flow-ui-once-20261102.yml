@@ -35,6 +35,16 @@ jobs:
           bun run lint
           bun run lint:styles
           bun run build
+      - name: Commit Prettier changes BEFORE certified source capture
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- web/src/types.ts web/src/nexus/api.ts web/src/features/work/MaestroRoutingPreview.tsx web/src/features/work/MaestroRoutingPreview.module.scss web/src/features/work/FlowDraftEditor.tsx
+          if ! git diff --cached --quiet; then
+            git commit -m "style(flow): format Maestro multiagent preflight source"
+          fi
       - name: Install Playwright Chromium
         working-directory: web
         run: bunx playwright install --with-deps chromium
