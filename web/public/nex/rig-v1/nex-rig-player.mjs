@@ -1,5 +1,5 @@
 import {
-  CANVAS_SIZE, clamp01, lerp, idlePose, blinkScale, orbitPose,
+  CANVAS_SIZE, clamp01, lerp, smoothstep, idlePose, blinkScale, orbitPose, idleModulePose,
 } from './nex-motion-core.mjs';
 
 /**
@@ -32,6 +32,7 @@ export class NexRigPlayer {
     this.mode = 'idle';
     this.wantsMotion = true;
     this.media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    this.smallScreen = window.matchMedia('(max-width: 680px)');
     this.visible = document.visibilityState === 'visible';
     this.inViewport = true;
     this.pointer = { x: 0, y: 0 };
@@ -149,7 +150,7 @@ export class NexRigPlayer {
     if (!this.motionActive) { this.sync(); return; }
     const dt = this.lastAt ? Math.max(0, Math.min(0.05, (timestamp - this.lastAt) / 1000)) : 0;
     this.lastAt = timestamp;
-    const fpsInterval = window.matchMedia('(max-width: 680px)').matches ? 1 / 30 : 1 / 60;
+    const fpsInterval = this.smallScreen.matches ? 1 / 30 : 1 / 60;
     this.frame += dt;
     // Accumulate elapsed time continuously, but only rasterize at target FPS.
     this.time += dt;
@@ -204,13 +205,26 @@ export class NexRigPlayer {
     ctx.scale(pose.breathing, pose.breathing);
     ctx.translate(-CANVAS_SIZE / 2, -CANVAS_SIZE / 2 + pose.bob);
 
-    const orbit = this.moduleInfo.map((layer, index) => ({
-      layer,
-      motion: orbitPose(index, this.orbitTime, this.blend),
-    }));
-    // Real painter's ordering: rear modules go BEHIND the torso/helmet.
-    for (const { layer, motion } of orbit.filter(({ motion }) => motion.behind)) {
-      this.paintLayer(layer, motion);
+    const orbit = this.moduleInfo.map((layer, index) => {
+      const orbital = orbitPose(index, this.orbitTime, this.blend);
+      const secondary = idleModulePose(index, this.time);
+      const idleInfluence = 1 - smoothstep(this.blend);
+      return {
+        layer,
+        motion: {
+          ...orbital,
+          x: orbital.x + secondary.dx * idleInfluence,
+          y: orbital.y + secondary.dy * idleInfluence,
+          rotation: orbital.rotation + secondary.rotation * idleInfluence,
+          scale: orbital.scale * lerp(1, secondary.scale, idleInfluence),
+        },
+      };
+    });
+    // A module is cross-composited smoothly when moving from the rear plane
+    // to the front plane. The old threshold caused a whole module to pop.
+    for (const { layer, motion } of orbit) {
+      const behindAlpha = 1 - motion.frontWeight;
+      if (behindAlpha > 0.001) this.paintLayer(layer, motion, behindAlpha);
     }
     ctx.drawImage(this.images['body_base.png'], 0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
@@ -244,9 +258,10 @@ export class NexRigPlayer {
     ctx.restore();
 
     // Foreground modules overlap body and glow ring as they cross the orbit.
-    for (const { layer, motion } of orbit.filter(({ motion }) => !motion.behind)
-      .sort((a, b) => a.motion.y - b.motion.y)) {
-      this.paintLayer(layer, motion);
+    for (const { layer, motion } of [...orbit].sort((a, b) => a.motion.y - b.motion.y)) {
+      if (motion.frontWeight > 0.001) {
+        this.paintLayer(layer, motion, motion.frontWeight);
+      }
     }
     ctx.restore();
   }
