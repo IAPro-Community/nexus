@@ -5,6 +5,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"runtime"
+	"path/filepath"
+	"os"
 	"strings"
 	"testing"
 )
@@ -94,5 +97,33 @@ func TestMaestroRoutePreviewRefusesMalformedArtifactsWithoutCallingExternalTool(
 		if _, err := FetchMaestroRoutePreview(t.Context(), "/unused", bad); err == nil {
 			t.Fatal("malformed local artifact was not rejected")
 		}
+	}
+}
+
+func TestMaestroRoutePreviewNegotiatesOverRealExternalStdioProcess(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix shell transport fixture; Windows Bridge contract is checked by Windows Go CI")
+	}
+	request, body := routingPreviewFixture()
+	binDir := t.TempDir()
+	bin := filepath.Join(binDir, "orquestrador-maestro")
+	initReply := `{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":1,"capabilities":{"plansRoutePreview":true}}}`
+	previewReply := fmt.Sprintf(`{"jsonrpc":"2.0","id":2,"result":%s}`, body)
+	script := "#!/bin/sh\n" +
+		"IFS= read -r request || exit 12\n" +
+		"printf '%s\\n' '" + initReply + "'\n" +
+		"IFS= read -r request || exit 13\n" +
+		"printf '%s\\n' '" + previewReply + "'\n"
+	if err := os.WriteFile(bin, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	got, err := FetchMaestroRoutePreview(t.Context(), t.TempDir(), request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got.Ready || got.Executable || len(got.Assignments) != 2 ||
+		got.Assignments[0].ProviderID != "agy" || got.Assignments[1].ProviderID != "opencode" {
+		t.Fatalf("actual Bridge protocol altered agents: %+v", got)
 	}
 }
