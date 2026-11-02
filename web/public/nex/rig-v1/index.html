@@ -23,6 +23,10 @@ main a{color:#83dcff}
 .stage{position:relative;isolation:isolate;display:grid;place-items:center;min-height:640px;overflow:hidden;border:1px solid #2e5678;border-radius:22px;background:radial-gradient(ellipse at 50% 42%,#183e61,#0a2038 52%,#071424 89%)}
 .stage:before{content:'';position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(#7ad6ff0b 1px,transparent 1px),linear-gradient(90deg,#7ad6ff0b 1px,transparent 1px);background-size:34px 34px;mask-image:linear-gradient(to bottom,transparent,#000 30%,#000 70%,transparent)}
 .stage-label{position:absolute;left:20px;top:20px;z-index:2;font-weight:700;font-size:10px;letter-spacing:.15em;color:#88bce0;text-transform:uppercase}.stage-label:before{content:'●';color:#74f5d0;padding-right:7px}
+.stage-shortcuts{display:none;position:absolute;top:45px;left:16px;right:16px;z-index:3;gap:8px}
+.stage-shortcuts button{background:#0e2942e8;border:1px solid #3b7196;border-radius:9px;color:#cdeeff;font-size:12px;font-weight:750;padding:9px 13px;min-height:40px;cursor:pointer;touch-action:manipulation}
+.stage-shortcuts button[aria-pressed=true]{background:#11618a;border-color:#71e0ff;color:#fff}
+.stage-shortcuts button:focus-visible{outline:2px solid #aff0ff;outline-offset:3px}
 .halo{position:absolute;left:50%;top:47%;transform:translate(-50%,-50%);width:min(84%,530px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#0eaeff23 0%,#1395fa0b 50%,transparent 72%);pointer-events:none}
 .nex-wrap{width:min(96%,615px);aspect-ratio:1;display:grid;place-items:center;position:relative;z-index:1;touch-action:pan-y}
 canvas{width:100%;height:100%;display:block;object-fit:contain;cursor:crosshair;touch-action:pan-y}.fallback{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:none}
@@ -40,8 +44,8 @@ canvas{width:100%;height:100%;display:block;object-fit:contain;cursor:crosshair;
 #loading{color:#9fc1dd;font-size:12px;position:absolute;bottom:83px;left:18px;right:18px;text-align:center}
 footer{display:flex;justify-content:space-between;gap:18px;font-size:11px;color:#789bb8;padding:23px 0;line-height:1.6}
 @media(max-width:920px){.grid{grid-template-columns:minmax(0,1fr) 310px}.stage{min-height:535px}}
-@media(max-width:720px){header{height:58px}.meta{display:none}.grid{grid-template-columns:1fr}.stage{min-height:405px}.nex-wrap{width:min(92%,450px)}.side{display:grid;grid-template-columns:1fr 1fr;gap:12px}.card{padding:16px}}
-@media(max-width:520px){.side{grid-template-columns:1fr}.stage{min-height:370px}.nex-wrap{width:min(94%,365px)}.stage-foot{padding:13px}.mode{min-height:80px}footer{flex-direction:column}}
+@media(max-width:720px){header{height:58px}.meta{display:none}.grid{grid-template-columns:1fr}.stage{min-height:525px}.stage-shortcuts{display:flex}.nex-wrap{width:min(92%,450px)}.side{display:grid;grid-template-columns:1fr 1fr;gap:12px}.card{padding:16px}}
+@media(max-width:520px){.side{grid-template-columns:1fr}.stage{min-height:500px}.nex-wrap{width:min(94%,365px)}.stage-foot{padding:13px}.mode{min-height:80px}footer{flex-direction:column}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 </style></head>
 <body><header><div class="brand"><b>✦</b> NEX <em>/ RIG LAB</em></div><div class="meta">Protótipo isolado · React/Wails candidate</div></header>
@@ -49,7 +53,11 @@ footer{display:flex;justify-content:space-between;gap:18px;font-size:11px;color:
 <h1>Ele não precisa ficar parado.</h1>
 <p class="lead">Primeiro passo de um personagem articulado: <strong>idle expressivo</strong> e quatro módulos percorrendo uma órbita contínua, cruzando atrás e na frente do corpo. A composição utiliza as camadas PNG originais do laboratório existente — sem redesenho em SVG, sem inventar geometria 3D.</p>
 <div class="grid"><section class="stage" aria-label="Palco de animação 2D">
- <div class="stage-label">NEX / ATLAS-FREE 2D</div><div class="halo"></div>
+ <div class="stage-label">NEX / ATLAS-FREE 2D</div>
+ <div class="stage-shortcuts" role="group" aria-label="Animações do personagem">
+ <button type="button" id="quick-idle" aria-pressed="true">Idle</button>
+ <button type="button" id="quick-orbit" aria-pressed="false">Órbita dos módulos</button>
+ </div><div class="halo"></div>
  <div class="nex-wrap"><canvas id="nex-canvas" role="img" aria-label="Robô NEX flutuante com quatro módulos que orbitam ao redor do corpo"></canvas><img id="fallback" class="fallback" alt="NEX, pose original em PNG" src="../hybrid-v1/nex_source_original.png"/></div>
  <div id="loading" aria-live="polite">Carregando camadas do laboratório…</div>
  <div class="stage-foot"><div class="status" id="status" role="status">CARREGANDO</div><span class="small">2D rig · Canvas · sem Three.js</span></div>
@@ -108,6 +116,8 @@ function setMode(mode) {
   player?.setMode(mode);
   idle.setAttribute('aria-pressed', String(mode === 'idle'));
   orbit.setAttribute('aria-pressed', String(mode === 'orbit'));
+  document.getElementById('quick-idle').setAttribute('aria-pressed', String(mode === 'idle'));
+  document.getElementById('quick-orbit').setAttribute('aria-pressed', String(mode === 'orbit'));
   status.textContent = mode.toUpperCase() + ' · 8 CAMADAS';
   description.textContent = mode === 'idle'
     ? 'Idle: flutuação suave, respiração em dois ritmos, olhos atentos, blink não repetitivo, reflexos de aleta e luz do núcleo.'
@@ -120,6 +130,8 @@ function syncMotion() {
 }
 idle.addEventListener('click', () => setMode('idle'));
 orbit.addEventListener('click', () => setMode('orbit'));
+document.getElementById('quick-idle').addEventListener('click', () => setMode('idle'));
+document.getElementById('quick-orbit').addEventListener('click', () => setMode('orbit'));
 motion.addEventListener('change', syncMotion);
 compare.addEventListener('change', syncMotion);
 rigOverlay.addEventListener('change', () => player?.setRigOverlay(rigOverlay.checked));
