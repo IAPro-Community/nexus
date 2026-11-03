@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { handleTerminalZoomKey } from '../nexus/terminalZoomKey';
 import { useTranslation } from 'react-i18next';
 import { Terminal } from 'xterm';
-import { resolveTerminalFontFamily } from '../nexus/terminalFont';
+import { resolveTerminalFontFamily, watchTerminalFontMetrics } from '../nexus/terminalFont';
 import { FitAddon } from 'xterm-addon-fit';
 import {
   Shield,
@@ -107,6 +107,10 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     const term = termRef.current;
     if (!term) return;
     term.options.fontSize = fontSize;
+    const element = containerRef.current;
+    const panel = element?.closest<HTMLElement>('.nx-workspace-panel');
+    if (!element?.isConnected || element.clientWidth === 0 || element.clientHeight === 0) return;
+    if (panel && panel.dataset.active !== 'true') return;
     try {
       fitAddonRef.current?.fit();
     } catch {
@@ -206,6 +210,13 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       lastSentSize = nextSize;
       ws.send(JSON.stringify({ type: 'resize', ...nextSize }));
     };
+
+    const stopWatchingFonts = watchTerminalFontMetrics(() => {
+      if (disposed) return;
+      const family = resolveTerminalFontFamily(terminalContainer);
+      if (term.options.fontFamily !== family) term.options.fontFamily = family;
+      safeFit(true);
+    });
 
     const scrollListener = term.onScroll(() => {
       if (disposed) return;
@@ -485,6 +496,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       }
       window.removeEventListener('resize', handleWindowResize);
       stopObservingContainer();
+      stopWatchingFonts();
       window.cancelAnimationFrame(initialFit);
       if (flushFrame !== undefined) window.cancelAnimationFrame(flushFrame);
       panelObserver?.disconnect();
