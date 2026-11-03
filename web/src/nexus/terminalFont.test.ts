@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resolveTerminalFontFamily, TERMINAL_FONT_FALLBACK, watchTerminalFontMetrics } from './terminalFont';
+import {
+  resolveTerminalFontFamily,
+  TERMINAL_FONT_FALLBACK,
+  watchTerminalFontMetrics,
+} from './terminalFont';
 
 describe('resolveTerminalFontFamily', () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -17,7 +21,9 @@ describe('resolveTerminalFontFamily', () => {
   it('updates metrics when fonts are ready, and disposes listeners', async () => {
     const events = new Map<string, () => void>();
     let ready!: () => void;
-    const promise = new Promise<void>((resolve) => { ready = resolve; });
+    const promise = new Promise<void>((resolve) => {
+      ready = resolve;
+    });
     const add = vi.fn((type: string, listener: () => void) => events.set(type, listener));
     const remove = vi.fn((type: string) => events.delete(type));
     vi.stubGlobal('document', {
@@ -38,7 +44,9 @@ describe('resolveTerminalFontFamily', () => {
 
   it('ignores deferred font readiness after teardown', async () => {
     let ready!: () => void;
-    const promise = new Promise<void>((resolve) => { ready = resolve; });
+    const promise = new Promise<void>((resolve) => {
+      ready = resolve;
+    });
     vi.stubGlobal('document', {
       fonts: {
         ready: promise,
