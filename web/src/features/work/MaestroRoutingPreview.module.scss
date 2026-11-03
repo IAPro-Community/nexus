@@ -1,0 +1,93 @@
+.panel {
+  margin-block: 0.75rem;
+}
+
+.summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding-block: 0.25rem;
+}
+
+.description,
+.hint {
+  color: var(--nx-text-muted, var(--text-muted, #8a8a8a));
+  font-size: 0.85rem;
+  line-height: 1.55;
+  margin-block: 0.75rem;
+}
+
+.step {
+  border: 1px solid var(--nx-border, var(--border, #555));
+  border-radius: 0.625rem;
+  margin-block: 0.75rem;
+  min-width: 0;
+  padding: 0.75rem;
+
+  legend {
+    font-size: 0.9rem;
+    font-weight: 600;
+    max-width: 100%;
+    padding-inline: 0.35rem;
+  }
+}
+
+.fields {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+
+  label {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.8rem;
+    font-weight: 500;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+
+  select,
+  input {
+    background: var(--nx-panel-bg, var(--surface, transparent));
+    border: 1px solid var(--nx-border, var(--border, #777));
+    border-radius: 0.45rem;
+    color: inherit;
+    font: inherit;
+    min-height: 2.25rem;
+    min-width: 0;
+    padding: 0.35rem 0.5rem;
+    width: 100%;
+
+    &:focus-visible {
+      outline: 2px solid currentColor;
+      outline-offset: 2px;
+    }
+  }
+}
+
+.worktree {
+  grid-column: 1 / -1;
+}
+
+.result {
+  border-top: 1px solid var(--nx-border, var(--border, #777));
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+
+  ul {
+    line-height: 1.55;
+    list-style: disc;
+    margin-block: 0.5rem;
+    padding-inline-start: 1.5rem;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 38rem) {
+  .step {
+    padding: 0.6rem;
+  }
+
+  .fields {
+    grid-template-columns: 1fr;
+  }
+}

@@ -392,7 +392,7 @@ export const BrowserSurface: React.FC<{
 
                 const isAgentActing = Boolean(
                   candidate.active_actor?.startsWith('agent:') ||
-                    (candidate.owner_runtime_id && (urlChanged || activityChanged)),
+                  (candidate.owner_runtime_id && (urlChanged || activityChanged)),
                 );
                 if (isAgentActing && !agentTabToFocus) {
                   agentTabToFocus = candidate.id;
@@ -944,7 +944,9 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
                         title={t('browser.agentOperating', 'Agente operando nesta aba')}
                       >
                         <span className={styles.pulseDot} aria-hidden="true" />
-                        <span className={styles.badgeText}>{t('browser.operating', 'Operando')}</span>
+                        <span className={styles.badgeText}>
+                          {t('browser.operating', 'Operando')}
+                        </span>
                       </span>
                     )}
                     {isUpdated && !isOperating && (
@@ -1180,9 +1182,7 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
         >
           <Copy size={13} aria-hidden="true" />
           <span>
-            {selectionText
-              ? `Copiar seleção (${selectionText.length})`
-              : 'Copiar seleção'}
+            {selectionText ? `Copiar seleção (${selectionText.length})` : 'Copiar seleção'}
           </span>
         </button>
         <button

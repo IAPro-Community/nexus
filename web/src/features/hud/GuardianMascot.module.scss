@@ -44,11 +44,27 @@
 }
 
 .guardianButton svg {
-  transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 220ms ease-out;
 }
 
 .root[data-motion='on'] .guardianButton:hover svg {
-  transform: translateY(-4px) scale(1.05);
+  transform: translateY(-2px) scale(1.02);
+}
+
+.root[data-motion='on'] .guardianButton:focus-visible svg {
+  filter: drop-shadow(0 0 4px var(--nx-accent));
+}
+
+.root[data-motion='on'] .guardianButton:focus-visible svg [data-nex-part='face'] {
+  transform: translateX(1px);
+  transition: transform 180ms ease-out;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .root[data-motion='on'] .guardianButton:hover svg [data-nex-part='face'] {
+    transform: translateX(1px);
+    transition: transform 180ms ease-out;
+  }
 }
 
 .root[data-motion='off'] .guardianButton svg {
@@ -202,6 +218,125 @@
   }
 }
 
+/* Lightweight Clippy-like microgestures. Reuses the current official SVG groups;
+   never expands the native window, changes hit regions, or starts its own RAF. */
+.root[data-nex-behavior='still'] .guardianButton svg,
+.root[data-nex-behavior='still'] .guardianButton svg * {
+  animation: none;
+  transition: none;
+}
+
+.root[data-nex-behavior='greet'] .guardianButton svg [data-nex-fin='left'] {
+  animation: nex-companion-greet-left 750ms ease-in-out 1 both;
+}
+
+.root[data-nex-behavior='greet'] .guardianButton svg [data-nex-fin='right'] {
+  animation: nex-companion-greet-right 750ms ease-in-out 1 both;
+}
+
+.root[data-nex-behavior='look'][data-nex-look='right'] .guardianButton svg [data-nex-part='face'] {
+  transform: translateX(2px);
+  transition: transform 160ms ease-out;
+}
+
+.root[data-nex-behavior='look'][data-nex-look='left'] .guardianButton svg [data-nex-part='face'] {
+  transform: translateX(-2px);
+  transition: transform 160ms ease-out;
+}
+
+.root[data-nex-behavior='attention'] .guardianButton svg [data-nex-part='face'] {
+  animation: nex-companion-notice 800ms ease-out 1 both;
+}
+
+.root[data-nex-behavior='error'] .guardianButton svg [data-nex-part='reactor'] {
+  animation: nex-companion-error 750ms ease-in-out 1 both;
+}
+
+.root[data-nex-behavior='resolved'] .guardianButton svg [data-nex-module] > g {
+  animation: nex-companion-resolved 1150ms ease-in-out 1 both;
+}
+
+.root[data-nex-behavior='resolved'] .guardianButton svg [data-nex-part='head-assembly'] {
+  animation: nex-companion-nod 1150ms ease-in-out 1 both;
+  transform-origin: 64px 66px;
+}
+
+@keyframes nex-companion-greet-left {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+
+  35% {
+    transform: rotate(-5deg);
+  }
+}
+
+@keyframes nex-companion-greet-right {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+
+  35% {
+    transform: rotate(5deg);
+  }
+}
+
+@keyframes nex-companion-notice {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  30% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes nex-companion-error {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  45% {
+    transform: scale(0.92);
+    opacity: 0.85;
+  }
+}
+
+@keyframes nex-companion-resolved {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  35% {
+    transform: translateY(-3px);
+  }
+
+  65% {
+    transform: translateY(1px);
+  }
+}
+
+@keyframes nex-companion-nod {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+
+  38% {
+    transform: rotate(2deg);
+  }
+
+  65% {
+    transform: rotate(-1deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .guardianButton svg,
   .guardianButton,
@@ -209,5 +344,11 @@
   .speech {
     animation: none;
     transition: none;
+  }
+
+  .root .guardianButton svg,
+  .guardianButton:is(:hover, :focus-visible) svg [data-nex-part='face'] {
+    filter: none;
+    transform: none;
   }
 }

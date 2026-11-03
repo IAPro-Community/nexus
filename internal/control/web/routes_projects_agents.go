@@ -44,6 +44,10 @@ func (s *Server) routeProject(h *NexusHandler) http.HandlerFunc {
 			} else {
 				h.handleAgentCreate(w, r)
 			}
+		case strings.HasSuffix(r.URL.Path, "/maestro/route-preview"):
+			h.handleProjectMaestroRoutePreview(w, r)
+		case strings.HasSuffix(r.URL.Path, "/maestro/compose-preview"):
+			h.handleProjectMaestroComposePreview(w, r)
 		case strings.HasSuffix(r.URL.Path, "/plans"):
 			h.handleProjectPlans(w, r)
 		case strings.HasSuffix(r.URL.Path, "/skills"):

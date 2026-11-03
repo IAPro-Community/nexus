@@ -227,3 +227,20 @@ func TestMaestroCapabilitiesUsesExplicitSkillsListContract(t *testing.T) {
 		t.Fatalf("skills metadata was lost: %+v", capabilities.Skills[0])
 	}
 }
+
+func TestMaestroUnavailableWithoutExternalExecutable(t *testing.T) {
+	// The installed skills catalog may exist independently of the Maestro CLI.
+	// It must never mark the mandatory external executor as READY.
+	client := &MaestroClient{maestroBin: ""}
+	client.checkAvailability()
+	status := client.Status()
+	if status.Available {
+		t.Fatal("Maestro reported available without an executable")
+	}
+	if status.Mode != MaestroOff {
+		t.Fatalf("unavailable Maestro must be OFF, got %q", status.Mode)
+	}
+	if status.Error == "" {
+		t.Fatal("missing executable must produce an explicit error")
+	}
+}

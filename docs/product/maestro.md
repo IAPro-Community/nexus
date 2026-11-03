@@ -1,5 +1,8 @@
 # Integração Nexus ↔ Orquestrador Maestro
 
+> **Decisão arquitetural de 01/11/2026 (obrigatória para novos PRs):** o Maestro é a autoridade independente de contexto, memória semântica, composição, orquestração e execução dos runs delegados. Nexus consome apenas seu Bridge/API pública, sem integrar código interno, banco ou executor. As seções abaixo descrevem a **beta atual e sua transição**, não autorização para duplicar responsabilidades. Consulte [ADR Maestro externo](../architecture/MAESTRO_EXTERNAL_AUTHORITY_ADR.md) e [issue #176](https://github.com/IAPro-Community/nexus/issues/176).
+
+
 O [Orquestrador Maestro](https://github.com/IAPro-Community/Orquestrador-Maestro)
 é um produto independente: seu CLI, Protocol, Runtime e Bridge funcionam
 sem Nexus. O Nexus não pode se tornar uma dependência do Maestro.
@@ -46,6 +49,28 @@ ausentes ou indisponíveis. A degradação permanece explícita, e o provedor
 destino deve reidratar os arquivos canônicos do projeto. Isso não constitui
 prova de continuidade semântica completa nem a migração do
 `IntelligenceMemory`.
+
+## Cliente de contexto canônico via Bridge (incremento em avaliação)
+
+A integração de handoff do Nexus foi ajustada para negociar `initialize`
+(`PROTOCOL_VERSION=1`) e preferir `project.context` quando anunciado pelo
+Maestro externo. O método retorna uma projeção mínima do projeto e reutiliza
+o manifesto/digest do contexto canônico. Esta projeção é **efêmera**: Nexus não
+a persiste como memória semântica.
+
+Para instalações anteriores do Maestro com `contextBrief=true`, o cliente
+pode usar `context.brief` explicitamente anunciado, sem inventar identidade
+ou histórico de projeto. Versão desconhecida, manifesto/digest incompatível,
+resposta fora do orçamento, indisponibilidade do processo ou método ausente
+são erros; o handoff permanece `MAESTRO_DEGRADED` e não usa memória Nexus
+como substituto silencioso.
+
+**Limitação:** essa é uma integração de leitura no Context Handoff, não uma
+migração completa do Composer/Flow, não habilita despacho pelo Maestro, nem
+prova continuidade semântica dos demais caminhos. A adoção geral do projeto
+depende de [Maestro #47](https://github.com/IAPro-Community/Orquestrador-Maestro/issues/47),
+[Maestro #48](https://github.com/IAPro-Community/Orquestrador-Maestro/issues/48)
+e [Nexus #176](https://github.com/IAPro-Community/nexus/issues/176).
 
 ## Caminho de migração seguro
 

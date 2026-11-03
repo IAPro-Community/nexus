@@ -1916,6 +1916,71 @@ export interface PlanExecutionPreview {
   generated_at: string;
 }
 
+export interface MaestroComposedTask {
+  id: string;
+  title: string;
+  objective: string;
+  type?: string;
+  dependsOn: string[];
+  acceptanceCriteria: string[];
+  requiredCapabilities?: string[];
+}
+
+export interface MaestroComposePreviewResult {
+  schemaVersion: 1;
+  authority: 'MAESTRO';
+  source: 'maestro-semantic-planner';
+  providerId: 'codex';
+  reviewOnly: true;
+  executable: false;
+  requiresApproval: true;
+  artifact: { id: string; version: number; sha256: string };
+  context: { contentDigest: string };
+  validation: {
+    valid: boolean;
+    blockers?: Array<{ code?: string; message?: string }>;
+    warnings?: Array<{ code?: string; message?: string }>;
+  };
+  tasks: MaestroComposedTask[] | null;
+}
+
+export type MaestroRoutingProvider = 'agy' | 'opencode' | 'codex' | 'claude';
+
+export interface MaestroWorkAssignmentInput {
+  taskId: string;
+  providerId: MaestroRoutingProvider;
+  model?: string;
+  sandbox: 'none' | 'enabled' | 'read-only' | 'workspace-write';
+  worktreePath: string;
+}
+
+export interface MaestroRoutePreviewResult {
+  schemaVersion: 1;
+  authority: 'MAESTRO';
+  previewOnly: true;
+  executable: false;
+  approvalRequired: true;
+  ready: boolean;
+  plan: {
+    authority: 'MAESTRO';
+    validation?: { valid: boolean; blockers?: Array<{ code?: string; message?: string }> };
+  };
+  assignments: Array<{
+    taskId: string;
+    providerId: MaestroRoutingProvider;
+    model: string;
+    workspaceId?: string;
+    status: 'READY_FOR_REVIEW' | 'BLOCKED';
+    code?: string;
+  }>;
+  blockers: Array<{
+    code: string;
+    taskId?: string;
+    providerId?: string;
+    message?: string;
+  }>;
+}
+
 export interface FlowPreflightCheck {
   key: string;
   label: string;
