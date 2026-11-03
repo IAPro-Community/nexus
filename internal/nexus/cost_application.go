@@ -36,8 +36,16 @@ const (
 
 type CostBudgetAssessment struct {
 	Level                CostBudgetLevel   `json:"level"`
-	KnownCostMicroUSD    int64             `json:"known_cost_microusd"`
-	Evidence             CostEvidenceState `json:"evidence"`
+	// KnownCostMicroUSD remains for clients consuming the legacy field, but
+	// now contains ONLY provider-reported values (never API estimates).
+	KnownCostMicroUSD        int64             `json:"known_cost_microusd"`
+	ReportedCostMicroUSD     int64             `json:"reported_cost_microusd"`
+	APIEquivalentMicroUSD    int64             `json:"api_equivalent_microusd"`
+	InferredMicroUSD         int64             `json:"inferred_microusd"`
+	UnclassifiedMicroUSD     int64             `json:"unclassified_microusd"`
+	ReportedCostObservations int64             `json:"reported_cost_observations"`
+	UnverifiedObservations   int64             `json:"unverified_observations"`
+	Evidence                 CostEvidenceState `json:"evidence"`
 	ActiveLimitMicroUSD  int64             `json:"active_limit_microusd,omitempty"`
 	RequiresConfirmation bool              `json:"requires_confirmation"`
 	Message              string            `json:"message"`
@@ -126,6 +134,10 @@ func (s *CostApplicationService) Summary(ctx context.Context, projectID string, 
 	if err != nil {
 		return CostSummary{}, err
 	}
+	costBreakdown, err := st.SummarizeCostEvidence(filter)
+	if err != nil {
+		return CostSummary{}, err
+	}
 	costEvidence := evidenceState(aggregate.ObservationCount, aggregate.KnownCostObservations)
 	tokenEvidence := evidenceState(aggregate.ObservationCount, aggregate.KnownTokenObservations)
 	observations, err := st.ListCostObservations(store.CostObservationFilter{
@@ -145,7 +157,7 @@ func (s *CostApplicationService) Summary(ctx context.Context, projectID string, 
 		CostEvidence:  costEvidence,
 		TokenEvidence: tokenEvidence,
 		Preferences:   prefs,
-		Budget:        evaluateCostBudget(aggregate, prefs, costEvidence),
+		Budget:        evaluateCostBudget(costBreakdown, prefs),
 		Anomaly:       evaluateCostAnomaly(observations, prefs),
 	}, nil
 }
@@ -235,11 +247,16 @@ func costBudgetConfirmationToken(planID string, revision int, summary CostSummar
 		return ""
 	}
 	fingerprint := fmt.Sprintf(
-		"%s|%d|%s|%d|%d|%s|%t|%d|%s",
+		"%s|%d|%s|%d|%d|%d|%d|%d|%d|%s|%t|%d|%s",
 		strings.TrimSpace(planID),
 		revision,
 		summary.Budget.Level,
-		summary.Budget.KnownCostMicroUSD,
+		summary.Budget.ReportedCostMicroUSD,
+		summary.Budget.APIEquivalentMicroUSD,
+		summary.Budget.InferredMicroUSD,
+		summary.Budget.UnclassifiedMicroUSD,
+		summary.Budget.ReportedCostObservations,
+		summary.Budget.UnverifiedObservations,
 		summary.Budget.ActiveLimitMicroUSD,
 		summary.Budget.Evidence,
 		summary.Preferences.Enabled,
@@ -250,18 +267,33 @@ func costBudgetConfirmationToken(planID string, revision int, summary CostSummar
 	return hex.EncodeToString(digest[:])
 }
 
-func evaluateCostBudget(aggregate store.CostAggregate, prefs store.CostPreferences, evidence CostEvidenceState) CostBudgetAssessment {
+// evaluateCostBudget uses ONLY provider-reported observations as a lower
+// bound on spend. Estimates and inferred values are useful for planning, but
+// cannot prove that a subscription or API account was actually charged.
+// Unreported observations always make remaining headroom unverifiable.
+func evaluateCostBudget(totals store.CostAnalyticsTotals, prefs store.CostPreferences) CostBudgetAssessment {
+	known := totals.ProviderReportedMicroUSD
+	reportedEvidence := evidenceState(totals.ObservationCount, totals.ReportedCostObservations)
+	unverified := totals.ObservationCount - totals.ReportedCostObservations
+	if unverified < 0 {
+		unverified = 0
+	}
 	assessment := CostBudgetAssessment{
-		Level:             CostBudgetDisabled,
-		KnownCostMicroUSD: aggregate.CostMicroUSD,
-		Evidence:          evidence,
-		Message:           "No local cost budget is configured.",
+		Level:                    CostBudgetDisabled,
+		KnownCostMicroUSD:        known,
+		ReportedCostMicroUSD:     known,
+		APIEquivalentMicroUSD:    totals.APIEquivalentMicroUSD,
+		InferredMicroUSD:         totals.InferredMicroUSD,
+		UnclassifiedMicroUSD:     totals.UnclassifiedMicroUSD,
+		ReportedCostObservations: totals.ReportedCostObservations,
+		UnverifiedObservations:   unverified,
+		Evidence:                 reportedEvidence,
+		Message:                  "No local cost budget is configured.",
 	}
 	if !prefs.Enabled || (prefs.SoftLimitMicroUSD == 0 && prefs.HardLimitMicroUSD == 0 && prefs.EmergencyLimitMicroUSD == 0) {
 		return assessment
 	}
 
-	known := aggregate.CostMicroUSD
 	setExceeded := func(level CostBudgetLevel, limit int64, confirmation bool, message string) CostBudgetAssessment {
 		assessment.Level = level
 		assessment.ActiveLimitMicroUSD = limit
@@ -269,27 +301,31 @@ func evaluateCostBudget(aggregate store.CostAggregate, prefs store.CostPreferenc
 		assessment.Message = message
 		return assessment
 	}
-
+	// All persisted amounts are nonnegative. Therefore a reported amount can
+	// prove a configured threshold exceeded even if other costs are unknown.
 	if prefs.EmergencyLimitMicroUSD > 0 && known >= prefs.EmergencyLimitMicroUSD {
-		return setExceeded(CostBudgetEmergency, prefs.EmergencyLimitMicroUSD, true, "Known spend reached the emergency budget. New expensive work requires explicit confirmation.")
+		return setExceeded(CostBudgetEmergency, prefs.EmergencyLimitMicroUSD, true,
+			"Provider-reported cost reached the emergency threshold. This is not a verified invoice.")
 	}
 	if prefs.HardLimitMicroUSD > 0 && known >= prefs.HardLimitMicroUSD {
-		return setExceeded(CostBudgetHard, prefs.HardLimitMicroUSD, true, "Known spend reached the hard budget. New expensive work requires explicit confirmation.")
+		return setExceeded(CostBudgetHard, prefs.HardLimitMicroUSD, true,
+			"Provider-reported cost reached the hard threshold. New expensive work requires confirmation.")
 	}
 	if prefs.SoftLimitMicroUSD > 0 && known >= prefs.SoftLimitMicroUSD {
-		return setExceeded(CostBudgetSoft, prefs.SoftLimitMicroUSD, false, "Known spend reached the soft budget.")
+		return setExceeded(CostBudgetSoft, prefs.SoftLimitMicroUSD, false,
+			"Provider-reported cost reached the soft threshold. Other costs may be unverified.")
 	}
-	if evidence != CostEvidenceMeasured {
+	if reportedEvidence != CostEvidenceMeasured {
 		assessment.Level = CostBudgetUnknown
 		assessment.RequiresConfirmation = prefs.HardLimitMicroUSD > 0 || prefs.EmergencyLimitMicroUSD > 0
-		assessment.Message = "Budget headroom cannot be proven because some execution cost is unknown."
+		assessment.Message = "Budget headroom is unverified: API-equivalent estimates, inferred amounts or missing cost evidence are not billed spend."
 		if assessment.RequiresConfirmation {
-			assessment.Message += " New expensive work requires explicit confirmation under uncertainty."
+			assessment.Message += " New expensive work requires confirmation under uncertainty."
 		}
 		return assessment
 	}
 	assessment.Level = CostBudgetOK
-	assessment.Message = "Measured spend is below configured budget thresholds."
+	assessment.Message = "All observations have provider-reported costs below configured thresholds; no invoice verification is implied."
 	return assessment
 }
 
