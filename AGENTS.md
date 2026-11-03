@@ -167,3 +167,13 @@ A decisão final do usuário é **não inserir NEX na página pública até o pa
 **Proibido:** publicar Hero parcial, chamar SVG genérico de master aprovado, declarar giro 360° enquanto faltarem vistas reais, substituir o HUD por sprite não homologado ou alterar `status` para READY sem 11 evidências e aprovação explícita do owner no SHA exato.
 
 Execute `node scripts/verify-nex-release-readiness.mjs` para verificar consistência; `--require-ready` deve falhar enquanto restarem pendências. Essa política vale também para o repositório Nexus-Site; a homepage deve permanecer sem NEX enquanto o gate for BLOCKED.
+
+## 9. Uma branch de integração e um PR por frente
+
+- Antes de abrir branch/PR, verificar PRs abertos relacionados à issue/feature e continuar no branch ativo; cada etapa deve ser um commit revisável nesse PR.
+- **OMP-inspired/Director:** `feat/omp-inspired-director-release-v1.0.0`, PR #195, é a frente única de Director, workers, histórico/recuperação operacional e integração de UX do roadmap OMP enquanto aberta. Não criar uma linha por etapa.
+- **NEX Companion:** PR #193 e branch `feat/nex-companion-hud-integration-20261103` (frente visual independente).
+- **Memória/migração:** PR #165 e branch `feat/maestro-memory-writer-fencing-20261029` (frente de persistência independente).
+- **Maestro:** o executor canônico é independente no repositório Orquestrador-Maestro, PR #59, branch `feat/durable-admission-ledger-20261103`. Nexus não duplica o scheduler ou memória.
+- Não fechar PR sem comprovar o que foi consolidado e o que segue arquivado; não presumir que uma branch fechada foi mesclada. Branches com material exclusivo são preservadas.
+- Merge somente em `release/v1.0.0` após testes, homologação e aprovação no SHA exato; não tocar `main`.
