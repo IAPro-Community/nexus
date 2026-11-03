@@ -321,9 +321,19 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
 
     ws.onmessage = (event) => {
       if (disposed) return;
+      let parsed: unknown;
       try {
-        const msg = JSON.parse(event.data);
-        if (msg.type === 'trace_config') {
+        parsed = JSON.parse(String(event.data));
+      } catch {
+        // Legacy raw PTY path only for genuinely non-JSON transport data.
+        const raw = String(event.data);
+        ingestOutput(raw);
+        writeTerminalOutput(raw);
+        return;
+      }
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return;
+      const msg = parsed as Record<string, unknown>;
+      if (msg.type === 'trace_config') {
           terminalTraceEnabled = msg.data === 'enabled';
         } else if (msg.type === 'output' && msg.data) {
           const cleaned = protocolScrubber.scrub(String(msg.data));
@@ -354,13 +364,6 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
           setConnecting(false);
           setDisconnected(true);
         }
-      } catch {
-        if (disposed) return;
-        // Raw bytes fallback
-        const raw = String(event.data);
-        ingestOutput(raw);
-        writeTerminalOutput(String(event.data));
-      }
     };
 
     ws.onclose = () => {
