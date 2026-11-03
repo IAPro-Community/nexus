@@ -419,6 +419,16 @@ export const en = {
     fleetEmpty: 'No persistent agents in this project.',
     fleetTruncated: 'Only the first 100 agents are shown.',
     inspect: 'Inspect',
+    processStates: {
+      LIVE: 'Process alive',
+      NOT_LIVE: 'Process no longer available',
+      UNKNOWN: 'No runtime generation observed',
+    },
+    processEvidence: {
+      SESSION_HOST_LIVE: 'SessionHost confirms a live process; turn state is not inferred',
+      GENERATION_NOT_IN_LIVE_REGISTRY: 'Saved generation no longer belongs to a live SessionHost',
+      NO_LIVE_RUNTIME_OBSERVED: 'No live runtime generation available',
+    },
     actions: {
       INSPECT: 'Inspect',
       DIRECTIVE: 'Direct',
@@ -2767,6 +2777,16 @@ export const ptBR = {
     fleetEmpty: 'Não há agentes persistentes neste projeto.',
     fleetTruncated: 'Exibindo somente os primeiros 100 agentes.',
     inspect: 'Inspecionar',
+    processStates: {
+      LIVE: 'Processo ativo',
+      NOT_LIVE: 'Processo indisponível',
+      UNKNOWN: 'Nenhuma geração observada',
+    },
+    processEvidence: {
+      SESSION_HOST_LIVE: 'O SessionHost confirma um processo vivo, mas não o estado da tarefa',
+      GENERATION_NOT_IN_LIVE_REGISTRY: 'A geração registrada não está mais ativa no SessionHost',
+      NO_LIVE_RUNTIME_OBSERVED: 'Nenhuma geração ativa observada',
+    },
     actions: {
       INSPECT: 'Inspecionar',
       DIRECTIVE: 'Orientar',
@@ -5133,6 +5153,16 @@ export const es = {
     fleetEmpty: 'No hay agentes persistentes en este proyecto.',
     fleetTruncated: 'Se muestran solamente los primeros 100 agentes.',
     inspect: 'Inspeccionar',
+    processStates: {
+      LIVE: 'Proceso activo',
+      NOT_LIVE: 'Proceso no disponible',
+      UNKNOWN: 'No se observó ninguna generación',
+    },
+    processEvidence: {
+      SESSION_HOST_LIVE: 'SessionHost confirma un proceso activo, pero no el estado de la tarea',
+      GENERATION_NOT_IN_LIVE_REGISTRY: 'La generación guardada ya no está activa en SessionHost',
+      NO_LIVE_RUNTIME_OBSERVED: 'No se observó una generación activa',
+    },
     actions: {
       INSPECT: 'Inspeccionar',
       DIRECTIVE: 'Dirigir',
