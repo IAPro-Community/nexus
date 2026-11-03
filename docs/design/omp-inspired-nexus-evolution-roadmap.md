@@ -182,7 +182,7 @@ Matriz de reaproveitamento, pendência e caminho:
 
 ## Entregas de cada fase
 
-Cada fase é uma cadeia de PRs curtos: (1) contrato/backend; (2) apresentação/UX; (3) testes/E2E/docs. Cada PR contém esquema e migração compatível, provas de operação/segurança, atualização de announcement/tour se UI visível, i18n PT/EN/ES, WCAG 2.2 AA, 390px/tablet/desktop e qualidade Go/TS. Não passar à fase seguinte sem integrar a fase anterior na release e validar dependências/contratos no SHA resultante.
+Cada fase usa commits pequenos e revisáveis **no mesmo branch e PR da frente de evolução OMP** (#195), em vez de abrir PRs sucessivos: (1) contrato/backend; (2) apresentação/UX; (3) testes/E2E/docs. Cada PR contém esquema e migração compatível, provas de operação/segurança, atualização de announcement/tour se UI visível, i18n PT/EN/ES, WCAG 2.2 AA, 390px/tablet/desktop e qualidade Go/TS. Não passar à fase seguinte sem integrar a fase anterior na release e validar dependências/contratos no SHA resultante.
 
 Gates transversais:
 1. Dois agentes, dois worktrees, dois clientes e interrupções reais nos recursos concorrentes.
@@ -233,3 +233,25 @@ Este documento é um roteiro de implementação, não um indicador de que todas 
 - Nexus #152 continua sendo a issue canônica para Director Mode, com comandos tipados e ownership único.
 
 Ao executar cada fase, revalidar estado dos PRs e issues. Linhas históricas de status acima refletem o levantamento em 2026-10-29 e não substituem a inspeção remota mais recente.
+
+## Acompanhamento de execução — 2026-11-03
+
+**Branch de implementação único da evolução OMP-inspired:** `feat/omp-inspired-director-release-v1.0.0`, [PR Nexus #195](https://github.com/IAPro-Community/nexus/pull/195). Novas fases e correções pertencem a este PR enquanto aberto; não abrir outras branches para etapas sucessivas. O Maestro [#59](https://github.com/IAPro-Community/Orquestrador-Maestro/pull/59) é a linha **independente** da execução durável de owner MAESTRO, sem criar scheduler paralelo em Nexus.
+
+### Status comprovável por source e gates
+
+| Etapa | Estado | Evidência ou bloqueio |
+| --- | --- | --- |
+| 00 — autoridade/memória | PARCIAL | Nexus integra client read-only Maestro; backup/restore reversível, exclusão de shadow writes e gates externos não finalizados (#165, Maestro #41) |
+| 01 — roles/modelos | PARCIAL | ExecutionRole e MissionTeams existem; workflow model routing e E2E multi-provider incompletos |
+| 02 — jobs/observabilidade | PARCIAL | MissionRunner e histórico de Runs existem para ownership Nexus; Maestro async Run/lease/Goal Loop ainda não exposto (Maestro #48) |
+| 03 — Director Mode | IMPLEMENTAÇÃO INICIADA | PR #195: `GET /agents/:id/director`, inspeção de generation e liveness real; ações tipadas somente informativas, `DIRECTIVE=PREPARE_ONLY`; `STEER/QUEUE_NEXT/CANCEL` não promovidos; E2E pendente |
+| 04–08 — história/fork/checkpoint/recuperação/rewind | PARCIAL | checkpoint/lineage/continuity existentes; experiência ponta-a-ponta e semântica de replay ausentes |
+| 09–11 — compaction/memória/skills | PARCIAL OU PENDENTE | Maestro Bridge expõe leitura/registro de memória; context notes editáveis, retain/recall/reflect e learned skills integrados continuam pendentes |
+| 12 — importação de sessão | PARCIAL | importação de credenciais não significa importação de sessões e resume verificado (#153) |
+| 13–14 — traces/custo | PARCIAL | usage/cost ledger e telemetria existentes; TTFT/cache por provider e ledger auditável por workpackage ainda faltam |
+| 15 — Browser/CDP | PARCIAL | browsercontrol existe; ciclo de vida multi-agent + autorização/isolamento e E2E faltam |
+
+**Não mudar estado de uma etapa para CONCLUÍDA somente por PR aprovado ou código existente**. Critério de pronto exige regressões, autorização, duas sessões reais, continuidade após restart, testes por plataforma e evidência do SHA exato.
+
+**Ordem do próximo desenvolvimento:** tornar ações tipadas seguras e owner-aware; correlacionar atividade real por geração/Run, integrar Maestro #48 quando o ACK durável existir; oferecer `QUEUE_NEXT`/cancel/steer somente com API de provider verificada, depois Timeline/fork/recovery. Não apresentar comandos não implementados como ativos nem instalar OMP como dependência do Director Mode.
