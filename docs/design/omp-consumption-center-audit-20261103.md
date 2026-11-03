@@ -1,6 +1,6 @@
 # Central de consumo Nexus — estudo comparativo com Oh My Pi (03/11/2026)
 
-**Linha única:** [Nexus PR #195](https://github.com/IAPro-Community/nexus/pull/195), branch `feat/omp-inspired-director-release-v1.0.0` → `release/v1.0.0`. Sem novo PR, banco de contabilização ou motor de sincronização paralelo. O Maestro continua dono dos seus Runs e do executor durável ([Maestro PR #59](https://github.com/IAPro-Community/Orquestrador-Maestro/pull/59)).
+**Branch única vigente:** `release/v1.0.0` no Nexus; PR #195 já integrado e encerrado. Sem novo PR, banco de contabilização ou motor de sincronização paralelo. O Maestro permanece dono dos Runs duráveis; PR #59 já integrado à sua branch `v1`. Estar na release não implica homologação funcional ou publicação.
 
 ## Fontes estudadas
 
@@ -36,9 +36,21 @@ A tela mantém a seção de cotas e budget atual e acrescenta um painel de anál
 
 ## Risco P0 encontrado no Nexus legado
 
-O resumo atual `CostSummaryStrip` usa `aggregate.cost_microusd` do `SummarizeCostObservations`, que agrega **todos os `cost_kind`**, e `evaluateCostBudget` também se baseia nesse valor. Assim, uma estimativa equivalente à API pode afetar a apresentação e as políticas de confirmação como se fosse custo reportado. Isso **não representa fatura** e requer revisão específica da política de orçamento antes de qualquer controle de gasto financeiro real; o novo endpoint não deve repetir essa soma.
+O resumo anterior `CostSummaryStrip` usava `aggregate.cost_microusd` do `SummarizeCostObservations`, que agrega **todos os `cost_kind`**, e a política legada também usava esse valor. O P0 foi corrigido no código conforme o bloco abaixo, mas a homologação financeira continua pendente.
 
 Critérios de correção: política explícita por tipo de custo, provas de fatura/receita quando existirem, comportamento conservador sob incerteza, testes de valores mistos e garantias de idempotência na origem. Não reduzir o orçamento nem alterar bloqueios existentes sem aprovação de semântica.
+
+## Atualização do P0 de orçamento na release (03/11/2026)
+
+**Correção de código aplicada, aguardando validação completa:** o resumo de custos agora deriva o orçamento da mesma agregação de evidências tipadas da analítica (`SummarizeCostEvidence`), sem criar outro ledger. O valor de `known_cost_microusd`, mantido para clientes legados, passa a corresponder **exclusivamente ao valor reportado pelo provedor**; campos novos mostram separadamente reportado, estimado pela API, inferido e não classificado, além da cobertura de observações reportadas.
+
+- Somente o valor **reportado pelo provider** pode comprovar que um threshold de orçamento foi ultrapassado. Isso ainda **não é uma fatura validada**.
+- Custo equivalente à API, custo inferido e observação sem custo não podem comprovar margem disponível. Orçamento com limite hard/emergency continua exigindo confirmação na incerteza, inclusive depois de ultrapassar um limite soft.
+- O token de confirmação agora incorpora a composição das evidências: alterações no montante estimado ou na cobertura invalidam confirmação anterior; é uma mudança intencional e conservadora.
+- `CostSummaryStrip` não mostra mais a soma mista como gasto; valores por provedor no resumo foram substituídos pela contagem de observações, mantendo o detalhamento por classe na analítica.
+- Testes cobrem custo reportado vs estimado, limites soft/hard/emergency, token de confirmação, isolamento por projeto e API equivalente acima do hard limit.
+
+**Ainda não entregue:** certificação financeira com faturas, conversão monetária, garantias de completude de provider, integração visual homologada e limites por assinatura. A política continua sendo **um guard operacional local**, não um serviço contábil.
 
 ## Gates para declarar a central de consumo concluída
 
@@ -48,4 +60,4 @@ Critérios de correção: política explícita por tipo de custo, provas de fatu
 4. **Semântica de custo**: resolver P0 do `CostSummaryStrip`/budget e revisar cobertura dos provedores, inclusive contratos de assinatura.
 5. **Funcionalidade avançada**: TTFT/erros/tokens/s e tracing somente após suporte explícito dos adaptadores, com fonte e confiança visíveis. Nenhum número sintético para preencher dashboard.
 
-**Veredito atual:** incremento de analítica implementado, **não homologado**. Não confundir frontend construído/CI com evidência de faturamento real, sessões OMP conectadas ou release aprovada.
+**Veredito atual:** incremento de analítica e separação de evidências do orçamento implementados, **não homologados**. Não confundir frontend construído/CI com evidência de faturamento real, sessões OMP conectadas ou release aprovada.
