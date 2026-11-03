@@ -67,11 +67,15 @@ export function DirectorFleetPanel({
       </div>
       {loading && <p role="status">{t('director.loading')}</p>}
       {refreshing && !loading && (
-        <p role="status" className={styles.notice}>{t('director.refreshing')}</p>
+        <p role="status" className={styles.notice}>
+          {t('director.refreshing')}
+        </p>
       )}
       {lastObservedAt && !loading && (
         <p className={styles.notice}>
-          {t('director.lastChecked', { time: new Date(lastObservedAt).toLocaleTimeString(i18n.language) })}
+          {t('director.lastChecked', {
+            time: new Date(lastObservedAt).toLocaleTimeString(i18n.language),
+          })}
         </p>
       )}
       {error && !loading && (
