@@ -38,7 +38,7 @@ function date(value) {
     fail('Evidence timestamp is invalid, in the future or stale');
   }
 }
-function safeFile(base, relativePath, digest) {
+function safeFile(base, relativePath, digest, kind) {
   if (typeof relativePath !== 'string' || !relativePath.length ||
       isAbsolute(relativePath) || relativePath.includes('\\') ||
       relativePath.split('/').some((part) => part === '..' || part === '.' || !part)) {
@@ -55,6 +55,14 @@ function safeFile(base, relativePath, digest) {
   if (!bytes.length || bytes.length > 64 * 1024 * 1024 ||
       createHash('sha256').update(bytes).digest('hex') !== digest) {
     fail('Evidence file missing or SHA-256 mismatch');
+  }
+  if (kind === 'screenshot') {
+    const png = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+    if (bytes.length < 400 || !bytes.subarray(0, 8).equals(png) ||
+        bytes.toString('ascii', 12, 16) !== 'IHDR' ||
+        bytes.readUInt32BE(16) < 320 || bytes.readUInt32BE(20) < 200) {
+      fail('Screenshot artifact must be a nontrivial PNG with usable dimensions');
+    }
   }
 }
 export function verifyOfflineReleaseEvidence({
@@ -120,7 +128,7 @@ export function verifyOfflineReleaseEvidence({
       if (!['screenshot', 'test-log', 'report'].includes(artifact.kind)) {
         fail('Unrecognized evidence artifact kind');
       }
-      safeFile(artifactsBase, artifact.path, artifact.sha256);
+      safeFile(artifactsBase, artifact.path, artifact.sha256, artifact.kind);
     }
   }
   if (!Array.isArray(payload.features) || payload.features.length !== 48 ||
