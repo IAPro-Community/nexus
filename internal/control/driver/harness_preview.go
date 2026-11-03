@@ -107,20 +107,20 @@ func previewHarnessEnv(id, home, profileName string) []string {
 		})
 	case "omp":
 		env = runtime.EnvSet(env, map[string]string{
-			"PI_CONFIG_DIR": ".omp",
+			"PI_CONFIG_DIR":       ".omp",
 			"PI_CODING_AGENT_DIR": filepath.Join(home, ".omp", "agent"),
-			"OMP_PROFILE": "",
-			"XDG_CONFIG_HOME": filepath.Join(home, ".config"),
-			"XDG_DATA_HOME": filepath.Join(home, ".local", "share"),
-			"XDG_STATE_HOME": filepath.Join(home, ".local", "state"),
-			"XDG_CACHE_HOME": filepath.Join(home, ".cache"),
+			"OMP_PROFILE":         "",
+			"XDG_CONFIG_HOME":     filepath.Join(home, ".config"),
+			"XDG_DATA_HOME":       filepath.Join(home, ".local", "share"),
+			"XDG_STATE_HOME":      filepath.Join(home, ".local", "state"),
+			"XDG_CACHE_HOME":      filepath.Join(home, ".cache"),
 		}, "PI_PROFILE", "PI_CODING_AGENT_SESSION_DIR", "PI_CONFIG_FILES", "PI_NATIVES_DIR",
 			"OMP_WORKTREE_DIR", "OMP_AUTORESEARCH_DB_DIR", "OMP_GITHUB_CACHE_DB")
 	case "mimo":
 		env = runtime.EnvSet(env, map[string]string{
 			"XDG_CONFIG_HOME": filepath.Join(home, ".config"),
-			"XDG_DATA_HOME": filepath.Join(home, ".local", "share"),
-			"XDG_CACHE_HOME": filepath.Join(home, ".cache"),
+			"XDG_DATA_HOME":   filepath.Join(home, ".local", "share"),
+			"XDG_CACHE_HOME":  filepath.Join(home, ".cache"),
 		})
 	}
 	return env
