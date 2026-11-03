@@ -57,9 +57,9 @@ export function MaestroComposePreview({
 
   const canApply = Boolean(
     preview?.artifact.id === artifactId &&
-      preview?.validation.valid &&
-      preview.tasks?.length &&
-      !preview.executable,
+    preview?.validation.valid &&
+    preview.tasks?.length &&
+    !preview.executable,
   );
 
   return (
@@ -73,8 +73,14 @@ export function MaestroComposePreview({
           )}
         </p>
         {!artifactId ? (
-          <InlineAlert tone="warning" title={t('flow.maestroComposeNoArtifact', 'PromptArtifact necessário')}>
-            {t('flow.maestroComposeUseComposer', 'Finalize um artefato no Composer e envie-o para o Flow primeiro.')}
+          <InlineAlert
+            tone="warning"
+            title={t('flow.maestroComposeNoArtifact', 'PromptArtifact necessário')}
+          >
+            {t(
+              'flow.maestroComposeUseComposer',
+              'Finalize um artefato no Composer e envie-o para o Flow primeiro.',
+            )}
           </InlineAlert>
         ) : (
           <>
@@ -99,7 +105,10 @@ export function MaestroComposePreview({
           </>
         )}
         {error && (
-          <InlineAlert tone="danger" title={t('flow.maestroComposeFailed', 'Composição indisponível')}>
+          <InlineAlert
+            tone="danger"
+            title={t('flow.maestroComposeFailed', 'Composição indisponível')}
+          >
             {error}
           </InlineAlert>
         )}
@@ -117,13 +126,18 @@ export function MaestroComposePreview({
                 <li key={task.id}>
                   <strong>{task.title}</strong> — {task.objective}
                   {task.dependsOn.length > 0 && (
-                    <small> · {t('flow.dependencies', 'Depende de')}: {task.dependsOn.join(', ')}</small>
+                    <small>
+                      {' '}
+                      · {t('flow.dependencies', 'Depende de')}: {task.dependsOn.join(', ')}
+                    </small>
                   )}
                 </li>
               ))}
             </ol>
             {preview.validation.blockers?.map((blocker, index) => (
-              <p key={index} role="alert">{blocker.code || 'BLOCKED'}: {blocker.message}</p>
+              <p key={index} role="alert">
+                {blocker.code || 'BLOCKED'}: {blocker.message}
+              </p>
             ))}
             <p className="nx-muted-copy">
               {t(

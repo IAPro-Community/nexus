@@ -1383,7 +1383,8 @@ export const en = {
   },
   flow: {
     maestroComposeTitle: 'Semantic composition · Maestro',
-    maestroComposeDescription: 'Generate a task proposal from a finalized PromptArtifact. Codex is used only for read-only planning. No agent is started.',
+    maestroComposeDescription:
+      'Generate a task proposal from a finalized PromptArtifact. Codex is used only for read-only planning. No agent is started.',
     maestroComposeNoArtifact: 'PromptArtifact required',
     maestroComposeUseComposer: 'Finalize an artifact in Composer and send it to Flow first.',
     maestroComposeConsent: 'I authorize a Codex planning call. This may use my provider credits.',
@@ -1393,15 +1394,19 @@ export const en = {
     maestroComposeFailed: 'Composition unavailable',
     maestroComposeReady: 'Proposed plan · review required',
     maestroComposeBlocked: 'Plan rejected by validator',
-    maestroComposeReviewOnly: 'No work was executed. Importing replaces the current draft locally. Review roles, providers, dependencies and acceptance criteria before saving.',
+    maestroComposeReviewOnly:
+      'No work was executed. Importing replaces the current draft locally. Review roles, providers, dependencies and acceptance criteria before saving.',
     maestroComposeApply: 'Use tasks as draft',
     maestroComposeReplaceTitle: 'Replace the current Flow draft?',
-    maestroComposeReplaceDescription: 'Existing steps will be replaced locally with the Maestro proposal. No task will be started; review and save the Flow before running.',
+    maestroComposeReplaceDescription:
+      'Existing steps will be replaced locally with the Maestro proposal. No task will be started; review and save the Flow before running.',
     maestroComposeReplaceConfirm: 'Replace draft',
     maestroDraftPhaseTitle: 'Maestro · plan for review',
-    maestroExecutionNotReady: 'This plan was composed by Maestro. Delegated execution needs the durable Maestro execution API and cannot start through Nexus MissionRunner.',
+    maestroExecutionNotReady:
+      'This plan was composed by Maestro. Delegated execution needs the durable Maestro execution API and cannot start through Nexus MissionRunner.',
     maestroDispatchPending: 'Maestro execution unavailable',
-    maestroPlanReviewOnly: 'Maestro-composed plan: you can review and save the draft. Delegated execution remains blocked until the Maestro executor is integrated; no task will be sent to the Nexus MissionRunner.',
+    maestroPlanReviewOnly:
+      'Maestro-composed plan: you can review and save the draft. Delegated execution remains blocked until the Maestro executor is integrated; no task will be sent to the Nexus MissionRunner.',
     planErrorTitle: 'Review the Flow plan',
     createEmptyDraft: 'Create empty Flow from goal',
     journeyPlan: '1. Plan',
@@ -3690,25 +3695,31 @@ export const ptBR = {
   },
   flow: {
     maestroComposeTitle: 'Composição semântica · Maestro',
-    maestroComposeDescription: 'Gere uma proposta de etapas a partir do PromptArtifact finalizado. O Codex será usado somente para planejar em modo read-only. Nenhum agente será iniciado.',
+    maestroComposeDescription:
+      'Gere uma proposta de etapas a partir do PromptArtifact finalizado. O Codex será usado somente para planejar em modo read-only. Nenhum agente será iniciado.',
     maestroComposeNoArtifact: 'PromptArtifact necessário',
     maestroComposeUseComposer: 'Finalize um artefato no Composer e envie-o para o Flow primeiro.',
-    maestroComposeConsent: 'Autorizo uma chamada do Codex para planejamento; ela pode consumir créditos do meu provedor.',
+    maestroComposeConsent:
+      'Autorizo uma chamada do Codex para planejamento; ela pode consumir créditos do meu provedor.',
     maestroComposeLoading: 'Compondo etapas…',
     maestroComposeGenerate: 'Gerar prévia no Maestro',
     maestroComposeError: 'Não foi possível solicitar a composição do Maestro.',
     maestroComposeFailed: 'Composição indisponível',
     maestroComposeReady: 'Plano proposto · requer revisão',
     maestroComposeBlocked: 'Plano rejeitado pelo validador',
-    maestroComposeReviewOnly: 'Nada foi executado. A importação substitui o rascunho atual localmente. Revise papéis, provedores, dependências e critérios de aceite antes de salvar.',
+    maestroComposeReviewOnly:
+      'Nada foi executado. A importação substitui o rascunho atual localmente. Revise papéis, provedores, dependências e critérios de aceite antes de salvar.',
     maestroComposeApply: 'Usar etapas como rascunho',
     maestroComposeReplaceTitle: 'Substituir o rascunho do Flow?',
-    maestroComposeReplaceDescription: 'As etapas atuais serão substituídas localmente pela proposta do Maestro. Nenhuma tarefa será iniciada; revise e salve o Flow antes de executar.',
+    maestroComposeReplaceDescription:
+      'As etapas atuais serão substituídas localmente pela proposta do Maestro. Nenhuma tarefa será iniciada; revise e salve o Flow antes de executar.',
     maestroComposeReplaceConfirm: 'Substituir rascunho',
     maestroDraftPhaseTitle: 'Maestro · plano para revisão',
-    maestroExecutionNotReady: 'Este plano foi composto pelo Maestro. A execução delegada exige a API durável do Maestro e não pode ser iniciada pelo MissionRunner do Nexus.',
+    maestroExecutionNotReady:
+      'Este plano foi composto pelo Maestro. A execução delegada exige a API durável do Maestro e não pode ser iniciada pelo MissionRunner do Nexus.',
     maestroDispatchPending: 'Execução Maestro indisponível',
-    maestroPlanReviewOnly: 'Plano composto pelo Maestro: você pode revisar e salvar o rascunho. O despacho durável permanece bloqueado até a integração com o executor Maestro; nenhuma tarefa será transferida ao MissionRunner do Nexus.',
+    maestroPlanReviewOnly:
+      'Plano composto pelo Maestro: você pode revisar e salvar o rascunho. O despacho durável permanece bloqueado até a integração com o executor Maestro; nenhuma tarefa será transferida ao MissionRunner do Nexus.',
     planErrorTitle: 'Verifique o planejamento do Flow',
     createEmptyDraft: 'Criar Flow a partir do objetivo',
     journeyPlan: '1. Planejar',
@@ -6005,25 +6016,31 @@ export const es = {
 
   flow: {
     maestroComposeTitle: 'Composición semántica · Maestro',
-    maestroComposeDescription: 'Genere una propuesta de tareas a partir de un PromptArtifact finalizado. Codex se utiliza solo para planificar en modo de solo lectura. No se iniciará ningún agente.',
+    maestroComposeDescription:
+      'Genere una propuesta de tareas a partir de un PromptArtifact finalizado. Codex se utiliza solo para planificar en modo de solo lectura. No se iniciará ningún agente.',
     maestroComposeNoArtifact: 'Se requiere PromptArtifact',
     maestroComposeUseComposer: 'Finalice un artefacto en Composer y envíelo a Flow primero.',
-    maestroComposeConsent: 'Autorizo una llamada de Codex para planificar. Puede consumir créditos de mi proveedor.',
+    maestroComposeConsent:
+      'Autorizo una llamada de Codex para planificar. Puede consumir créditos de mi proveedor.',
     maestroComposeLoading: 'Generando tareas…',
     maestroComposeGenerate: 'Generar vista previa de Maestro',
     maestroComposeError: 'No se pudo solicitar la composición de Maestro.',
     maestroComposeFailed: 'Composición no disponible',
     maestroComposeReady: 'Plan propuesto · requiere revisión',
     maestroComposeBlocked: 'Plan rechazado por el validador',
-    maestroComposeReviewOnly: 'No se ejecutó ninguna tarea. Importar sustituye el borrador actual localmente. Revise roles, proveedores, dependencias y criterios de aceptación antes de guardar.',
+    maestroComposeReviewOnly:
+      'No se ejecutó ninguna tarea. Importar sustituye el borrador actual localmente. Revise roles, proveedores, dependencias y criterios de aceptación antes de guardar.',
     maestroComposeApply: 'Usar tareas como borrador',
     maestroComposeReplaceTitle: '¿Sustituir el borrador actual de Flow?',
-    maestroComposeReplaceDescription: 'Las etapas actuales se sustituirán localmente por la propuesta de Maestro. No se iniciará ninguna tarea; revise y guarde el Flow antes de ejecutar.',
+    maestroComposeReplaceDescription:
+      'Las etapas actuales se sustituirán localmente por la propuesta de Maestro. No se iniciará ninguna tarea; revise y guarde el Flow antes de ejecutar.',
     maestroComposeReplaceConfirm: 'Sustituir borrador',
     maestroDraftPhaseTitle: 'Maestro · plan para revisión',
-    maestroExecutionNotReady: 'Este plan fue compuesto por Maestro. La ejecución delegada requiere la API duradera de Maestro y no puede iniciarse mediante Nexus MissionRunner.',
+    maestroExecutionNotReady:
+      'Este plan fue compuesto por Maestro. La ejecución delegada requiere la API duradera de Maestro y no puede iniciarse mediante Nexus MissionRunner.',
     maestroDispatchPending: 'Ejecución Maestro no disponible',
-    maestroPlanReviewOnly: 'Plan compuesto por Maestro: puede revisar y guardar el borrador. La ejecución delegada sigue bloqueada hasta integrar el ejecutor de Maestro; no se enviará ninguna tarea al MissionRunner de Nexus.',
+    maestroPlanReviewOnly:
+      'Plan compuesto por Maestro: puede revisar y guardar el borrador. La ejecución delegada sigue bloqueada hasta integrar el ejecutor de Maestro; no se enviará ninguna tarea al MissionRunner de Nexus.',
     planErrorTitle: 'Revise la planificación del Flow',
     createEmptyDraft: 'Crear Flow desde el objetivo',
     journeyPlan: '1. Planificar',

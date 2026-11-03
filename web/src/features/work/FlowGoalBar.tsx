@@ -157,7 +157,13 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
             </Button>
             <Button
               tone="brand"
-              disabled={!selectedPlan || !flowDraft || runBusy || flowErrors.length > 0 || awaitingMaestroExecution}
+              disabled={
+                !selectedPlan ||
+                !flowDraft ||
+                runBusy ||
+                flowErrors.length > 0 ||
+                awaitingMaestroExecution
+              }
               onClick={() => void launchRun()}
             >
               <Play size={14} />{' '}

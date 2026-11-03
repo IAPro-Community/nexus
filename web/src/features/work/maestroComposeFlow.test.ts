@@ -56,19 +56,43 @@ describe('Maestro composition into Flow draft', () => {
     ]);
     expect(draft.steps.every((step) => step.provider === undefined)).toBe(true);
     expect(draft.structuredFacts?.['nexus.source_artifact_id']).toBe('artifact-1');
-    expect(draft.structuredFacts?.['nexus.maestro.composition_context_digest']).toBe('b'.repeat(64));
+    expect(draft.structuredFacts?.['nexus.maestro.composition_context_digest']).toBe(
+      'b'.repeat(64),
+    );
     expect(baseline.steps).toHaveLength(0);
   });
 
   it('refuses invalid graph and executable response', () => {
-    expect(() => draftFromMaestroComposition(baseline, {
-      ...preview, executable: true,
-    } as unknown as MaestroComposePreviewResult, 'Maestro review')).toThrow();
-    expect(() => draftFromMaestroComposition(baseline, {
-      ...preview, validation: { valid: false }, tasks: null,
-    }, 'Maestro review')).toThrow();
-    expect(() => draftFromMaestroComposition(baseline, {
-      ...preview, tasks: [{ ...preview.tasks![1], dependsOn: ['missing'] }],
-    }, 'Maestro review')).toThrow();
+    expect(() =>
+      draftFromMaestroComposition(
+        baseline,
+        {
+          ...preview,
+          executable: true,
+        } as unknown as MaestroComposePreviewResult,
+        'Maestro review',
+      ),
+    ).toThrow();
+    expect(() =>
+      draftFromMaestroComposition(
+        baseline,
+        {
+          ...preview,
+          validation: { valid: false },
+          tasks: null,
+        },
+        'Maestro review',
+      ),
+    ).toThrow();
+    expect(() =>
+      draftFromMaestroComposition(
+        baseline,
+        {
+          ...preview,
+          tasks: [{ ...preview.tasks![1], dependsOn: ['missing'] }],
+        },
+        'Maestro review',
+      ),
+    ).toThrow();
   });
 });
