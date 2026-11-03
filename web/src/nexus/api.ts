@@ -909,6 +909,13 @@ export const nexus = {
 
   // Local Cost Intelligence. Unknown token/cost evidence stays absent rather
   // than being coerced to zero.
+  getCostAnalytics: (days: 7 | 30 | 90 = 7, projectId?: string) => {
+    const params = new URLSearchParams({ days: String(days) });
+    if (projectId) params.set('project_id', projectId);
+    return request<import('../types').CostAnalyticsReport>(
+      `/api/v1/cost/analytics?${params.toString()}`,
+    );
+  },
   getCostSummary: (days = 7, projectId?: string) => {
     const params = new URLSearchParams({ days: String(days) });
     if (projectId) params.set('project_id', projectId);
