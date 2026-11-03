@@ -1,0 +1,5 @@
+{
+  "schemaVersion": 1,
+  "reviewers": [],
+  "note": "Fail-closed until an authorized release owner enrolls an Ed25519 public verification key. Never commit private keys."
+}
