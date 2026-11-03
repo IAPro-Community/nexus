@@ -1,6 +1,23 @@
 # Capturas e evidências visuais — Nexus 1.0
 
-O [manifesto](../assets/screenshots/manifest.json) contém screenshots gerados com fixture sintética. Seu SHA de origem antecede alterações recentes no HUD, terminal e Desktop; imagens antigas **não** certificam a interface atual.
+O [manifesto](../assets/screenshots/manifest.json) contém screenshots gerados com fixture sintética. A recaptura associada ao PR #181 foi executada sobre `a3fbd4478bbcdf143d62fdad03e534c821270850`, com `bun run docs:capture` e `node scripts/docs-verify.mjs` em CI; a evidência nativa Desktop (`VIS-011`) continua classificada como **HISTORICAL**, não PASS da versão atual. Imagens Web sintéticas não certificam homologação Desktop ou release 1.0.
+
+## Evidência incremental — Flow multiagente (PR #188, 02/11/2026)
+
+O painel de pré-validação `AGY / OpenCode` foi compilado e passou em
+`bun run typecheck`, ESLint, Stylelint e build no workflow
+[`41532834984`](https://github.com/IAPro-Community/nexus/actions/runs/41532834984).
+O processo executou `bun run docs:capture` (10 superfícies sintéticas) e
+`node scripts/docs-verify.mjs` após registrar a fonte formatada, no SHA
+`74cd1146ded05916daafed44fef318d2bceb6a7b`.
+O manifesto mantém essa proveniência; o workflow temporário foi removido.
+
+**Escopo:** essas capturas certificam somente superfícies sintéticas do Web
+e a consistência da origem. Não provam a interação real de selecionar AGY e
+OpenCode, salvar/reabrir a revisão, comunicar com agentes instalados ou executar
+o Flow. Esses cenários E2E continuam abertos na
+[issue #185](https://github.com/IAPro-Community/nexus/issues/185).
+Não alterar `VIS-011` (Desktop) de HISTORICAL para PASS.
 
 ## Como recapturar
 

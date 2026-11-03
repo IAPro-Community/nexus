@@ -1,5 +1,10 @@
 # Flow
 
+> **Contrato-alvo, ainda não implementado:** Maestro é o dono da composição canônica e da execução de trabalhos delegados; Flow é editor e visualização. As referências abaixo ao `MissionRunner` descrevem o código da beta para runs de owner `NEXUS` e não autorizam duplicar scheduler/Goal Loop para runs de owner `MAESTRO`. Ver [ADR](../architecture/MAESTRO_EXTERNAL_AUTHORITY_ADR.md) e [#176](https://github.com/IAPro-Community/nexus/issues/176).
+
+
+> **Interoperabilidade multiagente (regra obrigatória):** Nexus continua intermediando agentes e aplicações. Um mesmo Flow pode atribuir frontend ao **Antigravity (AGY)** e backend ao **OpenCode**, por decisão explícita do usuário. Maestro é a autoridade de contexto e das execuções delegadas, mas **não substitui a escolha de provider de cada WorkPackage**. Planejamento preview Codex-only **não significa execução Codex-only**. Ver [Contrato multi-provider](../architecture/MULTI_PROVIDER_INTEROP_CONTRACT.md), [#81](https://github.com/IAPro-Community/nexus/issues/81) e [Maestro #53](https://github.com/IAPro-Community/Orquestrador-Maestro/issues/53). A coordenação durável ainda está pendente: não considerar essa nota como implementação concluída.
+
 Flow é o **studio de pipeline** do WorkPlan canônico: Plan → Build → Review → Verify (e fases extras do preset quando existirem). Não é um segundo planner nem uma fonte paralela de verdade — projeta o plano e devolve mutações válidas ao runtime.
 
 ## Superfície

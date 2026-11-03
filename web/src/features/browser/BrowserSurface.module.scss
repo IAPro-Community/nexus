@@ -378,7 +378,10 @@ input:focus-visible {
   color: var(--nx-muted);
   cursor: pointer;
   opacity: 0.6;
-  transition: opacity 120ms, background 120ms, color 120ms;
+  transition:
+    opacity 120ms,
+    background 120ms,
+    color 120ms;
 
   &:hover {
     opacity: 1;

@@ -508,24 +508,13 @@ func findOrquestradorDir() string {
 
 func (c *MaestroClient) checkAvailability() {
 	if c.maestroBin == "" {
-		// Fallback: check if .orquestrador exists with valid skills
-		dirs := findOrquestradorDirs()
-		if len(dirs) > 0 {
-			cap, err := c.queryCapabilitiesFromDirs(dirs)
-			if err == nil && cap != nil && len(cap.Skills) > 0 {
-				c.status = MaestroStatus{
-					Available:    true,
-					Mode:         MaestroAssist,
-					Capabilities: cap,
-					LastCheck:    time.Now(),
-				}
-				return
-			}
-		}
+		// A local .orquestrador/ skills folder is only a catalog, not a
+		// running Maestro executor or proof that the external Bridge works.
+		// Catalog() can still expose local skills independently.
 		c.status = MaestroStatus{
 			Available: false,
 			Mode:      MaestroOff,
-			Error:     "maestro binary not found",
+			Error:     "Maestro executable unavailable; local skills are not an executor",
 			LastCheck: time.Now(),
 		}
 		return

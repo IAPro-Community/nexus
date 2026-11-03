@@ -69,3 +69,19 @@ func TestMaestroMemoryValidationsHaveNoNetworkOrStorageSideEffects(t *testing.T)
 		}
 	}
 }
+
+func TestMaestroMemoryMethodNegotiation(t *testing.T) {
+	var init maestroBridgeInit
+	init.ProtocolVersion = maestroBridgeProtocolVersion
+	if _, err := maestroMemoryMethod(init); err == nil {
+		t.Fatal("memory.search must not run without a declared read capability")
+	}
+	init.Capabilities.Memory.Read = true
+	if got, err := maestroMemoryMethod(init); err != nil || got != "memory.search" {
+		t.Fatalf("valid read capability rejected: %q, %v", got, err)
+	}
+	init.ProtocolVersion++
+	if _, err := maestroMemoryMethod(init); err == nil {
+		t.Fatal("incompatible Bridge version must fail closed")
+	}
+}

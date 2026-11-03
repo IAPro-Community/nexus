@@ -177,3 +177,49 @@ func TestEnsureHostCredentialNeverOverwritesExistingCredential(t *testing.T) {
 		t.Fatalf("credential overwritten: %q", got)
 	}
 }
+
+func TestOMPProfileValidationRequiresExplicitPreview(t *testing.T) {
+	t.Setenv("NEXUS_EXPERIMENTAL_HARNESSES", "")
+	if err := ValidateProvider("omp"); err == nil {
+		t.Fatal("OMP provider must stay gated by experimental opt-in")
+	}
+	t.Setenv("NEXUS_EXPERIMENTAL_HARNESSES", "1")
+	if err := ValidateProvider("omp"); err != nil {
+		t.Fatalf("OMP profile should be valid with opt-in: %v", err)
+	}
+	if err := ValidateProvider("unrecognized-harness"); err == nil {
+		t.Fatal("unknown providers must not be enabled by OMP opt-in")
+	}
+}
+
+func TestOMPPreviewProfileIsVisibleOnlyWhenEnabled(t *testing.T) {
+	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
+	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
+	t.Setenv("NEXUS_EXPERIMENTAL_HARNESSES", "1")
+	if _, err := Create("omp", "default"); err != nil {
+		t.Fatalf("create OMP preview profile: %v", err)
+	}
+	profiles, err := List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, p := range profiles {
+		if p.Provider == "omp" && p.Name == "default" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("OMP preview profile must be visible to the session selector")
+	}
+	t.Setenv("NEXUS_EXPERIMENTAL_HARNESSES", "")
+	profiles, err = List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range profiles {
+		if p.Provider == "omp" {
+			t.Fatal("OMP preview profile must not appear when feature flag is off")
+		}
+	}
+}

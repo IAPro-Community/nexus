@@ -11,8 +11,6 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/core/security"
-	"github.com/IAPro-Community/nexus/internal/executil"
-	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 const (
@@ -65,6 +63,17 @@ type maestroMemoryRPCReply struct {
 	} `json:"error"`
 }
 
+// maestroMemoryMethod fails closed on older Maestro Bridge versions.
+func maestroMemoryMethod(init maestroBridgeInit) (string, error) {
+	if init.ProtocolVersion != maestroBridgeProtocolVersion {
+		return "", fmt.Errorf("unsupported Maestro Bridge protocol version %d", init.ProtocolVersion)
+	}
+	if !init.Capabilities.Memory.Read {
+		return "", errors.New("Maestro Bridge has no scoped memory read capability")
+	}
+	return "memory.search", nil
+}
+
 // ReadMaestroMemory sends a bounded, project-scoped request to the canonical
 // Maestro Bridge. A missing/older Bridge fails explicitly; do not fall back to
 // the legacy Nexus IntelligenceMemory store. The caller supplies an authorized
@@ -86,32 +95,22 @@ func ReadMaestroMemory(parent context.Context, workspace, taskID, search string,
 	if limit < 1 || limit > maestroMemoryMaxLimit {
 		return zero, errors.New("Maestro memory limit must be between 1 and 50")
 	}
-	binary, err := runtime.LookPath("orquestrador-maestro")
-	if err != nil {
-		return zero, fmt.Errorf("Maestro memory unavailable: %w", err)
-	}
-	ctx, cancel := context.WithTimeout(parent, 5*time.Second)
-	defer cancel()
-	params := map[string]any{"limit": limit, "offset": 0}
-	if taskID != "" {
-		params["taskId"] = taskID
-	}
-	if search != "" {
-		params["search"] = security.Redact(search)
-	}
-	request, err := json.Marshal(map[string]any{
-		"jsonrpc": "2.0", "id": 1, "method": "memory.search", "params": params,
-	})
-	if err != nil {
-		return zero, err
-	}
-	cmd := executil.CommandContext(ctx, binary, "bridge", "--stdio", "--project-path", workspace)
-	cmd.Stdin = bytes.NewReader(append(request, '\n'))
-	out, err := cmd.Output()
+	result, _, err := maestroBridgeCall(parent, workspace, 5*time.Second, maestroMemoryMethod, params)
 	if err != nil {
 		return zero, fmt.Errorf("Maestro memory request failed: %w", err)
 	}
-	return decodeMaestroMemorySearch(out)
+	// The shared transport verified initialize, protocol version, request IDs,
+	// response boundaries and capability before returning this result. Adapt
+	// to the existing DTO decoder without another subprocess or memory cache.
+	wrapped, err := json.Marshal(struct {
+		JSONRPC string          `json:"jsonrpc"`
+		ID      int             `json:"id"`
+		Result  json.RawMessage `json:"result"`
+	}{JSONRPC: "2.0", ID: 1, Result: result})
+	if err != nil {
+		return zero, err
+	}
+	return decodeMaestroMemorySearch(wrapped)
 }
 
 func decodeMaestroMemorySearch(raw []byte) (MaestroMemoryReadResult, error) {

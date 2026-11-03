@@ -761,6 +761,12 @@ func TestNexusCSRFEnforcement(t *testing.T) {
 	assertNoCSRF(http.MethodPut, "/api/v1/projects/"+proj.ID+"/layout", []byte(`{"layout":"{}"}`))
 	assertBadCSRF(http.MethodPut, "/api/v1/projects/"+proj.ID+"/layout", []byte(`{"layout":"{}"}`))
 
+	// Maestro preview POST must remain behind routeProject CSRF (even though
+	// it cannot execute an agent). Never allow a browser to probe local CLIs
+	// without the authenticated project session.
+	assertNoCSRF(http.MethodPost, "/api/v1/projects/"+proj.ID+"/maestro/route-preview", []byte(`{"artifact_id":"forged"}`))
+	assertBadCSRF(http.MethodPost, "/api/v1/projects/"+proj.ID+"/maestro/route-preview", []byte(`{"artifact_id":"forged"}`))
+
 	// Agent create POST without CSRF.
 	assertNoCSRF(http.MethodPost, "/api/v1/projects/"+proj.ID+"/agents", []byte(`{"name":"x"}`))
 	assertBadCSRF(http.MethodPost, "/api/v1/projects/"+proj.ID+"/agents", []byte(`{"name":"x"}`))

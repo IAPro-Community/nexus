@@ -1,5 +1,8 @@
 # Arquitetura
 
+> **Separação canônica aprovada em 01/11/2026:** Maestro permanece independente e é dono do contexto, memória semântica, composição, orquestração e execução de seus runs. Nexus permanece UI, Browser/PTY e projeção de estados. O texto de implementação atual abaixo não deve ser interpretado como alvo final. [ADR e inventário de retirada](MAESTRO_EXTERNAL_AUTHORITY_ADR.md).
+
+
 A arquitetura canônica da v1 está resumida em
 [`ARCHITECTURE.md`](../../ARCHITECTURE.md). Esta página é o índice técnico
 para aprofundamento.
