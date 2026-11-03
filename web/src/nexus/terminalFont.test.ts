@@ -7,9 +7,7 @@ describe('resolveTerminalFontFamily', () => {
   it('passes an actual monospace font stack to xterm, never a CSS var expression', () => {
     vi.stubGlobal('getComputedStyle', () => ({
       getPropertyValue: (name: string) =>
-        name === '--nx-font-mono'
-          ? "'JetBrains Mono', 'Fira Code', Menlo, Monaco, monospace"
-          : '',
+        name === '--nx-font-mono' ? "'JetBrains Mono', 'Fira Code', Menlo, Monaco, monospace" : '',
     }));
     const family = resolveTerminalFontFamily({} as Element);
     expect(family).toBe("'JetBrains Mono', 'Fira Code', Menlo, Monaco, monospace");
