@@ -551,6 +551,24 @@ export interface Agent {
   last_started_at?: string;
 }
 
+export type DirectorActionKind = 'DIRECTIVE' | 'STEER' | 'QUEUE_NEXT' | 'WAIT' | 'CANCEL' | 'INSPECT';
+export type DirectorAvailability = 'SUPPORTED' | 'PREPARE_ONLY' | 'OBSERVE_ONLY' | 'TERMINAL_ONLY' | 'UNSUPPORTED';
+
+export interface DirectorAgentProjection {
+  schema_version: number;
+  execution_owner: 'NEXUS';
+  agent_id: string;
+  project_id: string;
+  agent_status: string;
+  process_state: 'LIVE' | 'NOT_LIVE' | 'UNKNOWN';
+  process_evidence: string;
+  runtime_id?: string;
+  generation_id?: string;
+  provider?: string;
+  profile?: string;
+  actions: Array<{ kind: DirectorActionKind; availability: DirectorAvailability; reason: string }>;
+}
+
 export interface Mission {
   id: string;
   project_id: string;
