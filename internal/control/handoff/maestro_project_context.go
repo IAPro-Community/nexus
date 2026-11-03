@@ -50,6 +50,7 @@ type maestroBridgeInit struct {
 		ProjectContext    bool `json:"projectContext"`
 		ContextBrief      bool `json:"contextBrief"`
 		PlansRoutePreview bool `json:"plansRoutePreview"`
+		ProjectCompose    bool `json:"projectCompose"`
 		Memory            struct {
 			Read bool `json:"read"`
 		} `json:"memory"`
