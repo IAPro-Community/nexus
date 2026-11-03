@@ -551,8 +551,19 @@ export interface Agent {
   last_started_at?: string;
 }
 
-export type DirectorActionKind = 'DIRECTIVE' | 'STEER' | 'QUEUE_NEXT' | 'WAIT' | 'CANCEL' | 'INSPECT';
-export type DirectorAvailability = 'SUPPORTED' | 'PREPARE_ONLY' | 'OBSERVE_ONLY' | 'TERMINAL_ONLY' | 'UNSUPPORTED';
+export type DirectorActionKind =
+  | 'DIRECTIVE'
+  | 'STEER'
+  | 'QUEUE_NEXT'
+  | 'WAIT'
+  | 'CANCEL'
+  | 'INSPECT';
+export type DirectorAvailability =
+  | 'SUPPORTED'
+  | 'PREPARE_ONLY'
+  | 'OBSERVE_ONLY'
+  | 'TERMINAL_ONLY'
+  | 'UNSUPPORTED';
 
 export interface DirectorAgentProjection {
   schema_version: number;
@@ -566,7 +577,11 @@ export interface DirectorAgentProjection {
   generation_id?: string;
   provider?: string;
   profile?: string;
-  actions: Array<{ kind: DirectorActionKind; availability: DirectorAvailability; reason: string }>;
+  actions: Array<{
+    kind: DirectorActionKind;
+    availability: DirectorAvailability;
+    reason: string;
+  }>;
 }
 
 export interface DirectorFleetProjection {
