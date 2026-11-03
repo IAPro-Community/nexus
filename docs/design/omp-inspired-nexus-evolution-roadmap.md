@@ -1,8 +1,8 @@
 # Nexus — Plano sequencial de evolução inspirado em Oh My Pi (sem integração OMP)
 
-**Data:** 2026-10-29  
-**Destino canônico:** release/v1.0.0  
-**Natureza:** plano de implementação, não declaração de funcionalidade homologada.  
+**Data:** 2026-10-29
+**Destino canônico:** release/v1.0.0
+**Natureza:** plano de implementação, não declaração de funcionalidade homologada.
 **Baseline de inspeção:** Nexus ec4a527ba1448f24db22fd638a59605227377e5a; Maestro v1 bfeb33fa5f856607f0c8017e1b7baf960f0a4802; OMP main d33a0edb00c8b76b28d71eb976cd82d69617bcba. Revalidar HEAD ao iniciar cada etapa.
 
 ## Objetivo e exclusões
@@ -220,3 +220,16 @@ Gates transversais:
 - **Browser lifecycle:** tools/browser/tab-supervisor.ts diferencia criador da aba de quem a reutilizou, controla sessões vivas/mortas, cancelamento de operações pendentes quando uma aba fecha, lifetime/idle cleanup. Nexus precisa preservar esses atributos em seus próprios grants/leasing por runtime, evitando que um viewer encerre aba de outro owner.
 - **Telemetria:** packages/agent/src/telemetry.ts utiliza campos tipados compatíveis com OpenTelemetry para input/output/cache-read/cache-write, erro e custo estimado, além de atributos próprios e distinção de cache de gateway versus cache de prompt. Na evolução Nexus, adaptar a semântica, não a implementação, mantendo unknown em dados ausentes e nenhuma equivalência API confundida com cobrança.
 - **Ordem de validação:** primeiro contrato e evidência de source; depois UI; depois E2E, com PRs menores e guard rails de permissões. Fonte source pin OMP main@d33a0edb.
+
+## Reconciliação com a release — 2026-11-02
+
+Este documento é um roteiro de implementação, não um indicador de que todas as fases foram entregues. A linha única é `release/v1.0.0`; as branches de trabalho devem ter PR para essa linha, com merge condicionado a testes do mesmo SHA. Não criar uma implementação paralela de `/vibe`.
+
+- Nexus #179 está integrado: consumidor read-only do contexto canônico do Maestro via Bridge. Isso **não** conclui migração de memória nem executa o Flow.
+- Nexus #181 está integrado: corrige os dois arquivos do Browser que bloqueavam o check geral de Prettier dos PRs mais antigos. Reexecutar testes no HEAD atual; resultados anteriores à correção não valem como prova.
+- Nexus #188 está integrado: UI de escolha de provider/modelo por tarefa e pré-validação no Flow. Preview não implica execução.
+- Maestro #57 e #58 ainda exigem conclusão de CI/revisão e merge sequencial em `v1`; execução externa durável permanece pendente em Maestro #48.
+- Nexus #150 é uma integração **distinta** desta evolução de UX: entrada OMP via PTY isolado em modo preview; sua homologação estruturada ACP/RPC e uso real exigem Nexus #98. Não habilitar OMP por padrão nem exibir suporte certificado antes dos testes.
+- Nexus #152 continua sendo a issue canônica para Director Mode, com comandos tipados e ownership único.
+
+Ao executar cada fase, revalidar estado dos PRs e issues. Linhas históricas de status acima refletem o levantamento em 2026-10-29 e não substituem a inspeção remota mais recente.
