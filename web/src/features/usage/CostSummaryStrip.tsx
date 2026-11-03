@@ -51,7 +51,7 @@ export const CostSummaryStrip: React.FC<{ summary: CostSummary | null }> = ({ su
   }
 
   const aggregate = summary.aggregate;
-  const costKnown = aggregate.known_cost_observations > 0;
+  const costKnown = summary.budget.reported_cost_observations > 0;
   const tokensKnown = aggregate.known_token_observations > 0;
 
   return (
@@ -69,12 +69,14 @@ export const CostSummaryStrip: React.FC<{ summary: CostSummary | null }> = ({ su
 
       <div className={styles.metrics}>
         <div className={styles.metric}>
-          <span>{t('consumption.mixedLegacy')}</span>
+          <span>{t('consumption.reportedCost')}</span>
           <strong>
-            {costKnown ? formatUSD(aggregate.cost_microusd) : t('common.unknown', 'Desconhecido')}
+            {costKnown
+              ? formatUSD(summary.budget.reported_cost_microusd)
+              : t('common.unknown', 'Desconhecido')}
           </strong>
-          <small data-state={summary.cost_evidence}>
-            {summary.cost_evidence} · {t('consumption.mixedLegacyHint')}
+          <small data-state={summary.budget.evidence}>
+            {summary.budget.evidence} · {t('consumption.reportedDisclaimer')}
           </small>
         </div>
         <div className={styles.metric}>
@@ -109,7 +111,7 @@ export const CostSummaryStrip: React.FC<{ summary: CostSummary | null }> = ({ su
               {t('usage.costBudget', 'Budget')}: {summary.budget.level}
             </strong>
             <span>{summary.budget.message}</span>
-            <small>{t('consumption.budgetLegacyHint')}</small>
+            <small>{t('consumption.budgetEvidenceHint')}</small>
             {summary.budget.active_limit_microusd ? (
               <small>
                 {t('usage.activeCostLimit', 'Limite ativo')}:{' '}
@@ -149,9 +151,7 @@ export const CostSummaryStrip: React.FC<{ summary: CostSummary | null }> = ({ su
           {summary.by_provider.slice(0, 5).map((provider) => (
             <span key={`${provider.provider}/${provider.profile}`}>
               <b>{provider.provider}</b>:{provider.profile}{' '}
-              {provider.known_cost_observations > 0
-                ? formatUSD(provider.cost_microusd)
-                : t('common.unknown', 'Desconhecido')}
+              {t('consumption.providerObservations', { count: provider.observation_count })}
             </span>
           ))}
         </div>
