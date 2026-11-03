@@ -7,6 +7,7 @@ import (
     "net/http/httptest"
     "strings"
     "testing"
+    "time"
 
     "github.com/IAPro-Community/nexus/internal/control/registry"
     "github.com/IAPro-Community/nexus/internal/nexus/store"
@@ -174,5 +175,31 @@ func TestDirectorRuntimeBindingRejectsForeignOrStaleSession(t *testing.T) {
         if directorRuntimeMatches(agent, gen, candidate) {
             t.Fatalf("untrusted registry binding incorrectly claims agent liveness: %+v", candidate)
         }
+    }
+}
+
+func TestDirectorActivityExcludesSensitiveEventSummariesAndAccountScope(t *testing.T) {
+    source := []store.EventMetadata{
+        {
+            ID: "evt-one", AgentID: "agent-one", ProjectID: "project-one",
+            Kind: "agent.execution.accepted", CorrelationID: "mission-001",
+            Timestamp: time.Date(2026, time.November, 3, 12, 0, 0, 0, time.UTC),
+            Summary: "PRIVATE_PROMPT_DO_NOT_EXPOSE",
+        },
+    }
+    projected := projectDirectorEvents(source)
+    encoded, err := json.Marshal(projected)
+    if err != nil { t.Fatal(err) }
+    if len(projected) != 1 || projected[0].Kind != "agent.execution.accepted" ||
+        projected[0].CorrelationID != "mission-001" {
+        t.Fatalf("lost event kind or correlation: %+v", projected)
+    }
+    if strings.Contains(string(encoded), "PRIVATE_PROMPT") ||
+        strings.Contains(string(encoded), "account_scope") ||
+        strings.Contains(string(encoded), "Summary") {
+        t.Fatalf("Director leaked event payload or account details: %s", encoded)
+    }
+    if projected[0].Timestamp != "2026-11-03T12:00:00Z" {
+        t.Fatalf("event timestamp must be stable UTC: %+v", projected[0])
     }
 }
