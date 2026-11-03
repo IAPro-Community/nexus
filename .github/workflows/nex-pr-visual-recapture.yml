@@ -42,8 +42,8 @@ jobs:
 
       - name: Install headless Chromium and video encoder
         run: |
-          bunx playwright install --with-deps chromium
-          bunx playwright install ffmpeg
+          web/node_modules/.bin/playwright install --with-deps chromium
+          web/node_modules/.bin/playwright install ffmpeg
 
       - name: Run NEX unit tests before recapture
         working-directory: web
