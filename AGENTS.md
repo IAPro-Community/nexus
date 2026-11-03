@@ -167,3 +167,12 @@ A decisão final do usuário é **não inserir NEX na página pública até o pa
 **Proibido:** publicar Hero parcial, chamar SVG genérico de master aprovado, declarar giro 360° enquanto faltarem vistas reais, substituir o HUD por sprite não homologado ou alterar `status` para READY sem 11 evidências e aprovação explícita do owner no SHA exato.
 
 Execute `node scripts/verify-nex-release-readiness.mjs` para verificar consistência; `--require-ready` deve falhar enquanto restarem pendências. Essa política vale também para o repositório Nexus-Site; a homepage deve permanecer sem NEX enquanto o gate for BLOCKED.
+
+## 9. Uma linha de trabalho e um PR por frente
+
+- **Antes de criar um branch/PR**, inventariar os PRs abertos em `release/v1.0.0` e identificar o branch ativo da **mesma issue/feature**. Se já houver, continuar nesse branch e no PR existente; não abrir PRs por subtarefa, componente, documentação, QA ou continuação de conversa.
+- Para o Companion 2D NEX (#141), usar o branch `feat/nex-companion-hud-integration-20261103`, PR #193, até revisão final. Mecânica, idles, comportamento, documentação, screenshots e correções pertencem à mesma linha.
+- Para recuperação/migração de memória (issues #86/#113), usar uma linha de integração separada da UI NEX; não misturar mudanças transacionais de dados com arte do HUD. Enquanto o draft #165 estiver ativo, os PRs anteriores #156/#162/#163/#164 são fontes históricas, não branches paralelos de execução.
+- Um novo PR é permitido apenas para frente **independente** (ou hotfix de ciclo separado). Não criar um único PR gigante misturando temas só para cumprir uma contagem numérica.
+- Consolidar commits pequenos no PR da frente e manter checklist de gates; não fazer merge direto em `main`. Somente `release/v1.0.0` recebe mudanças após teste/review no SHA exato.
+- Encerrar PRs redundantes com referências ao PR ativo e explicitar o que foi incorporado ou arquivado, **sem declarar equivalência quando existirem artefatos exclusivos**; preservar branches até auditoria de conteúdo.
