@@ -225,10 +225,12 @@ export function ConsumptionAnalyticsPanel({ projectId }: { projectId?: string })
                           <td>{observedUSD(item, 'reported')}</td>
                           <td>{observedUSD(item, 'equivalent')}</td>
                           <td>
-                            {costEvidenceLabel(
-                              item.known_cost_observations,
-                              item.observation_count,
-                              t,
+                            {t(
+                              'consumption.evidenceStates.' +
+                                costEvidenceLabel(
+                                  item.known_cost_observations,
+                                  item.observation_count,
+                                ),
                             )}
                           </td>
                         </tr>
