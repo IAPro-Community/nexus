@@ -390,6 +390,9 @@ export interface CostAnalyticsTotals {
   known_cost_observations: number;
   unknown_cost_observations: number;
   known_token_observations: number;
+  reported_cost_observations: number;
+  equivalent_cost_observations: number;
+  inferred_cost_observations: number;
   input_tokens: number;
   cached_input_tokens: number;
   output_tokens: number;
