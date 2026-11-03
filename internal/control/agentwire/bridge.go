@@ -221,7 +221,7 @@ func (b *Bridge) Prompt(ctx context.Context, text string) error {
 		return err
 	}
 	var accepted struct {
-		Disposition string `json:"disposition"`
+		Disposition  string `json:"disposition"`
 		AgentInvoked *bool  `json:"agentInvoked"`
 	}
 	_ = json.Unmarshal(reply, &accepted)
