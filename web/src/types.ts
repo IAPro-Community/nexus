@@ -569,6 +569,15 @@ export interface DirectorAgentProjection {
   actions: Array<{ kind: DirectorActionKind; availability: DirectorAvailability; reason: string }>;
 }
 
+export interface DirectorFleetProjection {
+  schema_version: number;
+  execution_owner: 'NEXUS';
+  project_id: string;
+  total: number;
+  truncated: boolean;
+  agents: DirectorAgentProjection[];
+}
+
 export interface Mission {
   id: string;
   project_id: string;
