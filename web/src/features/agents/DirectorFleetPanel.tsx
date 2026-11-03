@@ -56,12 +56,7 @@ export function DirectorFleetPanel({
     <section className={styles.panel} aria-label={t('director.fleetTitle')}>
       <p className={styles.subtitle}>{t('director.subtitle')}</p>
       <div className={styles.controls}>
-        <Button
-          size="sm"
-          tone="ghost"
-          disabled={loading || refreshing}
-          onClick={refresh}
-        >
+        <Button size="sm" tone="ghost" disabled={loading || refreshing} onClick={refresh}>
           {t('director.refresh')}
         </Button>
       </div>
