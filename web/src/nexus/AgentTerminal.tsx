@@ -20,7 +20,7 @@ import {
   X,
 } from 'lucide-react';
 import { Terminal } from 'xterm';
-import { resolveTerminalFontFamily } from './terminalFont';
+import { resolveTerminalFontFamily, watchTerminalFontMetrics } from './terminalFont';
 import { FitAddon } from 'xterm-addon-fit';
 import { nexus } from './api';
 import { getDesktopAuthToken, getDesktopWebSocketBaseUrl } from '../api';
@@ -192,6 +192,11 @@ export const AgentTerminal: React.FC<{
     const term = termRef.current;
     if (!term) return;
     term.options.fontSize = fontSize;
+    const element = containerRef.current;
+    const panel = element?.closest<HTMLElement>('.nx-workspace-panel');
+    // Keep the last valid PTY grid while a panel is hidden or collapsed.
+    if (!element?.isConnected || element.clientWidth === 0 || element.clientHeight === 0) return;
+    if (panel && panel.dataset.active !== 'true') return;
     try {
       fitAddonRef.current?.fit();
     } catch {
@@ -395,6 +400,14 @@ export const AgentTerminal: React.FC<{
     // grid changes so the child PTY stays synchronized with the canvas.
     const resizeListener = term.onResize(({ rows, cols }) => {
       sendTerminalResize(rows, cols);
+    });
+
+    const stopWatchingFonts = watchTerminalFontMetrics(() => {
+      if (disposed) return;
+      const family = resolveTerminalFontFamily(container);
+      if (term.options.fontFamily !== family) term.options.fontFamily = family;
+      // Preserve the visible grid until the panel is activated.
+      fitAndResize(true);
     });
 
     // Keep parsing PTY bytes even when a workspace panel is hidden. Its
@@ -785,6 +798,7 @@ export const AgentTerminal: React.FC<{
       if (flushFrame !== undefined) window.cancelAnimationFrame(flushFrame);
       redrawTimers.forEach((timer) => window.clearTimeout(timer));
       stopObservingContainer();
+      stopWatchingFonts();
       panelObserver?.disconnect();
       document.removeEventListener('visibilitychange', visibility);
       try {
