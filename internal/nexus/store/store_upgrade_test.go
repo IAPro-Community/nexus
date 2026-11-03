@@ -242,6 +242,10 @@ func TestTokenBarUsageSchemaRecoversMissingTables(t *testing.T) {
 		[]ExternalClaudeMessage{msg}); err != nil {
 		t.Fatal(err)
 	}
+	baselineVersion, err := st.SchemaVersion()
+	if err != nil || baselineVersion < 31 {
+		t.Fatalf("baseline schema version = %d, %v, want at least 31", baselineVersion, err)
+	}
 	for _, table := range []string{"capacity_pace_samples", "external_claude_offsets"} {
 		if _, err := st.DB().Exec("DROP TABLE " + table); err != nil {
 			t.Fatal(err)
@@ -256,8 +260,8 @@ func TestTokenBarUsageSchemaRecoversMissingTables(t *testing.T) {
 	}
 	defer st.Close()
 	version, err := st.SchemaVersion()
-	if err != nil || version != 31 {
-		t.Fatalf("schema version = %d, %v, want 31", version, err)
+	if err != nil || version != baselineVersion {
+		t.Fatalf("schema version = %d, %v, want unchanged version %d", version, err, baselineVersion)
 	}
 	for _, table := range []string{"capacity_pace_samples", "external_claude_messages", "external_claude_offsets"} {
 		var count int
