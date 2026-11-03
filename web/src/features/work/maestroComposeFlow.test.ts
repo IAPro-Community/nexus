@@ -63,7 +63,7 @@ describe('Maestro composition into Flow draft', () => {
   it('refuses invalid graph and executable response', () => {
     expect(() => draftFromMaestroComposition(baseline, {
       ...preview, executable: true,
-    })).toThrow();
+    } as unknown as MaestroComposePreviewResult)).toThrow();
     expect(() => draftFromMaestroComposition(baseline, {
       ...preview, validation: { valid: false }, tasks: null,
     })).toThrow();
