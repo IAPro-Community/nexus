@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { CircleDollarSign, Clock3, Database, TriangleAlert } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { CostSummary } from '../../types';
+import { reportedCostForDisplay } from './costSummaryEvidence';
 import styles from './CostSummaryStrip.module.scss';
 
 const formatUSD = (microUSD: number): string =>
@@ -51,7 +52,7 @@ export const CostSummaryStrip: React.FC<{ summary: CostSummary | null }> = ({ su
   }
 
   const aggregate = summary.aggregate;
-  const costKnown = summary.budget.reported_cost_observations > 0;
+  const reportedCost = reportedCostForDisplay(summary.budget);
   const tokensKnown = aggregate.known_token_observations > 0;
 
   return (
@@ -71,9 +72,7 @@ export const CostSummaryStrip: React.FC<{ summary: CostSummary | null }> = ({ su
         <div className={styles.metric}>
           <span>{t('consumption.reportedCost')}</span>
           <strong>
-            {costKnown
-              ? formatUSD(summary.budget.reported_cost_microusd)
-              : t('common.unknown', 'Desconhecido')}
+            {reportedCost !== null ? formatUSD(reportedCost) : t('common.unknown', 'Desconhecido')}
           </strong>
           <small data-state={summary.budget.evidence}>
             {summary.budget.evidence} · {t('consumption.reportedDisclaimer')}
