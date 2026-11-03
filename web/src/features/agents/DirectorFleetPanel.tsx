@@ -53,7 +53,7 @@ export function DirectorFleetPanel({
                 <li className={styles.action} key={item.agent_id}>
                   <span>
                     <strong>{target?.name || item.agent_id}</strong>
-                    {' · '}{item.process_state}
+                    {' · '}{t('director.processStates.' + item.process_state)}
                     {' · '}{item.provider || t('director.notAvailable')}
                   </span>
                   <Button size="sm" tone="ghost" disabled={!target} onClick={() => {
