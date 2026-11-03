@@ -93,4 +93,3 @@ Os oito IDs abaixo são **comportamentos UX**, compostos de microgestos já exis
 - A issue #120 e o catálogo de 12 microações não são descartados: o código já escrito pode ser aproveitado, mas a arte final individual de 12 movimentos não bloqueia o MVP.
 - A issue #129 não deve ser encerrada como entregue; é backlog futuro, sem efeito no manifesto da release simplificada.
 - A issue #141 continua umbrella para a entrega nova, com este contrato anexado e rastreabilidade das mudanças.
-
