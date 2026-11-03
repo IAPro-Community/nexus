@@ -616,89 +616,89 @@ export const AgentTerminal: React.FC<{
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return;
         const payload = parsed as Record<string, unknown>;
         if (payload.type === 'trace_config') {
-            terminalTraceEnabled = payload.data === 'enabled';
-          } else if (payload.type === 'output' && payload.data) {
-            const cleaned = protocolScrubber.scrub(String(payload.data));
-            if (cleaned) {
-              ingestOutput(cleaned);
-              writeTerminalOutput(cleaned);
-            }
-          } else if (payload.type === 'lease') {
-            const next = normalizeTerminalRole(payload.role);
-            reconnectAttempt = 0;
-            roleRef.current = next;
-            setRole(next);
-            setMessage(next === 'CONTROL' ? '' : tRef.current('terminal.readOnlyNotice'));
-            if (next === 'CONTROL' && (!panel || panel.dataset.active === 'true')) {
-              window.requestAnimationFrame(() => term.focus());
-            }
-            maybeSendKickoff();
-          } else if (payload.type === 'runtime_changed') {
-            const nextId = parseRuntimeChangedId(payload.data);
-            setMessage(tRef.current('terminal.rebinding'));
-            // Prevent reconnect on the old generation; remount against the new id.
-            stopReconnect = true;
-            if (reconnectTimer !== undefined) {
-              window.clearTimeout(reconnectTimer);
-              reconnectTimer = undefined;
-            }
-            try {
-              ws.close(1012, 'runtime generation changed');
-            } catch {
-              // ignore
-            }
-            if (nextId) {
-              setBoundRuntimeId(nextId);
-              onBoundRuntimeChangeRef.current?.(nextId);
-              setNeedsResourceSelection(false);
-              setConnection('CONNECTING');
-              setConnectNonce((n) => n + 1);
-            } else {
-              stopReconnect = false;
-              scheduleReconnect(tRef.current('terminal.rebinding'));
-            }
-          } else if (payload.type === 'title' && payload.data) {
-            const next = String(payload.data).trim();
-            publishChrome(extractOscTitle(next) || next);
-          } else if (payload.type === 'attention') {
-            if (payload.dynamic_title) publishChrome(String(payload.dynamic_title));
-            const kind = String(payload.attention_kind || payload.prompt_kind || '');
-            if (
-              kind === 'needs_user' ||
-              kind === 'choice' ||
-              kind === 'yn' ||
-              kind === 'free_text'
-            ) {
-              publishChrome(undefined, true);
-            }
-          } else if (payload.type === 'promotion') {
-            const promotionRole = String(payload.role || '').toUpperCase();
-            if (promotionRole === 'ASK') {
-              setPromotionPrompt(String(payload.data || ''));
-            } else if (promotionRole === 'PROMOTED') {
-              setMessage(String(payload.data || tRef.current('terminal.promotion.started')));
-            } else if (promotionRole === 'FALLBACK' || promotionRole === 'BLOCKED') {
-              setMessage(String(payload.data || 'Mission admission did not start.'));
-            }
-          } else if (payload.type === 'error') {
-            const detail = String(payload.data ?? 'Terminal error');
-            const code = typeof payload.code === 'string' ? payload.code : '';
-            if (code) lastFailureCode = code;
-            lastError = detail;
-            if (code === 'RUNTIME_ATTACH_INCOMPATIBLE') {
-              failPermanently(detail, code);
-              ws.close(1011, 'runtime attach incompatible');
-            } else {
-              setMessage(detail);
-            }
-            if (code !== 'RUNTIME_ATTACH_INCOMPATIBLE' && isFatalTerminalAttachError(detail)) {
-              // A dead transport is not proof that the runtime should be
-              // relaunched. Recovery is only performed by the explicit
-              // Recover/Start action in the overlay.
-              failPermanently(detail);
-              ws.close(1011, 'fatal attach error');
-            }
+          terminalTraceEnabled = payload.data === 'enabled';
+        } else if (payload.type === 'output' && payload.data) {
+          const cleaned = protocolScrubber.scrub(String(payload.data));
+          if (cleaned) {
+            ingestOutput(cleaned);
+            writeTerminalOutput(cleaned);
           }
+        } else if (payload.type === 'lease') {
+          const next = normalizeTerminalRole(payload.role);
+          reconnectAttempt = 0;
+          roleRef.current = next;
+          setRole(next);
+          setMessage(next === 'CONTROL' ? '' : tRef.current('terminal.readOnlyNotice'));
+          if (next === 'CONTROL' && (!panel || panel.dataset.active === 'true')) {
+            window.requestAnimationFrame(() => term.focus());
+          }
+          maybeSendKickoff();
+        } else if (payload.type === 'runtime_changed') {
+          const nextId = parseRuntimeChangedId(payload.data);
+          setMessage(tRef.current('terminal.rebinding'));
+          // Prevent reconnect on the old generation; remount against the new id.
+          stopReconnect = true;
+          if (reconnectTimer !== undefined) {
+            window.clearTimeout(reconnectTimer);
+            reconnectTimer = undefined;
+          }
+          try {
+            ws.close(1012, 'runtime generation changed');
+          } catch {
+            // ignore
+          }
+          if (nextId) {
+            setBoundRuntimeId(nextId);
+            onBoundRuntimeChangeRef.current?.(nextId);
+            setNeedsResourceSelection(false);
+            setConnection('CONNECTING');
+            setConnectNonce((n) => n + 1);
+          } else {
+            stopReconnect = false;
+            scheduleReconnect(tRef.current('terminal.rebinding'));
+          }
+        } else if (payload.type === 'title' && payload.data) {
+          const next = String(payload.data).trim();
+          publishChrome(extractOscTitle(next) || next);
+        } else if (payload.type === 'attention') {
+          if (payload.dynamic_title) publishChrome(String(payload.dynamic_title));
+          const kind = String(payload.attention_kind || payload.prompt_kind || '');
+          if (
+            kind === 'needs_user' ||
+            kind === 'choice' ||
+            kind === 'yn' ||
+            kind === 'free_text'
+          ) {
+            publishChrome(undefined, true);
+          }
+        } else if (payload.type === 'promotion') {
+          const promotionRole = String(payload.role || '').toUpperCase();
+          if (promotionRole === 'ASK') {
+            setPromotionPrompt(String(payload.data || ''));
+          } else if (promotionRole === 'PROMOTED') {
+            setMessage(String(payload.data || tRef.current('terminal.promotion.started')));
+          } else if (promotionRole === 'FALLBACK' || promotionRole === 'BLOCKED') {
+            setMessage(String(payload.data || 'Mission admission did not start.'));
+          }
+        } else if (payload.type === 'error') {
+          const detail = String(payload.data ?? 'Terminal error');
+          const code = typeof payload.code === 'string' ? payload.code : '';
+          if (code) lastFailureCode = code;
+          lastError = detail;
+          if (code === 'RUNTIME_ATTACH_INCOMPATIBLE') {
+            failPermanently(detail, code);
+            ws.close(1011, 'runtime attach incompatible');
+          } else {
+            setMessage(detail);
+          }
+          if (code !== 'RUNTIME_ATTACH_INCOMPATIBLE' && isFatalTerminalAttachError(detail)) {
+            // A dead transport is not proof that the runtime should be
+            // relaunched. Recovery is only performed by the explicit
+            // Recover/Start action in the overlay.
+            failPermanently(detail);
+            ws.close(1011, 'fatal attach error');
+          }
+        }
       };
 
       ws.onerror = () => {
