@@ -72,7 +72,7 @@ describe('NEX single Guardian mascot', () => {
     const html = renderGuardian({ mood: 'idle', motion: true });
     expect(html).toContain('data-nex-behavior="still"');
     expect(html).toContain('data-motion="off"');
-    expect(html).toContain('data-idle-action');
+    expect(html).not.toContain('data-idle-action=');
   });
 
   it('disables all decorative motion when offline or explicitly disabled', () => {
