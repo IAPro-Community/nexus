@@ -73,9 +73,10 @@ export function DirectorAgentPanel({
     };
   }, [agent.id, agent.project_id, revision, t]);
 
-  const canPrepare = !error && view?.actions.some(
+  const directiveAvailable = view?.actions.some(
     (action) => action.kind === 'DIRECTIVE' && action.availability === 'PREPARE_ONLY',
   );
+  const canPrepare = !error && directiveAvailable;
   const canAttach = !error && view?.process_state === 'LIVE' && Boolean(view.runtime_id);
   const metadata = view
     ? [
