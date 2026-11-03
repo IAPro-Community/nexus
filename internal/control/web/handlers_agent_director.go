@@ -5,6 +5,7 @@ import (
     "net/http"
     "strings"
 
+    "github.com/IAPro-Community/nexus/internal/control/registry"
     "github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
@@ -98,6 +99,15 @@ func (h *NexusHandler) handleAgentDirector(w http.ResponseWriter, r *http.Reques
     writeJSON(w, http.StatusOK, view)
 }
 
+// Runtime IDs and stored generations are not proof that a live process still
+// belongs to this Agent. Check the current registry binding before claiming
+// liveness, including after a restart or concurrent runtime replacement.
+func directorRuntimeMatches(agent store.Agent, gen store.RuntimeGeneration, session registry.RuntimeSession) bool {
+    return session.RuntimeID == gen.RuntimeID &&
+        session.AgentID == agent.ID &&
+        session.ProviderID == gen.Provider
+}
+
 func (h *NexusHandler) directorViewForStoredAgent(st *store.Store, agent store.Agent) (directorProjection, error) {
     var generation *store.RuntimeGeneration
     gen, err := st.CurrentGeneration(agent.ID)
@@ -109,7 +119,7 @@ func (h *NexusHandler) directorViewForStoredAgent(st *store.Store, agent store.A
     live := false
     if generation != nil && generation.RuntimeID != "" {
         if session, exists := h.nexus.RuntimeRegistry().Get(generation.RuntimeID); exists {
-            live = session.HostLive()
+            live = directorRuntimeMatches(agent, *generation, session) && session.HostLive()
         }
     }
     return projectDirectorAgent(agent, generation, live), nil
