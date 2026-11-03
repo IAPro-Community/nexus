@@ -347,6 +347,10 @@ export const nexus = {
     request<import('../types').DirectorAgentProjection>(
       `/api/v1/agents/${encodeURIComponent(agentId)}/director?project_id=${encodeURIComponent(projectId)}`,
     ),
+  getDirectorFleet: (projectId: string) =>
+    request<import('../types').DirectorFleetProjection>(
+      `/api/v1/projects/${encodeURIComponent(projectId)}/director`,
+    ),
   deleteAgent: (id: string) =>
     request<{ status: string }>(`/api/v1/agents/${id}`, { method: 'DELETE' }),
   startAgent: (id: string) =>
