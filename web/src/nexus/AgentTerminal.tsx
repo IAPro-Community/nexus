@@ -53,7 +53,7 @@ import {
 import { isRequiredResourceError, recoverOrStartAgent } from './agentRecover';
 import { ResourcePicker } from './ResourcePicker';
 import { TerminalActionDialog } from './TerminalActionDialog';
-import { ProtocolScrubber } from './terminalProtocol';
+import { ProtocolScrubber, decodeTerminalSocketEnvelope } from './terminalProtocol';
 import { refreshTerminalAfterActivation, resetTerminalForReplay, streamTerminalOutput } from './terminalOutput';
 import {
   shouldAutoScrollToBottomOnInput,
@@ -602,19 +602,14 @@ export const AgentTerminal: React.FC<{
 
       ws.onmessage = (event) => {
         if (disposed) return;
-        let parsed: unknown;
-        try {
-          parsed = JSON.parse(String(event.data));
-        } catch {
-          // Only malformed JSON can be treated as legacy raw PTY output.
-          // A rendering/state exception must never print a control frame.
-          const raw = String(event.data);
-          ingestOutput(raw);
-          writeTerminalOutput(raw);
+        const envelope = decodeTerminalSocketEnvelope(event.data);
+        if (envelope.kind === 'raw') {
+          ingestOutput(envelope.data);
+          writeTerminalOutput(envelope.data);
           return;
         }
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return;
-        const payload = parsed as Record<string, unknown>;
+        if (envelope.kind !== 'frame') return;
+        const payload = envelope.payload;
         if (payload.type === 'trace_config') {
           terminalTraceEnabled = payload.data === 'enabled';
         } else if (payload.type === 'replay_complete') {
