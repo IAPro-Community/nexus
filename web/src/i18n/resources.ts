@@ -1319,7 +1319,9 @@ export const en = {
     inferred: 'Inferred values: {{value}} (not billed amounts)',
     mixedLegacy: 'Mixed observed values',
     mixedLegacyHint: 'not a bill',
-    budgetLegacyHint: 'Budget policy still uses mixed observation classes; treat as advisory.',
+    budgetEvidenceHint:
+      'Only provider-reported values count toward thresholds; estimates and unknown costs prevent verified headroom.',
+    providerObservations: '{{count}} observed executions',
     evidenceStates: {
       NONE: 'Unknown',
       PARTIAL: 'Partial',
@@ -3725,7 +3727,9 @@ export const ptBR = {
     inferred: 'Valores inferidos: {{value}} (não representam cobranças)',
     mixedLegacy: 'Soma de valores observados (mista)',
     mixedLegacyHint: 'não é fatura',
-    budgetLegacyHint: 'Orçamento ainda usa classes mistas; trate como orientação, não saldo real.',
+    budgetEvidenceHint:
+      'Só valores reportados pelo provedor contam nos limites; estimativas e custos desconhecidos impedem confirmar saldo disponível.',
+    providerObservations: '{{count}} execuções observadas',
     evidenceStates: {
       NONE: 'Desconhecida',
       PARTIAL: 'Parcial',
@@ -6143,8 +6147,9 @@ export const es = {
     inferred: 'Valores inferidos: {{value}} (no son cobros)',
     mixedLegacy: 'Suma de valores observados (mixta)',
     mixedLegacyHint: 'no es factura',
-    budgetLegacyHint:
-      'La política de presupuesto aún mezcla clases; es orientativa, no saldo real.',
+    budgetEvidenceHint:
+      'Solo los valores reportados por el proveedor cuentan para los límites; las estimaciones y costos desconocidos impiden verificar el margen.',
+    providerObservations: '{{count}} ejecuciones observadas',
     evidenceStates: {
       NONE: 'Desconocida',
       PARTIAL: 'Parcial',
