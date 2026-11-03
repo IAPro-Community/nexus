@@ -1,0 +1,74 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  min-width: 0;
+}
+.subtitle,
+.notice {
+  color: var(--nx-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.metadata {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 0.65rem;
+}
+.metadata > div {
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--nx-border);
+  background: var(--nx-bg-elevated);
+  border-radius: 8px;
+}
+.metadata dt {
+  color: var(--nx-text-muted);
+  font-size: 0.75rem;
+}
+.metadata dd {
+  margin: 0.25rem 0 0;
+  color: var(--nx-text);
+  overflow-wrap: anywhere;
+  font-size: 0.8125rem;
+  font-family: var(--nx-font-mono, monospace);
+}
+.heading {
+  font-size: 0.875rem;
+  font-weight: 650;
+  margin: 0;
+}
+.actions {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem;
+  list-style: none;
+}
+.action {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  align-items: center;
+  border: 1px solid var(--nx-border);
+  border-radius: 6px;
+  padding: 0.7rem;
+  font-size: 0.8125rem;
+  color: var(--nx-text);
+}
+.action span {
+  color: var(--nx-text-muted);
+  font-size: 0.75rem;
+}
+.error {
+  color: var(--nx-danger);
+  overflow-wrap: anywhere;
+}
