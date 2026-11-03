@@ -12,6 +12,9 @@ type CostAnalyticsTotals struct {
 	KnownCostObservations    int64 `json:"known_cost_observations"`
 	UnknownCostObservations  int64 `json:"unknown_cost_observations"`
 	KnownTokenObservations   int64 `json:"known_token_observations"`
+	ReportedCostObservations  int64 `json:"reported_cost_observations"`
+	EquivalentCostObservations int64 `json:"equivalent_cost_observations"`
+	InferredCostObservations  int64 `json:"inferred_cost_observations"`
 	InputTokens              int64 `json:"input_tokens"`
 	CachedInputTokens        int64 `json:"cached_input_tokens"`
 	OutputTokens             int64 `json:"output_tokens"`
@@ -49,6 +52,9 @@ const costAnalyticsColumns = `
 	COALESCE(SUM(CASE WHEN cost_microusd IS NOT NULL THEN 1 ELSE 0 END),0),
 	COALESCE(SUM(CASE WHEN cost_microusd IS NULL THEN 1 ELSE 0 END),0),
 	COALESCE(SUM(CASE WHEN input_tokens IS NOT NULL OR cached_input_tokens IS NOT NULL OR output_tokens IS NOT NULL OR reasoning_tokens IS NOT NULL THEN 1 ELSE 0 END),0),
+	COALESCE(SUM(CASE WHEN cost_microusd IS NOT NULL AND cost_kind='PROVIDER_REPORTED' THEN 1 ELSE 0 END),0),
+	COALESCE(SUM(CASE WHEN cost_microusd IS NOT NULL AND cost_kind='API_EQUIVALENT_ESTIMATE' THEN 1 ELSE 0 END),0),
+	COALESCE(SUM(CASE WHEN cost_microusd IS NOT NULL AND cost_kind='INFERRED' THEN 1 ELSE 0 END),0),
 	COALESCE(SUM(input_tokens),0),
 	COALESCE(SUM(cached_input_tokens),0),
 	COALESCE(SUM(output_tokens),0),
@@ -66,7 +72,9 @@ type analyticsScanner interface {
 func scanCostAnalyticsTotals(scanner analyticsScanner, dest *CostAnalyticsTotals) error {
 	return scanner.Scan(
 		&dest.ObservationCount, &dest.KnownCostObservations, &dest.UnknownCostObservations,
-		&dest.KnownTokenObservations, &dest.InputTokens, &dest.CachedInputTokens,
+		&dest.KnownTokenObservations, &dest.ReportedCostObservations,
+		&dest.EquivalentCostObservations, &dest.InferredCostObservations,
+		&dest.InputTokens, &dest.CachedInputTokens,
 		&dest.OutputTokens, &dest.ReasoningTokens, &dest.DurationMS,
 		&dest.ProviderReportedMicroUSD, &dest.APIEquivalentMicroUSD,
 		&dest.InferredMicroUSD, &dest.UnclassifiedMicroUSD,
@@ -105,7 +113,9 @@ func (s *Store) SummarizeCostAnalytics(filter CostObservationFilter, maxModels i
 		if err := daily.Scan(
 			&row.Date,
 			&row.ObservationCount, &row.KnownCostObservations, &row.UnknownCostObservations,
-			&row.KnownTokenObservations, &row.InputTokens, &row.CachedInputTokens,
+			&row.KnownTokenObservations, &row.ReportedCostObservations,
+			&row.EquivalentCostObservations, &row.InferredCostObservations,
+			&row.InputTokens, &row.CachedInputTokens,
 			&row.OutputTokens, &row.ReasoningTokens, &row.DurationMS,
 			&row.ProviderReportedMicroUSD, &row.APIEquivalentMicroUSD,
 			&row.InferredMicroUSD, &row.UnclassifiedMicroUSD,
@@ -135,7 +145,9 @@ func (s *Store) SummarizeCostAnalytics(filter CostObservationFilter, maxModels i
 		if err := models.Scan(
 			&row.Provider, &row.Model,
 			&row.ObservationCount, &row.KnownCostObservations, &row.UnknownCostObservations,
-			&row.KnownTokenObservations, &row.InputTokens, &row.CachedInputTokens,
+			&row.KnownTokenObservations, &row.ReportedCostObservations,
+			&row.EquivalentCostObservations, &row.InferredCostObservations,
+			&row.InputTokens, &row.CachedInputTokens,
 			&row.OutputTokens, &row.ReasoningTokens, &row.DurationMS,
 			&row.ProviderReportedMicroUSD, &row.APIEquivalentMicroUSD,
 			&row.InferredMicroUSD, &row.UnclassifiedMicroUSD,
