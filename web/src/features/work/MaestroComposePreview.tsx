@@ -56,7 +56,10 @@ export function MaestroComposePreview({
   };
 
   const canApply = Boolean(
-    preview?.validation.valid && preview.tasks?.length && !preview.executable,
+    preview?.artifact.id === artifactId &&
+      preview?.validation.valid &&
+      preview.tasks?.length &&
+      !preview.executable,
   );
 
   return (
