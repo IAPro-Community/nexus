@@ -73,7 +73,7 @@ export function DirectorAgentPanel({
     };
   }, [agent.id, agent.project_id, revision, t]);
 
-  const canPrepare = view?.actions.some(
+  const canPrepare = !error && view?.actions.some(
     (action) => action.kind === 'DIRECTIVE' && action.availability === 'PREPARE_ONLY',
   );
   const canAttach = !error && view?.process_state === 'LIVE' && Boolean(view.runtime_id);
@@ -105,12 +105,7 @@ export function DirectorAgentPanel({
     <section className={styles.panel} aria-label={t('director.title')}>
       <p className={styles.subtitle}>{t('director.subtitle')}</p>
       <div className={styles.controls}>
-        <Button
-          size="sm"
-          tone="ghost"
-          disabled={loading || refreshing}
-          onClick={refresh}
-        >
+        <Button size="sm" tone="ghost" disabled={loading || refreshing} onClick={refresh}>
           {t('director.refresh')}
         </Button>
         <Button size="sm" tone="brand" disabled={loading || !canPrepare} onClick={onPrepare}>
