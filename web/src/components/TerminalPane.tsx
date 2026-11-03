@@ -18,7 +18,7 @@ import {
   ArrowDown,
 } from 'lucide-react';
 import { ProtocolScrubber } from '../nexus/terminalProtocol';
-import { canFitTerminal } from '../nexus/terminalFitModel';
+import { canFitTerminal, shouldSendTerminalResize } from '../nexus/terminalFitModel';
 import { observeTerminalPaneResize } from './terminalPaneResize';
 import { TERMINAL_CONNECT_TIMEOUT_MS } from '../nexus/agentTerminalModel';
 import {
@@ -187,16 +187,23 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       ) {
         return;
       }
+      const previous = { rows: term.rows, cols: term.cols };
       try {
         fitAddon.fit();
       } catch {
         // Ignore fit measurement errors when dimensions are transiently undefined
+        return;
       }
       if (!force) return;
+      // fit() already emitted onResize for a new grid. The forced event
+      // is only needed when the dimensions did not change.
+      if (previous.rows !== term.rows || previous.cols !== term.cols) return;
+      const nextSize = { rows: term.rows, cols: term.cols };
       const ws = wsRef.current;
       if (ws?.readyState !== WebSocket.OPEN) return;
-      lastSentSize = { rows: term.rows, cols: term.cols };
-      ws.send(JSON.stringify({ type: 'resize', rows: term.rows, cols: term.cols }));
+      if (!shouldSendTerminalResize(nextSize, lastSentSize, true)) return;
+      lastSentSize = nextSize;
+      ws.send(JSON.stringify({ type: 'resize', ...nextSize }));
     };
 
     const scrollListener = term.onScroll(() => {
@@ -438,9 +445,10 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     // Resize handling — FitAddon.fit triggers onResize for real size changes.
     const resizeListener = term.onResize(({ rows, cols }) => {
       if (disposed) return;
-      if (rows === lastSentSize.rows && cols === lastSentSize.cols) return;
-      lastSentSize = { rows, cols };
+      const nextSize = { rows, cols };
+      if (!shouldSendTerminalResize(nextSize, lastSentSize)) return;
       if (ws.readyState === WebSocket.OPEN) {
+        lastSentSize = nextSize;
         ws.send(JSON.stringify({ type: 'resize', rows, cols }));
       }
     });
