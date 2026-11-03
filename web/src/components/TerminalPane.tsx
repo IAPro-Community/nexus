@@ -346,6 +346,12 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       const msg = parsed as Record<string, unknown>;
       if (msg.type === 'trace_config') {
         terminalTraceEnabled = msg.data === 'enabled';
+      } else if (msg.type === 'replay_complete') {
+        term.write('', () => {
+          if (disposed || wsRef.current !== ws) return;
+          safeFit(true);
+          refreshVisibleTerminal();
+        });
       } else if (msg.type === 'output' && msg.data) {
         const cleaned = protocolScrubber.scrub(String(msg.data));
         if (cleaned) {
