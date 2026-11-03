@@ -1,8 +1,7 @@
 // Canvas-based terminal renderers cannot reliably parse CSS var() inside
 // their font shorthand. Resolve the workspace token before xterm measures
 // character cells, otherwise the cursor/grid can diverge from drawn glyphs.
-export const TERMINAL_FONT_FALLBACK =
-  'Menlo, Monaco, Consolas, "Courier New", monospace';
+export const TERMINAL_FONT_FALLBACK = 'Menlo, Monaco, Consolas, "Courier New", monospace';
 
 export function resolveTerminalFontFamily(element: Element): string {
   if (typeof getComputedStyle !== 'function') return TERMINAL_FONT_FALLBACK;
