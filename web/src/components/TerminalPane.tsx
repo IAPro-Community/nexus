@@ -18,6 +18,7 @@ import {
   ArrowDown,
 } from 'lucide-react';
 import { ProtocolScrubber } from '../nexus/terminalProtocol';
+import { refreshTerminalAfterActivation, streamTerminalOutput } from '../nexus/terminalOutput';
 import { canFitTerminal, shouldSendTerminalResize } from '../nexus/terminalFitModel';
 import { observeTerminalPaneResize } from './terminalPaneResize';
 import { TERMINAL_CONNECT_TIMEOUT_MS } from '../nexus/agentTerminalModel';
@@ -213,32 +214,14 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       setIsScrolledUp(!atBottom);
     });
 
-    let pendingOutput = '';
-    const writeTerminalOutput = (data: string) => {
-      if (disposed) return;
-      if (panel && panel.dataset.active !== 'true') {
-        pendingOutput += data;
-        return;
-      }
-      const buf = term.buffer.active;
-      const wasTracking = shouldAutoScrollToBottom(buf.viewportY, buf.baseY);
-      try {
-        term.write(pendingOutput + data, () => {
-          if (wasTracking) {
-            term.scrollToBottom();
-          }
-        });
-        pendingOutput = '';
-      } catch {
-        pendingOutput += data;
-      }
-    };
-    const flushPendingOutput = () => {
-      if (!pendingOutput || (panel && panel.dataset.active !== 'true')) return;
-      const output = pendingOutput;
-      pendingOutput = '';
-      writeTerminalOutput(output);
-    };
+    // Parse PTY output immediately, including when a workspace panel is
+    // hidden. xterm keeps a bounded scrollback and the last valid grid size;
+    // never accumulate an unbounded copy of incremental ANSI bytes in JS.
+    const isPanelActive = () => !panel || panel.dataset.active === 'true';
+    const writeTerminalOutput = (data: string) =>
+      streamTerminalOutput(term, data, isPanelActive, () => disposed);
+    const refreshVisibleTerminal = () =>
+      refreshTerminalAfterActivation(term, isPanelActive, () => disposed);
 
     const scheduleRedrawPulse = () => {
       redrawTimers.push(window.setTimeout(() => safeFit(true), 120));
@@ -463,7 +446,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
           flushFrame = window.requestAnimationFrame(() => {
             flushFrame = undefined;
             safeFit(true);
-            flushPendingOutput();
+            refreshVisibleTerminal();
             term.scrollToBottom();
           });
         })
