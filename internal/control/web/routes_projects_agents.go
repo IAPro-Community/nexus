@@ -138,6 +138,9 @@ func (s *Server) routeAgent(h *NexusHandler) http.HandlerFunc {
 			case "recover":
 				h.handleAgentRecover(w, r)
 				return
+			case "director":
+				h.handleAgentDirector(w, r)
+				return
 			case "ask":
 				h.handleAgentAsk(w, r)
 				return
