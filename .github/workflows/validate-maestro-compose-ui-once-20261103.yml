@@ -6,7 +6,7 @@ permissions:
   contents: write
 jobs:
   validate:
-    if: github.repository == 'IAPro-Community/nexus' && startsWith(github.event.head_commit.message, 'ci(flow): one-shot Maestro composition UI capture')
+    if: "${{ github.repository == 'IAPro-Community/nexus' && startsWith(github.event.head_commit.message, 'ci(flow): one-shot Maestro composition UI capture') }}"
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
