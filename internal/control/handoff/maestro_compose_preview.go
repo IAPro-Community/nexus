@@ -99,7 +99,10 @@ func decodeMaestroComposePreview(raw json.RawMessage, req MaestroComposePreviewR
 	dependencies := make(map[string][]string, len(out.Tasks))
 	for i := range out.Tasks {
 		task := &out.Tasks[i]
-		if !maestroSafeAssignmentID.MatchString(task.ID) || dependencies[task.ID] != nil ||
+		if _, exists := dependencies[task.ID]; exists { 
+			return MaestroComposePreview{}, errors.New("Maestro compose has duplicate task IDs")
+		}
+		if !maestroSafeAssignmentID.MatchString(task.ID) ||
 			strings.TrimSpace(task.Title) == "" || len(task.Title) > 240 ||
 			strings.TrimSpace(task.Objective) == "" || len(task.Objective) > 4000 ||
 			len(task.AcceptanceCriteria) < 1 || len(task.AcceptanceCriteria) > 20 ||

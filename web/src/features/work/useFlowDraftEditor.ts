@@ -441,6 +441,15 @@ export function useFlowDraftEditor(options: {
 
   const launchRun = useCallback(async () => {
     if (!selectedPlan || !flowDraft) return;
+    if (flowDraft.structuredFacts?.['nexus.maestro.composition_artifact_sha256']) {
+      setPlanError(
+        t(
+          'flow.maestroExecutionNotReady',
+          'Este plano foi composto pelo Maestro. A execução delegada ainda exige a API durável do Maestro; não será iniciada pelo MissionRunner do Nexus.',
+        ),
+      );
+      return;
+    }
     const errors = validateFlow(flowDraft);
     if (errors.length) {
       setPlanError(errors.join(' '));

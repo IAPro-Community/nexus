@@ -20,6 +20,9 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
 }) => {
   const { t } = useTranslation();
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const awaitingMaestroExecution = Boolean(
+    controller.flowDraft?.structuredFacts?.['nexus.maestro.composition_artifact_sha256'],
+  );
   const {
     selectedPlan,
     deletingPlan,
@@ -154,7 +157,7 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
             </Button>
             <Button
               tone="brand"
-              disabled={!selectedPlan || !flowDraft || runBusy || flowErrors.length > 0}
+              disabled={!selectedPlan || !flowDraft || runBusy || flowErrors.length > 0 || awaitingMaestroExecution}
               onClick={() => void launchRun()}
             >
               <Play size={14} />{' '}
@@ -162,10 +165,21 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
                 ? t('flow.starting', 'Iniciando…')
                 : costConfirmationPending
                   ? t('flow.confirmCostAndRun', 'Confirmar custo e executar')
-                  : t('flow.approveAndRun', 'Approve & Run')}
+                  : awaitingMaestroExecution
+                    ? t('flow.maestroDispatchPending', 'Execução Maestro indisponível')
+                    : t('flow.approveAndRun', 'Approve & Run')}
             </Button>
           </div>
         </div>
+      )}
+
+      {awaitingMaestroExecution && (
+        <p className="nx-muted-copy" role="status">
+          {t(
+            'flow.maestroPlanReviewOnly',
+            'Plano composto pelo Maestro: você pode revisar e salvar o rascunho. O despacho durável permanece bloqueado até a integração com o executor Maestro; nenhuma tarefa será transferida ao MissionRunner do Nexus.',
+          )}
+        </p>
       )}
 
       {executionPreview && (
