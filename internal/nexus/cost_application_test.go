@@ -52,7 +52,7 @@ func TestEvaluateCostBudgetSeparatesReportedSpendFromEstimates(t *testing.T) {
 				ObservationCount: 2, ReportedCostObservations: 1,
 				ProviderReportedMicroUSD: 100, UnknownCostObservations: 1,
 			},
-			wantLevel: CostBudgetSoft, wantReported: 100, wantUnknown: 1,
+			wantLevel: CostBudgetSoft, confirmation: true, wantReported: 100, wantUnknown: 1,
 		},
 		{
 			name: "reported lower bound proves hard threshold exceeded",
