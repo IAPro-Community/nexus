@@ -20,6 +20,7 @@ import {
   X,
 } from 'lucide-react';
 import { Terminal } from 'xterm';
+import { resolveTerminalFontFamily } from './terminalFont';
 import { FitAddon } from 'xterm-addon-fit';
 import { nexus } from './api';
 import { getDesktopAuthToken, getDesktopWebSocketBaseUrl } from '../api';
@@ -296,7 +297,7 @@ export const AgentTerminal: React.FC<{
       cursorBlink: true,
       fontSize: initialFontSizeRef.current,
       lineHeight: 1.25,
-      fontFamily: 'var(--nx-font-mono)',
+      fontFamily: resolveTerminalFontFamily(container),
       theme: getTerminalTheme(),
       scrollback: DEFAULT_TERMINAL_SCROLLBACK,
     });

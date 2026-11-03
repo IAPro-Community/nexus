@@ -25,6 +25,7 @@ var migrationsFS embed.FS
 // Store is the Nexus durable product state handle.
 type Store struct {
 	db *sql.DB
+	memoryFenceDir string
 }
 
 // Open opens (creating if needed) the Nexus SQLite database at path and runs
@@ -39,7 +40,7 @@ func Open(path string) (*Store, error) {
 		_ = db.Close()
 		return nil, fmt.Errorf("ping nexus store: %w", err)
 	}
-	s := &Store{db: db}
+	s := &Store{db: db, memoryFenceDir: filepath.Dir(path)}
 	if err := s.migrate(); err != nil {
 		_ = db.Close()
 		return nil, err

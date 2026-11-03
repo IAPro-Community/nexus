@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { handleTerminalZoomKey } from '../nexus/terminalZoomKey';
 import { useTranslation } from 'react-i18next';
 import { Terminal } from 'xterm';
+import { resolveTerminalFontFamily } from '../nexus/terminalFont';
 import { FitAddon } from 'xterm-addon-fit';
 import {
   Shield,
@@ -149,7 +150,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     const term = new Terminal({
       disableStdin: true,
       theme: getTerminalTheme(),
-      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      fontFamily: resolveTerminalFontFamily(terminalContainer),
       fontSize: initialFontSizeRef.current,
       lineHeight: 1.2,
       cursorBlink: true,

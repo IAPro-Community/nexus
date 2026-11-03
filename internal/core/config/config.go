@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/memoryrecovery"
 )
 
 const CurrentConfigVersion = 1
@@ -63,6 +63,7 @@ type Config struct {
 	Intelligence         IntelligenceConfig             `json:"intelligence,omitempty"`
 	IntelligenceMemories []IntelligenceMemory           `json:"intelligence_memories,omitempty"`
 	FlagAliases          map[string]map[string][]string `json:"flag_aliases,omitempty"` // alias -> provider -> flags
+	installMemoryBaseline string `json:"-"`
 }
 
 var configMu sync.RWMutex
@@ -337,6 +338,7 @@ func LoadConfig() (Config, error) {
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
+			cfg.installMemoryBaseline = installMemoryBaseline(cfg.IntelligenceMemories)
 			return cfg, nil
 		}
 		return cfg, err
@@ -396,13 +398,26 @@ func LoadConfig() (Config, error) {
 		cfg.Intelligence.Mode = IntelligenceOff
 	}
 
+	cfg.installMemoryBaseline = installMemoryBaseline(cfg.IntelligenceMemories)
 	return cfg, nil
 }
 
 // SaveConfig atomically persists configuration to disk.
 func SaveConfig(cfg Config) error {
-	configMu.Lock()
-	defer configMu.Unlock()
+	dataDir, err := DataDir()
+	if err != nil {
+		return err
+	}
+	return memoryrecovery.WithLegacyWriter(dataDir, func() error {
+		configMu.Lock()
+		defer configMu.Unlock()
+		return saveConfigLocked(cfg)
+	})
+}
+
+// saveConfigLocked is called with configMu held and with the cross-process
+// memory recovery writer fence owned by the caller.
+func saveConfigLocked(cfg Config) error {
 
 	dir, err := ConfigDir()
 	if err != nil {
@@ -413,17 +428,35 @@ func SaveConfig(cfg Config) error {
 	}
 
 	configPath := filepath.Join(dir, "config.json")
-	tmpPath := fmt.Sprintf("%s.tmp.%d", configPath, time.Now().UnixNano())
-
+	if err := checkInstallMemoryBaseline(configPath, cfg); err != nil {
+		return err
+	}
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	if err := os.WriteFile(tmpPath, append(data, '\n'), 0600); err != nil {
+	tmp, err := os.CreateTemp(dir, ".nexus-config-*.tmp")
+	if err != nil {
 		return err
 	}
-
+	tmpPath := tmp.Name()
+	defer os.Remove(tmpPath)
+	if err := tmp.Chmod(0600); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if _, err := tmp.Write(append(data, '\n')); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
 	return os.Rename(tmpPath, configPath)
 }
 
