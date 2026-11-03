@@ -69,7 +69,7 @@ func projectDirectorAgent(agent store.Agent, gen *store.RuntimeGeneration, proce
             {Kind: "QUEUE_NEXT", Availability: "UNSUPPORTED", Reason: "NO_DURABLE_OWNER_QUEUE"},
             {Kind: "STEER", Availability: "UNSUPPORTED", Reason: "NO_VERIFIED_TURN_STEERING"},
             {Kind: "WAIT", Availability: "OBSERVE_ONLY", Reason: "REFRESH_OBSERVED_STATE"},
-            {Kind: "CANCEL", Availability: "TERMINAL_ONLY", Reason: "TURN_CANCEL_NOT_VERIFIED"},
+            {Kind: "CANCEL", Availability: "UNSUPPORTED", Reason: "TURN_CANCEL_NOT_VERIFIED"},
         },
     }
     if gen == nil { return view }
