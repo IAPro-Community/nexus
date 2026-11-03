@@ -4,6 +4,7 @@ import { Button } from '../../design-system';
 import { nexus } from '../../nexus/api';
 import type { Agent, DirectorFleetProjection } from '../../types';
 import styles from './DirectorAgentPanel.module.scss';
+import { useDirectorPolling } from './useDirectorPolling';
 
 export function DirectorFleetPanel({
   projectId,
@@ -14,35 +15,42 @@ export function DirectorFleetPanel({
   agents: Agent[];
   onInspect: (agent: Agent) => void;
 }) {
-  const { t } = useTranslation();
-  const [refresh, setRefresh] = useState(0);
+  const { t, i18n } = useTranslation();
   const [view, setView] = useState<DirectorFleetProjection | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastObservedAt, setLastObservedAt] = useState<string | null>(null);
+  const { revision, refresh } = useDirectorPolling(loading || refreshing);
   const agentById = useMemo(() => new Map(agents.map((agent) => [agent.id, agent])), [agents]);
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
+    setRefreshing(true);
     setError('');
-    setView(null);
 
     nexus
       .getDirectorFleet(projectId)
       .then((value) => {
-        if (active) setView(value);
+        if (active) {
+          setView(value);
+          setLastObservedAt(new Date().toISOString());
+        }
       })
       .catch((reason: unknown) => {
         if (active) setError(reason instanceof Error ? reason.message : t('director.error'));
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       });
 
     return () => {
       active = false;
     };
-  }, [projectId, refresh, t]);
+  }, [projectId, revision, t]);
 
   return (
     <section className={styles.panel} aria-label={t('director.fleetTitle')}>
@@ -51,13 +59,21 @@ export function DirectorFleetPanel({
         <Button
           size="sm"
           tone="ghost"
-          disabled={loading}
-          onClick={() => setRefresh((value) => value + 1)}
+          disabled={loading || refreshing}
+          onClick={refresh}
         >
           {t('director.refresh')}
         </Button>
       </div>
       {loading && <p role="status">{t('director.loading')}</p>}
+      {refreshing && !loading && (
+        <p role="status" className={styles.notice}>{t('director.refreshing')}</p>
+      )}
+      {lastObservedAt && !loading && (
+        <p className={styles.notice}>
+          {t('director.lastChecked', { time: new Date(lastObservedAt).toLocaleTimeString(i18n.language) })}
+        </p>
+      )}
       {error && !loading && (
         <p role="alert" className={styles.error}>
           {error}
