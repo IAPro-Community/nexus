@@ -54,6 +54,7 @@ import { isRequiredResourceError, recoverOrStartAgent } from './agentRecover';
 import { ResourcePicker } from './ResourcePicker';
 import { TerminalActionDialog } from './TerminalActionDialog';
 import { ProtocolScrubber } from './terminalProtocol';
+import { refreshTerminalAfterActivation, resetTerminalForReplay, streamTerminalOutput } from './terminalOutput';
 import {
   shouldAutoScrollToBottomOnInput,
   shouldForwardTerminalInput,
@@ -268,7 +269,7 @@ export const AgentTerminal: React.FC<{
     const roleRef: { current: TerminalRole } = { current: 'VIEW_ONLY' };
     const kickoffRef = { current: normalizeInitialPrompt(initialPrompt), sent: false };
     // Buffers split control-RPC lines across output messages (see ProtocolScrubber).
-    const protocolScrubber = new ProtocolScrubber();
+    let protocolScrubber = new ProtocolScrubber();
     let lastError = '';
     let lastFailureCode = '';
     let termInstance: Terminal | null = null;
@@ -396,45 +397,15 @@ export const AgentTerminal: React.FC<{
       sendTerminalResize(rows, cols);
     });
 
-    // Do not let xterm render while its workspace panel is hidden. Its
-    // viewport dimensions are not guaranteed during that transition.
-    let pendingOutput = '';
-    let outputFrame: number | undefined;
-    const flushTerminalOutput = () => {
-      outputFrame = undefined;
-      if (disposed || (panel && panel.dataset.active !== 'true') || !pendingOutput) return;
-
-      const output = pendingOutput;
-      pendingOutput = '';
-      const buf = term.buffer.active;
-      const wasTracking = shouldAutoScrollToBottom(buf.viewportY, buf.baseY);
-      try {
-        term.write(output, () => {
-          if (wasTracking) {
-            term.scrollToBottom();
-          }
-        });
-      } catch {
-        pendingOutput = output + pendingOutput;
-        if (outputFrame === undefined) {
-          outputFrame = window.requestAnimationFrame(flushTerminalOutput);
-        }
-      }
-    };
-    const writeTerminalOutput = (data: string) => {
-      if (disposed || !data) return;
-      pendingOutput += data;
-      if (panel && panel.dataset.active !== 'true') return;
-      if (outputFrame === undefined) {
-        outputFrame = window.requestAnimationFrame(flushTerminalOutput);
-      }
-    };
-    const flushPendingOutput = () => {
-      if (disposed || !pendingOutput || (panel && panel.dataset.active !== 'true')) return;
-      if (outputFrame === undefined) {
-        outputFrame = window.requestAnimationFrame(flushTerminalOutput);
-      }
-    };
+    // Keep parsing PTY bytes even when a workspace panel is hidden. Its
+    // last valid xterm geometry remains stable until activation; holding the
+    // stream in pendingOutput previously grew without bound and replayed old
+    // incremental ANSI commands against an unrelated screen state.
+    const isPanelActive = () => !panel || panel.dataset.active === 'true';
+    const writeTerminalOutput = (data: string) =>
+      streamTerminalOutput(term, data, isPanelActive, () => disposed);
+    const refreshVisibleTerminal = () =>
+      refreshTerminalAfterActivation(term, isPanelActive, () => disposed);
 
     const scheduleRedrawPulse = () => {
       // After history replay, TUI agents need a second SIGWINCH-sized pulse
@@ -519,6 +490,9 @@ export const AgentTerminal: React.FC<{
       lastError = '';
       lastFailureCode = '';
       term.options.disableStdin = true;
+      // A connection has its own protocol fragments. Never concatenate a
+      // partial previous-session envelope with a replayed history frame.
+      protocolScrubber = new ProtocolScrubber();
 
       const previous = wsRef.current;
       if (previous) {
@@ -582,6 +556,12 @@ export const AgentTerminal: React.FC<{
         term.options.disableStdin = false;
         lastFailureCode = '';
         setDiagnosticCode('');
+        if (openedOnce) {
+          // A reattach replays historical ANSI commands. Applying them over
+          // the existing framebuffer is not idempotent. Queue RIS first so
+          // the replay starts from a clean parser/screen state.
+          resetTerminalForReplay(term);
+        }
         openedOnce = true;
         setRecovering(false);
         setConnection('CONNECTED');
@@ -600,7 +580,7 @@ export const AgentTerminal: React.FC<{
             return;
           }
           fitAndResize(true);
-          flushPendingOutput();
+          refreshVisibleTerminal();
           if (disposed) return;
           if (!panel || panel.dataset.active === 'true') term.focus();
           scheduleRedrawPulse();
@@ -775,7 +755,7 @@ export const AgentTerminal: React.FC<{
           flushFrame = window.requestAnimationFrame(() => {
             flushFrame = undefined;
             fitAndResize(true);
-            flushPendingOutput();
+            refreshVisibleTerminal();
             term.scrollToBottom();
           });
         })
@@ -797,7 +777,6 @@ export const AgentTerminal: React.FC<{
       if (connectTimeout !== undefined) window.clearTimeout(connectTimeout);
       if (openFrame !== undefined) window.cancelAnimationFrame(openFrame);
       if (flushFrame !== undefined) window.cancelAnimationFrame(flushFrame);
-      if (outputFrame !== undefined) window.cancelAnimationFrame(outputFrame);
       redrawTimers.forEach((timer) => window.clearTimeout(timer));
       stopObservingContainer();
       panelObserver?.disconnect();
