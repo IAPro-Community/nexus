@@ -97,3 +97,39 @@ This interactive bridge does **not** implement high-confidence remote permission
 - Attach same-SHA CI run, sanitized runtime traces, version matrix and screenshot proof to #97–#100.
 
 Existing issues #97–#101 remain OPEN until these criteria are met; this code is intentionally experimental.
+
+## OMP CLI supervised preview (opt-in, not certified)
+
+This preview makes `nexus omp` available through the existing SessionHost
+PTY lifecycle. It does **not** register an OMP account with the canonical Usage
+scheduler, infer quota, promise remote approval actions or enable automatic
+delegation. The existing experimental ACP and Pi RPC launchers are unchanged.
+
+First install the official `omp` binary from upstream, then:
+
+```bash
+export NEXUS_EXPERIMENTAL_HARNESSES=1
+nexus add omp default --no-login
+nexus omp:default
+# equivalent when only one profile exists:
+nexus omp
+```
+
+The operator authenticates/configures OMP within the terminal for this isolated
+profile. `nexus omp --help` and `nexus help omp` document these constraints.
+With the feature flag disabled, OMP profile creation and execution fail closed.
+
+**Isolation:** the supervised preview sets HOME and OMP's native
+`PI_CONFIG_DIR=.omp`, `PI_CODING_AGENT_DIR=<nexus-profile-home>/.omp/agent`;
+it clears inherited `OMP_PROFILE`/`PI_PROFILE` and foreign config/session/
+worktree overrides. This intentionally differs from Pi's `.pi/agent` root.
+User-supplied OMP flags remain native and the selected profile has no certified
+credential/usage auto-switching. Launching `omp acp` or `omp --mode rpc`
+inside PTY is rejected; use the explicit `agent_protocol` in Web for those
+experimental modes.
+
+**Not yet delivered:** OMP native authentication/identity projection in Usage,
+CLI version handshake, real ACP/RPC question and approval round trips,
+remote safe answer UI, two simultaneous real sessions, cross-platform E2E,
+and verified native resume. Do not mark issue #98 as finished or announce
+this as a production-ready provider.

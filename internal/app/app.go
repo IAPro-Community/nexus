@@ -105,6 +105,10 @@ func Run(args []string) error {
 	switch args[0] {
 	case "help", "-h", "--help":
 		if len(args) > 1 && isSupportedProvider(args[1]) {
+			if args[1] == "omp" {
+				showOMPPreviewHelp()
+				return nil
+			}
 			return flags.ShowProviderHelp(args[1])
 		}
 		usage()
@@ -208,9 +212,13 @@ func Run(args []string) error {
 		return tunnelCmd(args[1:])
 	case "__control-host":
 		return controlHostCmd(args[1:])
-	case "codex", "agy", "claude", "opencode", "gemini", "cursor":
+	case "codex", "agy", "claude", "opencode", "gemini", "cursor", "omp":
 		prov := args[0]
 		if flags.IsHelpFlag(args[1:]) {
+			if prov == "omp" {
+				showOMPPreviewHelp()
+				return nil
+			}
 			return flags.ShowProviderHelp(prov)
 		}
 		targetProfile := ""
@@ -240,7 +248,7 @@ func Run(args []string) error {
 
 func isSupportedProvider(p string) bool {
 	switch strings.ToLower(p) {
-	case "codex", "agy", "claude", "opencode", "gemini", "cursor":
+	case "codex", "agy", "claude", "opencode", "gemini", "cursor", "omp":
 		return true
 	default:
 		return false
@@ -269,6 +277,9 @@ func interactiveTUI() error {
 }
 
 func executeProviderWithSmartSelection(provName, explicitProfile string, args []string) error {
+	if provName == "omp" {
+		return executeOMPPreview(explicitProfile, args)
+	}
 	resolver := NewLaunchModeResolver(LaunchModeInput{
 		Args:       args,
 		StdinIsTTY: IsTerminal(),
@@ -815,6 +826,10 @@ func addCmd(args []string) error {
 		_ = config.SetDefaultProfile(providerName, name)
 	}
 
+	if providerName == "omp" {
+		fmt.Println("OMP preview uses isolated provider configuration. Run: NEXUS_EXPERIMENTAL_HARNESSES=1 nexus omp:"+name)
+		return nil
+	}
 	if noLogin {
 		return nil
 	}
@@ -1871,7 +1886,7 @@ func completionCmd(args []string) error {
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="web start stop ps running attach handoff continue resume tunnel control ui providers profiles add remove login logout use status usage inspect sessions workspaces bind unbind bindings explain doctor security history stats config update maestro completion version release codex agy claude opencode gemini cursor --supervised --direct --lead --yolo --continue --resume"
+    opts="web start stop ps running attach handoff continue resume tunnel control ui providers profiles add remove login logout use status usage inspect sessions workspaces bind unbind bindings explain doctor security history stats config update maestro completion version release codex agy claude opencode gemini cursor omp --supervised --direct --lead --yolo --continue --resume"
     COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
     return 0
 }
@@ -1914,8 +1929,8 @@ _nexus() {
 _nexus "$@"
 `)
 	case "fish":
-		fmt.Print(`complete -c nexus -f -a "web start stop ps running attach handoff continue resume tunnel control ui providers profiles add remove login logout use status usage inspect sessions workspaces bind unbind bindings explain doctor security history stats config update maestro completion version release codex agy claude opencode gemini cursor --supervised --direct --lead --yolo --continue --resume"
-complete -c ai -f -a "web start stop ps running attach handoff continue resume tunnel control ui providers profiles add remove login logout use status usage inspect sessions workspaces bind unbind bindings explain doctor security history stats config update maestro completion version release codex agy claude opencode gemini cursor --supervised --direct --lead --yolo --continue --resume"
+		fmt.Print(`complete -c nexus -f -a "web start stop ps running attach handoff continue resume tunnel control ui providers profiles add remove login logout use status usage inspect sessions workspaces bind unbind bindings explain doctor security history stats config update maestro completion version release codex agy claude opencode gemini cursor omp --supervised --direct --lead --yolo --continue --resume"
+complete -c ai -f -a "web start stop ps running attach handoff continue resume tunnel control ui providers profiles add remove login logout use status usage inspect sessions workspaces bind unbind bindings explain doctor security history stats config update maestro completion version release codex agy claude opencode gemini cursor omp --supervised --direct --lead --yolo --continue --resume"
 `)
 	case "powershell", "pwsh":
 		fmt.Print(`Register-ArgumentCompleter -Native -CommandName @('nexus', 'ai') -ScriptBlock {

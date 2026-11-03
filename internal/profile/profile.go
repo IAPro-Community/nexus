@@ -47,8 +47,13 @@ func ValidateProvider(p string) error {
 	switch strings.ToLower(p) {
 	case "codex", "agy", "claude", "opencode", "gemini", "cursor":
 		return nil
+	case "omp":
+		if os.Getenv("NEXUS_EXPERIMENTAL_HARNESSES") == "1" {
+			return nil
+		}
+		return fmt.Errorf("OMP requires NEXUS_EXPERIMENTAL_HARNESSES=1 while issue #98 remains experimental")
 	default:
-		return fmt.Errorf("unsupported provider %q (supported: codex, agy, claude, opencode, gemini, cursor)", p)
+		return fmt.Errorf("unsupported provider %q (supported: codex, agy, claude, opencode, gemini, cursor; experimental: omp)", p)
 	}
 }
 
@@ -225,6 +230,9 @@ func List() ([]model.Profile, error) {
 	base := filepath.Join(data, "profiles")
 	var out []model.Profile
 	providers := []string{"agy", "codex", "claude", "cursor", "opencode", "gemini"}
+	if os.Getenv("NEXUS_EXPERIMENTAL_HARNESSES") == "1" {
+		providers = append(providers, "omp")
+	}
 
 	cfg, _ := config.LoadConfig()
 
