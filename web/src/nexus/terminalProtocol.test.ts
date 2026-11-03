@@ -3,8 +3,32 @@ import {
   isProtocolControlLine,
   parseTerminalFrame,
   ProtocolScrubber,
+  decodeTerminalSocketEnvelope,
   scrubProtocolOutput,
 } from './terminalProtocol';
+
+describe('terminal socket envelope', () => {
+  it('decodes structured control frames without writing them as PTY text', () => {
+    expect(decodeTerminalSocketEnvelope('{"type":"lease","role":"CONTROL"}')).toEqual({
+      kind: 'frame',
+      payload: { type: 'lease', role: 'CONTROL' },
+    });
+    expect(decodeTerminalSocketEnvelope('{"type":"replay_complete"}')).toEqual({
+      kind: 'frame',
+      payload: { type: 'replay_complete' },
+    });
+  });
+
+  it('allows legacy unframed PTY data only when it is not JSON', () => {
+    expect(decodeTerminalSocketEnvelope('plain output\\r\\n')).toEqual({
+      kind: 'raw',
+      data: 'plain output\\r\\n',
+    });
+    expect(decodeTerminalSocketEnvelope('[1,2,3]')).toEqual({ kind: 'invalid' });
+    expect(decodeTerminalSocketEnvelope('null')).toEqual({ kind: 'invalid' });
+    expect(decodeTerminalSocketEnvelope({ type: 'output' })).toEqual({ kind: 'invalid' });
+  });
+});
 
 describe('terminal protocol', () => {
   it('renders provider JSON as output when it is not a control envelope', () => {
