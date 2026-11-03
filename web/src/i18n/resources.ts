@@ -1320,12 +1320,6 @@ export const en = {
     mixedLegacy: 'Mixed observed values',
     mixedLegacyHint: 'not a bill',
     budgetLegacyHint: 'Budget policy still uses mixed observation classes; treat as advisory.',
-    mixedLegacy: 'Soma de valores observados (mista)',
-    mixedLegacyHint: 'não é fatura',
-    budgetLegacyHint: 'Orçamento ainda usa classes mistas; trate como orientação, não saldo real.',
-    mixedLegacy: 'Suma de valores observados (mixta)',
-    mixedLegacyHint: 'no es factura',
-    budgetLegacyHint: 'La política de presupuesto aún mezcla clases; es orientativa, no saldo real.',
     evidenceStates: {
       NONE: 'Unknown',
       PARTIAL: 'Partial',
@@ -3729,6 +3723,9 @@ export const ptBR = {
     truncated: 'Mostramos os 25 modelos mais observados; os totais incluem todos os registros.',
     source: 'Origem: ledger local de observações de custo',
     inferred: 'Valores inferidos: {{value}} (não representam cobranças)',
+    mixedLegacy: 'Soma de valores observados (mista)',
+    mixedLegacyHint: 'não é fatura',
+    budgetLegacyHint: 'Orçamento ainda usa classes mistas; trate como orientação, não saldo real.',
     evidenceStates: {
       NONE: 'Desconhecida',
       PARTIAL: 'Parcial',
@@ -6144,6 +6141,9 @@ export const es = {
     truncated: 'Solo aparecen los 25 modelos más observados; los totales incluyen todos.',
     source: 'Origen: ledger local de observaciones de costo',
     inferred: 'Valores inferidos: {{value}} (no son cobros)',
+    mixedLegacy: 'Suma de valores observados (mixta)',
+    mixedLegacyHint: 'no es factura',
+    budgetLegacyHint: 'La política de presupuesto aún mezcla clases; es orientativa, no saldo real.',
     evidenceStates: {
       NONE: 'Desconocida',
       PARTIAL: 'Parcial',
