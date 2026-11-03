@@ -8,9 +8,8 @@ describe('Director visibility-scoped polling', () => {
   });
 
   it('honors the minimum interval and avoids premature retries', () => {
-    expect(
-      shouldPollDirector('visible', false, 100, 100 + DIRECTOR_POLL_INTERVAL_MS - 1),
-    ).toBe(false);
+    const beforeDeadline = 100 + DIRECTOR_POLL_INTERVAL_MS - 1;
+    expect(shouldPollDirector('visible', false, 100, beforeDeadline)).toBe(false);
     expect(shouldPollDirector('visible', false, 100, 100 + DIRECTOR_POLL_INTERVAL_MS)).toBe(true);
   });
 
