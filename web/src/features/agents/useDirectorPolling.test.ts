@@ -8,11 +8,17 @@ describe('Director visibility-scoped polling', () => {
   });
 
   it('honors the minimum interval and avoids premature retries', () => {
-    expect(shouldPollDirector('visible', false, 100, 100 + DIRECTOR_POLL_INTERVAL_MS - 1)).toBe(false);
-    expect(shouldPollDirector('visible', false, 100, 100 + DIRECTOR_POLL_INTERVAL_MS)).toBe(true);
+    expect(
+      shouldPollDirector('visible', false, 100, 100 + DIRECTOR_POLL_INTERVAL_MS - 1),
+    ).toBe(false);
+    expect(
+      shouldPollDirector('visible', false, 100, 100 + DIRECTOR_POLL_INTERVAL_MS),
+    ).toBe(true);
   });
 
   it('can refresh after a suspended tab becomes visible', () => {
-    expect(shouldPollDirector('visible', false, 0, DIRECTOR_POLL_INTERVAL_MS * 3)).toBe(true);
+    expect(shouldPollDirector('visible', false, 0, DIRECTOR_POLL_INTERVAL_MS * 3)).toBe(
+      true,
+    );
   });
 });
