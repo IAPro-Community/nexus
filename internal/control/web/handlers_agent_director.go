@@ -74,6 +74,11 @@ func (h *NexusHandler) handleAgentDirector(w http.ResponseWriter, r *http.Reques
         writeError(w, http.StatusMethodNotAllowed, "director mutations are unsupported")
         return
     }
+    endpoint := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/v1/agents/"), "/")
+    if len(endpoint) != 2 || endpoint[0] == "" || endpoint[1] != "director" {
+        writeError(w, http.StatusNotFound, "invalid Director agent path")
+        return
+    }
     projectID := strings.TrimSpace(r.URL.Query().Get("project_id"))
     agentID := agentIDFromPath(r.URL.Path)
     if projectID == "" || agentID == "" {
