@@ -13,7 +13,9 @@ function createSink() {
   const terminal: TerminalOutputSink = {
     buffer: { active: { viewportY: 5, baseY: 5 } },
     rows: 24,
-    write: (data, callback) => { writes.push({ data, callback }); },
+    write: (data, callback) => {
+      writes.push({ data, callback });
+    },
     scrollToBottom,
     refresh,
   };
