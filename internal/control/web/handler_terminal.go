@@ -613,7 +613,10 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 			}
 
 		case "resize":
-			if msg.Rows > 0 && msg.Cols > 0 {
+			// VIEW_ONLY connections may fit their local xterm, but only the
+			// writer can update the shared PTY geometry. Otherwise a background
+			// observer can corrupt the controlling TUI's cursor layout.
+			if validTerminalResizeRequest(broker.IsWriter(agentID, ws), msg.Rows, msg.Cols) {
 				size := [2]int{msg.Rows, msg.Cols}
 				select {
 				case resizeRequests <- size:
