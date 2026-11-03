@@ -9,6 +9,7 @@ import type {
   DirectorAvailability,
 } from '../../types';
 import styles from './DirectorAgentPanel.module.scss';
+import { useDirectorPolling } from './useDirectorPolling';
 
 const kinds: readonly DirectorActionKind[] = [
   'INSPECT',
@@ -37,27 +38,34 @@ export function DirectorAgentPanel({
   onTerminal: () => void;
 }) {
   const { t, i18n } = useTranslation();
-  const [revision, setRevision] = useState(0);
   const [view, setView] = useState<DirectorAgentProjection | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastObservedAt, setLastObservedAt] = useState<string | null>(null);
+  const { revision, refresh } = useDirectorPolling(loading || refreshing);
 
   useEffect(() => {
     let active = true;
-    setView(null);
-    setLoading(true);
+    setRefreshing(true);
     setError('');
 
     nexus
       .getDirectorAgent(agent.project_id, agent.id)
       .then((result) => {
-        if (active) setView(result);
+        if (active) {
+          setView(result);
+          setLastObservedAt(new Date().toISOString());
+        }
       })
       .catch((err: unknown) => {
         if (active) setError(err instanceof Error ? err.message : t('director.error'));
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       });
 
     return () => {
@@ -68,7 +76,7 @@ export function DirectorAgentPanel({
   const canPrepare = view?.actions.some(
     (action) => action.kind === 'DIRECTIVE' && action.availability === 'PREPARE_ONLY',
   );
-  const canAttach = view?.process_state === 'LIVE' && Boolean(view.runtime_id);
+  const canAttach = !error && view?.process_state === 'LIVE' && Boolean(view.runtime_id);
   const metadata = view
     ? [
         { label: t('director.agent'), value: agent.name },
@@ -100,8 +108,8 @@ export function DirectorAgentPanel({
         <Button
           size="sm"
           tone="ghost"
-          disabled={loading}
-          onClick={() => setRevision((value) => value + 1)}
+          disabled={loading || refreshing}
+          onClick={refresh}
         >
           {t('director.refresh')}
         </Button>
@@ -113,6 +121,14 @@ export function DirectorAgentPanel({
         </Button>
       </div>
       {loading && <p role="status">{t('director.loading')}</p>}
+      {refreshing && !loading && (
+        <p role="status" className={styles.notice}>{t('director.refreshing')}</p>
+      )}
+      {lastObservedAt && !loading && (
+        <p className={styles.notice}>
+          {t('director.lastChecked', { time: new Date(lastObservedAt).toLocaleTimeString(i18n.language) })}
+        </p>
+      )}
       {error && !loading && (
         <p role="alert" className={styles.error}>
           {error}
