@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canFitTerminal, canRunTerminalFrame } from './terminalFitModel';
+import { canFitTerminal, canRunTerminalFrame, shouldSendTerminalResize } from './terminalFitModel';
 
 const ready = () => ({
   disposed: false,
@@ -30,5 +30,17 @@ describe('canRunTerminalFrame', () => {
     expect(canRunTerminalFrame({ disposed: false, socketOpen: true })).toBe(true);
     expect(canRunTerminalFrame({ disposed: true, socketOpen: true })).toBe(false);
     expect(canRunTerminalFrame({ disposed: false, socketOpen: false })).toBe(false);
+  });
+});
+
+describe('shouldSendTerminalResize', () => {
+  it('forwards changed cell dimensions and ignores duplicates', () => {
+    expect(shouldSendTerminalResize({ rows: 30, cols: 100 }, { rows: 24, cols: 80 })).toBe(true);
+    expect(shouldSendTerminalResize({ rows: 30, cols: 100 }, { rows: 30, cols: 100 })).toBe(false);
+    expect(shouldSendTerminalResize({ rows: 30, cols: 100 }, { rows: 30, cols: 100 }, true)).toBe(true);
+  });
+  it('never forwards invalid dimensions to a PTY', () => {
+    expect(shouldSendTerminalResize({ rows: 0, cols: 80 }, { rows: 24, cols: 80 }, true)).toBe(false);
+    expect(shouldSendTerminalResize({ rows: 24, cols: NaN }, { rows: 24, cols: 80 }, true)).toBe(false);
   });
 });
