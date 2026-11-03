@@ -589,9 +589,20 @@ export const AgentTerminal: React.FC<{
 
       ws.onmessage = (event) => {
         if (disposed) return;
+        let parsed: unknown;
         try {
-          const payload = JSON.parse(event.data);
-          if (payload.type === 'trace_config') {
+          parsed = JSON.parse(String(event.data));
+        } catch {
+          // Only malformed JSON can be treated as legacy raw PTY output.
+          // A rendering/state exception must never print a control frame.
+          const raw = String(event.data);
+          ingestOutput(raw);
+          writeTerminalOutput(raw);
+          return;
+        }
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return;
+        const payload = parsed as Record<string, unknown>;
+        if (payload.type === 'trace_config') {
             terminalTraceEnabled = payload.data === 'enabled';
           } else if (payload.type === 'output' && payload.data) {
             const cleaned = protocolScrubber.scrub(String(payload.data));
@@ -675,11 +686,6 @@ export const AgentTerminal: React.FC<{
               ws.close(1011, 'fatal attach error');
             }
           }
-        } catch {
-          const raw = String(event.data);
-          ingestOutput(raw);
-          writeTerminalOutput(raw);
-        }
       };
 
       ws.onerror = () => {
