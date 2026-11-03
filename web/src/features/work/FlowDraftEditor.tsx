@@ -11,6 +11,8 @@ import { FeatureTour } from './FeatureTour';
 import { FeatureHint } from './FeatureHint';
 import { ComposerHandoffSummary } from './ComposerHandoffSummary';
 import { MaestroRoutingPreview } from './MaestroRoutingPreview';
+import { MaestroComposePreview } from './MaestroComposePreview';
+import { draftFromMaestroComposition } from './maestroComposeFlow';
 import { FlowPipeline } from './FlowPipeline';
 import { FlowStepInspector } from './FlowStepInspector';
 import type { FlowDraftModel } from './flowModel';
@@ -72,6 +74,24 @@ export const FlowDraftEditor: React.FC<{
       <div data-tour="flow-handoff">
         <ComposerHandoffSummary plan={controller.selectedPlan} />
       </div>
+      {controller.selectedPlan && flowDraft && (
+        <MaestroComposePreview
+          project={project}
+          plan={controller.selectedPlan}
+          onApply={(preview) => {
+            setFlowDraft((current) =>
+              current
+                ? draftFromMaestroComposition(
+                    current,
+                    preview,
+                    t('flow.maestroDraftPhaseTitle', 'Maestro · plano para revisão'),
+                  )
+                : current,
+            );
+            setSelectedStepId(preview.tasks?.[0]?.id || '');
+          }}
+        />
+      )}
       {controller.selectedPlan && flowDraft && (
         <MaestroRoutingPreview
           project={project}
