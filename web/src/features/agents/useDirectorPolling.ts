@@ -27,7 +27,11 @@ export function useDirectorPolling(pending: boolean) {
   const lastAttemptRef = useRef(Date.now());
 
   useEffect(() => {
+    const wasPending = pendingRef.current;
     pendingRef.current = pending;
+    // Rate-limit from completion too: a slow response must not cause
+    // another immediate request as soon as it finally finishes.
+    if (wasPending && !pending) lastAttemptRef.current = Date.now();
   }, [pending]);
 
   const refresh = useCallback(() => {
