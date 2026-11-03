@@ -6,11 +6,7 @@ export function reportedCostForDisplay(
   budget: Pick<CostBudgetAssessment, 'reported_cost_observations' | 'reported_cost_microusd'>,
 ): number | null {
   const value = budget.reported_cost_microusd;
-  if (
-    budget.reported_cost_observations <= 0 ||
-    !Number.isSafeInteger(value) ||
-    value < 0
-  ) {
+  if (budget.reported_cost_observations <= 0 || !Number.isSafeInteger(value) || value < 0) {
     return null;
   }
   return value;
