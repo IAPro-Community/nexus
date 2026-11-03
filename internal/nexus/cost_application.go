@@ -312,7 +312,11 @@ func evaluateCostBudget(totals store.CostAnalyticsTotals, prefs store.CostPrefer
 			"Provider-reported cost reached the hard threshold. New expensive work requires confirmation.")
 	}
 	if prefs.SoftLimitMicroUSD > 0 && known >= prefs.SoftLimitMicroUSD {
-		return setExceeded(CostBudgetSoft, prefs.SoftLimitMicroUSD, false,
+		// Reaching the soft threshold does not prove remaining hard-budget
+		// headroom when any execution has unreported cost.
+		uncertain := reportedEvidence != CostEvidenceMeasured &&
+			(prefs.HardLimitMicroUSD > 0 || prefs.EmergencyLimitMicroUSD > 0)
+		return setExceeded(CostBudgetSoft, prefs.SoftLimitMicroUSD, uncertain,
 			"Provider-reported cost reached the soft threshold. Other costs may be unverified.")
 	}
 	if reportedEvidence != CostEvidenceMeasured {
