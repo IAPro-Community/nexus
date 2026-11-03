@@ -617,6 +617,14 @@ export const AgentTerminal: React.FC<{
         const payload = parsed as Record<string, unknown>;
         if (payload.type === 'trace_config') {
           terminalTraceEnabled = payload.data === 'enabled';
+        } else if (payload.type === 'replay_complete') {
+          // The server finished its ring replay. A zero-byte write waits for
+          // earlier queued xterm writes, so repaint follows ANSI parsing.
+          term.write('', () => {
+            if (disposed || wsRef.current !== ws) return;
+            fitAndResize(true);
+            refreshVisibleTerminal();
+          });
         } else if (payload.type === 'output' && payload.data) {
           const cleaned = protocolScrubber.scrub(String(payload.data));
           if (cleaned) {
