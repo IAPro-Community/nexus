@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "product": "IAPro Nexus",
   "character": "NEX",
   "release_target": "v1.0.0",
@@ -40,12 +40,12 @@
       "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
     },
     {
-      "id": "idle_12",
-      "title": "12 ações idle com frames consistentes, pivôs e agendador sem repetição artificial",
-      "contract": "docs/design/nex/RETRO_GAME_IDLE_DIRECTION.md",
+      "id": "behavior_8",
+      "title": "Oito comportamentos contextuais 2D com gestos reutilizados, redução de movimento e testes",
+      "contract": "docs/design/nex/COMPANION_2D_CLIPPY_LITE.md",
       "status": "BLOCKED",
       "evidence": [],
-      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+      "notes": "BLOCKED: requer oito cenários reais e mock isolado para resolved, captura visual, testes e aprovação; os doze IDs técnicos do IdleDirector podem permanecer sem exigir doze artes únicas."
     },
     {
       "id": "operational_5",
@@ -56,16 +56,16 @@
       "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
     },
     {
-      "id": "turnaround_360",
-      "title": "16 vistas 0–337,5° de 22,5° com oclusão correta + manifesto",
-      "contract": "docs/design/nex/MOTION_ARCHITECTURE_V2.md",
+      "id": "interaction_safety",
+      "title": "Comportamento contextual sem telemetria fictícia, com preempção, dedupe, foco, snooze e click-through",
+      "contract": "docs/design/nex/COMPANION_2D_CLIPPY_LITE.md",
       "status": "BLOCKED",
       "evidence": [],
-      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+      "notes": "BLOCKED: avaliar contrato eventos/UX, segurança e preservação das ações atuais do HUD; 360° transferido para backlog #129."
     },
     {
       "id": "hud_integration",
-      "title": "Novo atlas/rig validado no HUD com BAR/MASCOT/TRAY intactos",
+      "title": "Companion 2D validado no HUD mantendo BAR/MASCOT/TRAY, drag e hit regions",
       "contract": "docs/product/hud-guardian-v1.md",
       "status": "BLOCKED",
       "evidence": [],
@@ -73,8 +73,8 @@
     },
     {
       "id": "site_integration",
-      "title": "Hero e 360° integrados no Nexus-Site com versões PT/EN responsivas",
-      "contract": "docs/design/nex/SITE_HERO_SVG_AND_360_MOTION.md",
+      "title": "Hero 2D contextual integrado no Nexus-Site PT/EN, sem 360° obrigatório",
+      "contract": "docs/design/nex/COMPANION_2D_CLIPPY_LITE.md",
       "status": "BLOCKED",
       "evidence": [],
       "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
@@ -109,6 +109,21 @@
       "date": "2026-10-28",
       "event": "Owner requires full HUD and Site delivery before public site use.",
       "status": "BLOCKED"
+    },
+    {
+      "date": "2026-11-01",
+      "event": "Owner changes NEX MVP scope: Clippy-like 2D companion with eight compositional behaviors; mandatory 360-degree atlas and twelve exclusive sprite sheets removed from release gates; preserve atomic HUD + Site and human approval.",
+      "status": "BLOCKED"
+    }
+  ],
+  "scope_contract": "docs/design/nex/COMPANION_2D_CLIPPY_LITE.md",
+  "scope_version": "companion-2d-mvp-2026-11-01",
+  "deferred_features": [
+    {
+      "id": "turnaround_360",
+      "issue": "https://github.com/IAPro-Community/nexus/issues/129",
+      "status": "DEFERRED_FUTURE_NOT_A_RELEASE_GATE",
+      "reason": "new direction: low-cost Clippy-style contextual 2D companion"
     }
   ]
 }
