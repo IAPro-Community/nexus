@@ -24,7 +24,8 @@ export function shouldPollDirector(
 export function useDirectorPolling(pending: boolean) {
   const [revision, setRevision] = useState(0);
   const pendingRef = useRef(pending);
-  const lastAttemptRef = useRef(Date.now());
+  // Avoid non-deterministic reads during React render; the first GET is already in flight.
+  const lastAttemptRef = useRef(0);
 
   useEffect(() => {
     const wasPending = pendingRef.current;
