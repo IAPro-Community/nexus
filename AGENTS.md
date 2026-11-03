@@ -168,12 +168,11 @@ A decisão final do usuário é **não inserir NEX na página pública até o pa
 
 Execute `node scripts/verify-nex-release-readiness.mjs` para verificar consistência; `--require-ready` deve falhar enquanto restarem pendências. Essa política vale também para o repositório Nexus-Site; a homepage deve permanecer sem NEX enquanto o gate for BLOCKED.
 
-## 9. Uma branch de integração e um PR por frente
+## 9. Uma linha de trabalho e um PR por frente
 
-- Antes de abrir branch/PR, verificar PRs abertos relacionados à issue/feature e continuar no branch ativo; cada etapa deve ser um commit revisável nesse PR.
-- **OMP-inspired/Director:** `feat/omp-inspired-director-release-v1.0.0`, PR #195, é a frente única de Director, workers, histórico/recuperação operacional e integração de UX do roadmap OMP enquanto aberta. Não criar uma linha por etapa.
-- **NEX Companion:** PR #193 e branch `feat/nex-companion-hud-integration-20261103` (frente visual independente).
-- **Memória/migração:** PR #165 e branch `feat/maestro-memory-writer-fencing-20261029` (frente de persistência independente).
-- **Maestro:** o executor canônico é independente no repositório Orquestrador-Maestro, PR #59, branch `feat/durable-admission-ledger-20261103`. Nexus não duplica o scheduler ou memória.
-- Não fechar PR sem comprovar o que foi consolidado e o que segue arquivado; não presumir que uma branch fechada foi mesclada. Branches com material exclusivo são preservadas.
-- Merge somente em `release/v1.0.0` após testes, homologação e aprovação no SHA exato; não tocar `main`.
+- **Antes de criar um branch/PR**, inventariar os PRs abertos em `release/v1.0.0` e identificar o branch ativo da **mesma issue/feature**. Se já houver, continuar nesse branch e no PR existente; não abrir PRs por subtarefa, componente, documentação, QA ou continuação de conversa.
+- Para o Companion 2D NEX (#141), usar o branch `feat/nex-companion-hud-integration-20261103`, PR #193, até revisão final. Mecânica, idles, comportamento, documentação, screenshots e correções pertencem à mesma linha.
+- Para recuperação/migração de memória (issues #86/#113), usar uma linha de integração separada da UI NEX; não misturar mudanças transacionais de dados com arte do HUD. Enquanto o draft #165 estiver ativo, os PRs anteriores #156/#162/#163/#164 são fontes históricas, não branches paralelos de execução.
+- Um novo PR é permitido apenas para frente **independente** (ou hotfix de ciclo separado). Não criar um único PR gigante misturando temas só para cumprir uma contagem numérica.
+- Consolidar commits pequenos no PR da frente e manter checklist de gates; não fazer merge direto em `main`. Somente `release/v1.0.0` recebe mudanças após teste/review no SHA exato.
+- Encerrar PRs redundantes com referências ao PR ativo e explicitar o que foi incorporado ou arquivado, **sem declarar equivalência quando existirem artefatos exclusivos**; preservar branches até auditoria de conteúdo.
