@@ -2,6 +2,8 @@ package web
 
 import (
     "net/http"
+    "bytes"
+    "encoding/json"
     "net/http/httptest"
     "strings"
     "testing"
@@ -61,5 +63,73 @@ func TestDirectorHandlerRejectsMutationAndUnscopedLookup(t *testing.T) {
     }
     if r := write(http.MethodGet, "/api/v1/agents/agent-one/director"); r.Code != http.StatusBadRequest {
         t.Fatalf("unscoped read returned %d", r.Code)
+    }
+}
+
+func TestDirectorEndpointKeepsProjectScopeAndReadOnlyAuthentication(t *testing.T) {
+    client, srv, csrf := csrfClient(t)
+    base := srv.URL()
+    projectBody, _ := json.Marshal(map[string]string{"name": "Director test project", "path": t.TempDir()})
+    req, _ := http.NewRequest(http.MethodPost, base+"/api/v1/projects", bytes.NewReader(projectBody))
+    req.Header.Set("X-CSRF-Token", csrf)
+    response, err := client.Do(req)
+    if err != nil { t.Fatal(err) }
+    if response.StatusCode != http.StatusCreated {
+        t.Fatalf("create project status=%d", response.StatusCode)
+    }
+    var project store.Project
+    if err := json.NewDecoder(response.Body).Decode(&project); err != nil { t.Fatal(err) }
+    response.Body.Close()
+
+    agentBody, _ := json.Marshal(map[string]string{"name": "Director agent", "role": "developer"})
+    req, _ = http.NewRequest(http.MethodPost, base+"/api/v1/projects/"+project.ID+"/agents", bytes.NewReader(agentBody))
+    req.Header.Set("X-CSRF-Token", csrf)
+    response, err = client.Do(req)
+    if err != nil { t.Fatal(err) }
+    if response.StatusCode != http.StatusCreated {
+        t.Fatalf("create agent status=%d", response.StatusCode)
+    }
+    var agent store.Agent
+    if err := json.NewDecoder(response.Body).Decode(&agent); err != nil { t.Fatal(err) }
+    response.Body.Close()
+
+    url := base+"/api/v1/agents/"+agent.ID+"/director?project_id="+project.ID
+    response, err = client.Get(url)
+    if err != nil { t.Fatal(err) }
+    if response.StatusCode != http.StatusOK {
+        t.Fatalf("director read status=%d", response.StatusCode)
+    }
+    var view directorProjection
+    if err := json.NewDecoder(response.Body).Decode(&view); err != nil { t.Fatal(err) }
+    response.Body.Close()
+    if view.AgentID != agent.ID || view.ProjectID != project.ID || view.ProcessState != "UNKNOWN" {
+        t.Fatalf("unexpected director projection: %+v", view)
+    }
+    if response.Header.Get("Cache-Control") != "no-store" {
+        t.Fatal("live runtime projection must not be cached")
+    }
+
+    response, err = client.Get(base+"/api/v1/agents/"+agent.ID+"/director?project_id=not-this-project")
+    if err != nil { t.Fatal(err) }
+    response.Body.Close()
+    if response.StatusCode != http.StatusNotFound {
+        t.Fatalf("cross-project read must fail, status=%d", response.StatusCode)
+    }
+
+    req, _ = http.NewRequest(http.MethodPost, url, strings.NewReader("{}"))
+    response, err = client.Do(req)
+    if err != nil { t.Fatal(err) }
+    response.Body.Close()
+    if response.StatusCode != http.StatusForbidden {
+        t.Fatalf("mutation without CSRF must fail before routing, status=%d", response.StatusCode)
+    }
+
+    req, _ = http.NewRequest(http.MethodPost, url, strings.NewReader("{}"))
+    req.Header.Set("X-CSRF-Token", csrf)
+    response, err = client.Do(req)
+    if err != nil { t.Fatal(err) }
+    response.Body.Close()
+    if response.StatusCode != http.StatusMethodNotAllowed {
+        t.Fatalf("validly authenticated Director mutations must be unsupported, status=%d", response.StatusCode)
     }
 }
