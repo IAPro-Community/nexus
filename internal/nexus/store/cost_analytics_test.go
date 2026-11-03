@@ -38,6 +38,17 @@ func TestCostAnalyticsSeparatesReportedEstimatedUnknownAndProjectScope(t *testin
 		view.Total.InferredMicroUSD != 0 || view.Total.UnclassifiedMicroUSD != 0 {
 		t.Fatalf("reported vs estimated values mixed: %+v", view.Total)
 	}
+	evidence, err := st.SummarizeCostEvidence(CostObservationFilter{
+		ProjectID: "alpha", Since: day.Add(-7 * 24 * time.Hour),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if evidence != view.Total || evidence.ReportedCostObservations != 1 ||
+		evidence.EquivalentCostObservations != 1 || evidence.UnknownCostObservations != 1 {
+		t.Fatalf("single aggregate and full analytics disagree about evidence classes: %+v vs %+v", evidence, view.Total)
+	}
+
 	if view.Total.InputTokens != input || view.Total.CachedInputTokens != cache ||
 		view.Total.OutputTokens != output {
 		t.Fatalf("token evidence was lost: %+v", view.Total)
