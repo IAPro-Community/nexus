@@ -1,10 +1,6 @@
 package web
 
-import (
-    "net/http"
-
-    "github.com/IAPro-Community/nexus/internal/nexus/store"
-)
+import "net/http"
 
 type projectDirectorView struct {
     SchemaVersion int `json:"schema_version"`
@@ -42,9 +38,9 @@ func (h *NexusHandler) handleProjectDirector(w http.ResponseWriter, r *http.Requ
         writeError(w, http.StatusServiceUnavailable, err.Error())
         return
     }
-    constMax := 100
+    const maxAgents = 100
     total := len(agents)
-    if len(agents) > constMax { agents = agents[:constMax] }
+    if len(agents) > maxAgents { agents = agents[:constMax] }
     views := make([]directorProjection, 0, len(agents))
     for _, agent := range agents {
         view, err := h.directorViewForStoredAgent(st, agent)
@@ -63,4 +59,3 @@ func (h *NexusHandler) handleProjectDirector(w http.ResponseWriter, r *http.Requ
     })
 }
 
-var _ = store.Agent{}
