@@ -287,13 +287,11 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	// Initial ring buffer history. Older hosts may have echoed lease_acquire
 	// into the PTY (and thus the ring); scrub so attach never floods xterm.
 	var history string
-	if json.Unmarshal(resp.Data, &history) == nil && history != "" {
-		if cleaned := scrubProtocolFramesFromOutput(history); cleaned != "" {
-			_ = safeWriteJSON(TerminalMessage{
-				Type: "output",
-				Data: cleaned,
-			})
-		}
+	_ = json.Unmarshal(resp.Data, &history)
+	if err := sendTerminalReplay(safeWriteJSON, history); err != nil {
+		// Do not continue with a live stream if the initial replay handshake
+		// failed. The client would inherit an unknown TUI framebuffer state.
+		return
 	}
 
 	// Send initial dynamic title and attention if available
