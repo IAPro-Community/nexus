@@ -478,7 +478,15 @@ export type CostBudgetLevel = 'DISABLED' | 'UNKNOWN' | 'OK' | 'SOFT' | 'HARD' | 
 
 export interface CostBudgetAssessment {
   level: CostBudgetLevel;
+  /** Backward-compatible alias for provider-reported value, never estimates. */
   known_cost_microusd: number;
+  reported_cost_microusd: number;
+  api_equivalent_microusd: number;
+  inferred_microusd: number;
+  unclassified_microusd: number;
+  reported_cost_observations: number;
+  unverified_observations: number;
+  /** Coverage of provider-reported observations, not invoices. */
   evidence: CostEvidenceState;
   active_limit_microusd?: number;
   requires_confirmation: boolean;
