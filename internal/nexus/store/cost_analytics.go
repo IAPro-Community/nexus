@@ -15,6 +15,9 @@ type CostAnalyticsTotals struct {
 	ReportedCostObservations  int64 `json:"reported_cost_observations"`
 	EquivalentCostObservations int64 `json:"equivalent_cost_observations"`
 	InferredCostObservations  int64 `json:"inferred_cost_observations"`
+	KnownCacheObservations    int64 `json:"known_cache_observations"`
+	CachePromptInputTokens    int64 `json:"cache_prompt_input_tokens"`
+	CachePromptReadTokens     int64 `json:"cache_prompt_read_tokens"`
 	InputTokens              int64 `json:"input_tokens"`
 	CachedInputTokens        int64 `json:"cached_input_tokens"`
 	OutputTokens             int64 `json:"output_tokens"`
@@ -55,6 +58,9 @@ const costAnalyticsColumns = `
 	COALESCE(SUM(CASE WHEN cost_microusd IS NOT NULL AND cost_kind='PROVIDER_REPORTED' THEN 1 ELSE 0 END),0),
 	COALESCE(SUM(CASE WHEN cost_microusd IS NOT NULL AND cost_kind='API_EQUIVALENT_ESTIMATE' THEN 1 ELSE 0 END),0),
 	COALESCE(SUM(CASE WHEN cost_microusd IS NOT NULL AND cost_kind='INFERRED' THEN 1 ELSE 0 END),0),
+	COALESCE(SUM(CASE WHEN input_tokens IS NOT NULL AND cached_input_tokens IS NOT NULL THEN 1 ELSE 0 END),0),
+	COALESCE(SUM(CASE WHEN input_tokens IS NOT NULL AND cached_input_tokens IS NOT NULL THEN input_tokens ELSE 0 END),0),
+	COALESCE(SUM(CASE WHEN input_tokens IS NOT NULL AND cached_input_tokens IS NOT NULL THEN cached_input_tokens ELSE 0 END),0),
 	COALESCE(SUM(input_tokens),0),
 	COALESCE(SUM(cached_input_tokens),0),
 	COALESCE(SUM(output_tokens),0),
@@ -74,6 +80,8 @@ func scanCostAnalyticsTotals(scanner analyticsScanner, dest *CostAnalyticsTotals
 		&dest.ObservationCount, &dest.KnownCostObservations, &dest.UnknownCostObservations,
 		&dest.KnownTokenObservations, &dest.ReportedCostObservations,
 		&dest.EquivalentCostObservations, &dest.InferredCostObservations,
+		&dest.KnownCacheObservations, &dest.CachePromptInputTokens,
+		&dest.CachePromptReadTokens,
 		&dest.InputTokens, &dest.CachedInputTokens,
 		&dest.OutputTokens, &dest.ReasoningTokens, &dest.DurationMS,
 		&dest.ProviderReportedMicroUSD, &dest.APIEquivalentMicroUSD,
@@ -115,6 +123,8 @@ func (s *Store) SummarizeCostAnalytics(filter CostObservationFilter, maxModels i
 			&row.ObservationCount, &row.KnownCostObservations, &row.UnknownCostObservations,
 			&row.KnownTokenObservations, &row.ReportedCostObservations,
 			&row.EquivalentCostObservations, &row.InferredCostObservations,
+			&row.KnownCacheObservations, &row.CachePromptInputTokens,
+			&row.CachePromptReadTokens,
 			&row.InputTokens, &row.CachedInputTokens,
 			&row.OutputTokens, &row.ReasoningTokens, &row.DurationMS,
 			&row.ProviderReportedMicroUSD, &row.APIEquivalentMicroUSD,
@@ -147,6 +157,8 @@ func (s *Store) SummarizeCostAnalytics(filter CostObservationFilter, maxModels i
 			&row.ObservationCount, &row.KnownCostObservations, &row.UnknownCostObservations,
 			&row.KnownTokenObservations, &row.ReportedCostObservations,
 			&row.EquivalentCostObservations, &row.InferredCostObservations,
+			&row.KnownCacheObservations, &row.CachePromptInputTokens,
+			&row.CachePromptReadTokens,
 			&row.InputTokens, &row.CachedInputTokens,
 			&row.OutputTokens, &row.ReasoningTokens, &row.DurationMS,
 			&row.ProviderReportedMicroUSD, &row.APIEquivalentMicroUSD,
