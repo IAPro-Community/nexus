@@ -57,8 +57,8 @@ export function DirectorAgentPanel({ agent, onPrepare, onTerminal }: {
           <dl className={styles.metadata}>
             <div><dt>{t('director.agent')}</dt><dd>{agent.name}</dd></div>
             <div><dt>{t('director.persisted')}</dt><dd>{view.agent_status}</dd></div>
-            <div><dt>{t('director.process')}</dt><dd>{view.process_state}</dd></div>
-            <div><dt>{t('director.evidence')}</dt><dd>{view.process_evidence}</dd></div>
+            <div><dt>{t('director.process')}</dt><dd>{t('director.processStates.' + view.process_state)}</dd></div>
+            <div><dt>{t('director.evidence')}</dt><dd>{t('director.processEvidence.' + view.process_evidence)}</dd></div>
             <div><dt>{t('director.provider')}</dt><dd>{view.provider || t('director.notAvailable')} / {view.profile || t('director.notAvailable')}</dd></div>
             <div><dt>{t('director.generation')}</dt><dd>{view.generation_id || t('director.notAvailable')}</dd></div>
             <div><dt>{t('director.runtime')}</dt><dd>{view.runtime_id || t('director.notAvailable')}</dd></div>
