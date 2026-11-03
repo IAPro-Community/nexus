@@ -385,6 +385,43 @@ export interface CapacityAlertState {
 
 export type CostEvidenceState = 'EMPTY' | 'ATTRIBUTION_ONLY' | 'PARTIAL' | 'MEASURED';
 
+export interface CostAnalyticsTotals {
+  observation_count: number;
+  known_cost_observations: number;
+  unknown_cost_observations: number;
+  known_token_observations: number;
+  input_tokens: number;
+  cached_input_tokens: number;
+  output_tokens: number;
+  reasoning_tokens: number;
+  duration_ms: number;
+  provider_reported_microusd: number;
+  api_equivalent_microusd: number;
+  inferred_microusd: number;
+  unclassified_microusd: number;
+}
+
+export interface DailyCostAnalytics extends CostAnalyticsTotals {
+  date: string;
+}
+
+export interface ModelCostAnalytics extends CostAnalyticsTotals {
+  provider: string;
+  model: string;
+}
+
+export interface CostAnalyticsReport {
+  since: string;
+  generated_at: string;
+  days: number;
+  project_id?: string;
+  source: 'LOCAL_COST_OBSERVATIONS';
+  total: CostAnalyticsTotals;
+  by_day: DailyCostAnalytics[];
+  by_model: ModelCostAnalytics[];
+  models_truncated: boolean;
+}
+
 export interface CostAggregate {
   observation_count: number;
   known_cost_observations: number;
