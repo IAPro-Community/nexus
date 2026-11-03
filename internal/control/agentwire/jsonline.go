@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"unicode/utf8"
 )
 
 const MaxFrame = 4 << 20 // Bound untrusted subprocess output to 4 MiB/frame.
@@ -53,6 +54,12 @@ func (j *JSONLines) Read() (json.RawMessage, error) {
 		if len(trimmed) == 0 {
 			out = out[:0]
 			continue
+		}
+		// encoding/json silently replaces invalid UTF-8 with U+FFFD.
+		// This is unsafe for correlation IDs, permission choices and session
+		// identities: reject malformed bytes instead of changing their meaning.
+		if !utf8.Valid(trimmed) {
+			return nil, errors.New("agentwire: invalid UTF-8 JSON frame")
 		}
 		if !json.Valid(trimmed) {
 			return nil, errors.New("agentwire: invalid JSON line")
