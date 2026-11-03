@@ -1,3 +1,5 @@
+> **Histórico / futuro (decisão 2026-11-01):** a seção de giro 360° abaixo continua tecnicamente válida como planejamento, mas **NÃO é requisito de entrega do Companion 2D**. O 360° fica na issue #129, com o player existente isolado, e não bloqueia a publicação conjunta quando os 11 novos gates e o aceite humano forem atendidos. Contrato atual: [COMPANION_2D_CLIPPY_LITE.md](COMPANION_2D_CLIPPY_LITE.md).
+
 # NEX — catálogo completo de movimentos e giro 360° (plano de produção)
 
 **Data da revisão:** 28/10/2026  
