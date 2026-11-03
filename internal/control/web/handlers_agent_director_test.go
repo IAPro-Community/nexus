@@ -10,6 +10,7 @@ import (
     "time"
 
     "github.com/IAPro-Community/nexus/internal/control/registry"
+    "github.com/IAPro-Community/nexus/internal/nexus"
     "github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
@@ -95,6 +96,16 @@ func TestDirectorEndpointKeepsProjectScopeAndReadOnlyAuthentication(t *testing.T
     if err := json.NewDecoder(response.Body).Decode(&agent); err != nil { t.Fatal(err) }
     response.Body.Close()
 
+    st, err := nexus.Default().OpenProject()
+    if err != nil { t.Fatal(err) }
+    _, err = st.RecordEventMetadata(store.EventMetadata{
+        AgentID: agent.ID, ProjectID: project.ID,
+        Kind: "agent.director.test", CorrelationID: "test-run-001",
+        Summary: "PRIVATE_PROMPT_MUST_NOT_LEAK",
+        Timestamp: time.Now().UTC(),
+    })
+    if err != nil { t.Fatal(err) }
+
     url := base+"/api/v1/agents/"+agent.ID+"/director?project_id="+project.ID
     response, err = client.Get(url)
     if err != nil { t.Fatal(err) }
@@ -106,6 +117,19 @@ func TestDirectorEndpointKeepsProjectScopeAndReadOnlyAuthentication(t *testing.T
     response.Body.Close()
     if view.AgentID != agent.ID || view.ProjectID != project.ID || view.ProcessState != "UNKNOWN" {
         t.Fatalf("unexpected director projection: %+v", view)
+    }
+    found := false
+    for _, event := range view.RecentEvents {
+        if event.Kind == "agent.director.test" && event.CorrelationID == "test-run-001" {
+            found = true
+        }
+    }
+    if !found { t.Fatalf("durable activity missing from Agent projection: %+v", view.RecentEvents) }
+    encodedView, err := json.Marshal(view)
+    if err != nil { t.Fatal(err) }
+    if strings.Contains(string(encodedView), "PRIVATE_PROMPT_MUST_NOT_LEAK") ||
+        strings.Contains(string(encodedView), "account_scope") {
+        t.Fatal("Director must not return activity summaries or account scopes")
     }
     if response.Header.Get("Cache-Control") != "no-store" {
         t.Fatal("live runtime projection must not be cached")
