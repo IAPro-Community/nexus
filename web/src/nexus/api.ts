@@ -343,6 +343,10 @@ export const nexus = {
       body: JSON.stringify({ name, role }),
     }),
   getAgent: (id: string) => request<AgentDetail>(`/api/v1/agents/${id}`),
+  getDirectorAgent: (projectId: string, agentId: string) =>
+    request<import('../types').DirectorAgentProjection>(
+      `/api/v1/agents/${encodeURIComponent(agentId)}/director?project_id=${encodeURIComponent(projectId)}`,
+    ),
   deleteAgent: (id: string) =>
     request<{ status: string }>(`/api/v1/agents/${id}`, { method: 'DELETE' }),
   startAgent: (id: string) =>
