@@ -345,36 +345,36 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return;
       const msg = parsed as Record<string, unknown>;
       if (msg.type === 'trace_config') {
-          terminalTraceEnabled = msg.data === 'enabled';
-        } else if (msg.type === 'output' && msg.data) {
-          const cleaned = protocolScrubber.scrub(String(msg.data));
-          if (cleaned) {
-            ingestOutput(cleaned);
-            writeTerminalOutput(cleaned);
-          }
-        } else if (msg.type === 'lease') {
-          const nextRole = msg.role === 'CONTROL' ? 'CONTROL' : 'VIEW_ONLY';
-          setRole(nextRole);
-          if (nextRole === 'CONTROL' && (!panel || panel.dataset.active === 'true')) {
-            window.requestAnimationFrame(() => term.focus());
-          }
-        } else if (msg.type === 'title' && msg.data) {
-          const next = String(msg.data).trim();
-          publishChrome(extractOscTitle(next) || next);
-        } else if (msg.type === 'attention') {
-          // Push is owned by NexusWorkspaceApp poll (focused project only).
-          if (msg.dynamic_title) publishChrome(String(msg.dynamic_title));
-          const kind = String(msg.attention_kind || msg.prompt_kind || '');
-          if (kind === 'needs_user' || kind === 'choice' || kind === 'yn' || kind === 'free_text') {
-            publishChrome(undefined, true);
-          }
-        } else if (msg.type === 'error') {
-          setErrorMsg(String(msg.data || 'Terminal error'));
-          setDiagnosticCode('TERMINAL_SERVER_ERROR');
-          term.options.disableStdin = true;
-          setConnecting(false);
-          setDisconnected(true);
+        terminalTraceEnabled = msg.data === 'enabled';
+      } else if (msg.type === 'output' && msg.data) {
+        const cleaned = protocolScrubber.scrub(String(msg.data));
+        if (cleaned) {
+          ingestOutput(cleaned);
+          writeTerminalOutput(cleaned);
         }
+      } else if (msg.type === 'lease') {
+        const nextRole = msg.role === 'CONTROL' ? 'CONTROL' : 'VIEW_ONLY';
+        setRole(nextRole);
+        if (nextRole === 'CONTROL' && (!panel || panel.dataset.active === 'true')) {
+          window.requestAnimationFrame(() => term.focus());
+        }
+      } else if (msg.type === 'title' && msg.data) {
+        const next = String(msg.data).trim();
+        publishChrome(extractOscTitle(next) || next);
+      } else if (msg.type === 'attention') {
+        // Push is owned by NexusWorkspaceApp poll (focused project only).
+        if (msg.dynamic_title) publishChrome(String(msg.dynamic_title));
+        const kind = String(msg.attention_kind || msg.prompt_kind || '');
+        if (kind === 'needs_user' || kind === 'choice' || kind === 'yn' || kind === 'free_text') {
+          publishChrome(undefined, true);
+        }
+      } else if (msg.type === 'error') {
+        setErrorMsg(String(msg.data || 'Terminal error'));
+        setDiagnosticCode('TERMINAL_SERVER_ERROR');
+        term.options.disableStdin = true;
+        setConnecting(false);
+        setDisconnected(true);
+      }
     };
 
     ws.onclose = () => {
