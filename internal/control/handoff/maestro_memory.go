@@ -95,6 +95,13 @@ func ReadMaestroMemory(parent context.Context, workspace, taskID, search string,
 	if limit < 1 || limit > maestroMemoryMaxLimit {
 		return zero, errors.New("Maestro memory limit must be between 1 and 50")
 	}
+	params := map[string]any{"limit": limit, "offset": 0}
+	if taskID != "" {
+		params["taskId"] = taskID
+	}
+	if search != "" {
+		params["search"] = security.Redact(search)
+	}
 	result, _, err := maestroBridgeCall(parent, workspace, 5*time.Second, maestroMemoryMethod, params)
 	if err != nil {
 		return zero, fmt.Errorf("Maestro memory request failed: %w", err)
