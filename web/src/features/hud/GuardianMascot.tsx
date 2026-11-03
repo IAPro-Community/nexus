@@ -5,10 +5,7 @@ import type { MascotAttention, MascotMood } from './mascotModel';
 import { NexPixelSprite } from './NexPixelSprite';
 import type { GuardianMood } from './guardianModel';
 import { NexIdleDirector, type NexIdleAction, type NexIdleMood } from './nexIdleDirector';
-import {
-  resolveNexCompanionBehavior,
-  type NexCompanionInteraction,
-} from './nexCompanionBehavior';
+import { resolveNexCompanionBehavior, type NexCompanionInteraction } from './nexCompanionBehavior';
 import styles from './GuardianMascot.module.scss';
 import hudStyles from './NexusHud.module.scss';
 
@@ -43,9 +40,10 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
   completionEventId,
 }) => {
   const { t } = useTranslation();
-  const [reducedMotion, setReducedMotion] = React.useState(() =>
-    typeof window !== 'undefined' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  const [reducedMotion, setReducedMotion] = React.useState(
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   );
   const [visualVisible, setVisualVisible] = React.useState(false);
   const motionEnabled = motion && mood !== 'offline' && !reducedMotion && visualVisible;

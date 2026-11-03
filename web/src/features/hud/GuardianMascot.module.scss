@@ -218,7 +218,6 @@
   }
 }
 
-
 /* Lightweight Clippy-like microgestures. Reuses the current official SVG groups;
    never expands the native window, changes hit regions, or starts its own RAF. */
 .root[data-nex-behavior='still'] .guardianButton svg,

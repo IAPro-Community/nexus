@@ -7,15 +7,7 @@ import type { NexIdleAction } from './nexIdleDirector';
  * The existing mascotMood and NexIdleDirector remain the only authorities.
  */
 export type NexCompanionBehavior =
-  | 'still'
-  | 'ambient'
-  | 'greet'
-  | 'look'
-  | 'thinking'
-  | 'attention'
-  | 'error'
-  | 'resolved'
-  | 'rest';
+  'still' | 'ambient' | 'greet' | 'look' | 'thinking' | 'attention' | 'error' | 'resolved' | 'rest';
 
 export type NexCompanionInteraction = 'none' | 'greet' | 'look';
 

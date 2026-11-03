@@ -27,23 +27,44 @@ describe('NEX Companion 2D', () => {
   });
 
   it('preempts user gestures with canonical operational status', () => {
-    expect(resolveNexCompanionBehavior({ ...base, mood: 'critical', resolved: true, interaction: 'look' }))
-      .toBe('error');
-    expect(resolveNexCompanionBehavior({ ...base, mood: 'attention', resolved: true, interaction: 'greet' }))
-      .toBe('attention');
-    expect(resolveNexCompanionBehavior({ ...base, mood: 'working', interaction: 'look' }))
-      .toBe('thinking');
+    expect(
+      resolveNexCompanionBehavior({
+        ...base,
+        mood: 'critical',
+        resolved: true,
+        interaction: 'look',
+      }),
+    ).toBe('error');
+    expect(
+      resolveNexCompanionBehavior({
+        ...base,
+        mood: 'attention',
+        resolved: true,
+        interaction: 'greet',
+      }),
+    ).toBe('attention');
+    expect(resolveNexCompanionBehavior({ ...base, mood: 'working', interaction: 'look' })).toBe(
+      'thinking',
+    );
     expect(resolveNexCompanionBehavior({ ...base, mood: 'offline' })).toBe('still');
     expect(resolveNexCompanionBehavior({ ...base, motionAllowed: false })).toBe('still');
   });
 
   it('refuses to infer a success from missing IDs, failures or stale history', () => {
-    expect(nexCompletedEventId({ project_id: '', mission_id: 'a', state: 'COMPLETED', age_seconds: 2 }))
-      .toBeNull();
-    expect(nexCompletedEventId({ project_id: 'p', mission_id: 'a', state: 'FAILED', age_seconds: 2 }))
-      .toBeNull();
-    expect(nexCompletedEventId({ project_id: 'p', mission_id: 'a', state: 'COMPLETED', age_seconds: 3600 }))
-      .toBeNull();
+    expect(
+      nexCompletedEventId({ project_id: '', mission_id: 'a', state: 'COMPLETED', age_seconds: 2 }),
+    ).toBeNull();
+    expect(
+      nexCompletedEventId({ project_id: 'p', mission_id: 'a', state: 'FAILED', age_seconds: 2 }),
+    ).toBeNull();
+    expect(
+      nexCompletedEventId({
+        project_id: 'p',
+        mission_id: 'a',
+        state: 'COMPLETED',
+        age_seconds: 3600,
+      }),
+    ).toBeNull();
   });
 
   it('recognizes verified Mission completion without replaying older records', () => {
@@ -73,7 +94,10 @@ describe('NEX Companion 2D', () => {
   it('baselines first fetch, deduplicates refreshing and emits only newly completed missions', () => {
     const seen = new Set<string>();
     const first = [{ project_id: 'p', mission_id: 'old', state: 'COMPLETED', age_seconds: 3 }];
-    const added = [...first, { project_id: 'p', mission_id: 'new', state: 'COMPLETED', age_seconds: 1 }];
+    const added = [
+      ...first,
+      { project_id: 'p', mission_id: 'new', state: 'COMPLETED', age_seconds: 1 },
+    ];
     expect(consumeNexNewCompletion(first, seen, false)).toBeNull();
     expect(consumeNexNewCompletion(added, seen, true)).toBe('p:new:COMPLETED');
     expect(consumeNexNewCompletion(added, seen, true)).toBeNull();
