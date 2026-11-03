@@ -47,7 +47,7 @@ const preview: MaestroComposePreviewResult = {
 
 describe('Maestro composition into Flow draft', () => {
   it('imports approved DAG without launching or pinning a provider', () => {
-    const draft = draftFromMaestroComposition(baseline, preview);
+    const draft = draftFromMaestroComposition(baseline, preview, 'Maestro review');
     expect(draft.status).toBe('DRAFT');
     expect(draft.policy).toBe('GUIDED');
     expect(draft.steps.map((step) => [step.id, step.dependencies])).toEqual([
@@ -63,12 +63,12 @@ describe('Maestro composition into Flow draft', () => {
   it('refuses invalid graph and executable response', () => {
     expect(() => draftFromMaestroComposition(baseline, {
       ...preview, executable: true,
-    } as unknown as MaestroComposePreviewResult)).toThrow();
+    } as unknown as MaestroComposePreviewResult, 'Maestro review')).toThrow();
     expect(() => draftFromMaestroComposition(baseline, {
       ...preview, validation: { valid: false }, tasks: null,
-    })).toThrow();
+    }, 'Maestro review')).toThrow();
     expect(() => draftFromMaestroComposition(baseline, {
       ...preview, tasks: [{ ...preview.tasks![1], dependsOn: ['missing'] }],
-    })).toThrow();
+    }, 'Maestro review')).toThrow();
   });
 });
