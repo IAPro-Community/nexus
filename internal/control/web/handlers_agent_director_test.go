@@ -8,6 +8,7 @@ import (
     "strings"
     "testing"
 
+    "github.com/IAPro-Community/nexus/internal/control/registry"
     "github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
@@ -153,5 +154,25 @@ func TestDirectorEndpointKeepsProjectScopeAndReadOnlyAuthentication(t *testing.T
     response.Body.Close()
     if response.StatusCode != http.StatusMethodNotAllowed {
         t.Fatalf("validly authenticated Director mutations must be unsupported, status=%d", response.StatusCode)
+    }
+}
+
+func TestDirectorRuntimeBindingRejectsForeignOrStaleSession(t *testing.T) {
+    agent := store.Agent{ID: "agent-001", ProjectID: "project-001"}
+    gen := store.RuntimeGeneration{AgentID: agent.ID, RuntimeID: "runtime-001", Provider: "opencode"}
+    valid := registry.RuntimeSession{AgentID: agent.ID, RuntimeID: gen.RuntimeID, ProviderID: gen.Provider}
+    if !directorRuntimeMatches(agent, gen, valid) {
+        t.Fatal("matching Agent, runtime and provider must be recognized")
+    }
+    variants := []registry.RuntimeSession{
+        {AgentID: "foreign-agent", RuntimeID: gen.RuntimeID, ProviderID: gen.Provider},
+        {AgentID: "", RuntimeID: gen.RuntimeID, ProviderID: gen.Provider},
+        {AgentID: agent.ID, RuntimeID: "older-runtime", ProviderID: gen.Provider},
+        {AgentID: agent.ID, RuntimeID: gen.RuntimeID, ProviderID: "another-provider"},
+    }
+    for _, candidate := range variants {
+        if directorRuntimeMatches(agent, gen, candidate) {
+            t.Fatalf("untrusted registry binding incorrectly claims agent liveness: %+v", candidate)
+        }
     }
 }
