@@ -13,6 +13,19 @@ const m=JSON.parse(readFileSync(manifestPath,'utf8'));
 const fail=[];
 const check=(ok,msg)=>{if(!ok)fail.push(msg)};
 const ids=new Set();
+const expectedGateIds = [
+ 'master_source','site_hero','hud_compact','behavior_8','operational_5',
+ 'interaction_safety','hud_integration','site_integration','runtime_qa',
+ 'site_qa','owner_visual_approval'
+];
+check(m.schema_version==='1.1','Expected Companion 2D readiness schema 1.1');
+check(m.scope_contract==='docs/design/nex/COMPANION_2D_CLIPPY_LITE.md','Missing Companion 2D scope contract');
+check(m.scope_version==='companion-2d-mvp-2026-11-01','Unexpected scope version');
+check(Array.isArray(m.deferred_features) &&
+ m.deferred_features.some(item=>item.id==='turnaround_360' &&
+  item.status==='DEFERRED_FUTURE_NOT_A_RELEASE_GATE'),
+ '360-degree feature must remain traceable as deferred (not a release gate)');
+
 check(m.publication_policy==='ATOMIC_HUD_AND_SITE','Must release HUD and Site atomically');
 check(m.status==='BLOCKED'||m.status==='READY','Invalid release readiness status');
 check(Array.isArray(m.requirements)&&m.requirements.length===11,'Expected 11 hard release gates');
@@ -27,6 +40,8 @@ for(const item of m.requirements||[]){
    for(const e of item.evidence)check(typeof e==='string'&&e.trim().length>8,'Unusable evidence: '+item.id);
  }
 }
+check(expectedGateIds.every(id=>ids.has(id)) && ids.size===expectedGateIds.length,
+ 'Companion 2D readiness gate IDs differ from the approved scope');
 const allPassed=(m.requirements||[]).every(x=>x.status==='PASSED');
 if(m.status==='READY'){
  check(allPassed,'Release marked READY with pending gates');
