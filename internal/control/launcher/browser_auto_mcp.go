@@ -1,6 +1,7 @@
 package launcher
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -165,13 +166,21 @@ func writeBrowserProviderConfig(runtimeID, name string, cfg any) (string, error)
 	return f, nil
 }
 func mergeMCPProviderConfig(path, field, name string, server any) error {
+	dir := filepath.Dir(path)
+	if realDir, err := filepath.EvalSymlinks(dir); err == nil {
+		path = filepath.Join(realDir, filepath.Base(path))
+	} else if realPath, err := filepath.EvalSymlinks(path); err == nil {
+		path = realPath
+	}
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return err
 	}
 	obj := map[string]any{}
 	if b, err := os.ReadFile(path); err == nil {
-		if err = json.Unmarshal(b, &obj); err != nil {
-			return fmt.Errorf("existing MCP config %s: %w", path, err)
+		if len(bytes.TrimSpace(b)) > 0 {
+			if err = json.Unmarshal(b, &obj); err != nil {
+				return fmt.Errorf("existing MCP config %s: %w", path, err)
+			}
 		}
 	} else if !os.IsNotExist(err) {
 		return err
@@ -184,10 +193,9 @@ func mergeMCPProviderConfig(path, field, name string, server any) error {
 	if current, ok := children[name]; ok {
 		b1, _ := json.Marshal(current)
 		b2, _ := json.Marshal(server)
-		if string(b1) != string(b2) {
-			return fmt.Errorf("existing %s MCP server config differs", name)
+		if string(b1) == string(b2) {
+			return nil
 		}
-		return nil
 	}
 	children[name] = server
 	data, err := json.MarshalIndent(obj, "", "  ")

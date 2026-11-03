@@ -1,3 +1,95 @@
+## 2026-10-29 — suporte completo a sessões do Navegador Nexus pelo agente AGY (MCP Auto-Provisioning)
+
+- **Diagnóstico do Desacoplamento entre AGY e o Navegador do Terminal Nexus**:
+  - Contexto e Sintoma: Ao solicitar ao agente AGY no terminal Nexus uma atividade envolvendo abrir um navegador (ex: "abra o navegador e acesse..."), o AGY abria uma janela/aba externa do Google Chrome do sistema operacional ao invés de abrir e acoplar a sessão ao navegador interno do terminal/workspace do Nexus (comportamento que o Codex executava corretamente).
+  - Causas Raízes Identificadas:
+    1. Diferença de Injeção de MCP entre Codex e AGY: O Codex recebe configurações de MCP diretamente via flags de linha de comando (`-c mcp_servers.nexus-browser.url=...`), enquanto o AGY consulta `$HOME/.gemini/config/mcp_config.json`.
+    2. Em `internal/control/launcher/browser_auto_mcp.go`, a função `mergeMCPProviderConfig` falhava ao ler arquivos existentes vazios (0 bytes) com `unexpected end of JSON input`. O arquivo `~/.gemini/config/mcp_config.json` inicial de 0 bytes causava falha imediata na injeção.
+    3. Quando `configureBrowserMCP` retornava erro, o `launcher.go` emitia warning e revertia o ambiente do subprocesso (`extraArgs, env = priorArgs, priorEnv`), removendo `NEXUS_BROWSER_TOKEN` e `NEXUS_BROWSER_MCP_URL`, deixando o AGY completamente desprovido do servidor MCP `nexus-browser`.
+    4. Em `mergeMCPProviderConfig`, caso a entrada `nexus-browser` existisse mas apresentasse qualquer diferença em formato/campos (ex: campo `disabled: false` gravado pela CLI do AGY), o launcher retornava erro estrito `existing nexus-browser MCP server config differs`, desabilitando a capacidade do navegador para lançamentos subsequentes em vez de atualizar a entrada.
+    5. Diretórios symlinkados (como `~/.local/share/ai-manager/profiles/agy/<profile>/home/.gemini/config -> ~/.gemini/config`) precisavam de resolução canônica de caminho (`filepath.EvalSymlinks`) para evitar renames atômicos truncados ou quebra de symlinks.
+    6. Sem o servidor MCP do Nexus Browser registrado, o AGY não possuía a ferramenta `browser_open` / `browser_navigate` e, portanto, acionava suas habilidades alternativas (`chrome-devtools-plugin` ou comando de shell `google-chrome`), abrindo uma janela externa desvinculada do Workspace Nexus.
+  - Correções Implementadas:
+    - **Resiliência a arquivos vazios (`browser_auto_mcp.go`)**: adicionada verificação `if len(bytes.TrimSpace(b)) > 0` antes de invocar `json.Unmarshal`, permitindo que arquivos de configuração zerados sejam populados sem erro.
+    - **Atualização suave de configurações divergentes**: caso a entrada `nexus-browser` já exista e possua valores diferentes, `children[name]` é atualizado para o servidor ativo sem abortar o lançamento do agente.
+    - **Resolução canônica de symlinks**: uso de `filepath.EvalSymlinks` no diretório e no arquivo de destino antes da escrita temporária e renomeação atômica.
+    - **Configuração do bridge stdio**: registro e validação do binário do Nexus em modo `__browser-mcp-stdio`. O AGY herda `NEXUS_BROWSER_TOKEN` e `NEXUS_BROWSER_MCP_URL` em suas variáveis de ambiente de processo, repassando-os ao subprocesso stdio e habilitando as ferramentas `browser_open`, `browser_navigate`, `browser_state`, `browser_request_control`, `browser_screenshot`, `browser_click`, etc.
+  - Testes e Validação:
+    - `TestMergeMCPProviderConfigResilience` implementado em `internal/control/launcher/browser_auto_mcp_test.go` cobrindo:
+      - Arquivo de 0 bytes.
+      - Atualização sem erro de configurações divergentes preservando demais servidores MCP.
+      - Diretórios symlinkados com escrita atômica no destino real.
+    - `go test -v ./internal/control/launcher/...` 100% aprovado.
+    - `agy mcp list` executado com sucesso confirmando `nexus-browser (stdio, enabled)`.
+    - Suíte web completa: `check:styles`, `lint:styles`, `lint`, `typecheck` e todos os 123 arquivos de teste (777 testes) 100% aprovados.
+    - Binário local atualizado (`make install-local`) e daemon web recarregado com sucesso.
+
+## 2026-10-29 — preservação de permissões e controle em múltiplas abas no Navegador Nexus
+
+- **Correção da Gestão de Permissões e Alternância de Abas (`BrowserSurface.tsx`)**:
+  - Contexto e Sintoma: Ao navegar com mais de uma aba aberta, a aplicação perdia o estado de controle ao alternar entre abas ("perde sobre as permissões de assumir"). O usuário ficava preso em modo "Somente visualização", o lease de controle expirava silenciosamente no backend após 25 segundos, e atividades de agentes em abas de segundo plano roubavam a tela continuamente a cada 1,5s através de um auto-foco excessivamente agressivo.
+  - Causas Raízes Identificadas:
+    1. `selectBrowser(id)` chamava incondicionalmente `setWantsControl(false)` e `setController(false)` ao trocar de aba, revogando o controle do usuário mesmo em abas manuais ou criadas pelo botão `+`.
+    2. O cleanup do `useEffect([sessionId, wantsControl])` disparava `browserAPI.control(oldSessionId, 'release')` a cada troca de aba, destruindo imediatamente o lease no Go backend.
+    3. Cliques e interações em `processQueue` adquiriam o lease no backend sem definir `wantsControl = true`, impedindo a inicialização do efeito de renovação periódica a cada 11s. Após 25s, o lease no backend expirava e ações subsequentes falhavam com `400 Bad Request: "browser input lease unavailable"`.
+    4. O pooling periódico (`poll`) comparava `candidate.last_active_at` a cada 1,5s e disparava `selectBrowser(agentTabToFocus)` incondicionalmente enquanto o agente operava em segundo plano, sequestrando a aba ativa do usuário repetidamente e forçando perda de permissão.
+    5. A liberação de controle em abas com intervenção pendente (`handoff.status === 'human_active'`) não concluía a entrega (`handoff complete`), deixando o agente travado em espera de intervenção.
+  - Correções Implementadas:
+    - **Função pura `shouldUserControlTab(candidate, userControlledSet)`**: determina se o usuário deve assumir o controle (abas sem `owner_runtime_id` ou abas onde o usuário assumiu explicitamente o controle). Exportada e coberta por testes unitários.
+    - **Preservação de intenção de controle (`userControlledSessions`)**: registro persistente em `useRef<Set<string>>` das abas assumidas pelo usuário. Ao alternar de volta para uma aba já assumida ou criada pelo usuário, o controle exclusivo é restaurado automaticamente sem exigir cliques repetidos em "Assumir".
+    - **Remoção do `release` prematuro na troca de abas**: o cleanup do hook apenas cancela o timer de renovação (`interval`) da aba anterior, mantendo a liberação de rede apenas no desmonte final do componente ou ao clicar explicitamente no botão "Você" (liberar).
+    - **Auto-recuperação de lease em `processQueue`**: ações do usuário que adquirem lease ativam imediatamente `setWantsControl(true)` para inicializar o heartbeat de 11s. Se uma ação falhar com `lease unavailable`, uma tentativa de re-aquisição automática é executada antes de propagar o erro.
+    - **Auto-foco inteligente e respeitoso no `poll`**: o auto-foco em abas de agentes agora respeita a atividade do usuário (`lastHumanInteraction`), seleção manual recente (`lastManualTabSelectionTime`) e estado de controle atual (`controllerRef.current || wantsControlRef.current`). Abas em segundo plano recebem o crachá pulsante `Operando` e a notificação visual `updateDot`, mas a tela ativa do usuário não é mais sequestrada.
+    - **Finalização graciosa de handoff**: `toggleControl` e `respondToHuman` concluem a intervenção com `browserAPI.handoff(id, 'complete')` ao liberar o controle, permitindo que agentes em espera retomem a execução normalmente.
+  - Testes e Validação:
+    - `web/src/features/browser/BrowserSurface.test.ts`: 13 testes aprovados (+4 testes unitários cobrindo cenários de abas manuais, de agente, tomada de controle e alternância contínua).
+    - Gates de estilo e linting: `check:styles`, `lint:styles`, `lint` e `typecheck` 100% aprovados sem erros nem warnings no módulo.
+    - Build frontend e Go: `npm --prefix web run build` e `go test ./internal/browsercontrol/...` 100% aprovados.
+    - Daemon web reiniciado com sucesso (`http://127.0.0.1:13000`).
+
+## 2026-10-29 — redesenho de layout e usabilidade do Navegador Nexus com maximização de área útil e modo Fit
+
+- **Eliminação de detecção de automação e CAPTCHAs (Google & Cloudflare)**:
+  - Causa raiz: Ao rodar o Chromium headless com `--remote-debugging-port`, o navegador sinalizava automaticamente `navigator.webdriver = true` e transmitia o User-Agent contendo `HeadlessChrome/...` sem idiomas configurados. Sites como Google e Cloudflare detectavam essas assinaturas e disparavam redirecionamentos imediatos para bloqueios de tráfego incomum (`/sorry/index`) e desafios CAPTCHA.
+  - Correção no Backend (`internal/browsercontrol/browser.go`):
+    - Adicionada flag `--disable-blink-features=AutomationControlled` na inicialização do Chromium, desativando a injeção do sinalizador `navigator.webdriver` pelo motor Blink.
+    - Definido User-Agent desktop autêntico (`Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36`) eliminando o token `HeadlessChrome`.
+    - Adicionado `--lang=pt-BR,pt,en-US,en` para emissão do cabeçalho `Accept-Language` padrão de navegador de usuário.
+    - Registrado script pré-navegação via `Page.addScriptToEvaluateOnNewDocument` mascarando `navigator.webdriver` e inicializando o objeto `window.chrome`.
+  - Evidência de Teste: Busca no Google executada com sucesso retornando `captcha: false | unusual: false`.
+
+- **Correção da recepção de frames do stream CDP e fallback HTTP (Bugfix)**:
+  - Causa raiz do estado perpétuo "aguardando chrome":
+    1. O handler do WebSocket (`ws.onmessage`) no frontend esperava frames exclusivamente como instâncias binárias de `Blob`, enquanto o backend (`internal/control/web/handlers_browser.go`) transmite os frames codificados em JSON como `{"type": "frame", "data": "<base64>"}`. O evento de frame era desserializado mas ignorado, nunca atualizando o estado `frame`.
+    2. A função de fallback `refreshImage` requisitava `/screenshot` com `credentials: 'omit'`, gerando HTTP 404 uma vez que o endpoint canônico no backend é `/frame`, e falhando em passar o token de autenticação de desktop.
+  - Correção em `BrowserSurface.tsx`:
+    - `ws.onmessage`: adicionada leitura direta de `parsed.type === 'frame'` com `setFrame('data:image/jpeg;base64,' + parsed.data)`.
+    - `refreshImage`: corrigido para `/frame` com cabeçalho `Authorization: Bearer <token>` e acionamento imediato na montagem/conexão do stream.
+
+- **Maximização da área útil e unificação do chrome superior**:
+  - Contexto e Requisito: A área útil da página web estava limitada a menos de 35% da altura da janela devido ao empilhamento vertical de 7 a 8 barras e painéis técnicos (Abas, Toolbar, ControlBar, Conexões de Agentes, ZoomBar, InputBar, Seletores, Snapshot DOM).
+  - Frontend (`web/src/features/browser/`):
+    - `BrowserSurface.tsx`:
+      - **Header Unificado em apenas 2 linhas compactas (~70px de overhead contra ~390px anteriores)**:
+        - Linha 1 (Abas): Abas nativas com navegação por teclado, botão de fechar, botão `+` de nova aba, status de operação do agente e ponto de atualização.
+        - Linha 2 (Toolbar): Grupo de navegação (`←` `→` `↻`), Omnibox inteligente unificada com ícone de status de conexão em tempo real (`liveIndicator`) e busca automática, grupo consolidado de ações à direita (`leasePill` compacto, alternador Desktop/Celular, alternador de enquadramento `Fit / 100%`, botão de cópia de seleção e alternador da gaveta de `Inspetor`).
+      - **Modo "Ajustar à Janela" (Fit to Window)**: estado `viewMode: 'fit' | 'actual'`. No modo padrão (`fit`), o container da viewport utiliza dimensionamento proporcional (`object-fit: contain`) eliminando barras de rolagem desnecessárias e exibindo o site completo de uma só vez, com paridade precisa de coordenadas do mouse.
+      - **Gaveta Retrátil de DevTools / Inspeção (Bottom Drawer)**: ferramentas técnicas secundárias (snapshot textual do DOM, seletores interativos clicáveis, envio manual de teclas e texto remoto, e concessões temporárias de agentes MCP) transferidas para uma gaveta recolhida por padrão no rodapé, abrindo apenas sob demanda ao clicar no botão "Inspetor".
+      - **Omnibox Inteligente com Busca Automática**: `normalizeBrowserURL` aprimorada para converter termos livres com espaços ou palavras-chave soltas automaticamente em URL de busca (Google/DuckDuckGo), impedindo erros de resolução de DNS (`NXDOMAIN`).
+      - **Atalhos de Teclado**: suporte ergonômico para `Ctrl+L` / `Cmd+L` (focar omnibox), `Ctrl+R` / `F5` (recarregar página) e `Escape` (fechar gaveta de inspeção).
+      - **Limpeza de Warnings do React Hooks**: dependências do `useEffect` refatoradas com identificador primitivo `sessionId`, eliminando warnings de linting.
+    - `BrowserSurface.module.scss`:
+      - Estilos atualizados com classes modulares: `.navGroup`, `.addressForm`, `.addressWrapper`, `.liveIndicator`, `.actionsGroup`, `.leasePill`, `.isFitContainer`, `.viewportButton.isFit`, `.devToolsDrawer`, `.drawerHeader`, `.drawerTabs`, `.drawerTab`, `.drawerBody`, `.drawerInputBar` e `.handoffBanner`.
+      - Conformidade estrita com tokens semânticos (`var(--nx-*)`), sem `!important`, e estilo de foco `:focus-visible` de alto contraste (WCAG 2.2 AA).
+  - Testes e Qualidade:
+    - `web/src/features/browser/BrowserSurface.test.ts`: adicionados testes unitários cobrindo consultas de busca com espaços, termos isolados e URLs com esquema.
+    - `npm --prefix web run check:styles`: 100% aprovado.
+    - `npm --prefix web run lint:styles`: 100% aprovado (0 erros).
+    - `npm --prefix web run lint`: 0 erros / 0 warnings no módulo de browser.
+    - `npm --prefix web run typecheck`: 0 erros.
+    - `npm --prefix web run test`: 123 suítes (773 testes) aprovadas.
+    - `make install-local` & `scripts/restart-web.sh`: binário compilado e daemon `nexus web` reiniciado com sucesso (PID 2104050).
+
 ## 2026-10-28 — sistema de abas nativas no Navegador Nexus com foco automático no agente e indicadores de atividade
 
 - **Barra de abas nativa integrada no navegador (Frontend & Backend)**:
@@ -6702,3 +6794,15 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - O terminal de agente consulta a configuração persistida para exibir o modo Safe/YOLO correto. A criação de agente e o alternador de modo usam o mesmo helper para gravar o modo e limpar flags conflitantes.
 - Removi o salto automático ao fim do buffer quando o terminal recebe eventos de roda do mouse e navegação por PageUp/PageDown/Home/End. A correção é compartilhada pelo PTY comum e pelo PTY de agente, incluindo OpenCode e Oh My Pi.
 - Cobertura adicionada para normalização do Codex, preservação de flags repetíveis, persistência do modo e navegação do scrollback. Validação final e limites documentados em `DEV/validation/TERMINALS_AGENTS_YOLO_SCROLL_20261026.md`.
+
+## Reconciliação e instalação local — 2026-11-03
+
+- Baixado `origin/release/v1.0.0`; após fetch, a branch local estava alinhada (0 commits à frente/atrás). Resolvido o conflito 3-way em `BrowserSurface.tsx`, preservando a toolbar unificada, handoff, navegação, ownership de abas, foco protegido durante interação humana e alterações do terminal. Alterações locais continuam sem commit; os stashes existentes foram preservados.
+- `make install-local` compilou frontend e CLI beta.11 e instalou `/home/desenvolvedor/.local/bin/nexus`. SHA-256 do binário compilado e instalado: `f8d6b05a813da0dd8cd1a657b5db9550c49f4a6321217416aa4eee683a9d983e` (build commit `52b42df3`).
+- Core iniciado com `nexus web`, PID `1208324`; `http://127.0.0.1:13000` respondeu HTTP 200. Sem execução de suíte completa nesta etapa.
+
+## Correção ao iniciar sessão direta — 2026-11-03
+
+- `startDirectSession` agora valida e normaliza o nome (`trim`) antes de criar Agent, impedindo que uma entrada vazia chegue ao endpoint que responde `name is required`.
+- Regressão em `directSessionLifecycle.test.ts`: nome aparado enviado ao create e nome em branco rejeitado antes da chamada API. Teste direcionado PASS (9 testes); suíte web auxiliar PASS (7 testes).
+- Rebuild e instalação local concluídos; CLI/Core `1.0.0-beta.11`, PID `1337283`, health API `ok`, hashes do build e instalado coincidem (`317181e9…40ec91f`).

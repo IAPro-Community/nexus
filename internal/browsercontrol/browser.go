@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -207,6 +208,31 @@ func findPage(port string) (string, error) {
 	return "", errors.New("chromium has no debuggable page")
 }
 
+func resolveChromeUserAgent(binary string) string {
+	fullVersion := "156.0.0.0"
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	if out, err := exec.CommandContext(ctx, binary, "--version").Output(); err == nil {
+		m := regexp.MustCompile(`\b(\d+)\.(\d+\.\d+\.\d+)\b`).FindStringSubmatch(string(out))
+		if len(m) > 2 {
+			fullVersion = m[1] + ".0.0.0"
+		} else {
+			mShort := regexp.MustCompile(`\b(\d+)\b`).FindStringSubmatch(string(out))
+			if len(mShort) > 1 {
+				fullVersion = mShort[1] + ".0.0.0"
+			}
+		}
+	}
+	switch runtime.GOOS {
+	case "darwin":
+		return fmt.Sprintf("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%s Safari/537.36", fullVersion)
+	case "windows":
+		return fmt.Sprintf("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%s Safari/537.36", fullVersion)
+	default:
+		return fmt.Sprintf("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%s Safari/537.36", fullVersion)
+	}
+}
+
 func (m *Manager) Create(ctx context.Context, projectID, initialURL string) (Info, error) {
 	if strings.TrimSpace(projectID) == "" {
 		return Info{}, errors.New("project_id required")
@@ -251,10 +277,14 @@ func (m *Manager) Create(ctx context.Context, projectID, initialURL string) (Inf
 		_ = os.RemoveAll(directory)
 		return Info{}, err
 	}
+	userAgent := resolveChromeUserAgent(binary)
 	cmd := exec.Command(binary,
 		"--headless=new", "--remote-debugging-port=0", "--remote-debugging-address=127.0.0.1",
 		"--user-data-dir="+directory, "--no-first-run", "--no-default-browser-check",
 		"--disable-extensions", "--disable-background-networking", "--window-size=1280,800",
+		"--disable-blink-features=AutomationControlled",
+		"--lang=pt-BR,pt,en-US,en",
+		"--user-agent="+userAgent,
 		"about:blank")
 	if err := cmd.Start(); err != nil {
 		_ = os.RemoveAll(directory)
@@ -294,8 +324,34 @@ func (m *Manager) Create(ctx context.Context, projectID, initialURL string) (Inf
 		}
 	}
 	s := &Session{info: Info{ID: id, ProjectID: projectID, URL: initialURL, Width: 1280, Height: 800, LastActiveAt: time.Now()}, wsURL: ws, cmd: cmd, done: done, directory: directory}
+	_ = s.call(ctx, "Network.enable", map[string]any{}, nil)
+	_ = s.call(ctx, "Network.setUserAgentOverride", map[string]any{
+		"userAgent":      userAgent,
+		"acceptLanguage": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+	}, nil)
+	_ = s.call(ctx, "Page.enable", map[string]any{}, nil)
 	_ = s.call(ctx, "Emulation.setDeviceMetricsOverride", map[string]any{
 		"width": 1280, "height": 800, "deviceScaleFactor": 1, "mobile": false,
+	}, nil)
+	_ = s.call(ctx, "Page.addScriptToEvaluateOnNewDocument", map[string]any{
+		"source": "Object.defineProperty(navigator, 'webdriver', { get: () => undefined });" +
+			"Object.defineProperty(navigator, 'languages', { get: () => ['pt-BR', 'pt', 'en-US', 'en'] });" +
+			"Object.defineProperty(navigator, 'language', { get: () => 'pt-BR' });" +
+			"if (!window.chrome) { window.chrome = { runtime: {}, loadTimes: () => {}, csi: () => {}, app: {} }; };" +
+			"const getParam = WebGLRenderingContext.prototype.getParameter;" +
+			"WebGLRenderingContext.prototype.getParameter = function(p) {" +
+			"  if (p === 37445) return 'Intel Open Source Technology Center';" +
+			"  if (p === 37446) return 'Mesa DRI Intel(R) HD Graphics (Skylake GT2)';" +
+			"  return getParam.apply(this, arguments);" +
+			"};" +
+			"if (typeof WebGL2RenderingContext !== 'undefined') {" +
+			"  const getParam2 = WebGL2RenderingContext.prototype.getParameter;" +
+			"  WebGL2RenderingContext.prototype.getParameter = function(p) {" +
+			"    if (p === 37445) return 'Intel Open Source Technology Center';" +
+			"    if (p === 37446) return 'Mesa DRI Intel(R) HD Graphics (Skylake GT2)';" +
+			"    return getParam2.apply(this, arguments);" +
+			"  };" +
+			"}",
 	}, nil)
 	if err := s.navigate(ctx, initialURL); err != nil && !isNetworkNavigationError(err) {
 		cleanup()

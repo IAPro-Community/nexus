@@ -29,7 +29,8 @@ function operations() {
 describe('Direct session transactional setup', () => {
   it('creates, allocates, configures and starts the requested resource', async () => {
     const api = operations();
-    await expect(startDirectSession(api, input)).resolves.toBe(agent);
+    await expect(startDirectSession(api, { ...input, name: '  Review agent  ' })).resolves.toBe(agent);
+    expect(api.createAgent).toHaveBeenCalledWith('project-a', 'Review agent', 'developer');
     expect(api.selectResource).toHaveBeenCalledWith('agent-a', 'codex', 'work', 'MANUAL');
     expect(api.applyAgentConfig).toHaveBeenCalledWith(
       'agent-a',
@@ -42,6 +43,13 @@ describe('Direct session transactional setup', () => {
     );
     expect(api.startAgent).toHaveBeenCalledWith('agent-a');
     expect(api.deleteAgent).not.toHaveBeenCalled();
+  });
+  it('rejects a blank name before making an API request', async () => {
+    const api = operations();
+    await expect(startDirectSession(api, { ...input, name: '  ' })).rejects.toThrow(
+      'Direct session agent name is required',
+    );
+    expect(api.createAgent).not.toHaveBeenCalled();
   });
   it.each(['selectResource', 'applyAgentConfig'] as const)(
     'rolls back the unstarted Agent when %s fails',
