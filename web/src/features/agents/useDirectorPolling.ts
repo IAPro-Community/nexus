@@ -9,11 +9,8 @@ export function shouldPollDirector(
   lastAttemptMs: number,
   nowMs: number,
 ): boolean {
-  return (
-    visibility === 'visible' &&
-    !pending &&
-    nowMs - lastAttemptMs >= DIRECTOR_POLL_INTERVAL_MS
-  );
+  if (visibility !== 'visible' || pending) return false;
+  return nowMs - lastAttemptMs >= DIRECTOR_POLL_INTERVAL_MS;
 }
 
 /**
