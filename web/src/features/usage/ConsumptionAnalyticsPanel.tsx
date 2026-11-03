@@ -23,20 +23,13 @@ function amount(value: number): string {
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(value);
 }
 
-function observedUSD(
-  totals: CostAnalyticsTotals,
-  kind: 'reported' | 'equivalent',
-): string {
+function observedUSD(totals: CostAnalyticsTotals, kind: 'reported' | 'equivalent'): string {
   const count =
-    kind === 'reported'
-      ? totals.reported_cost_observations
-      : totals.equivalent_cost_observations;
+    kind === 'reported' ? totals.reported_cost_observations : totals.equivalent_cost_observations;
   if (count === 0) return '—';
-  return money(
-    kind === 'reported'
-      ? totals.provider_reported_microusd
-      : totals.api_equivalent_microusd,
-  );
+  const value =
+    kind === 'reported' ? totals.provider_reported_microusd : totals.api_equivalent_microusd;
+  return money(value);
 }
 
 export function ConsumptionAnalyticsPanel({ projectId }: { projectId?: string }) {
@@ -128,23 +121,37 @@ export function ConsumptionAnalyticsPanel({ projectId }: { projectId?: string })
         </div>
       </header>
 
-      {loading && <p role="status" className={styles.note}>{t('consumption.loading')}</p>}
-      {error && <p role="alert" className={styles.error}>{error}</p>}
+      {loading && (
+        <p role="status" className={styles.note}>
+          {t('consumption.loading')}
+        </p>
+      )}
+      {error && (
+        <p role="alert" className={styles.error}>
+          {error}
+        </p>
+      )}
       {data && !loading && (
         <>
           <div className={styles.metrics}>
             <div className={styles.metric}>
-              <span><CircleDollarSign size={14} /> {t('consumption.reportedCost')}</span>
+              <span>
+                <CircleDollarSign size={14} /> {t('consumption.reportedCost')}
+              </span>
               <strong>{observedUSD(data.total, 'reported')}</strong>
               <small>{t('consumption.reportedDisclaimer')}</small>
             </div>
             <div className={styles.metric}>
-              <span><CircleDollarSign size={14} /> {t('consumption.apiEstimate')}</span>
+              <span>
+                <CircleDollarSign size={14} /> {t('consumption.apiEstimate')}
+              </span>
               <strong>{observedUSD(data.total, 'equivalent')}</strong>
               <small>{t('consumption.estimateDisclaimer')}</small>
             </div>
             <div className={styles.metric}>
-              <span><Database size={14} /> {t('consumption.observations')}</span>
+              <span>
+                <Database size={14} /> {t('consumption.observations')}
+              </span>
               <strong>{amount(data.total.observation_count)}</strong>
               <small>
                 {t('consumption.unknownCount', {
@@ -153,7 +160,9 @@ export function ConsumptionAnalyticsPanel({ projectId }: { projectId?: string })
               </small>
             </div>
             <div className={styles.metric}>
-              <span><ArrowDownToLine size={14} /> {t('consumption.cacheRate')}</span>
+              <span>
+                <ArrowDownToLine size={14} /> {t('consumption.cacheRate')}
+              </span>
               <strong>{cache === null ? '—' : `${(cache * 100).toFixed(1)}%`}</strong>
               <small>
                 {t('consumption.cacheCoverage', {
