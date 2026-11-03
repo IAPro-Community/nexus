@@ -89,6 +89,20 @@ func scanCostAnalyticsTotals(scanner analyticsScanner, dest *CostAnalyticsTotals
 	)
 }
 
+// SummarizeCostEvidence returns all cost evidence classes in one bounded
+// SQL aggregation. This is the canonical source for budget assessment: neither
+// estimates nor inferred API equivalents may masquerade as provider charges.
+func (s *Store) SummarizeCostEvidence(filter CostObservationFilter) (CostAnalyticsTotals, error) {
+	where, args := costFilterClause(filter)
+	var totals CostAnalyticsTotals
+	if err := scanCostAnalyticsTotals(s.db.QueryRow(
+		"SELECT "+costAnalyticsColumns+" FROM cost_observations"+where, args...,
+	), &totals); err != nil {
+		return CostAnalyticsTotals{}, fmt.Errorf("summarize cost evidence: %w", err)
+	}
+	return totals, nil
+}
+
 // SummarizeCostAnalytics queries already-persisted observations. Daily buckets
 // are bounded by the requested 1..365 day window, and the model list has a
 // hard cap plus an explicit truncation bit. It never scans provider homes or
@@ -102,9 +116,9 @@ func (s *Store) SummarizeCostAnalytics(filter CostObservationFilter, maxModels i
 		ByDay:   make([]DailyCostAnalytics, 0),
 		ByModel: make([]ModelCostAnalytics, 0),
 	}
-	if err := scanCostAnalyticsTotals(s.db.QueryRow(
-		"SELECT "+costAnalyticsColumns+" FROM cost_observations"+where, args...,
-	), &view.Total); err != nil {
+	var err error
+	view.Total, err = s.SummarizeCostEvidence(filter)
+	if err != nil {
 		return CostAnalyticsView{}, fmt.Errorf("summarize cost analytics total: %w", err)
 	}
 	daily, err := s.db.Query(
