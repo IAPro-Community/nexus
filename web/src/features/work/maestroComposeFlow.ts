@@ -6,6 +6,7 @@ import type { FlowDraftModel, FlowStepModel } from './flowModel';
 export function draftFromMaestroComposition(
   baseline: FlowDraftModel,
   preview: MaestroComposePreviewResult,
+  phaseTitle: string,
 ): FlowDraftModel {
   if (
     preview.authority !== 'MAESTRO' ||
@@ -59,7 +60,7 @@ export function draftFromMaestroComposition(
     policy: 'GUIDED',
     policyStored: true,
     status: 'DRAFT',
-    phases: [{ id: phaseId, title: 'Maestro · plano para revisão', order: 1 }],
+    phases: [{ id: phaseId, title: phaseTitle, order: 1 }],
     steps,
     structuredFacts: {
       ...baseline.structuredFacts,
