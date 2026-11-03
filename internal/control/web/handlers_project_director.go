@@ -1,6 +1,9 @@
 package web
 
-import "net/http"
+import (
+    "net/http"
+    "strings"
+)
 
 type projectDirectorView struct {
     SchemaVersion int `json:"schema_version"`
@@ -17,6 +20,11 @@ type projectDirectorView struct {
 func (h *NexusHandler) handleProjectDirector(w http.ResponseWriter, r *http.Request) {
     if r.Method != http.MethodGet {
         writeError(w, http.StatusMethodNotAllowed, "director mutations are unsupported")
+        return
+    }
+    endpoint := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/v1/projects/"), "/")
+    if len(endpoint) != 2 || endpoint[0] == "" || endpoint[1] != "director" {
+        writeError(w, http.StatusNotFound, "invalid Director project path")
         return
     }
     id := projectIDFromPath(r.URL.Path)
