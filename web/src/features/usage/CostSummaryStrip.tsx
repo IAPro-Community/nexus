@@ -69,11 +69,13 @@ export const CostSummaryStrip: React.FC<{ summary: CostSummary | null }> = ({ su
 
       <div className={styles.metrics}>
         <div className={styles.metric}>
-          <span>{t('usage.knownCost', 'Custo conhecido')}</span>
+          <span>{t('consumption.mixedLegacy')}</span>
           <strong>
             {costKnown ? formatUSD(aggregate.cost_microusd) : t('common.unknown', 'Desconhecido')}
           </strong>
-          <small data-state={summary.cost_evidence}>{summary.cost_evidence}</small>
+          <small data-state={summary.cost_evidence}>
+              {summary.cost_evidence} · {t('consumption.mixedLegacyHint')}
+            </small>
         </div>
         <div className={styles.metric}>
           <span>{t('usage.knownTokens', 'Tokens conhecidos')}</span>
@@ -107,6 +109,7 @@ export const CostSummaryStrip: React.FC<{ summary: CostSummary | null }> = ({ su
               {t('usage.costBudget', 'Budget')}: {summary.budget.level}
             </strong>
             <span>{summary.budget.message}</span>
+            <small>{t('consumption.budgetLegacyHint')}</small>
             {summary.budget.active_limit_microusd ? (
               <small>
                 {t('usage.activeCostLimit', 'Limite ativo')}:{' '}
