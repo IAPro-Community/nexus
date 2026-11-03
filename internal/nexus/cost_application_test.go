@@ -7,7 +7,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
-func TestEvaluateCostBudgetNeverTreatsPartialEvidenceAsHeadroom(t *testing.T) {
+func TestEvaluateCostBudgetSeparatesReportedSpendFromEstimates(t *testing.T) {
 	prefs := store.DefaultCostPreferences()
 	prefs.SoftLimitMicroUSD = 100
 	prefs.HardLimitMicroUSD = 200
@@ -15,33 +15,118 @@ func TestEvaluateCostBudgetNeverTreatsPartialEvidenceAsHeadroom(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		known        int64
-		evidence     CostEvidenceState
+		totals       store.CostAnalyticsTotals
 		wantLevel    CostBudgetLevel
 		confirmation bool
+		wantReported int64
+		wantUnknown  int64
 	}{
-		{name: "partial below hard limit stays unknown and requires confirmation", known: 50, evidence: CostEvidencePartial, wantLevel: CostBudgetUnknown, confirmation: true},
-		{name: "measured below limits is ok", known: 50, evidence: CostEvidenceMeasured, wantLevel: CostBudgetOK},
-		{name: "known lower bound can prove soft exceeded", known: 100, evidence: CostEvidencePartial, wantLevel: CostBudgetSoft},
-		{name: "known lower bound can prove hard exceeded", known: 200, evidence: CostEvidencePartial, wantLevel: CostBudgetHard, confirmation: true},
-		{name: "known lower bound can prove emergency exceeded", known: 300, evidence: CostEvidencePartial, wantLevel: CostBudgetEmergency, confirmation: true},
+		{
+			name: "estimated API equivalent alone must never prove a budget exceeded",
+			totals: store.CostAnalyticsTotals{
+				ObservationCount: 1, EquivalentCostObservations: 1,
+				APIEquivalentMicroUSD: 5000, KnownCostObservations: 1,
+			},
+			wantLevel: CostBudgetUnknown, confirmation: true, wantUnknown: 1,
+		},
+		{
+			name: "reported amount below hard limit but other estimates remain unknown",
+			totals: store.CostAnalyticsTotals{
+				ObservationCount: 2, ReportedCostObservations: 1,
+				EquivalentCostObservations: 1, ProviderReportedMicroUSD: 50,
+				APIEquivalentMicroUSD: 400, KnownCostObservations: 2,
+			},
+			wantLevel: CostBudgetUnknown, confirmation: true, wantReported: 50, wantUnknown: 1,
+		},
+		{
+			name: "all reported below thresholds can prove headroom",
+			totals: store.CostAnalyticsTotals{
+				ObservationCount: 2, ReportedCostObservations: 2,
+				ProviderReportedMicroUSD: 50, KnownCostObservations: 2,
+			},
+			wantLevel: CostBudgetOK, wantReported: 50,
+		},
+		{
+			name: "reported lower bound proves soft threshold exceeded even when other costs unknown",
+			totals: store.CostAnalyticsTotals{
+				ObservationCount: 2, ReportedCostObservations: 1,
+				ProviderReportedMicroUSD: 100, UnknownCostObservations: 1,
+			},
+			wantLevel: CostBudgetSoft, wantReported: 100, wantUnknown: 1,
+		},
+		{
+			name: "reported lower bound proves hard threshold exceeded",
+			totals: store.CostAnalyticsTotals{
+				ObservationCount: 2, ReportedCostObservations: 1,
+				ProviderReportedMicroUSD: 200, InferredCostObservations: 1,
+				InferredMicroUSD: 600,
+			},
+			wantLevel: CostBudgetHard, confirmation: true, wantReported: 200, wantUnknown: 1,
+		},
+		{
+			name: "reported lower bound proves emergency exceeded",
+			totals: store.CostAnalyticsTotals{
+				ObservationCount: 1, ReportedCostObservations: 1,
+				ProviderReportedMicroUSD: 300,
+			},
+			wantLevel: CostBudgetEmergency, confirmation: true, wantReported: 300,
+		},
+		{
+			name: "unclassified observation cannot prove remaining headroom",
+			totals: store.CostAnalyticsTotals{
+				ObservationCount: 1, KnownCostObservations: 1, UnclassifiedMicroUSD: 50,
+			},
+			wantLevel: CostBudgetUnknown, confirmation: true, wantUnknown: 1,
+		},
+		{
+			name: "no observations is unknown rather than free",
+			totals: store.CostAnalyticsTotals{},
+			wantLevel: CostBudgetUnknown, confirmation: true,
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := evaluateCostBudget(store.CostAggregate{CostMicroUSD: test.known}, prefs, test.evidence)
-			if got.Level != test.wantLevel {
-				t.Fatalf("level=%s, want %s: %+v", got.Level, test.wantLevel, got)
+			got := evaluateCostBudget(test.totals, prefs)
+			if got.Level != test.wantLevel || got.RequiresConfirmation != test.confirmation {
+				t.Fatalf("level=%s confirmation=%v, want %s/%v: %+v",
+					got.Level, got.RequiresConfirmation, test.wantLevel, test.confirmation, got)
 			}
-			if got.RequiresConfirmation != test.confirmation {
-				t.Fatalf("requires_confirmation=%v, want %v: %+v", got.RequiresConfirmation, test.confirmation, got)
+			if got.ReportedCostMicroUSD != test.wantReported ||
+				got.KnownCostMicroUSD != test.wantReported ||
+				got.UnverifiedObservations != test.wantUnknown {
+				t.Fatalf("reported/nonreported cost classes were mixed: %+v", got)
+			}
+			if got.APIEquivalentMicroUSD != test.totals.APIEquivalentMicroUSD ||
+				got.InferredMicroUSD != test.totals.InferredMicroUSD {
+				t.Fatalf("cost estimates disappeared or were misclassified: %+v", got)
 			}
 		})
 	}
-
 	disabled := store.DefaultCostPreferences()
-	if got := evaluateCostBudget(store.CostAggregate{CostMicroUSD: 999}, disabled, CostEvidenceMeasured); got.Level != CostBudgetDisabled {
-		t.Fatalf("unconfigured thresholds level=%s, want DISABLED", got.Level)
+	if got := evaluateCostBudget(store.CostAnalyticsTotals{
+		ObservationCount: 1, EquivalentCostObservations: 1, APIEquivalentMicroUSD: 999,
+	}, disabled); got.Level != CostBudgetDisabled || got.KnownCostMicroUSD != 0 {
+		t.Fatalf("disabled budget still needs honest evidence classification: %+v", got)
+	}
+}
+
+func TestBudgetConfirmationTokenBindsToUnreportedEvidenceChanges(t *testing.T) {
+	prefs := store.DefaultCostPreferences()
+	prefs.HardLimitMicroUSD = 100
+	baseline := evaluateCostBudget(store.CostAnalyticsTotals{
+		ObservationCount: 2, ReportedCostObservations: 1,
+		EquivalentCostObservations: 1, ProviderReportedMicroUSD: 20,
+		APIEquivalentMicroUSD: 200,
+	}, prefs)
+	summary := CostSummary{Budget: baseline, Preferences: prefs}
+	original := costBudgetConfirmationToken("plan-a", 1, summary)
+	if len(original) != 64 {
+		t.Fatalf("expected a revision/evidence-bound confirmation token: %q", original)
+	}
+	summary.Budget.APIEquivalentMicroUSD += 1
+	if next := costBudgetConfirmationToken("plan-a", 1, summary); next == original {
+		t.Fatal("updated API-equivalent evidence must invalidate approval token")
 	}
 }
 
