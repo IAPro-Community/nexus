@@ -109,6 +109,28 @@ func TestDirectorEndpointKeepsProjectScopeAndReadOnlyAuthentication(t *testing.T
         t.Fatal("live runtime projection must not be cached")
     }
 
+    fleetResponse, err := client.Get(base + "/api/v1/projects/" + project.ID + "/director")
+    if err != nil { t.Fatal(err) }
+    if fleetResponse.StatusCode != http.StatusOK {
+        t.Fatalf("fleet read status=%d", fleetResponse.StatusCode)
+    }
+    var fleet projectDirectorView
+    if err := json.NewDecoder(fleetResponse.Body).Decode(&fleet); err != nil { t.Fatal(err) }
+    fleetResponse.Body.Close()
+    if fleet.ProjectID != project.ID || fleet.Total != 1 || len(fleet.Agents) != 1 ||
+        fleet.Agents[0].AgentID != agent.ID || fleet.Agents[0].ProcessState != "UNKNOWN" {
+        t.Fatalf("fleet must project only the current project's persistent Agent: %+v", fleet)
+    }
+    if fleetResponse.Header.Get("Cache-Control") != "no-store" {
+        t.Fatal("fleet liveness must not be cached")
+    }
+    fleetResponse, err = client.Get(base + "/api/v1/projects/other-project/director")
+    if err != nil { t.Fatal(err) }
+    fleetResponse.Body.Close()
+    if fleetResponse.StatusCode != http.StatusNotFound {
+        t.Fatalf("unknown fleet must not leak agents, status=%d", fleetResponse.StatusCode)
+    }
+
     response, err = client.Get(base+"/api/v1/agents/"+agent.ID+"/director?project_id=not-this-project")
     if err != nil { t.Fatal(err) }
     response.Body.Close()
