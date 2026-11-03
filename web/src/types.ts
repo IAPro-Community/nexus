@@ -1916,6 +1916,34 @@ export interface PlanExecutionPreview {
   generated_at: string;
 }
 
+export interface MaestroComposedTask {
+  id: string;
+  title: string;
+  objective: string;
+  type?: string;
+  dependsOn: string[];
+  acceptanceCriteria: string[];
+  requiredCapabilities?: string[];
+}
+
+export interface MaestroComposePreviewResult {
+  schemaVersion: 1;
+  authority: 'MAESTRO';
+  source: 'maestro-semantic-planner';
+  providerId: 'codex';
+  reviewOnly: true;
+  executable: false;
+  requiresApproval: true;
+  artifact: { id: string; version: number; sha256: string };
+  context: { contentDigest: string };
+  validation: {
+    valid: boolean;
+    blockers?: Array<{ code?: string; message?: string }>;
+    warnings?: Array<{ code?: string; message?: string }>;
+  };
+  tasks: MaestroComposedTask[] | null;
+}
+
 export type MaestroRoutingProvider = 'agy' | 'opencode' | 'codex' | 'claude';
 
 export interface MaestroWorkAssignmentInput {

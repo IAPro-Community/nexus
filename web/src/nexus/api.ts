@@ -664,6 +664,18 @@ export const nexus = {
     request<import('../types').PlanExecutionPreview>(`/api/v1/plans/${planId}/execution-preview`, {
       method: 'POST',
     }),
+  previewMaestroComposition: (projectId: string, artifactId: string) =>
+    request<import('../types').MaestroComposePreviewResult>(
+      `/api/v1/projects/${encodeURIComponent(projectId)}/maestro/compose-preview`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          artifact_id: artifactId,
+          model: 'default',
+          approved_model_use: true,
+        }),
+      },
+    ),
   previewMaestroRouting: (
     projectId: string,
     artifactId: string,
