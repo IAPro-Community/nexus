@@ -36,7 +36,7 @@ export function DirectorAgentPanel({
   onPrepare: () => void;
   onTerminal: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [revision, setRevision] = useState(0);
   const [view, setView] = useState<DirectorAgentProjection | null>(null);
   const [loading, setLoading] = useState(true);
@@ -147,6 +147,24 @@ export function DirectorAgentPanel({
             })}
           </ul>
           <p className={styles.notice}>{t('director.notCertified')}</p>
+          <h3 className={styles.heading}>{t('director.recentActivity')}</h3>
+          {view.recent_events?.length ? (
+            <ol className={styles.events}>
+              {view.recent_events.map((event) => (
+                <li key={event.id} className={styles.event}>
+                  <strong>{event.kind}</strong>
+                  <time dateTime={event.ts}>
+                    {new Date(event.ts).toLocaleString(i18n.language)}
+                  </time>
+                  {event.correlation_id && (
+                    <code className={styles.eventCorrelation}>{event.correlation_id}</code>
+                  )}
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className={styles.notice}>{t('director.noRecentActivity')}</p>
+          )}
         </>
       )}
     </section>
