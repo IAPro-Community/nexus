@@ -40,7 +40,7 @@ func (h *NexusHandler) handleProjectDirector(w http.ResponseWriter, r *http.Requ
     }
     const maxAgents = 100
     total := len(agents)
-    if len(agents) > maxAgents { agents = agents[:constMax] }
+    if len(agents) > maxAgents { agents = agents[:maxAgents] }
     views := make([]directorProjection, 0, len(agents))
     for _, agent := range agents {
         view, err := h.directorViewForStoredAgent(st, agent)
@@ -54,7 +54,7 @@ func (h *NexusHandler) handleProjectDirector(w http.ResponseWriter, r *http.Requ
     w.Header().Set("Cache-Control", "no-store")
     writeJSON(w, http.StatusOK, projectDirectorView{
         SchemaVersion: 1, ExecutionOwner: "NEXUS", ProjectID: id,
-        Total: total, Truncated: total > constMax,
+        Total: total, Truncated: total > maxAgents,
         Agents: views,
     })
 }
