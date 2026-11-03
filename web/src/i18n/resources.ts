@@ -396,7 +396,8 @@ export const en = {
     open: 'Direct agent',
     short: 'Director',
     title: 'Director Mode',
-    subtitle: 'Observed runtime state and verified controls. This view never starts workers automatically.',
+    subtitle:
+      'Observed runtime state and verified controls. This view never starts workers automatically.',
     refresh: 'Refresh',
     prepare: 'Prepare task',
     terminal: 'Open terminal',
@@ -412,7 +413,8 @@ export const en = {
     error: 'Could not inspect this agent.',
     controls: 'Action capabilities',
     notCertified: 'No simulated steering, queue or turn cancellation.',
-    preparationNotice: 'A directive opens the existing task preparation. It is not live steering or a queued command.',
+    preparationNotice:
+      'A directive opens the existing task preparation. It is not live steering or a queued command.',
     fleetOpen: 'Fleet direction',
     fleetTitle: 'Project agent direction',
     fleetCount: '{{shown}} of {{total}} persistent agents',
@@ -2754,7 +2756,8 @@ export const ptBR = {
     open: 'Direcionar agente',
     short: 'Diretor',
     title: 'Director Mode',
-    subtitle: 'Estado observado do agente e controles verificados. A tela não inicia trabalhadores automaticamente.',
+    subtitle:
+      'Estado observado do agente e controles verificados. A tela não inicia trabalhadores automaticamente.',
     refresh: 'Atualizar',
     prepare: 'Preparar tarefa',
     terminal: 'Abrir terminal',
@@ -2770,7 +2773,8 @@ export const ptBR = {
     error: 'Não foi possível inspecionar o agente.',
     controls: 'Capacidades das ações',
     notCertified: 'Sem steering, fila ou cancelamento de turno fictícios.',
-    preparationNotice: 'Uma orientação abre a preparação de tarefa existente. Não é steering ao vivo nem comando enfileirado.',
+    preparationNotice:
+      'Uma orientação abre a preparação de tarefa existente. Não é steering ao vivo nem comando enfileirado.',
     fleetOpen: 'Direção geral',
     fleetTitle: 'Direção de agentes',
     fleetCount: '{{shown}} de {{total}} agentes persistentes',
@@ -5130,7 +5134,8 @@ export const es = {
     open: 'Dirigir agente',
     short: 'Director',
     title: 'Director Mode',
-    subtitle: 'Estado observado del agente y controles verificados. Esta vista no inicia trabajadores automáticamente.',
+    subtitle:
+      'Estado observado del agente y controles verificados. Esta vista no inicia trabajadores automáticamente.',
     refresh: 'Actualizar',
     prepare: 'Preparar tarea',
     terminal: 'Abrir terminal',
@@ -5146,7 +5151,8 @@ export const es = {
     error: 'No se pudo inspeccionar el agente.',
     controls: 'Capacidades de las acciones',
     notCertified: 'Sin steering, cola ni cancelación de turno simulados.',
-    preparationNotice: 'Una directiva abre la preparación de tareas existente. No es steering en vivo ni un comando en cola.',
+    preparationNotice:
+      'Una directiva abre la preparación de tareas existente. No es steering en vivo ni un comando en cola.',
     fleetOpen: 'Dirección general',
     fleetTitle: 'Dirección de agentes',
     fleetCount: '{{shown}} de {{total}} agentes persistentes',
