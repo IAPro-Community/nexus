@@ -222,9 +222,12 @@ func (b *Bridge) Prompt(ctx context.Context, text string) error {
 	}
 	var accepted struct {
 		Disposition string `json:"disposition"`
+		AgentInvoked *bool  `json:"agentInvoked"`
 	}
 	_ = json.Unmarshal(reply, &accepted)
-	if accepted.Disposition == "handled" {
+	// A local command can complete without invoking a provider turn.
+	// Do not leave the session stuck busy when no settled event will follow.
+	if accepted.Disposition == "handled" || (accepted.AgentInvoked != nil && !*accepted.AgentInvoked) {
 		b.mu.Lock()
 		b.busy = false
 		b.mu.Unlock()
@@ -460,12 +463,18 @@ func (b *Bridge) piEvent(kind string, raw json.RawMessage) {
 		b.handlePiUI(raw)
 	case "agent_start":
 		b.emit(WireSignal{State: "working", Summary: "Agent started"})
-	case "agent_settled":
+	case "session_settled", "agent_settled":
+		// OMP emits session_settled only once all background work and
+		// follow-up turns have finished. Keep agent_settled for older Pi.
+		// Never infer settlement from agent_end or prompt acknowledgement.
 		b.mu.Lock()
+		wasBusy := b.busy
 		b.busy = false
 		b.mu.Unlock()
-		b.emit(WireSignal{State: "done", Summary: "Agent turn settled"})
-	case "agent_end": // Does not mean settled; retry/follow-ups may follow.
+		if wasBusy {
+			b.emit(WireSignal{State: "done", Summary: "Agent session settled"})
+		}
+	case "agent_end": // Yield is not settlement; async jobs may resume work.
 	case "message_update":
 		var data struct {
 			AssistantMessageEvent struct {
