@@ -6143,7 +6143,8 @@ export const es = {
     inferred: 'Valores inferidos: {{value}} (no son cobros)',
     mixedLegacy: 'Suma de valores observados (mixta)',
     mixedLegacyHint: 'no es factura',
-    budgetLegacyHint: 'La política de presupuesto aún mezcla clases; es orientativa, no saldo real.',
+    budgetLegacyHint:
+      'La política de presupuesto aún mezcla clases; es orientativa, no saldo real.',
     evidenceStates: {
       NONE: 'Desconocida',
       PARTIAL: 'Parcial',
