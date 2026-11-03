@@ -573,6 +573,12 @@ export interface DirectorAgentProjection {
     availability: DirectorAvailability;
     reason: string;
   }>;
+  recent_events?: Array<{
+    id: string;
+    kind: string;
+    correlation_id?: string;
+    ts: string;
+  }>;
 }
 
 export interface DirectorFleetProjection {
