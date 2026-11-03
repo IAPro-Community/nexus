@@ -552,18 +552,9 @@ export interface Agent {
 }
 
 export type DirectorActionKind =
-  | 'DIRECTIVE'
-  | 'STEER'
-  | 'QUEUE_NEXT'
-  | 'WAIT'
-  | 'CANCEL'
-  | 'INSPECT';
+  'DIRECTIVE' | 'STEER' | 'QUEUE_NEXT' | 'WAIT' | 'CANCEL' | 'INSPECT';
 export type DirectorAvailability =
-  | 'SUPPORTED'
-  | 'PREPARE_ONLY'
-  | 'OBSERVE_ONLY'
-  | 'TERMINAL_ONLY'
-  | 'UNSUPPORTED';
+  'SUPPORTED' | 'PREPARE_ONLY' | 'OBSERVE_ONLY' | 'TERMINAL_ONLY' | 'UNSUPPORTED';
 
 export interface DirectorAgentProjection {
   schema_version: number;
