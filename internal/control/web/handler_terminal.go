@@ -498,6 +498,15 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	go func() {
 		buf := make([]byte, 2048)
 		var pending []byte
+		var utf8Stream terminalUTF8Stream
+		// WebSocket JSON carries strings rather than binary buffers. Reassemble
+		// split UTF-8 runes before marshaling; xterm can assemble split ANSI
+		// sequences itself, but cannot undo JSON's replacement of invalid UTF-8.
+		sendOutput := func(data []byte) {
+			if output := utf8Stream.Push(data); output != "" {
+				_ = safeWriteJSON(TerminalMessage{Type: "output", Data: output})
+			}
+		}
 		for {
 			select {
 			case <-stopChan:
@@ -513,17 +522,11 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 							// Flush non-protocol partial data that cannot be a
 							// control frame (does not start with '{').
 							if len(pending) > 0 && !protocol.MayBeWireControlPrefix(pending) {
-								_ = safeWriteJSON(TerminalMessage{
-									Type: "output",
-									Data: string(pending),
-								})
+								sendOutput(pending)
 								pending = nil
 							} else if len(pending) > MaxProtocolPending {
 								// Oversized incomplete JSON: show as output rather than stall.
-								_ = safeWriteJSON(TerminalMessage{
-									Type: "output",
-									Data: string(pending),
-								})
+								sendOutput(pending)
 								pending = nil
 							}
 							break
@@ -533,18 +536,15 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 						if isProtocolControlFrame(line) {
 							continue
 						}
-						_ = safeWriteJSON(TerminalMessage{
-							Type: "output",
-							Data: string(line),
-						})
+						sendOutput(line)
 					}
 				}
 				if err != nil && !strings.Contains(err.Error(), "timeout") {
 					if len(pending) > 0 && !isProtocolControlFrame(pending) {
-						_ = safeWriteJSON(TerminalMessage{
-							Type: "output",
-							Data: string(pending),
-						})
+						sendOutput(pending)
+					}
+					if rest := utf8Stream.Flush(); rest != "" {
+						_ = safeWriteJSON(TerminalMessage{Type: "output", Data: rest})
 					}
 					stop()
 					return
