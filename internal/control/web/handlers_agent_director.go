@@ -16,6 +16,26 @@ type directorAction struct {
     Availability string `json:"availability"`
     Reason string `json:"reason"`
 }
+// Event summaries and account scopes may contain user prompts or credentials.
+// Director exposes only bounded operational metadata already persisted by Nexus.
+type directorEvent struct {
+    ID string `json:"id"`
+    Kind string `json:"kind"`
+    CorrelationID string `json:"correlation_id,omitempty"`
+    Timestamp string `json:"ts"`
+}
+
+func projectDirectorEvents(records []store.EventMetadata) []directorEvent {
+    events := make([]directorEvent, 0, len(records))
+    for _, item := range records {
+        events = append(events, directorEvent{
+            ID: item.ID, Kind: item.Kind, CorrelationID: item.CorrelationID,
+            Timestamp: item.Timestamp.UTC().Format("2006-01-02T15:04:05Z07:00"),
+        })
+    }
+    return events
+}
+
 type directorProjection struct {
     SchemaVersion int `json:"schema_version"`
     ExecutionOwner string `json:"execution_owner"`
@@ -29,6 +49,7 @@ type directorProjection struct {
     Provider string `json:"provider,omitempty"`
     Profile string `json:"profile,omitempty"`
     Actions []directorAction `json:"actions"`
+    RecentEvents []directorEvent `json:"recent_events,omitempty"`
 }
 
 func projectDirectorAgent(agent store.Agent, gen *store.RuntimeGeneration, processLive bool) directorProjection {
@@ -100,6 +121,12 @@ func (h *NexusHandler) handleAgentDirector(w http.ResponseWriter, r *http.Reques
         writeError(w, http.StatusServiceUnavailable, err.Error())
         return
     }
+    recent, err := st.ListEventsMetadata(agent.ProjectID, agent.ID, 12)
+    if err != nil {
+        writeError(w, http.StatusServiceUnavailable, "unable to query Director activity")
+        return
+    }
+    view.RecentEvents = projectDirectorEvents(recent)
     w.Header().Set("Cache-Control", "no-store")
     writeJSON(w, http.StatusOK, view)
 }
