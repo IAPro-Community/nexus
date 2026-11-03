@@ -5,6 +5,7 @@ import {
   Clock,
   Code2,
   Compass,
+  Layers3,
   MessageSquareText,
   Play,
   Plus,
@@ -24,6 +25,8 @@ import { translateStatus } from '../../i18n';
 import { useTranslation } from 'react-i18next';
 import { TaskPreparationDialog } from '../../components/TaskPreparationDialog';
 import { askActionForStatus } from './askAgentModel';
+import { DirectorAgentPanel } from './DirectorAgentPanel';
+import { DirectorFleetPanel } from './DirectorFleetPanel';
 import { formatOpenedAgo } from '../projects/projectRailRelativeTime';
 import styles from './AgentsSurface.module.scss';
 
@@ -57,6 +60,8 @@ export const AgentsSurface: React.FC<{
   const [busy, setBusy] = useState('');
   const [resourceAgent, setResourceAgent] = useState<Agent | null>(null);
   const [askAgent, setAskAgent] = useState<Agent | null>(null);
+  const [directorAgent, setDirectorAgent] = useState<Agent | null>(null);
+  const [directorFleetOpen, setDirectorFleetOpen] = useState(false);
   const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
   const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -183,9 +188,14 @@ export const AgentsSurface: React.FC<{
               )}
             </p>
           </div>
-          <Button size="sm" tone="ghost" onClick={() => void refresh()}>
-            <RefreshCw size={13} /> {t('common.refresh', 'Atualizar')}
-          </Button>
+          <div className={styles.cardActions}>
+            <Button size="sm" tone="ghost" onClick={() => setDirectorFleetOpen(true)}>
+              <Layers3 size={13} /> {t('director.fleetOpen', 'Direção geral')}
+            </Button>
+            <Button size="sm" tone="ghost" onClick={() => void refresh()}>
+              <RefreshCw size={13} /> {t('common.refresh', 'Atualizar')}
+            </Button>
+          </div>
         </div>
 
         {/* Top Summary Metrics Strip */}
@@ -387,6 +397,15 @@ export const AgentsSurface: React.FC<{
 
                     <Button
                       size="sm"
+                      tone="ghost"
+                      onClick={() => setDirectorAgent(agent)}
+                      title={t('director.open', 'Direcionar agente')}
+                    >
+                      <Layers3 size={13} /> {t('director.short', 'Diretor')}
+                    </Button>
+
+                    <Button
+                      size="sm"
                       onClick={() => setAskAgent(agent)}
                       title={t('agents.prepareTask', 'Preparar Tarefa')}
                     >
@@ -449,6 +468,46 @@ export const AgentsSurface: React.FC<{
             })}
           </div>
         )}
+
+        <Dialog
+          open={directorFleetOpen}
+          onClose={() => setDirectorFleetOpen(false)}
+          title={t('director.fleetTitle', 'Direção de agentes')}
+          wide
+        >
+          {directorFleetOpen && (
+            <DirectorFleetPanel
+              projectId={project.id}
+              agents={agents}
+              onInspect={(agent) => {
+                setDirectorFleetOpen(false);
+                setDirectorAgent(agent);
+              }}
+            />
+          )}
+        </Dialog>
+
+        {/* Read-only Director projection over existing Agent and SessionHost. */}
+        <Dialog
+          open={Boolean(directorAgent)}
+          onClose={() => setDirectorAgent(null)}
+          title={t('director.title', 'Director Mode')}
+          wide
+        >
+          {directorAgent && (
+            <DirectorAgentPanel
+              agent={directorAgent}
+              onPrepare={() => {
+                setDirectorAgent(null);
+                setAskAgent(directorAgent);
+              }}
+              onTerminal={() => {
+                setDirectorAgent(null);
+                onTerminal(directorAgent);
+              }}
+            />
+          )}
+        </Dialog>
 
         {/* Dialogs */}
         <TaskPreparationDialog

@@ -150,6 +150,46 @@ func (s *CostApplicationService) Summary(ctx context.Context, projectID string, 
 	}, nil
 }
 
+// CostAnalyticsReport is a read-only breakdown over the existing cost ledger.
+// Observations are not invoices, and API-equivalent estimates are never added
+// to provider-reported amounts as if they were a single payable balance.
+type CostAnalyticsReport struct {
+	Since       time.Time `json:"since"`
+	GeneratedAt time.Time `json:"generated_at"`
+	Days        int       `json:"days"`
+	ProjectID   string    `json:"project_id,omitempty"`
+	Source      string    `json:"source"`
+	store.CostAnalyticsView
+}
+
+func (s *CostApplicationService) Analytics(ctx context.Context, projectID string, days int) (CostAnalyticsReport, error) {
+	if err := ctx.Err(); err != nil {
+		return CostAnalyticsReport{}, err
+	}
+	if days < 1 || days > 365 {
+		return CostAnalyticsReport{}, fmt.Errorf("days must be between 1 and 365")
+	}
+	st, err := s.requireStore()
+	if err != nil {
+		return CostAnalyticsReport{}, err
+	}
+	now := time.Now().UTC()
+	projectID = strings.TrimSpace(projectID)
+	since := now.Add(-time.Duration(days) * 24 * time.Hour)
+	view, err := st.SummarizeCostAnalytics(store.CostObservationFilter{
+		ProjectID: projectID,
+		Since:     since,
+	}, 25)
+	if err != nil {
+		return CostAnalyticsReport{}, err
+	}
+	return CostAnalyticsReport{
+		Since: since, GeneratedAt: now, Days: days,
+		ProjectID: projectID, Source: "LOCAL_COST_OBSERVATIONS",
+		CostAnalyticsView: view,
+	}, nil
+}
+
 func (s *CostApplicationService) Preferences(ctx context.Context) (store.CostPreferences, error) {
 	if err := ctx.Err(); err != nil {
 		return store.CostPreferences{}, err

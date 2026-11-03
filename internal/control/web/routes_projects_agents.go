@@ -38,6 +38,8 @@ func (s *Server) routeProject(h *NexusHandler) http.HandlerFunc {
 			h.handleProjectEvents(w, r)
 		case strings.HasSuffix(r.URL.Path, "/layout"):
 			h.handleProjectLayout(w, r)
+		case strings.HasSuffix(r.URL.Path, "/director"):
+			h.handleProjectDirector(w, r)
 		case strings.HasSuffix(r.URL.Path, "/agents"):
 			if r.Method == http.MethodGet {
 				h.handleAgentsList(w, r)
@@ -137,6 +139,9 @@ func (s *Server) routeAgent(h *NexusHandler) http.HandlerFunc {
 				return
 			case "recover":
 				h.handleAgentRecover(w, r)
+				return
+			case "director":
+				h.handleAgentDirector(w, r)
 				return
 			case "ask":
 				h.handleAgentAsk(w, r)

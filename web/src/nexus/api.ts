@@ -343,6 +343,14 @@ export const nexus = {
       body: JSON.stringify({ name, role }),
     }),
   getAgent: (id: string) => request<AgentDetail>(`/api/v1/agents/${id}`),
+  getDirectorAgent: (projectId: string, agentId: string) =>
+    request<import('../types').DirectorAgentProjection>(
+      `/api/v1/agents/${encodeURIComponent(agentId)}/director?project_id=${encodeURIComponent(projectId)}`,
+    ),
+  getDirectorFleet: (projectId: string) =>
+    request<import('../types').DirectorFleetProjection>(
+      `/api/v1/projects/${encodeURIComponent(projectId)}/director`,
+    ),
   deleteAgent: (id: string) =>
     request<{ status: string }>(`/api/v1/agents/${id}`, { method: 'DELETE' }),
   startAgent: (id: string) =>
@@ -901,6 +909,13 @@ export const nexus = {
 
   // Local Cost Intelligence. Unknown token/cost evidence stays absent rather
   // than being coerced to zero.
+  getCostAnalytics: (days: 7 | 30 | 90 = 7, projectId?: string) => {
+    const params = new URLSearchParams({ days: String(days) });
+    if (projectId) params.set('project_id', projectId);
+    return request<import('../types').CostAnalyticsReport>(
+      `/api/v1/cost/analytics?${params.toString()}`,
+    );
+  },
   getCostSummary: (days = 7, projectId?: string) => {
     const params = new URLSearchParams({ days: String(days) });
     if (projectId) params.set('project_id', projectId);

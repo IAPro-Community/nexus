@@ -385,6 +385,49 @@ export interface CapacityAlertState {
 
 export type CostEvidenceState = 'EMPTY' | 'ATTRIBUTION_ONLY' | 'PARTIAL' | 'MEASURED';
 
+export interface CostAnalyticsTotals {
+  observation_count: number;
+  known_cost_observations: number;
+  unknown_cost_observations: number;
+  known_token_observations: number;
+  reported_cost_observations: number;
+  equivalent_cost_observations: number;
+  inferred_cost_observations: number;
+  known_cache_observations: number;
+  cache_prompt_input_tokens: number;
+  cache_prompt_read_tokens: number;
+  input_tokens: number;
+  cached_input_tokens: number;
+  output_tokens: number;
+  reasoning_tokens: number;
+  duration_ms: number;
+  provider_reported_microusd: number;
+  api_equivalent_microusd: number;
+  inferred_microusd: number;
+  unclassified_microusd: number;
+}
+
+export interface DailyCostAnalytics extends CostAnalyticsTotals {
+  date: string;
+}
+
+export interface ModelCostAnalytics extends CostAnalyticsTotals {
+  provider: string;
+  model: string;
+}
+
+export interface CostAnalyticsReport {
+  since: string;
+  generated_at: string;
+  days: number;
+  project_id?: string;
+  source: 'LOCAL_COST_OBSERVATIONS';
+  total: CostAnalyticsTotals;
+  by_day: DailyCostAnalytics[];
+  by_model: ModelCostAnalytics[];
+  models_truncated: boolean;
+}
+
 export interface CostAggregate {
   observation_count: number;
   known_cost_observations: number;
@@ -549,6 +592,45 @@ export interface Agent {
   created_at: string;
   updated_at: string;
   last_started_at?: string;
+}
+
+export type DirectorActionKind =
+  'DIRECTIVE' | 'STEER' | 'QUEUE_NEXT' | 'WAIT' | 'CANCEL' | 'INSPECT';
+export type DirectorAvailability =
+  'SUPPORTED' | 'PREPARE_ONLY' | 'OBSERVE_ONLY' | 'TERMINAL_ONLY' | 'UNSUPPORTED';
+
+export interface DirectorAgentProjection {
+  schema_version: number;
+  execution_owner: 'NEXUS';
+  agent_id: string;
+  project_id: string;
+  agent_status: string;
+  process_state: 'LIVE' | 'NOT_LIVE' | 'UNKNOWN';
+  process_evidence: string;
+  runtime_id?: string;
+  generation_id?: string;
+  provider?: string;
+  profile?: string;
+  actions: Array<{
+    kind: DirectorActionKind;
+    availability: DirectorAvailability;
+    reason: string;
+  }>;
+  recent_events?: Array<{
+    id: string;
+    kind: string;
+    correlation_id?: string;
+    ts: string;
+  }>;
+}
+
+export interface DirectorFleetProjection {
+  schema_version: number;
+  execution_owner: 'NEXUS';
+  project_id: string;
+  total: number;
+  truncated: boolean;
+  agents: DirectorAgentProjection[];
 }
 
 export interface Mission {

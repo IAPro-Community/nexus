@@ -59,6 +59,21 @@ jobs:
         if: steps.scope.outputs.source_changed == 'true'
         working-directory: web
         run: bun install --frozen-lockfile
+      - name: Frontend quality and build
+        if: steps.scope.outputs.source_changed == 'true'
+        working-directory: web
+        run: bun run quality:full
+      - name: Install Wails v3 GTK4/WebKitGTK dependencies for Go tests
+        if: steps.scope.outputs.source_changed == 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev
+      - name: Go tests (including license consistency checks)
+        if: steps.scope.outputs.source_changed == 'true'
+        # Host-side Go build/test coverage; GUI interaction and signed
+        # packaging still require the separate protected native gates.
+        run: go test -count=1 ./internal/...
       - name: Check docs and internal links
         # Documentation-only PRs receive full link/contract checks, not a
         # false visual certificate for a pre-existing source snapshot.
@@ -75,21 +90,6 @@ jobs:
             node scripts/verify-release-docs.mjs
             node scripts/verify-nex-visual.mjs
           fi
-      - name: Frontend quality and build
-        if: steps.scope.outputs.source_changed == 'true'
-        working-directory: web
-        run: bun run quality:full
-      - name: Install Wails v3 GTK4/WebKitGTK dependencies for Go tests
-        if: steps.scope.outputs.source_changed == 'true'
-        run: |
-          sudo apt-get update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-            build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev
-      - name: Go tests (including license consistency checks)
-        if: steps.scope.outputs.source_changed == 'true'
-        # Host-side Go build/test coverage; GUI interaction and signed
-        # packaging still require the separate protected native gates.
-        run: go test -count=1 ./internal/...
 
   community-static-safety:
     name: Community diff hygiene
