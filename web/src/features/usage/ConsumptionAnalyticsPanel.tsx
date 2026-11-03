@@ -165,6 +165,11 @@ export function ConsumptionAnalyticsPanel({ projectId }: { projectId?: string })
           </div>
 
           <p className={styles.note}>{t('consumption.disclaimer')}</p>
+          {data.total.inferred_cost_observations > 0 && (
+            <p className={styles.note}>
+              {t('consumption.inferred', { value: money(data.total.inferred_microusd) })}
+            </p>
+          )}
 
           {data.total.observation_count === 0 ? (
             <p className={styles.empty}>{t('consumption.empty')}</p>
