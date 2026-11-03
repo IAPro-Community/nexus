@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../design-system';
 import { nexus } from '../../nexus/api';
@@ -6,7 +6,9 @@ import type { Agent, DirectorFleetProjection } from '../../types';
 import styles from './DirectorAgentPanel.module.scss';
 
 export function DirectorFleetPanel({
-  projectId, agents, onInspect,
+  projectId,
+  agents,
+  onInspect,
 }: {
   projectId: string;
   agents: Agent[];
@@ -17,30 +19,50 @@ export function DirectorFleetPanel({
   const [view, setView] = useState<DirectorFleetProjection | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const agentById = useMemo(() => new Map(agents.map((agent) => [agent.id, agent])), [agents]);
+
   useEffect(() => {
     let active = true;
     setLoading(true);
     setError('');
     setView(null);
-    nexus.getDirectorFleet(projectId)
-      .then((value) => { if (active) setView(value); })
+
+    nexus
+      .getDirectorFleet(projectId)
+      .then((value) => {
+        if (active) setView(value);
+      })
       .catch((reason: unknown) => {
         if (active) setError(reason instanceof Error ? reason.message : t('director.error'));
       })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [projectId, refresh, t]);
 
   return (
     <section className={styles.panel} aria-label={t('director.fleetTitle')}>
       <p className={styles.subtitle}>{t('director.subtitle')}</p>
       <div className={styles.controls}>
-        <Button size="sm" tone="ghost" disabled={loading} onClick={() => setRefresh((v) => v + 1)}>
+        <Button
+          size="sm"
+          tone="ghost"
+          disabled={loading}
+          onClick={() => setRefresh((value) => value + 1)}
+        >
           {t('director.refresh')}
         </Button>
       </div>
       {loading && <p role="status">{t('director.loading')}</p>}
-      {error && !loading && <p role="alert" className={styles.error}>{error}</p>}
+      {error && !loading && (
+        <p role="alert" className={styles.error}>
+          {error}
+        </p>
+      )}
       {view && !loading && (
         <>
           <p className={styles.notice}>
@@ -48,17 +70,24 @@ export function DirectorFleetPanel({
           </p>
           <ul className={styles.actions}>
             {view.agents.map((item) => {
-              const target = agents.find((agent) => agent.id === item.agent_id);
+              const agent = agentById.get(item.agent_id);
               return (
                 <li className={styles.action} key={item.agent_id}>
                   <span>
-                    <strong>{target?.name || item.agent_id}</strong>
-                    {' · '}{t('director.processStates.' + item.process_state)}
-                    {' · '}{item.provider || t('director.notAvailable')}
+                    <strong>{agent?.name || item.agent_id}</strong>
+                    {' · '}
+                    {t('director.processStates.' + item.process_state)}
+                    {' · '}
+                    {item.provider || t('director.notAvailable')}
                   </span>
-                  <Button size="sm" tone="ghost" disabled={!target} onClick={() => {
-                    if (target) onInspect(target);
-                  }}>
+                  <Button
+                    size="sm"
+                    tone="ghost"
+                    disabled={!agent}
+                    onClick={() => {
+                      if (agent) onInspect(agent);
+                    }}
+                  >
                     {t('director.inspect')}
                   </Button>
                 </li>
