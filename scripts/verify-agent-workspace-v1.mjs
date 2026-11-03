@@ -5,6 +5,7 @@ import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { resolve, sep } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import process from 'node:process';
+import { verifyOfflineReleaseEvidence } from './offline-release-evidence.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const expectedGroups = Object.freeze({
@@ -106,12 +107,52 @@ function checkExternalProof(doc, features, expectedSha, expectedRunId, filename)
   }
 }
 
+function checkOfflineProof(features, expectedSha, maestroSha, filename) {
+  check(/^[0-9a-f]{40}$/.test(expectedSha || ''), 'Offline proof requires exact Nexus SHA');
+  check(/^[0-9a-f]{40}$/.test(maestroSha || ''), 'Offline proof requires exact Maestro SHA');
+  let actualSha = '';
+  try { actualSha = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(); }
+  catch { failures.push('Cannot determine the tested Nexus checkout SHA'); }
+  check(actualSha === expectedSha, 'Local Nexus checkout differs from signed candidate SHA');
+  if (!filename || !existsSync(filename)) {
+    failures.push('External offline evidence bundle missing');
+    return;
+  }
+  const realFile = realpathSync(filename);
+  check(!realFile.startsWith(realpathSync(root) + sep),
+    'Offline evidence must be outside the source checkout');
+  for (const feature of features) {
+    check(feature.sourceStatus === 'present' && feature.verification === 'verified',
+      feature.id + ': release scope not certified');
+  }
+  try {
+    verifyOfflineReleaseEvidence({
+      evidenceFile: realFile,
+      trustFile: resolve(root, 'docs/reference/release-reviewers.json'),
+      sourceSha: expectedSha, maestroSha,
+      featureIds: features.map((feature) => feature.id),
+      twoClientIds: features.filter((feature) =>
+        feature.category === 'multiagent' || feature.category === 'remote' ||
+        feature.id === 'two-client-real-e2e').map((feature) => feature.id),
+    });
+  } catch (error) {
+    failures.push('Offline signed evidence rejected: ' + (error?.message || error));
+  }
+}
+
 try {
   const file = option('--manifest') || resolve(root, 'docs/reference/agent-workspace-v1.json');
   const contract = readJson(file);
   const features = verifyManifest(contract);
+  if (process.argv.includes('--offline') && !process.argv.includes('--release')) {
+    failures.push('--offline requires --release');
+  }
   if (process.argv.includes('--release')) {
-    checkExternalProof(contract, features, option('--sha'), option('--ci-run-id'), option('--evidence'));
+    if (process.argv.includes('--offline')) {
+      checkOfflineProof(features, option('--sha'), option('--maestro-sha'), option('--evidence'));
+    } else {
+      checkExternalProof(contract, features, option('--sha'), option('--ci-run-id'), option('--evidence'));
+    }
   }
 } catch (error) { failures.push(String(error.message || error)); }
 if (failures.length) {
