@@ -89,13 +89,22 @@ func (h *NexusHandler) handleAgentDirector(w http.ResponseWriter, r *http.Reques
         writeError(w, http.StatusNotFound, "agent not found in project")
         return
     }
+    view, err := h.directorViewForStoredAgent(st, agent)
+    if err != nil {
+        writeError(w, http.StatusServiceUnavailable, err.Error())
+        return
+    }
+    w.Header().Set("Cache-Control", "no-store")
+    writeJSON(w, http.StatusOK, view)
+}
+
+func (h *NexusHandler) directorViewForStoredAgent(st *store.Store, agent store.Agent) (directorProjection, error) {
     var generation *store.RuntimeGeneration
-    gen, err := st.CurrentGeneration(agentID)
+    gen, err := st.CurrentGeneration(agent.ID)
     if err == nil {
         generation = &gen
     } else if !errors.Is(err, store.ErrNotFound) {
-        writeError(w, http.StatusServiceUnavailable, err.Error())
-        return
+        return directorProjection{}, err
     }
     live := false
     if generation != nil && generation.RuntimeID != "" {
@@ -103,6 +112,5 @@ func (h *NexusHandler) handleAgentDirector(w http.ResponseWriter, r *http.Reques
             live = session.HostLive()
         }
     }
-    w.Header().Set("Cache-Control", "no-store")
-    writeJSON(w, http.StatusOK, projectDirectorAgent(agent, generation, live))
+    return projectDirectorAgent(agent, generation, live), nil
 }
