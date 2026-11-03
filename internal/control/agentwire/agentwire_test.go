@@ -403,3 +403,18 @@ func TestPiRPCPipeClosureDuringCommand(t *testing.T) {
 		t.Fatal("command remained blocked after pipe closure")
 	}
 }
+
+func TestJSONLinesRejectsInvalidUTF8InsteadOfRewritingCorrelationIDs(t *testing.T) {
+	// Go's encoding/json accepts this and replaces the invalid byte. We must
+	// not let two distinct native permission or session IDs collapse.
+	line := append([]byte(`{"type":"response","id":"`), 0xff)
+	line = append(line, []byte(`","success":true}`+"\n")...)
+	if !json.Valid(line[:len(line)-1]) {
+		t.Fatal("fixture must demonstrate encoding/json's permissive UTF-8 behavior")
+	}
+	wire := NewJSONLines(bytes.NewReader(line), io.Discard)
+	_, err := wire.Read()
+	if err == nil || !strings.Contains(err.Error(), "invalid UTF-8") {
+		t.Fatalf("invalid UTF-8 must be rejected before RPC correlation, got %v", err)
+	}
+}
