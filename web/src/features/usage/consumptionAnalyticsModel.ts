@@ -16,10 +16,7 @@ export function cacheRate(
 
 // Coverage describes presence of a numerical amount, not billing certainty.
 // An API-equivalent estimate is a known value but never a measured invoice.
-export function costEvidenceLabel(
-  known: number,
-  total: number,
-): 'NONE' | 'PARTIAL' | 'COMPLETE' {
+export function costEvidenceLabel(known: number, total: number): 'NONE' | 'PARTIAL' | 'COMPLETE' {
   if (total <= 0 || known <= 0) return 'NONE';
   return known >= total ? 'COMPLETE' : 'PARTIAL';
 }
