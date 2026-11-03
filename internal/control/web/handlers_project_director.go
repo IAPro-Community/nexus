@@ -58,4 +58,3 @@ func (h *NexusHandler) handleProjectDirector(w http.ResponseWriter, r *http.Requ
         Agents: views,
     })
 }
-
