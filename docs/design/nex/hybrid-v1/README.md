@@ -1,5 +1,22 @@
 # NEX Hero híbrido — implementação de fidelidade v1.1 (P0)
 
+## Atualização — binários agora realmente versionados no Git (29/10/2026)
+
+A fonte PNG original (SHA-256 `ef7a4aeb7b24d2ab5f199f913d351414b8fafb0b6208b3ab2b665013adcb9118`), as 8 camadas individuais, os PNGs de base/reconstrução, o HTML e o gerador `build_layers.py` **foram adicionados como blobs binários Git** nesta branch. O atlas experimental de 96 quadros também foi incluído em `docs/design/nex/experimental-atlas/`, ainda sem aprovação artística.
+
+A fonte editável OpenRaster (5.339.623 bytes) é **reconstituível byte a byte** a partir de seis partes base64 versionadas em `docs/design/nex/hybrid-v1/ora-parts/`. Para recuperá-la, executar:
+
+```bash
+node scripts/restore-nex-openraster.mjs
+node scripts/verify-nex-hybrid-assets.mjs --require-binaries
+```
+
+O verificador valida as seis partes diretamente em memória, mesmo antes da restauração. O SHA-256 reconstruído deve ser `68a9b3b90722721bacd4067bac3e9d6560acf144898ae60c3d7968692c652f32`.
+
+**Atenção:** versionamento correto dos bytes **não é homologação da identidade**, não significa que o master pixel art Compact/Standard esteja pronto e não libera o NEX no site comercial. O gate conjunto `RELEASE_READINESS.json` permanece `BLOCKED`. O estágio local `/nex-lab` pode ser usado somente para QA.
+
+
+
 **Objetivo:** manter a aparência real do PNG de NEX (`mascote_robô_nexus_em_neon_azul.png`, 1254×1254, transparência) e obter movimentos leves **sem tentar redesenhar o personagem em SVG**.
 
 ## Entregas realizadas no ambiente de produção de arte
@@ -40,11 +57,11 @@ git commit -m "assets(nex): import source-faithful Hero v1.1 layers"
 git push
 ```
 
-O ZIP original foi inspecionado em 28/10/2026: **15 arquivos internos**, incluindo OpenRaster, PNG original idêntico byte a byte, camadas e gerador portátil. A importação foi exercitada em um checkout de teste local com os mesmos 15 arquivos. O script não consegue transferir sozinho bytes entre o ambiente de conversa e o GitHub remoto; requer um clone com autenticação Git e o ZIP local. Até o commit final, o manifesto permanece em `NOT_COMMITTED`.
+O pacote original de 15 arquivos foi importado e verificado; **não é necessário obter o ZIP da conversa novamente**. A PR #147 adicionou os PNGs e o gerador como arquivos reais ao GitHub. O OpenRaster editável é recuperado dos seis fragmentos versionados executando `node scripts/restore-nex-openraster.mjs`, com SHA-256 verificado. O manifesto de origem indica arquivos versionados ou reconstruíveis, sem atribuir aprovação artística.
 
 ## Entrega ao GitHub / integração
 
-O conteúdo binário **não entra no GitHub apenas por aparecer neste documento**. O pacote **revisado** `nex_hybrid_github_assets_v1_1.zip` disponível na conversa contém os PNGs, o HTML, as fontes ORA e o código de corte com os caminhos corretos para extrair na raiz de um clone Nexus.
+**Fonte canônica de trabalho:** `web/public/nex/hybrid-v1/` e `docs/design/nex/hybrid-v1/` na `release/v1.0.0`. Para recuperar a fonte editável OpenRaster, usar `node scripts/restore-nex-openraster.mjs`. Para validar bytes do checkout, `node scripts/verify-nex-hybrid-assets.mjs --require-binaries`. Não promover a arte ao site/HUD público até aprovação dos gates de movimento, pixel art e 360°.
 
 ```bash
 # Em um checkout da branch release/v1.0.0 ou uma branch de trabalho:

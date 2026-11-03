@@ -1,0 +1,51 @@
+name: Maestro external Bridge contract
+on:
+  pull_request:
+    branches: [release/v1.0.0]
+    paths:
+      - 'internal/control/handoff/maestro_*.go'
+      - 'docs/product/maestro.md'
+      - '.github/workflows/maestro-context-bridge-contract.yml'
+  push:
+    branches: [release/v1.0.0]
+    paths:
+      - 'internal/control/handoff/maestro_*.go'
+      - '.github/workflows/maestro-context-bridge-contract.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  maestro-handoff:
+    name: Go contract and format
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Setup Go from release contract
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Verify Go source formatting
+        shell: bash
+        run: |
+          output="$(gofmt -l internal/control/handoff/maestro_context.go internal/control/handoff/maestro_context_test.go internal/control/handoff/maestro_project_context.go internal/control/handoff/maestro_project_context_test.go)"
+          if [ -n "$output" ]; then
+            echo "::error::Unformatted Go source:"
+            echo "$output"
+            exit 1
+          fi
+      - name: Run canonical Bridge contract tests
+        run: go test -count=1 -timeout 5m ./internal/control/handoff -run "Test(Maestro|DecodeMaestro)"
+      - name: Run handoff package regression
+        run: go test -count=1 -timeout 8m ./internal/control/handoff
+      - name: Race-check Bridge contract
+        if: runner.os == 'Linux'
+        run: go test -race -count=1 -timeout 8m ./internal/control/handoff -run "Test(Maestro|DecodeMaestro)"

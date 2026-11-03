@@ -1,0 +1,267 @@
+{
+  "schema_version": "1.0",
+  "name": "nex-hover-front-256-v1",
+  "status": "CANDIDATE_PENDING_VISUAL_APPROVAL",
+  "purpose": "front-facing high fidelity 256px idle float (not 360 turntable)",
+  "source": {
+    "filename": "mascote_robô_nexus_em_neon_azul.png",
+    "sha256": "ef7a4aeb7b24d2ab5f199f913d351414b8fafb0b6208b3ab2b665013adcb9118",
+    "size": [
+      1254,
+      1254
+    ],
+    "unchanged": true
+  },
+  "export": {
+    "frame_size": [
+      256,
+      256
+    ],
+    "frame_count": 16,
+    "fps": 8,
+    "duration_ms": 2000,
+    "format": "PNG RGBA",
+    "atlas_grid": [
+      4,
+      4
+    ],
+    "atlas_png": "nex-hover-256-atlas.png",
+    "atlas_png_sha256": "e216181b036244b6603e12d21e074a109911798d5f1adc6eec65c4ab8f2cd4cc",
+    "atlas_webp": "nex-hover-256-atlas.webp",
+    "atlas_webp_sha256": "3ea031bdc58fa49d3514f6c551fc6988ff2df65c052020426a89a2d2f9429385",
+    "webp_lossless": true
+  },
+  "frames": [
+    {
+      "index": 0,
+      "file": "frames/hover-00.png",
+      "x_offset_px": 0,
+      "y_offset_px": 2,
+      "duration_ms": 125,
+      "sha256": "d90e07647bd1556f64ad7648d4e30eb0d664aab86d0065ff9e3a146bac29e940",
+      "bytes": 91572,
+      "dimensions": [
+        256,
+        256
+      ],
+      "alpha": true
+    },
+    {
+      "index": 1,
+      "file": "frames/hover-01.png",
+      "x_offset_px": 0,
+      "y_offset_px": 1,
+      "duration_ms": 125,
+      "sha256": "278888d92e577e469102f0cd82b28548f5a749593bae910e9671fc277b818b8c",
+      "bytes": 91575,
+      "dimensions": [
+        256,
+        256
+      ],
+      "alpha": true
+    },
+    {
+      "index": 2,
+      "file": "frames/hover-02.png",
+      "x_offset_px": 0,
+      "y_offset_px": 0,
+      "duration_ms": 125,
+      "sha256": "a23f597721bd70424919f77899fb8775a4eb1cfddc13618ca129285c00c070bb",
+      "bytes": 91573,
+      "dimensions": [
+        256,
+        256
+      ],
+      "alpha": true
+    },
+    {
+      "index": 3,
+      "file": "frames/hover-03.png",
+      "x_offset_px": 0,
+      "y_offset_px": -1,
+      "duration_ms": 125,
+      "sha256": "eb92e9a837f9f209488e65dc033a63f704ba95eee60b0561938f5db84dd78bd2",
+      "bytes": 91571,
+      "dimensions": [
+        256,
+        256
+      ],
+      "alpha": true
+    },
+    {
+      "index": 4,
+      "file": "frames/hover-04.png",
+      "x_offset_px": 0,
+      "y_offset_px": -2,
+      "duration_ms": 125,
+      "sha256": "b1d253c2235ce7a38baa5546b5af9d861177fa1e2e6eb4802f78f6fe866c9bb1",
+      "bytes": 91568,
+      "dimensions": [
+        256,
+        256
+      ],
+      "alpha": true
+    },
+    {
+      "index": 5,
+      "file": "frames/hover-05.png",
+      "x_offset_px": 0,
+      "y_offset_px": -3,
+      "duration_ms": 125,
+      "sha256": "1b18e1a27dd65f1402c28674e0afbe34877ea188e81a6778e0b738ee0b7184ea",
+      "bytes": 91564,
+      "dimensions": [
+        256,
+        256
+      ],
+      "alpha": true
+    },
+    {
+      "index": 6,
+      "file": "frames/hover-06.png",
+      "x_offset_px": 1,
+      "y_offset_px": -3,
+      "duration_ms": 125,
+      "sha256": "0017a2828921e7301302ac963121b0ea5988ec20b2d59b6e21180d98b9c78a3e",
+      "bytes": 91568,
+      "dimensions": [
+        256,
+        256
+      ],
+      "alpha": true
+    },
+    {
+      "index": 7,
+      "file": "frames/hover-07.png",
+      "x_offset_px": 1,
+      "y_offset_px": -2,
+      "duration_ms": 125,
+      "sha256": "d48c1798869039b4220456b8e30cb72433ba6b7cf2371d72b98cd393c76b746c",
+      "bytes": 91570,
+      "dimensions": [
+        256,
+        256
+      ],
+      "alpha": true
+    },
+    {
+      "index": 8,
+      "file": "frames/hover-08.png",
+      "x_offset_px": 1,
+      "y_offset_px": -1,
+      "duration_ms": 125,
+      "sha256": "6bf9d04480cafb17ae7d4a5fa4380bd064200ca39d38371f025648b4db25fca7",
+      "bytes": 91571,
+      "dimensions": [
+        256,
+        256
+      ],
+      "alpha": true
+    },
+    {
+      "index": 9,
+      "file": "frames/hover-09.png",
+      "x_offset_px": 1,
+      "y_offset_px": 0,
+      "duration_ms": 125,
+      "sha256": "524de1af0836e30088e861987c4bf90efe72cdab59d81ed37c401614289e198c",
+      "bytes": 91573,
+      "dimensions": [
+        256,
+        256
+      ],
+      "alpha": true
+    },
+    {
+      "index": 10,
+      "file": "frames/hover-10.png",
+      "x_offset_px": 1,
+      "y_offset_px": 1,
+      "duration_ms": 125,
+      "sha256": "aca8b464f5a7c27382d29a773fd95ceb5605a480d4421fbe9a75994b6625c3d7",
+      "bytes": 91575,
+      "dimensions": [
+        256,
+        256
+      ],
+      "alpha": true
+    },
+    {
+      "index": 11,
+      "file": "frames/hover-11.png",
+      "x_offset_px": 1,
+      "y_offset_px": 2,
+      "duration_ms": 125,
+      "sha256": "bc8b34276e12f36f5f0bdaf94df3496d81beb69a18324f51a7f47fb178421eca",
+      "bytes": 91573,
+      "dimensions": [
+        256,
+        256
+      ],
+      "alpha": true
+    },
+    {
+      "index": 12,
+      "file": "frames/hover-12.png",
+      "x_offset_px": 0,
+      "y_offset_px": 3,
+      "duration_ms": 125,
+      "sha256": "486e7a92d23db6f090ee6886f95e142dabb7780b4574be9e979f7c68ea32bf69",
+      "bytes": 91574,
+      "dimensions": [
+        256,
+        256
+      ],
+      "alpha": true
+    },
+    {
+      "index": 13,
+      "file": "frames/hover-13.png",
+      "x_offset_px": -1,
+      "y_offset_px": 3,
+      "duration_ms": 125,
+      "sha256": "e596b9bd65a8bc01f83d80d66e6dcc8be27ab7e80ae1722a3a6611b6f839c537",
+      "bytes": 91566,
+      "dimensions": [
+        256,
+        256
+      ],
+      "alpha": true
+    },
+    {
+      "index": 14,
+      "file": "frames/hover-14.png",
+      "x_offset_px": -1,
+      "y_offset_px": 2,
+      "duration_ms": 125,
+      "sha256": "4e7898f6024e7f34c69c63daa7164fb7cc7df8032434a06d11ec6a291c6bb71d",
+      "bytes": 91565,
+      "dimensions": [
+        256,
+        256
+      ],
+      "alpha": true
+    },
+    {
+      "index": 15,
+      "file": "frames/hover-15.png",
+      "x_offset_px": -1,
+      "y_offset_px": 1,
+      "duration_ms": 125,
+      "sha256": "0dd50b04f2cb386c650cac51a0a71bce75526b7bbbadc2e5a27f2a9e4ba8127f",
+      "bytes": 91565,
+      "dimensions": [
+        256,
+        256
+      ],
+      "alpha": true
+    }
+  ],
+  "limitations": [
+    "same frontal view, not 16 rotation positions",
+    "whole-image bob, orbit and modules not independently animated",
+    "not yet native HUD QA approved",
+    "not official visual master"
+  ],
+  "publication_allowed": false
+}

@@ -1,0 +1,921 @@
+{
+  "schema_version": "1.0",
+  "status": "CANDIDATE_NOT_APPROVED",
+  "source_sha256": "ef7a4aeb7b24d2ab5f199f913d351414b8fafb0b6208b3ab2b665013adcb9118",
+  "atlas_file": "nex-idle-atlas-128.png",
+  "canvas": [
+    128,
+    128
+  ],
+  "directions": [
+    "front"
+  ],
+  "animations": [
+    {
+      "id": "idle_hover",
+      "fps": 8,
+      "loop": false,
+      "status": "CANDIDATE_NOT_APPROVED",
+      "size": [
+        128,
+        128
+      ],
+      "frames": [
+        {
+          "x": 0,
+          "y": 0,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 128,
+          "y": 0,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 256,
+          "y": 0,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 384,
+          "y": 0,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 512,
+          "y": 0,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 640,
+          "y": 0,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 768,
+          "y": 0,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 896,
+          "y": 0,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        }
+      ],
+      "return_to": "idle_hover",
+      "preempt_on": [
+        "working",
+        "warning",
+        "critical",
+        "offline"
+      ]
+    },
+    {
+      "id": "idle_blink",
+      "fps": 8,
+      "loop": false,
+      "status": "CANDIDATE_NOT_APPROVED",
+      "size": [
+        128,
+        128
+      ],
+      "frames": [
+        {
+          "x": 0,
+          "y": 128,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 128,
+          "y": 128,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 256,
+          "y": 128,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 384,
+          "y": 128,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 512,
+          "y": 128,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 640,
+          "y": 128,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 768,
+          "y": 128,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 896,
+          "y": 128,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        }
+      ],
+      "return_to": "idle_hover",
+      "preempt_on": [
+        "working",
+        "warning",
+        "critical",
+        "offline"
+      ]
+    },
+    {
+      "id": "idle_glance",
+      "fps": 8,
+      "loop": false,
+      "status": "CANDIDATE_NOT_APPROVED",
+      "size": [
+        128,
+        128
+      ],
+      "frames": [
+        {
+          "x": 0,
+          "y": 256,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 128,
+          "y": 256,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 256,
+          "y": 256,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 384,
+          "y": 256,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 512,
+          "y": 256,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 640,
+          "y": 256,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 768,
+          "y": 256,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 896,
+          "y": 256,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        }
+      ],
+      "return_to": "idle_hover",
+      "preempt_on": [
+        "working",
+        "warning",
+        "critical",
+        "offline"
+      ]
+    },
+    {
+      "id": "idle_orbit_breathe",
+      "fps": 8,
+      "loop": false,
+      "status": "CANDIDATE_NOT_APPROVED",
+      "size": [
+        128,
+        128
+      ],
+      "frames": [
+        {
+          "x": 0,
+          "y": 384,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 128,
+          "y": 384,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 256,
+          "y": 384,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 384,
+          "y": 384,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 512,
+          "y": 384,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 640,
+          "y": 384,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 768,
+          "y": 384,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 896,
+          "y": 384,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        }
+      ],
+      "return_to": "idle_hover",
+      "preempt_on": [
+        "working",
+        "warning",
+        "critical",
+        "offline"
+      ]
+    },
+    {
+      "id": "idle_head_tilt",
+      "fps": 8,
+      "loop": false,
+      "status": "CANDIDATE_NOT_APPROVED",
+      "size": [
+        128,
+        128
+      ],
+      "frames": [
+        {
+          "x": 0,
+          "y": 512,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 128,
+          "y": 512,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 256,
+          "y": 512,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 384,
+          "y": 512,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 512,
+          "y": 512,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 640,
+          "y": 512,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 768,
+          "y": 512,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 896,
+          "y": 512,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        }
+      ],
+      "return_to": "idle_hover",
+      "preempt_on": [
+        "working",
+        "warning",
+        "critical",
+        "offline"
+      ]
+    },
+    {
+      "id": "idle_fin_twitch",
+      "fps": 8,
+      "loop": false,
+      "status": "CANDIDATE_NOT_APPROVED",
+      "size": [
+        128,
+        128
+      ],
+      "frames": [
+        {
+          "x": 0,
+          "y": 640,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 128,
+          "y": 640,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 256,
+          "y": 640,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 384,
+          "y": 640,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 512,
+          "y": 640,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 640,
+          "y": 640,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 768,
+          "y": 640,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 896,
+          "y": 640,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        }
+      ],
+      "return_to": "idle_hover",
+      "preempt_on": [
+        "working",
+        "warning",
+        "critical",
+        "offline"
+      ]
+    },
+    {
+      "id": "idle_module_inspect",
+      "fps": 8,
+      "loop": false,
+      "status": "CANDIDATE_NOT_APPROVED",
+      "size": [
+        128,
+        128
+      ],
+      "frames": [
+        {
+          "x": 0,
+          "y": 768,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 128,
+          "y": 768,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 256,
+          "y": 768,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 384,
+          "y": 768,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 512,
+          "y": 768,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 640,
+          "y": 768,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 768,
+          "y": 768,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 896,
+          "y": 768,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        }
+      ],
+      "return_to": "idle_hover",
+      "preempt_on": [
+        "working",
+        "warning",
+        "critical",
+        "offline"
+      ]
+    },
+    {
+      "id": "idle_orbit_shuffle",
+      "fps": 8,
+      "loop": false,
+      "status": "CANDIDATE_NOT_APPROVED",
+      "size": [
+        128,
+        128
+      ],
+      "frames": [
+        {
+          "x": 0,
+          "y": 896,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 128,
+          "y": 896,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 256,
+          "y": 896,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 384,
+          "y": 896,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 512,
+          "y": 896,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 640,
+          "y": 896,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 768,
+          "y": 896,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 896,
+          "y": 896,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        }
+      ],
+      "return_to": "idle_hover",
+      "preempt_on": [
+        "working",
+        "warning",
+        "critical",
+        "offline"
+      ]
+    },
+    {
+      "id": "idle_curiosity",
+      "fps": 8,
+      "loop": false,
+      "status": "CANDIDATE_NOT_APPROVED",
+      "size": [
+        128,
+        128
+      ],
+      "frames": [
+        {
+          "x": 0,
+          "y": 1024,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 128,
+          "y": 1024,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 256,
+          "y": 1024,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 384,
+          "y": 1024,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 512,
+          "y": 1024,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 640,
+          "y": 1024,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 768,
+          "y": 1024,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 896,
+          "y": 1024,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        }
+      ],
+      "return_to": "idle_hover",
+      "preempt_on": [
+        "working",
+        "warning",
+        "critical",
+        "offline"
+      ]
+    },
+    {
+      "id": "idle_micro_stretch",
+      "fps": 8,
+      "loop": false,
+      "status": "CANDIDATE_NOT_APPROVED",
+      "size": [
+        128,
+        128
+      ],
+      "frames": [
+        {
+          "x": 0,
+          "y": 1152,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 128,
+          "y": 1152,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 256,
+          "y": 1152,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 384,
+          "y": 1152,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 512,
+          "y": 1152,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 640,
+          "y": 1152,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 768,
+          "y": 1152,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 896,
+          "y": 1152,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        }
+      ],
+      "return_to": "idle_hover",
+      "preempt_on": [
+        "working",
+        "warning",
+        "critical",
+        "offline"
+      ]
+    },
+    {
+      "id": "idle_drowse",
+      "fps": 8,
+      "loop": false,
+      "status": "CANDIDATE_NOT_APPROVED",
+      "size": [
+        128,
+        128
+      ],
+      "frames": [
+        {
+          "x": 0,
+          "y": 1280,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 128,
+          "y": 1280,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 256,
+          "y": 1280,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 384,
+          "y": 1280,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 512,
+          "y": 1280,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 640,
+          "y": 1280,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 768,
+          "y": 1280,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 896,
+          "y": 1280,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        }
+      ],
+      "return_to": "idle_hover",
+      "preempt_on": [
+        "working",
+        "warning",
+        "critical",
+        "offline"
+      ]
+    },
+    {
+      "id": "idle_wake",
+      "fps": 8,
+      "loop": false,
+      "status": "CANDIDATE_NOT_APPROVED",
+      "size": [
+        128,
+        128
+      ],
+      "frames": [
+        {
+          "x": 0,
+          "y": 1408,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 128,
+          "y": 1408,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 256,
+          "y": 1408,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 384,
+          "y": 1408,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 512,
+          "y": 1408,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 640,
+          "y": 1408,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 768,
+          "y": 1408,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        },
+        {
+          "x": 896,
+          "y": 1408,
+          "w": 128,
+          "h": 128,
+          "duration_ms": 125
+        }
+      ],
+      "return_to": "idle_hover",
+      "preempt_on": [
+        "working",
+        "warning",
+        "critical",
+        "offline"
+      ]
+    }
+  ],
+  "limitations": [
+    "Based on PNG layer shifts, not hand-drawn pixel animation",
+    "Only front view, no real 360 rotation",
+    "Head tilt rotates the whole composition",
+    "Fin twitch changes sheen, not true fin geometry"
+  ]
+}

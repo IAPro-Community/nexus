@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEX · Hero híbrido — fidelidade ao PNG</title>
+<style>
+:root {font-family:Inter,system-ui,sans-serif;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:#060d1a;color:#e6f3ff}
+main{max-width:1140px;margin:0 auto;padding:24px}
+h1{font-weight:850;letter-spacing:-.04em;font-size:clamp(25px,4vw,38px);margin:0 0 8px}
+p{color:#9db7d2;line-height:1.55;margin:.4em 0 1.2em}
+.shell{display:grid;grid-template-columns:minmax(0,1fr) 305px;gap:18px}
+.viewport{position:relative;background:radial-gradient(ellipse at 50% 41%,#142f50,#071322 69%,#04101b);border:1px solid #21476c;border-radius:22px;overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:650px}
+.gridlines{position:absolute;inset:0;pointer-events:none;opacity:.5;background:linear-gradient(90deg,transparent 95%,#1a497317 95%),linear-gradient(transparent 95%,#1a497317 95%);background-size:31px 31px}
+.figure{width:min(100%,650px);aspect-ratio:1;position:relative;transform-origin:50% 57%;animation:hover 4.8s ease-in-out infinite;filter:drop-shadow(0 15px 28px #009dff18)}
+.layer{position:absolute;display:block;max-width:none;height:auto;pointer-events:none;image-rendering:auto;user-select:none}
+.figure img {object-fit:contain}
+.figure .full{inset:0;width:100%;height:100%;}
+.figure .base{z-index:1}
+.figure .original{z-index:9;opacity:0}
+.figure .fin{z-index:4;opacity:0}
+.figure .eyes{z-index:7;transform-origin:center center;}
+.figure .module{z-index:8;transform-origin:center center;animation:mod-breathe 4.2s ease-in-out infinite}
+.figure .module[data-id="module_2"]{animation-delay:-1.4s}
+.figure .module[data-id="module_3"]{animation-delay:-2.8s}
+.figure .module[data-id="module_4"]{animation-delay:-.65s}
+.figure .fin[data-id="fin_left"]{animation:fin-shine 15s ease-in-out infinite}
+.figure .fin[data-id="fin_right"]{animation:fin-shine 18s ease-in-out -4s infinite}
+.figure .eyes{animation:blink 8.6s steps(1,end) infinite}
+.figure[data-action="idle_glance"] .eyes{animation:glance 1.7s ease-in-out 1 both}
+.figure[data-action="idle_blink"] .eyes{animation:forced-blink .8s steps(1,end) 1}
+.figure[data-action="idle_orbit_breathe"] .module{animation:orbit-local 1.65s ease-in-out 1}
+.figure[data-action="idle_head_tilt"]{animation:head-tilt 2.2s ease-in-out 1}
+.figure[data-action="idle_fin_twitch"] .fin{animation:fin-shine-fast 1.3s ease-in-out 1}
+.figure[data-action="idle_hover"]{animation:hover 3.4s ease-in-out infinite}
+.figure[data-state="working"] .module{animation-duration:2s}
+.figure[data-state="working"]{animation-duration:3s}
+.figure[data-state="warning"]{filter:drop-shadow(0 0 16px #ff8a4540)}
+.figure[data-state="critical"]{filter:drop-shadow(0 0 18px #ff496c53)}
+.figure[data-state="offline"]{filter:saturate(.35) brightness(.72)}
+.figure[data-state="offline"] .layer,.figure[data-state="offline"]{animation:none!important}
+.figure[data-reconstruction="off"] .base,.figure[data-reconstruction="off"] .eyes,.figure[data-reconstruction="off"] .module,.figure[data-reconstruction="off"] .fin{opacity:0!important}
+.figure[data-reconstruction="off"] .original{opacity:1!important}
+.figure[data-motion="off"],.figure[data-motion="off"] *,body.reduce .figure,body.reduce .figure *{animation:none!important;transition:none!important}
+.controls{border:1px solid #244e7a;background:#0c1d32;border-radius:18px;padding:19px;display:flex;flex-direction:column;gap:15px;align-self:stretch}
+.controls strong{font-size:13px;letter-spacing:.06em;color:#bcd9fb;text-transform:uppercase}
+.buttons{display:flex;flex-wrap:wrap;gap:8px}
+button{cursor:pointer;border:1px solid #356490;color:#cdeaff;background:#183250;padding:9px 10px;border-radius:9px;font:600 12px system-ui}
+button[aria-pressed="true"]{background:#206496;border-color:#4fdaff;color:white}button:focus-visible,input:focus-visible{outline:2px solid #b7f3ff;outline-offset:3px}
+label{font-size:13px;display:flex;align-items:center;gap:9px;color:#c8dfef}
+small{font-size:11px;color:#83a5ca;line-height:1.5}.status{padding:12px;background:#071729;border:1px solid #204a6e;border-radius:9px;font-size:12px;color:#88bde5}
+.swatch{width:7px;height:7px;border-radius:100%;display:inline-block;background:#3ddaff;box-shadow:0 0 8px #3ddaff;margin-right:6px}
+@keyframes hover{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes mod-breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes orbit-local{0%,100%{transform:translate(0,0)}35%{transform:translate(0,-8px)}70%{transform:translate(1px,4px)}}
+@keyframes blink{0%,91%,93%,100%{transform:scaleY(1)}91.6%,92.5%{transform:scaleY(.05)}}
+@keyframes forced-blink{0%,20%,48%,68%,100%{transform:scaleY(1)}28%,40%,75%,88%{transform:scaleY(.05)}}
+@keyframes glance{0%,100%{transform:translateX(0)}25%,65%{transform:translateX(5px)}45%{transform:translateX(-5px)}}
+@keyframes head-tilt{0%,100%{transform:rotate(0)}38%{transform:rotate(-1.8deg)}68%{transform:rotate(1deg)}}
+@keyframes fin-shine{0%,89%,100%{opacity:0;filter:brightness(1)}91%,94%{opacity:.33;filter:brightness(1.4)}}
+@keyframes fin-shine-fast{0%,100%{opacity:0;filter:brightness(1)}33%,55%{opacity:.40;filter:brightness(1.5)}}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.viewport{min-height:320px}.figure{width:min(100%,520px)}}
+@media(prefers-reduced-motion:reduce){.figure,.figure *{animation:none!important;transition:none!important}}
+</style></head>
+<body><main>
+<h1>NEX — Hero híbrido fiel à arte original</h1>
+<p>Este protótipo usa os próprios pixels do PNG como fonte. Os efeitos movimentam camadas recortadas sem reconstruir o rosto, capacete ou materiais em SVG. As ações são visuais; não simulam telemetria real.</p>
+<div class="shell"><div class="viewport"><div class="gridlines"></div><div class="figure" id="nex" role="img" aria-label="NEX robô branco e azul com visor sorridente, núcleo luminoso e quatro módulos flutuantes" data-state="idle" data-motion="on" data-reconstruction="on">
+<img class="layer base full" src="body_base.png" alt="" draggable="false"/>
+<img class="layer original full" src="nex_source_original.png" alt="" draggable="false"/>
+<!-- The export script constructs layers from manifest coordinates. -->
+</div></div>
+<section class="controls" aria-label="Controle de animações NEX">
+<div><strong>Estados operacionais</strong><div class="buttons" id="states"></div></div>
+<div><strong>Seis ações idle</strong><div class="buttons" id="idles"></div></div>
+<div><label><input id="auto" type="checkbox" checked/> Microações aleatórias discretas</label>
+<label><input id="motion" type="checkbox" checked/> Movimento ativo</label>
+<label><input id="compare" type="checkbox"/> Comparar PNG sem camadas (original)</label></div>
+<div class="status" id="status"><span class="swatch"></span> Idle · Movimento mínimo</div>
+<small>Os módulos usam as âncoras originais; pixels sob olhos e módulos são preenchimentos de restauração para permitir gestos. Arte em camadas ainda exige aprovação humana. O modo reduzido respeita o sistema operacional.</small>
+<small>Não contém rotação 360°, atlas retro por frames, integração com Core ou validação do HUD nativo.</small>
+</section></div>
+</main><script>
+const figure=document.getElementById('nex');const manifest={"layers": [{"id": "module_1", "file": "module_1.png", "x": 41, "y": 656, "width": 253, "height": 249, "role": "floating-module", "anchor": [164, 780]}, {"id": "module_2", "file": "module_2.png", "x": 977, "y": 658, "width": 240, "height": 246, "role": "floating-module", "anchor": [1096, 784]}, {"id": "module_3", "file": "module_3.png", "x": 204, "y": 888, "width": 215, "height": 207, "role": "floating-module", "anchor": [311, 992]}, {"id": "module_4", "file": "module_4.png", "x": 830, "y": 894, "width": 199, "height": 215, "role": "floating-module", "anchor": [929, 1001]}, {"id": "eye_left", "file": "eye_left.png", "x": 368, "y": 412, "width": 221, "height": 172, "role": "visor-expression", "anchor": [478, 498]}, {"id": "eye_right", "file": "eye_right.png", "x": 672, "y": 411, "width": 225, "height": 174, "role": "visor-expression", "anchor": [784, 498]}, {"id": "fin_left", "file": "fin_left.png", "x": 241, "y": 17, "width": 162, "height": 340, "role": "fin-glint", "anchor": [330, 360]}, {"id": "fin_right", "file": "fin_right.png", "x": 862, "y": 30, "width": 171, "height": 325, "role": "fin-glint", "anchor": [937, 360]}]};
+const states=['idle','working','warning','critical','offline'];
+const idles=[['idle_hover','Flutuar'],['idle_blink','Piscar'],['idle_glance','Olhar'],['idle_orbit_breathe','Módulos'],['idle_head_tilt','Inclinar'],['idle_fin_twitch','Aletas']];
+const renderButtons=(id,values,label)=>document.getElementById(id).innerHTML=values.map(([value,text])=>'<button type="button" data-action-value="'+value+'" aria-pressed="'+String(value==='idle')+'">'+text+'</button>').join('');
+renderButtons('states',states.map(x=>[x,x]),'Estado');renderButtons('idles',idles,'Gesto');
+const stateButtons=[...document.querySelectorAll('#states button')];
+const btns=[...document.querySelectorAll('#idles button')];
+let state='idle',current=null,nextTimer=null,finishTimer=null,seq=1729;
+const rng=()=>{seq=(seq*1664525+1013904223)>>>0;return seq/4294967296};
+const enabled=()=>document.getElementById('motion').checked&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&state==='idle'&&!document.hidden;
+const stop=()=>{clearTimeout(nextTimer);clearTimeout(finishTimer);nextTimer=finishTimer=null;current=null;figure.dataset.action='';btns.forEach(b=>b.setAttribute('aria-pressed','false'))};
+const act=(id)=>{if(!enabled())return;stop();current=id;figure.dataset.action=id;for(const b of btns)b.setAttribute('aria-pressed',String(b.dataset.actionValue===id));document.getElementById('status').textContent='Idle: '+(idles.find(a=>a[0]===id)?.[1]||id);finishTimer=setTimeout(()=>{stop();schedule()},id==='idle_hover'?2700:2300)};
+const schedule=()=>{clearTimeout(nextTimer);if(!enabled()||!document.getElementById('auto').checked)return;nextTimer=setTimeout(()=>{const options=idles.filter(x=>x[0]!=='idle_hover');const pick=options[Math.floor(rng()*options.length)][0];act(pick)},12000+Math.floor(rng()*18000))};
+stateButtons.forEach(button=>button.addEventListener('click',()=>{stop();state=button.dataset.actionValue;figure.dataset.state=state;stateButtons.forEach(x=>x.setAttribute('aria-pressed',String(x===button)));document.getElementById('status').textContent='Estado: '+state;if(state==='idle')schedule()}));
+btns.forEach(button=>button.addEventListener('click',()=>act(button.dataset.actionValue)));
+document.getElementById('motion').addEventListener('change',e=>{figure.dataset.motion=e.target.checked?'on':'off';stop();schedule()});
+document.getElementById('auto').addEventListener('change',schedule);
+document.getElementById('compare').addEventListener('change',e=>{figure.dataset.reconstruction=e.target.checked?'off':'on';stop();schedule()});
+document.addEventListener('visibilitychange',()=>{stop();schedule()});
+const mq=matchMedia('(prefers-reduced-motion: reduce)');mq.addEventListener?.('change',()=>{stop();schedule()});
+const canvas=1254;for(const item of manifest.layers){
+  const img=document.createElement('img');img.src=item.file;img.alt='';img.draggable=false;img.dataset.id=item.id;
+  img.className='layer '+(item.role==='floating-module'?'module':item.role==='visor-expression'?'eyes':'fin');
+  img.style.left=(item.x/canvas*100)+'%';img.style.top=(item.y/canvas*100)+'%';img.style.width=(item.width/canvas*100)+'%';img.style.height=(item.height/canvas*100)+'%';
+  figure.appendChild(img);
+}
+const moved=document.getElementById('nex');moved.querySelectorAll('img').forEach(img=>{img.addEventListener('error',()=>{document.getElementById('status').textContent='Arquivo ausente: '+img.src.split('/').pop()})});
+if(document.getElementById('auto').checked)schedule();
+</script></body></html>

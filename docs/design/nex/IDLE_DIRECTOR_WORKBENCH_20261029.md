@@ -27,7 +27,7 @@ Foi gerado `NEX_Pixel_Scale_Candidates.zip` (SHA-256 `9eeeb6dfa2e2cb425d39969802
 ## Estado honesto dos gates
 
 - `docs/design/nex/RELEASE_READINESS.json` continua `BLOCKED`; a entrega não foi promovida a `PASSED`.
-- Arte do laboratório e amostras PNG existem como ZIP nesta conversa; seus **blobs ainda não constam da árvore GitHub**.
+- **Fonte artística e atlas 96 quadros agora versionados:** PNG original, camadas reais e atlas experimental estão na `release/v1.0.0` após PR #147. O HTML específico do workbench de 12 botões e os PNGs de escala reduzida continuam como demonstradores externos, não como assets de produção. Os 12 quadros finais hand-drawn e sua integração ao HUD permanecem pendentes.
 - O director encontra-se versionado como código testável, mas **ainda não conectado ao GuardianMascot** — aguarda atlas pixel art aprovado para evitar exposição de animação provisória.
 - `360°` segue condicionado às 16 vistas coerentes, inclusive costas e oclusão, não à distorção do frontal.
 - A publicação do Nexus-Site permanece bloqueada conforme a PR #8.
