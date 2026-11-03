@@ -62,7 +62,17 @@ describe('NEX single Guardian mascot', () => {
     expect(html).toContain('transform="translate(114 96)"');
     expect(html).toContain('transform="translate(30 115)"');
     expect(html).toContain('transform="translate(98 115)"');
-    expect(html).toContain('data-motion="on"');
+    // Static SSR has no IntersectionObserver. Motion activates only after
+    // client visibility is verified; the operational mood still renders.
+    expect(html).toContain('data-mood="working"');
+    expect(html).toContain('data-motion="off"');
+  });
+
+  it('keeps the Companion still during SSR until visibility is established', () => {
+    const html = renderGuardian({ mood: 'idle', motion: true });
+    expect(html).toContain('data-nex-behavior="still"');
+    expect(html).toContain('data-motion="off"');
+    expect(html).not.toContain('data-idle-action=');
   });
 
   it('disables all decorative motion when offline or explicitly disabled', () => {

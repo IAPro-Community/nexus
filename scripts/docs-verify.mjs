@@ -134,13 +134,11 @@ if (existsSync(manifestPath)) {
     errors.push('visual manifest has invalid source_sha');
   }
   if (manifest.source_sha) {
-    // Visual capture provenance must track rendered UI, not a new inactive
-    // scheduler module and test-only code. Test/spec files do not ship to the
-    // renderer. GuardianMascot, NexPixelSprite, styles and other runtime UI
-    // still invalidate captures exactly as before.
+    // Visual capture provenance must track every module used by live rendering.
+    // NexIdleDirector now animates GuardianMascot, so its changes invalidate
+    // captures. Test/spec files still do not ship to the renderer.
     const isRenderingChange = (name) =>
       !/\.(?:test|spec)\.(?:ts|tsx)$/.test(name) &&
-      name !== 'web/src/features/hud/nexIdleDirector.ts' &&
       // These source candidates are not imported by the live HUD or current
       // screenshot scenarios. Their own hash + browser QA gate is separate.
       !name.startsWith('web/public/nex/hybrid-v1/');

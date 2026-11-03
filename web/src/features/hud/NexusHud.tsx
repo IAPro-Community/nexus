@@ -51,6 +51,7 @@ import {
   type MascotAttention,
 } from './mascotModel';
 import { GuardianMascot } from './GuardianMascot';
+import { consumeNexNewCompletion } from './nexCompanionBehavior';
 import {
   shouldRenderHudCompactControl,
   shouldRenderHudMascot,
@@ -118,6 +119,12 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const [prefs, setPrefs] = useState<HudPresentationPreferences>(() => loadHudPreferences());
   const [response, setResponse] = useState<HudResponse | null>(null);
   const [attentionGroup, setAttentionGroup] = useState<AttentionGroup | undefined>();
+  const [recentCompletionId, setRecentCompletionId] = useState<string | null>(null);
+  const seenCompletions = useRef<{
+    project: string | undefined;
+    initialized: boolean;
+    ids: Set<string>;
+  }>({ project: projectId, initialized: false, ids: new Set() });
   const [mascotSnoozes, setMascotSnoozes] = useState<Record<string, number>>(() => {
     try {
       return readMascotSnoozes(window.localStorage);
@@ -354,6 +361,29 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     () => projectMascotAttention(state, attentionGroup),
     [state, attentionGroup],
   );
+  // A newly observed verified Mission may trigger a purely visual reaction.
+  // Initial fetch is a baseline; old completions and other projects are ignored.
+  useEffect(() => {
+    const scope = projectId ?? state?.project_id;
+    if (seenCompletions.current.project !== scope) {
+      seenCompletions.current = { project: scope, initialized: false, ids: new Set() };
+      setRecentCompletionId(null);
+    }
+    if (!attentionGroup) return;
+    const completed = (attentionGroup.completed || []).filter(
+      (item) => !scope || item.project_id === scope,
+    );
+    const snapshot = seenCompletions.current;
+    const id = consumeNexNewCompletion(completed, snapshot.ids, snapshot.initialized);
+    snapshot.initialized = true;
+    while (snapshot.ids.size > 128) {
+      const oldest = snapshot.ids.values().next().value;
+      if (oldest === undefined) break;
+      snapshot.ids.delete(oldest);
+    }
+    if (id) setRecentCompletionId(id);
+  }, [attentionGroup, projectId, state?.project_id]);
+
   const mascotBubble = useMemo(
     () => nextMascotBubble(mascotAttention, mascotSnoozes, Date.now(), dismissedMascotBubbles),
     [mascotAttention, mascotSnoozes, dismissedMascotBubbles],
@@ -1182,6 +1212,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
           <div className={styles.mascotRow}>
             <GuardianMascot
               mood={guardianState}
+              completionEventId={recentCompletionId}
               count={attentionCount}
               expanded={expanded}
               motion={prefs.mascotMotion}
