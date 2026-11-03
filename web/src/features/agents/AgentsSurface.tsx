@@ -26,6 +26,7 @@ import { useTranslation } from 'react-i18next';
 import { TaskPreparationDialog } from '../../components/TaskPreparationDialog';
 import { askActionForStatus } from './askAgentModel';
 import { DirectorAgentPanel } from './DirectorAgentPanel';
+import { DirectorFleetPanel } from './DirectorFleetPanel';
 import { formatOpenedAgo } from '../projects/projectRailRelativeTime';
 import styles from './AgentsSurface.module.scss';
 
@@ -60,6 +61,7 @@ export const AgentsSurface: React.FC<{
   const [resourceAgent, setResourceAgent] = useState<Agent | null>(null);
   const [askAgent, setAskAgent] = useState<Agent | null>(null);
   const [directorAgent, setDirectorAgent] = useState<Agent | null>(null);
+  const [directorFleetOpen, setDirectorFleetOpen] = useState(false);
   const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
   const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -186,9 +188,14 @@ export const AgentsSurface: React.FC<{
               )}
             </p>
           </div>
-          <Button size="sm" tone="ghost" onClick={() => void refresh()}>
-            <RefreshCw size={13} /> {t('common.refresh', 'Atualizar')}
-          </Button>
+          <div className={styles.cardActions}>
+            <Button size="sm" tone="ghost" onClick={() => setDirectorFleetOpen(true)}>
+              <Layers3 size={13} /> {t('director.fleetOpen', 'Direção geral')}
+            </Button>
+            <Button size="sm" tone="ghost" onClick={() => void refresh()}>
+              <RefreshCw size={13} /> {t('common.refresh', 'Atualizar')}
+            </Button>
+          </div>
         </div>
 
         {/* Top Summary Metrics Strip */}
@@ -461,6 +468,24 @@ export const AgentsSurface: React.FC<{
             })}
           </div>
         )}
+
+        <Dialog
+          open={directorFleetOpen}
+          onClose={() => setDirectorFleetOpen(false)}
+          title={t('director.fleetTitle', 'Direção de agentes')}
+          wide
+        >
+          {directorFleetOpen && (
+            <DirectorFleetPanel
+              projectId={project.id}
+              agents={agents}
+              onInspect={(agent) => {
+                setDirectorFleetOpen(false);
+                setDirectorAgent(agent);
+              }}
+            />
+          )}
+        </Dialog>
 
         {/* Read-only Director projection over existing Agent and SessionHost. */}
         <Dialog
