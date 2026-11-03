@@ -477,6 +477,7 @@ export const AgentsSurface: React.FC<{
         >
           {directorFleetOpen && (
             <DirectorFleetPanel
+              key={project.id}
               projectId={project.id}
               agents={agents}
               onInspect={(agent) => {
@@ -496,6 +497,7 @@ export const AgentsSurface: React.FC<{
         >
           {directorAgent && (
             <DirectorAgentPanel
+              key={directorAgent.id}
               agent={directorAgent}
               onPrepare={() => {
                 setDirectorAgent(null);
