@@ -40,8 +40,10 @@ jobs:
       - name: Install locked frontend dependencies
         run: bun install --cwd web --frozen-lockfile
 
-      - name: Install headless Chromium
-        run: bunx playwright install --with-deps chromium
+      - name: Install headless Chromium and video encoder
+        run: |
+          bunx playwright install --with-deps chromium
+          bunx playwright install ffmpeg
 
       - name: Run NEX unit tests before recapture
         working-directory: web
