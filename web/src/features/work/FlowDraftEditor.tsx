@@ -80,7 +80,13 @@ export const FlowDraftEditor: React.FC<{
           plan={controller.selectedPlan}
           onApply={(preview) => {
             setFlowDraft((current) =>
-              current ? draftFromMaestroComposition(current, preview) : current,
+              current
+                ? draftFromMaestroComposition(
+                    current,
+                    preview,
+                    t('flow.maestroDraftPhaseTitle', 'Maestro · plano para revisão'),
+                  )
+                : current,
             );
             setSelectedStepId(preview.tasks?.[0]?.id || '');
           }}
