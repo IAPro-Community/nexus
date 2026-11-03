@@ -27,6 +27,7 @@ import {
 } from '../../lib/hostSessionImport';
 import { AccountLoginModal } from './AccountLoginModal';
 import { CostSummaryStrip } from './CostSummaryStrip';
+import { ConsumptionAnalyticsPanel } from './ConsumptionAnalyticsPanel';
 import { RegisterProviderModal } from './RegisterProviderModal';
 import { SchedulerExplainModal } from './SchedulerExplainModal';
 import { UsageAccountCard } from './UsageAccountCard';
@@ -433,17 +434,24 @@ export const UsageSurface: React.FC<{
       ) : null}
 
       {!loading && accounts.length > 0 ? (
+        <UsageSummaryStrip
+          summary={summary}
+          bestLabel={bestLabel}
+          activeStatusFilter={statusFilter}
+          onSelectStatusFilter={setStatusFilter}
+          onSelectBest={handleSelectBest}
+        />
+      ) : null}
+
+      {!loading ? (
         <>
-          <UsageSummaryStrip
-            summary={summary}
-            bestLabel={bestLabel}
-            activeStatusFilter={statusFilter}
-            onSelectStatusFilter={setStatusFilter}
-            onSelectBest={handleSelectBest}
-          />
-
           <CostSummaryStrip summary={costSummary} />
+          <ConsumptionAnalyticsPanel />
+        </>
+      ) : null}
 
+      {!loading && accounts.length > 0 ? (
+        <>
           <div className={styles.toolbar}>
             <div className={styles.searchWrap}>
               <SearchInput
