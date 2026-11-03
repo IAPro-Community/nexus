@@ -142,6 +142,31 @@ func TestCostBudgetAdmissionRequiresFreshExplicitConfirmation(t *testing.T) {
 		t.Fatalf("fresh confirmation rejected: %v", err)
 	}
 
+	// API-equivalent pricing may exceed a configured hard threshold while
+	// the provider reports no charge. It must not be presented as billed spend.
+	estimatedCost := int64(2_000_000)
+	if _, err := st.RecordCostObservation(store.CostObservation{
+		ProjectID: project.ID, Provider: "opencode", Profile: "default",
+		CostMicroUSD: &estimatedCost, CostKind: store.CostKindAPIEquivalentEstimate,
+		Source: "public_api_equivalent", Status: "COMPLETED",
+		ObservedAt: time.Now().UTC(),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	estimatedSummary, err := NewCostApplicationService(st).Summary(context.Background(), project.ID, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if estimatedSummary.Budget.Level != CostBudgetUnknown ||
+		!estimatedSummary.Budget.RequiresConfirmation ||
+		estimatedSummary.Budget.ReportedCostMicroUSD != 0 ||
+		estimatedSummary.Budget.APIEquivalentMicroUSD != estimatedCost {
+		t.Fatalf("API equivalent must not be mistaken for reported spending: %+v", estimatedSummary.Budget)
+	}
+	if err := validateCostBudgetAdmission(context.Background(), st, plan, token); err == nil {
+		t.Fatal("estimated-cost change must invalidate the old confirmation token")
+	}
+
 	knownCost := int64(250_000)
 	if _, err := st.RecordCostObservation(store.CostObservation{
 		ProjectID: project.ID, Provider: "codex", Profile: "work",
