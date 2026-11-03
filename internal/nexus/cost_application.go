@@ -247,7 +247,7 @@ func costBudgetConfirmationToken(planID string, revision int, summary CostSummar
 		return ""
 	}
 	fingerprint := fmt.Sprintf(
-		"%s|%d|%s|%d|%d|%d|%d|%d|%d|%s|%t|%d|%s",
+		"%s|%d|%s|%d|%d|%d|%d|%d|%d|%d|%s|%t|%d|%s",
 		strings.TrimSpace(planID),
 		revision,
 		summary.Budget.Level,
