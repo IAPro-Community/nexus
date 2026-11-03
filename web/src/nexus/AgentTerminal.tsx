@@ -65,7 +65,8 @@ import { TaskPreparationDialog } from '../components/TaskPreparationDialog';
 import type { RuntimeSession } from '../types';
 import { consumePtyOutputForChrome, extractOscTitle } from '../workspace/ptyLiveChrome';
 import { usePtyLiveChromeOptional } from '../workspace/PtyLiveChromeContext';
-import { canFitTerminal, canRunTerminalFrame } from './terminalFitModel';
+import { canFitTerminal, canRunTerminalFrame, shouldSendTerminalResize } from './terminalFitModel';
+import { observeTerminalPaneResize } from '../components/terminalPaneResize';
 import { VoiceCaptureButton } from '../features/voice/VoiceCaptureButton';
 import { sendVoiceTranscriptToTerminal } from '../features/voice/terminalVoice';
 import { ExecutionRoleSelector } from './ExecutionRoleSelector';
@@ -353,6 +354,16 @@ export const AgentTerminal: React.FC<{
     });
 
     const panel = container.closest<HTMLElement>('.nx-workspace-panel');
+    const sendTerminalResize = (rows: number, cols: number, force = false) => {
+      if (disposed || !openedOnce || (panel && panel.dataset.active !== 'true')) return;
+      const ws = wsRef.current;
+      if (ws?.readyState !== WebSocket.OPEN) return;
+      const nextSize = { rows, cols };
+      if (!shouldSendTerminalResize(nextSize, lastSentSize, force)) return;
+      lastSentSize = nextSize;
+      ws.send(JSON.stringify({ type: 'resize', rows, cols }));
+    };
+
     const fitAndResize = (force = false) => {
       if (panel && panel.dataset.active !== 'true') return;
       if (
@@ -367,17 +378,23 @@ export const AgentTerminal: React.FC<{
       ) {
         return;
       }
+      const previous = { rows: term.rows, cols: term.cols };
       try {
         fit.fit();
       } catch {
         return;
       }
-      const ws = wsRef.current;
-      if (ws?.readyState !== WebSocket.OPEN) return;
-      if (!force && term.rows === lastSentSize.rows && term.cols === lastSentSize.cols) return;
-      lastSentSize = { rows: term.rows, cols: term.cols };
-      ws.send(JSON.stringify({ type: 'resize', rows: term.rows, cols: term.cols }));
+      // fit() emits onResize when the grid changes. Only force a second
+      // SIGWINCH when the grid did not change (attach / explicit redraw).
+      const gridChanged = previous.rows !== term.rows || previous.cols !== term.cols;
+      sendTerminalResize(term.rows, term.cols, force && !gridChanged);
     };
+
+    // Font zoom calls FitAddon.fit() outside fitAndResize. Listen for xterm
+    // grid changes so the child PTY stays synchronized with the canvas.
+    const resizeListener = term.onResize(({ rows, cols }) => {
+      sendTerminalResize(rows, cols);
+    });
 
     // Do not let xterm render while its workspace panel is hidden. Its
     // viewport dimensions are not guaranteed during that transition.
@@ -765,8 +782,7 @@ export const AgentTerminal: React.FC<{
       : null;
     if (panel)
       panelObserver?.observe(panel, { attributes: true, attributeFilter: ['data-active'] });
-    const observer = new ResizeObserver(() => window.requestAnimationFrame(() => fitAndResize()));
-    observer.observe(container);
+    const stopObservingContainer = observeTerminalPaneResize(container, () => fitAndResize());
     const visibility = () => {
       if (!document.hidden) window.requestAnimationFrame(() => fitAndResize());
     };
@@ -783,7 +799,7 @@ export const AgentTerminal: React.FC<{
       if (flushFrame !== undefined) window.cancelAnimationFrame(flushFrame);
       if (outputFrame !== undefined) window.cancelAnimationFrame(outputFrame);
       redrawTimers.forEach((timer) => window.clearTimeout(timer));
-      observer.disconnect();
+      stopObservingContainer();
       panelObserver?.disconnect();
       document.removeEventListener('visibilitychange', visibility);
       try {
@@ -798,6 +814,11 @@ export const AgentTerminal: React.FC<{
       }
       try {
         dataDisposable.dispose();
+      } catch {
+        // ignore
+      }
+      try {
+        resizeListener.dispose();
       } catch {
         // ignore
       }
