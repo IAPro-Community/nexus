@@ -1,3 +1,26 @@
+export type TerminalSocketEnvelope =
+  | { kind: 'frame'; payload: Record<string, unknown> }
+  | { kind: 'raw'; data: string }
+  | { kind: 'invalid' };
+
+/**
+ * Distinguish JSON decoding from message handling. A caught rendering error
+ * must never be reinterpreted as PTY bytes and printed in the terminal.
+ */
+export function decodeTerminalSocketEnvelope(raw: unknown): TerminalSocketEnvelope {
+  if (typeof raw !== 'string') return { kind: 'invalid' };
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { kind: 'raw', data: raw };
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return { kind: 'invalid' };
+  }
+  return { kind: 'frame', payload: parsed as Record<string, unknown> };
+}
+
 export type TerminalFrame =
   | { type: 'output'; data: string }
   | { type: 'agent_state'; agent_id: string; state: string }
