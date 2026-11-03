@@ -421,6 +421,8 @@ export const en = {
     fleetEmpty: 'No persistent agents in this project.',
     fleetTruncated: 'Only the first 100 agents are shown.',
     inspect: 'Inspect',
+    recentActivity: 'Recent activity',
+    noRecentActivity: 'No recent activity recorded for this Agent.',
     processStates: {
       LIVE: 'Process alive',
       NOT_LIVE: 'Process no longer available',
@@ -2781,6 +2783,8 @@ export const ptBR = {
     fleetEmpty: 'Não há agentes persistentes neste projeto.',
     fleetTruncated: 'Exibindo somente os primeiros 100 agentes.',
     inspect: 'Inspecionar',
+    recentActivity: 'Atividade recente',
+    noRecentActivity: 'Nenhuma atividade recente registrada para este agente.',
     processStates: {
       LIVE: 'Processo ativo',
       NOT_LIVE: 'Processo indisponível',
@@ -5159,6 +5163,8 @@ export const es = {
     fleetEmpty: 'No hay agentes persistentes en este proyecto.',
     fleetTruncated: 'Se muestran solamente los primeros 100 agentes.',
     inspect: 'Inspeccionar',
+    recentActivity: 'Actividad reciente',
+    noRecentActivity: 'No se registró actividad reciente para este agente.',
     processStates: {
       LIVE: 'Proceso activo',
       NOT_LIVE: 'Proceso no disponible',
