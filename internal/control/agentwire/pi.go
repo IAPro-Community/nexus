@@ -38,6 +38,12 @@ func (p *PiRPC) OnEvent(callback func(string, json.RawMessage)) {
 	p.onEvent = callback
 }
 func (p *PiRPC) Command(ctx context.Context, command string, fields map[string]any, reply *json.RawMessage) error {
+	return p.command(ctx, command, fields, reply, nil)
+}
+
+// command supplies the actual outbound request ID to the owning Bridge
+// before bytes reach the provider. A later prompt_result must match it.
+func (p *PiRPC) command(ctx context.Context, command string, fields map[string]any, reply *json.RawMessage, onRequestID func(string)) error {
 	if command == "" {
 		return errors.New("pi RPC: empty command")
 	}
@@ -57,6 +63,9 @@ func (p *PiRPC) Command(ctx context.Context, command string, fields map[string]a
 			return errors.New("pi RPC: reserved field")
 		}
 		msg[k] = v
+	}
+	if onRequestID != nil {
+		onRequestID(id)
 	}
 	if err := p.wire.Write(msg); err != nil {
 		return err
