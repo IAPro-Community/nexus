@@ -169,6 +169,39 @@ experimental modes.
 
 **Not yet delivered:** OMP native authentication/identity projection in Usage,
 CLI version handshake, real ACP/RPC question and approval round trips,
-remote safe answer UI, two simultaneous real sessions, cross-platform E2E,
-and verified native resume. Do not mark issue #98 as finished or announce
-this as a production-ready provider.
+remote safe answer UI, two **authenticated** simultaneous sessions,
+cross-platform E2E, and verified native resume. Do not mark issue #98 as
+finished or announce this as a production-ready provider.
+
+## OMP live RPC negative-path test (Linux, opt-in)
+
+`internal/control/agentwire/bridge_omp_live_test.go` can execute the real
+OMP binary without a model account. It launches **two separate processes**
+with isolated HOME/XDG directories and an explicit allowlist of environment
+variables (no inherited API keys). Both use protocol v1 over JSONL,
+complete the `get_state` handshake and admit two rounds of concurrent
+prompts. Without credentials, the real OMP 18.16.0 emits
+`response(success=true)` followed by `response(success=false)` and
+`prompt_result(status=error, sessionSettled=true)`. Nexus must project
+`error` for the matching request, **never DONE**; it must release both
+sessions for another prompt without leaking state between them.
+
+```bash
+# Linux; requires a separately installed OMP binary and Go 1.25+.
+NEXUS_OMP_LIVE_BIN="$(command -v omp)" \
+  go test -count=1 -run '^TestOMPLiveRPCNoAuthTwoSessions
+ \
+  ./internal/control/agentwire
+NEXUS_OMP_LIVE_BIN="$(command -v omp)" \
+  go test -race -count=1 -run '^TestOMPLiveRPCNoAuthTwoSessions
+ \
+  ./internal/control/agentwire
+```
+
+The test is **skipped** unless `NEXUS_OMP_LIVE_BIN` is explicitly set.
+`NEXUS_OMP_LIVE_MODEL` overrides the default `openai/gpt-5.2` selector.
+No credentials are required or read from the caller environment. This proves
+only real-binary framing, session isolation and negative-path settlement;
+it is **not** an authenticated model-generation, approval, streaming-v2,
+resume, multiclient or cross-platform certification. The source-SHA visual
+capture gate remains tracked separately in issue #201.
