@@ -13,7 +13,7 @@ import (
 func TestOMPSessionSettledAfterYieldAndDeduplicated(t *testing.T) {
 	var signals []WireSignal
 	b := &Bridge{
-		busy: true,
+		busy:    true,
 		signals: func(s WireSignal) { signals = append(signals, s) },
 	}
 	b.piEvent("agent_end", nil)
@@ -34,7 +34,7 @@ func TestOMPSessionSettledAfterYieldAndDeduplicated(t *testing.T) {
 func TestLegacyPiAgentSettledStillRecognized(t *testing.T) {
 	var signals []WireSignal
 	b := &Bridge{
-		busy: true,
+		busy:    true,
 		signals: func(s WireSignal) { signals = append(signals, s) },
 	}
 	b.piEvent("agent_settled", nil)
