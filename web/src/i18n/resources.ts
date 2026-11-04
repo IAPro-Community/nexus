@@ -399,6 +399,8 @@ export const en = {
     subtitle:
       'Observed runtime state and verified controls. This view never starts workers automatically.',
     refresh: 'Refresh',
+    refreshing: 'Updating observed state…',
+    lastChecked: 'Last observed: {{time}}',
     prepare: 'Prepare task',
     terminal: 'Open terminal',
     agent: 'Agent',
@@ -2803,6 +2805,8 @@ export const ptBR = {
     subtitle:
       'Estado observado do agente e controles verificados. A tela não inicia trabalhadores automaticamente.',
     refresh: 'Atualizar',
+    refreshing: 'Atualizando estado observado…',
+    lastChecked: 'Última observação: {{time}}',
     prepare: 'Preparar tarefa',
     terminal: 'Abrir terminal',
     agent: 'Agente',
@@ -5225,6 +5229,8 @@ export const es = {
     subtitle:
       'Estado observado del agente y controles verificados. Esta vista no inicia trabajadores automáticamente.',
     refresh: 'Actualizar',
+    refreshing: 'Actualizando el estado observado…',
+    lastChecked: 'Última observación: {{time}}',
     prepare: 'Preparar tarea',
     terminal: 'Abrir terminal',
     agent: 'Agente',
