@@ -6806,3 +6806,19 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - `startDirectSession` agora valida e normaliza o nome (`trim`) antes de criar Agent, impedindo que uma entrada vazia chegue ao endpoint que responde `name is required`.
 - Regressão em `directSessionLifecycle.test.ts`: nome aparado enviado ao create e nome em branco rejeitado antes da chamada API. Teste direcionado PASS (9 testes); suíte web auxiliar PASS (7 testes).
 - Rebuild e instalação local concluídos; CLI/Core `1.0.0-beta.11`, PID `1337283`, health API `ok`, hashes do build e instalado coincidem (`317181e9…40ec91f`).
+
+## 2026-11-03 — roteamento explícito e permissões do Lead interativo
+
+- Corrigi o roteamento de `STICKY_LEAD`: complexidade e decomposição heurística permanecem no provider ativo; apenas um pedido explícito cria Mission. Pedido explícito de Mission funciona mesmo com delegação OFF. Um pedido explícito para outro provider registrado executa um único turno sem Mission; menções ao provider ativo não mudam a rota.
+- A sessão de origem agora propaga SAFE/PLAN/YOLO. Revisões exigem capacidade read-only comprovada; escritas exigem YOLO e o contrato de workspace-write/no-network do provider. Falhas identificam recursos/capacidades rejeitados e retornam ao Lead para pedir escolha do usuário, sem troca ou execução alternativa silenciosa.
+- Documentação atualizada em `docs/product/interactive-control.md`, `docs/architecture/agent-routing.md` e `docs/whats-new.md`. É uma correção de política interna, sem nova superfície de produto; por isso não cria tour/anúncio de descoberta.
+- Cobertura adicionada para roteamento negado/explícito, promoção explícita em OFF, modos de execução, isolamento read-only do Codex e explicação dos motivos de rejeição.
+- PASS: `make test-go` completo com `GO_TAGS=gtk3` (88 pacotes); `go test ./internal/nexus` (122,5 s); testes completos de `internal/app`, `internal/nexus/promotion`, `internal/control/web` e `internal/control/driver`; teste de bootstrap do Composer repetido sozinho (2,7 s); `go vet` dos pacotes alterados; `make security` (nenhuma vulnerabilidade); `golangci-lint run --new-from-rev=HEAD ./...` (0 problemas novos); `gofmt` e `git diff --check`.
+- A primeira execução paralela focalizada de `internal/nexus` excedeu por 0,9 s o limite de um teste de bootstrap; a repetição isolada e o gate completo passaram. `make format-check` ainda sinaliza sete arquivos web fora deste diff. `make lint-go` ainda encontra oito avisos já existentes em outros arquivos (`SIGNALLED`, mensagens capitalizadas, `unparam` e whitespace); o lint incremental deste diff não encontrou problema.
+- `make install-local` recompilou a CLI beta.11, instalou `/home/desenvolvedor/.local/bin/nexus` e reiniciou `nexus web` (PID 1888667). Hash do binário build/instalado coincide: `f790c7e08a5a8449133731de736acba7699309f7014dd7c6bf70a62b77567b5d`; `/api/v1/health` retornou `ok`, beta.11. Sem commit/push; validação de teclado/TUI com provider real permanece pendente.
+
+## 2026-11-04 — validação após sincronização da release
+
+- Fast-forward aplicado de `origin/release/v1.0.0` para `d66426af` antes do commit, sem conflitos com o trabalho local.
+- Após sincronizar, `internal/nexus` e `internal/control/web` passaram em `make test-go`. A execução paralela teve uma falha em `TestControlPlaneCLICommands`; a repetição isolada e `go test -tags=gtk3 ./internal/app -count=1` passaram. A rodada agregada fica registrada com essa ressalva.
+- `make format-check` passou após a sincronização. A falha reproduzível só na rodada paralela não ocorreu no pacote completo isolado.

@@ -69,6 +69,24 @@ func TestSupervisedRuntimeLabelsDoNotAuthorizeMissionPromotion(t *testing.T) {
 	}
 }
 
+func TestSupervisedRuntimeLabelsPreserveProviderExecutionMode(t *testing.T) {
+	cases := []struct {
+		args []string
+		want string
+	}{
+		{args: []string{"--yolo"}, want: "YOLO"},
+		{args: []string{"--full-auto"}, want: "YOLO"},
+		{args: []string{"--plan"}, want: "PLAN"},
+		{args: []string{"--plan", "--yolo"}, want: "SAFE"},
+		{args: []string{"--sandbox", "workspace-write"}, want: "SAFE"},
+	}
+	for _, tc := range cases {
+		if got := supervisedRuntimeLabelsForArgs(tc.args)["nexus.execution_mode"]; got != tc.want {
+			t.Errorf("args=%v execution mode=%q, want %q", tc.args, got, tc.want)
+		}
+	}
+}
+
 func TestStripControlFlagsRemovesLeadControls(t *testing.T) {
 	r := NewLaunchModeResolver(LaunchModeInput{
 		Args:       []string{"--lead", "--yolo", "--model", "test"},

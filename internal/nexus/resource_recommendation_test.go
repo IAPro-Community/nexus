@@ -2,6 +2,7 @@ package nexus
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -242,6 +243,38 @@ func TestResourceRecommendation_RequiredCapabilitiesAreHardGate(t *testing.T) {
 		if candidate.Account.ID == "no-resume" && candidate.Eligible {
 			t.Fatal("candidate without required capability must be ineligible")
 		}
+	}
+}
+
+func TestResourceRecommendationExplainsCapabilityRejection(t *testing.T) {
+	accounts := []ProviderAccount{{
+		ID:             "codex-review",
+		Provider:       "codex",
+		Profile:        "review",
+		Authenticated:  true,
+		Available:      true,
+		QuotaView:      &quota.QuotaView{Status: "LIVE"},
+		QuotaRemaining: 0.5,
+		Health:         "healthy",
+		Capabilities: map[string]string{
+			"headless":         "SUPPORTED",
+			"submit_prompt":    "SUPPORTED",
+			"read_only_review": "UNKNOWN",
+		},
+	}}
+	result := RecommendResources(accounts, TaskRequirements{
+		RequiredCapabilities: []string{"headless", "submit_prompt", "read_only_review"},
+	}, PolicyBalanced)
+	if result.Recommended != nil {
+		t.Fatalf("unsupported review capability must reject the resource: %+v", result.Recommended)
+	}
+	for _, want := range []string{"codex:review", "read_only_review", "UNKNOWN"} {
+		if !strings.Contains(result.Explanation, want) {
+			t.Fatalf("explanation %q does not identify rejection detail %q", result.Explanation, want)
+		}
+	}
+	if strings.Contains(result.Explanation, "sem autenticação") {
+		t.Fatalf("explanation must not mislabel a capability rejection: %q", result.Explanation)
 	}
 }
 

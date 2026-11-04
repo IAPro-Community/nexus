@@ -56,28 +56,70 @@ func TestResolveRegisteredProviderPreferenceSupportsNormalizedSpelling(t *testin
 	}
 }
 
-func TestResolveExplicitReadOnlyProviderDelegateKeepsStickyLeadByDefault(t *testing.T) {
+func TestResolveRegisteredProviderPreferenceDoesNotRouteIncidentalOrNegatedProviderMentions(t *testing.T) {
+	for _, prompt := range []string{
+		"do not use Cursor for this task",
+		"don't use Cursor for this task",
+		"não use Cursor nesta tarefa",
+		"never delegate to Cursor",
+	} {
+		provider, ok := resolveRegisteredProviderPreference(prompt, []string{"cursor"})
+		if ok {
+			t.Fatalf("incidental or negated provider mention routed to %q for %q", provider, prompt)
+		}
+	}
+}
+
+func TestResolveRegisteredProviderPreferenceRoutesProviderNamedWithAction(t *testing.T) {
+	for _, prompt := range []string{
+		"peça ao Cursor para revisar este arquivo",
+		"use o Cursor para revisar este arquivo",
+		"delegue esta revisão ao Cursor",
+		"delegate this review to Cursor",
+	} {
+		provider, ok := resolveRegisteredProviderPreference(prompt, []string{"codex", "cursor"})
+		if !ok || provider != "cursor" {
+			t.Fatalf("explicit provider request not recognized for %q: provider=%q ok=%t", prompt, provider, ok)
+		}
+	}
+}
+
+func TestResolveExplicitProviderDelegateKeepsStickyLeadByDefault(t *testing.T) {
 	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
 	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
 	t.Setenv("AI_CLI_STATE_DIR", t.TempDir())
 	if _, err := profile.Create("codex", "review"); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := profile.Create("cursor", "review"); err != nil {
+		t.Fatal(err)
+	}
 	n := &Nexus{}
-	provider, delegated, err := n.ResolveExplicitReadOnlyProviderDelegate("peça ao Codex para revisar isso")
+	provider, delegated, err := n.ResolveExplicitProviderDelegate("peça ao Codex para revisar isso")
 	if err != nil || !delegated || provider != "codex" {
 		t.Fatalf("expected explicit review delegation to codex, got %q %t %v", provider, delegated, err)
 	}
 	for _, prompt := range []string{
 		"analise a documentação do Codex",
-		"use Codex para implementar uma API",
 		"compare Codex com Claude",
 		"corrija o teste unitário",
 	} {
-		provider, delegated, err = n.ResolveExplicitReadOnlyProviderDelegate(prompt)
+		provider, delegated, err = n.ResolveExplicitProviderDelegate(prompt)
 		if err != nil || delegated || provider != "" {
 			t.Fatalf("sticky lead must KEEP %q: provider=%q delegated=%t err=%v", prompt, provider, delegated, err)
 		}
+	}
+	provider, delegated, err = n.ResolveExplicitProviderDelegate("use Codex para implementar uma API")
+	if err != nil || !delegated || provider != "codex" {
+		t.Fatalf("explicit coding handoff should route without requiring Mission: provider=%q delegated=%t err=%v", provider, delegated, err)
+	}
+	provider, delegated, err = n.ResolveExplicitProviderDelegate("estou usando o Nexus Codex; Cursor está instalado", "codex")
+	if err != nil || delegated || provider != "" {
+		t.Fatalf("active provider mention must keep the request with Codex: provider=%q delegated=%t err=%v", provider, delegated, err)
+	}
+	provider, delegated, err = n.ResolveExplicitProviderDelegate("use Cursor para revisar isso", "codex")
+	if err != nil || !delegated || provider != "cursor" {
+		t.Fatalf("explicit cross-provider request should route to Cursor: provider=%q delegated=%t err=%v", provider, delegated, err)
 	}
 }
 

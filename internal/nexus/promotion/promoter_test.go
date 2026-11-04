@@ -19,7 +19,7 @@ func TestPromoterDecideOFFKeepsLead(t *testing.T) {
 	}
 }
 
-func TestPromoterDecideAUTOUsesExistingNexusPolicies(t *testing.T) {
+func TestPromoterDecideAUTOKeepsHeuristicDelegationWithLead(t *testing.T) {
 	p := Promoter{DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
 		return nexus.IntentDecision{Strategy: nexus.IntentPlan}, nil
 	}}
@@ -27,8 +27,8 @@ func TestPromoterDecideAUTOUsesExistingNexusPolicies(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if decision.Action != Promote || !decision.Delegation.Delegate {
-		t.Fatalf("expected promotion from deterministic delegation policy: %+v", decision)
+	if decision.Action != KeepWithLead || !decision.Delegation.Delegate {
+		t.Fatalf("heuristic delegation must not create a Mission: %+v", decision)
 	}
 }
 
@@ -40,8 +40,8 @@ func TestPromoterDecideASKRequiresConfirmation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if decision.Action != Ask {
-		t.Fatalf("expected ASK action, got %+v", decision)
+	if decision.Action != KeepWithLead {
+		t.Fatalf("ASK must not create a Mission without an explicit request: %+v", decision)
 	}
 }
 
@@ -101,8 +101,8 @@ func TestPromoterDecideAUTORequiresDecompositionPromotes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if decision.Action != Promote {
-		t.Fatalf("decomposition-worthy PLAN must promote: %+v", decision)
+	if decision.Action != KeepWithLead {
+		t.Fatalf("decomposition alone must not create a Mission: %+v", decision)
 	}
 }
 
@@ -122,7 +122,18 @@ func TestPromoterDecideAUTOExplicitMissionPromotes(t *testing.T) {
 	}
 }
 
-func TestPromoterHeuristicPromotionIsNotMarkedExplicit(t *testing.T) {
+func TestPromoterDecideOffStillPromotesExplicitMission(t *testing.T) {
+	p := Promoter{}
+	decision, err := p.Decide(context.Background(), "project", "execute esta tarefa como Mission", ModeOff)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decision.Action != Promote || !decision.ExplicitMissionRequest {
+		t.Fatalf("explicit Mission request must override OFF: %+v", decision)
+	}
+}
+
+func TestPromoterHeuristicDelegationIsNotPromotedToMission(t *testing.T) {
 	p := Promoter{DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
 		return nexus.IntentDecision{Strategy: nexus.IntentPlan}, nil
 	}}
@@ -130,8 +141,8 @@ func TestPromoterHeuristicPromotionIsNotMarkedExplicit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if decision.Action != Promote || !decision.Delegation.Delegate {
-		t.Fatalf("fixture must be heuristically promoted: %+v", decision)
+	if decision.Action != KeepWithLead || !decision.Delegation.Delegate {
+		t.Fatalf("heuristic task must stay with Lead: %+v", decision)
 	}
 	if decision.ExplicitMissionRequest {
 		t.Fatalf("heuristic promotion must remain eligible for Lead fallback: %+v", decision)
@@ -227,7 +238,7 @@ func TestPromoterDelegationOffStillKeepsProviderBytesWithLead(t *testing.T) {
 	}
 }
 
-func TestPromoterWriteCapableProviderRequestRequiresMission(t *testing.T) {
+func TestPromoterWriteCapableProviderRequestDelegatesWithoutMission(t *testing.T) {
 	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
 	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
 	t.Setenv("AI_CLI_STATE_DIR", t.TempDir())
@@ -251,8 +262,8 @@ func TestPromoterWriteCapableProviderRequestRequiresMission(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if decision.Action != Promote {
-		t.Fatalf("write-capable explicit provider request action=%s, want PROMOTE: %+v", decision.Action, decision)
+	if decision.Action != Delegate {
+		t.Fatalf("write-capable explicit provider request action=%s, want DELEGATE; execution permissions are checked by the delegate: %+v", decision.Action, decision)
 	}
 	if decision.Intent.TaskRequirements.PreferProvider != "codex" {
 		t.Fatalf("prefer provider=%q, want codex", decision.Intent.TaskRequirements.PreferProvider)

@@ -40,44 +40,41 @@ func registeredProviderIDs() ([]string, error) {
 // only when Nexus already owns at least one enabled profile for it. Actual
 // authentication, health, quota and capability eligibility are intentionally
 // left to ListResources/ResourceScheduler, which is the execution authority.
-func (n *Nexus) ResolveRegisteredProviderPreference(prompt string) (string, bool, error) {
+func (n *Nexus) ResolveRegisteredProviderPreference(prompt string, currentProvider ...string) (string, bool, error) {
 	ids, err := registeredProviderIDs()
 	if err != nil {
 		return "", false, err
 	}
-	provider, ok := resolveRegisteredProviderPreference(prompt, ids)
-	return provider, ok, nil
+	if len(currentProvider) > 0 && strings.TrimSpace(currentProvider[0]) != "" {
+		filtered := ids[:0]
+		for _, id := range ids {
+			if !strings.EqualFold(id, strings.TrimSpace(currentProvider[0])) {
+				filtered = append(filtered, id)
+			}
+		}
+		ids = filtered
+	}
+	provider, found := resolveRegisteredProviderPreference(prompt, ids)
+	return provider, found, nil
 }
 
-// ResolveExplicitReadOnlyProviderDelegate recognizes a user-owned
-// cross-provider review without authorizing autonomous Mission promotion.
-// Provider registration is the first gate; resource health/auth/quota are
-// checked later by the existing specialist allocator.
-func (n *Nexus) ResolveExplicitReadOnlyProviderDelegate(prompt string) (string, bool, error) {
+// ResolveExplicitProviderDelegate recognizes a provider named in a concrete
+// routing instruction. It does not authorize Mission creation; registration,
+// runtime permission and resource eligibility are checked by the delegate.
+func (n *Nexus) ResolveExplicitProviderDelegate(prompt string, currentProvider ...string) (string, bool, error) {
 	if n == nil || !providerRoutingRequested(prompt) {
 		return "", false, nil
 	}
-	provider, found, err := n.ResolveRegisteredProviderPreference(prompt)
+	provider, found, err := n.ResolveRegisteredProviderPreference(prompt, currentProvider...)
 	if err != nil || !found {
 		return "", false, err
-	}
-	requirements := ClassifyTaskRequirements(prompt)
-	mode, ok := AgentModeForRole(requirements.Role)
-	if !ok || !mode.ReadOnlyByDefault || requirements.RequiresDecomposition {
-		return "", false, nil
 	}
 	return provider, true, nil
 }
 
 func resolveRegisteredProviderPreference(prompt string, registered []string) (string, bool) {
-	// A provider name is routing authority only when the user couples it to an
-	// execution/delegation verb. Incidental prose such as "the Codex docs" must
-	// never move the turn away from the current Lead.
-	if !providerRoutingRequested(prompt) {
-		return "", false
-	}
-	terms := providerPromptTerms(prompt)
-	if len(terms) == 0 || len(registered) == 0 {
+	tokens := providerPromptTokens(prompt)
+	if len(tokens) == 0 || len(registered) == 0 {
 		return "", false
 	}
 	matched := map[string]struct{}{}
@@ -86,7 +83,7 @@ func resolveRegisteredProviderPreference(prompt string, registered []string) (st
 		if canonical == "" {
 			continue
 		}
-		if _, ok := terms[canonical]; ok {
+		if providerBoundToRoutingAction(tokens, canonical) {
 			matched[strings.ToLower(strings.TrimSpace(provider))] = struct{}{}
 		}
 	}
@@ -101,11 +98,100 @@ func resolveRegisteredProviderPreference(prompt string, registered []string) (st
 	return "", false
 }
 
+func providerBoundToRoutingAction(tokens []string, provider string) bool {
+	for providerStart := range tokens {
+		providerEnd := providerStart
+		if tokens[providerStart] != provider {
+			if providerStart+1 >= len(tokens) || tokens[providerStart]+tokens[providerStart+1] != provider {
+				continue
+			}
+			providerEnd++
+		}
+		for action := range tokens {
+			distance := abs(action - providerEnd)
+			connectedByPreposition := providerRoutingPreposition(tokens, providerStart) && distance <= 6
+			if !isProviderRoutingVerb(tokens[action]) || (distance > 3 && !connectedByPreposition) {
+				continue
+			}
+			if providerRequestNegated(tokens, action) {
+				continue
+			}
+			return true
+		}
+	}
+	return false
+}
+
+func providerRoutingPreposition(tokens []string, providerStart int) bool {
+	start := providerStart - 2
+	if start < 0 {
+		start = 0
+	}
+	for _, token := range tokens[start:providerStart] {
+		switch token {
+		case "a", "ao", "para", "to", "for":
+			return true
+		}
+	}
+	return false
+}
+
+func isProviderRoutingVerb(token string) bool {
+	switch token {
+	case "chame", "chamar", "chama", "use", "usar", "usando", "rode", "rodar",
+		"execute", "executar", "delegue", "delegar", "encaminhe", "encaminhar",
+		"prefira", "preferir", "peca", "peça", "pedir", "mande", "mandar",
+		"call", "ask", "run", "delegate", "route", "using", "via":
+		return true
+	default:
+		return false
+	}
+}
+
+func providerRequestNegated(tokens []string, action int) bool {
+	start := action - 2
+	if start < 0 {
+		start = 0
+	}
+	for i := start; i < action; i++ {
+		token := tokens[i]
+		switch token {
+		case "not", "never", "dont", "não", "nao", "nunca", "jamais":
+			return true
+		case "don":
+			if i+1 < action && tokens[i+1] == "t" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func abs(value int) int {
+	if value < 0 {
+		return -value
+	}
+	return value
+}
+
 func providerPromptTerms(prompt string) map[string]struct{} {
+	raw := providerPromptTokens(prompt)
+	terms := make(map[string]struct{}, len(raw)*2)
+	for _, token := range raw {
+		terms[token] = struct{}{}
+	}
+	// Accept common spaced spellings such as "open code" without maintaining
+	// a second alias registry. Candidate existence is still registration-owned.
+	for i := 0; i+1 < len(raw); i++ {
+		terms[raw[i]+raw[i+1]] = struct{}{}
+	}
+	return terms
+}
+
+func providerPromptTokens(prompt string) []string {
 	raw := strings.FieldsFunc(strings.ToLower(prompt), func(r rune) bool {
 		return !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '-' && r != '_'
 	})
-	terms := make(map[string]struct{}, len(raw)*2)
 	normalized := make([]string, 0, len(raw))
 	for _, token := range raw {
 		token = normalizeRegisteredProviderID(token)
@@ -113,14 +199,8 @@ func providerPromptTerms(prompt string) map[string]struct{} {
 			continue
 		}
 		normalized = append(normalized, token)
-		terms[token] = struct{}{}
 	}
-	// Accept common spaced spellings such as "open code" without maintaining
-	// a second alias registry. Candidate existence is still registration-owned.
-	for i := 0; i+1 < len(normalized); i++ {
-		terms[normalized[i]+normalized[i+1]] = struct{}{}
-	}
-	return terms
+	return normalized
 }
 
 func providerRoutingRequested(prompt string) bool {

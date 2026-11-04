@@ -123,6 +123,12 @@ func (d *CodexDriver) EffectiveCaps(ctx context.Context, p model.Profile) Effect
 			Mechanism: "Universal /ai slash command router",
 			Tested:    true,
 		},
+		ReadOnlyReview: CapabilityEvidence{
+			Status:          CapabilitySupported,
+			ProviderVersion: version,
+			Mechanism:       "codex exec with read-only sandbox and approvals disabled",
+			Tested:          true,
+		},
 		ControlLevel: registry.ControlLevelTerminal,
 	}
 }

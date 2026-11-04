@@ -772,16 +772,19 @@ func attachInteractiveLeadRuntimeOnce(runtimeID string, n *nexus.Nexus, session 
 		return attachRuntime(runtimeID)
 	}
 	mode := interactiveDelegationMode(session)
-	// OFF disables automatic Missions, not an explicit user-directed,
-	// bounded read-only delegation. Ordinary turns still get KEEP with the
-	// current Lead without running Promoter, scheduler or Mission admission.
+	// OFF disables heuristic Mission promotion. Explicit Mission requests and
+	// named-provider handoffs remain user-owned in-session actions.
 	return attachRuntimeWithInput(runtimeID, func(conn io.Writer) error {
 		shadow := promotion.NewLineShadow()
-		promoter := promotion.NewPromoter(n)
+		promoter := promotion.NewPromoter(n, session.ProviderID)
 		buf := make([]byte, 1024)
 		pendingASK := ""
 		startMission := func(prompt string, fallbackToLead bool) {
-			accepted, startErr := startInteractiveDelegatedMission(n, session, agentID, prompt, mode)
+			missionMode := mode
+			if promotion.IsExplicitMissionRequest(prompt) {
+				missionMode = nexus.DelegationAuto
+			}
+			accepted, startErr := startInteractiveDelegatedMission(n, session, agentID, prompt, missionMode)
 			if startErr != nil {
 				safeAdmissionFallback := fallbackToLead && accepted != nil && accepted.FallbackSafe
 				if safeAdmissionFallback {
@@ -856,14 +859,18 @@ func attachInteractiveLeadRuntimeOnce(runtimeID string, n *nexus.Nexus, session 
 				}
 				if event.Submit {
 					for _, line := range event.Submissions {
+						if promotion.IsExplicitMissionRequest(line) {
+							startMission(line, false)
+							continue
+						}
 						if mode == nexus.DelegationOff {
-							provider, delegate, delegateErr := n.ResolveExplicitReadOnlyProviderDelegate(line)
+							provider, delegate, delegateErr := n.ResolveExplicitProviderDelegate(line, session.ProviderID)
 							if delegateErr != nil || !delegate {
 								_, _ = conn.Write([]byte("\r"))
 								continue
 							}
 							_, _ = conn.Write([]byte(clearLineSequence(session.ProviderID)))
-							_, _ = fmt.Fprintf(os.Stderr, "\r\n[nexus] Delegando revisão explícita para %s sem Mission.\r\n", provider)
+							_, _ = fmt.Fprintf(os.Stderr, "\r\n[nexus] Delegando turno explícito para %s sem Mission.\r\n", provider)
 							go runInteractiveSingleTurnDelegate(n, session, agentID, line, provider)
 							continue
 						}

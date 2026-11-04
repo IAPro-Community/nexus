@@ -77,6 +77,19 @@ func TestOpenCodeReadOnlyReviewUnsupportedUntilAgentProjection(t *testing.T) {
 	}
 }
 
+func TestCodexReadOnlyReviewUsesVerifiedCodexExecIsolation(t *testing.T) {
+	caps := NewCodexDriver().EffectiveCaps(context.Background(), model.Profile{Name: "default"})
+	if caps.ReadOnlyReview.Status != CapabilitySupported {
+		t.Fatalf("Codex read-only review status=%s, want %s", caps.ReadOnlyReview.Status, CapabilitySupported)
+	}
+	if caps.ReadOnlyReview.Mechanism == "" {
+		t.Fatal("Codex read-only review must identify its enforced mechanism")
+	}
+	if !NewCodexDriver().Capabilities(context.Background(), model.Profile{Name: "default"}).ReadOnlyReview {
+		t.Fatal("Codex read-only review capability must project as supported")
+	}
+}
+
 func TestHeadlessKickoffArgsMatchProviderCLIContracts(t *testing.T) {
 	ctx := context.Background()
 	profile := model.Profile{Name: "default"}

@@ -1,5 +1,19 @@
 # O que mudou recentemente
 
+## 03/11/2026 — política explícita de roteamento do Lead interativo
+
+- Complexidade da tarefa não cria Mission automaticamente; somente um pedido
+  explícito inicia Mission, inclusive quando a delegação está em OFF.
+- Pedidos explícitos a outro provider registrado podem executar um turno sem
+  Mission. Menções ao provider ativo permanecem na sessão atual.
+- Escritas delegadas exigem sessão YOLO e contrato verificado do provider;
+  revisões exigem isolamento read-only. Rejeições mostram o motivo e pedem ao
+  usuário como prosseguir sem trocar de provider ou executar novamente em
+  silêncio.
+
+Esta alteração corrige o roteamento interno e não cria uma nova superfície de
+produto nem um tour de descoberta.
+
 ## 22/10/2026 — reconciliação técnica beta.10
 
 No source da `release/v1.0.0` foram reunidas correções de scroll Web, entrega

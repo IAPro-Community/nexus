@@ -55,15 +55,22 @@ type IntentDecider func(context.Context, string, string) (nexus.IntentDecision, 
 // keeps this package deterministic in tests while production uses the live
 // project intelligence path.
 type Promoter struct {
-	Nexus        *nexus.Nexus
-	DecideIntent IntentDecider
+	Nexus           *nexus.Nexus
+	DecideIntent    IntentDecider
+	CurrentProvider string
 }
 
 // InteractiveDecisionTimeout is the shared latency budget for deciding
 // whether Enter stays with the Lead or promotes the prompt to a Mission.
 const InteractiveDecisionTimeout = 250 * time.Millisecond
 
-func NewPromoter(n *nexus.Nexus) Promoter { return Promoter{Nexus: n} }
+func NewPromoter(n *nexus.Nexus, currentProvider ...string) Promoter {
+	promoter := Promoter{Nexus: n}
+	if len(currentProvider) > 0 {
+		promoter.CurrentProvider = strings.TrimSpace(currentProvider[0])
+	}
+	return promoter
+}
 
 func NormalizeMode(mode Mode) Mode {
 	switch Mode(strings.ToUpper(strings.TrimSpace(string(mode)))) {
@@ -77,21 +84,20 @@ func NormalizeMode(mode Mode) Mode {
 }
 
 // Decide classifies one complete line. Interactive use is provider-first:
-// OFF, DIRECT, clarifying work and ordinary single-topology plans remain with
-// the existing Lead. A Mission is promoted only when the request explicitly
-// asks for one, requires decomposition, or benefits from delegated workstreams.
+// ordinary work stays with the existing Lead regardless of delegation mode.
+// A Mission is promoted only when the user explicitly asks for one; an
+// explicitly named provider may receive a bounded single-turn handoff.
 func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode) (Decision, error) {
 	mode = NormalizeMode(mode)
 	line = strings.TrimSpace(line)
 	if line == "" {
 		return Decision{Action: KeepWithLead, Mode: mode, Reason: "empty prompt"}, nil
 	}
-	if mode == ModeOff {
-		return Decision{Action: KeepWithLead, Mode: mode, Reason: "delegation mode is OFF"}, nil
-	}
 	var intent nexus.IntentDecision
 	var err error
-	if p.DecideIntent != nil {
+	if mode == ModeOff && !IsExplicitMissionRequest(line) {
+		intent = nexus.IntentDecision{TaskRequirements: nexus.ClassifyTaskRequirements(line)}
+	} else if p.DecideIntent != nil {
 		intent, err = p.DecideIntent(ctx, projectID, line)
 	} else if p.Nexus != nil && strings.TrimSpace(projectID) != "" {
 		intent, err = p.Nexus.DecideIntentForProject(ctx, projectID, line)
@@ -103,7 +109,7 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 	}
 	registeredProvider := ""
 	if p.Nexus != nil {
-		provider, ok, providerErr := p.Nexus.ResolveRegisteredProviderPreference(line)
+		provider, ok, providerErr := p.Nexus.ResolveRegisteredProviderPreference(line, p.CurrentProvider)
 		if providerErr != nil {
 			return Decision{}, fmt.Errorf("resolve registered provider preference: %w", providerErr)
 		}
@@ -124,47 +130,25 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 		MissionTeam:            selection,
 		ExplicitMissionRequest: explicitRequest,
 	}
+	if explicitRequest {
+		result.Action = Promote
+		result.Reason = "user explicitly requested Mission execution"
+		return result, nil
+	}
+	if mode == ModeOff && registeredProvider == "" {
+		result.Reason = "delegation mode is OFF and no other provider was explicitly requested"
+		return result, nil
+	}
 	if intent.Strategy == nexus.IntentClarify {
 		result.Reason = "intent requires clarification before promotion"
 		return result, nil
 	}
-	readOnlyDelegate := false
-	if modeDef, ok := nexus.AgentModeForRole(intent.TaskRequirements.Role); ok {
-		readOnlyDelegate = modeDef.ReadOnlyByDefault
-	}
-	if registeredProvider != "" && readOnlyDelegate && !explicitRequest && !intent.TaskRequirements.RequiresDecomposition && !delegation.Delegate {
-		// A bounded provider handoff is safe without Mission only for a role whose
-		// canonical AgentMode is read-only by default. executeAgentPrompt enforces
-		// the provider's verified ReviewMode and fails closed when unavailable.
+	if registeredProvider != "" {
 		result.Action = Delegate
-		result.Reason = "user requested registered provider " + registeredProvider + " for one bounded read-only turn"
+		result.Reason = "user explicitly requested registered provider " + registeredProvider + " for this in-session turn"
 		return result, nil
 	}
-	if intent.Strategy == nexus.IntentDirect && !explicitRequest && registeredProvider == "" {
-		result.Reason = "direct intent stays with the interactive Lead"
-		return result, nil
-	}
-
-	missionWorthy := delegation.Delegate || intent.TaskRequirements.RequiresDecomposition || explicitRequest || registeredProvider != ""
-	if !missionWorthy {
-		result.Reason = "interactive plan stays with the Lead; no delegation or decomposition is required"
-		return result, nil
-	}
-	if mode == ModeAsk {
-		result.Action = Ask
-		result.Reason = "mission-worthy plan requires confirmation before promotion"
-		return result, nil
-	}
-	result.Action = Promote
-	if delegation.Delegate {
-		result.Reason = delegation.Reason
-	} else if intent.TaskRequirements.RequiresDecomposition {
-		result.Reason = "task requirements require decomposition"
-	} else if registeredProvider != "" {
-		result.Reason = "write-capable provider handoff requires Mission isolation: " + registeredProvider
-	} else {
-		result.Reason = "user explicitly requested Mission execution"
-	}
+	result.Reason = "Mission was not explicitly requested; keep this turn with the interactive Lead"
 	return result, nil
 }
 

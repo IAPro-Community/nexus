@@ -67,15 +67,15 @@ func TestDecideInteractiveSubmitTimesOutToKeepWithLead(t *testing.T) {
 	}
 }
 
-func TestDecideInteractiveSubmitPropagatesPromote(t *testing.T) {
+func TestDecideInteractiveSubmitKeepsHeuristicPlanWithLead(t *testing.T) {
 	fast := promotion.Promoter{
 		DecideIntent: func(context.Context, string, string) (nexus.IntentDecision, error) {
 			return nexus.IntentDecision{Strategy: nexus.IntentPlan}, nil
 		},
 	}
 	action := decideInteractiveSubmit(context.Background(), fast, "project", "implemente backend API, frontend React e testes E2E", nexus.DelegationAuto)
-	if action != promotion.Promote {
-		t.Fatalf("action=%s want Promote (got err path?)", action)
+	if action != promotion.KeepWithLead {
+		t.Fatalf("action=%s want KeepWithLead; plan heuristics do not authorize a Mission", action)
 	}
 }
 

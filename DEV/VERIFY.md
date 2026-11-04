@@ -1,3 +1,11 @@
+## Verificação — roteamento de provider no Lead interativo — 2026-11-04
+
+- Base sincronizada com `origin/release/v1.0.0` em `d66426af` antes da validação.
+- PASS — `go test -tags=gtk3 ./internal/app -count=1` e o teste isolado `TestControlPlaneCLICommands`.
+- PASS — `internal/nexus` e `internal/control/web` durante `make test-go`; nessa execução paralela, `internal/app` teve uma falha em `TestControlPlaneCLICommands`. O teste e todo o pacote `internal/app` passaram ao serem repetidos isoladamente. Portanto, a execução agregada não foi considerada integralmente verde.
+- PASS — `make format-check` depois da sincronização; `go vet` nos pacotes alterados e `make security` passaram na validação prévia desta correção.
+- A instalação local anterior foi concluída e teve health API OK; ela precede a sincronização com `d66426af` e não é evidência de um binário construído a partir da base atualizada.
+
 ## Continuidade atual — beta.11 sincronizado e instalado — 2026-10-27
 
 - Branch `release/v1.0.0` em `b416bb90` (= `origin/release/v1.0.0`); commits locais `5e3eff4e` (feature auth/usage/HUD), `11f3d771` (teclado Codex/PTY) e `d61b0dcc` (gates/upstream), seguidos do commit de docs.

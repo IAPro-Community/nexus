@@ -135,10 +135,50 @@ func RecommendResources(accounts []ProviderAccount, req TaskRequirements, policy
 		result.Explanation = fmt.Sprintf("Recomendado %s (%s) com score %.1f baseado na política %s.",
 			result.Recommended.Account.DisplayName, result.Recommended.Account.Provider, result.Recommended.TotalScore, policy)
 	} else {
-		result.Explanation = "Nenhum provedor elegível atende aos requisitos da tarefa (todos indisponíveis ou sem autenticação)."
+		result.Explanation = explainResourceRejections(result.Candidates)
 	}
 
 	return result
+}
+
+func explainResourceRejections(candidates []ResourceCandidate) string {
+	if len(candidates) == 0 {
+		return "Nenhum recurso registrado está disponível para a tarefa."
+	}
+	details := make([]string, 0, len(candidates))
+	seen := make(map[string]struct{}, len(candidates))
+	for _, candidate := range candidates {
+		if candidate.Eligible {
+			continue
+		}
+		reason := strings.TrimSpace(candidate.RejectionReason)
+		if reason == "" {
+			reason = "recurso indisponível"
+		}
+		label := strings.TrimSpace(candidate.Account.Provider)
+		if profile := strings.TrimSpace(candidate.Account.Profile); profile != "" {
+			label += ":" + profile
+		}
+		detail := label + " — " + reason
+		if _, exists := seen[detail]; exists {
+			continue
+		}
+		seen[detail] = struct{}{}
+		details = append(details, detail)
+	}
+	if len(details) == 0 {
+		return "Nenhum recurso registrado atende aos requisitos da tarefa."
+	}
+	const maxDetails = 3
+	shown := details
+	if len(shown) > maxDetails {
+		shown = shown[:maxDetails]
+	}
+	explanation := "Nenhum recurso elegível: " + strings.Join(shown, "; ") + "."
+	if remaining := len(details) - len(shown); remaining > 0 {
+		explanation += fmt.Sprintf(" E mais %d recurso(s) rejeitado(s).", remaining)
+	}
+	return explanation
 }
 
 func evaluateCandidate(acc ProviderAccount, req TaskRequirements, policy SchedulerPolicy) ResourceCandidate {

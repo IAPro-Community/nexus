@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
@@ -13,10 +14,12 @@ import (
 // not create a WorkPlan or MissionRun. It is intended for one synchronous turn
 // whose result is returned to the interactive Lead.
 type SingleTurnDelegateRequest struct {
-	ProjectID      string
-	Prompt         string
-	PreferProvider string
-	SkillIDs       []string
+	ProjectID       string
+	Prompt          string
+	PreferProvider  string
+	CurrentProvider string
+	SkillIDs        []string
+	ExecutionMode   string
 }
 
 // SingleTurnDelegateResult records the actual resource used and the bounded
@@ -59,7 +62,7 @@ func (n *Nexus) DelegateSingleTurn(ctx context.Context, req SingleTurnDelegateRe
 
 	preferProvider := strings.ToLower(strings.TrimSpace(req.PreferProvider))
 	explicitProvider := ""
-	if provider, ok, resolveErr := n.ResolveRegisteredProviderPreference(req.Prompt); resolveErr != nil {
+	if provider, ok, resolveErr := n.ResolveRegisteredProviderPreference(req.Prompt, req.CurrentProvider); resolveErr != nil {
 		return nil, resolveErr
 	} else if ok {
 		explicitProvider = strings.ToLower(strings.TrimSpace(provider))
@@ -82,13 +85,20 @@ func (n *Nexus) DelegateSingleTurn(ctx context.Context, req SingleTurnDelegateRe
 	taskReq := ClassifyTaskRequirements(req.Prompt)
 	taskReq.PreferProvider = preferProvider
 	modeDef, ok := AgentModeForRole(taskReq.Role)
-	if !ok || !modeDef.ReadOnlyByDefault {
-		return nil, fmt.Errorf("missionless delegation is restricted to read-only specialist roles; role %q requires Mission isolation", taskReq.Role)
+	if !ok {
+		return nil, fmt.Errorf("delegated specialist role %q is not registered", taskReq.Role)
+	}
+	readOnly := modeDef.ReadOnlyByDefault
+	if _, err := validateSingleTurnExecutionMode(readOnly, req.ExecutionMode); err != nil {
+		return nil, err
 	}
 	// Agent specialization owns semantic capabilities. Provider allocation only
 	// hard-gates the transport/runtime capabilities needed for one headless turn.
 	resourceReq := taskReq
-	resourceReq.RequiredCapabilities = []string{"headless", "submit_prompt", "read_only_review"}
+	resourceReq.RequiredCapabilities = []string{"headless", "submit_prompt"}
+	if readOnly {
+		resourceReq.RequiredCapabilities = append(resourceReq.RequiredCapabilities, "read_only_review")
+	}
 
 	accounts, err := n.ListResourcesContext(ctx)
 	if err != nil {
@@ -108,7 +118,11 @@ func (n *Nexus) DelegateSingleTurn(ctx context.Context, req SingleTurnDelegateRe
 		if preferredRecommendation.Recommended != nil {
 			candidateAccounts = preferred
 		} else if explicitProvider != "" {
-			return nil, fmt.Errorf("explicitly requested provider %s has no eligible registered read-only resource: %s", explicitProvider, preferredRecommendation.Explanation)
+			capability := "write-capable"
+			if readOnly {
+				capability = "read-only"
+			}
+			return nil, fmt.Errorf("explicitly requested provider %s has no eligible registered %s resource: %s", explicitProvider, capability, preferredRecommendation.Explanation)
 		}
 	}
 	recommendation := RecommendResources(candidateAccounts, resourceReq, policy)
@@ -122,6 +136,17 @@ func (n *Nexus) DelegateSingleTurn(ctx context.Context, req SingleTurnDelegateRe
 		return nil, fmt.Errorf("no eligible registered resource for delegated turn: %s", recommendation.Explanation)
 	}
 	selected := recommendation.Recommended.Account
+
+	contract := runner.DefaultAutonomyContract()
+	if !readOnly {
+		providerSpec, ok := spec.Get(selected.Provider)
+		if !ok || len(providerSpec.AutoApproval) == 0 {
+			return nil, fmt.Errorf("provider %s has no verified YOLO contract for in-session delegated writes", selected.Provider)
+		}
+		if _, err := missionProviderArgs(selected.Provider, providerSpec.Kickoff("delegated write preflight"), agentPromptPolicy{Contract: contract}); err != nil {
+			return nil, fmt.Errorf("provider %s cannot satisfy the delegated write contract: %w", selected.Provider, err)
+		}
+	}
 
 	agent, err := n.ensureSingleTurnDelegateAgent(st, project, taskReq)
 	if err != nil {
@@ -137,8 +162,8 @@ func (n *Nexus) DelegateSingleTurn(ctx context.Context, req SingleTurnDelegateRe
 	}
 
 	execution, err := n.executeAgentPrompt(ctx, agent.ID, project.CanonicalPath, compiled.CompiledPrompt, agentPromptPolicy{
-		Contract: runner.DefaultAutonomyContract(),
-		Review:   true,
+		Contract: contract,
+		Review:   readOnly,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("execute delegated turn with %s:%s: %w", selected.Provider, selected.Profile, err)
@@ -150,6 +175,17 @@ func (n *Nexus) DelegateSingleTurn(ctx context.Context, req SingleTurnDelegateRe
 		AgentID: agent.ID, Provider: selected.Provider, Profile: selected.Profile,
 		SkillIDs: append([]string(nil), skills...), Output: strings.TrimSpace(execution.Output),
 	}, nil
+}
+
+func validateSingleTurnExecutionMode(readOnly bool, value string) (string, error) {
+	mode := strings.ToUpper(strings.TrimSpace(value))
+	if mode == "" {
+		mode = "SAFE"
+	}
+	if !readOnly && mode != "YOLO" {
+		return mode, fmt.Errorf("delegated task may modify files, but the source session is %s and cannot forward interactive approvals; the turn stayed with the Lead", mode)
+	}
+	return mode, nil
 }
 
 func (n *Nexus) ensureSingleTurnDelegateAgent(st *store.Store, project store.Project, req TaskRequirements) (store.Agent, error) {

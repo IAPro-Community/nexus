@@ -48,11 +48,42 @@ func removeProviderLaunchFlag(args []string, wanted string) []string {
 // authorization separate. The runtime is registered with Lead=false first;
 // UpdateInteractiveLeadBinding flips the label only after the persistent Lead
 // metadata has been committed successfully. Delegation always starts OFF.
-func supervisedRuntimeLabels() map[string]string {
+func supervisedRuntimeLabels(providerArgs ...[]string) map[string]string {
+	if len(providerArgs) > 0 {
+		return supervisedRuntimeLabelsForArgs(providerArgs[0])
+	}
+	return supervisedRuntimeLabelsForArgs(nil)
+}
+
+func supervisedRuntimeLabelsForArgs(args []string) map[string]string {
+	mode := supervisedExecutionMode(args)
 	return map[string]string{
 		"nexus.delegation_mode":  string(nexus.DelegationOff),
 		"nexus.interactive_lead": "false",
+		"nexus.execution_mode":   mode,
 	}
+}
+
+func supervisedExecutionMode(args []string) string {
+	var yolo, plan bool
+	for _, arg := range args {
+		switch strings.ToLower(strings.TrimSpace(arg)) {
+		case "--yolo", "--full-auto", "--dangerously-bypass-approvals-and-sandbox":
+			yolo = true
+		case "--plan":
+			plan = true
+		}
+	}
+	if yolo && plan {
+		return "SAFE"
+	}
+	if yolo {
+		return "YOLO"
+	}
+	if plan {
+		return "PLAN"
+	}
+	return "SAFE"
 }
 
 // executeProviderSupervised launches the provider through the same persistent
@@ -137,7 +168,7 @@ func executeProviderSupervised(provName, explicitProfile string, args []string, 
 			Args:       args,
 			Standalone: false,
 			Timeout:    15 * time.Second,
-			Labels:     supervisedRuntimeLabels(),
+			Labels:     supervisedRuntimeLabels(args),
 		},
 		os.Stderr,
 	)

@@ -357,9 +357,9 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 
 	shadow := promotion.NewLineShadow()
 	pendingPromotion := ""
-	// Explicitly enabled Web Lead interception supports user-owned read-only
-	// delegation even when autonomous Mission promotion is OFF. Ordinary Web
-	// terminal sessions without this label remain byte-transparent.
+	// Explicitly enabled Web Lead interception supports explicit provider
+	// handoffs and Mission requests. Ordinary Web terminal sessions without
+	// this label remain byte-transparent.
 	interactiveLead := webInteractiveLeadEnabled(sess)
 	if !interactiveLead {
 		shadow.SetEnabled(false)
@@ -442,8 +442,12 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 				_ = writeAttachedTerminalInput(rawConn, "\r")
 				continue
 			}
+			if promotion.IsExplicitMissionRequest(line) {
+				startPromotion(line, false)
+				continue
+			}
 			if webInteractiveDelegationMode(sess) == nexus.DelegationOff {
-				provider, delegated, delegateErr := h.nexus.ResolveExplicitReadOnlyProviderDelegate(line)
+				provider, delegated, delegateErr := h.nexus.ResolveExplicitProviderDelegate(line, sess.ProviderID)
 				if delegateErr != nil || !delegated {
 					_ = writeAttachedTerminalInput(rawConn, "\r")
 					continue
@@ -451,13 +455,13 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 				_ = writeAttachedTerminalInput(rawConn, clearLineSequence(sess.ProviderID))
 				_ = safeWriteJSON(TerminalMessage{
 					Type: "promotion", Role: "DELEGATED",
-					Data: fmt.Sprintf("Delegando revisão explícita para %s sem Mission.", provider),
+					Data: fmt.Sprintf("Delegando turno explícito para %s sem Mission.", provider),
 				})
 				go runPromotedSingleTurnDelegate(h.nexus, sess, line, provider)
 				continue
 			}
 			decideCtx, cancelDecision := context.WithTimeout(r.Context(), promotion.InteractiveDecisionTimeout)
-			decision, decideErr := promotion.NewPromoter(h.nexus).Decide(decideCtx, sess.ProjectID, line, webInteractiveDelegationMode(sess))
+			decision, decideErr := promotion.NewPromoter(h.nexus, sess.ProviderID).Decide(decideCtx, sess.ProjectID, line, webInteractiveDelegationMode(sess))
 			cancelDecision()
 			if decideErr != nil || decision.Action == promotion.KeepWithLead {
 				_ = writeAttachedTerminalInput(rawConn, "\r")

@@ -16,10 +16,11 @@ func runPromotedSingleTurnDelegate(n *nexus.Nexus, session registry.RuntimeSessi
 	ctx := context.Background()
 	result, err := n.DelegateSingleTurn(ctx, nexus.SingleTurnDelegateRequest{
 		ProjectID: session.ProjectID, Prompt: prompt, PreferProvider: preferProvider,
+		CurrentProvider: session.ProviderID, ExecutionMode: session.Labels["nexus.execution_mode"],
 	})
 	if err != nil {
 		_, _ = n.AskAgent(ctx, session.AgentID,
-			fmt.Sprintf("A delegação de turno único falhou antes de criar Mission: %v. Não assuma execução pelo provider solicitado.", err), false)
+			fmt.Sprintf("A delegação de turno único falhou antes de iniciar execução: %v. O provider delegado não executou a tarefa. Informe a falha e pergunte ao usuário se deseja prosseguir com o Lead atual ou tentar outro provider. Não execute a solicitação sem essa escolha. Solicitação original: %s", err, prompt), false)
 		return
 	}
 	_, _ = n.AskAgent(ctx, session.AgentID,

@@ -1,3 +1,9 @@
+## Continuidade — roteamento explícito do Lead interativo — 2026-11-04
+
+- A política documentada em `docs/product/interactive-control.md` e `docs/architecture/agent-routing.md` mantém a Mission opt-in: heurísticas do Lead não criam Mission automaticamente; pedido explícito de Mission pode promovê-la mesmo com delegação desligada; provider alternativo precisa ser explicitamente solicitado e registrado.
+- A origem propaga SAFE/PLAN/YOLO, e cada rota exige a capacidade compatível. Falhas de elegibilidade retornam ao Lead com motivos claros, sem trocar de provider em silêncio.
+- Base reconciliada antes da validação: `release/v1.0.0` em `d66426af`. Pacote Go `internal/app`, `internal/nexus` e `internal/control/web` validados; a execução paralela agregada teve uma falha não reproduzida no pacote `internal/app`, registrada em `DEV/VERIFY.md`.
+
 ## Continuidade atual — beta.11 sincronizado e instalado — 2026-10-27
 
 - Branch `release/v1.0.0` em `b416bb90` (= `origin/release/v1.0.0`) + commits locais `5e3eff4e` (feature auth/usage/HUD), `11f3d771` (teclado Codex/PTY), `d61b0dcc` (gates/upstream) e docs. Push fast-forward concluído em `e58b0d60`; este follow-up registra o fechamento.
