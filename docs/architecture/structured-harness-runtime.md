@@ -205,4 +205,3 @@ only real-binary framing, session isolation and negative-path settlement;
 it is **not** an authenticated model-generation, approval, streaming-v2,
 resume, multiclient or cross-platform certification. The source-SHA visual
 capture gate remains tracked separately in issue #201.
-
