@@ -173,6 +173,19 @@ remote safe answer UI, two **authenticated** simultaneous sessions,
 cross-platform E2E, and verified native resume. Do not mark issue #98 as
 finished or announce this as a production-ready provider.
 
+## RPC verified session identity (03/11/2026)
+
+After a successful `get_state` command, the bridge must verify that the
+response contains a nonempty, bounded, printable `sessionId`. A missing,
+null, malformed, whitespace-padded, control-character or oversized identity
+causes the handshake to fail before the structured runtime advertises READY.
+This is a local protocol/readiness requirement, **not** a provider account
+authentication or a claim about model availability.
+
+The contract is shared by legacy Pi and OMP RPC; no alternative session ID is
+invented and the existing `SessionHost` supervision terminates a failed
+handshake. Regression tests cover both valid providers and invalid envelopes.
+
 ## OMP live RPC negative-path test (Linux, opt-in)
 
 `internal/control/agentwire/bridge_omp_live_test.go` can execute the real

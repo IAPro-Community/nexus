@@ -134,11 +134,23 @@ func (b *Bridge) Start(ctx context.Context) error {
 		var state struct {
 			SessionID string `json:"sessionId"`
 		}
-		if json.Unmarshal(reply, &state) == nil {
-			b.mu.Lock()
-			b.sessionID = state.SessionID
-			b.mu.Unlock()
+		// get_state success without a usable session identity is not a
+		// valid handshake. Never advertise READY for a phantom session.
+		if err := json.Unmarshal(reply, &state); err != nil {
+			b.cancel()
+			close(b.failed)
+			return errors.New("pi RPC get_state returned malformed session state")
 		}
+		sessionID := strings.TrimSpace(state.SessionID)
+		if sessionID == "" || sessionID != state.SessionID || len(sessionID) > 256 ||
+			strings.IndexFunc(sessionID, func(r rune) bool { return r < 0x20 || r == 0x7f }) >= 0 {
+			b.cancel()
+			close(b.failed)
+			return errors.New("pi RPC get_state returned invalid session identity")
+		}
+		b.mu.Lock()
+		b.sessionID = sessionID
+		b.mu.Unlock()
 	}
 	close(b.ready)
 	b.emit(WireSignal{State: "idle", Summary: "Ready for a prompt"})
