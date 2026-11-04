@@ -36,24 +36,24 @@ type permissionWait struct {
 // callback contract. The bridge does not own a terminal, permission policy,
 // authentication, or shared Nexus runtime state.
 type Bridge struct {
-	mode      string
-	acp       *ACP
-	pi        *PiRPC
-	cwd       string
-	sessionID string
-	ctx       context.Context
-	cancel    context.CancelFunc
-	signals   func(WireSignal)
-	output    func(string)
-	mu        sync.Mutex
-	pending   map[string]*permissionWait
-	next      atomic.Uint64
+	mode             string
+	acp              *ACP
+	pi               *PiRPC
+	cwd              string
+	sessionID        string
+	ctx              context.Context
+	cancel           context.CancelFunc
+	signals          func(WireSignal)
+	output           func(string)
+	mu               sync.Mutex
+	pending          map[string]*permissionWait
+	next             atomic.Uint64
 	busy             bool
 	promptID         string
 	promptResultSeen bool
 	promptOutcome    string
 	ready            chan struct{}
-	failed    chan struct{}
+	failed           chan struct{}
 }
 
 func NewBridge(mode string, input interface{ Read([]byte) (int, error) }, output interface{ Write([]byte) (int, error) }, cwd string, signals func(WireSignal), terminalOutput func(string)) (*Bridge, error) {
@@ -476,6 +476,7 @@ func (b *Bridge) handlePiUI(raw json.RawMessage) {
 		}
 	}()
 }
+
 // piPromptResultSignal preserves a verified provider result without copying
 // provider error text (which may contain local paths or credentials).
 func piPromptResultSignal(status string) WireSignal {
