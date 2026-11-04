@@ -48,8 +48,11 @@ type Bridge struct {
 	mu        sync.Mutex
 	pending   map[string]*permissionWait
 	next      atomic.Uint64
-	busy      bool
-	ready     chan struct{}
+	busy             bool
+	promptID         string
+	promptResultSeen bool
+	promptOutcome    string
+	ready            chan struct{}
 	failed    chan struct{}
 }
 
@@ -180,6 +183,9 @@ func (b *Bridge) Prompt(ctx context.Context, text string) error {
 		return errors.New("provider turn already running")
 	}
 	b.busy = true
+	b.promptID = ""
+	b.promptResultSeen = false
+	b.promptOutcome = ""
 	id := b.sessionID
 	b.mu.Unlock()
 	defer func() {
@@ -210,12 +216,19 @@ func (b *Bridge) Prompt(ctx context.Context, text string) error {
 		}
 		return nil
 	}
-	// Pi acknowledges the command before running. Only agent_settled confirms
-	// that work has stopped, so no COMPLETED event is emitted here.
+	// RPC acknowledges admission, not a completed provider turn. The
+	// outbound command ID must be recorded before the provider can reply.
 	var reply json.RawMessage
-	if err := b.pi.Command(ctx, "prompt", map[string]any{"message": text}, &reply); err != nil {
+	if err := b.pi.command(ctx, "prompt", map[string]any{"message": text}, &reply, func(requestID string) {
+		b.mu.Lock()
+		b.promptID = requestID
+		b.mu.Unlock()
+	}); err != nil {
 		b.mu.Lock()
 		b.busy = false
+		b.promptID = ""
+		b.promptOutcome = ""
+		b.promptResultSeen = false
 		b.mu.Unlock()
 		b.emit(WireSignal{State: "error", Summary: "Agent prompt rejected"})
 		return err
@@ -229,9 +242,15 @@ func (b *Bridge) Prompt(ctx context.Context, text string) error {
 	// Do not leave the session stuck busy when no settled event will follow.
 	if accepted.Disposition == "handled" || (accepted.AgentInvoked != nil && !*accepted.AgentInvoked) {
 		b.mu.Lock()
+		wasBusy := b.busy
 		b.busy = false
+		b.promptID = ""
+		b.promptResultSeen = false
+		b.promptOutcome = ""
 		b.mu.Unlock()
-		b.emit(WireSignal{State: "idle", Summary: "Prompt handled without starting a run"})
+		if wasBusy {
+			b.emit(WireSignal{State: "idle", Summary: "Prompt handled without starting a run"})
+		}
 	}
 	return nil
 }
