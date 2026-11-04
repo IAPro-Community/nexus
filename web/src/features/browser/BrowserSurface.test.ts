@@ -33,9 +33,7 @@ describe('normalizeBrowserURL', () => {
     expect(normalizeBrowserURL('react documentation')).toBe(
       'https://www.google.com/search?q=react%20documentation',
     );
-    expect(normalizeBrowserURL('notion')).toBe(
-      'https://www.google.com/search?q=notion',
-    );
+    expect(normalizeBrowserURL('notion')).toBe('https://www.google.com/search?q=notion');
   });
 
   it('handles empty or whitespace strings', () => {

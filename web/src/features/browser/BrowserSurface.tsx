@@ -448,14 +448,13 @@ export const BrowserSurface: React.FC<{
 
                 const isAgentActing = Boolean(
                   candidate.active_actor?.startsWith('agent:') ||
-                    (candidate.owner_runtime_id && (urlChanged || activityChanged)),
+                  (candidate.owner_runtime_id && (urlChanged || activityChanged)),
                 );
 
                 const userIsInteracting = Date.now() - lastHumanInteraction.current < 5000;
                 const userManuallySwitchedRecently =
                   Date.now() - lastManualTabSelectionTime.current < 10000;
-                const userIsControllingCurrent =
-                  controllerRef.current || wantsControlRef.current;
+                const userIsControllingCurrent = controllerRef.current || wantsControlRef.current;
 
                 const shouldFocus =
                   isAgentActing &&
@@ -471,8 +470,7 @@ export const BrowserSurface: React.FC<{
             } else if (candidate.owner_runtime_id && candidate.id !== session.id) {
               // Brand new agent-created tab detected for the first time
               const userIsInteracting = Date.now() - lastHumanInteraction.current < 5000;
-              const userIsControllingCurrent =
-                controllerRef.current || wantsControlRef.current;
+              const userIsControllingCurrent = controllerRef.current || wantsControlRef.current;
               if (!userIsControllingCurrent && !userIsInteracting && !agentTabToFocus) {
                 agentTabToFocus = candidate.id;
               }
@@ -1124,7 +1122,9 @@ export const BrowserSurface: React.FC<{
                         title={t('browser.agentOperating', 'Agente operando nesta aba')}
                       >
                         <span className={styles.pulseDot} aria-hidden="true" />
-                        <span className={styles.badgeText}>{t('browser.operating', 'Operando')}</span>
+                        <span className={styles.badgeText}>
+                          {t('browser.operating', 'Operando')}
+                        </span>
                       </span>
                     )}
                     {isUpdated && !isOperating && (
@@ -1274,7 +1274,11 @@ export const BrowserSurface: React.FC<{
                   : { type: 'viewport', width: 390, height: 844 },
               )
             }
-            aria-label={session?.width === 390 ? 'Alternar para desktop (1280x800)' : 'Alternar para celular (390x844)'}
+            aria-label={
+              session?.width === 390
+                ? 'Alternar para desktop (1280x800)'
+                : 'Alternar para celular (390x844)'
+            }
             title={session?.width === 390 ? 'Desktop (1280x800)' : 'Celular (390x844)'}
           >
             {session?.width === 390 ? <Smartphone size={14} /> : <Monitor size={14} />}
@@ -1327,7 +1331,9 @@ export const BrowserSurface: React.FC<{
             }
           >
             <Copy size={13} />
-            {selectionText && <span className={styles.selectionCount}>({selectionText.length})</span>}
+            {selectionText && (
+              <span className={styles.selectionCount}>({selectionText.length})</span>
+            )}
           </button>
 
           <button
@@ -1522,7 +1528,8 @@ export const BrowserSurface: React.FC<{
                   <pre className={styles.snapshotText}>{snapshot}</pre>
                 ) : (
                   <p className={styles.emptyNotice}>
-                    Nenhum snapshot textual carregado. Clique em &quot;Capturar DOM&quot; para inspecionar os elementos da página.
+                    Nenhum snapshot textual carregado. Clique em &quot;Capturar DOM&quot; para
+                    inspecionar os elementos da página.
                   </p>
                 )}
               </div>
@@ -1543,9 +1550,7 @@ export const BrowserSurface: React.FC<{
                   type={privateInput ? 'password' : 'text'}
                   autoComplete="off"
                   aria-label={
-                    privateInput
-                      ? 'Texto sensível para login'
-                      : 'Texto para o elemento selecionado'
+                    privateInput ? 'Texto sensível para login' : 'Texto para o elemento selecionado'
                   }
                   placeholder="Digitar texto para enviar ao elemento remoto..."
                   value={text}
@@ -1592,7 +1597,8 @@ export const BrowserSurface: React.FC<{
               <div className={styles.agentsContent}>
                 <div className={styles.agentActionRow}>
                   <span>
-                    Agentes do Nexus recebem o Browser automaticamente. Crie acessos temporários para conexões MCP manuais.
+                    Agentes do Nexus recebem o Browser automaticamente. Crie acessos temporários
+                    para conexões MCP manuais.
                   </span>
                   <button type="button" onClick={() => void createAgentConnection()}>
                     Gerar acesso temporário
