@@ -307,7 +307,9 @@
     border-radius: 5px;
     padding: 0;
     cursor: pointer;
-    transition: background 120ms, border-color 120ms;
+    transition:
+      background 120ms,
+      border-color 120ms;
 
     &:hover:not(:disabled) {
       background: var(--nx-surface-2);
@@ -342,7 +344,9 @@
   border: 1px solid var(--nx-border);
   border-radius: 6px;
   padding: 0 4px 0 8px;
-  transition: border-color 120ms, box-shadow 120ms;
+  transition:
+    border-color 120ms,
+    box-shadow 120ms;
 
   &:focus-within {
     border-color: var(--nx-accent);
@@ -381,7 +385,9 @@
   border-radius: 4px;
   cursor: pointer;
   padding: 0;
-  transition: color 120ms, background 120ms;
+  transition:
+    color 120ms,
+    background 120ms;
 
   &:hover:not(:disabled) {
     background: var(--nx-surface-3);
@@ -678,7 +684,9 @@
   background: transparent;
   color: var(--nx-text-muted);
   cursor: pointer;
-  transition: background 120ms, color 120ms;
+  transition:
+    background 120ms,
+    color 120ms;
 
   &:hover {
     background: var(--nx-surface-3);
