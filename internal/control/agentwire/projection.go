@@ -41,6 +41,11 @@ func (r *Reducer) ObserveWireSignal(runtimeID string, epoch, sequence uint64, si
 		observation.Evidence = Authoritative
 	case "error":
 		observation.Turn = TurnError
+		// Only a correlated provider prompt_result is authoritative.
+		// A broken pipe or transport error remains a signalled failure.
+		if signal.Kind == "prompt_result" {
+			observation.Evidence = Authoritative
+		}
 	default:
 		// Do not manufacture a state transition for unknown protocol events.
 	}

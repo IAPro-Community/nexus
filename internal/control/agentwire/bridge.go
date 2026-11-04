@@ -36,21 +36,24 @@ type permissionWait struct {
 // callback contract. The bridge does not own a terminal, permission policy,
 // authentication, or shared Nexus runtime state.
 type Bridge struct {
-	mode      string
-	acp       *ACP
-	pi        *PiRPC
-	cwd       string
-	sessionID string
-	ctx       context.Context
-	cancel    context.CancelFunc
-	signals   func(WireSignal)
-	output    func(string)
-	mu        sync.Mutex
-	pending   map[string]*permissionWait
-	next      atomic.Uint64
-	busy      bool
-	ready     chan struct{}
-	failed    chan struct{}
+	mode             string
+	acp              *ACP
+	pi               *PiRPC
+	cwd              string
+	sessionID        string
+	ctx              context.Context
+	cancel           context.CancelFunc
+	signals          func(WireSignal)
+	output           func(string)
+	mu               sync.Mutex
+	pending          map[string]*permissionWait
+	next             atomic.Uint64
+	busy             bool
+	promptID         string
+	promptResultSeen bool
+	promptOutcome    string
+	ready            chan struct{}
+	failed           chan struct{}
 }
 
 func NewBridge(mode string, input interface{ Read([]byte) (int, error) }, output interface{ Write([]byte) (int, error) }, cwd string, signals func(WireSignal), terminalOutput func(string)) (*Bridge, error) {
@@ -180,6 +183,9 @@ func (b *Bridge) Prompt(ctx context.Context, text string) error {
 		return errors.New("provider turn already running")
 	}
 	b.busy = true
+	b.promptID = ""
+	b.promptResultSeen = false
+	b.promptOutcome = ""
 	id := b.sessionID
 	b.mu.Unlock()
 	defer func() {
@@ -210,12 +216,19 @@ func (b *Bridge) Prompt(ctx context.Context, text string) error {
 		}
 		return nil
 	}
-	// Pi acknowledges the command before running. Only agent_settled confirms
-	// that work has stopped, so no COMPLETED event is emitted here.
+	// RPC acknowledges admission, not a completed provider turn. The
+	// outbound command ID must be recorded before the provider can reply.
 	var reply json.RawMessage
-	if err := b.pi.Command(ctx, "prompt", map[string]any{"message": text}, &reply); err != nil {
+	if err := b.pi.command(ctx, "prompt", map[string]any{"message": text}, &reply, func(requestID string) {
+		b.mu.Lock()
+		b.promptID = requestID
+		b.mu.Unlock()
+	}); err != nil {
 		b.mu.Lock()
 		b.busy = false
+		b.promptID = ""
+		b.promptOutcome = ""
+		b.promptResultSeen = false
 		b.mu.Unlock()
 		b.emit(WireSignal{State: "error", Summary: "Agent prompt rejected"})
 		return err
@@ -229,9 +242,15 @@ func (b *Bridge) Prompt(ctx context.Context, text string) error {
 	// Do not leave the session stuck busy when no settled event will follow.
 	if accepted.Disposition == "handled" || (accepted.AgentInvoked != nil && !*accepted.AgentInvoked) {
 		b.mu.Lock()
+		wasBusy := b.busy
 		b.busy = false
+		b.promptID = ""
+		b.promptResultSeen = false
+		b.promptOutcome = ""
 		b.mu.Unlock()
-		b.emit(WireSignal{State: "idle", Summary: "Prompt handled without starting a run"})
+		if wasBusy {
+			b.emit(WireSignal{State: "idle", Summary: "Prompt handled without starting a run"})
+		}
 	}
 	return nil
 }
@@ -469,22 +488,87 @@ func (b *Bridge) handlePiUI(raw json.RawMessage) {
 		}
 	}()
 }
+
+// piPromptResultSignal preserves a verified provider result without copying
+// provider error text (which may contain local paths or credentials).
+func piPromptResultSignal(status string) WireSignal {
+	switch status {
+	case "error":
+		return WireSignal{State: "error", Kind: "prompt_result", Summary: "Provider prompt failed"}
+	case "aborted":
+		return WireSignal{State: "cancelled", Kind: "prompt_result", Summary: "Provider prompt aborted"}
+	default:
+		return WireSignal{State: "done", Kind: "prompt_result", Summary: "Agent session settled"}
+	}
+}
+
 func (b *Bridge) piEvent(kind string, raw json.RawMessage) {
 	switch kind {
 	case "extension_ui_request":
 		b.handlePiUI(raw)
 	case "agent_start":
 		b.emit(WireSignal{State: "working", Summary: "Agent started"})
+	case "prompt_result":
+		var result struct {
+			ID             string `json:"id"`
+			AgentInvoked   *bool  `json:"agentInvoked"`
+			Status         string `json:"status"`
+			SessionSettled *bool  `json:"sessionSettled"`
+		}
+		if json.Unmarshal(raw, &result) != nil || result.ID == "" ||
+			result.AgentInvoked == nil || result.SessionSettled == nil {
+			return
+		}
+		switch result.Status {
+		case "completed", "error", "aborted":
+		default:
+			return
+		}
+		b.mu.Lock()
+		// RPC prompt_result must match the ID of the one admitted prompt.
+		// A stale/foreign/duplicate result cannot change another turn.
+		if !b.busy || b.promptID != result.ID || b.promptResultSeen {
+			b.mu.Unlock()
+			return
+		}
+		b.promptResultSeen = true
+		b.promptOutcome = result.Status
+		terminal := !*result.AgentInvoked || *result.SessionSettled
+		if terminal {
+			b.busy = false
+			b.promptID = ""
+			b.promptResultSeen = false
+			b.promptOutcome = ""
+		}
+		b.mu.Unlock()
+		if terminal {
+			if result.Status == "completed" && !*result.AgentInvoked {
+				b.emit(WireSignal{State: "idle", Kind: "prompt_result", Summary: "Prompt completed locally"})
+			} else {
+				b.emit(piPromptResultSignal(result.Status))
+			}
+		}
 	case "session_settled", "agent_settled":
-		// OMP emits session_settled only once all background work and
-		// follow-up turns have finished. Keep agent_settled for older Pi.
-		// Never infer settlement from agent_end or prompt acknowledgement.
+		// The OMP session is quiescent after background follow-ups. A
+		// correlated prompt_result is still required to claim outcome.
+		// Legacy Pi reports agent_settled directly.
 		b.mu.Lock()
 		wasBusy := b.busy
+		status := b.promptOutcome
+		verified := b.promptResultSeen
 		b.busy = false
+		b.promptID = ""
+		b.promptOutcome = ""
+		b.promptResultSeen = false
 		b.mu.Unlock()
 		if wasBusy {
-			b.emit(WireSignal{State: "done", Summary: "Agent session settled"})
+			if verified {
+				b.emit(piPromptResultSignal(status))
+			} else if kind == "agent_settled" {
+				b.emit(WireSignal{State: "done", Summary: "Legacy Pi agent settled"})
+			} else {
+				b.emit(WireSignal{State: "idle", Summary: "Session settled; prompt outcome unverified"})
+			}
 		}
 	case "agent_end": // Yield is not settlement; async jobs may resume work.
 	case "message_update":

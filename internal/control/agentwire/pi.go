@@ -38,6 +38,12 @@ func (p *PiRPC) OnEvent(callback func(string, json.RawMessage)) {
 	p.onEvent = callback
 }
 func (p *PiRPC) Command(ctx context.Context, command string, fields map[string]any, reply *json.RawMessage) error {
+	return p.command(ctx, command, fields, reply, nil)
+}
+
+// command supplies the actual outbound request ID to the owning Bridge
+// before bytes reach the provider. A later prompt_result must match it.
+func (p *PiRPC) command(ctx context.Context, command string, fields map[string]any, reply *json.RawMessage, onRequestID func(string)) error {
 	if command == "" {
 		return errors.New("pi RPC: empty command")
 	}
@@ -57,6 +63,9 @@ func (p *PiRPC) Command(ctx context.Context, command string, fields map[string]a
 			return errors.New("pi RPC: reserved field")
 		}
 		msg[k] = v
+	}
+	if onRequestID != nil {
+		onRequestID(id)
 	}
 	if err := p.wire.Write(msg); err != nil {
 		return err
@@ -96,8 +105,9 @@ func (p *PiRPC) RespondUI(requestID string, fields map[string]any) error {
 	return p.wire.Write(msg)
 }
 
-// Pump records events independently of command replies; 'agent_end' is not a
-// settled session. Consumers should wait for 'agent_settled' instead.
+// Pump records events independently of command replies. An ACK or agent_end
+// does not settle a session: legacy Pi emits agent_settled, while OMP uses a
+// correlated prompt_result plus session_settled for asynchronous work.
 func (p *PiRPC) Pump(ctx context.Context) error {
 	defer p.Close()
 	for {

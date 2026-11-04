@@ -43,6 +43,26 @@ responses. It remains preview-gated and needs live authenticated two-session
 tests for prompts, async activity, permissions, abort, restore/reconnect and
 version negotiation. Reference: https://github.com/can1357/oh-my-pi/blob/main/docs/rpc.md
 
+## Correlated OMP prompt outcomes (03/11/2026)
+
+OMP differentiates prompt admission (`response`), per-request result
+(`prompt_result` with matching `id`) and global session quiescence
+(`session_settled`). In the Nexus experimental `pi_rpc` bridge, the request ID
+is now registered before writing the prompt, and only the matching, validated
+`prompt_result.status` can become `completed`, `error` or `aborted`.
+A `sessionSettled=false` result keeps the runtime busy until
+`session_settled`; `sessionSettled=true` can finalize immediately. A
+`prompt_result` for a foreign ID, a duplicate or an unknown status is ignored.
+When a session settles without an attributable outcome, Nexus reports an
+unverified idle state, never a synthetic success. A local-only result with
+`agentInvoked=false` releases the pending prompt without requiring a settlement
+event. Old Pi `agent_settled` remains supported.
+
+The adapter does not reproduce OMP's engine, memory or scheduler. None of this
+qualifies OMP RPC v2 framing, permission round trips or authenticated provider
+compatibility. The actual published `prompt_result.status` is authoritative
+for a provider error; a broken transport is not the same evidence.
+
 ## Feature discovery decision
 
 The experimental ACP/RPC selector is not promoted as a public feature
