@@ -125,3 +125,86 @@ func TestBrowserAutomaticMCPStdioProviders(t *testing.T) {
 		})
 	}
 }
+
+func TestMergeMCPProviderConfigResilience(t *testing.T) {
+	t.Run("empty 0-byte file", func(t *testing.T) {
+		dir := t.TempDir()
+		cfgPath := filepath.Join(dir, "mcp_config.json")
+		if err := os.WriteFile(cfgPath, []byte(""), 0600); err != nil {
+			t.Fatal(err)
+		}
+		server := map[string]any{"command": "test-cmd", "args": []string{"arg1"}}
+		if err := mergeMCPProviderConfig(cfgPath, "mcpServers", "nexus-browser", server); err != nil {
+			t.Fatalf("mergeMCPProviderConfig failed on empty file: %v", err)
+		}
+		data, err := os.ReadFile(cfgPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var parsed map[string]any
+		if err := json.Unmarshal(data, &parsed); err != nil {
+			t.Fatalf("unmarshal merged config: %v", err)
+		}
+		mcpServers, ok := parsed["mcpServers"].(map[string]any)
+		if !ok || mcpServers["nexus-browser"] == nil {
+			t.Fatalf("expected nexus-browser in mcpServers, got %v", parsed)
+		}
+	})
+
+	t.Run("updates differing existing configuration", func(t *testing.T) {
+		dir := t.TempDir()
+		cfgPath := filepath.Join(dir, "mcp_config.json")
+		initial := map[string]any{
+			"mcpServers": map[string]any{
+				"nexus-browser": map[string]any{"command": "old-cmd", "args": []string{"old"}},
+				"other-server":  map[string]any{"command": "other-cmd"},
+			},
+		}
+		raw, _ := json.Marshal(initial)
+		if err := os.WriteFile(cfgPath, raw, 0600); err != nil {
+			t.Fatal(err)
+		}
+		updated := map[string]any{"command": "new-cmd", "args": []string{"new"}}
+		if err := mergeMCPProviderConfig(cfgPath, "mcpServers", "nexus-browser", updated); err != nil {
+			t.Fatalf("mergeMCPProviderConfig failed on differing server: %v", err)
+		}
+		data, err := os.ReadFile(cfgPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var parsed map[string]any
+		if err := json.Unmarshal(data, &parsed); err != nil {
+			t.Fatalf("unmarshal merged config: %v", err)
+		}
+		mcpServers := parsed["mcpServers"].(map[string]any)
+		nb := mcpServers["nexus-browser"].(map[string]any)
+		if nb["command"] != "new-cmd" {
+			t.Fatalf("expected new-cmd, got %v", nb["command"])
+		}
+		if mcpServers["other-server"] == nil {
+			t.Fatal("expected other-server to be preserved")
+		}
+	})
+
+	t.Run("symlinked directory", func(t *testing.T) {
+		base := t.TempDir()
+		realDir := filepath.Join(base, "real_config")
+		if err := os.MkdirAll(realDir, 0700); err != nil {
+			t.Fatal(err)
+		}
+		symlinkDir := filepath.Join(base, "symlink_config")
+		if err := os.Symlink(realDir, symlinkDir); err != nil {
+			t.Fatal(err)
+		}
+		cfgPath := filepath.Join(symlinkDir, "mcp_config.json")
+		server := map[string]any{"command": "nexus", "args": []string{"__browser-mcp-stdio"}}
+		if err := mergeMCPProviderConfig(cfgPath, "mcpServers", "nexus-browser", server); err != nil {
+			t.Fatalf("mergeMCPProviderConfig failed on symlinked dir: %v", err)
+		}
+		// Verify realDir has the file
+		realFile := filepath.Join(realDir, "mcp_config.json")
+		if _, err := os.Stat(realFile); err != nil {
+			t.Fatalf("expected realDir to have mcp_config.json: %v", err)
+		}
+	})
+}

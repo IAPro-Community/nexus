@@ -129,7 +129,7 @@ func TestBridgePiSettledNotAck(t *testing.T) {
 			}
 			_ = wire.Write(map[string]any{"type": "response", "id": p.ID, "command": "prompt", "success": true})
 			_ = wire.Write(map[string]any{"type": "agent_end"})
-			_ = wire.Write(map[string]any{"type": "agent_settled"})
+			_ = wire.Write(map[string]any{"type": "session_settled"})
 		}
 	}()
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -155,7 +155,7 @@ func TestBridgePiSettledNotAck(t *testing.T) {
 		}
 	}
 	if !settled {
-		t.Fatal("agent_settled not forwarded")
+		t.Fatal("session_settled not forwarded")
 	}
 	bridge.Stop()
 }

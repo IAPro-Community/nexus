@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { formatTabTitle, normalizeBrowserURL, type NexusBrowserInfo } from './BrowserSurface';
+import {
+  formatTabTitle,
+  normalizeBrowserURL,
+  shouldUserControlTab,
+  type NexusBrowserInfo,
+} from './BrowserSurface';
 
 describe('normalizeBrowserURL', () => {
   it('keeps existing http and https schemes intact', () => {
@@ -19,6 +24,16 @@ describe('normalizeBrowserURL', () => {
     expect(normalizeBrowserURL('google.com')).toBe('https://google.com');
     expect(normalizeBrowserURL('github.com/org/repo')).toBe('https://github.com/org/repo');
     expect(normalizeBrowserURL('//example.org')).toBe('https://example.org');
+  });
+
+  it('converts search terms and multi-word inputs to search engine URL', () => {
+    expect(normalizeBrowserURL('nexus workspace os')).toBe(
+      'https://www.google.com/search?q=nexus%20workspace%20os',
+    );
+    expect(normalizeBrowserURL('react documentation')).toBe(
+      'https://www.google.com/search?q=react%20documentation',
+    );
+    expect(normalizeBrowserURL('notion')).toBe('https://www.google.com/search?q=notion');
   });
 
   it('handles empty or whitespace strings', () => {
@@ -72,5 +87,85 @@ describe('formatTabTitle', () => {
       height: 800,
     };
     expect(formatTabTitle(candidate)).toBe('Aba · abcdef');
+  });
+});
+
+describe('shouldUserControlTab', () => {
+  it('defaults to controlling human-owned tabs without owner_runtime_id', () => {
+    const humanTab: NexusBrowserInfo = {
+      id: 'tab-human-1',
+      project_id: 'p1',
+      url: 'https://example.org',
+      width: 1280,
+      height: 800,
+    };
+    const userControlledSet = new Set<string>();
+    expect(shouldUserControlTab(humanTab, userControlledSet)).toBe(true);
+  });
+
+  it('defaults to observer mode (no control) for agent-owned tabs', () => {
+    const agentTab: NexusBrowserInfo = {
+      id: 'tab-agent-1',
+      project_id: 'p1',
+      url: 'https://example.org',
+      owner_runtime_id: 'agent-runtime-123',
+      width: 1280,
+      height: 800,
+    };
+    const userControlledSet = new Set<string>();
+    expect(shouldUserControlTab(agentTab, userControlledSet)).toBe(false);
+  });
+
+  it('preserves control when switching to an agent tab the user previously took over', () => {
+    const agentTab: NexusBrowserInfo = {
+      id: 'tab-agent-1',
+      project_id: 'p1',
+      url: 'https://example.org',
+      owner_runtime_id: 'agent-runtime-123',
+      width: 1280,
+      height: 800,
+    };
+    const userControlledSet = new Set<string>(['tab-agent-1']);
+    expect(shouldUserControlTab(agentTab, userControlledSet)).toBe(true);
+  });
+
+  it('keeps multi-tab permissions consistent when switching back and forth', () => {
+    const humanTab: NexusBrowserInfo = {
+      id: 'tab-human',
+      project_id: 'p1',
+      url: 'https://google.com',
+      width: 1280,
+      height: 800,
+    };
+    const agentTab: NexusBrowserInfo = {
+      id: 'tab-agent',
+      project_id: 'p1',
+      url: 'https://cloudflare.com',
+      owner_runtime_id: 'runtime-xyz',
+      width: 1280,
+      height: 800,
+    };
+    const userControlledSet = new Set<string>(['tab-human']);
+
+    // Human tab is always controlled
+    expect(shouldUserControlTab(humanTab, userControlledSet)).toBe(true);
+
+    // Agent tab starts in observer mode
+    expect(shouldUserControlTab(agentTab, userControlledSet)).toBe(false);
+
+    // User takes over agent tab ("Assumir")
+    userControlledSet.add(agentTab.id);
+    expect(shouldUserControlTab(agentTab, userControlledSet)).toBe(true);
+
+    // Switching back to human tab retains control
+    expect(shouldUserControlTab(humanTab, userControlledSet)).toBe(true);
+
+    // Switching back to agent tab retains takeover control
+    expect(shouldUserControlTab(agentTab, userControlledSet)).toBe(true);
+
+    // User releases agent tab ("Você" clicked -> release)
+    userControlledSet.delete(agentTab.id);
+    expect(shouldUserControlTab(agentTab, userControlledSet)).toBe(false);
+    expect(shouldUserControlTab(humanTab, userControlledSet)).toBe(true);
   });
 });

@@ -25,6 +25,24 @@ The shared `agentwire` library owns ACP JSON-RPC (initialization, session creati
 
 Executable discovery and version probing are provided by the existing `ControlDriver` system. The four added preview drivers register only when the environment flag is active. They must not be labeled `SUPPORTED` for structured control in provider metadata before same-version E2E passes.
 
+## OMP RPC settlement semantics (03/11/2026)
+
+The current OMP RPC contract distinguishes command acceptance, a model turn's
+yield (`agent_end` / `prompt_result`) and **session settlement**. The
+provider emits `session_settled` only after pending async jobs and follow-up
+turns have completed. Nexus also retains `agent_settled` support for older Pi
+implementations, but ignores duplicate settlement signals and does not mark an
+agent done when a prompt is merely accepted or `agent_end` is observed.
+A local-only RPC command with `data.agentInvoked=false` releases the busy
+state without waiting for a settlement event that will not arrive.
+
+This is a **protocol compatibility fix, not native OMP homologation**. The
+current Nexus client has not implemented OMP RPC protocol v2 negotiation or
+lossless `rpc_chunk` reassembly and must not claim support for oversized
+responses. It remains preview-gated and needs live authenticated two-session
+tests for prompts, async activity, permissions, abort, restore/reconnect and
+version negotiation. Reference: https://github.com/can1357/oh-my-pi/blob/main/docs/rpc.md
+
 ## Feature discovery decision
 
 The experimental ACP/RPC selector is not promoted as a public feature

@@ -42,7 +42,11 @@ export async function startDirectSession(
   api: DirectSessionOperations,
   input: DirectSessionInput,
 ): Promise<Agent> {
-  const created = await api.createAgent(input.projectId, input.name, 'developer');
+  const name = input.name.trim();
+  if (!name) {
+    throw new Error('Direct session agent name is required');
+  }
+  const created = await api.createAgent(input.projectId, name, 'developer');
   let attemptedStart = false;
   try {
     await api.selectResource(created.id, input.provider, input.profile, 'MANUAL');

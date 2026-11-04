@@ -5,22 +5,33 @@ import {
   Bot,
   Camera,
   Copy,
+  ExternalLink,
   Globe,
   Keyboard,
   Lock,
+  Maximize2,
   Monitor,
+  PanelBottom,
   Plus,
   RefreshCw,
+  Scaling,
+  Search,
   Send,
   Smartphone,
+  Terminal,
   Unlock,
   X,
 } from 'lucide-react';
 import { getDesktopAuthToken, getWebSocketEndpoint, request } from '../../api';
 import { useTranslation } from 'react-i18next';
+import { resolveTerminalInfo } from './terminalResolution';
+import type { Agent, RuntimeSession } from '../../types';
 import styles from './BrowserSurface.module.scss';
 
-export function normalizeBrowserURL(input: string): string {
+export function normalizeBrowserURL(
+  input: string,
+  searchEngine = 'https://www.google.com/search?q=',
+): string {
   const trimmed = input.trim();
   if (!trimmed) return trimmed;
   if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(trimmed)) {
@@ -41,6 +52,9 @@ export function normalizeBrowserURL(input: string): string {
     host.startsWith('[::1]:')
   ) {
     return `http://${trimmed}`;
+  }
+  if (/\s/.test(trimmed) || (!host.includes('.') && !host.includes(':'))) {
+    return `${searchEngine}${encodeURIComponent(trimmed)}`;
   }
   return `https://${trimmed}`;
 }
@@ -77,6 +91,14 @@ export function formatTabTitle(candidate: NexusBrowserInfo): string {
     return `Agente · ${candidate.owner_runtime_id.slice(0, 8)}`;
   }
   return `Aba · ${candidate.id.slice(0, 6)}`;
+}
+
+export function shouldUserControlTab(
+  candidate: NexusBrowserInfo,
+  userControlledSessionIds: ReadonlySet<string>,
+): boolean {
+  if (userControlledSessionIds.has(candidate.id)) return true;
+  return !candidate.owner_runtime_id;
 }
 
 export type NexusBrowserAction = {
@@ -201,6 +223,9 @@ export const BrowserSurface: React.FC<{
   const [snapshot, setSnapshot] = useState('');
   const [elements, setElements] = useState<NexusBrowserElement[]>([]);
   const [zoom, setZoom] = useState(100);
+  const [viewMode, setViewMode] = useState<'fit' | 'actual'>('fit');
+  const [devToolsOpen, setDevToolsOpen] = useState(false);
+  const [drawerTab, setDrawerTab] = useState<'inspector' | 'input' | 'agents'>('inspector');
   const [handoff, setHandoff] = useState<BrowserHandoff>({ status: '' });
   const [grants, setGrants] = useState<AgentGrant[]>([]);
   const [privateInput, setPrivateInput] = useState(false);
@@ -209,10 +234,21 @@ export const BrowserSurface: React.FC<{
   const [dragging, setDragging] = useState(false);
   const [selectionText, setSelectionText] = useState('');
   const [updatedTabs, setUpdatedTabs] = useState<Set<string>>(new Set());
+
   const previousBrowserState = useRef<
     Map<string, { lastActiveAt: string; url: string; activeActor: string }>
   >(new Map());
+  const userControlledSessions = useRef<Set<string>>(new Set());
+  const lastHumanInteraction = useRef<number>(Date.now());
+  const lastManualTabSelection = useRef<string | null>(null);
+  const lastManualTabSelectionTime = useRef<number>(0);
+  const controllerRef = useRef(controller);
+  controllerRef.current = controller;
+  const wantsControlRef = useRef(wantsControl);
+  wantsControlRef.current = wantsControl;
   const rootRef = useRef<HTMLElement>(null);
+  const addressInputRef = useRef<HTMLInputElement>(null);
+  const isAddressFocused = useRef(false);
   const frameObjectURL = useRef('');
   const started = useRef(false);
   const mounted = useRef(false);
@@ -257,8 +293,6 @@ export const BrowserSurface: React.FC<{
               createdNew = true;
             }
           } else {
-            // Prefer an existing agent-owned browser so opening Browser in
-            // the Workspace previews the very page the CLI is using.
             const existing = await browserAPI.list(projectId);
             const agentOwned = existing.find((candidate) => Boolean(candidate.owner_runtime_id));
             if (agentOwned) {
@@ -276,7 +310,11 @@ export const BrowserSurface: React.FC<{
             }
             return;
           }
-          if (next.owner_runtime_id) setWantsControl(false);
+          const isUserOwned = shouldUserControlTab(next, userControlledSessions.current);
+          setWantsControl(isUserOwned);
+          if (isUserOwned) {
+            userControlledSessions.current.add(next.id);
+          }
           setSession(next);
           setAddress(next.url);
           onReady.current?.(next.id);
@@ -287,13 +325,17 @@ export const BrowserSurface: React.FC<{
     }
     return () => {
       mounted.current = false;
-      // The Core owns the browser: hidden or remounted panels never kill it.
     };
   }, [initialSessionId, projectId, initialUrl]);
 
   const selectBrowser = useCallback(
-    (id: string) => {
+    (id: string, isManual = true) => {
       if (!id) return;
+      if (isManual) {
+        lastManualTabSelection.current = id;
+        lastManualTabSelectionTime.current = Date.now();
+        lastHumanInteraction.current = Date.now();
+      }
       setUpdatedTabs((prevSet) => {
         if (!prevSet.has(id)) return prevSet;
         const next = new Set(prevSet);
@@ -305,8 +347,20 @@ export const BrowserSurface: React.FC<{
         .get(id)
         .then((next) => {
           if (next.project_id !== projectId) return;
-          setWantsControl(false);
-          setController(false);
+          const isUserOwned = shouldUserControlTab(next, userControlledSessions.current);
+          setWantsControl(isUserOwned);
+          setController(isUserOwned);
+          if (isUserOwned) {
+            userControlledSessions.current.add(next.id);
+            void browserAPI
+              .control(next.id, 'acquire')
+              .then((res) => {
+                setController(res.controller);
+              })
+              .catch(() => {
+                setController(false);
+              });
+          }
           setSession(next);
           setAddress(next.url);
           setSnapshot('');
@@ -323,6 +377,7 @@ export const BrowserSurface: React.FC<{
     async (id: string) => {
       try {
         await browserAPI.close(id);
+        userControlledSessions.current.delete(id);
         setAvailableBrowsers((prev) => prev.filter((b) => b.id !== id));
         setUpdatedTabs((prevSet) => {
           const next = new Set(prevSet);
@@ -333,7 +388,7 @@ export const BrowserSurface: React.FC<{
         if (session?.id === id) {
           const remaining = availableBrowsers.filter((b) => b.id !== id);
           if (remaining.length > 0) {
-            selectBrowser(remaining[0].id);
+            selectBrowser(remaining[0].id, true);
           }
         }
       } catch (err) {
@@ -347,8 +402,9 @@ export const BrowserSurface: React.FC<{
     if (availableBrowsers.length >= 4) return;
     try {
       const next = await browserAPI.create(projectId, 'https://example.org');
+      userControlledSessions.current.add(next.id);
       setAvailableBrowsers((prev) => [...prev, next]);
-      selectBrowser(next.id);
+      selectBrowser(next.id, true);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -394,11 +450,32 @@ export const BrowserSurface: React.FC<{
                   candidate.active_actor?.startsWith('agent:') ||
                   (candidate.owner_runtime_id && (urlChanged || activityChanged)),
                 );
-                if (isAgentActing && !agentTabToFocus) {
+
+                const userIsInteracting = Date.now() - lastHumanInteraction.current < 5000;
+                const userManuallySwitchedRecently =
+                  Date.now() - lastManualTabSelectionTime.current < 10000;
+                const userIsControllingCurrent = controllerRef.current || wantsControlRef.current;
+
+                const shouldFocus =
+                  isAgentActing &&
+                  !agentTabToFocus &&
+                  !userIsControllingCurrent &&
+                  !userIsInteracting &&
+                  !userManuallySwitchedRecently;
+
+                if (shouldFocus) {
                   agentTabToFocus = candidate.id;
                 }
               }
+            } else if (candidate.owner_runtime_id && candidate.id !== session.id) {
+              // Brand new agent-created tab detected for the first time
+              const userIsInteracting = Date.now() - lastHumanInteraction.current < 5000;
+              const userIsControllingCurrent = controllerRef.current || wantsControlRef.current;
+              if (!userIsControllingCurrent && !userIsInteracting && !agentTabToFocus) {
+                agentTabToFocus = candidate.id;
+              }
             }
+
             previousBrowserState.current.set(candidate.id, {
               lastActiveAt: candidate.last_active_at || '',
               url: candidate.url || '',
@@ -407,22 +484,12 @@ export const BrowserSurface: React.FC<{
           }
 
           if (agentTabToFocus && session.id !== agentTabToFocus) {
-            const activeEl = document.activeElement;
-            const userIsTyping =
-              activeEl &&
-              (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA') &&
-              activeEl.getAttribute('aria-label') === 'Endereço da página';
-            if (!userIsTyping) {
-              selectBrowser(agentTabToFocus);
+            if (!isAddressFocused.current) {
+              selectBrowser(agentTabToFocus, false);
             }
           }
 
-          // Keep the visible address in sync with agent-driven navigation
-          // without overwriting a human editing the location bar.
-          if (
-            browserInfo.url &&
-            document.activeElement?.getAttribute('aria-label') !== 'Endereço da página'
-          ) {
+          if (browserInfo.url && !isAddressFocused.current) {
             setAddress(browserInfo.url);
           }
           if (status.status === 'human_active') setPrivateInput(true);
@@ -430,126 +497,114 @@ export const BrowserSurface: React.FC<{
             setPrivateInput(false);
         }
       } catch {
-        // The browser may have been closed or Core temporarily disconnected.
+        // background poll failure is non-fatal
       }
     };
     void poll();
-    const interval = window.setInterval(() => void poll(), 2500);
+    const timer = window.setInterval(poll, 1500);
     return () => {
       disposed = true;
-      window.clearInterval(interval);
+      window.clearInterval(timer);
     };
-  }, [session?.id, session, projectId, selectBrowser]);
-
-  const createAgentConnection = async () => {
-    if (!session) return;
-    try {
-      const grant = await browserAPI.grant(session.id);
-      const text = `# Execute no host que roda o Nexus Core (ajuste a porta se necessário)
-export NEXUS_BROWSER_TOKEN='${grant.token}'
-codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXUS_BROWSER_TOKEN`;
-      try {
-        await navigator.clipboard.writeText(text);
-        setConnectionInfo(
-          'Comandos MCP copiados. O token concede acesso apenas a esta sessão e expira em 1 hora.',
-        );
-        setGrantFallback('');
-      } catch {
-        setGrantFallback(text);
-        setConnectionInfo('A cópia automática falhou. Copie os comandos apresentados abaixo.');
-      }
-      setGrants((current) => [...current, grant.grant]);
-      setWantsControl(false);
-      setController(false);
-      void browserAPI.control(session.id, 'release').catch(() => undefined);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    }
-  };
-
-  const respondToHuman = async (mode: 'begin' | 'complete' | 'cancel') => {
-    if (!session) return;
-    try {
-      const next = await browserAPI.handoff(session.id, mode);
-      setHandoff(next);
-      const takingOver = mode === 'begin';
-      setWantsControl(takingOver);
-      setController(takingOver);
-      setPrivateInput(takingOver);
-      setText('');
-      setSnapshot('');
-      setElements([]);
-      setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    }
-  };
+  }, [session, projectId, selectBrowser]);
 
   const refreshImage = useCallback(async () => {
-    if (!session || document.hidden || !visible) return;
-    const headers: Record<string, string> = {};
-    const token = getDesktopAuthToken();
-    if (token) headers.Authorization = `Bearer ${token}`;
-    const res = await fetch(`${browserRoute(session.id)}/frame`, {
-      headers,
-      cache: 'no-store',
-    });
-    if (!res.ok) throw new Error(`Screenshot unavailable (HTTP ${res.status})`);
-    const next = URL.createObjectURL(await res.blob());
-    if (!mounted.current) {
-      URL.revokeObjectURL(next);
-      return;
+    if (!session || !visible) return;
+    try {
+      const headers: Record<string, string> = {};
+      const token = getDesktopAuthToken();
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const response = await fetch(`${browserRoute(session.id)}/frame`, {
+        headers,
+        cache: 'no-store',
+      });
+      if (!response.ok) return;
+      const blob = await response.blob();
+      const nextURL = URL.createObjectURL(blob);
+      if (frameObjectURL.current) URL.revokeObjectURL(frameObjectURL.current);
+      frameObjectURL.current = nextURL;
+      setFrame(nextURL);
+    } catch {
+      // non-fatal image poll
     }
-    if (frameObjectURL.current) URL.revokeObjectURL(frameObjectURL.current);
-    frameObjectURL.current = next;
-    setFrame(next);
   }, [session, visible]);
 
-  // CDP Page.startScreencast sends frames on page changes. The screenshot
-  // endpoint is a fallback for older hosts or transient WebSocket failures.
+  const sessionId = session?.id;
+
   useEffect(() => {
-    if (!session || !visible || document.hidden) return;
+    if (!sessionId || !visible) return;
     let stopped = false;
     let ws: WebSocket | null = null;
-    let reconnect: number | undefined;
-    let attempts = 0;
+    let reconnect: number | null = null;
 
     const connect = () => {
-      if (stopped) return;
-      ws = new WebSocket(getWebSocketEndpoint(`${browserRoute(session.id)}/stream`));
-      ws.onopen = () => {
-        attempts = 0;
-        setLive(true);
-        setError('');
-      };
-      ws.onmessage = (event: MessageEvent<string>) => {
-        try {
-          const payload = JSON.parse(event.data) as { type?: string; data?: string };
-          if (payload.type !== 'frame' || !payload.data || stopped) return;
-          if (frameObjectURL.current) {
-            URL.revokeObjectURL(frameObjectURL.current);
-            frameObjectURL.current = '';
-          }
+      try {
+        const streamBase = getWebSocketEndpoint(browserRoute(sessionId) + '/stream');
+        const token = getDesktopAuthToken();
+        const fullStreamUrl = token
+          ? `${streamBase}${streamBase.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`
+          : streamBase;
+
+        ws = new WebSocket(fullStreamUrl);
+        ws.binaryType = 'blob';
+        ws.onopen = () => {
+          if (!stopped) setLive(true);
+        };
+        ws.onclose = () => {
+          if (stopped) return;
+          setLive(false);
+          reconnect = window.setTimeout(connect, 1500);
+        };
+        ws.onerror = () => {
+          ws?.close();
+        };
+        ws.onmessage = (event) => {
+          if (stopped) return;
           lastFrameAt.current = Date.now();
-          setFrame(`data:image/jpeg;base64,${payload.data}`);
-        } catch {
-          // An unexpected message must never crash the Workspace.
-        }
-      };
-      ws.onclose = () => {
-        setLive(false);
-        if (stopped) return;
-        const delay = Math.min(8000, 500 * 2 ** Math.min(attempts++, 4));
-        reconnect = window.setTimeout(connect, delay);
-      };
-      ws.onerror = () => ws?.close();
+          if (event.data instanceof Blob) {
+            const nextURL = URL.createObjectURL(event.data);
+            if (frameObjectURL.current) URL.revokeObjectURL(frameObjectURL.current);
+            frameObjectURL.current = nextURL;
+            setFrame(nextURL);
+          } else if (typeof event.data === 'string') {
+            try {
+              const parsed = JSON.parse(event.data) as {
+                type?: string;
+                data?: string;
+                selection?: string;
+                title?: string;
+              };
+              if (parsed.type === 'frame' && parsed.data) {
+                if (frameObjectURL.current) {
+                  URL.revokeObjectURL(frameObjectURL.current);
+                  frameObjectURL.current = '';
+                }
+                setFrame(`data:image/jpeg;base64,${parsed.data}`);
+              }
+              if (parsed.selection !== undefined) {
+                setSelectionText(parsed.selection);
+              }
+              if (parsed.title !== undefined && session) {
+                setSession((prev) => (prev ? { ...prev, title: parsed.title } : prev));
+              }
+            } catch {
+              // ignore invalid message
+            }
+          }
+        };
+      } catch {
+        if (!stopped) reconnect = window.setTimeout(connect, 2000);
+      }
     };
     connect();
+    void refreshImage().catch(() => undefined);
+
     const fallback = window.setInterval(() => {
-      if (ws?.readyState !== WebSocket.OPEN || Date.now() - lastFrameAt.current > 7000) {
+      if (Date.now() - lastFrameAt.current > 3000) {
         void refreshImage().catch(() => undefined);
       }
     }, 3500);
+
     return () => {
       stopped = true;
       setLive(false);
@@ -557,7 +612,7 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
       if (reconnect) window.clearTimeout(reconnect);
       ws?.close();
     };
-  }, [session?.id, visible, refreshImage]);
+  }, [sessionId, visible, refreshImage, session]);
 
   useEffect(
     () => () => {
@@ -566,28 +621,26 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
     [],
   );
 
-  // One authenticated Nexus session owns the input lease for 25 seconds.
-  // Other desktop/mobile clients can watch, and gain control when released
-  // or when its heartbeat expires.
   useEffect(() => {
-    if (!session || !wantsControl) {
+    if (!sessionId || !wantsControl) {
       setController(false);
       return;
     }
     let stopped = false;
     const acquire = async () => {
       try {
-        const value = await browserAPI.control(session.id, 'acquire');
+        const value = await browserAPI.control(sessionId, 'acquire');
         if (!stopped) setController(value.controller);
       } catch {
         if (!stopped) setController(false);
       }
     };
     void acquire();
+
     const interval = window.setInterval(() => {
       if (document.hidden) return;
       void browserAPI
-        .control(session.id, 'renew')
+        .control(sessionId, 'renew')
         .then((res) => {
           if (!stopped) setController(res.controller);
         })
@@ -595,17 +648,27 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
           if (!stopped) setController(false);
         });
     }, 11000);
+
     return () => {
       stopped = true;
       window.clearInterval(interval);
       setController(false);
-      void browserAPI.control(session.id, 'release').catch(() => undefined);
     };
-  }, [session?.id, wantsControl]);
+  }, [sessionId, wantsControl]);
+
+  useEffect(() => {
+    const controlled = userControlledSessions.current;
+    return () => {
+      if (session?.id && controlled.has(session.id)) {
+        void browserAPI.control(session.id, 'release').catch(() => undefined);
+      }
+    };
+  }, [session?.id]);
 
   const processQueue = useCallback(async () => {
     if (processingRef.current || !session) return;
     processingRef.current = true;
+    lastHumanInteraction.current = Date.now();
     setBusy(true);
     try {
       while (queueRef.current.length > 0) {
@@ -613,49 +676,41 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
         if (!action) break;
         if (!controller) {
           try {
-            const res = await browserAPI.control(session.id, 'acquire');
-            if (res.controller) {
+            const lease = await browserAPI.control(session.id, 'acquire');
+            if (lease.controller) {
               setController(true);
               setWantsControl(true);
-            } else {
-              try {
-                const state = await browserAPI.handoff(session.id, 'begin');
-                setHandoff(state);
-                setPrivateInput(true);
-                setController(true);
-                setWantsControl(true);
-              } catch {
-                setError('Não foi possível assumir o controle do navegador.');
-                break;
-              }
+              userControlledSessions.current.add(session.id);
             }
           } catch {
-            try {
-              const state = await browserAPI.handoff(session.id, 'begin');
-              setHandoff(state);
-              setPrivateInput(true);
-              setController(true);
-              setWantsControl(true);
-            } catch (acquireErr) {
-              setError(acquireErr instanceof Error ? acquireErr.message : String(acquireErr));
-              break;
-            }
+            // best effort acquire
           }
         }
         try {
-          const next = await browserAPI.action(session.id, action);
-          setSession(next);
-          if (action.type === 'navigate') setAddress(next.url);
-          setError('');
-        } catch (err) {
-          setError(err instanceof Error ? err.message : String(err));
+          await browserAPI.action(session.id, action);
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (msg.includes('lease unavailable')) {
+            const lease = await browserAPI.control(session.id, 'acquire');
+            if (lease.controller) {
+              setController(true);
+              setWantsControl(true);
+              userControlledSessions.current.add(session.id);
+              await browserAPI.action(session.id, action);
+            } else {
+              throw err;
+            }
+          } else {
+            throw err;
+          }
         }
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       processingRef.current = false;
       setBusy(false);
-      window.setTimeout(() => void refreshImage().catch(() => undefined), 100);
-      window.setTimeout(() => void refreshImage().catch(() => undefined), 350);
+      void refreshImage();
     }
   }, [session, controller, refreshImage]);
 
@@ -680,8 +735,21 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
   };
 
   const handleMouseDown = (event: React.MouseEvent<HTMLButtonElement>) => {
+    lastHumanInteraction.current = Date.now();
     if (event.button !== 0 && event.button !== 2) return;
     if (!session) return;
+    const img = event.currentTarget.querySelector('img');
+    if (img) {
+      const rect = img.getBoundingClientRect();
+      if (
+        event.clientX < rect.left ||
+        event.clientX > rect.right ||
+        event.clientY < rect.top ||
+        event.clientY > rect.bottom
+      ) {
+        return;
+      }
+    }
     const coords = toViewportCoords(event.clientX, event.clientY, event.currentTarget);
     if (!coords) return;
     dragStart.current = { ...coords, clientX: event.clientX, clientY: event.clientY };
@@ -756,6 +824,7 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
   };
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    lastHumanInteraction.current = Date.now();
     if (ignoreClick.current) {
       ignoreClick.current = false;
       return;
@@ -763,88 +832,52 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
     if (isDragging.current) {
       return;
     }
-    if (!session) return;
+    if (event.detail > 1) {
+      return;
+    }
+    const img = event.currentTarget.querySelector('img');
+    if (img) {
+      const rect = img.getBoundingClientRect();
+      if (
+        event.clientX < rect.left ||
+        event.clientX > rect.right ||
+        event.clientY < rect.top ||
+        event.clientY > rect.bottom
+      ) {
+        return;
+      }
+    }
     const coords = toViewportCoords(event.clientX, event.clientY, event.currentTarget);
     if (!coords) return;
-    const clickCount = event.detail || 1;
     perform({
       type: 'click',
       x: coords.x,
       y: coords.y,
-      click_count: clickCount,
+      click_count: 1,
       button: event.button === 2 ? 'right' : 'left',
     });
-    if (clickCount >= 2) {
-      window.setTimeout(() => {
-        void browserAPI
-          .snapshot(session.id)
-          .then((snap) => {
-            if (snap.selection) setSelectionText(snap.selection);
-          })
-          .catch(() => undefined);
-      }, 250);
-    }
   };
 
   const handleContextMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     if (!session) return;
     const coords = toViewportCoords(event.clientX, event.clientY, event.currentTarget);
-    if (coords) {
-      perform({ type: 'click', x: coords.x, y: coords.y, click_count: 1, button: 'right' });
-    }
+    if (!coords) return;
+    perform({
+      type: 'click',
+      x: coords.x,
+      y: coords.y,
+      click_count: 1,
+      button: 'right',
+    });
   };
 
-  const copySelection = async () => {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (!session) return;
-    try {
-      const snap = await browserAPI.snapshot(session.id);
-      if (snap.selection) {
-        await navigator.clipboard.writeText(snap.selection);
-        setSelectionText(snap.selection);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    }
-  };
-
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
-    if (
-      document.activeElement &&
-      document.activeElement !== event.currentTarget &&
-      ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)
-    ) {
-      return;
-    }
-    if (!session) return;
-
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'c') {
+    if ((event.ctrlKey || event.metaKey) && (event.key === 'c' || event.key === 'C')) {
       void copySelection();
       return;
     }
-
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
-      event.preventDefault();
-      perform({ type: 'select_all' });
-      return;
-    }
-
-    if (
-      [
-        'ArrowUp',
-        'ArrowDown',
-        'ArrowLeft',
-        'ArrowRight',
-        'Space',
-        ' ',
-        'Tab',
-        'Backspace',
-        'Enter',
-      ].includes(event.key)
-    ) {
-      event.preventDefault();
-    }
-
     if (
       event.key === 'Backspace' ||
       event.key === 'Delete' ||
@@ -863,15 +896,159 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
 
   const inspect = () => {
     if (!session) return;
+    setBusy(true);
     void browserAPI
       .snapshot(session.id)
       .then((value) => {
         setSnapshot(value.text);
         setElements(value.elements || []);
         if (value.url) setAddress(value.url);
+        setDevToolsOpen(true);
+        setDrawerTab('inspector');
       })
-      .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)))
+      .finally(() => setBusy(false));
   };
+
+  const copySelection = async () => {
+    if (!session) return;
+    let textToCopy = selectionText;
+    if (!textToCopy) {
+      try {
+        const snap = await browserAPI.snapshot(session.id);
+        if (snap.selection) {
+          textToCopy = snap.selection;
+          setSelectionText(snap.selection);
+        }
+      } catch {
+        // ignore
+      }
+    }
+    if (textToCopy && typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(textToCopy);
+    }
+  };
+
+  const toggleControl = () => {
+    if (!session) return;
+    lastHumanInteraction.current = Date.now();
+    if (controller) {
+      setWantsControl(false);
+      setController(false);
+      userControlledSessions.current.delete(session.id);
+      void browserAPI.control(session.id, 'release').catch(() => undefined);
+      if (handoff.status === 'human_active') {
+        void browserAPI
+          .handoff(session.id, 'complete')
+          .then((state) => {
+            setHandoff(state);
+            setPrivateInput(false);
+          })
+          .catch(() => undefined);
+      }
+    } else {
+      setWantsControl(true);
+      userControlledSessions.current.add(session.id);
+      void browserAPI
+        .control(session.id, 'acquire')
+        .then((result) => setController(result.controller))
+        .catch(async () => {
+          try {
+            const state = await browserAPI.handoff(session.id, 'begin');
+            setHandoff(state);
+            setPrivateInput(true);
+            setController(true);
+            userControlledSessions.current.add(session.id);
+          } catch (err) {
+            setController(false);
+            setWantsControl(false);
+            userControlledSessions.current.delete(session.id);
+            setError(err instanceof Error ? err.message : String(err));
+          }
+        });
+    }
+  };
+
+  const navigateTo = (rawUrl: string) => {
+    if (!session) return;
+    const target = normalizeBrowserURL(rawUrl);
+    if (!target) return;
+    setAddress(target);
+    perform({ type: 'navigate', url: target });
+  };
+
+  const createAgentConnection = async () => {
+    if (!session) return;
+    try {
+      const result = await browserAPI.grant(session.id);
+      setGrants((items) => [...items, result.grant]);
+      const command = `nexus mcp add nexus-browser --url '${result.mcp_url}' --bearer-token-env-var NEXUS_BROWSER_TOKEN\nexport NEXUS_BROWSER_TOKEN='${result.token}'`;
+      setGrantFallback(command);
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(command);
+        setConnectionInfo(
+          t('browser.grantCopied', 'Configuração copiada para a área de transferência.'),
+        );
+      } else {
+        setConnectionInfo(t('browser.grantReady', 'Configuração gerada.'));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const respondToHuman = async (mode: 'begin' | 'complete' | 'cancel') => {
+    if (!session) return;
+    lastHumanInteraction.current = Date.now();
+    try {
+      const state = await browserAPI.handoff(session.id, mode);
+      setHandoff(state);
+      if (mode === 'begin') {
+        setController(true);
+        setWantsControl(true);
+        userControlledSessions.current.add(session.id);
+        setPrivateInput(true);
+      } else {
+        setController(false);
+        setWantsControl(false);
+        userControlledSessions.current.delete(session.id);
+        setPrivateInput(false);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const root = rootRef.current;
+      if (!root || !root.contains(document.activeElement)) return;
+
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'l' || e.key === 'L')) {
+        e.preventDefault();
+        addressInputRef.current?.focus();
+        addressInputRef.current?.select();
+        return;
+      }
+
+      if (
+        (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'))) &&
+        document.activeElement !== addressInputRef.current
+      ) {
+        e.preventDefault();
+        perform({ type: 'reload' });
+        return;
+      }
+
+      if (e.key === 'Escape' && devToolsOpen) {
+        e.preventDefault();
+        setDevToolsOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [devToolsOpen, perform]);
 
   return (
     <section
@@ -879,7 +1056,8 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
       className={styles.root}
       aria-label={t('browser.title', 'Navegador Nexus')}
     >
-      {availableBrowsers.length > 1 && (
+      {/* Linha 1: Tab Bar Nativa */}
+      {availableBrowsers.length > 0 && (
         <div
           className={styles.tabBar}
           role="tablist"
@@ -986,229 +1164,234 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
           )}
         </div>
       )}
-      <form
-        className={styles.toolbar}
-        noValidate
-        onSubmit={(event) => {
-          event.preventDefault();
-          const target = normalizeBrowserURL(address);
-          setAddress(target);
-          void perform({ type: 'navigate', url: target });
-        }}
-      >
-        <Globe size={16} aria-hidden="true" />
-        <button
-          type="button"
-          disabled={!session || busy}
-          onClick={() => void perform({ type: 'back' })}
-          aria-label="Voltar"
-        >
-          <ArrowLeft size={15} />
-        </button>
-        <button
-          type="button"
-          disabled={!session || busy}
-          onClick={() => void perform({ type: 'forward' })}
-          aria-label="Avançar"
-        >
-          <ArrowRight size={15} />
-        </button>
-        <input
-          type="text"
-          inputMode="url"
-          className={styles.address}
-          aria-label="Endereço da página"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          required
-        />
-        <button type="submit" disabled={!session || busy} aria-label="Navegar">
-          <ArrowRight size={15} />
-        </button>
-        <button
-          type="button"
-          disabled={!session || busy}
-          onClick={() => void perform({ type: 'reload' })}
-          aria-label="Recarregar página"
-        >
-          <RefreshCw size={15} />
-        </button>
-        <button
-          type="button"
-          disabled={!session || busy}
-          onClick={() =>
-            void perform(
-              session?.width === 390
-                ? { type: 'viewport', width: 1280, height: 800 }
-                : { type: 'viewport', width: 390, height: 844 },
-            )
-          }
-          aria-label={session?.width === 390 ? 'Viewport desktop' : 'Viewport celular'}
-          title={session?.width === 390 ? 'Viewport desktop' : 'Viewport celular'}
-        >
-          {session?.width === 390 ? <Monitor size={15} /> : <Smartphone size={15} />}
-        </button>
-        <button
-          type="button"
-          disabled={!session}
-          onClick={inspect}
-          aria-label="Inspecionar conteúdo"
-        >
-          <Camera size={15} />
-        </button>
-      </form>
-      <div className={styles.controlBar} role="status">
-        <span>{live ? 'Ao vivo' : 'Capturas / reconectando'}</span>
-        {session?.owner_runtime_id && <span>Navegador do agente · {session.owner_runtime_id}</span>}
-        <span>
-          {handoff.status === 'human_active'
-            ? 'Intervenção humana · privada'
-            : controller
-              ? 'Você controla'
-              : 'Somente visualização (clique na página para controlar)'}
-        </span>
-        {session && (
+
+      {/* Linha 2: Toolbar Unificada com Omnibox Inteligente e Controles */}
+      <div className={styles.toolbar}>
+        <div className={styles.navGroup}>
           <button
             type="button"
-            onClick={() => {
-              if (controller) {
-                setWantsControl(false);
-                setController(false);
-              } else {
-                setWantsControl(true);
-                void browserAPI
-                  .control(session.id, 'acquire')
-                  .then((result) => setController(result.controller))
-                  .catch(async () => {
-                    // If an agent owns the page, use an atomic Core handoff
-                    // rather than competing with the agent's input lease.
-                    try {
-                      const state = await browserAPI.handoff(session.id, 'begin');
-                      setHandoff(state);
-                      setPrivateInput(true);
-                      setController(true);
-                    } catch (err) {
-                      setController(false);
-                      setError(err instanceof Error ? err.message : String(err));
-                    }
-                  });
-              }
-            }}
+            disabled={!session || busy}
+            onClick={() => void perform({ type: 'back' })}
+            aria-label="Voltar"
+            title="Voltar"
           >
-            {controller ? <Unlock size={13} /> : <Lock size={13} />}
-            {controller ? 'Liberar controle' : 'Assumir controle'}
+            <ArrowLeft size={15} />
           </button>
-        )}
-      </div>
-      {(handoff.status === 'requested' || handoff.status === 'human_active') && (
-        <div className={styles.handoffPanel} role="status">
-          <strong>
-            {handoff.status === 'requested'
-              ? 'Agente solicita sua intervenção'
-              : 'Você está controlando o navegador'}
-          </strong>
-          <span>
-            {handoff.reason || 'Conclua autenticação ou parâmetros diretamente na página.'}
-          </span>
-          {handoff.status === 'requested' ? (
-            <button type="button" onClick={() => void respondToHuman('begin')}>
-              Assumir para autenticar
-            </button>
-          ) : (
-            <div className={styles.handoffButtons}>
-              <button type="button" onClick={() => void respondToHuman('complete')}>
-                Concluído · devolver ao agente
-              </button>
-              <button type="button" onClick={() => void respondToHuman('cancel')}>
-                Cancelar intervenção
-              </button>
-            </div>
-          )}
-          <small>
-            O agente permanece pausado e não recebe senhas, capturas ou conteúdo da página durante a
-            intervenção.
-          </small>
+          <button
+            type="button"
+            disabled={!session || busy}
+            onClick={() => void perform({ type: 'forward' })}
+            aria-label="Avançar"
+            title="Avançar"
+          >
+            <ArrowRight size={15} />
+          </button>
+          <button
+            type="button"
+            disabled={!session || busy}
+            onClick={() => void perform({ type: 'reload' })}
+            aria-label="Recarregar página"
+            title="Recarregar"
+          >
+            <RefreshCw size={15} />
+          </button>
         </div>
-      )}
-      {session && (
-        <details className={styles.agentConnections}>
-          <summary>Conexões avançadas com agentes externos</summary>
-          <p>
-            Agentes iniciados pelo Nexus recebem o Browser automaticamente. Use esta opção apenas
-            para uma conexão externa autorizada.
-          </p>
-          <button type="button" onClick={() => void createAgentConnection()}>
-            Gerar acesso temporário e copiar configuração
-          </button>
-          {connectionInfo && <p role="status">{connectionInfo}</p>}
-          {grantFallback && (
-            <textarea readOnly value={grantFallback} aria-label="Configuração MCP de uso único" />
+
+        <form
+          className={styles.addressForm}
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault();
+            lastHumanInteraction.current = Date.now();
+            navigateTo(address);
+          }}
+        >
+          <div className={styles.addressWrapper}>
+            <span
+              className={`${styles.liveIndicator} ${live ? styles.isLive : ''}`}
+              title={live ? 'Conexão CDP ao vivo' : 'Capturas / Reconectando'}
+              aria-label={live ? 'Ao vivo' : 'Reconectando'}
+            />
+            <Search size={13} className={styles.searchIcon} aria-hidden="true" />
+            <input
+              ref={addressInputRef}
+              type="text"
+              inputMode="url"
+              className={styles.address}
+              aria-label="Barra de endereço ou busca"
+              placeholder="Digite uma URL ou termo de busca..."
+              value={address}
+              onChange={(e) => {
+                lastHumanInteraction.current = Date.now();
+                setAddress(e.target.value);
+              }}
+              onFocus={() => {
+                isAddressFocused.current = true;
+                lastHumanInteraction.current = Date.now();
+              }}
+              onBlur={() => {
+                isAddressFocused.current = false;
+              }}
+              required
+            />
+            <button
+              type="submit"
+              className={styles.goButton}
+              disabled={!session || busy || !address.trim()}
+              aria-label="Navegar"
+              title="Ir / Pesquisar"
+            >
+              <ArrowRight size={13} />
+            </button>
+          </div>
+        </form>
+
+        <div className={styles.actionsGroup}>
+          {session && (
+            <button
+              type="button"
+              className={styles.leasePill}
+              data-controller={controller}
+              onClick={toggleControl}
+              title={
+                controller
+                  ? 'Você está no controle exclusivo. Clique para liberar.'
+                  : 'Somente visualização. Clique para assumir o controle.'
+              }
+            >
+              {controller ? <Lock size={12} /> : <Unlock size={12} />}
+              <span>{controller ? 'Você' : 'Assumir'}</span>
+            </button>
           )}
-          {grants.map((grant) => (
-            <div className={styles.grantRow} key={grant.id}>
-              <span>
-                {grant.label} · até {new Date(grant.expires_at).toLocaleTimeString()}
-              </span>
+
+          <button
+            type="button"
+            disabled={!session || busy}
+            onClick={() =>
+              void perform(
+                session?.width === 390
+                  ? { type: 'viewport', width: 1280, height: 800 }
+                  : { type: 'viewport', width: 390, height: 844 },
+              )
+            }
+            aria-label={
+              session?.width === 390
+                ? 'Alternar para desktop (1280x800)'
+                : 'Alternar para celular (390x844)'
+            }
+            title={session?.width === 390 ? 'Desktop (1280x800)' : 'Celular (390x844)'}
+          >
+            {session?.width === 390 ? <Smartphone size={14} /> : <Monitor size={14} />}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setViewMode((mode) => (mode === 'fit' ? 'actual' : 'fit'))}
+            title={
+              viewMode === 'fit'
+                ? 'Visualização ajustada: clique para tamanho 100% real'
+                : 'Tamanho 100% real: clique para ajustar à tela'
+            }
+            aria-label={viewMode === 'fit' ? 'Ajustado à tela' : 'Tamanho real 100%'}
+          >
+            {viewMode === 'fit' ? <Scaling size={14} /> : <Maximize2 size={14} />}
+            <span className={styles.modeText}>{viewMode === 'fit' ? 'Ajustar' : `${zoom}%`}</span>
+          </button>
+          {viewMode === 'actual' && (
+            <>
               <button
                 type="button"
-                onClick={() => {
-                  void browserAPI
-                    .revokeGrant(session.id, grant.id)
-                    .then(() => {
-                      setGrants((items) => items.filter((item) => item.id !== grant.id));
-                      setGrantFallback('');
-                    })
-                    .catch((err: unknown) =>
-                      setError(err instanceof Error ? err.message : String(err)),
-                    );
-                }}
+                onClick={() => setZoom((val) => Math.max(50, val - 25))}
+                disabled={zoom <= 50}
+                aria-label="Diminuir zoom"
+                title="Diminuir zoom"
               >
-                Revogar
+                −
               </button>
-            </div>
-          ))}
-        </details>
-      )}
-      <div className={styles.zoomControls} role="group" aria-label="Zoom do navegador">
-        <button
-          type="button"
-          onClick={() => void copySelection()}
-          aria-label="Copiar seleção para área de transferência"
-          title={
-            selectionText
-              ? `Copiar "${selectionText.slice(0, 40)}${selectionText.length > 40 ? '…' : ''}" (Ctrl+C)`
-              : 'Copiar texto selecionado (Ctrl+C)'
-          }
-        >
-          <Copy size={13} aria-hidden="true" />
-          <span>
-            {selectionText ? `Copiar seleção (${selectionText.length})` : 'Copiar seleção'}
-          </span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setZoom((value) => Math.max(75, value - 25))}
-          disabled={zoom <= 75}
-          aria-label="Diminuir zoom"
-        >
-          −
-        </button>
-        <span>{zoom}%</span>
-        <button
-          type="button"
-          onClick={() => setZoom((value) => Math.min(250, value + 25))}
-          disabled={zoom >= 250}
-          aria-label="Aumentar zoom"
-        >
-          +
-        </button>
+              <button
+                type="button"
+                onClick={() => setZoom((val) => Math.min(250, val + 25))}
+                disabled={zoom >= 250}
+                aria-label="Aumentar zoom"
+                title="Aumentar zoom"
+              >
+                +
+              </button>
+            </>
+          )}
+
+          <button
+            type="button"
+            onClick={() => void copySelection()}
+            aria-label="Copiar seleção para área de transferência"
+            title={
+              selectionText
+                ? `Copiar "${selectionText.slice(0, 40)}${selectionText.length > 40 ? '…' : ''}" (Ctrl+C)`
+                : 'Copiar texto selecionado (Ctrl+C)'
+            }
+          >
+            <Copy size={13} />
+            {selectionText && (
+              <span className={styles.selectionCount}>({selectionText.length})</span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            className={styles.devToolsToggle}
+            data-active={devToolsOpen}
+            onClick={() => setDevToolsOpen((open) => !open)}
+            aria-label="Alternar console de inspeção e conexões de agentes"
+            title="Console de inspeção e agentes"
+          >
+            <PanelBottom size={14} />
+            <span className={styles.modeText}>Inspetor</span>
+            {(elements.length > 0 || grants.length > 0) && (
+              <span className={styles.badgeCount}>{elements.length || grants.length}</span>
+            )}
+          </button>
+        </div>
       </div>
-      <div className={styles.viewportScroll}>
+
+      {/* Alerta de Intervenção Humana (Handoff) */}
+      {(handoff.status === 'requested' || handoff.status === 'human_active') && (
+        <div className={styles.handoffBanner} role="status">
+          <div className={styles.handoffText}>
+            <strong>
+              {handoff.status === 'requested'
+                ? 'Agente solicita intervenção:'
+                : 'Você está no controle:'}
+            </strong>
+            <span>{handoff.reason || 'Conclua a autenticação na página.'}</span>
+          </div>
+          <div className={styles.handoffActions}>
+            {handoff.status === 'requested' ? (
+              <button type="button" onClick={() => void respondToHuman('begin')}>
+                Assumir para autenticar
+              </button>
+            ) : (
+              <>
+                <button type="button" onClick={() => void respondToHuman('complete')}>
+                  Concluído · devolver ao agente
+                </button>
+                <button type="button" onClick={() => void respondToHuman('cancel')}>
+                  Cancelar
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Viewport Principal (100% Altura Flexível Restante) */}
+      <div
+        className={`${styles.viewportScroll} ${viewMode === 'fit' ? styles.isFitContainer : ''}`}
+      >
         {frame ? (
           <button
             type="button"
-            className={`${styles.viewportButton} ${dragging ? styles.isDragging : ''}`}
-            style={{ width: `${zoom}%` }}
+            className={`${styles.viewportButton} ${viewMode === 'fit' ? styles.isFit : ''} ${dragging ? styles.isDragging : ''}`}
+            style={viewMode === 'actual' ? { width: `${zoom}%` } : undefined}
             onClick={handleClick}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
@@ -1250,84 +1433,213 @@ codex mcp add nexus-browser --url '${grant.mcp_url}' --bearer-token-env-var NEXU
           <div className={styles.placeholder}>Iniciando Chromium / aguardando imagem…</div>
         )}
       </div>
-      <form
-        className={styles.inputBar}
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (text) {
-            void perform({ type: 'type', text });
-            setText('');
-          }
-        }}
-      >
-        <Keyboard size={16} aria-hidden="true" />
-        <input
-          type={privateInput ? 'password' : 'text'}
-          autoComplete="off"
-          aria-label={
-            privateInput ? 'Texto sensível para login' : 'Texto para o elemento selecionado'
-          }
-          placeholder="Digitar no elemento selecionado"
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-        />
-        <button
-          type="button"
-          onClick={() => setPrivateInput((value) => !value)}
-          title="Ocultar caracteres digitados neste campo"
-        >
-          {' '}
-          {privateInput ? 'Privado' : 'Ocultar'}{' '}
-        </button>
-        <button type="submit" disabled={!session || !text || busy} aria-label="Enviar texto">
-          <Send size={15} />
-        </button>
-        <button
-          type="button"
-          disabled={!session || busy}
-          onClick={() => void perform({ type: 'key', key: 'Enter' })}
-        >
-          Enter
-        </button>
-        <button
-          type="button"
-          disabled={!session || busy}
-          onClick={() => void perform({ type: 'key', key: 'Tab' })}
-        >
-          Tab
-        </button>
-        <button
-          type="button"
-          disabled={!session || busy}
-          onClick={() => void perform({ type: 'key', key: 'Backspace' })}
-        >
-          ⌫
-        </button>
-      </form>
+
       {error && (
         <p className={styles.error} role="alert">
           {error}
         </p>
       )}
-      {(snapshot || elements.length > 0) && (
-        <details className={styles.snapshot}>
-          <summary>Inspeção da página · {elements.length} elementos</summary>
-          <div className={styles.inspectionActions}>
-            {elements.map((item, index) => (
+
+      {/* Gaveta Retrátil de DevTools / Inspeção (Bottom) */}
+      {devToolsOpen && (
+        <div
+          className={styles.devToolsDrawer}
+          role="region"
+          aria-label="Console de inspeção e agentes"
+        >
+          <div className={styles.drawerHeader}>
+            <div className={styles.drawerTabs} role="tablist">
               <button
-                key={`${item.selector}:${index}`}
                 type="button"
-                disabled={!session || busy}
-                title={item.selector}
-                onClick={() => void perform({ type: 'click_selector', selector: item.selector })}
+                role="tab"
+                aria-selected={drawerTab === 'inspector'}
+                className={styles.drawerTab}
+                data-active={drawerTab === 'inspector'}
+                onClick={() => setDrawerTab('inspector')}
               >
-                {item.label || item.text || item.tag}
+                Seletores & DOM ({elements.length})
               </button>
-            ))}
+              <button
+                type="button"
+                role="tab"
+                aria-selected={drawerTab === 'input'}
+                className={styles.drawerTab}
+                data-active={drawerTab === 'input'}
+                onClick={() => setDrawerTab('input')}
+              >
+                Entrada Manual & Teclas
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={drawerTab === 'agents'}
+                className={styles.drawerTab}
+                data-active={drawerTab === 'agents'}
+                onClick={() => setDrawerTab('agents')}
+              >
+                Agentes MCP ({grants.length})
+              </button>
+            </div>
+            <div className={styles.drawerActions}>
+              {drawerTab === 'inspector' && (
+                <button
+                  type="button"
+                  className={styles.drawerActionButton}
+                  onClick={inspect}
+                  disabled={!session || busy}
+                  title="Inspecionar elementos e capturar snapshot do DOM"
+                >
+                  <Camera size={13} aria-hidden="true" />
+                  <span>Capturar DOM</span>
+                </button>
+              )}
+              <button
+                type="button"
+                className={styles.drawerCloseButton}
+                onClick={() => setDevToolsOpen(false)}
+                aria-label="Fechar painel de inspeção"
+                title="Fechar painel de inspeção (Esc)"
+              >
+                <X size={14} aria-hidden="true" />
+              </button>
+            </div>
           </div>
-          <pre>{snapshot}</pre>
-          <small>Conteúdo de sites externos não é confiável.</small>
-        </details>
+          <div className={styles.drawerBody}>
+            {drawerTab === 'inspector' && (
+              <div className={styles.inspectorContent}>
+                {elements.length > 0 && (
+                  <div className={styles.inspectionActions}>
+                    {elements.map((item, index) => (
+                      <button
+                        key={`${item.selector}:${index}`}
+                        type="button"
+                        disabled={!session || busy}
+                        title={item.selector}
+                        onClick={() =>
+                          void perform({ type: 'click_selector', selector: item.selector })
+                        }
+                      >
+                        {item.label || item.text || item.tag}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {snapshot ? (
+                  <pre className={styles.snapshotText}>{snapshot}</pre>
+                ) : (
+                  <p className={styles.emptyNotice}>
+                    Nenhum snapshot textual carregado. Clique em &quot;Capturar DOM&quot; para
+                    inspecionar os elementos da página.
+                  </p>
+                )}
+              </div>
+            )}
+            {drawerTab === 'input' && (
+              <form
+                className={styles.drawerInputBar}
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (text) {
+                    void perform({ type: 'type', text });
+                    setText('');
+                  }
+                }}
+              >
+                <Keyboard size={15} aria-hidden="true" />
+                <input
+                  type={privateInput ? 'password' : 'text'}
+                  autoComplete="off"
+                  aria-label={
+                    privateInput ? 'Texto sensível para login' : 'Texto para o elemento selecionado'
+                  }
+                  placeholder="Digitar texto para enviar ao elemento remoto..."
+                  value={text}
+                  onChange={(event) => setText(event.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setPrivateInput((value) => !value)}
+                  title="Ocultar caracteres digitados neste campo"
+                >
+                  {privateInput ? 'Privado' : 'Ocultar'}
+                </button>
+                <button
+                  type="submit"
+                  disabled={!session || !text || busy}
+                  aria-label="Enviar texto"
+                >
+                  <Send size={14} />
+                </button>
+                <button
+                  type="button"
+                  disabled={!session || busy}
+                  onClick={() => void perform({ type: 'key', key: 'Enter' })}
+                >
+                  Enter
+                </button>
+                <button
+                  type="button"
+                  disabled={!session || busy}
+                  onClick={() => void perform({ type: 'key', key: 'Tab' })}
+                >
+                  Tab
+                </button>
+                <button
+                  type="button"
+                  disabled={!session || busy}
+                  onClick={() => void perform({ type: 'key', key: 'Backspace' })}
+                >
+                  ⌫
+                </button>
+              </form>
+            )}
+            {drawerTab === 'agents' && (
+              <div className={styles.agentsContent}>
+                <div className={styles.agentActionRow}>
+                  <span>
+                    Agentes do Nexus recebem o Browser automaticamente. Crie acessos temporários
+                    para conexões MCP manuais.
+                  </span>
+                  <button type="button" onClick={() => void createAgentConnection()}>
+                    Gerar acesso temporário
+                  </button>
+                </div>
+                {connectionInfo && <p role="status">{connectionInfo}</p>}
+                {grantFallback && (
+                  <textarea
+                    readOnly
+                    value={grantFallback}
+                    aria-label="Configuração MCP de uso único"
+                  />
+                )}
+                {grants.map((grant) => (
+                  <div className={styles.grantRow} key={grant.id}>
+                    <span>
+                      {grant.label} · expira às {new Date(grant.expires_at).toLocaleTimeString()}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!session) return;
+                        void browserAPI
+                          .revokeGrant(session.id, grant.id)
+                          .then(() => {
+                            setGrants((items) => items.filter((item) => item.id !== grant.id));
+                            setGrantFallback('');
+                          })
+                          .catch((err: unknown) =>
+                            setError(err instanceof Error ? err.message : String(err)),
+                          );
+                      }}
+                    >
+                      Revogar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </section>
   );

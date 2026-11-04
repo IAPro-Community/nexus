@@ -6,266 +6,12 @@
   min-height: 0;
   background: var(--nx-surface);
   color: var(--nx-text);
-}
-.toolbar,
-.inputBar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px;
-  border-bottom: 1px solid var(--nx-border);
-}
-.inputBar {
-  border-bottom: 0;
-  border-top: 1px solid var(--nx-border);
-}
-.address,
-.inputBar input {
-  flex: 1;
-  min-width: 0;
-  border-radius: 6px;
-  padding: 6px 8px;
-  border: 1px solid var(--nx-border);
-  color: var(--nx-text);
-  background: var(--nx-surface);
-}
-.toolbar button,
-.inputBar button {
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 30px;
-  border: 1px solid var(--nx-border);
-  background: var(--nx-surface);
-  color: var(--nx-text);
-  border-radius: 6px;
-  padding: 5px;
-  cursor: pointer;
-}
-.toolbar button:focus-visible,
-.inputBar button:focus-visible,
-.viewportButton:focus-visible,
-input:focus-visible {
-  outline: 2px solid var(--nx-accent);
-  outline-offset: 2px;
-}
-.toolbar button:disabled,
-.inputBar button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.viewportScroll {
-  min-height: 0;
-  flex: 1;
-  overflow: auto;
-  background: var(--nx-surface);
-  position: relative;
-}
-.viewportButton {
-  padding: 0;
-  border: 0;
-  display: block;
-  width: 100%;
-  height: auto;
-  background: var(--nx-surface);
-  cursor: default;
-  outline: none;
-}
-.viewportButton:hover,
-.viewportButton:active {
-  cursor: default;
-}
-.viewportButton.isDragging,
-.viewportButton.isDragging img {
-  cursor: text;
-}
-.viewportButton:focus-visible {
-  outline: 2px solid var(--nx-accent);
-  outline-offset: -2px;
-}
-.viewportButton img {
-  display: block;
-  width: 100%;
-  height: auto;
-  user-select: none;
-  -webkit-user-drag: none;
-  cursor: inherit;
-}
-.placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 36px;
-  color: var(--nx-muted);
-}
-.error {
-  color: var(--nx-danger);
-  margin: 4px 8px;
-  font-size: 12px;
-}
-.snapshot {
-  padding: 8px;
-  max-height: 140px;
-  overflow: auto;
-}
-.snapshot pre {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-size: 12px;
+  overflow: hidden;
 }
 
-.controlBar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 5px;
-  padding: 5px 8px;
-  border-bottom: 1px solid var(--nx-border);
-  font-size: 11px;
-  color: var(--nx-muted);
-}
-.controlBar button {
-  display: inline-flex;
-  gap: 5px;
-  align-items: center;
-  padding: 4px 7px;
-  border: 1px solid var(--nx-border);
-  border-radius: 5px;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-}
-.controlBar button:focus-visible {
-  outline: 2px solid var(--nx-accent);
-}
-
-.zoomControls {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 4px 8px;
-  background: var(--nx-surface-2);
-  border-bottom: 1px solid var(--nx-border);
-  color: var(--nx-muted);
-  font-size: 11px;
-}
-.zoomControls button,
-.inspectionActions button {
-  border: 1px solid var(--nx-border);
-  border-radius: 5px;
-  background: transparent;
-  color: var(--nx-text);
-  padding: 4px 7px;
-  cursor: pointer;
-}
-.zoomControls button:disabled,
-.inspectionActions button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.zoomControls button:focus-visible,
-.inspectionActions button:focus-visible {
-  outline: 2px solid var(--nx-accent);
-}
-.inspectionActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding-block: 6px;
-}
-@media (max-width: 640px) {
-  .toolbar {
-    gap: 3px;
-    padding: 4px;
-  }
-  .toolbar button {
-    padding: 4px;
-    flex-shrink: 0;
-  }
-  .address,
-  .inputBar input {
-    font-size: 16px;
-  }
-}
-
-.handoffPanel {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  padding: 10px;
-  border-bottom: 1px solid var(--nx-warning);
-  background: var(--nx-warning-soft);
-  color: var(--nx-text);
-  font-size: 12px;
-}
-.handoffPanel small {
-  color: var(--nx-muted);
-}
-.handoffPanel button,
-.agentConnections button {
-  border: 1px solid var(--nx-border-strong);
-  border-radius: 6px;
-  background: var(--nx-surface);
-  color: var(--nx-text);
-  cursor: pointer;
-  padding: 6px 10px;
-  text-align: left;
-}
-.handoffPanel button:focus-visible,
-.agentConnections button:focus-visible {
-  outline: 2px solid var(--nx-accent);
-  outline-offset: 2px;
-}
-.handoffButtons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.agentConnections {
-  padding: 8px;
-  background: var(--nx-surface-2);
-  border-bottom: 1px solid var(--nx-border);
-  font-size: 12px;
-}
-.agentConnections summary {
-  cursor: pointer;
-  font-weight: 600;
-}
-.agentConnections p {
-  margin: 6px 0;
-  color: var(--nx-muted);
-}
-.agentConnections textarea {
-  width: 100%;
-  min-height: 80px;
-  border: 1px solid var(--nx-border);
-  background: var(--nx-surface);
-  color: var(--nx-text);
-  font-family: var(--nx-font-mono);
-  font-size: 11px;
-  overflow-wrap: anywhere;
-}
-.grantRow {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  justify-content: space-between;
-  margin: 5px 0;
-}
-.grantRow span {
-  color: var(--nx-muted);
-  overflow-wrap: anywhere;
-}
-@media (max-width: 640px) {
-  .handoffPanel button,
-  .agentConnections button {
-    min-height: 38px;
-  }
-}
-
+/* ==========================================================================
+   Tab Bar (Linha 1)
+   ========================================================================== */
 .tabBar {
   display: flex;
   align-items: center;
@@ -273,10 +19,12 @@ input:focus-visible {
   gap: 4px;
   background: var(--nx-surface-2);
   border-bottom: 1px solid var(--nx-border);
-  padding: 4px 6px 0;
+  padding: 3px 6px 0;
   overflow-x: auto;
   overflow-y: hidden;
   user-select: none;
+  min-height: 33px;
+  flex-shrink: 0;
 }
 
 .tabList {
@@ -294,7 +42,7 @@ input:focus-visible {
   position: relative;
   min-width: 120px;
   max-width: 220px;
-  height: 32px;
+  height: 30px;
   background: var(--nx-surface-3);
   border: 1px solid var(--nx-border);
   border-bottom: 0;
@@ -314,6 +62,11 @@ input:focus-visible {
     border-bottom: 1px solid var(--nx-surface);
     margin-bottom: -1px;
     font-weight: 500;
+  }
+
+  &[data-new-tab='true'] {
+    border-color: var(--nx-accent);
+    animation: tab-attention-pulse 1.8s infinite alternate ease-in-out;
   }
 }
 
@@ -369,8 +122,8 @@ input:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   margin-right: 4px;
   border: 0;
   border-radius: 4px;
@@ -399,8 +152,8 @@ input:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border: 1px solid transparent;
   border-radius: 5px;
   background: transparent;
@@ -475,4 +228,865 @@ input:focus-visible {
   background: var(--nx-accent);
   box-shadow: 0 0 5px var(--nx-accent);
   flex-shrink: 0;
+}
+
+.terminalTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--nx-surface-2);
+  color: var(--nx-text-muted);
+  font-size: 10px;
+  font-family: var(--nx-font-mono, monospace);
+  font-weight: 500;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border: 1px solid var(--nx-border);
+}
+
+.newBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: var(--nx-accent);
+  color: var(--nx-accent-contrast, #fff);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  animation: tab-attention-pulse 1.8s infinite alternate ease-in-out;
+}
+
+@keyframes tab-attention-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--nx-accent);
+    opacity: 0.85;
+  }
+
+  100% {
+    box-shadow: 0 0 6px 1px var(--nx-accent);
+    opacity: 1;
+  }
+}
+
+/* ==========================================================================
+   Unified Toolbar (Linha 2)
+   ========================================================================== */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  background: var(--nx-surface);
+  border-bottom: 1px solid var(--nx-border);
+  min-height: 40px;
+  flex-shrink: 0;
+}
+
+.navGroup {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+
+  button {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 28px;
+    height: 28px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--nx-text);
+    border-radius: 5px;
+    padding: 0;
+    cursor: pointer;
+    transition:
+      background 120ms,
+      border-color 120ms;
+
+    &:hover:not(:disabled) {
+      background: var(--nx-surface-2);
+      border-color: var(--nx-border);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--nx-accent);
+      outline-offset: 1px;
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.addressForm {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.addressWrapper {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 28px;
+  background: var(--nx-surface-2);
+  border: 1px solid var(--nx-border);
+  border-radius: 6px;
+  padding: 0 4px 0 8px;
+  transition:
+    border-color 120ms,
+    box-shadow 120ms;
+
+  &:focus-within {
+    border-color: var(--nx-accent);
+    outline: 2px solid var(--nx-accent);
+    outline-offset: -1px;
+  }
+}
+
+.searchIcon {
+  color: var(--nx-muted);
+  flex-shrink: 0;
+  margin-right: 6px;
+}
+
+.address {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--nx-text);
+  font-size: 12px;
+  height: 100%;
+  padding: 0;
+  outline: none;
+}
+
+.goButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: var(--nx-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+  transition:
+    color 120ms,
+    background 120ms;
+
+  &:hover:not(:disabled) {
+    background: var(--nx-surface-3);
+    color: var(--nx-text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--nx-accent);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+}
+
+.actionsGroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 28px;
+    padding: 0 7px;
+    border: 1px solid var(--nx-border);
+    border-radius: 5px;
+    background: var(--nx-surface-2);
+    color: var(--nx-text);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 120ms ease;
+
+    &:hover:not(:disabled) {
+      background: var(--nx-surface-3);
+      border-color: var(--nx-border-strong);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--nx-accent);
+      outline-offset: 1px;
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.leasePill {
+  font-weight: 500;
+
+  &[data-controller='true'] {
+    background: var(--nx-info-soft);
+    border-color: var(--nx-info);
+    color: var(--nx-info);
+  }
+
+  &[data-controller='false'] {
+    color: var(--nx-muted);
+  }
+}
+
+.terminalOwnerButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--nx-border);
+  border-radius: 5px;
+  background: var(--nx-surface-2);
+  color: var(--nx-text);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 120ms ease;
+
+  &:hover {
+    background: var(--nx-surface-3);
+    border-color: var(--nx-border-strong);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--nx-accent);
+  }
+}
+
+.modeText {
+  font-size: 11px;
+}
+
+.selectionCount {
+  font-size: 10px;
+  color: var(--nx-accent);
+  font-weight: 600;
+}
+
+.devToolsToggle {
+  &[data-active='true'] {
+    background: var(--nx-surface-3);
+    border-color: var(--nx-accent);
+    color: var(--nx-accent);
+  }
+}
+
+.badgeCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--nx-accent);
+  color: var(--nx-surface);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .modeText {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   Handoff Alert Banner
+   ========================================================================== */
+.handoffBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--nx-warning-soft);
+  border-bottom: 1px solid var(--nx-warning);
+  color: var(--nx-text);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.handoffText {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+
+  strong {
+    font-weight: 600;
+  }
+}
+
+.handoffActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  button {
+    border: 1px solid var(--nx-border-strong);
+    border-radius: 5px;
+    background: var(--nx-surface);
+    color: var(--nx-text);
+    padding: 3px 8px;
+    font-size: 11px;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--nx-surface-2);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--nx-accent);
+    }
+  }
+}
+
+/* ==========================================================================
+   New Tab Alert Banner
+   ========================================================================== */
+.newTabAlert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  background: var(--nx-surface-2);
+  border-bottom: 2px solid var(--nx-accent);
+  color: var(--nx-text);
+  font-size: 12px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slide-down-alert 200ms ease-out;
+}
+
+@keyframes slide-down-alert {
+  from {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.newTabAlertContent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.newTabAlertIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: var(--nx-accent-soft);
+  color: var(--nx-accent);
+  flex-shrink: 0;
+}
+
+.newTabAlertText {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  flex-wrap: wrap;
+
+  strong {
+    color: var(--nx-text);
+    font-weight: 600;
+  }
+}
+
+.newTabAlertTitle {
+  color: var(--nx-text-muted);
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.newTabAlertActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.newTabAlertGoBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: var(--nx-accent);
+  color: var(--nx-accent-contrast, #fff);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 120ms;
+
+  &:hover {
+    opacity: 0.9;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--nx-text);
+    outline-offset: 1px;
+  }
+}
+
+.newTabAlertDismissBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--nx-text-muted);
+  cursor: pointer;
+  transition:
+    background 120ms,
+    color 120ms;
+
+  &:hover {
+    background: var(--nx-surface-3);
+    color: var(--nx-text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--nx-accent);
+  }
+}
+
+/* ==========================================================================
+   Viewport Scroll & Page View
+   ========================================================================== */
+.viewportScroll {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  background: var(--nx-surface-2);
+  position: relative;
+
+  &.isFitContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 8px;
+  }
+}
+
+.viewportButton {
+  padding: 0;
+  border: 0;
+  display: block;
+  background: transparent;
+  cursor: default;
+  outline: none;
+
+  &:hover,
+  &:active {
+    cursor: default;
+  }
+
+  &.isDragging,
+  &.isDragging img {
+    cursor: text;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--nx-accent);
+    outline-offset: -2px;
+  }
+
+  &.isFit {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    img {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      box-shadow: 0 6px 28px rgba(0, 0, 0, 0.45);
+      border-radius: 4px;
+    }
+  }
+
+  &:not(.isFit) {
+    width: 100%;
+    height: auto;
+
+    img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+  }
+
+  img {
+    user-select: none;
+    -webkit-user-drag: none;
+    cursor: inherit;
+  }
+}
+
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 36px;
+  color: var(--nx-muted);
+}
+
+.error {
+  color: var(--nx-danger);
+  margin: 4px 8px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Retractable DevTools Drawer (Bottom)
+   ========================================================================== */
+.devToolsDrawer {
+  display: flex;
+  flex-direction: column;
+  background: var(--nx-surface-2);
+  border-top: 1px solid var(--nx-border);
+  max-height: 230px;
+  min-height: 130px;
+  overflow: hidden;
+  flex-shrink: 0;
+  z-index: 5;
+}
+
+.drawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 8px;
+  background: var(--nx-surface-3);
+  border-bottom: 1px solid var(--nx-border);
+  min-height: 30px;
+  flex-shrink: 0;
+}
+
+.drawerTabs {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.drawerTab {
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--nx-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 120ms ease;
+
+  &:hover {
+    color: var(--nx-text);
+  }
+
+  &[data-active='true'] {
+    background: var(--nx-surface);
+    color: var(--nx-text);
+    border-color: var(--nx-border);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--nx-accent);
+  }
+}
+
+.drawerActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.drawerActionButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  font-size: 11px;
+  border: 1px solid var(--nx-border);
+  border-radius: 4px;
+  background: var(--nx-surface);
+  color: var(--nx-text);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--nx-surface-2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--nx-accent);
+  }
+}
+
+.drawerCloseButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--nx-muted);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--nx-surface-2);
+    color: var(--nx-danger);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--nx-accent);
+  }
+}
+
+.drawerBody {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.inspectorContent {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.inspectionActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+
+  button {
+    border: 1px solid var(--nx-border);
+    border-radius: 4px;
+    background: var(--nx-surface);
+    color: var(--nx-text);
+    padding: 3px 6px;
+    font-size: 11px;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: var(--nx-surface-3);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--nx-accent);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.snapshotText {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--nx-font-mono);
+  font-size: 11px;
+  margin: 0;
+  max-height: 120px;
+  overflow: auto;
+  background: var(--nx-surface);
+  padding: 6px;
+  border-radius: 4px;
+  border: 1px solid var(--nx-border);
+}
+
+.emptyNotice {
+  color: var(--nx-muted);
+  font-size: 11px;
+  margin: 4px 0;
+}
+
+.drawerInputBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  input {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid var(--nx-border);
+    background: var(--nx-surface);
+    color: var(--nx-text);
+    border-radius: 5px;
+    padding: 5px 8px;
+    font-size: 12px;
+
+    &:focus-visible {
+      outline: 2px solid var(--nx-accent);
+    }
+  }
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 28px;
+    border: 1px solid var(--nx-border);
+    background: var(--nx-surface);
+    color: var(--nx-text);
+    border-radius: 5px;
+    padding: 4px 8px;
+    font-size: 11px;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: var(--nx-surface-3);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--nx-accent);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.agentsContent {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  textarea {
+    width: 100%;
+    min-height: 60px;
+    border: 1px solid var(--nx-border);
+    background: var(--nx-surface);
+    color: var(--nx-text);
+    font-family: var(--nx-font-mono);
+    font-size: 11px;
+    overflow-wrap: anywhere;
+    border-radius: 4px;
+    padding: 4px 6px;
+  }
+}
+
+.agentActionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--nx-muted);
+  font-size: 11px;
+
+  button {
+    border: 1px solid var(--nx-border-strong);
+    border-radius: 5px;
+    background: var(--nx-surface);
+    color: var(--nx-text);
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 11px;
+    white-space: nowrap;
+
+    &:hover {
+      background: var(--nx-surface-3);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--nx-accent);
+    }
+  }
+}
+
+.grantRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 3px 0;
+  font-size: 11px;
+
+  span {
+    color: var(--nx-muted);
+    overflow-wrap: anywhere;
+  }
+
+  button {
+    border: 1px solid var(--nx-border);
+    border-radius: 4px;
+    background: var(--nx-surface);
+    color: var(--nx-danger);
+    cursor: pointer;
+    padding: 2px 6px;
+    font-size: 10px;
+
+    &:hover {
+      background: var(--nx-surface-3);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--nx-accent);
+    }
+  }
 }

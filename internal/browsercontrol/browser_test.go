@@ -222,3 +222,34 @@ func TestChromiumSmokeOptional(t *testing.T) {
 		t.Fatal("closed session retained")
 	}
 }
+
+func TestChromiumGoogleSearchAntiBot(t *testing.T) {
+	if os.Getenv("NEXUS_BROWSER_INTEGRATION") != "1" {
+		t.Skip("set NEXUS_BROWSER_INTEGRATION=1 for live anti-bot test")
+	}
+	if _, err := chromeExecutable(); err != nil {
+		t.Skipf("no Chromium available: %v", err)
+	}
+	m := NewManager()
+	defer m.Shutdown()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	// Test Google image search which previously failed with unusual traffic / CAPTCHA
+	info, err := m.Create(ctx, "p-antibot", "https://www.google.com/search?tbm=isch&q=aurora+boreal")
+	if err != nil {
+		t.Fatalf("create session: %v", err)
+	}
+	s, ok := m.Get(info.ID)
+	if !ok {
+		t.Fatal("session not found")
+	}
+	time.Sleep(3 * time.Second)
+	snap, err := s.Snapshot(ctx)
+	if err != nil {
+		t.Fatalf("snapshot: %v", err)
+	}
+	text := string(snap)
+	if strings.Contains(text, "unusual traffic") || strings.Contains(text, "reCAPTCHA") || strings.Contains(s.Info().URL, "/sorry/index") {
+		t.Fatalf("CAPTCHA or unusual traffic detected! text: %s, url: %s", text, s.Info().URL)
+	}
+}
