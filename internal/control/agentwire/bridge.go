@@ -381,6 +381,7 @@ func (b *Bridge) handlePiUI(raw json.RawMessage) {
 		Message string   `json:"message"`
 		Options []string `json:"options"`
 		Timeout int      `json:"timeout"`
+		Secret  bool     `json:"secret"`
 	}
 	if json.Unmarshal(raw, &req) != nil || len(req.ID) > 128 || req.ID == "" {
 		return
@@ -388,6 +389,17 @@ func (b *Bridge) handlePiUI(raw json.RawMessage) {
 	switch req.Method {
 	case "select", "confirm", "input", "editor":
 	default:
+		return
+	}
+	// OMP's secret flag is only a hint; Nexus's terminal-shaped RPC
+	// interface cannot mask or isolate typed answers from attached viewers.
+	// Reject the dialog without exposing untrusted titles/messages or
+	// registering a reply token that could accept secrets via /answer.
+	if req.Secret {
+		b.print("Protected input cancelled: this RPC interface cannot mask secrets. Use the provider's secure native login flow.\n")
+		if err := b.pi.RespondUI(req.ID, map[string]any{"cancelled": true}); err != nil {
+			b.emit(WireSignal{State: "error", Summary: "Protected RPC input cancellation failed"})
+		}
 		return
 	}
 	id := fmt.Sprintf("ui-%d", b.next.Add(1))
