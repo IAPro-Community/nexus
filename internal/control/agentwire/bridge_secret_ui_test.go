@@ -36,11 +36,11 @@ func TestSecretRPCDialogFailsClosedWithoutPromptDisclosure(t *testing.T) {
 
 			const sensitive = "api-key-sensitive-title-should-not-render"
 			payload, err := json.Marshal(map[string]any{
-				"type": "extension_ui_request",
-				"id": "private-dialog",
-				"method": method,
-				"secret": true,
-				"title": sensitive,
+				"type":    "extension_ui_request",
+				"id":      "private-dialog",
+				"method":  method,
+				"secret":  true,
+				"title":   sensitive,
 				"message": sensitive,
 			})
 			if err != nil {
