@@ -29,7 +29,9 @@ function operations() {
 describe('Direct session transactional setup', () => {
   it('creates, allocates, configures and starts the requested resource', async () => {
     const api = operations();
-    await expect(startDirectSession(api, { ...input, name: '  Review agent  ' })).resolves.toBe(agent);
+    await expect(startDirectSession(api, { ...input, name: '  Review agent  ' })).resolves.toBe(
+      agent,
+    );
     expect(api.createAgent).toHaveBeenCalledWith('project-a', 'Review agent', 'developer');
     expect(api.selectResource).toHaveBeenCalledWith('agent-a', 'codex', 'work', 'MANUAL');
     expect(api.applyAgentConfig).toHaveBeenCalledWith(
