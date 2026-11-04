@@ -100,7 +100,8 @@ Use `"pi_rpc"` for Pi. This API intentionally rejects unsupported provider/proto
 - Enter a normal text line: submit a new `session/prompt` or Pi `prompt`.
 - `/cancel`: request provider cancellation using ACP `session/cancel` or Pi `abort`.
 - `/permit req-1 allow_once`: select **only** an offered ACP option, or a Pi select/confirm option. It must exactly match the displayed interaction and option identifier; unrecognized/stale options are rejected.
-- `/answer ui-1 text to send`: answer a Pi input/editor dialog. Terminal output is sanitized/redacted; these commands are still user-directed operations.
+- `/answer ui-1 text to send`: answer a **non-secret** Pi input/editor dialog. Terminal output is sanitized/redacted; these commands are still user-directed operations.
+- A provider RPC dialog marked `secret: true` is **cancelled without echoing its title/message or creating a remotely actionable /answer token**. The operator sees a generic notice directing them to the provider's secure native login flow. The preview terminal does not implement masked, client-isolated secret entry. This applies to OMP's unnegotiated `secret` hint and is not a replacement for authenticated provider onboarding.
 
 This interactive bridge does **not** implement high-confidence remote permission buttons yet. An OSC-only or structured attention signal alone does not authorize a generic `yes` write. UI cards must focus the correct terminal until the correlated authenticated RPC/ACP answer endpoint exists.
 
