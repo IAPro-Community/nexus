@@ -57,3 +57,28 @@ func TestWireProjectionCancelClosesPendingWithoutPretendingCompletion(t *testing
 		t.Fatalf("cancellation was misrepresented: %+v", final)
 	}
 }
+
+func TestCorrelatedOMPPromptErrorClearsAttentionButTransportErrorDoesNot(t *testing.T) {
+	verified := NewReducer()
+	_, err := verified.ObserveWireSignal("omp-1", 1, 1, WireSignal{
+		State: "blocked", Kind: "question", InteractionID: "req-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := verified.ObserveWireSignal("omp-1", 1, 2, WireSignal{
+		State: "error", Kind: "prompt_result",
+	})
+	if err != nil || got.Turn != TurnError || got.Evidence != Authoritative || len(got.Attention) != 0 {
+		t.Fatalf("correlated provider error was not authoritative: %+v %v", got, err)
+	}
+
+	transport := NewReducer()
+	_, _ = transport.ObserveWireSignal("omp-2", 1, 1, WireSignal{
+		State: "blocked", Kind: "question", InteractionID: "req-2",
+	})
+	got, err = transport.ObserveWireSignal("omp-2", 1, 2, WireSignal{State: "error"})
+	if err != nil || got.Evidence != Signalled || len(got.Attention) != 1 {
+		t.Fatalf("transport error incorrectly resolved provider interaction: %+v %v", got, err)
+	}
+}
