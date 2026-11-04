@@ -105,8 +105,9 @@ func (p *PiRPC) RespondUI(requestID string, fields map[string]any) error {
 	return p.wire.Write(msg)
 }
 
-// Pump records events independently of command replies; 'agent_end' is not a
-// settled session. Consumers should wait for 'agent_settled' instead.
+// Pump records events independently of command replies. An ACK or agent_end
+// does not settle a session: legacy Pi emits agent_settled, while OMP uses a
+// correlated prompt_result plus session_settled for asynchronous work.
 func (p *PiRPC) Pump(ctx context.Context) error {
 	defer p.Close()
 	for {
