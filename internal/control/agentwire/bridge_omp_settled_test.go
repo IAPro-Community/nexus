@@ -173,3 +173,100 @@ func TestOMPLocalPromptResultAndUnknownSettlementFailClosed(t *testing.T) {
 		t.Fatalf("missing correlated outcome fabricated DONE: %+v", events)
 	}
 }
+
+func TestBridgeOMPCorrelatesLiveRPCPromptResultBeforeSettlement(t *testing.T) {
+	providerRead, clientWrite := io.Pipe()
+	clientRead, providerWrite := io.Pipe()
+	defer providerRead.Close()
+	defer clientWrite.Close()
+	defer clientRead.Close()
+	defer providerWrite.Close()
+
+	signals := make(chan WireSignal, 12)
+	b, err := NewBridge("pi_rpc", clientRead, clientWrite, "/workspace/demo",
+		func(signal WireSignal) { signals <- signal }, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	go func() {
+		wire := NewJSONLines(providerRead, providerWrite)
+		prompts := 0
+		for {
+			raw, err := wire.Read()
+			if err != nil {
+				return
+			}
+			var request struct {
+				ID   string `json:"id"`
+				Type string `json:"type"`
+			}
+			if json.Unmarshal(raw, &request) != nil {
+				return
+			}
+			response := map[string]any{
+				"type": "response", "id": request.ID,
+				"command": request.Type, "success": true,
+			}
+			if request.Type == "get_state" {
+				response["data"] = map[string]string{"sessionId": "omp-rpc"}
+			} else if request.Type == "prompt" {
+				prompts++
+				if prompts == 2 {
+					response["data"] = map[string]bool{"agentInvoked": false}
+				}
+			}
+			if wire.Write(response) != nil {
+				return
+			}
+			if request.Type == "prompt" && prompts == 1 {
+				// An old successful outcome from another request must not win.
+				if wire.Write(map[string]any{
+					"type": "prompt_result", "id": "foreign-prompt",
+					"agentInvoked": true, "status": "completed", "sessionSettled": true,
+				}) != nil {
+					return
+				}
+				_ = wire.Write(map[string]any{
+					"type": "prompt_result", "id": request.ID,
+					"agentInvoked": true, "status": "error", "sessionSettled": true,
+				})
+				_ = wire.Write(map[string]any{"type": "session_settled"})
+			}
+		}
+	}()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	if err := b.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+	defer b.Stop()
+	if err := b.Prompt(ctx, "cause provider failure"); err != nil {
+		t.Fatal(err)
+	}
+	foundError := false
+	for !foundError {
+		select {
+		case signal := <-signals:
+			if signal.State == "done" {
+				t.Fatalf("foreign prompt claimed successful settlement: %+v", signal)
+			}
+			if signal.State == "error" {
+				if signal.Kind != "prompt_result" {
+					t.Fatalf("lost provider error evidence: %+v", signal)
+				}
+				foundError = true
+			}
+		case <-ctx.Done():
+			t.Fatal("correlated error outcome never arrived")
+		}
+	}
+	if err := b.Prompt(ctx, "/help"); err != nil {
+		t.Fatalf("session did not recover after verified failure: %v", err)
+	}
+	b.mu.Lock()
+	busy := b.busy
+	b.mu.Unlock()
+	if busy {
+		t.Fatal("second local command left the provider busy")
+	}
+}
