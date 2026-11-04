@@ -54,7 +54,11 @@ import { isRequiredResourceError, recoverOrStartAgent } from './agentRecover';
 import { ResourcePicker } from './ResourcePicker';
 import { TerminalActionDialog } from './TerminalActionDialog';
 import { ProtocolScrubber, decodeTerminalSocketEnvelope } from './terminalProtocol';
-import { refreshTerminalAfterActivation, resetTerminalForReplay, streamTerminalOutput } from './terminalOutput';
+import {
+  refreshTerminalAfterActivation,
+  resetTerminalForReplay,
+  streamTerminalOutput,
+} from './terminalOutput';
 import {
   shouldAutoScrollToBottomOnInput,
   shouldForwardTerminalInput,
@@ -666,12 +670,7 @@ export const AgentTerminal: React.FC<{
         } else if (payload.type === 'attention') {
           if (payload.dynamic_title) publishChrome(String(payload.dynamic_title));
           const kind = String(payload.attention_kind || payload.prompt_kind || '');
-          if (
-            kind === 'needs_user' ||
-            kind === 'choice' ||
-            kind === 'yn' ||
-            kind === 'free_text'
-          ) {
+          if (kind === 'needs_user' || kind === 'choice' || kind === 'yn' || kind === 'free_text') {
             publishChrome(undefined, true);
           }
         } else if (payload.type === 'promotion') {
