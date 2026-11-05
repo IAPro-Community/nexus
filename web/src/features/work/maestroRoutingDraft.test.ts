@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { FlowDraftModel } from './flowModel';
+import type { WorkPlan } from '../../types';
+import { flowFromWorkPlan, workPlanFromFlow, type FlowDraftModel } from './flowModel';
 import {
   MAESTRO_ROUTE_ASSIGNMENTS_FACT,
   readMaestroRoutingAssignments,
@@ -110,6 +111,56 @@ describe('Maestro routing preferences stored with Flow', () => {
         worktreePath: '/repo/opencode',
       }),
     ).toThrow('Invalid Maestro routing assignment');
+  });
+
+
+  it('serializes routing choices into a revisioned WorkPlan and restores them for another client', () => {
+    const edited = updateMaestroRoutingAssignment(baseline(), 'frontend', {
+      providerId: 'agy',
+      model: 'frontend-model',
+      sandbox: 'enabled',
+      worktreePath: '/repo/agy',
+    });
+    const baselinePlan = {
+      id: 'flow-1',
+      project_id: 'project-1',
+      title: 'Product',
+      description: 'Deliver product',
+      status: 'READY',
+      current_revision: 3,
+      phases: [],
+      created_at: '2026-11-04T00:00:00Z',
+      updated_at: '2026-11-04T00:00:00Z',
+    } satisfies WorkPlan;
+    const saved = workPlanFromFlow(
+      { ...edited, status: 'DRAFT', policyStored: true },
+      baselinePlan,
+    );
+    expect(saved.status).toBe('DRAFT');
+    expect(saved.structured_facts?.['nexus.source_artifact_id']).toBe('artifact-1');
+    const serverRevision = { ...saved, current_revision: 4 };
+    const reopened = flowFromWorkPlan(serverRevision);
+    expect(reopened.revision).toBe(4);
+    expect(readMaestroRoutingAssignments(reopened).frontend).toEqual({
+      providerId: 'agy',
+      model: 'frontend-model',
+      sandbox: 'enabled',
+      worktreePath: '/repo/agy',
+    });
+  });
+
+  it('keeps object prototypes intact for unusual task identifiers', () => {
+    const draft = { ...baseline(), steps: [step('__proto__')] };
+    const updated = updateMaestroRoutingAssignment(draft, '__proto__', {
+      providerId: 'agy',
+      model: '',
+      sandbox: 'enabled',
+      worktreePath: '/repo/agy',
+    });
+    const restored = readMaestroRoutingAssignments(updated);
+    expect(Object.getPrototypeOf(restored)).toBe(Object.prototype);
+    expect(Object.hasOwn(restored, '__proto__')).toBe(true);
+    expect(restored.__proto__.providerId).toBe('agy');
   });
 
   it('ignores tampered data and never restores an assignment for a different provider', () => {
