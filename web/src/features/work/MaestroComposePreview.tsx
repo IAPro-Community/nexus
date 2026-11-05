@@ -27,9 +27,14 @@ export function MaestroComposePreview({
   useEffect(() => {
     requestId.current += 1;
     setConsent(false);
+    setLoading(false);
     setPreview(null);
     setError('');
     setConfirmOpen(false);
+    return () => {
+      // Invalidate any paid request still in flight after switching plans/unmount.
+      requestId.current += 1;
+    };
   }, [project.id, plan.id, artifactId, plan.current_revision]);
 
   const generate = async () => {
@@ -51,7 +56,7 @@ export function MaestroComposePreview({
         );
       }
     } finally {
-      setLoading(false);
+      if (requestId.current === current) setLoading(false);
     }
   };
 
