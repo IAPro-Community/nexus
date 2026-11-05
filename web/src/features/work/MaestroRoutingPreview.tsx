@@ -103,10 +103,7 @@ export function MaestroRoutingPreview({
     };
   }, [draftFingerprint, project.id, plan.id, plan.current_revision, artifactId]);
 
-  const assignments = useMemo(
-    () => readMaestroRoutingAssignments(draft),
-    [draft],
-  );
+  const assignments = useMemo(() => readMaestroRoutingAssignments(draft), [draft]);
 
   const selected = useCallback(
     (step: FlowStepModel) => {
