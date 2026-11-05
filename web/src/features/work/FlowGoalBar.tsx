@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Play, Plus, Route, Sparkles, Trash2 } from 'lucide-react';
+import { Play, Plus, Route, Save, Sparkles, Trash2 } from 'lucide-react';
 import { Badge, Button, Card, ConfirmDialog, Input, Select } from '../../design-system';
 import type { Agent, FlowLeaderPolicy } from '../../types';
 import {
@@ -35,6 +35,8 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
     generateElapsedSec,
     generateHeartbeat,
     runBusy,
+    savingDraft,
+    saveFlowDraft,
     flowDraft,
     flowDirty,
     flowErrors,
@@ -127,7 +129,7 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
             <Button
               size="sm"
               tone="danger"
-              disabled={deletingPlan || runBusy || generating}
+              disabled={deletingPlan || runBusy || generating || savingDraft}
               onClick={() => setDeleteOpen(true)}
             >
               <Trash2 size={13} />
@@ -141,7 +143,7 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
                 : t('flow.revisionN', 'Revisão {{n}}', { n: selectedPlan.current_revision })}
             </Badge>
             <Button
-              disabled={!selectedPlan || executionPreviewBusy}
+              disabled={!selectedPlan || executionPreviewBusy || savingDraft}
               onClick={() => void runExecutionPreview()}
             >
               <Sparkles size={14} />{' '}
@@ -149,11 +151,23 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
                 ? t('flow.executionPreviewLoading', 'Avaliando execução…')
                 : t('flow.executionPreview', 'Plano de execução')}
             </Button>
-            <Button disabled={!selectedPlan || preflightBusy} onClick={() => void runPreflight()}>
+            <Button
+              disabled={!selectedPlan || preflightBusy || savingDraft}
+              onClick={() => void runPreflight()}
+            >
               <Route size={14} />{' '}
               {preflightBusy
                 ? t('flow.checking', 'Verificando…')
                 : t('flow.preflight', 'Preflight')}
+            </Button>
+            <Button
+              disabled={!flowDirty || savingDraft || runBusy || generating || flowErrors.length > 0}
+              onClick={() => void saveFlowDraft()}
+            >
+              <Save size={14} />{' '}
+              {savingDraft
+                ? t('flow.savingDraft', 'Salvando…')
+                : t('flow.saveDraft', 'Salvar rascunho')}
             </Button>
             <Button
               tone="brand"
@@ -161,6 +175,7 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
                 !selectedPlan ||
                 !flowDraft ||
                 runBusy ||
+                savingDraft ||
                 flowErrors.length > 0 ||
                 awaitingMaestroExecution
               }

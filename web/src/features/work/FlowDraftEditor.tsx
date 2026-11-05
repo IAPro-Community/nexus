@@ -13,6 +13,7 @@ import { ComposerHandoffSummary } from './ComposerHandoffSummary';
 import { MaestroRoutingPreview } from './MaestroRoutingPreview';
 import { MaestroComposePreview } from './MaestroComposePreview';
 import { draftFromMaestroComposition } from './maestroComposeFlow';
+import { updateMaestroRoutingAssignment } from './maestroRoutingDraft';
 import { FlowPipeline } from './FlowPipeline';
 import { FlowStepInspector } from './FlowStepInspector';
 import type { FlowDraftModel } from './flowModel';
@@ -98,16 +99,9 @@ export const FlowDraftEditor: React.FC<{
           plan={controller.selectedPlan}
           draft={flowDraft}
           dirty={controller.flowDirty}
-          onProviderChange={(taskId, providerId) =>
+          onAssignmentChange={(taskId, assignment) =>
             setFlowDraft((current) =>
-              current
-                ? {
-                    ...current,
-                    steps: current.steps.map((step) =>
-                      step.id === taskId ? { ...step, provider: providerId || undefined } : step,
-                    ),
-                  }
-                : current,
+              current ? updateMaestroRoutingAssignment(current, taskId, assignment) : current,
             )
           }
         />
