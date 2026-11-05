@@ -95,4 +95,56 @@ describe('Maestro composition into Flow draft', () => {
       ),
     ).toThrow();
   });
+  it('rejects a preview for a different artifact, revision or digest', () => {
+    const reviewed = {
+      ...baseline,
+      structuredFacts: {
+        ...baseline.structuredFacts,
+        'nexus.source_artifact_revision': '1',
+        'composer.handoff.v1': JSON.stringify({
+          version: 1,
+          artifact_id: 'artifact-1',
+          artifact_version: 1,
+          artifact_hash: 'a'.repeat(64),
+        }),
+      },
+    };
+    expect(() => draftFromMaestroComposition(reviewed, preview, 'Review')).not.toThrow();
+    expect(() =>
+      draftFromMaestroComposition(reviewed, {
+        ...preview,
+        artifact: { ...preview.artifact, id: 'artifact-other' },
+      }, 'Review'),
+    ).toThrow(/PromptArtifact/);
+    expect(() =>
+      draftFromMaestroComposition(reviewed, {
+        ...preview,
+        artifact: { ...preview.artifact, version: 2 },
+      }, 'Review'),
+    ).toThrow(/revision/);
+    expect(() =>
+      draftFromMaestroComposition(reviewed, {
+        ...preview,
+        artifact: { ...preview.artifact, sha256: 'c'.repeat(64) },
+      }, 'Review'),
+    ).toThrow(/provenance/);
+  });
+
+  it('fails closed on damaged immutable Composer provenance', () => {
+    const damaged = {
+      ...baseline,
+      structuredFacts: {
+        ...baseline.structuredFacts,
+        'composer.handoff.v1': '{invalid-json',
+      },
+    };
+    expect(() => draftFromMaestroComposition(damaged, preview, 'Review')).toThrow(/handoff/);
+    expect(() =>
+      draftFromMaestroComposition({
+        ...baseline,
+        structuredFacts: { 'nexus.source_artifact_id': 'wrong' },
+      }, preview, 'Review'),
+    ).toThrow(/PromptArtifact/);
+  });
+
 });
