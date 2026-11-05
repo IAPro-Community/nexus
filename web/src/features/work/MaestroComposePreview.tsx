@@ -74,12 +74,9 @@ export function MaestroComposePreview({
   const provenanceMatches = Boolean(
     preview?.artifact.id === artifactId && matchesRevision && matchesHandoff,
   );
-  const canApply = Boolean(
-    provenanceMatches &&
-    preview?.validation.valid &&
-    preview.tasks?.length &&
-    !preview.executable,
-  );
+  const hasTasks = Boolean(preview?.tasks?.length);
+  const validPlan = preview?.validation.valid === true;
+  const canApply = provenanceMatches && validPlan && hasTasks && preview?.executable === false;
 
   return (
     <Card>
