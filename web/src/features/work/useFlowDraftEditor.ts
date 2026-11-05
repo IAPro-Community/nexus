@@ -71,6 +71,7 @@ export function useFlowDraftEditor(options: {
   const generateAbortRef = useRef<AbortController | null>(null);
   const [revisions, setRevisions] = useState<PlanRevision[]>([]);
   const [runBusy, setRunBusy] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
   const [clarification, setClarification] = useState<ClarificationCheckpoint | null>(null);
   const [clarificationAnswers, setClarificationAnswers] = useState<Record<string, string>>({});
   const [planError, setPlanError] = useState('');
@@ -340,6 +341,37 @@ export function useFlowDraftEditor(options: {
     setRevisions((prev) => [res.revision, ...prev]);
     return plan;
   }, []);
+
+  const saveFlowDraft = useCallback(async () => {
+    if (!selectedPlan || !flowDraft || !flowDirty || savingDraft || runBusy) return;
+    const errors = validateFlow(flowDraft);
+    if (errors.length) {
+      setPlanError(errors.join(' '));
+      return;
+    }
+    setSavingDraft(true);
+    setPlanError('');
+    try {
+      // This is a revisioned DRAFT update only. Never approve, schedule or
+      // start an Agent when saving Maestro routing/model/worktree choices.
+      const editable = { ...flowDraft, policyStored: true, status: 'DRAFT' as const };
+      const saved = await persistPlan(
+        workPlanFromFlow(editable, selectedPlan),
+        'Flow draft saved for review',
+      );
+      setFlowDraft(flowFromWorkPlan(saved));
+      setPreflightReport(null);
+      setExecutionPreview(null);
+      setPendingCostConfirmationToken('');
+      persistStoredFlowDraft(flowDraftSessionKey(project.id, selectedPlan.id), null);
+      setFlowNotice(t('flow.draftSaved', 'Rascunho salvo nesta revisão. Nenhuma execução foi iniciada.'));
+    } catch (error) {
+      // Preserve the local session draft on version conflict/network failure.
+      setPlanError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSavingDraft(false);
+    }
+  }, [selectedPlan, flowDraft, flowDirty, savingDraft, runBusy, persistPlan, project.id, t]);
 
   const generatePlan = useCallback(async () => {
     if (!autoGoal.trim()) return;
@@ -732,6 +764,7 @@ export function useFlowDraftEditor(options: {
     generateElapsedSec,
     generateHeartbeat,
     runBusy,
+    savingDraft,
     clarification,
     clarificationAnswers,
     setClarificationAnswers,
@@ -760,6 +793,7 @@ export function useFlowDraftEditor(options: {
     resolveClarification,
     createManualPlan,
     saveLeader,
+    saveFlowDraft,
     launchRun,
     runExecutionPreview,
     runPreflight,
