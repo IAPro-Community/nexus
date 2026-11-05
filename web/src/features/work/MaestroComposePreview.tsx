@@ -64,14 +64,15 @@ export function MaestroComposePreview({
   const handoffRaw = plan.structured_facts?.['composer.handoff.v1'];
   const handoff = readComposerHandoff(plan);
   const sourceRevision = plan.structured_facts?.['nexus.source_artifact_revision'];
+  const matchesRevision = !sourceRevision || sourceRevision === String(preview?.artifact.version);
+  const matchesHandoff =
+    !handoffRaw ||
+    (handoff?.artifact_id === preview?.artifact.id &&
+      handoff?.artifact_version === preview?.artifact.version &&
+      typeof handoff?.artifact_hash === 'string' &&
+      handoff.artifact_hash.toLowerCase() === preview?.artifact.sha256.toLowerCase());
   const provenanceMatches = Boolean(
-    preview?.artifact.id === artifactId &&
-    (!sourceRevision || sourceRevision === String(preview?.artifact.version)) &&
-    (!handoffRaw ||
-      (handoff?.artifact_id === preview?.artifact.id &&
-        handoff?.artifact_version === preview?.artifact.version &&
-        typeof handoff?.artifact_hash === 'string' &&
-        handoff.artifact_hash.toLowerCase() === preview?.artifact.sha256.toLowerCase())),
+    preview?.artifact.id === artifactId && matchesRevision && matchesHandoff,
   );
   const canApply = Boolean(
     provenanceMatches &&
