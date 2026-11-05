@@ -364,7 +364,9 @@ export function useFlowDraftEditor(options: {
       setExecutionPreview(null);
       setPendingCostConfirmationToken('');
       persistStoredFlowDraft(flowDraftSessionKey(project.id, selectedPlan.id), null);
-      setFlowNotice(t('flow.draftSaved', 'Rascunho salvo nesta revisão. Nenhuma execução foi iniciada.'));
+      setFlowNotice(
+        t('flow.draftSaved', 'Rascunho salvo nesta revisão. Nenhuma execução foi iniciada.'),
+      );
     } catch (error) {
       // Preserve the local session draft on version conflict/network failure.
       setPlanError(error instanceof Error ? error.message : String(error));
