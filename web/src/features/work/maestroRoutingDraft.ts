@@ -54,22 +54,22 @@ export function readMaestroRoutingAssignments(
     if (!parsed || parsed.schemaVersion !== 1 || !Array.isArray(parsed.assignments)) return {};
     if (parsed.assignments.length > 32) return {};
     const known = new Map(draft.steps.map((step) => [step.id, step.provider || '']));
-    const result: Record<string, MaestroRouteAssignmentDraft> = {};
+    const result = new Map<string, MaestroRouteAssignmentDraft>();
     for (const entry of parsed.assignments) {
       if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return {};
       const item = entry as { taskId?: unknown } & Record<string, unknown>;
       const taskId = item.taskId;
       if (typeof taskId !== 'string' || !SAFE_ID.test(taskId)) return {};
       if (!known.has(taskId) || known.get(taskId) !== item.providerId) continue;
-      if (!validAssignment(item) || Object.hasOwn(result, taskId)) return {};
-      result[taskId] = {
+      if (!validAssignment(item) || result.has(taskId)) return {};
+      result.set(taskId, {
         providerId: item.providerId,
         model: item.model,
         sandbox: item.sandbox,
         worktreePath: item.worktreePath,
-      };
+      });
     }
-    return result;
+    return Object.fromEntries(result);
   } catch {
     return {};
   }
@@ -84,8 +84,12 @@ export function updateMaestroRoutingAssignment(
     throw new Error('Unknown Maestro routing task');
   }
   if (!validAssignment(assignment)) throw new Error('Invalid Maestro routing assignment');
-  const current = readMaestroRoutingAssignments(draft);
-  current[taskId] = { ...assignment };
+  // Object.fromEntries creates an own property even for unusual, valid task
+  // identifiers such as '__proto__' (no prototype setter side effects).
+  const current = Object.fromEntries([
+    ...Object.entries(readMaestroRoutingAssignments(draft)),
+    [taskId, { ...assignment }],
+  ]) as Record<string, MaestroRouteAssignmentDraft>;
   const assignments = draft.steps
     .filter((step) => current[step.id] && SAFE_ID.test(step.id))
     .map((step) => ({ taskId: step.id, ...current[step.id] }));
