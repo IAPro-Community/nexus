@@ -151,14 +151,19 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
                 ? t('flow.executionPreviewLoading', 'Avaliando execução…')
                 : t('flow.executionPreview', 'Plano de execução')}
             </Button>
-            <Button disabled={!selectedPlan || preflightBusy || savingDraft} onClick={() => void runPreflight()}>
+            <Button
+              disabled={!selectedPlan || preflightBusy || savingDraft}
+              onClick={() => void runPreflight()}
+            >
               <Route size={14} />{' '}
               {preflightBusy
                 ? t('flow.checking', 'Verificando…')
                 : t('flow.preflight', 'Preflight')}
             </Button>
             <Button
-              disabled={!flowDirty || savingDraft || runBusy || generating || flowErrors.length > 0}
+              disabled={
+                !flowDirty || savingDraft || runBusy || generating || flowErrors.length > 0
+              }
               onClick={() => void saveFlowDraft()}
             >
               <Save size={14} />{' '}
