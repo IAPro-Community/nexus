@@ -131,7 +131,10 @@ describe('Maestro routing preferences stored with Flow', () => {
       created_at: '2026-11-04T00:00:00Z',
       updated_at: '2026-11-04T00:00:00Z',
     } satisfies WorkPlan;
-    const saved = workPlanFromFlow({ ...edited, status: 'DRAFT', policyStored: true }, baselinePlan);
+    const saved = workPlanFromFlow(
+      { ...edited, status: 'DRAFT', policyStored: true },
+      baselinePlan,
+    );
     expect(saved.status).toBe('DRAFT');
     expect(saved.structured_facts?.['nexus.source_artifact_id']).toBe('artifact-1');
     const serverRevision = { ...saved, current_revision: 4 };
