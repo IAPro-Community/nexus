@@ -19,6 +19,43 @@ export function draftFromMaestroComposition(
   ) {
     throw new Error('Maestro returned a non-adoptable composition');
   }
+  // A valid Maestro DAG may still belong to a different or older artifact.
+  // Compare it with the frozen Composer handoff before replacing local edits.
+  const facts = baseline.structuredFacts || {};
+  if (
+    facts['nexus.source_artifact_id'] !== preview.artifact.id ||
+    !Number.isInteger(preview.artifact.version) ||
+    preview.artifact.version < 1 ||
+    !/^[a-f0-9]{64}$/i.test(preview.artifact.sha256)
+  ) {
+    throw new Error('Maestro composition does not match the source PromptArtifact');
+  }
+  const sourceRevision = facts['nexus.source_artifact_revision'];
+  if (sourceRevision && sourceRevision !== String(preview.artifact.version)) {
+    throw new Error('Maestro composition uses a stale PromptArtifact revision');
+  }
+  const handoffJSON = facts['composer.handoff.v1'];
+  if (handoffJSON) {
+    let handoff: unknown;
+    try {
+      handoff = JSON.parse(handoffJSON);
+    } catch {
+      throw new Error('Invalid immutable Composer handoff');
+    }
+    if (!handoff || typeof handoff !== 'object' || Array.isArray(handoff)) {
+      throw new Error('Invalid immutable Composer handoff');
+    }
+    const frozen = handoff as Record<string, unknown>;
+    if (
+      frozen.artifact_id !== preview.artifact.id ||
+      frozen.artifact_version !== preview.artifact.version ||
+      typeof frozen.artifact_hash !== 'string' ||
+      frozen.artifact_hash.toLowerCase() !== preview.artifact.sha256.toLowerCase()
+    ) {
+      throw new Error('Maestro composition conflicts with immutable Composer provenance');
+    }
+  }
+
   const ids = new Set(preview.tasks.map((task) => task.id));
   if (
     ids.size !== preview.tasks.length ||
