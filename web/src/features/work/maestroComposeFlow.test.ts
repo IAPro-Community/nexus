@@ -95,6 +95,7 @@ describe('Maestro composition into Flow draft', () => {
       ),
     ).toThrow();
   });
+
   it('rejects a preview for a different artifact, revision or digest', () => {
     const reviewed = {
       ...baseline,
@@ -112,15 +113,12 @@ describe('Maestro composition into Flow draft', () => {
     const adopt = (result: MaestroComposePreviewResult) =>
       draftFromMaestroComposition(reviewed, result, 'Review');
     expect(() => adopt(preview)).not.toThrow();
-    expect(() =>
-      adopt({ ...preview, artifact: { ...preview.artifact, id: 'artifact-other' } }),
-    ).toThrow(/PromptArtifact/);
-    expect(() =>
-      adopt({ ...preview, artifact: { ...preview.artifact, version: 2 } }),
-    ).toThrow(/revision/);
-    expect(() =>
-      adopt({ ...preview, artifact: { ...preview.artifact, sha256: 'c'.repeat(64) } }),
-    ).toThrow(/provenance/);
+    const otherId = { ...preview, artifact: { ...preview.artifact, id: 'artifact-other' } };
+    const otherVersion = { ...preview, artifact: { ...preview.artifact, version: 2 } };
+    const otherHash = { ...preview, artifact: { ...preview.artifact, sha256: 'c'.repeat(64) } };
+    expect(() => adopt(otherId)).toThrow(/PromptArtifact/);
+    expect(() => adopt(otherVersion)).toThrow(/revision/);
+    expect(() => adopt(otherHash)).toThrow(/provenance/);
   });
 
   it('fails closed on damaged immutable Composer provenance', () => {
@@ -140,5 +138,4 @@ describe('Maestro composition into Flow draft', () => {
       /PromptArtifact/,
     );
   });
-
 });
