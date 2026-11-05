@@ -109,24 +109,17 @@ describe('Maestro composition into Flow draft', () => {
         }),
       },
     };
-    expect(() => draftFromMaestroComposition(reviewed, preview, 'Review')).not.toThrow();
+    const adopt = (result: MaestroComposePreviewResult) =>
+      draftFromMaestroComposition(reviewed, result, 'Review');
+    expect(() => adopt(preview)).not.toThrow();
     expect(() =>
-      draftFromMaestroComposition(reviewed, {
-        ...preview,
-        artifact: { ...preview.artifact, id: 'artifact-other' },
-      }, 'Review'),
+      adopt({ ...preview, artifact: { ...preview.artifact, id: 'artifact-other' } }),
     ).toThrow(/PromptArtifact/);
     expect(() =>
-      draftFromMaestroComposition(reviewed, {
-        ...preview,
-        artifact: { ...preview.artifact, version: 2 },
-      }, 'Review'),
+      adopt({ ...preview, artifact: { ...preview.artifact, version: 2 } }),
     ).toThrow(/revision/);
     expect(() =>
-      draftFromMaestroComposition(reviewed, {
-        ...preview,
-        artifact: { ...preview.artifact, sha256: 'c'.repeat(64) },
-      }, 'Review'),
+      adopt({ ...preview, artifact: { ...preview.artifact, sha256: 'c'.repeat(64) } }),
     ).toThrow(/provenance/);
   });
 
@@ -139,12 +132,13 @@ describe('Maestro composition into Flow draft', () => {
       },
     };
     expect(() => draftFromMaestroComposition(damaged, preview, 'Review')).toThrow(/handoff/);
-    expect(() =>
-      draftFromMaestroComposition({
-        ...baseline,
-        structuredFacts: { 'nexus.source_artifact_id': 'wrong' },
-      }, preview, 'Review'),
-    ).toThrow(/PromptArtifact/);
+    const wrongSource = {
+      ...baseline,
+      structuredFacts: { 'nexus.source_artifact_id': 'wrong' },
+    };
+    expect(() => draftFromMaestroComposition(wrongSource, preview, 'Review')).toThrow(
+      /PromptArtifact/,
+    );
   });
 
 });
