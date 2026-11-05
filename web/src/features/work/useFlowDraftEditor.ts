@@ -46,8 +46,8 @@ export type { FlowStepAction, StudioView } from './flowDraftEditorModel';
 
 /**
  * Encapsulates the Flow draft editor lifecycle: goal capture, manual draft
- * creation, leader policy, preflight, local step edits and Approve & Run. Draft
- * edits never execute work until {@link launchRun} persists and runs the plan.
+ * creation, leader policy, preflight, draft saving and Approve & Run. Saving
+ * a draft persists only the plan revision; never starts execution.
  * Rich multi-step decomposition belongs in Composer → Turn into Flow.
  */
 export function useFlowDraftEditor(options: {
