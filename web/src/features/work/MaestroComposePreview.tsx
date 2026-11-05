@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, Card, ConfirmDialog, InlineAlert } from '../../design-system';
 import { nexusApi } from '../../nexus/api';
 import type { MaestroComposePreviewResult, Project, WorkPlan } from '../../types';
+import { readComposerHandoff } from './ComposerHandoffSummary';
 
 // Composition is a paid, read-only external-model operation. Consent belongs
 // to this single request; review and draft replacement are independent steps.
@@ -60,8 +61,20 @@ export function MaestroComposePreview({
     }
   };
 
-  const canApply = Boolean(
+  const handoffRaw = plan.structured_facts?.['composer.handoff.v1'];
+  const handoff = readComposerHandoff(plan);
+  const sourceRevision = plan.structured_facts?.['nexus.source_artifact_revision'];
+  const provenanceMatches = Boolean(
     preview?.artifact.id === artifactId &&
+    (!sourceRevision || sourceRevision === String(preview?.artifact.version)) &&
+    (!handoffRaw ||
+      (handoff?.artifact_id === preview?.artifact.id &&
+        handoff?.artifact_version === preview?.artifact.version &&
+        typeof handoff?.artifact_hash === 'string' &&
+        handoff.artifact_hash.toLowerCase() === preview?.artifact.sha256.toLowerCase())),
+  );
+  const canApply = Boolean(
+    provenanceMatches &&
     preview?.validation.valid &&
     preview.tasks?.length &&
     !preview.executable,
@@ -115,6 +128,17 @@ export function MaestroComposePreview({
             title={t('flow.maestroComposeFailed', 'Composição indisponível')}
           >
             {error}
+          </InlineAlert>
+        )}
+        {preview && !provenanceMatches && (
+          <InlineAlert
+            tone="danger"
+            title={t('flow.maestroComposeMismatchTitle', 'Proveniência divergente')}
+          >
+            {t(
+              'flow.maestroComposeMismatch',
+              'A composição não corresponde à revisão aprovada do Composer. Gere uma nova prévia antes de substituir o rascunho.',
+            )}
           </InlineAlert>
         )}
         {preview && (
