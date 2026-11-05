@@ -161,9 +161,7 @@ export const FlowGoalBar: React.FC<{ controller: FlowDraftEditorController; agen
                 : t('flow.preflight', 'Preflight')}
             </Button>
             <Button
-              disabled={
-                !flowDirty || savingDraft || runBusy || generating || flowErrors.length > 0
-              }
+              disabled={!flowDirty || savingDraft || runBusy || generating || flowErrors.length > 0}
               onClick={() => void saveFlowDraft()}
             >
               <Save size={14} />{' '}
