@@ -119,15 +119,21 @@ describe('Maestro routing preferences stored with Flow', () => {
       sandbox: 'enabled',
       worktreePath: '/repo/agy',
     });
-    expect(readMaestroRoutingAssignments({
-      ...draft,
-      steps: draft.steps.map((item) =>
-        item.id === 'frontend' ? { ...item, provider: 'opencode' } : item,
-      ),
-    }).frontend).toBeUndefined();
-    expect(readMaestroRoutingAssignments({
-      ...draft,
-      structuredFacts: { [MAESTRO_ROUTE_ASSIGNMENTS_FACT]: '{"schemaVersion":1,"assignments":"invalid"}' },
-    })).toEqual({});
+    expect(
+      readMaestroRoutingAssignments({
+        ...draft,
+        steps: draft.steps.map((item) =>
+          item.id === 'frontend' ? { ...item, provider: 'opencode' } : item,
+        ),
+      }).frontend,
+    ).toBeUndefined();
+    expect(
+      readMaestroRoutingAssignments({
+        ...draft,
+        structuredFacts: {
+          [MAESTRO_ROUTE_ASSIGNMENTS_FACT]: '{"schemaVersion":1,"assignments":"invalid"}',
+        },
+      }),
+    ).toEqual({});
   });
 });
