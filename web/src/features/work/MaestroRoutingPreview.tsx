@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, InlineAlert } from '../../design-system';
 import { nexusApi } from '../../nexus/api';
@@ -11,14 +11,14 @@ import type {
 } from '../../types';
 import type { FlowDraftModel, FlowStepModel } from './flowModel';
 import styles from './MaestroRoutingPreview.module.scss';
+import {
+  MAESTRO_ROUTE_ASSIGNMENTS_FACT,
+  readMaestroRoutingAssignments,
+  type MaestroRouteAssignmentDraft,
+} from './maestroRoutingDraft';
 
 type SelectedProvider = MaestroRoutingProvider | '';
-type AssignmentDraft = {
-  providerId: SelectedProvider;
-  model: string;
-  sandbox: MaestroWorkAssignmentInput['sandbox'];
-  worktreePath: string;
-};
+type AssignmentDraft = MaestroRouteAssignmentDraft;
 
 const PROVIDERS: MaestroRoutingProvider[] = ['agy', 'opencode', 'codex', 'claude'];
 const LABELS: Record<MaestroRoutingProvider, string> = {
@@ -64,17 +64,16 @@ export function MaestroRoutingPreview({
   plan,
   draft,
   dirty,
-  onProviderChange,
+  onAssignmentChange,
 }: {
   project: Project;
   plan: WorkPlan;
   draft: FlowDraftModel;
   dirty: boolean;
-  onProviderChange: (taskId: string, providerId: SelectedProvider) => void;
+  onAssignmentChange: (taskId: string, assignment: AssignmentDraft) => void;
 }) {
   const { t } = useTranslation();
   const artifactId = plan.structured_facts?.['nexus.source_artifact_id'] || '';
-  const [assignments, setAssignments] = useState<Record<string, AssignmentDraft>>({});
   const [preview, setPreview] = useState<MaestroRoutePreviewResult | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -82,6 +81,7 @@ export function MaestroRoutingPreview({
   const draftFingerprint = JSON.stringify({
     id: draft.id,
     revision: draft.revision,
+    routeAssignments: draft.structuredFacts?.[MAESTRO_ROUTE_ASSIGNMENTS_FACT],
     steps: draft.steps.map((step) => [
       step.id,
       step.title,
@@ -95,15 +95,18 @@ export function MaestroRoutingPreview({
 
   useEffect(() => {
     requestVersion.current += 1;
+    setLoading(false);
     setPreview(null);
     setError('');
-  }, [draftFingerprint, plan.current_revision, artifactId]);
+    return () => {
+      requestVersion.current += 1;
+    };
+  }, [draftFingerprint, project.id, plan.id, plan.current_revision, artifactId]);
 
-  useEffect(() => {
-    requestVersion.current += 1;
-    setAssignments({});
-    setPreview(null);
-  }, [project.id, plan.id]);
+  const assignments = useMemo(
+    () => readMaestroRoutingAssignments(draft),
+    [draft],
+  );
 
   const selected = useCallback(
     (step: FlowStepModel) => {
@@ -125,10 +128,7 @@ export function MaestroRoutingPreview({
     requestVersion.current += 1;
     setPreview(null);
     setError('');
-    setAssignments((old) => ({
-      ...old,
-      [step.id]: { ...selected(step), ...patch },
-    }));
+    onAssignmentChange(step.id, { ...selected(step), ...patch });
   };
 
   const hasCriteria = draft.steps.every((step) =>
@@ -182,9 +182,8 @@ export function MaestroRoutingPreview({
         );
       }
     } finally {
-      // Only one preview can run at a time. Edits invalidate its result, but
-      // must never leave the submit control stuck in a loading state.
-      setLoading(false);
+      // A stale request must not unlock a newer preview.
+      if (version === requestVersion.current) setLoading(false);
     }
   };
 
@@ -229,7 +228,6 @@ export function MaestroRoutingPreview({
                             sandbox: defaultSandbox(provider),
                             model: '',
                           });
-                          onProviderChange(step.id, provider);
                         }}
                       >
                         <option value="">{t('flow.selectProvider', 'Selecione…')}</option>
