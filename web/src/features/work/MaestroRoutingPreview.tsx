@@ -224,6 +224,7 @@ export function MaestroRoutingPreview({
                             providerId: provider,
                             sandbox: defaultSandbox(provider),
                             model: '',
+                            worktreePath: '',
                           });
                         }}
                       >
