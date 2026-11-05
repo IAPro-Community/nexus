@@ -58,10 +58,11 @@ export function readMaestroRoutingAssignments(
     for (const entry of parsed.assignments) {
       if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return {};
       const item = entry as { taskId?: unknown } & Record<string, unknown>;
-      if (typeof item.taskId !== 'string' || !SAFE_ID.test(item.taskId)) return {};
-      if (!known.has(item.taskId) || known.get(item.taskId) !== item.providerId) continue;
-      if (!validAssignment(item) || Object.hasOwn(result, item.taskId)) return {};
-      result[item.taskId] = {
+      const taskId = item.taskId;
+      if (typeof taskId !== 'string' || !SAFE_ID.test(taskId)) return {};
+      if (!known.has(taskId) || known.get(taskId) !== item.providerId) continue;
+      if (!validAssignment(item) || Object.hasOwn(result, taskId)) return {};
+      result[taskId] = {
         providerId: item.providerId,
         model: item.model,
         sandbox: item.sandbox,
