@@ -54,5 +54,12 @@ This is separate from native acceptance on real Linux/Windows/macOS devices.
   attached to this candidate yet.
 - The 48-obligation matrix from issue #115 remains mandatory for release GO.
 
-The cleanup manifest for merged/superseded work branches is kept in Maestro;
-remote ref deletion is a separate authenticated step after source verification.
+The superseded work and closed-without-merge proposals now have exact-SHA
+archives on GitHub under `archive/p0-20261105/`. The canonical archive
+registry, including 17 Nexus entries, is stored in Maestro at
+`docs/release/p0-branch-archive.json`. To complete the branch rename,
+run the **archival** utility from Maestro:
+`node scripts/p0-archive-branches.cjs --nexus=../nexus` (preview),
+then `--apply` only after verifying the archive SHA and release ancestry.
+The old GitHub branch names remain until that authenticated finalization;
+the archived refs preserve the complete original histories.
