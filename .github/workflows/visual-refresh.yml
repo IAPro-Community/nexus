@@ -43,7 +43,7 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version: '1.26.10'
+          go-version-file: go.mod
           cache: false
 
       - uses: oven-sh/setup-bun@v2
