@@ -20,11 +20,11 @@ var maestroComposeModelID = regexp.MustCompile("^[A-Za-z0-9._:/+-]{1,128}$")
 // ApprovedModelUse is explicit because semantic composition invokes an external
 // Codex model and can incur real provider usage.
 type MaestroComposePreviewRequest struct {
-	ArtifactID      string
-	Version         int
-	Content         string
-	SHA256          string
-	Model           string
+	ArtifactID       string
+	Version          int
+	Content          string
+	SHA256           string
+	Model            string
 	ApprovedModelUse bool
 }
 
@@ -93,6 +93,14 @@ func decodeMaestroComposePreview(raw json.RawMessage, req MaestroComposePreviewR
 		}
 		return out, nil
 	}
+	// A model or stale Bridge must not mark a plan as valid while still
+	// returning blockers. The Nexus UI would otherwise offer an unsafe GO.
+	var blockers []json.RawMessage
+	if len(out.Validation.Blockers) == 0 ||
+		strings.TrimSpace(string(out.Validation.Blockers)) == "null" ||
+		json.Unmarshal(out.Validation.Blockers, &blockers) != nil || len(blockers) != 0 {
+		return MaestroComposePreview{}, errors.New("Maestro compose marked a blocked plan as valid")
+	}
 	if len(out.Tasks) == 0 || len(out.Tasks) > 32 {
 		return MaestroComposePreview{}, errors.New("Maestro generated an invalid task count")
 	}
@@ -110,9 +118,16 @@ func decodeMaestroComposePreview(raw json.RawMessage, req MaestroComposePreviewR
 			return MaestroComposePreview{}, errors.New("Maestro compose task is malformed")
 		}
 		for _, criterion := range task.AcceptanceCriteria {
-			if len(criterion) < 3 || len(criterion) > 500 {
+			if strings.TrimSpace(criterion) == "" || len(criterion) < 3 || len(criterion) > 500 {
 				return MaestroComposePreview{}, errors.New("Maestro compose acceptance criterion is malformed")
 			}
+		}
+		seenDependencies := make(map[string]bool, len(task.DependsOn))
+		for _, dependency := range task.DependsOn {
+			if seenDependencies[dependency] {
+				return MaestroComposePreview{}, errors.New("Maestro compose has duplicate dependency edges")
+			}
+			seenDependencies[dependency] = true
 		}
 		task.Title = security.Redact(task.Title)
 		task.Objective = security.Redact(task.Objective)

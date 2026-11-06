@@ -58,6 +58,9 @@ func TestMaestroComposePreviewRejectsForgedModelApprovalAndDAG(t *testing.T) {
 		{`"id":"artifact-1"`, `"id":"other"`},
 		{`"dependsOn":["api"]`, `"dependsOn":["verify"]`},
 		{`"dependsOn":["api"]`, `"dependsOn":["missing"]`},
+		{`"dependsOn":["api"]`, `"dependsOn":["api","api"]`},
+		{`"valid":true,"blockers":[]`, `"valid":true,"blockers":[{"code":"UNRESOLVED"}]`},
+		{`"API rejects invalid inputs"`, `"   "`},
 	} {
 		bad := strings.Replace(string(raw), change.old, change.replacement, 1)
 		if _, err := decodeMaestroComposePreview(json.RawMessage(bad), req); err == nil {
