@@ -6,6 +6,7 @@ on:
       - release/v1.0.0
     paths:
       - .github/workflows/visual-refresh.yml
+      - .gitattributes
       - web/src/**
       - internal/desktop/hud_appearance.go
       - cmd/nexus-desktop/**
@@ -63,6 +64,10 @@ jobs:
       - name: Validate public documentation before capture
         shell: pwsh
         run: node scripts/docs-verify.mjs --links-only
+
+      - name: Verify NEX layered-raster asset bytes after Windows checkout
+        shell: pwsh
+        run: node scripts/verify-nex-hybrid-assets.mjs --require-binaries
 
       - name: Capture isolated synthetic application surfaces
         shell: pwsh
