@@ -28,9 +28,9 @@ func TestOMPLiveAuthenticatedRPCTwoSessions(t *testing.T) {
 	model := strings.TrimSpace(os.Getenv("NEXUS_OMP_AUTH_MODEL"))
 	keyName := os.Getenv("NEXUS_OMP_AUTH_KEY_ENV")
 	allowed := map[string]bool{
-		"OPENAI_API_KEY": true,
-		"ANTHROPIC_API_KEY": true,
-		"GEMINI_API_KEY": true,
+		"OPENAI_API_KEY":     true,
+		"ANTHROPIC_API_KEY":  true,
+		"GEMINI_API_KEY":     true,
 		"OPENROUTER_API_KEY": true,
 	}
 	if binary == "" || model == "" || !allowed[keyName] || os.Getenv(keyName) == "" {
