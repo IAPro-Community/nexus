@@ -46,6 +46,8 @@ func (s *Server) routeProject(h *NexusHandler) http.HandlerFunc {
 			} else {
 				h.handleAgentCreate(w, r)
 			}
+		case strings.HasSuffix(r.URL.Path, "/maestro/submissions"):
+			h.handleProjectMaestroSubmissions(w, r)
 		case strings.HasSuffix(r.URL.Path, "/maestro/route-preview"):
 			h.handleProjectMaestroRoutePreview(w, r)
 		case strings.HasSuffix(r.URL.Path, "/maestro/compose-preview"):

@@ -47,11 +47,12 @@ type maestroBridgeEnvelope struct {
 type maestroBridgeInit struct {
 	ProtocolVersion int `json:"protocolVersion"`
 	Capabilities    struct {
-		ProjectContext    bool `json:"projectContext"`
-		ContextBrief      bool `json:"contextBrief"`
-		PlansRoutePreview bool `json:"plansRoutePreview"`
-		ProjectCompose    bool `json:"projectCompose"`
-		Memory            struct {
+		ProjectContext      bool `json:"projectContext"`
+		ContextBrief        bool `json:"contextBrief"`
+		PlansRoutePreview   bool `json:"plansRoutePreview"`
+		RunsSubmissionsPoll bool `json:"runsSubmissionsPoll"`
+		ProjectCompose      bool `json:"projectCompose"`
+		Memory              struct {
 			Read bool `json:"read"`
 		} `json:"memory"`
 	} `json:"capabilities"`
