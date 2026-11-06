@@ -101,9 +101,13 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 		}
 	}
 
-	// Unify the Composer -> Flow path: decompose the brief into a real Flow DAG
-	// with structured layers (Planning, Implementation, Review, Verification or
-	// delegated workstreams) instead of collapsing into a single package.
+	// Keep failed or interrupted planning fail-closed. The Composer artifact
+	// stays durable and may be retried; never invent a generic READY package.
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	// Legacy heuristic composition remains until Maestro #47 is integrated.
+	// On failure, do NOT silently create a one-package executable-looking Flow.
 	proposal, decomposeErr := n.DecomposePromptIntoFlowProposal(ctx, FlowDecompositionRequest{
 		ProjectID:      session.ProjectID,
 		ArtifactID:     artifact.ID,
@@ -112,27 +116,25 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 		SkillIDs:       decodeStringArray(artifact.SkillIDsJSON),
 		DelegationMode: DelegationAuto,
 	})
-	if decomposeErr == nil && len(proposal.Flow.Phases) > 0 {
-		flowPlan := WorkPlanFromFlow(proposal.Flow)
-		for key, value := range flowPlan.StructuredFacts {
-			if _, exists := facts[key]; !exists {
-				facts[key] = value
-			}
-		}
-		return n.CreateWorkPlan(ctx, session.ProjectID, title, "Materialized from Composer PromptArtifact via Flow decomposition", flowPlan.Phases, facts)
-	}
-
-	phaseID := "phase_" + ids.NewRuntimeID()
-	plan, err := n.CreateWorkPlan(ctx, session.ProjectID, title, "Materialized from Composer PromptArtifact", []store.PlanPhase{{
-		ID: phaseID, Title: "Composer Flow", Order: 1, Packages: []store.WorkPackage{{
-			ID: "pkg_" + ids.NewRuntimeID(), Title: title, Goal: brief.Goal, Priority: "HIGH", Status: "READY", Role: "implementer",
-			SkillIDs: decodeStringArray(artifact.SkillIDsJSON), MaestroSkills: decodeStringArray(artifact.SkillIDsJSON), AcceptanceCriteria: append([]string(nil), brief.Quality.AcceptanceCriteria...), CompiledPrompt: artifact.Content,
-		}},
-	}}, facts)
-	if err != nil {
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	return plan, nil
+	if decomposeErr != nil {
+		return nil, fmt.Errorf("Composer Flow decomposition failed; no plan saved: %w", decomposeErr)
+	}
+	if proposal == nil || len(proposal.Flow.Phases) == 0 {
+		return nil, fmt.Errorf("Composer Flow decomposition produced no valid phases; no plan saved")
+	}
+	flowPlan := WorkPlanFromFlow(proposal.Flow)
+	if len(flowPlan.Phases) == 0 {
+		return nil, fmt.Errorf("Composer Flow decomposition produced no persistable phases; no plan saved")
+	}
+	for key, value := range flowPlan.StructuredFacts {
+		if _, exists := facts[key]; !exists {
+			facts[key] = value
+		}
+	}
+	return n.CreateWorkPlan(ctx, session.ProjectID, title, "Materialized from Composer PromptArtifact via Flow decomposition", flowPlan.Phases, facts)
 }
 
 // composerHandoffContract is a versioned, self-contained interpretation of the
