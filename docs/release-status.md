@@ -1,5 +1,74 @@
 # Aviso atual de homologação da linha v1
 
+## Contrato de release 1.0 — escopo indivisível (06/11/2026)
+
+**Branch única do Nexus:** `release/v1.0.0`. Não criar linhas alternativas de
+beta, plataforma, Composer, Flow ou homologação. O Maestro permanece um
+projeto independente com a sua autoridade de execução, composição e memória
+na branch canônica `v1`, integrado exclusivamente pelo Bridge versionado.
+
+**A inclusão na release é obrigatória para todos os P0 e para as 48 obrigações**
+de `docs/reference/agent-workspace-v1.json`, mesmo quando uma issue histórica
+estiver classificada como P1/P2. Nenhuma capacidade aprovada é adiada
+silenciosamente para uma versão posterior. Issue central: [#27](https://github.com/IAPro-Community/nexus/issues/27).
+
+**GO permanece proibido** até todos esses contratos e testes passarem em
+dispositivos reais, para o mesmo par de SHAs Nexus/Maestro, com aceite humano
+independente nas três plataformas. `PASS` de CI, testes unitários, capturas
+sintéticas ou implementação parcial não substitui a homologação nativa:
+[#115](https://github.com/IAPro-Community/nexus/issues/115).
+
+### Bloqueios críticos de execução
+
+- Maestro [#47](https://github.com/IAPro-Community/Orquestrador-Maestro/issues/47):
+  `project.compose`/DAG sem duplicar planner no Nexus.
+- Maestro [#48](https://github.com/IAPro-Community/Orquestrador-Maestro/issues/48):
+  `runs.submit` durável, replay, cancelamento, execução e Goal Loop.
+  A API pública ainda sinaliza `UNSUPPORTED`; **não** assumir GO.
+- Nexus [#166](https://github.com/IAPro-Community/nexus/issues/166),
+  [#167](https://github.com/IAPro-Community/nexus/issues/167),
+  [#185](https://github.com/IAPro-Community/nexus/issues/185):
+  Composer → Flow → Maestro com escolha de providers e provas reais.
+- Nexus [#196](https://github.com/IAPro-Community/nexus/issues/196):
+  corrupção de edição TUI com PTY/ConPTY real.
+- Nexus [#98](https://github.com/IAPro-Community/nexus/issues/98) e
+  [#100](https://github.com/IAPro-Community/nexus/issues/100):
+  ciclo autenticado, aprovação, estados e dois clientes reais.
+- Nexus [#113](https://github.com/IAPro-Community/nexus/issues/113):
+  Maestro gerenciado e migração de memória reversível.
+
+### Evidência offline autenticada e binário real
+
+O verificador `scripts/offline-release-evidence.mjs` exige, por plataforma,
+um artefato `kind: "binary"` cujo `sha256` coincida com o
+`binarySha256` assinado **e** com os bytes efetivos do executável anexado.
+O artefato deve estar no pacote externo de evidência; não aceitar apenas
+a declaração de hash. Screenshots e logs continuam obrigatórios. O
+verificador usa leitura por blocos para binários grandes, e não confia no
+nome do arquivo nem em um caminho fora do pacote.
+
+Para executar apenas a regressão local, sem chamadas de IA nem Actions:
+
+```bash
+npm run test:release-evidence:offline
+```
+
+O modo `--release --offline` existente exige 48 funcionalidades com provas,
+dois SHAs, atestação Ed25519 autorizada, três dispositivos físicos e revisão.
+O arquivo `docs/reference/release-reviewers.json` ainda não possui revisores
+autorizados; nenhuma chave privada deve ser commitada. Isso também bloqueia
+GO, independentemente do resultado do teste sintético.
+
+### Evidência visual separada de homologação
+
+As dez superfícies Web da fixture sintética foram capturadas no
+source SHA `6c0e492cef2825dab571c5bdf97e4dbfbbb03029` e publicadas em
+`01053cd94f1e97ada305e06aa29687789c323ad5` (#201 concluída).
+`VIS-011` permanece `HISTORICAL`, não homologada para a versão atual.
+Essas capturas anteriores não certificam novas alterações no frontend nem
+o release distribuído.
+
+
 > **Nexus 1.0 — escopo integral obrigatório:** o [contrato Agent Workspace v1](product/agent-workspace-v1-acceptance.md) rastreia 48 entregas e possui gate fail-closed no Signed Release. O código ainda está incompleto e não há evidence artifact aprovado: **NO-GO**. A execução do verificador estrutural no CI não equivale à certificação.
 
 

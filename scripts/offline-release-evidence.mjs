@@ -3,7 +3,7 @@ import {
   createPublicKey,
   verify as verifySignature,
 } from 'node:crypto';
-import { readFileSync, realpathSync, statSync } from 'node:fs';
+import { closeSync, openSync, readFileSync, readSync, realpathSync, statSync } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 
 const PLATFORM_IDS = Object.freeze(['linux-amd64', 'windows-amd64', 'macos-arm64']);
@@ -51,16 +51,42 @@ function safeFile(base, relativePath, digest, kind) {
   if (!rel || rel.startsWith('..' + sep) || rel === '..' || isAbsolute(rel)) {
     fail('Evidence file escapes external bundle directory');
   }
-  const bytes = readFileSync(target);
-  if (!bytes.length || bytes.length > 64 * 1024 * 1024 ||
-      createHash('sha256').update(bytes).digest('hex') !== digest) {
+  const metadata = statSync(target);
+  // Executables may be hundreds of MiB. Verify their *real bytes* in bounded
+  // chunks rather than trusting a signed digest string or buffering the entire
+  // binary in memory. All paths must still resolve inside the external bundle.
+  const maximum = kind === 'binary' ? 1024 * 1024 * 1024 : 64 * 1024 * 1024;
+  if (!metadata.isFile() || metadata.size <= 0 || metadata.size > maximum) {
+    fail('Evidence file is empty, oversized or not a regular file');
+  }
+  const sha = createHash('sha256');
+  const chunk = Buffer.allocUnsafe(64 * 1024);
+  const header = Buffer.alloc(24);
+  let headerBytes = 0;
+  let size = 0;
+  const descriptor = openSync(target, 'r');
+  try {
+    let count;
+    while ((count = readSync(descriptor, chunk, 0, chunk.length, null)) > 0) {
+      sha.update(chunk.subarray(0, count));
+      if (headerBytes < header.length) {
+        const copied = chunk.copy(header, headerBytes, 0, Math.min(count, header.length - headerBytes));
+        headerBytes += copied;
+      }
+      size += count;
+      if (size > maximum) fail('Evidence file exceeds allowed size');
+    }
+  } finally {
+    closeSync(descriptor);
+  }
+  if (size !== metadata.size || sha.digest('hex') !== digest) {
     fail('Evidence file missing or SHA-256 mismatch');
   }
   if (kind === 'screenshot') {
     const png = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
-    if (bytes.length < 400 || !bytes.subarray(0, 8).equals(png) ||
-        bytes.toString('ascii', 12, 16) !== 'IHDR' ||
-        bytes.readUInt32BE(16) < 320 || bytes.readUInt32BE(20) < 200) {
+    if (size < 400 || !header.subarray(0, 8).equals(png) ||
+        header.toString('ascii', 12, 16) !== 'IHDR' ||
+        header.readUInt32BE(16) < 320 || header.readUInt32BE(20) < 200) {
       fail('Screenshot artifact must be a nontrivial PNG with usable dimensions');
     }
   }
@@ -120,14 +146,19 @@ export function verifyOfflineReleaseEvidence({
       fail('Missing physical-device evidence: ' + platform);
     }
     date(p.reviewedAtUtc);
+    const binaries = p.artifacts.filter((item) => item.kind === 'binary');
     if (!p.artifacts.some((item) => item.kind === 'screenshot') ||
-        !p.artifacts.some((item) => item.kind === 'test-log')) {
-      fail('Visual and executable-test artifacts required for ' + platform);
+        !p.artifacts.some((item) => item.kind === 'test-log') ||
+        binaries.length !== 1 || binaries[0].sha256 !== p.binarySha256) {
+      fail('Visual, test and exact binary artifacts required for ' + platform);
     }
+    const paths = new Set();
     for (const artifact of p.artifacts) {
-      if (!['screenshot', 'test-log', 'report'].includes(artifact.kind)) {
+      if (!['binary', 'screenshot', 'test-log', 'report'].includes(artifact.kind)) {
         fail('Unrecognized evidence artifact kind');
       }
+      if (paths.has(artifact.path)) fail('Duplicated evidence artifact path');
+      paths.add(artifact.path);
       safeFile(artifactsBase, artifact.path, artifact.sha256, artifact.kind);
     }
   }

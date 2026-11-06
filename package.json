@@ -15,6 +15,7 @@
     "test": "make test-go test-frontend",
     "test:frontend": "make test-frontend",
     "test:go": "make test-go",
+    "test:release-evidence:offline": "node --test scripts/tests/offline-release-evidence.test.mjs",
     "test:e2e": "make test-e2e",
     "security": "make security",
     "quality": "make quality",
