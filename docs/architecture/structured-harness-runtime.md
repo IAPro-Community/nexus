@@ -173,6 +173,40 @@ remote safe answer UI, two **authenticated** simultaneous sessions,
 cross-platform E2E, and verified native resume. Do not mark issue #98 as
 finished or announce this as a production-ready provider.
 
+## Authenticated OMP RPC smoke — explicit opt-in, not yet certified
+
+The live negative-path test above proves correct handling of an unauthenticated
+provider error. A separate `TestOMPLiveAuthenticatedRPCTwoSessions` exercises
+the positive path with two isolated real OMP subprocesses, distinct
+`sessionId` values, two concurrent model prompts, correlated `done`
+notifications and nonempty streamed text.
+
+**This test performs real paid model calls**, so the normal test suite skips it
+unless `NEXUS_OMP_AUTH_E2E=1` is set explicitly. Run it from a Linux terminal
+with a credential already present in the environment; **do not paste an API
+key into an issue, test source, shell command or chat**:
+
+```bash
+export NEXUS_OMP_AUTH_E2E=1
+export NEXUS_OMP_AUTH_BIN="$(command -v omp)"
+export NEXUS_OMP_AUTH_MODEL="openai/YOUR_AVAILABLE_MODEL"
+export NEXUS_OMP_AUTH_KEY_ENV="OPENAI_API_KEY"
+# OPENAI_API_KEY must already be configured securely by the operator.
+go test -count=1 -timeout=5m -run '^TestOMPLiveAuthenticatedRPCTwoSessions$' \
+  ./internal/control/agentwire
+```
+
+The only key names accepted are `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`,
+`GEMINI_API_KEY` and `OPENROUTER_API_KEY`. The subprocess receives an
+explicit environment allowlist with only the selected provider key;
+HOME/XDG directories are disposable, stdin/stdout are private JSONL pipes,
+and stderr/model text are never logged. It does not modify normal provider
+profiles or Maestro. Supported platform for this contract test is currently
+Linux; a successful run still does **not** certify cancellation, approval
+round trips, reconnect/resume, RPC v2 framing, Windows/macOS or multiclient
+steering. Record the tested OMP version, model, OS, return status and
+redacted evidence in issue #98 before updating the feature catalog.
+
 ## RPC verified session identity (03/11/2026)
 
 After a successful `get_state` command, the bridge must verify that the
