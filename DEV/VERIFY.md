@@ -4,9 +4,9 @@
 - PASS — regressões `TestTerminalInputSubmissionRequiresProviderTransitionToClearAttention`, `TestAttentionDetectorAGYQuestionnaireWithLongTUIMenu`, `TestAttentionDetectorYNAnswerWaitsForProviderOutput` e `TestNativeAGYQuestionPreemptsPTYHeuristic`.
 - PASS — `go test ./internal/control/host ./internal/control/registry ./internal/control/web -count=1`.
 - PASS — `go vet ./internal/control/host ./internal/control/registry ./internal/control/web` e `git diff --check`.
-- PASS — `make quality-full` na árvore de trabalho baseada em `73b1e32b`: format-check, lint/style/typecheck/build Web, 131 arquivos/818 testes Web, contrato de versão, lint/test Go, Go race e security; ESLint 6 warnings/0 erros; govulncheck sem vulnerabilidades.
+- PASS — `make quality-full` no SHA `7c77317f`: format-check, lint/style/typecheck/build Web, 131 arquivos/818 testes Web, contrato de versão, lint/test Go, Go race e security; ESLint 6 warnings/0 erros; govulncheck sem vulnerabilidades.
 - PASS — `make docs-verify` após atualizar o handoff e este registro.
-- Limite — os gates validam o worktree local, cujo código A3 ainda não tinha SHA commitado na execução. A3/A4 seguem parciais para cenários multi-runtime, aprovação tipada e revogação; 48 capacidades continuam pending e estado geral **NO_GO**.
+- Limite — A3/A4 seguem parciais para cenários multi-runtime, aprovação tipada e revogação; 48 capacidades continuam pending e estado geral **NO_GO**. O próximo commit é apenas documental e preserva o código do SHA verificado.
 
 ## P0 A2 — E2E first-run — 2026-11-08
 

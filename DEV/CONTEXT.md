@@ -6,7 +6,7 @@ Continuação em `fbe72c57`: mapa automatizado registrado em `docs/reference/age
 
 Em `59d1936a`, `make quality-full`, `make docs-verify` e E2E first-run fixture passaram (import, quick-connect e refresh); o E2E usa endpoints simulados. Após esse commit, foram adicionados registros locais do resultado A2; A2 continua parcial e a matriz permanece `NO_GO`.
 
-Continuação sobre `73b1e32b`: A3 agora não marca uma aprovação resolvida só porque Enter/y/n foi enviado ao PTY; aguarda nova saída observada do provider, preservando source INFERRED. Testes dirigidos de `internal/control/host`, `internal/control/registry` e `internal/control/web`, mais `go vet`, passaram. `make quality-full` e `make docs-verify` passaram no worktree; repetir os gates após fixar o SHA por commit.
+Continuação em `7c77317f`: A3 agora não marca uma aprovação resolvida só porque Enter/y/n foi enviado ao PTY; aguarda nova saída observada do provider, preservando source INFERRED. Testes dirigidos de `internal/control/host`, `internal/control/registry` e `internal/control/web`, `go vet` e `make quality-full` passaram nesse SHA; `make docs-verify` passou após o registro. A3/A4 seguem parciais.
 
 ## Estado ativo — fechamento 1.0/Maestro — 2026-11-06
 
