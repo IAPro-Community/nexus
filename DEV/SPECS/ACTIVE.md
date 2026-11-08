@@ -13,6 +13,7 @@
 - Gap aberto: não há teste de UI para cartões e seleção direta; os estados awaiting/error/completion não foram provados chegando aos cards por fluxo estruturado sem heurística PTY, e COMPLETED não é estado tipado de Agent. Capability continua pending/NO_GO.
 - `review-studio` também auditado: os testes existentes cobrem ledger e pipeline fake, mas não a superfície workspace nem autorização explícita para aplicar mudanças; mapa marca cobertura parcial e capability continua pending.
 - `browser-studio` auditado: existem regressões úteis para takeover/grants/escopo e teste de helpers da UI; não há prova de composição terminal/diff/Inspector nem de fluxo CDP/MCP com isolamento end-to-end. Mapa marca cobertura parcial.
+- `comparison-lab` auditado: só há worktree isolada e integração de pacotes paralelos, sem alternativas concorrentes, comparador ou decisão humana. Critério comparador foi marcado `unmapped` em vez de associar testes de review/worktree que não o provam.
 - Próximo: continuar a revisão semântica do mapa e priorizar P0 sem cobertura. Não declarar GO sem homologação de capabilities no SHA final e gates externos.
 
 ## P0 A2 — onboarding first-run

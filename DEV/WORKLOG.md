@@ -7014,3 +7014,10 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Atualizei o evidence map para separar evidência parcial dos gaps reais. Nenhuma capability foi certificada.
 - PASS — 5 testes Go de `internal/browsercontrol`, 1 teste de rota Web, 13 Vitest + 7 node pretests, verificador do mapa 4/4 e `git diff --check`.
 - Próximo — implementar/integrar as superfícies faltantes e validar o fluxo CDP/MCP em dois projetos, depois continuar a auditoria dos critérios.
+
+## 2026-11-08 — P0 A1: auditoria semântica comparison-lab
+
+- Os vínculos anteriores para AgentsSurface e testes de Review/worktree eram semanticamente incorretos. A auditoria localizou isolamento worktree por Agent e integração determinística de packages paralelos, mas não execução de alternativas A/B, UI comparadora de diff/teste/custo ou decisão humana antes de integração.
+- Mantive como evidência parcial somente os testes de materialização/isolamento de worktree e conflito de integração. Critério comparador foi marcado `unmapped` sem inventar fonte.
+- PASS — quatro testes Go direcionados, evidence-map 48/96 (`87` com fonte+teste, `8` source-only, `1` unmapped), verificador 4/4 e `git diff --check`.
+- Próximo — implementar comparação isolada e escolha explícita sem merge automático; continuar a auditoria dos critérios.

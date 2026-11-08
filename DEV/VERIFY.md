@@ -2385,3 +2385,9 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - PASS — evidence map 48/96, verificador 4/4, `git diff --check`.
 - GAP — não há E2E da BrowserSurface integrada a terminal/diff/Inspector; auth, grants e takeover cobertos em cenários unitários separados, sem prova E2E CDP/MCP e isolamento browser de dois projetos. Capability e release seguem **NO_GO**.
 
+## 2026-11-08 — auditoria semântica A1: comparison-lab
+
+- PASS — testes focados de worktree e integration: `TestResolveAutonomousExecutionWorkspaceFailsClosedWithoutWorktree`, `TestResolveExecutionWorkspaceWorktree`, `TestMissionDeliveryIntegrationCombinesParallelDisjointWorktrees` e `TestMissionDeliveryIntegrationRejectsParallelPathConflict`.
+- PASS — evidence map agora aponta 87 critérios source-and-test-referenced, 8 source-only e 1 unmapped; testes do verificador 4/4; nenhum aceite certificado.
+- GAP — isolação de worktree e integração de packages paralelos não equivalem a executar e comparar duas alternativas. Comparador de diff/testes/custo com decisão humana não localizado; integração da Mission pode combinar packages verificados. `comparison-lab` permanece pending/NO_GO.
+

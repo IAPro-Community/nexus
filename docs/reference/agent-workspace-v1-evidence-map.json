@@ -171,29 +171,27 @@
           "acceptanceIndex": 0,
           "acceptance": "Duas alternativas paralelas com worktrees e execução isolados",
           "sourceRefs": [
-            "web/src/features/agents/AgentsSurface.tsx"
+            "internal/nexus/mission_executor.go",
+            "internal/nexus/mission_integration.go"
           ],
           "testRefs": [
-            "internal/nexus/runner/review_test.go",
-            "internal/nexus/worktree_test.go"
+            "internal/nexus/worktree_test.go",
+            "internal/nexus/mission_integration_test.go"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Auditoria parcial: worktree_test.go cobre workspace isolada de um Agent; mission_integration_test.go cobre integração de pacotes em worktrees paralelas e rejeição de conflito. Isso não cria duas alternativas concorrentes comparáveis; Mission paralela com dependências não é Comparison Lab. Falta fluxo de alternativa A/B com execução isolada e seleção humana. Capability pendente.",
+          "assertionAudit": "partial"
         },
         {
           "acceptanceIndex": 1,
           "acceptance": "Comparador de testes/diffs/custo e decisão humana sem merge automático",
-          "sourceRefs": [
-            "web/src/features/agents/AgentsSurface.tsx"
-          ],
-          "testRefs": [
-            "internal/nexus/runner/review_test.go",
-            "internal/nexus/worktree_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
+          "sourceRefs": [],
+          "testRefs": [],
+          "mappingStatus": "unmapped",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Sem implementação localizada: não há comparador de resultados reais de teste, diff e custo entre alternativas nem decisão humana no produto. O pipeline de Mission pode integrar automaticamente pacotes verificados; isso não satisfaz o aceite de não fazer merge automático. Capability pendente.",
+          "assertionAudit": "partial"
         }
       ],
       "verification": "pending"
