@@ -6,4 +6,6 @@ Nexus elige una cuenta utilizable dentro del proveedor solicitado. La decisión 
 
 Orden práctico: perfil explícito, vínculo del workspace, perfil predeterminado y selección automática. Las cuentas deshabilitadas, no autenticadas o limitadas se rechazan. Si la cuenta elegida alcanza un límite, el fallback puede probar otra cuenta elegible del mismo proveedor.
 
+En Nexus, `nexus <provider>:balance` y `nexus <provider>:auto` rotan los nuevos inicios en orden round-robin entre perfiles elegibles. El cursor se guarda por proveedor y se serializa entre procesos de Nexus. Se omiten cuentas deshabilitadas, no autenticadas, en cooldown, agotadas o con cuota `UNKNOWN`. El comando simple `nexus <provider>` mantiene la clasificación por capacidad medida, y `nexus <provider>:<profile>` sigue fijado al perfil indicado.
+
 Use `nexus explain <provider>` para ver la puntuación, `nexus usage` para capacidad y `nexus bind <provider>:<profile>` para una preferencia por proyecto. Los IDs y valores de `--json` permanecen estables.

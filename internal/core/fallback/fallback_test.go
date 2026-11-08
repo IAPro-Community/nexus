@@ -87,3 +87,36 @@ func TestFallbackExecution(t *testing.T) {
 		t.Fatalf("unexpected error message: %v", err2)
 	}
 }
+
+func TestRunWithFallbackStrategyRotatesAfterQuotaFailure(t *testing.T) {
+	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
+	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
+	t.Setenv("AI_CLI_STATE_DIR", t.TempDir())
+	cd := cooldown.NewTracker()
+	executor := NewExecutor(scheduler.NewSelector(config.NewDefaultConfig(), quota.NewEngine(time.Minute), cd), cd)
+	candidates := []model.Profile{{Provider: "agy", Name: "account-a"}, {Provider: "agy", Name: "account-b"}}
+	accounts := map[string]model.AccountInfo{}
+	for _, candidate := range candidates {
+		accounts[candidate.Name] = model.AccountInfo{
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Usage: model.UsageSnapshot{
+				ProviderID: "agy", ProfileID: candidate.Name, Status: model.UsageUnsupported,
+			},
+		}
+	}
+	var attempted []string
+	err := executor.RunWithFallbackStrategy(context.Background(), "agy", "/tmp", "", candidates, accounts, true, true, func(profile model.Profile) (model.Failure, error) {
+		attempted = append(attempted, profile.Name)
+		if profile.Name == "account-a" {
+			return model.Failure{Kind: model.FailureQuota, Message: "quota exhausted"}, errors.New("quota exhausted")
+		}
+		return model.Failure{Kind: model.FailureNone}, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(attempted) != 2 || attempted[0] != "account-a" || attempted[1] != "account-b" {
+		t.Fatalf("balanced fallback order = %v, want [account-a account-b]", attempted)
+	}
+}

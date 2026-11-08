@@ -24,7 +24,11 @@ type profileSelector interface {
 	SelectBestProfile(ctx context.Context, provider string, workspace string, candidates []model.Profile, accounts map[string]model.AccountInfo, excludeProfiles []string) (*scheduler.SelectionResult, error)
 }
 
-func resolveLaunchProfile(ctx context.Context, provider, explicit, workspace, configuredDefault string, candidates []model.Profile, accounts map[string]model.AccountInfo, selector profileSelector, excluded []string, stderr io.Writer) (string, error) {
+type balancedProfileSelector interface {
+	SelectNextBalancedProfile(ctx context.Context, provider string, workspace string, candidates []model.Profile, accounts map[string]model.AccountInfo, excludeProfiles []string) (*scheduler.SelectionResult, error)
+}
+
+func resolveLaunchProfile(ctx context.Context, provider, explicit, workspace, configuredDefault string, candidates []model.Profile, accounts map[string]model.AccountInfo, selector profileSelector, excluded []string, stderr io.Writer, balanced ...bool) (string, error) {
 	if stderr == nil {
 		stderr = os.Stderr
 	}
@@ -45,7 +49,7 @@ func resolveLaunchProfile(ctx context.Context, provider, explicit, workspace, co
 			return "", selectionErr
 		}
 		remaining := remainingProfiles(candidates, excluded)
-		result, err := selector.SelectBestProfile(ctx, provider, workspace, remaining, accounts, nil)
+		result, err := selectLaunchProfile(ctx, selector, provider, workspace, remaining, accounts, nil, len(balanced) > 0 && balanced[0])
 		if err != nil {
 			selectionErr = err
 			return "", err
@@ -76,7 +80,7 @@ func resolveLaunchProfile(ctx context.Context, provider, explicit, workspace, co
 				refreshedAny = true
 			}
 			if refreshedAny && selector != nil {
-				result, err := selector.SelectBestProfile(ctx, provider, workspace, remaining, accounts, nil)
+				result, err := selectLaunchProfile(ctx, selector, provider, workspace, remaining, accounts, nil, len(balanced) > 0 && balanced[0])
 				if err == nil && result != nil && result.SelectedProfile != nil {
 					return result.SelectedProfile.Name, nil
 				}
@@ -94,6 +98,17 @@ func resolveLaunchProfile(ctx context.Context, provider, explicit, workspace, co
 		return "", fmt.Errorf("profile %q is not configured for provider %s", selected, provider)
 	}
 	return selected, nil
+}
+
+func selectLaunchProfile(ctx context.Context, selector profileSelector, provider, workspace string, candidates []model.Profile, accounts map[string]model.AccountInfo, excluded []string, balanced bool) (*scheduler.SelectionResult, error) {
+	if balanced {
+		balancedSelector, ok := selector.(balancedProfileSelector)
+		if !ok {
+			return nil, fmt.Errorf("balanced profile selection is unavailable")
+		}
+		return balancedSelector.SelectNextBalancedProfile(ctx, provider, workspace, candidates, accounts, excluded)
+	}
+	return selector.SelectBestProfile(ctx, provider, workspace, candidates, accounts, excluded)
 }
 
 func isStaleOrUnknownQuotaError(err error) bool {
@@ -142,6 +157,7 @@ func launchWithBusyFailover(
 	accounts map[string]model.AccountInfo,
 	base launcher.LaunchOptions,
 	stderr io.Writer,
+	balanced ...bool,
 ) (*registry.RuntimeSession, string, error) {
 	if stderr == nil {
 		stderr = os.Stderr
@@ -152,7 +168,7 @@ func launchWithBusyFailover(
 	attempted := map[string]bool{}
 
 	for {
-		selected, err := resolveLaunchProfile(ctx, provider, explicit, workspace, configuredDefault, candidates, accounts, selector, excluded, stderr)
+		selected, err := resolveLaunchProfile(ctx, provider, explicit, workspace, configuredDefault, candidates, accounts, selector, excluded, stderr, balanced...)
 		if err != nil {
 			if lastBusy != "" {
 				return nil, lastBusy, fmt.Errorf("%s profile %s is busy and no fallback profiles are available", provider, lastBusy)

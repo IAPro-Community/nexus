@@ -56,6 +56,22 @@ func (e *Executor) RunWithFallback(
 	allowFallback bool,
 	runFn func(p model.Profile) (model.Failure, error),
 ) error {
+	return e.RunWithFallbackStrategy(ctx, provider, workspace, initialProfile, candidates, accounts, allowFallback, false, runFn)
+}
+
+// RunWithFallbackStrategy optionally balances automatic account selection by
+// round-robin while retaining the same eligibility filters and failover bound.
+func (e *Executor) RunWithFallbackStrategy(
+	ctx context.Context,
+	provider string,
+	workspace string,
+	initialProfile string,
+	candidates []model.Profile,
+	accounts map[string]model.AccountInfo,
+	allowFallback bool,
+	balanced bool,
+	runFn func(p model.Profile) (model.Failure, error),
+) error {
 	pool := make([]model.Profile, 0, len(candidates))
 	seen := make(map[string]bool)
 	for _, p := range candidates {
@@ -78,7 +94,7 @@ func (e *Executor) RunWithFallback(
 
 	currentProfileName := initialProfile
 	if currentProfileName == "" {
-		res, err := e.selector.SelectBestProfile(ctx, provider, workspace, candidates, accounts, nil)
+		res, err := e.selectProfile(ctx, provider, workspace, candidates, accounts, nil, balanced)
 		if err != nil {
 			return fmt.Errorf("%w: %w", ErrFallbackExhausted, err)
 		}
@@ -153,7 +169,7 @@ func (e *Executor) RunWithFallback(
 		sort.Strings(excluded)
 
 		// Select next best profile
-		nextRes, nextErr := e.selector.SelectBestProfile(ctx, provider, workspace, candidates, accounts, excluded)
+		nextRes, nextErr := e.selectProfile(ctx, provider, workspace, candidates, accounts, excluded, balanced)
 		if nextErr != nil {
 			return fmt.Errorf("%s failed (%s) and no fallback profiles available: %w: %w",
 				currentProfileName, failure.Message, nextErr, causeForKind(failure.Kind))
@@ -173,6 +189,13 @@ func (e *Executor) RunWithFallback(
 	}
 	return fmt.Errorf("%w: %s cycle %v last cause %q err=%v: %w",
 		ErrFallbackExhausted, provider, attemptOrder, lastFailure.Message, lastErr, causeForKind(lastFailure.Kind))
+}
+
+func (e *Executor) selectProfile(ctx context.Context, provider, workspace string, candidates []model.Profile, accounts map[string]model.AccountInfo, excluded []string, balanced bool) (*scheduler.SelectionResult, error) {
+	if balanced {
+		return e.selector.SelectNextBalancedProfile(ctx, provider, workspace, candidates, accounts, excluded)
+	}
+	return e.selector.SelectBestProfile(ctx, provider, workspace, candidates, accounts, excluded)
 }
 
 func causeForKind(kind model.FailureKind) error {

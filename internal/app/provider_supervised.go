@@ -91,7 +91,7 @@ func supervisedExecutionMode(args []string) string {
 // delegation remains OFF, so the provider TTY stays byte-transparent. When the
 // binding is implicit it is best-effort; explicit --lead makes binding failure
 // visible to the caller.
-func executeProviderSupervised(provName, explicitProfile string, args []string, withLead, requireLead bool) error {
+func executeProviderSupervised(provName, explicitProfile string, args []string, withLead, requireLead, balanced bool) error {
 	if strings.TrimSpace(provName) == "" {
 		return fmt.Errorf("provider is required for supervised launch")
 	}
@@ -171,6 +171,7 @@ func executeProviderSupervised(provName, explicitProfile string, args []string, 
 			Labels:     supervisedRuntimeLabels(args),
 		},
 		os.Stderr,
+		balanced,
 	)
 	if err != nil {
 		return busyOrLaunchError(provName, selected, explicitProfile, err)

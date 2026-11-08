@@ -4,6 +4,8 @@
 
 When you run `ai <provider>` (for example, `ai codex` or `ai claude`) without explicitly specifying a profile, `ai-cli` automatically selects the healthiest, highest-capacity account.
 
+For Nexus, `nexus <provider>:balance` and `nexus <provider>:auto` rotate new launches round-robin across eligible profiles. The cursor is persistent per provider and serialized across separate Nexus processes. Accounts that are disabled, unauthenticated, cooling down, exhausted, or have `UNKNOWN` quota are skipped. The regular `nexus <provider>` command continues to rank by measured capacity, and `nexus <provider>:<profile>` remains pinned to the named profile.
+
 ---
 
 ## 1. Scheduling Principles

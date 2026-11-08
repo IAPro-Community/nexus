@@ -28,6 +28,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/cursor"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/gemini"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/opencode"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/zcode"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/core/scheduler"
 	"github.com/IAPro-Community/nexus/internal/core/security"
@@ -56,6 +57,7 @@ func initRegistry() *provider.Registry {
 	_ = reg.Register(opencode.New())
 	_ = reg.Register(gemini.New())
 	_ = reg.Register(cursor.New())
+	_ = reg.Register(zcode.New())
 	globalRegistry = reg
 	return reg
 }
@@ -95,9 +97,6 @@ func Run(args []string) error {
 		prov := parts[0]
 		prof := parts[1]
 		if isSupportedProvider(prov) {
-			if prof == "auto" {
-				prof = ""
-			}
 			return executeProviderWithSmartSelection(prov, prof, trimDashDash(args[1:]))
 		}
 	}
@@ -156,6 +155,8 @@ func Run(args []string) error {
 		return securityCmd(args[1:])
 	case "add":
 		return addCmd(args[1:])
+	case "import":
+		return importCmd(args[1:])
 	case "remove", "rm":
 		return removeCmd(args[1:])
 	case "rename":
@@ -212,7 +213,7 @@ func Run(args []string) error {
 		return tunnelCmd(args[1:])
 	case "__control-host":
 		return controlHostCmd(args[1:])
-	case "codex", "agy", "claude", "opencode", "gemini", "cursor", "omp":
+	case "codex", "agy", "claude", "opencode", "gemini", "cursor", "zcode", "omp":
 		prov := args[0]
 		if flags.IsHelpFlag(args[1:]) {
 			if prov == "omp" {
@@ -248,7 +249,7 @@ func Run(args []string) error {
 
 func isSupportedProvider(p string) bool {
 	switch strings.ToLower(p) {
-	case "codex", "agy", "claude", "opencode", "gemini", "cursor", "omp":
+	case "codex", "agy", "claude", "opencode", "gemini", "cursor", "zcode", "omp":
 		return true
 	default:
 		return false
@@ -277,7 +278,11 @@ func interactiveTUI() error {
 }
 
 func executeProviderWithSmartSelection(provName, explicitProfile string, args []string) error {
+	explicitProfile, balanced := resolveProfileSelection(explicitProfile)
 	if provName == "omp" {
+		if balanced {
+			return fmt.Errorf("OMP automatic account balancing is not supported until its identity-scoped quota contract is verified")
+		}
 		return executeOMPPreview(explicitProfile, args)
 	}
 	resolver := NewLaunchModeResolver(LaunchModeInput{
@@ -289,7 +294,7 @@ func executeProviderWithSmartSelection(provName, explicitProfile string, args []
 
 	switch result.Mode {
 	case LaunchModeSupervised:
-		return executeProviderSupervised(provName, explicitProfile, resolver.StripControlFlags(), resolver.WantInteractiveLead(), resolver.RequireInteractiveLead())
+		return executeProviderSupervised(provName, explicitProfile, resolver.StripControlFlags(), resolver.WantInteractiveLead(), resolver.RequireInteractiveLead(), balanced)
 	case LaunchModeDirect:
 		args = resolver.StripControlFlags()
 	}
@@ -384,7 +389,7 @@ func executeProviderWithSmartSelection(provName, explicitProfile string, args []
 	cwd, _ := os.Getwd()
 	ctx := context.Background()
 
-	return exec.RunWithFallback(ctx, provName, cwd, explicitProfile, candidates, accounts, true, func(p model.Profile) (model.Failure, error) {
+	return exec.RunWithFallbackStrategy(ctx, provName, cwd, explicitProfile, candidates, accounts, true, balanced, func(p model.Profile) (model.Failure, error) {
 		accInfo := accounts[p.Name]
 		accEmail := accInfo.Email
 		if accEmail == "" {
@@ -399,7 +404,11 @@ func executeProviderWithSmartSelection(provName, explicitProfile string, args []
 		if summary := qvCap.CompactGroupSummary(); summary != "" {
 			capInfo = fmt.Sprintf(" [Cap: %s]", summary)
 		}
-		fmt.Fprintf(os.Stderr, "⚡ [%s] Usando perfil: %s:%s (%s)%s\n", progName(), provName, p.Name, accEmail, capInfo)
+		selectionLabel := "quota inteligente"
+		if balanced {
+			selectionLabel = "balanceamento round-robin"
+		}
+		fmt.Fprintf(os.Stderr, "⚡ [%s] Usando perfil: %s:%s (%s; %s)%s\n", progName(), provName, p.Name, accEmail, selectionLabel, capInfo)
 
 		start := time.Now()
 		_ = telemetry.LogEvent(telemetry.Event{
@@ -431,6 +440,16 @@ func executeProviderWithSmartSelection(provName, explicitProfile string, args []
 		}
 		return fail, runErr
 	})
+}
+
+func resolveProfileSelection(value string) (profileName string, balanced bool) {
+	value = strings.TrimSpace(value)
+	switch strings.ToLower(value) {
+	case "auto", "balance", "balanced":
+		return "", true
+	default:
+		return value, false
+	}
 }
 
 func executeResume(provName, profName, sessionID string, args []string) error {
@@ -491,7 +510,8 @@ func usage() {
   %s <provider> --supervised      Launch through SessionHost; enables /nexus control
   %s <provider> --lead            Require persistent Lead identity (delegation stays OFF)
   %s <provider>:<profile> [flags] Launch specific profile (e.g. %s codex:work)
-  %s <provider>:auto [flags]      Explicit auto-selection
+  %s <provider>:auto [flags]      Rotate to the next eligible account (alias: :balance)
+  %s <provider>:balance [flags]   Persisted round-robin across eligible accounts
   %s resume [id] [provider:name]  Resume previous session using provider-native syntax
 
   %s providers [--json]           List installed providers, versions & capabilities
@@ -500,6 +520,7 @@ func usage() {
   %s profiles [--json]            List configured profiles, auth status & priorities
   %s paths                        Show Nexus data and configuration paths
   %s add <provider> [name]        Add a new provider authentication profile
+  %s import                       Discover & import active CLI sessions from this computer
   %s remove <provider> <name>     Remove an existing profile
   %s rename <provider> <old> <new> Rename a configured provider profile
   %s login <provider> [name]      Run provider official login flow; defaults to the provider profile
@@ -550,12 +571,12 @@ Canonical Aliases (translated to native options; Codex keeps short -c/-p native)
 Merged Help:
   %s <provider> --help            Show Nexus canonical aliases merged with official CLI help
 `,
-		p, p, p, p, p, p, p, p, p, p, p, p, p,
-		p, p, p, p, p, p, p,
-		p, p, p, p, p, p, p, p, p, p, p,
-		p, p, p,
-		p, p, p, p, p, p, p, p, p, p, p, p, p, p, p, p, p, p, p, p, p,
-		p, p,
+		p, p, p, p, p, p, p, p, p, p,
+		p, p, p, p, p, p, p, p, p, p,
+		p, p, p, p, p, p, p, p, p, p,
+		p, p, p, p, p, p, p, p, p, p,
+		p, p, p, p, p, p, p, p, p, p,
+		p, p, p, p, p, p, p, p, p,
 	)
 	fmt.Print(localization.HumanizeHelp(body))
 	fmt.Println(localization.T("help.language"))
@@ -721,6 +742,18 @@ func providerRegisterCmd(args []string) error {
 		fmt.Println("Authentication deferred; state is PENDING_AUTH.")
 		return nil
 	}
+	if info := profile.GetAccountInfo(providerID, profileName); info.Authenticated {
+		ident := info.Email
+		if ident == "" {
+			ident = info.Plan
+		}
+		if ident != "" {
+			fmt.Printf("✓ Connected host account for %s:%s (%s).\n", providerID, profileName, ident)
+		} else {
+			fmt.Printf("✓ Connected host account for %s:%s.\n", providerID, profileName)
+		}
+		return nil
+	}
 	if err := loginCmd([]string{providerID, profileName}); err != nil {
 		fmt.Printf("Authentication pending for %s:%s: %v\n", providerID, profileName, err)
 		return err
@@ -829,10 +862,21 @@ func addCmd(args []string) error {
 	}
 
 	if providerName == "omp" {
-		fmt.Println("OMP preview uses isolated provider configuration. Run: NEXUS_EXPERIMENTAL_HARNESSES=1 nexus omp:"+name)
+		fmt.Println("OMP preview uses isolated provider configuration. Run: NEXUS_EXPERIMENTAL_HARNESSES=1 nexus omp:" + name)
 		return nil
 	}
 	if noLogin {
+		return nil
+	}
+	if info := profile.GetAccountInfo(providerName, name); info.Authenticated {
+		ident := info.Email
+		if ident == "" {
+			ident = info.Plan
+		}
+		if ident == "" {
+			ident = "authenticated"
+		}
+		fmt.Printf("✓ Connected host account for %s:%s (%s).\n", p.Provider, p.Name, ident)
 		return nil
 	}
 	if providerName == "opencode" {
@@ -844,6 +888,52 @@ func addCmd(args []string) error {
 	if authProv, ok := pAdapter.(provider.AuthProvider); ok {
 		return authProv.Login(context.Background(), p)
 	}
+	return nil
+}
+
+func importCmd(args []string) error {
+	ctx := context.Background()
+	results, err := profile.ImportHostSessions(ctx)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Nexus Host Session Autodiscovery & Import:")
+	for _, res := range results {
+		switch res.Status {
+		case profile.HostSessionImported:
+			info := profile.GetAccountInfo(res.Provider, res.Profile)
+			ident := info.Email
+			if ident == "" {
+				ident = info.Plan
+			}
+			fmt.Printf("  ✓ %-10s imported into profile %q (%s)\n", res.Provider, res.Profile, ident)
+		case profile.HostSessionAlreadyAuthenticated:
+			fmt.Printf("  • %-10s already authenticated (profile %q)\n", res.Provider, res.Profile)
+		case profile.HostSessionNoSource:
+			fmt.Printf("  — %-10s no host session found\n", res.Provider)
+		case profile.HostSessionNotInstalled:
+			fmt.Printf("  — %-10s not installed\n", res.Provider)
+		case profile.HostSessionUnsupported:
+			fmt.Printf("  — %-10s host session import not supported\n", res.Provider)
+		default:
+			fmt.Printf("  ? %-10s %s\n", res.Provider, res.Status)
+		}
+	}
+
+	discovered := profile.ScanHostCLIs(ctx)
+	var broader []profile.HostCLIDetection
+	for _, d := range discovered {
+		if d.Tier == 2 && (d.Installed || d.HasConfig) {
+			broader = append(broader, d)
+		}
+	}
+	if len(broader) > 0 {
+		fmt.Println("\nDiscovered AI CLIs on Host (Ecosystem):")
+		for _, b := range broader {
+			fmt.Printf("  • %-15s (binary: %s)\n", b.Name, b.BinaryPath)
+		}
+	}
+
 	return nil
 }
 
@@ -976,7 +1066,7 @@ func useCmd(args []string) error {
 }
 
 func currentCmd(args []string) error {
-	providers := []string{"codex", "agy", "claude", "opencode", "gemini", "cursor"}
+	providers := []string{"codex", "agy", "claude", "opencode", "gemini", "cursor", "zcode"}
 	if len(args) >= 1 && args[0] != "--json" {
 		providers = []string{args[0]}
 	}

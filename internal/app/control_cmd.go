@@ -408,6 +408,7 @@ func controlStartCmd(args []string) error {
 			extraArgs = append(extraArgs, args[i])
 		}
 	}
+	profileName, balanced := resolveProfileSelection(profileName)
 
 	ctx := context.Background()
 
@@ -456,6 +457,7 @@ func controlStartCmd(args []string) error {
 		accounts,
 		launcher.LaunchOptions{Args: extraArgs},
 		os.Stderr,
+		balanced,
 	)
 	if err != nil {
 		if errors.Is(err, codex.ErrTUIBusy) {

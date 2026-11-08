@@ -14,9 +14,10 @@ import (
 )
 
 type stubSelector struct {
-	order    []string
-	contexts []context.Context
-	err      error
+	order         []string
+	contexts      []context.Context
+	balancedCalls int
+	err           error
 }
 
 func (s *stubSelector) SelectBestProfile(ctx context.Context, _ string, _ string, _ []model.Profile, _ map[string]model.AccountInfo, excluded []string) (*scheduler.SelectionResult, error) {
@@ -35,6 +36,27 @@ func (s *stubSelector) SelectBestProfile(ctx context.Context, _ string, _ string
 		return &scheduler.SelectionResult{}, s.err
 	}
 	return &scheduler.SelectionResult{}, errors.New("no usable codex profiles available")
+}
+
+func (s *stubSelector) SelectNextBalancedProfile(ctx context.Context, provider, workspace string, candidates []model.Profile, accounts map[string]model.AccountInfo, excluded []string) (*scheduler.SelectionResult, error) {
+	s.balancedCalls++
+	return s.SelectBestProfile(ctx, provider, workspace, candidates, accounts, excluded)
+}
+
+func TestLaunchWithBusyFailoverUsesBalancedSelectionMode(t *testing.T) {
+	candidates := []model.Profile{{Name: "first", Provider: "agy"}, {Name: "second", Provider: "agy"}}
+	selector := &stubSelector{order: []string{"first", "second"}}
+	runtimeLauncher := &stubLauncher{busy: map[string]bool{"first": true}}
+	_, selected, err := launchWithBusyFailover(
+		context.Background(), runtimeLauncher, selector, "agy", "", "/tmp", "", candidates,
+		map[string]model.AccountInfo{}, launcher.LaunchOptions{}, &bytes.Buffer{}, true,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if selected != "second" || selector.balancedCalls != 2 {
+		t.Fatalf("selected=%q balanced calls=%d; want second after two balanced selections", selected, selector.balancedCalls)
+	}
 }
 
 func TestResolveLaunchProfilePropagatesContextToSelector(t *testing.T) {

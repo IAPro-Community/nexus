@@ -2,7 +2,9 @@ package scheduler
 
 import (
 	"context"
+	"fmt"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -103,6 +105,121 @@ func TestSmartAccountSelector(t *testing.T) {
 	if !strings.Contains(explain, "Evaluation of all candidate profiles") {
 		t.Fatalf("unexpected explain output: %s", explain)
 	}
+}
+
+func TestBalancedSelectionRotatesEligibleProfilesAndPersistsCursor(t *testing.T) {
+	selector, ctx, candidates, accounts := balancedTestInputs(t)
+	want := []string{"account-a", "account-b", "account-c", "account-a"}
+	for i, expected := range want {
+		result, err := selector.SelectNextBalancedProfile(ctx, "agy", "/tmp", candidates, accounts, nil)
+		if err != nil {
+			t.Fatalf("selection %d: %v", i, err)
+		}
+		if got := result.SelectedProfile.Name; got != expected {
+			t.Fatalf("selection %d = %q, want %q", i, got, expected)
+		}
+	}
+
+	// A new selector instance must continue from the persisted cursor.
+	second := NewSelector(config.NewDefaultConfig(), quota.NewEngine(5*time.Minute), cooldown.NewTracker())
+	result, err := second.SelectNextBalancedProfile(ctx, "agy", "/tmp", candidates, accounts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.SelectedProfile.Name != "account-b" {
+		t.Fatalf("persisted next account = %q, want account-b", result.SelectedProfile.Name)
+	}
+}
+
+func TestBalancedSelectionSkipsQuotaIneligibleAndExcludedProfiles(t *testing.T) {
+	selector, ctx, candidates, accounts := balancedTestInputs(t)
+	selector.cooldown.RecordRateLimit("agy", "account-a", time.Hour, nil, "429")
+	result, err := selector.SelectNextBalancedProfile(ctx, "agy", "/tmp", candidates, accounts, []string{"account-b"})
+	if err != nil {
+		t.Fatalf("remaining eligible account should be selected: %v", err)
+	}
+	if result.SelectedProfile == nil || result.SelectedProfile.Name != "account-c" {
+		t.Fatalf("selected=%+v, want only eligible account-c", result.SelectedProfile)
+	}
+}
+
+func TestBalancedSelectionNeverChoosesAnExhaustedQuotaAccount(t *testing.T) {
+	selector, ctx, candidates, accounts := balancedTestInputs(t)
+	zero := 0.0
+	accounts["account-a"] = model.AccountInfo{
+		Authenticated: true,
+		Health:        model.HealthHealthy,
+		Usage: model.UsageSnapshot{
+			ProviderID: "agy", ProfileID: "account-a", Status: model.UsageLive,
+			Windows: []model.UsageWindow{{Kind: "5h", RemainingPercent: &zero}},
+		},
+	}
+	result, err := selector.SelectNextBalancedProfile(ctx, "agy", "/tmp", candidates, accounts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.SelectedProfile.Name == "account-a" {
+		t.Fatal("balanced rotation selected the account with exhausted 5h quota")
+	}
+}
+
+func TestBalancedSelectionSerializesConcurrentInvocations(t *testing.T) {
+	selector, ctx, candidates, accounts := balancedTestInputs(t)
+	const launches = 24
+	counts := make(map[string]int)
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	errCh := make(chan error, launches)
+	for i := 0; i < launches; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			result, err := selector.SelectNextBalancedProfile(ctx, "agy", "/tmp", candidates, accounts, nil)
+			if err != nil {
+				errCh <- err
+				return
+			}
+			mu.Lock()
+			counts[result.SelectedProfile.Name]++
+			mu.Unlock()
+		}()
+	}
+	wg.Wait()
+	close(errCh)
+	for err := range errCh {
+		t.Fatal(err)
+	}
+	for _, candidate := range candidates {
+		if counts[candidate.Name] != launches/len(candidates) {
+			t.Fatalf("round-robin count %s=%d (all: %s), want %d", candidate.Name, counts[candidate.Name], fmt.Sprint(counts), launches/len(candidates))
+		}
+	}
+}
+
+func balancedTestInputs(t *testing.T) (*Selector, context.Context, []model.Profile, map[string]model.AccountInfo) {
+	t.Helper()
+	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
+	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
+	t.Setenv("AI_CLI_STATE_DIR", t.TempDir())
+	selector := NewSelector(config.NewDefaultConfig(), quota.NewEngine(5*time.Minute), cooldown.NewTracker())
+	profiles := []model.Profile{
+		{Provider: "agy", Name: "account-c"},
+		{Provider: "agy", Name: "account-a"},
+		{Provider: "agy", Name: "account-b"},
+	}
+	accounts := make(map[string]model.AccountInfo, len(profiles))
+	for _, p := range profiles {
+		accounts[p.Name] = model.AccountInfo{
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Usage: model.UsageSnapshot{
+				ProviderID: p.Provider,
+				ProfileID:  p.Name,
+				Status:     model.UsageUnsupported,
+			},
+		}
+	}
+	return selector, context.Background(), profiles, accounts
 }
 
 func TestMultiQuotaBottleneckSelection(t *testing.T) {
