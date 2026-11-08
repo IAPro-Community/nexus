@@ -56,7 +56,7 @@ func TestDecodeMaestroMemorySearchFailsClosedOnInvalidResponse(t *testing.T) {
 func TestMaestroMemoryValidationsHaveNoNetworkOrStorageSideEffects(t *testing.T) {
 	for _, tc := range []struct {
 		workspace, task, query string
-		limit int
+		limit                  int
 	}{
 		{"", "", "", 20},
 		{"/safe", "../../other", "", 20},

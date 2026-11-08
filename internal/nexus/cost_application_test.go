@@ -79,8 +79,8 @@ func TestEvaluateCostBudgetSeparatesReportedSpendFromEstimates(t *testing.T) {
 			wantLevel: CostBudgetUnknown, confirmation: true, wantUnknown: 1,
 		},
 		{
-			name: "no observations is unknown rather than free",
-			totals: store.CostAnalyticsTotals{},
+			name:      "no observations is unknown rather than free",
+			totals:    store.CostAnalyticsTotals{},
 			wantLevel: CostBudgetUnknown, confirmation: true,
 		},
 	}

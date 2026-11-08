@@ -4,10 +4,10 @@ import "testing"
 
 func TestValidTerminalResizeRequest(t *testing.T) {
 	for _, tc := range []struct {
-		name string
-		isWriter bool
+		name       string
+		isWriter   bool
 		rows, cols int
-		want bool
+		want       bool
 	}{
 		{"controller valid", true, 52, 312, true},
 		{"viewer cannot resize shared PTY", false, 24, 80, false},

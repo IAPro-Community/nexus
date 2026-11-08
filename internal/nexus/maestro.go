@@ -379,7 +379,7 @@ type MaestroVerifyRequest struct {
 	ProjectID    string           `json:"project_id,omitempty"`
 	MissionID    string           `json:"mission_id,omitempty"`
 	ChangedPaths []string         `json:"changed_paths,omitempty"`
-	Checks       []string         `json:"checks,omitempty"` // completed checks; successful results use the PASS: prefix
+	Checks       []string         `json:"checks,omitempty"`        // completed checks; successful results use the PASS: prefix
 	EvidenceRefs []string         `json:"evidence_refs,omitempty"` // opaque references; Maestro never opens them
 	RiskSignals  []string         `json:"risk_signals,omitempty"`
 }

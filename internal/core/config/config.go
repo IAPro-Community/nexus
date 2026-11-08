@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/memoryrecovery"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 const CurrentConfigVersion = 1
@@ -47,23 +47,23 @@ type IntelligenceMemory struct {
 
 // Config represents persistent application settings and user preferences.
 type Config struct {
-	ConfigVersion        int                            `json:"config_version"`
-	Defaults             map[string]string              `json:"defaults"`                      // provider -> profile
-	Priorities           map[string]map[string]int      `json:"priorities,omitempty"`          // provider -> profile -> priority
-	ProviderPriorities   map[string]int                 `json:"provider_priorities,omitempty"` // provider -> lower-is-first fallback priority
-	Disabled             map[string]map[string]bool     `json:"disabled,omitempty"`            // provider -> profile -> true
-	Labels               map[string]map[string][]string `json:"labels,omitempty"`              // provider -> profile -> tags
-	Strategy             string                         `json:"strategy"`                      // best-capacity, least-used, round-robin, sticky
-	StickyTTL            string                         `json:"sticky_ttl,omitempty"`          // e.g. "30m"
-	IsolationPreset      model.IsolationPreset          `json:"isolation_preset"`              // developer, strict, compat
-	Bindings             map[string]map[string]string   `json:"bindings,omitempty"`            // workspace -> provider -> profile
-	AutomaticFallback    bool                           `json:"automatic_fallback"`
-	MaxConcurrency       int                            `json:"max_concurrency"`
-	Language             string                         `json:"language,omitempty"`
-	Intelligence         IntelligenceConfig             `json:"intelligence,omitempty"`
-	IntelligenceMemories []IntelligenceMemory           `json:"intelligence_memories,omitempty"`
-	FlagAliases          map[string]map[string][]string `json:"flag_aliases,omitempty"` // alias -> provider -> flags
-	installMemoryBaseline string `json:"-"`
+	ConfigVersion         int                            `json:"config_version"`
+	Defaults              map[string]string              `json:"defaults"`                      // provider -> profile
+	Priorities            map[string]map[string]int      `json:"priorities,omitempty"`          // provider -> profile -> priority
+	ProviderPriorities    map[string]int                 `json:"provider_priorities,omitempty"` // provider -> lower-is-first fallback priority
+	Disabled              map[string]map[string]bool     `json:"disabled,omitempty"`            // provider -> profile -> true
+	Labels                map[string]map[string][]string `json:"labels,omitempty"`              // provider -> profile -> tags
+	Strategy              string                         `json:"strategy"`                      // best-capacity, least-used, round-robin, sticky
+	StickyTTL             string                         `json:"sticky_ttl,omitempty"`          // e.g. "30m"
+	IsolationPreset       model.IsolationPreset          `json:"isolation_preset"`              // developer, strict, compat
+	Bindings              map[string]map[string]string   `json:"bindings,omitempty"`            // workspace -> provider -> profile
+	AutomaticFallback     bool                           `json:"automatic_fallback"`
+	MaxConcurrency        int                            `json:"max_concurrency"`
+	Language              string                         `json:"language,omitempty"`
+	Intelligence          IntelligenceConfig             `json:"intelligence,omitempty"`
+	IntelligenceMemories  []IntelligenceMemory           `json:"intelligence_memories,omitempty"`
+	FlagAliases           map[string]map[string][]string `json:"flag_aliases,omitempty"` // alias -> provider -> flags
+	installMemoryBaseline string                         `json:"-"`
 }
 
 var configMu sync.RWMutex

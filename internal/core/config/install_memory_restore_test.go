@@ -34,29 +34,49 @@ func TestInstallMemoryCASPreservesUnrelatedAndUnknownConfigSettings(t *testing.T
 	before := []IntelligenceMemory{installTestMemory("go test ./...")}
 	configPath := prepareInstallConfig(t, before)
 	original, err := os.ReadFile(configPath)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(original, &raw); err != nil { t.Fatal(err) }
+	if err := json.Unmarshal(original, &raw); err != nil {
+		t.Fatal(err)
+	}
 	raw["future_feature_options"] = json.RawMessage(`{"enabled":true,"unknown_nested":["x",3]}`)
 	input, err := json.Marshal(raw)
-	if err != nil { t.Fatal(err) }
-	if err := os.WriteFile(configPath, input, 0600); err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(configPath, input, 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	replacement := []IntelligenceMemory{installTestMemory("go test -race ./...")}
 	receipt, err := ReplaceInstallIntelligenceMemoriesIfUnchanged(before, replacement)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(receipt.SHA256) != 64 || receipt.Bytes < 1 {
 		t.Fatalf("missing post-rename checksum: %+v", receipt)
 	}
 	after, err := os.ReadFile(configPath)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	var output map[string]json.RawMessage
-	if err := json.Unmarshal(after, &output); err != nil { t.Fatal(err) }
+	if err := json.Unmarshal(after, &output); err != nil {
+		t.Fatal(err)
+	}
 	for name, old := range raw {
-		if name == "intelligence_memories" { continue }
+		if name == "intelligence_memories" {
+			continue
+		}
 		var x, y any
-		if err := json.Unmarshal(old, &x); err != nil { t.Fatal(err) }
-		if err := json.Unmarshal(output[name], &y); err != nil { t.Fatal(err) }
+		if err := json.Unmarshal(old, &x); err != nil {
+			t.Fatal(err)
+		}
+		if err := json.Unmarshal(output[name], &y); err != nil {
+			t.Fatal(err)
+		}
 		ax, _ := json.Marshal(x)
 		ay, _ := json.Marshal(y)
 		if string(ax) != string(ay) {
@@ -64,7 +84,9 @@ func TestInstallMemoryCASPreservesUnrelatedAndUnknownConfigSettings(t *testing.T
 		}
 	}
 	cfg, err := LoadConfig()
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !sameInstallMemorySet(cfg.IntelligenceMemories, replacement) ||
 		cfg.Language != "es" || cfg.Defaults["codex"] != "work" {
 		t.Fatalf("install CAS lost normal config fields: %+v", cfg)
@@ -79,13 +101,17 @@ func TestInstallMemoryCASRejectsStaleSnapshotWithoutWriting(t *testing.T) {
 		t.Fatal(err)
 	}
 	start, err := os.ReadFile(path)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if _, err := ReplaceInstallIntelligenceMemoriesIfUnchanged(old, []IntelligenceMemory{installTestMemory("stale restore")}); err == nil ||
 		!strings.Contains(err.Error(), "CAS precondition failed") {
 		t.Fatalf("stale INSTALL restore was accepted: %v", err)
 	}
 	end, err := os.ReadFile(path)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if string(start) != string(end) {
 		t.Fatal("failed CAS modified config.json")
 	}
@@ -109,9 +135,13 @@ func TestInstallMemoryCASOnlyOneConcurrentInProcessWriterWins(t *testing.T) {
 	close(outcomes)
 	success, failure := 0, 0
 	for err := range outcomes {
-		if err == nil { success++ } else if strings.Contains(err.Error(), "CAS precondition failed") {
+		if err == nil {
+			success++
+		} else if strings.Contains(err.Error(), "CAS precondition failed") {
 			failure++
-		} else { t.Fatalf("unexpected concurrency failure: %v", err) }
+		} else {
+			t.Fatalf("unexpected concurrency failure: %v", err)
+		}
 	}
 	if success != 1 || failure != 1 {
 		t.Fatalf("expected one winner and one stale retry: success=%d fail=%d", success, failure)
@@ -134,9 +164,13 @@ func TestInstallMemoryCASRejectsMissingConfigSymlinksAndMalformedData(t *testing
 		if _, err := ReplaceInstallIntelligenceMemoriesIfUnchanged(nil, nil); err == nil {
 			t.Fatal("CAS followed config.json symlink")
 		}
-		if err := os.Remove(link); err != nil { t.Fatal(err) }
+		if err := os.Remove(link); err != nil {
+			t.Fatal(err)
+		}
 	}
-	if err := os.WriteFile(link, []byte("{"), 0600); err != nil { t.Fatal(err) }
+	if err := os.WriteFile(link, []byte("{"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := ReplaceInstallIntelligenceMemoriesIfUnchanged(nil, nil); err == nil {
 		t.Fatal("CAS accepted malformed config JSON")
 	}
@@ -146,7 +180,9 @@ func TestInstallMemoryCASRejectsDuplicateKeysIDsAndMissingValues(t *testing.T) {
 	old := []IntelligenceMemory{installTestMemory("original")}
 	path := prepareInstallConfig(t, old)
 	before, err := os.ReadFile(path)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	cases := [][]IntelligenceMemory{
 		{old[0], old[0]},
 		{old[0], {ID: "other", Key: old[0].Key, Value: "x"}},
@@ -159,7 +195,9 @@ func TestInstallMemoryCASRejectsDuplicateKeysIDsAndMissingValues(t *testing.T) {
 		}
 	}
 	after, err := os.ReadFile(path)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if string(before) != string(after) {
 		t.Fatal("invalid memory replacement changed configuration")
 	}
@@ -172,9 +210,13 @@ func TestInstallMemoryCASEmptyReplacement(t *testing.T) {
 		t.Fatal(err)
 	}
 	bytes, err := os.ReadFile(configPath)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(bytes, &raw); err != nil { t.Fatal(err) }
+	if err := json.Unmarshal(bytes, &raw); err != nil {
+		t.Fatal(err)
+	}
 	if string(raw["intelligence_memories"]) != "[]" {
 		t.Fatalf("empty restore did not persist an empty array: %s", raw["intelligence_memories"])
 	}

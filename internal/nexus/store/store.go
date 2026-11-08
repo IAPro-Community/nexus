@@ -24,7 +24,7 @@ var migrationsFS embed.FS
 
 // Store is the Nexus durable product state handle.
 type Store struct {
-	db *sql.DB
+	db             *sql.DB
 	memoryFenceDir string
 }
 

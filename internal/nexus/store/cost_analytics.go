@@ -8,25 +8,25 @@ import (
 // ledger. Cost evidence classes are deliberately NOT merged into a fictional
 // bill: provider-reported values and API-equivalent estimates are separate.
 type CostAnalyticsTotals struct {
-	ObservationCount         int64 `json:"observation_count"`
-	KnownCostObservations    int64 `json:"known_cost_observations"`
-	UnknownCostObservations  int64 `json:"unknown_cost_observations"`
-	KnownTokenObservations   int64 `json:"known_token_observations"`
-	ReportedCostObservations  int64 `json:"reported_cost_observations"`
+	ObservationCount           int64 `json:"observation_count"`
+	KnownCostObservations      int64 `json:"known_cost_observations"`
+	UnknownCostObservations    int64 `json:"unknown_cost_observations"`
+	KnownTokenObservations     int64 `json:"known_token_observations"`
+	ReportedCostObservations   int64 `json:"reported_cost_observations"`
 	EquivalentCostObservations int64 `json:"equivalent_cost_observations"`
-	InferredCostObservations  int64 `json:"inferred_cost_observations"`
-	KnownCacheObservations    int64 `json:"known_cache_observations"`
-	CachePromptInputTokens    int64 `json:"cache_prompt_input_tokens"`
-	CachePromptReadTokens     int64 `json:"cache_prompt_read_tokens"`
-	InputTokens              int64 `json:"input_tokens"`
-	CachedInputTokens        int64 `json:"cached_input_tokens"`
-	OutputTokens             int64 `json:"output_tokens"`
-	ReasoningTokens          int64 `json:"reasoning_tokens"`
-	DurationMS               int64 `json:"duration_ms"`
-	ProviderReportedMicroUSD int64 `json:"provider_reported_microusd"`
-	APIEquivalentMicroUSD    int64 `json:"api_equivalent_microusd"`
-	InferredMicroUSD         int64 `json:"inferred_microusd"`
-	UnclassifiedMicroUSD     int64 `json:"unclassified_microusd"`
+	InferredCostObservations   int64 `json:"inferred_cost_observations"`
+	KnownCacheObservations     int64 `json:"known_cache_observations"`
+	CachePromptInputTokens     int64 `json:"cache_prompt_input_tokens"`
+	CachePromptReadTokens      int64 `json:"cache_prompt_read_tokens"`
+	InputTokens                int64 `json:"input_tokens"`
+	CachedInputTokens          int64 `json:"cached_input_tokens"`
+	OutputTokens               int64 `json:"output_tokens"`
+	ReasoningTokens            int64 `json:"reasoning_tokens"`
+	DurationMS                 int64 `json:"duration_ms"`
+	ProviderReportedMicroUSD   int64 `json:"provider_reported_microusd"`
+	APIEquivalentMicroUSD      int64 `json:"api_equivalent_microusd"`
+	InferredMicroUSD           int64 `json:"inferred_microusd"`
+	UnclassifiedMicroUSD       int64 `json:"unclassified_microusd"`
 }
 
 type DailyCostAnalytics struct {
@@ -41,10 +41,10 @@ type ModelCostAnalytics struct {
 }
 
 type CostAnalyticsView struct {
-	Total            CostAnalyticsTotals  `json:"total"`
-	ByDay            []DailyCostAnalytics `json:"by_day"`
-	ByModel          []ModelCostAnalytics `json:"by_model"`
-	ModelsTruncated  bool                 `json:"models_truncated"`
+	Total           CostAnalyticsTotals  `json:"total"`
+	ByDay           []DailyCostAnalytics `json:"by_day"`
+	ByModel         []ModelCostAnalytics `json:"by_model"`
+	ModelsTruncated bool                 `json:"models_truncated"`
 }
 
 // All aggregates use the same filter and cost evidence semantics. A NULL

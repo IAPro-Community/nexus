@@ -35,7 +35,7 @@ const (
 )
 
 type CostBudgetAssessment struct {
-	Level                CostBudgetLevel   `json:"level"`
+	Level CostBudgetLevel `json:"level"`
 	// KnownCostMicroUSD remains for clients consuming the legacy field, but
 	// now contains ONLY provider-reported values (never API estimates).
 	KnownCostMicroUSD        int64             `json:"known_cost_microusd"`
@@ -46,9 +46,9 @@ type CostBudgetAssessment struct {
 	ReportedCostObservations int64             `json:"reported_cost_observations"`
 	UnverifiedObservations   int64             `json:"unverified_observations"`
 	Evidence                 CostEvidenceState `json:"evidence"`
-	ActiveLimitMicroUSD  int64             `json:"active_limit_microusd,omitempty"`
-	RequiresConfirmation bool              `json:"requires_confirmation"`
-	Message              string            `json:"message"`
+	ActiveLimitMicroUSD      int64             `json:"active_limit_microusd,omitempty"`
+	RequiresConfirmation     bool              `json:"requires_confirmation"`
+	Message                  string            `json:"message"`
 }
 
 type CostAnomalyStatus string

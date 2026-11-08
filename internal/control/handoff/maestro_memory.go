@@ -26,17 +26,17 @@ var maestroMemoryObservationID = regexp.MustCompile(`^obs_[a-f0-9]{16}$`)
 type MaestroMemoryReadResult struct {
 	SchemaVersion int                        `json:"schemaVersion"`
 	Authority     string                     `json:"authority"`
-	Items         []MaestroMemoryObservation  `json:"items"`
-	Page          MaestroMemoryPage           `json:"page"`
+	Items         []MaestroMemoryObservation `json:"items"`
+	Page          MaestroMemoryPage          `json:"page"`
 }
 
 type MaestroMemoryObservation struct {
-	ID        string                  `json:"id"`
-	Timestamp string                  `json:"timestamp"`
-	Type      string                  `json:"type"`
-	Summary   string                  `json:"summary"`
-	Verified  bool                    `json:"verified"`
-	Scope     MaestroMemoryScope      `json:"scope"`
+	ID        string             `json:"id"`
+	Timestamp string             `json:"timestamp"`
+	Type      string             `json:"type"`
+	Summary   string             `json:"summary"`
+	Verified  bool               `json:"verified"`
+	Scope     MaestroMemoryScope `json:"scope"`
 }
 
 type MaestroMemoryScope struct {
@@ -55,8 +55,8 @@ type MaestroMemoryPage struct {
 }
 
 type maestroMemoryRPCReply struct {
-	JSONRPC string                 `json:"jsonrpc"`
-	ID      int                    `json:"id"`
+	JSONRPC string                   `json:"jsonrpc"`
+	ID      int                      `json:"id"`
 	Result  *MaestroMemoryReadResult `json:"result"`
 	Error   *struct {
 		Code int `json:"code"`
