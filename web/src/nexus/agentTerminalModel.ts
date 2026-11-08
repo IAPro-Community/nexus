@@ -32,6 +32,11 @@ export function normalizeTerminalRole(role: unknown): TerminalRole {
   return role === 'CONTROL' ? 'CONTROL' : 'VIEW_ONLY';
 }
 
+/** Terminal input is enabled only while an explicit writer lease is held. */
+export function terminalInputEnabled(role: TerminalRole): boolean {
+  return role === 'CONTROL';
+}
+
 export function terminalReconnectDelay(attempt: number): number {
   const safeAttempt = Number.isFinite(attempt) ? Math.max(0, Math.floor(attempt)) : 0;
   return Math.min(3000, 250 * 2 ** safeAttempt);

@@ -1,3 +1,12 @@
+## 2026-11-08 — `follow-agent`: lease de input depende de consentimento
+
+- Removi aquisição automática de lease ao abrir o WebSocket e ao digitar em VIEW_ONLY. O terminal passa a iniciar com stdin desabilitado e só habilita após receber lease CONTROL; o botão explícito continua solicitando o lease.
+- Teste focal: `npm --prefix web run test -- --run src/nexus/agentTerminalModel.test.ts` — PASS, 7 testes Node auxiliares + 20 testes Vitest. `make quality-full` também PASS na árvore de trabalho: format, lint, typecheck/build, Web 131/818, Go integral + race e `govulncheck` sem vulnerabilidades (6 avisos ESLint preexistentes, 0 erros).
+- Auditoria do mapa: referências antigas de layout não provavam follow/pause nem consentimento. Critério de pausa ficou source-only; consentimento segue parcial, sem E2E integrado de WebSocket, revoke/reconnect.
+- Justificativa de catálogo: correção interna de consentimento/segurança do terminal, sem nova capacidade ou fluxo anunciável; não criar tour de produto.
+- `make docs-verify` BLOCKED: `scripts/docs-verify.mjs` recusa alterações visuais pendentes com o manifesto em SHA antigo `ee0e09c8`; requer captura verificável no candidato imutável. Não atualizei SHA nem inventei capturas.
+- Próximo: fechar gaps de `follow-agent` e continuar P0/48-capability. Estado permanece NO_GO.
+
 ## 2026-11-08 — P0 A3: isolamento entre perguntas simultâneas
 
 - Adicionei `TestSimultaneousRuntimeQuestionsRemainIndependentAfterAnswer` com dois registros/detectores ligados ao mesmo Registry. Ambos recebem a mesma pergunta; input isolado não resolve nenhuma; output de trabalho no runtime A limpa apenas A e mantém B em `WAITING/needs_user` com fingerprint.

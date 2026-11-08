@@ -7,6 +7,7 @@ import {
   isLiveRuntimeState,
   normalizeInitialPrompt,
   normalizeTerminalRole,
+  terminalInputEnabled,
   isRecoverAlreadyAlive,
   isRequiredResourceSelection,
   runtimeIdFromRecoverResult,
@@ -51,6 +52,9 @@ describe('Agent terminal model', () => {
   it('only grants control for explicit CONTROL lease', () => {
     expect(normalizeTerminalRole('CONTROL')).toBe('CONTROL');
     expect(normalizeTerminalRole('owner')).toBe('VIEW_ONLY');
+    expect(terminalInputEnabled(normalizeTerminalRole('CONTROL'))).toBe(true);
+    expect(terminalInputEnabled(normalizeTerminalRole('VIEW_ONLY'))).toBe(false);
+    expect(terminalInputEnabled(normalizeTerminalRole(undefined))).toBe(false);
   });
   it('backs off reconnect attempts with a bounded delay', () => {
     expect(terminalReconnectDelay(0)).toBe(250);

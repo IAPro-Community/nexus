@@ -439,27 +439,27 @@
           "sourceRefs": [
             "web/src/workspace/WorkspaceRenderer.tsx"
           ],
-          "testRefs": [
-            "web/src/workspace/model.test.ts",
-            "web/src/workspace/state.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
+          "testRefs": [],
+          "mappingStatus": "source-only",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Auditoria parcial: WorkspaceRenderer seleciona superfícies e renderiza Agent, mas model/state tests cobrem layout, não acompanhamento visual contínuo nem pausa explícita. Não foi localizada ação persistente de pausar/retomar o acompanhamento. Capability pendente.",
+          "assertionAudit": "partial"
         },
         {
           "acceptanceIndex": 1,
           "acceptance": "Não adquirir lease de input sem consentimento",
           "sourceRefs": [
-            "web/src/workspace/WorkspaceRenderer.tsx"
+            "web/src/nexus/AgentTerminal.tsx",
+            "web/src/nexus/agentTerminalModel.ts"
           ],
           "testRefs": [
-            "web/src/workspace/model.test.ts",
-            "web/src/workspace/state.test.ts"
+            "web/src/nexus/agentTerminalModel.test.ts",
+            "internal/control/host/host_test.go"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Auditoria parcial: AgentTerminal agora anexa em VIEW_ONLY, mantém stdin desabilitado e só envia lease_acquire pelo botão explícito Assumir controle; o model test valida que input só habilita para CONTROL. Os testes do host cobrem acquire/release explícito. Falta regressão integrada do WebSocket/UI provando ausência de lease em attach e após tecla, mais teste de revoke/reconnect. Capability pendente.",
+          "assertionAudit": "partial"
         }
       ],
       "verification": "pending"

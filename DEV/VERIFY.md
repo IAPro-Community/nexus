@@ -1,3 +1,14 @@
+## `follow-agent` — lease sem consentimento — 2026-11-08
+
+- PASS — `npm --prefix web run test -- --run src/nexus/agentTerminalModel.test.ts`: 7 testes auxiliares Node e 20 Vitest; role CONTROL habilita input e VIEW_ONLY/role ausente não.
+- PASS — `make quality-full` na árvore atual: format-check, lint (6 warnings preexistentes/0 erros), typecheck/build, Web 131/818, suíte Go integral + race integral, version-contract e `govulncheck` sem vulnerabilidades.
+- PASS — `node scripts/verify-agent-workspace-evidence-map.mjs` (48/96, 85 referências source+test, 10 source-only, 1 unmapped; zero certificados); `node --test scripts/verify-agent-workspace-evidence-map.test.mjs` (4/4); `git diff --check`.
+- PASS — diff confirma WebSocket attach em VIEW_ONLY, stdin desabilitado no open/reconnect, remoção de `lease_acquire` do attach e do handler de input; solicitação só permanece no botão explícito.
+- Pendente — teste integrado do WebSocket/UI para provar ausência de lease em attach e após tecla e o comportamento de revoke/reconnect. O aceite de pausa/follow explícitos não está coberto nem localizado.
+- Catálogo: mudança classificada internamente como correção de consentimento/segurança, não novo recurso anunciável.
+- Veredito global e capability `follow-agent`: **NO_GO / pending**.
+- BLOCKED — `make docs-verify`: manifesto visual aponta para `ee0e09c8` e rejeita alterações renderizáveis não commitadas; a captura deve ser refeita/verificada no SHA imutável do candidato.
+
 ## P0 A1 — auditoria semântica inicial de terminal-studio — 2026-11-08
 
 - PASS — `node scripts/verify-agent-workspace-evidence-map.mjs`: o mapa mantém sincronismo estrutural (48 capacidades/96 critérios, zero aceites certificados).

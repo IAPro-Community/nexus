@@ -31,6 +31,7 @@ import {
   isFatalTerminalAttachError,
   normalizeInitialPrompt,
   normalizeTerminalRole,
+  terminalInputEnabled,
   nextBoundRuntimeId,
   parseRuntimeChangedId,
   runtimeIdFromRecoverResult,
@@ -570,7 +571,7 @@ export const AgentTerminal: React.FC<{
       ws.onopen = () => {
         if (connectTimeout !== undefined) window.clearTimeout(connectTimeout);
         connectTimeout = undefined;
-        term.options.disableStdin = false;
+        term.options.disableStdin = true;
         lastFailureCode = '';
         setDiagnosticCode('');
         if (openedOnce) {
@@ -588,9 +589,6 @@ export const AgentTerminal: React.FC<{
             ? tRef.current('common.ready', { defaultValue: 'Ready' })
             : '',
         );
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'lease_acquire' }));
-        }
         openFrame = window.requestAnimationFrame(() => {
           openFrame = undefined;
           if (!canRunTerminalFrame({ disposed, socketOpen: ws.readyState === WebSocket.OPEN })) {
@@ -634,6 +632,7 @@ export const AgentTerminal: React.FC<{
           const next = normalizeTerminalRole(payload.role);
           reconnectAttempt = 0;
           roleRef.current = next;
+          term.options.disableStdin = !terminalInputEnabled(next);
           setRole(next);
           setMessage(next === 'CONTROL' ? '' : tRef.current('terminal.readOnlyNotice'));
           if (next === 'CONTROL' && (!panel || panel.dataset.active === 'true')) {
@@ -735,12 +734,7 @@ export const AgentTerminal: React.FC<{
       }
       const ws = wsRef.current;
       if (!ws || ws.readyState !== WebSocket.OPEN) return;
-      if (roleRef.current !== 'CONTROL') {
-        // Opportunistically reclaim the writer seat, then still drop this
-        // keystroke (broker would ignore it). Next keystrokes work after lease.
-        ws.send(JSON.stringify({ type: 'lease_acquire' }));
-        return;
-      }
+      if (!terminalInputEnabled(roleRef.current)) return;
       if (terminalTraceEnabled) {
         const trace = terminalTraceShape(data);
         ws.send(
