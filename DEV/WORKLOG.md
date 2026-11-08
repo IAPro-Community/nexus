@@ -7042,3 +7042,10 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Atualizei o mapa para refletir esses asserts e separar a lacuna de recomendação por atividade e falta de E2E de restauração integral.
 - PASS — 63 Vitest nos quatro arquivos relevantes, 7 node pretests, evidence-map 4/4, contrato 48/96 e `git diff --check`.
 - Próximo — implementar recomendação contextual e homologar restauração real sem spawn; seguir para os demais critérios.
+
+## 2026-11-08 — P0 A1: auditoria semântica workspace-snapshots
+
+- Auditei `WorkspaceLayoutService`, `WorkspaceProvider`, `workspace/state` e `model`. A persistência salva o snapshot corrente v4 por projectId com revisão/migração/export/import; o model deduplica superfícies lógicas e montagem de surface não chama start.
+- Atualizei mapa: testes reais cobrem save/load, versão/projeto/split e identidade/dedupe, não histórico de snapshots nomeados nem restore E2E sem respawn de runtime morto.
+- PASS — 31 Vitest de WorkspaceLayoutService/state/model, 7 node pretests, evidence-map e testes do verificador 4/4. Um caminho de teste incorreto no mapa foi apontado pelo verificador e corrigido antes do PASS final.
+- Próximo — especificar/implementar histórico se exigido pelo contrato e validar restore com runtime vivo/morto/duplicado via E2E.

@@ -2409,3 +2409,9 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - PASS — evidence map 48/96, verificador 4/4 e `git diff --check`.
 - GAP — presets/recipes são estáticos, não recomendados por atividade; testes puros não comprovam E2E de zero spawn nem restauração completa após reload com foco/split/surface identity. Capability permanece pending/NO_GO.
 
+## 2026-11-08 — auditoria semântica A1: workspace-snapshots
+
+- PASS — `npm --prefix web run test -- --run src/services/WorkspaceLayoutService.test.ts src/workspace/state.test.ts src/workspace/model.test.ts`: 31 Vitest; 7 node pretests.
+- PASS — evidence-map estrutural e regressões do verificador 4/4; diff check.
+- GAP — layout v4 é versão de schema/revisão por projeto, não catálogo de snapshots nomeados. Dedupe e mount sem comando explícito estão na implementação, mas não há E2E de restauração com runtime morto/ativo provando ausência de spawn duplicado; capability permanece pending/NO_GO.
+
