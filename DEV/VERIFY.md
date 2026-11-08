@@ -1,5 +1,6 @@
 ## Gate AGY balance e qualidade integral — 2026-11-08
 
+- Código testado no SHA `c5a31c41` (`fix(quota): require fresh AGY 5h evidence for balance`).
 - PASS — regressões `go test ./internal/core/fallback ./internal/core/scheduler ./internal/core/provider/adapters/agy`.
 - PASS — `go vet ./internal/core/fallback ./internal/core/scheduler ./internal/core/provider/adapters/agy`.
 - PASS — `make quality`: format-check, ESLint sem erros (6 warnings), Stylelint, TypeScript, 131 arquivos/818 testes Web, lint Go 0 issues, suíte Go completa e version-contract.

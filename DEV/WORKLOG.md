@@ -1,5 +1,6 @@
 ## 2026-11-08 — AGY balance exige evidência atual de 5h
 
+- Commit de código/testes/documentação: `c5a31c41` (`fix(quota): require fresh AGY 5h evidence for balance`); `make quality` repetido e PASS nesse SHA.
 - Causa: a rotação usava elegibilidade genérica, que aceitava quota LIVE com apenas janelas semanais e snapshot `UNSUPPORTED`; isso podia gastar a conta sem preservar a janela curta.
 - Correção: `SelectNextBalancedProfile` aplica gate adicional somente a AGY. Exige identidade provider/profile, fonte conhecida, status LIVE/CACHED, `FetchedAt` dentro de `quota.DefaultTTL` e janela 5h numérica para cada grupo encontrado. Falha sem seleção e mostra motivos por perfil.
 - Cobertura: scheduler + fallback validam weekly-only, quota parcial por grupo, frescor, proveniência, status, valor medido e preservação do roteamento de outros providers.
