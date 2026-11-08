@@ -1,11 +1,13 @@
 package host
 
 import (
+	"bytes"
 	"sync"
 	"testing"
 
 	"github.com/IAPro-Community/nexus/internal/control/notify"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
+	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 func TestAttentionDetectorQuestions(t *testing.T) {
@@ -83,6 +85,36 @@ func TestAttentionDetectorYNWithQuestion(t *testing.T) {
 	}
 	if !contains(gotContext, "Deseja executar") {
 		t.Fatalf("context must include the question, got %q", gotContext)
+	}
+}
+
+func TestTerminalInputSubmissionRequiresProviderTransitionToClearAttention(t *testing.T) {
+	detector := NewAttentionDetector("rt-confirm-input", "codex", "default", "/workspace/project", nil)
+	detector.ProcessChunk([]byte("\r\nDo you want to proceed? [y/N]\r\n"))
+	if detector.lastKind != AttentionNeedsUser {
+		t.Fatal("expected a pending approval before operator input")
+	}
+
+	sendAttentionTerminalInput(t, detector, []byte("y"))
+	if detector.lastKind != AttentionNeedsUser || detector.lastFingerprint == "" {
+		t.Fatal("operator input alone must not resolve an approval without provider output")
+	}
+
+	detector.ProcessChunk([]byte("\r\nthinking...\r\n"))
+	if detector.lastKind != AttentionWorking || detector.lastFingerprint != "" {
+		t.Fatal("observed provider output should reconcile the submitted approval")
+	}
+}
+
+func sendAttentionTerminalInput(t *testing.T, detector *AttentionDetector, input []byte) {
+	t.Helper()
+	var terminal bytes.Buffer
+	host := &SessionHost{
+		detector:      detector,
+		terminalInput: nexusruntime.NewTerminalInputScrubber(&terminal),
+	}
+	if err := host.writeTerminalInput(input); err != nil {
+		t.Fatalf("write operator input: %v", err)
 	}
 }
 
@@ -344,14 +376,18 @@ func TestAttentionDetectorAGYQuestionnaireWithLongTUIMenu(t *testing.T) {
 			detector.lastKind, detector.lastPrompt, detector.lastState)
 	}
 	// Selection movement must never clear user attention.
-	detector.ObserveOperatorInput([]byte("\x1b[B"))
+	sendAttentionTerminalInput(t, detector, []byte("\x1b[B"))
 	if detector.lastKind != AttentionNeedsUser {
 		t.Fatal("arrow navigation cleared an unanswered AGY question")
 	}
-	detector.ObserveOperatorInput([]byte("\r"))
-	if detector.lastKind != AttentionWorking || detector.lastState != registry.StateRunning ||
-		detector.lastFingerprint != "" {
-		t.Fatal("actual form submission must clear previous AGY attention")
+	sendAttentionTerminalInput(t, detector, []byte("\r"))
+	if detector.lastKind != AttentionNeedsUser || detector.lastState != registry.StateWaiting ||
+		detector.lastFingerprint == "" {
+		t.Fatal("form submission alone must not clear AGY attention")
+	}
+	detector.ProcessChunk([]byte("\r\nthinking...\r\n"))
+	if detector.lastKind != AttentionWorking || detector.lastState != registry.StateRunning || detector.lastFingerprint != "" {
+		t.Fatal("provider output must settle the submitted AGY question")
 	}
 }
 
@@ -363,15 +399,19 @@ func TestAttentionDetectorAGYTTYLogMentionDoesNotTriggerQuestion(t *testing.T) {
 	}
 }
 
-func TestAttentionDetectorYNImmediateAnswerClearsAttention(t *testing.T) {
+func TestAttentionDetectorYNAnswerWaitsForProviderOutput(t *testing.T) {
 	detector := NewAttentionDetector("rt-confirm", "codex", "default", "/workspace/project", nil)
 	detector.ProcessChunk([]byte("\r\nDo you want to proceed? [y/N]\r\n"))
 	if detector.lastKind != AttentionNeedsUser {
 		t.Fatal("expected a question")
 	}
-	detector.ObserveOperatorInput([]byte("y"))
-	if detector.lastKind == AttentionNeedsUser || detector.lastFingerprint != "" {
-		t.Fatal("yes/no quick answer did not resolve attention")
+	sendAttentionTerminalInput(t, detector, []byte("y"))
+	if detector.lastKind != AttentionNeedsUser || detector.lastFingerprint == "" {
+		t.Fatal("yes/no input alone must not resolve provider approval")
+	}
+	detector.ProcessChunk([]byte("\r\nthinking...\r\n"))
+	if detector.lastKind != AttentionWorking || detector.lastFingerprint != "" {
+		t.Fatal("observed provider output should clear the answered prompt")
 	}
 }
 

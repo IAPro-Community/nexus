@@ -10,6 +10,11 @@
 - E2E first-run fixture passou no SHA `59d1936a` para importação, conexão rápida e atualização da lista em Usage / Accounts.
 - Limites: endpoints/provider foram simulados; faltam dois perfis reais isolados, login/autenticação real e cancelamento validado sem Agent/PTY órfão. A2 não está fechado.
 
+## P0 A3 — atenção e proveniência
+
+- Removida a transição otimista de `needs_user` para `working` acionada apenas por input terminal. Perguntas de PTY permanecem até nova saída observada; estados nativos/estruturados mantêm sua própria fonte.
+- Regressões dirigidas, `go vet`, `make quality-full` e `make docs-verify` passam no worktree baseado em `73b1e32b` (Web 131/818; Go/race/security; ESLint 6 warnings). A3 continua parcial: ainda exige aceite de dois runtimes/perguntas simultâneas, origem estruturada completa e cenários de aprovação/revogação da A4. Repetir validação no SHA commitado.
+
 ## Continuidade ativa — hard gate de quota 5h no AGY balance — 2026-11-08
 
 - Escopo original permanece: fechar Nexus 1.0 + Maestro, P0s e aceite exact-SHA para as 48 capacidades. Sem reduzir o objetivo e sem declarar GO por testes isolados.

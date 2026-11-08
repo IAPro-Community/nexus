@@ -23,7 +23,7 @@ func TestNativeAGYQuestionPreemptsPTYHeuristic(t *testing.T) {
 		t.Fatal("stale PTY narration replaced native blocker")
 	}
 	// Native blocker must remain pending until AGY itself signals a transition.
-	detector.ObserveOperatorInput([]byte("\\r"))
+	sendAttentionTerminalInput(t, detector, []byte("\\r"))
 	if detector.lastKind != AttentionNeedsUser {
 		t.Fatal("Enter prematurely dismissed native AGY approval")
 	}

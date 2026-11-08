@@ -927,12 +927,6 @@ func (sh *SessionHost) writeTerminalInput(data []byte) error {
 		nexusruntime.TraceTerminalBytes(sh.session.RuntimeID, "host.pty.write", data)
 		_, err = backend.Write(data)
 	}
-	if err == nil && sh.detector != nil {
-		// When AGY/Codex/Claude accepts an actual operator submission,
-		// release a previously displayed pending question in the shared
-		// registry. Arrow keys and partial input must not clear the HUD.
-		sh.detector.ObserveOperatorInput(data)
-	}
 	return err
 }
 

@@ -1,3 +1,12 @@
+## 2026-11-08 — P0 A3: aguardar evidência após input em approval PTY
+
+- O aceite de A3 requer que input do usuário não confirme sozinho uma permission. A reprodução mostrou que `writeTerminalInput` chamava `ObserveOperatorInput`, limpando `needs_user` em Enter/y/n antes de qualquer resposta do provider.
+- Removi essa transição otimista. A resposta do terminal segue como tentativa; só a saída seguinte do provider pode alterar o estado inferido, enquanto ACP/Pi RPC e OSC mantêm as fontes estruturadas existentes.
+- TDD: a regressão falhou antes do fix; depois passaram os testes de submissão Y/N, questionnaire AGY, sessão OSC e a suíte de `host`, `registry`, `web` mais `go vet`.
+- PASS — `make quality-full` na árvore de trabalho baseada em `73b1e32b`: format-check, lint/style/typecheck/build Web, 131 arquivos/818 testes Web, contrato de versão, lint/test Go, Go race e security; ESLint 6 warnings/0 erros; govulncheck sem vulnerabilidades.
+- PASS — `make docs-verify` após o registro da verificação.
+- Próximo: comitar/pushar este checkpoint e então fechar critérios restantes de A3/A4 e continuar os gates de release. A validação exact-SHA deve ser repetida após o commit.
+
 ## 2026-11-08 — P0 A2: E2E fixture do primeiro uso
 
 - Executei o E2E existente `test:e2e:first-run-import` no SHA `59d1936a`, isolando capturas em `/tmp/nexus-first-run-evidence-59d1936a`.

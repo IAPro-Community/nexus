@@ -627,57 +627,6 @@ func (d *AttentionDetector) applyOSCTitleLocked(title string) {
 	}
 }
 
-// ObserveOperatorInput clears an observed prompt only after the supervised
-// terminal actually receives a submission key. Arrow navigation and normal
-// typing do not dismiss a live ask_question form. The next PTY repaint may
-// immediately establish a NEW wait; no timer-based guesswork is involved.
-func (d *AttentionDetector) ObserveOperatorInput(data []byte) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	if d.lastKind != AttentionNeedsUser || len(data) == 0 {
-		return
-	}
-	// A native status is a provider-owned blocker. Terminal keystrokes only
-	// establish an attempted submission; wait for native WORKING/IDLE/DONE
-	// before clearing the intervention. No optimistic remote approval.
-	if d.lastPrompt == "native_status" {
-		return
-	}
-	submitted := false
-	for _, c := range data {
-		if c == '\r' || c == '\n' {
-			submitted = true
-			break
-		}
-	}
-	// Yes/no prompts often accept a single keystroke without Enter.
-	if !submitted && d.lastPrompt == PromptKindYN && len(data) == 1 {
-		submitted = data[0] == 'y' || data[0] == 'Y' ||
-			data[0] == 'n' || data[0] == 'N'
-	}
-	if !submitted {
-		return
-	}
-	d.buffer.Reset() // Old screen/scrollback must not resurrect a resolved wait.
-	d.lastState = registry.StateRunning
-	d.lastReason = "USER_RESPONDED"
-	d.lastKind = AttentionWorking
-	d.lastPrompt = PromptKindNone
-	d.lastFingerprint = ""
-	d.lastTitle = d.projectName + " · " + strings.ToUpper(d.providerID)
-	d.lastUpdateAt = time.Now()
-	_ = d.ownerRegistry().UpdateAttentionMeta(d.runtimeID, registry.AttentionUpdate{
-		State: registry.StateRunning, Reason: d.lastReason, Kind: d.lastKind,
-		PromptKind: PromptKindNone, Fingerprint: "", Context: "",
-		Source: "INFERRED", Generation: d.runtimeGeneration,
-		ProjectID: d.projectID, ProjectName: d.projectName,
-		DynamicTitle: d.lastTitle,
-	})
-	if d.onAttention != nil {
-		d.onAttention(d.lastReason, "", d.lastTitle, registry.StateRunning)
-	}
-}
-
 // Clear resets all internal attention state, buffers, and prompts.
 func (d *AttentionDetector) Clear() {
 	d.mu.Lock()

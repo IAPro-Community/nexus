@@ -1,3 +1,13 @@
+## P0 A3 — input terminal não confirma aprovação — 2026-11-08
+
+- RED confirmado — regressão `TestTerminalInputSubmissionRequiresProviderTransitionToClearAttention` falhou antes da correção porque `writeTerminalInput("y")` removia `needs_user` sem resposta observada do provider.
+- PASS — regressões `TestTerminalInputSubmissionRequiresProviderTransitionToClearAttention`, `TestAttentionDetectorAGYQuestionnaireWithLongTUIMenu`, `TestAttentionDetectorYNAnswerWaitsForProviderOutput` e `TestNativeAGYQuestionPreemptsPTYHeuristic`.
+- PASS — `go test ./internal/control/host ./internal/control/registry ./internal/control/web -count=1`.
+- PASS — `go vet ./internal/control/host ./internal/control/registry ./internal/control/web` e `git diff --check`.
+- PASS — `make quality-full` na árvore de trabalho baseada em `73b1e32b`: format-check, lint/style/typecheck/build Web, 131 arquivos/818 testes Web, contrato de versão, lint/test Go, Go race e security; ESLint 6 warnings/0 erros; govulncheck sem vulnerabilidades.
+- PASS — `make docs-verify` após atualizar o handoff e este registro.
+- Limite — os gates validam o worktree local, cujo código A3 ainda não tinha SHA commitado na execução. A3/A4 seguem parciais para cenários multi-runtime, aprovação tipada e revogação; 48 capacidades continuam pending e estado geral **NO_GO**.
+
 ## P0 A2 — E2E first-run — 2026-11-08
 
 - PASS — `NEXUS_E2E_ARTIFACTS_DIR=/tmp/nexus-first-run-evidence-59d1936a npm --prefix web run test:e2e:first-run-import` no SHA `59d1936a`: feedback da importação, descoberta/conexão rápida do provider e importação/refresh em Usage / Accounts.
