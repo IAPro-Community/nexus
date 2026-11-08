@@ -97,11 +97,19 @@ func TestRunWithFallbackStrategyRotatesAfterQuotaFailure(t *testing.T) {
 	candidates := []model.Profile{{Provider: "agy", Name: "account-a"}, {Provider: "agy", Name: "account-b"}}
 	accounts := map[string]model.AccountInfo{}
 	for _, candidate := range candidates {
+		remaining := 80.0
 		accounts[candidate.Name] = model.AccountInfo{
 			Authenticated: true,
 			Health:        model.HealthHealthy,
 			Usage: model.UsageSnapshot{
-				ProviderID: "agy", ProfileID: candidate.Name, Status: model.UsageUnsupported,
+				ProviderID: "agy",
+				ProfileID:  candidate.Name,
+				Status:     model.UsageLive,
+				Source:     model.SourceCLIOutput,
+				FetchedAt:  time.Now(),
+				Windows: []model.UsageWindow{
+					{Kind: "5h", Group: "gemini", RemainingPercent: &remaining},
+				},
 			},
 		}
 	}

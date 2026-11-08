@@ -1,3 +1,14 @@
+## Gate AGY balance e qualidade integral — 2026-11-08
+
+- PASS — regressões `go test ./internal/core/fallback ./internal/core/scheduler ./internal/core/provider/adapters/agy`.
+- PASS — `go vet ./internal/core/fallback ./internal/core/scheduler ./internal/core/provider/adapters/agy`.
+- PASS — `make quality`: format-check, ESLint sem erros (6 warnings), Stylelint, TypeScript, 131 arquivos/818 testes Web, lint Go 0 issues, suíte Go completa e version-contract.
+- PASS — `git diff --check` antes do registro documental.
+- PASS — dry-run read-only temporário com perfis e snapshots locais: 2 candidatos, 0 elegíveis, nenhuma seleção; `AI_CLI_STATE_DIR` isolado. `GetUsageSnapshot` usou cache sem refresh; nenhuma geração ou cursor real.
+- Regressão inicialmente detectou `TestRunWithFallbackStrategyRotatesAfterQuotaFailure` usando quota `UNSUPPORTED` de fixture AGY; a fixture foi corrigida para LIVE/CLI_OUTPUT/fresh/5h e a suíte integral repetida passou.
+- Cobertura nova: AGY weekly-only, 5h ausente por grupo, snapshot vencido, proveniência/perfil incompatível, remaining inválido, falha fechada sem capacidade elegível e não regressão de outros providers.
+- Dry-run com snapshots locais confirma fail-closed, não homologa duas contas elegíveis nem a alternância real. Status global **NO_GO**: 48/48 capacidades ainda pendentes, quota live 5h insuficiente nas contas AGY e release/P0s ainda abertos.
+
 ## Recheck de qualidade após formatação Go — 2026-11-08
 
 - Primeiro `make quality`: NO_GO em `format-check`; reportou 23 arquivos Go sem o formato de `gofmt -w -s`, inclusive o arquivo Nexus modificado.

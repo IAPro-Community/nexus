@@ -1,3 +1,12 @@
+## 2026-11-08 — AGY balance exige evidência atual de 5h
+
+- Causa: a rotação usava elegibilidade genérica, que aceitava quota LIVE com apenas janelas semanais e snapshot `UNSUPPORTED`; isso podia gastar a conta sem preservar a janela curta.
+- Correção: `SelectNextBalancedProfile` aplica gate adicional somente a AGY. Exige identidade provider/profile, fonte conhecida, status LIVE/CACHED, `FetchedAt` dentro de `quota.DefaultTTL` e janela 5h numérica para cada grupo encontrado. Falha sem seleção e mostra motivos por perfil.
+- Cobertura: scheduler + fallback validam weekly-only, quota parcial por grupo, frescor, proveniência, status, valor medido e preservação do roteamento de outros providers.
+- Verificação: testes focados e `go vet` passaram; `make quality` passou integral (Go, lint, Web 131/818, version-contract). Primeira execução revelou fixture AGY de fallback `UNSUPPORTED`; fixture ajustada e gate repetido com PASS.
+- Dry-run read-only adicional com snapshots atuais: 2 candidatos, 0 elegíveis e nenhuma seleção; `AI_CLI_STATE_DIR` isolado, sem refresh, prompt ou cursor real.
+- Próximo passo: probe read-only da quota AGY; identificar por que o CLI atual não fornece janela 5h às duas contas. NO_GO permanece.
+
 ## 2026-11-08 — Normalização exigida pelo gate Go
 
 - `make quality` parou inicialmente em `format-check`: 23 arquivos Go não atendiam `gofmt -w -s`; `internal/nexus/maestro.go` também precisava do alinhamento `-s`.

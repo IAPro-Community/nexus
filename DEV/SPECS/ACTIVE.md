@@ -1,3 +1,11 @@
+## Continuidade ativa — hard gate de quota 5h no AGY balance — 2026-11-08
+
+- Escopo original permanece: fechar Nexus 1.0 + Maestro, P0s e aceite exact-SHA para as 48 capacidades. Sem reduzir o objetivo e sem declarar GO por testes isolados.
+- AGY `:balance`/`:auto` só pode alternar entre perfis com snapshot LIVE/CACHED recente, atribuível, fonte declarada e Remaining 5h medido para todos os grupos de modelo presentes. Perfil sem essa prova é inelegível; erro lista a razão por conta. Outros providers preservam o contrato anterior.
+- Testes focados, `go vet` e `make quality` passaram após corrigir fixture do fallback. A evidência atual das duas contas do host continua insuficiente; a execução live deve ficar read-only e usar diretório de estado temporário.
+- PASS — dry-run read-only dos 2 perfis/snapshots locais com state dir isolado: 0 elegíveis, nenhuma seleção, sem refresh/prompt/cursor real.
+- Próxima aceitação: investigar o probe/quota AGY e distinguir saída do CLI, parser e cache; só então provar rotação alternada com duas contas elegíveis. Estado geral continua **NO_GO**.
+
 ## Continuidade confirmada — 2026-11-08
 
 - O objetivo continua sendo atingir GO real para Nexus 1.0, ponte com Maestro e as 48 capacidades. Estado corrente NO_GO; não converter implementação parcial em homologação.

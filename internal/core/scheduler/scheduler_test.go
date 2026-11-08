@@ -163,6 +163,116 @@ func TestBalancedSelectionNeverChoosesAnExhaustedQuotaAccount(t *testing.T) {
 	}
 }
 
+func TestBalancedAGYSelectionRejectsWeeklyOnlyQuota(t *testing.T) {
+	selector, ctx, candidates, accounts := balancedTestInputs(t)
+	accounts["account-a"] = agyLiveAccount("account-a",
+		model.UsageWindow{Kind: "weekly", Group: "gemini", RemainingPercent: floatPtr(90)},
+	)
+	result, err := selector.SelectNextBalancedProfile(ctx, "agy", "/tmp", candidates, accounts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, evaluation := range result.Evaluations {
+		if evaluation.Profile.Name == "account-a" {
+			if evaluation.Eligible || !strings.Contains(evaluation.RejectReason, "5h quota evidence is missing") {
+				t.Fatalf("weekly-only account evaluation = eligible:%v reason:%q", evaluation.Eligible, evaluation.RejectReason)
+			}
+		}
+	}
+	if result.SelectedProfile.Name == "account-a" {
+		t.Fatal("balanced AGY selection chose a weekly-only account")
+	}
+}
+
+func TestBalancedAGYSelectionRequiresFreshAttributableEvidenceForEveryKnownGroup(t *testing.T) {
+	selector, ctx, candidates, accounts := balancedTestInputs(t)
+	accounts["account-a"] = agyLiveAccount("account-a",
+		model.UsageWindow{Kind: "5h", Group: "gemini", RemainingPercent: floatPtr(80)},
+		model.UsageWindow{Kind: "weekly", Group: "gemini", RemainingPercent: floatPtr(80)},
+		model.UsageWindow{Kind: "claude_weekly", Group: "claude_gpt", RemainingPercent: floatPtr(80)},
+	)
+	accounts["account-b"] = agyLiveAccount("account-b",
+		model.UsageWindow{Kind: "5h", Group: "gemini", RemainingPercent: floatPtr(80)},
+	)
+	stale := agyLiveAccount("account-c", model.UsageWindow{Kind: "5h", Group: "gemini", RemainingPercent: floatPtr(80)})
+	stale.Usage.FetchedAt = time.Now().Add(-2 * quota.DefaultTTL)
+	accounts["account-c"] = stale
+
+	result, err := selector.SelectNextBalancedProfile(ctx, "agy", "/tmp", candidates, accounts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.SelectedProfile.Name != "account-b" {
+		t.Fatalf("selected %q, want only account-b with current required evidence", result.SelectedProfile.Name)
+	}
+	for _, evaluation := range result.Evaluations {
+		if evaluation.Profile.Name == "account-a" &&
+			(!strings.Contains(evaluation.RejectReason, "model group claude_gpt") || evaluation.Eligible) {
+			t.Fatalf("missing Claude/GPT 5h evidence evaluation = eligible:%v reason:%q", evaluation.Eligible, evaluation.RejectReason)
+		}
+		if evaluation.Profile.Name == "account-c" &&
+			(!strings.Contains(evaluation.RejectReason, "desatualizada") || evaluation.Eligible) {
+			t.Fatalf("stale evidence evaluation = eligible:%v reason:%q", evaluation.Eligible, evaluation.RejectReason)
+		}
+	}
+}
+
+func TestBalancedAGYSelectionFailsClosedWhenNoProfileHasCurrentFiveHourEvidence(t *testing.T) {
+	selector, ctx, candidates, accounts := balancedTestInputs(t)
+	for _, profile := range candidates {
+		accounts[profile.Name] = agyLiveAccount(profile.Name,
+			model.UsageWindow{Kind: "weekly", Group: "gemini", RemainingPercent: floatPtr(75)},
+		)
+	}
+	result, err := selector.SelectNextBalancedProfile(ctx, "agy", "/tmp", candidates, accounts, nil)
+	if err == nil || !strings.Contains(err.Error(), "5h quota evidence is missing") {
+		t.Fatalf("expected fail-closed quota evidence error, got result=%+v err=%v", result, err)
+	}
+	if result.SelectedProfile != nil {
+		t.Fatalf("selected profile without current 5h evidence: %s", result.SelectedProfile.Name)
+	}
+}
+
+func TestAGYBalancedQuotaEvidenceRequiresAttributionSourceAndMeasuredRemaining(t *testing.T) {
+	valid := agyLiveAccount("account-a",
+		model.UsageWindow{Kind: "5h", Group: "gemini", RemainingPercent: floatPtr(80)},
+	)
+	tests := []struct {
+		name    string
+		mutate  func(*model.UsageSnapshot)
+		wantErr string
+	}{
+		{name: "mismatched profile", mutate: func(s *model.UsageSnapshot) { s.ProfileID = "another-profile" }, wantErr: "not attributable"},
+		{name: "unknown source", mutate: func(s *model.UsageSnapshot) { s.Source = model.SourceNone }, wantErr: "source is unknown"},
+		{name: "estimated status", mutate: func(s *model.UsageSnapshot) { s.Status = model.UsageEstimated }, wantErr: "live or recently cached"},
+		{name: "missing measured remaining", mutate: func(s *model.UsageSnapshot) { s.Windows[0].RemainingPercent = nil }, wantErr: "quota evidence is missing for model group"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			snapshot := valid.Usage
+			snapshot.Windows = append([]model.UsageWindow(nil), valid.Usage.Windows...)
+			tc.mutate(&snapshot)
+			if reason := agyBalancedQuotaEvidenceReason(snapshot, "account-a", time.Now()); !strings.Contains(reason, tc.wantErr) {
+				t.Fatalf("reason=%q, want substring %q", reason, tc.wantErr)
+			}
+		})
+	}
+}
+
+func TestBalancedSelectionDoesNotRequireAGYQuotaRulesForOtherProviders(t *testing.T) {
+	selector, ctx, _, _ := balancedTestInputs(t)
+	profiles := []model.Profile{{Provider: "codex", Name: "codex-a"}}
+	accounts := map[string]model.AccountInfo{
+		"codex-a": {Authenticated: true, Health: model.HealthHealthy, Usage: model.UsageSnapshot{
+			ProviderID: "codex", ProfileID: "codex-a", Status: model.UsageUnsupported,
+		}},
+	}
+	result, err := selector.SelectNextBalancedProfile(ctx, "codex", "/tmp", profiles, accounts, nil)
+	if err != nil || result.SelectedProfile == nil || result.SelectedProfile.Name != "codex-a" {
+		t.Fatalf("non-AGY rotation changed: selected=%+v err=%v", result.SelectedProfile, err)
+	}
+}
+
 func TestBalancedSelectionSerializesConcurrentInvocations(t *testing.T) {
 	selector, ctx, candidates, accounts := balancedTestInputs(t)
 	const launches = 24
@@ -209,18 +319,30 @@ func balancedTestInputs(t *testing.T) (*Selector, context.Context, []model.Profi
 	}
 	accounts := make(map[string]model.AccountInfo, len(profiles))
 	for _, p := range profiles {
-		accounts[p.Name] = model.AccountInfo{
-			Authenticated: true,
-			Health:        model.HealthHealthy,
-			Usage: model.UsageSnapshot{
-				ProviderID: p.Provider,
-				ProfileID:  p.Name,
-				Status:     model.UsageUnsupported,
-			},
-		}
+		accounts[p.Name] = agyLiveAccount(p.Name,
+			model.UsageWindow{Kind: "5h", Group: "gemini", RemainingPercent: floatPtr(80)},
+			model.UsageWindow{Kind: "weekly", Group: "gemini", RemainingPercent: floatPtr(80)},
+		)
 	}
 	return selector, context.Background(), profiles, accounts
 }
+
+func agyLiveAccount(profile string, windows ...model.UsageWindow) model.AccountInfo {
+	return model.AccountInfo{
+		Authenticated: true,
+		Health:        model.HealthHealthy,
+		Usage: model.UsageSnapshot{
+			ProviderID: "agy",
+			ProfileID:  profile,
+			Status:     model.UsageLive,
+			Source:     model.SourceCLIOutput,
+			FetchedAt:  time.Now(),
+			Windows:    windows,
+		},
+	}
+}
+
+func floatPtr(value float64) *float64 { return &value }
 
 func TestMultiQuotaBottleneckSelection(t *testing.T) {
 	dataDir := t.TempDir()
