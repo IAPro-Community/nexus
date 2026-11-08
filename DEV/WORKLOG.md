@@ -6891,3 +6891,4 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Contrato JSON de capabilities/skills do Maestro enviado para `release/1.1.0`: `8d096cb`; remoto avançado com 30 commits foi integrado pelo merge `e97a204`.
 - Go tests e vet dos pacotes alterados, validação pública Maestro e teste focado 7/7 passaram. A suíte completa Maestro terminou 1360/3/4; falhas observadas nos checks de instalação devido a `CODEX_HOME` divergente.
 - Próximo passo permanece corrigir/reproduzir os failures em ambiente canônico, implementar advice/verification e obter E2E com duas contas AGY reais. Não declarar GO.
+- Após o push inicial, integrei o avanço remoto `aa137324` por merge sem rebase/force. Ele renova capturas Web sintéticas; isso não substitui inspeção visual nem constitui evidência de release. Incluí o merge e este checkpoint operacional no push de sincronização.

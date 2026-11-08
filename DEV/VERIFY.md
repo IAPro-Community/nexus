@@ -2253,5 +2253,6 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - **Maestro PASS parcial** — após integrar os 30 commits de `origin/release/1.1.0`, `pwsh .../scripts/validate-public.ps1`, `git diff --check` e `node --test tests/legacy-compatibility.test.js` (7/7) passaram.
 - **Maestro suíte completa: FAIL** — `npm test`: 1360 pass / 3 fail / 4 skipped (1107 testes, 112 suítes); as falhas reportadas são verificações de instalação sob `CODEX_HOME` divergente.
 - Pushes concluídos: Nexus `release/v1.0.0@ee0e09c8`; Maestro `release/1.1.0@e97a204`. Sem force-push.
+- Follow-up remoto `aa137324` (capturas sintéticas/manifesto visual) integrado por merge; artefatos sintéticos não são evidência de homologação visual nem mudam o NO_GO.
 - GO continua bloqueado: E2E com duas contas AGY e quota real de 5h não executado; Maestro ainda não fornece `advise --json`/`verify --json`; 48 capacidades seguem pendentes.
 
