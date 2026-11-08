@@ -93,7 +93,7 @@ func configureBrowserMCP(opts LaunchOptions, env []string, args []string) ([]str
 				return cleanup(fmt.Errorf("gemini profile has no isolated HOME"))
 			}
 			target := filepath.Join(home, ".gemini", "settings.json")
-			if err := mergeMCPProviderConfig(target, "mcpServers", "nexus-browser", server); err != nil {
+			if err := mergeMCPProviderConfig(target, server); err != nil {
 				return cleanup(err)
 			}
 		case "agy":
@@ -102,7 +102,7 @@ func configureBrowserMCP(opts LaunchOptions, env []string, args []string) ([]str
 				return cleanup(fmt.Errorf("agy profile has no isolated HOME"))
 			}
 			target := filepath.Join(home, ".gemini", "config", "mcp_config.json")
-			if err := mergeMCPProviderConfig(target, "mcpServers", "nexus-browser", server); err != nil {
+			if err := mergeMCPProviderConfig(target, server); err != nil {
 				return cleanup(err)
 			}
 		case "cursor":
@@ -111,7 +111,7 @@ func configureBrowserMCP(opts LaunchOptions, env []string, args []string) ([]str
 				return cleanup(fmt.Errorf("cursor profile has no isolated HOME"))
 			}
 			target := filepath.Join(home, ".cursor", "mcp.json")
-			if err := mergeMCPProviderConfig(target, "mcpServers", "nexus-browser", server); err != nil {
+			if err := mergeMCPProviderConfig(target, server); err != nil {
 				return cleanup(err)
 			}
 		}
@@ -165,7 +165,7 @@ func writeBrowserProviderConfig(runtimeID, name string, cfg any) (string, error)
 	}
 	return f, nil
 }
-func mergeMCPProviderConfig(path, field, name string, server any) error {
+func mergeMCPProviderConfig(path string, server any) error {
 	dir := filepath.Dir(path)
 	if realDir, err := filepath.EvalSymlinks(dir); err == nil {
 		path = filepath.Join(realDir, filepath.Base(path))
@@ -185,19 +185,19 @@ func mergeMCPProviderConfig(path, field, name string, server any) error {
 	} else if !os.IsNotExist(err) {
 		return err
 	}
-	children, _ := obj[field].(map[string]any)
+	children, _ := obj["mcpServers"].(map[string]any)
 	if children == nil {
 		children = map[string]any{}
-		obj[field] = children
+		obj["mcpServers"] = children
 	}
-	if current, ok := children[name]; ok {
+	if current, ok := children["nexus-browser"]; ok {
 		b1, _ := json.Marshal(current)
 		b2, _ := json.Marshal(server)
 		if string(b1) == string(b2) {
 			return nil
 		}
 	}
-	children[name] = server
+	children["nexus-browser"] = server
 	data, err := json.MarshalIndent(obj, "", "  ")
 	if err != nil {
 		return err

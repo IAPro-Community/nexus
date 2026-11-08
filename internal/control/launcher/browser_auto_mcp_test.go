@@ -134,7 +134,7 @@ func TestMergeMCPProviderConfigResilience(t *testing.T) {
 			t.Fatal(err)
 		}
 		server := map[string]any{"command": "test-cmd", "args": []string{"arg1"}}
-		if err := mergeMCPProviderConfig(cfgPath, "mcpServers", "nexus-browser", server); err != nil {
+		if err := mergeMCPProviderConfig(cfgPath, server); err != nil {
 			t.Fatalf("mergeMCPProviderConfig failed on empty file: %v", err)
 		}
 		data, err := os.ReadFile(cfgPath)
@@ -165,7 +165,7 @@ func TestMergeMCPProviderConfigResilience(t *testing.T) {
 			t.Fatal(err)
 		}
 		updated := map[string]any{"command": "new-cmd", "args": []string{"new"}}
-		if err := mergeMCPProviderConfig(cfgPath, "mcpServers", "nexus-browser", updated); err != nil {
+		if err := mergeMCPProviderConfig(cfgPath, updated); err != nil {
 			t.Fatalf("mergeMCPProviderConfig failed on differing server: %v", err)
 		}
 		data, err := os.ReadFile(cfgPath)
@@ -198,7 +198,7 @@ func TestMergeMCPProviderConfigResilience(t *testing.T) {
 		}
 		cfgPath := filepath.Join(symlinkDir, "mcp_config.json")
 		server := map[string]any{"command": "nexus", "args": []string{"__browser-mcp-stdio"}}
-		if err := mergeMCPProviderConfig(cfgPath, "mcpServers", "nexus-browser", server); err != nil {
+		if err := mergeMCPProviderConfig(cfgPath, server); err != nil {
 			t.Fatalf("mergeMCPProviderConfig failed on symlinked dir: %v", err)
 		}
 		// Verify realDir has the file

@@ -120,14 +120,14 @@ func (n *Nexus) MaterializePromptArtifactAsFlow(ctx context.Context, artifactID 
 		return nil, err
 	}
 	if decomposeErr != nil {
-		return nil, fmt.Errorf("Composer Flow decomposition failed; no plan saved: %w", decomposeErr)
+		return nil, fmt.Errorf("composer Flow decomposition failed; no plan saved: %w", decomposeErr)
 	}
 	if proposal == nil || len(proposal.Flow.Phases) == 0 {
-		return nil, fmt.Errorf("Composer Flow decomposition produced no valid phases; no plan saved")
+		return nil, fmt.Errorf("composer Flow decomposition produced no valid phases; no plan saved")
 	}
 	flowPlan := WorkPlanFromFlow(proposal.Flow)
 	if len(flowPlan.Phases) == 0 {
-		return nil, fmt.Errorf("Composer Flow decomposition produced no persistable phases; no plan saved")
+		return nil, fmt.Errorf("composer Flow decomposition produced no persistable phases; no plan saved")
 	}
 	for key, value := range flowPlan.StructuredFacts {
 		if _, exists := facts[key]; !exists {

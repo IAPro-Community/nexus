@@ -82,7 +82,7 @@ func decodeMaestroComposePreview(raw json.RawMessage, req MaestroComposePreviewR
 		out.Artifact.ID != req.ArtifactID || out.Artifact.Version != req.Version ||
 		!strings.EqualFold(out.Artifact.SHA256, req.SHA256) ||
 		len(out.Context.ContentDigest) != 64 {
-		return MaestroComposePreview{}, errors.New("Maestro compose source or approval provenance mismatch")
+		return MaestroComposePreview{}, errors.New("maestro compose source or approval provenance mismatch")
 	}
 	if _, err := hex.DecodeString(out.Context.ContentDigest); err != nil {
 		return MaestroComposePreview{}, errors.New("invalid Maestro context digest")
@@ -99,33 +99,33 @@ func decodeMaestroComposePreview(raw json.RawMessage, req MaestroComposePreviewR
 	if len(out.Validation.Blockers) == 0 ||
 		strings.TrimSpace(string(out.Validation.Blockers)) == "null" ||
 		json.Unmarshal(out.Validation.Blockers, &blockers) != nil || len(blockers) != 0 {
-		return MaestroComposePreview{}, errors.New("Maestro compose marked a blocked plan as valid")
+		return MaestroComposePreview{}, errors.New("maestro compose marked a blocked plan as valid")
 	}
 	if len(out.Tasks) == 0 || len(out.Tasks) > 32 {
-		return MaestroComposePreview{}, errors.New("Maestro generated an invalid task count")
+		return MaestroComposePreview{}, errors.New("maestro generated an invalid task count")
 	}
 	dependencies := make(map[string][]string, len(out.Tasks))
 	for i := range out.Tasks {
 		task := &out.Tasks[i]
 		if _, exists := dependencies[task.ID]; exists {
-			return MaestroComposePreview{}, errors.New("Maestro compose has duplicate task IDs")
+			return MaestroComposePreview{}, errors.New("maestro compose has duplicate task IDs")
 		}
 		if !maestroSafeAssignmentID.MatchString(task.ID) ||
 			strings.TrimSpace(task.Title) == "" || len(task.Title) > 240 ||
 			strings.TrimSpace(task.Objective) == "" || len(task.Objective) > 4000 ||
 			len(task.AcceptanceCriteria) < 1 || len(task.AcceptanceCriteria) > 20 ||
 			len(task.DependsOn) > 32 {
-			return MaestroComposePreview{}, errors.New("Maestro compose task is malformed")
+			return MaestroComposePreview{}, errors.New("maestro compose task is malformed")
 		}
 		for _, criterion := range task.AcceptanceCriteria {
 			if strings.TrimSpace(criterion) == "" || len(criterion) < 3 || len(criterion) > 500 {
-				return MaestroComposePreview{}, errors.New("Maestro compose acceptance criterion is malformed")
+				return MaestroComposePreview{}, errors.New("maestro compose acceptance criterion is malformed")
 			}
 		}
 		seenDependencies := make(map[string]bool, len(task.DependsOn))
 		for _, dependency := range task.DependsOn {
 			if seenDependencies[dependency] {
-				return MaestroComposePreview{}, errors.New("Maestro compose has duplicate dependency edges")
+				return MaestroComposePreview{}, errors.New("maestro compose has duplicate dependency edges")
 			}
 			seenDependencies[dependency] = true
 		}
@@ -163,7 +163,7 @@ func decodeMaestroComposePreview(raw json.RawMessage, req MaestroComposePreviewR
 	}
 	for id := range dependencies {
 		if !visit(id) {
-			return MaestroComposePreview{}, errors.New("Maestro compose DAG is invalid")
+			return MaestroComposePreview{}, errors.New("maestro compose DAG is invalid")
 		}
 	}
 	return out, nil
@@ -201,7 +201,7 @@ func FetchMaestroComposePreview(parent context.Context, workspace string, req Ma
 	}
 	raw, method, err := maestroBridgeCall(parent, workspace, 135*time.Second, maestroComposeMethod, params)
 	if err != nil {
-		return MaestroComposePreview{}, fmt.Errorf("Maestro composition unavailable: %w", err)
+		return MaestroComposePreview{}, fmt.Errorf("maestro composition unavailable: %w", err)
 	}
 	if method != "project.compose" {
 		return MaestroComposePreview{}, errors.New("unexpected Maestro composition method")

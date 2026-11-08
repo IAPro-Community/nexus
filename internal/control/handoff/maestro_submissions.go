@@ -48,7 +48,7 @@ type MaestroSubmissionStatus struct {
 
 func maestroSubmissionPollMethod(init maestroBridgeInit) (string, error) {
 	if init.ProtocolVersion != maestroBridgeProtocolVersion || !init.Capabilities.RunsSubmissionsPoll {
-		return "", errors.New("Maestro submission snapshot polling unavailable")
+		return "", errors.New("maestro submission snapshot polling unavailable")
 	}
 	return "runs.submissions.poll", nil
 }
@@ -56,7 +56,7 @@ func maestroSubmissionPollMethod(init maestroBridgeInit) (string, error) {
 func decodeMaestroSubmissionSnapshot(raw json.RawMessage, previous string, limit, offset int) (MaestroSubmissionSnapshot, error) {
 	var result MaestroSubmissionSnapshot
 	if len(raw) == 0 || len(raw) > maestroBridgeReplyLimit {
-		return result, errors.New("Maestro submission snapshot response exceeds limit")
+		return result, errors.New("maestro submission snapshot response exceeds limit")
 	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.DisallowUnknownFields()
@@ -89,7 +89,7 @@ func decodeMaestroSubmissionSnapshot(raw json.RawMessage, previous string, limit
 		"PENDING_WORKER": true, "CLAIMED": true, "DISPATCHED": true,
 		"CANCEL_REQUESTED": true, "RECONCILIATION_REQUIRED": true,
 		"COMPLETED": true, "FAILED": true, "BLOCKED": true,
-		"TIMED_OUT": true, "CANCELLED": true,
+		"TIMED_OUT": true, "CANCELLED": true, //nolint:misspell // Canonical Maestro Bridge status.
 	}
 	for _, row := range result.Submissions {
 		if row.SchemaVersion != 1 || row.Authority != "MAESTRO" || row.Owner != "MAESTRO" ||
@@ -120,10 +120,10 @@ func FetchMaestroSubmissionSnapshot(parent context.Context, workspace, cursor st
 	result, method, err := maestroBridgeCall(parent, workspace, 7*time.Second,
 		maestroSubmissionPollMethod, params)
 	if err != nil {
-		return MaestroSubmissionSnapshot{}, fmt.Errorf("Maestro submission snapshot unavailable: %w", err)
+		return MaestroSubmissionSnapshot{}, fmt.Errorf("maestro submission snapshot unavailable: %w", err)
 	}
 	if method != "runs.submissions.poll" {
-		return MaestroSubmissionSnapshot{}, errors.New("Maestro submission method mismatch")
+		return MaestroSubmissionSnapshot{}, errors.New("maestro submission method mismatch")
 	}
 	return decodeMaestroSubmissionSnapshot(result, cursor, limit, offset)
 }

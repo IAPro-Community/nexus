@@ -418,7 +418,6 @@ func SaveConfig(cfg Config) error {
 // saveConfigLocked is called with configMu held and with the cross-process
 // memory recovery writer fence owned by the caller.
 func saveConfigLocked(cfg Config) error {
-
 	dir, err := ConfigDir()
 	if err != nil {
 		return err

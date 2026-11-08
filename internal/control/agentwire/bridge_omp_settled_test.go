@@ -78,9 +78,10 @@ func TestOMPLocalOnlyPromptDoesNotRequireSettlementEvent(t *testing.T) {
 				"type": "response", "id": request.ID,
 				"command": request.Type, "success": true,
 			}
-			if request.Type == "get_state" {
+			switch request.Type {
+			case "get_state":
 				response["data"] = map[string]string{"sessionId": "omp-local"}
-			} else if request.Type == "prompt" {
+			case "prompt":
 				response["data"] = map[string]bool{"agentInvoked": false}
 			}
 			if wire.Write(response) != nil {
@@ -207,9 +208,10 @@ func TestBridgeOMPCorrelatesLiveRPCPromptResultBeforeSettlement(t *testing.T) {
 				"type": "response", "id": request.ID,
 				"command": request.Type, "success": true,
 			}
-			if request.Type == "get_state" {
+			switch request.Type {
+			case "get_state":
 				response["data"] = map[string]string{"sessionId": "omp-rpc"}
-			} else if request.Type == "prompt" {
+			case "prompt":
 				prompts++
 				if prompts == 2 {
 					response["data"] = map[string]bool{"agentInvoked": false}

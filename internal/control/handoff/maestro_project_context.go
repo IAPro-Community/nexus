@@ -68,7 +68,7 @@ func maestroContextMethod(init maestroBridgeInit) (string, error) {
 	if init.Capabilities.ContextBrief {
 		return "context.brief", nil
 	}
-	return "", errors.New("Maestro Bridge does not provide canonical project context")
+	return "", errors.New("maestro Bridge does not provide canonical project context")
 }
 
 // decodeMaestroProjectResult accepts only the versioned Maestro projection.
@@ -121,20 +121,20 @@ func readMaestroBridgeReply(reader *bufio.Reader, expectedID int) (json.RawMessa
 	// reader, and each response is also individually size checked.
 	line, err := reader.ReadBytes('\n')
 	if err != nil {
-		return nil, fmt.Errorf("Maestro Bridge response incomplete: %w", err)
+		return nil, fmt.Errorf("maestro Bridge response incomplete: %w", err)
 	}
 	if len(line) > maestroBridgeReplyLimit {
-		return nil, errors.New("Maestro Bridge response exceeds limit")
+		return nil, errors.New("maestro Bridge response exceeds limit")
 	}
 	var reply maestroBridgeEnvelope
 	if err := json.Unmarshal(line, &reply); err != nil {
 		return nil, errors.New("invalid Maestro Bridge JSON response")
 	}
 	if reply.JSONRPC != "2.0" || reply.ID == nil || *reply.ID != expectedID {
-		return nil, errors.New("Maestro Bridge response identity mismatch")
+		return nil, errors.New("maestro Bridge response identity mismatch")
 	}
 	if reply.Error != nil {
-		return nil, fmt.Errorf("Maestro Bridge method unavailable (%d)", reply.Error.Code)
+		return nil, fmt.Errorf("maestro Bridge method unavailable (%d)", reply.Error.Code)
 	}
 	if len(reply.Result) == 0 || string(reply.Result) == "null" {
 		return nil, errors.New("empty Maestro Bridge result")
@@ -148,11 +148,11 @@ func readMaestroBridgeReply(reader *bufio.Reader, expectedID int) (json.RawMessa
 func maestroBridgeCall(parent context.Context, workspace string, timeout time.Duration,
 	selectMethod func(maestroBridgeInit) (string, error), params map[string]any) (json.RawMessage, string, error) {
 	if strings.TrimSpace(workspace) == "" {
-		return nil, "", errors.New("Maestro project workspace is required")
+		return nil, "", errors.New("maestro project workspace is required")
 	}
 	binary, err := runtime.LookPath("orquestrador-maestro")
 	if err != nil {
-		return nil, "", fmt.Errorf("Maestro CLI unavailable: %w", err)
+		return nil, "", fmt.Errorf("maestro CLI unavailable: %w", err)
 	}
 	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
@@ -186,13 +186,13 @@ func maestroBridgeCall(parent context.Context, workspace string, timeout time.Du
 		}{JSONRPC: "2.0", ID: id, Method: method, Params: args}
 		payload, err := json.Marshal(request)
 		if err != nil {
-			return nil, fmt.Errorf("Maestro Bridge request encoding: %w", err)
+			return nil, fmt.Errorf("maestro Bridge request encoding: %w", err)
 		}
 		if len(payload) > maestroBridgeReplyLimit {
-			return nil, errors.New("Maestro Bridge request exceeds limit")
+			return nil, errors.New("maestro Bridge request exceeds limit")
 		}
 		if _, err := stdin.Write(append(payload, '\n')); err != nil {
-			return nil, fmt.Errorf("Maestro Bridge request failed: %w", err)
+			return nil, fmt.Errorf("maestro Bridge request failed: %w", err)
 		}
 		return readMaestroBridgeReply(reader, id)
 	}
@@ -217,11 +217,11 @@ func maestroBridgeCall(parent context.Context, workspace string, timeout time.Du
 		return nil, "", err
 	}
 	if err := stdin.Close(); err != nil {
-		return nil, "", fmt.Errorf("Maestro Bridge stdin closure failed: %w", err)
+		return nil, "", fmt.Errorf("maestro Bridge stdin closure failed: %w", err)
 	}
 	if err := cmd.Wait(); err != nil {
 		waited = true
-		return nil, "", fmt.Errorf("Maestro Bridge exited unsuccessfully: %w", err)
+		return nil, "", fmt.Errorf("maestro Bridge exited unsuccessfully: %w", err)
 	}
 	waited = true
 	return result, method, nil

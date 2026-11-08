@@ -69,7 +69,7 @@ func maestroMemoryMethod(init maestroBridgeInit) (string, error) {
 		return "", fmt.Errorf("unsupported Maestro Bridge protocol version %d", init.ProtocolVersion)
 	}
 	if !init.Capabilities.Memory.Read {
-		return "", errors.New("Maestro Bridge has no scoped memory read capability")
+		return "", errors.New("maestro Bridge has no scoped memory read capability")
 	}
 	return "memory.search", nil
 }
@@ -81,19 +81,19 @@ func maestroMemoryMethod(init maestroBridgeInit) (string, error) {
 func ReadMaestroMemory(parent context.Context, workspace, taskID, search string, limit int) (MaestroMemoryReadResult, error) {
 	var zero MaestroMemoryReadResult
 	if strings.TrimSpace(workspace) == "" {
-		return zero, errors.New("Maestro memory workspace is required")
+		return zero, errors.New("maestro memory workspace is required")
 	}
 	if taskID != "" && !maestroMemoryTaskID.MatchString(taskID) {
 		return zero, errors.New("invalid Maestro memory task identifier")
 	}
 	if len(search) > 200 {
-		return zero, errors.New("Maestro memory query exceeds 200 characters")
+		return zero, errors.New("maestro memory query exceeds 200 characters")
 	}
 	if limit == 0 {
 		limit = 20
 	}
 	if limit < 1 || limit > maestroMemoryMaxLimit {
-		return zero, errors.New("Maestro memory limit must be between 1 and 50")
+		return zero, errors.New("maestro memory limit must be between 1 and 50")
 	}
 	params := map[string]any{"limit": limit, "offset": 0}
 	if taskID != "" {
@@ -104,7 +104,7 @@ func ReadMaestroMemory(parent context.Context, workspace, taskID, search string,
 	}
 	result, _, err := maestroBridgeCall(parent, workspace, 5*time.Second, maestroMemoryMethod, params)
 	if err != nil {
-		return zero, fmt.Errorf("Maestro memory request failed: %w", err)
+		return zero, fmt.Errorf("maestro memory request failed: %w", err)
 	}
 	// The shared transport verified initialize, protocol version, request IDs,
 	// response boundaries and capability before returning this result. Adapt
@@ -123,17 +123,17 @@ func ReadMaestroMemory(parent context.Context, workspace, taskID, search string,
 func decodeMaestroMemorySearch(raw []byte) (MaestroMemoryReadResult, error) {
 	var zero MaestroMemoryReadResult
 	if len(raw) > maestroMemoryMaxResponse {
-		return zero, errors.New("Maestro memory response exceeds safety budget")
+		return zero, errors.New("maestro memory response exceeds safety budget")
 	}
 	var reply maestroMemoryRPCReply
 	if err := json.Unmarshal(bytes.TrimSpace(raw), &reply); err != nil {
 		return zero, fmt.Errorf("invalid Maestro memory response: %w", err)
 	}
 	if reply.JSONRPC != "2.0" || reply.ID != 1 {
-		return zero, errors.New("Maestro memory response identity mismatch")
+		return zero, errors.New("maestro memory response identity mismatch")
 	}
 	if reply.Error != nil {
-		return zero, fmt.Errorf("Maestro memory method unavailable (%d)", reply.Error.Code)
+		return zero, fmt.Errorf("maestro memory method unavailable (%d)", reply.Error.Code)
 	}
 	if reply.Result == nil || reply.Result.SchemaVersion != 1 || reply.Result.Authority != "maestro" {
 		return zero, errors.New("unsupported or unverified Maestro memory contract")
@@ -141,7 +141,7 @@ func decodeMaestroMemorySearch(raw []byte) (MaestroMemoryReadResult, error) {
 	result := *reply.Result
 	if result.Page.Limit < 1 || result.Page.Limit > maestroMemoryMaxLimit ||
 		result.Page.Offset < 0 || len(result.Items) > result.Page.Limit {
-		return zero, errors.New("Maestro memory pagination invalid")
+		return zero, errors.New("maestro memory pagination invalid")
 	}
 	for i := range result.Items {
 		item := &result.Items[i]

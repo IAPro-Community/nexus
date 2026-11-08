@@ -78,7 +78,7 @@ func decodeMaestroRoutePreview(result json.RawMessage, request MaestroRoutePrevi
 	if preview.SchemaVersion != 1 || preview.Authority != "MAESTRO" ||
 		!preview.PreviewOnly || preview.Executable || !preview.ApprovalRequired ||
 		len(preview.Plan) == 0 || len(preview.Assignments) != len(request.Assignments) {
-		return MaestroRoutePreview{}, errors.New("Maestro route preview lacks canonical approval/plan contract")
+		return MaestroRoutePreview{}, errors.New("maestro route preview lacks canonical approval/plan contract")
 	}
 	var plan struct {
 		Authority string `json:"authority"`
@@ -92,7 +92,7 @@ func decodeMaestroRoutePreview(result json.RawMessage, request MaestroRoutePrevi
 		plan.Authority != "MAESTRO" || plan.Artifact.ID != request.ArtifactID ||
 		plan.Artifact.Version != request.Version ||
 		!strings.EqualFold(plan.Artifact.SHA256, request.SHA256) {
-		return MaestroRoutePreview{}, errors.New("Maestro preview artifact provenance mismatch")
+		return MaestroRoutePreview{}, errors.New("maestro preview artifact provenance mismatch")
 	}
 	choices := make(map[string]MaestroWorkAssignment, len(request.Assignments))
 	for _, row := range request.Assignments {
@@ -104,15 +104,15 @@ func decodeMaestroRoutePreview(result json.RawMessage, request MaestroRoutePrevi
 		if !ok || seen[row.TaskID] || row.ProviderID != expected.ProviderID ||
 			row.Model != firstMaestroModel(expected.Model) ||
 			(row.Status != "READY_FOR_REVIEW" && row.Status != "BLOCKED") {
-			return MaestroRoutePreview{}, errors.New("Maestro route preview changed provider/model or duplicated a task")
+			return MaestroRoutePreview{}, errors.New("maestro route preview changed provider/model or duplicated a task")
 		}
 		if preview.Ready && row.Status != "READY_FOR_REVIEW" {
-			return MaestroRoutePreview{}, errors.New("Maestro preview cannot be ready with blocked assignments")
+			return MaestroRoutePreview{}, errors.New("maestro preview cannot be ready with blocked assignments")
 		}
 		seen[row.TaskID] = true
 	}
 	if preview.Ready && len(preview.Blockers) != 0 {
-		return MaestroRoutePreview{}, errors.New("Maestro preview cannot be ready with blockers")
+		return MaestroRoutePreview{}, errors.New("maestro preview cannot be ready with blockers")
 	}
 	return preview, nil
 }
@@ -135,7 +135,7 @@ func FetchMaestroRoutePreview(parent context.Context, workspace string, req Maes
 	}
 	sum := sha256.Sum256([]byte(req.Content))
 	if !strings.EqualFold(req.SHA256, hex.EncodeToString(sum[:])) {
-		return MaestroRoutePreview{}, errors.New("Composer PromptArtifact SHA256 mismatch")
+		return MaestroRoutePreview{}, errors.New("composer PromptArtifact SHA256 mismatch")
 	}
 	seen := map[string]bool{}
 	for _, assignment := range req.Assignments {
@@ -158,7 +158,7 @@ func FetchMaestroRoutePreview(parent context.Context, workspace string, req Maes
 	}
 	result, method, err := maestroBridgeCall(parent, workspace, 20*time.Second, maestroRoutePreviewMethod, params)
 	if err != nil {
-		return MaestroRoutePreview{}, fmt.Errorf("Maestro routing preview unavailable: %w", err)
+		return MaestroRoutePreview{}, fmt.Errorf("maestro routing preview unavailable: %w", err)
 	}
 	if method != "plans.routePreview" {
 		return MaestroRoutePreview{}, errors.New("invalid Maestro routing method")

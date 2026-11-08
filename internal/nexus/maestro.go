@@ -852,7 +852,7 @@ func (c *MaestroClient) GetAdvice(ctx AdviceContext, intent string) (*AdviceResp
 	if c.status.Capabilities == nil || c.status.Capabilities.Contracts.Advice != "1.0.0" {
 		return &AdviceResponse{
 			Version: MaestroVersion, Mode: MaestroOff, Lifecycle: lifecycle, Degraded: true,
-		}, fmt.Errorf("Maestro advice contract v1 unavailable (MAESTRO_DEGRADED)")
+		}, fmt.Errorf("maestro advice contract v1 unavailable (MAESTRO_DEGRADED)")
 	}
 
 	// 1. Try CLI advise command if supported
@@ -900,11 +900,11 @@ func (c *MaestroClient) GetAdvice(ctx AdviceContext, intent string) (*AdviceResp
 
 func sanitizeMaestroAdviceRequest(req *AdviceRequest) error {
 	if req == nil {
-		return fmt.Errorf("Maestro advice request is required")
+		return fmt.Errorf("maestro advice request is required")
 	}
 	trimmedIntent := strings.TrimSpace(req.Intent)
 	if trimmedIntent == "" || len(trimmedIntent) > 4096 {
-		return fmt.Errorf("Maestro advice intent must contain 1 to 4096 bytes")
+		return fmt.Errorf("maestro advice intent must contain 1 to 4096 bytes")
 	}
 	if LooksLikeSecret(trimmedIntent) {
 		return fmt.Errorf("refusing secret-like Maestro advice intent")
@@ -945,7 +945,7 @@ func (c *MaestroClient) Verify(ctx context.Context, req MaestroVerifyRequest) (*
 	if c.status.Capabilities == nil || c.status.Capabilities.Contracts.Verification != "1.0.0" {
 		return &MaestroVerifyResponse{
 			Version: req.Version, Lifecycle: MaestroLifecycleVerify, Passed: false, Degraded: true,
-		}, fmt.Errorf("Maestro verification contract v1 unavailable (MAESTRO_DEGRADED)")
+		}, fmt.Errorf("maestro verification contract v1 unavailable (MAESTRO_DEGRADED)")
 	}
 
 	raw, err := json.Marshal(req)

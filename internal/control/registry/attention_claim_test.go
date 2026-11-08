@@ -73,7 +73,7 @@ func TestAttentionClaimRejectsStaleGenerationNativeStatusAndUnsupportedResponse(
 		{"old generation", func(s *RuntimeSession) {}, AttentionResponseExpectation{
 			Fingerprint: "fingerprint-a", Revision: 1, Generation: "old-host:old-provider",
 		}},
-		{"native signal", func(s *RuntimeSession) { s.AttentionSource = "SIGNALLED" }, AttentionResponseExpectation{
+		{"native signal", func(s *RuntimeSession) { s.AttentionSource = "SIGNALLED" }, AttentionResponseExpectation{ //nolint:misspell // Matches the canonical evidence enum.
 			Fingerprint: "fingerprint-a", Revision: 1, Generation: "44:55",
 		}},
 		{"structured provider", func(s *RuntimeSession) { s.AttentionSource = "AUTHORITATIVE" }, AttentionResponseExpectation{

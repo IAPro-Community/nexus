@@ -156,7 +156,7 @@ func Run(args []string) error {
 	case "add":
 		return addCmd(args[1:])
 	case "import":
-		return importCmd(args[1:])
+		return importCmd()
 	case "remove", "rm":
 		return removeCmd(args[1:])
 	case "rename":
@@ -891,7 +891,7 @@ func addCmd(args []string) error {
 	return nil
 }
 
-func importCmd(args []string) error {
+func importCmd() error {
 	ctx := context.Background()
 	results, err := profile.ImportHostSessions(ctx)
 	if err != nil {

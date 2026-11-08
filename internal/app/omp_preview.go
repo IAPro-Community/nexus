@@ -18,10 +18,10 @@ import (
 // its account identity, quota and failover contracts are not verified yet.
 func executeOMPPreview(explicitProfile string, args []string) error {
 	if os.Getenv("NEXUS_EXPERIMENTAL_HARNESSES") != "1" {
-		return fmt.Errorf("Oh My Pi preview is disabled; set NEXUS_EXPERIMENTAL_HARNESSES=1 to opt in (see issue #98)")
+		return fmt.Errorf("oh my pi preview is disabled; set NEXUS_EXPERIMENTAL_HARNESSES=1 to opt in (see issue #98)")
 	}
 	if unsupportedOMPLaunchFlag(args) {
-		return fmt.Errorf("Oh My Pi preview supports supervised PTY only; --direct, --lead and --yolo are not certified")
+		return fmt.Errorf("oh my pi preview supports supervised PTY only; --direct, --lead and --yolo are not certified")
 	}
 	args = removeProviderLaunchFlag(args, "--supervised")
 	args = removeProviderLaunchFlag(args, "--no-lead")

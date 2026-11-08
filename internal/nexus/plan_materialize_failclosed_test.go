@@ -33,14 +33,14 @@ func TestComposerMaterializationCancellationDoesNotCreateFallbackFlow(t *testing
 	cancel()
 	plan, err := n.MaterializePromptArtifactAsFlow(ctx, artifact.ID)
 	if !errors.Is(err, context.Canceled) || plan != nil {
-		t.Fatalf("cancelled composition materialized a Flow: plan=%v err=%v", plan, err)
+		t.Fatalf("canceled composition materialized a Flow: plan=%v err=%v", plan, err)
 	}
 	plans, err := st.ListWorkPlans(project.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(plans) != 0 {
-		t.Fatalf("cancelled decomposition persisted %d false fallback plans", len(plans))
+		t.Fatalf("canceled decomposition persisted %d false fallback plans", len(plans))
 	}
 	preserved, err := st.GetPromptArtifact(artifact.ID)
 	if err != nil || preserved.Hash != artifact.Hash || preserved.Version != artifact.Version {
