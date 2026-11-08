@@ -16,6 +16,7 @@ describe('Contextual feature tours', () => {
       'flow-run',
       'flow-editor',
       'resources',
+      'agent-terminal',
     ]);
     for (const [surface, steps] of Object.entries(featureTourSteps)) {
       expect(steps.length, surface).toBeGreaterThan(0);

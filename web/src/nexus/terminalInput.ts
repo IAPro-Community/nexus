@@ -69,8 +69,10 @@ const TERMINAL_SCROLL_NAVIGATION_RE = /\x1b(?:\[(?:[1-8](?:;\d+)?~|[HF])|O[HF])/
 /* eslint-enable no-control-regex */
 
 /** Keep user-controlled scroll position when xterm reports a mouse or paging event. */
-export function shouldAutoScrollToBottomOnInput(data: string): boolean {
-  return !TERMINAL_MOUSE_INPUT_RE.test(data) && !TERMINAL_SCROLL_NAVIGATION_RE.test(data);
+export function shouldAutoScrollToBottomOnInput(data: string, isFollowing = true): boolean {
+  return (
+    isFollowing && !TERMINAL_MOUSE_INPUT_RE.test(data) && !TERMINAL_SCROLL_NAVIGATION_RE.test(data)
+  );
 }
 
 /**

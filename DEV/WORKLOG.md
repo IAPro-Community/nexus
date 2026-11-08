@@ -1,3 +1,11 @@
+## 2026-11-08 — `follow-agent`: controle explícito de pausa visual
+
+- Implementei no AgentTerminal o toggle acessível e localizado para pausar/retomar a rolagem automática sem parar o Agent ou descartar output. A posição do viewport é restaurada após cada escrita durante a pausa, inclusive com painel oculto; retomar volta ao fim.
+- Integrei a ação ao tour/novidades compartilhados, escopada ao terminal e projeto, com i18n EN/PT-BR/ES. Atualizei `sourceStatus` para `partial` e o mapa de evidências sem promover aceites.
+- PASS: 31 testes focados; `make quality-full` (Web 131/823, Go integral/race/security, build, version-contract; 6 warnings ESLint existentes, govulncheck limpo); validadores 48 capacidades, mapa 48/96 e feature catalog 36.
+- `make docs-verify` está temporariamente bloqueado porque a árvore modificada torna stale o manifesto visual ancorado em `6960a1f7`; recaptura será feita após checkpoint sem afirmar homologação da feature.
+- Próximo: cobrir interativamente lease/WebSocket e pausa no AgentTerminal; terminar A2/A3/A4 e revisar assertions restantes. Capability/GO seguem pendentes até evidência publicada exact-SHA.
+
 ## 2026-11-08 — Maestro: smoke real dos contratos v1
 
 - PASS — CLI do checkout Maestro `release/1.1.0@9c9c9eb`: `capabilities --json` anuncia advice/verification `1.0.0`; `TestMaestroCLIContractInterop` executou capabilities, advice e verify em 0,695 s via wrapper efêmero e sem executar provider/Agent.

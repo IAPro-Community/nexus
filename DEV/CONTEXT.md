@@ -1,3 +1,8 @@
+## Estado de execução — 2026-11-08
+
+- Trabalho ativo em `release/v1.0.0`, base sincronizada `a573ef69`. O worktree contém alteração ainda não commitada para `follow-agent`: pausa/retomada explícita do auto-scroll de AgentTerminal com viewport preservado, announcement/tour localizado e testes. `make quality-full` passou com 131 arquivos/823 testes Web; Go integral/race/security e build passaram. `make docs-verify` está stale devido ao manifesto visual preso em `6960a1f7` e será tratado após o checkpoint.
+- O contrato continua 48/48 pending. AGY tem apenas uma de duas contas elegíveis, e P0 A2/A3/A4, E2E integrado de follow/lease, instalação final Maestro, plataformas/assinatura e homologação exact-SHA estão abertos. Veja HANDOFF/VERIFY atuais; não confiar em matrizes históricas abaixo.
+
 ## Checkpoint de continuação — 2026-11-08
 
 Commit de código `7effc914` adiciona cobertura E2E fixture do rollback antes do start: create → select-resource → config falha → delete, sem `/start`. E2E first-run e `make quality-full` passaram nesse commit; `make docs-verify` também passou. O browser intercepta APIs, portanto cleanup real no Core/Wails/provider continua sem prova. A2 parcial, 48 capabilities pending e GO permanece NO_GO; próximos gates estão em `DEV/HANDOFF.md`.

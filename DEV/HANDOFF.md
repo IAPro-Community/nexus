@@ -1,3 +1,12 @@
+## Continuação — `follow-agent` com pausa explícita — 2026-11-08
+
+- Branch `release/v1.0.0`; checkpoint-base `a573ef69`. Implementado no worktree o controle opt-in de pausar/retomar rolagem automática no `AgentTerminal`. A pausa preserva a linha visível mesmo com PTY ativo ou aba do projeto oculta; os bytes continuam sendo processados pelo xterm. Retomar rola ao final.
+- O controle inicia como VIEW_ONLY e não altera/acquire lease de input. Foi ligado ao `FeatureTour` existente, com target delimitado por `data-feature-tour-scope`, anúncio local opt-in e traduções EN/PT-BR/ES.
+- PASS — `make quality-full`: Web 131 arquivos/823 testes, Go integral + race, format/lint/type/style/build, version-contract e security; 6 warnings ESLint preexistentes, 0 erros; govulncheck sem vulnerabilidades. Validadores do contrato (48), mapa (48/96) e catálogo (36) passaram; 31 testes focados passaram.
+- Mapa atualizado apenas para refletir implementação parcial. `follow-agent` segue `verification: pending`: ainda faltam E2E visual interativo no app publicado no SHA exato, verificação manual de UX e regressão integrada de WebSocket/UI para lease em attach/tecla/revoke/reconnect.
+- `make docs-verify` no worktree falha corretamente por manifesto visual antigo (`6960a1f7`) após alterações de UI. É necessário capturar/registrar proveniência após o checkpoint do código; screenshots sintéticos do portal não substituirão E2E do controle de terminal.
+- Estado Nexus/Maestro continua **NO_GO**; nenhum aceite das 48 capacidades foi certificado. Permanecem P0 A2/A3/A4, balanceamento live AGY com duas contas elegíveis, instalação/distribuição Maestro no binário final, auditoria semântica dos 96 critérios e gates de plataforma/assinatura/exact-SHA. Próxima ação: acrescentar E2E real de controle/lease no AgentTerminal e prosseguir para A3/A4, sem marcar GO por quality gate.
+
 ## Estado corrente — execução rumo ao GO — 2026-11-08
 
 - Objetivo: fechar os P0 da Nexus 1.0, completar a integração canônica com Maestro e homologar cada capacidade do contrato v1 com evidência real no SHA final. Não declarar GO por fixtures, capturas sintéticas, inspeção estática ou testes em SHA diferente.

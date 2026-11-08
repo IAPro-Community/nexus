@@ -575,3 +575,9 @@ Toggle do popup independente no topo do painel (inline e popup), validado por ha
 - Mudar entre Safe e YOLO deve remover flags de modo conflitantes e preservar opções não relacionadas, inclusive argumentos nativos repetíveis.
 - A rolagem manual deve permanecer no ponto escolhido quando a entrada reporta wheel do mouse ou PageUp/PageDown/Home/End. Isso vale para PTYs padrão e de agentes.
 - Evidência e limites: `DEV/validation/TERMINALS_AGENTS_YOLO_SCROLL_20261026.md`.
+## Objetivo ativo — fechar Nexus 1.0 e integração Maestro até GO
+
+- Escopo integral mantido: fechar P0s, completar contratos Nexus↔Maestro, implementar balanceamento AGY seguro, revisar semanticamente as 48 capacidades/96 critérios e homologar no SHA final com evidência real. Sem branch alternativa e sem declarar GO com fixtures ou testes em outro SHA.
+- Fatia concluída nesta continuação: `follow-agent` ganhou pausa explícita de rolagem automática mantendo output; teste de sink/input, anúncio/tour de produto e i18n EN/PT-BR/ES. `make quality-full` passou (131 Web files/823 tests; Go full/race/security/build). `make docs-verify` precisa de recaptura após checkpoint. Capability permanece partial/pending.
+- Gates abertos: E2E interativo do AgentTerminal/lease em app publicado exact-SHA; A2 real com dois perfis e cleanup; integração estruturada A3/A4; 2 contas AGY com 5h LIVE e alternância; distribuição do binário Nexus final interoperando com Maestro; auditoria e homologação das 48 capacidades; gates de plataforma/assinatura.
+- Próxima ação: implementar E2E do AgentTerminal que verifique pausa/retomada e ausência de lease em attach/tecla, incluindo revoke/reconnect; avançar os P0 sem usar resultado unitário como aceite sistêmico.

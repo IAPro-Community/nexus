@@ -8,6 +8,7 @@ import {
   CornerDownLeft,
   MessageSquare,
   Minus,
+  Pause,
   Play,
   Plus,
   RefreshCw,
@@ -76,6 +77,7 @@ import { observeTerminalPaneResize } from '../components/terminalPaneResize';
 import { VoiceCaptureButton } from '../features/voice/VoiceCaptureButton';
 import { sendVoiceTranscriptToTerminal } from '../features/voice/terminalVoice';
 import { ExecutionRoleSelector } from './ExecutionRoleSelector';
+import { FeatureTour } from '../features/work';
 import styles from './AgentTerminal.module.scss';
 
 interface AgentTerminalHostElement extends HTMLDivElement {
@@ -185,6 +187,8 @@ export const AgentTerminal: React.FC<{
   const [fontSize, setFontSize] = useState<number>(() => getStoredTerminalFontSize());
   const initialFontSizeRef = useRef(fontSize);
   const [isScrolledUp, setIsScrolledUp] = useState(false);
+  const [followsOutput, setFollowsOutput] = useState(true);
+  const followsOutputRef = useRef(true);
   const fitAddonRef = useRef<FitAddon | null>(null);
 
   useEffect(() => {
@@ -421,7 +425,13 @@ export const AgentTerminal: React.FC<{
     // incremental ANSI commands against an unrelated screen state.
     const isPanelActive = () => !panel || panel.dataset.active === 'true';
     const writeTerminalOutput = (data: string) =>
-      streamTerminalOutput(term, data, isPanelActive, () => disposed);
+      streamTerminalOutput(
+        term,
+        data,
+        isPanelActive,
+        () => disposed,
+        () => followsOutputRef.current,
+      );
     const refreshVisibleTerminal = () =>
       refreshTerminalAfterActivation(term, isPanelActive, () => disposed);
 
@@ -728,7 +738,7 @@ export const AgentTerminal: React.FC<{
     };
 
     const dataDisposable = term.onData((data) => {
-      if (shouldAutoScrollToBottomOnInput(data)) {
+      if (shouldAutoScrollToBottomOnInput(data, followsOutputRef.current)) {
         term.scrollToBottom();
         setIsScrolledUp(false);
       }
@@ -771,7 +781,7 @@ export const AgentTerminal: React.FC<{
             flushFrame = undefined;
             fitAndResize(true);
             refreshVisibleTerminal();
-            term.scrollToBottom();
+            if (followsOutputRef.current) term.scrollToBottom();
           });
         })
       : null;
@@ -1050,6 +1060,16 @@ export const AgentTerminal: React.FC<{
     setIsScrolledUp(false);
   };
 
+  const toggleOutputFollow = () => {
+    const next = !followsOutputRef.current;
+    followsOutputRef.current = next;
+    setFollowsOutput(next);
+    if (next) {
+      termRef.current?.scrollToBottom();
+      setIsScrolledUp(false);
+    }
+  };
+
   const confirmClose = async (stopRuntime: boolean) => {
     if (!onClose || closing) return;
     setClosing(true);
@@ -1141,6 +1161,19 @@ export const AgentTerminal: React.FC<{
         </button>
       </div>
 
+      <button
+        type="button"
+        className={styles.zoomBtn}
+        data-tour="agent-terminal-follow"
+        aria-label={t(followsOutput ? 'terminal.pauseFollowing' : 'terminal.resumeFollowing')}
+        aria-pressed={followsOutput}
+        title={t(followsOutput ? 'terminal.pauseFollowing' : 'terminal.resumeFollowing')}
+        onClick={toggleOutputFollow}
+      >
+        {followsOutput ? <Pause size={12} /> : <Play size={12} />}
+      </button>
+      {projectId && <FeatureTour projectId={projectId} surface="agent-terminal" />}
+
       {role === 'CONTROL' ? null : (
         <>
           <span className="nx-agent-terminal__lease" data-role="VIEW_ONLY">
@@ -1218,6 +1251,7 @@ export const AgentTerminal: React.FC<{
   return (
     <section
       className={`nx-agent-terminal ${styles.terminalRoot}`}
+      data-feature-tour-scope={`agent-terminal-${agentId}-${boundRuntimeId}`}
       data-chrome={chrome}
       aria-label={t('terminal.terminalForAgent', { agentId })}
       onPointerDown={(e) => {

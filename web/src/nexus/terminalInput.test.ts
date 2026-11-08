@@ -96,6 +96,11 @@ describe('shouldAutoScrollToBottomOnInput', () => {
     expect(shouldAutoScrollToBottomOnInput('hello')).toBe(true);
     expect(shouldAutoScrollToBottomOnInput('\r')).toBe(true);
   });
+
+  it('does not override an explicit live-follow pause for ordinary input', () => {
+    expect(shouldAutoScrollToBottomOnInput('hello', false)).toBe(false);
+    expect(shouldAutoScrollToBottomOnInput('\r', false)).toBe(false);
+  });
 });
 
 describe('stripEmbeddedTerminalMetadata', () => {

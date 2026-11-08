@@ -45,4 +45,11 @@ describe('contextual tour target resolution', () => {
     } as unknown as HTMLElement;
     expect(findTourTarget(scope(belowFold), '[data-tour="flow-run-status"]')).toBe(belowFold);
   });
+
+  it('keeps the Agent follow announcement inside its own terminal scope', () => {
+    const followControl = target(true);
+    const selector = '[data-tour="agent-terminal-follow"]';
+    expect(findTourTarget(scope(followControl), selector)).toBe(followControl);
+    expect(findTourTarget(scope(), selector)).toBeNull();
+  });
 });

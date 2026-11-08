@@ -34,6 +34,19 @@ describe('global feature announcement handoff', () => {
     expect(consumeFeatureReveal('project-A', 'flow-editor', () => true, 1003)).toBeNull();
   });
 
+  it('reveals the Agent follow control only in the selected project terminal', () => {
+    requestFeatureReveal('agent-terminal-follow', 'project-A', 1000);
+    expect(consumeFeatureReveal('project-B', 'agent-terminal', () => true, 1001)).toBeNull();
+    expect(consumeFeatureReveal('project-A', 'resources', () => true, 1002)).toBeNull();
+    const item = consumeFeatureReveal(
+      'project-A',
+      'agent-terminal',
+      (target) => target === '[data-tour="agent-terminal-follow"]',
+      1003,
+    );
+    expect(item?.id).toBe('agent-terminal-follow');
+  });
+
   it('expires old requests so tours cannot surprise users later', () => {
     requestFeatureReveal('composer-idea-workspace', 'project-A', 1000);
     expect(hasPendingFeatureReveal('project-A', 'composer-start', 32_000)).toBe(false);

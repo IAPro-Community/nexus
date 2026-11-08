@@ -165,7 +165,7 @@
       "name": "Follow Agent",
       "category": "organization",
       "owner": "NEXUS",
-      "sourceStatus": "missing",
+      "sourceStatus": "partial",
       "issue": 105,
       "releaseRequired": true,
       "acceptance": [

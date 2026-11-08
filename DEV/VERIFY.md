@@ -1,3 +1,11 @@
+## `follow-agent` — pausa explícita do acompanhamento ao vivo — 2026-11-08
+
+- PASS — testes focados: `terminalOutput`, `terminalInput`, `featureAnnouncements`, `featureTour`, `featureTourAnchors`, `featureReveal` e `tourTargets`: 31/31.
+- PASS — `make quality-full`: format-check, ESLint 0 erros/6 warnings preexistentes, Stylelint, TypeScript, 131 arquivos/823 testes Web, build, version-contract, Go completo + race/security e `govulncheck` sem vulnerabilidades.
+- PASS — `node scripts/verify-agent-workspace-v1.mjs` (48 no escopo, todos pending); `node scripts/verify-agent-workspace-evidence-map.mjs` (48/96, 86 source+test, 9 source-only, 1 unmapped, zero certificados); `node scripts/verify-feature-catalog.mjs` (36); `git diff --check`.
+- Limite — teste unitário demonstra preservação da posição de leitura, incluindo painel oculto; não é E2E visual, não prova que um WebSocket real da UI permaneça sem `lease_acquire` ao anexar/digitar/revogar/reconectar, nem valida o app instalado no SHA final. Capability e GO continuam pending/NO_GO.
+- BLOCKED — `make docs-verify` acusa manifesto visual stale ancorado em `6960a1f7` pelas alterações ainda não commitadas nos arquivos do terminal/tour. Deve ser regenerado/validado depois do checkpoint de código; não promover captura sintética a evidência da capability.
+
 ## AGY — quota recente e limite atual de balance — 2026-11-08
 
 - PASS — `nexus usage --refresh --json` executado pelo binário da árvore corrente, com saída sanitizada; não solicitou geração. Releitura: duas contas autenticadas, snapshots `CACHED/CLI_OUTPUT` com menos de 3 min, escopos verificáveis e correspondentes aos perfis.

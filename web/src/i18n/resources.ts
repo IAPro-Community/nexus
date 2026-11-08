@@ -1079,12 +1079,18 @@ export const en = {
     providerDiscoveryTitle: 'Connect an existing provider session',
     providerDiscoveryBody:
       'Nexus can detect a supported CLI session on this computer and copy it into an isolated account profile after you choose Connect.',
+    agentTerminalFollowTitle: 'Follow an Agent terminal at your pace',
+    agentTerminalFollowBody:
+      'Pause automatic scrolling while output keeps arriving, then resume following the live terminal when you are ready.',
   },
   tour: {
     featureOpen: 'Explore this area',
     providerDiscoveryTitle: 'Existing provider sessions',
     providerDiscoveryBody:
       'Connect a supported session detected on this computer to an isolated account profile.',
+    agentTerminalFollowTitle: 'Follow the Agent terminal at your pace',
+    agentTerminalFollowBody:
+      'Pause automatic scrolling while output keeps arriving, then resume following the live terminal when you are ready.',
     composerPurposeTitle: 'What Composer does',
     composerPurposeBody:
       'Composer turns an idea or an existing project into a revisable plan. It does not execute code just by opening a session.',
@@ -2206,6 +2212,8 @@ export const en = {
     zoomOut: 'Decrease font size (Ctrl+-)',
     resetZoom: 'Reset font size (Ctrl+0)',
     scrollToBottom: 'Scroll to bottom',
+    pauseFollowing: 'Pause live auto-scroll',
+    resumeFollowing: 'Resume live auto-scroll',
     disconnected: 'Terminal host disconnected',
     hostNotRunning: 'Terminal host is not running.',
     renameSessionTitle: 'Click to rename session title',
@@ -3505,12 +3513,18 @@ export const ptBR = {
     providerDiscoveryTitle: 'Conecte uma sessão de provedor existente',
     providerDiscoveryBody:
       'O Nexus detecta uma sessão compatível neste computador e a copia para um perfil isolado após você escolher Conectar.',
+    agentTerminalFollowTitle: 'Acompanhe o terminal do Agent no seu ritmo',
+    agentTerminalFollowBody:
+      'Pause a rolagem automática enquanto a saída continua chegando e retome o acompanhamento ao vivo quando quiser.',
   },
   tour: {
     featureOpen: 'Conhecer esta área',
     providerDiscoveryTitle: 'Sessões existentes de provedores',
     providerDiscoveryBody:
       'Conecte uma sessão compatível detectada neste computador a um perfil isolado.',
+    agentTerminalFollowTitle: 'Acompanhe o terminal do Agent no seu ritmo',
+    agentTerminalFollowBody:
+      'Pause a rolagem automática enquanto a saída continua chegando e retome o acompanhamento ao vivo quando quiser.',
     composerPurposeTitle: 'Para que serve o Composer',
     composerPurposeBody:
       'O Composer transforma uma ideia ou projeto existente em um planejamento revisável. Abrir uma elaboração não executa código.',
@@ -4639,6 +4653,8 @@ export const ptBR = {
     zoomOut: 'Diminuir tamanho da fonte (Ctrl+-)',
     resetZoom: 'Redefinir tamanho da fonte (Ctrl+0)',
     scrollToBottom: 'Rolar até o final',
+    pauseFollowing: 'Pausar rolagem automática ao vivo',
+    resumeFollowing: 'Retomar rolagem automática ao vivo',
     disconnected: 'Host do terminal desconectado',
     hostNotRunning: 'O host do terminal não está em execução.',
     renameSessionTitle: 'Clique para renomear o título da sessão',
@@ -5943,12 +5959,18 @@ export const es = {
     providerDiscoveryTitle: 'Conecte una sesión existente del proveedor',
     providerDiscoveryBody:
       'Nexus detecta una sesión compatible en este equipo y la copia a un perfil aislado cuando elige Conectar.',
+    agentTerminalFollowTitle: 'Siga el terminal del Agent a su ritmo',
+    agentTerminalFollowBody:
+      'Pause el desplazamiento automático mientras llega nueva salida y reanude el seguimiento en vivo cuando quiera.',
   },
   tour: {
     featureOpen: 'Conocer esta área',
     providerDiscoveryTitle: 'Sesiones existentes de proveedores',
     providerDiscoveryBody:
       'Conecte una sesión compatible detectada en este equipo a un perfil aislado.',
+    agentTerminalFollowTitle: 'Siga el terminal del Agent a su ritmo',
+    agentTerminalFollowBody:
+      'Pause el desplazamiento automático mientras llega nueva salida y reanude el seguimiento en vivo cuando quiera.',
     composerPurposeTitle: 'Para qué sirve Composer',
     composerPurposeBody:
       'Composer convierte una idea o proyecto existente en un plan revisable. Abrir una elaboración no ejecuta código.',
@@ -7078,6 +7100,8 @@ export const es = {
     zoomOut: 'Disminuir tamaño de fuente (Ctrl+-)',
     resetZoom: 'Restablecer tamaño de fuente (Ctrl+0)',
     scrollToBottom: 'Desplazar al final',
+    pauseFollowing: 'Pausar desplazamiento automático en vivo',
+    resumeFollowing: 'Reanudar desplazamiento automático en vivo',
     disconnected: 'Host del terminal desconectado',
     hostNotRunning: 'El host del terminal no se está ejecutando.',
     renameSessionTitle: 'Clic para renombrar el título de la sesión',

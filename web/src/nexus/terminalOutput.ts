@@ -6,6 +6,7 @@ export interface TerminalOutputSink {
   readonly rows: number;
   write(data: string, callback?: () => void): void;
   scrollToBottom(): void;
+  scrollToLine(line: number): void;
   refresh(start: number, end: number): void;
 }
 
@@ -22,12 +23,19 @@ export function streamTerminalOutput(
   data: string,
   isActive: () => boolean,
   isDisposed: () => boolean,
+  isFollowing: () => boolean = () => true,
 ): void {
   if (!data || isDisposed()) return;
   const buffer = terminal.buffer.active;
-  const follow = isActive() && shouldAutoScrollToBottom(buffer.viewportY, buffer.baseY);
+  const active = isActive();
+  const following = isFollowing();
+  const follow = following && active && shouldAutoScrollToBottom(buffer.viewportY, buffer.baseY);
+  const preservePosition = !following;
+  const viewportY = buffer.viewportY;
   terminal.write(data, () => {
-    if (!isDisposed() && isActive() && follow) terminal.scrollToBottom();
+    if (isDisposed()) return;
+    if (follow && isActive()) terminal.scrollToBottom();
+    else if (preservePosition) terminal.scrollToLine(viewportY);
   });
 }
 

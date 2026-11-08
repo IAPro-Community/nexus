@@ -93,6 +93,16 @@ export const featureAnnouncements: readonly FeatureAnnouncement[] = [
     summary: 'discovery.providerDiscoveryBody',
     tourStep: 'provider-discovery',
   },
+  {
+    id: 'agent-terminal-follow',
+    revision: 1,
+    surfaces: ['agent-terminal'],
+    openSurface: 'work',
+    target: '[data-tour="agent-terminal-follow"]',
+    title: 'discovery.agentTerminalFollowTitle',
+    summary: 'discovery.agentTerminalFollowBody',
+    tourStep: 'follow',
+  },
 ] as const;
 
 export const announcementStorageKey = (id: string) => `iapro:nexus:feature-announcement:v1:${id}`;

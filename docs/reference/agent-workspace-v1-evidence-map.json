@@ -437,12 +437,21 @@
           "acceptanceIndex": 0,
           "acceptance": "Acompanhar visualização selecionada de Agent com pausa explícita",
           "sourceRefs": [
-            "web/src/workspace/WorkspaceRenderer.tsx"
+            "web/src/workspace/WorkspaceRenderer.tsx",
+            "web/src/nexus/AgentTerminal.tsx",
+            "web/src/nexus/terminalOutput.ts",
+            "web/src/features/work/FeatureTour.tsx"
           ],
-          "testRefs": [],
-          "mappingStatus": "source-only",
+          "testRefs": [
+            "web/src/nexus/terminalOutput.test.ts",
+            "web/src/features/work/featureTour.test.ts",
+            "web/src/features/work/featureTourAnchors.test.ts",
+            "web/src/features/work/featureReveal.test.ts",
+            "web/src/app/tour/tourTargets.test.ts"
+          ],
+          "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Auditoria parcial: WorkspaceRenderer seleciona superfícies e renderiza Agent, mas model/state tests cobrem layout, não acompanhamento visual contínuo nem pausa explícita. Não foi localizada ação persistente de pausar/retomar o acompanhamento. Capability pendente.",
+          "gap": "Implementada ação explícita de pausar/retomar rolagem ao vivo no AgentTerminal; enquanto pausado, os bytes continuam sendo processados e a posição visível é preservada. Testes focados verificam o sink de terminal e o tour escopado. Ainda falta E2E visual de AgentTerminal no app publicado no SHA exato e validação manual de UX.",
           "assertionAudit": "partial"
         },
         {

@@ -17,6 +17,7 @@ const sourceFiles = [
   'FlowDraftEditor.tsx',
   'FlowRunSurface.tsx',
   '../usage/UsageSurface.tsx',
+  '../../nexus/AgentTerminal.tsx',
 ];
 const source = sourceFiles.map((file) => readFileSync(join(folder, file), 'utf8')).join('\n');
 

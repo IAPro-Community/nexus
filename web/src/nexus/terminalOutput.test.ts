@@ -9,6 +9,7 @@ import {
 function createSink() {
   const writes: Array<{ data: string; callback?: () => void }> = [];
   const scrollToBottom = vi.fn();
+  const scrollToLine = vi.fn();
   const refresh = vi.fn();
   const terminal: TerminalOutputSink = {
     buffer: { active: { viewportY: 5, baseY: 5 } },
@@ -17,9 +18,10 @@ function createSink() {
       writes.push({ data, callback });
     },
     scrollToBottom,
+    scrollToLine,
     refresh,
   };
-  return { terminal, writes, scrollToBottom, refresh };
+  return { terminal, writes, scrollToBottom, scrollToLine, refresh };
 }
 
 describe('terminal output', () => {
@@ -60,6 +62,33 @@ describe('terminal output', () => {
     );
     writes[0]?.callback?.();
     expect(scrollToBottom).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the visible scroll position when explicit follow is paused', () => {
+    const { terminal, writes, scrollToBottom, scrollToLine } = createSink();
+    streamTerminalOutput(
+      terminal,
+      'output',
+      () => true,
+      () => false,
+      () => false,
+    );
+    writes[0]?.callback?.();
+    expect(scrollToBottom).not.toHaveBeenCalled();
+    expect(scrollToLine).toHaveBeenCalledWith(5);
+  });
+
+  it('preserves the paused position while its workspace panel is hidden', () => {
+    const { terminal, writes, scrollToLine } = createSink();
+    streamTerminalOutput(
+      terminal,
+      'output',
+      () => false,
+      () => false,
+      () => false,
+    );
+    writes[0]?.callback?.();
+    expect(scrollToLine).toHaveBeenCalledWith(5);
   });
 
   it('keeps reconnect reset ordered before replay frames', () => {

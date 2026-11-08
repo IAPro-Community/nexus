@@ -11,7 +11,8 @@ export type FeatureTourSurface =
   | 'flow-library'
   | 'flow-editor'
   | 'flow-run'
-  | 'resources';
+  | 'resources'
+  | 'agent-terminal';
 
 export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
   'composer-start': [
@@ -152,6 +153,14 @@ export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
       target: '[data-tour="usage-provider-discovery"]',
       title: 'tour.providerDiscoveryTitle',
       body: 'tour.providerDiscoveryBody',
+    },
+  ],
+  'agent-terminal': [
+    {
+      id: 'follow',
+      target: '[data-tour="agent-terminal-follow"]',
+      title: 'tour.agentTerminalFollowTitle',
+      body: 'tour.agentTerminalFollowBody',
     },
   ],
 };
