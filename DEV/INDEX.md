@@ -1,3 +1,10 @@
+## Fechamento Nexus 1.0 / Maestro — estado 2026-11-08
+
+- Status **NO_GO**. Handoff corrente: [DEV/HANDOFF.md](HANDOFF.md); execução/pendências: [DEV/VERIFY.md](VERIFY.md).
+- Maestro `release/1.1.0@90b6152`: suíte completa passou (1.363 pass / 0 fail / 4 skipped; 1.367 testes). A correção isolou o home temporário do teste de instalação.
+- Nexus: as 48 capacidades canônicas ainda estão `verification: pending`; falta completar advice/verify CLI no Maestro, demonstrar o balanceamento com duas contas AGY reais, fechar P0 e homologar cada capacidade e gates aplicáveis no SHA de release.
+- Índices e relatórios históricos abaixo não substituem o handoff e evidências do SHA corrente.
+
 ## Continuidade atual — beta.11 sincronizado e instalado — 2026-10-27
 
 - Branch `release/v1.0.0` em `b416bb90` (= `origin/release/v1.0.0`) + commits locais `5e3eff4e` (feature auth/usage/HUD), `11f3d771` (teclado Codex/PTY), `d61b0dcc` (gates/upstream) e docs; push fast-forward concluído em `e58b0d60`.

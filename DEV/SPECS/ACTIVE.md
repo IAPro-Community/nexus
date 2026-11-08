@@ -1,3 +1,10 @@
+## Continuidade confirmada — 2026-11-08
+
+- O objetivo continua sendo atingir GO real para Nexus 1.0, ponte com Maestro e as 48 capacidades. Estado corrente NO_GO; não converter implementação parcial em homologação.
+- Maestro `release/1.1.0@90b6152`: suíte completa PASS (1.363/0 failures/4 skipped). A alteração foi apenas o isolamento de ambiente da fixture de instalação.
+- Próximas entregas permanecem: contratos advice/verificação canônicos; E2E AGY com duas contas e quota real; P0 de todas as ondas; registro de aceite/evidência exata para cada uma das 48; gates visuais, plataformas e distribuição aplicáveis.
+- Manter tudo em `release/v1.0.0`; Nexus `8aaf7b85` é apenas o SHA observado no último handoff, deve ser atualizado ao validar o estado atual. Não declarar GO até verificar o candidato final e dependências externas com evidência real.
+
 ## Escopo ativo — fechamento Nexus 1.0 e Maestro — 2026-11-06
 
 - Fechar os P0 definidos em `docs/strategy/ACTION_PLAN_2026-10-28.md` e o contrato canônico `docs/reference/agent-workspace-v1.json`.

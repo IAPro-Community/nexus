@@ -1,3 +1,12 @@
+## Retomada — suíte Maestro e pendências rumo ao GO — 2026-11-08
+
+- PASS — `npm test` no checkout Maestro `/projetos/tools/Orquestrador-Maestro`, branch `release/1.1.0`, terminou: 1.367 testes, 1.363 pass, 0 fail, 4 skipped; 112 arquivos; duração 521.795 ms.
+- PASS — `node --test tests/install-profile-state.test.js`: 5/5, após isolar `HOME`, `USERPROFILE` e `CODEX_HOME` à fixture temporária.
+- PASS — commit `90b6152` enviado ao remoto `origin/release/1.1.0`; mudança restrita à fixture de teste.
+- NO_GO — Nexus `release/v1.0.0@8aaf7b85`: as 48 capacidades oficiais permanecem `verification: pending`; integração ainda precisa `advise --json` e `verify --json` no CLI Maestro e E2E contra os executáveis/instâncias do release.
+- NO_GO — balanceamento AGY `:balance`/`:auto` ainda precisa demonstrar seleção alternada e preservação das janelas de quota em duas contas AGY reais; nenhum provider live foi consumido nesta validação.
+- NO_GO — faltam executar/revalidar os P0 do plano de ação, E2E visual real no SHA publicado, validação multiplataforma/assinatura/distribuição e demais critérios de release. Não declarar GO com mocks, screenshots sintéticas ou testes em SHA distinto.
+
 ## Checkpoint — projeção conservadora de capabilities — 2026-11-06
 
 - PASS — `go test ./internal/control/driver ./internal/control/web`: ambos os pacotes passaram; o pacote `web` levou 62,5 s.

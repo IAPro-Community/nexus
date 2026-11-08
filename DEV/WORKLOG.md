@@ -1,3 +1,10 @@
+## 2026-11-08 — Retomada de fechamento Nexus 1.0 / Maestro
+
+- Verificado o handoff local: permanecem abertos os P0 do plano de ação, a ponte canônica `advise --json`/`verify --json`, o E2E do round-robin AGY com duas contas reais, homologação individual das 48 capacidades e gates de UI/plataforma/distribuição no SHA exato.
+- A suíte completa do Maestro terminou em `release/1.1.0` com **1.363 pass, 0 fail, 4 skipped** (1.367 testes, 112 arquivos; 521.795 ms). A causa dos três failures anteriores foi isolamento incompleto da fixture de instalação (`HOME`/`CODEX_HOME` herdados do host).
+- Corrigido `tests/install-profile-state.test.js` para direcionar `HOME`, `USERPROFILE` e `CODEX_HOME` ao home temporário. Commit `90b6152` (`test(installer): isolate profile fixture paths`) enviado a `origin/release/1.1.0`.
+- Isto valida a suíte do Maestro, não homologa Nexus↔Maestro nem fecha release. As 48 capacidades continuam `verification: pending`; capturas sintéticas e fixtures não contam como evidência real. Status global segue **NO_GO**.
+
 ## 2026-11-04 — Autodiscovery Universal de Provedores CLI, Suporte ao ZCode e Scanner de Ecossistema
 
 - **Autodiscovery Abrangente em Todos os Adaptadores do Nexus**:
