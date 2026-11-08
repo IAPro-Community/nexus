@@ -364,14 +364,19 @@
           "acceptanceIndex": 0,
           "acceptance": "Agrupar Agents por tarefa, worktree e feature",
           "sourceRefs": [
-            "web/src/features/agents/AgentsSurface.tsx"
+            "internal/nexus/mission_team.go",
+            "internal/nexus/mission_executor.go",
+            "internal/nexus/mission_integration.go"
           ],
           "testRefs": [
-            "internal/nexus/mission_team_test.go"
+            "internal/nexus/mission_team_test.go",
+            "internal/nexus/worktree_test.go",
+            "internal/nexus/mission_integration_test.go"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Auditoria parcial: MissionTeam gera phases/packages por tarefa e runtime os isola em worktrees; testes provam pipeline e integração isolada. Isso não implementa grupos de Agents gerenciáveis/visíveis por worktree e feature. Falta entidade/UX de grupos com identidade e membership persistentes. Capability pendente.",
+          "assertionAudit": "partial"
         },
         {
           "acceptanceIndex": 1,
@@ -379,12 +384,11 @@
           "sourceRefs": [
             "web/src/features/agents/AgentsSurface.tsx"
           ],
-          "testRefs": [
-            "internal/nexus/mission_team_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
+          "testRefs": [],
+          "mappingStatus": "source-only",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Auditoria parcial de código: AgentsSurface filtra por status/pesquisa e usa agent.id como key/callback, mas não oferece reordenação manual nem teste da interação; preservar identidade é somente inferível da implementação. Falta filtro/reordenação com sessão e seleção estáveis, cobertos por UI/E2E. Capability pendente.",
+          "assertionAudit": "partial"
         }
       ],
       "verification": "pending"

@@ -18,6 +18,7 @@
 - `mission-observatory` auditado: UI e backend cobrem leitura/evidência e controle do Nexus; a identidade do owner é implícita, não há `ExecutionOwner` no MissionRun, e não há roteamento testado de mutações/retry/cancel entre Nexus e Maestro.
 - `smart-layouts` auditado: geometria/persistência/foco/splits têm testes; presets não fazem spawn. “Sugestão por atividade” ainda não está implementada e a restauração não tem E2E completo após reload.
 - `workspace-snapshots` auditado: persistência v4 por projeto e export/import existem, mas sem histórico nomeado. Dedupe e ausência de start no host são código, porém falta cenário real de restore com runtime morto/ativo e zero relaunch.
+- `agent-groups` auditado: agrupamento de execução via MissionTeam é apenas pipeline interno; entidade/UX de group não localizada. AgentsSurface tem filtro e busca, sem reordenação; critério fica source-only sem teste.
 - Próximo: continuar a revisão semântica do mapa e priorizar P0 sem cobertura. Não declarar GO sem homologação de capabilities no SHA final e gates externos.
 
 ## P0 A2 — onboarding first-run

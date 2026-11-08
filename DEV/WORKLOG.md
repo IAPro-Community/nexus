@@ -7049,3 +7049,10 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Atualizei mapa: testes reais cobrem save/load, versão/projeto/split e identidade/dedupe, não histórico de snapshots nomeados nem restore E2E sem respawn de runtime morto.
 - PASS — 31 Vitest de WorkspaceLayoutService/state/model, 7 node pretests, evidence-map e testes do verificador 4/4. Um caminho de teste incorreto no mapa foi apontado pelo verificador e corrigido antes do PASS final.
 - Próximo — especificar/implementar histórico se exigido pelo contrato e validar restore com runtime vivo/morto/duplicado via E2E.
+
+## 2026-11-08 — P0 A1: auditoria semântica agent-groups
+
+- Corrigi o mapa: MissionTeam e materialização de worktrees provam pipeline por tarefa/roles, não uma entidade/UX que agrupe Agents por tarefa, worktree e feature. AgentsSurface prova apenas filtros/busca em código; não tem reordenação ou teste de UI.
+- Critério de agrupamento permanece parcial com refs de pipeline/worktree; critério filter/reorder fica source-only; nada é certificado.
+- PASS — cinco testes Go direcionados (MissionTeam/worktree/integration), evidence-map 48/96 (86 + 9 + 1), verificador 4/4 e diff check.
+- Próximo — implementar grupo persistente com filtros/reordenação que preservem view/runtime identity e testar UI/E2E.

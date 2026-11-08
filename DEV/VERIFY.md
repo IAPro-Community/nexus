@@ -2415,3 +2415,9 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - PASS — evidence-map estrutural e regressões do verificador 4/4; diff check.
 - GAP — layout v4 é versão de schema/revisão por projeto, não catálogo de snapshots nomeados. Dedupe e mount sem comando explícito estão na implementação, mas não há E2E de restauração com runtime morto/ativo provando ausência de spawn duplicado; capability permanece pending/NO_GO.
 
+## 2026-11-08 — auditoria semântica A1: agent-groups
+
+- PASS — cinco testes Go sobre seleção/pipeline de MissionTeam, preference round-trip, worktree isolada e integração de worktrees paralelas.
+- PASS — evidence-map 48/96 agora tem 86 source+test, 9 source-only e 1 unmapped; verificador 4/4; `git diff --check`.
+- GAP — MissionTeam é pipeline interno de phases/packages, não agrupamento de Agents no produto. AgentsSurface tem busca/filtros e identity key, mas nenhum reorder nem teste da interação; capability permanece pending/NO_GO.
+
