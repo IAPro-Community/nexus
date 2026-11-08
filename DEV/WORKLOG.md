@@ -1,3 +1,10 @@
+## 2026-11-08 — P0 A3: isolamento entre perguntas simultâneas
+
+- Adicionei `TestSimultaneousRuntimeQuestionsRemainIndependentAfterAnswer` com dois registros/detectores ligados ao mesmo Registry. Ambos recebem a mesma pergunta; input isolado não resolve nenhuma; output de trabalho no runtime A limpa apenas A e mantém B em `WAITING/needs_user` com fingerprint.
+- PASS — `go test ./internal/control/host -run '^TestSimultaneousRuntimeQuestionsRemainIndependentAfterAnswer$' -count=1`.
+- Próximo: manter A3 parcial até cobrir fontes estruturadas completas; fechar A4 em retry/autorização/revogação/stale/cross-project.
+- PASS — `go vet`, `make docs-verify` e `make quality-full` no worktree baseado em `82aaaae9`; Go/race/security, Web 131/818, ESLint 6 warnings/0 erros e nenhum advisory. A árvore testada é a mesma que será commitada.
+
 ## 2026-11-08 — P0 A1: primeira auditoria de assertions
 
 - Auditei os dois critérios da capacidade `terminal-studio` contra as assertions reais, em vez de contar referências de arquivo. O teste de estado do workspace prova persistência de layout, não preservação do processo ao alternar UI. Testes de host validam lease/handover, Ctrl+C routing, ring buffer e tecla ConPTY separadamente, mas não o aceite composto.

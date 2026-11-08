@@ -15,7 +15,14 @@
 - PASS — `go vet ./internal/control/host ./internal/control/registry ./internal/control/web` e `git diff --check`.
 - PASS — `make quality-full` no SHA `7c77317f`: format-check, lint/style/typecheck/build Web, 131 arquivos/818 testes Web, contrato de versão, lint/test Go, Go race e security; ESLint 6 warnings/0 erros; govulncheck sem vulnerabilidades.
 - PASS — `make docs-verify` após atualizar o handoff e este registro.
-- Limite — A3/A4 seguem parciais para cenários multi-runtime, aprovação tipada e revogação; 48 capacidades continuam pending e estado geral **NO_GO**. O próximo commit é apenas documental e preserva o código do SHA verificado.
+- Limite — A3/A4 seguem parciais para sinais estruturados completos, aprovação tipada, retry/autorização e revogação; 48 capacidades continuam pending e estado geral **NO_GO**. Este resultado precede o teste multi-runtime abaixo.
+
+## P0 A3 — perguntas simultâneas isoladas por runtime — 2026-11-08
+
+- PASS — `TestSimultaneousRuntimeQuestionsRemainIndependentAfterAnswer`: duas perguntas idênticas são registradas sob runtime IDs distintos; input sozinho não resolve nenhuma; saída observada no runtime A limpa apenas A e mantém B em `WAITING/needs_user` com fingerprint.
+- PASS — `go test ./internal/control/host -run '^TestSimultaneousRuntimeQuestionsRemainIndependentAfterAnswer$' -count=1`.
+- PASS — `go vet ./internal/control/host ./internal/control/registry ./internal/control/web`, `make docs-verify` e `make quality-full` no worktree baseado em `82aaaae9`: Web 131/818, Go completo, race, security; ESLint 6 warnings/0 erros, govulncheck sem vulnerabilidades.
+- Limite — A3 estruturado integral e A4 seguem abertos; esta evidência não altera as 48 capacidades `pending` nem o **NO_GO**.
 
 ## P0 A2 — E2E first-run — 2026-11-08
 

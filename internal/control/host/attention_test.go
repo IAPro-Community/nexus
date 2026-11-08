@@ -2,6 +2,7 @@ package host
 
 import (
 	"bytes"
+	"path/filepath"
 	"sync"
 	"testing"
 
@@ -103,6 +104,48 @@ func TestTerminalInputSubmissionRequiresProviderTransitionToClearAttention(t *te
 	detector.ProcessChunk([]byte("\r\nthinking...\r\n"))
 	if detector.lastKind != AttentionWorking || detector.lastFingerprint != "" {
 		t.Fatal("observed provider output should reconcile the submitted approval")
+	}
+}
+
+func TestSimultaneousRuntimeQuestionsRemainIndependentAfterAnswer(t *testing.T) {
+	ownedRegistry := registry.NewRegistry(filepath.Join(t.TempDir(), "runtimes.json"))
+	detectors := make([]*AttentionDetector, 0, 2)
+	for _, runtimeID := range []string{"rt-attention-a", "rt-attention-b"} {
+		if err := ownedRegistry.Register(registry.RuntimeSession{
+			RuntimeID: runtimeID, ProviderID: "codex", ProfileID: "default",
+			Workspace: "/workspace/project", State: registry.StateRunning,
+			ControlLevel: registry.ControlLevelTerminal,
+		}); err != nil {
+			t.Fatalf("register %s: %v", runtimeID, err)
+		}
+		detector := NewAttentionDetector(runtimeID, "codex", "default", "/workspace/project", nil)
+		detector.SetRegistry(ownedRegistry)
+		detector.ProcessChunk([]byte("\r\nDo you want to proceed? [y/N]\r\n"))
+		detectors = append(detectors, detector)
+	}
+
+	for _, runtimeID := range []string{"rt-attention-a", "rt-attention-b"} {
+		session, ok := ownedRegistry.Get(runtimeID)
+		if !ok || session.AttentionKind != AttentionNeedsUser || session.AttentionFingerprint == "" {
+			t.Fatalf("simultaneous question not projected for %s: %+v", runtimeID, session)
+		}
+	}
+
+	sendAttentionTerminalInput(t, detectors[0], []byte("y"))
+	first, _ := ownedRegistry.Get("rt-attention-a")
+	second, _ := ownedRegistry.Get("rt-attention-b")
+	if first.AttentionKind != AttentionNeedsUser || second.AttentionKind != AttentionNeedsUser {
+		t.Fatalf("input alone changed simultaneous approvals: first=%+v second=%+v", first, second)
+	}
+
+	detectors[0].ProcessChunk([]byte("\r\nthinking...\r\n"))
+	first, _ = ownedRegistry.Get("rt-attention-a")
+	second, _ = ownedRegistry.Get("rt-attention-b")
+	if first.AttentionKind != AttentionWorking || first.State != registry.StateRunning {
+		t.Fatalf("provider response did not resolve answered runtime: %+v", first)
+	}
+	if second.AttentionKind != AttentionNeedsUser || second.State != registry.StateWaiting || second.AttentionFingerprint == "" {
+		t.Fatalf("answer to runtime A resolved runtime B: %+v", second)
 	}
 }
 

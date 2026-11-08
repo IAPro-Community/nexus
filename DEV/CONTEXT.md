@@ -12,6 +12,8 @@ Auditoria A1 de `terminal-studio` na árvore `c179246c`: os testes de layout só
 
 Testes de modelo adicionais de `terminalViewModel`/`askAgentModel` (7/7 Vitest focado) provam ausência de view duplicada e que Agent ativo não solicita outro runtime; não são evidência do lifecycle de montagem da UI ao trocar abas/split.
 
+A3: teste focado com dois runtimes no Registry passou; pergunta igual em ambos, input no primeiro não encerra nenhum, output `thinking` no primeiro limpa apenas o primeiro e preserva o segundo em `WAITING/needs_user`. `go vet`, `docs-verify` e `quality-full` passaram no worktree baseado em `82aaaae9` (131/818 Web, Go/race/security, sem advisories); A3/A4 seguem parciais.
+
 ## Estado ativo — fechamento 1.0/Maestro — 2026-11-06
 
 Objetivo atual é fechar P0 e homologar a matriz canônica de 48 capacidades, além do contrato com Maestro, na branch release. O inventário `docs/reference/agent-workspace-v1.json` tem 48 itens `releaseRequired`, com 3 `present`, 31 `partial`, 14 `missing` e verificação pendente; esses estados descrevem implementação, não aprovação. A projeção legacy de capabilities agora exige `tested:true`. No Maestro 1.1.0 foram criados `capabilities --json` e `skills list --json`; Nexus passou a exigir o primeiro para marcar disponibilidade. `advise --json` e `verify --json` seguem ausentes, então o contrato de integração continua parcial. O CLI Nexus também está recebendo balanceamento round-robin persistente para `provider:balance`/`provider:auto`, integrado às regras de elegibilidade de quota, autenticação e cooldown. Maestro segue como autoridade externa para metodologia/skills/memória semântica; Nexus mantém runtime/execução. Handoff e evidências recentes em `DEV/HANDOFF.md` e `DEV/VERIFY.md`.

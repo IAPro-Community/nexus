@@ -14,7 +14,7 @@
 ## P0 A3 — atenção e proveniência
 
 - Removida a transição otimista de `needs_user` para `working` acionada apenas por input terminal. Perguntas de PTY permanecem até nova saída observada; estados nativos/estruturados mantêm sua própria fonte.
-- Regressões dirigidas, `go vet` e `make quality-full` passam no SHA `7c77317f` (Web 131/818; Go/race/security; ESLint 6 warnings); `make docs-verify` passou após o registro. A3 continua parcial: ainda exige aceite de dois runtimes/perguntas simultâneas, origem estruturada completa e cenários de aprovação/revogação da A4.
+- Regressões dirigidas, `go vet`, `make quality-full` e `make docs-verify` passam no worktree baseado em `82aaaae9`, incluindo teste de perguntas idênticas simultâneas isoladas por runtime. A3 continua parcial para reconciliação estruturada completa; A4 permanece aberto para retry/autorização/revogação/stale/cross-project.
 
 ## Continuidade ativa — hard gate de quota 5h no AGY balance — 2026-11-08
 
