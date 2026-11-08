@@ -283,27 +283,35 @@
           "acceptanceIndex": 0,
           "acceptance": "Layouts sugeridos por atividade sem spawn implícito de processo",
           "sourceRefs": [
-            "web/src/workspace/arrangePresets.ts"
+            "web/src/workspace/arrangePresets.ts",
+            "web/src/workspace/WorkspacePresentationProvider.tsx"
           ],
           "testRefs": [
             "web/src/workspace/arrangePresets.test.ts"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Auditoria parcial: presets/recipes operam sobre IDs e geometria existentes, sem chamar API de launch; teste puro também apenas rearranja IDs fornecidos. Porém 'suggested by activity' não existe: Automatic/recipes são seleções estáticas, não recomendações derivadas de estado. Falta E2E de aplicar layout sem spawn implícito. Capability pendente.",
+          "assertionAudit": "partial"
         },
         {
           "acceptanceIndex": 1,
           "acceptance": "Preservação de surface IDs, foco, splits e restauração",
           "sourceRefs": [
-            "web/src/workspace/arrangePresets.ts"
+            "web/src/workspace/WorkspacePresentationProvider.tsx",
+            "web/src/workspace/presentation.ts",
+            "web/src/workspace/state.ts",
+            "web/src/workspace/model.ts"
           ],
           "testRefs": [
-            "web/src/workspace/arrangePresets.test.ts"
+            "web/src/workspace/presentation.test.ts",
+            "web/src/workspace/state.test.ts",
+            "web/src/workspace/model.test.ts"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Auditoria parcial: testes cobrem view/surface identity, foco, persistência/round-trip de layout, splits e restauração de janelas. arrangeByPreset preserva viewIds ao editar geometria. Falta E2E de salvar/restaurar layout completo no produto, incluindo surfaces/split/foco após recarga e múltiplos projetos. Capability pendente.",
+          "assertionAudit": "partial"
         }
       ],
       "verification": "pending"

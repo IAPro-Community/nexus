@@ -2403,3 +2403,9 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - PASS — projeção de estado/presentation Web 8/8 + 7 node pretests; evidence-map 48/96, verificador 4/4.
 - GAP — nenhum E2E do Observatory visual/read-only; `MissionRun` não contém `ExecutionOwner`, e `FlowRunSurface` permite mutações por estado terminal sem checar owner. Não existe prova de que um só owner (Nexus/Maestro) controla retries/cancelamentos. Capability e integração seguem **NO_GO**.
 
+## 2026-11-08 — auditoria semântica A1: smart-layouts
+
+- PASS — `npm --prefix web run test -- --run src/workspace/arrangePresets.test.ts src/workspace/presentation.test.ts src/workspace/state.test.ts src/workspace/model.test.ts`: 63 Vitest; 7 node pretests.
+- PASS — evidence map 48/96, verificador 4/4 e `git diff --check`.
+- GAP — presets/recipes são estáticos, não recomendados por atividade; testes puros não comprovam E2E de zero spawn nem restauração completa após reload com foco/split/surface identity. Capability permanece pending/NO_GO.
+

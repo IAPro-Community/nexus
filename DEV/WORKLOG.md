@@ -7035,3 +7035,10 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Lacuna arquitetural confirmada: `runner.MissionRun` não possui `ExecutionOwner`; a UI não deriva mutabilidade de owner e não há roteamento testado entre Nexus e Maestro. Não afirmar ownership único apenas porque a implementação atual chama Nexus.
 - PASS — 2 Go tests de evidence bundle, 2 testes runner durável/fencing, 8 Vitest + 7 node pretests, verificador 4/4, mapa e diff check.
 - Próximo — materializar ExecutionOwner no contrato da execução e roteamento de mutation, com testes e compatibilidade Maestro; provar Observatory com E2E.
+
+## 2026-11-08 — P0 A1: auditoria semântica smart-layouts
+
+- `arrangePresets` recebe apenas IDs/bounds e recalcula geometria; recipes/presets são estáticos e não invocam APIs de launch. Reducer de presentation opera em `viewId`, enquanto model/state/presentation cobrem identidade, foco, splits e persistência.
+- Atualizei o mapa para refletir esses asserts e separar a lacuna de recomendação por atividade e falta de E2E de restauração integral.
+- PASS — 63 Vitest nos quatro arquivos relevantes, 7 node pretests, evidence-map 4/4, contrato 48/96 e `git diff --check`.
+- Próximo — implementar recomendação contextual e homologar restauração real sem spawn; seguir para os demais critérios.

@@ -16,6 +16,7 @@
 - `comparison-lab` auditado: só há worktree isolada e integração de pacotes paralelos, sem alternativas concorrentes, comparador ou decisão humana. Critério comparador foi marcado `unmapped` em vez de associar testes de review/worktree que não o provam.
 - `remote-companion` auditado: testes cobrem túnel/convite, notificação deduplicada e handover de lease em host, mas não fluxo mobile/terminal remoto nem troca de dispositivo/revogação ponta a ponta.
 - `mission-observatory` auditado: UI e backend cobrem leitura/evidência e controle do Nexus; a identidade do owner é implícita, não há `ExecutionOwner` no MissionRun, e não há roteamento testado de mutações/retry/cancel entre Nexus e Maestro.
+- `smart-layouts` auditado: geometria/persistência/foco/splits têm testes; presets não fazem spawn. “Sugestão por atividade” ainda não está implementada e a restauração não tem E2E completo após reload.
 - Próximo: continuar a revisão semântica do mapa e priorizar P0 sem cobertura. Não declarar GO sem homologação de capabilities no SHA final e gates externos.
 
 ## P0 A2 — onboarding first-run
