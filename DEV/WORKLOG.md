@@ -1,8 +1,9 @@
 ## 2026-11-08 — Maestro: smoke real dos contratos v1
 
 - PASS — CLI do checkout Maestro `release/1.1.0@9c9c9eb`: `capabilities --json` anuncia advice/verification `1.0.0`; `TestMaestroCLIContractInterop` executou capabilities, advice e verify em 0,695 s via wrapper efêmero e sem executar provider/Agent.
-- Divergência de instalação: o `maestro` encontrado no PATH é o pacote global 1.1.0 sob Node 20, mas `maestro capabilities --json` retorna “Comando desconhecido”; `nexus maestro status --json` reporta available/version, sem `contracts`. O smoke de fonte não prova que Nexus instalado invocará o CLI compatível.
-- Próximo: alinhar o executável implantado com o checkout 9c9c9eb e repetir o smoke pelo PATH real; manter integração/runtime NO_GO até ver contracts no status.
+- Atualizei o pacote global da instalação Node 20 para o checkout validado `9c9c9eb` (backup em `/tmp/maestro-cli-global-backup-9c9c9eb-v20`). `maestro capabilities --json` agora publica contracts v1. `TestMaestroCLIContractInterop` passou com `/home/desenvolvedor/.local/bin/maestro`, e `go build -o /tmp/nexus-maestro-smoke ./cmd/nexus` + `nexus maestro status --json` reportou `available=true`, versão 1.1.0 e os dois contracts 1.0.0.
+- O Nexus preinstalado no perfil (`/home/desenvolvedor/.local/share/ai-manager/profiles/codex/kiver.omegasistemas/home/.local/bin/nexus`) continua antigo e omite `contracts`; a captura é limitação do binário implantado, não do checkout. A distribuição ainda precisa ser recompilada/validada no SHA final.
+- Próximo: continuar P0/48 capacidades, usar o binário da release para smoke de Nexus↔Maestro e deixar a distribuição instalada antiga como gate de release.
 
 ## 2026-11-08 — P0 A4: fenced response e autorização do Radar
 

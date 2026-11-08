@@ -1,9 +1,9 @@
 ## Maestro — contrato canônico advice/verification — 2026-11-08
 
-- PASS — `NEXUS_MAESTRO_CLI_TEST_PATH=/tmp/nexus-maestro-cli-contract-smoke.sh go test ./internal/nexus -run '^TestMaestroCLIContractInterop$' -count=1` contra `/projetos/tools/Orquestrador-Maestro` em `release/1.1.0@9c9c9eb`. O CLI real reportou capabilities v1.0.0, roteou advice local e validou um request com evidência/check PASS; não executou agente/provider.
-- PASS — `node .../orquestrador-maestro.js capabilities --json` reportou Maestro 1.1.0 e contratos advice/verification 1.0.0.
-- FAIL de integração instalada — binário `maestro` no PATH reporta version 1.1.0, mas não reconhece `capabilities --json`; `nexus maestro status --json` retorna `available=true` sem `contracts`. A integração Nexus↔Maestro no checkout passa; a instalação local resolvida por PATH não está no contrato esperado.
-- Pendente: alinhar instalação global/ambiente do Nexus com CLI que implementa 9c9c9eb e repetir status/interoperabilidade via descoberta normal. NO_GO permanece.
+- PASS — `NEXUS_MAESTRO_CLI_TEST_PATH=/home/desenvolvedor/.local/bin/maestro go test ./internal/nexus -run '^TestMaestroCLIContractInterop$' -count=1` contra Maestro `release/1.1.0@9c9c9eb`: capabilities, advice e verify reais passaram, sem execução de provider/Agent.
+- PASS — `maestro capabilities --json` reportou 1.1.0, modos OFF/ASSIST/ORCHESTRATE e contracts advice/verification 1.0.0.
+- PASS — `go build -o /tmp/nexus-maestro-smoke ./cmd/nexus`; o binário da árvore release, rodando `maestro status --json` com o CLI atualizado no PATH, reportou `available=true`, version 1.1.0 e os dois contracts 1.0.0.
+- Limite — o Nexus preinstalado no perfil global continua antigo e seu status omite contracts. O binário candidato deve ser distribuído/instalado a partir do SHA final; o conjunto de release permanece NO_GO pelas demais pendências.
 
 ## P0 A4 — fencing, autorização e isolamento de respostas — 2026-11-08
 
