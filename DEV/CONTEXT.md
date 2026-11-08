@@ -8,7 +8,7 @@ Em `59d1936a`, `make quality-full`, `make docs-verify` e E2E first-run fixture p
 
 Continuação em `7c77317f`: A3 agora não marca uma aprovação resolvida só porque Enter/y/n foi enviado ao PTY; aguarda nova saída observada do provider, preservando source INFERRED. Testes dirigidos de `internal/control/host`, `internal/control/registry` e `internal/control/web`, `go vet` e `make quality-full` passaram nesse SHA; `make docs-verify` passou após o registro. A3/A4 seguem parciais.
 
-Auditoria A1 de `terminal-studio`: os testes de layout só exercitam estado/modelo; não há integração UI provando PTY mantido sem relaunch. Lease, Ctrl+C, ring buffer e ConPTY têm testes isolados. Novo teste dirigido prova CmdResize do segundo cliente anexado até o backend; scrollback após reconnect/aceite composto e runner Windows ainda faltam. Gap registrado sem promover cobertura/verification.
+Auditoria A1 de `terminal-studio` na árvore `c179246c`: os testes de layout só exercitam estado/modelo; não há integração UI provando PTY mantido sem relaunch. Lease, Ctrl+C, ring buffer e ConPTY têm testes isolados. `TestSessionHostResizeFromSecondAttachedClientReachesPTY` prova CmdResize do segundo cliente anexado até o backend; `make quality-full`/`docs-verify` passaram. Scrollback após reconnect/aceite composto e runner Windows ainda faltam. Gap registrado sem promover cobertura/verification.
 
 ## Estado ativo — fechamento 1.0/Maestro — 2026-11-06
 

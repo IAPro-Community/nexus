@@ -4,6 +4,7 @@
 - Gap confirmado: sem teste de integração UI que demonstre nenhum relaunch, e sem caso host com dois clientes, resize efetivo e scrollback após reconexão. `protocol_test.go` só valida o envelope de resize.
 - Atualizei `docs/reference/agent-workspace-v1-evidence-map.json` com assertions auditadas como parciais e lacunas concretas. O mapa continua explicitamente não-certificador; as 48 capacidades seguem pendentes.
 - Implementei `TestSessionHostResizeFromSecondAttachedClientReachesPTY`, com backend de resize observado e duas conexões anexadas; o teste focado passou. Cobertura agora prova o encaminhamento do resize, não o aceite composto nem Windows/ConPTY.
+- O checkpoint está em `c179246c` (`test(workspace): cover resize from attached client`); `make docs-verify` e `make quality-full` passaram na árvore que corresponde a esse SHA (Web 131/818, Go/race/security, lint sem erros e sem advisories; seis warnings ESLint existentes).
 - Próximo: cobrir preservação do PTY sem relaunch na UI e o cenário de scrollback após reconnect; então seguir para a próxima capacidade.
 
 ## 2026-11-08 — P0 A3: aguardar evidência após input em approval PTY
