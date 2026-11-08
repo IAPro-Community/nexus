@@ -1,7 +1,7 @@
 ### Recheck `follow-agent` — 2026-11-08
 
 - Entrega local adicional: Playwright E2E para pausa/resume e protocolo de lease no AgentTerminal, ligado ao mapa canônico. E2E passou, mas WebSocket provider é simulado; não homologar broker/host, capability ou release por esse teste.
-- Checkout no checkpoint: `release/v1.0.0@f6fd4f71`, worktree com mapa, script npm, E2E e checkpoints sem commit. E2E repetido, `make quality-full`, `make docs-verify` e verificador do mapa passaram.
+- Checkout no checkpoint: `release/v1.0.0@101dd328`, commit local após rebase de atualização remota; E2E repetido (inclusive pós-rebase), `make quality-full`, `make docs-verify` e verificador do mapa passaram. Push pendente.
 - Objetivo ativo permanece fechar P0 Nexus/Maestro e validar 48 capacidades em SHA exato. NO_GO até P0 completos, duas contas AGY elegíveis com rotação live, integração Maestro distribuída, evidência 48/48 e gates de plataforma/assinatura/exact-SHA.
 
 ## Continuação corrente — Nexus 1.0 / Maestro — 2026-11-08

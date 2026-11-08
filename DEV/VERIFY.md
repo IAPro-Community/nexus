@@ -4,7 +4,7 @@
 - WebSocket provider foi interceptado: o teste comprova mensagens emitidas pela UI e comportamento de reconnect no cliente, mas não broker/host real. Falta E2E backend integrado de attach, lease e revoke.
 - PASS — verificador de mapa 4/4; mapa 48/96, 86 refs source+test, 9 source-only, 1 unmapped, zero certificados; `make docs-verify` (245 Markdown/33 assets); `git diff --check`.
 - PASS — `make quality-full`: Web 131 arquivos/823 testes, Go completo + race/security, format/lint/type/style/build e version-contract; seis avisos ESLint existentes, zero erros, govulncheck sem vulnerabilidades.
-- E2E repetido duas vezes com PASS. Código/evidência ainda não commitados neste checkpoint.
+- E2E repetido três vezes com PASS, incluindo execução após rebase no commit `101dd328`; `make docs-verify` passou após o rebase. O commit ainda aguarda push após reconciliação do avanço paralelo remoto.
 - Veredito: `follow-agent` parcial/pending; homologação do pacote distribuído no SHA final e revisão humana continuam necessárias.
 
 ## `follow-agent` — pausa explícita do acompanhamento ao vivo — 2026-11-08

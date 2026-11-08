@@ -4,8 +4,8 @@
 - PASS — attach VIEW_ONLY não pede lease; pause mantém scroll e resume acompanha output; tecla em VIEW_ONLY não emite lease/input; botão explícito pede uma lease; CONTROL permite input; revoke/reconnect não readquire lease.
 - Atualizei refs e gaps do mapa canônico sem certificar capability. O E2E não prova o broker/host real.
 - PASS — verificador de mapa 4/4, mapa 48/96 sem certificados, `make docs-verify` (245 Markdown/33 assets), `git diff --check` e `make quality-full` (Web 131/823, Go integral/race/security, build e validadores; seis avisos ESLint conhecidos, zero erro e sem vulnerabilidades govulncheck).
-- E2E repetido duas vezes com PASS; artifact dir `/tmp/nexus-follow-agent-e2e`. WebSocket provider mockado, portanto broker/host integrado ainda é pendência.
-- Worktree local parte de `f6fd4f71`; alterações desta fatia ainda não commitadas. Próximo: recolher quality, rodar E2E no SHA commitado, registrar evidência, commit/push e prosseguir P0/Maestro/48 capacidades sem declarar GO.
+- E2E repetido três vezes com PASS, inclusive após rebase no commit `101dd328`; artifact dir `/tmp/nexus-follow-agent-e2e`. WebSocket provider mockado, portanto broker/host integrado ainda é pendência.
+- Commit `101dd328` está na `release/v1.0.0` após rebase sobre atualização remota `b3acacbe`; push ainda pendente. `make quality-full`, E2E, docs verify e mapa passaram. Próximo: sincronizar o commit e prosseguir P0/Maestro/48 capacidades sem declarar GO.
 
 ## 2026-11-08 — `follow-agent`: controle explícito de pausa visual
 
