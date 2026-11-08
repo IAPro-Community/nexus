@@ -10,7 +10,8 @@ export type FeatureTourSurface =
   | 'composer-offline'
   | 'flow-library'
   | 'flow-editor'
-  | 'flow-run';
+  | 'flow-run'
+  | 'resources';
 
 export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
   'composer-start': [
@@ -143,6 +144,14 @@ export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
       target: '[data-tour="flow-canvas"]',
       title: 'tour.flowCanvasTitle',
       body: 'tour.flowCanvasBody',
+    },
+  ],
+  resources: [
+    {
+      id: 'provider-discovery',
+      target: '[data-tour="usage-provider-discovery"]',
+      title: 'tour.providerDiscoveryTitle',
+      body: 'tour.providerDiscoveryBody',
     },
   ],
 };

@@ -14,7 +14,6 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/runtime"
 )
@@ -45,7 +44,7 @@ func ValidateName(s string) error {
 
 func ValidateProvider(p string) error {
 	switch strings.ToLower(p) {
-	case "codex", "agy", "claude", "opencode", "gemini", "cursor":
+	case "codex", "agy", "claude", "opencode", "gemini", "cursor", "zcode":
 		return nil
 	case "omp":
 		if os.Getenv("NEXUS_EXPERIMENTAL_HARNESSES") == "1" {
@@ -53,7 +52,7 @@ func ValidateProvider(p string) error {
 		}
 		return fmt.Errorf("OMP requires NEXUS_EXPERIMENTAL_HARNESSES=1 while issue #98 remains experimental")
 	default:
-		return fmt.Errorf("unsupported provider %q (supported: codex, agy, claude, opencode, gemini, cursor; experimental: omp)", p)
+		return fmt.Errorf("unsupported provider %q (supported: codex, agy, claude, opencode, gemini, cursor, zcode; experimental: omp)", p)
 	}
 }
 
@@ -102,7 +101,7 @@ func Create(provider, name string) (model.Profile, error) {
 	// A profile born without a credential adopts the host CLI login once, so
 	// the first run does not end in an unexplained "awaiting authentication"
 	// state. Quota probes still validate the account identity per profile.
-	_, _ = codex.AdoptHostAuth(context.Background(), p)
+	_, _ = AdoptHostAuth(context.Background(), p)
 	return p, nil
 }
 
@@ -218,7 +217,7 @@ func recoverLegacyProfile(provider, name string) error {
 	// no credential of its own. Adopt the host CLI login exactly like Create
 	// does, recording provenance, instead of surfacing an account that can never
 	// report quota.
-	_, _ = codex.AdoptHostAuth(context.Background(), p)
+	_, _ = AdoptHostAuth(context.Background(), p)
 	return nil
 }
 
@@ -229,7 +228,7 @@ func List() ([]model.Profile, error) {
 	}
 	base := filepath.Join(data, "profiles")
 	var out []model.Profile
-	providers := []string{"agy", "codex", "claude", "cursor", "opencode", "gemini"}
+	providers := []string{"agy", "codex", "claude", "cursor", "opencode", "gemini", "zcode"}
 	if os.Getenv("NEXUS_EXPERIMENTAL_HARNESSES") == "1" {
 		providers = append(providers, "omp")
 	}

@@ -26,13 +26,26 @@ async function main() {
   let page;
   let firstRunImportRequests = 0;
   let usageImportRequests = 0;
+  let quickConnectRequests = 0;
   let usageResourceReads = 0;
 
   try {
     ({ browser, context, page } = await launchFixtureBrowser(bootstrapUrl));
     await page.setViewportSize({ width: 1280, height: 800 });
-    await context.route('**/api/v1/providers**', (route) =>
-      route.fulfill({
+    await context.route('**/api/v1/providers**', (route) => {
+      if (route.request().method() === 'POST') {
+        quickConnectRequests += 1;
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            profile: { provider: 'codex', name: 'codex' },
+            state: 'READY',
+            auth_source: { origin: 'host' },
+          }),
+        });
+      }
+      return route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify([
@@ -40,13 +53,16 @@ async function main() {
             id: 'codex',
             installed: true,
             version: 'fixture',
-            registration_state: 'PENDING_AUTH',
+            registration_state: quickConnectRequests ? 'READY' : 'PENDING_AUTH',
             control_level: 'FULL',
             capabilities: {},
+            host_session: quickConnectRequests
+              ? undefined
+              : { provider: 'codex', installed: true, available: true, email: 'dev@example.test' },
           },
         ]),
-      }),
-    );
+      });
+    });
     await context.route('**/api/v1/system/doctor**', (route) =>
       route.fulfill({
         status: 200,
@@ -80,7 +96,7 @@ async function main() {
     });
     await context.route('**/api/v1/resources', (route) => {
       usageResourceReads += 1;
-      const accounts = usageImportRequests
+      const accounts = usageImportRequests || quickConnectRequests
         ? [
             {
               id: 'codex:default',
@@ -141,6 +157,39 @@ async function main() {
       waitUntil: 'domcontentloaded',
       timeout: 15000,
     });
+    const discovery = page.locator('[data-tour="usage-provider-discovery"]');
+    await discovery.waitFor({ state: 'visible', timeout: 10000 });
+    await page.screenshot({
+      path: path.join(screenshotDir, 'usage-host-session-discovery.png'),
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    const mobileWidth = await page.evaluate(() => ({
+      document: document.documentElement.scrollWidth,
+      viewport: document.documentElement.clientWidth,
+    }));
+    assert.ok(
+      mobileWidth.document <= mobileWidth.viewport,
+      `Usage / Accounts must not overflow horizontally at 390px: ${JSON.stringify(mobileWidth)}`,
+    );
+    await page.screenshot({
+      path: path.join(screenshotDir, 'usage-host-session-discovery-mobile.png'),
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 1280, height: 800 });
+    const quickConnect = page.getByRole('button', { name: 'Conectar com 1 clique' });
+    await quickConnect.waitFor({ state: 'visible', timeout: 5000 });
+    await quickConnect.click();
+    await page.getByText('Conta de codex conectada com sucesso!').waitFor({
+      state: 'visible',
+      timeout: 5000,
+    });
+    assert.equal(quickConnectRequests, 1, 'host-session connect must register once');
+    await page.getByText('Codex fixture', { exact: true }).waitFor({
+      state: 'visible',
+      timeout: 5000,
+    });
+
     const usageImportButton = page.getByTestId('usage-import-host-sessions');
     await usageImportButton.waitFor({ state: 'visible', timeout: 15000 });
     await usageImportButton.click();
@@ -158,6 +207,7 @@ async function main() {
       fullPage: true,
     });
     console.log('First-run host-session import feedback E2E: PASS');
+    console.log('Usage / Accounts host-session discovery and quick-connect E2E: PASS');
     console.log('Usage / Accounts host-session import and profile refresh E2E: PASS');
   } catch (error) {
     console.error(`First-run import E2E server output:\n${getOutput()}`);

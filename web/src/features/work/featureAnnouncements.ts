@@ -83,6 +83,16 @@ export const featureAnnouncements: readonly FeatureAnnouncement[] = [
     summary: 'discovery.flowEvidenceBody',
     tourStep: 'status',
   },
+  {
+    id: 'provider-host-session-connect',
+    revision: 1,
+    surfaces: ['resources'],
+    openSurface: 'resources',
+    target: '[data-tour="usage-provider-discovery"]',
+    title: 'discovery.providerDiscoveryTitle',
+    summary: 'discovery.providerDiscoveryBody',
+    tourStep: 'provider-discovery',
+  },
 ] as const;
 
 export const announcementStorageKey = (id: string) => `iapro:nexus:feature-announcement:v1:${id}`;

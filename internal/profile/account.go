@@ -12,6 +12,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/cursor"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/gemini"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/opencode"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/zcode"
 )
 
 type AccountInfo = model.AccountInfo
@@ -45,6 +46,8 @@ func GetAccountInfoContext(ctx context.Context, providerName, name string) (mode
 		info = gemini.New().InspectAuth(ctx, p)
 	case "cursor":
 		info = cursor.New().InspectAuth(ctx, p)
+	case "zcode":
+		info = zcode.New().InspectAuth(ctx, p)
 	default:
 		info = model.AccountInfo{
 			Status:        "Unknown provider",

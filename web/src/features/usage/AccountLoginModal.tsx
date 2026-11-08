@@ -187,6 +187,14 @@ export const AccountLoginModal: React.FC<AccountLoginModalProps> = ({
               <div>
                 <strong>{t('usage.loginInstructionsTitle')}</strong>
                 <span>{getInstructions()}</span>
+                {provider.toLowerCase() === 'claude' && (
+                  <p className={styles.claudeMultiHint}>
+                    {t(
+                      'usage.claudeIncognitoHint',
+                      'Dica multi-contas: Se você já tem uma conta Claude conectada no seu navegador padrão, abra a página de autorização em uma janela anônima para fazer login com a conta correta.',
+                    )}
+                  </p>
+                )}
               </div>
             </>
           )}

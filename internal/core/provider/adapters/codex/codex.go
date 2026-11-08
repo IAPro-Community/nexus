@@ -254,6 +254,32 @@ func (a *Adapter) ImportHostAuth(ctx context.Context, p model.Profile) (bool, er
 	return true, nil
 }
 
+// DetectHostAuth inspects the host machine for active Codex credentials
+// without modifying any profile or exposing secrets.
+func (a *Adapter) DetectHostAuth(ctx context.Context) (model.HostAuthDetection, bool) {
+	hostHome := security.FindHostHome()
+	if hostHome == "" {
+		return model.HostAuthDetection{}, false
+	}
+	source := filepath.Join(hostHome, ".codex", "auth.json")
+	data, err := os.ReadFile(source)
+	if err != nil || len(data) == 0 {
+		return model.HostAuthDetection{}, false
+	}
+	if !validHostCodexAuth(data) {
+		return model.HostAuthDetection{}, false
+	}
+	accountID := HostAuthAccountID()
+	installed := a.Detect(ctx).Installed
+	return model.HostAuthDetection{
+		Provider:  string(a.ID()),
+		Installed: installed,
+		Available: true,
+		Email:     accountID,
+		Plan:      "ChatGPT",
+	}, true
+}
+
 func validHostCodexAuth(data []byte) bool {
 	var auth struct {
 		Tokens struct {

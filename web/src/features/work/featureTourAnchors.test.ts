@@ -16,10 +16,11 @@ const sourceFiles = [
   'FlowRunsHistorySurface.tsx',
   'FlowDraftEditor.tsx',
   'FlowRunSurface.tsx',
+  '../usage/UsageSurface.tsx',
 ];
 const source = sourceFiles.map((file) => readFileSync(join(folder, file), 'utf8')).join('\n');
 
-describe('Composer/Flow tour implementation parity', () => {
+describe('Feature tour implementation parity', () => {
   it('only references anchors actually rendered by the feature surfaces', () => {
     for (const [surface, steps] of Object.entries(featureTourSteps)) {
       for (const step of steps) {

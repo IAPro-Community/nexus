@@ -54,9 +54,10 @@ var registry = map[string]Spec{
 	"cursor":   cursorSpec,
 	"gemini":   geminiSpec,
 	"opencode": opencodeSpec,
+	"zcode":    zcodeSpec,
 }
 
-var orderedIDs = []string{"agy", "claude", "codex", "cursor", "gemini", "opencode"}
+var orderedIDs = []string{"agy", "claude", "codex", "cursor", "gemini", "opencode", "zcode"}
 
 func (s Spec) AutonomousIsolationLevel() IsolationGuarantee {
 	if s.AutonomousIsolation == "" {

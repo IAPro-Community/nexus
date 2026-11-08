@@ -33,6 +33,7 @@ const (
 	ProviderOpenCode ProviderID = "opencode"
 	ProviderGemini   ProviderID = "gemini"
 	ProviderCursor   ProviderID = "cursor"
+	ProviderZCode    ProviderID = "zcode"
 )
 
 // FailureKind categorizes the cause of a CLI execution failure.
@@ -167,6 +168,17 @@ type AuthSource struct {
 
 // AuthSourceOriginHost marks a credential adopted from the host CLI login.
 const AuthSourceOriginHost = "host"
+
+// HostAuthDetection summarizes a detected authentication session on the host machine.
+type HostAuthDetection struct {
+	Provider  string `json:"provider,omitempty"`
+	Installed bool   `json:"installed"`
+	Available bool   `json:"available"`
+	Email     string `json:"email,omitempty"`
+	Plan      string `json:"plan,omitempty"`
+	AuthType  string `json:"auth_type,omitempty"`
+	AccountID string `json:"account_id,omitempty"`
+}
 
 // AccountInfo summarizes identity and status information for a profile.
 type AccountInfo struct {

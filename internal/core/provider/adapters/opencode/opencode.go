@@ -96,6 +96,32 @@ func (a *Adapter) Prepare(ctx context.Context, p model.Profile) error {
 	return os.MkdirAll(filepath.Join(home, ".config", "opencode"), 0700)
 }
 
+// DetectHostAuth inspects the host machine for OpenCode credentials and installation.
+func (a *Adapter) DetectHostAuth(ctx context.Context) (model.HostAuthDetection, bool) {
+	det := model.HostAuthDetection{
+		Provider: string(a.ID()),
+	}
+	detectResult := a.Detect(ctx)
+	det.Installed = detectResult.Installed
+
+	hostHome := config.BaseHome()
+	if hostHome == "" {
+		hostHome, _ = os.UserHomeDir()
+	}
+	if hostHome == "" {
+		return det, false
+	}
+	hostAuth := filepath.Join(hostHome, ".local", "share", "opencode", "auth.json")
+	validHost, err := authcopy.ReadValidatedFile(hostAuth, validHostOpenCodeAuth)
+	if err == nil && validHost {
+		det.Available = true
+		det.AuthType = "api_key"
+		det.Plan = "OpenCode Provider Keys"
+		return det, true
+	}
+	return det, false
+}
+
 // ImportHostAuth reports an OpenCode host session only after Prepare has copied
 // a recognized auth entry into the isolated profile home.
 func (a *Adapter) ImportHostAuth(ctx context.Context, p model.Profile) (bool, error) {

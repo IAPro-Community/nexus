@@ -543,6 +543,7 @@ func (h *APIHandler) handleProviders(w http.ResponseWriter, r *http.Request) {
 		Capabilities      driver.EffectiveCapabilities `json:"capabilities"`
 		RegistrationState string                       `json:"registration_state,omitempty"`
 		BinaryPath        string                       `json:"binary_path,omitempty"`
+		HostSession       *model.HostAuthDetection     `json:"host_session,omitempty"`
 	}
 	if os.Getenv("NEXUS_DOCS_CAPTURE") == "1" {
 		// Documentation captures must never disclose which provider binaries or
@@ -598,6 +599,11 @@ func (h *APIHandler) handleProviders(w http.ResponseWriter, r *http.Request) {
 			// that the installed CLI version passed authenticated E2E.
 			if det.Installed && os.Getenv("NEXUS_EXPERIMENTAL_HARNESSES") == "1" {
 				res[idx].StructuredModes = driver.WireProtocolsForProvider(drv.ProviderID())
+			}
+			if det.Installed {
+				if hostAuth, ok := profile.DetectHostAuth(pctx, drv.ProviderID()); ok && hostAuth.Available {
+					res[idx].HostSession = &hostAuth
+				}
 			}
 			if profilesErr != nil {
 				if det.Installed {

@@ -8,6 +8,7 @@ import {
   Plus,
   RefreshCw,
   Search,
+  Sparkles,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -34,6 +35,7 @@ import { UsageAccountCard } from './UsageAccountCard';
 import { UsagePolicyPanel } from './UsagePolicyPanel';
 import { UsageRecommendRail } from './UsageRecommendRail';
 import { UsageSummaryStrip } from './UsageSummaryStrip';
+import { FeatureTour } from '../work';
 import {
   filterAccounts,
   groupAccountsByProvider,
@@ -64,9 +66,10 @@ const monitorSeverityRank = (state: string): number => {
 };
 
 export const UsageSurface: React.FC<{
+  projectId: string;
   onStartTerminalLogin?: (provider: string, profile: string) => void;
   onOpenProviderTerminal?: (provider: string, profile: string) => void;
-}> = ({ onStartTerminalLogin, onOpenProviderTerminal }) => {
+}> = ({ projectId, onStartTerminalLogin, onOpenProviderTerminal }) => {
   const { t } = useTranslation();
   const [accounts, setAccounts] = useState<ProviderAccount[]>([]);
   const [policy, setPolicy] = useState('BALANCED');
@@ -87,6 +90,7 @@ export const UsageSurface: React.FC<{
   const [hostSessionImportSummary, setHostSessionImportSummary] =
     useState<HostSessionImportSummary | null>(null);
   const [hostSessionImportError, setHostSessionImportError] = useState('');
+  const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
 
   // Search & Filtering State
   const [search, setSearch] = useState('');
@@ -321,8 +325,41 @@ export const UsageSurface: React.FC<{
     }
   };
 
+  const discoverableProviders = useMemo(() => {
+    return installedProviders.filter((p) => {
+      if (!p.installed || !p.host_session?.available) return false;
+      const hasAuthAccount = accounts.some(
+        (acc) => acc.provider.toLowerCase() === p.id.toLowerCase() && acc.authenticated,
+      );
+      return !hasAuthAccount;
+    });
+  }, [installedProviders, accounts]);
+
+  const handleQuickConnect = async (providerId: string) => {
+    setConnectingProvider(providerId);
+    try {
+      const result = await nexus.registerProvider(providerId, providerId);
+      const linkedFromHost = result.auth_source?.origin === 'host';
+      if (linkedFromHost) {
+        toast.success(
+          t('usage.quickConnectSuccess', {
+            provider: providerId,
+            defaultValue: 'Conta de {{provider}} conectada com sucesso!',
+          }),
+        );
+      } else {
+        toast.success(t('usage.registerSuccess', 'Perfil registrado com sucesso!'));
+      }
+      await Promise.all([load(), loadInstalledProviders()]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setConnectingProvider(null);
+    }
+  };
+
   return (
-    <div className={`nx-surface-scroll ${styles.root}`}>
+    <div className={`nx-surface-scroll ${styles.root}`} data-feature-tour-scope>
       <div className="nx-page-header">
         <div>
           <span className="nx-eyebrow">{t('surfaces.resourcesEyebrow')}</span>
@@ -378,6 +415,50 @@ export const UsageSurface: React.FC<{
           {t('usage.importHostSessionsResult', hostSessionImportSummary)}
         </p>
       ) : null}
+
+      {discoverableProviders.length > 0 ? (
+        <div
+          className={styles.discoveryList}
+          data-tour="usage-provider-discovery"
+          data-feature-tour-scope
+        >
+          {discoverableProviders.map((prov) => (
+            <div key={prov.id} className={styles.discoveryBanner} role="status">
+              <Sparkles size={16} className={styles.discoveryIcon} />
+              <div className={styles.discoveryContent}>
+                <strong>
+                  {t('usage.discoveryTitle', {
+                    provider: prov.id,
+                    defaultValue: 'Sessão de {{provider}} encontrada neste computador',
+                  })}
+                </strong>
+                <span>
+                  {prov.host_session?.email
+                    ? t('usage.discoveryEmailDesc', {
+                        email: prov.host_session.email,
+                        defaultValue: 'Conta ativa ({{email}}) pronta para ser conectada.',
+                      })
+                    : t('usage.discoveryReadyDesc', {
+                        defaultValue: 'Autenticação pronta para uso.',
+                      })}
+                </span>
+              </div>
+              <Button
+                tone="brand"
+                size="sm"
+                disabled={connectingProvider === prov.id}
+                onClick={() => void handleQuickConnect(prov.id)}
+              >
+                <Plus size={14} />
+                {connectingProvider === prov.id
+                  ? t('usage.connecting', 'Conectando…')
+                  : t('usage.quickConnect', 'Conectar com 1 clique')}
+              </Button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      <FeatureTour projectId={projectId} surface="resources" />
       {hostSessionImportError ? (
         <p className="nx-inline-error" role="alert">
           {hostSessionImportError}

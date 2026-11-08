@@ -1,0 +1,38 @@
+{
+  "id": "zcode",
+  "binary_candidates": [
+    "zcode"
+  ],
+  "env_keys": [
+    "AI_PROFILE",
+    "AI_PROVIDER",
+    "HOME",
+    "PATH",
+    "USERPROFILE",
+    "XDG_CONFIG_HOME",
+    "ZCODE_HOME"
+  ],
+  "env_delete": null,
+  "kickoff": [
+    "-p",
+    "{prompt}"
+  ],
+  "resume": [
+    "--resume",
+    "{session}"
+  ],
+  "auto_approval": [
+    "--mode",
+    "yolo"
+  ],
+  "review_mode": [
+    "--mode",
+    "guarded"
+  ],
+  "autonomous_isolation": "UNVERIFIED",
+  "review_isolation": "UNVERIFIED",
+  "quota": "UNSUPPORTED",
+  "known_versions": [
+    "3.17.2-44"
+  ]
+}

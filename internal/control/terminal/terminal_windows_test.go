@@ -195,6 +195,7 @@ func TestWindowsBackendUsesConPTYForInteractiveProvidersAndForwardsArrowInputByD
 		{id: "claude", automaticMechanism: "automatic for supervised Claude"},
 		{id: "gemini", automaticMechanism: "automatic for supervised Gemini"},
 		{id: "cursor", automaticMechanism: "automatic for supervised Cursor"},
+		{id: "zcode", automaticMechanism: "automatic for supervised ZCode"},
 		{id: "shell", automaticMechanism: "automatic for interactive Shell"},
 	}
 	for _, provider := range providers {

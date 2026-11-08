@@ -204,6 +204,33 @@ func (a *Adapter) Logout(ctx context.Context, p model.Profile) error {
 	return nil
 }
 
+// DetectHostAuth inspects the host machine for Gemini CLI credentials and installation.
+func (a *Adapter) DetectHostAuth(ctx context.Context) (model.HostAuthDetection, bool) {
+	det := model.HostAuthDetection{
+		Provider: string(a.ID()),
+	}
+	detectResult := a.Detect(ctx)
+	det.Installed = detectResult.Installed
+
+	hostHome := security.FindHostHome()
+	if hostHome == "" {
+		return det, false
+	}
+	credsPath := filepath.Join(hostHome, ".gemini", "oauth_creds.json")
+	data, err := os.ReadFile(credsPath)
+	if err != nil {
+		return det, false
+	}
+	if !validHostGeminiAuthAt(data, credsPath) {
+		return det, false
+	}
+
+	det.Available = true
+	det.AuthType = "oauth"
+	det.Plan = "Google Gemini"
+	return det, true
+}
+
 // ImportHostAuth copies Gemini CLI's OAuth credential file into an isolated
 // Nexus profile. It does not copy Gemini history or project files.
 func (a *Adapter) ImportHostAuth(ctx context.Context, p model.Profile) (bool, error) {

@@ -77,6 +77,7 @@ func TestGetAccountInfoContextStopsSlowCursorAuthenticationProbe(t *testing.T) {
 	dataDir := t.TempDir()
 	configDir := t.TempDir()
 	binDir := t.TempDir()
+	t.Setenv("NEXUS_REAL_HOME", t.TempDir())
 	t.Setenv("NEXUS_DATA_DIR", dataDir)
 	t.Setenv("NEXUS_CONFIG_DIR", configDir)
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))

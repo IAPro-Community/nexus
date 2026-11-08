@@ -147,6 +147,8 @@ func platformBackendMechanismForProvider(providerID string) string {
 			return "Windows ConPTY (automatic for supervised Gemini)"
 		case strings.EqualFold(strings.TrimSpace(providerID), "cursor"):
 			return "Windows ConPTY (automatic for supervised Cursor)"
+		case strings.EqualFold(strings.TrimSpace(providerID), "zcode"):
+			return "Windows ConPTY (automatic for supervised ZCode)"
 		case strings.EqualFold(strings.TrimSpace(providerID), "shell"):
 			return "Windows ConPTY (automatic for interactive Shell)"
 		}
@@ -162,7 +164,7 @@ func shouldUseConPTY(providerID string) bool {
 		return true
 	}
 	switch strings.ToLower(strings.TrimSpace(providerID)) {
-	case "codex", "agy", "opencode", "claude", "gemini", "cursor", "shell":
+	case "codex", "agy", "opencode", "claude", "gemini", "cursor", "zcode", "shell":
 		return true
 	default:
 		return false

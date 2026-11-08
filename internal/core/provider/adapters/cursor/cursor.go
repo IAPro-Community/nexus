@@ -2,6 +2,7 @@ package cursor
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/classifier"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/authcopy"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/core/security"
 	"github.com/IAPro-Community/nexus/internal/runtime"
@@ -117,6 +119,92 @@ func (a *Adapter) Detect(ctx context.Context) model.DetectionResult {
 		version = "unknown"
 	}
 	return model.DetectionResult{Installed: true, BinaryPath: bin, Version: version}
+}
+
+type cursorCLIConfig struct {
+	AuthInfo struct {
+		Email       string `json:"email"`
+		DisplayName string `json:"displayName"`
+		AuthID      string `json:"authId"`
+	} `json:"authInfo"`
+	ServerConfigCache struct {
+		AuthCacheKey string `json:"authCacheKey"`
+	} `json:"serverConfigCache"`
+}
+
+func validHostCursorAuth(data []byte) bool {
+	var cfg cursorCLIConfig
+	if json.Unmarshal(data, &cfg) != nil {
+		return false
+	}
+	return strings.TrimSpace(cfg.AuthInfo.Email) != "" || strings.TrimSpace(cfg.ServerConfigCache.AuthCacheKey) != ""
+}
+
+// DetectHostAuth inspects the host machine for Cursor CLI credentials and installation.
+func (a *Adapter) DetectHostAuth(ctx context.Context) (model.HostAuthDetection, bool) {
+	det := model.HostAuthDetection{
+		Provider: string(a.ID()),
+	}
+	detectResult := a.Detect(ctx)
+	det.Installed = detectResult.Installed
+
+	hostHome := security.FindHostHome()
+	if hostHome == "" {
+		return det, false
+	}
+	configPath := filepath.Join(hostHome, ".cursor", "cli-config.json")
+	data, err := os.ReadFile(configPath)
+	if err == nil && validHostCursorAuth(data) {
+		var cfg cursorCLIConfig
+		_ = json.Unmarshal(data, &cfg)
+		det.Available = true
+		det.AuthType = "session"
+		det.Plan = "Cursor"
+		det.AccountID = cfg.AuthInfo.Email
+		det.Email = cfg.AuthInfo.Email
+		return det, true
+	}
+
+	// Fallback to checking cursor status command directly on host if binary installed
+	if det.Installed {
+		bin, err := cursorBinary()
+		if err == nil {
+			statusCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+			defer cancel()
+			out, err := cursorStatusRun(statusCtx, bin, []string{"status"}, os.Environ(), "")
+			if err == nil && cursorStatusAuthenticated(out) {
+				det.Available = true
+				det.AuthType = "session"
+				det.Plan = "Cursor"
+				return det, true
+			}
+		}
+	}
+
+	return det, false
+}
+
+// ImportHostAuth copies Cursor CLI configuration and auth into the isolated profile home.
+func (a *Adapter) ImportHostAuth(ctx context.Context, p model.Profile) (bool, error) {
+	hostHome := security.FindHostHome()
+	if hostHome == "" {
+		return false, nil
+	}
+	home, err := config.ProfileHome(string(a.ID()), p.Name)
+	if err != nil {
+		return false, err
+	}
+	if err := a.Prepare(ctx, p); err != nil {
+		return false, err
+	}
+	source := filepath.Join(hostHome, ".cursor", "cli-config.json")
+	destination := filepath.Join(home, ".cursor", "cli-config.json")
+	copied, err := authcopy.CopyValidatedFile(source, destination, validHostCursorAuth)
+	if err != nil || !copied {
+		return copied, err
+	}
+	invalidateCursorAuthCache(p.Name)
+	return a.InspectAuth(ctx, p).Authenticated, nil
 }
 
 func (a *Adapter) Prepare(ctx context.Context, p model.Profile) error {

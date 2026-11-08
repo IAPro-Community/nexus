@@ -1076,9 +1076,15 @@ export const en = {
       'Review the pipeline and inspect dependencies with the graph in the same WorkPlan.',
     flowEvidenceTitle: 'Mission progress and evidence',
     flowEvidenceBody: 'See real execution status and evidence, not just an AI prediction.',
+    providerDiscoveryTitle: 'Connect an existing provider session',
+    providerDiscoveryBody:
+      'Nexus can detect a supported CLI session on this computer and copy it into an isolated account profile after you choose Connect.',
   },
   tour: {
     featureOpen: 'Explore this area',
+    providerDiscoveryTitle: 'Existing provider sessions',
+    providerDiscoveryBody:
+      'Connect a supported session detected on this computer to an isolated account profile.',
     composerPurposeTitle: 'What Composer does',
     composerPurposeBody:
       'Composer turns an idea or an existing project into a revisable plan. It does not execute code just by opening a session.',
@@ -1413,6 +1419,16 @@ export const en = {
     filterProviderAll: 'All providers',
     addAccount: 'Add account',
     addAccountDesc: 'Connect or register a profile for detected CLI providers.',
+    discoveryTitle: '{{provider}} session found on this computer',
+    discoveryEmailDesc: 'Active account ({{email}}) ready to connect.',
+    discoveryReadyDesc: 'Authentication ready to use.',
+    quickConnect: '1-click connect',
+    connecting: 'Connecting…',
+    registerLinkedFromHost:
+      'Linked existing {{provider}} login from this computer ({{plan}}). No credentials had to be re-entered.',
+    hostSessionFound: 'Session found on this computer',
+    hostSessionDesc:
+      'This account ({{email}}) will be connected automatically without needing to log in again.',
     addAnotherProfileCta: 'Add another profile',
     loginCta: 'Log in',
     openTerminalCta: 'Open terminal',
@@ -3486,9 +3502,15 @@ export const ptBR = {
     flowEvidenceTitle: 'Progresso e evidências da Mission',
     flowEvidenceBody:
       'Consulte resultados e estados reais de execução, não apenas previsões da IA.',
+    providerDiscoveryTitle: 'Conecte uma sessão de provedor existente',
+    providerDiscoveryBody:
+      'O Nexus detecta uma sessão compatível neste computador e a copia para um perfil isolado após você escolher Conectar.',
   },
   tour: {
     featureOpen: 'Conhecer esta área',
+    providerDiscoveryTitle: 'Sessões existentes de provedores',
+    providerDiscoveryBody:
+      'Conecte uma sessão compatível detectada neste computador a um perfil isolado.',
     composerPurposeTitle: 'Para que serve o Composer',
     composerPurposeBody:
       'O Composer transforma uma ideia ou projeto existente em um planejamento revisável. Abrir uma elaboração não executa código.',
@@ -3823,6 +3845,16 @@ export const ptBR = {
     filterProviderAll: 'Todos provedores',
     addAccount: 'Adicionar conta',
     addAccountDesc: 'Conecte ou registre um perfil para os provedores CLI detectados.',
+    discoveryTitle: 'Sessão de {{provider}} encontrada neste computador',
+    discoveryEmailDesc: 'Conta ativa ({{email}}) pronta para ser conectada.',
+    discoveryReadyDesc: 'Autenticação pronta para uso.',
+    quickConnect: 'Conectar com 1 clique',
+    connecting: 'Conectando…',
+    registerLinkedFromHost:
+      'Vinculamos o login de {{provider}} já existente neste computador ({{plan}}). Nada foi digitado e a conta atual continua a mesma.',
+    hostSessionFound: 'Sessão encontrada no computador',
+    hostSessionDesc:
+      'Esta conta ({{email}}) será conectada automaticamente sem necessidade de novo login.',
     addAnotherProfileCta: 'Adicionar outro perfil',
     loginCta: 'Fazer login',
     openTerminalCta: 'Abrir terminal',
@@ -5908,9 +5940,15 @@ export const es = {
     flowGraphBody: 'Examine el pipeline y las dependencias en el grafo del mismo WorkPlan.',
     flowEvidenceTitle: 'Progreso y evidencias de Mission',
     flowEvidenceBody: 'Consulte estados y resultados reales, no solo previsiones de IA.',
+    providerDiscoveryTitle: 'Conecte una sesión existente del proveedor',
+    providerDiscoveryBody:
+      'Nexus detecta una sesión compatible en este equipo y la copia a un perfil aislado cuando elige Conectar.',
   },
   tour: {
     featureOpen: 'Conocer esta área',
+    providerDiscoveryTitle: 'Sesiones existentes de proveedores',
+    providerDiscoveryBody:
+      'Conecte una sesión compatible detectada en este equipo a un perfil aislado.',
     composerPurposeTitle: 'Para qué sirve Composer',
     composerPurposeBody:
       'Composer convierte una idea o proyecto existente en un plan revisable. Abrir una elaboración no ejecuta código.',
@@ -6245,6 +6283,16 @@ export const es = {
     filterProviderAll: 'Todos los proveedores',
     addAccount: 'Agregar cuenta',
     addAccountDesc: 'Conecte o registre un perfil para los proveedores CLI detectados.',
+    discoveryTitle: 'Sesión de {{provider}} encontrada en este equipo',
+    discoveryEmailDesc: 'Cuenta activa ({{email}}) lista para conectarse.',
+    discoveryReadyDesc: 'Autenticación lista para usar.',
+    quickConnect: 'Conectar con 1 clic',
+    connecting: 'Conectando…',
+    registerLinkedFromHost:
+      'Vinculamos el inicio de sesión de {{provider}} existente en este equipo ({{plan}}). No se tuvieron que ingresar credenciales.',
+    hostSessionFound: 'Sesión encontrada en el equipo',
+    hostSessionDesc:
+      'Esta cuenta ({{email}}) se conectará automáticamente sin necesidad de iniciar sesión nuevamente.',
     addAnotherProfileCta: 'Agregar otro perfil',
     loginCta: 'Iniciar sesión',
     openTerminalCta: 'Abrir terminal',

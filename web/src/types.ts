@@ -113,6 +113,15 @@ export interface ProviderInfo {
   structured_modes?: string[];
   control_level: string;
   capabilities: EffectiveCapabilities;
+  host_session?: {
+    provider?: string;
+    installed?: boolean;
+    available: boolean;
+    email?: string;
+    plan?: string;
+    auth_type?: string;
+    account_id?: string;
+  };
 }
 
 export interface NexusSystemInfo {

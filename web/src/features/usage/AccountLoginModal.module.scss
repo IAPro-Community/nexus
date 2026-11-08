@@ -154,6 +154,17 @@
   word-break: break-all;
 }
 
+.claudeMultiHint {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--nx-text-soft);
+  padding: 6px 8px;
+  background: var(--nx-surface-3, var(--nx-surface));
+  border-radius: var(--nx-radius-sm);
+  border: 1px solid var(--nx-border);
+}
+
 .footerActions {
   display: flex;
   align-items: center;

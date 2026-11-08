@@ -152,7 +152,7 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
                 href={guide.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ marginRight: 10 }}
+                className={styles.guideLink}
               >
                 {guide.label}
               </a>
@@ -211,6 +211,37 @@ export const RegisterProviderModal: React.FC<RegisterProviderModalProps> = ({
             Já existe um perfil deste provedor. Para adicionar outra conta, informe um nome de
             perfil diferente; para continuar com a conta atual, conclua o login em Uso/Contas.
           </p>
+        ) : null}
+
+        {selectedRegistration?.host_session?.available ? (
+          <div className={styles.hostSessionBanner} role="status">
+            <CheckCircle2 size={16} color="var(--nx-success)" />
+            <div className={styles.hostSessionInfo}>
+              <strong>{t('usage.hostSessionFound', 'Sessão encontrada no computador')}</strong>
+              <span>
+                {t('usage.hostSessionDesc', {
+                  email:
+                    selectedRegistration.host_session.email ||
+                    selectedRegistration.host_session.plan ||
+                    '',
+                  defaultValue:
+                    'Esta conta será conectada automaticamente sem necessidade de novo login.',
+                })}
+              </span>
+            </div>
+          </div>
+        ) : null}
+
+        {selectedProvider.toLowerCase() === 'claude' &&
+        !selectedRegistration?.host_session?.available ? (
+          <div className={styles.multiAccountTip}>
+            <p>
+              {t(
+                'usage.claudeMultiAccountHint',
+                'Dica: Se estiver adicionando uma segunda conta do Claude, lembre-se de autorizar no navegador usando uma janela anônima ou outro perfil do browser para não re-vincular a mesma conta.',
+              )}
+            </p>
+          </div>
         ) : null}
 
         <div className={styles.formGroup}>

@@ -179,6 +179,37 @@ func (a *Adapter) Logout(ctx context.Context, p model.Profile) error {
 	return nil
 }
 
+// DetectHostAuth inspects the host machine for AGY credentials and installation.
+func (a *Adapter) DetectHostAuth(ctx context.Context) (model.HostAuthDetection, bool) {
+	det := model.HostAuthDetection{
+		Provider: string(a.ID()),
+	}
+	detectResult := a.Detect(ctx)
+	det.Installed = detectResult.Installed
+
+	hostHome := security.FindHostHome()
+	if hostHome == "" {
+		return det, false
+	}
+	for _, relative := range []string{
+		filepath.Join(".gemini", "antigravity-cli", "antigravity-oauth-token"),
+		filepath.Join(".gemini", "antigravity-oauth-token"),
+	} {
+		tokenPath := filepath.Join(hostHome, relative)
+		data, err := os.ReadFile(tokenPath)
+		if err != nil {
+			continue
+		}
+		if validHostAgyAuthForHome(data, hostHome) {
+			det.Available = true
+			det.AuthType = "oauth"
+			det.Plan = "Antigravity Personal"
+			return det, true
+		}
+	}
+	return det, false
+}
+
 // ImportHostAuth copies AGY's file-backed OAuth token into an isolated Nexus
 // profile. Shared conversation artifacts are handled separately by Prepare.
 func (a *Adapter) ImportHostAuth(ctx context.Context, p model.Profile) (bool, error) {

@@ -507,6 +507,7 @@ export const WorkspaceSurfaceHost: React.FC<{
       };
       return (
         <UsageSurface
+          projectId={project.id}
           onStartTerminalLogin={(provider, profile) => openProviderShell(provider, profile, true)}
           onOpenProviderTerminal={(provider, profile) =>
             openProviderShell(provider, profile, false)

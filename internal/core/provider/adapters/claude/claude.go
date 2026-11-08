@@ -151,9 +151,82 @@ func (a *Adapter) ImportHostAuth(ctx context.Context, p model.Profile) (bool, er
 		if !a.InspectAuth(ctx, p).Authenticated {
 			return false, errors.New("host Claude session could not be verified in the Nexus profile")
 		}
+		// Extract minimal, non-sensitive identity metadata from host ~/.claude.json
+		hostClaudeJSON := filepath.Join(hostHome, ".claude.json")
+		if data, err := os.ReadFile(hostClaudeJSON); err == nil {
+			var cData struct {
+				OAuthAccount struct {
+					Email        string `json:"email"`
+					EmailAddress string `json:"emailAddress"`
+					Name         string `json:"name"`
+				} `json:"oauthAccount"`
+				UserID string `json:"userID"`
+			}
+			if json.Unmarshal(data, &cData) == nil {
+				email := cData.OAuthAccount.EmailAddress
+				if email == "" {
+					email = cData.OAuthAccount.Email
+				}
+				if email != "" || cData.UserID != "" {
+					sanitized := map[string]any{
+						"oauthAccount": map[string]any{
+							"email":        email,
+							"emailAddress": email,
+							"name":         cData.OAuthAccount.Name,
+						},
+						"userID": cData.UserID,
+					}
+					if outBytes, err := json.MarshalIndent(sanitized, "", "  "); err == nil {
+						_ = os.WriteFile(filepath.Join(root, "home", ".claude.json"), append(outBytes, '\n'), 0600)
+					}
+				}
+			}
+		}
 		return true, nil
 	}
 	return false, nil
+}
+
+// DetectHostAuth inspects the host machine for active Claude credentials
+// without modifying any profile or exposing secrets.
+func (a *Adapter) DetectHostAuth(ctx context.Context) (model.HostAuthDetection, bool) {
+	hostHome := security.FindHostHome()
+	if hostHome == "" {
+		return model.HostAuthDetection{}, false
+	}
+	cred, ok := readClaudeCredentials(hostHome)
+	if !ok || (strings.TrimSpace(cred.AccessToken) == "" && strings.TrimSpace(cred.RefreshToken) == "") {
+		return model.HostAuthDetection{}, false
+	}
+	email := cred.Email
+	if email == "" {
+		if data, err := os.ReadFile(filepath.Join(hostHome, ".claude.json")); err == nil {
+			var cData struct {
+				OAuthAccount struct {
+					Email        string `json:"email"`
+					EmailAddress string `json:"emailAddress"`
+				} `json:"oauthAccount"`
+				UserID string `json:"userID"`
+			}
+			if json.Unmarshal(data, &cData) == nil {
+				if cData.OAuthAccount.EmailAddress != "" {
+					email = cData.OAuthAccount.EmailAddress
+				} else if cData.OAuthAccount.Email != "" {
+					email = cData.OAuthAccount.Email
+				} else if cData.UserID != "" {
+					email = cData.UserID
+				}
+			}
+		}
+	}
+	installed := a.Detect(ctx).Installed
+	return model.HostAuthDetection{
+		Provider:  string(a.ID()),
+		Installed: installed,
+		Available: true,
+		Email:     email,
+		Plan:      "Claude Pro / Team",
+	}, true
 }
 
 func validHostClaudeAuth(data []byte) bool {
@@ -191,13 +264,16 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 	if data, err := os.ReadFile(claudeJson); err == nil {
 		var cData struct {
 			OAuthAccount struct {
-				Email string `json:"email"`
-				Name  string `json:"name"`
+				Email        string `json:"email"`
+				EmailAddress string `json:"emailAddress"`
+				Name         string `json:"name"`
 			} `json:"oauthAccount"`
 			UserID string `json:"userID"`
 		}
 		if json.Unmarshal(data, &cData) == nil {
-			if cData.OAuthAccount.Email != "" {
+			if cData.OAuthAccount.EmailAddress != "" {
+				info.Email = cData.OAuthAccount.EmailAddress
+			} else if cData.OAuthAccount.Email != "" {
 				info.Email = cData.OAuthAccount.Email
 			} else if cData.UserID != "" {
 				info.Email = cData.UserID

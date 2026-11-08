@@ -6,7 +6,7 @@ import {
   parseFeatureTourProgress,
 } from './featureTourDefinitions';
 
-describe('Composer and Flow contextual tours', () => {
+describe('Contextual feature tours', () => {
   it('provides real distinct step identifiers per surface', () => {
     expect(Object.keys(featureTourSteps)).toEqual([
       'composer-start',
@@ -15,6 +15,7 @@ describe('Composer and Flow contextual tours', () => {
       'flow-library',
       'flow-run',
       'flow-editor',
+      'resources',
     ]);
     for (const [surface, steps] of Object.entries(featureTourSteps)) {
       expect(steps.length, surface).toBeGreaterThan(0);

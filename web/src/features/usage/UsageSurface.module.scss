@@ -36,6 +36,44 @@
   border-radius: var(--nx-radius-sm);
 }
 
+.discoveryList {
+  display: grid;
+  gap: 10px;
+}
+
+.discoveryBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface-2);
+  border: 1px solid var(--nx-accent-soft, var(--nx-border));
+}
+
+.discoveryIcon {
+  color: var(--nx-accent);
+  flex-shrink: 0;
+}
+
+.discoveryContent {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+  font-size: 13px;
+
+  strong {
+    color: var(--nx-text);
+  }
+
+  span {
+    color: var(--nx-text-soft);
+    font-size: 12px;
+  }
+}
+
 .toolbar {
   display: flex;
   flex-wrap: wrap;

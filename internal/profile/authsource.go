@@ -5,10 +5,18 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	coreprovider "github.com/IAPro-Community/nexus/internal/core/provider"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/agy"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/claude"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/cursor"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/gemini"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/opencode"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/zcode"
 )
 
 const (
@@ -83,6 +91,71 @@ func hostAuthLinkSuppressed(provider, name string) bool {
 	return statErr == nil
 }
 
+// AdoptHostAuth copies the host CLI login into a profile that has no
+// credential of its own and records where it came from.
+//
+// The credential is never overwritten and provenance is always recorded.
+func AdoptHostAuth(ctx context.Context, p model.Profile) (model.AuthSource, bool) {
+	var src model.AuthSource
+	if hostAuthLinkSuppressed(p.Provider, p.Name) {
+		return src, false
+	}
+	if p.Provider == "codex" {
+		return codex.AdoptHostAuth(ctx, p)
+	}
+
+	var adapter coreprovider.Provider
+	switch p.Provider {
+	case "claude":
+		adapter = claude.New()
+	case "gemini":
+		adapter = gemini.New()
+	case "agy":
+		adapter = agy.New()
+	case "opencode":
+		adapter = opencode.New()
+	case "cursor":
+		adapter = cursor.New()
+	case "zcode":
+		adapter = zcode.New()
+	default:
+		return src, false
+	}
+
+	importer, canImport := adapter.(coreprovider.HostAuthImporter)
+	authProv, canInspect := adapter.(coreprovider.AuthProvider)
+	if !canImport || !canInspect {
+		return src, false
+	}
+
+	imported, err := importer.ImportHostAuth(ctx, p)
+	if err != nil || !imported {
+		return src, false
+	}
+
+	acc := authProv.InspectAuth(ctx, p)
+	if !acc.Authenticated {
+		return src, false
+	}
+
+	plan := acc.Plan
+	if plan == "" {
+		plan = adapter.Name()
+	}
+	src = model.AuthSource{
+		Origin:   model.AuthSourceOriginHost,
+		LinkedAt: time.Now().UTC(),
+		Plan:     plan,
+	}
+	root, err := config.ProfileRoot(p.Provider, p.Name)
+	if err == nil && root != "" {
+		if data, err := json.MarshalIndent(src, "", "  "); err == nil {
+			_ = os.WriteFile(filepath.Join(root, authSourceFileName), append(data, '\n'), 0600)
+		}
+	}
+	return src, true
+}
+
 // EnsureHostCredential links the host CLI login into a profile that has no
 // credential of its own, unless the user explicitly logged it out.
 //
@@ -96,5 +169,5 @@ func EnsureHostCredential(provider, name string) (model.AuthSource, bool) {
 	if hostAuthLinkSuppressed(provider, name) {
 		return model.AuthSource{}, false
 	}
-	return codex.AdoptHostAuth(context.Background(), model.Profile{Provider: provider, Name: name})
+	return AdoptHostAuth(context.Background(), model.Profile{Provider: provider, Name: name})
 }

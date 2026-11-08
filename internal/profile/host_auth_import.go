@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/cursor"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/gemini"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/opencode"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/zcode"
 	"github.com/IAPro-Community/nexus/internal/core/provider/authcopy"
 )
 
@@ -52,7 +54,7 @@ func ImportHostSessions(ctx context.Context) ([]HostSessionImportResult, error) 
 		return nil, err
 	}
 	providers := []coreprovider.Provider{
-		codex.New(), claude.New(), gemini.New(), agy.New(), opencode.New(), cursor.New(),
+		codex.New(), claude.New(), gemini.New(), agy.New(), opencode.New(), cursor.New(), zcode.New(),
 	}
 	results := make([]HostSessionImportResult, 0, len(providers))
 	for _, adapter := range providers {
@@ -247,4 +249,57 @@ func setDefaultIfUnavailable(
 	if defaultName != target.Name {
 		_ = config.SetDefaultProfile(providerID, target.Name)
 	}
+}
+
+// DetectHostAuth checks if an active authentication session exists on the host
+// machine for the given provider without modifying any profile or revealing secrets.
+func DetectHostAuth(ctx context.Context, providerID string) (model.HostAuthDetection, bool) {
+	var adapter coreprovider.Provider
+	switch strings.ToLower(providerID) {
+	case "claude":
+		adapter = claude.New()
+	case "codex":
+		adapter = codex.New()
+	case "gemini":
+		adapter = gemini.New()
+	case "agy":
+		adapter = agy.New()
+	case "opencode":
+		adapter = opencode.New()
+	case "cursor":
+		adapter = cursor.New()
+	case "zcode":
+		adapter = zcode.New()
+	default:
+		return model.HostAuthDetection{}, false
+	}
+
+	if detector, ok := adapter.(coreprovider.HostAuthDetector); ok {
+		return detector.DetectHostAuth(ctx)
+	}
+	return model.HostAuthDetection{}, false
+}
+
+// DetectAllHostAuth inspects all registered native providers and returns all host detections.
+func DetectAllHostAuth(ctx context.Context) []model.HostAuthDetection {
+	providers := []coreprovider.Provider{
+		codex.New(), claude.New(), gemini.New(), agy.New(), opencode.New(), cursor.New(), zcode.New(),
+	}
+	var detections []model.HostAuthDetection
+	for _, p := range providers {
+		detResult := p.Detect(ctx)
+		det := model.HostAuthDetection{
+			Provider:  string(p.ID()),
+			Installed: detResult.Installed,
+		}
+		if detector, ok := p.(coreprovider.HostAuthDetector); ok {
+			if hDet, found := detector.DetectHostAuth(ctx); found {
+				det = hDet
+			}
+		}
+		if det.Installed || det.Available {
+			detections = append(detections, det)
+		}
+	}
+	return detections
 }

@@ -30,6 +30,12 @@ type HostAuthImporter interface {
 	ImportHostAuth(ctx context.Context, p model.Profile) (bool, error)
 }
 
+// HostAuthDetector inspects the host environment for existing authentication
+// without modifying any profile or exposing raw credentials.
+type HostAuthDetector interface {
+	DetectHostAuth(ctx context.Context) (model.HostAuthDetection, bool)
+}
+
 // UsageProvider retrieves live or local usage metrics.
 type UsageProvider interface {
 	GetUsage(ctx context.Context, p model.Profile) model.UsageSnapshot

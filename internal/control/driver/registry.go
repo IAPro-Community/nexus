@@ -27,6 +27,7 @@ func DefaultRegistry() *Registry {
 		defaultRegistry.Register(NewOpenCodeDriver())
 		defaultRegistry.Register(NewGeminiDriver())
 		defaultRegistry.Register(NewCursorDriver())
+		defaultRegistry.Register(NewZCodeDriver())
 		defaultRegistry.Register(NewShellDriver())
 		defaultRegistry.Register(NewFakeDriver())
 		// Experimental harnesses are opt-in until their authenticated
