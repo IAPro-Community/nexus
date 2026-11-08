@@ -16,28 +16,32 @@
             "web/src/workspace/WorkspaceRenderer.tsx"
           ],
           "testRefs": [
-            "internal/control/host/terminal_windows_test.go",
-            "web/src/workspace/presentation.test.ts",
-            "web/src/workspace/ptyLiveChrome.test.ts"
+            "web/src/workspace/state.test.ts",
+            "web/src/workspace/presentation.test.ts"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Auditoria: os testes afirmam persistência/migração do modelo de layout, mas não montam a UI nem provam que alternar abas/split preserva o PTY e evita relançar o provider; falta teste de integração no frontend.",
+          "assertionAudit": "partial"
         },
         {
           "acceptanceIndex": 1,
           "acceptance": "Control lease, Ctrl+C, setas, scrollback e resize PTY/ConPTY com dois clientes",
           "sourceRefs": [
+            "internal/control/host/host.go",
             "web/src/workspace/WorkspaceRenderer.tsx"
           ],
           "testRefs": [
+            "internal/control/host/host_test.go",
+            "internal/control/host/qa_test.go",
+            "internal/control/host/slash_prefix_test.go",
             "internal/control/host/terminal_windows_test.go",
-            "web/src/workspace/presentation.test.ts",
-            "web/src/workspace/ptyLiveChrome.test.ts"
+            "internal/control/protocol/protocol_test.go"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Auditoria: lease/handover, Ctrl+C routing, ring buffer, tecla ConPTY e resize efetivo para segundo cliente agora têm verificações, mas permanecem em cenários separados. Falta aceite integrado de concorrência/controle com scrollback após reconnect; validar resize em runner Windows/ConPTY continua necessário.",
+          "assertionAudit": "partial"
         }
       ],
       "verification": "pending"

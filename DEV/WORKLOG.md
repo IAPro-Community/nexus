@@ -1,3 +1,11 @@
+## 2026-11-08 — P0 A1: primeira auditoria de assertions
+
+- Auditei os dois critérios da capacidade `terminal-studio` contra as assertions reais, em vez de contar referências de arquivo. O teste de estado do workspace prova persistência de layout, não preservação do processo ao alternar UI. Testes de host validam lease/handover, Ctrl+C routing, ring buffer e tecla ConPTY separadamente, mas não o aceite composto.
+- Gap confirmado: sem teste de integração UI que demonstre nenhum relaunch, e sem caso host com dois clientes, resize efetivo e scrollback após reconexão. `protocol_test.go` só valida o envelope de resize.
+- Atualizei `docs/reference/agent-workspace-v1-evidence-map.json` com assertions auditadas como parciais e lacunas concretas. O mapa continua explicitamente não-certificador; as 48 capacidades seguem pendentes.
+- Implementei `TestSessionHostResizeFromSecondAttachedClientReachesPTY`, com backend de resize observado e duas conexões anexadas; o teste focado passou. Cobertura agora prova o encaminhamento do resize, não o aceite composto nem Windows/ConPTY.
+- Próximo: cobrir preservação do PTY sem relaunch na UI e o cenário de scrollback após reconnect; então seguir para a próxima capacidade.
+
 ## 2026-11-08 — P0 A3: aguardar evidência após input em approval PTY
 
 - O aceite de A3 requer que input do usuário não confirme sozinho uma permission. A reprodução mostrou que `writeTerminalInput` chamava `ObserveOperatorInput`, limpando `needs_user` em Enter/y/n antes de qualquer resposta do provider.

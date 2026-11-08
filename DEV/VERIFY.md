@@ -1,3 +1,10 @@
+## P0 A1 — auditoria semântica inicial de terminal-studio — 2026-11-08
+
+- PASS — `node scripts/verify-agent-workspace-evidence-map.mjs`: o mapa mantém sincronismo estrutural (48 capacidades/96 critérios, zero aceites certificados).
+- Critério 0 — testes `state.test.ts`/`presentation.test.ts` validam migração/persistência do modelo de layout, mas não montam a UI nem provam que o PTY existente permanece montado sem relançar provider ao alternar abas/split. Falta teste de integração frontend.
+- Critério 1 — host/QA cobrem lease/handover de dois clientes; slash router verifica Ctrl+C; ring buffer e teste Windows de seta/ConPTY são isolados. Novo teste dirigido `TestSessionHostResizeFromSecondAttachedClientReachesPTY` PASS: request do segundo cliente resulta em `Resize(41,137)` no backend. Falta aceite integrado de concorrência/controle com scrollback após reconnect e execução em runner Windows/ConPTY.
+- O mapa agora registra `assertionAudit: partial` e as lacunas específicas. Mantém os critérios como `coverage: unverified`, capacidades `verification: pending`, estado global **NO_GO**.
+
 ## P0 A3 — input terminal não confirma aprovação — 2026-11-08
 
 - RED confirmado — regressão `TestTerminalInputSubmissionRequiresProviderTransitionToClearAttention` falhou antes da correção porque `writeTerminalInput("y")` removia `needs_user` sem resposta observada do provider.

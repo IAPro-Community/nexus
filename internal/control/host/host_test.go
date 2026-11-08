@@ -15,8 +15,19 @@ import (
 	"github.com/IAPro-Community/nexus/internal/control/events"
 	"github.com/IAPro-Community/nexus/internal/control/protocol"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/control/terminal"
 	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
 )
+
+type resizeRecordingBackend struct {
+	terminal.Backend
+	resizes chan [2]int
+}
+
+func (b *resizeRecordingBackend) Resize(rows, cols int) error {
+	b.resizes <- [2]int{rows, cols}
+	return b.Backend.Resize(rows, cols)
+}
 
 func waitForHostEndpoint(t *testing.T, runtimeID string) {
 	t.Helper()
@@ -632,6 +643,79 @@ func TestSessionHost_ExplicitLeaseAcquireRelease(t *testing.T) {
 	}
 	if !resp.OK {
 		t.Fatalf("clientB lease_release not OK: %s", resp.Error)
+	}
+}
+
+func TestSessionHostResizeFromSecondAttachedClientReachesPTY(t *testing.T) {
+	runtimeID := "rt-resize-second-client"
+	backend := &resizeRecordingBackend{
+		Backend: terminal.NewBackendForProvider("test"),
+		resizes: make(chan [2]int, 1),
+	}
+	sess := registry.RuntimeSession{
+		RuntimeID:    runtimeID,
+		ProviderID:   "test",
+		ProfileID:    "default",
+		Workspace:    os.TempDir(),
+		State:        registry.StateStarting,
+		ControlLevel: registry.ControlLevelTerminal,
+	}
+	sh, err := NewSessionHost(Config{
+		Session:         sess,
+		Binary:          interactiveTestTerminalBinary,
+		Args:            interactiveTestTerminalArgs(),
+		Env:             os.Environ(),
+		Cwd:             os.TempDir(),
+		terminalBackend: backend,
+	})
+	if err != nil {
+		t.Fatalf("create SessionHost: %v", err)
+	}
+	if err := sh.Start(); err != nil {
+		t.Fatalf("start SessionHost: %v", err)
+	}
+	defer sh.Stop()
+	waitForHostEndpoint(t, runtimeID)
+
+	first, err := protocol.NewClient(runtimeID)
+	if err != nil {
+		t.Fatalf("connect first client: %v", err)
+	}
+	defer first.Close()
+	firstAttach, err := first.Send(protocol.CmdAttach, nil)
+	if err != nil {
+		t.Fatalf("attach first client: %v", err)
+	}
+	waitForTerminalReady(t, first, firstAttach.Data)
+
+	second, err := protocol.NewClient(runtimeID)
+	if err != nil {
+		t.Fatalf("connect second client: %v", err)
+	}
+	defer second.Close()
+	if _, err := second.Send(protocol.CmdAttach, nil); err != nil {
+		t.Fatalf("attach second client: %v", err)
+	}
+
+	request, err := protocol.NewRequest(protocol.CmdResize, protocol.ResizePayload{Rows: 41, Cols: 137})
+	if err != nil {
+		t.Fatalf("build resize request: %v", err)
+	}
+	payload, err := json.Marshal(request)
+	if err != nil {
+		t.Fatalf("marshal resize request: %v", err)
+	}
+	if _, err := second.RawConn().Write(append(payload, '\n')); err != nil {
+		t.Fatalf("send resize from second client: %v", err)
+	}
+
+	select {
+	case size := <-backend.resizes:
+		if size != [2]int{41, 137} {
+			t.Fatalf("PTY resize = %v, want [41 137]", size)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("resize request from the second attached client did not reach the PTY backend")
 	}
 }
 
