@@ -2397,3 +2397,9 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - PASS — verificador do evidence map 4/4; estrutura 48/96: 87 source+test, 8 source-only, 1 unmapped; `git diff --check`.
 - GAP — não existe evidência de Mobile Inbox ou terminal em dispositivo remoto real; handover de lease em attached clients locais e token de túnel não demonstram continuidade ao trocar dispositivo nem revogação completa do acesso remoto. Capability permanece pending/NO_GO.
 
+## 2026-11-08 — auditoria semântica A1: mission-observatory
+
+- PASS — testes Go de evidência canônica 2/2 e testes de ciclo durável/fencing do runner 2/2.
+- PASS — projeção de estado/presentation Web 8/8 + 7 node pretests; evidence-map 48/96, verificador 4/4.
+- GAP — nenhum E2E do Observatory visual/read-only; `MissionRun` não contém `ExecutionOwner`, e `FlowRunSurface` permite mutações por estado terminal sem checar owner. Não existe prova de que um só owner (Nexus/Maestro) controla retries/cancelamentos. Capability e integração seguem **NO_GO**.
+

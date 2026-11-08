@@ -7028,3 +7028,10 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Revisão: túnel SSH/bootstrap, convite seguro de uso único, handover stale do túnel, handover de writer lease e deduplicação/foco de push têm asserts reais. Nenhum cobre dispositivo mobile separado com inbox/terminal, continuação da mesma sessão após troca de device, nem revogação end-to-end.
 - PASS — 2 testes de lease no host, 4 testes de túnel no Web Go, atenção 5/5 + node pretests 7/7, evidence-map 4/4, estrutura 48/96, diff check.
 - Próximo — implementar e homologar acesso remoto multi-device com revogação; continuar a revisão semântica dos critérios.
+
+## 2026-11-08 — P0 A1: auditoria semântica mission-observatory
+
+- `FlowRunSurface` apresenta estado de Mission, packages, Agent atribuído, contexto/dependências e bundle de provas; ações são roteadas diretamente ao Nexus API. Tests cobrem mapeamento de estado, evidência persistida e ciclo durável de pause/resume/cancel/fencing.
+- Lacuna arquitetural confirmada: `runner.MissionRun` não possui `ExecutionOwner`; a UI não deriva mutabilidade de owner e não há roteamento testado entre Nexus e Maestro. Não afirmar ownership único apenas porque a implementação atual chama Nexus.
+- PASS — 2 Go tests de evidence bundle, 2 testes runner durável/fencing, 8 Vitest + 7 node pretests, verificador 4/4, mapa e diff check.
+- Próximo — materializar ExecutionOwner no contrato da execução e roteamento de mutation, com testes e compatibilidade Maestro; provar Observatory com E2E.

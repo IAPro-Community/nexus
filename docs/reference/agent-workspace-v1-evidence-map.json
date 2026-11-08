@@ -253,22 +253,25 @@
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Auditoria parcial: FlowRunSurface projeta Mission, packages/agentes, dependências em capsules/receipts e bundle de evidências; flowRunModel/presentation cobrem mapeamentos de estado/dados e evidence_bundle_test prova receipts canônicos. Falta E2E da visualização read-only completa, vínculos de dependência e navegação do terminal no mesmo workspace. Capability pendente.",
+          "assertionAudit": "partial"
         },
         {
           "acceptanceIndex": 1,
           "acceptance": "ExecutionOwner controla mutações, retries e cancelamento",
           "sourceRefs": [
-            "web/src/features/work/FlowRunSurface.tsx"
+            "web/src/features/work/FlowRunSurface.tsx",
+            "internal/nexus/runner/runner.go",
+            "internal/nexus/runner/types.go"
           ],
           "testRefs": [
-            "internal/nexus/evidence_bundle_test.go",
-            "web/src/features/work/flowRunModel.test.ts",
-            "web/src/features/work/flowRunPresentation.test.ts"
+            "internal/nexus/runner/runner_durable_test.go",
+            "internal/nexus/runner/repository_concurrency_test.go"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Auditoria parcial: FlowRunSurface expõe pause/take-control/resume/cancel e MissionRunner persiste essas ações sob lease; testes cobrem ciclo durável e fencing. Porém MissionRun não tem campo ExecutionOwner e UI decide mutabilidade só pelo estado terminal, sem rotear por owner. Não há contrato/teste que faça owner único controlar retries e cancelamentos entre Nexus/Maestro. Capability pendente.",
+          "assertionAudit": "partial"
         }
       ],
       "verification": "pending"
