@@ -7087,3 +7087,10 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Nenhum teste cobre a composição real dos comandos, stale command após mudanças durante abertura, retorno/trap de foco, foco visível ou E2E em viewport mobile/desktop. Atualizei gaps do mapa sem promover capability.
 - PASS — 13 Vitest direcionados, 7 node pretests, evidence map e verificador 4/4.
 - Próximo — cobrir CommandPalette integrada com teclado/focus restore e cenários desktop/mobile.
+
+## 2026-11-08 — recheck first-run no SHA 0feb33f1
+
+- Reexecutei o E2E first-run no checkout atual: importação inicial, descoberta/quick-connect e refresh em Usage / Accounts passaram com servidor/browser fixture. Artefatos permaneceram em `/tmp`.
+- `directSessionLifecycle.test.ts` passou 9/9; falhas pré-start fazem rollback, erro de start incerto conserva o Agent para recuperação.
+- `make quality-full` passou: format, 6 warnings ESLint/0 erros, Web 131/818, Go completo e race, build/security; nenhum advisory govulncheck. `make docs-verify` passou (245 Markdown/33 assets).
+- Próximo: A2 ainda precisa de dois perfis reais e cancelamento autenticado sem órfão; preservar NO_GO e seguir P0/48 capacidades.

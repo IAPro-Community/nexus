@@ -1,3 +1,11 @@
+## Checkpoint A2 — first-run e lifecycle no SHA corrente — 2026-11-08
+
+- PASS — `NEXUS_E2E_ARTIFACTS_DIR=/tmp/nexus-first-run-evidence-0feb33f1 npm --prefix web run test:e2e:first-run-import`: importação inicial, descoberta/quick-connect e refresh em Usage / Accounts passaram no SHA `0feb33f1`. Artefatos sintéticos ficaram em `/tmp`.
+- PASS — `npm --prefix web exec -- vitest run src/features/work/directSessionLifecycle.test.ts`: 9/9 testes; setup falho antes do start remove o Agent, enquanto resposta incerta após start preserva a identidade para recuperação.
+- PASS — `make quality-full` no SHA `0feb33f1`: format-check, lint (6 warnings preexistentes/0 erros), TypeScript, Stylelint, build, 131 arquivos/818 testes Web, suíte Go completa, Go race e security; `govulncheck` sem vulnerabilidades.
+- PASS — `make docs-verify`: 245 Markdown e 33 assets/arquivos obrigatórios.
+- Limite — fixture não exercita duas contas/profiles reais nem cancelamento durante uma execução autenticada, não prova ausência de PTY órfão em Wails e não fecha A2. A matriz de 48 capacidades e o GO permanecem pendentes.
+
 ## Maestro — contrato canônico advice/verification — 2026-11-08
 
 - PASS — `NEXUS_MAESTRO_CLI_TEST_PATH=/home/desenvolvedor/.local/bin/maestro go test ./internal/nexus -run '^TestMaestroCLIContractInterop$' -count=1` contra Maestro `release/1.1.0@9c9c9eb`: capabilities, advice e verify reais passaram, sem execução de provider/Agent.
