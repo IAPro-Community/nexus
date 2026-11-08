@@ -6913,3 +6913,11 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Go tests e vet dos pacotes alterados, validação pública Maestro e teste focado 7/7 passaram. A suíte completa Maestro terminou 1360/3/4; falhas observadas nos checks de instalação devido a `CODEX_HOME` divergente.
 - Próximo passo permanece corrigir/reproduzir os failures em ambiente canônico, implementar advice/verification e obter E2E com duas contas AGY reais. Não declarar GO.
 - Após o push inicial, integrei o avanço remoto `aa137324` por merge sem rebase/force. Ele renova capturas Web sintéticas; isso não substitui inspeção visual nem constitui evidência de release. Incluí o merge e este checkpoint operacional no push de sincronização.
+## 2026-11-08 — Fechamento do gate Go e qualidade integral
+
+- Corrigidos findings de `golangci-lint`: mensagens de erro em minúsculas, preservando enums de protocolo `CANCELLED`/`SIGNALLED`; simplificação da assinatura MCP; switches de teste para QF1003 e whitespace.
+- Commit/push `39fe7257 fix(go): clear release lint findings` em `release/v1.0.0`.
+- `make quality` PASS no código desse SHA: format-check, lint frontend (0 erros/6 warnings), lint styles, typecheck, lint Go (0 issues), suíte Go integral, Vitest (131 arquivos, 818 testes) e version-contract.
+- Interoperação Nexus→Maestro CLI real no SHA `39fe7257`: `TestMaestroCLIContractInterop` PASS (0,70 s).
+- Primeira execução de `make quality` terminou em erro durante `test-go`, sem diagnóstico preservado pela saída truncada; `make test-go` isolado e a repetição integral com log em `/tmp/nexus-quality-current.log` passaram. Repetir a qualidade no SHA do ledger.
+- NO_GO: permanecem P0s, 48 aceites, E2E de quota real AGY, homologação visual, plataformas e distribuição assinada.

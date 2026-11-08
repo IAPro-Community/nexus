@@ -1,6 +1,6 @@
 ## Estado corrente — atualização de handoff — 2026-11-08
 
-O `DEV/HANDOFF.md` é a referência de continuidade corrente. Nexus está publicado em `release/v1.0.0@b5cfe715`; Maestro em `release/1.1.0@9c9c9eb`, com contracts v1 e suite verde (1.369 pass/0 fail/4 skipped). Advice/verification existem no CLI e Nexus negocia versões e oferece endpoint autenticado de verify. `make quality` inicial parou no format-check; 24 arquivos foram normalizados e esse gate isolado passou; a execução completa ainda deve ser reiniciada após este ledger. A matriz canônica continua com 48/48 `verification: pending`. Permanecem: homologar balanceamento com duas contas AGY reais, fechar/evidenciar P0s, UI visual, plataformas e distribuição no SHA final. **Estado: NO_GO.**
+O `DEV/HANDOFF.md` é a referência de continuidade corrente. Nexus está publicado em `release/v1.0.0@39fe7257`; Maestro em `release/1.1.0@9c9c9eb`, com contracts v1 e suite verde (1.369 pass/0 fail/4 skipped). Advice/verification existem no CLI e Nexus negocia versões e oferece endpoint autenticado de verify. `make quality` passou no conteúdo de código de `39fe7257`, assim como a interoperação Go→CLI Maestro; repetir após o commit do ledger. A matriz canônica continua com 48/48 `verification: pending`. Permanecem: homologar balanceamento com duas contas AGY reais, fechar/evidenciar P0s, UI visual, plataformas e distribuição no SHA final. **Estado: NO_GO.**
 
 ## Estado ativo — fechamento 1.0/Maestro — 2026-11-06
 

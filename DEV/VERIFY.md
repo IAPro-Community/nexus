@@ -2280,3 +2280,12 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - Follow-up remoto `aa137324` (capturas sintéticas/manifesto visual) integrado por merge; artefatos sintéticos não são evidência de homologação visual nem mudam o NO_GO.
 - GO continua bloqueado: E2E com duas contas AGY e quota real de 5h não executado; Maestro ainda não fornece `advise --json`/`verify --json`; 48 capacidades seguem pendentes.
 
+## Recheck integral de qualidade — 2026-11-08 — código `39fe7257`
+
+- PASS — `make lint-go`: 0 issues após corrigir os findings reportados.
+- PASS — `make test-go`: suíte Go integral.
+- PASS — `make quality`: format-check; ESLint (0 erros, 6 warnings); Stylelint; TypeScript; Go lint (0 issues); testes Go; Vitest (131 arquivos, 818 testes); version-contract.
+- PASS — interoperação Nexus→Maestro CLI real em `39fe7257`: `TestMaestroCLIContractInterop` (1 teste; 0,70 s).
+- RECHECK — repetir `make quality` no SHA documental final; o comando passou no código de `39fe7257` antes da atualização deste ledger. Uma primeira execução teve falha em `test-go` sem diagnóstico preservado pela saída truncada; a repetição isolada e a segunda execução integral passaram.
+- NO_GO — estes gates de código não homologam P0, 48 capacidades, quota AGY em duas contas, UI visual no SHA publicado ou plataformas/distribuição.
+
