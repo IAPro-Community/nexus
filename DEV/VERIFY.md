@@ -2364,3 +2364,10 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - PASS — `nexus explain agy` seleciona o perfil 1 e rejeita o perfil 2 por quota desconhecida.
 - NO_GO — round-robin de duas contas e preservação da janela 5h não homologados; investigar o probe da segunda conta e a cobertura das janelas no parser.
 
+## 2026-11-08 — auditoria semântica A1: agent-command-center
+
+- PASS — `go test ./internal/nexus -run '^TestAgentApplicationServiceListScopesProjectAndProjectsEffectiveRuntimeState$' -count=1`: lista real do serviço contém apenas Agents do projeto consultado, projeta WORKING com runtime morto como RECOVERABLE e preserva status COMPLETED armazenado.
+- PASS — `node scripts/verify-agent-workspace-evidence-map.mjs`: 48 capacidades/96 critérios consistentes; 88 source-and-test-referenced, 8 source-only, nenhum aceite certificado.
+- PASS — `node --test scripts/verify-agent-workspace-evidence-map.test.mjs`: 4/4; `git diff --check`.
+- GAP — não existe verificação UI cobrindo cards e seleção direta; fluxo estruturado de WAITING/FAILED/COMPLETED até os cartões não está provado. Há heurísticas textuais de PTY na detecção de atenção, então referências dessa área não demonstram o requisito “sem inferir estado do texto”. `agent-command-center` e estado geral permanecem **NO_GO**.
+

@@ -6,6 +6,13 @@
 - A1 permanece parcial até revisão semântica de cada assertion candidata, cobertura dos oito source-only e reconciliação de claims sem declarar certificação. Próximo passo: auditar os vínculos do mapa e implementar/cobrir os gaps reais, mantendo `verification: pending`.
 - Auditoria em `terminal-studio`: E2E browser cria shell supervisionado e passa identidade runtime/superfície/.xterm sem relaunch por abas de produto; teste Go cobre resize do segundo cliente. E2E, mapa 4/4, `docs-verify` e `quality-full` passaram no worktree baseado em `c03f9ffa`. Falta provider IA, navegação split/tab de PTYs, scrollback no reconnect e runner Windows/ConPTY. Esta capacidade permanece pending.
 
+## P0 A1 — auditoria semântica seguinte: agent-command-center — 2026-11-08
+
+- Corrigir vínculos candidatos que não testavam o aceite. A regressão `TestAgentApplicationServiceListScopesProjectAndProjectsEffectiveRuntimeState` verifica o `AgentApplicationService.List` real, escopo do projeto, estado RECOVERABLE para runtime morto e preservação de COMPLETED persistido.
+- PASS — teste Go direcionado; `node scripts/verify-agent-workspace-evidence-map.mjs` (48/96, nenhum aceite certificado); testes do verificador (4/4); `git diff --check`.
+- Gap aberto: não há teste de UI para cartões e seleção direta; os estados awaiting/error/completion não foram provados chegando aos cards por fluxo estruturado sem heurística PTY, e COMPLETED não é estado tipado de Agent. Capability continua pending/NO_GO.
+- Próximo: continuar a revisão semântica do mapa e priorizar P0 sem cobertura. Não declarar GO sem homologação de capabilities no SHA final e gates externos.
+
 ## P0 A2 — onboarding first-run
 
 - E2E first-run fixture passou no SHA `59d1936a` para importação, conexão rápida e atualização da lista em Usage / Accounts.

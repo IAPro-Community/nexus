@@ -6991,3 +6991,11 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Consultados os snapshots por `profile.RefreshUsageSnapshotContext` (adaptador chama `agy --print=/quota`, sem enviar prompt de geração). Perfil 1 retornou `LIVE/CLI_OUTPUT` com duas janelas semanais e sem janela de 5h; perfil 2 permaneceu `UNKNOWN`, usando observação antiga (~51 h) que não é elegível para alocação automática.
 - `nexus explain agy` confirmou: perfil 1 elegível; perfil 2 rejeitado por quota desconhecida. Os dados atuais não permitem demonstrar a rotação segura entre as duas contas nem preservar quota 5h.
 - Próximo diagnóstico: descobrir por que o segundo probe live não atualiza e por que o resultado do primeiro omite as janelas 5h; manter fail-closed e não iniciar uma tarefa de modelo para simular rotação.
+
+## 2026-11-08 — P0 A1: auditoria semântica agent-command-center
+
+- Auditei os três caminhos candidatos do mapa. Os testes citados para modal/criação e `askAgentModel` não afirmam cartões, escopo de projeto, status renderizado nem seleção direta; removi essas associações do critério de cartões.
+- Adicionei `TestAgentApplicationServiceListScopesProjectAndProjectsEffectiveRuntimeState`, cobrindo listagem do serviço, isolamento entre dois projetos, projeção de runtime morto e preservação de status `COMPLETED` armazenado.
+- Atualizei o mapa com auditoria parcial e limites explícitos. Ele continua sem promover qualquer aceite/capability.
+- PASS — teste Go focado, verificador do evidence map (4/4), estrutura do mapa (48/96) e diff check.
+- Próximo — UI/E2E de cards/seleção; provar propagação estruturada dos estados sem heurística textual; continuar a revisão semântica dos critérios P0.

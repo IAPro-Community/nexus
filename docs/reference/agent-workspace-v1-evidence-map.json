@@ -61,28 +61,29 @@
             "web/src/features/agents/AgentsSurface.tsx"
           ],
           "testRefs": [
-            "internal/nexus/agent_application_test.go",
-            "web/src/features/agents/NewAgentModal.test.tsx",
-            "web/src/features/agents/askAgentModel.test.ts"
+            "internal/nexus/agent_application_test.go"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Auditoria parcial: TestAgentApplicationServiceListScopesProjectAndProjectsEffectiveRuntimeState verifica a lista limitada ao projeto e estado RECOVERABLE projetado para runtime morto. Ainda falta teste de UI que prove os cartões e a seleção direta do Agent correto; capacidade pendente.",
+          "assertionAudit": "partial"
         },
         {
           "acceptanceIndex": 1,
           "acceptance": "Trabalhando/aguardando/erro/concluído sem inferir estado do texto do CLI",
           "sourceRefs": [
-            "web/src/features/agents/AgentsSurface.tsx"
+            "web/src/features/agents/AgentsSurface.tsx",
+            "internal/control/host/attention.go"
           ],
           "testRefs": [
             "internal/nexus/agent_application_test.go",
-            "web/src/features/agents/NewAgentModal.test.tsx",
-            "web/src/features/agents/askAgentModel.test.ts"
+            "internal/control/host/attention_test.go",
+            "internal/control/host/osc7501_integration_test.go"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Auditoria parcial: a listagem preserva estados estruturados e converte WORKING com runtime morto em RECOVERABLE; os testes de atenção cobrem eventos estruturados, OSC e heurísticas textuais do PTY. Falta demonstrar no fluxo real que aguardando/erro/concluído chegam aos cartões por fonte estruturada sem heurística de texto; COMPLETED ainda não é um estado tipado do Agent. Capacidade pendente.",
+          "assertionAudit": "partial"
         }
       ],
       "verification": "pending"
