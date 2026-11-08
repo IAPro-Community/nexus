@@ -6999,3 +6999,10 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Atualizei o mapa com auditoria parcial e limites explícitos. Ele continua sem promover qualquer aceite/capability.
 - PASS — teste Go focado, verificador do evidence map (4/4), estrutura do mapa (48/96) e diff check.
 - Próximo — UI/E2E de cards/seleção; provar propagação estruturada dos estados sem heurística textual; continuar a revisão semântica dos critérios P0.
+
+## 2026-11-08 — P0 A1: auditoria semântica review-studio
+
+- Auditei `internal/nexus/runner/review.go` e os testes candidatos. O código oferece normalização/ledger de findings; os testes exercitam deduplicação, resolução/regressão e fases do pipeline com executor fake.
+- Nenhuma assertion demonstra co-localização de diff, teste, evidência e terminal; a suíte não prova UI read-only nem consentimento explícito para aplicar mudanças. O mapa agora registra essas lacunas e continua sem certificar a capability.
+- PASS — os três testes citados em `internal/nexus/runner/review_test.go`, mapa estrutural (48/96), testes do verificador (4/4) e `git diff --check`.
+- Próximo — continuar a auditoria semântica por critérios e fechar implementação dos gaps prioritários, sem converter pipeline de fixture em homologação.

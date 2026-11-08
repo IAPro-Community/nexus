@@ -11,6 +11,7 @@
 - Corrigir vínculos candidatos que não testavam o aceite. A regressão `TestAgentApplicationServiceListScopesProjectAndProjectsEffectiveRuntimeState` verifica o `AgentApplicationService.List` real, escopo do projeto, estado RECOVERABLE para runtime morto e preservação de COMPLETED persistido.
 - PASS — teste Go direcionado; `node scripts/verify-agent-workspace-evidence-map.mjs` (48/96, nenhum aceite certificado); testes do verificador (4/4); `git diff --check`.
 - Gap aberto: não há teste de UI para cartões e seleção direta; os estados awaiting/error/completion não foram provados chegando aos cards por fluxo estruturado sem heurística PTY, e COMPLETED não é estado tipado de Agent. Capability continua pending/NO_GO.
+- `review-studio` também auditado: os testes existentes cobrem ledger e pipeline fake, mas não a superfície workspace nem autorização explícita para aplicar mudanças; mapa marca cobertura parcial e capability continua pending.
 - Próximo: continuar a revisão semântica do mapa e priorizar P0 sem cobertura. Não declarar GO sem homologação de capabilities no SHA final e gates externos.
 
 ## P0 A2 — onboarding first-run

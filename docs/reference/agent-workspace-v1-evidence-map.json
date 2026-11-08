@@ -95,27 +95,31 @@
           "acceptanceIndex": 0,
           "acceptance": "Diff, teste, evidência e terminal no mesmo workspace",
           "sourceRefs": [
-            "internal/nexus/runner/review.go"
+            "internal/nexus/runner/review.go",
+            "internal/nexus/runner/runner.go"
           ],
           "testRefs": [
             "internal/nexus/runner/review_test.go"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Auditoria parcial: review_test.go percorre fases de revisão/verificação com executor fake e evidencia ordem do pipeline, mas review.go só normaliza e mantém findings. Não há superfície que reúna diff, resultados reais de teste, evidências e terminal no workspace nem E2E desse aceite. Capability pendente.",
+          "assertionAudit": "partial"
         },
         {
           "acceptanceIndex": 1,
           "acceptance": "Review read-only por padrão com autorização explícita para aplicar mudanças",
           "sourceRefs": [
-            "internal/nexus/runner/review.go"
+            "internal/nexus/runner/review.go",
+            "internal/nexus/runner/runner.go"
           ],
           "testRefs": [
             "internal/nexus/runner/review_test.go"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Auditoria parcial: review.go mantém o ledger semântico de findings; review_test.go cobre findings, remediação e prova o pipeline com executor fake sem dispatch de escrita nas fases REVIEW/VERIFICATION. Ainda não demonstra autorização explícita do usuário para aplicar mudanças nem UI read-only por padrão. Capability pendente.",
+          "assertionAudit": "partial"
         }
       ],
       "verification": "pending"

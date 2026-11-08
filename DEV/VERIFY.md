@@ -2371,3 +2371,9 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - PASS — `node --test scripts/verify-agent-workspace-evidence-map.test.mjs`: 4/4; `git diff --check`.
 - GAP — não existe verificação UI cobrindo cards e seleção direta; fluxo estruturado de WAITING/FAILED/COMPLETED até os cartões não está provado. Há heurísticas textuais de PTY na detecção de atenção, então referências dessa área não demonstram o requisito “sem inferir estado do texto”. `agent-command-center` e estado geral permanecem **NO_GO**.
 
+## 2026-11-08 — auditoria semântica A1: review-studio
+
+- PASS — `go test ./internal/nexus/runner -run '^(TestReviewFindingIdentityDeduplicatesAndResolves|TestMissionTeamPlannerBuilderReviewerVerifierPipeline|TestMissionTeamPlannerBuilderReviewerVerifierWithRemediationCycle)$' -count=1` (3 testes).
+- PASS — verificador do mapa (4/4), contrato 48/96 sem certificação e `git diff --check`.
+- GAP — os testes citados cobrem ledger de findings e pipeline com executor fake; não provam diff/testes/evidências/terminal no mesmo workspace, review UI read-only nem autorização humana explícita antes de aplicar mudanças. `review-studio` e estado geral permanecem **NO_GO**.
+
