@@ -400,27 +400,32 @@
           "acceptanceIndex": 0,
           "acceptance": "Command Palette pesquisa projetos, Agents, ações e superfícies",
           "sourceRefs": [
-            "web/src/app/commands/registry.ts"
+            "web/src/app/commands/registry.ts",
+            "web/src/app/NexusWorkspaceApp.tsx"
           ],
           "testRefs": [
             "web/src/app/commands/registry.test.ts"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Auditoria parcial: registry.test.ts cobre busca por label/keywords e prefixos project/agent/action/resource; NexusWorkspaceApp monta comandos de projetos e Agents reais, além de ações/surfaces. Falta teste de integração da lista dinâmica (troca de projeto, criação/remoção Agent) e execução da superfície correta sem efeito colateral de spawn além do comando explícito. Capability pendente.",
+          "assertionAudit": "partial"
         },
         {
           "acceptanceIndex": 1,
           "acceptance": "Atalhos e foco confiáveis em desktop e mobile",
           "sourceRefs": [
-            "web/src/app/commands/registry.ts"
+            "web/src/app/commands/CommandPalette.tsx",
+            "web/src/keyboard/KeyboardShortcutRegistry.ts",
+            "web/src/app/NexusWorkspaceApp.tsx"
           ],
           "testRefs": [
-            "web/src/app/commands/registry.test.ts"
+            "web/src/keyboard/KeyboardShortcutRegistry.test.ts"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Auditoria parcial: KeyboardShortcutRegistry.test.ts cobre escopo/teclas e evita disparar durante IME; CommandPalette implementa setas/Enter e SearchInput autoFocus, e app expõe acionador onCommand. Não há teste do componente para focus restore/trap e E2E desktop+mobile/teclado; comportamento responsivo e foco continuam pendentes. Capability pendente.",
+          "assertionAudit": "partial"
         }
       ],
       "verification": "pending"

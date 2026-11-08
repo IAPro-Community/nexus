@@ -7056,3 +7056,10 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Critério de agrupamento permanece parcial com refs de pipeline/worktree; critério filter/reorder fica source-only; nada é certificado.
 - PASS — cinco testes Go direcionados (MissionTeam/worktree/integration), evidence-map 48/96 (86 + 9 + 1), verificador 4/4 e diff check.
 - Próximo — implementar grupo persistente com filtros/reordenação que preservem view/runtime identity e testar UI/E2E.
+
+## 2026-11-08 — P0 A1: auditoria semântica quick-switcher
+
+- `registry.test.ts` cobre busca por label/keywords e scopes; `KeyboardShortcutRegistry.test.ts` cobre teclas/escopos e evita shortcut durante IME. CommandPalette tem seta/Enter, `SearchInput autoFocus`, e App monta comandos de projeto/Agent/ações.
+- Nenhum teste cobre a composição real dos comandos, stale command após mudanças durante abertura, retorno/trap de foco, foco visível ou E2E em viewport mobile/desktop. Atualizei gaps do mapa sem promover capability.
+- PASS — 13 Vitest direcionados, 7 node pretests, evidence map e verificador 4/4.
+- Próximo — cobrir CommandPalette integrada com teclado/focus restore e cenários desktop/mobile.

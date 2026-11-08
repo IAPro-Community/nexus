@@ -2421,3 +2421,9 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - PASS — evidence-map 48/96 agora tem 86 source+test, 9 source-only e 1 unmapped; verificador 4/4; `git diff --check`.
 - GAP — MissionTeam é pipeline interno de phases/packages, não agrupamento de Agents no produto. AgentsSurface tem busca/filtros e identity key, mas nenhum reorder nem teste da interação; capability permanece pending/NO_GO.
 
+## 2026-11-08 — auditoria semântica A1: quick-switcher
+
+- PASS — `npm --prefix web run test -- --run src/app/commands/registry.test.ts src/keyboard/KeyboardShortcutRegistry.test.ts`: 13 Vitest; 7 node pretests.
+- PASS — evidence map 48/96 (86 source+test, 9 source-only, 1 unmapped), testes do verificador 4/4 e `git diff --check`.
+- GAP — sem teste de integração da lista dinâmica de projetos/Agents nem do componente CommandPalette/focus return; não há E2E keyboard/focus em desktop e mobile. Capability permanece pending/NO_GO.
+
