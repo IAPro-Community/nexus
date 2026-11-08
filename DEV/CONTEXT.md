@@ -4,6 +4,8 @@ O `DEV/HANDOFF.md` é a referência de continuidade corrente. A rotação AGY ex
 
 Continuação em `fbe72c57`: mapa automatizado registrado em `docs/reference/agent-workspace-v1-evidence-map.json` para 48 capacidades/96 critérios. 88 critérios têm referências candidatas de teste e 8 são source-only; assertions não foram auditadas, a matriz oficial permanece 48/48 `pending`, e o mapa não certifica aceite. Ver `DEV/VERIFY.md` para os gates desta fatia.
 
+Atualização em 2026-11-08: `follow-agent` agora anexa em VIEW_ONLY e só solicita lease pelo botão explícito (`6960a1f7`); A4 recebeu testes de sessão/CSRF/revogação e fencing cross-runtime (`0ff1000e`). O commit remoto de recaptura sintética `f7120e79` foi integrado no merge local `65feebc0`; `make docs-verify` passou, sem comprovar E2E interativo de terminal. As 48 capacidades e o release continuam NO_GO.
+
 Em `59d1936a`, `make quality-full`, `make docs-verify` e E2E first-run fixture passaram (import, quick-connect e refresh); o E2E usa endpoints simulados. Após esse commit, foram adicionados registros locais do resultado A2; A2 continua parcial e a matriz permanece `NO_GO`.
 
 Continuação em `7c77317f`: A3 agora não marca uma aprovação resolvida só porque Enter/y/n foi enviado ao PTY; aguarda nova saída observada do provider, preservando source INFERRED. Testes dirigidos de `internal/control/host`, `internal/control/registry` e `internal/control/web`, `go vet` e `make quality-full` passaram nesse SHA; `make docs-verify` passou após o registro. A3/A4 seguem parciais.

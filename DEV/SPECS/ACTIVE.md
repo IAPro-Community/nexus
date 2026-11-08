@@ -1,7 +1,7 @@
 ## Continuação corrente — Nexus 1.0 / Maestro — 2026-11-08
 
 - Escopo inalterado: fechar P0s, contrato Maestro e homologar as 48 capacidades com evidência real no SHA de release; manter **NO_GO** enquanto houver pendências.
-- Checkpoint novo: `follow-agent` passa a anexar AgentTerminal em VIEW_ONLY e só adquire lease pelo botão explícito. Teste focal passou (20 Vitest + 7 auxiliares Node). O mapa registra o critério de pausa/follow como source-only e o de consentimento como parcial.
+- Checkpoint novo: `follow-agent` passa a anexar AgentTerminal em VIEW_ONLY e só adquire lease pelo botão explícito. Teste focal passou (20 Vitest + 7 auxiliares Node). O mapa registra o critério de pausa/follow como source-only e o de consentimento como parcial. A recaptura sintética remota `f7120e79` foi integrada e `make docs-verify` passou; falta E2E interativo do lease.
 - Auditoria A4: respostas stale e guard cross-runtime/projeto agora têm regressão que prova nenhum claim; sessão/CSRF/revogação estão ligadas ao endpoint de atenção no teste de rotas. Mission intervention possui idempotência/restart já coberta. A4 continua parcial por faltar provider E2E e ACL por projeto (single-user).
 - Aceite restante imediato: E2E WebSocket/UI de attach/tecla/revoke/reconnect e controle visual explícito de pausa; depois continuar a auditoria e resolução dos demais P0 e bloqueios de 48 capacidades, Maestro, quota AGY e release.
 - Escopo visível classificado como correção interna de consentimento/segurança; sem anúncio/tour novo.

@@ -12,7 +12,7 @@
 - Teste focal: `npm --prefix web run test -- --run src/nexus/agentTerminalModel.test.ts` — PASS, 7 testes Node auxiliares + 20 testes Vitest. `make quality-full` também PASS na árvore de trabalho: format, lint, typecheck/build, Web 131/818, Go integral + race e `govulncheck` sem vulnerabilidades (6 avisos ESLint preexistentes, 0 erros).
 - Auditoria do mapa: referências antigas de layout não provavam follow/pause nem consentimento. Critério de pausa ficou source-only; consentimento segue parcial, sem E2E integrado de WebSocket, revoke/reconnect.
 - Justificativa de catálogo: correção interna de consentimento/segurança do terminal, sem nova capacidade ou fluxo anunciável; não criar tour de produto.
-- `make docs-verify` BLOCKED: `scripts/docs-verify.mjs` recusa alterações visuais pendentes com o manifesto em SHA antigo `ee0e09c8`; requer captura verificável no candidato imutável. Não atualizei SHA nem inventei capturas.
+- O primeiro `make docs-verify` foi bloqueado pelo manifesto antigo `ee0e09c8`. O commit remoto `f7120e79` recapturou evidência sintética para `6960a1f7`; após integrar esse checkpoint, `make docs-verify` passou (245 Markdown / 33 assets). Isso não substitui E2E interativo do controle de lease.
 - Próximo: fechar gaps de `follow-agent` e continuar P0/48-capability. Estado permanece NO_GO.
 
 ## 2026-11-08 — P0 A3: isolamento entre perguntas simultâneas

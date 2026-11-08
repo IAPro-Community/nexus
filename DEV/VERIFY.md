@@ -14,7 +14,7 @@
 - Pendente — teste integrado do WebSocket/UI para provar ausência de lease em attach e após tecla e o comportamento de revoke/reconnect. O aceite de pausa/follow explícitos não está coberto nem localizado.
 - Catálogo: mudança classificada internamente como correção de consentimento/segurança, não novo recurso anunciável.
 - Veredito global e capability `follow-agent`: **NO_GO / pending**.
-- BLOCKED — `make docs-verify`: manifesto visual aponta para `ee0e09c8` e rejeita alterações renderizáveis não commitadas; a captura deve ser refeita/verificada no SHA imutável do candidato.
+- PASS — `make docs-verify` após integrar a recaptura sintética do commit `f7120e79`, ancorada em `6960a1f7`: 245 Markdown / 33 assets; não há alterações visuais posteriores no terminal. O gate documental não substitui E2E interativo de lease.
 
 ## P0 A1 — auditoria semântica inicial de terminal-studio — 2026-11-08
 
