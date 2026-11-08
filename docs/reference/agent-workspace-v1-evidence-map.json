@@ -553,15 +553,20 @@
           "acceptanceIndex": 1,
           "acceptance": "Ações direcionadas a geração e provider corretos com dados verificáveis",
           "sourceRefs": [
-            "web/src/components/GlobalAttentionRadar.tsx"
+            "web/src/components/GlobalAttentionRadar.tsx",
+            "internal/control/web/handlers_api.go",
+            "internal/nexus/runtime_application.go",
+            "internal/control/registry/attention_claim.go"
           ],
           "testRefs": [
-            "internal/control/host/attention_test.go",
-            "web/src/app/attentionRadarModel.test.ts"
+            "internal/control/web/handlers_attention_fence_test.go",
+            "internal/control/web/handlers_nexus_test.go",
+            "internal/control/registry/attention_claim_test.go"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Auditoria parcial: o guard valida fingerprint, revisão, generation e interaction_id; testes rejeitam revisão stale, input inseguro e guard de outro runtime/projeto sem reservar nenhuma intervenção. Teste HTTP cobre sessão, CSRF e revogação; Mission intervention tem resolução idempotente após restart. Ainda falta fluxo E2E do Radar até provider real/driver para provar choice/reject, continuidade da resposta e autorização por projeto (o servidor permanece single-user, sem ACL por projeto). Capability pendente.",
+          "assertionAudit": "partial"
         }
       ],
       "verification": "pending"

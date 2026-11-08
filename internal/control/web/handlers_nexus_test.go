@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
@@ -820,6 +821,22 @@ func TestNexusCSRFEnforcement(t *testing.T) {
 	assertNoCSRF(http.MethodPost, "/api/v1/agents/"+agent.ID+"/recover", nil)
 	assertBadCSRF(http.MethodPost, "/api/v1/agents/"+agent.ID+"/recover", nil)
 
+	// Typed attention replies are session-bound mutations and must use CSRF.
+	attentionPath := "/api/v1/runtimes/unknown-attention-runtime/respond-attention"
+	attentionBody := []byte(`{"input":"y","attention_fingerprint":"fingerprint","attention_revision":1,"attention_generation":"1:1"}`)
+	assertNoCSRF(http.MethodPost, attentionPath, attentionBody)
+	assertBadCSRF(http.MethodPost, attentionPath, attentionBody)
+	unauthenticated := &http.Client{}
+	unauthenticatedRequest, _ := http.NewRequest(http.MethodPost, base+attentionPath, bytes.NewReader(attentionBody))
+	unauthenticatedResponse, unauthenticatedErr := unauthenticated.Do(unauthenticatedRequest)
+	if unauthenticatedErr != nil {
+		t.Fatalf("unauthenticated attention response: %v", unauthenticatedErr)
+	}
+	unauthenticatedResponse.Body.Close()
+	if unauthenticatedResponse.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("attention response without a session status=%d, want 401", unauthenticatedResponse.StatusCode)
+	}
+
 	// --- authMiddleware routes (projects list) ---
 	// Project list POST without CSRF.
 	projectBody, _ := json.Marshal(map[string]string{"name": "x", "path": projDir})
@@ -857,6 +874,31 @@ func TestNexusCSRFEnforcement(t *testing.T) {
 	pdreq.Header.Set("X-CSRF-Token", csrf)
 	pdresp, _ := client.Do(pdreq)
 	pdresp.Body.Close()
+
+	// A revoked browser session cannot continue submitting attention responses.
+	authRequest := httptest.NewRequest(http.MethodGet, base+"/api/v1/session", nil)
+	sessionURL, err := url.Parse(base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, cookie := range client.Jar.Cookies(sessionURL) {
+		authRequest.AddCookie(cookie)
+	}
+	session := srv.auth.AuthenticateRequest(authRequest)
+	if session == nil {
+		t.Fatal("test session disappeared before revocation")
+	}
+	srv.auth.RevokeSession(session.ID)
+	revokedRequest, _ := http.NewRequest(http.MethodPost, base+attentionPath, bytes.NewReader(attentionBody))
+	revokedRequest.Header.Set("X-CSRF-Token", csrf)
+	revokedResponse, revokedErr := client.Do(revokedRequest)
+	if revokedErr != nil {
+		t.Fatalf("revoked attention response: %v", revokedErr)
+	}
+	revokedResponse.Body.Close()
+	if revokedResponse.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("revoked session attention response status=%d, want 401", revokedResponse.StatusCode)
+	}
 }
 
 func TestAgentConfigApplyRejectsUnallocatedProvider(t *testing.T) {

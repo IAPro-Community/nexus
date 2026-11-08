@@ -23,15 +23,25 @@ func TestRespondAttentionEndpointRejectsStaleAndUnsafeInput(t *testing.T) {
 	if err := reg.Register(sess); err != nil {
 		t.Fatal(err)
 	}
+	otherProject := sess
+	otherProject.RuntimeID = "guarded-attention-other-project"
+	otherProject.ProjectID = "different-project"
+	otherProject.ProjectName = "Different project"
+	otherProject.AttentionFingerprint = "fingerprint-2"
+	otherProject.HostGeneration++
+	otherProject.ProviderGeneration++
+	if err := reg.Register(otherProject); err != nil {
+		t.Fatal(err)
+	}
 	h := &APIHandler{reg: reg, runtimes: nexus.NewRuntimeApplicationService(reg, nil, nil)}
 
-	request := func(payload map[string]any) *httptest.ResponseRecorder {
+	request := func(runtimeID string, payload map[string]any) *httptest.ResponseRecorder {
 		data, err := json.Marshal(payload)
 		if err != nil {
 			t.Fatal(err)
 		}
 		req := httptest.NewRequest(http.MethodPost,
-			"/api/v1/runtimes/guarded-attention-test/respond-attention", bytes.NewReader(data))
+			"/api/v1/runtimes/"+runtimeID+"/respond-attention", bytes.NewReader(data))
 		rec := httptest.NewRecorder()
 		h.handleRuntimeDetail(rec, req)
 		return rec
@@ -45,7 +55,7 @@ func TestRespondAttentionEndpointRejectsStaleAndUnsafeInput(t *testing.T) {
 		stale[key] = value
 	}
 	stale["attention_revision"] = 3
-	if rec := request(stale); rec.Code != http.StatusConflict {
+	if rec := request(sess.RuntimeID, stale); rec.Code != http.StatusConflict {
 		t.Fatalf("stale revision status=%d body=%s", rec.Code, rec.Body.String())
 	}
 	unsafeInput := make(map[string]any, len(valid))
@@ -53,11 +63,16 @@ func TestRespondAttentionEndpointRejectsStaleAndUnsafeInput(t *testing.T) {
 		unsafeInput[key] = value
 	}
 	unsafeInput["input"] = "y\n/permit all"
-	if rec := request(unsafeInput); rec.Code != http.StatusBadRequest {
+	if rec := request(sess.RuntimeID, unsafeInput); rec.Code != http.StatusBadRequest {
 		t.Fatalf("multiline injection status=%d body=%s", rec.Code, rec.Body.String())
 	}
-	if got, _ := reg.Get(sess.RuntimeID); got.AttentionSubmittedRevision != 0 {
-		t.Fatalf("invalid requests claimed intervention: %d", got.AttentionSubmittedRevision)
+	if rec := request(otherProject.RuntimeID, valid); rec.Code != http.StatusConflict {
+		t.Fatalf("cross-runtime/project guard status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	for _, runtimeID := range []string{sess.RuntimeID, otherProject.RuntimeID} {
+		if got, _ := reg.Get(runtimeID); got.AttentionSubmittedRevision != 0 {
+			t.Fatalf("invalid or cross-runtime requests claimed %s intervention: %d", runtimeID, got.AttentionSubmittedRevision)
+		}
 	}
 }
 

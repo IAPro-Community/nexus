@@ -1,3 +1,11 @@
+## 2026-11-08 — P0 A4: fenced response e autorização do Radar
+
+- Ampliei regressões para provar que um guard de atenção da conta/runtime Alpha não responde a runtime Beta de outro projeto; stale, multiline e cross-runtime devem falhar sem reservar claim.
+- A rota HTTP `respond-attention` agora está coberta em `TestNexusCSRFEnforcement` para sessão ausente/revogada e CSRF ausente/inválido.
+- PASS — `go test ./internal/control/web -run 'TestRespondAttentionEndpointRejectsStaleAndUnsafeInput|TestNexusCSRFEnforcement' -count=1`.
+- Atualizei o mapa: código existente também faz claim atômico por geração, revisão e interaction ID; resolução de HumanIntervention tem replay idempotente após restart. Ainda falta E2E com driver/provider real, choice/reject e ACL por projeto (não existe no produto single-user).
+- Próximo: avançar os gaps de follow-agent/A3/A4, capacidades e gates externos; estado geral NO_GO.
+
 ## 2026-11-08 — `follow-agent`: lease de input depende de consentimento
 
 - Removi aquisição automática de lease ao abrir o WebSocket e ao digitar em VIEW_ONLY. O terminal passa a iniciar com stdin desabilitado e só habilita após receber lease CONTROL; o botão explícito continua solicitando o lease.

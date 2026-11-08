@@ -1,3 +1,10 @@
+## P0 A4 — fencing, autorização e isolamento de respostas — 2026-11-08
+
+- PASS — `go test ./internal/control/web -run 'TestRespondAttentionEndpointRejectsStaleAndUnsafeInput|TestNexusCSRFEnforcement' -count=1`.
+- Regressões verificam session ausente/revogada e CSRF ausente/inválido para POST; fingerprint/revisão/generation antigos e um guard de runtime/projeto diferente retornam conflito sem consumir claim.
+- Evidência relacionada: `TestAttentionRevisionAndOneShotClaimAcrossRegistryInstances` cobre claim atômico; `TestResolveInterventionHTTPDecisionSurvivesServerRestartExactlyOnce` cobre duplicate request idempotente no fluxo Mission.
+- Limite: não prova resposta ponta a ponta com provider real nem ACL por projeto; instalação ainda é single-user. A4 e `attention-radar` permanecem parciais/pending.
+
 ## `follow-agent` — lease sem consentimento — 2026-11-08
 
 - PASS — `npm --prefix web run test -- --run src/nexus/agentTerminalModel.test.ts`: 7 testes auxiliares Node e 20 Vitest; role CONTROL habilita input e VIEW_ONLY/role ausente não.
