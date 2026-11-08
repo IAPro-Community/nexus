@@ -1,3 +1,29 @@
+## 2026-11-04 — Autodiscovery Universal de Provedores CLI, Suporte ao ZCode e Scanner de Ecossistema
+
+- **Autodiscovery Abrangente em Todos os Adaptadores do Nexus**:
+  - Implementada a interface `HostAuthDetector` (`DetectHostAuth(ctx) (model.HostAuthDetection, bool)`) de forma unificada e não-destrutiva em todos os adaptadores de CLI:
+    - **Gemini**: inspeção de `~/.gemini/oauth_creds.json` com validação de tokens e sentinel de revogação.
+    - **AGY**: inspeção de `~/.gemini/antigravity-cli/antigravity-oauth-token` e resolução de conta Google.
+    - **OpenCode**: inspeção de `~/.local/share/opencode/auth.json` validando integridade de chaves.
+    - **Cursor**: inspeção de `~/.cursor/cli-config.json` e verificação rápida de sessão com fallback para probe de status CLI.
+    - **Codex & Claude**: identificação precisa de contas e planos no host.
+- **Suporte Nativo de 1ª Classe ao ZCode (`zcode`)**:
+  - Adicionado `model.ProviderZCode = "zcode"` e spec oficial em `internal/core/provider/spec/zcode.go` com candidatos binários, isolamento de ambiente (`ZCODE_HOME`, `HOME`, `XDG_CONFIG_HOME`), modos de execução (`-p`, `--resume`, `--mode yolo`) e golden contracts gerados em `testdata/zcode/contract.golden`.
+  - Implementado adaptador `internal/core/provider/adapters/zcode/zcode.go` com isolamento, `InspectAuth`, `DetectHostAuth`, `ImportHostAuth` (copiando e validando `credentials.json`, `provider_config.json`, `setting.json`) e testes unitários dedicados em `zcode_test.go`.
+  - Implementado driver de supervisão `internal/control/driver/zcode_driver.go` e registrado em `internal/control/driver/registry.go`.
+  - Integrado em `internal/profile/profile.go` (`ValidateProvider`, `List`), `internal/profile/account.go`, `internal/profile/authsource.go` e `internal/app/app.go` (`initRegistry`).
+- **Scanner Declarativo de CLIs de IA no Host (`scanner.go`)**:
+  - Catalogadas ferramentas do ecossistema a partir de referências canônicas do GitHub (`bradAGI/awesome-cli-coding-agents`, `MustCodeAl/awesome-ai-cli`): Tier 1 (nativas) e Tier 2 (Aider, Goose, GitHub Copilot CLI, OpenHands, Plandex).
+  - O comando `nexus import` agora varre, importa e exibe tanto as contas prontas para uso quanto as CLIs instaladas no sistema operacional.
+- **Interface Web & i18n**:
+  - Atualizado modal de cadastro de provedores (`RegisterProviderModal.tsx`) e `UsageSurface.tsx` com banner de descoberta com 1 clique.
+  - Estilização em SCSS Modules estrito (`RegisterProviderModal.module.scss`, `.guideLink`) sem inline styles.
+  - Chaves de internacionalização adicionadas em `pt-BR`, `en`, `es` (`resources.ts`).
+- **Validação e Testes**:
+  - Testes Go: `internal/core/provider/...`, `internal/profile/...`, `internal/control/...`, `internal/app/...` 100% aprovados.
+  - Testes Web: `typecheck`, `lint:styles`, `check:styles` e todos os 131 arquivos de teste (818 testes) 100% aprovados.
+  - Teste de CLI: `nexus providers` e `nexus import` executados com sucesso no host detectando Claude, Codex, Gemini, AGY, OpenCode, Cursor, ZCode e GitHub Copilot.
+
 ## 2026-10-29 — suporte completo a sessões do Navegador Nexus pelo agente AGY (MCP Auto-Provisioning)
 
 - **Diagnóstico do Desacoplamento entre AGY e o Navegador do Terminal Nexus**:
@@ -6822,3 +6848,39 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Fast-forward aplicado de `origin/release/v1.0.0` para `d66426af` antes do commit, sem conflitos com o trabalho local.
 - Após sincronizar, `internal/nexus` e `internal/control/web` passaram em `make test-go`. A execução paralela teve uma falha em `TestControlPlaneCLICommands`; a repetição isolada e `go test -tags=gtk3 ./internal/app -count=1` passaram. A rodada agregada fica registrada com essa ressalva.
 - `make format-check` passou após a sincronização. A falha reproduzível só na rodada paralela não ocorreu no pacote completo isolado.
+
+## 2026-11-04 — autodiscovery e importação contínua de contas (Claude & provedores)
+
+- Implementado o sistema de Autodiscovery e Adoção Contínua de contas locais existentes:
+  - Adicionado `HostAuthDetector` no contrato de provedores (`internal/core/provider/provider.go`) e tipo `HostAuthDetection` em `internal/core/model/types.go`.
+  - Implementado `DetectHostAuth` para os adaptadores Claude (`internal/core/provider/adapters/claude/claude.go`) e Codex (`internal/core/provider/adapters/codex/codex.go`), com extração resiliente de identidade (`emailAddress`/`email`).
+  - Corrigido o extrator de metadados em Claude para reconhecer o campo `emailAddress` da Anthropic e gravar identidade sanitizada em `home/.claude.json` sem vazar histórico.
+  - Generalizada a adoção automática em `AdoptHostAuth` (`internal/profile/authsource.go`, `internal/profile/profile.go` e `host_auth_import.go`), permitindo que a criação de perfil de qualquer provedor compatível adote a sessão do host em 1 clique sem abrir terminal.
+  - Adicionado o comando CLI `nexus import` em `internal/app/app.go` e verificação automática em `nexus add` para conectar imediatamente a conta local quando presente.
+  - Adicionado banner reativo de autodiscovery em `UsageSurface.tsx` e `UsageSurface.module.scss`, permitindo conectar contas detectadas no computador com 1 clique.
+  - Adicionado destaque de sessão existente e dica de prevenção contra colisão de cookies/janela anônima para Claude em `RegisterProviderModal.tsx` e `AccountLoginModal.tsx`.
+- Validação: suíte de testes de `internal/...` (PASS), testes web Vitest (818 testes PASS), TypeScript `typecheck` (PASS), Stylelint e ESLint (PASS).
+
+## 2026-11-06 — checkpoint de retomada para Nexus 1.0 e Maestro
+
+- Objetivo expandido pelo maestro: concluir P0, integração canônica com Maestro e homologar as 48 capacidades sem declarar GO sem evidência real.
+- Confirmei a autoridade do contrato em `docs/reference/agent-workspace-v1.json`: 48 capacidades são `releaseRequired`; inventário inicial 3 `present`, 31 `partial`, 14 `missing`; todas ainda têm `verification: pending`. A auditoria de 28/10 é estática e não é homologação.
+- Registrei escopo, autoridade e próxima ação em `DEV/SPECS/ACTIVE.md`, `DEV/CONTEXT.md`, `DEV/HANDOFF.md` e `DEV/VERIFY.md`. A próxima fatia segue Onda A/P0 da estratégia: comparar claims/capabilities reais e corrigir discrepâncias reproduzíveis.
+- Preservado o trabalho local anterior de autodiscovery/importação, ZCode, anúncio e E2E; não houve commit, push, branch alternativa ou publicação.
+- Evidência de validação da fatia anterior: Web `quality:full` (818 testes/build), E2E de import/autodiscovery/quick-connect com viewport 390px, pacotes Go focados e cross-compile terminal Windows passaram. `make format-check` ainda falha somente nos 23 arquivos Go fora do diff.
+
+## 2026-11-06 — verdade de capabilities e contrato Maestro parcial
+
+- A projeção legacy `ControlCapabilities` agora só retorna `true` quando status é `SUPPORTED` e `tested` é verdadeiro; harnesses experimentais permanecem desligados nesse contrato. Evidência detalhada não é descartada.
+- No checkout adjacente `/projetos/tools/Orquestrador-Maestro` (`release/1.1.0`), acrescentei `capabilities --json` e `skills list --json` com somente metadados canônicos e sem caminhos locais. Atualizei `CHANGELOG.md`; nenhuma alteração foi commitada.
+- Nexus deixa de considerar `version`/skills locais suficientes para integration-ready: requer `capabilities --json` válido. Não adicionei advice/verification sintéticos; sem contratos reais, essas operações seguem `MAESTRO_DEGRADED`.
+- PASS: Go `internal/control/driver`, `internal/control/web`, `internal/nexus`; `go vet` nos mesmos pacotes. Maestro: teste direcionado de compatibilidade 7/7; suíte completa iniciou, resultado pendente neste registro inicial.
+- Inventário oficial continua 48/48 pendentes. Próxima tarefa após o gate Maestro: consumir o CLI recém-alterado em integração real e seguir o primeiro conjunto A/P0; nada aqui certifica providers, segundo cliente, SHA publicado ou release.
+
+## 2026-11-06 — balanceamento round-robin de contas AGY
+
+- Por solicitação do maestro, `nexus agy:balance` e os aliases `:auto`/`:balanced` agora alternam perfis elegíveis com cursor persistido e lock entre processos. Seleção direta, fallback por quota/rate-limit e `nexus control start ... --profile balance|auto` usam o mesmo mecanismo; perfis nomeados permanecem explícitos.
+- Reutilizei o scheduler canônico para que autenticação, saúde, quota, disabled e cooldown continuem sendo os gates de elegibilidade. Quota UNKNOWN ou esgotada não é presumida disponível. Cursor grava JSON com permissões privadas via temp file, sync e rename atômico.
+- Documentei o contrato em `docs/account-selection.{pt-BR,en,es}.md` e acrescentei testes para aliases, concorrência, persistência e failover.
+- PASS: Go tests focados e race para scheduler/fallback/app; vet; cross-compile Windows AMD64 do scheduler; diff check. Isso não comprova distribuição real entre as duas contas do proprietário.
+- Limite: E2E autenticado com as duas contas AGY e quotas reais de 5h não foi possível nesta sessão. Não homologar a funcionalidade em produção nem promover Nexus 1.0/Maestro a GO. A suíte completa do Maestro permanece em 1334 pass / 4 fail / 4 skipped; detalhes/pendências em `DEV/HANDOFF.md` e `DEV/VERIFY.md`.

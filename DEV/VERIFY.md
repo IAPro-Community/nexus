@@ -1,3 +1,31 @@
+## Checkpoint — projeção conservadora de capabilities — 2026-11-06
+
+- PASS — `go test ./internal/control/driver ./internal/control/web`: ambos os pacotes passaram; o pacote `web` levou 62,5 s.
+- Regressão coberta: `SUPPORTED` com `tested:false` não vira `true` no contrato booleano legado. O `EffectiveCapabilities` detalhado continua preservando status e evidência.
+- Confirmado em runtime: o CLI Maestro instalado (`@iapro/orquestrador-maestro-cli` 1.1.0) rejeita `capabilities --json` e `advise --json`; a forma `skills list --json` também não é aceita. Portanto M9 e integração canônica Maestro permanecem NO_GO; não inferir homologação a partir dos fallbacks de skills locais.
+- Matriz `docs/reference/agent-workspace-v1.json`: 48 capacidades, todas `verification: pending`; `docs/reference/features.json` contém apenas 36 itens e precisa de reconciliação com o contrato de 48.
+- Sem execução autenticada de providers, aprovação visual do SHA publicado ou validação ponta a ponta de Maestro nesta etapa.
+
+## Checkpoint — contratos parciais Nexus↔Maestro — 2026-11-06
+
+- PASS — `go test ./internal/nexus`: pacote completo passou (71,978 s); inclui rejeição de disponibilidade baseada apenas em `version` e preservação dos contratos capabilities/skills/advice/verify com fixtures.
+- PASS — `go test ./internal/control/driver ./internal/control/web` e `go vet ./internal/control/driver ./internal/control/web ./internal/nexus`.
+- PASS — no checkout `/projetos/tools/Orquestrador-Maestro`, `node --test tests/legacy-compatibility.test.js`: 7/7. Suíte completa `npm test` ainda em execução neste checkpoint.
+- Maestro CLI agora tem `capabilities --json` e `skills list --json`, com metadados canônicos sanitizados (sem caminhos locais). O cliente Nexus exige capabilities explícitas; catálogo local/version string isolados não provam integração.
+- Ainda faltam no Maestro CLI `advise --json` e `verify --json`. Até esses comandos existirem e passarem E2E no binário integrado, `GetAdvice`/`Verify` permanecem degradados e M9 não está homologado.
+- `docs/reference/features.json` (36 features do produto) e `agent-workspace-v1.json` (48 capacidades de workspace) têm escopos distintos; não comparar suas contagens como divergência.
+- NO_GO: 48/48 ainda `verification: pending`; nenhuma validação real multi-cliente/provider ou SHA publicado ocorreu aqui.
+
+## Checkpoint de continuidade — autodiscovery e Product Discovery — 2026-11-06
+
+- PASS — `npm --prefix web run quality:full`: 131 suites de arquivo/818 testes Vitest; check de estilos, Prettier, ESLint sem erros (6 avisos preexistentes), Stylelint, TypeScript e build.
+- PASS — `NEXUS_E2E_ARTIFACTS_DIR=/tmp/nexus-host-session-e2e npm --prefix web run test:e2e:first-run-import`: importação no primeiro uso, autodiscovery em Recursos/Uso, conexão rápida única e refresh; verificado também viewport 390 px sem overflow horizontal. Capturas fixture em `/tmp/nexus-host-session-e2e/`.
+- PASS — `go test ./internal/profile ./internal/core/provider/adapters/... ./internal/core/provider/spec ./internal/control/driver ./internal/control/web ./internal/app` e `go vet` nos pacotes alterados.
+- PASS — `GOOS=windows GOARCH=amd64 go test -c -o /tmp/nexus-terminal-windows.test.exe ./internal/control/terminal` (cross-compile; não equivale a execução nativa Windows).
+- PASS — Prettier e `git diff --check` após corrigir a linha em branco final de WORKLOG.
+- FAIL preexistente e alheio a este diff — `make format-check` aponta 23 arquivos Go fora do escopo. O formatter dos arquivos Go alterados passou.
+- Não certifica conexão com provider real, screenshot no SHA publicado, CI same-SHA ou homologação de release.
+
 ## Verificação — roteamento de provider no Lead interativo — 2026-11-04
 
 - Base sincronizada com `origin/release/v1.0.0` em `d66426af` antes da validação.
@@ -2210,4 +2238,12 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - Validação de implementação e testes para `--yolo` persistido, atualização do modo Safe/YOLO no terminal e preservação da rolagem manual em mouse/PageUp/PageDown/Home/End: ver `DEV/validation/TERMINALS_AGENTS_YOLO_SCROLL_20261026.md`.
 - Escopo coberto: Codex (alias para a flag nativa), normalização compartilhada do launcher e ambos os componentes PTY, usados por OpenCode e Oh My Pi. Não foi feita chamada a modelo.
 - O binário beta.11 instalado continua aberto e não contém este overlay; há runtime Codex ativo. A atualização/reinício do aplicativo fica pendente para não interromper essa sessão.
+
+## Balanceamento persistente de contas — 2026-11-06
+
+- **PASS local** — `go test ./internal/core/scheduler ./internal/core/fallback ./internal/app -count=1` e o mesmo conjunto com `-race` passaram. Cobre alternância/persistência do cursor, concorrência, exclusão por cooldown/quota, failover e aliases de seleção.
+- **PASS local** — `go vet ./internal/core/scheduler ./internal/core/fallback ./internal/app`; cross-compile do pacote scheduler para `GOOS=windows GOARCH=amd64`; `git diff --check`.
+- Seleção manual: `nexus agy:balance`, `nexus agy:auto` e `nexus agy:balanced`. Um perfil nomeado continua pinado. O cursor fica em `account-rotation.json`, com lock entre processos e substituição atômica. UNKNOWN, sem autenticação, desativado, cooldown e quota esgotada não são elegíveis.
+- **HOMOLOGAÇÃO PENDENTE** — não há evidência nesta execução com duas contas AGY autenticadas e quota real de 5h, nem build publicado/SHA imutável. Não alterar o estado das 48 capacidades por estes testes locais; release e Nexus/Maestro permanecem NO_GO.
+- Maestro: a suíte completa terminou 1334 pass / 4 fail / 4 skipped; os 4 failures observados envolvem `CODEX_HOME` em `doctor --strict` e validações de instalação de perfil. `advise --json` e `verify --json` ainda faltam no contrato, portanto integração não homologada.
 

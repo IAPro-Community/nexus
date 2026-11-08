@@ -1,3 +1,14 @@
+## Escopo ativo — fechamento Nexus 1.0 e Maestro — 2026-11-06
+
+- Fechar os P0 definidos em `docs/strategy/ACTION_PLAN_2026-10-28.md` e o contrato canônico `docs/reference/agent-workspace-v1.json`.
+- Validar as 48 capacidades individualmente contra aceites e evidências do SHA corrente; manter `BLOCKED/UNVERIFIED` quando depender de provider real, segundo cliente, runner/plataforma ou conta externa.
+- Completar o contrato Nexus↔Maestro como dependência independente e opt-in, com ownership único de execução e memória, versão/capabilities verificadas, migração/backfill idempotente, rollback e modo degradado funcional.
+- Execução somente em `release/v1.0.0`; preservar as alterações locais existentes e não criar branch/commit/push automaticamente.
+- Aceite final exige evidência executável no SHA exato, sem afirmar GO com mocks, status estático ou documentação apenas. Estado inicial: matriz oficial registra 48 `releaseRequired`, todos com `verification: pending`; ver handoff e verify atuais.
+- Checkpoint 2026-11-06: fechada a projeção booleana de capability não testada; contratos read-only `capabilities --json` e `skills list --json` adicionados ao checkout Maestro 1.1.0 e validação de availability endurecida no Nexus. Advice/verificação canônicos ainda ausentes no Maestro, portanto a integração segue parcial e NO_GO.
+- Escopo adicionado pelo maestro 2026-11-06: balanceamento round-robin persistente entre perfis elegíveis, via `nexus <provider>:balance` e alias `:auto`; respeitar gates de quota/autenticação/cooldown e manter `:<perfil>` explícito fixo. Ver `docs/account-selection.pt-BR.md`.
+- Checkpoint 2026-11-06: implementação local do round-robin persistente concluída; `go test`/`-race`, `go vet`, cross-compile Windows do scheduler e `git diff --check` passam. Homologação com duas contas AGY autenticadas e quota real de 5h ainda pendente; não conta como evidência para fechar a capability ou liberar GO.
+
 ## Continuidade atual — versão 1.0.0-beta.11 e reconciliação upstream — 2026-10-26
 
 - Branch `release/v1.0.0`; base `9d8d30afcefb7ec667bc4a0d3c1d1da15faf41b0`. 15 commits do remoto reconciliados e validados.

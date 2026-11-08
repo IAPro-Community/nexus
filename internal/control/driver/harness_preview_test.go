@@ -25,6 +25,13 @@ func TestPreviewHarnessExplicitCapabilities(t *testing.T) {
 		t.Run(tc.id, func(t *testing.T) {
 			d := NewPreviewHarnessDriver(tc.id)
 			caps := d.EffectiveCaps(ctx, model.Profile{Name: "default"})
+			if caps.Process.Status != CapabilitySupported || caps.Process.Tested {
+				t.Fatalf("preview process evidence = %+v, want supported but untested", caps.Process)
+			}
+			legacy := d.Capabilities(ctx, model.Profile{Name: "default"})
+			if legacy.Process || legacy.Terminal || legacy.Attach {
+				t.Fatalf("legacy booleans must not enable untested preview controls: %+v", legacy)
+			}
 			if caps.StructuredEvents.Status == CapabilitySupported || caps.Approvals.Status == CapabilitySupported {
 				t.Fatal("preview must not advertise wired structured events or approvals")
 			}

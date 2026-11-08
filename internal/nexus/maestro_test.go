@@ -228,6 +228,24 @@ func TestMaestroCapabilitiesUsesExplicitSkillsListContract(t *testing.T) {
 	}
 }
 
+func TestMaestroVersionAloneDoesNotSatisfyCapabilitiesContract(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
+	bin := testutil.WriteFakeCommand(t, t.TempDir(), "maestro", []testutil.FakeCommandResponse{
+		{Args: []string{"version"}, Stdout: "1.1.0\n"},
+		{Args: []string{"--version"}, Stdout: "1.1.0\n"},
+	}, 2, "")
+	client := &MaestroClient{maestroBin: bin}
+	client.checkAvailability()
+	status := client.Status()
+	if status.Available || status.Mode != MaestroOff {
+		t.Fatalf("version-only Maestro must remain degraded: %+v", status)
+	}
+	if !strings.Contains(status.Error, "capabilities contract unavailable") {
+		t.Fatalf("missing explicit degraded reason: %q", status.Error)
+	}
+}
+
 func TestMaestroUnavailableWithoutExternalExecutable(t *testing.T) {
 	// The installed skills catalog may exist independently of the Maestro CLI.
 	// It must never mark the mandatory external executor as READY.

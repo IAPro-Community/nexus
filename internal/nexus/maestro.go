@@ -732,68 +732,38 @@ func (c *MaestroClient) queryCapabilities() (*MaestroCapability, error) {
 		return nil, fmt.Errorf("no maestro binary")
 	}
 
-	// 1. Prefer the machine-readable Maestro v1 contracts. Capabilities owns
-	// modes/gates/processes; skills list owns the skill inventory. Local
-	// manifests remain a bounded fallback/enrichment source for SKILL.md content.
-	cmd := executil.Command(c.maestroBin, "capabilities", "--json")
-	if out, err := cmd.Output(); err == nil {
-		var cap MaestroCapability
-		if err := json.Unmarshal(out, &cap); err == nil && cap.Version != "" {
-			var localSkills []MaestroSkillDesc
-			if dirs := findOrquestradorDirs(); len(dirs) > 0 {
-				if local, localErr := c.queryCapabilitiesFromDirs(dirs); localErr == nil {
-					localSkills = local.Skills
-				}
-			}
-			if cliSkills, skillsErr := c.querySkillsList(); skillsErr == nil {
-				cap.Skills = mergeMaestroSkillMetadata(cliSkills, localSkills)
-			} else if len(cap.Skills) > 0 {
-				cap.Skills = mergeMaestroSkillMetadata(cap.Skills, localSkills)
-			} else {
-				cap.Skills = localSkills
-			}
-			return &cap, nil
-		}
-	}
-
-	// 2. Query version from CLI
-	verOut, err := executil.Command(c.maestroBin, "version").Output()
+	// The explicit machine-readable contract is the compatibility boundary.
+	// A version string or local skills directory alone does not prove that the
+	// external Maestro runtime can negotiate modes, advice, or verification.
+	out, err := executil.Command(c.maestroBin, "capabilities", "--json").Output()
 	if err != nil {
-		fallbackOut, _ := executil.Command(c.maestroBin, "--version").Output()
-		verOut = fallbackOut
+		return nil, fmt.Errorf("maestro capabilities contract unavailable: %w", err)
 	}
-	version := strings.TrimSpace(string(verOut))
-	if version == "" {
-		version = "0.2.4"
+	var capability MaestroCapability
+	if err := json.Unmarshal(out, &capability); err != nil || strings.TrimSpace(capability.Version) == "" {
+		return nil, fmt.Errorf("maestro capabilities contract is invalid")
+	}
+	if len(capability.Modes) == 0 {
+		return nil, fmt.Errorf("maestro capabilities contract has no modes")
 	}
 
-	// 3. Resolve the explicit skills-list contract, then enrich/fallback from
-	// bounded local .orquestrador roots when the installed Maestro is older.
+	// Skills remain an independently queried inventory. Local manifests only
+	// enrich authoritative CLI entries or fill a missing skill list; they never
+	// make an incompatible Maestro binary appear available.
 	var localSkills []MaestroSkillDesc
 	if dirs := findOrquestradorDirs(); len(dirs) > 0 {
 		if cap, localErr := c.queryCapabilitiesFromDirs(dirs); localErr == nil && cap != nil {
 			localSkills = cap.Skills
 		}
 	}
-	var skillDescs []MaestroSkillDesc
 	if cliSkills, skillsErr := c.querySkillsList(); skillsErr == nil {
-		skillDescs = mergeMaestroSkillMetadata(cliSkills, localSkills)
+		capability.Skills = mergeMaestroSkillMetadata(cliSkills, localSkills)
+	} else if len(capability.Skills) > 0 {
+		capability.Skills = mergeMaestroSkillMetadata(capability.Skills, localSkills)
 	} else {
-		skillDescs = localSkills
+		capability.Skills = localSkills
 	}
-
-	sort.Slice(skillDescs, func(i, j int) bool {
-		return skillDescs[i].ID < skillDescs[j].ID
-	})
-	return &MaestroCapability{
-		Version: version,
-		Modes:   []string{"OFF", "ASSIST", "ORCHESTRATE"},
-		Skills:  skillDescs,
-		// Gates and processes are intentionally empty unless the Maestro binary
-		// reports them through capabilities --json. Nexus never invents them.
-		Gates:     []string{},
-		Processes: []string{},
-	}, nil
+	return &capability, nil
 }
 
 // Status returns the current Maestro integration status.

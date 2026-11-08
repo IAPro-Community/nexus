@@ -119,22 +119,24 @@ func TestHeadlessKickoffArgsMatchProviderCLIContracts(t *testing.T) {
 
 func TestReadOnlyReviewBooleanEvidenceProjection(t *testing.T) {
 	cases := []struct {
-		status CapabilityStatus
-		want   bool
+		name     string
+		evidence CapabilityEvidence
+		want     bool
 	}{
-		{CapabilitySupported, true},
-		{CapabilityPartial, false},
-		{CapabilityUnsupported, false},
-		{CapabilityUnknown, false},
-		{CapabilityNotTested, false},
+		{name: "supported and tested", evidence: CapabilityEvidence{Status: CapabilitySupported, Tested: true}, want: true},
+		{name: "supported but untested", evidence: CapabilityEvidence{Status: CapabilitySupported}, want: false},
+		{name: "partial", evidence: CapabilityEvidence{Status: CapabilityPartial, Tested: true}, want: false},
+		{name: "unsupported", evidence: CapabilityEvidence{Status: CapabilityUnsupported, Tested: true}, want: false},
+		{name: "unknown", evidence: CapabilityEvidence{Status: CapabilityUnknown, Tested: true}, want: false},
+		{name: "not tested", evidence: CapabilityEvidence{Status: CapabilityNotTested}, want: false},
 	}
 	for _, tc := range cases {
-		t.Run(string(tc.status), func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			caps := EffectiveCapabilities{
-				ReadOnlyReview: CapabilityEvidence{Status: tc.status},
+				ReadOnlyReview: tc.evidence,
 			}
 			if got := caps.ToBooleanCaps().ReadOnlyReview; got != tc.want {
-				t.Fatalf("read_only_review = %t for %q; want %t", got, tc.status, tc.want)
+				t.Fatalf("read_only_review = %t for %+v; want %t", got, tc.evidence, tc.want)
 			}
 		})
 	}

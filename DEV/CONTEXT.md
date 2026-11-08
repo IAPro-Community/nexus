@@ -1,3 +1,7 @@
+## Estado ativo — fechamento 1.0/Maestro — 2026-11-06
+
+Objetivo atual é fechar P0 e homologar a matriz canônica de 48 capacidades, além do contrato com Maestro, na branch release. O inventário `docs/reference/agent-workspace-v1.json` tem 48 itens `releaseRequired`, com 3 `present`, 31 `partial`, 14 `missing` e verificação pendente; esses estados descrevem implementação, não aprovação. A projeção legacy de capabilities agora exige `tested:true`. No Maestro 1.1.0 foram criados `capabilities --json` e `skills list --json`; Nexus passou a exigir o primeiro para marcar disponibilidade. `advise --json` e `verify --json` seguem ausentes, então o contrato de integração continua parcial. O CLI Nexus também está recebendo balanceamento round-robin persistente para `provider:balance`/`provider:auto`, integrado às regras de elegibilidade de quota, autenticação e cooldown. Maestro segue como autoridade externa para metodologia/skills/memória semântica; Nexus mantém runtime/execução. Handoff e evidências recentes em `DEV/HANDOFF.md` e `DEV/VERIFY.md`.
+
 ## Continuidade atual — versão 1.0.0-beta.11 e reconciliação upstream — 2026-10-26
 
 - Branch `release/v1.0.0`; base `9d8d30afcefb7ec667bc4a0d3c1d1da15faf41b0`. 15 commits do remoto reconciliados e validados.

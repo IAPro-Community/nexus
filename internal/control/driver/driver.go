@@ -66,21 +66,27 @@ type ControlCapabilities struct {
 
 // ToBooleanCaps converts EffectiveCapabilities to legacy ControlCapabilities.
 func (ec EffectiveCapabilities) ToBooleanCaps() ControlCapabilities {
+	// The legacy boolean contract has no field for confidence or verification.
+	// Only project a capability as enabled when its evidence is both supported
+	// and tested; richer clients can inspect EffectiveCapabilities directly.
+	supportedAndTested := func(e CapabilityEvidence) bool {
+		return e.Status == CapabilitySupported && e.Tested
+	}
 	return ControlCapabilities{
-		Process:          ec.Process.Status == CapabilitySupported,
-		Terminal:         ec.Terminal.Status == CapabilitySupported,
-		Attach:           ec.Attach.Status == CapabilitySupported,
-		StructuredEvents: ec.StructuredEvents.Status == CapabilitySupported,
-		Sessions:         ec.Sessions.Status == CapabilitySupported,
-		Resume:           ec.Resume.Status == CapabilitySupported,
-		Fork:             ec.Fork.Status == CapabilitySupported,
-		SubmitPrompt:     ec.SubmitPrompt.Status == CapabilitySupported,
-		CancelTurn:       ec.CancelTurn.Status == CapabilitySupported,
-		Approvals:        ec.Approvals.Status == CapabilitySupported,
-		NativeUIAttach:   ec.NativeUIAttach.Status == CapabilitySupported,
-		Headless:         ec.Headless.Status == CapabilitySupported,
-		SlashControl:     ec.SlashControl.Status == CapabilitySupported,
-		ReadOnlyReview:   ec.ReadOnlyReview.Status == CapabilitySupported,
+		Process:          supportedAndTested(ec.Process),
+		Terminal:         supportedAndTested(ec.Terminal),
+		Attach:           supportedAndTested(ec.Attach),
+		StructuredEvents: supportedAndTested(ec.StructuredEvents),
+		Sessions:         supportedAndTested(ec.Sessions),
+		Resume:           supportedAndTested(ec.Resume),
+		Fork:             supportedAndTested(ec.Fork),
+		SubmitPrompt:     supportedAndTested(ec.SubmitPrompt),
+		CancelTurn:       supportedAndTested(ec.CancelTurn),
+		Approvals:        supportedAndTested(ec.Approvals),
+		NativeUIAttach:   supportedAndTested(ec.NativeUIAttach),
+		Headless:         supportedAndTested(ec.Headless),
+		SlashControl:     supportedAndTested(ec.SlashControl),
+		ReadOnlyReview:   supportedAndTested(ec.ReadOnlyReview),
 		ControlLevel:     ec.ControlLevel,
 	}
 }
