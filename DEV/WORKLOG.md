@@ -1,3 +1,9 @@
+## 2026-11-08 — Normalização exigida pelo gate Go
+
+- `make quality` parou inicialmente em `format-check`: 23 arquivos Go não atendiam `gofmt -w -s`; `internal/nexus/maestro.go` também precisava do alinhamento `-s`.
+- Normalizei exatamente os 24 arquivos indicados; `make format-check` passou (Prettier e `gofmt -l` vazio). Commit `b5cfe715` enviado para `release/v1.0.0`.
+- A execução completa de `make quality` deve ser repetida desde o início neste SHA de registro; não inferir sucesso dos gates seguintes a partir da execução que parou na formatação.
+
 ## 2026-11-08 — Contratos canônicos Nexus↔Maestro v1
 
 - Maestro em `release/1.1.0@9c9c9eb` agora anuncia `contracts.advice` e `contracts.verification` e implementa `advise --json` via `SkillRouterV3` e `verify --json` de policy, sem executar checks/dereferenciar evidências. `verify --strict` da instalação preservado.

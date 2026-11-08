@@ -13,8 +13,9 @@ executa comandos nem abre as referências. O comando legado de instalação
 
 O cliente Nexus falha em modo degradado se o contrato respectivo não estiver
 anunciado, valida lifecycle/mode/verdict na resposta e rejeita intents com
-padrão de segredo. A integração e o teste cross-repo passam na árvore corrente,
-mas ainda precisam ser repetidos nos SHAs publicados. Isso não prova migração
+padrão de segredo. Teste Go, vet e teste cross-repo passaram em `f2f29cd0`;
+após a normalização mecânica Go, `make format-check` passou em `b5cfe715` e a
+interoperação deve ser repetida nesse SHA. Isso não prova migração
 de memória semântica, ownership de execução no caminho completo ou homologação
 M9; ver [handoff corrente](../../DEV/HANDOFF.md).
 

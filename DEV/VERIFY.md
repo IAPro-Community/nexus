@@ -1,3 +1,9 @@
+## Recheck de qualidade após formatação Go — 2026-11-08
+
+- Primeiro `make quality`: NO_GO em `format-check`; reportou 23 arquivos Go sem o formato de `gofmt -w -s`, inclusive o arquivo Nexus modificado.
+- PASS — `gofmt -w -s` nos 24 arquivos reportados e `make format-check` no commit `b5cfe715` (Prettier PASS e `gofmt -l` vazio).
+- PENDENTE — reiniciar `make quality` no SHA de registro após este checkpoint; a primeira execução não atingiu lint, suites, build ou security.
+
 ## Contratos de advice e verification — 2026-11-08
 
 - PASS — Maestro `release/1.1.0@9c9c9eb`: `npm test` 1.373 total, 1.369 pass, 0 fail, 4 skipped; `npm run validate`; `pwsh scripts/validate-public.ps1` (81 skills públicas, 58 contratos canônicos).

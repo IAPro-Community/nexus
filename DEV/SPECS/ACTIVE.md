@@ -4,7 +4,7 @@
 - Maestro `release/1.1.0@9c9c9eb`: suíte completa PASS (1.369/0 failures/4 skipped), `npm run validate` e validação pública PASS. CLI publica capabilities/advice/verification v1.
 - Nexus local agora negocia as versões, valida contratos, recusa advice com secret-like input e expõe endpoint autenticado para policy verification. `go test`/`vet` nos pacotes afetados e teste cruzado com CLI real passaram; alterações ainda não publicadas neste checkpoint.
 - Próximas entregas: republicar/revalidar Nexus no exact SHA; E2E AGY com duas contas e quota real; P0 de todas as ondas; registro de aceite/evidência exata para cada uma das 48; gates visuais, plataformas e distribuição aplicáveis.
-- Manter tudo em `release/v1.0.0`; Nexus `18570c03` é o último SHA publicado, antes da fatia local. Não declarar GO até validar o candidato final e dependências externas com evidência real.
+- Manter tudo em `release/v1.0.0`; Nexus `b5cfe715` é o último SHA publicado. O primeiro `make quality` parou na formatação; os 24 arquivos Go indicados foram formatados e `make format-check` isolado passou. Reexecutar gate completo após registrar o handoff. Não declarar GO até validar o candidato final e dependências externas com evidência real.
 
 ## Escopo ativo — fechamento Nexus 1.0 e Maestro — 2026-11-06
 
