@@ -1,3 +1,11 @@
+## AGY — quota recente e limite atual de balance — 2026-11-08
+
+- PASS — `nexus usage --refresh --json` executado pelo binário da árvore corrente, com saída sanitizada; não solicitou geração. Releitura: duas contas autenticadas, snapshots `CACHED/CLI_OUTPUT` com menos de 3 min, escopos verificáveis e correspondentes aos perfis.
+- Conta ordinal 1: 0/2 grupos com janela 5h; só semanal (Gemini e Claude/GPT). Conta ordinal 2: 2/2 grupos com 5h; ambos reportaram remaining 100. Identidades e e-mails não foram expostos no registro.
+- PASS — `go test ./internal/core/scheduler -run 'TestBalancedSelectionRotatesEligibleProfilesAndPersistsCursor|TestBalancedSelectionSkipsQuotaIneligibleAndExcludedProfiles|TestBalancedAGYSelectionRequiresFreshAttributableEvidenceForEveryKnownGroup' -count=1`: seleção round-robin persistente e hard gate passaram.
+- Resultado — há 2 perfis registrados, mas somente 1 elegível; não é possível provar alternância live entre duas contas sem inventar quota. O fail-closed continua necessário. Uma tentativa de chamar o CLI por `nexus agy:<perfil>` retornou usage/exit 2; a evidência válida veio da rota suportada de refresh do Nexus. Nenhum modelo foi executado.
+- Estado: AGY balance permanece NO_GO para a aceitação de duas contas; causa imediata é ausência upstream de janela 5h na primeira conta, apesar de autenticação válida.
+
 ## A2 — rollback de sessão direta antes do start — 2026-11-08
 
 - E2E atualizado em `web/scripts/e2e-first-run-import.mjs`: abre DirectSessionLauncher, simula criação de Agent e seleção de recurso, injeta falha em `config/apply` e exige DELETE compensatório antes de qualquer `/start`. Ordem observada: `create → select-resource → apply-config → delete`; nenhum PTY é iniciado pelo caminho exercitado.

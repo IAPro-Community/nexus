@@ -7100,3 +7100,9 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - E2E first-run agora exercita DirectSessionLauncher com falha em `config/apply`; a UI solicita DELETE do Agent recém-criado e nunca chama `/start`. Commit de código: `7effc914`.
 - PASS — `node --check`, Prettier, E2E first-run (4 cenários/fluxos), `make quality-full` no commit (Web 131/818, Go completo/race, build/security; 6 warnings ESLint), `make docs-verify`, mapa estrutural e `git diff --check`.
 - Limite: resposta de criação/seleção/config/delete foi fixture de browser; não prova transação no Core, Wails ou provider real. A2 permanece aberto.
+
+## 2026-11-08 — recheck AGY quota e balance
+
+- `nexus usage --refresh --json` fez refresh de quota sem chamar geração; saída foi projetada para não revelar nomes/e-mails. Dois perfis AGY estão autenticados, com escopos verificáveis e snapshots CACHED/CLI_OUTPUT recentes (<3 min). Conta 1 tem 0/2 grupos com 5h; conta 2 tem 2/2 (remaining 100).
+- PASS — regressões do scheduler para cursor persistente, conta inelegível e hard gate por grupos: `go test ./internal/core/scheduler -run 'TestBalancedSelectionRotatesEligibleProfilesAndPersistsCursor|TestBalancedSelectionSkipsQuotaIneligibleAndExcludedProfiles|TestBalancedAGYSelectionRequiresFreshAttributableEvidenceForEveryKnownGroup' -count=1`.
+- Limite — a primeira conta omite 5h na saída upstream; permanece 1/2 elegível e alternância live não pode ser demonstrada. A tentativa de chamada CLI por perfil via Nexus retornou usage/exit 2; a rota suportada de refresh foi usada para a evidência válida.

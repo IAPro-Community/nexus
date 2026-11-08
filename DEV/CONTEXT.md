@@ -2,6 +2,8 @@
 
 Commit de código `7effc914` adiciona cobertura E2E fixture do rollback antes do start: create → select-resource → config falha → delete, sem `/start`. E2E first-run e `make quality-full` passaram nesse commit; `make docs-verify` também passou. O browser intercepta APIs, portanto cleanup real no Core/Wails/provider continua sem prova. A2 parcial, 48 capabilities pending e GO permanece NO_GO; próximos gates estão em `DEV/HANDOFF.md`.
 
+Probe AGY atual (`nexus usage --refresh --json`, sem geração): duas contas autenticadas com escopo verificável e cache CLI_OUTPUT recente; a primeira tem 0/2 grupos com 5h, a segunda 2/2. Testes de rotação persistente passam, mas só uma conta é elegível ao vivo; balance permanece NO_GO.
+
 No checkout limpo `release/v1.0.0@0feb33f1`, o E2E fixture first-run passou para importação, quick-connect e refresh; a transação DirectSession passou 9/9; `make quality-full` passou (Web 131/818, Go completo/race, build e security; seis warnings ESLint existentes); `make docs-verify` passou (245 Markdown/33 assets). Isto atualiza evidência no SHA corrente, mas não fecha A2: faltam dois perfis reais e cancelamento autenticado sem Agent/PTY órfão. As 48 capacidades seguem pending, as lacunas P0/AGY/Maestro/distribuição continuam abertas e o estado permanece NO_GO. Próxima ação: seguir os gaps atuais de `DEV/HANDOFF.md`, priorizando execução real de P0s e quota AGY sem gerar modelo para forçar elegibilidade.
 
 ## Estado corrente — atualização de handoff — 2026-11-08
