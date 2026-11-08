@@ -1,3 +1,11 @@
+## 2026-11-08 — P0 A1: mapa estrutural das 48 capacidades
+
+- Criei `docs/reference/agent-workspace-v1-evidence-map.json` com 48 requisitos e 96 critérios, cada critério espelhando exatamente a aceitação canônica e apontando a source/test candidato. Resultado estrutural: 88 têm referências candidatas de teste; 8 estão source-only.
+- Adicionei `scripts/verify-agent-workspace-evidence-map.mjs` e testes de regressão (3/3 PASS) para detectar drift de IDs/aceites, paths ausentes/inseguros e tentativas de converter referência em certificação. O gate foi ligado a `make docs-verify`.
+- `make docs-verify` e `make quality-full` passaram no worktree baseado em `fbe72c57`: Go/Web quality, race, security, version-contract e os 3 testes negativos do mapa; `govulncheck` não encontrou vulnerabilidades. ESLint teve 6 warnings/0 erros.
+- O mapa não afirma que as assertions cobrem os critérios: todos continuam `unverified` e o verificador da matriz conserva 48/48 `verification: pending`.
+- Próximo passo: auditar relevância dos testes candidatos, localizar/corrigir os 8 critérios sem teste, então avançar as demais fatias P0 e evidência externa exact-SHA.
+
 ## 2026-11-08 — P0 A1: contrato de capabilities por driver
 
 - Adicionei teste transversal que compara `Capabilities()` de todos os drivers registrados a `EffectiveCaps().ToBooleanCaps()`, preservando `SUPPORTED && Tested` como único estado que ativa booleans legados.

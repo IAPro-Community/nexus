@@ -92,6 +92,7 @@
 
 ## Contratos públicos v1
 
+- [Contrato canônico de 48 capacidades](../docs/reference/agent-workspace-v1.json) e [mapa estrutural de código/testes por critério](../docs/reference/agent-workspace-v1-evidence-map.json) — o mapa não equivale a cobertura ou homologação.
 - [Como o Nexus funciona](../docs/product/how-it-works.md)
 - [Coordenação entre Agents](../docs/product/agent-coordination.md)
 - [Runtime da Mission](../docs/architecture/mission-runtime.md)

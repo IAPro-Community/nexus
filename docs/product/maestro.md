@@ -17,7 +17,8 @@ padrão de segredo. Teste Go, vet e teste cross-repo passaram em `f2f29cd0`;
 após a normalização mecânica Go, `make format-check` passou em `b5cfe715` e a
 interoperação deve ser repetida nesse SHA. Isso não prova migração
 de memória semântica, ownership de execução no caminho completo ou homologação
-M9; ver [handoff corrente](../../DEV/HANDOFF.md).
+M9. O estado de homologação precisa ser confirmado no registro de continuidade
+interno antes de uma declaração de release.
 
 > **Decisão arquitetural de 01/11/2026 (obrigatória para novos PRs):** o Maestro é a autoridade independente de contexto, memória semântica, composição, orquestração e execução dos runs delegados. Nexus consome apenas seu Bridge/API pública, sem integrar código interno, banco ou executor. As seções abaixo descrevem a **beta atual e sua transição**, não autorização para duplicar responsabilidades. Consulte [ADR Maestro externo](../architecture/MAESTRO_EXTERNAL_AUTHORITY_ADR.md) e [issue #176](https://github.com/IAPro-Community/nexus/issues/176).
 

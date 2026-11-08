@@ -2,7 +2,8 @@
 
 - Test transversal adicionado: toda capability booleana legada de cada driver registrado deve ser igual a `EffectiveCapabilities.ToBooleanCaps()` (`SUPPORTED && tested`).
 - Verificações passam: pacote `internal/control/driver`, catálogo de 48 (estrutura, ainda pending), catálogo de produto de 36 mappings e `make quality`.
-- A1 permanece parcial até automatizar mapa individual das 48 acceptance criteria para source/test e reconciliar claims sem inferir certificação. Próximo passo: construir esse mapa a partir de inventário verificável sem marcar `verification: verified`.
+- Criado `docs/reference/agent-workspace-v1-evidence-map.json`: 48 capacidades/96 critérios, com referências estruturais e status `unverified`; 88 critérios têm testes candidatos e 8 permanecem source-only. `node scripts/verify-agent-workspace-evidence-map.mjs` e testes do verificador garantem sincronia com o contrato, paths existentes e bloqueio a certificação implícita.
+- A1 permanece parcial até revisão semântica de cada assertion candidata, cobertura dos oito source-only e reconciliação de claims sem declarar certificação. Próximo passo: auditar os vínculos do mapa e implementar/cobrir os gaps reais, mantendo `verification: pending`.
 
 ## Continuidade ativa — hard gate de quota 5h no AGY balance — 2026-11-08
 

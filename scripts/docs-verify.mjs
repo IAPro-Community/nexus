@@ -217,6 +217,10 @@ const nexReferenceGate = spawnSync(process.execPath, [path.join(root, 'scripts/v
 if (nexReferenceGate.status !== 0) errors.push('NEX pixel-art reference pack failed: ' + (nexReferenceGate.stderr || nexReferenceGate.stdout || 'unknown error').trim());
 const catalogGate = spawnSync(process.execPath, [path.join(root, 'scripts/verify-feature-catalog.mjs')], { cwd: root, encoding: 'utf8' });
 if (catalogGate.status !== 0) errors.push('feature catalog gate failed: ' + (catalogGate.stderr || catalogGate.stdout || 'unknown error').trim());
+const workspaceEvidenceMapGate = spawnSync(process.execPath, [path.join(root, 'scripts/verify-agent-workspace-evidence-map.mjs')], { cwd: root, encoding: 'utf8' });
+if (workspaceEvidenceMapGate.status !== 0) errors.push('agent workspace source/test traceability gate failed: ' + (workspaceEvidenceMapGate.stderr || workspaceEvidenceMapGate.stdout || 'unknown error').trim());
+const workspaceEvidenceMapTests = spawnSync(process.execPath, ['--test', path.join(root, 'scripts/verify-agent-workspace-evidence-map.test.mjs')], { cwd: root, encoding: 'utf8' });
+if (workspaceEvidenceMapTests.status !== 0) errors.push('agent workspace evidence map regression tests failed: ' + (workspaceEvidenceMapTests.stderr || workspaceEvidenceMapTests.stdout || 'unknown error').trim());
 const releaseDocsGate = spawnSync(process.execPath, [path.join(root, 'scripts/verify-release-docs.mjs')], { cwd: root, encoding: 'utf8' });
 if (releaseDocsGate.status !== 0) errors.push('release docs contract gate failed: ' + (releaseDocsGate.stderr || releaseDocsGate.stdout || 'unknown error').trim());
 if (errors.length) {

@@ -1,5 +1,7 @@
 # Catálogo funcional rastreável
 
+[Contrato v1 de 48 capacidades](agent-workspace-v1.json) define o escopo obrigatório da release. O [mapa de evidência](agent-workspace-v1-evidence-map.json) liga cada critério de aceite a referências candidatas de código e testes; ele é somente rastreabilidade: paths existentes e testes candidatos não certificam cobertura nem substituem homologação exact-SHA.
+
 [features.json](features.json) descreve 36 capacidades do source com identificador, superfícies, status, arquivo de implementação, arquivo de teste, documento canônico, requisitos, limites e estados de evidência. A [matriz](feature-matrix.md) é gerada do JSON, não editada manualmente.
 
 ```bash

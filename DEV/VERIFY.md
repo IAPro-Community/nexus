@@ -1,3 +1,13 @@
+## Continuação — mapa rastreável das 48 capacidades — 2026-11-08
+
+- PASS — `node scripts/verify-agent-workspace-evidence-map.mjs`: 48 capacidades/96 critérios sincronizados ao contrato; 88 critérios com referências candidatas a testes e 8 source-only; nenhum aceite certificado.
+- PASS — `node --test scripts/verify-agent-workspace-evidence-map.test.mjs`: 3/3; falhas de critério ausente, promoção de aceite, path inseguro/inexistente e classificação contraditória foram rejeitadas.
+- PASS — `node scripts/verify-agent-workspace-v1.mjs`: escopo canônico validado; 48/48 continuam pending.
+- PASS — `node scripts/verify-feature-catalog.mjs`: 36 mappings do catálogo de produto permanecem válidos e separados do contrato de 48.
+- PASS — `make docs-verify`: 245 arquivos Markdown e 33 assets obrigatórios; inclui o mapa estrutural e seus testes de regressão.
+- PASS — `make quality-full`: formatação, ESLint (6 warnings/0 erros), Stylelint, TypeScript, Go lint, suíte Go, 131 arquivos/818 testes Web, version-contract, Go race e security; exit 0 no worktree baseado em `fbe72c57`; `govulncheck`: nenhum advisory encontrado.
+- Limite: o mapa usa auditoria estática anterior como origem dos paths e valida existência na árvore atual. A relação semântica de cada teste com cada assertion continua sem revisão; certificação e estado geral permanecem **NO_GO**.
+
 ## P0 A1 — projection contract and catalogs — 2026-11-08
 
 - PASS — `go test ./internal/control/driver`, including the new all-registered-drivers projection consistency test.
