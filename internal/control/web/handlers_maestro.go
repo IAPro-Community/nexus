@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -98,6 +99,37 @@ func (h *NexusHandler) handleMaestroAdvice(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// handleMaestroVerify POST /api/v1/maestro/verify — evaluates completed checks and evidence references.
+// Nexus remains the only executor; this endpoint sends policy inputs to Maestro and never runs checks.
+func (h *NexusHandler) handleMaestroVerify(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	var request nexus.MaestroVerifyRequest
+	decoder := json.NewDecoder(io.LimitReader(r.Body, 1<<20))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&request); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid Maestro verification request")
+		return
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
+		writeError(w, http.StatusBadRequest, "invalid Maestro verification request")
+		return
+	}
+	response, err := nexus.NewMaestroClient().Verify(r.Context(), request)
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]any{
+			"verification": response,
+			"error":        err.Error(),
+			"degraded":     true,
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, response)
 }
 
 // handleSystemUpdates GET /api/v1/system/updates — returns signed Nexus Update

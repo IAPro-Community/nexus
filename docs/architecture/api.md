@@ -14,7 +14,7 @@ server contract; the CLI may call Core services directly for local commands.
 - missions: runs, schedules, missions;
 - system: info, doctor, updates;
 - filesystem: browse, scan, inspect, mkdir;
-- Maestro: status, advice, catalog, sync, update.
+- Maestro: status, advice, verification, catalog, sync, update.
 
 ## Metadata contract
 

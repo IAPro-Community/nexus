@@ -11,6 +11,39 @@ import (
 	"github.com/IAPro-Community/nexus/internal/testutil"
 )
 
+func TestMaestroCLIContractInterop(t *testing.T) {
+	bin := os.Getenv("NEXUS_MAESTRO_CLI_TEST_PATH")
+	if bin == "" {
+		t.Skip("set NEXUS_MAESTRO_CLI_TEST_PATH to exercise the real Maestro CLI contract")
+	}
+	client := &MaestroClient{maestroBin: bin}
+	client.checkAvailability()
+	status := client.Status()
+	if !status.Available || status.Capabilities == nil {
+		t.Fatalf("real Maestro CLI capabilities unavailable: %+v", status)
+	}
+	if status.Capabilities.Contracts.Advice != "1.0.0" || status.Capabilities.Contracts.Verification != "1.0.0" {
+		t.Fatalf("real Maestro CLI did not advertise contract v1: %+v", status.Capabilities.Contracts)
+	}
+	advice, err := client.GetAdvice(AdviceContext{ProjectID: "contract-test-project", Lifecycle: MaestroLifecycleTask}, "frontend-design")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if advice.Degraded || advice.Mode != MaestroAssist || len(advice.Recommended) == 0 {
+		t.Fatalf("real Maestro advice contract did not return routed skills: %+v", advice)
+	}
+	verification, err := client.Verify(context.Background(), MaestroVerifyRequest{
+		ProjectID: "contract-test-project", MissionID: "contract-test-run",
+		Checks: []string{"PASS: contract test (exit 0)"}, EvidenceRefs: []string{"evidence://contract-test/run"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !verification.Passed || verification.Degraded || verification.Lifecycle != MaestroLifecycleVerify {
+		t.Fatalf("real Maestro verification contract returned an unexpected verdict: %+v", verification)
+	}
+}
+
 func TestMaestroCapabilitiesMergeProfileAndCanonicalCatalog(t *testing.T) {
 	global := t.TempDir()
 	profile := t.TempDir()
@@ -70,13 +103,69 @@ func TestMaestroAdviseFailureNeverFallsBackToSyntheticRecommendations(t *testing
 	bin := testutil.WriteFakeCommand(t, t.TempDir(), "maestro", []testutil.FakeCommandResponse{
 		{Args: []string{"advise", "--json"}, ExitCode: 2},
 	}, 2, "")
-	c := &MaestroClient{status: MaestroStatus{Available: true, Mode: MaestroAssist, Capabilities: &MaestroCapability{Version: "1.2.3"}}, maestroBin: bin}
+	c := &MaestroClient{status: MaestroStatus{Available: true, Mode: MaestroAssist, Capabilities: &MaestroCapability{Version: "1.2.3", Contracts: MaestroContracts{Advice: "1.0.0"}}}, maestroBin: bin}
 	resp, err := c.GetAdvice(AdviceContext{ProjectID: "p1"}, "ship product")
 	if err == nil {
 		t.Fatal("expected advise contract failure")
 	}
 	if !resp.Degraded || len(resp.Required)+len(resp.Recommended)+len(resp.Optional) != 0 {
 		t.Fatalf("expected empty degraded response, got %+v", resp)
+	}
+}
+
+func TestMaestroAdviceAndVerifyRequireAdvertisedContractVersions(t *testing.T) {
+	marker := filepath.Join(t.TempDir(), "called")
+	bin := testutil.WriteFakeCommand(t, t.TempDir(), "maestro", nil, 0, marker)
+	client := &MaestroClient{
+		status:     MaestroStatus{Available: true, Mode: MaestroAssist, Capabilities: &MaestroCapability{Version: "1.1.0"}},
+		maestroBin: bin,
+	}
+	advice, adviceErr := client.GetAdvice(AdviceContext{ProjectID: "project-1"}, "review security")
+	if adviceErr == nil || advice == nil || !advice.Degraded {
+		t.Fatalf("advice must fail closed without its advertised contract: response=%+v err=%v", advice, adviceErr)
+	}
+	verification, verifyErr := client.Verify(context.Background(), MaestroVerifyRequest{ProjectID: "project-1"})
+	if verifyErr == nil || verification == nil || verification.Passed || !verification.Degraded {
+		t.Fatalf("verification must fail closed without its advertised contract: response=%+v err=%v", verification, verifyErr)
+	}
+	if _, statErr := os.Stat(marker); !os.IsNotExist(statErr) {
+		t.Fatalf("Maestro process was invoked without a negotiated contract: %v", statErr)
+	}
+}
+
+func TestMaestroAdviceRejectsSecretLikeIntentBeforeExecution(t *testing.T) {
+	marker := filepath.Join(t.TempDir(), "called")
+	bin := testutil.WriteFakeCommand(t, t.TempDir(), "maestro", nil, 0, marker)
+	c := &MaestroClient{
+		status:     MaestroStatus{Available: true, Mode: MaestroAssist, Capabilities: &MaestroCapability{Contracts: MaestroContracts{Advice: "1.0.0"}}},
+		maestroBin: bin,
+	}
+	resp, err := c.GetAdvice(AdviceContext{ProjectID: "project-1"}, "help with token=super-secret")
+	if err == nil {
+		t.Fatal("secret-like advice intent must be rejected")
+	}
+	if resp == nil || !resp.Degraded || resp.Mode != MaestroOff {
+		t.Fatalf("unsafe advice must return a degraded response: %+v", resp)
+	}
+	if _, statErr := os.Stat(marker); !os.IsNotExist(statErr) {
+		t.Fatalf("Maestro process was invoked for rejected input: %v", statErr)
+	}
+}
+
+func TestMaestroAdviceAcceptsValidEmptyRouterResult(t *testing.T) {
+	bin := testutil.WriteFakeCommand(t, t.TempDir(), "maestro", []testutil.FakeCommandResponse{
+		{Args: []string{"advise", "--json"}, Stdout: "{\"version\":\"1.1.0\",\"mode\":\"ASSIST\",\"lifecycle\":\"TASK\",\"required\":[],\"recommended\":[],\"optional\":[],\"explanation\":\"no canonical skill matched\"}\n", ReadStdin: true},
+	}, 2, "")
+	c := &MaestroClient{
+		status:     MaestroStatus{Available: true, Mode: MaestroAssist, Capabilities: &MaestroCapability{Version: "1.1.0", Contracts: MaestroContracts{Advice: "1.0.0"}}},
+		maestroBin: bin,
+	}
+	resp, err := c.GetAdvice(AdviceContext{ProjectID: "p1", Lifecycle: MaestroLifecycleTask}, "unmatched intent")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.Degraded || resp.Mode != MaestroAssist || resp.Lifecycle != MaestroLifecycleTask || len(resp.Recommended) != 0 {
+		t.Fatalf("valid empty routing result must remain non-degraded: %+v", resp)
 	}
 }
 
@@ -141,7 +230,8 @@ func TestMaestroVerifyContractPassesThroughMachineReadableVerdict(t *testing.T) 
 			Available: true,
 			Mode:      MaestroAssist,
 			Capabilities: &MaestroCapability{
-				Version: MaestroVersion,
+				Version:   MaestroVersion,
+				Contracts: MaestroContracts{Verification: "1.0.0"},
 			},
 		},
 		maestroBin: bin,
@@ -179,7 +269,7 @@ func TestMaestroVerifyRejectsSecretLikeInputBeforeExecution(t *testing.T) {
 	marker := filepath.Join(t.TempDir(), "called")
 	bin := testutil.WriteFakeCommand(t, t.TempDir(), "maestro", nil, 0, marker)
 	c := &MaestroClient{
-		status:     MaestroStatus{Available: true, Mode: MaestroAssist},
+		status:     MaestroStatus{Available: true, Mode: MaestroAssist, Capabilities: &MaestroCapability{Contracts: MaestroContracts{Verification: "1.0.0"}}},
 		maestroBin: bin,
 	}
 	resp, err := c.Verify(context.Background(), MaestroVerifyRequest{
@@ -203,7 +293,7 @@ func TestMaestroCapabilitiesUsesExplicitSkillsListContract(t *testing.T) {
 	bin := testutil.WriteFakeCommand(t, t.TempDir(), "maestro", []testutil.FakeCommandResponse{
 		{
 			Args:   []string{"capabilities", "--json"},
-			Stdout: "{\"version\":\"1.0.0\",\"modes\":[\"OFF\",\"ASSIST\",\"ORCHESTRATE\"],\"skills\":[],\"gates\":[\"review\"],\"processes\":[\"verification\"]}\n",
+			Stdout: "{\"version\":\"1.0.0\",\"modes\":[\"OFF\",\"ASSIST\",\"ORCHESTRATE\"],\"contracts\":{\"advice\":\"1.0.0\",\"verification\":\"1.0.0\"},\"skills\":[],\"gates\":[\"review\"],\"processes\":[\"verification\"]}\n",
 		},
 		{
 			Args:   []string{"skills", "list", "--json"},
@@ -219,6 +309,9 @@ func TestMaestroCapabilitiesUsesExplicitSkillsListContract(t *testing.T) {
 	}
 	if capabilities.Version != "1.0.0" || len(capabilities.Gates) != 1 || len(capabilities.Processes) != 1 {
 		t.Fatalf("capabilities contract was not preserved: %+v", capabilities)
+	}
+	if capabilities.Contracts.Advice != "1.0.0" || capabilities.Contracts.Verification != "1.0.0" {
+		t.Fatalf("advice/verification contracts were not negotiated: %+v", capabilities.Contracts)
 	}
 	if len(capabilities.Skills) != 1 || capabilities.Skills[0].ID != "security-review" {
 		t.Fatalf("skills list contract was not consumed: %+v", capabilities.Skills)

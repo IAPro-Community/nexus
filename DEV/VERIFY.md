@@ -1,3 +1,12 @@
+## Contratos de advice e verification — 2026-11-08
+
+- PASS — Maestro `release/1.1.0@9c9c9eb`: `npm test` 1.373 total, 1.369 pass, 0 fail, 4 skipped; `npm run validate`; `pwsh scripts/validate-public.ps1` (81 skills públicas, 58 contratos canônicos).
+- PASS — novos testes CLI advice/verify + compatibilidade de CLI/Router: 17/17.
+- PASS — Nexus local: `go test ./internal/nexus ./internal/control/web`; `go vet ./internal/nexus ./internal/control/web`; teste focado da rota autenticada/CSRF/JSON estrito.
+- PASS — teste cruzado Go→CLI Maestro real: negotiates capability versions, obtains a routed canonical skill and receives policy verification verdict. Executado contra checkout local do Maestro antes de `9c9c9eb`; repetir para os SHAs Nexus publicados.
+- NO_GO — código Nexus ainda não publicado neste checkpoint; nenhuma chamada a provider foi realizada. Teste não comprova execução real dos checks nem abertura de referências: Maestro aplica policy aos resultados declarados pelo owner Nexus.
+- NO_GO — 48/48 capabilities permanecem `verification: pending`; E2E com duas contas AGY/quota real, P0 restantes, UI visual no SHA publicado e certificações de plataforma/distribuição permanecem pendentes.
+
 ## Retomada — suíte Maestro e pendências rumo ao GO — 2026-11-08
 
 - PASS — `npm test` no checkout Maestro `/projetos/tools/Orquestrador-Maestro`, branch `release/1.1.0`, terminou: 1.367 testes, 1.363 pass, 0 fail, 4 skipped; 112 arquivos; duração 521.795 ms.

@@ -1,6 +1,6 @@
 ## Estado corrente — atualização de handoff — 2026-11-08
 
-O `DEV/HANDOFF.md` é a referência de continuidade corrente. O Nexus segue em `release/v1.0.0@8aaf7b85`; Maestro publicou a correção de isolamento de fixture em `release/1.1.0@90b6152`, e sua suíte completa ficou verde (1.363 pass/0 fail/4 skipped). A matriz canônica continua com 48/48 `verification: pending`. Permanecem: completar `advise --json`/`verify --json` no Maestro sem duplicar execução/semântica de memória, homologar balanceamento com duas contas AGY reais, fechar e evidenciar P0s, validar visualmente e por plataforma no SHA final. **Estado: NO_GO.**
+O `DEV/HANDOFF.md` é a referência de continuidade corrente. Nexus `release/v1.0.0@18570c03` é o último SHA publicado antes da integração local; Maestro publicou `release/1.1.0@9c9c9eb` com os contratos v1 e suite verde (1.369 pass/0 fail/4 skipped). Advice e verification agora existem no CLI e Nexus adicionou negociação + endpoint autenticado de verify; o código Nexus ainda precisa ser publicado e revalidado no SHA resultante. A matriz canônica continua com 48/48 `verification: pending`. Permanecem: homologar balanceamento com duas contas AGY reais, fechar/evidenciar P0s, UI visual, plataformas e distribuição no SHA final. **Estado: NO_GO.**
 
 ## Estado ativo — fechamento 1.0/Maestro — 2026-11-06
 

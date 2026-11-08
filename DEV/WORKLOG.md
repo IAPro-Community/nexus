@@ -1,3 +1,11 @@
+## 2026-11-08 — Contratos canônicos Nexus↔Maestro v1
+
+- Maestro em `release/1.1.0@9c9c9eb` agora anuncia `contracts.advice` e `contracts.verification` e implementa `advise --json` via `SkillRouterV3` e `verify --json` de policy, sem executar checks/dereferenciar evidências. `verify --strict` da instalação preservado.
+- Nexus negocia versões dos contratos, valida mode/lifecycle/verdict, falha fechado quando a capability não é anunciada, recusa intent que pareça conter segredo e trata resultado de advice sem match como válido e vazio. Adicionada rota autenticada `POST /api/v1/maestro/verify` com JSON estrito.
+- No Maestro `9c9c9eb`: `npm test` 1.369 pass / 0 fail / 4 skipped (1.373 total); `npm run validate` e validação pública PowerShell passaram. Interoperação Go→CLI real passou antes do commit; repetir após fixar SHA Nexus.
+- Nexus local ainda não commitado no checkpoint: `go test ./internal/nexus ./internal/control/web` e `go vet ./internal/nexus ./internal/control/web` passaram; teste direcionado de rota PASS. Esta integração não prova migração de memória, ownership de todos os flows nem GO de release.
+- Restam 48/48 capacidades sem homologação, P0s além desta fatia, E2E AGY real com duas contas/quota, UI visual e gates de plataforma/distribuição. Estado geral **NO_GO**.
+
 ## 2026-11-08 — Retomada de fechamento Nexus 1.0 / Maestro
 
 - Verificado o handoff local: permanecem abertos os P0 do plano de ação, a ponte canônica `advise --json`/`verify --json`, o E2E do round-robin AGY com duas contas reais, homologação individual das 48 capacidades e gates de UI/plataforma/distribuição no SHA exato.

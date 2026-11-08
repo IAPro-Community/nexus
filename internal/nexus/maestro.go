@@ -317,10 +317,17 @@ func MergeSkillCatalog(groups ...[]CatalogSkill) SkillCatalog {
 // MaestroCapability describes what the Maestro instance supports.
 type MaestroCapability struct {
 	Version   string             `json:"version"`
-	Modes     []string           `json:"modes"`     // supported modes
+	Modes     []string           `json:"modes"` // supported modes
+	Contracts MaestroContracts   `json:"contracts,omitempty"`
 	Skills    []MaestroSkillDesc `json:"skills"`    // available skills
 	Gates     []string           `json:"gates"`     // available gate types
 	Processes []string           `json:"processes"` // available process types
+}
+
+// MaestroContracts advertises independently versioned machine-readable CLI contracts.
+type MaestroContracts struct {
+	Advice       string `json:"advice,omitempty"`
+	Verification string `json:"verification,omitempty"`
 }
 
 func (mc *MaestroCapability) SkillIDs() []string {
@@ -372,15 +379,15 @@ type MaestroVerifyRequest struct {
 	ProjectID    string           `json:"project_id,omitempty"`
 	MissionID    string           `json:"mission_id,omitempty"`
 	ChangedPaths []string         `json:"changed_paths,omitempty"`
-	Checks       []string         `json:"checks,omitempty"`
-	EvidenceRefs []string         `json:"evidence_refs,omitempty"`
+	Checks       []string         `json:"checks,omitempty"` // completed checks; successful results use the PASS: prefix
+	EvidenceRefs []string         `json:"evidence_refs,omitempty"` // opaque references; Maestro never opens them
 	RiskSignals  []string         `json:"risk_signals,omitempty"`
 }
 
 type MaestroVerifyResponse struct {
 	Version         string           `json:"version"`
 	Lifecycle       MaestroLifecycle `json:"lifecycle"`
-	Passed          bool             `json:"passed"`
+	Passed          bool             `json:"passed"` // policy verdict over caller-reported results and evidence refs
 	RequiredActions []string         `json:"required_actions,omitempty"`
 	Explanation     string           `json:"explanation,omitempty"`
 	Degraded        bool             `json:"degraded,omitempty"`
@@ -842,21 +849,41 @@ func (c *MaestroClient) GetAdvice(ctx AdviceContext, intent string) (*AdviceResp
 			Version: MaestroVersion, Mode: MaestroOff, Lifecycle: lifecycle, Degraded: true,
 		}, fmt.Errorf("maestro unavailable (MAESTRO_DEGRADED)")
 	}
+	if c.status.Capabilities == nil || c.status.Capabilities.Contracts.Advice != "1.0.0" {
+		return &AdviceResponse{
+			Version: MaestroVersion, Mode: MaestroOff, Lifecycle: lifecycle, Degraded: true,
+		}, fmt.Errorf("Maestro advice contract v1 unavailable (MAESTRO_DEGRADED)")
+	}
 
 	// 1. Try CLI advise command if supported
 	req := AdviceRequest{
 		Version: MaestroVersion, Context: ctx, Intent: intent, Scope: "project", Lifecycle: lifecycle,
 	}
+	if err := sanitizeMaestroAdviceRequest(&req); err != nil {
+		return &AdviceResponse{
+			Version: MaestroVersion, Mode: MaestroOff, Lifecycle: lifecycle, Degraded: true,
+		}, fmt.Errorf("refusing unsafe Maestro advice request: %w", err)
+	}
 	reqBytes, _ := json.Marshal(req)
-	cmdAdvise := executil.Command(c.maestroBin, "advise", "--json")
+	adviseCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	cmdAdvise := executil.CommandContext(adviseCtx, c.maestroBin, "advise", "--json")
 	cmdAdvise.Stdin = stringToReader(reqBytes)
 	if out, err := cmdAdvise.Output(); err == nil {
 		var resp AdviceResponse
-		if err := json.Unmarshal(out, &resp); err == nil && len(resp.Recommended) > 0 {
-			if resp.Lifecycle == "" {
-				resp.Lifecycle = lifecycle
+		if err := json.Unmarshal(out, &resp); err == nil && strings.TrimSpace(resp.Version) != "" {
+			if resp.Mode != MaestroOff && resp.Mode != MaestroAssist && resp.Mode != MaestroOrchestrate {
+				resp.Mode = MaestroOff
+				resp.Degraded = true
+			} else if resp.Lifecycle == "" || normalizeMaestroLifecycle(resp.Lifecycle) != lifecycle {
+				resp.Mode = MaestroOff
+				resp.Degraded = true
+			} else if resp.Mode == MaestroOff && len(resp.Required)+len(resp.Recommended)+len(resp.Optional) > 0 {
+				resp.Mode = MaestroOff
+				resp.Degraded = true
+			} else {
+				return &resp, nil
 			}
-			return &resp, nil
 		}
 	}
 
@@ -869,6 +896,32 @@ func (c *MaestroClient) GetAdvice(ctx AdviceContext, intent string) (*AdviceResp
 	return &AdviceResponse{
 		Version: version, Mode: MaestroOff, Lifecycle: lifecycle, Degraded: true,
 	}, fmt.Errorf("maestro advise unavailable or returned an invalid contract (MAESTRO_DEGRADED)")
+}
+
+func sanitizeMaestroAdviceRequest(req *AdviceRequest) error {
+	if req == nil {
+		return fmt.Errorf("Maestro advice request is required")
+	}
+	trimmedIntent := strings.TrimSpace(req.Intent)
+	if trimmedIntent == "" || len(trimmedIntent) > 4096 {
+		return fmt.Errorf("Maestro advice intent must contain 1 to 4096 bytes")
+	}
+	if LooksLikeSecret(trimmedIntent) {
+		return fmt.Errorf("refusing secret-like Maestro advice intent")
+	}
+	req.Intent = trimmedIntent
+	for name, value := range map[string]string{
+		"project id":   req.Context.ProjectID,
+		"agent id":     req.Context.AgentID,
+		"agent status": req.Context.AgentStatus,
+		"provider":     req.Context.Provider,
+		"profile":      req.Context.Profile,
+	} {
+		if len(value) > 256 || LooksLikeSecret(value) {
+			return fmt.Errorf("refusing unsafe Maestro advice %s", name)
+		}
+	}
+	return nil
 }
 
 func (c *MaestroClient) Verify(ctx context.Context, req MaestroVerifyRequest) (*MaestroVerifyResponse, error) {
@@ -889,6 +942,11 @@ func (c *MaestroClient) Verify(ctx context.Context, req MaestroVerifyRequest) (*
 			Version: req.Version, Lifecycle: MaestroLifecycleVerify, Passed: false, Degraded: true,
 		}, fmt.Errorf("maestro unavailable (MAESTRO_DEGRADED)")
 	}
+	if c.status.Capabilities == nil || c.status.Capabilities.Contracts.Verification != "1.0.0" {
+		return &MaestroVerifyResponse{
+			Version: req.Version, Lifecycle: MaestroLifecycleVerify, Passed: false, Degraded: true,
+		}, fmt.Errorf("Maestro verification contract v1 unavailable (MAESTRO_DEGRADED)")
+	}
 
 	raw, err := json.Marshal(req)
 	if err != nil {
@@ -905,18 +963,20 @@ func (c *MaestroClient) Verify(ctx context.Context, req MaestroVerifyRequest) (*
 		}, fmt.Errorf("maestro verify unavailable or failed (MAESTRO_DEGRADED): %w", err)
 	}
 	var resp MaestroVerifyResponse
-	if err := json.Unmarshal(out, &resp); err != nil || strings.TrimSpace(resp.Version) == "" {
+	if err := json.Unmarshal(out, &resp); err != nil || strings.TrimSpace(resp.Version) == "" || resp.Lifecycle != MaestroLifecycleVerify || resp.Degraded || (resp.Passed && len(resp.RequiredActions) > 0) || (!resp.Passed && len(resp.RequiredActions) == 0) {
 		return &MaestroVerifyResponse{
 			Version: req.Version, Lifecycle: MaestroLifecycleVerify, Passed: false, Degraded: true,
 		}, fmt.Errorf("maestro verify returned an invalid contract (MAESTRO_DEGRADED)")
 	}
-	resp.Lifecycle = MaestroLifecycleVerify
 	return &resp, nil
 }
 
 func sanitizeMaestroVerifyRequest(req *MaestroVerifyRequest) error {
 	if req == nil {
 		return fmt.Errorf("maestro verify request is required")
+	}
+	if req.Version != MaestroVersion {
+		return fmt.Errorf("unsupported Maestro verify request version")
 	}
 	clean := func(values []string, maxItems, maxLen int) ([]string, error) {
 		if len(values) > maxItems {

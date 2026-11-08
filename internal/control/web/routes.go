@@ -65,6 +65,7 @@ func registerMaestroRoutes(mux *http.ServeMux, deps routeDependencies) {
 	s, h := deps.server, deps.nexusHandler
 	mux.HandleFunc("/api/v1/maestro", s.authMiddleware(h.handleMaestroStatus))
 	mux.HandleFunc("/api/v1/maestro/advice", s.authMiddleware(h.handleMaestroAdvice))
+	mux.HandleFunc("/api/v1/maestro/verify", s.authMiddleware(h.handleMaestroVerify))
 	mux.HandleFunc("/api/v1/maestro/catalog", s.authMiddleware(h.handleMaestroCatalog))
 	mux.HandleFunc("/api/v1/maestro/sync/preview", s.authMiddleware(h.handleMaestroSyncPreview))
 	mux.HandleFunc("/api/v1/maestro/sync", s.authMiddleware(h.handleMaestroSync))

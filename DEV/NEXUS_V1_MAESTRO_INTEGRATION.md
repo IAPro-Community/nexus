@@ -1,5 +1,11 @@
 # Nexus V1 — Maestro Integration
 
+## Checkpoint corrente — 2026-11-08
+
+No Maestro `release/1.1.0@9c9c9eb`, os contratos read-only existem: `capabilities --json` anuncia `contracts.advice=1.0.0` e `contracts.verification=1.0.0`; `advise --json` delega seleção ao `SkillRouterV3`; `verify --json` avalia resultados explicitamente marcados `PASS:`, referências de evidência e sinais de risco sem executar comandos nem abrir referências. `verify --strict` continua sendo o verificador legado de instalação. Suíte completa PASS (1.369/0 failures/4 skipped), `npm run validate` e validação pública também PASS.
+
+Nexus `release/v1.0.0` agora exige a versão anunciada antes de chamar advice/verification, aceita advice válido sem match como resultado vazio não degradado, recusa intent secret-like antes de iniciar o CLI e expõe `POST /api/v1/maestro/verify` autenticado. `go test`/`go vet` dos pacotes alterados e um teste cruzado real Go→CLI passaram antes do commit. A alteração Nexus ainda está local neste checkpoint e exige repetir integração nos SHAs publicados. Não houve migration de memória, homologação do ownership de todos os flows, provider real ou GO da release; M9 global permanece **NO_GO**.
+
 Charter §5, §52-58, §103, §134-136. Maestro is a **supported dependency** of Nexus,
 never the reverse. Nexus consumes a machine-readable contract; it does not copy
 Maestro knowledge.
@@ -21,7 +27,7 @@ Maestro knowledge.
 | ASSIST | Default. Recommends skills/process/gates/verification; no mandatory DAG |
 | ORCHESTRATE | Optional/BETA; activates Mission concepts |
 
-## Machine-readable contract (planned for Gate 6)
+## Machine-readable contract
 
 Maestro is the **owner of the schemas** (§54). Versioned contract v1 must expose at
 least:

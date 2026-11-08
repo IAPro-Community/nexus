@@ -43,6 +43,37 @@ func newTestClient(t *testing.T) (*http.Client, *Server) {
 	return client, srv
 }
 
+func TestMaestroVerifyEndpointEnforcesMethodAndStrictJSONContract(t *testing.T) {
+	client, srv, csrf := csrfClient(t)
+	getResponse, err := client.Get(srv.URL() + "/api/v1/maestro/verify")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = getResponse.Body.Close()
+	if getResponse.StatusCode != http.StatusMethodNotAllowed {
+		t.Fatalf("GET verification status = %d, want %d", getResponse.StatusCode, http.StatusMethodNotAllowed)
+	}
+	for _, body := range []string{
+		`{"unknown":true}`,
+		`{"checks":[]} {}`,
+	} {
+		request, requestErr := http.NewRequest(http.MethodPost, srv.URL()+"/api/v1/maestro/verify", strings.NewReader(body))
+		if requestErr != nil {
+			t.Fatal(requestErr)
+		}
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("X-CSRF-Token", csrf)
+		response, postErr := client.Do(request)
+		if postErr != nil {
+			t.Fatal(postErr)
+		}
+		_ = response.Body.Close()
+		if response.StatusCode != http.StatusBadRequest {
+			t.Fatalf("invalid verification body %q status = %d, want %d", body, response.StatusCode, http.StatusBadRequest)
+		}
+	}
+}
+
 type interventionRestartExecutor struct {
 	blockFirstAllocation bool
 	allocationStarted    chan struct{}

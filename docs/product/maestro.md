@@ -1,5 +1,23 @@
 # Integração Nexus ↔ Orquestrador Maestro
 
+## Contrato de CLI v1 — implementado, homologação global pendente
+
+O Maestro expõe transporte `stdin JSON → stdout JSON` por meio de
+`capabilities --json`, `skills list --json`, `advise --json` e
+`verify --json`. Capabilities anuncia as versões de advice e verification
+separadamente do número de versão do pacote. Advice usa o `SkillRouterV3` e
+não executa skills. Verify consome checks concluídos pelo owner do runtime
+(somente `PASS:` explícito), referências de evidência e sinais de risco; não
+executa comandos nem abre as referências. O comando legado de instalação
+`verify [flags]` continua disponível fora da forma exata `verify --json`.
+
+O cliente Nexus falha em modo degradado se o contrato respectivo não estiver
+anunciado, valida lifecycle/mode/verdict na resposta e rejeita intents com
+padrão de segredo. A integração e o teste cross-repo passam na árvore corrente,
+mas ainda precisam ser repetidos nos SHAs publicados. Isso não prova migração
+de memória semântica, ownership de execução no caminho completo ou homologação
+M9; ver [handoff corrente](../../DEV/HANDOFF.md).
+
 > **Decisão arquitetural de 01/11/2026 (obrigatória para novos PRs):** o Maestro é a autoridade independente de contexto, memória semântica, composição, orquestração e execução dos runs delegados. Nexus consome apenas seu Bridge/API pública, sem integrar código interno, banco ou executor. As seções abaixo descrevem a **beta atual e sua transição**, não autorização para duplicar responsabilidades. Consulte [ADR Maestro externo](../architecture/MAESTRO_EXTERNAL_AUTHORITY_ADR.md) e [issue #176](https://github.com/IAPro-Community/nexus/issues/176).
 
 

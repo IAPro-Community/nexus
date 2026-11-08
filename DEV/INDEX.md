@@ -1,8 +1,9 @@
 ## Fechamento Nexus 1.0 / Maestro — estado 2026-11-08
 
 - Status **NO_GO**. Handoff corrente: [DEV/HANDOFF.md](HANDOFF.md); execução/pendências: [DEV/VERIFY.md](VERIFY.md).
-- Maestro `release/1.1.0@90b6152`: suíte completa passou (1.363 pass / 0 fail / 4 skipped; 1.367 testes). A correção isolou o home temporário do teste de instalação.
-- Nexus: as 48 capacidades canônicas ainda estão `verification: pending`; falta completar advice/verify CLI no Maestro, demonstrar o balanceamento com duas contas AGY reais, fechar P0 e homologar cada capacidade e gates aplicáveis no SHA de release.
+- Maestro `release/1.1.0@9c9c9eb`: CLI publica contracts de capabilities/advice/verification; suíte completa 1.369 pass / 0 fail / 4 skipped (1.373 total), `npm run validate` PASS.
+- Nexus `release/v1.0.0@18570c03` é o último SHA publicado antes das alterações de integração locais. Código atual já negocia versões/valida advice e verification e tem endpoint autenticado de verify; gates Go e teste cross-repo passaram antes da publicação.
+- As 48 capacidades canônicas ainda estão `verification: pending`; falta E2E do balanceamento com duas contas AGY reais, P0s restantes, aceite real de cada capacidade e gates de UI/plataforma/distribuição no SHA de release.
 - Índices e relatórios históricos abaixo não substituem o handoff e evidências do SHA corrente.
 
 ## Continuidade atual — beta.11 sincronizado e instalado — 2026-10-27
