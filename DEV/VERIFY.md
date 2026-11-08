@@ -6,9 +6,11 @@
 - PASS — `make quality`: format-check, ESLint sem erros (6 warnings), Stylelint, TypeScript, 131 arquivos/818 testes Web, lint Go 0 issues, suíte Go completa e version-contract.
 - PASS — `git diff --check` antes do registro documental.
 - PASS — dry-run read-only temporário com perfis e snapshots locais: 2 candidatos, 0 elegíveis, nenhuma seleção; `AI_CLI_STATE_DIR` isolado. `GetUsageSnapshot` usou cache sem refresh; nenhuma geração ou cursor real.
+- PASS — probes live atuais usando exclusivamente o comando AGY `--print=/quota` para duas contas: ambos LIVE/CLI_OUTPUT. Uma saída bruta contém só rótulos semanais; a outra contém rótulos 5h e semanais nos dois grupos. Captura sanitizada confirmou que o primeiro CLI não emitiu 5h, portanto o parser não descartou essa janela.
+- PASS — após atualizar os snapshots, seleção real dry-run no state dir isolado: 2 candidatos, 1 elegível, selecionado=true. Só a conta com 5h medido em cada grupo entra; a semanal-only é recusada. Nenhuma geração foi iniciada.
 - Regressão inicialmente detectou `TestRunWithFallbackStrategyRotatesAfterQuotaFailure` usando quota `UNSUPPORTED` de fixture AGY; a fixture foi corrigida para LIVE/CLI_OUTPUT/fresh/5h e a suíte integral repetida passou.
 - Cobertura nova: AGY weekly-only, 5h ausente por grupo, snapshot vencido, proveniência/perfil incompatível, remaining inválido, falha fechada sem capacidade elegível e não regressão de outros providers.
-- Dry-run com snapshots locais confirma fail-closed, não homologa duas contas elegíveis nem a alternância real. Status global **NO_GO**: 48/48 capacidades ainda pendentes, quota live 5h insuficiente nas contas AGY e release/P0s ainda abertos.
+- Dry-run com snapshots reais confirma fail-closed, não homologa duas contas elegíveis nem alternância real. O provider CLI não expõe 5h em uma conta. Status global **NO_GO**: 48/48 capacidades ainda pendentes, alternância live entre duas contas não demonstrada e release/P0s ainda abertos.
 
 ## Recheck de qualidade após formatação Go — 2026-11-08
 

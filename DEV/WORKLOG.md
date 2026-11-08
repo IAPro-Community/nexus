@@ -6,7 +6,9 @@
 - Cobertura: scheduler + fallback validam weekly-only, quota parcial por grupo, frescor, proveniência, status, valor medido e preservação do roteamento de outros providers.
 - Verificação: testes focados e `go vet` passaram; `make quality` passou integral (Go, lint, Web 131/818, version-contract). Primeira execução revelou fixture AGY de fallback `UNSUPPORTED`; fixture ajustada e gate repetido com PASS.
 - Dry-run read-only adicional com snapshots atuais: 2 candidatos, 0 elegíveis e nenhuma seleção; `AI_CLI_STATE_DIR` isolado, sem refresh, prompt ou cursor real.
-- Próximo passo: probe read-only da quota AGY; identificar por que o CLI atual não fornece janela 5h às duas contas. NO_GO permanece.
+- Probe live posterior via somente `agy --output-format text --print-timeout 12s --print=/quota`: as duas contas retornaram LIVE/CLI_OUTPUT. Saída bruta sanitizada: uma tem apenas janelas semanais; a outra tem 5h+semanal para Gemini e Claude/GPT. O parser não omitiu 5h; o próprio CLI não o forneceu para uma conta.
+- Dry-run após refresh, com state dir isolado: 2 candidatos, 1 elegível, selecionado=true. Não houve geração. Alternância entre duas contas permanece impossível de homologar enquanto uma delas não expuser 5h recente.
+- Próximo passo: entender o estado de quota/entitlement upstream com probes `/quota` e metadados não secretos; manter weekly-only inelegível para balance. NO_GO permanece.
 
 ## 2026-11-08 — Normalização exigida pelo gate Go
 

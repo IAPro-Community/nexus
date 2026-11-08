@@ -2,9 +2,9 @@
 
 - Escopo original permanece: fechar Nexus 1.0 + Maestro, P0s e aceite exact-SHA para as 48 capacidades. Sem reduzir o objetivo e sem declarar GO por testes isolados.
 - AGY `:balance`/`:auto` só pode alternar entre perfis com snapshot LIVE/CACHED recente, atribuível, fonte declarada e Remaining 5h medido para todos os grupos de modelo presentes. Perfil sem essa prova é inelegível; erro lista a razão por conta. Outros providers preservam o contrato anterior.
-- Testes focados, `go vet` e `make quality` passaram após corrigir fixture do fallback. A evidência atual das duas contas do host continua insuficiente; a execução live deve ficar read-only e usar diretório de estado temporário.
-- PASS — dry-run read-only dos 2 perfis/snapshots locais com state dir isolado: 0 elegíveis, nenhuma seleção, sem refresh/prompt/cursor real.
-- Próxima aceitação: investigar o probe/quota AGY e distinguir saída do CLI, parser e cache; só então provar rotação alternada com duas contas elegíveis. Estado geral continua **NO_GO**.
+- Testes focados, `go vet` e `make quality` passaram no código `c5a31c41` e HEAD documental `337f7dfb`; ambos foram enviados à release.
+- PASS — após refresh por `/quota`, 2 contas produziram LIVE/CLI_OUTPUT; captura sanitizada confirma que o próprio CLI omite rótulos 5h em uma conta. Dry-run em state isolado: 1 elegível/2 candidatos, selecionado=true; sem geração.
+- Uma inspeção anterior de snapshots sem refresh resultou 0/2 elegíveis; não há duas contas elegíveis para alternar. Próxima aceitação: comparar entitlement/resposta upstream das contas via `/quota` e metadados não secretos; só demonstrar rotação quando ambas fornecerem evidência 5h atual. Estado geral continua **NO_GO**.
 
 ## Continuidade confirmada — 2026-11-08
 
