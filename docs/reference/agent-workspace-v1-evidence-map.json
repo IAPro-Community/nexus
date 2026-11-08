@@ -444,6 +444,7 @@
           ],
           "testRefs": [
             "web/src/nexus/terminalOutput.test.ts",
+            "web/scripts/e2e-agent-terminal-follow.mjs",
             "web/src/features/work/featureTour.test.ts",
             "web/src/features/work/featureTourAnchors.test.ts",
             "web/src/features/work/featureReveal.test.ts",
@@ -451,7 +452,7 @@
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Implementada ação explícita de pausar/retomar rolagem ao vivo no AgentTerminal; enquanto pausado, os bytes continuam sendo processados e a posição visível é preservada. Testes focados verificam o sink de terminal e o tour escopado. Ainda falta E2E visual de AgentTerminal no app publicado no SHA exato e validação manual de UX.",
+          "gap": "Ação explícita de pausar/retomar rolagem ao vivo implementada; bytes continuam sendo processados e a posição visível é preservada. E2E Playwright abriu Agent persistido via API real, exercitou o AgentTerminal/xterm e validou pause/resume; o WebSocket provider foi mockado. Ainda falta provar o pacote distribuído no SHA publicado e obter inspeção humana da UX.",
           "assertionAudit": "partial"
         },
         {
@@ -463,11 +464,12 @@
           ],
           "testRefs": [
             "web/src/nexus/agentTerminalModel.test.ts",
-            "internal/control/host/host_test.go"
+            "internal/control/host/host_test.go",
+            "web/scripts/e2e-agent-terminal-follow.mjs"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Auditoria parcial: AgentTerminal agora anexa em VIEW_ONLY, mantém stdin desabilitado e só envia lease_acquire pelo botão explícito Assumir controle; o model test valida que input só habilita para CONTROL. Os testes do host cobrem acquire/release explícito. Falta regressão integrada do WebSocket/UI provando ausência de lease em attach e após tecla, mais teste de revoke/reconnect. Capability pendente.",
+          "gap": "E2E Playwright com servidor Nexus e Agent criado pela API prova que attach e tecla em VIEW_ONLY não emitem lease/input, botão explícito envia exatamente um lease_acquire, CONTROL envia input e revoke/reconnect não reacquire. WebSocket foi simulado no browser, portanto ainda falta teste do broker/host real para o mesmo ciclo de attach, lease e revoke; capability pendente.",
           "assertionAudit": "partial"
         }
       ],

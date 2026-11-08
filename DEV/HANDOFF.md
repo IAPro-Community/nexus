@@ -1,3 +1,13 @@
+## Recheck do handoff — E2E `follow-agent` — 2026-11-08
+
+- Estado conferido: branch `release/v1.0.0`, base `f6fd4f71` sincronizada com `origin`; alterações locais ainda não commitadas em `docs/reference/agent-workspace-v1-evidence-map.json`, `web/package.json` e `web/scripts/e2e-agent-terminal-follow.mjs`.
+- A lacuna “criar E2E integrado de UI/WebSocket” foi parcialmente reduzida: `npm --prefix web run test:e2e:agent-terminal-follow` passou contra servidor fixture/API real do Nexus, Agent persistido, AgentTerminal e xterm. Cobre attach VIEW_ONLY sem lease, pausa/resume, tecla sem lease, aquisição explícita, input em CONTROL e revoke/reconnect sem reacquire.
+- Limite: WebSocket provider foi simulado via Playwright. Ainda falta exercitar broker/host real e validar o app distribuído no SHA final com inspeção humana da UX. `follow-agent` permanece `partial` / `verification: pending`.
+- PASS — `make quality-full`: Web 131 arquivos/823 testes, Go completo + race/security, format/lint/type/style/build e version-contract; seis avisos ESLint existentes, zero erros, govulncheck sem vulnerabilidades.
+- PASS — `node --test scripts/verify-agent-workspace-evidence-map.test.mjs` (4/4); mapa (48 capacidades/96 critérios; 86 source+test, 9 source-only, 1 unmapped; zero certificados); `make docs-verify` (245 Markdown/33 assets); `git diff --check`.
+- E2E executado duas vezes com PASS. Artefatos Playwright: `/tmp/nexus-follow-agent-e2e`.
+- Pendências gerais: A1/A2/A3/A4 parciais; AGY tem 1/2 contas elegíveis com janela 5h atual; Nexus preinstalado ainda não valida os contratos Maestro v1; 48/48 capacidades seguem pending, com auditoria semântica e gates exact-SHA, visual, plataformas, assinatura e distribuição abertos. Estado **NO_GO**.
+
 ## Continuação — `follow-agent` com pausa explícita — 2026-11-08
 
 - Branch `release/v1.0.0`; commit funcional `46f605b9`. Implementado o controle opt-in de pausar/retomar rolagem automática no `AgentTerminal`. A pausa preserva a linha visível mesmo com PTY ativo ou aba do projeto oculta; os bytes continuam sendo processados pelo xterm. Retomar rola ao final.

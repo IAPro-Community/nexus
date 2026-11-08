@@ -1,3 +1,9 @@
+## Continuação `follow-agent` — 2026-11-08
+
+- E2E Playwright cobre UI real de AgentTerminal/xterm e Agent criado pela API fixture: pause/resume, VIEW_ONLY, consentimento explícito, input em CONTROL e revoke/reconnect. WebSocket provider foi interceptado; broker/host integrado e pacote publicado no SHA final seguem sem prova.
+- Mapa: 48 capacidades/96 critérios, sem aceite certificado (86 refs source+test, 9 source-only, 1 unmapped). AGY balance tem 1/2 perfis com evidência 5h elegível; Maestro precisa ser distribuído/instalado a partir do candidato final. P0 e GO continuam NO_GO.
+- A fatia está local e sem commit a partir de `f6fd4f71`; E2E repetido, `make quality-full`, mapa e `make docs-verify` passaram. Consulte o topo de HANDOFF e VERIFY para checkpoint detalhado.
+
 ## Estado de execução — 2026-11-08
 
 - Trabalho ativo em `release/v1.0.0` no código commitado `46f605b9`, com documentação/proveniência renovada em commit separado. `follow-agent` agora tem pausa/retomada explícita do auto-scroll no AgentTerminal com viewport preservado, announcement/tour localizado e testes. `make quality-full` passou com 131 arquivos/823 testes Web; Go integral/race/security e build passaram. Capturas documentais sintéticas foram renovadas para o source SHA e `make docs-verify` passou; E2E real publicado ainda falta.

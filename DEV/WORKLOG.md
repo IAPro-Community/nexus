@@ -1,3 +1,12 @@
+## 2026-11-08 — `follow-agent`: E2E Playwright de UI/lease
+
+- Acrescentei `web/scripts/e2e-agent-terminal-follow.mjs` e o script `test:e2e:agent-terminal-follow`. O fluxo abre um Agent persistido pela API fixture e exercita AgentTerminal/xterm com WebSocket interceptado no browser.
+- PASS — attach VIEW_ONLY não pede lease; pause mantém scroll e resume acompanha output; tecla em VIEW_ONLY não emite lease/input; botão explícito pede uma lease; CONTROL permite input; revoke/reconnect não readquire lease.
+- Atualizei refs e gaps do mapa canônico sem certificar capability. O E2E não prova o broker/host real.
+- PASS — verificador de mapa 4/4, mapa 48/96 sem certificados, `make docs-verify` (245 Markdown/33 assets), `git diff --check` e `make quality-full` (Web 131/823, Go integral/race/security, build e validadores; seis avisos ESLint conhecidos, zero erro e sem vulnerabilidades govulncheck).
+- E2E repetido duas vezes com PASS; artifact dir `/tmp/nexus-follow-agent-e2e`. WebSocket provider mockado, portanto broker/host integrado ainda é pendência.
+- Worktree local parte de `f6fd4f71`; alterações desta fatia ainda não commitadas. Próximo: recolher quality, rodar E2E no SHA commitado, registrar evidência, commit/push e prosseguir P0/Maestro/48 capacidades sem declarar GO.
+
 ## 2026-11-08 — `follow-agent`: controle explícito de pausa visual
 
 - Implementei no AgentTerminal o toggle acessível e localizado para pausar/retomar a rolagem automática sem parar o Agent ou descartar output. A posição do viewport é restaurada após cada escrita durante a pausa, inclusive com painel oculto; retomar volta ao fim.
