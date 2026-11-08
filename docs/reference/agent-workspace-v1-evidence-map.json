@@ -13,15 +13,19 @@
           "acceptanceIndex": 0,
           "acceptance": "Native CLI em tab/split sem relançar provider",
           "sourceRefs": [
+            "web/src/components/terminalViewModel.ts",
+            "web/src/features/agents/askAgentModel.ts",
             "web/src/workspace/WorkspaceRenderer.tsx"
           ],
           "testRefs": [
+            "web/src/components/terminalViewModel.test.ts",
+            "web/src/features/agents/askAgentModel.test.ts",
             "web/src/workspace/state.test.ts",
             "web/src/workspace/presentation.test.ts"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Auditoria: os testes afirmam persistência/migração do modelo de layout, mas não montam a UI nem provam que alternar abas/split preserva o PTY e evita relançar o provider; falta teste de integração no frontend.",
+          "gap": "Auditoria: o modelo evita duplicar a view de um runtime e Ask Agent não inicia outro runtime quando já está ativo; testes de estado cobrem persistência/migração de layout. Nenhum monta WorkspaceRenderer/TerminalsHost para observar que a instância PTY permanece viva ao trocar abas/split; falta teste de integração frontend.",
           "assertionAudit": "partial"
         },
         {
