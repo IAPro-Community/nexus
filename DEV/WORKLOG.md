@@ -7006,3 +7006,11 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Nenhuma assertion demonstra co-localização de diff, teste, evidência e terminal; a suíte não prova UI read-only nem consentimento explícito para aplicar mudanças. O mapa agora registra essas lacunas e continua sem certificar a capability.
 - PASS — os três testes citados em `internal/nexus/runner/review_test.go`, mapa estrutural (48/96), testes do verificador (4/4) e `git diff --check`.
 - Próximo — continuar a auditoria semântica por critérios e fechar implementação dos gaps prioritários, sem converter pipeline de fixture em homologação.
+
+## 2026-11-08 — P0 A1: auditoria semântica browser-studio
+
+- UI: `BrowserSurface.test.ts` cobre normalização de URL, título de aba e modelo puro de observer/takeover; não integra superfícies do workspace.
+- Backend: browser collaboration cobre handoff humano, bloqueio de ações do Agent, grants revogáveis e runtime capability; rota de sessões cobre autenticação/CSRF. Estes testes não equivalem a E2E do browser real, MCP/CDP, nem isolamento entre projetos.
+- Atualizei o evidence map para separar evidência parcial dos gaps reais. Nenhuma capability foi certificada.
+- PASS — 5 testes Go de `internal/browsercontrol`, 1 teste de rota Web, 13 Vitest + 7 node pretests, verificador do mapa 4/4 e `git diff --check`.
+- Próximo — implementar/integrar as superfícies faltantes e validar o fluxo CDP/MCP em dois projetos, depois continuar a auditoria dos critérios.

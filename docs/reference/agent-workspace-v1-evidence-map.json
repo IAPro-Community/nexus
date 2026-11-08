@@ -131,27 +131,35 @@
           "acceptanceIndex": 0,
           "acceptance": "BrowserSurface integrada a terminal, diff e Agent Inspector",
           "sourceRefs": [
-            "web/src/features/browser/BrowserSurface.tsx"
+            "web/src/features/browser/BrowserSurface.tsx",
+            "web/src/app/WorkspaceSurfaceHost.tsx"
           ],
           "testRefs": [
             "web/src/features/browser/BrowserSurface.test.ts"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Auditoria parcial: BrowserSurface.test.ts verifica normalização de URL, títulos e modelo de controle; WorkspaceSurfaceHost monta a superfície sob o projectId. Nenhum teste comprova integração no mesmo workspace com terminal, diff e Agent Inspector; a superfície atual não recebe esses recursos como painel integrado. Capability pendente.",
+          "assertionAudit": "partial"
         },
         {
           "acceptanceIndex": 1,
           "acceptance": "Permissões de CDP/MCP, takeover humano e sessão de projeto isolada",
           "sourceRefs": [
-            "web/src/features/browser/BrowserSurface.tsx"
+            "web/src/features/browser/BrowserSurface.tsx",
+            "internal/browsercontrol/browser_collaboration.go",
+            "internal/browsercontrol/runtime_capability.go"
           ],
           "testRefs": [
-            "web/src/features/browser/BrowserSurface.test.ts"
+            "web/src/features/browser/BrowserSurface.test.ts",
+            "internal/browsercontrol/browser_collaboration_test.go",
+            "internal/browsercontrol/runtime_capability_test.go",
+            "internal/control/web/handlers_browser_test.go"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Auditoria parcial: testes cobrem modo observer/takeover no modelo UI, handoff humano com bloqueio do Agent, grants revogáveis por sessão e capabilities de runtime escopadas ao projeto. A rota HTTP prova auth/CSRF; falta fluxo E2E integrado CDP/MCP + isolamento da sessão de browser em dois projetos e grants por ator. Capability pendente.",
+          "assertionAudit": "partial"
         }
       ],
       "verification": "pending"

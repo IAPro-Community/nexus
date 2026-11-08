@@ -2377,3 +2377,11 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - PASS — verificador do mapa (4/4), contrato 48/96 sem certificação e `git diff --check`.
 - GAP — os testes citados cobrem ledger de findings e pipeline com executor fake; não provam diff/testes/evidências/terminal no mesmo workspace, review UI read-only nem autorização humana explícita antes de aplicar mudanças. `review-studio` e estado geral permanecem **NO_GO**.
 
+## 2026-11-08 — auditoria semântica A1: browser-studio
+
+- PASS — `go test ./internal/browsercontrol -run '^(TestBrowserHumanInterventionWorkflow|TestBrowserCapabilityScopeAndRevocation|TestBrowserProactiveHumanTakeover|TestRuntimeCapabilityLifecycleAndScoping|TestBrowserRuntimeRejectsEmptyScope)$' -count=1`.
+- PASS — `go test ./internal/control/web -run '^TestBrowserRoutesUseSessionAndCSRF$' -count=1`.
+- PASS — `npm --prefix web run test -- --run src/features/browser/BrowserSurface.test.ts`: 13 Vitest tests; os 7 node pretests também passaram.
+- PASS — evidence map 48/96, verificador 4/4, `git diff --check`.
+- GAP — não há E2E da BrowserSurface integrada a terminal/diff/Inspector; auth, grants e takeover cobertos em cenários unitários separados, sem prova E2E CDP/MCP e isolamento browser de dois projetos. Capability e release seguem **NO_GO**.
+
