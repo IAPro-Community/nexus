@@ -8,12 +8,15 @@
 ## 2026-11-08 — P0 A1: primeira auditoria de assertions
 
 - Auditei os dois critérios da capacidade `terminal-studio` contra as assertions reais, em vez de contar referências de arquivo. O teste de estado do workspace prova persistência de layout, não preservação do processo ao alternar UI. Testes de host validam lease/handover, Ctrl+C routing, ring buffer e tecla ConPTY separadamente, mas não o aceite composto.
-- Gap confirmado: sem teste de integração UI que demonstre nenhum relaunch, e sem caso host com dois clientes, resize efetivo e scrollback após reconexão. `protocol_test.go` só valida o envelope de resize.
+- Gap inicial: os testes de modelo não provavam o lifecycle UI. Foi então ampliado o browser E2E para cobrir shell real e continuidade visual/runtime entre tabs; segue faltando provider IA e split/tab entre superfícies PTY.
 - Atualizei `docs/reference/agent-workspace-v1-evidence-map.json` com assertions auditadas como parciais e lacunas concretas. O mapa continua explicitamente não-certificador; as 48 capacidades seguem pendentes.
 - Implementei `TestSessionHostResizeFromSecondAttachedClientReachesPTY`, com backend de resize observado e duas conexões anexadas; o teste focado passou. Cobertura agora prova o encaminhamento do resize, não o aceite composto nem Windows/ConPTY.
 - O checkpoint está em `c179246c` (`test(workspace): cover resize from attached client`); `make docs-verify` e `make quality-full` passaram na árvore que corresponde a esse SHA (Web 131/818, Go/race/security, lint sem erros e sem advisories; seis warnings ESLint existentes).
-- Auditoria adicional confirmou que `terminalViewModel.test.ts` impede view duplicada e `askAgentModel.test.ts` evita start quando Agent está ativo. Vitest focado passou 7/7; ainda não há asserção no lifecycle do `WorkspaceRenderer`/`TerminalsHost` para troca de abas/split.
-- Próximo: cobrir preservação do PTY sem relaunch na UI e o cenário de scrollback após reconnect; então seguir para a próxima capacidade.
+- Auditoria adicional confirmou que `terminalViewModel.test.ts` impede view duplicada e `askAgentModel.test.ts` evita start quando Agent está ativo. Vitest focado passou 7/7; naquele ponto faltava E2E do lifecycle, coberto no item seguinte.
+- Implementei E2E Playwright para start real de Project Shell no Overview e preservação do runtime ID, `.nx-project-shell-surface` e nó `.xterm` em navegação por abas de produto; conta um único POST de shell launch. PASS após rodar em Chromium: isolamento das superfícies, axe sem violações sérias/críticas e seis viewports.
+- O verificador do mapa agora aceita referências Playwright restritas ao padrão `web/scripts/e2e-*.mjs`; regressões 4/4 cobrem a classificação positiva e bloqueiam helper arbitrário. Matriz aponta esse E2E como candidato sem certificar aceite.
+- `make docs-verify`, Prettier dos scripts e `make quality-full` passaram no worktree baseado em `c03f9ffa`: Web 131/818, Go/race/security, zero erros de lint e nenhum advisory; há seis warnings ESLint existentes.
+- Próximo: estender E2E com provider IA sem geração externa e navegação split/tab de PTYs; cobrir scrollback após reconnect.
 
 ## 2026-11-08 — P0 A3: aguardar evidência após input em approval PTY
 

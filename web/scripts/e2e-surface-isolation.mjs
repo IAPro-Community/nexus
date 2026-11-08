@@ -122,7 +122,9 @@ async function clickProductTab(page, kind) {
 
 async function assertIsolation(page, label) {
   const snapshot = await page.evaluate(() => {
-    const panels = [...document.querySelectorAll('.nx-workspace-stack__body > .nx-workspace-panel')];
+    const panels = [
+      ...document.querySelectorAll('.nx-workspace-stack__body > .nx-workspace-panel'),
+    ];
     const visible = panels.filter((p) => !p.hasAttribute('hidden'));
     const selected = document.querySelector('.nx-workspace-tab[aria-selected="true"]');
     const selectedKind = selected?.getAttribute('data-kind') || '';
@@ -149,7 +151,9 @@ async function assertIsolation(page, label) {
       dialogs: q('[role="dialog"]'),
       visibleDialogs: visibleQ('[role="dialog"]'),
       alertDialogs: q('[role="alertdialog"]'),
-      backdrops: q('.nx-modal-backdrop, .nx-dialog-backdrop, [data-radix-portal] [data-state="open"]'),
+      backdrops: q(
+        '.nx-modal-backdrop, .nx-dialog-backdrop, [data-radix-portal] [data-state="open"]',
+      ),
       scrollLocked: document.body.hasAttribute('data-scroll-locked'),
       bodyOverflow: document.body.style.overflow,
       scrollY: window.scrollY,
@@ -163,21 +167,61 @@ async function assertIsolation(page, label) {
       })(),
     };
   });
-  assert.equal(snapshot.visibleCount, 1, `[${label}] exactly one product surface visible: ${JSON.stringify(snapshot)}`);
+  assert.equal(
+    snapshot.visibleCount,
+    1,
+    `[${label}] exactly one product surface visible: ${JSON.stringify(snapshot)}`,
+  );
   assert.ok(
     snapshot.controlsLinked,
     `[${label}] selected tab must control the visible panel: ${JSON.stringify(snapshot)}`,
   );
-  assert.equal(snapshot.reactFlow, 0, `[${label}] no leaked ReactFlow root: ${JSON.stringify(snapshot)}`);
+  assert.equal(
+    snapshot.reactFlow,
+    0,
+    `[${label}] no leaked ReactFlow root: ${JSON.stringify(snapshot)}`,
+  );
   assert.equal(snapshot.minimap, 0, `[${label}] no leaked MiniMap: ${JSON.stringify(snapshot)}`);
-  assert.equal(snapshot.flowControls, 0, `[${label}] no leaked Flow Controls: ${JSON.stringify(snapshot)}`);
-  assert.equal(snapshot.chromeMenu, 0, `[${label}] no orphan chrome menu portal: ${JSON.stringify(snapshot)}`);
-  assert.equal(snapshot.arrangePanel, 0, `[${label}] no orphan arrange portal: ${JSON.stringify(snapshot)}`);
-  assert.equal(snapshot.visibleDialogs, 0, `[${label}] no visible orphan dialog: ${JSON.stringify(snapshot)}`);
-  assert.equal(snapshot.alertDialogs, 0, `[${label}] no orphan alertdialog: ${JSON.stringify(snapshot)}`);
-  assert.equal(snapshot.scrollLocked, false, `[${label}] no body scroll lock: ${JSON.stringify(snapshot)}`);
-  assert.equal(snapshot.bodyOverflow, '', `[${label}] no body overflow lock: ${JSON.stringify(snapshot)}`);
-  assert.equal(snapshot.scrollY, 0, `[${label}] no page scroll offset: ${JSON.stringify(snapshot)}`);
+  assert.equal(
+    snapshot.flowControls,
+    0,
+    `[${label}] no leaked Flow Controls: ${JSON.stringify(snapshot)}`,
+  );
+  assert.equal(
+    snapshot.chromeMenu,
+    0,
+    `[${label}] no orphan chrome menu portal: ${JSON.stringify(snapshot)}`,
+  );
+  assert.equal(
+    snapshot.arrangePanel,
+    0,
+    `[${label}] no orphan arrange portal: ${JSON.stringify(snapshot)}`,
+  );
+  assert.equal(
+    snapshot.visibleDialogs,
+    0,
+    `[${label}] no visible orphan dialog: ${JSON.stringify(snapshot)}`,
+  );
+  assert.equal(
+    snapshot.alertDialogs,
+    0,
+    `[${label}] no orphan alertdialog: ${JSON.stringify(snapshot)}`,
+  );
+  assert.equal(
+    snapshot.scrollLocked,
+    false,
+    `[${label}] no body scroll lock: ${JSON.stringify(snapshot)}`,
+  );
+  assert.equal(
+    snapshot.bodyOverflow,
+    '',
+    `[${label}] no body overflow lock: ${JSON.stringify(snapshot)}`,
+  );
+  assert.equal(
+    snapshot.scrollY,
+    0,
+    `[${label}] no page scroll offset: ${JSON.stringify(snapshot)}`,
+  );
   assert.ok(
     snapshot.docScrollW <= snapshot.innerW + 2,
     `[${label}] no unintended horizontal scrollbar: ${JSON.stringify(snapshot)}`,
@@ -209,9 +253,20 @@ async function assertBrowserPanelCanScroll(page, label) {
     panel.scrollTop = oldScroll;
     return { platform, overflowY, moved, excess };
   });
-  assert.equal(result.platform, 'web', `[${label}] browser platform detection: ${JSON.stringify(result)}`);
-  assert.equal(result.overflowY, 'auto', `[${label}] browser panel scrolling: ${JSON.stringify(result)}`);
-  assert.ok(result.excess > 128 && result.moved > 0, `[${label}] scroll must not be clipped: ${JSON.stringify(result)}`);
+  assert.equal(
+    result.platform,
+    'web',
+    `[${label}] browser platform detection: ${JSON.stringify(result)}`,
+  );
+  assert.equal(
+    result.overflowY,
+    'auto',
+    `[${label}] browser panel scrolling: ${JSON.stringify(result)}`,
+  );
+  assert.ok(
+    result.excess > 128 && result.moved > 0,
+    `[${label}] scroll must not be clipped: ${JSON.stringify(result)}`,
+  );
 }
 
 async function main() {
@@ -230,6 +285,13 @@ async function main() {
       isolatedProjectPath,
     );
     await seedGraphPlan(context, apiOrigin, project.id);
+    let projectShellLaunches = 0;
+    page.on('request', (request) => {
+      const url = new URL(request.url());
+      if (request.method() === 'POST' && url.pathname === `/api/v1/projects/${project.id}/shell`) {
+        projectShellLaunches += 1;
+      }
+    });
 
     const shellUrl = new URL(`/p/${encodeURIComponent(project.id)}/overview`, apiOrigin);
     await page.goto(shellUrl.toString(), { waitUntil: 'domcontentloaded', timeout: 15000 });
@@ -263,6 +325,31 @@ async function main() {
     }
     assert.ok(kinds.includes('missions'), 'Flow action must open the missions product tab');
 
+    // Start a real supervised shell PTY through the Overview action. Keeping
+    // the host alone is insufficient: preserve the live surface and xterm
+    // node so tab navigation cannot silently reconnect/restart its runtime.
+    await clickProductTab(page, 'overview');
+    const shellAction = page
+      .getByRole('button', { name: /Project Terminal|Terminal do Projeto|Terminal del Proyecto/i })
+      .first();
+    await shellAction.waitFor({ state: 'visible', timeout: 10000 });
+    await shellAction.click();
+    const shellSurface = page.locator('.nx-project-shell-surface[data-runtime-id]').first();
+    await shellSurface.waitFor({ state: 'attached', timeout: 15000 });
+    const runtimeId = await shellSurface.getAttribute('data-runtime-id');
+    assert.ok(runtimeId, 'project shell must expose its existing runtime identity');
+    const xterm = shellSurface.locator('.xterm').first();
+    await xterm.waitFor({ state: 'attached', timeout: 15000 });
+    const xtermPinned = await page.evaluate((id) => {
+      const surface = document.querySelector(`.nx-project-shell-surface[data-runtime-id="${id}"]`);
+      const terminal = surface?.querySelector('.xterm');
+      window.__e2eProjectShellSurface = surface || null;
+      window.__e2eProjectShellTerminal = terminal || null;
+      return Boolean(surface && terminal);
+    }, runtimeId);
+    assert.equal(xtermPinned, true, 'live project shell and xterm must mount before navigation');
+    await clickProductTab(page, 'overview');
+
     // Terminal keep-alive baseline: pin the host DOM node identity.
     const hostPinned = await page.evaluate(() => {
       const host = document.querySelector('.nx-terminals-host');
@@ -278,7 +365,9 @@ async function main() {
     for (const kind of sequence) {
       await clickProductTab(page, kind);
       const snap = await assertIsolation(page, kind);
-      console.log(`  ✓ ${kind}: one panel (total mounted incl. terminals host: ${snap.panelCount})`);
+      console.log(
+        `  ✓ ${kind}: one panel (total mounted incl. terminals host: ${snap.panelCount})`,
+      );
     }
 
     // Same-node proof: the terminals host survived every switch without remount.
@@ -287,6 +376,27 @@ async function main() {
     );
     assert.equal(hostSurvived, true, 'TerminalsHost DOM node must be identical after all switches');
     console.log('  ✓ TerminalsHost keep-alive: identical DOM node across all switches');
+
+    const liveShellSurvived = await page.evaluate((id) => {
+      const surface = document.querySelector(`.nx-project-shell-surface[data-runtime-id="${id}"]`);
+      const terminal = surface?.querySelector('.xterm');
+      return {
+        sameSurface: window.__e2eProjectShellSurface === surface,
+        sameTerminal: window.__e2eProjectShellTerminal === terminal,
+        runtimeId: surface?.getAttribute('data-runtime-id') || '',
+      };
+    }, runtimeId);
+    assert.equal(liveShellSurvived.sameSurface, true, 'project shell surface must not remount');
+    assert.equal(
+      liveShellSurvived.sameTerminal,
+      true,
+      'xterm instance DOM must survive tab changes',
+    );
+    assert.equal(liveShellSurvived.runtimeId, runtimeId, 'runtime identity must not change');
+    assert.equal(projectShellLaunches, 1, 'tab navigation must not launch another project shell');
+    console.log(
+      '  ✓ live shell/xterm identity and single runtime launch survive product tab changes',
+    );
 
     // Flow graph mount + unmount proof.
     await clickProductTab(page, 'missions');

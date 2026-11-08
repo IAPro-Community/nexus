@@ -8,7 +8,9 @@ Em `59d1936a`, `make quality-full`, `make docs-verify` e E2E first-run fixture p
 
 Continuação em `7c77317f`: A3 agora não marca uma aprovação resolvida só porque Enter/y/n foi enviado ao PTY; aguarda nova saída observada do provider, preservando source INFERRED. Testes dirigidos de `internal/control/host`, `internal/control/registry` e `internal/control/web`, `go vet` e `make quality-full` passaram nesse SHA; `make docs-verify` passou após o registro. A3/A4 seguem parciais.
 
-Auditoria A1 de `terminal-studio` na árvore `c179246c`: os testes de layout só exercitam estado/modelo; não há integração UI provando PTY mantido sem relaunch. Lease, Ctrl+C, ring buffer e ConPTY têm testes isolados. `TestSessionHostResizeFromSecondAttachedClientReachesPTY` prova CmdResize do segundo cliente anexado até o backend; `make quality-full`/`docs-verify` passaram. Scrollback após reconnect/aceite composto e runner Windows ainda faltam. Gap registrado sem promover cobertura/verification.
+Auditoria A1 de `terminal-studio`: E2E surface inicia Project Shell supervisionado e comprova runtime ID, nó do componente e `.xterm` preservados durante troca de abas de produto; um único POST inicia o shell. O E2E passou em Chromium com 6 viewports e axe sem violações graves/críticas. `TestSessionHostResizeFromSecondAttachedClientReachesPTY` prova resize do segundo cliente até o backend. Provider IA em split/tab, scrollback após reconnect e runner Windows/ConPTY ainda faltam; capacidade permanece pending.
+
+No worktree baseado em `c03f9ffa`, o E2E repetido, mapa/verificador 4/4, `docs-verify` e `make quality-full` passaram; Web 131/818, Go/race/security, seis warnings ESLint e nenhum advisory. Provider IA em split/tab continua fora da evidência.
 
 Testes de modelo adicionais de `terminalViewModel`/`askAgentModel` (7/7 Vitest focado) provam ausência de view duplicada e que Agent ativo não solicita outro runtime; não são evidência do lifecycle de montagem da UI ao trocar abas/split.
 

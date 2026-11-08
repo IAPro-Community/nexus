@@ -21,11 +21,12 @@
             "web/src/components/terminalViewModel.test.ts",
             "web/src/features/agents/askAgentModel.test.ts",
             "web/src/workspace/state.test.ts",
-            "web/src/workspace/presentation.test.ts"
+            "web/src/workspace/presentation.test.ts",
+            "web/scripts/e2e-surface-isolation.mjs"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Auditoria: o modelo evita duplicar a view de um runtime e Ask Agent não inicia outro runtime quando já está ativo; testes de estado cobrem persistência/migração de layout. Nenhum monta WorkspaceRenderer/TerminalsHost para observar que a instância PTY permanece viva ao trocar abas/split; falta teste de integração frontend.",
+          "gap": "Auditoria: unit tests provam view sem duplicação, reutilização de Agent ativo e persistência do layout. E2E Playwright inicia shell supervisionado real e comprova identidade do runtime/superfície/xterm e só um POST de start ao alternar abas de produto. Ainda falta exercitar provider IA nativo e tab/split de PTYs com evidência de não relaunch; o aceite completo permanece pendente.",
           "assertionAudit": "partial"
         },
         {
