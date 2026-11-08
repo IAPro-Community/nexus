@@ -1,3 +1,9 @@
+## 2026-11-08 — Maestro: smoke real dos contratos v1
+
+- PASS — CLI do checkout Maestro `release/1.1.0@9c9c9eb`: `capabilities --json` anuncia advice/verification `1.0.0`; `TestMaestroCLIContractInterop` executou capabilities, advice e verify em 0,695 s via wrapper efêmero e sem executar provider/Agent.
+- Divergência de instalação: o `maestro` encontrado no PATH é o pacote global 1.1.0 sob Node 20, mas `maestro capabilities --json` retorna “Comando desconhecido”; `nexus maestro status --json` reporta available/version, sem `contracts`. O smoke de fonte não prova que Nexus instalado invocará o CLI compatível.
+- Próximo: alinhar o executável implantado com o checkout 9c9c9eb e repetir o smoke pelo PATH real; manter integração/runtime NO_GO até ver contracts no status.
+
 ## 2026-11-08 — P0 A4: fenced response e autorização do Radar
 
 - Ampliei regressões para provar que um guard de atenção da conta/runtime Alpha não responde a runtime Beta de outro projeto; stale, multiline e cross-runtime devem falhar sem reservar claim.
