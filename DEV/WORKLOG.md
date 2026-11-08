@@ -3,7 +3,7 @@
 - Implementei no AgentTerminal o toggle acessível e localizado para pausar/retomar a rolagem automática sem parar o Agent ou descartar output. A posição do viewport é restaurada após cada escrita durante a pausa, inclusive com painel oculto; retomar volta ao fim.
 - Integrei a ação ao tour/novidades compartilhados, escopada ao terminal e projeto, com i18n EN/PT-BR/ES. Atualizei `sourceStatus` para `partial` e o mapa de evidências sem promover aceites.
 - PASS: 31 testes focados; `make quality-full` (Web 131/823, Go integral/race/security, build, version-contract; 6 warnings ESLint existentes, govulncheck limpo); validadores 48 capacidades, mapa 48/96 e feature catalog 36.
-- `make docs-verify` está temporariamente bloqueado porque a árvore modificada torna stale o manifesto visual ancorado em `6960a1f7`; recaptura será feita após checkpoint sem afirmar homologação da feature.
+- `46f605b9` commitou a fatia funcional. `npm --prefix web run docs:capture` renovou 10 capturas sintéticas no SHA de código e `make docs-verify` passou; elas não são E2E visual da capability.
 - Próximo: cobrir interativamente lease/WebSocket e pausa no AgentTerminal; terminar A2/A3/A4 e revisar assertions restantes. Capability/GO seguem pendentes até evidência publicada exact-SHA.
 
 ## 2026-11-08 — Maestro: smoke real dos contratos v1

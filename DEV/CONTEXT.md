@@ -1,6 +1,6 @@
 ## Estado de execução — 2026-11-08
 
-- Trabalho ativo em `release/v1.0.0`, base sincronizada `a573ef69`. O worktree contém alteração ainda não commitada para `follow-agent`: pausa/retomada explícita do auto-scroll de AgentTerminal com viewport preservado, announcement/tour localizado e testes. `make quality-full` passou com 131 arquivos/823 testes Web; Go integral/race/security e build passaram. `make docs-verify` está stale devido ao manifesto visual preso em `6960a1f7` e será tratado após o checkpoint.
+- Trabalho ativo em `release/v1.0.0` no código commitado `46f605b9`, com documentação/proveniência renovada em commit separado. `follow-agent` agora tem pausa/retomada explícita do auto-scroll no AgentTerminal com viewport preservado, announcement/tour localizado e testes. `make quality-full` passou com 131 arquivos/823 testes Web; Go integral/race/security e build passaram. Capturas documentais sintéticas foram renovadas para o source SHA e `make docs-verify` passou; E2E real publicado ainda falta.
 - O contrato continua 48/48 pending. AGY tem apenas uma de duas contas elegíveis, e P0 A2/A3/A4, E2E integrado de follow/lease, instalação final Maestro, plataformas/assinatura e homologação exact-SHA estão abertos. Veja HANDOFF/VERIFY atuais; não confiar em matrizes históricas abaixo.
 
 ## Checkpoint de continuação — 2026-11-08
