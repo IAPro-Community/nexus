@@ -64,6 +64,20 @@ func TestDriverRegistryAndCapabilities(t *testing.T) {
 	}
 }
 
+func TestRegisteredDriversBooleanCapabilitiesMatchTestedEvidence(t *testing.T) {
+	ctx := context.Background()
+	for _, d := range DefaultRegistry().List() {
+		t.Run(d.ProviderID(), func(t *testing.T) {
+			p := model.Profile{Name: "capability-contract", Provider: d.ProviderID()}
+			evidence := d.EffectiveCaps(ctx, p)
+			legacy := d.Capabilities(ctx, p)
+			if want := evidence.ToBooleanCaps(); !reflect.DeepEqual(legacy, want) {
+				t.Fatalf("legacy capability claim diverged from tested evidence: got %+v, want %+v", legacy, want)
+			}
+		})
+	}
+}
+
 func TestOpenCodeReadOnlyReviewUnsupportedUntilAgentProjection(t *testing.T) {
 	caps := NewOpenCodeDriver().EffectiveCaps(context.Background(), model.Profile{Name: "default"})
 	if caps.ReadOnlyReview.Status != CapabilityUnsupported {

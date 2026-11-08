@@ -3,6 +3,7 @@
 - Status **NO_GO**. Handoff corrente: [DEV/HANDOFF.md](HANDOFF.md); execução/pendências: [DEV/VERIFY.md](VERIFY.md).
 - Maestro `release/1.1.0@9c9c9eb`: CLI publica contracts de capabilities/advice/verification; suíte completa 1.369 pass / 0 fail / 4 skipped (1.373 total), `npm run validate` PASS.
 - Nexus implementa os contratos Maestro e, no código `c5a31c41`, o AGY `:balance` passou a exigir quota LIVE/CACHED recente, atribuível e com evidência numérica 5h por grupo de modelo observado. `make quality` PASS nesse SHA; veja evidências em `DEV/VERIFY.md`.
+- P0 A1 ganhou teste transversal que impede drivers registrados de anunciar capacidade booleana divergente de `SUPPORTED && tested`; validadores estruturais de 48 capacidades e 36 features passaram. Mapa de evidência para cada capacidade e certificação continuam abertos.
 - As 48 capacidades canônicas ainda estão `verification: pending`. Probe live atual: 2 contas retornam LIVE, mas uma saída contém só janelas semanais; apenas a outra é elegível para balance e dry-run seleciona 1/2. Faltam resolver a evidência 5h da primeira conta, alternância real entre duas elegíveis, fechar P0s, obter aceite das 48 e passar gates de UI/plataforma/distribuição no SHA de release.
 - Índices e relatórios históricos abaixo não substituem o handoff e evidências do SHA corrente.
 

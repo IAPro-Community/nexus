@@ -1,3 +1,10 @@
+## 2026-11-08 — P0 A1: contrato de capabilities por driver
+
+- Adicionei teste transversal que compara `Capabilities()` de todos os drivers registrados a `EffectiveCaps().ToBooleanCaps()`, preservando `SUPPORTED && Tested` como único estado que ativa booleans legados.
+- `go test ./internal/control/driver`, `node scripts/verify-agent-workspace-v1.mjs`, `node scripts/verify-feature-catalog.mjs` e `make quality` passaram. Os validadores preservam 48 capacidades obrigatórias pendentes e 36 mappings do catálogo de produto (escopos distintos).
+- Isto protege um requisito de A1, mas não conclui a onda: ainda falta mapeamento automatizado dos 48 acceptance criteria a código/testes e integração completa das capacidades parciais/ausentes. Nenhum status de aceite foi promovido.
+- Próximo passo no A1: materializar o mapa source/test da matriz de 48 para orientar os próximos P0s, sem tratar existência de caminho como evidência de aceite.
+
 ## 2026-11-08 — AGY balance exige evidência atual de 5h
 
 - Commit de código/testes/documentação: `c5a31c41` (`fix(quota): require fresh AGY 5h evidence for balance`); `make quality` repetido e PASS nesse SHA.

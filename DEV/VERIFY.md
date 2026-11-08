@@ -1,3 +1,11 @@
+## P0 A1 — projection contract and catalogs — 2026-11-08
+
+- PASS — `go test ./internal/control/driver`, including the new all-registered-drivers projection consistency test.
+- PASS — `node scripts/verify-agent-workspace-v1.mjs` (48-item scope integrity; certification still pending).
+- PASS — `node scripts/verify-feature-catalog.mjs` (36 code/test/doc mappings).
+- PASS — `make quality`: full Go suite/lint, 131 Web files/818 tests, format/style/type checks and version-contract; ESLint has 6 warnings/0 errors.
+- Scope limitation: these checks establish the projection and catalog structure, not per-capability acceptance. The 48-item source/test/acceptance map and external exact-SHA proof remain open; overall **NO_GO**.
+
 ## Gate AGY balance e qualidade integral — 2026-11-08
 
 - Código testado no SHA `c5a31c41` (`fix(quota): require fresh AGY 5h evidence for balance`).

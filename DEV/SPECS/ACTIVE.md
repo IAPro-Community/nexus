@@ -1,3 +1,9 @@
+## P0 A1 — capability evidence contract — 2026-11-08
+
+- Test transversal adicionado: toda capability booleana legada de cada driver registrado deve ser igual a `EffectiveCapabilities.ToBooleanCaps()` (`SUPPORTED && tested`).
+- Verificações passam: pacote `internal/control/driver`, catálogo de 48 (estrutura, ainda pending), catálogo de produto de 36 mappings e `make quality`.
+- A1 permanece parcial até automatizar mapa individual das 48 acceptance criteria para source/test e reconciliar claims sem inferir certificação. Próximo passo: construir esse mapa a partir de inventário verificável sem marcar `verification: verified`.
+
 ## Continuidade ativa — hard gate de quota 5h no AGY balance — 2026-11-08
 
 - Escopo original permanece: fechar Nexus 1.0 + Maestro, P0s e aceite exact-SHA para as 48 capacidades. Sem reduzir o objetivo e sem declarar GO por testes isolados.
