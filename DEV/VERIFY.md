@@ -2247,3 +2247,11 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - **HOMOLOGAÇÃO PENDENTE** — não há evidência nesta execução com duas contas AGY autenticadas e quota real de 5h, nem build publicado/SHA imutável. Não alterar o estado das 48 capacidades por estes testes locais; release e Nexus/Maestro permanecem NO_GO.
 - Maestro: a suíte completa terminou 1334 pass / 4 fail / 4 skipped; os 4 failures observados envolvem `CODEX_HOME` em `doctor --strict` e validações de instalação de perfil. `advise --json` e `verify --json` ainda faltam no contrato, portanto integração não homologada.
 
+## Commits sincronizados — 2026-11-08
+
+- **Nexus PASS** — após integrar `origin/release/v1.0.0` (`ccfa109c`), `go test ./internal/core/scheduler ./internal/core/fallback ./internal/app ./internal/profile ./internal/control/driver ./internal/control/web ./internal/nexus -count=1` e `go vet` nos pacotes alterados passaram. `git diff --check` passou.
+- **Maestro PASS parcial** — após integrar os 30 commits de `origin/release/1.1.0`, `pwsh .../scripts/validate-public.ps1`, `git diff --check` e `node --test tests/legacy-compatibility.test.js` (7/7) passaram.
+- **Maestro suíte completa: FAIL** — `npm test`: 1360 pass / 3 fail / 4 skipped (1107 testes, 112 suítes); as falhas reportadas são verificações de instalação sob `CODEX_HOME` divergente.
+- Pushes concluídos: Nexus `release/v1.0.0@ee0e09c8`; Maestro `release/1.1.0@e97a204`. Sem force-push.
+- GO continua bloqueado: E2E com duas contas AGY e quota real de 5h não executado; Maestro ainda não fornece `advise --json`/`verify --json`; 48 capacidades seguem pendentes.
+

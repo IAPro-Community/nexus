@@ -6884,3 +6884,10 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Documentei o contrato em `docs/account-selection.{pt-BR,en,es}.md` e acrescentei testes para aliases, concorrência, persistência e failover.
 - PASS: Go tests focados e race para scheduler/fallback/app; vet; cross-compile Windows AMD64 do scheduler; diff check. Isso não comprova distribuição real entre as duas contas do proprietário.
 - Limite: E2E autenticado com as duas contas AGY e quotas reais de 5h não foi possível nesta sessão. Não homologar a funcionalidade em produção nem promover Nexus 1.0/Maestro a GO. A suíte completa do Maestro permanece em 1334 pass / 4 fail / 4 skipped; detalhes/pendências em `DEV/HANDOFF.md` e `DEV/VERIFY.md`.
+
+## 2026-11-08 — commits e sincronização das branches release
+
+- Commits Nexus enviados para `release/v1.0.0`: `7bbc8ffe` (rotação de contas), `b088e662` (descoberta/conexão de sessões locais) e `ee0e09c8` (contratos testados de capabilities). O remoto avançado `ccfa109c` foi integrado por merge `37e3ac1e`, sem rebase/force.
+- Contrato JSON de capabilities/skills do Maestro enviado para `release/1.1.0`: `8d096cb`; remoto avançado com 30 commits foi integrado pelo merge `e97a204`.
+- Go tests e vet dos pacotes alterados, validação pública Maestro e teste focado 7/7 passaram. A suíte completa Maestro terminou 1360/3/4; falhas observadas nos checks de instalação devido a `CODEX_HOME` divergente.
+- Próximo passo permanece corrigir/reproduzir os failures em ambiente canônico, implementar advice/verification e obter E2E com duas contas AGY reais. Não declarar GO.
