@@ -2391,3 +2391,9 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - PASS — evidence map agora aponta 87 critérios source-and-test-referenced, 8 source-only e 1 unmapped; testes do verificador 4/4; nenhum aceite certificado.
 - GAP — isolação de worktree e integração de packages paralelos não equivalem a executar e comparar duas alternativas. Comparador de diff/testes/custo com decisão humana não localizado; integração da Mission pode combinar packages verificados. `comparison-lab` permanece pending/NO_GO.
 
+## 2026-11-08 — auditoria semântica A1: remote-companion
+
+- PASS — dois testes de lease/handover do host; quatro testes de túnel/convite (SSH tunnel, convite auth+CSRF, bootstrap seguro/uso único, stale exit da geração anterior); `attentionDelivery.test.ts` 5/5; node pretests 7/7.
+- PASS — verificador do evidence map 4/4; estrutura 48/96: 87 source+test, 8 source-only, 1 unmapped; `git diff --check`.
+- GAP — não existe evidência de Mobile Inbox ou terminal em dispositivo remoto real; handover de lease em attached clients locais e token de túnel não demonstram continuidade ao trocar dispositivo nem revogação completa do acesso remoto. Capability permanece pending/NO_GO.
+

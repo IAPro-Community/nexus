@@ -203,29 +203,36 @@
           "acceptanceIndex": 0,
           "acceptance": "Mobile Inbox e terminal remoto vinculados ao host",
           "sourceRefs": [
-            "web/src/features/settings/RemoteAccessTab.tsx"
+            "web/src/features/settings/RemoteAccessTab.tsx",
+            "internal/control/web/handlers_tunnel.go"
           ],
           "testRefs": [
-            "internal/browsercontrol/browser_collaboration_test.go",
+            "internal/control/web/remote_test.go",
+            "internal/control/web/remote_invite_test.go",
             "web/src/notifications/attentionDelivery.test.ts"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Auditoria parcial: RemoteAccessTab permite publicar túnel/QR e remote_test.go percorre bootstrap/API pelo túnel; remote_invite_test.go cobre convite autenticado de uso único; attentionDelivery.test.ts cobre chaves e foco da entrega. Não há teste de Mobile Inbox ou terminal remoto ponta a ponta em outro dispositivo/host. Capability pendente.",
+          "assertionAudit": "partial"
         },
         {
           "acceptanceIndex": 1,
           "acceptance": "Troca de dispositivo sem reiniciar sessão, com lease e revogação",
           "sourceRefs": [
-            "web/src/features/settings/RemoteAccessTab.tsx"
+            "web/src/features/settings/RemoteAccessTab.tsx",
+            "internal/control/host/host.go",
+            "internal/control/web/handlers_tunnel.go"
           ],
           "testRefs": [
-            "internal/browsercontrol/browser_collaboration_test.go",
-            "web/src/notifications/attentionDelivery.test.ts"
+            "internal/control/host/qa_test.go",
+            "internal/control/host/host_test.go",
+            "internal/control/web/remote_invite_test.go"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Auditoria parcial: host_test e qa_test cobrem handover de lease entre dois attached clients sem reiniciar o PTY; remote_invite_test cobre convite/túnel seguro e corrida de gerações do túnel. Não há E2E real de troca de dispositivo com sessão preservada nem revogação imediata do dispositivo remoto/credencial. Capability pendente.",
+          "assertionAudit": "partial"
         }
       ],
       "verification": "pending"

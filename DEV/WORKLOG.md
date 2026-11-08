@@ -7021,3 +7021,10 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Mantive como evidência parcial somente os testes de materialização/isolamento de worktree e conflito de integração. Critério comparador foi marcado `unmapped` sem inventar fonte.
 - PASS — quatro testes Go direcionados, evidence-map 48/96 (`87` com fonte+teste, `8` source-only, `1` unmapped), verificador 4/4 e `git diff --check`.
 - Próximo — implementar comparação isolada e escolha explícita sem merge automático; continuar a auditoria dos critérios.
+
+## 2026-11-08 — P0 A1: auditoria semântica remote-companion
+
+- Corrigi associações incorretas com browser collaboration e atenção genérica. O mapa agora distingue testes de túnel/convite/atenção e de lease do host dos aceites que não demonstram.
+- Revisão: túnel SSH/bootstrap, convite seguro de uso único, handover stale do túnel, handover de writer lease e deduplicação/foco de push têm asserts reais. Nenhum cobre dispositivo mobile separado com inbox/terminal, continuação da mesma sessão após troca de device, nem revogação end-to-end.
+- PASS — 2 testes de lease no host, 4 testes de túnel no Web Go, atenção 5/5 + node pretests 7/7, evidence-map 4/4, estrutura 48/96, diff check.
+- Próximo — implementar e homologar acesso remoto multi-device com revogação; continuar a revisão semântica dos critérios.
