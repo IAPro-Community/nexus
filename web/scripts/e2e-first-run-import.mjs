@@ -28,6 +28,7 @@ async function main() {
   let usageImportRequests = 0;
   let quickConnectRequests = 0;
   let usageResourceReads = 0;
+  const directSetupRequests = [];
 
   try {
     ({ browser, context, page } = await launchFixtureBrowser(bootstrapUrl));
@@ -96,25 +97,26 @@ async function main() {
     });
     await context.route('**/api/v1/resources', (route) => {
       usageResourceReads += 1;
-      const accounts = usageImportRequests || quickConnectRequests
-        ? [
-            {
-              id: 'codex:default',
-              provider: 'codex',
-              profile: 'default',
-              display_name: 'Codex fixture',
-              authenticated: true,
-              is_default: true,
-              available: true,
-              quota_remaining: 0,
-              quota_total: 0,
-              rate_limited: false,
-              health: 'healthy',
-              last_checked: new Date().toISOString(),
-              quota_view: { status: 'UNKNOWN' },
-            },
-          ]
-        : [];
+      const accounts =
+        usageImportRequests || quickConnectRequests
+          ? [
+              {
+                id: 'codex:default',
+                provider: 'codex',
+                profile: 'default',
+                display_name: 'Codex fixture',
+                authenticated: true,
+                is_default: true,
+                available: true,
+                quota_remaining: 0,
+                quota_total: 0,
+                rate_limited: false,
+                health: 'healthy',
+                last_checked: new Date().toISOString(),
+                quota_view: { status: 'UNKNOWN' },
+              },
+            ]
+          : [];
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -145,7 +147,10 @@ async function main() {
     assert.match(resultText, /1 sem sessão importável/);
     assert.match(resultText, /1 falharam/);
     assert.equal(firstRunImportRequests, 1, 'first-run import must call the endpoint once');
-    await page.screenshot({ path: path.join(screenshotDir, 'first-run-layout.png'), fullPage: true });
+    await page.screenshot({
+      path: path.join(screenshotDir, 'first-run-layout.png'),
+      fullPage: true,
+    });
     await result.screenshot({ path: path.join(screenshotDir, 'first-run-import-result.png') });
 
     const { project, apiOrigin } = await seedFixtureProject(
@@ -206,9 +211,67 @@ async function main() {
       path: path.join(screenshotDir, 'usage-accounts-host-session-import.png'),
       fullPage: true,
     });
+
+    await context.route('**/api/v1/projects/*/agents', async (route) => {
+      if (route.request().method() !== 'POST') return route.continue();
+      directSetupRequests.push('create');
+      return route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 'fixture-direct-agent',
+          project_id: project.id,
+          name: 'Fixture Direct Agent',
+          role: 'developer',
+          state: 'IDLE',
+        }),
+      });
+    });
+    await context.route('**/api/v1/resources/select', async (route) => {
+      directSetupRequests.push('select-resource');
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+    });
+    await context.route('**/api/v1/agents/fixture-direct-agent/config/apply', async (route) => {
+      directSetupRequests.push('apply-config');
+      return route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'fixture config rejected' }),
+      });
+    });
+    await context.route('**/api/v1/agents/fixture-direct-agent/start', async (route) => {
+      directSetupRequests.push('start');
+      return route.fulfill({ status: 500, contentType: 'application/json', body: '{}' });
+    });
+    await context.route('**/api/v1/agents/fixture-direct-agent', async (route) => {
+      if (route.request().method() !== 'DELETE') return route.continue();
+      directSetupRequests.push('delete');
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'deleted' }),
+      });
+    });
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('nexus:new-ai-session')));
+    const directDialog = page.getByRole('dialog');
+    await directDialog.waitFor({ state: 'visible', timeout: 5000 });
+    await directDialog.getByRole('radio', { name: /Codex fixture/ }).click();
+    await directDialog.getByRole('textbox').first().fill('Fixture Direct Agent');
+    await directDialog.getByRole('button', { name: /^Iniciar$/i }).click();
+    await directDialog.getByText('fixture config rejected').waitFor({
+      state: 'visible',
+      timeout: 5000,
+    });
+    assert.deepEqual(
+      directSetupRequests,
+      ['create', 'select-resource', 'apply-config', 'delete'],
+      'failed pre-start setup must delete the created Agent without starting a PTY',
+    );
+
     console.log('First-run host-session import feedback E2E: PASS');
     console.log('Usage / Accounts host-session discovery and quick-connect E2E: PASS');
     console.log('Usage / Accounts host-session import and profile refresh E2E: PASS');
+    console.log('Direct session pre-start failure cleanup E2E (fixture API): PASS');
   } catch (error) {
     console.error(`First-run import E2E server output:\n${getOutput()}`);
     throw error;
