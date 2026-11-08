@@ -7094,3 +7094,9 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - `directSessionLifecycle.test.ts` passou 9/9; falhas pré-start fazem rollback, erro de start incerto conserva o Agent para recuperação.
 - `make quality-full` passou: format, 6 warnings ESLint/0 erros, Web 131/818, Go completo e race, build/security; nenhum advisory govulncheck. `make docs-verify` passou (245 Markdown/33 assets).
 - Próximo: A2 ainda precisa de dois perfis reais e cancelamento autenticado sem órfão; preservar NO_GO e seguir P0/48 capacidades.
+
+## 2026-11-08 — regressão E2E de rollback DirectSession
+
+- E2E first-run agora exercita DirectSessionLauncher com falha em `config/apply`; a UI solicita DELETE do Agent recém-criado e nunca chama `/start`. Commit de código: `7effc914`.
+- PASS — `node --check`, Prettier, E2E first-run (4 cenários/fluxos), `make quality-full` no commit (Web 131/818, Go completo/race, build/security; 6 warnings ESLint), `make docs-verify`, mapa estrutural e `git diff --check`.
+- Limite: resposta de criação/seleção/config/delete foi fixture de browser; não prova transação no Core, Wails ou provider real. A2 permanece aberto.

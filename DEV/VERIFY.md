@@ -1,3 +1,10 @@
+## A2 — rollback de sessão direta antes do start — 2026-11-08
+
+- E2E atualizado em `web/scripts/e2e-first-run-import.mjs`: abre DirectSessionLauncher, simula criação de Agent e seleção de recurso, injeta falha em `config/apply` e exige DELETE compensatório antes de qualquer `/start`. Ordem observada: `create → select-resource → apply-config → delete`; nenhum PTY é iniciado pelo caminho exercitado.
+- PASS — E2E completo no commit de código `7effc914`, inclusive importação first-run, quick-connect, refresh e rollback fixture.
+- PASS — `make quality-full` no commit `7effc914`: format, 6 warnings ESLint/0 erros, 131 arquivos/818 testes Web, Go completo, race, build e security; sem advisories govulncheck. `make docs-verify` PASS.
+- Limite — API de Agent/recurso foi interceptada no browser; isto verifica sequência de UI/requests, não exclusão real no Core, Wails, login ou provider. A2 continua parcial; seguem necessários perfis reais e cenário integrado sem Agent/PTY órfão.
+
 ## Checkpoint A2 — first-run e lifecycle no SHA corrente — 2026-11-08
 
 - PASS — `NEXUS_E2E_ARTIFACTS_DIR=/tmp/nexus-first-run-evidence-0feb33f1 npm --prefix web run test:e2e:first-run-import`: importação inicial, descoberta/quick-connect e refresh em Usage / Accounts passaram no SHA `0feb33f1`. Artefatos sintéticos ficaram em `/tmp`.
