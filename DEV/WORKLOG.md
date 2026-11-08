@@ -6921,3 +6921,10 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Interoperação Nexus→Maestro CLI real no SHA `39fe7257`: `TestMaestroCLIContractInterop` PASS (0,70 s).
 - Primeira execução de `make quality` terminou em erro durante `test-go`, sem diagnóstico preservado pela saída truncada; `make test-go` isolado e a repetição integral com log em `/tmp/nexus-quality-current.log` passaram. Repetir a qualidade no SHA do ledger.
 - NO_GO: permanecem P0s, 48 aceites, E2E de quota real AGY, homologação visual, plataformas e distribuição assinada.
+
+## 2026-11-08 — Diagnóstico de contas AGY para homologação do balanceamento
+
+- No contexto Nexus do host (`NEXUS_REAL_HOME=/home/desenvolvedor`), o inventário contém dois perfis AGY autenticados.
+- Consultados os snapshots por `profile.RefreshUsageSnapshotContext` (adaptador chama `agy --print=/quota`, sem enviar prompt de geração). Perfil 1 retornou `LIVE/CLI_OUTPUT` com duas janelas semanais e sem janela de 5h; perfil 2 permaneceu `UNKNOWN`, usando observação antiga (~51 h) que não é elegível para alocação automática.
+- `nexus explain agy` confirmou: perfil 1 elegível; perfil 2 rejeitado por quota desconhecida. Os dados atuais não permitem demonstrar a rotação segura entre as duas contas nem preservar quota 5h.
+- Próximo diagnóstico: descobrir por que o segundo probe live não atualiza e por que o resultado do primeiro omite as janelas 5h; manter fail-closed e não iniciar uma tarefa de modelo para simular rotação.

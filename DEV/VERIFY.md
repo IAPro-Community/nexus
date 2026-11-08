@@ -2289,3 +2289,11 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - RECHECK — repetir `make quality` no SHA documental final; o comando passou no código de `39fe7257` antes da atualização deste ledger. Uma primeira execução teve falha em `test-go` sem diagnóstico preservado pela saída truncada; a repetição isolada e a segunda execução integral passaram.
 - NO_GO — estes gates de código não homologam P0, 48 capacidades, quota AGY em duas contas, UI visual no SHA publicado ou plataformas/distribuição.
 
+## Probe AGY e decisão de elegibilidade — 2026-11-08
+
+- PASS — home base do host consultado com `NEXUS_REAL_HOME=/home/desenvolvedor`: há dois perfis AGY autenticados.
+- PASS — probe de quota direcionado nos dois perfis via adapter `--print=/quota`; nenhuma tarefa de geração foi enviada.
+- BLOCKED — perfil 1 retornou `LIVE/CLI_OUTPUT` com duas janelas semanais, sem janela de 5h; perfil 2 não obteve observação atual e ficou `UNKNOWN` (último cache ~51 h).
+- PASS — `nexus explain agy` seleciona o perfil 1 e rejeita o perfil 2 por quota desconhecida.
+- NO_GO — round-robin de duas contas e preservação da janela 5h não homologados; investigar o probe da segunda conta e a cobertura das janelas no parser.
+

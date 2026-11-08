@@ -1,8 +1,9 @@
 ## Continuidade confirmada — 2026-11-08
 
 - O objetivo continua sendo atingir GO real para Nexus 1.0, ponte com Maestro e as 48 capacidades. Estado corrente NO_GO; não converter implementação parcial em homologação.
+- Diagnóstico real do balanceamento: existem dois perfis AGY autenticados no host; quota live atual foi obtida para um, mas só com janelas semanais, enquanto o segundo tem quota UNKNOWN/cache vencido. Não executar chamada de modelo para forçar a seleção; corrigir cobertura do probe/eligibilidade e repetir a homologação.
 - Maestro `release/1.1.0@9c9c9eb`: suíte completa PASS (1.369/0 failures/4 skipped), `npm run validate` e validação pública PASS. CLI publica capabilities/advice/verification v1.
-- Nexus `release/v1.0.0@39fe7257` negocia/valida esses contratos e expõe verification autenticada; `make quality` integral e interoperação Go→CLI Maestro real passaram no código desse SHA.
+- O último SHA com mudança funcional Nexus, `39fe7257`, negocia/valida esses contratos e expõe verification autenticada; `make quality` integral e interoperação Go→CLI Maestro real passaram nesse código.
 - Próximas entregas: repetir quality no SHA documental final; E2E AGY com duas contas e quota real; executar/evidenciar P0s de todas as ondas; registrar aceite/evidência exata para cada uma das 48; gates visuais, plataformas e distribuição aplicáveis.
 - Manter tudo em `release/v1.0.0`. O ledger será publicado antes do recheck final. Não declarar GO até validar o candidato final e dependências externas com evidência real.
 

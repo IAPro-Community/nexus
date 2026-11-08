@@ -2,8 +2,8 @@
 
 - Status **NO_GO**. Handoff corrente: [DEV/HANDOFF.md](HANDOFF.md); execução/pendências: [DEV/VERIFY.md](VERIFY.md).
 - Maestro `release/1.1.0@9c9c9eb`: CLI publica contracts de capabilities/advice/verification; suíte completa 1.369 pass / 0 fail / 4 skipped (1.373 total), `npm run validate` PASS.
-- Nexus `release/v1.0.0@39fe7257` é o SHA publicado atual. Código negocia versões/valida advice e verification e tem endpoint autenticado de verify. `make quality` e o teste cross-repo Maestro CLI passaram no conteúdo desse SHA; repetir quality após publicar o ledger.
-- As 48 capacidades canônicas ainda estão `verification: pending`; falta E2E do balanceamento com duas contas AGY reais, P0s restantes, aceite real de cada capacidade e gates de UI/plataforma/distribuição no SHA de release.
+- Último SHA com mudança funcional Nexus: `39fe7257`. Código negocia versões/valida advice e verification e tem endpoint autenticado de verify. `make quality` e o teste cross-repo Maestro CLI passaram nesse código. Handoff/verify atuais registram a checagem de quota e gates pendentes.
+- As 48 capacidades canônicas ainda estão `verification: pending`; o probe AGY encontrou duas contas, mas uma não tem quota atual e a outra não expõe janela 5h. Falta corrigir/validar isso, E2E do balanceamento, P0s restantes, aceite real de cada capacidade e gates de UI/plataforma/distribuição no SHA de release.
 - Índices e relatórios históricos abaixo não substituem o handoff e evidências do SHA corrente.
 
 ## Continuidade atual — beta.11 sincronizado e instalado — 2026-10-27
