@@ -5,6 +5,11 @@
 - Criado `docs/reference/agent-workspace-v1-evidence-map.json`: 48 capacidades/96 critérios, com referências estruturais e status `unverified`; 88 critérios têm testes candidatos e 8 permanecem source-only. `node scripts/verify-agent-workspace-evidence-map.mjs` e testes do verificador garantem sincronia com o contrato, paths existentes e bloqueio a certificação implícita.
 - A1 permanece parcial até revisão semântica de cada assertion candidata, cobertura dos oito source-only e reconciliação de claims sem declarar certificação. Próximo passo: auditar os vínculos do mapa e implementar/cobrir os gaps reais, mantendo `verification: pending`.
 
+## P0 A2 — onboarding first-run
+
+- E2E first-run fixture passou no SHA `59d1936a` para importação, conexão rápida e atualização da lista em Usage / Accounts.
+- Limites: endpoints/provider foram simulados; faltam dois perfis reais isolados, login/autenticação real e cancelamento validado sem Agent/PTY órfão. A2 não está fechado.
+
 ## Continuidade ativa — hard gate de quota 5h no AGY balance — 2026-11-08
 
 - Escopo original permanece: fechar Nexus 1.0 + Maestro, P0s e aceite exact-SHA para as 48 capacidades. Sem reduzir o objetivo e sem declarar GO por testes isolados.

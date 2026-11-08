@@ -1,3 +1,10 @@
+## 2026-11-08 — P0 A2: E2E fixture do primeiro uso
+
+- Executei o E2E existente `test:e2e:first-run-import` no SHA `59d1936a`, isolando capturas em `/tmp/nexus-first-run-evidence-59d1936a`.
+- PASS: feedback de importação de sessão, descoberta/conexão rápida em Usage / Accounts e refresh de perfis após importação.
+- Limite explícito: browser e API/provider usam fixtures; não certificam autenticação externa, dois perfis reais, isolamento entre perfis, Wails nativo ou cancelamento sem PTY/Agent órfão. A2 e a matriz 48 seguem parciais/NO_GO.
+- Próximo contexto: testar A2 com dois perfis isolados e rollback/cancelamento; continuar revisão assertion-a-test do mapa e os outros P0.
+
 ## 2026-11-08 — P0 A1: mapa estrutural das 48 capacidades
 
 - Criei `docs/reference/agent-workspace-v1-evidence-map.json` com 48 requisitos e 96 critérios, cada critério espelhando exatamente a aceitação canônica e apontando a source/test candidato. Resultado estrutural: 88 têm referências candidatas de teste; 8 estão source-only.

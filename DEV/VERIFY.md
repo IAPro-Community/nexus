@@ -1,3 +1,9 @@
+## P0 A2 — E2E first-run — 2026-11-08
+
+- PASS — `NEXUS_E2E_ARTIFACTS_DIR=/tmp/nexus-first-run-evidence-59d1936a npm --prefix web run test:e2e:first-run-import` no SHA `59d1936a`: feedback da importação, descoberta/conexão rápida do provider e importação/refresh em Usage / Accounts.
+- Limite — o harness usa browser e endpoints fixture; artefatos de screenshot são sintéticos e ficaram em `/tmp`. Não valida CLIs autenticadas, dois perfis reais, integração Wails nativa, nem ausência de runtime/PTY órfão após cancelamento.
+- Veredito de release e capability `first-run`/`composer-flow-onboarding`: continuam pendentes; esta evidência cobre somente cenários determinísticos de UI.
+
 ## Continuação — mapa rastreável das 48 capacidades — 2026-11-08
 
 - PASS — `node scripts/verify-agent-workspace-evidence-map.mjs`: 48 capacidades/96 critérios sincronizados ao contrato; 88 critérios com referências candidatas a testes e 8 source-only; nenhum aceite certificado.
