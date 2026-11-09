@@ -3,6 +3,7 @@
 - E2E integrado A3 agora comprova subprocesso ACP → Bridge/SessionHost → Registry → API autenticada sem overlay → Playwright Radar e WebSockets reais em dois projetos. Execução `npm --prefix web run test:e2e:attention-radar-process-api-focus`: PASS.
 - Provider ACP é fixture determinística; nenhuma chamada a provider externo ocorreu. A3 permanece parcial, mapa permanece `unverified`, 48 capacidades sem certificação e release **NO_GO**.
 - Pendências principais: fechar A1/A2/A3/A4, AGY com duas contas 5h elegíveis, completar Maestro no binário distribuído, revisar/homologar 96 critérios e gates exact-SHA/UX/plataformas/assinatura. Próxima ação: A2/A4 e lacunas semânticas de maior prioridade.
+- A2 foi fortalecido no código `e5d2705d` em 2026-11-09: E2E DirectSession cria Agent, faz Core rejeitar configuração e confirma DELETE, sem Agent/runtime residual; faltam dois perfis reais e cancelamento autenticado de execução. `make quality-full` passou (131/825 Web, Go/build/security); docs sintéticas estão vinculadas ao SHA.
 
 ## Snapshot histórico — A3 Radar e evidências — 2026-11-08
 

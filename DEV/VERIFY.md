@@ -2523,3 +2523,12 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - A3 avança de composição separada para E2E integrado, mas permanece parcial/pending. Nenhuma das 48 capacidades foi certificada. A validação de GO continua NO_GO.
 - Próximo — avançar A2/A4 e auditar os critérios do mapa; registrar provider externo, UX e pacote final apenas com evidência no SHA publicado.
 
+## 2026-11-09 — P0 A2: rollback DirectSession no Core real
+
+- PASS — `NEXUS_E2E_ARTIFACTS_DIR=/tmp/nexus-a2-real-core-rollback npm --prefix web run test:e2e:first-run-import` (exit 0).
+- O cenário DirectSession criou Agent pela API Core, injetou apenas a alocação de recurso, deixou `config/apply` real rejeitar o profile inexistente, observou o DELETE compensatório real e confirmou lista de Agents vazia e nenhum runtime associado; `/start` não foi chamado.
+- PASS — `make quality-full` no mesmo conteúdo de código depois commitado como `e5d2705d`: Web 131/825, Go integral, build, version-contract e security; `govulncheck` sem vulnerabilidades e 6 warnings ESLint preexistentes/0 erros.
+- PASS — `npm --prefix web run docs:capture` ancorou 10 superfícies sintéticas ao source SHA `e5d2705d057718a03c379174aea12af3afbfb8ea`; `make docs-verify` passou (245 Markdown/33 assets). Não é prova de UX deste fluxo.
+- Limite — não valida dois perfis autenticados, start/cancelamento de processo autenticado, provider real ou pacote distribuído; A2 permanece parcial/pending.
+- Tentativa anterior do harness falhou antes do cenário porque o coletor Playwright foi instalado antes da criação da página; corrigido e repetido com PASS. Nenhum provider foi iniciado.
+

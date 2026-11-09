@@ -3,6 +3,7 @@
 - A3 agora tem E2E único sem overlay de estado: dois subprocessos ACP → Bridge/SessionHost → Registry → API autenticada → browser Radar → terminais WebSocket dos SessionHosts. `npm --prefix web run test:e2e:attention-radar-process-api-focus` passou.
 - Este checkpoint não usa provider externo ou app distribuído; A3 segue parcial/pending. Contrato de 48 capacidades/96 critérios segue sem aceite certificado; GO permanece NO_GO.
 - Continuam no escopo: P0 A1–A4, AGY balance live com 2/2 contas elegíveis, integração Maestro no binário final, auditoria assertion-by-assertion, UX visual e gates de plataforma/assinatura/exact-SHA.
+- A2 no código `e5d2705d` tem E2E de rollback pré-start com Core real: create → config rejected → DELETE; a seleção de recurso é fixture, e o teste confirma ausência de Agent/runtime residual. Dois perfis reais e cancelamento de execução autenticada seguem abertos. `make quality-full` passou em conteúdo de código idêntico.
 
 ### A3 — atenção estruturada e foco cross-project — 2026-11-08
 

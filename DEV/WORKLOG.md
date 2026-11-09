@@ -7159,3 +7159,9 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Atualizei o mapa de evidências e os checkpoints compactos; `attention-radar` continua `unverified/pending` porque o teste usa fixture, não provider externo nem app distribuído exact-SHA.
 - PASS — `npm --prefix web run test:e2e:attention-radar-process-api-focus` (10,43 s), com distinção de perguntas idênticas e seleção do projeto/runtime correto.
 - Próximo — A2/A4, auditoria semântica das 48 capacidades/96 critérios e gates externos de AGY, Maestro distribuído e release. GO permanece NO_GO.
+## 2026-11-09 — P0 A2: rollback DirectSession pelo Core real
+
+- Substituí os stubs de criação/configuração/deleção do E2E DirectSession por chamadas ao Core real. A seleção do recurso continua fixture; o profile inexistente faz o Core responder erro em `config/apply`.
+- PASS — E2E cria Agent, recebe rejeição real, executa DELETE compensatório, confirma lista vazia/sem runtime do Agent e não chama `/start`.
+- PASS — `make quality-full` (131/825 Web, Go integral, build/security); evidência de mapa/contrato, Prettier, `git diff --check`, captura sintética e `make docs-verify`. Código `e5d2705d` foi commitado/enviado; manifest de screenshots aponta para o SHA completo.
+- Próximo — dois perfis autenticados e cancelamento de execução sem Agent/PTY órfão continuam sem evidência; seguir A4/48 critérios e gates externos.

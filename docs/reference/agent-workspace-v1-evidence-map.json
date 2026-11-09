@@ -1532,15 +1532,18 @@
           "acceptanceIndex": 0,
           "acceptance": "Concluir Composer/Flow e tours por componente reutilizável",
           "sourceRefs": [
-            "web/src/features/work/ComposerSurface.tsx"
+            "web/src/features/work/ComposerSurface.tsx",
+            "web/src/features/work/DirectSessionLauncher.tsx",
+            "web/src/features/work/directSessionLifecycle.ts"
           ],
           "testRefs": [
             "web/src/features/work/FlowPipeline.test.tsx",
-            "web/src/features/work/featureAnnouncements.test.ts"
+            "web/src/features/work/featureAnnouncements.test.ts",
+            "web/scripts/e2e-first-run-import.mjs"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "E2E first-run percorre onboarding e cenário DirectSession. Em 2026-11-09 foi endurecido para criar Agent, validar config e executar rollback/delete pela API Core real quando o profile selecionado não existe; somente resource selection é fixture. Faltam instalação/distribuição final, dois perfis autenticados e cenário de cancelamento durante execução sem Agent/PTY órfão; critério segue unverified/pending."
         },
         {
           "acceptanceIndex": 1,
@@ -1550,11 +1553,12 @@
           ],
           "testRefs": [
             "web/src/features/work/FlowPipeline.test.tsx",
-            "web/src/features/work/featureAnnouncements.test.ts"
+            "web/src/features/work/featureAnnouncements.test.ts",
+            "web/scripts/e2e-first-run-import.mjs"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "E2E browser cobre importação/quick-connect com endpoints de provider fixture e agora rollback DirectSession com create/config/delete reais no Core, sem start e sem runtime associado ao Agent. Ainda não cobre pacote distribuído no SHA final, dois perfis autenticados, ciclo provider real ou matriz completa PT/EN/ES e teclado; capability permanece unverified/pending."
         }
       ],
       "verification": "pending"
