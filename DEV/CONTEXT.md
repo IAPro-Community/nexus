@@ -1,3 +1,10 @@
+## Estado corrente — A3 Radar e evidências — 2026-11-08
+
+- Nexus `release/v1.0.0@ffd5c59f`, push confirmado e worktree limpa antes deste checkpoint documental. Source funcional `390a2554`; Maestro `release/1.1.0@9c9c9eb`.
+- `test:e2e:attention-radar-focus` PASS em `ffd5c59f`: foco cross-project correto; estados de atenção são overlay no GET da lista. `TestTwoSupervisedACPProcessesAndTwoAuthenticatedHTTPClients` PASS no mesmo HEAD: subprocessos ACP determinísticos → Registry → `/api/v1/runtimes` sem overlay, com dois clientes e resposta isolada.
+- São evidências complementares, não um único E2E de evento sem overlay até browser; nenhum teste usou provider externo. A3 continua partial/pending.
+- Próximo: unificar backend/API e browser se possível sem fixture do estado; manter A2/A4, AGY (1/2 elegíveis), distribuição Maestro, auditoria 48/96 e exact-SHA/plataforma/assinatura em aberto. GO NO_GO.
+
 ## Continuação P0 A3 — 2026-11-08
 
 - HEAD remoto confirmado anterior: `release/v1.0.0@104089c0`; worktree agora contém teste e checkpoints locais ainda não commitados. Maestro segue `release/1.1.0@9c9c9eb`.

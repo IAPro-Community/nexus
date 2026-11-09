@@ -5,7 +5,13 @@
 - O browser intercepta o GET `/api/v1/runtimes` e sobrepõe estados de atenção. Project/Shell creation e foco usam código/APIs Nexus; nenhum provider foi chamado. Portanto isto não prova evento real Registry→API/read model→UI, provider externo, pacote publicado, nem UX no SHA final. Screenshots temporárias: `/tmp/nexus-attention-radar-20261108-sha-check`.
 - PASS — `npm --prefix web run quality:full`: Web 131 arquivos/825 testes, build/typecheck/format/style e lint sem erros; 6 warnings ESLint preexistentes. `verify-agent-workspace-v1` (48 pending), evidence map/verificador (4/4; 48/96, 86 refs source+test, 9 source-only, 1 unmapped, zero certificados), feature catalog (36) e `git diff --check` passaram.
 - `make docs-verify` ainda precisa da recaptura sintética após commit do código, pois os manifests existentes apontam para fonte anterior. Essa captura apenas mantém os docs alinhados ao source SHA, não homologa a UI.
-- Veredito: A3 permanece parcial/pending, `attention-radar` não certificado, 48 capacidades pending e GO geral **NO_GO**. Próxima evidência necessária: evento sem overlay por API/UI, provider externo e app distribuído no exact SHA final.
+- Veredito: A3 permanece parcial/pending, `attention-radar` não certificado, 48 capacidades pending e GO geral **NO_GO**. Próxima evidência: combinar o evento/API sem overlay com o browser no mesmo cenário, provider externo e app distribuído no exact SHA final.
+
+### Complemento Registry → API sem overlay — HEAD `ffd5c59f`
+
+- PASS — `go test ./internal/control/web -run '^TestTwoSupervisedACPProcessesAndTwoAuthenticatedHTTPClients$' -count=1 -v` (0,161 s). Dois subprocessos ACP determinísticos são supervisionados por SessionHost; perguntas iguais atravessam IPC/Bridge/Registry. Dois clientes autenticados consultam o endpoint real `/api/v1/runtimes` sem interceptação; resposta IPC faz apenas Alpha chegar a completed, preservando Beta em `needs_user`, e encerrar Beta limpa sua atenção.
+- Isto prova processo estruturado até Registry e projeção HTTP, mas não liga o browser Radar nesse mesmo cenário. O Playwright cross-project segue usando overlay da resposta para testar a UI. Não houve chamada a provider externo.
+- Veredito e limites continuam: A3 parcial/pending, nenhuma capability certificada, GO **NO_GO** até E2E unificado com browser, provider externo aplicável e validação do artefato no SHA final.
 
 ## P0 A3 — evento ACP estruturado até Registry — 2026-11-08
 

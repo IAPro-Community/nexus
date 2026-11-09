@@ -563,6 +563,7 @@
           "testRefs": [
             "internal/control/host/attention_test.go",
             "internal/control/host/structured_attention_pipeline_test.go",
+            "internal/control/web/structured_multiclient_process_e2e_test.go",
             "web/src/app/attentionRadarModel.test.ts",
             "web/src/app/surfaces.test.ts",
             "web/src/i18n/i18n.test.ts",
@@ -570,7 +571,7 @@
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "A regressão ACP subprocesso atravessa Bridge→SessionHost→Registry: duas runtimes com texto e interaction ID iguais preservam origem/generation/fingerprint independentes; lifecycle/end_turn ficam AUTHORITATIVE e resposta correlacionada fica SIGNALLED/SUBMITTED até o settle. O Playwright cria duas Project Shells pela API real e verifica linhas distintas e foco cruzado no runtime selecionado; apenas o estado de atenção da resposta GET é fixture. Ainda faltam provider real, evento até UI pela API sem overlay e homologação do app publicado no SHA exato; capability não certificada.",
+          "gap": "A regressão ACP subprocesso atravessa Bridge→SessionHost→Registry; TestTwoSupervisedACPProcessesAndTwoAuthenticatedHTTPClients verifica a projeção /api/v1/runtimes sem overlay e isolamento da resposta por IPC. O Playwright separado cria duas Project Shells via API e verifica linhas distintas e foco cross-project; apenas estado de atenção da resposta GET é fixture. Ainda falta um E2E único que combine evento/API sem overlay com browser, provider externo e homologação do app publicado no SHA exato; capability não certificada.",
           "assertionAudit": "partial"
         },
         {

@@ -7145,4 +7145,11 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Limite: o E2E sobrepõe estados de atenção no GET `/api/v1/runtimes`; nenhum provider é chamado. Não prova evento real Registry→API→UI, provider externo, pacote distribuído ou aceite A3.
 - PASS — Web `quality:full` 131 arquivos/825 testes; validadores contrato (48 pending), mapa (48/96, 86 refs source+test, 9 source-only, 1 unmapped, zero certificados; testes 4/4), catálogo (36) e `git diff --check`.
 - Commit de código `390a2554` (`fix(workspace): focus radar runtimes across projects`). `npm --prefix web run docs:capture` atualizou dez capturas sintéticas com `source_sha=390a2554...`; `make docs-verify` passou (245 Markdown/33 assets). Capturas documentais não são evidência de homologação UI.
-- Próximo: commit/push documental e avançar fluxo A3 sem overlay, A2/A4, Maestro distribuído, quota AGY e auditoria assertion-by-assertion. Estado NO_GO.
+- Commit de código `390a2554` e docs/capturas `ffd5c59f` enviados para `origin/release/v1.0.0`; manifest source_sha vincula as capturas sintéticas ao código. `make docs-verify` passou.
+- Próximo: avançar fluxo A3 browser sem overlay, A2/A4, Maestro distribuído, quota AGY e auditoria assertion-by-assertion. Estado NO_GO.
+
+### Evidência Registry → API no HEAD publicado
+
+- Rodei `go test ./internal/control/web -run '^TestTwoSupervisedACPProcessesAndTwoAuthenticatedHTTPClients$' -count=1 -v` em `ffd5c59f`; PASS. Dois processos ACP sob SessionHost emitem a mesma pergunta; a API autenticada `/api/v1/runtimes` mostra ambos sem overlay, e resposta IPC afeta somente Alpha.
+- O teste complementa o Playwright de foco cross-project, mas ainda não há um cenário único que leve o mesmo evento sem overlay até a UI. Subprocessos são determinísticos; nenhum provider externo foi chamado.
+- Próximo: combinar a evidência process/API com o navegador ou manter os contratos explicitamente separados na auditoria; não certificar A3 por composição implícita.

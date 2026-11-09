@@ -2,9 +2,10 @@
 
 - Implementada regressão ACP subprocesso → Bridge → SessionHost → Registry: interaction IDs iguais em duas runtimes permanecem isolados; lifecycle é `AUTHORITATIVE`, resposta local `SIGNALLED`/`SUBMITTED`, e só `end_turn` resolve a runtime certa. Teste focal, race x10, vet e gates completos passaram no checkpoint `c850f40e`.
 - Playwright `test:e2e:attention-radar-focus` prova que duas runtimes/projetos Nexus criados por API permanecem acionáveis por runtime ID e que o shell correto abre após trocar de projeto. Corrigidos perda de seleção no remount e navegação antes do layout de destino.
-- Limite: o browser E2E sobrescreve estados de atenção no GET `/api/v1/runtimes`; não valida a projeção de evento real Registry→API→UI nem provider externo. A3/capability permanecem partial/pending.
+- Evidência complementar executada no HEAD publicado: `TestTwoSupervisedACPProcessesAndTwoAuthenticatedHTTPClients` passa com subprocessos ACP fixture e API HTTP real, sem overlay no GET `/api/v1/runtimes`; resposta IPC resolve somente Alpha e Beta permanece bloqueada. Os dois testes ainda não estão combinados no mesmo fluxo browser.
+- Limite: o browser E2E sobrescreve estados no GET `/api/v1/runtimes`; o teste sem overlay da API não exercita a UI. Nenhum usa provider externo. A3/capability permanecem partial/pending.
 - Validadores: contrato (48 pending), mapa 48/96 (86 refs source+test, 9 source-only, 1 unmapped, zero certificados), map tests 4/4 e catálogo 36 passaram; Web `quality:full` passou (131/825; 6 avisos ESLint preexistentes, 0 erros). Código está em `390a2554`; `docs:capture` renovou 10 capturas sintéticas no source SHA e `make docs-verify` passou (245 Markdown/33 assets).
-- O commit do código foi criado; commit/push documental seguem nesta execução. Próximo: fluxo API/UI sem overlay e provider real, depois A2/A4, AGY, distribuição Maestro e auditoria das 48 capacidades. GO continua NO_GO.
+- Código `390a2554` e refresh documental `ffd5c59f` foram commitados e enviados. Próximo: combinar no mesmo fluxo processo/API sem overlay com Radar/browser e provider real; seguir A2/A4, AGY, distribuição Maestro e auditoria das 48 capacidades. GO continua NO_GO.
 
 ### Recheck `follow-agent` — 2026-11-08
 
