@@ -567,11 +567,12 @@
             "web/src/app/attentionRadarModel.test.ts",
             "web/src/app/surfaces.test.ts",
             "web/src/i18n/i18n.test.ts",
-            "web/scripts/e2e-attention-radar-focus.mjs"
+            "web/scripts/e2e-attention-radar-focus.mjs",
+            "web/scripts/e2e-attention-radar-process-api-browser.mjs"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "A regressão ACP subprocesso atravessa Bridge→SessionHost→Registry; TestTwoSupervisedACPProcessesAndTwoAuthenticatedHTTPClients verifica a projeção /api/v1/runtimes sem overlay e isolamento da resposta por IPC. O Playwright separado cria duas Project Shells via API e verifica linhas distintas e foco cross-project; apenas estado de atenção da resposta GET é fixture. Ainda falta um E2E único que combine evento/API sem overlay com browser, provider externo e homologação do app publicado no SHA exato; capability não certificada.",
+          "gap": "TestACPAttentionRadarBrowserIntegration combina subprocessos ACP determinísticos supervisionados, Bridge→SessionHost→Registry, GET autenticado /api/v1/runtimes sem overlay e Playwright que foca o runtime exato entre projetos e abre os WebSockets reais dos SessionHosts. O E2E passou localmente em 2026-11-09; ainda usa provider fixture, não valida provider externo nem aplicativo distribuído no SHA final. As assertions foram exercitadas, mas o critério e a capability continuam unverified/pending até provider real aplicável, homologação exact-SHA e auditoria semântica completa.",
           "assertionAudit": "partial"
         },
         {

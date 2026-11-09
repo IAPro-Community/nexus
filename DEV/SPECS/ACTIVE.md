@@ -1,3 +1,9 @@
+## Checkpoint ativo — 2026-11-09
+
+- A3 agora tem E2E único sem overlay de estado: dois subprocessos ACP → Bridge/SessionHost → Registry → API autenticada → browser Radar → terminais WebSocket dos SessionHosts. `npm --prefix web run test:e2e:attention-radar-process-api-focus` passou.
+- Este checkpoint não usa provider externo ou app distribuído; A3 segue parcial/pending. Contrato de 48 capacidades/96 critérios segue sem aceite certificado; GO permanece NO_GO.
+- Continuam no escopo: P0 A1–A4, AGY balance live com 2/2 contas elegíveis, integração Maestro no binário final, auditoria assertion-by-assertion, UX visual e gates de plataforma/assinatura/exact-SHA.
+
 ### A3 — atenção estruturada e foco cross-project — 2026-11-08
 
 - Implementada regressão ACP subprocesso → Bridge → SessionHost → Registry: interaction IDs iguais em duas runtimes permanecem isolados; lifecycle é `AUTHORITATIVE`, resposta local `SIGNALLED`/`SUBMITTED`, e só `end_turn` resolve a runtime certa. Teste focal, race x10, vet e gates completos passaram no checkpoint `c850f40e`.
@@ -595,4 +601,3 @@ Toggle do popup independente no topo do painel (inline e popup), validado por ha
 - Escopo integral mantido: fechar P0s, completar contratos Nexus↔Maestro, implementar balanceamento AGY seguro, revisar semanticamente as 48 capacidades/96 critérios e homologar no SHA final com evidência real. Sem branch alternativa e sem declarar GO com fixtures ou testes em outro SHA.
 - Fatia concluída nesta continuação: commit `46f605b9` implementou pausa explícita de rolagem automática mantendo output; testes de sink/input, anúncio/tour e i18n EN/PT-BR/ES. `make quality-full` passou (131 Web files/823 tests; Go full/race/security/build). Capturas documentais sintéticas foram renovadas e `make docs-verify` passou, sem homologar visualmente a capability. Capability permanece partial/pending.
 - Gates abertos: E2E interativo do AgentTerminal/lease em app publicado exact-SHA; A2 real com dois perfis e cleanup; integração estruturada A3/A4; 2 contas AGY com 5h LIVE e alternância; distribuição do binário Nexus final interoperando com Maestro; auditoria e homologação das 48 capacidades; gates de plataforma/assinatura.
-- Próxima ação: implementar E2E do AgentTerminal que verifique pausa/retomada e ausência de lease em attach/tecla, incluindo revoke/reconnect; avançar os P0 sem usar resultado unitário como aceite sistêmico.

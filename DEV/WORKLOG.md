@@ -7153,3 +7153,9 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Rodei `go test ./internal/control/web -run '^TestTwoSupervisedACPProcessesAndTwoAuthenticatedHTTPClients$' -count=1 -v` em `ffd5c59f`; PASS. Dois processos ACP sob SessionHost emitem a mesma pergunta; a API autenticada `/api/v1/runtimes` mostra ambos sem overlay, e resposta IPC afeta somente Alpha.
 - O teste complementa o Playwright de foco cross-project, mas ainda não há um cenário único que leve o mesmo evento sem overlay até a UI. Subprocessos são determinísticos; nenhum provider externo foi chamado.
 - Próximo: combinar a evidência process/API com o navegador ou manter os contratos explicitamente separados na auditoria; não certificar A3 por composição implícita.
+## 2026-11-09 — P0 A3: E2E integrado de atendimento cross-project
+
+- Combinei em um único cenário os subprocessos ACP supervisionados, Bridge/SessionHost, Registry, endpoint autenticado `/api/v1/runtimes` sem interceptação e Playwright GlobalAttentionRadar com foco cross-project e WebSockets reais dos SessionHosts.
+- Atualizei o mapa de evidências e os checkpoints compactos; `attention-radar` continua `unverified/pending` porque o teste usa fixture, não provider externo nem app distribuído exact-SHA.
+- PASS — `npm --prefix web run test:e2e:attention-radar-process-api-focus` (10,43 s), com distinção de perguntas idênticas e seleção do projeto/runtime correto.
+- Próximo — A2/A4, auditoria semântica das 48 capacidades/96 critérios e gates externos de AGY, Maestro distribuído e release. GO permanece NO_GO.

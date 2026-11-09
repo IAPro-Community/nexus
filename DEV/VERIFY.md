@@ -2515,3 +2515,11 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - PASS — evidence map 48/96 (86 source+test, 9 source-only, 1 unmapped), testes do verificador 4/4 e `git diff --check`.
 - GAP — sem teste de integração da lista dinâmica de projetos/Agents nem do componente CommandPalette/focus return; não há E2E keyboard/focus em desktop e mobile. Capability permanece pending/NO_GO.
 
+## 2026-11-09 — P0 A3: ACP → Registry → API → Radar no mesmo E2E
+
+- PASS — `npm --prefix web run test:e2e:attention-radar-process-api-focus` (exit 0; `TestACPAttentionRadarBrowserIntegration`, 10,43 s).
+- Dois subprocessos ACP supervisionados publicaram solicitações idênticas via Bridge/SessionHost no Registry; a API autenticada `/api/v1/runtimes` foi consumida sem overlay. Playwright confirmou fingerprints/contextos distintos, foco cross-project pelo runtime ID e conexão aos dois WebSockets dos SessionHosts.
+- PASS — `external provider is not called`: o teste prova integração de processo/harness sem invocar modelo; provider externo e app distribuído exact-SHA permanecem gates explícitos.
+- A3 avança de composição separada para E2E integrado, mas permanece parcial/pending. Nenhuma das 48 capacidades foi certificada. A validação de GO continua NO_GO.
+- Próximo — avançar A2/A4 e auditar os critérios do mapa; registrar provider externo, UX e pacote final apenas com evidência no SHA publicado.
+

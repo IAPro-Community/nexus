@@ -1,9 +1,15 @@
-## Estado corrente — A3 Radar e evidências — 2026-11-08
+## Atualização corrente — 2026-11-09
+
+- E2E integrado A3 agora comprova subprocesso ACP → Bridge/SessionHost → Registry → API autenticada sem overlay → Playwright Radar e WebSockets reais em dois projetos. Execução `npm --prefix web run test:e2e:attention-radar-process-api-focus`: PASS.
+- Provider ACP é fixture determinística; nenhuma chamada a provider externo ocorreu. A3 permanece parcial, mapa permanece `unverified`, 48 capacidades sem certificação e release **NO_GO**.
+- Pendências principais: fechar A1/A2/A3/A4, AGY com duas contas 5h elegíveis, completar Maestro no binário distribuído, revisar/homologar 96 critérios e gates exact-SHA/UX/plataformas/assinatura. Próxima ação: A2/A4 e lacunas semânticas de maior prioridade.
+
+## Snapshot histórico — A3 Radar e evidências — 2026-11-08
 
 - Nexus `release/v1.0.0@ffd5c59f`, push confirmado e worktree limpa antes deste checkpoint documental. Source funcional `390a2554`; Maestro `release/1.1.0@9c9c9eb`.
 - `test:e2e:attention-radar-focus` PASS em `ffd5c59f`: foco cross-project correto; estados de atenção são overlay no GET da lista. `TestTwoSupervisedACPProcessesAndTwoAuthenticatedHTTPClients` PASS no mesmo HEAD: subprocessos ACP determinísticos → Registry → `/api/v1/runtimes` sem overlay, com dois clientes e resposta isolada.
 - São evidências complementares, não um único E2E de evento sem overlay até browser; nenhum teste usou provider externo. A3 continua partial/pending.
-- Próximo: unificar backend/API e browser se possível sem fixture do estado; manter A2/A4, AGY (1/2 elegíveis), distribuição Maestro, auditoria 48/96 e exact-SHA/plataforma/assinatura em aberto. GO NO_GO.
+- Próximo (snapshot de 2026-11-08): unificar backend/API e browser sem overlay; essa composição foi executada em 2026-11-09 e está registrada no topo deste arquivo.
 
 ## Continuação P0 A3 — 2026-11-08
 
@@ -263,3 +269,8 @@ Project Hub corrigido e validado em 775×483; gates web, oito suítes browser, b
 ## Estado atual — slice macOS 2026-10-21 integrado ao beta.11 — 2026-10-27
 
 `release/v1.0.0` sincronizado com `origin/release/v1.0.0@b416bb90` (223 commits) preservando o slice local: login do host vinculado ao perfil com proveniência e opt-out, HUD com acesso a novo agente, overview simplificado, dedupe de login, fix do `nexus usage` e compatibilidade de teclado do Codex no PTY embutido (`CODEX_TUI_DISABLE_KEYBOARD_ENHANCEMENT=1`). Versão de fonte `1.0.0-beta.11`. Commits locais `5e3eff4e` (feature), `11f3d771` (teclado/PTY) e `d61b0dcc` (gates); `make quality` PASS com 114 suítes/710 testes. Instalação local em `Applications/IAPro Nexus.app` + HUD (build `580a99cf`, beta.11, HTTP 200, HUD vinculado). Gates e evidências em `DEV/VERIFY.md`. Distribuição segue NO-GO por assinatura/notarização/arm64.
+## Atualização corrente — 2026-11-09
+
+- E2E integrado A3 agora comprova subprocesso ACP → Bridge/SessionHost → Registry → API autenticada sem overlay → Playwright Radar e WebSockets reais em dois projetos. Execução `npm --prefix web run test:e2e:attention-radar-process-api-focus`: PASS.
+- Provider ACP é fixture determinística; nenhuma chamada a provider externo ocorreu. A3 permanece parcial, mapa permanece `unverified`, 48 capacidades sem certificação e release **NO_GO**.
+- Pendências principais: fechar A1/A2/A3/A4, AGY com duas contas 5h elegíveis, completar Maestro no binário distribuído, revisar/homologar 96 critérios e gates exact-SHA/UX/plataformas/assinatura. Próxima ação: A2/A4 e lacunas semânticas de maior prioridade.
