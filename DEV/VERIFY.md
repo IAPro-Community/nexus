@@ -1,3 +1,12 @@
+## P0 A3 — GlobalAttentionRadar: foco cross-project — 2026-11-08
+
+- PASS — `npm --prefix web run test:e2e:attention-radar-focus`: Playwright criou dois projetos e dois Project Shell runtimes pelas APIs Nexus, apresentou pergunta idêntica com runtime IDs distintos e confirmou que escolher Beta troca de projeto e anexa o shell de Beta; escolher Alpha retorna e abre Alpha.
+- O teste descobriu e a correção resolve perda de seleção ao remount do provider de workspace keyed por projeto: o pedido pendente agora vive acima do provider, espera o layout do projeto destino e carrega o `projectId` da superfície ao navegar.
+- O browser intercepta o GET `/api/v1/runtimes` e sobrepõe estados de atenção. Project/Shell creation e foco usam código/APIs Nexus; nenhum provider foi chamado. Portanto isto não prova evento real Registry→API/read model→UI, provider externo, pacote publicado, nem UX no SHA final. Screenshots temporárias: `/tmp/nexus-attention-radar-20261108-sha-check`.
+- PASS — `npm --prefix web run quality:full`: Web 131 arquivos/825 testes, build/typecheck/format/style e lint sem erros; 6 warnings ESLint preexistentes. `verify-agent-workspace-v1` (48 pending), evidence map/verificador (4/4; 48/96, 86 refs source+test, 9 source-only, 1 unmapped, zero certificados), feature catalog (36) e `git diff --check` passaram.
+- `make docs-verify` ainda precisa da recaptura sintética após commit do código, pois os manifests existentes apontam para fonte anterior. Essa captura apenas mantém os docs alinhados ao source SHA, não homologa a UI.
+- Veredito: A3 permanece parcial/pending, `attention-radar` não certificado, 48 capacidades pending e GO geral **NO_GO**. Próxima evidência necessária: evento sem overlay por API/UI, provider externo e app distribuído no exact SHA final.
+
 ## P0 A3 — evento ACP estruturado até Registry — 2026-11-08
 
 - PASS — `go test ./internal/control/host -run '^TestStructuredACPAttentionReachesRegistryAndSettlesOnlyItsRuntime$' -count=1 -v`: subprocesso ACP real no harness, Bridge e SessionHost de produção, Registry persistente partilhado.

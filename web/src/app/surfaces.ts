@@ -71,10 +71,12 @@ export function agentTerminalSurface(
   agentName: string,
   initialPrompt = '',
   runtimeId = '',
+  projectId = '',
 ): WorkspaceSurface {
   const data: Record<string, string> = { agentId };
   if (initialPrompt) data.initialPrompt = initialPrompt;
   if (runtimeId) data.runtimeId = runtimeId;
+  if (projectId) data.projectId = projectId;
   const logicalKey = `agent:${agentId}:terminal`;
   return {
     id: logicalKey,

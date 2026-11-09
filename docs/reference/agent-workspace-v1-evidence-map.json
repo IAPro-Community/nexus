@@ -550,16 +550,27 @@
           "acceptanceIndex": 0,
           "acceptance": "Consolidar aprovações, perguntas, erros e blockers de CLIs heterogêneos",
           "sourceRefs": [
-            "web/src/components/GlobalAttentionRadar.tsx"
+            "internal/control/agentwire/bridge.go",
+            "internal/control/agentwire/projection.go",
+            "internal/control/agentwire/state.go",
+            "internal/control/host/host.go",
+            "internal/control/host/attention.go",
+            "internal/control/registry/models.go",
+            "web/src/notifications/InAppNotificationCenter.tsx",
+            "web/src/app/attentionRadarModel.ts",
+            "web/src/app/NexusWorkspaceApp.tsx"
           ],
           "testRefs": [
             "internal/control/host/attention_test.go",
             "internal/control/host/structured_attention_pipeline_test.go",
-            "web/src/app/attentionRadarModel.test.ts"
+            "web/src/app/attentionRadarModel.test.ts",
+            "web/src/app/surfaces.test.ts",
+            "web/src/i18n/i18n.test.ts",
+            "web/scripts/e2e-attention-radar-focus.mjs"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Nova regressão de subprocesso ACP atravessa Bridge→SessionHost→Registry: duas runtimes com texto e interaction ID iguais mantêm fontes/gerações/fingerprints independentes; lifecycle/end_turn ficam AUTHORITATIVE, resposta correlacionada marca somente Alpha SIGNALLED/SUBMITTED/working sem concluir; end_turn autoritativo resolve só Alpha e Beta continua needs_user. O modelo do Radar já mantém linhas/foco por runtime. Ainda falta E2E da API/UI GlobalAttentionRadar no app publicado e provider real; capability não certificada.",
+          "gap": "A regressão ACP subprocesso atravessa Bridge→SessionHost→Registry: duas runtimes com texto e interaction ID iguais preservam origem/generation/fingerprint independentes; lifecycle/end_turn ficam AUTHORITATIVE e resposta correlacionada fica SIGNALLED/SUBMITTED até o settle. O Playwright cria duas Project Shells pela API real e verifica linhas distintas e foco cruzado no runtime selecionado; apenas o estado de atenção da resposta GET é fixture. Ainda faltam provider real, evento até UI pela API sem overlay e homologação do app publicado no SHA exato; capability não certificada.",
           "assertionAudit": "partial"
         },
         {

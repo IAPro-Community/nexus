@@ -103,6 +103,8 @@ import {
 
 const selectedProjectKey = 'iapro:nexus:selected-project:v1';
 const tourKey = 'iapro:nexus:tour-complete:v1';
+type AttentionFocusSelection =
+  RadarRuntimeItem | { runtimeId: string; projectId?: string; agentId?: string };
 
 export const NexusWorkspaceApp: React.FC<{
   popoutSurface?: WorkspaceSurface;
@@ -220,6 +222,8 @@ const NexusWorkspaceSession: React.FC<{
 }> = ({ popoutSurface: explicitPopout, initialGlobalSurface }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [pendingAttentionFocus, setPendingAttentionFocus] =
+    useState<AttentionFocusSelection | null>(null);
   const data = useNexusData();
   const { refreshAgents } = data;
 
@@ -293,11 +297,13 @@ const NexusWorkspaceSession: React.FC<{
   const [layout, setLayout] = useState<string | undefined>();
   const [layoutRevision, setLayoutRevision] = useState<number | undefined>();
   const [layoutReady, setLayoutReady] = useState(false);
+  const [layoutProjectId, setLayoutProjectId] = useState('');
 
   useEffect(() => {
     if (!selectedProjectId) return;
     let cancelled = false;
     setLayoutReady(false);
+    setLayoutProjectId('');
     setSelectedId(selectedProjectId);
     window.localStorage.setItem(selectedProjectKey, selectedProjectId);
     void refreshAgents(selectedProjectId);
@@ -314,7 +320,10 @@ const NexusWorkspaceSession: React.FC<{
         setLayoutRevision(undefined);
       })
       .finally(() => {
-        if (!cancelled) setLayoutReady(true);
+        if (!cancelled) {
+          setLayoutProjectId(selectedProjectId);
+          setLayoutReady(true);
+        }
       });
     return () => {
       cancelled = true;
@@ -389,6 +398,9 @@ const NexusWorkspaceSession: React.FC<{
               setSelectedId(project.id);
               navigate(buildProjectRoute(project.id, 'overview'));
             }}
+            pendingAttentionFocus={pendingAttentionFocus}
+            setPendingAttentionFocus={setPendingAttentionFocus}
+            layoutProjectId={layoutProjectId}
             data={data}
             popout={Boolean(popoutSurface)}
             parsedRoute={parsedRoute}
@@ -403,11 +415,24 @@ const NexusWorkspaceSession: React.FC<{
 const WorkspaceCoordinator: React.FC<{
   project: Project;
   setProject: (project: Project) => void;
+  pendingAttentionFocus: AttentionFocusSelection | null;
+  setPendingAttentionFocus: (focus: AttentionFocusSelection | null) => void;
+  layoutProjectId: string;
   data: ReturnType<typeof useNexusData>;
   popout: boolean;
   parsedRoute: ParsedRoute;
   layoutReady: boolean;
-}> = ({ project, setProject, data, popout, parsedRoute, layoutReady }) => {
+}> = ({
+  project,
+  setProject,
+  pendingAttentionFocus,
+  setPendingAttentionFocus,
+  layoutProjectId,
+  data,
+  popout,
+  parsedRoute,
+  layoutReady,
+}) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -480,17 +505,18 @@ const WorkspaceCoordinator: React.FC<{
     (surface: WorkspaceSurface, updateUrl = true) => {
       if (!COMPOSER_FLOW_ENABLED && isExperimentalWorkspaceSurfaceBlocked(surface)) return;
       workspace.open(surface);
+      const routeProjectId = surface.data?.projectId || project.id;
       if (updateUrl && !popout) {
         if (surface.type === 'flow-run' && surface.data?.runId) {
-          navigate(buildProjectRoute(project.id, 'missions', surface.data.runId));
+          navigate(buildProjectRoute(routeProjectId, 'missions', surface.data.runId));
         } else if (surface.type === 'project-shell' && surface.data?.runtimeId) {
-          navigate(buildProjectRoute(project.id, 'terminals', surface.data.runtimeId));
+          navigate(buildProjectRoute(routeProjectId, 'terminals', surface.data.runtimeId));
         } else if (surface.type === 'terminal' && surface.data?.agentId) {
-          navigate(buildProjectRoute(project.id, 'agents', surface.data.agentId));
+          navigate(buildProjectRoute(routeProjectId, 'agents', surface.data.agentId));
         } else if (surface.type === 'agent-config' && surface.data?.agentId) {
-          navigate(buildProjectRoute(project.id, 'agents', surface.data.agentId, 'config'));
+          navigate(buildProjectRoute(routeProjectId, 'agents', surface.data.agentId, 'config'));
         } else if (validProjectSurfaces.has(surface.type as any)) {
-          navigate(buildProjectRoute(project.id, surface.type as any));
+          navigate(buildProjectRoute(routeProjectId, surface.type as any));
         }
       }
     },
@@ -1273,12 +1299,13 @@ const WorkspaceCoordinator: React.FC<{
     workspace,
   ]);
 
-  const handleFocusAttention = useCallback(
-    (item: RadarRuntimeItem | { runtimeId: string; projectId?: string; agentId?: string }) => {
+  const openAttentionInCurrentProject = useCallback(
+    (item: AttentionFocusSelection) => {
       const runtimeId = item.runtimeId;
       const runtime = data.runtimes.find((entry) => entry.runtime_id === runtimeId);
       const projectId =
         'projectId' in item && item.projectId ? item.projectId : runtime?.project_id;
+      if (projectId && projectId !== project.id) return;
       const agentId = 'agentId' in item && item.agentId ? item.agentId : runtime?.agent_id;
       const agentName =
         (agentId && data.agents.find((agent) => agent.id === agentId)?.name) ||
@@ -1289,33 +1316,69 @@ const WorkspaceCoordinator: React.FC<{
         { projectId, agentId, runtimeId },
         { currentProjectId: project.id, runtime, agentName },
       );
-      const switchAction = actions.find((action) => action.type === 'switch-project');
       const openActions = actions.filter((action) => action.type !== 'switch-project');
-      const runOpen = () => {
-        for (const action of openActions) {
-          if (action.type === 'open-agent-terminal') {
-            open(agentTerminalSurface(action.agentId, action.title, '', action.runtimeId || ''));
-            open(projectSurface(project.id, 'terminals'));
-          } else if (action.type === 'open-project-shell') {
-            open(projectShellSurface(action.projectId, action.runtimeId, action.title));
-            open(projectSurface(action.projectId, 'terminals'));
-          } else if (action.type === 'refresh-agents') {
-            void data.refreshAgents(action.projectId).catch(() => undefined);
-          }
-        }
-      };
-      if (switchAction?.type === 'switch-project') {
-        const next = data.projects.find((entry) => entry.id === switchAction.projectId);
-        if (next) {
-          setProject(next);
-          window.setTimeout(runOpen, 0);
-          return;
+      const targetProjectId = projectId || project.id;
+      for (const action of openActions) {
+        if (action.type === 'open-agent-terminal') {
+          open(
+            agentTerminalSurface(
+              action.agentId,
+              action.title,
+              '',
+              action.runtimeId || '',
+              targetProjectId,
+            ),
+          );
+          open(projectSurface(targetProjectId, 'terminals'));
+        } else if (action.type === 'open-project-shell') {
+          open(projectShellSurface(action.projectId, action.runtimeId, action.title));
+          open(projectSurface(action.projectId, 'terminals'));
+        } else if (action.type === 'refresh-agents') {
+          void data.refreshAgents(action.projectId).catch(() => undefined);
         }
       }
-      runOpen();
     },
-    [data, open, project.id, setProject],
+    [data, open, project.id],
   );
+  const handleFocusAttention = useCallback(
+    (item: AttentionFocusSelection) => {
+      const runtime = data.runtimes.find((entry) => entry.runtime_id === item.runtimeId);
+      const projectId =
+        ('projectId' in item && item.projectId ? item.projectId : undefined) || runtime?.project_id;
+      if (projectId && projectId !== project.id) {
+        const next = data.projects.find((entry) => entry.id === projectId);
+        if (!next) return;
+        setPendingAttentionFocus({ ...item, projectId });
+        setProject(next);
+        return;
+      }
+      openAttentionInCurrentProject(item);
+    },
+    [
+      data.projects,
+      data.runtimes,
+      openAttentionInCurrentProject,
+      project.id,
+      setPendingAttentionFocus,
+      setProject,
+    ],
+  );
+
+  useEffect(() => {
+    if (!layoutReady || layoutProjectId !== project.id || !pendingAttentionFocus) return;
+    const targetProjectId =
+      ('projectId' in pendingAttentionFocus && pendingAttentionFocus.projectId) || '';
+    if (!targetProjectId || targetProjectId !== project.id) return;
+    setPendingAttentionFocus(null);
+    openAttentionInCurrentProject(pendingAttentionFocus);
+  }, [
+    layoutReady,
+    layoutProjectId,
+    openAttentionInCurrentProject,
+    pendingAttentionFocus,
+    project.id,
+    setPendingAttentionFocus,
+  ]);
 
   // Universal attention delivery across all projects (radar remains global).
   useEffect(() => {

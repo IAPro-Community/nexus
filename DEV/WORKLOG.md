@@ -7138,3 +7138,10 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - PASS — teste focal, `go test -race ./internal/control/host -run '^TestStructuredACPAttentionReachesRegistryAndSettlesOnlyItsRuntime$' -count=10`, `go vet ./internal/control/host ./internal/control/agentwire ./internal/control/registry` e `make lint-go` (0 issues).
 - PASS — `make quality-full`: 131 arquivos/823 testes Web, Go completo + race/security, `govulncheck` sem vulnerabilidades, 6 avisos ESLint existentes/0 erros. Validadores 48-capabilities, mapa (4/4; 48/96, 86 source+test, 9 source-only, 1 unmapped, zero certificados), `make docs-verify` (245 Markdown/33 assets) e `git diff --check`.
 - Limite — isso reduz uma lacuna A3; UI/API GlobalAttentionRadar, provider real e homologação do app distribuído no SHA final seguem pendentes. GO geral continua NO_GO.
+## 2026-11-08 — P0 A3: foco cross-project do GlobalAttentionRadar
+
+- O E2E `npm --prefix web run test:e2e:attention-radar-focus` expôs seleção perdida durante o remount do provider de workspace keyed por projeto. Levantei o foco pendente para a sessão acima do provider, aguardei o layout do projeto alvo e preservei `projectId` na superfície Agent Terminal para navegação correta.
+- PASS — duas runtimes/projetos criados pela API Nexus com pergunta textual igual permanecem distinguíveis por runtime ID; alternar Alpha→Beta→Alpha abre o Project Shell selecionado. PT-BR e estados localizados também são verificados.
+- Limite: o E2E sobrepõe estados de atenção no GET `/api/v1/runtimes`; nenhum provider é chamado. Não prova evento real Registry→API→UI, provider externo, pacote distribuído ou aceite A3.
+- PASS — Web `quality:full` 131 arquivos/825 testes; validadores contrato (48 pending), mapa (48/96, 86 refs source+test, 9 source-only, 1 unmapped, zero certificados; testes 4/4), catálogo (36) e `git diff --check`.
+- Próximo: commit/push desta fatia e refresh documental sintético; avançar fluxo A3 sem overlay, A2/A4, Maestro distribuído, quota AGY e auditoria assertion-by-assertion. Estado NO_GO.

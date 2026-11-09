@@ -23,4 +23,14 @@ describe('i18n', () => {
     expect(keys(ptBR)).toEqual(keys(en));
     expect(keys(es)).toEqual(keys(en));
   });
+  it('localizes every attention radar tab state', () => {
+    expect(en.notifications.radarTab).toBe('Attention Radar');
+    expect(ptBR.notifications.radarTab).toBe('Radar de Atenção');
+    expect(es.notifications.radarTab).toBe('Radar de Atención');
+    expect(ptBR.notifications.radarState.needs_user).toBe('Precisa de você');
+    expect(ptBR.notifications.radarState.working).toBe('Trabalhando');
+    expect(ptBR.notifications.radarState.completed).toBe('Concluído');
+    expect(ptBR.notifications.radarState.error).toBe('Erro');
+    expect(ptBR.notifications.radarState.idle).toBe('Ocioso');
+  });
 });

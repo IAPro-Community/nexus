@@ -1,8 +1,10 @@
-### A3 — projeção estruturada de attention — 2026-11-08
+### A3 — atenção estruturada e foco cross-project — 2026-11-08
 
-- Implementada regressão subprocesso ACP → Bridge → SessionHost → Registry para runtime e interaction ID, proveniência/generation (`AUTHORITATIVE` para lifecycle, `SIGNALLED` para resposta local), resposta `SUBMITTED`/working sem completion e resolução isolada de duas perguntas idênticas. Teste focal, race x10, vet e gates completos passaram no estado corrigido.
-- Restam UI/API GlobalAttentionRadar até foco no runtime certo, validação provider real e exact-SHA publicado. A3 e capability continuam partial/pending; objetivo completo de 48 capabilities e GO permanece ativo.
-- Código integrado em `release/v1.0.0@c850f40e`, commit e push sincronizados. Próximo: API/UI GlobalAttentionRadar até o foco no runtime certo, sem promover A3/capability até provider e homologação de app publicado.
+- Implementada regressão ACP subprocesso → Bridge → SessionHost → Registry: interaction IDs iguais em duas runtimes permanecem isolados; lifecycle é `AUTHORITATIVE`, resposta local `SIGNALLED`/`SUBMITTED`, e só `end_turn` resolve a runtime certa. Teste focal, race x10, vet e gates completos passaram no checkpoint `c850f40e`.
+- Playwright `test:e2e:attention-radar-focus` prova que duas runtimes/projetos Nexus criados por API permanecem acionáveis por runtime ID e que o shell correto abre após trocar de projeto. Corrigidos perda de seleção no remount e navegação antes do layout de destino.
+- Limite: o browser E2E sobrescreve estados de atenção no GET `/api/v1/runtimes`; não valida a projeção de evento real Registry→API→UI nem provider externo. A3/capability permanecem partial/pending.
+- Validadores: contrato (48 pending), mapa 48/96 (86 refs source+test, 9 source-only, 1 unmapped, zero certificados), map tests 4/4 e catálogo 36 passaram; Web `quality:full` passou (131/825; 6 avisos ESLint preexistentes, 0 erros). Capturas documentais ainda precisam ser renovadas depois do commit do código.
+- Base desta fatia: `release/v1.0.0@6955bb59`, alterações locais; commit/push seguem nesta execução. Próximo: fluxo API/UI sem overlay e provider real, depois A2/A4, AGY, distribuição Maestro e auditoria das 48 capacidades. GO continua NO_GO.
 
 ### Recheck `follow-agent` — 2026-11-08
 

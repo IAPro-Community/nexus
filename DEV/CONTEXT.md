@@ -93,6 +93,13 @@ Objetivo atual é fechar P0 e homologar a matriz canônica de 48 capacidades, al
 
 # Contexto atual
 
+## Continuação — A3 GlobalAttentionRadar cross-project — 2026-11-08
+
+- Base sincronizada: Nexus `release/v1.0.0@6955bb59`; Maestro segue `release/1.1.0@9c9c9eb`.
+- Teste ACP→Bridge→SessionHost→Registry foi aprovado e pushado em `c850f40e`. Novo Playwright E2E cria projetos/runtimes por API e prova foco do Radar no runtime escolhido após troca de projeto; a seleção sobrevive ao remount e espera o layout de destino.
+- Estados do Radar no E2E são overlay no GET `/api/v1/runtimes`; ainda não é evidência de evento Registry→API→UI sem overlay ou provider. Web quality passa 131/825; mapa estrutural 48/96, zero aceites certificados.
+- Próximo: commit/push da correção E2E cross-project; atualizar docs captures sintéticas no SHA commitado; construir cobertura sem overlay do evento ao read model/browser. Seguem abertos A2/A4, 1/2 contas AGY elegíveis, distribuição Maestro, auditoria semântica das 48 capacidades e gates exact-SHA/plataforma/assinatura. GO permanece NO_GO.
+
 ## Homologação Linux — atualização de 2026-10-26
 
 - HEAD/base local/remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`, overlay de fontes `751cfc1a160c38d950ac5b9807e1febb9746d03981c861c722e5bd965e1ef012` (1.428 fontes, manifesto conferido sem divergências). Worktree compartilhada modificada, sem SHA próprio.

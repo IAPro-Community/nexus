@@ -45,6 +45,15 @@ describe('workspace surfaces', () => {
     expect(shell.viewId).toBe('view:shell:rt_shell_1');
     expect(shell.data).toMatchObject({ projectId: 'prj_1', runtimeId: 'rt_shell_1' });
   });
+
+  it('carries the owning project through a cross-project Agent terminal focus', () => {
+    const surface = agentTerminalSurface('agt_9', 'Backend', '', 'rt-beta', 'project-beta');
+    expect(surface.data).toEqual({
+      agentId: 'agt_9',
+      runtimeId: 'rt-beta',
+      projectId: 'project-beta',
+    });
+  });
   it('keys Flow Run views by durable run id', () => {
     const surface = flowRunSurface('run_123', 'Flow Run · 123');
     expect(surface.type).toBe('flow-run');

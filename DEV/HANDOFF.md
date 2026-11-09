@@ -1,13 +1,12 @@
-## Recheck do handoff — E2E `follow-agent` — 2026-11-08
+## Recheck do handoff — GlobalAttentionRadar cross-project — 2026-11-08
 
-- Último push confirmado: branch `release/v1.0.0@c850f40e`, sincronizada com `origin`. O commit `fix(agents): preserve correlated response provenance` integra a regressão ACP subprocesso → Bridge → SessionHost → Registry e preserva `SIGNALLED` para resposta local, `AUTHORITATIVE` para lifecycle/settlement.
-- A lacuna “criar E2E integrado de UI/WebSocket” foi parcialmente reduzida: `npm --prefix web run test:e2e:agent-terminal-follow` passou contra servidor fixture/API real do Nexus, Agent persistido, AgentTerminal e xterm. Cobre attach VIEW_ONLY sem lease, pausa/resume, tecla sem lease, aquisição explícita, input em CONTROL e revoke/reconnect sem reacquire.
-- Limite: WebSocket provider foi simulado via Playwright. Ainda falta exercitar broker/host real e validar o app distribuído no SHA final com inspeção humana da UX. `follow-agent` permanece `partial` / `verification: pending`.
-- PASS — `make quality-full`: Web 131 arquivos/823 testes, Go completo + race/security, format/lint/type/style/build e version-contract; seis avisos ESLint existentes, zero erros, govulncheck sem vulnerabilidades.
-- PASS — `node --test scripts/verify-agent-workspace-evidence-map.test.mjs` (4/4); mapa (48 capacidades/96 critérios; 86 source+test, 9 source-only, 1 unmapped; zero certificados); `make docs-verify` (245 Markdown/33 assets); `git diff --check`.
-- E2E `follow-agent` passou no HEAD `104089c0`; artefatos Playwright: `/tmp/nexus-follow-agent-e2e`.
-- Próxima ação A3: cobrir o fluxo API/UI do GlobalAttentionRadar até o foco no runtime exato, depois validar provider externo e app distribuído no SHA publicado.
-- Pendências gerais: A1/A2/A3/A4 parciais; AGY tem 1/2 contas elegíveis com janela 5h atual; Nexus preinstalado ainda não valida os contratos Maestro v1; 48/48 capacidades seguem pending, com auditoria semântica e gates exact-SHA, visual, plataformas, assinatura e distribuição abertos. Estado **NO_GO**.
+- Base remota antes desta fatia: `release/v1.0.0@6955bb59`. A regressão ACP subprocesso → Bridge → SessionHost → Registry segue integrada e revisada; a UI agora também tem Playwright E2E de foco cross-project.
+- Corrigido bug real: a seleção pendente do Radar era perdida no remount do `WorkspaceProvider` por projeto e podia ser sobrescrita antes de carregar o layout de destino. O foco agora sobrevive ao remount, aguarda o layout do projeto escolhido e carrega a superfície com `projectId` autoritativo.
+- PASS — `npm --prefix web run test:e2e:attention-radar-focus`: duas runtimes e projetos criados pelas APIs Nexus, pergunta idêntica apresentada duas vezes, clique por runtime ID troca para o projeto correto e abre seu Project Shell. Teste repetido neste worktree.
+- Limite da evidência: o E2E intercepta apenas o GET `/api/v1/runtimes` para sobrepor os estados de atenção. Não prova a projeção real Registry→API→UI, provider externo nem o app distribuído no SHA final. Não promove A3 ou capability; screenshots temporárias estão em `/tmp/nexus-attention-radar-20261108-sha-check` e são de fixture.
+- PASS na árvore de trabalho: `npm --prefix web run quality:full` (131 arquivos/825 testes Web, build/type/style/format e lint sem erros; 6 warnings ESLint preexistentes); contrato 48, mapa/verificador 4/4 e catálogo 36 passam. Mapa: 48 capacidades/96 critérios, 86 refs source+test, 9 source-only, 1 unmapped, zero certificados.
+- Ainda falta no A3: evento estruturado sem overlay até endpoint/read model/browser e validação com provider externo. A1/A2/A3/A4 parciais; AGY tem 1/2 perfis elegíveis com evidência 5h; instalação/distribuição Nexus↔Maestro, auditoria semântica 48/96, exact-SHA, inspeção visual, plataformas e assinatura permanecem gates abertos. Estado **NO_GO**.
+- Próxima ação: commit/push desta fatia, atualizar capturas documentais sintéticas contra o SHA de código commitado e prosseguir pelo evento API/UI sem overlay e demais P0s. Não confundir docs capture com homologação visual.
 
 ## P0 A3 — subprocesso ACP até Registry, ACK e isolamento — 2026-11-08
 

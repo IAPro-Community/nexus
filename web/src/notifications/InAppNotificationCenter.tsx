@@ -347,6 +347,7 @@ export const InAppNotificationCenter: React.FC<{
                                 type="button"
                                 className="nx-attention-radar__item"
                                 data-badge={item.badge}
+                                data-runtime-id={item.runtimeId}
                                 onClick={() => {
                                   onCloseDrawer();
                                   if (onFocusAttention) onFocusAttention(item);
@@ -364,7 +365,9 @@ export const InAppNotificationCenter: React.FC<{
                                   ) : (
                                     <Radio size={12} />
                                   )}
-                                  {item.badge}
+                                  {t(`notifications.radarState.${item.badge}`, {
+                                    defaultValue: item.badge,
+                                  })}
                                 </span>
                                 <span className="nx-attention-radar__title">{label}</span>
                               </button>
