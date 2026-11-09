@@ -4,8 +4,9 @@
 - Corrigi a preferência de descoberta do Nexus para `maestro` antes dos shims versionados, com regressão para múltiplos executáveis no PATH.
 - PASS — `go test ./internal/nexus -run 'TestFindMaestroBinPrefersStableAliasOverNodeVersionShims|TestMaestroCLIContractInterop' -count=1 -v`; integração real `NEXUS_MAESTRO_CLI_TEST_PATH=/home/desenvolvedor/.local/bin/maestro go test ./internal/nexus -run '^TestMaestroCLIContractInterop$' -count=1 -v`.
 - PASS — após correção, `make build` e `./nexus maestro status --json`: `available=true`, modo `ASSIST`, Maestro `1.1.0`, `advice=1.0.0`, `verification=1.0.0`.
+- Instalação reversível — backup do binário de perfil `nexus.backup.40d479bb`; build `deaf2802` copiado para `/home/desenvolvedor/.local/bin/nexus`. SHA-256 build e destino: `107ac2d74420f17d41f7cfacb7c074f929d81952f1a7c35d34ac1c7e571e9fa6`. `version` aponta para `deaf2802`; status executado pelo caminho instalado retorna `available=true` e ambos contratos 1.0.0.
 - PASS — `make quality-full`: format; ESLint 0 erros/6 avisos preexistentes; lint Go 0 issues; Vitest 131 arquivos/826 testes; Go integral e race (`internal/nexus` 302,029s); version contract; `govulncheck` sem vulnerabilidades.
-- Limite: é smoke do binário local compilado com Maestro presente no usuário. Nexus preinstalado/distribuído no perfil e artefato final de release ainda não foram atualizados/retestados; gates de instalação, plataforma e assinatura permanecem.
+- Limite: o binário Linux do perfil foi atualizado e revalidado, mas isto não substitui o artefato final publicado; matrizes Windows/macOS, empacotamento e assinatura permanecem pendentes.
 
 ## P0 A4 — opção estruturada no Attention Radar — 2026-11-09
 

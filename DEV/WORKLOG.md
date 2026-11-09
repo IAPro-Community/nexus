@@ -3,7 +3,14 @@
 - Corrigi a precedência que selecionava primeiro `orquestrador-maestro` de Node 22/24, um shim legado sem `capabilities`, mesmo com o alias `maestro` Node 20 instalado e funcional. Nexus passa a preferir o alias estável.
 - Adicionei regressão com dois executáveis concorrentes no PATH. O teste de interoperabilidade executou capabilities/advice/verify pela CLI real Maestro 1.1.0 e passou.
 - PASS — `make build`; `./nexus maestro status --json` agora reporta `available=true`, `ASSIST`, contracts advice/verification 1.0.0. `make quality-full` passou (131/826 Web, Go + race, lint, version contract, govulncheck limpo; 6 warnings ESLint existentes).
-- O teste é do binário de desenvolvimento. Nexus preinstalado/distribuído e artefato final ainda precisam atualização e smoke; não fecha GO.
+- Naquele checkpoint, o binário instalado ainda precisava ser substituído; a atualização reversível e o smoke instalado foram feitos na seção seguinte. Artefato final/plataformas ainda não fecham GO.
+
+## 2026-11-09 — Maestro: atualização reversível do binário Linux do perfil
+
+- Preservei o executável anterior como `/home/desenvolvedor/.local/bin/nexus.backup.40d479bb` e instalei o build da release `deaf2802` em `/home/desenvolvedor/.local/bin/nexus`.
+- SHA-256 do build e instalado coincide: `107ac2d74420f17d41f7cfacb7c074f929d81952f1a7c35d34ac1c7e571e9fa6`.
+- PASS — `nexus version` indica commit `deaf2802`; o binário pelo caminho instalado retorna Maestro `available=true`, `ASSIST`, version 1.1.0 e contratos advice/verification 1.0.0.
+- Isso fecha o smoke do perfil Linux local, não os artefatos de distribuição, assinatura nem plataformas adicionais.
 
 ## 2026-11-09 — P0 A4: escolha estruturada no Attention Radar
 
