@@ -1,12 +1,13 @@
 ## Handoff corrente — Comparison Lab A/B — 2026-11-09
 
-- Base: `release/v1.0.0@1c048f8d`; recuperação explícita do lado faltante está em implementação na árvore local. O checkpoint anterior já foi publicado.
+- Base: `release/v1.0.0@f803d264`, remoto sincronizado. O launcher A/B está em `1c048f8d`; retomada explícita da alternativa faltante em `f803d264`.
 - A extensão prepara atomicamente duas variantes congeladas do mesmo WorkPlan/revisão/base, com IDs/dependências separados, preview e aprovações/custos por alternativa. O disparo usa duas chamadas concorrentes ao `RunApplicationService`/MissionRunner existentes e workspaces Nexus gerenciadas; não cria scheduler adicional.
 - A persistência registra run IDs/estado. Recovery read-only ocorre antes de atender a API: sem Mission adquirido, LAUNCHING volta PREPARED; um lado fica PARTIAL; runs existentes podem reconciliar vínculo sem iniciar outro processo. Erro de recovery falha fechado.
 - A comparação salva snapshot imutável de diff/testes/custos e decisão humana sem aplicar patch/merge. API autenticada/CSRF e painel Flow Studio usam i18n PT-BR/EN/ES e o Product Tour compartilhado.
-- PASS — `make quality-full`: Web 131 arquivos/829 testes, Go completo + race (Nexus 313,918 s; Store 104,206 s), version contract e govulncheck limpo. Seis warnings ESLint preexistentes, zero erros; Go lint 0 issues. `make build`, Go focal, contrato 48, mapa (87 source+test/9 source-only/0 unmapped/0 certificados), map tests 4/4, catálogo 36 e `git diff --check` também passaram.
-- BLOCKED — `make docs-verify`: manifesto visual segue vinculado ao SHA `7a26a298…` e enumera nove fontes de renderização alteradas. Não tratar capturas sintéticas como homologação.
-- Em PARTIAL, o usuário pode agora aprovar preview novo e retomar somente o lado ausente. Falta executar A/B com providers reais, validar custo real, essa UX visual e browser E2E no app distribuído/SHA exato. `comparison-lab` permanece partial/pending; zero capacidades certificadas.
+- PASS — `make quality-full`: Web 131 arquivos/829 testes, Go completo + race (Nexus 319,240 s; Store 107,440 s), version contract e govulncheck limpo. Seis warnings ESLint preexistentes, zero erros; Go lint 0 issues. Build em `f803d264`, Go focal, contrato 48, mapa (87 source+test/9 source-only/0 unmapped/0 certificados), map tests 4/4, catálogo 36 e `git diff --check` também passaram.
+- PASS — smoke pelo build: versão beta.11/commit `f803d264`; `maestro status --json` reporta `available=true`, modo ASSIST, contratos advice/verification 1.0.0.
+- BLOCKED — `make docs-verify`: após a recaptura do portal em `d2a48371`, três fontes visuais (painel da campanha, i18n e tipos) mudaram; manifesto sintético ainda está preso ao source `1c048f8d`. Não tratar a recaptura sintética como homologação.
+- Em PARTIAL, o usuário pode aprovar preview novo e retomar somente o lado ausente. Falta executar A/B com providers reais, validar custo real, essa UX visual e browser E2E no app distribuído/SHA exato. `comparison-lab` permanece partial/pending; zero capacidades certificadas.
 
 ### O que falta para GO
 

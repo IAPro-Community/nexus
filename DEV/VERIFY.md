@@ -1,9 +1,9 @@
 ## 2026-11-09 — Comparison Lab A/B + retomada parcial — verificação corrente
 
 - PASS — `make quality-full`: format-check, ESLint (0 erros; seis warnings já existentes), Stylelint, TypeScript, build Web, 131 arquivos/829 testes, Go integral + race (Nexus 319,240 s; Store 107,440 s), version contract e `govulncheck` sem vulnerabilidades.
-- PASS — `make build` no código do launcher; Go focal; após implementação do retry: `go test ./internal/nexus/store ./internal/nexus ./internal/control/web -run 'TestComparison' -count=1`, TypeScript, Stylelint e Prettier.
+- PASS — build e smoke Maestro no SHA publicado `f803d264`: `./nexus version` reportou beta.11/commit correto; `./nexus maestro status --json` retornou available, ASSIST, advice/verification 1.0.0. Go focal; após retry: `go test ./internal/nexus/store ./internal/nexus ./internal/control/web -run 'TestComparison' -count=1`, TypeScript, Stylelint e Prettier.
 - PASS — contrato v1 (48 capabilities pending), evidence map (96 critérios: 87 source+test, 9 source-only, 0 unmapped, 0 certificados), map tests 4/4, catálogo 36 e `git diff --check`.
-- BLOCKED — `make docs-verify`: manifest sintético é de `7a26a298…`; enumera 11 fontes visuais stale e 3 que não pode certificar como alterações não commitadas. Não refazer captura sintética como evidência de aceite.
+- BLOCKED — `make docs-verify`: a recaptura sintética do portal publicada em `d2a48371` permanece vinculada ao source `1c048f8d`; guard enumera três fontes visuais posteriores. Não refazer captura sintética como evidência de aceite.
 - Limite — testes validam preparo, approvals, persistência/recovery, transição parcial no store, dispatch boundary e comparação de runs vinculadas; não fazem provider call nem homologam execução paralela real/app distribuído. Retry da UI não tem E2E visual. Comparison Lab e release continuam partial/NO_GO.
 
 ## Histórico — Comparison Lab sem launcher A/B

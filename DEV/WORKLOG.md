@@ -3,7 +3,9 @@
 - Adicionei transição `PARTIAL → LAUNCHING` somente quando um dos dois runs existe. Uma nova tentativa solicita preview atualizado e inicia só a variante faltante; exige aprovação/custo para aquele lado e preserva o run existente. Retry é explícito, nunca automático.
 - UI exibe run existente, preview da alternativa ausente e botão de retomada traduzido EN/PT-BR/ES; recovery de startup ainda repara vínculos sem iniciar execuções.
 - PASS — `make quality-full` (Web 131/829, Go + race; Nexus 319,240 s; Store 107,440 s; seis warnings ESLint existentes, Go lint 0 issues, govulncheck limpo), Go focal, TypeScript, Stylelint, Prettier, contrato/mapa/catalog e diff check.
-- BLOCKED — `make docs-verify` cita 11 arquivos visuais stale desde `7a26a298…` e 3 alterações que o manifesto antigo não pode certificar. Retry ainda precisa E2E visual e provider real. NO_GO.
+- Commit/push da retomada: `f803d264` em `release/v1.0.0`; a branch remota avançou com `d2a48371` durante o push e foi integrada por rebase sem conflitos.
+- PASS — build pelo commit `f803d264`; smoke da CLI Nexus confirma Maestro available/ASSIST/advice e verification 1.0.0.
+- BLOCKED — `make docs-verify` cita três fontes visuais stale desde a captura sintética source `1c048f8d`. Retry ainda precisa E2E visual e provider real. NO_GO.
 
 ## Histórico — Comparison Lab: launcher A/B persistido
 
