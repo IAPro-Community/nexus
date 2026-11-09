@@ -1639,6 +1639,7 @@ export const en = {
     comparisonCampaignApproveRoute: 'I reviewed and approve the route for {{label}}.',
     comparisonCampaignApproveCost: 'I explicitly confirm the required cost state for {{label}}.',
     comparisonCampaignLaunchBoth: 'Launch both alternatives in parallel',
+    comparisonCampaignResumeMissing: 'Review and launch alternative {{label}}',
     comparisonCampaignRefresh: 'Refresh comparison campaign',
     comparisonCampaignSaved: 'Saved campaigns',
     comparisonCampaignSelected: 'Selected comparison campaign',
@@ -4174,6 +4175,7 @@ export const ptBR = {
     comparisonCampaignApproveCost:
       'Confirmo explicitamente o estado de custo exigido para {{label}}.',
     comparisonCampaignLaunchBoth: 'Executar ambas as alternativas em paralelo',
+    comparisonCampaignResumeMissing: 'Revisar e executar a alternativa {{label}}',
     comparisonCampaignRefresh: 'Atualizar campanha de comparação',
     comparisonCampaignSaved: 'Campanhas salvas',
     comparisonCampaignSelected: 'Campanha de comparação selecionada',
@@ -6716,6 +6718,7 @@ export const es = {
     comparisonCampaignApproveCost:
       'Confirmo explícitamente el estado de costo requerido para {{label}}.',
     comparisonCampaignLaunchBoth: 'Ejecutar ambas alternativas en paralelo',
+    comparisonCampaignResumeMissing: 'Revisar y ejecutar la alternativa {{label}}',
     comparisonCampaignRefresh: 'Actualizar campaña de comparación',
     comparisonCampaignSaved: 'Campañas guardadas',
     comparisonCampaignSelected: 'Campaña de comparación seleccionada',

@@ -1967,9 +1967,9 @@ export interface CreateComparisonCampaignRequest {
 }
 
 export interface LaunchComparisonCampaignRequest {
-  approval_token_a: string;
+  approval_token_a?: string;
   cost_confirmation_token_a?: string;
-  approval_token_b: string;
+  approval_token_b?: string;
   cost_confirmation_token_b?: string;
 }
 

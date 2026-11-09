@@ -1,12 +1,12 @@
 ## Handoff corrente — Comparison Lab A/B — 2026-11-09
 
-- Base: `release/v1.0.0@3446d7de`; extensão A/B ainda não commitada. O checkpoint anterior `a02c298a` segue publicado.
+- Base: `release/v1.0.0@1c048f8d`; recuperação explícita do lado faltante está em implementação na árvore local. O checkpoint anterior já foi publicado.
 - A extensão prepara atomicamente duas variantes congeladas do mesmo WorkPlan/revisão/base, com IDs/dependências separados, preview e aprovações/custos por alternativa. O disparo usa duas chamadas concorrentes ao `RunApplicationService`/MissionRunner existentes e workspaces Nexus gerenciadas; não cria scheduler adicional.
 - A persistência registra run IDs/estado. Recovery read-only ocorre antes de atender a API: sem Mission adquirido, LAUNCHING volta PREPARED; um lado fica PARTIAL; runs existentes podem reconciliar vínculo sem iniciar outro processo. Erro de recovery falha fechado.
 - A comparação salva snapshot imutável de diff/testes/custos e decisão humana sem aplicar patch/merge. API autenticada/CSRF e painel Flow Studio usam i18n PT-BR/EN/ES e o Product Tour compartilhado.
 - PASS — `make quality-full`: Web 131 arquivos/829 testes, Go completo + race (Nexus 313,918 s; Store 104,206 s), version contract e govulncheck limpo. Seis warnings ESLint preexistentes, zero erros; Go lint 0 issues. `make build`, Go focal, contrato 48, mapa (87 source+test/9 source-only/0 unmapped/0 certificados), map tests 4/4, catálogo 36 e `git diff --check` também passaram.
 - BLOCKED — `make docs-verify`: manifesto visual segue vinculado ao SHA `7a26a298…` e enumera nove fontes de renderização alteradas. Não tratar capturas sintéticas como homologação.
-- Falta execução A/B com providers reais, custo real comparável, fluxo visual de recuperação/retry para lançamento parcial e browser E2E no app distribuído/SHA exato. `comparison-lab` permanece partial/pending; zero capacidades certificadas.
+- Em PARTIAL, o usuário pode agora aprovar preview novo e retomar somente o lado ausente. Falta executar A/B com providers reais, validar custo real, essa UX visual e browser E2E no app distribuído/SHA exato. `comparison-lab` permanece partial/pending; zero capacidades certificadas.
 
 ### O que falta para GO
 

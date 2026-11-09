@@ -1,10 +1,10 @@
-## 2026-11-09 — Comparison Lab A/B — verificação corrente
+## 2026-11-09 — Comparison Lab A/B + retomada parcial — verificação corrente
 
-- PASS — `make quality-full`: format-check, ESLint (0 erros; seis warnings já existentes), Stylelint, TypeScript, build Web, 131 arquivos/829 testes, Go integral + race (Nexus 313,918 s; Store 104,206 s), version contract e `govulncheck` sem vulnerabilidades.
-- PASS — `make build`; `go test ./internal/nexus/store ./internal/nexus ./internal/control/web -run 'TestComparison' -count=1`; `npm --prefix web run format:check` e `npm --prefix web run typecheck`.
+- PASS — `make quality-full`: format-check, ESLint (0 erros; seis warnings já existentes), Stylelint, TypeScript, build Web, 131 arquivos/829 testes, Go integral + race (Nexus 319,240 s; Store 107,440 s), version contract e `govulncheck` sem vulnerabilidades.
+- PASS — `make build` no código do launcher; Go focal; após implementação do retry: `go test ./internal/nexus/store ./internal/nexus ./internal/control/web -run 'TestComparison' -count=1`, TypeScript, Stylelint e Prettier.
 - PASS — contrato v1 (48 capabilities pending), evidence map (96 critérios: 87 source+test, 9 source-only, 0 unmapped, 0 certificados), map tests 4/4, catálogo 36 e `git diff --check`.
-- BLOCKED — `make docs-verify`: manifest sintético é de `7a26a298…` e o guard aponta nove fontes de renderização alteradas. Não refazer captura sintética como evidência de aceite.
-- Limite — testes validam preparo, approvals, persistência/recovery sem run, dispatch boundary e comparação de run vinculada; não fazem provider call nem homologam execução paralela real/app distribuído. Comparison Lab e release continuam partial/NO_GO.
+- BLOCKED — `make docs-verify`: manifest sintético é de `7a26a298…`; enumera 11 fontes visuais stale e 3 que não pode certificar como alterações não commitadas. Não refazer captura sintética como evidência de aceite.
+- Limite — testes validam preparo, approvals, persistência/recovery, transição parcial no store, dispatch boundary e comparação de runs vinculadas; não fazem provider call nem homologam execução paralela real/app distribuído. Retry da UI não tem E2E visual. Comparison Lab e release continuam partial/NO_GO.
 
 ## Histórico — Comparison Lab sem launcher A/B
 

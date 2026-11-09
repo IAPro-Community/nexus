@@ -341,12 +341,23 @@ func (s *ComparisonCampaignApplicationService) view(ctx context.Context, campaig
 		return nil, err
 	}
 	view := &ComparisonCampaignView{Campaign: campaign, PlanA: *planA, PlanB: *planB}
-	if campaign.State == store.ComparisonCampaignPrepared {
+	switch campaign.State {
+	case store.ComparisonCampaignPrepared:
 		view.PreviewA, err = s.nexus.PreviewPlanExecution(ctx, planA.ID)
 		if err != nil {
 			return nil, err
 		}
 		view.PreviewB, err = s.nexus.PreviewPlanExecution(ctx, planB.ID)
+		if err != nil {
+			return nil, err
+		}
+	case store.ComparisonCampaignPartial:
+		switch {
+		case campaign.RunAID == "" && campaign.RunBID != "":
+			view.PreviewA, err = s.nexus.PreviewPlanExecution(ctx, planA.ID)
+		case campaign.RunAID != "" && campaign.RunBID == "":
+			view.PreviewB, err = s.nexus.PreviewPlanExecution(ctx, planB.ID)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -374,7 +385,10 @@ func (s *ComparisonCampaignApplicationService) Launch(ctx context.Context, id st
 	if err != nil {
 		return nil, err
 	}
-	if campaign.State != store.ComparisonCampaignPrepared {
+	prepared := campaign.State == store.ComparisonCampaignPrepared && campaign.RunAID == "" && campaign.RunBID == ""
+	resumeA := campaign.State == store.ComparisonCampaignPartial && campaign.RunAID == "" && campaign.RunBID != ""
+	resumeB := campaign.State == store.ComparisonCampaignPartial && campaign.RunAID != "" && campaign.RunBID == ""
+	if !prepared && !resumeA && !resumeB {
 		return nil, fmt.Errorf("comparison campaign is not prepared for launch")
 	}
 	project, err := st.GetProject(campaign.ProjectID)
@@ -404,27 +418,40 @@ func (s *ComparisonCampaignApplicationService) Launch(ctx context.Context, id st
 	if err != nil {
 		return nil, err
 	}
-	previewA, err := s.nexus.PreviewPlanExecution(ctx, planA.ID)
-	if err != nil {
-		return nil, err
+	var previewA, previewB *PlanExecutionPreview
+	if prepared || resumeA {
+		previewA, err = s.nexus.PreviewPlanExecution(ctx, planA.ID)
+		if err != nil {
+			return nil, err
+		}
 	}
-	previewB, err := s.nexus.PreviewPlanExecution(ctx, planB.ID)
-	if err != nil {
-		return nil, err
+	if prepared || resumeB {
+		previewB, err = s.nexus.PreviewPlanExecution(ctx, planB.ID)
+		if err != nil {
+			return nil, err
+		}
 	}
-	if !previewA.Ready || !previewB.Ready {
-		return nil, fmt.Errorf("both alternative execution previews must be ready")
+	if previewA != nil {
+		if !previewA.Ready || strings.TrimSpace(approval.ApprovalTokenA) == "" || strings.TrimSpace(approval.ApprovalTokenA) != previewA.ApprovalToken {
+			return nil, fmt.Errorf("alternative A requires approval of its current ready execution preview")
+		}
+		if previewA.CostConfirmationRequired && strings.TrimSpace(approval.CostConfirmationTokenA) != previewA.CostConfirmationToken {
+			return nil, fmt.Errorf("alternative A requires explicit cost confirmation")
+		}
 	}
-	if strings.TrimSpace(approval.ApprovalTokenA) == "" || strings.TrimSpace(approval.ApprovalTokenA) != previewA.ApprovalToken || strings.TrimSpace(approval.ApprovalTokenB) == "" || strings.TrimSpace(approval.ApprovalTokenB) != previewB.ApprovalToken {
-		return nil, fmt.Errorf("both alternatives require explicit approval of their current execution previews")
+	if previewB != nil {
+		if !previewB.Ready || strings.TrimSpace(approval.ApprovalTokenB) == "" || strings.TrimSpace(approval.ApprovalTokenB) != previewB.ApprovalToken {
+			return nil, fmt.Errorf("alternative B requires approval of its current ready execution preview")
+		}
+		if previewB.CostConfirmationRequired && strings.TrimSpace(approval.CostConfirmationTokenB) != previewB.CostConfirmationToken {
+			return nil, fmt.Errorf("alternative B requires explicit cost confirmation")
+		}
 	}
-	if previewA.CostConfirmationRequired && strings.TrimSpace(approval.CostConfirmationTokenA) != previewA.CostConfirmationToken {
-		return nil, fmt.Errorf("alternative A requires explicit cost confirmation")
+	if prepared {
+		campaign, err = st.BeginComparisonCampaignLaunch(campaign.ID)
+	} else {
+		campaign, err = st.BeginComparisonCampaignResume(campaign.ID)
 	}
-	if previewB.CostConfirmationRequired && strings.TrimSpace(approval.CostConfirmationTokenB) != previewB.CostConfirmationToken {
-		return nil, fmt.Errorf("alternative B requires explicit cost confirmation")
-	}
-	campaign, err = st.BeginComparisonCampaignLaunch(campaign.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -441,10 +468,17 @@ func (s *ComparisonCampaignApplicationService) Launch(ctx context.Context, id st
 		})
 		results <- launchResult{variant: variant, run: run, err: startErr}
 	}
-	go start("A", planA.ID, approval.ApprovalTokenA, approval.CostConfirmationTokenA)
-	go start("B", planB.ID, approval.ApprovalTokenB, approval.CostConfirmationTokenB)
+	launchCount := 0
+	if previewA != nil {
+		launchCount++
+		go start("A", planA.ID, approval.ApprovalTokenA, approval.CostConfirmationTokenA)
+	}
+	if previewB != nil {
+		launchCount++
+		go start("B", planB.ID, approval.ApprovalTokenB, approval.CostConfirmationTokenB)
+	}
 	var launchErrors []string
-	for i := 0; i < 2; i++ {
+	for i := 0; i < launchCount; i++ {
 		result := <-results
 		if result.err != nil {
 			launchErrors = append(launchErrors, result.variant+": "+result.err.Error())

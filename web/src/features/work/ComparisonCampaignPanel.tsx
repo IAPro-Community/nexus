@@ -105,25 +105,23 @@ export const ComparisonCampaignPanel: React.FC<{
   };
 
   const launch = async () => {
-    if (!selected || !selected.preview_a || !selected.preview_b || !approveA || !approveB || busy)
-      return;
-    if (
-      (selected.preview_a.cost_confirmation_required && !costA) ||
-      (selected.preview_b.cost_confirmation_required && !costB)
-    )
-      return;
+    if (!selected || !canLaunch || busy) return;
+    const launchA = Boolean(selected.preview_a);
+    const launchB = Boolean(selected.preview_b);
     setBusy(true);
     setError('');
     try {
       const updated = await nexusApi.launchComparisonCampaign(selected.campaign.id, {
-        approval_token_a: selected.preview_a.approval_token,
-        cost_confirmation_token_a: selected.preview_a.cost_confirmation_required
-          ? selected.preview_a.cost_confirmation_token
-          : undefined,
-        approval_token_b: selected.preview_b.approval_token,
-        cost_confirmation_token_b: selected.preview_b.cost_confirmation_required
-          ? selected.preview_b.cost_confirmation_token
-          : undefined,
+        approval_token_a: launchA ? selected.preview_a?.approval_token : undefined,
+        cost_confirmation_token_a:
+          launchA && selected.preview_a?.cost_confirmation_required
+            ? selected.preview_a.cost_confirmation_token
+            : undefined,
+        approval_token_b: launchB ? selected.preview_b?.approval_token : undefined,
+        cost_confirmation_token_b:
+          launchB && selected.preview_b?.cost_confirmation_required
+            ? selected.preview_b.cost_confirmation_token
+            : undefined,
       });
       setSelected(updated);
       setCampaigns((current) =>
@@ -215,15 +213,26 @@ export const ComparisonCampaignPanel: React.FC<{
   );
 
   const selectedCampaign = selected?.campaign;
+  const canApproveA = Boolean(
+    selected?.preview_a?.ready &&
+    approveA &&
+    (!selected.preview_a.cost_confirmation_required || costA),
+  );
+  const canApproveB = Boolean(
+    selected?.preview_b?.ready &&
+    approveB &&
+    (!selected.preview_b.cost_confirmation_required || costB),
+  );
   const canLaunch = Boolean(
     selected &&
-    selectedCampaign?.state === 'PREPARED' &&
-    selected.preview_a?.ready &&
-    selected.preview_b?.ready &&
-    approveA &&
-    approveB &&
-    (!selected.preview_a.cost_confirmation_required || costA) &&
-    (!selected.preview_b.cost_confirmation_required || costB),
+    ((selectedCampaign?.state === 'PREPARED' &&
+      selected.preview_a?.ready &&
+      selected.preview_b?.ready &&
+      canApproveA &&
+      canApproveB) ||
+      (selectedCampaign?.state === 'PARTIAL' &&
+        ((!selected.run_a && Boolean(selected.run_b) && canApproveA) ||
+          (!selected.run_b && Boolean(selected.run_a) && canApproveB)))),
   );
 
   return (
@@ -369,26 +378,29 @@ export const ComparisonCampaignPanel: React.FC<{
               plan: selected.campaign.source_plan_revision,
             })}
           </p>
-          {selected.preview_a && selected.preview_b ? (
+          {selected.preview_a || selected.preview_b ? (
             <div className={styles.previews}>
-              {renderPreview(
-                selected.campaign.variant_a_name,
-                selected.preview_a,
-                approveA,
-                setApproveA,
-                costA,
-                setCostA,
-              )}
-              {renderPreview(
-                selected.campaign.variant_b_name,
-                selected.preview_b,
-                approveB,
-                setApproveB,
-                costB,
-                setCostB,
-              )}
+              {selected.preview_a &&
+                renderPreview(
+                  selected.campaign.variant_a_name,
+                  selected.preview_a,
+                  approveA,
+                  setApproveA,
+                  costA,
+                  setCostA,
+                )}
+              {selected.preview_b &&
+                renderPreview(
+                  selected.campaign.variant_b_name,
+                  selected.preview_b,
+                  approveB,
+                  setApproveB,
+                  costB,
+                  setCostB,
+                )}
             </div>
-          ) : (
+          ) : null}
+          {selected.run_a || selected.run_b || selected.campaign.last_error ? (
             <div className={styles.runs}>
               {selected.run_a && (
                 <p>
@@ -404,10 +416,20 @@ export const ComparisonCampaignPanel: React.FC<{
                 <p className={styles.error}>{selected.campaign.last_error}</p>
               )}
             </div>
-          )}
+          ) : null}
           {selected.campaign.state === 'PREPARED' && (
             <Button tone="brand" onClick={() => void launch()} disabled={busy || !canLaunch}>
               <Play size={14} /> {t('flow.comparisonCampaignLaunchBoth')}
+            </Button>
+          )}
+          {selected.campaign.state === 'PARTIAL' && (selected.preview_a || selected.preview_b) && (
+            <Button tone="brand" onClick={() => void launch()} disabled={busy || !canLaunch}>
+              <Play size={14} />{' '}
+              {t('flow.comparisonCampaignResumeMissing', {
+                label: selected.preview_a
+                  ? selected.campaign.variant_a_name
+                  : selected.campaign.variant_b_name,
+              })}
             </Button>
           )}
           <p className={styles.noMerge}>{t('flow.comparisonNoMerge')}</p>

@@ -1,4 +1,11 @@
-## 2026-11-09 — Comparison Lab: launcher A/B persistido
+## 2026-11-09 — Comparison Lab: retomada segura de campanha parcial
+
+- Adicionei transição `PARTIAL → LAUNCHING` somente quando um dos dois runs existe. Uma nova tentativa solicita preview atualizado e inicia só a variante faltante; exige aprovação/custo para aquele lado e preserva o run existente. Retry é explícito, nunca automático.
+- UI exibe run existente, preview da alternativa ausente e botão de retomada traduzido EN/PT-BR/ES; recovery de startup ainda repara vínculos sem iniciar execuções.
+- PASS — `make quality-full` (Web 131/829, Go + race; Nexus 319,240 s; Store 107,440 s; seis warnings ESLint existentes, Go lint 0 issues, govulncheck limpo), Go focal, TypeScript, Stylelint, Prettier, contrato/mapa/catalog e diff check.
+- BLOCKED — `make docs-verify` cita 11 arquivos visuais stale desde `7a26a298…` e 3 alterações que o manifesto antigo não pode certificar. Retry ainda precisa E2E visual e provider real. NO_GO.
+
+## Histórico — Comparison Lab: launcher A/B persistido
 
 - Adicionei campanha A/B que congela duas variantes de uma revisão/base, clona IDs e remapeia dependências, cria previews separados e exige aprovação/custo por lado antes do dispatch paralelo pelo RunApplicationService/MissionRunner. Store insere planos/revisões/campanha em transação.
 - Recovery reconcilia runs sem disparar trabalho; campanha sem run retorna PREPARED e parcial exige inspeção. Comparação de runs da campanha preserva origem, nomes e instruções. UI, API, i18n e Product Tour compartilhado integram ao Flow Studio.

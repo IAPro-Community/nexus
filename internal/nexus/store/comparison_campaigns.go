@@ -183,6 +183,25 @@ func (s *Store) BeginComparisonCampaignLaunch(id string) (*ComparisonCampaign, e
 	return s.GetComparisonCampaign(id)
 }
 
+// BeginComparisonCampaignResume grants one explicit retry for the missing
+// alternative after a partial launch. Existing run ownership is immutable.
+func (s *Store) BeginComparisonCampaignResume(id string) (*ComparisonCampaign, error) {
+	result, err := s.db.Exec(`UPDATE comparison_campaigns SET state=?, last_error='', updated_at=?
+		WHERE id=? AND state=? AND ((run_a_id IS NULL AND run_b_id IS NOT NULL) OR (run_a_id IS NOT NULL AND run_b_id IS NULL))`,
+		ComparisonCampaignLaunching, time.Now().UTC().Format(time.RFC3339Nano), id, ComparisonCampaignPartial)
+	if err != nil {
+		return nil, err
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+	if changed == 0 {
+		return nil, fmt.Errorf("comparison campaign has no single missing alternative to resume")
+	}
+	return s.GetComparisonCampaign(id)
+}
+
 func (s *Store) AttachComparisonCampaignRun(id string, variant string, runID string) (*ComparisonCampaign, error) {
 	column := "run_a_id"
 	if variant == "B" {

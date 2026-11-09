@@ -52,6 +52,9 @@ func TestComparisonCampaignPersistsPairedPlansAndOneWayLaunchOwnership(t *testin
 	if err != nil || partial.State != ComparisonCampaignPartial {
 		t.Fatalf("one-sided launch must be recoverable as partial: %+v %v", partial, err)
 	}
+	if _, err := st.BeginComparisonCampaignResume(campaign.ID); err != nil {
+		t.Fatalf("explicit resume of missing alternative must be available: %v", err)
+	}
 	attached, err := st.AttachComparisonCampaignRun(campaign.ID, "B", "campaign-run-b")
 	if err != nil {
 		t.Fatal(err)
