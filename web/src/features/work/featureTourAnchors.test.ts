@@ -12,6 +12,7 @@ const sourceFiles = [
   'ComposerWorkspaceHeader.tsx',
   'ComposerSurface.tsx',
   'ComposerInspector.tsx',
+  'DirectSessionLauncher.tsx',
   'ComposerReadOnlyHistory.tsx',
   'FlowRunsHistorySurface.tsx',
   'FlowDraftEditor.tsx',

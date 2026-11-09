@@ -128,9 +128,11 @@ func interactiveLeadSpec(existing intelligence.AgentSpec) intelligence.AgentSpec
 // RuntimeGeneration so the LeadAgentID is durable and matcher status excludes
 // the foreground Agent from delegated work unless explicitly requested.
 func (n *Nexus) BindInteractiveLeadRuntime(ctx context.Context, agentID string, sess *registry.RuntimeSession) error {
-	if err := ctx.Err(); err != nil {
+	unlock, err := n.lockAgentLifecycle(ctx, agentID)
+	if err != nil {
 		return err
 	}
+	defer unlock()
 	if sess == nil || strings.TrimSpace(agentID) == "" || strings.TrimSpace(sess.RuntimeID) == "" {
 		return fmt.Errorf("interactive lead runtime identity is incomplete")
 	}
@@ -141,6 +143,9 @@ func (n *Nexus) BindInteractiveLeadRuntime(ctx context.Context, agentID string, 
 	agent, err := st.GetAgent(agentID, "")
 	if err != nil {
 		return err
+	}
+	if agent.Status == store.AgentStopped || agent.Status == store.AgentStopping {
+		return fmt.Errorf("interactive Lead Agent %s is stopped", agentID)
 	}
 	revisionID := agent.CurrentRevisionID
 	if revisionID == "" {
@@ -176,9 +181,11 @@ func (n *Nexus) BindInteractiveLeadRuntime(ctx context.Context, agentID string, 
 // line-oriented interactive attachment ends. It does not change the Agent's
 // provider/profile preference.
 func (n *Nexus) ReleaseInteractiveLeadRuntime(ctx context.Context, agentID, runtimeID string) error {
-	if err := ctx.Err(); err != nil {
+	unlock, err := n.lockAgentLifecycle(ctx, agentID)
+	if err != nil {
 		return err
 	}
+	defer unlock()
 	st, err := n.OpenProject()
 	if err != nil {
 		return err

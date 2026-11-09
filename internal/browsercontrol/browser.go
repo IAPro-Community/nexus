@@ -40,6 +40,82 @@ type Info struct {
 	LastActiveAt   time.Time `json:"last_active_at,omitempty"`
 }
 
+var sensitiveURLParameter = regexp.MustCompile(`(?i)(token|secret|password|passwd|auth|session|cookie|credential|api[_-]?key|access[_-]?key|signature|code)`)
+var jwtLikeURLSegment = regexp.MustCompile(`(?i)([a-z0-9_-]{16,}\.){2}[a-z0-9_-]{16,}`)
+var emailAddress = regexp.MustCompile(`(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b`)
+var labeledSecret = regexp.MustCompile(`(?i)\b(bearer\s+|(?:api[_ -]?key|access[_ -]?token|refresh[_ -]?token|token|secret|password|passwd|authorization|cookie|session[_ -]?id)\s*[:=]\s*)([^\s,;<>"']+)`)
+var authorizationHeader = regexp.MustCompile(`(?i)\b(authorization\s*[:=]\s*)(?:bearer\s+)?[^\s,;<>"']+`)
+var jwtLikeText = regexp.MustCompile(`(?i)\b(?:[a-z0-9_-]{16,}\.){2}[a-z0-9_-]{16,}\b`)
+var commonSecretToken = regexp.MustCompile(`\b(?:sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9_]{16,}|xox[baprs]-[A-Za-z0-9-]{12,}|AIza[A-Za-z0-9_-]{20,})\b`)
+
+func publicURL(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil || u == nil {
+		return ""
+	}
+	u.User = nil
+	u.Fragment = ""
+	u.RawFragment = ""
+	if u.RawQuery != "" {
+		query := u.Query()
+		for key := range query {
+			if sensitiveURLParameter.MatchString(key) {
+				query.Set(key, "[REDACTED]")
+			}
+		}
+		u.RawQuery = query.Encode()
+	}
+	u.Path = jwtLikeURLSegment.ReplaceAllString(u.Path, "[REDACTED]")
+	u.RawPath = ""
+	return u.String()
+}
+
+func scrubBrowserText(value string) string {
+	value = authorizationHeader.ReplaceAllString(value, "$1[REDACTED]")
+	value = labeledSecret.ReplaceAllString(value, "$1[REDACTED]")
+	value = jwtLikeText.ReplaceAllString(value, "[REDACTED_TOKEN]")
+	value = commonSecretToken.ReplaceAllString(value, "[REDACTED_TOKEN]")
+	return emailAddress.ReplaceAllString(value, "[REDACTED_EMAIL]")
+}
+
+func sanitizeSnapshotValue(value any, key string) any {
+	switch item := value.(type) {
+	case map[string]any:
+		for childKey, child := range item {
+			if sensitiveURLParameter.MatchString(childKey) {
+				item[childKey] = "[REDACTED]"
+				continue
+			}
+			item[childKey] = sanitizeSnapshotValue(child, childKey)
+		}
+		return item
+	case []any:
+		for index := range item {
+			item[index] = sanitizeSnapshotValue(item[index], key)
+		}
+		return item
+	case string:
+		if key == "url" {
+			return publicURL(item)
+		}
+		return scrubBrowserText(item)
+	default:
+		return value
+	}
+}
+
+func sanitizeSnapshotJSON(raw json.RawMessage) (json.RawMessage, error) {
+	var value any
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return nil, fmt.Errorf("decode browser snapshot: %w", err)
+	}
+	clean, err := json.Marshal(sanitizeSnapshotValue(value, ""))
+	if err != nil {
+		return nil, fmt.Errorf("encode sanitized browser snapshot: %w", err)
+	}
+	return clean, nil
+}
+
 type Action struct {
 	Type       string  `json:"type"`
 	URL        string  `json:"url,omitempty"`
@@ -84,6 +160,31 @@ type Manager struct {
 }
 
 func NewManager() *Manager { return &Manager{sessions: make(map[string]*Session)} }
+
+func publicActorIdentity(actor string) string {
+	switch {
+	case strings.HasPrefix(actor, "human:"):
+		return "human"
+	case strings.HasPrefix(actor, "agent:"):
+		return actor
+	case actor != "":
+		return "other"
+	default:
+		return ""
+	}
+}
+
+// infoLocked returns browser metadata without exposing authenticated human
+// session IDs that are embedded in internal controller identities.
+func (s *Session) infoLocked() Info {
+	item := s.info
+	item.URL = publicURL(item.URL)
+	item.ActiveActor = ""
+	if s.controller != "" && time.Now().Before(s.controllerUntil) {
+		item.ActiveActor = publicActorIdentity(s.controller)
+	}
+	return item
+}
 
 // NormalizeURL prepends an appropriate HTTP or HTTPS scheme to a raw URL string
 // when no scheme is supplied, trimming surrounding whitespace.
@@ -365,7 +466,7 @@ func (m *Manager) Create(ctx context.Context, projectID, initialURL string) (Inf
 	}
 	m.sessions[id] = s
 	m.mu.Unlock()
-	return s.info, nil
+	return s.Info(), nil
 }
 
 func (m *Manager) List(projectID string) []Info {
@@ -375,13 +476,7 @@ func (m *Manager) List(projectID string) []Info {
 	for _, s := range m.sessions {
 		s.mu.Lock()
 		if projectID == "" || s.info.ProjectID == projectID {
-			item := s.info
-			if s.controller != "" && time.Now().Before(s.controllerUntil) {
-				item.ActiveActor = s.controller
-			} else {
-				item.ActiveActor = ""
-			}
-			result = append(result, item)
+			result = append(result, s.infoLocked())
 		}
 		s.mu.Unlock()
 	}
@@ -662,7 +757,7 @@ func (s *Session) doLocked(ctx context.Context, a Action) (Info, error) {
 	if err != nil {
 		return Info{}, err
 	}
-	return s.info, nil
+	return s.infoLocked(), nil
 }
 
 func (s *Session) Screenshot(ctx context.Context) ([]byte, error) {
@@ -725,11 +820,15 @@ func (s *Session) snapshotLocked(ctx context.Context) (json.RawMessage, error) {
 	if len(out.Result.Value) == 0 {
 		return json.RawMessage("{}"), nil
 	}
+	sanitized, err := sanitizeSnapshotJSON(out.Result.Value)
+	if err != nil {
+		return nil, err
+	}
 	var meta struct {
 		URL   string `json:"url"`
 		Title string `json:"title"`
 	}
-	if json.Unmarshal(out.Result.Value, &meta) == nil {
+	if json.Unmarshal(sanitized, &meta) == nil {
 		if meta.URL != "" {
 			s.info.URL = meta.URL
 		}
@@ -737,19 +836,13 @@ func (s *Session) snapshotLocked(ctx context.Context) (json.RawMessage, error) {
 			s.info.Title = meta.Title
 		}
 	}
-	return out.Result.Value, nil
+	return sanitized, nil
 }
 
 func (s *Session) Info() Info {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	item := s.info
-	if s.controller != "" && time.Now().Before(s.controllerUntil) {
-		item.ActiveActor = s.controller
-	} else {
-		item.ActiveActor = ""
-	}
-	return item
+	return s.infoLocked()
 }
 
 type NavigationError struct {

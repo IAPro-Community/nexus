@@ -54,6 +54,16 @@ export const featureAnnouncements: readonly FeatureAnnouncement[] = [
     tourStep: 'provider',
   },
   {
+    id: 'direct-session-safe-cancel',
+    revision: 1,
+    surfaces: ['direct-session'],
+    openSurface: 'work',
+    target: '[data-tour="direct-session-cancel"]',
+    title: 'discovery.directSessionCancelTitle',
+    summary: 'discovery.directSessionCancelBody',
+    tourStep: 'cancel',
+  },
+  {
     id: 'flow-review-journey',
     revision: 1,
     surfaces: ['flow-library'],

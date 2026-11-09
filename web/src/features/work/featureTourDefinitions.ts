@@ -8,6 +8,7 @@ export type FeatureTourSurface =
   | 'composer-start'
   | 'composer-session'
   | 'composer-offline'
+  | 'direct-session'
   | 'flow-library'
   | 'flow-editor'
   | 'flow-run'
@@ -79,6 +80,14 @@ export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
       target: '[data-tour="composer-offline-history"]',
       title: 'tour.composerHistoryTitle',
       body: 'tour.composerHistoryBody',
+    },
+  ],
+  'direct-session': [
+    {
+      id: 'cancel',
+      target: '[data-tour="direct-session-cancel"]',
+      title: 'tour.directSessionCancelTitle',
+      body: 'tour.directSessionCancelBody',
     },
   ],
   'flow-library': [

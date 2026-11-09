@@ -53,6 +53,8 @@ func (p *prodLauncher) Stop(runtimeID string) error {
 // control plane runtime layer.
 type Nexus struct {
 	mu                         sync.RWMutex
+	agentLifecycleMu           sync.Mutex
+	agentLifecycleLocks        map[string]*agentLifecycleLock
 	st                         *store.Store
 	launcher                   Launcher
 	drivers                    *driver.Registry
@@ -86,6 +88,62 @@ type Nexus struct {
 	// Optional test-only intelligence provider. When set, ConfiguredIntelligenceProvider
 	// returns it instead of resolving from config — used to prove Create does not hang.
 	intelligenceProviderForTest intelligence.IntelligenceProvider
+}
+
+type agentLifecycleLock struct {
+	semaphore chan struct{}
+	refs      int
+}
+
+// lockAgentLifecycle serializes start/stop/delete transitions for one Agent.
+// References include both the current holder and waiters so idle lock entries
+// can be removed without racing a concurrent acquire.
+func (n *Nexus) lockAgentLifecycle(ctx context.Context, agentID string) (func(), error) {
+	if strings.TrimSpace(agentID) == "" {
+		return nil, fmt.Errorf("agent ID is required")
+	}
+	if ctx == nil {
+		return nil, fmt.Errorf("agent lifecycle context is required")
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	n.agentLifecycleMu.Lock()
+	if n.agentLifecycleLocks == nil {
+		n.agentLifecycleLocks = make(map[string]*agentLifecycleLock)
+	}
+	lock := n.agentLifecycleLocks[agentID]
+	if lock == nil {
+		lock = &agentLifecycleLock{semaphore: make(chan struct{}, 1)}
+		n.agentLifecycleLocks[agentID] = lock
+	}
+	lock.refs++
+	n.agentLifecycleMu.Unlock()
+
+	select {
+	case lock.semaphore <- struct{}{}:
+		if err := ctx.Err(); err != nil {
+			<-lock.semaphore
+			n.releaseAgentLifecycleLock(agentID, lock)
+			return nil, err
+		}
+		return func() {
+			<-lock.semaphore
+			n.releaseAgentLifecycleLock(agentID, lock)
+		}, nil
+	case <-ctx.Done():
+		n.releaseAgentLifecycleLock(agentID, lock)
+		return nil, ctx.Err()
+	}
+}
+
+func (n *Nexus) releaseAgentLifecycleLock(agentID string, lock *agentLifecycleLock) {
+	n.agentLifecycleMu.Lock()
+	defer n.agentLifecycleMu.Unlock()
+	lock.refs--
+	if lock.refs == 0 && n.agentLifecycleLocks[agentID] == lock {
+		delete(n.agentLifecycleLocks, agentID)
+	}
 }
 
 // Runner returns the autonomous mission runner instance.
@@ -654,6 +712,12 @@ func (n *Nexus) StartProjectShell(ctx context.Context, projectID string) (*regis
 // starts in the agent's project canonical path (P0-1). Empty provider is
 // rejected (P0-6 — no silent fake fallback in production).
 func (n *Nexus) StartAgent(ctx context.Context, agentID, provider, profile string) (*registry.RuntimeSession, error) {
+	unlock, err := n.lockAgentLifecycle(ctx, agentID)
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+
 	n.StartQuotaMonitor(ctx)
 	st, err := n.OpenProject()
 	if err != nil {
@@ -802,6 +866,22 @@ func registeredAccountScope(provider, profile string) model.AccountScope {
 // waits for process termination (PID identity check), then persists STOPPED.
 // Failures leave the agent in STOPPING/FAILED with explanation (P0-3).
 func (n *Nexus) StopAgent(ctx context.Context, agentID string) error {
+	unlock, err := n.lockAgentLifecycle(ctx, agentID)
+	if err != nil {
+		return err
+	}
+	defer unlock()
+
+	return n.stopAgentLocked(ctx, agentID)
+}
+
+// stopAgentLocked performs a verified stop while the caller owns the Agent's
+// lifecycle lock. SafeApply uses it to keep stop/reconfigure/relaunch atomic.
+func (n *Nexus) stopAgentLocked(ctx context.Context, agentID string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	st, err := n.OpenProject()
 	if err != nil {
 		return err
@@ -978,6 +1058,12 @@ func (n *Nexus) EffectiveAgentState(agentID string) (string, error) {
 // when no provider session is known. Without a prior generation, recovery is
 // refused — the caller must use StartAgent (P1).
 func (n *Nexus) RecoverAgent(ctx context.Context, agentID string) (*registry.RuntimeSession, error) {
+	unlock, err := n.lockAgentLifecycle(ctx, agentID)
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+
 	st, err := n.OpenProject()
 	if err != nil {
 		return nil, err
@@ -1141,6 +1227,12 @@ func (n *Nexus) RecoverAgent(ctx context.Context, agentID string) (*registry.Run
 // deletion is refused to prevent orphaned provider processes. Zombie / host-
 // unreachable runtimes are stopped first, then deleted.
 func (n *Nexus) DeleteAgent(agentID, projectID string) error {
+	unlock, err := n.lockAgentLifecycle(context.Background(), agentID)
+	if err != nil {
+		return err
+	}
+	defer unlock()
+
 	st, err := n.OpenProject()
 	if err != nil {
 		return err

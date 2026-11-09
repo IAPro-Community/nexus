@@ -12,6 +12,7 @@ describe('Contextual feature tours', () => {
       'composer-start',
       'composer-session',
       'composer-offline',
+      'direct-session',
       'flow-library',
       'flow-run',
       'flow-editor',

@@ -70,6 +70,26 @@ func (c *ContinuityController) ContinueRuntime(ctx context.Context, runtimeID st
 	if !ok {
 		return nil, decision, fmt.Errorf("source runtime %q not found", decision.SourceRuntimeID)
 	}
+	if source.AgentID != "" {
+		unlock, lockErr := c.nexus.lockAgentLifecycle(ctx, source.AgentID)
+		if lockErr != nil {
+			return nil, decision, lockErr
+		}
+		defer unlock()
+		st, storeErr := c.nexus.OpenProject()
+		if storeErr != nil {
+			return nil, decision, storeErr
+		}
+		agent, agentErr := st.GetAgent(source.AgentID, "")
+		if agentErr != nil {
+			return nil, decision, agentErr
+		}
+		current, generationErr := st.CurrentGeneration(source.AgentID)
+		if agent.Status == store.AgentStopped || agent.Status == store.AgentStopping ||
+			generationErr != nil || current.RuntimeID != source.RuntimeID || current.StoppedAt != nil {
+			return nil, decision, fmt.Errorf("continuity source runtime %s is no longer the active Agent generation", source.RuntimeID)
+		}
+	}
 	decision.SourceProvider = source.ProviderID
 	decision.SourceProfile = source.ProfileID
 	hops := continuityHopCount(source)

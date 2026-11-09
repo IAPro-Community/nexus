@@ -1,7 +1,22 @@
-## 2026-11-09 — A2: parada autenticada de runtime sem órfão
+## 2026-11-09 — A2 lifecycle concorrente e redaction de browser
 
-- PASS — `go test ./internal/control/web -run '^TestAuthenticatedAgentCancellationStopsRuntimeWithoutOrphan$' -count=1 -v`: cliente autenticado/CSRF cria projeto e Agent; SessionHost standalone inicia o driver fake supervisionado; `POST /api/v1/agents/{id}/stop` responde 200; Agent persiste `STOPPED`, geração registra `StoppedAt` e runtime some do Registry. Nenhum provider externo foi chamado.
-- Limite — a runtime é lançada pelo harness standalone e o teste não exerce o cancelamento dentro do DirectSessionLauncher/UI nem dois perfis reais. A2 permanece parcial; não certifica `first-run` nem GO.
+- PASS — `make quality-full`: format-check, ESLint (0 errors; six existing warnings), Stylelint, TypeScript, Web 131 arquivos/833 testes, Go completo + race; `internal/nexus` race passou em 287,551 s; `govulncheck` terminou `No vulnerabilities found`.
+- PASS — suites focalizadas browsercontrol, nexus e control/web; regressões sob `-race` para aquisição cancelada e serialização de Start/Stop/Recover/SafeApply/mission/interactive runtime/continuity. Redaction cobre active actor, URL e snapshot JSON/text. `make build` e smoke `NEXUS_BROWSER_INTEGRATION=1 go test ./internal/browsercontrol -run '^TestChromiumSmokeOptional$' -count=1 -v` passaram.
+- PASS — mapa estrutural 48/96: 93 referências source+test, 3 source-only, 0 unmapped, 0 certificados; contrato e mapa validados, testes do verificador 5/5 e `git diff --check` limpo.
+- BLOCKED — `make docs-verify`: enumera manifest visual stale para ComparisonCampaignPanel/i18n/tipos desde `1c048f8d` e alterações locais em DirectSession/UI sem evidência visual do SHA. Isso não constitui homologação.
+- NO_GO — referências no mapa não encerram os gaps de design-inspect (seleção/DOM), live-preview (processo/porta e controle de URL), device-handoff (dois clientes autenticados + execução única), nem requisitos externos AGY/Maestro/provider/exact-SHA.
+
+## 2026-11-09 — A2: cancelamento autenticado de DirectSession sem órfão
+
+- PASS — `go test ./internal/control/web -run '^TestAuthenticatedAgentCancellationStopsRuntimeWithoutOrphan$' -count=1 -v` e `go test ./internal/control/web -count=1`: API com sessão/CSRF inicia stop verificado de SessionHost standalone supervisionado; Agent fica `STOPPED`, geração registra `StoppedAt` e runtime sai do Registry.
+- PASS — `npm --prefix web run test -- --run src/features/work/featureTour.test.ts src/features/work/directSessionLifecycle.test.ts src/features/work/featureAnnouncements.test.ts src/features/work/featureTourAnchors.test.ts` (26 testes). Cancelar antes do start remove Agent; cancelar durante o start espera a resposta, tenta stop e só deleta após stop; falha de stop preserva Agent para recovery.
+- PASS — `NEXUS_E2E_ARTIFACTS_DIR=/tmp/nexus-a2-cancel-20261109-mobile npm --prefix web run test:e2e:first-run-import`: Core real para create/delete/stop, start controlado pelo harness; sequência observada `create → select-resource → apply-config → start → stop → delete`; lista final de Agents/runtimes vazia. A viewport 390 px não tem overflow horizontal. Screenshot em `/tmp/nexus-a2-cancel-20261109-mobile/direct-session-cancel-mobile.png` mostra rolagem vertical do diálogo para acessar ações.
+- PASS — `npm --prefix web run format:check`; validadores do contrato/mapa (48 capabilities/96 critérios, 87 source+test, 9 source-only, 0 unmapped, zero certificados).
+- PASS — `go test ./internal/nexus -run '^TestStopWaitsForInFlightAgentStartAndStopsPublishedGeneration$' -count=1 -v`: stop fica bloqueado enquanto o launcher conclui start, para a geração publicada e deixa o Agent `STOPPED` sem runtime ativo. Start/stop/delete compartilham lock por Agent.
+- PASS — `make quality-full` no estado de código anterior ao ajuste somente do fixture do verificador: Web 131 arquivos/833 testes; Go integral + race (Nexus 280,909 s, Store 104,383 s); version contract e `govulncheck` sem vulnerabilidades. `make build` posterior também passou, gerando bundle Web e CLI Nexus beta.11.
+- PASS — testes do contrato/evidence map 9/9; contrato 48 verificado (pending), mapa 48/96 (87 source+test, 9 source-only, 0 unmapped, zero certificados), catálogo 36 e `git diff --check`. Corrigi fixture sintético para incluir binário de teste explicitamente não distribuível; essa suíte direcionada passou depois do `quality-full`.
+- BLOCKED — `make docs-verify`: manifest visual antigo em `1c048f8d`; lista fontes visuais alteradas e não certifica as mudanças DirectSession locais sem captura vinculada a SHA. Captura sintética não substitui homologação.
+- Limite — nenhuma conta de provider foi chamada; resposta de start é fixture no browser e o processo fake real é exercitado separadamente pelo teste Go. Ainda faltam dois perfis reais e app distribuído/exact-SHA. A2/capability seguem parciais; GO não certificado.
 
 ## 2026-11-09 — Comparison Lab A/B + retomada parcial — verificação corrente
 

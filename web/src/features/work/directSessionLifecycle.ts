@@ -10,6 +10,7 @@ export interface DirectSessionOperations {
   ) => Promise<unknown>;
   applyAgentConfig: (agentId: string, config: AgentConfig) => Promise<unknown>;
   startAgent: (agentId: string) => Promise<unknown>;
+  stopAgent: (agentId: string) => Promise<unknown>;
   deleteAgent: (agentId: string) => Promise<unknown>;
 }
 
@@ -41,7 +42,8 @@ export class DirectSessionSetupError extends Error {
 export async function startDirectSession(
   api: DirectSessionOperations,
   input: DirectSessionInput,
-): Promise<Agent> {
+  isCancellationRequested: () => boolean = () => false,
+): Promise<Agent | null> {
   const name = input.name.trim();
   if (!name) {
     throw new Error('Direct session agent name is required');
@@ -49,7 +51,15 @@ export async function startDirectSession(
   const created = await api.createAgent(input.projectId, name, 'developer');
   let attemptedStart = false;
   try {
+    if (isCancellationRequested()) {
+      await api.deleteAgent(created.id);
+      return null;
+    }
     await api.selectResource(created.id, input.provider, input.profile, 'MANUAL');
+    if (isCancellationRequested()) {
+      await api.deleteAgent(created.id);
+      return null;
+    }
     await api.applyAgentConfig(created.id, {
       provider: input.provider,
       profile: input.profile,
@@ -57,12 +67,36 @@ export async function startDirectSession(
       workspace: input.workspace,
       isolation: 'project',
     });
+    if (isCancellationRequested()) {
+      await api.deleteAgent(created.id);
+      return null;
+    }
     attemptedStart = true;
     await api.startAgent(created.id);
+    if (isCancellationRequested()) {
+      await api.stopAgent(created.id);
+      await api.deleteAgent(created.id);
+      return null;
+    }
     return created;
   } catch (reason) {
     const message = reason instanceof Error ? reason.message : String(reason);
     if (attemptedStart) {
+      if (isCancellationRequested()) {
+        try {
+          await api.stopAgent(created.id);
+          await api.deleteAgent(created.id);
+          return null;
+        } catch (cleanupReason) {
+          const cleanup =
+            cleanupReason instanceof Error ? cleanupReason.message : String(cleanupReason);
+          throw new DirectSessionSetupError(
+            `${message} (cancel cleanup: ${cleanup})`,
+            created.id,
+            'cleanup-failed',
+          );
+        }
+      }
       throw new DirectSessionSetupError(message, created.id, 'start-uncertain');
     }
     try {
@@ -76,6 +110,7 @@ export async function startDirectSession(
         'cleanup-failed',
       );
     }
+    if (isCancellationRequested()) return null;
     throw new DirectSessionSetupError(message, created.id, 'deleted');
   }
 }

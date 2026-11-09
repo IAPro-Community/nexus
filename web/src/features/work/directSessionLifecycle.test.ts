@@ -22,6 +22,7 @@ function operations() {
     selectResource: vi.fn().mockResolvedValue({}),
     applyAgentConfig: vi.fn().mockResolvedValue({}),
     startAgent: vi.fn().mockResolvedValue({}),
+    stopAgent: vi.fn().mockResolvedValue({}),
     deleteAgent: vi.fn().mockResolvedValue({}),
   } satisfies DirectSessionOperations;
 }
@@ -82,6 +83,68 @@ describe('Direct session transactional setup', () => {
       agentId: 'agent-a',
       recovery: 'start-uncertain',
     });
+    expect(api.deleteAgent).not.toHaveBeenCalled();
+  });
+  it('deletes the unstarted Agent when cancellation is requested during setup', async () => {
+    const api = operations();
+    let cancelled = false;
+    api.selectResource.mockImplementation(async () => {
+      cancelled = true;
+      return {};
+    });
+
+    await expect(startDirectSession(api, input, () => cancelled)).resolves.toBeNull();
+    expect(api.deleteAgent).toHaveBeenCalledWith('agent-a');
+    expect(api.applyAgentConfig).not.toHaveBeenCalled();
+    expect(api.startAgent).not.toHaveBeenCalled();
+    expect(api.stopAgent).not.toHaveBeenCalled();
+  });
+  it('treats a failed setup stage as a completed cancellation after rollback', async () => {
+    const api = operations();
+    let cancelled = false;
+    api.selectResource.mockImplementation(async () => {
+      cancelled = true;
+      throw new Error('selection was interrupted');
+    });
+
+    await expect(startDirectSession(api, input, () => cancelled)).resolves.toBeNull();
+    expect(api.deleteAgent).toHaveBeenCalledWith('agent-a');
+    expect(api.startAgent).not.toHaveBeenCalled();
+  });
+  it('stops and deletes the Agent when cancellation arrives during start', async () => {
+    const api = operations();
+    let resolveStart: (() => void) | undefined;
+    api.startAgent.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveStart = resolve;
+        }),
+    );
+    let cancelled = false;
+
+    const result = startDirectSession(api, input, () => cancelled);
+    await vi.waitFor(() => expect(resolveStart).toBeDefined());
+    cancelled = true;
+    resolveStart?.();
+
+    await expect(result).resolves.toBeNull();
+    expect(api.stopAgent).toHaveBeenCalledWith('agent-a');
+    expect(api.deleteAgent).toHaveBeenCalledWith('agent-a');
+  });
+  it('preserves the Agent when runtime cleanup fails after cancellation', async () => {
+    const api = operations();
+    api.stopAgent.mockRejectedValue(new Error('stop could not be verified'));
+    let cancelled = false;
+    api.startAgent.mockImplementation(async () => {
+      cancelled = true;
+      return {};
+    });
+
+    await expect(startDirectSession(api, input, () => cancelled)).rejects.toMatchObject({
+      agentId: 'agent-a',
+      recovery: 'cleanup-failed',
+    });
+    expect(api.stopAgent).toHaveBeenCalledWith('agent-a');
     expect(api.deleteAgent).not.toHaveBeenCalled();
   });
   it('never cleans up an Agent when creation itself fails', async () => {

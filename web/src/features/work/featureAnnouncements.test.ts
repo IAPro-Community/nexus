@@ -17,6 +17,7 @@ const sourcePaths = [
   'ComposerSurface.tsx',
   'ComposerInspector.tsx',
   'ComposerReadOnlyHistory.tsx',
+  'DirectSessionLauncher.tsx',
   'FlowRunsHistorySurface.tsx',
   'FlowDraftEditor.tsx',
   'FlowRunSurface.tsx',

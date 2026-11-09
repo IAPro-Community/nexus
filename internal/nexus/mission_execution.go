@@ -70,6 +70,16 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 	if strings.TrimSpace(prompt) == "" {
 		return nil, fmt.Errorf("agent prompt is required")
 	}
+	unlockLifecycle, err := n.lockAgentLifecycle(ctx, agentID)
+	if err != nil {
+		return nil, err
+	}
+	lifecycleLocked := true
+	defer func() {
+		if lifecycleLocked {
+			unlockLifecycle()
+		}
+	}()
 	st, err := n.OpenProject()
 	if err != nil {
 		return nil, err
@@ -216,6 +226,8 @@ func (n *Nexus) executeAgentPrompt(ctx context.Context, agentID, workspace, prom
 	n.notifyRuntimeChanged(agent.ID, "", sess.RuntimeID, cfg.Provider, cfg.Profile, "NEW_SESSION")
 	n.notifyContinuity(agent.ID, "NEW_SESSION")
 	n.notifyAgentState(agent.ID, store.AgentWorking)
+	unlockLifecycle()
+	lifecycleLocked = false
 
 	output, runErr := n.captureRuntimeOutput(ctx, sess.RuntimeID)
 	stoppedAt := time.Now().UTC()

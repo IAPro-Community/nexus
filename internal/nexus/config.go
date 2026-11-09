@@ -204,6 +204,12 @@ func AnalyzeImpact(current, proposed AgentConfig) ConfigImpact {
 // launches generation N+1 without creating duplicate revisions, commits
 // revision atomically, and provides automatic rollback on launch failure.
 func (n *Nexus) SafeApply(ctx context.Context, agentID string, proposed AgentConfig) (*ConfigImpact, error) {
+	unlock, err := n.lockAgentLifecycle(ctx, agentID)
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+
 	st, err := n.OpenProject()
 	if err != nil {
 		return nil, err
@@ -316,7 +322,7 @@ func (n *Nexus) SafeApply(ctx context.Context, agentID string, proposed AgentCon
 
 	// Step 2: Stop old runtime if it was alive.
 	if wasAlive {
-		if err := n.StopAgent(ctx, agentID); err != nil {
+		if err := n.stopAgentLocked(ctx, agentID); err != nil {
 			// Rollback to previous state
 			agent.Status = store.AgentWorking
 			_ = st.UpdateAgent(agent)

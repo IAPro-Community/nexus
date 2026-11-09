@@ -96,13 +96,15 @@ function offlineFixture(dir) {
   const png = syntheticPngFixture();
   const rows = platforms.map((platform) => {
     const folder = join(dir, platform);
-    mkdirSync(folder);
-    const image = join(folder, 'image.png'), log = join(folder, 'tests.log');
+    mkdirSync(folder, { recursive: true });
+    const image = join(folder, 'image.png'), log = join(folder, 'tests.log'), binary = join(folder, 'nexus.fixture');
+    const binaryBytes = Buffer.from('Synthetic release evidence fixture only; never a distributable binary.');
     writeFileSync(image, png);
     writeFileSync(log, 'Synthetic test fixture only. NEVER certify this as a device run.');
+    writeFileSync(binary, binaryBytes);
     return {
       platform, status: 'passed', runnerType: 'physical',
-      sourceSha, maestroSha, binarySha256: sha256(platform),
+      sourceSha, maestroSha, binarySha256: sha256(binaryBytes),
       deviceIdHash: sha256('synthetic-device-' + platform),
       osVersion: 'synthetic-fixture', reviewerId: 'release-owner',
       reviewedAtUtc: new Date().toISOString(),
@@ -112,6 +114,7 @@ function offlineFixture(dir) {
           kind: 'test-log', path: platform + '/tests.log',
           sha256: sha256('Synthetic test fixture only. NEVER certify this as a device run.'),
         },
+        { kind: 'binary', path: platform + '/nexus.fixture', sha256: sha256(binaryBytes) },
       ],
     };
   });

@@ -2,11 +2,14 @@ package nexus
 
 import (
 	"context"
+	"errors"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/control/launcher"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
@@ -125,6 +128,313 @@ func TestStopAgentVerifiedBarrier(t *testing.T) {
 	gen, err := st.CurrentGeneration(agent.ID)
 	if err == nil && gen.StoppedAt == nil {
 		t.Error("generation stopped_at should be set after stop")
+	}
+}
+
+type gatedLifecycleLauncher struct {
+	started chan struct{}
+	release chan struct{}
+	inner   *mockLauncher
+}
+
+func waitForAgentLifecycleRefs(t *testing.T, n *Nexus, agentID string, refs int) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		n.agentLifecycleMu.Lock()
+		lock := n.agentLifecycleLocks[agentID]
+		got := 0
+		if lock != nil {
+			got = lock.refs
+		}
+		n.agentLifecycleMu.Unlock()
+		if got == refs {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatalf("Agent lifecycle lock references did not reach %d", refs)
+}
+
+func TestAgentLifecycleLockHonorsCancellationAndReleasesWaiterReference(t *testing.T) {
+	n := &Nexus{}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if unlock, err := n.lockAgentLifecycle(ctx, "agent-canceled"); !errors.Is(err, context.Canceled) || unlock != nil {
+		t.Fatalf("canceled acquisition error = %v, unlock provided = %t", err, unlock != nil)
+	}
+	if len(n.agentLifecycleLocks) != 0 {
+		t.Fatalf("canceled acquisition retained lock entries: %d", len(n.agentLifecycleLocks))
+	}
+
+	unlock, err := n.lockAgentLifecycle(context.Background(), "agent-waiter")
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitCtx, cancelWait := context.WithCancel(context.Background())
+	waitResult := make(chan error, 1)
+	go func() {
+		waitUnlock, waitErr := n.lockAgentLifecycle(waitCtx, "agent-waiter")
+		if waitUnlock != nil {
+			waitUnlock()
+		}
+		waitResult <- waitErr
+	}()
+	waitForAgentLifecycleRefs(t, n, "agent-waiter", 2)
+	cancelWait()
+	if err := <-waitResult; !errors.Is(err, context.Canceled) {
+		t.Fatalf("canceled waiter error = %v, want context.Canceled", err)
+	}
+	n.agentLifecycleMu.Lock()
+	lock := n.agentLifecycleLocks["agent-waiter"]
+	refs := 0
+	if lock != nil {
+		refs = lock.refs
+	}
+	n.agentLifecycleMu.Unlock()
+	if refs != 1 {
+		t.Fatalf("references after canceled waiter = %d, want holder only", refs)
+	}
+	unlock()
+	if len(n.agentLifecycleLocks) != 0 {
+		t.Fatalf("released lifecycle lock retained entries: %d", len(n.agentLifecycleLocks))
+	}
+}
+
+func (l *gatedLifecycleLauncher) Launch(ctx context.Context, opts launcher.LaunchOptions) (*registry.RuntimeSession, error) {
+	close(l.started)
+	select {
+	case <-l.release:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+	return l.inner.Launch(ctx, opts)
+}
+
+func (l *gatedLifecycleLauncher) Stop(runtimeID string) error {
+	return l.inner.Stop(runtimeID)
+}
+
+func TestStopWaitsForInFlightAgentStartAndStopsPublishedGeneration(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Lifecycle serialization", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	agent, err := st.CreateAgent(store.Agent{ProjectID: project.ID, Name: "Cancelable"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	gate := &gatedLifecycleLauncher{
+		started: make(chan struct{}),
+		release: make(chan struct{}),
+		inner:   newMockLauncher(),
+	}
+	n.launcher = gate
+	var releaseOnce sync.Once
+	releaseLaunch := func() { releaseOnce.Do(func() { close(gate.release) }) }
+	t.Cleanup(releaseLaunch)
+
+	startResult := make(chan error, 1)
+	go func() {
+		_, startErr := n.StartAgent(context.Background(), agent.ID, "fake", "default")
+		startResult <- startErr
+	}()
+	select {
+	case <-gate.started:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Agent start did not reach the controlled launcher")
+	}
+
+	stopResult := make(chan error, 1)
+	go func() {
+		stopResult <- n.StopAgent(context.Background(), agent.ID)
+	}()
+	waitForAgentLifecycleRefs(t, n, agent.ID, 2)
+	select {
+	case stopErr := <-stopResult:
+		t.Fatalf("stop returned before in-flight start settled: %v", stopErr)
+	default:
+	}
+
+	releaseLaunch()
+	if err := <-startResult; err != nil {
+		t.Fatalf("StartAgent: %v", err)
+	}
+	if err := <-stopResult; err != nil {
+		t.Fatalf("StopAgent: %v", err)
+	}
+
+	stoppedAgent, err := st.GetAgent(agent.ID, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stoppedAgent.Status != store.AgentStopped {
+		t.Fatalf("agent status = %q, want %q", stoppedAgent.Status, store.AgentStopped)
+	}
+	generation, err := st.CurrentGeneration(agent.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if generation.StoppedAt == nil {
+		t.Fatalf("generation was not stopped after in-flight start: %+v", generation)
+	}
+	if runtime, ok := n.RuntimeRegistry().Get(generation.RuntimeID); ok && runtime.IsActive() {
+		t.Fatalf("runtime remains active after serialized stop: %+v", runtime)
+	}
+}
+
+func TestStopWaitsForInFlightAgentRecoveryAndStopsPublishedGeneration(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Recovery serialization", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	agent, err := st.CreateAgent(store.Agent{ProjectID: project.ID, Name: "Recoverable", Status: store.AgentRecoverable})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.AddRevision(agent.ID, AgentConfig{Provider: "fake", Profile: "default"}.ConfigJSON()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.AddGeneration(store.RuntimeGeneration{
+		AgentID: agent.ID, RevisionID: agent.CurrentRevisionID, RuntimeID: "runtime_dead_recovery",
+		Provider: "fake", Profile: "default", StartedAt: time.Now().Add(-time.Minute).UTC(), State: "RUNNING",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	gate := &gatedLifecycleLauncher{started: make(chan struct{}), release: make(chan struct{}), inner: newMockLauncher()}
+	n.launcher = gate
+	var releaseOnce sync.Once
+	releaseLaunch := func() { releaseOnce.Do(func() { close(gate.release) }) }
+	t.Cleanup(releaseLaunch)
+
+	recoverResult := make(chan error, 1)
+	go func() {
+		_, recoverErr := n.RecoverAgent(context.Background(), agent.ID)
+		recoverResult <- recoverErr
+	}()
+	select {
+	case <-gate.started:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Agent recovery did not reach the controlled launcher")
+	}
+
+	stopResult := make(chan error, 1)
+	go func() { stopResult <- n.StopAgent(context.Background(), agent.ID) }()
+	waitForAgentLifecycleRefs(t, n, agent.ID, 2)
+	select {
+	case stopErr := <-stopResult:
+		t.Fatalf("stop returned before in-flight recovery settled: %v", stopErr)
+	default:
+	}
+
+	releaseLaunch()
+	if err := <-recoverResult; err != nil {
+		t.Fatalf("RecoverAgent: %v", err)
+	}
+	if err := <-stopResult; err != nil {
+		t.Fatalf("StopAgent: %v", err)
+	}
+	stoppedAgent, err := st.GetAgent(agent.ID, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stoppedAgent.Status != store.AgentStopped {
+		t.Fatalf("agent status = %q, want %q", stoppedAgent.Status, store.AgentStopped)
+	}
+	generation, err := st.CurrentGeneration(agent.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if generation.StoppedAt == nil {
+		t.Fatalf("recovered generation remains unstopped: %+v", generation)
+	}
+	if runtime, ok := n.RuntimeRegistry().Get(generation.RuntimeID); ok && runtime.IsActive() {
+		t.Fatalf("recovered runtime remains active: %+v", runtime)
+	}
+}
+
+func TestStopWaitsForInFlightSafeApplyAndStopsCommittedGeneration(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := st.CreateProject(store.Project{Name: "Safe apply serialization", CanonicalPath: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	agent, err := st.CreateAgent(store.Agent{ProjectID: project.ID, Name: "Reconfigurable"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := n.SafeApply(context.Background(), agent.ID, AgentConfig{Provider: "fake", Profile: "default", Model: "old"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := n.StartAgent(context.Background(), agent.ID, "fake", "default"); err != nil {
+		t.Fatal(err)
+	}
+
+	gate := &gatedLifecycleLauncher{started: make(chan struct{}), release: make(chan struct{}), inner: newMockLauncher()}
+	n.launcher = gate
+	var releaseOnce sync.Once
+	releaseLaunch := func() { releaseOnce.Do(func() { close(gate.release) }) }
+	t.Cleanup(releaseLaunch)
+
+	applyResult := make(chan error, 1)
+	go func() {
+		_, applyErr := n.SafeApply(context.Background(), agent.ID, AgentConfig{Provider: "fake", Profile: "default", Model: "new"})
+		applyResult <- applyErr
+	}()
+	select {
+	case <-gate.started:
+	case <-time.After(5 * time.Second):
+		t.Fatal("SafeApply did not reach the controlled launcher")
+	}
+
+	stopResult := make(chan error, 1)
+	go func() { stopResult <- n.StopAgent(context.Background(), agent.ID) }()
+	waitForAgentLifecycleRefs(t, n, agent.ID, 2)
+	select {
+	case stopErr := <-stopResult:
+		t.Fatalf("stop returned before SafeApply settled: %v", stopErr)
+	default:
+	}
+
+	releaseLaunch()
+	if err := <-applyResult; err != nil {
+		t.Fatalf("SafeApply: %v", err)
+	}
+	if err := <-stopResult; err != nil {
+		t.Fatalf("StopAgent: %v", err)
+	}
+	stoppedAgent, err := st.GetAgent(agent.ID, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stoppedAgent.Status != store.AgentStopped {
+		t.Fatalf("agent status = %q, want %q", stoppedAgent.Status, store.AgentStopped)
+	}
+	generation, err := st.CurrentGeneration(agent.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if generation.StoppedAt == nil {
+		t.Fatalf("committed reconfiguration generation remains unstopped: %+v", generation)
+	}
+	if runtime, ok := n.RuntimeRegistry().Get(generation.RuntimeID); ok && runtime.IsActive() {
+		t.Fatalf("reconfigured runtime remains active: %+v", runtime)
 	}
 }
 

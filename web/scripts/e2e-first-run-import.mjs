@@ -30,6 +30,7 @@ async function main() {
   let usageResourceReads = 0;
   const directSetupRequests = [];
   let directSetupAgentId = '';
+  let cancelledSetupAgentId = '';
 
   try {
     ({ browser, context, page } = await launchFixtureBrowser(bootstrapUrl));
@@ -44,6 +45,8 @@ async function main() {
         directSetupRequests.push('apply-config');
       } else if (method === 'POST' && pathname.endsWith('/start')) {
         directSetupRequests.push('start');
+      } else if (method === 'POST' && pathname.endsWith('/stop')) {
+        directSetupRequests.push('stop');
       } else if (method === 'DELETE' && /\/api\/v1\/agents\/[^/]+$/.test(pathname)) {
         directSetupRequests.push('delete');
       }
@@ -275,10 +278,85 @@ async function main() {
       'pre-start failure must leave no runtime or PTY for the deleted Agent',
     );
 
+    await context.unroute('**/api/v1/resources/select');
+    await context.route('**/api/v1/resources/select', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }),
+    );
+    await context.route('**/api/v1/agents/*/config/apply', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: '{"impact":{}}' }),
+    );
+    let releaseStartResponse;
+    let startRequestReached = () => {};
+    const startReached = new Promise((resolve) => {
+      startRequestReached = resolve;
+    });
+    await context.route('**/api/v1/agents/*/start', async (route) => {
+      cancelledSetupAgentId = new URL(route.request().url()).pathname.split('/')[4] || '';
+      startRequestReached();
+      await new Promise((resolve) => {
+        releaseStartResponse = resolve;
+      });
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          runtime: { runtime_id: 'fixture-direct-cancel-runtime', state: 'RUNNING' },
+        }),
+      });
+    });
+    directSetupRequests.length = 0;
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('nexus:new-ai-session')));
+    const cancellingDialog = page.getByRole('dialog');
+    await cancellingDialog.waitFor({ state: 'visible', timeout: 5000 });
+    await cancellingDialog.getByRole('radio', { name: /Codex fixture/ }).click();
+    await cancellingDialog.getByRole('textbox').first().fill('Cancelable Direct Agent');
+    await cancellingDialog.getByRole('button', { name: /^Iniciar$/i }).click();
+    await startReached;
+    await cancellingDialog.getByRole('button', { name: 'Cancelar' }).click();
+    await cancellingDialog.getByText(/Aguardando a conclusão da configuração/).waitFor({
+      state: 'visible',
+      timeout: 5000,
+    });
+    const cancelMobileWidth = await page.evaluate(() => ({
+      document: document.documentElement.scrollWidth,
+      viewport: document.documentElement.clientWidth,
+    }));
+    assert.ok(
+      cancelMobileWidth.document <= cancelMobileWidth.viewport,
+      `Direct session cancellation must not overflow at 390px: ${JSON.stringify(cancelMobileWidth)}`,
+    );
+    await page.screenshot({
+      path: path.join(screenshotDir, 'direct-session-cancel-mobile.png'),
+      fullPage: true,
+    });
+    releaseStartResponse?.();
+    await cancellingDialog.waitFor({ state: 'hidden', timeout: 10000 });
+    await page.setViewportSize({ width: 1280, height: 800 });
+    assert.deepEqual(
+      directSetupRequests,
+      ['create', 'select-resource', 'apply-config', 'start', 'stop', 'delete'],
+      'cancel during start must wait, stop the runtime and only then delete the Agent',
+    );
+    const cancelledAgentsResponse = await context.request.get(
+      `${apiOrigin}/api/v1/projects/${project.id}/agents`,
+    );
+    assert.equal(cancelledAgentsResponse.status(), 200);
+    assert.deepEqual(await cancelledAgentsResponse.json(), []);
+    const cancelledRuntimesResponse = await context.request.get(`${apiOrigin}/api/v1/runtimes`);
+    assert.equal(cancelledRuntimesResponse.status(), 200);
+    const cancelledRuntimes = await cancelledRuntimesResponse.json();
+    assert.equal(
+      cancelledRuntimes.some((runtime) => runtime.agent_id === cancelledSetupAgentId),
+      false,
+      'cancelled setup must not leave a runtime attached to the deleted Agent',
+    );
+
     console.log('First-run host-session import feedback E2E: PASS');
     console.log('Usage / Accounts host-session discovery and quick-connect E2E: PASS');
     console.log('Usage / Accounts host-session import and profile refresh E2E: PASS');
     console.log('Direct session pre-start rollback E2E (real Core create/config/delete): PASS');
+    console.log('Direct session in-flight cancellation E2E (stop then delete): PASS');
   } catch (error) {
     console.error(`First-run import E2E server output:\n${getOutput()}`);
     throw error;

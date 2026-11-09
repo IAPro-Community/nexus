@@ -1021,6 +1021,9 @@ export const en = {
     cancel: 'Cancel',
     start: 'Start',
     starting: 'Starting…',
+    cancelling: 'Cancelling safely…',
+    cancellingHint:
+      'Waiting for setup to settle. If a runtime started, Nexus will stop it before removing the Agent.',
   },
   sessions: {
     loading: 'Loading session lineage…',
@@ -1088,6 +1091,9 @@ export const en = {
     flowComparisonTitle: 'Run and compare isolated Flow alternatives',
     flowComparisonBody:
       'Prepare two approaches from one frozen plan, inspect each route and cost preview, then explicitly launch both. Compare evidence and choose manually; no merge runs.',
+    directSessionCancelTitle: 'Cancel a session safely',
+    directSessionCancelBody:
+      'If setup is already starting, Nexus waits for its result, stops any runtime it created, and removes the Agent only after cleanup succeeds.',
   },
   tour: {
     featureOpen: 'Explore this area',
@@ -1100,6 +1106,9 @@ export const en = {
     agentAttentionChoiceTitle: 'Choose an Agent response',
     agentAttentionChoiceBody:
       'Select one of the options supplied by the Agent. The choice is sent to that exact waiting interaction.',
+    directSessionCancelTitle: 'Cancel setup safely',
+    directSessionCancelBody:
+      'Nexus waits for setup to settle, stops any runtime it started and removes the Agent only after verified cleanup.',
     composerPurposeTitle: 'What Composer does',
     composerPurposeBody:
       'Composer turns an idea or an existing project into a revisable plan. It does not execute code just by opening a session.',
@@ -3551,6 +3560,9 @@ export const ptBR = {
     cancel: 'Cancelar',
     start: 'Iniciar',
     starting: 'Iniciando…',
+    cancelling: 'Cancelando com segurança…',
+    cancellingHint:
+      'Aguardando a conclusão da configuração. Se uma runtime iniciou, o Nexus vai pará-la antes de remover o agente.',
   },
   sessions: {
     loading: 'Carregando histórico e telemetria…',
@@ -3618,6 +3630,9 @@ export const ptBR = {
     flowComparisonTitle: 'Execute e compare alternativas isoladas do Flow',
     flowComparisonBody:
       'Prepare duas abordagens da mesma revisão do plano, confira rota e custo de cada uma e só então execute ambas explicitamente. Compare as evidências e escolha manualmente; nada é integrado.',
+    directSessionCancelTitle: 'Cancele a sessão com segurança',
+    directSessionCancelBody:
+      'Se a configuração já estiver iniciando, o Nexus aguarda o resultado, para qualquer runtime criada e só remove o Agent depois da limpeza.',
   },
   tour: {
     featureOpen: 'Conhecer esta área',
@@ -3630,6 +3645,9 @@ export const ptBR = {
     agentAttentionChoiceTitle: 'Escolha uma resposta do Agent',
     agentAttentionChoiceBody:
       'Selecione uma opção fornecida pelo Agent. A escolha é enviada à interação exata que está aguardando.',
+    directSessionCancelTitle: 'Cancele a configuração com segurança',
+    directSessionCancelBody:
+      'O Nexus aguarda a configuração terminar, para qualquer runtime iniciada e só remove o Agent após confirmar a limpeza.',
     composerPurposeTitle: 'Para que serve o Composer',
     composerPurposeBody:
       'O Composer transforma uma ideia ou projeto existente em um planejamento revisável. Abrir uma elaboração não executa código.',
@@ -6097,6 +6115,9 @@ export const es = {
     cancel: 'Cancelar',
     start: 'Iniciar',
     starting: 'Iniciando…',
+    cancelling: 'Cancelando de forma segura…',
+    cancellingHint:
+      'Esperando a configuración. Si se inició un runtime, Nexus lo detendrá antes de eliminar el agente.',
   },
   sessions: {
     loading: 'Cargando historial y telemetría…',
@@ -6162,6 +6183,9 @@ export const es = {
     flowComparisonTitle: 'Ejecute y compare alternativas aisladas de Flow',
     flowComparisonBody:
       'Prepare dos enfoques desde una revisión congelada, revise cada ruta y costo y lance ambos explícitamente. Compare las evidencias y elija manualmente; no se integra ningún cambio.',
+    directSessionCancelTitle: 'Cancele la sesión de forma segura',
+    directSessionCancelBody:
+      'Si la configuración ya comenzó, Nexus espera el resultado, detiene cualquier runtime iniciada y solo elimina el Agent después de confirmar la limpieza.',
   },
   tour: {
     featureOpen: 'Conocer esta área',
@@ -6174,6 +6198,9 @@ export const es = {
     agentAttentionChoiceTitle: 'Elija una respuesta del Agent',
     agentAttentionChoiceBody:
       'Seleccione una opción proporcionada por el Agent. La elección se envía a la interacción exacta que está esperando.',
+    directSessionCancelTitle: 'Cancele la configuración de forma segura',
+    directSessionCancelBody:
+      'Nexus espera a que termine la configuración, detiene cualquier runtime iniciada y solo elimina el Agent después de confirmar la limpieza.',
     composerPurposeTitle: 'Para qué sirve Composer',
     composerPurposeBody:
       'Composer convierte una idea o proyecto existente en un plan revisable. Abrir una elaboración no ejecuta código.',

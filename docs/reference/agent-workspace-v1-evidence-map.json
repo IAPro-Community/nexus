@@ -597,7 +597,7 @@
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-      "gap": "TestACPAttentionRadarBrowserIntegration combina subprocessos ACP determinísticos supervisionados, Bridge→SessionHost→Registry, GET autenticado /api/v1/runtimes sem overlay e Playwright que foca o runtime exato entre projetos e abre os WebSockets reais dos SessionHosts. O E2E passou no SHA publicado deaf2802 em 2026-11-09; ainda usa provider fixture, não valida provider externo nem aplicativo distribuído no SHA final. As assertions foram exercitadas, mas o critério e a capability continuam unverified/pending até provider real aplicável, homologação do artefato final e auditoria semântica completa.",
+          "gap": "TestACPAttentionRadarBrowserIntegration combina subprocessos ACP determinísticos supervisionados, Bridge→SessionHost→Registry, GET autenticado /api/v1/runtimes sem overlay e Playwright que foca o runtime exato entre projetos e abre os WebSockets reais dos SessionHosts. O E2E passou no SHA publicado deaf2802 em 2026-11-09; ainda usa provider fixture, não valida provider externo nem aplicativo distribuído no SHA final. As assertions foram exercitadas, mas o critério e a capability continuam unverified/pending até provider real aplicável, homologação do artefato final e auditoria semântica completa.",
           "assertionAudit": "partial"
         },
         {
@@ -607,25 +607,25 @@
             "web/src/components/GlobalAttentionRadar.tsx",
             "internal/control/web/handlers_api.go",
             "internal/nexus/runtime_application.go",
-        "internal/control/registry/attention_claim.go",
-        "internal/control/host/attention.go",
-        "internal/control/host/structured_backend.go",
-        "internal/control/protocol/protocol.go",
-        "web/src/components/AttentionNotificationCard.tsx",
-        "web/src/components/attentionResponseGuard.ts"
+            "internal/control/registry/attention_claim.go",
+            "internal/control/host/attention.go",
+            "internal/control/host/structured_backend.go",
+            "internal/control/protocol/protocol.go",
+            "web/src/components/AttentionNotificationCard.tsx",
+            "web/src/components/attentionResponseGuard.ts"
           ],
           "testRefs": [
             "internal/control/web/handlers_attention_fence_test.go",
             "internal/control/web/handlers_nexus_test.go",
-        "internal/control/registry/attention_claim_test.go",
-        "internal/control/host/structured_attention_pipeline_test.go",
-        "internal/control/web/structured_multiclient_process_e2e_test.go",
-        "web/src/components/AttentionNotification.test.ts",
-        "web/scripts/e2e-attention-radar-process-api-browser.mjs"
+            "internal/control/registry/attention_claim_test.go",
+            "internal/control/host/structured_attention_pipeline_test.go",
+            "internal/control/web/structured_multiclient_process_e2e_test.go",
+            "web/src/components/AttentionNotification.test.ts",
+            "web/scripts/e2e-attention-radar-process-api-browser.mjs"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-      "gap": "Auditoria parcial: o guard valida fingerprint, revisão, generation e interaction_id; testes rejeitam revisão stale, input inseguro, opção não listada e guard de outro runtime/projeto sem reservar nenhuma intervenção. O E2E no SHA deaf2802 prova escolha estruturada permitida para Alpha pelo interaction ID, sem limpar Beta, através de IPC dedicado e sem PTY. Teste HTTP cobre sessão, CSRF e revogação; Mission intervention tem resolução idempotente após restart. Falta validar provider real/driver aplicável, recusa e continuidade da resposta em fluxo completo, além de autorização por projeto (o servidor permanece single-user, sem ACL por projeto). Capability pendente.",
+          "gap": "Auditoria parcial: o guard valida fingerprint, revisão, generation e interaction_id; testes rejeitam revisão stale, input inseguro, opção não listada e guard de outro runtime/projeto sem reservar nenhuma intervenção. O E2E no SHA deaf2802 prova escolha estruturada permitida para Alpha pelo interaction ID, sem limpar Beta, através de IPC dedicado e sem PTY. Teste HTTP cobre sessão, CSRF e revogação; Mission intervention tem resolução idempotente após restart. Falta validar provider real/driver aplicável, recusa e continuidade da resposta em fluxo completo, além de autorização por projeto (o servidor permanece single-user, sem ACL por projeto). Capability pendente.",
           "assertionAudit": "partial"
         }
       ],
@@ -990,23 +990,36 @@
           "acceptanceIndex": 0,
           "acceptance": "Selecionar elemento e coletar DOM/estilos/screenshot sanitizados",
           "sourceRefs": [
-            "internal/browsercontrol/browser_semantic.go"
+            "internal/browsercontrol/browser.go",
+            "internal/browsercontrol/browser_semantic.go",
+            "internal/browsercontrol/browser_collaboration.go"
           ],
-          "testRefs": [],
-          "mappingStatus": "source-only",
+          "testRefs": [
+            "internal/browsercontrol/browser_test.go",
+            "internal/browsercontrol/browser_collaboration_test.go"
+          ],
+          "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Código de referência existe, mas não foi localizado teste diretamente rastreável; criar teste ou documentar cobertura por integração."
+          "gap": "Candidate tests now verify sanitized snapshot URL/text and redaction of human auth session IDs. The implementation still lacks selected-element DOM/computed-style inspection, scoped sanitized screenshot crop, and a design-specific sanitizer for captured imagery; criterion remains partial/unverified.",
+          "assertionAudit": "partial"
         },
         {
           "acceptanceIndex": 1,
           "acceptance": "Encaminhar contexto apenas a Agent explicitamente escolhido",
           "sourceRefs": [
-            "internal/browsercontrol/browser_semantic.go"
+            "internal/control/web/handlers_browser.go",
+            "internal/control/web/handlers_browser_mcp.go",
+            "internal/browsercontrol/browser_collaboration.go"
           ],
-          "testRefs": [],
-          "mappingStatus": "source-only",
+          "testRefs": [
+            "internal/control/web/handlers_browser_test.go",
+            "internal/control/web/handlers_browser_mcp_test.go",
+            "internal/browsercontrol/browser_collaboration_test.go"
+          ],
+          "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Código de referência existe, mas não foi localizado teste diretamente rastreável; criar teste ou documentar cobertura por integração."
+          "gap": "Existing tests cover project-scoped temporary grants, authentication, revocation, and private-human gating. A grant is still label/actor-scoped rather than bound to a persistent Agent explicitly selected in the UI; no selected-Agent-only inspection-context delivery exists. Criterion remains partial/unverified.",
+          "assertionAudit": "partial"
         }
       ],
       "verification": "pending"
@@ -1018,23 +1031,38 @@
           "acceptanceIndex": 0,
           "acceptance": "Exibir app web local autorizada vinculada ao processo host",
           "sourceRefs": [
-            "internal/browsercontrol/browser_stream.go"
+            "internal/browsercontrol/browser_stream.go",
+            "internal/browsercontrol/browser_runtime_session.go",
+            "internal/browsercontrol/runtime_capability.go",
+            "web/src/features/browser/BrowserSurface.tsx"
           ],
-          "testRefs": [],
-          "mappingStatus": "source-only",
+          "testRefs": [
+            "internal/browsercontrol/browser_test.go",
+            "internal/browsercontrol/runtime_capability_test.go"
+          ],
+          "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Código de referência existe, mas não foi localizado teste diretamente rastreável; criar teste ou documentar cobertura por integração."
+          "gap": "Local Chromium test exercises a local app screenshot/frame stream and runtime-capability tests bind access to a live runtime. Browser URL admission is not bound to the runtime host process or its listening port, so unrelated local services can still be selected. Criterion remains partial/unverified.",
+          "assertionAudit": "partial"
         },
         {
           "acceptanceIndex": 1,
           "acceptance": "Não expor host arbitrário nem segredos de sessão",
           "sourceRefs": [
-            "internal/browsercontrol/browser_stream.go"
+            "internal/browsercontrol/browser.go",
+            "internal/control/web/handlers_browser.go",
+            "internal/control/web/handlers_browser_mcp.go"
           ],
-          "testRefs": [],
-          "mappingStatus": "source-only",
+          "testRefs": [
+            "internal/browsercontrol/browser_test.go",
+            "internal/browsercontrol/browser_collaboration_test.go",
+            "internal/control/web/handlers_browser_test.go",
+            "internal/control/web/handlers_browser_mcp_test.go"
+          ],
+          "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Código de referência existe, mas não foi localizado teste diretamente rastreável; criar teste ou documentar cobertura por integração."
+          "gap": "Browser metadata/snapshot now redact embedded credentials, sensitive URL query values, common secret text, and human auth-session identifiers; targeted tests cover these boundaries. General browser navigation still allows arbitrary HTTP(S) hosts, and screenshots are not design-inspect sanitized. Capability remains partial/unverified.",
+          "assertionAudit": "partial"
         }
       ],
       "verification": "pending"
@@ -1442,23 +1470,43 @@
           "acceptanceIndex": 0,
           "acceptance": "Continuar no mobile a sessão do host sem duplicar execução",
           "sourceRefs": [
-            "web/src/features/settings/RemoteAccessTab.tsx"
+            "internal/control/web/handler_terminal.go",
+            "internal/control/web/broker.go",
+            "internal/control/host/host.go",
+            "web/src/nexus/AgentTerminal.tsx"
           ],
-          "testRefs": [],
-          "mappingStatus": "source-only",
+          "testRefs": [
+            "internal/control/host/qa_test.go",
+            "internal/control/web/terminal_replay_test.go",
+            "internal/control/web/broker_watch_test.go",
+            "web/scripts/e2e-agent-terminal-follow.mjs"
+          ],
+          "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Código de referência existe, mas não foi localizado teste diretamente rastreável; criar teste ou documentar cobertura por integração."
+          "gap": "Candidate tests exercise host attach/detach, replay completion, reattach watches, and explicit browser follow. They do not combine authenticated desktop/mobile clients with process/runtime identity and a single execution counter; the E2E socket is fixture-controlled. Physical phone/tunnel/provider continuity remains external evidence.",
+          "assertionAudit": "partial"
         },
         {
           "acceptanceIndex": 1,
           "acceptance": "Lease, reattach, estados reconciliados e histórico auditável",
           "sourceRefs": [
-            "web/src/features/settings/RemoteAccessTab.tsx"
+            "internal/control/web/broker.go",
+            "internal/control/host/host.go",
+            "internal/nexus/nexus.go",
+            "web/src/nexus/AgentTerminal.tsx"
           ],
-          "testRefs": [],
-          "mappingStatus": "source-only",
+          "testRefs": [
+            "internal/control/host/host_test.go",
+            "internal/control/host/qa_test.go",
+            "internal/control/web/handler_terminal_lease_test.go",
+            "internal/control/web/terminal_replay_test.go",
+            "internal/control/web/broker_watch_test.go",
+            "web/src/nexus/agentTerminalModel.test.ts"
+          ],
+          "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Código de referência existe, mas não foi localizado teste diretamente rastreável; criar teste ou documentar cobertura por integração."
+          "gap": "Tests cover exclusive leases, explicit VIEW_ONLY/takeover, replay-before-live, and state reconciliation separately. Durable audit events for device lease transitions and a combined two-client input receipt/reconnect test are absent; no real mobile exact-SHA evidence exists. Criterion remains partial/unverified.",
+          "assertionAudit": "partial"
         }
       ],
       "verification": "pending"
@@ -1569,33 +1617,43 @@
             "web/src/features/work/ComposerSurface.tsx",
             "web/src/features/work/DirectSessionLauncher.tsx",
             "web/src/features/work/directSessionLifecycle.ts",
-            "internal/control/web/handlers_agents.go"
+            "internal/control/web/handlers_agents.go",
+            "internal/nexus/nexus.go",
+            "internal/nexus/config.go",
+            "internal/nexus/mission_execution.go"
           ],
           "testRefs": [
             "web/src/features/work/FlowPipeline.test.tsx",
             "web/src/features/work/featureAnnouncements.test.ts",
             "web/scripts/e2e-first-run-import.mjs",
-            "internal/control/web/handlers_nexus_test.go"
+            "internal/control/web/handlers_nexus_test.go",
+            "internal/nexus/nexus_p0_test.go"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "E2E first-run percorre onboarding e cenário DirectSession. Em 2026-11-09 foi endurecido para criar Agent, validar config e executar rollback/delete pela API Core real quando o profile selecionado não existe; somente resource selection é fixture. TestAuthenticatedAgentCancellationStopsRuntimeWithoutOrphan também cobre stop autenticado de um SessionHost fake real e verifica Agent STOPPED, StoppedAt e ausência de runtime ativa no Registry. Ainda faltam cancelamento acionado pelo fluxo visual de first-run, instalação/distribuição final e dois perfis autenticados; critério segue unverified/pending."
+          "gap": "E2E first-run percorre onboarding e cenário DirectSession. Em 2026-11-09 foi endurecido para criar Agent, validar config e executar rollback/delete pela API Core real quando o profile selecionado não existe; somente resource selection é fixture. O cancelamento solicitado na UI agora aguarda o start, executa stop e só depois delete; o browser verifica a ordem com Core real para CRUD/stop e resposta start controlada. TestAuthenticatedAgentCancellationStopsRuntimeWithoutOrphan complementa a prova com SessionHost real supervisionado e verifica Agent STOPPED, StoppedAt e runtime ausente/inativa no Registry. Ainda faltam dois perfis autenticados, cancelamento visual com provider real e instalação/distribuição final; critério segue unverified/pending. Lifecycle publication is serialized across StartAgent, RecoverAgent, SafeApply, mission prompt start, and continuity failover; focused regressions cover canceled lock acquisition and stop racing start/recovery/reconfiguration. This closes a local concurrency gap but still does not prove two real provider profiles or exact-SHA distributed cancellation.",
+          "assertionAudit": "partial"
         },
         {
           "acceptanceIndex": 1,
           "acceptance": "E2E na distribuição final, PT/EN/ES, teclado e cenários reais",
           "sourceRefs": [
-            "web/src/features/work/ComposerSurface.tsx"
+            "web/src/features/work/ComposerSurface.tsx",
+            "internal/nexus/nexus.go",
+            "internal/nexus/config.go",
+            "internal/nexus/mission_execution.go"
           ],
           "testRefs": [
             "web/src/features/work/FlowPipeline.test.tsx",
             "web/src/features/work/featureAnnouncements.test.ts",
             "web/scripts/e2e-first-run-import.mjs",
-            "internal/control/web/handlers_nexus_test.go"
+            "internal/control/web/handlers_nexus_test.go",
+            "internal/nexus/nexus_p0_test.go"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "E2E browser cobre importação/quick-connect com endpoints de provider fixture e rollback DirectSession com create/config/delete reais no Core, sem start e sem runtime associado ao Agent. Um teste Go adicional faz stop autenticado de SessionHost real fake e verifica cleanup persistente, mas não cobre cancelamento acionado na UI. Ainda não cobre pacote distribuído no SHA final, dois perfis autenticados, ciclo provider real ou matriz completa PT/EN/ES e teclado; capability permanece unverified/pending."
+          "gap": "E2E browser cobre importação/quick-connect com endpoints de provider fixture, rollback DirectSession antes do start e cancelamento solicitado durante start com sequência start→stop→delete; CRUD/stop passam pelo Core real, mas start é controlado pelo harness e não cria processo nessa execução. O teste Go adicional inicia SessionHost supervisionado de verdade e verifica o stop barrier autenticado/cleanup persistente. Ainda não cobre pacote distribuído no SHA final, dois perfis autenticados, ciclo provider real ou matriz completa PT/EN/ES e teclado; capability permanece unverified/pending. Lifecycle publication is serialized across StartAgent, RecoverAgent, SafeApply, mission prompt start, and continuity failover; focused regressions cover canceled lock acquisition and stop racing start/recovery/reconfiguration. This closes a local concurrency gap but still does not prove two real provider profiles or exact-SHA distributed cancellation.",
+          "assertionAudit": "partial"
         }
       ],
       "verification": "pending"

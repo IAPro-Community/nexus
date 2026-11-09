@@ -4,7 +4,9 @@
 - Agora existem preparo atômico de duas variantes congeladas, dependências isoladas, previews/consentimentos independentes, despacho via MissionRunner existente e recovery durável sem start implícito. A comparação persiste diffs/testes/custos e escolha humana sem merge.
 - PASS — campaign preparer + retry explícito: `make quality-full` (Web 131/829, Go + race, format/lint/type/style/build/security; Nexus 319,240 s; Store 107,440 s), build e smoke Maestro em `f803d264`, Go focal, TypeScript, Stylelint, Prettier, contrato 48, mapa (87 source+test/9 source-only/0 unmapped/0 certificados), map tests 4/4, catálogo 36 e diff check.
 - Não executamos providers reais nem homologamos UI no app distribuído. Retry exige preview/consentimento renovados e segue pendente de E2E visual. `make docs-verify` reporta três fontes visuais alteradas desde o manifest do SHA `1c048f8d`. A capability permanece partial/pending.
-- A2 avançou com teste de cancelamento autenticado: SessionHost supervisionado de diagnóstico é parado por `POST /api/v1/agents/{id}/stop`; Agent fica `STOPPED`, geração recebe `StoppedAt` e runtime não permanece ativa no Registry. Teste focal PASS; ainda falta cancelar pela UI DirectSession, testar dois perfis reais e homologar no app distribuído. A2 continua parcial.
+- A2 agora permite pedir cancelamento durante setup DirectSession: antes do start, rollback remove o Agent; durante start, aguarda resultado e faz stop verificado antes do delete; se stop falha, preserva Agent para recovery. Vitest 26/26, E2E UI browser confirma sequência start→stop→delete, Go autentica stop de SessionHost real e confirma cleanup, 390 px sem overflow. Ainda faltam dois perfis reais e app distribuído/exact-SHA; A2 segue parcial.
+- Corrigida janela de corrida: start/stop/delete são serializados por Agent. Teste Go demonstra que stop aguarda start pendente e encerra a geração publicada. Validação local: Web 131/833; Go completo + race (Nexus 280,9 s; Store 104,4 s); govulncheck limpo; build concluído. Contrato/mapa (48/96, 87 source+test, 9 source-only, zero unmapped/certificados), testes dos verificadores 9/9 e catálogo 36 passam.
+- `make docs-verify` segue bloqueado: manifest sintético antigo desde `1c048f8d` e alterações DirectSession locais sem evidência visual vinculada ao SHA. Não homologado no app distribuído.
 - Permanecem P0 A1–A4, A2 real sem órfãos, provider A3/A4, AGY 1/2 elegíveis, Maestro distribuído/plataformas/assinatura e auditoria/aceite 48/48. **NO_GO**.
 
 ### Contexto anterior — Comparison Lab sem launcher A/B
@@ -14,6 +16,13 @@
 - Limite: ainda não há criação/execução concorrente de duas alternativas A/B. Comparison Lab e capacidade permanecem parciais; E2E visual no SHA distribuído ainda pendente.
 - Pendências globais seguem: P0 A1–A4, cancelamento real A2 sem órfãos, provider real aplicável A3/A4, AGY 2/2 contas elegíveis + rotação demonstrada, artefato final Maestro/plataformas/assinatura, auditoria e evidência dos 96 critérios/48 capacidades.
 - Estado: **NO_GO**. Registro detalhado: [Comparison Lab](../validation/current/comparison-lab/README.md). Discovery frontend: [FRONTEND-DISCOVERY](../validation/current/comparison-lab/FRONTEND-DISCOVERY.json).
+
+## Continuidade — checkpoint após auditoria A2 — 2026-11-09
+
+- A2 lifecycle concorrente ampliado a Start/Stop/Delete/Recover/SafeApply, mission generation, interactive runtime e continuity handoff; redaction de metadados/snapshots do browser reforçada.
+- `make quality-full`, `make build`, smoke Chromium, contrato/mapa, map tests 5/5 e `git diff --check` passaram nesta árvore (Web 131/833, Go completo + race, govulncheck limpo). `make docs-verify` segue bloqueado por manifest stale e arquivos de UI sem evidência exact-SHA.
+- Evidence map: 93/96 critérios com refs source+test, 3 source-only, nenhum unmapped ou certificado. design-inspect, live-preview e device-handoff têm gaps semânticos listados no handoff.
+- Estado geral NO_GO. Permanecem provider/custo real, A2 perfis/app distribuído, AGY 2/2 elegíveis e rotação, Maestro final assinado/multiplataforma, validação exact-SHA e aceite real 48/48.
 
 ## Checkpoint ativo — 2026-11-09
 

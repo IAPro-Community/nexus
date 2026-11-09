@@ -109,6 +109,27 @@ func TestBrowserCapabilityScopeAndRevocation(t *testing.T) {
 	}
 }
 
+func TestBrowserMetadataRedactsHumanAuthenticationSessionID(t *testing.T) {
+	manager := NewManager()
+	session := &Session{info: Info{ID: "browser-private", ProjectID: "project-private"}}
+	manager.sessions[session.info.ID] = session
+	const authSessionID = "sensitive-authentication-session-id"
+	if ok, reason := session.AcquireControl("human:" + authSessionID); !ok {
+		t.Fatalf("human lease acquisition failed: %s", reason)
+	}
+
+	if got := session.Info().ActiveActor; got != "human" {
+		t.Fatalf("Session.Info active actor = %q, want redacted human kind", got)
+	}
+	listed := manager.List(session.info.ProjectID)
+	if len(listed) != 1 || listed[0].ActiveActor != "human" {
+		t.Fatalf("Manager.List exposed unexpected actor metadata: %+v", listed)
+	}
+	if strings.Contains(session.Info().ActiveActor, authSessionID) || strings.Contains(listed[0].ActiveActor, authSessionID) {
+		t.Fatal("browser metadata exposed the human authentication session ID")
+	}
+}
+
 func TestBrowserHandoffReasonValidation(t *testing.T) {
 	s := &Session{}
 	if ok, _ := s.AcquireAgentControl("agent:a"); !ok {

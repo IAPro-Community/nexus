@@ -27,6 +27,7 @@ import {
 import resourceStyles from '../../nexus/ResourcePicker.module.scss';
 import contextualStyles from './ContextualResourceSelection.module.scss';
 import { DirectSessionSetupError, startDirectSession } from './directSessionLifecycle';
+import { FeatureTour } from './FeatureTour';
 
 type DirectTaskKind = 'coding' | 'planning' | 'review' | 'security';
 const taskRole: Record<DirectTaskKind, string> = {
@@ -86,14 +87,18 @@ export const DirectSessionLauncher: React.FC<{
   const [recommendationError, setRecommendationError] = useState(false);
   const manualChoice = useRef(false);
   const submitInFlight = useRef(false);
+  const cancellationRequestedRef = useRef(false);
   const [loading, setLoading] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [cancellationRequested, setCancellationRequested] = useState(false);
   const [error, setError] = useState('');
   const [needsAgentRecovery, setNeedsAgentRecovery] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     manualChoice.current = false;
+    cancellationRequestedRef.current = false;
+    setCancellationRequested(false);
     setSelectedID('');
     setNeedsAgentRecovery(false);
     setModelOverride('');
@@ -188,18 +193,30 @@ export const DirectSessionLauncher: React.FC<{
     )
       return;
     submitInFlight.current = true;
+    cancellationRequestedRef.current = false;
+    setCancellationRequested(false);
     setStarting(true);
     setError('');
     let started: Agent | null = null;
     try {
-      started = await startDirectSession(nexus, {
-        projectId: project.id,
-        name: name.trim() || buildDirectAgentName(request.prompt, selected.provider),
-        provider: selected.provider,
-        profile: selected.profile,
-        model: modelOverride.trim() || undefined,
-        workspace: project.canonical_path || undefined,
-      });
+      const result = await startDirectSession(
+        nexus,
+        {
+          projectId: project.id,
+          name: name.trim() || buildDirectAgentName(request.prompt, selected.provider),
+          provider: selected.provider,
+          profile: selected.profile,
+          model: modelOverride.trim() || undefined,
+          workspace: project.canonical_path || undefined,
+        },
+        () => cancellationRequestedRef.current,
+      );
+      if (!result) {
+        await refreshAgents().catch(() => undefined);
+        onClose();
+        return;
+      }
+      started = result;
       await refreshAgents();
       await onStarted(started, request.prompt);
       onClose();
@@ -239,213 +256,233 @@ export const DirectSessionLauncher: React.FC<{
       }
       wide
     >
-      <div className="nx-form-stack">
-        <Input
-          value={name}
-          onChange={setName}
-          placeholder={t('directSession.namePlaceholder')}
-          aria-label={t('directSession.name')}
-        />
-
-        <div className={contextualStyles.controls}>
-          <label className={contextualStyles.field}>
-            <span>{t('directSession.preferProvider')}</span>
-            <Select
-              value={preferredProvider}
-              onChange={(provider) => {
-                manualChoice.current = false;
-                setSelectedID('');
-                setPreferredProvider(provider);
-              }}
-              options={[
-                { value: '', label: t('directSession.providerAutomatic') },
-                ...Array.from(new Set(resources.map((item) => item.provider)))
-                  .sort()
-                  .map((provider) => ({
-                    value: provider,
-                    label: provider,
-                  })),
-              ]}
-            />
-          </label>
-          <label className={contextualStyles.field}>
-            <span>{t('directSession.taskKind')}</span>
-            <Select
-              value={taskKind}
-              onChange={(value) => {
-                manualChoice.current = false;
-                setSelectedID('');
-                setRecommendation(null);
-                setTaskKind(value as DirectTaskKind);
-              }}
-              options={(['coding', 'planning', 'review', 'security'] as const).map((kind) => ({
-                value: kind,
-                label: t(`directSession.task.${kind}`),
-              }))}
-            />
-          </label>
-          <label className={contextualStyles.field}>
-            <span>{t('directSession.modelOverride')}</span>
-            <Input
-              value={modelOverride}
-              onChange={setModelOverride}
-              placeholder={t('directSession.providerDefaultModel')}
-              aria-label={t('directSession.modelOverride')}
-            />
-          </label>
-        </div>
-        <p className={contextualStyles.hint}>{t('directSession.modelHint')}</p>
-        {recommendationError && (
-          <InlineAlert tone="warning">{t('directSession.recommendationUnavailable')}</InlineAlert>
-        )}
-        {recommendation && (
-          <p className={contextualStyles.explanation}>
-            {recommendation.recommended
-              ? t('directSession.schedulerExplained', {
-                  policy: recommendation.policy,
-                  provider:
-                    recommendation.recommended.account.display_name ||
-                    recommendation.recommended.account.provider,
-                })
-              : t('directSession.schedulerNoCandidate')}
-          </p>
-        )}
-        {recommendation?.recommended && recommendation.recommended.pros.length > 0 && (
-          <ul className={contextualStyles.reasons} aria-label={t('directSession.schedulerReasons')}>
-            {recommendation.recommended.pros.slice(0, 2).map((reason) => (
-              <li key={reason}>{reason}</li>
-            ))}
-          </ul>
-        )}
-        {!modelIdValid(modelOverride.trim()) && (
-          <InlineAlert tone="warning">{t('directSession.invalidModel')}</InlineAlert>
-        )}
-        {loading ? (
-          <Spinner label={t('directSession.loading')} />
-        ) : resources.length === 0 ? (
-          <EmptyState
-            icon={<Bot size={22} />}
-            title={t('directSession.empty')}
-            hint={t('directSession.emptyHint')}
+      <div data-feature-tour-scope={`direct-session-${project.id}`}>
+        {open && <FeatureTour projectId={project.id} surface="direct-session" />}
+        <div className="nx-form-stack">
+          <Input
+            value={name}
+            onChange={setName}
+            placeholder={t('directSession.namePlaceholder')}
+            aria-label={t('directSession.name')}
           />
-        ) : (
-          <ChoiceGroup
-            className="nx-direct-resource-list"
-            ariaLabel={t('directSession.chooseAccount')}
-          >
-            {Object.entries(
-              resources.reduce<Record<string, DirectResource[]>>((groups, resource) => {
-                (groups[resource.provider] ||= []).push(resource);
-                return groups;
-              }, {}),
-            ).map(([provider, providerResources]) => (
-              <section className={resourceStyles.providerGroup} key={provider}>
-                <h3 className={resourceStyles.providerHeading}>
-                  <span>{provider}</span>
-                  <span className={resourceStyles.providerCount}>
-                    {t('resources.accountCount', { count: providerResources.length })}
-                  </span>
-                </h3>
-                {providerResources.map((resource) => {
-                  const checked = resource.id === selectedID;
-                  const quota = directQuotaDisplay(resource);
-                  const quotaState = quotaTruthState(resource);
-                  const candidate = recommendation?.candidates?.find(
-                    (item) => item.account.id === resource.id,
-                  );
-                  const recommended = recommendation?.recommended?.account.id === resource.id;
-                  return (
-                    <ChoiceOption
-                      selected={checked}
-                      onSelect={() => choose(resource)}
-                      data-quota-state={quotaState}
-                      className={`${resourceStyles.account} nx-direct-resource`}
-                      key={resource.id}
-                    >
-                      <span className="nx-direct-resource__icon">
-                        {resource.rate_limited ? (
-                          <ShieldAlert size={17} />
-                        ) : (
-                          <TerminalSquare size={17} />
-                        )}
-                      </span>
-                      <span className="nx-direct-resource__body">
-                        <span className="nx-direct-resource__title">
-                          <strong>{directAccountTitle(resource)}</strong>
-                          {healthBadge(resource.health)}
-                          {recommended && (
-                            <Badge tone="success">{t('directSession.recommended')}</Badge>
-                          )}
-                          {candidate && (
-                            <Badge>
-                              {t('directSession.schedulerRank', { rank: candidate.rank })}
-                            </Badge>
-                          )}
-                          <Badge
-                            tone={
-                              quotaState === 'confirmed'
-                                ? 'success'
-                                : quotaState === 'stale'
-                                  ? 'warning'
-                                  : 'danger'
-                            }
-                          >
-                            {quotaState === 'confirmed'
-                              ? t('resources.confirmed')
-                              : quotaState === 'exhausted'
-                                ? t('resources.exhausted')
-                                : quotaState === 'blocked'
-                                  ? t('resources.rateLimited')
-                                  : quotaState === 'unauthenticated'
-                                    ? t('resources.reauthRequired')
-                                    : quotaState === 'stale'
-                                      ? t('resources.stale')
-                                      : t('resources.unknown')}
-                          </Badge>
-                        </span>
-                        <small>
-                          {quota === null
-                            ? t('directSession.quotaUnknown')
-                            : t('directSession.remainingLabel', { value: quota })}
-                        </small>
-                      </span>
-                    </ChoiceOption>
-                  );
-                })}
-              </section>
-            ))}
-          </ChoiceGroup>
-        )}
 
-        {request?.prompt && (
-          <div className="nx-direct-prompt-preview">
-            <strong>{t('directSession.prompt')}</strong>
-            <pre>{request.prompt}</pre>
+          <div className={contextualStyles.controls}>
+            <label className={contextualStyles.field}>
+              <span>{t('directSession.preferProvider')}</span>
+              <Select
+                value={preferredProvider}
+                onChange={(provider) => {
+                  manualChoice.current = false;
+                  setSelectedID('');
+                  setPreferredProvider(provider);
+                }}
+                options={[
+                  { value: '', label: t('directSession.providerAutomatic') },
+                  ...Array.from(new Set(resources.map((item) => item.provider)))
+                    .sort()
+                    .map((provider) => ({
+                      value: provider,
+                      label: provider,
+                    })),
+                ]}
+              />
+            </label>
+            <label className={contextualStyles.field}>
+              <span>{t('directSession.taskKind')}</span>
+              <Select
+                value={taskKind}
+                onChange={(value) => {
+                  manualChoice.current = false;
+                  setSelectedID('');
+                  setRecommendation(null);
+                  setTaskKind(value as DirectTaskKind);
+                }}
+                options={(['coding', 'planning', 'review', 'security'] as const).map((kind) => ({
+                  value: kind,
+                  label: t(`directSession.task.${kind}`),
+                }))}
+              />
+            </label>
+            <label className={contextualStyles.field}>
+              <span>{t('directSession.modelOverride')}</span>
+              <Input
+                value={modelOverride}
+                onChange={setModelOverride}
+                placeholder={t('directSession.providerDefaultModel')}
+                aria-label={t('directSession.modelOverride')}
+              />
+            </label>
           </div>
-        )}
-        {error && (
-          <InlineAlert tone="danger" title={t('directSession.startError')}>
-            {error}
-          </InlineAlert>
-        )}
-        <div className="nx-dialog-actions">
-          <Button disabled={starting} onClick={onClose}>
-            {t('directSession.cancel')}
-          </Button>
-          <Button
-            tone="brand"
-            disabled={
-              !selected ||
-              needsAgentRecovery ||
-              starting ||
-              loading ||
-              !name.trim() ||
-              !modelIdValid(modelOverride.trim())
-            }
-            onClick={() => void start()}
-          >
-            <Play size={14} /> {starting ? t('directSession.starting') : t('directSession.start')}
-          </Button>
+          <p className={contextualStyles.hint}>{t('directSession.modelHint')}</p>
+          {recommendationError && (
+            <InlineAlert tone="warning">{t('directSession.recommendationUnavailable')}</InlineAlert>
+          )}
+          {recommendation && (
+            <p className={contextualStyles.explanation}>
+              {recommendation.recommended
+                ? t('directSession.schedulerExplained', {
+                    policy: recommendation.policy,
+                    provider:
+                      recommendation.recommended.account.display_name ||
+                      recommendation.recommended.account.provider,
+                  })
+                : t('directSession.schedulerNoCandidate')}
+            </p>
+          )}
+          {recommendation?.recommended && recommendation.recommended.pros.length > 0 && (
+            <ul
+              className={contextualStyles.reasons}
+              aria-label={t('directSession.schedulerReasons')}
+            >
+              {recommendation.recommended.pros.slice(0, 2).map((reason) => (
+                <li key={reason}>{reason}</li>
+              ))}
+            </ul>
+          )}
+          {!modelIdValid(modelOverride.trim()) && (
+            <InlineAlert tone="warning">{t('directSession.invalidModel')}</InlineAlert>
+          )}
+          {loading ? (
+            <Spinner label={t('directSession.loading')} />
+          ) : resources.length === 0 ? (
+            <EmptyState
+              icon={<Bot size={22} />}
+              title={t('directSession.empty')}
+              hint={t('directSession.emptyHint')}
+            />
+          ) : (
+            <ChoiceGroup
+              className="nx-direct-resource-list"
+              ariaLabel={t('directSession.chooseAccount')}
+            >
+              {Object.entries(
+                resources.reduce<Record<string, DirectResource[]>>((groups, resource) => {
+                  (groups[resource.provider] ||= []).push(resource);
+                  return groups;
+                }, {}),
+              ).map(([provider, providerResources]) => (
+                <section className={resourceStyles.providerGroup} key={provider}>
+                  <h3 className={resourceStyles.providerHeading}>
+                    <span>{provider}</span>
+                    <span className={resourceStyles.providerCount}>
+                      {t('resources.accountCount', { count: providerResources.length })}
+                    </span>
+                  </h3>
+                  {providerResources.map((resource) => {
+                    const checked = resource.id === selectedID;
+                    const quota = directQuotaDisplay(resource);
+                    const quotaState = quotaTruthState(resource);
+                    const candidate = recommendation?.candidates?.find(
+                      (item) => item.account.id === resource.id,
+                    );
+                    const recommended = recommendation?.recommended?.account.id === resource.id;
+                    return (
+                      <ChoiceOption
+                        selected={checked}
+                        onSelect={() => choose(resource)}
+                        data-quota-state={quotaState}
+                        className={`${resourceStyles.account} nx-direct-resource`}
+                        key={resource.id}
+                      >
+                        <span className="nx-direct-resource__icon">
+                          {resource.rate_limited ? (
+                            <ShieldAlert size={17} />
+                          ) : (
+                            <TerminalSquare size={17} />
+                          )}
+                        </span>
+                        <span className="nx-direct-resource__body">
+                          <span className="nx-direct-resource__title">
+                            <strong>{directAccountTitle(resource)}</strong>
+                            {healthBadge(resource.health)}
+                            {recommended && (
+                              <Badge tone="success">{t('directSession.recommended')}</Badge>
+                            )}
+                            {candidate && (
+                              <Badge>
+                                {t('directSession.schedulerRank', { rank: candidate.rank })}
+                              </Badge>
+                            )}
+                            <Badge
+                              tone={
+                                quotaState === 'confirmed'
+                                  ? 'success'
+                                  : quotaState === 'stale'
+                                    ? 'warning'
+                                    : 'danger'
+                              }
+                            >
+                              {quotaState === 'confirmed'
+                                ? t('resources.confirmed')
+                                : quotaState === 'exhausted'
+                                  ? t('resources.exhausted')
+                                  : quotaState === 'blocked'
+                                    ? t('resources.rateLimited')
+                                    : quotaState === 'unauthenticated'
+                                      ? t('resources.reauthRequired')
+                                      : quotaState === 'stale'
+                                        ? t('resources.stale')
+                                        : t('resources.unknown')}
+                            </Badge>
+                          </span>
+                          <small>
+                            {quota === null
+                              ? t('directSession.quotaUnknown')
+                              : t('directSession.remainingLabel', { value: quota })}
+                          </small>
+                        </span>
+                      </ChoiceOption>
+                    );
+                  })}
+                </section>
+              ))}
+            </ChoiceGroup>
+          )}
+
+          {request?.prompt && (
+            <div className="nx-direct-prompt-preview">
+              <strong>{t('directSession.prompt')}</strong>
+              <pre>{request.prompt}</pre>
+            </div>
+          )}
+          {error && (
+            <InlineAlert tone="danger" title={t('directSession.startError')}>
+              {error}
+            </InlineAlert>
+          )}
+          {cancellationRequested && (
+            <InlineAlert tone="warning">{t('directSession.cancellingHint')}</InlineAlert>
+          )}
+          <div className="nx-dialog-actions">
+            <Button
+              disabled={cancellationRequested}
+              data-tour="direct-session-cancel"
+              onClick={() => {
+                if (starting) {
+                  cancellationRequestedRef.current = true;
+                  setCancellationRequested(true);
+                  return;
+                }
+                onClose();
+              }}
+            >
+              {cancellationRequested ? t('directSession.cancelling') : t('directSession.cancel')}
+            </Button>
+            <Button
+              tone="brand"
+              disabled={
+                !selected ||
+                needsAgentRecovery ||
+                starting ||
+                loading ||
+                !name.trim() ||
+                !modelIdValid(modelOverride.trim())
+              }
+              onClick={() => void start()}
+            >
+              <Play size={14} /> {starting ? t('directSession.starting') : t('directSession.start')}
+            </Button>
+          </div>
         </div>
       </div>
     </Dialog>

@@ -2,6 +2,7 @@ package browsercontrol
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -50,6 +51,34 @@ func TestValidURL(t *testing.T) {
 		}
 	}
 }
+
+func TestBrowserPublicURLAndSnapshotRedactSecrets(t *testing.T) {
+	unsafeURL := "https://user:pass@example.test/app?view=compact&access_token=private-token&code=oauth-code#fragment-secret"
+	cleanURL := publicURL(unsafeURL)
+	for _, secret := range []string{"user", "pass", "private-token", "oauth-code", "fragment-secret"} {
+		if strings.Contains(cleanURL, secret) {
+			t.Fatalf("public URL leaked %q: %s", secret, cleanURL)
+		}
+	}
+	if !strings.Contains(cleanURL, "view=compact") || !strings.Contains(cleanURL, "access_token=%5BREDACTED%5D") {
+		t.Fatalf("public URL removed useful non-sensitive context or failed to redact: %s", cleanURL)
+	}
+
+	input := json.RawMessage(`{"url":"` + unsafeURL + `","title":"Preview","text":"Authorization: Bearer oauth-secret-value; contact person@example.test; key sk-12345678901234567890","elements":[{"label":"password=visible-secret","text":"safe label"}]}`)
+	clean, err := sanitizeSnapshotJSON(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, secret := range []string{"private-token", "oauth-code", "fragment-secret", "oauth-secret-value", "person@example.test", "sk-12345678901234567890", "visible-secret"} {
+		if strings.Contains(string(clean), secret) {
+			t.Fatalf("sanitized snapshot leaked %q: %s", secret, clean)
+		}
+	}
+	if !strings.Contains(string(clean), "[REDACTED_EMAIL]") || !strings.Contains(string(clean), "[REDACTED_TOKEN]") {
+		t.Fatalf("snapshot redaction markers missing: %s", clean)
+	}
+}
+
 func TestManagerEmptyAndClose(t *testing.T) {
 	m := NewManager()
 	if got := m.List(""); len(got) != 0 {

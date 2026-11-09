@@ -1,9 +1,23 @@
+## 2026-11-09 — auditoria de concorrência e privacidade A2
+
+- Fechei janelas de lifecycle que escapavam ao primeiro lock: recovery, transação SafeApply, publicação de generation, binding interativo e continuidade agora serializam por Agent e conferem geração/estado antes do handoff. Cancelamento prévio e aquisição cancelada falham sem deixar token/refs presos.
+- Troquei espera temporal no teste concorrente por sincronização determinística. Adicionei regressões para start/stop, recovery, SafeApply e limpeza de refs. Sessões de browser não expõem mais ID da sessão humana; URLs e snapshots redigem credenciais/tokens identificáveis.
+- Resultado `make quality-full` PASS: Go integral + race (Nexus 287,551 s), Web 131/833, lint/format/version e govulncheck limpo. `make build`, smoke Chromium localhost, contrato/mapa, map tests 5/5 e `git diff --check` também passaram.
+- `make docs-verify` falha por manifest sintético stale e alterações visuais locais ainda sem evidência homologável exact-SHA. Mantido como bloqueio, sem gerar captura sintética substituta.
+- Atualizei o evidence map para 93 critérios com refs source+test e 3 source-only sem certificar critérios. Auditoria mantém gaps explícitos em design-inspect, live-preview e device-handoff. GO permanece NO_GO.
+
 ## 2026-11-09 — A2: cancelamento autenticado e cleanup de runtime
 
-- Acrescentei `TestAuthenticatedAgentCancellationStopsRuntimeWithoutOrphan` em `internal/control/web/handlers_nexus_test.go`. O teste usa cliente autenticado com CSRF, SessionHost real em modo standalone e o driver de diagnóstico fake; chama o endpoint de stop e verifica Agent `STOPPED`, geração com `StoppedAt` e runtime ausente/inativa no Registry.
-- O teste evita uso de provider/conta externa e cobre o barrier de parada da API real. Uma primeira tentativa pelo endpoint `/start` mostrou que o binário de teste não executa o host detached; o teste foi ajustado para iniciar em standalone pelo mesmo launcher de produção e manter o cancelamento no HTTP autenticado.
-- PASS — teste focal `go test ./internal/control/web -run '^TestAuthenticatedAgentCancellationStopsRuntimeWithoutOrphan$' -count=1 -v`.
-- Limite — não cobre cancelamento acionado dentro do fluxo visual DirectSession nem dois perfis reais. A2 segue parcial, sem homologação da capability ou GO.
+- Implementei solicitação de cancelamento do setup no DirectSession. O lifecycle verifica o pedido entre seleção/configuração; antes do start remove o Agent. Se start foi enviado, espera o resultado e executa stop verificado antes do delete. Stop incerto/falho mantém o Agent e identifica cleanup pendente para recovery.
+- A UI mantém o diálogo até a operação convergir, permite um único pedido de cancelamento durante start e mostra explicação localizada. Adicionei i18n PT-BR/EN/ES e anúncio/tour opt-in existente, com `data-feature-tour-scope` próprio no portal do diálogo.
+- Atualizei `e2e-first-run-import.mjs`: browser confirmou sequência `create → select-resource → apply-config → start → stop → delete`, endpoints Core reais para CRUD/stop e ausência de Agent/runtime. Start é controlado pelo harness para exercitar o cancelamento sem executar provider externo. O cenário em 390 px não teve overflow horizontal; screenshot mostra o diálogo com rolagem vertical até as ações.
+- `TestAuthenticatedAgentCancellationStopsRuntimeWithoutOrphan` complementa o E2E da UI com SessionHost real standalone supervisionado e stop API autenticado. Verifica Agent `STOPPED`, geração com `StoppedAt` e runtime removida do Registry, sem quota.
+- O teste de concorrência detectou e fechou uma janela de corrida: stop/delete podiam observar Agent antes de um start tardio publicar a geração. Start, stop e delete agora usam mutex keyed/context-aware por Agent; `TestStopWaitsForInFlightAgentStartAndStopsPublishedGeneration` confirma que stop aguarda e finaliza a geração publicada.
+- `make quality-full` completou: Web 131/833, Go integral + race (Nexus 280,909 s; Store 104,383 s), version contract e govulncheck sem vulnerabilidades. `make build` gerou bundle Web e CLI Nexus beta.11.
+- Uma checagem dos verificadores expôs fixture positivo incompleto depois do requisito de artefato binário; acrescentei arquivo sintético marcado não distribuível. Contrato/evidence-map tests passaram 9/9; mapa reporta 48/96, 87 source+test, 9 source-only, zero unmapped e zero certificados; catálogo 36 passou.
+- `make docs-verify` falha por manifesto visual stale do source `1c048f8d` e mudanças DirectSession locais sem evidência visual vinculada ao SHA; isso continua como bloqueio de homologação, sem renovar capturas sintéticas.
+- PASS — Vitest lifecycle/announcements/tour (26), E2E first-run, pacote `internal/control/web`, `format:check`, validador do contrato/mapa e `git diff --check`.
+- Catálogo Product Discovery atualizado. Limites: dois perfis reais e app distribuído/exact-SHA ainda faltam; não houve chamada de modelo. A2 continua parcial e GO NO_GO.
 
 ## 2026-11-09 — Comparison Lab: retomada segura de campanha parcial
 
