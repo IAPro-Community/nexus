@@ -748,6 +748,27 @@ export const nexus = {
       method: 'POST',
       body: JSON.stringify({ project_id: projectId, run_a_id: runAId, run_b_id: runBId }),
     }),
+  getComparisonCampaigns: (projectId: string) =>
+    request<import('../types').ComparisonCampaignView[]>(
+      `/api/v1/comparison-campaigns?project_id=${encodeURIComponent(projectId)}`,
+    ),
+  createComparisonCampaign: (body: import('../types').CreateComparisonCampaignRequest) =>
+    request<import('../types').ComparisonCampaignView>('/api/v1/comparison-campaigns', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  launchComparisonCampaign: (
+    id: string,
+    body: import('../types').LaunchComparisonCampaignRequest,
+  ) =>
+    request<import('../types').ComparisonCampaignView>(
+      `/api/v1/comparison-campaigns/${encodeURIComponent(id)}/launch`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  getComparisonCampaign: (id: string) =>
+    request<import('../types').ComparisonCampaignView>(
+      `/api/v1/comparison-campaigns/${encodeURIComponent(id)}`,
+    ),
   decideComparison: (
     comparisonId: string,
     decision: 'SELECT_A' | 'SELECT_B' | 'REJECT_BOTH',

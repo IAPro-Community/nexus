@@ -102,7 +102,7 @@ export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
     },
     {
       id: 'comparison',
-      target: '[data-tour="flow-comparison-lab"]',
+      target: '[data-tour="flow-comparison-entry"]',
       title: 'tour.flowComparisonTitle',
       body: 'tour.flowComparisonBody',
     },

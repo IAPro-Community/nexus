@@ -1,4 +1,12 @@
-## Checkpoint ativo — 2026-11-09 — Comparison Lab parcial
+## Checkpoint ativo — 2026-11-09 — Comparison Lab A/B parcial
+
+- Branch: `release/v1.0.0`; base `3446d7de`; extensão local ainda sem SHA imutável.
+- Agora existem preparo atômico de duas variantes congeladas, dependências isoladas, previews/consentimentos independentes, despacho via MissionRunner existente e recovery durável sem start implícito. A comparação persiste diffs/testes/custos e escolha humana sem merge.
+- PASS: `make quality-full` (Web 131/829, Go + race, format/lint/type/style/build/security), `make build`, Go focal, contrato 48, mapa (87 source+test/9 source-only/0 unmapped/0 certificados), map tests 4/4, catálogo 36 e diff check. `make docs-verify` bloqueia por manifest visual stale no SHA `7a26a298…`.
+- Não executamos providers reais nem homologamos UI no app distribuído. PARTIAL ainda não tem retry visual da alternativa ausente. A capability permanece partial/pending.
+- Permanecem P0 A1–A4, A2 real sem órfãos, provider A3/A4, AGY 1/2 elegíveis, Maestro distribuído/plataformas/assinatura e auditoria/aceite 48/48. **NO_GO**.
+
+### Contexto anterior — Comparison Lab sem launcher A/B
 
 - Foi implementada comparação persistida de duas execuções concluídas compatíveis (mesmo projeto/plano/revisão/base), com diffs, resultados de testes/verificação, custos atribuídos ou desconhecidos e decisão humana irreversível. A operação não aplica código nem faz merge.
 - Validação de workspaces Nexus, evidência snapshot imutável e proteção HTTP/auth/CSRF foram cobertas por testes. UI foi integrada ao histórico existente do Flow Studio, com i18n PT-BR/EN/ES e Product Tour.

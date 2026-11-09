@@ -27,15 +27,17 @@ type ComparisonCheck struct {
 }
 
 type ComparisonRunEvidence struct {
-	RunID              string                    `json:"run_id"`
-	State              runner.State              `json:"state"`
-	BaseRevision       string                    `json:"base_revision"`
-	ChangedFiles       []string                  `json:"changed_files"`
-	Diff               string                    `json:"diff"`
-	DiffTruncated      bool                      `json:"diff_truncated"`
-	Checks             []ComparisonCheck         `json:"checks"`
-	Cost               store.CostAnalyticsTotals `json:"cost"`
-	CostEvidenceStatus string                    `json:"cost_evidence_status"`
+	RunID               string                    `json:"run_id"`
+	VariantName         string                    `json:"variant_name,omitempty"`
+	VariantInstructions string                    `json:"variant_instructions,omitempty"`
+	State               runner.State              `json:"state"`
+	BaseRevision        string                    `json:"base_revision"`
+	ChangedFiles        []string                  `json:"changed_files"`
+	Diff                string                    `json:"diff"`
+	DiffTruncated       bool                      `json:"diff_truncated"`
+	Checks              []ComparisonCheck         `json:"checks"`
+	Cost                store.CostAnalyticsTotals `json:"cost"`
+	CostEvidenceStatus  string                    `json:"cost_evidence_status"`
 }
 
 type ComparisonLabView struct {
@@ -78,8 +80,32 @@ func (s *ComparisonApplicationService) Create(ctx context.Context, projectID, ru
 	if runA.ID == runB.ID || runA.ProjectID != projectID || runB.ProjectID != projectID {
 		return nil, fmt.Errorf("comparison runs must be distinct and belong to the selected project")
 	}
+	var comparisonPlanID, evidenceAName, evidenceAInstructions, evidenceBName, evidenceBInstructions string
+	var comparisonRevision int
 	if runA.PlanID != runB.PlanID || runA.PlanRevision != runB.PlanRevision {
-		return nil, fmt.Errorf("comparison runs must use the same frozen plan revision")
+		campaign, campaignErr := st.FindComparisonCampaignByRuns(runA.ID, runB.ID)
+		if campaignErr != nil || campaign.ProjectID != projectID || campaign.State == store.ComparisonCampaignFailed {
+			return nil, fmt.Errorf("comparison runs must use the same frozen plan revision or a completed paired campaign")
+		}
+		if runA.PlanID != campaign.VariantAPlanID && runA.PlanID != campaign.VariantBPlanID ||
+			runB.PlanID != campaign.VariantAPlanID && runB.PlanID != campaign.VariantBPlanID {
+			return nil, fmt.Errorf("comparison runs do not match their campaign variants")
+		}
+		if runA.PlanRevision != 1 || runB.PlanRevision != 1 {
+			return nil, fmt.Errorf("comparison campaign runs must use their frozen variant revisions")
+		}
+		if campaign.BaseRevision == "" || runA.DeliveryIntegration == nil || runB.DeliveryIntegration == nil ||
+			runA.DeliveryIntegration.BaseRevision != campaign.BaseRevision || runB.DeliveryIntegration.BaseRevision != campaign.BaseRevision {
+			return nil, fmt.Errorf("comparison campaign runs must use the prepared shared base revision")
+		}
+		if runA.PlanID == campaign.VariantAPlanID {
+			evidenceAName, evidenceAInstructions = campaign.VariantAName, campaign.VariantAInstructions
+			evidenceBName, evidenceBInstructions = campaign.VariantBName, campaign.VariantBInstructions
+		} else {
+			evidenceAName, evidenceAInstructions = campaign.VariantBName, campaign.VariantBInstructions
+			evidenceBName, evidenceBInstructions = campaign.VariantAName, campaign.VariantAInstructions
+		}
+		comparisonPlanID, comparisonRevision = campaign.SourcePlanID, campaign.SourcePlanRevision
 	}
 	if !isTerminalComparisonRun(runA.State) || !isTerminalComparisonRun(runB.State) {
 		return nil, fmt.Errorf("both comparison runs must be finished")
@@ -106,6 +132,8 @@ func (s *ComparisonApplicationService) Create(ctx context.Context, projectID, ru
 	if err != nil {
 		return nil, err
 	}
+	evidenceA.VariantName, evidenceA.VariantInstructions = evidenceAName, evidenceAInstructions
+	evidenceB.VariantName, evidenceB.VariantInstructions = evidenceBName, evidenceBInstructions
 	evidenceJSON, err := json.Marshal(struct {
 		RunA ComparisonRunEvidence `json:"run_a"`
 		RunB ComparisonRunEvidence `json:"run_b"`
@@ -113,8 +141,11 @@ func (s *ComparisonApplicationService) Create(ctx context.Context, projectID, ru
 	if err != nil {
 		return nil, err
 	}
+	if comparisonPlanID == "" {
+		comparisonPlanID, comparisonRevision = runA.PlanID, runA.PlanRevision
+	}
 	record, err := st.CreateComparisonLab(store.ComparisonLabRecord{
-		ProjectID: projectID, PlanID: runA.PlanID, PlanRevision: runA.PlanRevision,
+		ProjectID: projectID, PlanID: comparisonPlanID, PlanRevision: comparisonRevision,
 		RunAID: runA.ID, RunBID: runB.ID, EvidenceJSON: string(evidenceJSON),
 	})
 	if err != nil {

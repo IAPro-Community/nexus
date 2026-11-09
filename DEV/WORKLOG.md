@@ -1,4 +1,11 @@
-## 2026-11-09 — Comparison Lab parcial no Flow Studio
+## 2026-11-09 — Comparison Lab: launcher A/B persistido
+
+- Adicionei campanha A/B que congela duas variantes de uma revisão/base, clona IDs e remapeia dependências, cria previews separados e exige aprovação/custo por lado antes do dispatch paralelo pelo RunApplicationService/MissionRunner. Store insere planos/revisões/campanha em transação.
+- Recovery reconcilia runs sem disparar trabalho; campanha sem run retorna PREPARED e parcial exige inspeção. Comparação de runs da campanha preserva origem, nomes e instruções. UI, API, i18n e Product Tour compartilhado integram ao Flow Studio.
+- PASS — testes Go focais, `make quality-full` (Web 131/829; Go integral + race; seis warnings ESLint anteriores; security limpa), `make build`, contrato/mapa/catalog e `git diff --check`.
+- Limites: nenhum provider real foi chamado; falta UX de retry do lado ausente, E2E visual no artefato distribuído e exact-SHA. `make docs-verify` continua bloqueado por manifesto antigo `7a26a298…`. Sem certificação; NO_GO.
+
+## Histórico — Comparison Lab parcial no Flow Studio
 
 - Implementei comparação persistida de duas execuções concluídas compatíveis, incluindo resultados de testes/verificação, diffs por arquivo, custos atribuídos e custos desconhecidos, além de decisão humana one-way com justificativa. O snapshot é imutável e nenhum caminho aplica ou integra código automaticamente.
 - A API exige escopo de projeto e passa pelo middleware autenticado/CSRF. Workspaces precisam ser worktrees gerenciadas por Nexus e correspondentes às integrações registradas.

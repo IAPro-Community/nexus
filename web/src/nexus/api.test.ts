@@ -131,6 +131,42 @@ describe('nexus API request errors', () => {
     });
   });
 
+  it('prepares and launches a paired Comparison Lab campaign with both approvals', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ campaign: { id: 'campaign/1' } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await nexusApi.createComparisonCampaign({
+      project_id: 'project-1',
+      plan_id: 'plan-1',
+      plan_revision: 3,
+      variant_a: { name: 'A', instructions: 'Keep the change small' },
+      variant_b: { name: 'B', instructions: 'Use explicit stages' },
+    });
+    await nexusApi.launchComparisonCampaign('campaign/1', {
+      approval_token_a: 'approve-a',
+      approval_token_b: 'approve-b',
+      cost_confirmation_token_a: 'cost-a',
+    });
+
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/comparison-campaigns');
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      project_id: 'project-1',
+      plan_id: 'plan-1',
+      plan_revision: 3,
+      variant_a: { name: 'A', instructions: 'Keep the change small' },
+      variant_b: { name: 'B', instructions: 'Use explicit stages' },
+    });
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/v1/comparison-campaigns/campaign%2F1/launch');
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({
+      approval_token_a: 'approve-a',
+      approval_token_b: 'approve-b',
+      cost_confirmation_token_a: 'cost-a',
+    });
+  });
+
   it('forwards Composer AbortSignal to the active turn request', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

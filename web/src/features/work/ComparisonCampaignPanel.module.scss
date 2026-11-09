@@ -1,0 +1,168 @@
+.panel {
+  display: grid;
+  gap: 1rem;
+  border-color: var(--nx-border-subtle);
+}
+
+.header,
+.title,
+.saved,
+.previews,
+.variants,
+.route,
+.approval {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header,
+.saved {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.title h2,
+.title p {
+  margin: 0;
+}
+
+.title p,
+.notice,
+.base,
+.costSummary,
+.noMerge {
+  color: var(--nx-text-muted);
+}
+
+.notice,
+.error,
+.warning,
+.blocker,
+.base,
+.costSummary,
+.noMerge {
+  margin: 0;
+}
+
+.notice {
+  padding: 0.75rem;
+  border-inline-start: 3px solid var(--nx-warning);
+  background: var(--nx-surface-2);
+}
+
+.form,
+.selected,
+.preview,
+.variants fieldset,
+.runs {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.form > label,
+.variants label {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.variants {
+  align-items: stretch;
+}
+
+.variants fieldset {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.8rem;
+  border: 1px solid var(--nx-border-subtle);
+  border-radius: var(--nx-radius-md);
+}
+
+.variants textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.previews {
+  align-items: stretch;
+}
+
+.preview {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.8rem;
+  border: 1px solid var(--nx-border-subtle);
+  border-radius: var(--nx-radius-md);
+}
+
+.preview header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.route {
+  justify-content: space-between;
+  align-items: flex-start;
+  margin: 0;
+  padding-block: 0.35rem;
+  border-bottom: 1px solid var(--nx-border-subtle);
+}
+
+.route span:last-child {
+  color: var(--nx-text-muted);
+  text-align: end;
+}
+
+.approval {
+  align-items: flex-start;
+}
+
+.approval input {
+  flex: 0 0 auto;
+  margin-block-start: 0.2rem;
+}
+
+.blocker,
+.error {
+  color: var(--nx-danger);
+}
+
+.warning {
+  color: var(--nx-warning);
+}
+
+.error {
+  font-size: 0.9rem;
+}
+
+.base {
+  font-family: var(--nx-font-mono);
+  font-size: 0.8rem;
+}
+
+.costSummary {
+  padding-block: 0.35rem;
+  border-top: 1px solid var(--nx-border-subtle);
+}
+
+.noMerge {
+  font-size: 0.85rem;
+}
+
+@media (max-width: 48rem) {
+  .variants,
+  .previews {
+    flex-direction: column;
+  }
+
+  .route {
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .route span:last-child {
+    text-align: start;
+  }
+}

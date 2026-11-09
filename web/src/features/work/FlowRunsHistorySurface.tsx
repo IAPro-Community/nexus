@@ -3,11 +3,19 @@ import { useTranslation } from 'react-i18next';
 import { History, Layers, Play, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
 import { Badge, Button, Card, ConfirmDialog, EmptyState, Spinner } from '../../design-system';
 import { nexusApi } from '../../nexus/api';
-import type { ComparisonLab, MissionRun, Project, WorkPlan, Agent } from '../../types';
+import type {
+  ComparisonCampaignView,
+  ComparisonLab,
+  MissionRun,
+  Project,
+  WorkPlan,
+  Agent,
+} from '../../types';
 import { asArray } from '../../lib/safeArray';
 import { flowRunStateFromMission } from './flowRunModel';
 import { FlowDraftEditor } from './FlowDraftEditor';
 import { ComparisonLabPanel } from './ComparisonLabPanel';
+import { ComparisonCampaignPanel } from './ComparisonCampaignPanel';
 import { FeatureTour } from './FeatureTour';
 import { FLOW_DRAFT_KEY } from './WorkSurface';
 import styles from './FlowRunsHistorySurface.module.scss';
@@ -54,6 +62,7 @@ export const FlowRunsHistorySurface: React.FC<{
   const [planToDelete, setPlanToDelete] = useState<WorkPlan | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [comparisons, setComparisons] = useState<ComparisonLab[]>([]);
+  const [comparisonCampaigns, setComparisonCampaigns] = useState<ComparisonCampaignView[]>([]);
   const [selectedComparison, setSelectedComparison] = useState<ComparisonLab | null>(null);
   const [selectedRunIds, setSelectedRunIds] = useState<string[]>([]);
   const [comparisonReason, setComparisonReason] = useState('');
@@ -68,10 +77,11 @@ export const FlowRunsHistorySurface: React.FC<{
     setError('');
     setRunLoadError('');
     try {
-      const [runResult, planResult, comparisonResult] = await Promise.allSettled([
+      const [runResult, planResult, comparisonResult, campaignResult] = await Promise.allSettled([
         nexusApi.getRuns(),
         nexusApi.getPlans(project.id),
         nexusApi.getComparisons(project.id),
+        nexusApi.getComparisonCampaigns(project.id),
       ]);
       if (!isLatest()) return;
       if (planResult.status === 'rejected') throw planResult.reason;
@@ -91,6 +101,8 @@ export const FlowRunsHistorySurface: React.FC<{
       } else {
         setComparisonError(t('flow.comparisonLoadError'));
       }
+      if (campaignResult.status === 'fulfilled')
+        setComparisonCampaigns(asArray(campaignResult.value));
       const nextRuns = asArray(runList).filter((run): run is MissionRun => {
         const item = run as MissionRun;
         return (
@@ -228,7 +240,9 @@ export const FlowRunsHistorySurface: React.FC<{
     const runPlanIds = new Set(runs.map((run) => run.plan_id).filter(Boolean));
     // Never classify a READY/EXECUTED plan as unused if the history API failed.
     return plans.filter(
-      (plan) => plan.status === 'DRAFT' || (!runLoadError && !runPlanIds.has(plan.id)),
+      (plan) =>
+        !plan.structured_facts?.['nexus.comparison_campaign.id'] &&
+        (plan.status === 'DRAFT' || (!runLoadError && !runPlanIds.has(plan.id))),
     );
   }, [plans, runs, runLoadError]);
 
@@ -314,6 +328,7 @@ export const FlowRunsHistorySurface: React.FC<{
             <button
               type="button"
               role="tab"
+              data-tour="flow-comparison-entry"
               aria-selected={track === 'runs'}
               data-active={track === 'runs' ? 'true' : undefined}
               onClick={() => setTrack('runs')}
@@ -576,6 +591,7 @@ export const FlowRunsHistorySurface: React.FC<{
           </div>
           <ComparisonLabPanel
             runs={runs}
+            campaigns={comparisonCampaigns.map((item) => item.campaign)}
             comparisons={comparisons}
             selectedRunIds={selectedRunIds}
             selectedComparison={selectedComparison}
@@ -590,6 +606,7 @@ export const FlowRunsHistorySurface: React.FC<{
             onReasonChange={setComparisonReason}
             onDecide={(decision) => void decideComparison(decision)}
           />
+          <ComparisonCampaignPanel project={project} plans={plans} onLaunched={() => void load()} />
         </>
       )}
     </div>

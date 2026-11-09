@@ -43,4 +43,26 @@ func TestComparisonRoutesRequireProjectScopeAndCSRF(t *testing.T) {
 	if withCSRF.StatusCode != http.StatusBadRequest {
 		t.Fatalf("create with invalid body status = %d, want %d", withCSRF.StatusCode, http.StatusBadRequest)
 	}
+
+	campaignList, err := client.Get(srv.URL() + "/api/v1/comparison-campaigns")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = campaignList.Body.Close()
+	if campaignList.StatusCode != http.StatusBadRequest {
+		t.Fatalf("campaign list without project_id status = %d, want %d", campaignList.StatusCode, http.StatusBadRequest)
+	}
+
+	request, err = http.NewRequest(http.MethodPost, srv.URL()+"/api/v1/comparison-campaigns", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	withoutCampaignCSRF, err := client.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = withoutCampaignCSRF.Body.Close()
+	if withoutCampaignCSRF.StatusCode != http.StatusForbidden {
+		t.Fatalf("campaign create without CSRF status = %d, want %d", withoutCampaignCSRF.StatusCode, http.StatusForbidden)
+	}
 }

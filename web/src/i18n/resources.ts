@@ -1085,9 +1085,9 @@ export const en = {
     agentAttentionChoiceTitle: 'Answer structured agent choices',
     agentAttentionChoiceBody:
       'When an Agent asks for an explicit choice, select one of its provider-defined options in the attention card.',
-    flowComparisonTitle: 'Compare completed Flow runs',
+    flowComparisonTitle: 'Run and compare isolated Flow alternatives',
     flowComparisonBody:
-      'Review isolated run evidence side by side and record your choice. This never merges changes.',
+      'Prepare two approaches from one frozen plan, inspect each route and cost preview, then explicitly launch both. Compare evidence and choose manually; no merge runs.',
   },
   tour: {
     featureOpen: 'Explore this area',
@@ -1136,9 +1136,9 @@ export const en = {
     flowDraftsTitle: 'Continue existing Flows',
     flowDraftsBody:
       'Open a saved draft and review its revision. Deleting used Flows is blocked to preserve Mission evidence and scheduled work.',
-    flowComparisonTitle: 'Compare isolated run evidence',
+    flowComparisonTitle: 'Run and compare isolated alternatives',
     flowComparisonBody:
-      'Compare tests, diffs and attributed cost from two finished runs, then record a human decision without merging either workspace.',
+      'Open Mission history to define two approaches from one frozen plan. Review each route and cost preview, explicitly launch both, then compare evidence and choose manually.',
     flowGoalTitle: 'Review the goal and gates',
     flowGoalBody:
       'Review the goal, leader, plan revision and preview before starting a Mission. Changes require validation and may require renewed approval.',
@@ -1619,6 +1619,37 @@ export const en = {
       COMPLETE: 'All recorded cost observations have a value.',
       PARTIAL: 'Some cost observations are unknown; totals are incomplete.',
       UNKNOWN: 'No attributed cost observation is available.',
+    },
+    comparisonCampaignTitle: 'Run two isolated alternatives',
+    comparisonCampaignIntro:
+      'Freeze one plan revision, define two independent approaches, and review both execution previews before launch.',
+    comparisonCampaignCostNotice:
+      'Launching starts two Missions in parallel and may incur cost for both. Review each route and confirm any required cost approval separately.',
+    comparisonCampaignSourcePlan: 'Source Flow',
+    comparisonCampaignChoosePlan: 'Choose a plan revision',
+    comparisonCampaignVariant: 'Alternative {{label}}',
+    comparisonCampaignName: 'Name',
+    comparisonCampaignInstructions: 'Approach instructions',
+    comparisonCampaignPrepare: 'Prepare isolated alternatives',
+    comparisonCampaignPreviewLabel: 'Execution preview for {{label}}',
+    comparisonCampaignPreviewTitle: 'Preview · {{label}}',
+    comparisonCampaignReady: 'Ready',
+    comparisonCampaignBlocked: 'Blocked',
+    comparisonCampaignCostSummary: 'Cost state {{level}} · observed and estimated total {{amount}}',
+    comparisonCampaignApproveRoute: 'I reviewed and approve the route for {{label}}.',
+    comparisonCampaignApproveCost: 'I explicitly confirm the required cost state for {{label}}.',
+    comparisonCampaignLaunchBoth: 'Launch both alternatives in parallel',
+    comparisonCampaignRefresh: 'Refresh comparison campaign',
+    comparisonCampaignSaved: 'Saved campaigns',
+    comparisonCampaignSelected: 'Selected comparison campaign',
+    comparisonCampaignBase: 'Shared base {{revision}} · source plan revision {{plan}}',
+    comparisonCampaignState: {
+      PREPARED: 'Prepared',
+      LAUNCHING: 'Launching',
+      RUNNING: 'Running',
+      PARTIAL: 'Partial launch',
+      COMPLETED: 'Completed',
+      FAILED: 'Failed',
     },
     seeDrafts: 'See drafts',
     untitledDraft: 'Untitled draft',
@@ -3583,9 +3614,9 @@ export const ptBR = {
     agentAttentionChoiceTitle: 'Responda às escolhas estruturadas do Agent',
     agentAttentionChoiceBody:
       'Quando um Agent pedir uma escolha explícita, selecione uma das opções definidas pelo provedor no cartão de atenção.',
-    flowComparisonTitle: 'Compare execuções concluídas do Flow',
+    flowComparisonTitle: 'Execute e compare alternativas isoladas do Flow',
     flowComparisonBody:
-      'Revise lado a lado as evidências de execuções isoladas e registre sua decisão. Isso não integra mudanças.',
+      'Prepare duas abordagens da mesma revisão do plano, confira rota e custo de cada uma e só então execute ambas explicitamente. Compare as evidências e escolha manualmente; nada é integrado.',
   },
   tour: {
     featureOpen: 'Conhecer esta área',
@@ -3634,9 +3665,9 @@ export const ptBR = {
     flowDraftsTitle: 'Continue Flows salvos',
     flowDraftsBody:
       'Abra um rascunho e revise sua versão. Flows utilizados não podem ser excluídos, para preservar evidências e agendamentos.',
-    flowComparisonTitle: 'Compare evidências de execuções isoladas',
+    flowComparisonTitle: 'Execute e compare alternativas isoladas',
     flowComparisonBody:
-      'Compare testes, diffs e custos atribuídos de duas execuções concluídas e registre uma decisão humana sem integrar nenhum workspace.',
+      'Abra o histórico de Missions para definir duas abordagens da mesma revisão. Revise rota e custo de cada uma, execute ambas explicitamente e compare as evidências para escolher manualmente.',
     flowGoalTitle: 'Revise objetivo e aprovações',
     flowGoalBody:
       'Confira objetivo, líder, revisão e prévia antes de iniciar a Mission. Mudanças exigem validação e podem exigir nova aprovação.',
@@ -4121,6 +4152,39 @@ export const ptBR = {
       COMPLETE: 'Todas as observações de custo registradas têm valor.',
       PARTIAL: 'Há observações de custo desconhecidas; os totais estão incompletos.',
       UNKNOWN: 'Não há observação de custo atribuída.',
+    },
+    comparisonCampaignTitle: 'Executar duas alternativas isoladas',
+    comparisonCampaignIntro:
+      'Congele uma revisão do plano, defina duas abordagens independentes e revise os previews de execução antes de iniciar.',
+    comparisonCampaignCostNotice:
+      'A execução inicia duas Missions em paralelo e pode gerar custo para ambas. Revise cada rota e confirme separadamente qualquer custo exigido.',
+    comparisonCampaignSourcePlan: 'Flow de origem',
+    comparisonCampaignChoosePlan: 'Escolha uma revisão do plano',
+    comparisonCampaignVariant: 'Alternativa {{label}}',
+    comparisonCampaignName: 'Nome',
+    comparisonCampaignInstructions: 'Instruções da abordagem',
+    comparisonCampaignPrepare: 'Preparar alternativas isoladas',
+    comparisonCampaignPreviewLabel: 'Preview de execução de {{label}}',
+    comparisonCampaignPreviewTitle: 'Preview · {{label}}',
+    comparisonCampaignReady: 'Pronto',
+    comparisonCampaignBlocked: 'Bloqueado',
+    comparisonCampaignCostSummary:
+      'Estado de custo {{level}} · total observado e estimado {{amount}}',
+    comparisonCampaignApproveRoute: 'Revisei e aprovo a rota de {{label}}.',
+    comparisonCampaignApproveCost:
+      'Confirmo explicitamente o estado de custo exigido para {{label}}.',
+    comparisonCampaignLaunchBoth: 'Executar ambas as alternativas em paralelo',
+    comparisonCampaignRefresh: 'Atualizar campanha de comparação',
+    comparisonCampaignSaved: 'Campanhas salvas',
+    comparisonCampaignSelected: 'Campanha de comparação selecionada',
+    comparisonCampaignBase: 'Base comum {{revision}} · revisão {{plan}} do plano de origem',
+    comparisonCampaignState: {
+      PREPARED: 'Preparada',
+      LAUNCHING: 'Iniciando',
+      RUNNING: 'Em execução',
+      PARTIAL: 'Início parcial',
+      COMPLETED: 'Concluída',
+      FAILED: 'Falhou',
     },
     seeDrafts: 'Ver rascunhos',
     untitledDraft: 'Rascunho sem título',
@@ -6093,9 +6157,9 @@ export const es = {
     agentAttentionChoiceTitle: 'Responda a las opciones del Agent',
     agentAttentionChoiceBody:
       'Cuando un Agent solicite una elección explícita, seleccione una de las opciones definidas por el proveedor en la tarjeta de atención.',
-    flowComparisonTitle: 'Compare ejecuciones finalizadas de Flow',
+    flowComparisonTitle: 'Ejecute y compare alternativas aisladas de Flow',
     flowComparisonBody:
-      'Revise las evidencias de ejecuciones aisladas y registre su decisión. Esto nunca integra cambios.',
+      'Prepare dos enfoques desde una revisión congelada, revise cada ruta y costo y lance ambos explícitamente. Compare las evidencias y elija manualmente; no se integra ningún cambio.',
   },
   tour: {
     featureOpen: 'Conocer esta área',
@@ -6144,9 +6208,9 @@ export const es = {
     flowDraftsTitle: 'Continuar Flows guardados',
     flowDraftsBody:
       'Abra un borrador y revise su versión. Los Flows usados no se eliminan porque contienen evidencias y programas.',
-    flowComparisonTitle: 'Compare evidencias de ejecuciones aisladas',
+    flowComparisonTitle: 'Ejecute y compare alternativas aisladas',
     flowComparisonBody:
-      'Compare pruebas, diffs y costos atribuidos de dos ejecuciones finalizadas y registre una decisión humana sin integrar ningún workspace.',
+      'Abra el historial de Missions para definir dos enfoques desde la misma revisión. Revise ruta y costo de cada uno, ejecute ambos explícitamente y compare evidencias para elegir manualmente.',
     flowGoalTitle: 'Revisar objetivo y aprobaciones',
     flowGoalBody:
       'Revise objetivo, líder, revisión y vista previa antes de iniciar una Mission. Los cambios requieren validación.',
@@ -6630,6 +6694,39 @@ export const es = {
       COMPLETE: 'Todas las observaciones de costo tienen un valor.',
       PARTIAL: 'Hay observaciones de costo desconocidas; los totales son incompletos.',
       UNKNOWN: 'No hay observaciones de costo atribuibles.',
+    },
+    comparisonCampaignTitle: 'Ejecutar dos alternativas aisladas',
+    comparisonCampaignIntro:
+      'Congele una revisión del plan, defina dos enfoques independientes y revise ambos previews de ejecución antes de iniciarlos.',
+    comparisonCampaignCostNotice:
+      'El lanzamiento inicia dos Missions en paralelo y puede generar costo para ambas. Revise cada ruta y confirme por separado cualquier costo requerido.',
+    comparisonCampaignSourcePlan: 'Flow de origen',
+    comparisonCampaignChoosePlan: 'Elija una revisión del plan',
+    comparisonCampaignVariant: 'Alternativa {{label}}',
+    comparisonCampaignName: 'Nombre',
+    comparisonCampaignInstructions: 'Instrucciones del enfoque',
+    comparisonCampaignPrepare: 'Preparar alternativas aisladas',
+    comparisonCampaignPreviewLabel: 'Preview de ejecución de {{label}}',
+    comparisonCampaignPreviewTitle: 'Preview · {{label}}',
+    comparisonCampaignReady: 'Lista',
+    comparisonCampaignBlocked: 'Bloqueada',
+    comparisonCampaignCostSummary:
+      'Estado del costo {{level}} · total observado y estimado {{amount}}',
+    comparisonCampaignApproveRoute: 'Revisé y apruebo la ruta de {{label}}.',
+    comparisonCampaignApproveCost:
+      'Confirmo explícitamente el estado de costo requerido para {{label}}.',
+    comparisonCampaignLaunchBoth: 'Ejecutar ambas alternativas en paralelo',
+    comparisonCampaignRefresh: 'Actualizar campaña de comparación',
+    comparisonCampaignSaved: 'Campañas guardadas',
+    comparisonCampaignSelected: 'Campaña de comparación seleccionada',
+    comparisonCampaignBase: 'Base común {{revision}} · revisión {{plan}} del plan de origen',
+    comparisonCampaignState: {
+      PREPARED: 'Preparada',
+      LAUNCHING: 'Iniciando',
+      RUNNING: 'En curso',
+      PARTIAL: 'Inicio parcial',
+      COMPLETED: 'Completada',
+      FAILED: 'Falló',
     },
     seeDrafts: 'Ver borradores',
     untitledDraft: 'Borrador sin título',

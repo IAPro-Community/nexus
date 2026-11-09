@@ -85,10 +85,10 @@ export const featureAnnouncements: readonly FeatureAnnouncement[] = [
   },
   {
     id: 'flow-comparison-lab',
-    revision: 1,
+    revision: 2,
     surfaces: ['flow-library'],
     openSurface: 'missions',
-    target: '[data-tour="flow-comparison-lab"]',
+    target: '[data-tour="flow-comparison-entry"]',
     title: 'discovery.flowComparisonTitle',
     summary: 'discovery.flowComparisonBody',
     tourStep: 'comparison',

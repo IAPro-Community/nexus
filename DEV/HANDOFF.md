@@ -1,4 +1,25 @@
-## Recheck do handoff — Comparison Lab parcial — 2026-11-09
+## Handoff corrente — Comparison Lab A/B — 2026-11-09
+
+- Base: `release/v1.0.0@3446d7de`; extensão A/B ainda não commitada. O checkpoint anterior `a02c298a` segue publicado.
+- A extensão prepara atomicamente duas variantes congeladas do mesmo WorkPlan/revisão/base, com IDs/dependências separados, preview e aprovações/custos por alternativa. O disparo usa duas chamadas concorrentes ao `RunApplicationService`/MissionRunner existentes e workspaces Nexus gerenciadas; não cria scheduler adicional.
+- A persistência registra run IDs/estado. Recovery read-only ocorre antes de atender a API: sem Mission adquirido, LAUNCHING volta PREPARED; um lado fica PARTIAL; runs existentes podem reconciliar vínculo sem iniciar outro processo. Erro de recovery falha fechado.
+- A comparação salva snapshot imutável de diff/testes/custos e decisão humana sem aplicar patch/merge. API autenticada/CSRF e painel Flow Studio usam i18n PT-BR/EN/ES e o Product Tour compartilhado.
+- PASS — `make quality-full`: Web 131 arquivos/829 testes, Go completo + race (Nexus 313,918 s; Store 104,206 s), version contract e govulncheck limpo. Seis warnings ESLint preexistentes, zero erros; Go lint 0 issues. `make build`, Go focal, contrato 48, mapa (87 source+test/9 source-only/0 unmapped/0 certificados), map tests 4/4, catálogo 36 e `git diff --check` também passaram.
+- BLOCKED — `make docs-verify`: manifesto visual segue vinculado ao SHA `7a26a298…` e enumera nove fontes de renderização alteradas. Não tratar capturas sintéticas como homologação.
+- Falta execução A/B com providers reais, custo real comparável, fluxo visual de recuperação/retry para lançamento parcial e browser E2E no app distribuído/SHA exato. `comparison-lab` permanece partial/pending; zero capacidades certificadas.
+
+### O que falta para GO
+
+1. P0 A1–A4 e provas exatas: A2 precisa dois perfis reais e cancelamento sem Agent/PTY órfão; A3/A4 precisam provider aplicável e validação no app distribuído.
+2. Comparison Lab: executar duas alternativas com provider real, comprovar custos/resultados, recuperação do lado ausente e UX no SHA final.
+3. AGY `:balance`/`:auto`: somente 1/2 contas tem evidência 5h recente/atribuível em todos os grupos; falta elegibilidade da outra conta e rotação live. Não gerar para forçar quota.
+4. Nexus↔Maestro: smoke do perfil Linux passou em `deaf2802`; faltam artefato oficial final, instalação/smoke, plataformas e assinatura.
+5. 48 capacidades/96 critérios: auditoria semântica restante e aceites no SHA final; hoje 87 refs source+test, 9 source-only, zero unmapped, zero certificados.
+6. Release/UX: gates visuais, plataformas, assinatura e app distribuído vinculados ao SHA final.
+
+**Status: NO_GO.**
+
+## Histórico — Comparison Lab antes do A/B — 2026-11-09
 
 - Checkpoint commitado e enviado: `release/v1.0.0@a02c298a`. Comparison Lab foi acrescentado ao Flow Studio para comparar duas execuções já concluídas do mesmo plano/revisão/base: diffs, estado de testes/verificação, custo atribuído/desconhecido e decisão humana persistida, sem aplicar patch ou merge automático. A evidência fica em snapshot imutável e a decisão é one-way.
 - O serviço valida integração e worktrees Nexus distintas/gerenciadas; API autenticada/CSRF, store e UI têm cobertura. A UI reutiliza componentes Nexus, i18n PT-BR/EN/ES e tour existente.

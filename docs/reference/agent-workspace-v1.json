@@ -67,7 +67,7 @@
       "name": "Comparison Lab",
       "category": "experience",
       "owner": "NEXUS",
-      "sourceStatus": "missing",
+      "sourceStatus": "partial",
       "issue": 108,
       "releaseRequired": true,
       "acceptance": [

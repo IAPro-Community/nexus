@@ -29,6 +29,7 @@ type NexusHandler struct {
 	composer              *nexus.ComposerApplicationService
 	runs                  *nexus.RunApplicationService
 	comparisons           *nexus.ComparisonApplicationService
+	comparisonCampaigns   *nexus.ComparisonCampaignApplicationService
 	hud                   *nexus.HUDApplicationService
 	voice                 *voice.Service
 	hostFilesystemEnabled bool
@@ -98,6 +99,7 @@ func NewNexusHandler(auth *AuthManager) *NexusHandler {
 		broker.NotifyAgentState,
 		broker.NotifyContinuity,
 	)
+	runs := nexus.NewRunApplicationService(n)
 	return &NexusHandler{
 		auth:                  auth,
 		nexus:                 n,
@@ -107,8 +109,9 @@ func NewNexusHandler(auth *AuthManager) *NexusHandler {
 		agents:                nexus.NewAgentApplicationService(n),
 		plans:                 nexus.NewPlanApplicationService(n),
 		composer:              nexus.NewComposerApplicationService(n),
-		runs:                  nexus.NewRunApplicationService(n),
+		runs:                  runs,
 		comparisons:           nexus.NewComparisonApplicationService(n),
+		comparisonCampaigns:   nexus.NewComparisonCampaignApplicationService(n, runs),
 		hud:                   nexus.NewHUDApplicationService(n),
 		voice:                 voice.NewService(),
 		hostFilesystemEnabled: true,

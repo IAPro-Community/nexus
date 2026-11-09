@@ -171,31 +171,43 @@
           "acceptanceIndex": 0,
           "acceptance": "Duas alternativas paralelas com worktrees e execução isolados",
           "sourceRefs": [
+            "internal/nexus/comparison_campaign_application.go",
+            "internal/nexus/store/comparison_campaigns.go",
+            "web/src/features/work/ComparisonCampaignPanel.tsx",
             "internal/nexus/comparison_application.go",
             "internal/nexus/mission_executor.go",
             "internal/nexus/mission_integration.go",
             "web/src/features/work/ComparisonLabPanel.tsx"
           ],
           "testRefs": [
+            "internal/nexus/comparison_campaign_application_test.go",
+            "internal/nexus/store/comparison_campaigns_test.go",
             "internal/nexus/comparison_application_test.go",
             "internal/nexus/worktree_test.go",
             "internal/nexus/mission_integration_test.go"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Auditoria parcial: worktree_test.go cobre workspace isolada de um Agent; mission_integration_test.go cobre integração de pacotes em worktrees paralelas e rejeição de conflito. O Comparison Lab implementado compara duas execuções já concluídas do mesmo plano/revisão/base, com workspaces separadas e escolha humana; ainda não cria nem executa alternativas A/B em paralelo. Capability pendente.",
+          "gap": "O Comparison Lab agora persiste duas variantes congeladas do mesmo plano/revisão/base, cria previews independentes e despacha ambas pelo MissionRunner existente em workspaces isoladas; recuperação de restart não inicia trabalho e marca lançamento unilateral como parcial. Testes cobrem preparo, isolamento de identidade/dependências, consentimento dos previews, recuperação e comparação por campanha. Ainda falta execução A/B com provider real e validação no app distribuído/SHA exato; capability pendente.",
           "assertionAudit": "partial"
         },
         {
           "acceptanceIndex": 1,
           "acceptance": "Comparador de testes/diffs/custo e decisão humana sem merge automático",
           "sourceRefs": [
+            "internal/nexus/comparison_campaign_application.go",
+            "internal/nexus/store/comparison_campaigns.go",
+            "internal/control/web/handlers_comparison.go",
+            "web/src/features/work/ComparisonCampaignPanel.tsx",
             "internal/nexus/comparison_application.go",
             "internal/nexus/store/comparison.go",
             "internal/control/web/handlers_comparison.go",
             "web/src/features/work/ComparisonLabPanel.tsx"
           ],
           "testRefs": [
+            "internal/nexus/comparison_campaign_application_test.go",
+            "internal/nexus/store/comparison_campaigns_test.go",
+            "internal/control/web/handlers_comparison_test.go",
             "internal/nexus/comparison_application_test.go",
             "internal/nexus/store/comparison_test.go",
             "internal/control/web/handlers_comparison_test.go",
@@ -203,7 +215,7 @@
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "O comparador persistido registra testes, diffs, custos atribuídos (incluindo desconhecidos) e decisão humana one-way, sem aplicar merge. Evidência é snapshot imutável das integrações de duas execuções concluídas. Falta lançar campanhas A/B concorrentes pelo produto, demonstrar métricas completas de custo e homologar no app distribuído no SHA exato; capability pendente.",
+          "gap": "O comparador persistido registra testes, diffs, custos atribuídos (incluindo desconhecidos) e decisão humana one-way, sem aplicar merge. Campanhas agora ligam duas execuções à origem e variantes nomeadas. A cobertura automatizada ainda não demonstra chamadas reais a provider, métricas reais de custo nem experiência no app distribuído/SHA exato; capability pendente.",
           "assertionAudit": "partial"
         }
       ],

@@ -1,4 +1,12 @@
-## 2026-11-09 — Comparison Lab parcial
+## 2026-11-09 — Comparison Lab A/B — verificação corrente
+
+- PASS — `make quality-full`: format-check, ESLint (0 erros; seis warnings já existentes), Stylelint, TypeScript, build Web, 131 arquivos/829 testes, Go integral + race (Nexus 313,918 s; Store 104,206 s), version contract e `govulncheck` sem vulnerabilidades.
+- PASS — `make build`; `go test ./internal/nexus/store ./internal/nexus ./internal/control/web -run 'TestComparison' -count=1`; `npm --prefix web run format:check` e `npm --prefix web run typecheck`.
+- PASS — contrato v1 (48 capabilities pending), evidence map (96 critérios: 87 source+test, 9 source-only, 0 unmapped, 0 certificados), map tests 4/4, catálogo 36 e `git diff --check`.
+- BLOCKED — `make docs-verify`: manifest sintético é de `7a26a298…` e o guard aponta nove fontes de renderização alteradas. Não refazer captura sintética como evidência de aceite.
+- Limite — testes validam preparo, approvals, persistência/recovery sem run, dispatch boundary e comparação de run vinculada; não fazem provider call nem homologam execução paralela real/app distribuído. Comparison Lab e release continuam partial/NO_GO.
+
+## Histórico — Comparison Lab sem launcher A/B
 
 - PASS — testes de aplicação Nexus para workspaces gerenciadas, base comum, diff, status de testes, custos conhecidos/desconhecidos, snapshot imutável, decisão humana sem merge e ausência de alteração no checkout (`internal/nexus/comparison_application_test.go`).
 - PASS — persistência/decisão one-way na store e proteção de projeto/auth/CSRF nas rotas.

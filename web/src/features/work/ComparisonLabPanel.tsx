@@ -2,11 +2,12 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { GitCompareArrows, Scale } from 'lucide-react';
 import { Badge, Button, Card } from '../../design-system';
-import type { ComparisonLab, MissionRun } from '../../types';
+import type { ComparisonCampaign, ComparisonLab, MissionRun } from '../../types';
 import styles from './ComparisonLabPanel.module.scss';
 
 export const ComparisonLabPanel: React.FC<{
   runs: MissionRun[];
+  campaigns: ComparisonCampaign[];
   comparisons: ComparisonLab[];
   selectedRunIds: string[];
   selectedComparison: ComparisonLab | null;
@@ -19,6 +20,7 @@ export const ComparisonLabPanel: React.FC<{
   onDecide: (decision: 'SELECT_A' | 'SELECT_B' | 'REJECT_BOTH') => void;
 }> = ({
   runs,
+  campaigns,
   comparisons,
   selectedRunIds,
   selectedComparison,
@@ -36,14 +38,28 @@ export const ComparisonLabPanel: React.FC<{
       run.state === 'COMPLETED_VERIFIED' && run.delivery_integration && run.integrated_workspace,
   );
   const selectedRuns = selectedRunIds.map((id) => eligibleRuns.find((run) => run.id === id));
+  const first = selectedRuns[0];
+  const second = selectedRuns[1];
+  const sameCampaign = Boolean(
+    first &&
+    second &&
+    campaigns.some(
+      (campaign) =>
+        (campaign.run_a_id === first.id && campaign.run_b_id === second.id) ||
+        (campaign.run_a_id === second.id && campaign.run_b_id === first.id),
+    ),
+  );
   const compatibleSelection =
     selectedRuns.length === 2 &&
-    selectedRuns.every(Boolean) &&
-    selectedRuns[0]?.plan_id === selectedRuns[1]?.plan_id &&
-    selectedRuns[0]?.plan_revision === selectedRuns[1]?.plan_revision &&
-    selectedRuns[0]?.delivery_integration?.base_revision ===
-      selectedRuns[1]?.delivery_integration?.base_revision &&
-    selectedRuns[0]?.integrated_workspace !== selectedRuns[1]?.integrated_workspace;
+    Boolean(first && second) &&
+    Boolean(
+      first &&
+      second &&
+      ((first.plan_id === second.plan_id && first.plan_revision === second.plan_revision) ||
+        sameCampaign),
+    ) &&
+    first?.delivery_integration?.base_revision === second?.delivery_integration?.base_revision &&
+    first?.integrated_workspace !== second?.integrated_workspace;
   const formatMicroUSD = (value: number) =>
     new Intl.NumberFormat(undefined, {
       style: 'currency',
@@ -112,11 +128,14 @@ export const ComparisonLabPanel: React.FC<{
             ).map(([label, evidence]) => (
               <article className={styles.alternative} key={evidence.run_id}>
                 <header>
-                  <strong>{t('flow.comparisonAlternative', { label })}</strong>
+                  <strong>
+                    {evidence.variant_name || t('flow.comparisonAlternative', { label })}
+                  </strong>
                   <Badge tone={evidence.state === 'COMPLETED_VERIFIED' ? 'success' : 'warning'}>
                     {evidence.state}
                   </Badge>
                 </header>
+                {evidence.variant_instructions && <p>{evidence.variant_instructions}</p>}
                 <small>
                   {evidence.run_id} ·{' '}
                   {t('flow.comparisonBase', { revision: evidence.base_revision.slice(0, 10) })}

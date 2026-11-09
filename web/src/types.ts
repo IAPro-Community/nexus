@@ -1900,6 +1900,8 @@ export interface ComparisonCostEvidence {
 
 export interface ComparisonRunEvidence {
   run_id: string;
+  variant_name?: string;
+  variant_instructions?: string;
   state: string;
   base_revision: string;
   changed_files: string[];
@@ -1924,6 +1926,51 @@ export interface ComparisonLab {
   updated_at: string;
   run_a: ComparisonRunEvidence;
   run_b: ComparisonRunEvidence;
+}
+
+export interface ComparisonCampaign {
+  id: string;
+  project_id: string;
+  source_plan_id: string;
+  source_plan_revision: number;
+  base_revision: string;
+  variant_a_plan_id: string;
+  variant_b_plan_id: string;
+  variant_a_name: string;
+  variant_a_instructions: string;
+  variant_b_name: string;
+  variant_b_instructions: string;
+  run_a_id?: string;
+  run_b_id?: string;
+  state: 'PREPARED' | 'LAUNCHING' | 'RUNNING' | 'PARTIAL' | 'COMPLETED' | 'FAILED';
+  last_error?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ComparisonCampaignView {
+  campaign: ComparisonCampaign;
+  plan_a: WorkPlan;
+  plan_b: WorkPlan;
+  preview_a?: PlanExecutionPreview;
+  preview_b?: PlanExecutionPreview;
+  run_a?: MissionRun;
+  run_b?: MissionRun;
+}
+
+export interface CreateComparisonCampaignRequest {
+  project_id: string;
+  plan_id: string;
+  plan_revision: number;
+  variant_a: { name: string; instructions: string };
+  variant_b: { name: string; instructions: string };
+}
+
+export interface LaunchComparisonCampaignRequest {
+  approval_token_a: string;
+  cost_confirmation_token_a?: string;
+  approval_token_b: string;
+  cost_confirmation_token_b?: string;
 }
 
 export interface MissionResumeRequest {
