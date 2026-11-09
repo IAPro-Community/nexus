@@ -4,7 +4,7 @@
 - A API exige escopo de projeto e passa pelo middleware autenticado/CSRF. Workspaces precisam ser worktrees gerenciadas por Nexus e correspondentes às integrações registradas.
 - UI reutiliza Card/Button/Badge e o histórico do Flow Studio, traduz PT-BR/EN/ES e registra o anúncio/tour de descoberta do recurso.
 - Testes focados Go e Web passaram; `make quality-full` passou na árvore local: 131 arquivos Web/828 testes, Go integral + race, format/lint/version/security. `make build`, contrato 48, mapa (87 source+test, 9 source-only, 0 unmapped), catálogo 36, regressões do mapa 4/4 e `git diff --check` passaram.
-- `make docs-verify` segue bloqueado pelo guard visual: há mudanças frontend sem SHA commitado e o manifesto visual está vinculado ao código anterior. Nenhuma captura sintética foi promovida a evidência de homologação.
+- Commit/push do checkpoint: `a02c298a` para `origin/release/v1.0.0`. Após o push, `make docs-verify` continua BLOCKED porque as capturas/manifesto sintéticos ainda apontam para `7a26a298…` e o guard enumera nove fontes de renderização alteradas. Nenhuma captura sintética foi promovida a homologação; falta browser E2E visual real no SHA publicado.
 - Limite: as duas execuções são preparadas fora deste fluxo e já precisam estar concluídas. Falta criar e rodar alternativas A/B concorrentes, validar visualmente no app distribuído no SHA exato e manter a capability pending. Estado global **NO_GO**.
 
 ## 2026-11-09 — Maestro: descoberta de CLI contratual no PATH
