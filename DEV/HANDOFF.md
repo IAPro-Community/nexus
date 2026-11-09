@@ -1,11 +1,12 @@
 ## Recheck do handoff — E2E `follow-agent` — 2026-11-08
 
-- Estado antes deste commit: branch `release/v1.0.0@104089c0`, sincronizada com `origin`; a regressão P0 A3 e a proveniência da resposta estão locais. Substituir pelo SHA após push.
+- Último push confirmado: branch `release/v1.0.0@c850f40e`, sincronizada com `origin`. O commit `fix(agents): preserve correlated response provenance` integra a regressão ACP subprocesso → Bridge → SessionHost → Registry e preserva `SIGNALLED` para resposta local, `AUTHORITATIVE` para lifecycle/settlement.
 - A lacuna “criar E2E integrado de UI/WebSocket” foi parcialmente reduzida: `npm --prefix web run test:e2e:agent-terminal-follow` passou contra servidor fixture/API real do Nexus, Agent persistido, AgentTerminal e xterm. Cobre attach VIEW_ONLY sem lease, pausa/resume, tecla sem lease, aquisição explícita, input em CONTROL e revoke/reconnect sem reacquire.
 - Limite: WebSocket provider foi simulado via Playwright. Ainda falta exercitar broker/host real e validar o app distribuído no SHA final com inspeção humana da UX. `follow-agent` permanece `partial` / `verification: pending`.
 - PASS — `make quality-full`: Web 131 arquivos/823 testes, Go completo + race/security, format/lint/type/style/build e version-contract; seis avisos ESLint existentes, zero erros, govulncheck sem vulnerabilidades.
 - PASS — `node --test scripts/verify-agent-workspace-evidence-map.test.mjs` (4/4); mapa (48 capacidades/96 critérios; 86 source+test, 9 source-only, 1 unmapped; zero certificados); `make docs-verify` (245 Markdown/33 assets); `git diff --check`.
 - E2E `follow-agent` passou no HEAD `104089c0`; artefatos Playwright: `/tmp/nexus-follow-agent-e2e`.
+- Próxima ação A3: cobrir o fluxo API/UI do GlobalAttentionRadar até o foco no runtime exato, depois validar provider externo e app distribuído no SHA publicado.
 - Pendências gerais: A1/A2/A3/A4 parciais; AGY tem 1/2 contas elegíveis com janela 5h atual; Nexus preinstalado ainda não valida os contratos Maestro v1; 48/48 capacidades seguem pending, com auditoria semântica e gates exact-SHA, visual, plataformas, assinatura e distribuição abertos. Estado **NO_GO**.
 
 ## P0 A3 — subprocesso ACP até Registry, ACK e isolamento — 2026-11-08
@@ -14,7 +15,7 @@
 - Duas runtimes recebem `session/request_permission` com mesmo título e `req-1`; o Registry preserva runtime/projeto, origem `AUTHORITATIVE`, fingerprint, revisão, interaction ID e generation distinta.
 - A resposta explícita `/permit` marca só Alpha como `SIGNALLED`/`SUBMITTED`/`working` (não concluída); lifecycle ACP e `end_turn` conservam proveniência `AUTHORITATIVE`, e `end_turn` resolve apenas Alpha. Beta permanece `needs_user`/`AUTHORITATIVE` com o mesmo interaction ID.
 - PASS — teste focal, pacote host/agentwire, `go test -race` x10 e `go vet` após a correção de proveniência.
-- PASS — `make quality-full` final, validadores 48-capabilities/mapa e `make docs-verify`: 131/823 Web; Go completo + race/security, lint 0 issues, 6 avisos ESLint/0 erros; mapa 48/96, 86 source+test, 9 source-only, 1 unmapped, zero certificados; docs 245 Markdown/33 assets.
+- PASS no conteúdo de `c850f40e` — `make quality-full` final, validadores 48-capabilities/mapa e `make docs-verify`: 131/823 Web; Go completo + race/security, lint 0 issues, 6 avisos ESLint/0 erros; mapa 48/96, 86 source+test, 9 source-only, 1 unmapped, zero certificados; docs 245 Markdown/33 assets.
 - Limite: provider é um subprocesso fixture do protocolo ACP; ainda falta E2E de API/UI GlobalAttentionRadar até foco no runtime exato, provider real e candidato publicado. A3 continua partial/pending; nenhum aceite foi promovido.
 
 ## Continuação — `follow-agent` com pausa explícita — 2026-11-08

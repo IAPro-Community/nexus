@@ -2,7 +2,7 @@
 
 - Implementada regressão subprocesso ACP → Bridge → SessionHost → Registry para runtime e interaction ID, proveniência/generation (`AUTHORITATIVE` para lifecycle, `SIGNALLED` para resposta local), resposta `SUBMITTED`/working sem completion e resolução isolada de duas perguntas idênticas. Teste focal, race x10, vet e gates completos passaram no estado corrigido.
 - Restam UI/API GlobalAttentionRadar até foco no runtime certo, validação provider real e exact-SHA publicado. A3 e capability continuam partial/pending; objetivo completo de 48 capabilities e GO permanece ativo.
-- Alteração está em worktree sobre `release/v1.0.0@104089c0`; conferir review e quality gates antes de commit/push.
+- Código integrado em `release/v1.0.0@c850f40e`, commit e push sincronizados. Próximo: API/UI GlobalAttentionRadar até o foco no runtime certo, sem promover A3/capability até provider e homologação de app publicado.
 
 ### Recheck `follow-agent` — 2026-11-08
 
