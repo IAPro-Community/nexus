@@ -3,10 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { History, Layers, Play, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
 import { Badge, Button, Card, ConfirmDialog, EmptyState, Spinner } from '../../design-system';
 import { nexusApi } from '../../nexus/api';
-import type { MissionRun, Project, WorkPlan, Agent } from '../../types';
+import type { ComparisonLab, MissionRun, Project, WorkPlan, Agent } from '../../types';
 import { asArray } from '../../lib/safeArray';
 import { flowRunStateFromMission } from './flowRunModel';
 import { FlowDraftEditor } from './FlowDraftEditor';
+import { ComparisonLabPanel } from './ComparisonLabPanel';
 import { FeatureTour } from './FeatureTour';
 import { FLOW_DRAFT_KEY } from './WorkSurface';
 import styles from './FlowRunsHistorySurface.module.scss';
@@ -52,6 +53,12 @@ export const FlowRunsHistorySurface: React.FC<{
   const [creating, setCreating] = useState(false);
   const [planToDelete, setPlanToDelete] = useState<WorkPlan | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [comparisons, setComparisons] = useState<ComparisonLab[]>([]);
+  const [selectedComparison, setSelectedComparison] = useState<ComparisonLab | null>(null);
+  const [selectedRunIds, setSelectedRunIds] = useState<string[]>([]);
+  const [comparisonReason, setComparisonReason] = useState('');
+  const [comparisonBusy, setComparisonBusy] = useState(false);
+  const [comparisonError, setComparisonError] = useState('');
 
   const loadSeqRef = React.useRef(0);
   const load = useCallback(async () => {
@@ -61,9 +68,10 @@ export const FlowRunsHistorySurface: React.FC<{
     setError('');
     setRunLoadError('');
     try {
-      const [runResult, planResult] = await Promise.allSettled([
+      const [runResult, planResult, comparisonResult] = await Promise.allSettled([
         nexusApi.getRuns(),
         nexusApi.getPlans(project.id),
+        nexusApi.getComparisons(project.id),
       ]);
       if (!isLatest()) return;
       if (planResult.status === 'rejected') throw planResult.reason;
@@ -76,6 +84,12 @@ export const FlowRunsHistorySurface: React.FC<{
             'Não foi possível consultar as Missions. O histórico pode estar incompleto; tente atualizar.',
           ),
         );
+      }
+      if (comparisonResult.status === 'fulfilled') {
+        setComparisons(asArray(comparisonResult.value));
+        setComparisonError('');
+      } else {
+        setComparisonError(t('flow.comparisonLoadError'));
       }
       const nextRuns = asArray(runList).filter((run): run is MissionRun => {
         const item = run as MissionRun;
@@ -120,6 +134,61 @@ export const FlowRunsHistorySurface: React.FC<{
       if (isLatest()) setLoading(false);
     }
   }, [project.id, t]);
+
+  const toggleComparisonRun = (runId: string) => {
+    setSelectedRunIds((current) =>
+      current.includes(runId)
+        ? current.filter((id) => id !== runId)
+        : current.length < 2
+          ? [...current, runId]
+          : current,
+    );
+    setComparisonError('');
+  };
+
+  const createComparison = async () => {
+    if (selectedRunIds.length !== 2 || comparisonBusy) return;
+    setComparisonBusy(true);
+    setComparisonError('');
+    try {
+      const comparison = await nexusApi.createComparison(
+        project.id,
+        selectedRunIds[0],
+        selectedRunIds[1],
+      );
+      setComparisons((current) => [
+        comparison,
+        ...current.filter((item) => item.id !== comparison.id),
+      ]);
+      setSelectedComparison(comparison);
+      setComparisonReason('');
+      setSelectedRunIds([]);
+    } catch (reason) {
+      setComparisonError(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      setComparisonBusy(false);
+    }
+  };
+
+  const decideComparison = async (decision: 'SELECT_A' | 'SELECT_B' | 'REJECT_BOTH') => {
+    if (!selectedComparison || !comparisonReason.trim() || comparisonBusy) return;
+    setComparisonBusy(true);
+    setComparisonError('');
+    try {
+      const updated = await nexusApi.decideComparison(
+        selectedComparison.id,
+        decision,
+        comparisonReason.trim(),
+      );
+      setSelectedComparison(updated);
+      setComparisons((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      setComparisonReason('');
+    } catch (reason) {
+      setComparisonError(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      setComparisonBusy(false);
+    }
+  };
 
   useEffect(() => {
     void load();
@@ -445,43 +514,83 @@ export const FlowRunsHistorySurface: React.FC<{
       )}
 
       {track === 'runs' && !runLoadError && (
-        <div className={styles.runsList}>
-          {sorted.map((run) => {
-            const state = flowRunStateFromMission(run.state || '');
-            const plan = plans.find((item) => item.id === run.plan_id);
-            return (
-              <Card key={run.id} className="nx-flow-run-history-card">
-                <button type="button" onClick={() => onOpenRun(run)} className={styles.runButton}>
-                  <div className={styles.runInfo}>
-                    <strong className={styles.runTitle}>
-                      <History size={14} />
-                      {plan?.title ||
-                        plan?.description ||
-                        t('flow.runFallback', 'Execução · {{id}}', {
-                          id: (run.id || '').slice(-8),
-                        })}
-                    </strong>
-                    <small className={styles.runMeta}>
-                      {run.started_at || t('flow.noTime', 'sem horário')} · plano{' '}
-                      {(run.plan_id || '').slice(-6) || '—'}
-                    </small>
+        <>
+          <div className={styles.runsList}>
+            {sorted.map((run) => {
+              const state = flowRunStateFromMission(run.state || '');
+              const plan = plans.find((item) => item.id === run.plan_id);
+              return (
+                <Card key={run.id} className="nx-flow-run-history-card">
+                  <div className={styles.historyRow}>
+                    <button
+                      type="button"
+                      onClick={() => onOpenRun(run)}
+                      className={styles.runButton}
+                    >
+                      <div className={styles.runInfo}>
+                        <strong className={styles.runTitle}>
+                          <History size={14} />
+                          {plan?.title ||
+                            plan?.description ||
+                            t('flow.runFallback', 'Execução · {{id}}', {
+                              id: (run.id || '').slice(-8),
+                            })}
+                        </strong>
+                        <small className={styles.runMeta}>
+                          {run.started_at || t('flow.noTime', 'sem horário')} · plano{' '}
+                          {(run.plan_id || '').slice(-6) || '—'}
+                        </small>
+                      </div>
+                      <Badge
+                        tone={
+                          state === 'COMPLETED'
+                            ? 'success'
+                            : state === 'FAILED' || state === 'CANCELED'
+                              ? 'danger'
+                              : 'brand'
+                        }
+                      >
+                        {t(`flow.state.${state}`, state)}
+                      </Badge>
+                    </button>
+                    {run.state === 'COMPLETED_VERIFIED' &&
+                      run.delivery_integration &&
+                      run.integrated_workspace && (
+                        <label className={styles.compareRun}>
+                          <input
+                            type="checkbox"
+                            checked={selectedRunIds.includes(run.id)}
+                            disabled={
+                              comparisonBusy ||
+                              (!selectedRunIds.includes(run.id) && selectedRunIds.length >= 2)
+                            }
+                            onChange={() => toggleComparisonRun(run.id)}
+                          />
+                          {t('flow.comparisonSelectRun')}
+                        </label>
+                      )}
                   </div>
-                  <Badge
-                    tone={
-                      state === 'COMPLETED'
-                        ? 'success'
-                        : state === 'FAILED' || state === 'CANCELED'
-                          ? 'danger'
-                          : 'brand'
-                    }
-                  >
-                    {t(`flow.state.${state}`, state)}
-                  </Badge>
-                </button>
-              </Card>
-            );
-          })}
-        </div>
+                </Card>
+              );
+            })}
+          </div>
+          <ComparisonLabPanel
+            runs={runs}
+            comparisons={comparisons}
+            selectedRunIds={selectedRunIds}
+            selectedComparison={selectedComparison}
+            reason={comparisonReason}
+            busy={comparisonBusy}
+            error={comparisonError}
+            onCompare={() => void createComparison()}
+            onSelectComparison={(comparison) => {
+              setSelectedComparison(comparison);
+              setComparisonReason('');
+            }}
+            onReasonChange={setComparisonReason}
+            onDecide={(decision) => void decideComparison(decision)}
+          />
+        </>
       )}
     </div>
   );

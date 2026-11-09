@@ -739,6 +739,24 @@ export const nexus = {
       }),
     }),
   getRuns: () => request<import('../types').MissionRun[]>('/api/v1/runs'),
+  getComparisons: (projectId: string) =>
+    request<import('../types').ComparisonLab[]>(
+      `/api/v1/comparisons?project_id=${encodeURIComponent(projectId)}`,
+    ),
+  createComparison: (projectId: string, runAId: string, runBId: string) =>
+    request<import('../types').ComparisonLab>('/api/v1/comparisons', {
+      method: 'POST',
+      body: JSON.stringify({ project_id: projectId, run_a_id: runAId, run_b_id: runBId }),
+    }),
+  decideComparison: (
+    comparisonId: string,
+    decision: 'SELECT_A' | 'SELECT_B' | 'REJECT_BOTH',
+    reason: string,
+  ) =>
+    request<import('../types').ComparisonLab>(
+      `/api/v1/comparisons/${encodeURIComponent(comparisonId)}/decision`,
+      { method: 'POST', body: JSON.stringify({ decision, reason }) },
+    ),
   getRun: (runId: string) => request<import('../types').MissionRun>(`/api/v1/runs/${runId}`),
   requestMissionPlanningReview: (runId: string, reason: string) =>
     request<import('../types').ComposerSessionView>(`/api/v1/runs/${runId}/planning-review`, {

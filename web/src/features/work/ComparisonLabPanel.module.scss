@@ -1,0 +1,199 @@
+.panel {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.header,
+.heading,
+.decisionActions,
+.savedComparisons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.heading {
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.heading h2,
+.comparison h3 {
+  margin: 0;
+  font-size: var(--nx-font-size-md);
+}
+
+.heading p,
+.notice,
+.comparison p,
+.decisionRecorded {
+  margin: 4px 0 0;
+  color: var(--nx-muted);
+  font-size: var(--nx-font-size-sm);
+}
+
+.notice {
+  padding: 8px 10px;
+  border-inline-start: 3px solid var(--nx-info);
+  background: var(--nx-surface-2);
+}
+
+.selectionHint,
+.alternative > small {
+  color: var(--nx-muted);
+  font-size: var(--nx-font-size-xs);
+}
+
+.selectionHint {
+  margin: 0;
+}
+
+.savedComparisons {
+  justify-content: flex-start;
+  padding-block: 4px;
+  border-block: 1px solid var(--nx-border);
+}
+
+.savedComparisons > strong {
+  margin-inline-end: 4px;
+  font-size: var(--nx-font-size-sm);
+}
+
+.comparison {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.alternative {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-surface);
+}
+
+.alternative header,
+.alternative li,
+.alternative dl > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.alternative h4 {
+  margin: 6px 0 0;
+  font-size: var(--nx-font-size-sm);
+}
+
+.alternative ul {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding-inline-start: 18px;
+}
+
+.alternative li {
+  align-items: flex-start;
+  overflow-wrap: anywhere;
+  font-size: var(--nx-font-size-xs);
+}
+
+.alternative li[data-passed='false'] {
+  color: var(--nx-danger);
+}
+
+.files code {
+  overflow-wrap: anywhere;
+}
+
+.alternative pre {
+  max-height: 280px;
+  overflow: auto;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface-2);
+  color: var(--nx-text);
+  font-size: var(--nx-font-size-xs);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.alternative dl {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  font-size: var(--nx-font-size-xs);
+}
+
+.alternative dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.decision {
+  display: grid;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--nx-border);
+}
+
+.decision label {
+  font-size: var(--nx-font-size-sm);
+  font-weight: 600;
+}
+
+.decision textarea {
+  min-height: 74px;
+  resize: vertical;
+  padding: 8px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface);
+  color: var(--nx-text);
+  font: inherit;
+}
+
+.decisionActions {
+  justify-content: flex-start;
+}
+
+.decision p {
+  margin: 0;
+}
+
+.decisionRecorded {
+  padding: 8px 10px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+}
+
+.error {
+  margin: 0;
+  color: var(--nx-danger);
+}
+
+@media (max-width: 820px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .header {
+    align-items: stretch;
+  }
+}

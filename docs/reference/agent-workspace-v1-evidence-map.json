@@ -171,26 +171,39 @@
           "acceptanceIndex": 0,
           "acceptance": "Duas alternativas paralelas com worktrees e execução isolados",
           "sourceRefs": [
+            "internal/nexus/comparison_application.go",
             "internal/nexus/mission_executor.go",
-            "internal/nexus/mission_integration.go"
+            "internal/nexus/mission_integration.go",
+            "web/src/features/work/ComparisonLabPanel.tsx"
           ],
           "testRefs": [
+            "internal/nexus/comparison_application_test.go",
             "internal/nexus/worktree_test.go",
             "internal/nexus/mission_integration_test.go"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Auditoria parcial: worktree_test.go cobre workspace isolada de um Agent; mission_integration_test.go cobre integração de pacotes em worktrees paralelas e rejeição de conflito. Isso não cria duas alternativas concorrentes comparáveis; Mission paralela com dependências não é Comparison Lab. Falta fluxo de alternativa A/B com execução isolada e seleção humana. Capability pendente.",
+          "gap": "Auditoria parcial: worktree_test.go cobre workspace isolada de um Agent; mission_integration_test.go cobre integração de pacotes em worktrees paralelas e rejeição de conflito. O Comparison Lab implementado compara duas execuções já concluídas do mesmo plano/revisão/base, com workspaces separadas e escolha humana; ainda não cria nem executa alternativas A/B em paralelo. Capability pendente.",
           "assertionAudit": "partial"
         },
         {
           "acceptanceIndex": 1,
           "acceptance": "Comparador de testes/diffs/custo e decisão humana sem merge automático",
-          "sourceRefs": [],
-          "testRefs": [],
-          "mappingStatus": "unmapped",
+          "sourceRefs": [
+            "internal/nexus/comparison_application.go",
+            "internal/nexus/store/comparison.go",
+            "internal/control/web/handlers_comparison.go",
+            "web/src/features/work/ComparisonLabPanel.tsx"
+          ],
+          "testRefs": [
+            "internal/nexus/comparison_application_test.go",
+            "internal/nexus/store/comparison_test.go",
+            "internal/control/web/handlers_comparison_test.go",
+            "web/src/nexus/api.test.ts"
+          ],
+          "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Sem implementação localizada: não há comparador de resultados reais de teste, diff e custo entre alternativas nem decisão humana no produto. O pipeline de Mission pode integrar automaticamente pacotes verificados; isso não satisfaz o aceite de não fazer merge automático. Capability pendente.",
+          "gap": "O comparador persistido registra testes, diffs, custos atribuídos (incluindo desconhecidos) e decisão humana one-way, sem aplicar merge. Evidência é snapshot imutável das integrações de duas execuções concluídas. Falta lançar campanhas A/B concorrentes pelo produto, demonstrar métricas completas de custo e homologar no app distribuído no SHA exato; capability pendente.",
           "assertionAudit": "partial"
         }
       ],

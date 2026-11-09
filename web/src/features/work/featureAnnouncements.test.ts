@@ -20,6 +20,7 @@ const sourcePaths = [
   'FlowRunsHistorySurface.tsx',
   'FlowDraftEditor.tsx',
   'FlowRunSurface.tsx',
+  'ComparisonLabPanel.tsx',
   '../usage/UsageSurface.tsx',
   '../../nexus/AgentTerminal.tsx',
   '../../components/AttentionNotificationCard.tsx',

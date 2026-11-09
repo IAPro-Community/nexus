@@ -84,6 +84,16 @@ export const featureAnnouncements: readonly FeatureAnnouncement[] = [
     tourStep: 'status',
   },
   {
+    id: 'flow-comparison-lab',
+    revision: 1,
+    surfaces: ['flow-library'],
+    openSurface: 'missions',
+    target: '[data-tour="flow-comparison-lab"]',
+    title: 'discovery.flowComparisonTitle',
+    summary: 'discovery.flowComparisonBody',
+    tourStep: 'comparison',
+  },
+  {
     id: 'provider-host-session-connect',
     revision: 1,
     surfaces: ['resources'],

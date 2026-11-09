@@ -96,6 +96,41 @@ describe('nexus API request errors', () => {
     expect(init.headers.get('X-CSRF-Token')).toBe('nexus-shared-csrf');
   });
 
+  it('scopes comparison listing to a project and sends run IDs for creation', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([]),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await nexusApi.getComparisons('project / one');
+    await nexusApi.createComparison('project-1', 'run-a', 'run-b');
+
+    expect(fetchMock.mock.calls[0][0]).toContain('project_id=project%20%2F%20one');
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/v1/comparisons');
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({
+      project_id: 'project-1',
+      run_a_id: 'run-a',
+      run_b_id: 'run-b',
+    });
+  });
+
+  it('submits an explicit human comparison decision and rationale', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ decision: 'SELECT_A' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await nexusApi.decideComparison('comparison/1', 'SELECT_A', 'A passed all checks');
+
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/comparisons/comparison%2F1/decision');
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      decision: 'SELECT_A',
+      reason: 'A passed all checks',
+    });
+  });
+
   it('forwards Composer AbortSignal to the active turn request', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

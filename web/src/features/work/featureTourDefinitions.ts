@@ -100,6 +100,12 @@ export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
       title: 'tour.flowDraftsTitle',
       body: 'tour.flowDraftsBody',
     },
+    {
+      id: 'comparison',
+      target: '[data-tour="flow-comparison-lab"]',
+      title: 'tour.flowComparisonTitle',
+      body: 'tour.flowComparisonBody',
+    },
   ],
   'flow-run': [
     {

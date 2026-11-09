@@ -1,3 +1,11 @@
+## Checkpoint ativo — 2026-11-09 — Comparison Lab parcial
+
+- Foi implementada comparação persistida de duas execuções concluídas compatíveis (mesmo projeto/plano/revisão/base), com diffs, resultados de testes/verificação, custos atribuídos ou desconhecidos e decisão humana irreversível. A operação não aplica código nem faz merge.
+- Validação de workspaces Nexus, evidência snapshot imutável e proteção HTTP/auth/CSRF foram cobertas por testes. UI foi integrada ao histórico existente do Flow Studio, com i18n PT-BR/EN/ES e Product Tour.
+- Limite: ainda não há criação/execução concorrente de duas alternativas A/B. Comparison Lab e capacidade permanecem parciais; E2E visual no SHA distribuído ainda pendente.
+- Pendências globais seguem: P0 A1–A4, cancelamento real A2 sem órfãos, provider real aplicável A3/A4, AGY 2/2 contas elegíveis + rotação demonstrada, artefato final Maestro/plataformas/assinatura, auditoria e evidência dos 96 critérios/48 capacidades.
+- Estado: **NO_GO**. Registro detalhado: [Comparison Lab](../validation/current/comparison-lab/README.md). Discovery frontend: [FRONTEND-DISCOVERY](../validation/current/comparison-lab/FRONTEND-DISCOVERY.json).
+
 ## Checkpoint ativo — 2026-11-09
 
 - AGY refresh com escopo real confirmado: 2 contas, 1/2 elegíveis a 5h estrita. Captura sanitizada atualizada sem geração; live round-robin continua pendente.

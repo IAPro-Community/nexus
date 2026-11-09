@@ -1,3 +1,12 @@
+## 2026-11-09 — Comparison Lab parcial
+
+- PASS — testes de aplicação Nexus para workspaces gerenciadas, base comum, diff, status de testes, custos conhecidos/desconhecidos, snapshot imutável, decisão humana sem merge e ausência de alteração no checkout (`internal/nexus/comparison_application_test.go`).
+- PASS — persistência/decisão one-way na store e proteção de projeto/auth/CSRF nas rotas.
+- PASS — testes API/Feature Announcement/Tour Anchor, TypeScript, Stylelint e ESLint dos arquivos alterados; `make quality-full` passou (Web 131/828, Go integral + race, lint/format/version/security). Nenhum erro novo de lint; 6 warnings ESLint preexistentes.
+- PASS — `make build`; validadores de contrato 48, mapa (87 source+test/9 source-only/0 unmapped, zero certificados), catálogo 36, regressões do mapa 4/4 e `git diff --check`.
+- BLOCKED — `make docs-verify`: o manifest visual considera as alterações frontend locais não commitadas incompatíveis com o SHA vigente. Capturas sintéticas não serão usadas para liberar essa trava; precisa SHA congelado e evidência visual correspondente.
+- Não cobre criação/execução paralela A/B, provider real, UX no artefato distribuído/SHA exato, nem aceite de capability. NO_GO mantido.
+
 ## AGY `:balance` — refresh read-only — 2026-11-09
 
 - `NEXUS_REAL_HOME=/home/desenvolvedor nexus usage --refresh --json` consultou as duas contas sem enviar prompt. Snapshots recentes `CACHED/CLI_OUTPUT`; nenhuma geração executada.

@@ -1881,6 +1881,51 @@ export interface MissionRun {
   coordination_requests?: CoordinationRequest[];
 }
 
+export interface ComparisonCheck {
+  name: string;
+  passed: boolean;
+  exit_code: number;
+  duration_ms: number;
+}
+
+export interface ComparisonCostEvidence {
+  observation_count: number;
+  known_cost_observations: number;
+  unknown_cost_observations: number;
+  provider_reported_microusd: number;
+  api_equivalent_microusd: number;
+  inferred_microusd: number;
+  unclassified_microusd: number;
+}
+
+export interface ComparisonRunEvidence {
+  run_id: string;
+  state: string;
+  base_revision: string;
+  changed_files: string[];
+  diff: string;
+  diff_truncated: boolean;
+  checks: ComparisonCheck[];
+  cost: ComparisonCostEvidence;
+  cost_evidence_status: 'COMPLETE' | 'PARTIAL' | 'UNKNOWN';
+}
+
+export interface ComparisonLab {
+  id: string;
+  project_id: string;
+  plan_id: string;
+  plan_revision: number;
+  run_a_id: string;
+  run_b_id: string;
+  decision: 'PENDING' | 'SELECT_A' | 'SELECT_B' | 'REJECT_BOTH';
+  decision_reason?: string;
+  decided_at?: string;
+  created_at: string;
+  updated_at: string;
+  run_a: ComparisonRunEvidence;
+  run_b: ComparisonRunEvidence;
+}
+
 export interface MissionResumeRequest {
   id: string;
   idempotency_key: string;

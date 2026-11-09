@@ -1,0 +1,27 @@
+{
+  "inspectedAt": "2026-11-09",
+  "intent": {
+    "intent": "CREATE",
+    "posture": "EVOLVE",
+    "creativity": "medium",
+    "request": "crie o Comparison Lab no Flow Studio"
+  },
+  "applicationDesignProfile": {
+    "status": "not-configured",
+    "decision": "Preserve the existing Flow Studio and Nexus design language."
+  },
+  "designSystem": {
+    "status": "resolved",
+    "provider": "Nexus local design system",
+    "source": "web/src/design-system",
+    "confidence": 0.95,
+    "evidence": [
+      "Project AGENTS.md requires reuse of web/src/design-system before new UI primitives.",
+      "docs/engineering/WEB_ENGINEERING_STANDARDS.md documents the local SCSS Modules and design-token contract.",
+      "web/src/design-system/README.md documents Card, Button, Badge, semantic tokens, and existing interaction foundations.",
+      "ComparisonLabPanel imports Card, Button, and Badge from the existing design system."
+    ],
+    "resolverNote": "The discovery script reported ambiguous because it counted the relative alias @../design-system twice. Direct project instructions, public exports, and local usage resolve the provider without choosing a new design system."
+  },
+  "baseline": "Evolve the existing Flow Studio run history; retain its navigation, tokens, and responsive layout."
+}

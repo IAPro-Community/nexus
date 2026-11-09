@@ -1,3 +1,22 @@
+## Recheck do handoff — Comparison Lab parcial — 2026-11-09
+
+- Árvore em `release/v1.0.0`, com mudanças locais ainda não commitadas. Comparison Lab acrescentado ao Flow Studio para comparar duas execuções já concluídas do mesmo plano/revisão/base: diffs, estado de testes/verificação, custo atribuído/desconhecido e decisão humana persistida, sem aplicar patch ou merge automático. A evidência fica em snapshot imutável e a decisão é one-way.
+- O serviço valida integração e worktrees Nexus distintas/gerenciadas; API autenticada/CSRF, store e UI têm cobertura. A UI reutiliza componentes Nexus, i18n PT-BR/EN/ES e tour existente.
+- PASS na árvore local: testes direcionados da aplicação/store/rotas e Web/API; `make quality-full` (131 arquivos Web/828 testes, Go completo + race, format/lint/version/security; seis warnings ESLint anteriores, zero erros); `make build`; contrato 48, mapa, catálogo 36 e teste do verificador do mapa (4/4); `git diff --check`.
+- `make docs-verify` ainda falha porque o gate visual rejeita alterações frontend não commitadas no manifesto ligado ao SHA `7a26a298…`. Não renovar capturas sintéticas nem tratar isso como homologação; executar a validação visual após congelar o SHA e atualizar evidência real. Relatório: [Comparison Lab](validation/current/comparison-lab/README.md).
+- Comparison Lab NÃO está concluído: não cria nem inicia duas alternativas A/B concorrentes e não tem E2E visual no app distribuído/SHA exato. O mapa permanece com zero aceites certificados e a capability `verification: pending`.
+
+### O que ainda falta para GO — confirmado no handoff local
+
+1. **P0 A1–A4:** fechar cada aceite, não apenas referências. A2 requer perfis reais e cancelamento durante execução autenticada sem Agent/PTY órfão. A3/A4 precisam provider real aplicável, UX/segurança e validação no app distribuído no SHA final.
+2. **Comparison Lab:** criar e executar duas alternativas paralelas/isoladas do mesmo plano; comparar resultados de teste, diff e custo com proveniência suficiente; capturar escolha humana; provar que não ocorre merge/aplicação automática.
+3. **AGY `:balance`/`:auto`:** hoje há 2 contas registradas, porém somente 1/2 tem quotas 5h atribuíveis e recentes em todos os grupos requeridos. Falta elegibilidade real da outra conta e rotação live entre ambas. Não provocar geração para forçar quota.
+4. **Nexus ↔ Maestro:** smoke da CLI e binário Linux de perfil passaram em `deaf2802`, mas faltam artefato oficial final, matriz de outras plataformas, assinatura e instalação/smoke do candidato distribuído no SHA de release.
+5. **48 capacidades / 96 critérios:** auditar as assertions de cada critério, implementar/cobrir os gaps e obter evidência de aceitação no SHA exato. Mapa agora tem 87 critérios com source+test e 9 source-only; nenhum certificado. Referência estrutural não equivale a homologação.
+6. **Release e UX:** resolver gates de plataformas, assinatura, experiência real no app distribuído e manifests visuais correspondentes ao SHA final. Só então recalcular e decidir GO/NO_GO com evidência verificável.
+
+**Estado continua NO_GO.** Nenhuma dessas pendências deve ser marcada concluída por fixture, lint, build ou mapa estrutural.
+
 ## Checkpoint atual — P0 A4 choice estruturado — 2026-11-09
 
 - Maestro local: descobri e corrigi seleção errada de CLI. O PATH tinha `orquestrador-maestro` Node 22/24 antes do alias `maestro` Node 20; o shim antigo retornava `Comando desconhecido: capabilities`, deixando Nexus degradado embora a CLI contratual estivesse instalada. Nexus agora prefere `maestro`. Regressão da precedência passou; `NEXUS_MAESTRO_CLI_TEST_PATH=/home/desenvolvedor/.local/bin/maestro go test ./internal/nexus -run '^TestMaestroCLIContractInterop$' -count=1 -v` PASS. Build `deaf2802` foi instalado em `/home/desenvolvedor/.local/bin/nexus` após backup `nexus.backup.40d479bb`; hashes do build/instalado coincidem (`107ac2d7…`). O binário instalado reporta `available=true`, `ASSIST`, versão 1.1.0 e advice/verification 1.0.0. Restam artefato final de distribuição, outras plataformas e assinatura.

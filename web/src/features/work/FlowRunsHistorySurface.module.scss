@@ -173,6 +173,35 @@
   min-height: 44px;
 }
 
+.historyRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.historyRow .runButton {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.compareRun {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding-inline: 8px;
+  color: var(--nx-muted);
+  font-size: var(--nx-font-size-xs);
+  cursor: pointer;
+}
+
+.compareRun input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--nx-accent);
+}
+
 .runButton:focus-visible {
   outline: 2px solid var(--nx-accent);
   outline-offset: 2px;
@@ -236,6 +265,19 @@
 
   .planRow .runButton {
     flex-basis: 100%;
+  }
+
+  .historyRow {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .historyRow .runButton {
+    flex-basis: 100%;
+  }
+
+  .compareRun {
+    padding-inline: 8px;
   }
 
   .deletePlanAction {

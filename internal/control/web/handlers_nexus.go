@@ -28,6 +28,7 @@ type NexusHandler struct {
 	plans                 *nexus.PlanApplicationService
 	composer              *nexus.ComposerApplicationService
 	runs                  *nexus.RunApplicationService
+	comparisons           *nexus.ComparisonApplicationService
 	hud                   *nexus.HUDApplicationService
 	voice                 *voice.Service
 	hostFilesystemEnabled bool
@@ -107,6 +108,7 @@ func NewNexusHandler(auth *AuthManager) *NexusHandler {
 		plans:                 nexus.NewPlanApplicationService(n),
 		composer:              nexus.NewComposerApplicationService(n),
 		runs:                  nexus.NewRunApplicationService(n),
+		comparisons:           nexus.NewComparisonApplicationService(n),
 		hud:                   nexus.NewHUDApplicationService(n),
 		voice:                 voice.NewService(),
 		hostFilesystemEnabled: true,

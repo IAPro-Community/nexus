@@ -91,6 +91,8 @@ func registerMissionRoutes(mux *http.ServeMux, deps routeDependencies) {
 	s, h := deps.server, deps.nexusHandler
 	mux.HandleFunc("/api/v1/runs", s.authMiddleware(h.handleRunsList))
 	mux.HandleFunc("/api/v1/runs/", s.routeRun(h))
+	mux.HandleFunc("/api/v1/comparisons", s.authMiddleware(h.handleComparisons))
+	mux.HandleFunc("/api/v1/comparisons/", s.authMiddleware(h.handleComparisonDetail))
 	mux.HandleFunc("/api/v1/schedules", s.authMiddleware(h.handleMissionSchedules))
 	mux.HandleFunc("/api/v1/attention", s.authMiddleware(h.handleAttentionCenter))
 }
