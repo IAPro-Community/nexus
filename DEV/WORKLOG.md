@@ -1,3 +1,10 @@
+## 2026-11-09 — A2: cancelamento autenticado e cleanup de runtime
+
+- Acrescentei `TestAuthenticatedAgentCancellationStopsRuntimeWithoutOrphan` em `internal/control/web/handlers_nexus_test.go`. O teste usa cliente autenticado com CSRF, SessionHost real em modo standalone e o driver de diagnóstico fake; chama o endpoint de stop e verifica Agent `STOPPED`, geração com `StoppedAt` e runtime ausente/inativa no Registry.
+- O teste evita uso de provider/conta externa e cobre o barrier de parada da API real. Uma primeira tentativa pelo endpoint `/start` mostrou que o binário de teste não executa o host detached; o teste foi ajustado para iniciar em standalone pelo mesmo launcher de produção e manter o cancelamento no HTTP autenticado.
+- PASS — teste focal `go test ./internal/control/web -run '^TestAuthenticatedAgentCancellationStopsRuntimeWithoutOrphan$' -count=1 -v`.
+- Limite — não cobre cancelamento acionado dentro do fluxo visual DirectSession nem dois perfis reais. A2 segue parcial, sem homologação da capability ou GO.
+
 ## 2026-11-09 — Comparison Lab: retomada segura de campanha parcial
 
 - Adicionei transição `PARTIAL → LAUNCHING` somente quando um dos dois runs existe. Uma nova tentativa solicita preview atualizado e inicia só a variante faltante; exige aprovação/custo para aquele lado e preserva o run existente. Retry é explícito, nunca automático.

@@ -1,3 +1,11 @@
+## Handoff corrente — P0 A2: cleanup de cancelamento — 2026-11-09
+
+- Branch `release/v1.0.0`; checkpoint de código baseado em `0a733377`. O teste focal e a suíte completa de `internal/control/web` passaram; validadores do mapa/canônico passaram (48 capabilities/96 critérios, 87 source+test, 9 source-only, 0 unmapped, zero certificados).
+- `TestAuthenticatedAgentCancellationStopsRuntimeWithoutOrphan` usa projeto/Agent criados por API autenticada com CSRF, inicia um SessionHost real standalone com o driver fake e chama o endpoint autenticado `/api/v1/agents/{id}/stop`. Evidência: resposta 200, Agent `STOPPED`, geração com `StoppedAt` e runtime removida do Registry. Não consome quota nem chama provider externo.
+- Limite: a inicialização do SessionHost é feita pelo harness de integração; não é cancelamento a partir da UI DirectSessionLauncher. Também faltam dois perfis reais isolados e validação no app distribuído/exact-SHA. Portanto A2 e a capability `composer-flow-onboarding` seguem parciais/pending.
+- Próximo passo A2: implementar e verificar cancelamento da operação de setup no fluxo DirectSession com cleanup seguro tanto antes quanto depois do start, preservando recovery quando a resposta de start for incerta; depois validar perfis reais sem executar geração sem consentimento.
+- GO continua bloqueado pelos P0 A1–A4 restantes, comparação A/B com provider real/custo comprovado, AGY com apenas 1/2 contas elegíveis a 5h, pacote Nexus↔Maestro final assinado e multiplataforma, UX no artefato distribuído e auditoria/aceite exact-SHA de todas as 48 capacidades/96 critérios.
+
 ## Handoff corrente — Comparison Lab A/B — 2026-11-09
 
 - Base: `release/v1.0.0@f803d264`, remoto sincronizado. O launcher A/B está em `1c048f8d`; retomada explícita da alternativa faltante em `f803d264`.

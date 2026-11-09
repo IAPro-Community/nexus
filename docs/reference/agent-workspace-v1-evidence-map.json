@@ -1568,16 +1568,18 @@
           "sourceRefs": [
             "web/src/features/work/ComposerSurface.tsx",
             "web/src/features/work/DirectSessionLauncher.tsx",
-            "web/src/features/work/directSessionLifecycle.ts"
+            "web/src/features/work/directSessionLifecycle.ts",
+            "internal/control/web/handlers_agents.go"
           ],
           "testRefs": [
             "web/src/features/work/FlowPipeline.test.tsx",
             "web/src/features/work/featureAnnouncements.test.ts",
-            "web/scripts/e2e-first-run-import.mjs"
+            "web/scripts/e2e-first-run-import.mjs",
+            "internal/control/web/handlers_nexus_test.go"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "E2E first-run percorre onboarding e cenário DirectSession. Em 2026-11-09 foi endurecido para criar Agent, validar config e executar rollback/delete pela API Core real quando o profile selecionado não existe; somente resource selection é fixture. Faltam instalação/distribuição final, dois perfis autenticados e cenário de cancelamento durante execução sem Agent/PTY órfão; critério segue unverified/pending."
+          "gap": "E2E first-run percorre onboarding e cenário DirectSession. Em 2026-11-09 foi endurecido para criar Agent, validar config e executar rollback/delete pela API Core real quando o profile selecionado não existe; somente resource selection é fixture. TestAuthenticatedAgentCancellationStopsRuntimeWithoutOrphan também cobre stop autenticado de um SessionHost fake real e verifica Agent STOPPED, StoppedAt e ausência de runtime ativa no Registry. Ainda faltam cancelamento acionado pelo fluxo visual de first-run, instalação/distribuição final e dois perfis autenticados; critério segue unverified/pending."
         },
         {
           "acceptanceIndex": 1,
@@ -1588,11 +1590,12 @@
           "testRefs": [
             "web/src/features/work/FlowPipeline.test.tsx",
             "web/src/features/work/featureAnnouncements.test.ts",
-            "web/scripts/e2e-first-run-import.mjs"
+            "web/scripts/e2e-first-run-import.mjs",
+            "internal/control/web/handlers_nexus_test.go"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "E2E browser cobre importação/quick-connect com endpoints de provider fixture e agora rollback DirectSession com create/config/delete reais no Core, sem start e sem runtime associado ao Agent. Ainda não cobre pacote distribuído no SHA final, dois perfis autenticados, ciclo provider real ou matriz completa PT/EN/ES e teclado; capability permanece unverified/pending."
+          "gap": "E2E browser cobre importação/quick-connect com endpoints de provider fixture e rollback DirectSession com create/config/delete reais no Core, sem start e sem runtime associado ao Agent. Um teste Go adicional faz stop autenticado de SessionHost real fake e verifica cleanup persistente, mas não cobre cancelamento acionado na UI. Ainda não cobre pacote distribuído no SHA final, dois perfis autenticados, ciclo provider real ou matriz completa PT/EN/ES e teclado; capability permanece unverified/pending."
         }
       ],
       "verification": "pending"

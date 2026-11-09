@@ -4,6 +4,7 @@
 - Agora existem preparo atômico de duas variantes congeladas, dependências isoladas, previews/consentimentos independentes, despacho via MissionRunner existente e recovery durável sem start implícito. A comparação persiste diffs/testes/custos e escolha humana sem merge.
 - PASS — campaign preparer + retry explícito: `make quality-full` (Web 131/829, Go + race, format/lint/type/style/build/security; Nexus 319,240 s; Store 107,440 s), build e smoke Maestro em `f803d264`, Go focal, TypeScript, Stylelint, Prettier, contrato 48, mapa (87 source+test/9 source-only/0 unmapped/0 certificados), map tests 4/4, catálogo 36 e diff check.
 - Não executamos providers reais nem homologamos UI no app distribuído. Retry exige preview/consentimento renovados e segue pendente de E2E visual. `make docs-verify` reporta três fontes visuais alteradas desde o manifest do SHA `1c048f8d`. A capability permanece partial/pending.
+- A2 avançou com teste de cancelamento autenticado: SessionHost supervisionado de diagnóstico é parado por `POST /api/v1/agents/{id}/stop`; Agent fica `STOPPED`, geração recebe `StoppedAt` e runtime não permanece ativa no Registry. Teste focal PASS; ainda falta cancelar pela UI DirectSession, testar dois perfis reais e homologar no app distribuído. A2 continua parcial.
 - Permanecem P0 A1–A4, A2 real sem órfãos, provider A3/A4, AGY 1/2 elegíveis, Maestro distribuído/plataformas/assinatura e auditoria/aceite 48/48. **NO_GO**.
 
 ### Contexto anterior — Comparison Lab sem launcher A/B

@@ -1,3 +1,8 @@
+## 2026-11-09 — A2: parada autenticada de runtime sem órfão
+
+- PASS — `go test ./internal/control/web -run '^TestAuthenticatedAgentCancellationStopsRuntimeWithoutOrphan$' -count=1 -v`: cliente autenticado/CSRF cria projeto e Agent; SessionHost standalone inicia o driver fake supervisionado; `POST /api/v1/agents/{id}/stop` responde 200; Agent persiste `STOPPED`, geração registra `StoppedAt` e runtime some do Registry. Nenhum provider externo foi chamado.
+- Limite — a runtime é lançada pelo harness standalone e o teste não exerce o cancelamento dentro do DirectSessionLauncher/UI nem dois perfis reais. A2 permanece parcial; não certifica `first-run` nem GO.
+
 ## 2026-11-09 — Comparison Lab A/B + retomada parcial — verificação corrente
 
 - PASS — `make quality-full`: format-check, ESLint (0 erros; seis warnings já existentes), Stylelint, TypeScript, build Web, 131 arquivos/829 testes, Go integral + race (Nexus 319,240 s; Store 107,440 s), version contract e `govulncheck` sem vulnerabilidades.

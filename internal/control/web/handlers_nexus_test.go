@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/driver"
+	"github.com/IAPro-Community/nexus/internal/control/launcher"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
@@ -944,6 +946,130 @@ func TestAgentConfigApplyRejectsUnallocatedProvider(t *testing.T) {
 	defer applyResp.Body.Close()
 	if applyResp.StatusCode != http.StatusConflict {
 		t.Fatalf("unallocated provider must be rejected, got %d", applyResp.StatusCode)
+	}
+}
+
+func TestAuthenticatedAgentCancellationStopsRuntimeWithoutOrphan(t *testing.T) {
+	dataDir := t.TempDir()
+	t.Setenv("NEXUS_DATA_DIR", dataDir)
+	t.Setenv("AI_CLI_DATA_DIR", dataDir)
+	nexus.ResetDefaultForTest()
+	registry.ResetDefaultRegistryForTest()
+	t.Cleanup(func() {
+		nexus.ResetDefaultForTest()
+		registry.ResetDefaultRegistryForTest()
+	})
+
+	client, srv, csrf := csrfClient(t)
+	projectBody, _ := json.Marshal(map[string]string{"name": "Cancellation integration", "path": t.TempDir()})
+	projectReq, _ := http.NewRequest(http.MethodPost, srv.URL()+"/api/v1/projects", bytes.NewReader(projectBody))
+	projectReq.Header.Set("X-CSRF-Token", csrf)
+	projectResp, err := client.Do(projectReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var project store.Project
+	if projectResp.StatusCode != http.StatusCreated {
+		_ = projectResp.Body.Close()
+		t.Fatalf("create project status = %d, want %d", projectResp.StatusCode, http.StatusCreated)
+	}
+	if err := json.NewDecoder(projectResp.Body).Decode(&project); err != nil {
+		_ = projectResp.Body.Close()
+		t.Fatal(err)
+	}
+	_ = projectResp.Body.Close()
+
+	agentReq, _ := http.NewRequest(http.MethodPost, srv.URL()+"/api/v1/projects/"+project.ID+"/agents", strings.NewReader(`{"name":"Cancelable agent"}`))
+	agentReq.Header.Set("X-CSRF-Token", csrf)
+	agentResp, err := client.Do(agentReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var agent store.Agent
+	if agentResp.StatusCode != http.StatusCreated {
+		_ = agentResp.Body.Close()
+		t.Fatalf("create agent status = %d, want %d", agentResp.StatusCode, http.StatusCreated)
+	}
+	if err := json.NewDecoder(agentResp.Body).Decode(&agent); err != nil {
+		_ = agentResp.Body.Close()
+		t.Fatal(err)
+	}
+	_ = agentResp.Body.Close()
+
+	// Start a real supervised diagnostic runtime in standalone mode. The HTTP
+	// stop request below still passes through the authenticated API and the
+	// production stop barrier; no external provider or quota is used.
+	n := nexus.Default()
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	agent, err = st.GetAgent(agent.ID, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtimeID := "runtime_a2_cancel_fixture"
+	runtimeSession, err := launcher.Default().Launch(context.Background(), launcher.LaunchOptions{
+		RuntimeID:   runtimeID,
+		AgentID:     agent.ID,
+		ProjectID:   project.ID,
+		ProjectName: project.Name,
+		ProviderID:  "fake",
+		ProfileID:   "default",
+		Workspace:   project.CanonicalPath,
+		Standalone:  true,
+		Timeout:     5 * time.Second,
+	})
+	if err != nil {
+		t.Fatalf("start supervised diagnostic runtime: %v", err)
+	}
+	t.Cleanup(func() { _ = launcher.Default().Stop(runtimeID) })
+	if !runtimeSession.IsActive() {
+		t.Fatalf("diagnostic runtime did not become active: %+v", runtimeSession)
+	}
+	if _, err := st.AddGeneration(store.RuntimeGeneration{
+		AgentID:   agent.ID,
+		RuntimeID: runtimeID,
+		Provider:  "fake",
+		Profile:   "default",
+		StartedAt: time.Now().UTC(),
+		State:     "RUNNING",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	agent.Status = store.AgentWorking
+	if err := st.UpdateAgent(agent); err != nil {
+		t.Fatal(err)
+	}
+
+	stopReq, _ := http.NewRequest(http.MethodPost, srv.URL()+"/api/v1/agents/"+agent.ID+"/stop", nil)
+	stopReq.Header.Set("X-CSRF-Token", csrf)
+	stopResp, err := client.Do(stopReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = stopResp.Body.Close()
+	if stopResp.StatusCode != http.StatusOK {
+		t.Fatalf("stop agent status = %d, want %d", stopResp.StatusCode, http.StatusOK)
+	}
+
+	stoppedAgent, err := st.GetAgent(agent.ID, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stoppedAgent.Status != store.AgentStopped {
+		t.Fatalf("agent status after cancellation = %q, want %q", stoppedAgent.Status, store.AgentStopped)
+	}
+	generation, err := st.CurrentGeneration(agent.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if generation.RuntimeID != runtimeID || generation.StoppedAt == nil {
+		t.Fatalf("runtime generation was not stopped: %+v", generation)
+	}
+	stoppedRuntime, ok := n.RuntimeRegistry().Get(generation.RuntimeID)
+	if ok && stoppedRuntime.IsActive() {
+		t.Fatalf("runtime remains active after cancellation: found=%t runtime=%+v", ok, stoppedRuntime)
 	}
 }
 
