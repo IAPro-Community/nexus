@@ -29,9 +29,25 @@ async function main() {
   let quickConnectRequests = 0;
   let usageResourceReads = 0;
   const directSetupRequests = [];
+  let directSetupAgentId = '';
 
   try {
     ({ browser, context, page } = await launchFixtureBrowser(bootstrapUrl));
+    page.on('request', (request) => {
+      const pathname = new URL(request.url()).pathname;
+      const method = request.method();
+      if (method === 'POST' && /\/api\/v1\/projects\/[^/]+\/agents$/.test(pathname)) {
+        directSetupRequests.push('create');
+      } else if (method === 'POST' && pathname === '/api/v1/resources/select') {
+        directSetupRequests.push('select-resource');
+      } else if (method === 'POST' && pathname.endsWith('/config/apply')) {
+        directSetupRequests.push('apply-config');
+      } else if (method === 'POST' && pathname.endsWith('/start')) {
+        directSetupRequests.push('start');
+      } else if (method === 'DELETE' && /\/api\/v1\/agents\/[^/]+$/.test(pathname)) {
+        directSetupRequests.push('delete');
+      }
+    });
     await page.setViewportSize({ width: 1280, height: 800 });
     await context.route('**/api/v1/providers**', (route) => {
       if (route.request().method() === 'POST') {
@@ -212,45 +228,18 @@ async function main() {
       fullPage: true,
     });
 
-    await context.route('**/api/v1/projects/*/agents', async (route) => {
-      if (route.request().method() !== 'POST') return route.continue();
-      directSetupRequests.push('create');
-      return route.fulfill({
-        status: 201,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          id: 'fixture-direct-agent',
-          project_id: project.id,
-          name: 'Fixture Direct Agent',
-          role: 'developer',
-          state: 'IDLE',
-        }),
-      });
-    });
     await context.route('**/api/v1/resources/select', async (route) => {
-      directSetupRequests.push('select-resource');
+      // Keep only resource allocation deterministic. Agent creation, config
+      // validation, deletion, and runtime inspection use the real Core API.
+      const agentsResponse = await context.request.get(
+        `${apiOrigin}/api/v1/projects/${project.id}/agents`,
+      );
+      assert.equal(agentsResponse.status(), 200, 'Core API must list the created Agent');
+      const agents = await agentsResponse.json();
+      assert.equal(agents.length, 1, 'the Agent must exist before config validation');
+      directSetupAgentId = agents[0].id;
+      assert.ok(directSetupAgentId, 'Core API must return the real Agent ID');
       return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
-    });
-    await context.route('**/api/v1/agents/fixture-direct-agent/config/apply', async (route) => {
-      directSetupRequests.push('apply-config');
-      return route.fulfill({
-        status: 500,
-        contentType: 'application/json',
-        body: JSON.stringify({ error: 'fixture config rejected' }),
-      });
-    });
-    await context.route('**/api/v1/agents/fixture-direct-agent/start', async (route) => {
-      directSetupRequests.push('start');
-      return route.fulfill({ status: 500, contentType: 'application/json', body: '{}' });
-    });
-    await context.route('**/api/v1/agents/fixture-direct-agent', async (route) => {
-      if (route.request().method() !== 'DELETE') return route.continue();
-      directSetupRequests.push('delete');
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ status: 'deleted' }),
-      });
     });
     await page.evaluate(() => window.dispatchEvent(new CustomEvent('nexus:new-ai-session')));
     const directDialog = page.getByRole('dialog');
@@ -258,20 +247,38 @@ async function main() {
     await directDialog.getByRole('radio', { name: /Codex fixture/ }).click();
     await directDialog.getByRole('textbox').first().fill('Fixture Direct Agent');
     await directDialog.getByRole('button', { name: /^Iniciar$/i }).click();
-    await directDialog.getByText('fixture config rejected').waitFor({
+    await directDialog.getByText('resource codex:default was not found').waitFor({
       state: 'visible',
       timeout: 5000,
     });
     assert.deepEqual(
       directSetupRequests,
       ['create', 'select-resource', 'apply-config', 'delete'],
-      'failed pre-start setup must delete the created Agent without starting a PTY',
+      'Core API config rejection must delete the created Agent without starting a PTY',
+    );
+    const remainingAgentsResponse = await context.request.get(
+      `${apiOrigin}/api/v1/projects/${project.id}/agents`,
+    );
+    assert.equal(remainingAgentsResponse.status(), 200);
+    const remainingAgents = await remainingAgentsResponse.json();
+    assert.equal(
+      remainingAgents.some((candidate) => candidate.id === directSetupAgentId),
+      false,
+      'the Core API must confirm compensating deletion removed the Agent',
+    );
+    const runtimesResponse = await context.request.get(`${apiOrigin}/api/v1/runtimes`);
+    assert.equal(runtimesResponse.status(), 200);
+    const runtimes = await runtimesResponse.json();
+    assert.equal(
+      runtimes.some((runtime) => runtime.agent_id === directSetupAgentId),
+      false,
+      'pre-start failure must leave no runtime or PTY for the deleted Agent',
     );
 
     console.log('First-run host-session import feedback E2E: PASS');
     console.log('Usage / Accounts host-session discovery and quick-connect E2E: PASS');
     console.log('Usage / Accounts host-session import and profile refresh E2E: PASS');
-    console.log('Direct session pre-start failure cleanup E2E (fixture API): PASS');
+    console.log('Direct session pre-start rollback E2E (real Core create/config/delete): PASS');
   } catch (error) {
     console.error(`First-run import E2E server output:\n${getOutput()}`);
     throw error;
