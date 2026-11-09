@@ -144,6 +144,34 @@ describe('Attention Notification Card sanitization & logic', () => {
     }
   });
 
+  it('shows only exact provider-defined options for authoritative structured interactions', () => {
+    const structured = rt({
+      attention_source: 'AUTHORITATIVE',
+      attention_reason: 'APPROVAL',
+      attention_kind: 'needs_user',
+      prompt_kind: 'choice',
+      attention_context: 'Allow this operation?',
+      attention_interaction_id: 'req-7',
+      attention_options: [
+        { option_id: 'allow_once', name: 'Allow once' },
+        { option_id: 'deny', name: 'Deny' },
+      ],
+    });
+    expect(attentionResponseGuardForRuntime(structured)?.interaction_id).toBe('req-7');
+    expect(attentionCardActions(structured)).toEqual({
+      showYesNo: false,
+      showTextInput: false,
+      showStructuredChoices: true,
+      showOpenTerminal: true,
+    });
+    expect(
+      attentionCardActions({ ...structured, attention_options: [] }).showStructuredChoices,
+    ).toBe(false);
+    expect(
+      attentionCardActions({ ...structured, attention_source: 'SIGNALLED' }).showStructuredChoices,
+    ).toBe(false);
+  });
+
   it('keeps identical questions in separate runtimes distinct by runtime identity', () => {
     const rtA = rt({
       runtime_id: 'rt-alpha',

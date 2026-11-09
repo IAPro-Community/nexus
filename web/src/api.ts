@@ -421,14 +421,14 @@ export const api = {
     }),
   respondAttention: (
     id: string,
-    input: string,
+    response: { input: string } | { option_id: string },
     guard: import('./components/attentionResponseGuard').AttentionResponseGuard,
   ) =>
     request<{ status: 'submitted'; runtime_id: string }>(
       `/api/v1/runtimes/${id}/respond-attention`,
       {
         method: 'POST',
-        body: JSON.stringify({ input, ...guard }),
+        body: JSON.stringify({ ...response, ...guard }),
       },
     ),
   respondRuntime: (id: string, input: string) =>

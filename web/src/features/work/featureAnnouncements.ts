@@ -103,6 +103,16 @@ export const featureAnnouncements: readonly FeatureAnnouncement[] = [
     summary: 'discovery.agentTerminalFollowBody',
     tourStep: 'follow',
   },
+  {
+    id: 'agent-structured-attention-choice',
+    revision: 1,
+    surfaces: ['agent-terminal'],
+    openSurface: 'work',
+    target: '[data-tour="attention-structured-choice"]',
+    title: 'discovery.agentAttentionChoiceTitle',
+    summary: 'discovery.agentAttentionChoiceBody',
+    tourStep: 'attention-choice',
+  },
 ] as const;
 
 export const announcementStorageKey = (id: string) => `iapro:nexus:feature-announcement:v1:${id}`;

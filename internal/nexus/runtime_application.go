@@ -238,6 +238,52 @@ func (s *RuntimeApplicationService) RespondToAttention(
 	return nil
 }
 
+// ChooseAttention submits one exact option from a structured provider
+// interaction. The selected ID is never sent through the terminal PTY.
+func (s *RuntimeApplicationService) ChooseAttention(
+	ctx context.Context, runtimeID string, expected registry.AttentionResponseExpectation, optionID string,
+) error {
+	if err := s.ready(ctx); err != nil {
+		return err
+	}
+	if strings.TrimSpace(optionID) == "" || len(optionID) > 200 {
+		return ErrAttentionInput
+	}
+	for _, ch := range optionID {
+		if unicode.IsControl(ch) {
+			return ErrAttentionInput
+		}
+	}
+	sess, err := s.Get(ctx, runtimeID)
+	if err != nil {
+		return fmt.Errorf("%w: runtime not found", registry.ErrAttentionConflict)
+	}
+	if err := registry.ValidateAttentionChoice(sess, expected, optionID); err != nil {
+		return err
+	}
+	// Consume the revision before IPC. An uncertain result is never replayed
+	// into a later provider interaction.
+	if err := s.registry.ClaimAttentionChoice(runtimeID, expected, optionID); err != nil {
+		return err
+	}
+	client, err := protocol.NewClient(runtimeID)
+	if err != nil {
+		return fmt.Errorf("attention choice delivery uncertain: %w", err)
+	}
+	defer client.Close()
+	response, err := client.SendContext(ctx, protocol.CmdChooseInteraction, protocol.ChooseInteractionPayload{
+		InteractionID: expected.InteractionID,
+		OptionID:      optionID,
+	})
+	if err != nil {
+		return fmt.Errorf("attention choice delivery uncertain: %w", err)
+	}
+	if !response.OK {
+		return fmt.Errorf("attention choice delivery uncertain: provider host rejected the choice")
+	}
+	return nil
+}
+
 // Respond sends interactive input through the existing runtime protocol.
 func (s *RuntimeApplicationService) Respond(ctx context.Context, runtimeID, input string) error {
 	if err := s.ready(ctx); err != nil {

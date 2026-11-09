@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/agentwire"
+	"github.com/IAPro-Community/nexus/internal/control/protocol"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 )
 
@@ -176,7 +177,7 @@ func TestStructuredACPAttentionReachesRegistryAndSettlesOnlyItsRuntime(t *testin
 			return ok && session.AttentionKind == AttentionNeedsUser && session.AttentionInteractionID == "req-1"
 		})
 		session, _ := reg.Get(harness.id)
-		if session.AttentionReason != "APPROVAL" || session.PromptKind != "native_status" || session.AttentionSource != "AUTHORITATIVE" {
+		if session.AttentionReason != "APPROVAL" || session.PromptKind != "choice" || session.AttentionSource != "AUTHORITATIVE" || len(session.AttentionOptions) != 1 || session.AttentionOptions[0].ID != "allow_once" {
 			t.Fatalf("structured source/provenance was not projected for %s: %+v", harness.id, session)
 		}
 		if session.AttentionFingerprint == "" || session.AttentionRevision == 0 || session.HostGeneration == 0 || session.ProviderGeneration == 0 {
@@ -194,8 +195,19 @@ func TestStructuredACPAttentionReachesRegistryAndSettlesOnlyItsRuntime(t *testin
 	if !ok || len(alphaSnapshot.Attention) != 1 {
 		t.Fatalf("alpha reducer did not retain its structured question: %+v", alphaSnapshot)
 	}
-	if _, err := alphaBackend.Write([]byte("/permit req-1 allow_once\r")); err != nil {
+	if err := alphaBackend.ChooseInteraction("req-1", "unknown_option"); err == nil {
+		t.Fatal("provider bridge accepted an option outside its exact choice set")
+	}
+	client, err := protocol.NewClient(harnesses[0].id)
+	if err != nil {
 		t.Fatal(err)
+	}
+	choice, err := client.Send(protocol.CmdChooseInteraction, protocol.ChooseInteractionPayload{
+		InteractionID: "req-1", OptionID: "allow_once",
+	})
+	_ = client.Close()
+	if err != nil || !choice.OK || choice.Code != "INTERACTION_CHOICE_SUBMITTED" {
+		t.Fatalf("structured choice IPC failed: response=%+v error=%v", choice, err)
 	}
 	waitFor("provider permission acknowledgement", func() bool {
 		_, err := os.Stat(harnesses[0].ackMarker)

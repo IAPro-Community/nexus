@@ -231,6 +231,7 @@ func (r *Registry) Register(s RuntimeSession) error {
 	if s.RuntimeID == "" {
 		return errors.New("runtime ID cannot be empty")
 	}
+	s = cloneRuntimeSession(s)
 	now := time.Now()
 	if s.StartedAt.IsZero() {
 		s.StartedAt = now
@@ -249,7 +250,7 @@ func (r *Registry) Get(runtimeID string) (RuntimeSession, bool) {
 	defer r.mu.Unlock()
 
 	s, ok := r.sessions[runtimeID]
-	return s, ok
+	return cloneRuntimeSession(s), ok
 }
 
 // UpdateState updates the lifecycle state of a runtime.
@@ -437,6 +438,7 @@ type AttentionUpdate struct {
 	Fingerprint   string
 	Source        string
 	InteractionID string
+	Options       []AttentionOption
 	Generation    string // exact decimal HostGeneration:ProviderGeneration of the producing host
 	ProjectID     string
 	ProjectName   string
@@ -501,6 +503,7 @@ func (r *Registry) UpdateAttentionMeta(runtimeID string, update AttentionUpdate)
 		s.AttentionFingerprint = update.Fingerprint
 		s.AttentionSource = update.Source
 		s.AttentionInteractionID = update.InteractionID
+		s.AttentionOptions = append([]AttentionOption(nil), update.Options...)
 		if update.ProjectID != "" {
 			s.ProjectID = update.ProjectID
 		}
@@ -537,7 +540,7 @@ func (r *Registry) List() []RuntimeSession {
 
 	result := make([]RuntimeSession, 0, len(r.sessions))
 	for _, s := range r.sessions {
-		result = append(result, s)
+		result = append(result, cloneRuntimeSession(s))
 	}
 	return result
 }
@@ -551,10 +554,15 @@ func (r *Registry) ListActive() []RuntimeSession {
 	result := []RuntimeSession{}
 	for _, s := range r.sessions {
 		if s.IsActive() {
-			result = append(result, s)
+			result = append(result, cloneRuntimeSession(s))
 		}
 	}
 	return result
+}
+
+func cloneRuntimeSession(s RuntimeSession) RuntimeSession {
+	s.AttentionOptions = append([]AttentionOption(nil), s.AttentionOptions...)
+	return s
 }
 
 // Delete removes a runtime from the registry.

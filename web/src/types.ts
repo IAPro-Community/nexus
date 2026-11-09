@@ -59,6 +59,7 @@ export interface RuntimeSession {
   attention_submitted_revision?: number;
   attention_source?: 'INFERRED' | 'SIGNALLED' | 'AUTHORITATIVE';
   attention_interaction_id?: string;
+  attention_options?: Array<{ option_id: string; name: string }>;
   project_id?: string;
   project_name?: string;
   last_task_summary?: string;

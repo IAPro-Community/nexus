@@ -48,6 +48,11 @@ async function main() {
     assert.notEqual(alpha?.attention_fingerprint, beta?.attention_fingerprint);
     assert.equal(alpha?.attention_source, 'AUTHORITATIVE');
     assert.equal(beta?.attention_source, 'AUTHORITATIVE');
+    assert.deepEqual(
+      alpha?.attention_options?.map(({ option_id }) => option_id),
+      ['deny', 'allow_once'],
+      'the exact provider-defined options must reach the authenticated runtime API',
+    );
     assert.equal(alpha?.project_id, alphaProjectId);
     assert.equal(beta?.project_id, betaProjectId);
 
@@ -62,6 +67,28 @@ async function main() {
       name: /Central de Notificações e Radar|Notifications and Radar/i,
     });
     await notifications.waitFor({ state: 'visible', timeout: 15000 });
+    const alphaAttention = page.getByRole('alertdialog', {
+      name: /Attention Radar Alpha/,
+    });
+    await page.screenshot({
+      path: path.join(artifacts, 'process-attention-structured-options.png'),
+      fullPage: true,
+    });
+    const allowOnce = alphaAttention.getByRole('button', { name: 'Allow once', exact: true });
+    await allowOnce.waitFor({ state: 'visible', timeout: 10000 });
+    await allowOnce.click();
+    await page.waitForFunction(
+      async (alphaId) => {
+        const response = await fetch('/api/v1/runtimes');
+        const runtimes = await response.json();
+        const alphaRuntime = runtimes.find((runtime) => runtime.runtime_id === alphaId);
+        const betaRuntime = runtimes.find((runtime) => runtime.runtime_id === 'radar-browser-beta');
+        return alphaRuntime?.attention_kind === 'completed' && betaRuntime?.attention_kind === 'needs_user';
+      },
+      alphaRuntimeId,
+      { timeout: 10000 },
+    );
+    console.log('PASS UI option is delivered by interaction ID; only Alpha settles and Beta remains pending');
     const toastDismiss = page.locator('.nx-uui-notification__close');
     const dismissToastCards = async () => {
       const initialCount = await toastDismiss.count();
@@ -76,12 +103,12 @@ async function main() {
       const response = await context.request.get(`${apiOrigin}/api/v1/runtimes`);
       const stillPending = await response.json();
       const pendingById = new Map(stillPending.map((runtime) => [runtime.runtime_id, runtime]));
-      assert.equal(pendingById.get(alphaRuntimeId)?.attention_kind, 'needs_user');
+      assert.equal(pendingById.get(alphaRuntimeId)?.attention_kind, 'completed');
       assert.equal(pendingById.get(betaRuntimeId)?.attention_kind, 'needs_user');
     };
     const openRadar = async () => {
       // Persistent toast cards can overlap the drawer tab after a project
-      // switch; dismissing them leaves the attention active in the Radar.
+      // switch; dismissing them leaves Beta's attention active in the Radar.
       await dismissToastCards();
       await notifications.click();
       const radarTab = page.getByRole('tab', { name: /radar/i });
@@ -89,14 +116,11 @@ async function main() {
       await radarTab.click();
     };
     await openRadar();
-    const alphaRow = page.locator(`button[data-runtime-id="${alphaRuntimeId}"]`);
     const betaRow = page.locator(`button[data-runtime-id="${betaRuntimeId}"]`);
-    await alphaRow.waitFor({ state: 'visible', timeout: 10000 });
     await betaRow.waitFor({ state: 'visible', timeout: 10000 });
-    assert.equal(await alphaRow.innerText(), await betaRow.innerText());
     assert.match(await betaRow.innerText(), /precisa de você/i);
     await page.screenshot({
-      path: path.join(artifacts, 'process-attention-radar-two-runtimes.png'),
+      path: path.join(artifacts, 'process-attention-radar-beta-pending.png'),
     });
 
     await betaRow.click();
@@ -114,24 +138,6 @@ async function main() {
       websocketPaths.some((value) => value.endsWith(`/runtimes/${betaRuntimeId}/terminal`)),
     );
 
-    await openRadar();
-    await page.locator(`button[data-runtime-id="${alphaRuntimeId}"]`).click();
-    const alphaSurface = page.locator(
-      `.nx-project-shell-surface[data-runtime-id="${alphaRuntimeId}"]`,
-    );
-    await alphaSurface.waitFor({ state: 'attached', timeout: 15000 });
-    assert.ok(page.url().includes(encodeURIComponent(alphaProjectId)));
-    await alphaSurface.locator('.xterm').waitFor({ state: 'attached', timeout: 10000 });
-    assert.equal(
-      await page.getByText('Runtime compatibility validation failed.', { exact: true }).count(),
-      0,
-    );
-    assert.ok(
-      websocketPaths.some((value) => value.endsWith(`/runtimes/${alphaRuntimeId}/terminal`)),
-    );
-    await page.screenshot({
-      path: path.join(artifacts, 'process-attention-radar-focused-alpha.png'),
-    });
     assert.equal(collectors.pageErrors.length, 0, collectors.pageErrors.join(' | '));
     assert.deepEqual(meaningfulFixtureRequestFailures(collectors.requestFailures), []);
     console.log(
@@ -141,7 +147,7 @@ async function main() {
       'PASS identical questions stay distinct and cross-project Radar opens the exact runtime',
     );
     console.log(
-      'PASS browser attaches both real SessionHost terminal WebSockets; external provider is not called',
+      'PASS browser attaches the remaining real SessionHost terminal WebSocket; external provider is not called',
     );
   } finally {
     await context.close().catch(() => {});

@@ -51,6 +51,13 @@ const (
 
 type ControlLevel string
 
+// AttentionOption is a provider-owned choice that can be submitted only with
+// its exact interaction ID. Names are display text; IDs are opaque tokens.
+type AttentionOption struct {
+	ID   string `json:"option_id"`
+	Name string `json:"name"`
+}
+
 const (
 	ControlLevelAPI      ControlLevel = "CONTROL_API"
 	ControlLevelEvents   ControlLevel = "EVENTS"
@@ -107,6 +114,7 @@ type RuntimeSession struct {
 	AttentionGeneration        string             `json:"attention_generation,omitempty"`
 	AttentionSource            string             `json:"attention_source,omitempty"`
 	AttentionInteractionID     string             `json:"attention_interaction_id,omitempty"`
+	AttentionOptions           []AttentionOption  `json:"attention_options,omitempty"`
 	ProjectID                  string             `json:"project_id,omitempty"`
 	ProjectName                string             `json:"project_name,omitempty"`
 	LastTaskSummary            string             `json:"last_task_summary,omitempty"`

@@ -22,6 +22,43 @@ type AttentionResponseExpectation struct {
 
 func ValidateAttentionResponse(s RuntimeSession, expected AttentionResponseExpectation) error {
 	conflict := func(why string) error { return fmt.Errorf("%w: %s", ErrAttentionConflict, why) }
+	if err := validateAttentionIdentity(s, expected); err != nil {
+		return err
+	}
+	// PTY prompts are inferred, not permission protocol transactions. Structured
+	// choices use ValidateAttentionChoice and their exact provider option IDs.
+	if s.AttentionSource != "INFERRED" || s.AttentionKind != "needs_user" ||
+		s.AttentionReason != "QUESTION" || strings.TrimSpace(s.AttentionContext) == "" {
+		return conflict("intervention does not permit a typed quick response")
+	}
+	switch s.PromptKind {
+	case "yn", "choice", "free_text":
+		return nil
+	default:
+		return conflict("prompt kind must be handled by its native terminal")
+	}
+}
+
+// ValidateAttentionChoice only accepts an exact option from the current
+// structured provider interaction. It never interprets UI text as a PTY key.
+func ValidateAttentionChoice(s RuntimeSession, expected AttentionResponseExpectation, optionID string) error {
+	if err := validateAttentionIdentity(s, expected); err != nil {
+		return err
+	}
+	if s.AttentionSource != "AUTHORITATIVE" || s.AttentionKind != "needs_user" ||
+		s.PromptKind != "choice" || expected.InteractionID == "" || optionID == "" {
+		return fmt.Errorf("%w: intervention is not a structured choice", ErrAttentionConflict)
+	}
+	for _, option := range s.AttentionOptions {
+		if option.ID == optionID {
+			return nil
+		}
+	}
+	return fmt.Errorf("%w: option is not part of the current interaction", ErrAttentionConflict)
+}
+
+func validateAttentionIdentity(s RuntimeSession, expected AttentionResponseExpectation) error {
+	conflict := func(why string) error { return fmt.Errorf("%w: %s", ErrAttentionConflict, why) }
 	if expected.Revision == 0 || expected.Fingerprint == "" ||
 		(s.ProviderGeneration <= 0 && s.HostGeneration <= 0) || expected.Generation == "" {
 		return conflict("missing intervention or process-generation precondition")
@@ -37,25 +74,22 @@ func ValidateAttentionResponse(s RuntimeSession, expected AttentionResponseExpec
 	if s.State != StateWaiting && s.State != StateApproval {
 		return conflict("runtime is no longer waiting")
 	}
-	// PTY prompts are inferred, not permission protocol transactions. OSC and
-	// structured provider-owned native_status blockers are terminal-view only
-	// until a correlated provider response adapter has been negotiated.
-	if s.AttentionSource != "INFERRED" || s.AttentionKind != "needs_user" ||
-		s.AttentionReason != "QUESTION" || strings.TrimSpace(s.AttentionContext) == "" {
-		return conflict("intervention does not permit a typed quick response")
-	}
-	switch s.PromptKind {
-	case "yn", "choice", "free_text":
-		return nil
-	default:
-		return conflict("prompt kind must be handled by its native terminal")
-	}
+	return nil
 }
 
 // ClaimAttentionResponse is cross-process serialized by Registry.saveLocked.
 // Only one HTTP client may submit a revision. An uncertain transport delivery
 // deliberately retains the claim: a retry could type into the next question.
 func (r *Registry) ClaimAttentionResponse(runtimeID string, expected AttentionResponseExpectation) error {
+	return r.claimAttention(runtimeID, expected, "", false)
+}
+
+// ClaimAttentionChoice atomically consumes a structured option selection.
+func (r *Registry) ClaimAttentionChoice(runtimeID string, expected AttentionResponseExpectation, optionID string) error {
+	return r.claimAttention(runtimeID, expected, optionID, true)
+}
+
+func (r *Registry) claimAttention(runtimeID string, expected AttentionResponseExpectation, optionID string, choice bool) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -66,7 +100,12 @@ func (r *Registry) ClaimAttentionResponse(runtimeID string, expected AttentionRe
 			conflict = fmt.Errorf("%w: runtime not found", ErrAttentionConflict)
 			return
 		}
-		if conflict = ValidateAttentionResponse(s, expected); conflict != nil {
+		if choice {
+			conflict = ValidateAttentionChoice(s, expected, optionID)
+		} else {
+			conflict = ValidateAttentionResponse(s, expected)
+		}
+		if conflict != nil {
 			return
 		}
 		s.AttentionSubmittedRevision = expected.Revision

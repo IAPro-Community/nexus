@@ -157,6 +157,12 @@ export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
   ],
   'agent-terminal': [
     {
+      id: 'attention-choice',
+      target: '[data-tour="attention-structured-choice"]',
+      title: 'tour.agentAttentionChoiceTitle',
+      body: 'tour.agentAttentionChoiceBody',
+    },
+    {
       id: 'follow',
       target: '[data-tour="agent-terminal-follow"]',
       title: 'tour.agentTerminalFollowTitle',

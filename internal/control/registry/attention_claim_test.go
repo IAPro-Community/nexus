@@ -102,3 +102,38 @@ func TestAttentionClaimRejectsStaleGenerationNativeStatusAndUnsupportedResponse(
 		})
 	}
 }
+
+func TestStructuredChoiceRequiresExactOptionAndClaimsOnce(t *testing.T) {
+	reg := NewRegistry(filepath.Join(t.TempDir(), "runtimes.json"))
+	session := RuntimeSession{RuntimeID: "choice-runtime", State: StateApproval,
+		HostGeneration: 44, ProviderGeneration: 55}
+	if err := reg.Register(session); err != nil {
+		t.Fatal(err)
+	}
+	update := AttentionUpdate{
+		State: StateApproval, Reason: "APPROVAL", Kind: "needs_user", Context: "Allow?",
+		PromptKind: "choice", Fingerprint: "choice-fingerprint", Source: "AUTHORITATIVE",
+		InteractionID: "req-7", Options: []AttentionOption{{ID: "allow_once", Name: "Allow once"}, {ID: "deny", Name: "Deny"}},
+	}
+	if err := reg.UpdateAttentionMeta(session.RuntimeID, update); err != nil {
+		t.Fatal(err)
+	}
+	stored, _ := reg.Get(session.RuntimeID)
+	expectation := AttentionResponseExpectation{
+		Fingerprint: stored.AttentionFingerprint, Revision: stored.AttentionRevision,
+		Generation: "44:55", InteractionID: "req-7",
+	}
+	if err := reg.ClaimAttentionChoice(session.RuntimeID, expectation, "allow_everything"); !errors.Is(err, ErrAttentionConflict) {
+		t.Fatalf("unknown option must be rejected without claim, got %v", err)
+	}
+	stored, _ = reg.Get(session.RuntimeID)
+	if stored.AttentionSubmittedRevision != 0 {
+		t.Fatal("unknown option consumed the current interaction")
+	}
+	if err := reg.ClaimAttentionChoice(session.RuntimeID, expectation, "allow_once"); err != nil {
+		t.Fatalf("current provider option should be accepted: %v", err)
+	}
+	if err := reg.ClaimAttentionChoice(session.RuntimeID, expectation, "deny"); !errors.Is(err, ErrAttentionConflict) {
+		t.Fatalf("second option must not be accepted after one-shot claim, got %v", err)
+	}
+}

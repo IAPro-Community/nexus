@@ -11,26 +11,27 @@ const ProtocolVersion = 1
 type CommandType string
 
 const (
-	CmdPing            CommandType = "ping"
-	CmdStatus          CommandType = "status"
-	CmdMetadata        CommandType = "metadata"
-	CmdAttach          CommandType = "attach"
-	CmdDetach          CommandType = "detach"
-	CmdResize          CommandType = "resize"
-	CmdInput           CommandType = "input"
-	CmdSubmitPrompt    CommandType = "submit_prompt"
-	CmdStop            CommandType = "stop"
-	CmdTerminate       CommandType = "terminate"
-	CmdHandoff         CommandType = "handoff"
-	CmdContinue        CommandType = "continue"
-	CmdEvents          CommandType = "events"
-	CmdUsage           CommandType = "usage"
-	CmdSlash           CommandType = "slash"
-	CmdLeaseAcquire    CommandType = "lease_acquire"
-	CmdLeaseRelease    CommandType = "lease_release"
-	CmdRuntimeChanged  CommandType = "runtime_changed"  // Gate 4: notify WS clients of generation switch
-	CmdAgentState      CommandType = "agent_state"      // Gate 4: push effective agent state
-	CmdContinuityState CommandType = "continuity_state" // Gate 4: push continuity status
+	CmdPing              CommandType = "ping"
+	CmdStatus            CommandType = "status"
+	CmdMetadata          CommandType = "metadata"
+	CmdAttach            CommandType = "attach"
+	CmdDetach            CommandType = "detach"
+	CmdResize            CommandType = "resize"
+	CmdInput             CommandType = "input"
+	CmdSubmitPrompt      CommandType = "submit_prompt"
+	CmdChooseInteraction CommandType = "choose_interaction"
+	CmdStop              CommandType = "stop"
+	CmdTerminate         CommandType = "terminate"
+	CmdHandoff           CommandType = "handoff"
+	CmdContinue          CommandType = "continue"
+	CmdEvents            CommandType = "events"
+	CmdUsage             CommandType = "usage"
+	CmdSlash             CommandType = "slash"
+	CmdLeaseAcquire      CommandType = "lease_acquire"
+	CmdLeaseRelease      CommandType = "lease_release"
+	CmdRuntimeChanged    CommandType = "runtime_changed"  // Gate 4: notify WS clients of generation switch
+	CmdAgentState        CommandType = "agent_state"      // Gate 4: push effective agent state
+	CmdContinuityState   CommandType = "continuity_state" // Gate 4: push continuity status
 )
 
 // Request is a versioned command request sent to a SessionHost.
@@ -115,6 +116,12 @@ type UsageData struct {
 // and is forwarded literally, including a leading slash.
 type SubmitPromptPayload struct {
 	Prompt string `json:"prompt"`
+}
+
+// ChooseInteractionPayload carries exact provider-owned option identifiers.
+type ChooseInteractionPayload struct {
+	InteractionID string `json:"interaction_id"`
+	OptionID      string `json:"option_id"`
 }
 
 // SlashPayload contains an explicit control command. It is not accepted from

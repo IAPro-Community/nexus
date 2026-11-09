@@ -329,6 +329,20 @@ func (b *structuredBackend) execute(ctx context.Context, bridge *agentwire.Bridg
 		b.emit("\r\n[Nexus] Prompt could not be delivered: " + security.Redact(err.Error()) + "\r\n")
 	}
 }
+
+// ChooseInteraction submits a provider-owned option by opaque interaction and
+// option IDs. It bypasses the PTY and cannot be reinterpreted as terminal text.
+func (b *structuredBackend) ChooseInteraction(interactionID, optionID string) error {
+	b.mu.Lock()
+	bridge := b.bridge
+	started := b.started && b.ctx != nil && b.ctx.Err() == nil
+	b.mu.Unlock()
+	if !started || bridge == nil {
+		return errors.New("structured provider is not available")
+	}
+	return bridge.Choose(interactionID, optionID)
+}
+
 func (b *structuredBackend) Close() error {
 	b.mu.Lock()
 	cancel := b.cancel

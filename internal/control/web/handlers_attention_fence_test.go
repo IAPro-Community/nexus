@@ -76,6 +76,37 @@ func TestRespondAttentionEndpointRejectsStaleAndUnsafeInput(t *testing.T) {
 	}
 }
 
+func TestRespondAttentionEndpointRejectsUnlistedStructuredOption(t *testing.T) {
+	reg := registry.NewRegistry("")
+	session := registry.RuntimeSession{
+		RuntimeID: "structured-choice-api", State: registry.StateApproval,
+		AttentionReason: "APPROVAL", AttentionKind: "needs_user", AttentionContext: "Allow?",
+		PromptKind: "choice", AttentionSource: "AUTHORITATIVE", AttentionFingerprint: "fp-choice",
+		AttentionRevision: 2, HostGeneration: 11, ProviderGeneration: 12,
+		AttentionInteractionID: "req-1", AttentionOptions: []registry.AttentionOption{{ID: "deny", Name: "Deny"}},
+	}
+	if err := reg.Register(session); err != nil {
+		t.Fatal(err)
+	}
+	h := &APIHandler{reg: reg, runtimes: nexus.NewRuntimeApplicationService(reg, nil, nil)}
+	payload := map[string]any{
+		"option_id": "allow_all", "attention_fingerprint": "fp-choice", "attention_revision": 2,
+		"attention_generation": "11:12", "interaction_id": "req-1",
+	}
+	data, _ := json.Marshal(payload)
+	req := httptest.NewRequest(http.MethodPost,
+		"/api/v1/runtimes/structured-choice-api/respond-attention", bytes.NewReader(data))
+	rec := httptest.NewRecorder()
+	h.handleRuntimeDetail(rec, req)
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("unlisted provider option must be rejected, status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	after, _ := reg.Get(session.RuntimeID)
+	if after.AttentionSubmittedRevision != 0 {
+		t.Fatalf("invalid option consumed interaction revision: %+v", after)
+	}
+}
+
 func TestSanitizeSessionPreservesLosslessGenerationIdentity(t *testing.T) {
 	sess := registry.RuntimeSession{HostGeneration: 876543210987654321,
 		ProviderGeneration: 123456789123456789}

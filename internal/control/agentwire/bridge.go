@@ -9,6 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"unicode"
 )
 
 // WireSignal is an observation emitted by a provider protocol. A command
@@ -293,11 +294,11 @@ func (b *Bridge) request(ctx context.Context, method string, raw json.RawMessage
 	p := &permissionWait{options: make(map[string]bool), selected: make(chan string, 1)}
 	choices := make([]PermissionChoice, 0, len(req.Options))
 	for _, o := range req.Options {
-		if o.OptionID == "" {
+		if !validOptionID(o.OptionID) || len(choices) >= 32 {
 			continue
 		}
 		p.options[o.OptionID] = true
-		choices = append(choices, PermissionChoice{ID: o.OptionID, Name: o.Name})
+		choices = append(choices, PermissionChoice{ID: o.OptionID, Name: safeOptionName(o.Name, o.OptionID)})
 	}
 	if len(choices) == 0 {
 		b.mu.Unlock()
@@ -449,7 +450,7 @@ func (b *Bridge) handlePiUI(raw json.RawMessage) {
 		choices = []PermissionChoice{{ID: "yes", Name: "Yes"}, {ID: "no", Name: "No"}}
 	} else if req.Method == "select" {
 		for _, v := range req.Options {
-			if v == "" || len(v) > 200 {
+			if !validOptionID(v) || len(choices) >= 32 {
 				continue
 			}
 			p.options[v] = true
@@ -512,6 +513,36 @@ func (b *Bridge) handlePiUI(raw json.RawMessage) {
 			_ = b.pi.RespondUI(req.ID, map[string]any{"cancelled": true})
 		}
 	}()
+}
+
+func validOptionID(value string) bool {
+	if value == "" || len(value) > 200 {
+		return false
+	}
+	for _, r := range value {
+		if unicode.IsControl(r) {
+			return false
+		}
+	}
+	return true
+}
+
+func safeOptionName(value, fallback string) string {
+	value = strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) {
+			return ' '
+		}
+		return r
+	}, value)
+	value = strings.TrimSpace(value)
+	if value == "" {
+		value = fallback
+	}
+	runes := []rune(value)
+	if len(runes) > 320 {
+		value = string(runes[:320])
+	}
+	return value
 }
 
 // piPromptResultSignal preserves a verified provider result without copying

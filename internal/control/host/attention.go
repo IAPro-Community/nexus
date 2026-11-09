@@ -264,7 +264,7 @@ func (d *AttentionDetector) ProcessChunk(chunk []byte) {
 				(provider == "agy" && (app == "antigravity" || app == "antigravity-cli")) ||
 				(provider == "claude" && app == "claude-code")
 			if ownsStatus {
-				d.applyNativeStatusLocked(status, "osc7501", "")
+				d.applyNativeStatusLocked(status, "osc7501", "", nil)
 				return
 			}
 		}
@@ -509,6 +509,12 @@ func attentionEvidenceSource(source string) string {
 // ApplyProviderSignal ingests a structured provider lifecycle update or a
 // correlated response-submitted signal from a native interaction adapter.
 func (d *AttentionDetector) ApplyProviderSignal(state, kind, summary, source, interactionID string) {
+	d.ApplyProviderSignalWithOptions(state, kind, summary, source, interactionID, nil)
+}
+
+// ApplyProviderSignalWithOptions carries exact choices from a structured
+// provider protocol. Text scraped from a terminal never enters this path.
+func (d *AttentionDetector) ApplyProviderSignalWithOptions(state, kind, summary, source, interactionID string, options []registry.AttentionOption) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	switch source {
@@ -523,10 +529,10 @@ func (d *AttentionDetector) ApplyProviderSignal(state, kind, summary, source, in
 		return r
 	}, summary)
 	summary = truncateRunes(summary, 320)
-	d.applyNativeStatusLocked(oscStatus{State: state, Kind: kind, Message: summary, App: d.providerID}, source, interactionID)
+	d.applyNativeStatusLocked(oscStatus{State: state, Kind: kind, Message: summary, App: d.providerID}, source, interactionID, options)
 }
 
-func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus, source, interactionID string) {
+func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus, source, interactionID string, options []registry.AttentionOption) {
 	state := registry.StateRunning
 	reason := "WORKING"
 	kind := AttentionWorking
@@ -539,6 +545,9 @@ func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus, source, in
 		// OSC 7501 signals that an interaction exists, but provides no
 		// correlated response protocol: show the question, open the terminal.
 		promptKind = "native_status"
+		if source != "osc7501" && len(options) > 0 {
+			promptKind = PromptKindChoice
+		}
 		switch status.Kind {
 		case "permission":
 			reason = "APPROVAL"
@@ -588,6 +597,7 @@ func (d *AttentionDetector) applyNativeStatusLocked(status oscStatus, source, in
 		State: state, Reason: reason, Kind: kind, Context: context,
 		PromptKind: promptKind, Fingerprint: fingerprint,
 		Source: attentionEvidenceSource(source), InteractionID: interactionID,
+		Options:    options,
 		Generation: d.runtimeGeneration,
 		ProjectID:  d.projectID, ProjectName: d.projectName, DynamicTitle: title,
 	})

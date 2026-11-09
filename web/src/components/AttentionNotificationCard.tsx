@@ -21,17 +21,30 @@ export function shouldRenderAttentionCard(runtime: RuntimeSession): boolean {
 export function attentionCardActions(runtime: RuntimeSession): {
   showYesNo: boolean;
   showTextInput: boolean;
+  showStructuredChoices: boolean;
   showOpenTerminal: boolean;
 } {
   if (!shouldRenderAttentionCard(runtime)) {
-    return { showYesNo: false, showTextInput: false, showOpenTerminal: false };
+    return {
+      showYesNo: false,
+      showTextInput: false,
+      showStructuredChoices: false,
+      showOpenTerminal: false,
+    };
   }
   const promptKind = runtime.prompt_kind || 'free_text';
   const canReply = attentionResponseGuardForRuntime(runtime) !== null;
+  const showStructuredChoices =
+    canReply &&
+    runtime.attention_source === 'AUTHORITATIVE' &&
+    (runtime.attention_options || []).length > 0;
   return {
-    showYesNo: canReply && promptKind === 'yn',
+    showYesNo: canReply && runtime.attention_source === 'INFERRED' && promptKind === 'yn',
     showTextInput:
-      canReply && (promptKind === 'yn' || promptKind === 'free_text' || promptKind === 'choice'),
+      canReply &&
+      runtime.attention_source === 'INFERRED' &&
+      (promptKind === 'yn' || promptKind === 'free_text' || promptKind === 'choice'),
+    showStructuredChoices,
     showOpenTerminal: true,
   };
 }
@@ -65,11 +78,31 @@ export const AttentionNotificationCard: React.FC<AttentionNotificationCardProps>
     setSending(true);
     setResponseError('');
     try {
-      await api.respondAttention(runtime.runtime_id, text, guard);
+      await api.respondAttention(runtime.runtime_id, { input: text }, guard);
       setInputText('');
       // 202 means submitted to the runtime, NOT confirmed by its provider.
       // Preserve the card until an authoritative new state arrives or the
       // user explicitly dismisses it.
+      setSubmitted(true);
+    } catch {
+      setResponseError(
+        t(
+          'attention.responseStale',
+          'The request may have changed or the delivery is uncertain. Open the terminal to verify.',
+        ),
+      );
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleChoose = async (optionId: string) => {
+    const guard = attentionResponseGuardForRuntime(runtime);
+    if (!optionId || sending || submitted || !guard) return;
+    setSending(true);
+    setResponseError('');
+    try {
+      await api.respondAttention(runtime.runtime_id, { option_id: optionId }, guard);
       setSubmitted(true);
     } catch {
       setResponseError(
@@ -197,6 +230,20 @@ export const AttentionNotificationCard: React.FC<AttentionNotificationCardProps>
                   </button>
                 </>
               ) : null}
+              {actions.showStructuredChoices
+                ? (runtime.attention_options || []).map((option) => (
+                    <button
+                      key={option.option_id}
+                      type="button"
+                      className="nx-uui-btn nx-uui-btn--secondary"
+                      data-tour="attention-structured-choice"
+                      onClick={() => void handleChoose(option.option_id)}
+                      disabled={sending || submitted}
+                    >
+                      <span>{sanitizeAttentionText(option.name, option.option_id)}</span>
+                    </button>
+                  ))
+                : null}
               {actions.showOpenTerminal ? (
                 <button
                   type="button"

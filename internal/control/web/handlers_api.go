@@ -441,14 +441,24 @@ func (h *APIHandler) handleRuntimeDetail(w http.ResponseWriter, r *http.Request)
 
 		case "respond-attention":
 			var payload struct {
-				Input string `json:"input"`
+				Input    string `json:"input"`
+				OptionID string `json:"option_id"`
 				registry.AttentionResponseExpectation
 			}
 			if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 8192)).Decode(&payload); err != nil {
 				writeError(w, http.StatusBadRequest, "invalid attention response payload")
 				return
 			}
-			err := h.runtimes.RespondToAttention(r.Context(), runtimeID, payload.AttentionResponseExpectation, payload.Input)
+			if (payload.Input == "") == (payload.OptionID == "") {
+				writeError(w, http.StatusBadRequest, "provide exactly one response input or option")
+				return
+			}
+			var err error
+			if payload.OptionID != "" {
+				err = h.runtimes.ChooseAttention(r.Context(), runtimeID, payload.AttentionResponseExpectation, payload.OptionID)
+			} else {
+				err = h.runtimes.RespondToAttention(r.Context(), runtimeID, payload.AttentionResponseExpectation, payload.Input)
+			}
 			switch {
 			case errors.Is(err, registry.ErrAttentionConflict):
 				writeError(w, http.StatusConflict, "attention changed or already submitted; open the terminal")

@@ -1082,6 +1082,9 @@ export const en = {
     agentTerminalFollowTitle: 'Follow an Agent terminal at your pace',
     agentTerminalFollowBody:
       'Pause automatic scrolling while output keeps arriving, then resume following the live terminal when you are ready.',
+    agentAttentionChoiceTitle: 'Answer structured agent choices',
+    agentAttentionChoiceBody:
+      'When an Agent asks for an explicit choice, select one of its provider-defined options in the attention card.',
   },
   tour: {
     featureOpen: 'Explore this area',
@@ -1091,6 +1094,9 @@ export const en = {
     agentTerminalFollowTitle: 'Follow the Agent terminal at your pace',
     agentTerminalFollowBody:
       'Pause automatic scrolling while output keeps arriving, then resume following the live terminal when you are ready.',
+    agentAttentionChoiceTitle: 'Choose an Agent response',
+    agentAttentionChoiceBody:
+      'Select one of the options supplied by the Agent. The choice is sent to that exact waiting interaction.',
     composerPurposeTitle: 'What Composer does',
     composerPurposeBody:
       'Composer turns an idea or an existing project into a revisable plan. It does not execute code just by opening a session.',
@@ -3524,6 +3530,9 @@ export const ptBR = {
     agentTerminalFollowTitle: 'Acompanhe o terminal do Agent no seu ritmo',
     agentTerminalFollowBody:
       'Pause a rolagem automática enquanto a saída continua chegando e retome o acompanhamento ao vivo quando quiser.',
+    agentAttentionChoiceTitle: 'Responda às escolhas estruturadas do Agent',
+    agentAttentionChoiceBody:
+      'Quando um Agent pedir uma escolha explícita, selecione uma das opções definidas pelo provedor no cartão de atenção.',
   },
   tour: {
     featureOpen: 'Conhecer esta área',
@@ -3533,6 +3542,9 @@ export const ptBR = {
     agentTerminalFollowTitle: 'Acompanhe o terminal do Agent no seu ritmo',
     agentTerminalFollowBody:
       'Pause a rolagem automática enquanto a saída continua chegando e retome o acompanhamento ao vivo quando quiser.',
+    agentAttentionChoiceTitle: 'Escolha uma resposta do Agent',
+    agentAttentionChoiceBody:
+      'Selecione uma opção fornecida pelo Agent. A escolha é enviada à interação exata que está aguardando.',
     composerPurposeTitle: 'Para que serve o Composer',
     composerPurposeBody:
       'O Composer transforma uma ideia ou projeto existente em um planejamento revisável. Abrir uma elaboração não executa código.',
@@ -5978,6 +5990,9 @@ export const es = {
     agentTerminalFollowTitle: 'Siga el terminal del Agent a su ritmo',
     agentTerminalFollowBody:
       'Pause el desplazamiento automático mientras llega nueva salida y reanude el seguimiento en vivo cuando quiera.',
+    agentAttentionChoiceTitle: 'Responda a las opciones del Agent',
+    agentAttentionChoiceBody:
+      'Cuando un Agent solicite una elección explícita, seleccione una de las opciones definidas por el proveedor en la tarjeta de atención.',
   },
   tour: {
     featureOpen: 'Conocer esta área',
@@ -5987,6 +6002,9 @@ export const es = {
     agentTerminalFollowTitle: 'Siga el terminal del Agent a su ritmo',
     agentTerminalFollowBody:
       'Pause el desplazamiento automático mientras llega nueva salida y reanude el seguimiento en vivo cuando quiera.',
+    agentAttentionChoiceTitle: 'Elija una respuesta del Agent',
+    agentAttentionChoiceBody:
+      'Seleccione una opción proporcionada por el Agent. La elección se envía a la interacción exacta que está esperando.',
     composerPurposeTitle: 'Para qué sirve Composer',
     composerPurposeBody:
       'Composer convierte una idea o proyecto existente en un plan revisable. Abrir una elaboración no ejecuta código.',

@@ -423,7 +423,11 @@ func (sh *SessionHost) observeStructuredSignal(signal agentwire.WireSignal, sour
 	if signal.Kind == agentwire.WireSignalResponseSubmitted {
 		source += "_response_submitted"
 	}
-	sh.detector.ApplyProviderSignal(signal.State, signal.Kind, signal.Summary, source, signal.InteractionID)
+	options := make([]registry.AttentionOption, 0, len(signal.Options))
+	for _, option := range signal.Options {
+		options = append(options, registry.AttentionOption{ID: option.ID, Name: option.Name})
+	}
+	sh.detector.ApplyProviderSignalWithOptions(signal.State, signal.Kind, signal.Summary, source, signal.InteractionID, options)
 }
 
 // isHostProtocolControlFrame detects Nexus Control RPC lines that must never
@@ -761,6 +765,29 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 		prompt := strings.TrimRight(p.Prompt, "\r\n") + "\r"
 		promptWrite = []byte(prompt)
 		resp, _ = protocol.NewResponse("prompt_submitted")
+
+	case protocol.CmdChooseInteraction:
+		var p protocol.ChooseInteractionPayload
+		if req.Payload == nil || json.Unmarshal(req.Payload, &p) != nil || p.InteractionID == "" || p.OptionID == "" {
+			resp = protocol.NewErrorResponse("INTERACTION_AND_OPTION_REQUIRED")
+			break
+		}
+		chooser, ok := sh.termBackend.(interface {
+			ChooseInteraction(string, string) error
+		})
+		if !ok {
+			resp = protocol.NewErrorResponse("STRUCTURED_INTERACTION_UNAVAILABLE")
+			break
+		}
+		if err := chooser.ChooseInteraction(p.InteractionID, p.OptionID); err != nil {
+			resp = protocol.NewErrorResponse("INTERACTION_CHOICE_REJECTED")
+			break
+		}
+		resp = protocol.NewControlResponse(protocol.ControlResult{
+			OK: true, Code: "INTERACTION_CHOICE_SUBMITTED", RuntimeID: sh.session.RuntimeID,
+			Action: string(protocol.CmdChooseInteraction), State: string(sh.session.State),
+			Message: "provider choice submitted",
+		})
 
 	case protocol.CmdStop:
 		sh.session.State = registry.StateStopping

@@ -13,10 +13,16 @@ export function attentionResponseGuardForRuntime(
   runtime: RuntimeSession,
 ): AttentionResponseGuard | null {
   const revision = runtime.attention_revision || 0;
+  const structuredChoice =
+    runtime.attention_source === 'AUTHORITATIVE' &&
+    runtime.prompt_kind === 'choice' &&
+    (runtime.attention_reason === 'APPROVAL' || runtime.attention_reason === 'QUESTION') &&
+    (runtime.attention_options || []).length > 0 &&
+    Boolean(runtime.attention_interaction_id);
   if (
     !isHonestNeedsUser(runtime) ||
-    runtime.attention_source !== 'INFERRED' ||
-    runtime.attention_reason !== 'QUESTION' ||
+    (!structuredChoice &&
+      (runtime.attention_source !== 'INFERRED' || runtime.attention_reason !== 'QUESTION')) ||
     !runtime.attention_fingerprint ||
     !Number.isSafeInteger(revision) ||
     revision <= 0 ||
@@ -24,7 +30,8 @@ export function attentionResponseGuardForRuntime(
   ) {
     return null;
   }
-  if (!['yn', 'choice', 'free_text'].includes(runtime.prompt_kind || '')) return null;
+  if (!structuredChoice && !['yn', 'choice', 'free_text'].includes(runtime.prompt_kind || ''))
+    return null;
   // Exact decimal Go int64 generations must not be round-tripped through
   // JavaScript numbers, which can silently lose precision.
   if (!runtime.attention_generation) return null;
