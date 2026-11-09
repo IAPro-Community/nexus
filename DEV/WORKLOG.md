@@ -10,7 +10,7 @@
 - Levei escolhas definidas pelo provider do Bridge até o Registry, endpoint autenticado, IPC tipado e UI. Fence/claim de uso único bloqueia IDs desconhecidos, payloads inválidos, eventos stale e cross-runtime; a resposta estruturada não entra no PTY.
 - Adicionei regressões em Bridge/host/Registry/API/UI, strings EN/PT-BR/ES, Product Discovery/tour existentes e E2E de dois processos e projetos. O E2E prova Alpha resolvida e Beta ainda pendente após a escolha de Alpha.
 - PASS: E2E integrado, Web focal 18/18, Go focado, `make quality-full` (Web 131/826; Go + race; lint Go; govulncheck) e `make build`. Seis warnings ESLint preexistentes, sem erros.
-- E2E repetido após push no SHA `78d53dd6`; capturas/evidências e limites em `DEV/validation/current/attention-structured-choice/README.md`. ACP é fixture determinística; sem provider externo ou app distribuído, portanto não homologa o release final.
+- E2E repetido após push nos SHAs `78d53dd6` e `deaf2802`; capturas/evidências e limites em `DEV/validation/current/attention-structured-choice/README.md`. ACP é fixture determinística; sem provider externo ou app distribuído, portanto não homologa o release final.
 - Atualizei o mapa canônico para apontar o critério de direcionamento para as novas fontes e o teste E2E; registro continua partial/unverified/pending. Validador de contrato/mapa passou (48/96, zero certificados) e Vitest focal 18/18.
 - Handoff continua NO_GO: A1–A4 não fechados; A2 requer dois perfis reais e cleanup de cancelamento; AGY 1/2 elegíveis; Maestro ainda sem distribuição final; 48/96 critérios sem certificação; plataformas, assinatura e UX no SHA final ainda pendentes.
 

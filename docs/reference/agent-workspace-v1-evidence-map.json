@@ -572,7 +572,7 @@
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-      "gap": "TestACPAttentionRadarBrowserIntegration combina subprocessos ACP determinísticos supervisionados, Bridge→SessionHost→Registry, GET autenticado /api/v1/runtimes sem overlay e Playwright que foca o runtime exato entre projetos e abre os WebSockets reais dos SessionHosts. O E2E passou no SHA publicado 78d53dd6 em 2026-11-09; ainda usa provider fixture, não valida provider externo nem aplicativo distribuído no SHA final. As assertions foram exercitadas, mas o critério e a capability continuam unverified/pending até provider real aplicável, homologação do artefato final e auditoria semântica completa.",
+      "gap": "TestACPAttentionRadarBrowserIntegration combina subprocessos ACP determinísticos supervisionados, Bridge→SessionHost→Registry, GET autenticado /api/v1/runtimes sem overlay e Playwright que foca o runtime exato entre projetos e abre os WebSockets reais dos SessionHosts. O E2E passou no SHA publicado deaf2802 em 2026-11-09; ainda usa provider fixture, não valida provider externo nem aplicativo distribuído no SHA final. As assertions foram exercitadas, mas o critério e a capability continuam unverified/pending até provider real aplicável, homologação do artefato final e auditoria semântica completa.",
           "assertionAudit": "partial"
         },
         {
@@ -600,7 +600,7 @@
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-      "gap": "Auditoria parcial: o guard valida fingerprint, revisão, generation e interaction_id; testes rejeitam revisão stale, input inseguro, opção não listada e guard de outro runtime/projeto sem reservar nenhuma intervenção. O E2E no SHA 78d53dd6 prova escolha estruturada permitida para Alpha pelo interaction ID, sem limpar Beta, através de IPC dedicado e sem PTY. Teste HTTP cobre sessão, CSRF e revogação; Mission intervention tem resolução idempotente após restart. Falta validar provider real/driver aplicável, recusa e continuidade da resposta em fluxo completo, além de autorização por projeto (o servidor permanece single-user, sem ACL por projeto). Capability pendente.",
+      "gap": "Auditoria parcial: o guard valida fingerprint, revisão, generation e interaction_id; testes rejeitam revisão stale, input inseguro, opção não listada e guard de outro runtime/projeto sem reservar nenhuma intervenção. O E2E no SHA deaf2802 prova escolha estruturada permitida para Alpha pelo interaction ID, sem limpar Beta, através de IPC dedicado e sem PTY. Teste HTTP cobre sessão, CSRF e revogação; Mission intervention tem resolução idempotente após restart. Falta validar provider real/driver aplicável, recusa e continuidade da resposta em fluxo completo, além de autorização por projeto (o servidor permanece single-user, sem ACL por projeto). Capability pendente.",
           "assertionAudit": "partial"
         }
       ],
