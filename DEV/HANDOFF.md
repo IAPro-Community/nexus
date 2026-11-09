@@ -6,6 +6,7 @@
 - Limite: o E2E de 78d53dd6 valida o commit publicado, mas usa subprocessos ACP determinísticos, sem provider externo e sem app distribuído. A4 ainda não está homologado e o teste não promove capability alguma.
 - Próximas pendências: (1) P0 A1–A4 completos; (2) A2 com dois perfis reais e cancelamento/cleanup sem Agent ou PTY órfão; (3) A3/A4 com provider externo aplicável, autorização/UX e exact-SHA; (4) AGY balance com 2/2 contas realmente elegíveis a quota 5h e rotação demonstrada sem geração artificial; (5) instalar/distribuir Maestro integrado no binário final; (6) auditar semanticamente 96 critérios, cobrir os gaps source-only/unmapped e homologar 48/48; (7) validar experiência no app distribuído, plataformas e assinatura no SHA final.
 - Contrato segue 48 capacidades/96 critérios, mapa com 86 referências source+test, 9 source-only, 1 unmapped e zero certificados; AGY segue 1/2 elegíveis. **NO_GO**. Não promover status com base em fixtures, `quality-full` ou screenshots deste checkpoint.
+- Mapa canônico atualizado no critério `attention-radar`: referências agora apontam para UI/IPC/host e o E2E de escolha do SHA `78d53dd6`; registro continua `assertionAudit: partial`, `coverage: unverified`, capability `verification: pending`. Validador do mapa e contrato 48/96 passaram; Web focal 18/18.
 
 ## Recheck do handoff — GlobalAttentionRadar integrado — 2026-11-09
 
