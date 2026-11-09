@@ -7144,4 +7144,5 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - PASS — duas runtimes/projetos criados pela API Nexus com pergunta textual igual permanecem distinguíveis por runtime ID; alternar Alpha→Beta→Alpha abre o Project Shell selecionado. PT-BR e estados localizados também são verificados.
 - Limite: o E2E sobrepõe estados de atenção no GET `/api/v1/runtimes`; nenhum provider é chamado. Não prova evento real Registry→API→UI, provider externo, pacote distribuído ou aceite A3.
 - PASS — Web `quality:full` 131 arquivos/825 testes; validadores contrato (48 pending), mapa (48/96, 86 refs source+test, 9 source-only, 1 unmapped, zero certificados; testes 4/4), catálogo (36) e `git diff --check`.
-- Próximo: commit/push desta fatia e refresh documental sintético; avançar fluxo A3 sem overlay, A2/A4, Maestro distribuído, quota AGY e auditoria assertion-by-assertion. Estado NO_GO.
+- Commit de código `390a2554` (`fix(workspace): focus radar runtimes across projects`). `npm --prefix web run docs:capture` atualizou dez capturas sintéticas com `source_sha=390a2554...`; `make docs-verify` passou (245 Markdown/33 assets). Capturas documentais não são evidência de homologação UI.
+- Próximo: commit/push documental e avançar fluxo A3 sem overlay, A2/A4, Maestro distribuído, quota AGY e auditoria assertion-by-assertion. Estado NO_GO.

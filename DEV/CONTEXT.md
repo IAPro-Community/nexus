@@ -98,7 +98,8 @@ Objetivo atual é fechar P0 e homologar a matriz canônica de 48 capacidades, al
 - Base sincronizada: Nexus `release/v1.0.0@6955bb59`; Maestro segue `release/1.1.0@9c9c9eb`.
 - Teste ACP→Bridge→SessionHost→Registry foi aprovado e pushado em `c850f40e`. Novo Playwright E2E cria projetos/runtimes por API e prova foco do Radar no runtime escolhido após troca de projeto; a seleção sobrevive ao remount e espera o layout de destino.
 - Estados do Radar no E2E são overlay no GET `/api/v1/runtimes`; ainda não é evidência de evento Registry→API→UI sem overlay ou provider. Web quality passa 131/825; mapa estrutural 48/96, zero aceites certificados.
-- Próximo: commit/push da correção E2E cross-project; atualizar docs captures sintéticas no SHA commitado; construir cobertura sem overlay do evento ao read model/browser. Seguem abertos A2/A4, 1/2 contas AGY elegíveis, distribuição Maestro, auditoria semântica das 48 capacidades e gates exact-SHA/plataforma/assinatura. GO permanece NO_GO.
+- Código da correção está commitado em `390a2554`; `npm run docs:capture` renovou 10 assets sintéticos com source SHA exato e `make docs-verify` passou. A captura documental não homologa a UI.
+- Próximo: concluir o push do checkpoint documental; construir cobertura sem overlay do evento ao read model/browser. Seguem abertos A2/A4, 1/2 contas AGY elegíveis, distribuição Maestro, auditoria semântica das 48 capacidades e gates exact-SHA/plataforma/assinatura. GO permanece NO_GO.
 
 ## Homologação Linux — atualização de 2026-10-26
 

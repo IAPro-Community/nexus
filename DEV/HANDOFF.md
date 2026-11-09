@@ -6,7 +6,8 @@
 - Limite da evidência: o E2E intercepta apenas o GET `/api/v1/runtimes` para sobrepor os estados de atenção. Não prova a projeção real Registry→API→UI, provider externo nem o app distribuído no SHA final. Não promove A3 ou capability; screenshots temporárias estão em `/tmp/nexus-attention-radar-20261108-sha-check` e são de fixture.
 - PASS na árvore de trabalho: `npm --prefix web run quality:full` (131 arquivos/825 testes Web, build/type/style/format e lint sem erros; 6 warnings ESLint preexistentes); contrato 48, mapa/verificador 4/4 e catálogo 36 passam. Mapa: 48 capacidades/96 critérios, 86 refs source+test, 9 source-only, 1 unmapped, zero certificados.
 - Ainda falta no A3: evento estruturado sem overlay até endpoint/read model/browser e validação com provider externo. A1/A2/A3/A4 parciais; AGY tem 1/2 perfis elegíveis com evidência 5h; instalação/distribuição Nexus↔Maestro, auditoria semântica 48/96, exact-SHA, inspeção visual, plataformas e assinatura permanecem gates abertos. Estado **NO_GO**.
-- Próxima ação: commit/push desta fatia, atualizar capturas documentais sintéticas contra o SHA de código commitado e prosseguir pelo evento API/UI sem overlay e demais P0s. Não confundir docs capture com homologação visual.
+- Código checkpointado em `390a2554`; `npm run docs:capture` atualizou 10 capturas sintéticas contra esse source SHA e `make docs-verify` passou (245 Markdown/33 assets). As capturas não são homologação visual. O commit documental está pendente de push junto deste checkpoint.
+- Próxima ação técnica: implementar/verificar o caminho de evento de atenção sem overlay do Registry à API/read model/browser; manter provider externo e pacote distribuído exact-SHA como gates. A seguir avançar A2/A4 e restantes bloqueios. Não declarar GO.
 
 ## P0 A3 — subprocesso ACP até Registry, ACK e isolamento — 2026-11-08
 
