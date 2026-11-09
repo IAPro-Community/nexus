@@ -554,11 +554,13 @@
           ],
           "testRefs": [
             "internal/control/host/attention_test.go",
+            "internal/control/host/structured_attention_pipeline_test.go",
             "web/src/app/attentionRadarModel.test.ts"
           ],
           "mappingStatus": "source-and-test-referenced",
           "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+          "gap": "Nova regressão de subprocesso ACP atravessa Bridge→SessionHost→Registry: duas runtimes com texto e interaction ID iguais mantêm fontes/gerações/fingerprints independentes; lifecycle/end_turn ficam AUTHORITATIVE, resposta correlacionada marca somente Alpha SIGNALLED/SUBMITTED/working sem concluir; end_turn autoritativo resolve só Alpha e Beta continua needs_user. O modelo do Radar já mantém linhas/foco por runtime. Ainda falta E2E da API/UI GlobalAttentionRadar no app publicado e provider real; capability não certificada.",
+          "assertionAudit": "partial"
         },
         {
           "acceptanceIndex": 1,

@@ -1,3 +1,9 @@
+### A3 — projeção estruturada de attention — 2026-11-08
+
+- Implementada regressão subprocesso ACP → Bridge → SessionHost → Registry para runtime e interaction ID, proveniência/generation (`AUTHORITATIVE` para lifecycle, `SIGNALLED` para resposta local), resposta `SUBMITTED`/working sem completion e resolução isolada de duas perguntas idênticas. Teste focal, race x10, vet e gates completos passaram no estado corrigido.
+- Restam UI/API GlobalAttentionRadar até foco no runtime certo, validação provider real e exact-SHA publicado. A3 e capability continuam partial/pending; objetivo completo de 48 capabilities e GO permanece ativo.
+- Alteração está em worktree sobre `release/v1.0.0@104089c0`; conferir review e quality gates antes de commit/push.
+
 ### Recheck `follow-agent` — 2026-11-08
 
 - Entrega local adicional: Playwright E2E para pausa/resume e protocolo de lease no AgentTerminal, ligado ao mapa canônico. E2E passou, mas WebSocket provider é simulado; não homologar broker/host, capability ou release por esse teste.

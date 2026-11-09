@@ -18,6 +18,34 @@ func TestWireProjectionDoesNotResolveQuestionFromUncorrelatedProgress(t *testing
 		t.Fatalf("authoritative settled did not resolve approval: %+v %v", state, err)
 	}
 }
+
+func TestWireProjectionMarksOnlyCorrelatedInteractionSubmittedWithoutSettling(t *testing.T) {
+	r := NewReducer()
+	for index, id := range []string{"req-1", "req-2"} {
+		_, err := r.ObserveWireSignal("runtime-submit", 1, uint64(index+1), WireSignal{
+			State: "blocked", Kind: "permission", Summary: "Approve?", InteractionID: id,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := r.ObserveWireSignal("runtime-submit", 1, 3, WireSignal{
+		State: "working", Kind: WireSignalResponseSubmitted, InteractionID: "req-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Turn != TurnRunning || got.Evidence != Signalled || len(got.Attention) != 2 {
+		t.Fatalf("response submission must not settle the turn or drop other requests: %+v", got)
+	}
+	if got.Attention[0].Status != "SUBMITTED" || got.Attention[1].Status != "PENDING" {
+		t.Fatalf("response submission crossed interaction IDs: %+v", got.Attention)
+	}
+	settled, err := r.ObserveWireSignal("runtime-submit", 1, 4, WireSignal{State: "done", Kind: "prompt_result"})
+	if err != nil || settled.Turn != TurnSettled || len(settled.Attention) != 0 {
+		t.Fatalf("only provider turn settlement should clear all outstanding actions: %+v %v", settled, err)
+	}
+}
 func TestWireProjectionRuntimeAndEpochIsolation(t *testing.T) {
 	r := NewReducer()
 	for _, id := range []string{"alpha", "beta"} {

@@ -41,14 +41,15 @@ type Intervention struct {
 	Text   string        `json:"text,omitempty"`
 }
 type Observation struct {
-	RuntimeID  string        `json:"runtime_id"`
-	Epoch      uint64        `json:"epoch"`
-	Sequence   uint64        `json:"sequence"`
-	Source     string        `json:"source"`
-	Evidence   Evidence      `json:"evidence"`
-	Turn       Turn          `json:"turn"`
-	Request    *Intervention `json:"request,omitempty"`
-	ResolvedID string        `json:"resolved_id,omitempty"`
+	RuntimeID   string        `json:"runtime_id"`
+	Epoch       uint64        `json:"epoch"`
+	Sequence    uint64        `json:"sequence"`
+	Source      string        `json:"source"`
+	Evidence    Evidence      `json:"evidence"`
+	Turn        Turn          `json:"turn"`
+	Request     *Intervention `json:"request,omitempty"`
+	SubmittedID string        `json:"submitted_id,omitempty"`
+	ResolvedID  string        `json:"resolved_id,omitempty"`
 }
 type Snapshot struct {
 	RuntimeID string         `json:"runtime_id"`
@@ -96,6 +97,16 @@ func (r *Reducer) Apply(o Observation) (Snapshot, error) {
 			cp := *o.Request
 			cp.Status = "PENDING"
 			s.Attention = append(s.Attention, cp)
+		}
+	}
+	// An explicit correlated response stops asking the operator to answer the
+	// same interaction again, but is not evidence that the turn completed.
+	if o.SubmittedID != "" && o.Evidence == Signalled {
+		for i := range s.Attention {
+			if s.Attention[i].ID == o.SubmittedID && s.Attention[i].Status == "PENDING" {
+				s.Attention[i].Status = "SUBMITTED"
+				break
+			}
 		}
 	}
 	// A keystroke or inferred PTY text is not proof that a provider has

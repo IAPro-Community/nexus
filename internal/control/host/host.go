@@ -412,12 +412,16 @@ func (sh *SessionHost) observeStructuredSignal(signal agentwire.WireSignal, sour
 			slog.Warn("invalid structured event", "runtime_id", runtimeID, "error", err)
 			return
 		}
-		// A fresh tool/progress event is not proof that the provider accepted
-		// an outstanding answer. Keep the correlated request visible until
-		// a trustworthy turn-settled event or terminal process teardown.
-		if len(observation.Attention) != 0 && (signal.State == "working" || signal.State == "idle") {
+		// A generic tool/progress event is not proof that the provider accepted
+		// an outstanding answer. A correlated response-submitted signal may move
+		// the Registry card to working, but only settlement clears the request.
+		if len(observation.Attention) != 0 && (signal.State == "working" || signal.State == "idle") &&
+			signal.Kind != agentwire.WireSignalResponseSubmitted {
 			return
 		}
+	}
+	if signal.Kind == agentwire.WireSignalResponseSubmitted {
+		source += "_response_submitted"
 	}
 	sh.detector.ApplyProviderSignal(signal.State, signal.Kind, signal.Summary, source, signal.InteractionID)
 }

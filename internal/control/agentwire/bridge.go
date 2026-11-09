@@ -20,6 +20,9 @@ type WireSignal struct {
 	InteractionID string
 	Options       []PermissionChoice
 }
+
+const WireSignalResponseSubmitted = "response_submitted"
+
 type PermissionChoice struct {
 	ID   string `json:"option_id"`
 	Name string `json:"name"`
@@ -318,6 +321,10 @@ func (b *Bridge) request(ctx context.Context, method string, raw json.RawMessage
 		if option == "" {
 			return map[string]any{"outcome": map[string]string{"outcome": "cancelled"}}, nil
 		}
+		b.emit(WireSignal{
+			State: "working", Kind: WireSignalResponseSubmitted, Summary: "",
+			InteractionID: id,
+		})
 		return map[string]any{"outcome": map[string]string{"outcome": "selected", "optionId": option}}, nil
 	case <-ctx.Done():
 		return map[string]any{"outcome": map[string]string{"outcome": "cancelled"}}, nil
@@ -493,7 +500,13 @@ func (b *Bridge) handlePiUI(raw json.RawMessage) {
 			} else {
 				response = map[string]any{"value": value}
 			}
-			_ = b.pi.RespondUI(req.ID, response)
+			if err := b.pi.RespondUI(req.ID, response); err != nil {
+				b.emit(WireSignal{State: "error", Summary: "Provider interaction response failed"})
+				return
+			}
+			b.emit(WireSignal{
+				State: "working", Kind: WireSignalResponseSubmitted, InteractionID: id,
+			})
 		case <-expiry: // Pi itself expires dialogs; do not send a late reply.
 		case <-b.ctx.Done():
 			_ = b.pi.RespondUI(req.ID, map[string]any{"cancelled": true})

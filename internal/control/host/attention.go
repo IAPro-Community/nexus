@@ -491,12 +491,14 @@ func (d *AttentionDetector) ProcessChunk(chunk []byte) {
 	}
 }
 
-// attentionEvidenceSource describes the provenance of a provider status,
-// not authorization to send replies over its native interaction protocol.
+// attentionEvidenceSource describes whether lifecycle or response-submission
+// evidence came from a provider, a correlated local adapter, or inference.
 func attentionEvidenceSource(source string) string {
 	switch source {
 	case "acp", "pi_rpc":
 		return "AUTHORITATIVE"
+	case "acp_response_submitted", "pi_rpc_response_submitted":
+		return "SIGNALLED"
 	case "osc7501":
 		return "SIGNALLED"
 	default:
@@ -504,12 +506,14 @@ func attentionEvidenceSource(source string) string {
 	}
 }
 
-// ApplyProviderSignal ingests a provider-owned session update. A structured
-// request remains view-only until a correlated response adapter is available.
+// ApplyProviderSignal ingests a structured provider lifecycle update or a
+// correlated response-submitted signal from a native interaction adapter.
 func (d *AttentionDetector) ApplyProviderSignal(state, kind, summary, source, interactionID string) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if source != "acp" && source != "pi_rpc" {
+	switch source {
+	case "acp", "pi_rpc", "acp_response_submitted", "pi_rpc_response_submitted":
+	default:
 		return
 	}
 	summary = strings.Map(func(r rune) rune {

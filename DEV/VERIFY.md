@@ -1,3 +1,11 @@
+## P0 A3 — evento ACP estruturado até Registry — 2026-11-08
+
+- PASS — `go test ./internal/control/host -run '^TestStructuredACPAttentionReachesRegistryAndSettlesOnlyItsRuntime$' -count=1 -v`: subprocesso ACP real no harness, Bridge e SessionHost de produção, Registry persistente partilhado.
+- PASS — duas runtimes com o mesmo título e interaction ID `req-1` ficam separadas por runtime; a pergunta ACP e `end_turn` mantêm `AUTHORITATIVE`, a resposta local correlacionada marca Alpha `SIGNALLED`/`SUBMITTED`/`working` sem concluir o turno, e Beta continua `needs_user` com `AUTHORITATIVE`.
+- PASS — `go test ./internal/control/host -count=1`; `go test -race ./internal/control/host -run '^TestStructuredACPAttentionReachesRegistryAndSettlesOnlyItsRuntime$' -count=10`; `go vet ./internal/control/host ./internal/control/agentwire ./internal/control/registry`.
+- PASS no estado final deste checkpoint — `make quality-full` (131 arquivos/823 testes Web, Go completo + race, lint Go 0 issues, build/style/type/format/security, `govulncheck` sem vulnerabilidades; 6 avisos ESLint preexistentes/0 erros); validadores 48-capabilities, mapa (4/4, 48/96, 86 source+test, 9 source-only, 1 unmapped, zero certificados), `make docs-verify` (245 Markdown/33 assets), `git diff --check`.
+- Limite — subprocesso ACP é fixture determinística; ainda faltam prova API/UI do Radar com foco no runtime certo, provider externo e homologação no app distribuído/SHA final. Capability `attention-radar` e P0 A3 continuam pending/partial.
+
 ## `follow-agent` — E2E de interface e controle explícito — 2026-11-08
 
 - PASS — `NEXUS_E2E_ARTIFACTS_DIR=/tmp/nexus-follow-agent-e2e npm --prefix web run test:e2e:agent-terminal-follow`: servidor fixture/API real criou Agent persistido; UI real AgentTerminal/xterm passou pausa/resume e cenários VIEW_ONLY/CONTROL.

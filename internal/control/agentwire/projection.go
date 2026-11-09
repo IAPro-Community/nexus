@@ -29,6 +29,9 @@ func (r *Reducer) ObserveWireSignal(runtimeID string, epoch, sequence uint64, si
 		}
 	case "working":
 		observation.Turn = TurnRunning
+		if signal.Kind == WireSignalResponseSubmitted && signal.InteractionID != "" {
+			observation.SubmittedID = signal.InteractionID
+		}
 	case "idle":
 		observation.Turn = TurnIdle
 	case "cancelled":

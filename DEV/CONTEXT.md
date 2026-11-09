@@ -1,3 +1,9 @@
+## Continuação P0 A3 — 2026-11-08
+
+- HEAD remoto confirmado anterior: `release/v1.0.0@104089c0`; worktree agora contém teste e checkpoints locais ainda não commitados. Maestro segue `release/1.1.0@9c9c9eb`.
+- Nova regressão atravessa subprocesso ACP/Bridge/SessionHost/Registry para duas runtimes; mesma pergunta/ID, provenance e generation, resposta local fica `SIGNALLED`/`SUBMITTED`, lifecycle/settle ficam `AUTHORITATIVE`, e só settle resolve uma runtime. Review arquitetural APPROVED; focal, pacote host, race x10, vet e `make quality-full` final passaram.
+- A3 permanece parcial/pending por faltar UI/API integrada e homologação com provider real; A2/A4, balance live AGY, 48 capacidades e gates de release seguem abertos. Detalhes e comandos no topo de HANDOFF/VERIFY.
+
 ## Continuação `follow-agent` — 2026-11-08
 
 - E2E Playwright cobre UI real de AgentTerminal/xterm e Agent criado pela API fixture: pause/resume, VIEW_ONLY, consentimento explícito, input em CONTROL e revoke/reconnect. WebSocket provider foi interceptado; broker/host integrado e pacote publicado no SHA final seguem sem prova.

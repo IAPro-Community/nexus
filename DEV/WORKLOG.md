@@ -1,3 +1,10 @@
+## 2026-11-08 — P0 A3: integração structured ACP/Registry
+
+- Acrescentei uma regressão com dois subprocessos ACP determinísticos pelo Bridge e `SessionHost` reais até o Registry compartilhado. Ambos emitem a mesma pergunta e `req-1`, preservando identidade de runtime, origem AUTHORITATIVE, revisão e generation distintas.
+- A fixture aguarda a resposta correlacionada `/permit`: Alpha transita para `SUBMITTED`/`working`, sem ser marcada concluída; só o `end_turn` autoritativo resolve Alpha. Beta continua bloqueada, confirmando isolamento.
+- PASS — teste focal, pacote Go host, repetição `-race -count=10` e `go vet` host/agentwire/registry.
+- Ainda precisa E2E da projeção API/UI GlobalAttentionRadar e foco, além da homologação com provider real no candidate SHA. A3 permanece parcial; 48 capacidades e GO não mudaram.
+
 ## 2026-11-08 — `follow-agent`: E2E Playwright de UI/lease
 
 - Acrescentei `web/scripts/e2e-agent-terminal-follow.mjs` e o script `test:e2e:agent-terminal-follow`. O fluxo abre um Agent persistido pela API fixture e exercita AgentTerminal/xterm com WebSocket interceptado no browser.
@@ -7123,3 +7130,11 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - `nexus usage --refresh --json` fez refresh de quota sem chamar geração; saída foi projetada para não revelar nomes/e-mails. Dois perfis AGY estão autenticados, com escopos verificáveis e snapshots CACHED/CLI_OUTPUT recentes (<3 min). Conta 1 tem 0/2 grupos com 5h; conta 2 tem 2/2 (remaining 100).
 - PASS — regressões do scheduler para cursor persistente, conta inelegível e hard gate por grupos: `go test ./internal/core/scheduler -run 'TestBalancedSelectionRotatesEligibleProfilesAndPersistsCursor|TestBalancedSelectionSkipsQuotaIneligibleAndExcludedProfiles|TestBalancedAGYSelectionRequiresFreshAttributableEvidenceForEveryKnownGroup' -count=1`.
 - Limite — a primeira conta omite 5h na saída upstream; permanece 1/2 elegível e alternância live não pode ser demonstrada. A tentativa de chamada CLI por perfil via Nexus retornou usage/exit 2; a rota suportada de refresh foi usada para a evidência válida.
+
+## 2026-11-08 — proveniência de resposta estruturada e gates A3
+
+- Corrigida a semântica Registry de resposta correlacionada: submissão ACP/Pi fica `SIGNALLED`; lifecycle ACP/Pi e `end_turn` continuam `AUTHORITATIVE`. O reducer marca somente o interaction ID respondido como `SUBMITTED`, preservando o bloqueio até settle.
+- Revisão arquitetural aprovada após exigir ambas as proveniências no teste de subprocesso ACP com dois runtimes.
+- PASS — teste focal, `go test -race ./internal/control/host -run '^TestStructuredACPAttentionReachesRegistryAndSettlesOnlyItsRuntime$' -count=10`, `go vet ./internal/control/host ./internal/control/agentwire ./internal/control/registry` e `make lint-go` (0 issues).
+- PASS — `make quality-full`: 131 arquivos/823 testes Web, Go completo + race/security, `govulncheck` sem vulnerabilidades, 6 avisos ESLint existentes/0 erros. Validadores 48-capabilities, mapa (4/4; 48/96, 86 source+test, 9 source-only, 1 unmapped, zero certificados), `make docs-verify` (245 Markdown/33 assets) e `git diff --check`.
+- Limite — isso reduz uma lacuna A3; UI/API GlobalAttentionRadar, provider real e homologação do app distribuído no SHA final seguem pendentes. GO geral continua NO_GO.

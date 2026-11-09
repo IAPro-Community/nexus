@@ -167,11 +167,9 @@ func TestPiExtensionUIChoiceIsCorrelated(t *testing.T) {
 	defer downstream.Close()
 	defer clientInput.Close()
 	defer agentOutput.Close()
-	signal := make(chan WireSignal, 1)
+	signal := make(chan WireSignal, 2)
 	bridge, err := NewBridge("pi_rpc", clientInput, downstream, "/workspace/demo", func(s WireSignal) {
-		if s.State == "blocked" {
-			signal <- s
-		}
+		signal <- s
 	}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -210,6 +208,14 @@ func TestPiExtensionUIChoiceIsCorrelated(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("provider never received correlated response")
+	}
+	select {
+	case submitted := <-signal:
+		if submitted.State != "working" || submitted.Kind != WireSignalResponseSubmitted || submitted.InteractionID != ask.InteractionID {
+			t.Fatalf("response submission was not correlated to the answered interaction: %+v", submitted)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("correlated response submission signal was not emitted")
 	}
 }
 
