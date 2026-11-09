@@ -2532,3 +2532,9 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - Limite — não valida dois perfis autenticados, start/cancelamento de processo autenticado, provider real ou pacote distribuído; A2 permanece parcial/pending.
 - Tentativa anterior do harness falhou antes do cenário porque o coletor Playwright foi instalado antes da criação da página; corrigido e repetido com PASS. Nenhum provider foi iniciado.
 
+## 2026-11-09 — AGY balance: recheck de quota sem geração
+
+- PASS — `NEXUS_REAL_HOME=/home/desenvolvedor nexus usage --refresh --json`, sem chamar geração; saída foi sanitizada antes do registro.
+- Duas contas AGY autenticadas retornaram snapshots `CACHED/CLI_OUTPUT` recentes. Conta ordinal 1: sem janela 5h nos dois grupos conhecidos. Conta ordinal 2: janela 5h presente nos grupos Gemini e Claude/GPT. O gate de balance segue 1/2 elegíveis.
+- Resultado — nenhuma alternância live entre duas contas pode ser demonstrada agora. A elegibilidade fail-closed permanece correta; não consumir quota para fabricar a evidência.
+

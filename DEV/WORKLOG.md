@@ -7165,3 +7165,8 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - PASS — E2E cria Agent, recebe rejeição real, executa DELETE compensatório, confirma lista vazia/sem runtime do Agent e não chama `/start`.
 - PASS — `make quality-full` (131/825 Web, Go integral, build/security); evidência de mapa/contrato, Prettier, `git diff --check`, captura sintética e `make docs-verify`. Código `e5d2705d` foi commitado/enviado; manifest de screenshots aponta para o SHA completo.
 - Próximo — dois perfis autenticados e cancelamento de execução sem Agent/PTY órfão continuam sem evidência; seguir A4/48 critérios e gates externos.
+
+## 2026-11-09 — AGY balance: quota observada sem geração
+
+- Atualizei snapshots AGY pela rota suportada `nexus usage --refresh --json` com o diretório real do Nexus e saída sanitizada. Duas contas autenticadas; uma não expõe 5h nos dois grupos, outra expõe ambas.
+- Sem alternância live possível: 1/2 elegíveis no hard gate; nenhuma chamada de modelo foi feita. Preservar fail-closed até a conta restante fornecer evidência medida.
