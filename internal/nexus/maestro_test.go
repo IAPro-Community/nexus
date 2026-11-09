@@ -5,11 +5,31 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/IAPro-Community/nexus/internal/testutil"
 )
+
+func TestFindMaestroBinPrefersStableAliasOverNodeVersionShims(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell executable fixtures are Unix-only")
+	}
+	dir := t.TempDir()
+	for _, name := range []string{"maestro", "orquestrador-maestro"} {
+		path := filepath.Join(dir, name)
+		if err := os.WriteFile(path, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Setenv("PATH", dir)
+	t.Setenv("HOME", dir)
+
+	if got, want := findMaestroBin(), filepath.Join(dir, "maestro"); got != want {
+		t.Fatalf("findMaestroBin() = %q, want preferred stable alias %q", got, want)
+	}
+}
 
 func TestMaestroCLIContractInterop(t *testing.T) {
 	bin := os.Getenv("NEXUS_MAESTRO_CLI_TEST_PATH")

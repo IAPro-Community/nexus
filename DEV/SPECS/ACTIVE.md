@@ -1,5 +1,6 @@
 ## Checkpoint ativo — 2026-11-09
 
+- Maestro: seleção do alias compatível corrigida; build local agora passa status v1 real. Instalação/distribuição do candidato final ainda sem validação.
 - A4 avançou com opções estruturadas AUTHORITATIVE, claim cercado one-shot e IPC tipado separado do PTY. E2E autenticado com dois subprocessos ACP fixture passou no SHA publicado `78d53dd6`, confirmando escolha Alpha sem limpar Beta. `make quality-full`, build e E2E passaram; evidência em `DEV/validation/current/attention-structured-choice/README.md`. Sem provider externo/app distribuído, A4 permanece parcial.
 - Mapa de evidências agora referencia o pipeline de escolha e descreve a cobertura como parcial, sem promover nenhum dos 96 critérios; contrato/mapa e testes UI focal passaram.
 - Ainda faltam: fechar P0 A1–A4 (A2: dois perfis reais e cancelamento sem órfãos; A3/A4: provider real aplicável, segurança/UX, app distribuído exact-SHA), AGY 2/2 contas elegíveis e rotação provada, Maestro no artefato final, auditoria dos 96 critérios e aceite 48/48, gates de plataforma/assinatura. **NO_GO**.

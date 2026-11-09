@@ -1,3 +1,12 @@
+## Maestro — descoberta da CLI contratual — 2026-11-09
+
+- Reproduzido no host: `orquestrador-maestro` em Node 22/24 precedia no PATH e não implementava `capabilities`; o alias `/home/desenvolvedor/.local/bin/maestro` direciona para Node 20 e expõe contracts 1.0.0.
+- Corrigi a preferência de descoberta do Nexus para `maestro` antes dos shims versionados, com regressão para múltiplos executáveis no PATH.
+- PASS — `go test ./internal/nexus -run 'TestFindMaestroBinPrefersStableAliasOverNodeVersionShims|TestMaestroCLIContractInterop' -count=1 -v`; integração real `NEXUS_MAESTRO_CLI_TEST_PATH=/home/desenvolvedor/.local/bin/maestro go test ./internal/nexus -run '^TestMaestroCLIContractInterop$' -count=1 -v`.
+- PASS — após correção, `make build` e `./nexus maestro status --json`: `available=true`, modo `ASSIST`, Maestro `1.1.0`, `advice=1.0.0`, `verification=1.0.0`.
+- PASS — `make quality-full`: format; ESLint 0 erros/6 avisos preexistentes; lint Go 0 issues; Vitest 131 arquivos/826 testes; Go integral e race (`internal/nexus` 302,029s); version contract; `govulncheck` sem vulnerabilidades.
+- Limite: é smoke do binário local compilado com Maestro presente no usuário. Nexus preinstalado/distribuído no perfil e artefato final de release ainda não foram atualizados/retestados; gates de instalação, plataforma e assinatura permanecem.
+
 ## P0 A4 — opção estruturada no Attention Radar — 2026-11-09
 
 - Fluxo implementado: metadados choice estruturados e limitados no Bridge → Registry; `CmdChooseInteraction` tipado → backend structured; validação e claim atômico one-shot antes do IPC; endpoint aceita exatamente `input` ou `option_id`; UI mostra botões somente para opções AUTHORITATIVE recebidas. Não há conversão de escolha em input de terminal.

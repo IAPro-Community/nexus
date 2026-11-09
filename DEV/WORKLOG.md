@@ -1,3 +1,10 @@
+## 2026-11-09 — Maestro: descoberta de CLI contratual no PATH
+
+- Corrigi a precedência que selecionava primeiro `orquestrador-maestro` de Node 22/24, um shim legado sem `capabilities`, mesmo com o alias `maestro` Node 20 instalado e funcional. Nexus passa a preferir o alias estável.
+- Adicionei regressão com dois executáveis concorrentes no PATH. O teste de interoperabilidade executou capabilities/advice/verify pela CLI real Maestro 1.1.0 e passou.
+- PASS — `make build`; `./nexus maestro status --json` agora reporta `available=true`, `ASSIST`, contracts advice/verification 1.0.0. `make quality-full` passou (131/826 Web, Go + race, lint, version contract, govulncheck limpo; 6 warnings ESLint existentes).
+- O teste é do binário de desenvolvimento. Nexus preinstalado/distribuído e artefato final ainda precisam atualização e smoke; não fecha GO.
+
 ## 2026-11-09 — P0 A4: escolha estruturada no Attention Radar
 
 - Levei escolhas definidas pelo provider do Bridge até o Registry, endpoint autenticado, IPC tipado e UI. Fence/claim de uso único bloqueia IDs desconhecidos, payloads inválidos, eventos stale e cross-runtime; a resposta estruturada não entra no PTY.

@@ -432,8 +432,10 @@ func NewMaestroClient() *MaestroClient {
 }
 
 func findMaestroBin() string {
-	// LookPath with enhanced developer toolchains
-	candidates := []string{"orquestrador-maestro", "maestro", "orquestrador"}
+	// Prefer the stable `maestro` alias before versioned Node package shims.
+	// Multiple Node installations may expose stale `orquestrador-maestro`
+	// commands earlier in PATH; the alias is the user's selected integration.
+	candidates := []string{"maestro", "orquestrador-maestro", "orquestrador"}
 	for _, name := range candidates {
 		if path, err := runtime.LookPath(name); err == nil && path != "" {
 			return path

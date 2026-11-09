@@ -1,5 +1,6 @@
 ## Atualização corrente — 2026-11-09
 
+- Maestro: corrigida descoberta no PATH que escolhia shim Node 22/24 sem `capabilities` antes do alias Node 20. Teste real da CLI e `nexus maestro status` passaram; `make quality-full` passou. Distribuição instalada continua pendente; detalhes em `DEV/HANDOFF.md`/`DEV/VERIFY.md`.
 - Checkpoint novo A4: escolha estruturada e cercada no Attention Radar (interaction ID + opção exata via IPC, sem resposta por PTY). E2E passou no SHA publicado `78d53dd6`: Alpha resolve e Beta segue pendente; testes completos e build passaram. ACP é determinístico e não usa provider externo/app distribuído: A4 segue parcial, GO NO_GO. Detalhes e capturas em `DEV/HANDOFF.md` e `DEV/validation/current/attention-structured-choice/README.md`.
 - E2E integrado A3 agora comprova subprocesso ACP → Bridge/SessionHost → Registry → API autenticada sem overlay → Playwright Radar e WebSockets reais em dois projetos. Execução `npm --prefix web run test:e2e:attention-radar-process-api-focus`: PASS.
 - Provider ACP é fixture determinística; nenhuma chamada a provider externo ocorreu. A3 permanece parcial, mapa permanece `unverified`, 48 capacidades sem certificação e release **NO_GO**.
