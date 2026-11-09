@@ -1,6 +1,7 @@
 ## Fechamento Nexus 1.0 / Maestro — estado 2026-11-09
 
 - Status **NO_GO**. Handoff corrente: [DEV/HANDOFF.md](HANDOFF.md); execução/pendências: [DEV/VERIFY.md](VERIFY.md). Checkpoint A4 estruturado passou E2E, quality e build na árvore local, sem provider externo ou app distribuído; permanece parcial e sem capability certificada. Evidências em [A4](validation/current/attention-structured-choice/README.md).
+- AGY: refresh read-only confirma apenas 1/2 contas elegíveis à janela 5h; consulte [evidência sanitizada](validation/current/agy-balance/README.md).
 - Maestro `release/1.1.0@9c9c9eb`: Nexus seleciona alias v1 contratual; smoke `capabilities/advice/verify` passou. Binário Linux do perfil `deaf2802` instalado com hash conferido e backup; artefatos oficiais, plataformas adicionais e assinatura pendentes.
 - Nexus implementa os contratos Maestro e, no código `c5a31c41`, o AGY `:balance` passou a exigir quota LIVE/CACHED recente, atribuível e com evidência numérica 5h por grupo de modelo observado. `make quality` PASS nesse SHA; veja evidências em `DEV/VERIFY.md`.
 - P0 A1 ganhou teste transversal que impede drivers registrados de anunciar capacidade booleana divergente de `SUPPORTED && tested`; validadores estruturais de 48 capacidades e 36 features passaram. Mapa de evidência para cada capacidade e certificação continuam abertos.

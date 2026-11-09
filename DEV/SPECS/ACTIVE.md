@@ -1,5 +1,6 @@
 ## Checkpoint ativo — 2026-11-09
 
+- AGY refresh com escopo real confirmado: 2 contas, 1/2 elegíveis a 5h estrita. Captura sanitizada atualizada sem geração; live round-robin continua pendente.
 - Maestro: seleção do alias compatível corrigida; binário Linux do perfil instalado/revalidado em `deaf2802` com backup e hash idêntico ao build. Artefatos oficiais, outras plataformas e assinatura continuam pendentes.
 - A4 avançou com opções estruturadas AUTHORITATIVE, claim cercado one-shot e IPC tipado separado do PTY. E2E autenticado com dois subprocessos ACP fixture passou no SHA publicado `deaf2802`, confirmando escolha Alpha sem limpar Beta. `make quality-full`, build e E2E passaram; evidência em `DEV/validation/current/attention-structured-choice/README.md`. Sem provider externo/app distribuído, A4 permanece parcial.
 - Mapa de evidências agora referencia o pipeline de escolha e descreve a cobertura como parcial, sem promover nenhum dos 96 critérios; contrato/mapa e testes UI focal passaram.

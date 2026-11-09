@@ -1,3 +1,10 @@
+## AGY `:balance` — refresh read-only — 2026-11-09
+
+- `NEXUS_REAL_HOME=/home/desenvolvedor nexus usage --refresh --json` consultou as duas contas sem enviar prompt. Snapshots recentes `CACHED/CLI_OUTPUT`; nenhuma geração executada.
+- Uma conta retorna somente janelas semanais nos grupos Gemini e Claude/GPT; a outra retorna 5h mensurada nos dois grupos. Assim, a elegibilidade estrita de balance é 1/2. `eligibility.eligible` da quota geral não prova a janela 5h exigida pelo balance.
+- Evidência sanitizada: [relatório](validation/current/agy-balance/README.md). Testes cobrem weekly-only rejection, fonte/atribuição/frescor por grupo e cursor round-robin persistente.
+- Falta a primeira conta expor 5h e, depois, demonstrar rotação live entre duas contas elegíveis. Não iniciar geração para forçar esse estado.
+
 ## Maestro — descoberta da CLI contratual — 2026-11-09
 
 - Reproduzido no host: `orquestrador-maestro` em Node 22/24 precedia no PATH e não implementava `capabilities`; o alias `/home/desenvolvedor/.local/bin/maestro` direciona para Node 20 e expõe contracts 1.0.0.

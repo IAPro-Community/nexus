@@ -5,6 +5,12 @@
 - PASS — `make build`; `./nexus maestro status --json` agora reporta `available=true`, `ASSIST`, contracts advice/verification 1.0.0. `make quality-full` passou (131/826 Web, Go + race, lint, version contract, govulncheck limpo; 6 warnings ESLint existentes).
 - Naquele checkpoint, o binário instalado ainda precisava ser substituído; a atualização reversível e o smoke instalado foram feitos na seção seguinte. Artefato final/plataformas ainda não fecham GO.
 
+## 2026-11-09 — AGY: recheck read-only de quota 5h
+
+- Atualizei quota via `NEXUS_REAL_HOME=/home/desenvolvedor nexus usage --refresh --json`, sem prompt/geração. Duas contas AGY têm snapshots recentes CACHED/CLI_OUTPUT.
+- A conta ordinal 1 retornou só janelas semanais nos grupos Gemini e Claude/GPT; a ordinal 2 retornou 5h nos dois grupos. Eligibility geral não equivale ao gate estrito de `:balance`: segue 1/2 elegíveis.
+- Registrei evidência sanitizada em `DEV/validation/current/agy-balance/README.md`. Rotação live entre duas elegíveis ainda não pode ser homologada; não gerar chamadas para forçar quota.
+
 ## 2026-11-09 — Maestro: atualização reversível do binário Linux do perfil
 
 - Preservei o executável anterior como `/home/desenvolvedor/.local/bin/nexus.backup.40d479bb` e instalei o build da release `deaf2802` em `/home/desenvolvedor/.local/bin/nexus`.
