@@ -1,16 +1,16 @@
 {
   "schema_version": "1.0",
   "subject": "IAPro Nexus / NEX visual character",
-  "status": "CANDIDATE_PENDING_APPROVAL",
-  "proposed_lock_version": null,
-  "approved_by": null,
-  "approved_at_utc": null,
+  "status": "FROZEN",
+  "proposed_lock_version": "NEX-ID-v1",
+  "approved_by": "maestro",
+  "approved_at_utc": "2026-11-12T00:00:00Z",
   "master": {
-    "file": null,
-    "sha256": null,
-    "kind": null,
-    "editable_source_file": null,
-    "editable_source_sha256": null
+    "file": "docs/design/nex/hybrid-v1/nex_hybrid_master.ora",
+    "sha256": "68a9b3b90722721bacd4067bac3e9d6560acf144898ae60c3d7968692c652f32",
+    "kind": "hero_raster_layered_openraster_1254",
+    "editable_source_file": "docs/design/nex/hybrid-v1/nex_hybrid_master.ora",
+    "editable_source_sha256": "68a9b3b90722721bacd4067bac3e9d6560acf144898ae60c3d7968692c652f32"
   },
   "canonical_contracts": {
     "product_visual_contract": "docs/design/NEX_32BIT_VISUAL_CONTRACT.md",
@@ -35,12 +35,13 @@
     {
       "id": "hud-32bit",
       "usage": "HUD Compact and retro display",
-      "status": "CHARACTER_SELECTED_PIXEL_MASTER_PENDING"
+      "status": "APPROVED_FILTERED_DERIVATIVE_NEX-ID-v1",
+      "approval_note": "Owner approved filtered-pixelation treatment 2026-11-12; true-pixel redraw optional follow-up. 64px Compact NOT covered."
     },
     {
       "id": "commercial-polished",
       "usage": "site hero, launch graphics",
-      "status": "CANDIDATE_NOT_APPROVED"
+      "status": "APPROVED_NEX-ID-v1"
     }
   ],
   "candidate_references": [
@@ -72,8 +73,39 @@
       "notes": "3/4 support, expanded animation states and expressive poses"
     }
   ],
-  "locked_assets": [],
-  "approval_record": null,
+  "locked_assets": [
+    {
+      "file": "web/public/nex/hybrid-v1/nex_source_original.png",
+      "sha256": "ef7a4aeb7b24d2ab5f199f913d351414b8fafb0b6208b3ab2b665013adcb9118",
+      "role": "approved_source_original"
+    },
+    {
+      "file": "web/public/nex/hybrid-v1/reconstructed_idle.png",
+      "sha256": "77eb9b2afc3c89e4b9ab69da85863a8b3e165ec38e7dafa9c77b8fa70451970d",
+      "role": "layer_reconstruction_reference"
+    },
+    {
+      "file": "docs/design/nex/experimental-atlas/nex-idle-atlas-128.png",
+      "sha256": "8256a302fff77996e3563ef42d1e62685b59084c8a17446bb2acb2219e85dfda",
+      "role": "hud_32bit_idle_atlas"
+    },
+    {
+      "file": "docs/design/nex/experimental-atlas/nex-idle-12-storyboard.jpg",
+      "sha256": "1ae3d227ccf25ac1867597138b54c0dbe87a259a60aace10e211260e893ff7cd",
+      "role": "idle_storyboard"
+    },
+    {
+      "file": "docs/design/nex/experimental-atlas/nex-idle-atlas.json",
+      "sha256": "902618ebd76019d482b7fb8aa796b72d437acc753bc7fc14a1e4638ab20cff9c",
+      "role": "atlas_pivot_map"
+    },
+    {
+      "file": "web/public/nex/nex-site-hero.svg",
+      "sha256": "a18a3c7ff6c3eb159dbeb71f924c1f1fb2630d9dd27453fd0742f1cbf1c190a9",
+      "role": "site_hero_svg_runtime"
+    }
+  ],
+  "approval_record": "docs/design/nex/approval-records/NEX-ID-v1.md",
   "selection_record": {
     "status": "CHARACTER_SELECTED_PRODUCTION_MASTER_PENDING",
     "selected_on": "2026-10-27",
@@ -91,7 +123,7 @@
     "production_direction": "HAND_DRAWN_HIGH_DETAIL_RETRO_GAME_32BIT_PIXEL_ART",
     "require_numerous_idle_animations": true,
     "idle_art_contract": "docs/design/nex/RETRO_GAME_IDLE_DIRECTION.md",
-    "source_master_status": "NOT_VERSIONED_NOT_APPROVED",
+    "source_master_status": "HERO_MASTER_FROZEN_NEX-ID-v1__HUD_ATLAS_APPROVED_WITH_DIVERGENCE",
     "runtime_replacement_allowed_only_after_master_review": true
   }
 }

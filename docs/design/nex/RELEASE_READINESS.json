@@ -19,17 +19,27 @@
       "id": "master_source",
       "title": "Master do personagem em camadas, original versionado com SHA-256",
       "contract": "docs/design/nex/identity-lock.json",
-      "status": "BLOCKED",
-      "evidence": [],
-      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+      "status": "PASSED",
+      "evidence": [
+        "identity-lock.json status FROZEN NEX-ID-v1 (verify-nex-identity-lock.mjs OK, 2026-11-12)",
+        "Master em camadas docs/design/nex/hybrid-v1/nex_hybrid_master.ora SHA-256 68a9b3b90722721bacd4067bac3e9d6560acf144898ae60c3d7968692c652f32 (reconstrutivel byte a byte das 6 partes b64 versionadas)",
+        "Fonte original versionada web/public/nex/hybrid-v1/nex_source_original.png SHA-256 ef7a4aeb7b24d2ab5f199f913d351414b8fafb0b6208b3ab2b665013adcb9118",
+        "Approval record docs/design/nex/approval-records/NEX-ID-v1.md (owner: \"aprovo os dois\", 2026-11-12)"
+      ],
+      "notes": "Aprovado pelo owner em 2026-11-12. Divergencia registrada: atlas hud-32bit e derivado por filtro; refino true-pixel opcional."
     },
     {
       "id": "site_hero",
       "title": "Hero final com silhueta idêntica, animações em camadas e revisão visual",
       "contract": "docs/design/nex/hybrid-v1/README.md",
-      "status": "BLOCKED",
-      "evidence": [],
-      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+      "status": "PASSED",
+      "evidence": [
+        "Hero raster 1254x1254 aprovado visualmente pelo owner (mergedimage do master ORA, SHA 68a9b3b9...)",
+        "Animacoes em camadas versionadas: web/public/nex/hybrid-v1/ (2 olhos, 4 modulos, 2 aletas) + asset-manifest.json",
+        "QA browser 2026-10-28: docs/design/nex/hybrid-v1/BROWSER_QA_20261028.md; divergencia perceptual da piscada 0.787/255 RGB aceita pelo owner em 2026-11-12",
+        "Runtime SVG web/public/nex/nex-site-hero.svg SHA a18a3c7f... (locked_asset NEX-ID-v1)"
+      ],
+      "notes": "Revisao visual do owner feita em 2026-11-12 (\"aprovo os dois\"). Integracao real no site permanece sob o gate site_integration."
     },
     {
       "id": "hud_compact",
@@ -37,7 +47,7 @@
       "contract": "docs/design/nex/RETRO_GAME_IDLE_DIRECTION.md",
       "status": "BLOCKED",
       "evidence": [],
-      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+      "notes": "Parcial: Standard 128px (atlas 96 frames) aprovado pelo owner em 2026-11-12 COM divergencia registrada (derivado por filtro de pixelizacao, nao clusters desenhados). Compact 64px NAO coberto pela aprovacao e ainda nao existe - gate permanece BLOCKED ate a variante 64px existir e ser aprovada."
     },
     {
       "id": "behavior_8",
