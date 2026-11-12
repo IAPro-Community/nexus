@@ -337,6 +337,40 @@ export const nexus = {
       method: 'DELETE',
     }),
   listAgents: (projectId: string) => request<Agent[]>(`/api/v1/projects/${projectId}/agents`),
+  listAgentGroups: (projectId: string) =>
+    request<import('../types').AgentGroup[]>(
+      `/api/v1/projects/${encodeURIComponent(projectId)}/agent-groups`,
+    ),
+  createAgentGroup: (
+    projectId: string,
+    group: Pick<import('../types').AgentGroup, 'name' | 'task' | 'worktree' | 'feature'>,
+  ) =>
+    request<import('../types').AgentGroup>(
+      `/api/v1/projects/${encodeURIComponent(projectId)}/agent-groups`,
+      {
+        method: 'POST',
+        body: JSON.stringify(group),
+      },
+    ),
+  updateAgentGroup: (projectId: string, group: import('../types').AgentGroup) =>
+    request<import('../types').AgentGroup>(
+      `/api/v1/projects/${encodeURIComponent(projectId)}/agent-groups/${encodeURIComponent(group.id)}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: group.name,
+          task: group.task,
+          worktree: group.worktree,
+          feature: group.feature,
+          agent_ids: group.agent_ids,
+        }),
+      },
+    ),
+  deleteAgentGroup: (projectId: string, groupId: string) =>
+    request<{ status: string }>(
+      `/api/v1/projects/${encodeURIComponent(projectId)}/agent-groups/${encodeURIComponent(groupId)}`,
+      { method: 'DELETE' },
+    ),
   createAgent: (projectId: string, name: string, role?: string) =>
     request<Agent>(`/api/v1/projects/${projectId}/agents`, {
       method: 'POST',
@@ -534,6 +568,30 @@ export const nexus = {
     ),
   getProjectBranches: (projectId: string) =>
     request<import('../types').GitBranchesResult>(`/api/v1/projects/${projectId}/git/branches`),
+  getProjectChangeCollisions: (projectId: string) =>
+    request<import('../types').ChangeCollisionsReport>(
+      `/api/v1/projects/${projectId}/change-collisions`,
+    ),
+  getProjectReleaseDesk: (projectId: string, base?: string) =>
+    request<import('../types').ReleaseDeskReport>(
+      `/api/v1/projects/${projectId}/release-desk${base ? `?base=${encodeURIComponent(base)}` : ''}`,
+    ),
+  listProjectShares: (projectId: string) =>
+    request<{ grants: import('../types').ObservationShareGrant[] }>(
+      `/api/v1/projects/${projectId}/shares`,
+    ),
+  createProjectShare: (projectId: string, body: { agent_id?: string; ttl_seconds?: number }) =>
+    request<import('../types').ObservationShareGrant>(`/api/v1/projects/${projectId}/shares`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  revokeProjectShare: (projectId: string, grantId: string) =>
+    request<{ status: string; id: string }>(
+      `/api/v1/projects/${projectId}/shares/${encodeURIComponent(grantId)}`,
+      {
+        method: 'DELETE',
+      },
+    ),
   checkoutProjectBranch: (projectId: string, branch: string, create = false) =>
     request<import('../types').GitCheckoutResult>(`/api/v1/projects/${projectId}/git/checkout`, {
       method: 'POST',
@@ -1006,10 +1064,12 @@ export const nexus = {
   stopTunnel: () =>
     request<import('../types').TunnelStatus>('/api/v1/tunnel/stop', { method: 'POST' }),
   createTunnelInvite: () =>
-    request<{ url: string; bootstrap_url: string; expires_in_seconds: number }>(
-      '/api/v1/tunnel/invite',
-      { method: 'POST', body: '{}' },
-    ),
+    request<{
+      url: string;
+      bootstrap_url: string;
+      access_code: string;
+      expires_in_seconds: number;
+    }>('/api/v1/tunnel/invite', { method: 'POST', body: '{}' }),
 
   // Attention Center
   getAttention: (filter?: MissionAttentionFilter) =>

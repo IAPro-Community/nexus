@@ -43,6 +43,9 @@ import type { Agent, Project } from '../../types';
 import { AddProjectModal } from './AddProjectModal';
 import { DirectoryBrowserModal } from './DirectoryBrowserModal';
 import { ProjectScanModal } from './ProjectScanModal';
+import { ReleaseDeskCard } from './ReleaseDeskCard';
+import { ShareGrantsCard } from './ShareGrantsCard';
+import { FeatureTour } from '../work';
 import { selectProjectDirectory } from './projectDirectoryPicker';
 import styles from './ProjectManagerSurface.module.scss';
 
@@ -217,7 +220,8 @@ export const ProjectManagerSurface: React.FC<{
   };
 
   return (
-    <div className="nx-surface-scroll nx-projects-surface">
+    <div className="nx-surface-scroll nx-projects-surface" data-feature-tour-scope>
+      <FeatureTour projectId={selectedProject.id} surface="projects" />
       {/* Header & Overview Stats */}
       <div className="nx-page-header">
         <div>
@@ -296,6 +300,14 @@ export const ProjectManagerSurface: React.FC<{
             <span>{t('projectManager.isolation')}</span>
           </div>
         </Card>
+      </div>
+
+      {/* Release Desk: honest range/gates/approval view for the selected project */}
+      <ReleaseDeskCard projectId={selectedProject.id} />
+
+      {/* Workspace sharing: viewer-only observation grants for the selected project */}
+      <div data-tour="workspace-sharing-card">
+        <ShareGrantsCard projectId={selectedProject.id} />
       </div>
 
       {/* Action Toolbar */}

@@ -52,4 +52,18 @@ describe('contextual tour target resolution', () => {
     expect(findTourTarget(scope(followControl), selector)).toBe(followControl);
     expect(findTourTarget(scope(), selector)).toBeNull();
   });
+
+  it('keeps Browser inspection target within its Browser surface scope', () => {
+    const inspectControl = target(true);
+    const selector = '[data-tour="browser-inspector-entry"]';
+    expect(findTourTarget(scope(inspectControl), selector)).toBe(inspectControl);
+    expect(findTourTarget(scope(), selector)).toBeNull();
+  });
+
+  it('keeps Agent group discovery inside the Agents surface scope', () => {
+    const groupFilter = target(true);
+    const selector = '[data-tour="agent-groups"]';
+    expect(findTourTarget(scope(groupFilter), selector)).toBe(groupFilter);
+    expect(findTourTarget(scope(), selector)).toBeNull();
+  });
 });

@@ -5,6 +5,7 @@ import {
   getDesktopBaseUrl,
   getDesktopWebSocketBaseUrl,
   initSession,
+  pairWithAccessCode,
   request,
   rotateSession,
   setCSRFToken,
@@ -398,5 +399,49 @@ describe('api request layer', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/session', {
       headers: { Accept: 'application/json', Authorization: 'Bearer desktop-session' },
     });
+  });
+});
+
+describe('pairWithAccessCode', () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+    vi.stubGlobal('fetch', vi.fn());
+    setPlatformBridge(new WebBridge());
+    setCSRFToken('');
+    clearDesktopAuth();
+  });
+
+  it('exchanges a valid code, stores the CSRF token and returns the session', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({ authenticated: true, csrf_token: 'pair-csrf', expires_at: 'tomorrow' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const session = await pairWithAccessCode(' ab12cd34 ');
+    expect(session).toMatchObject({ authenticated: true, csrf_token: 'pair-csrf' });
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/pair', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: 'ab12cd34' }),
+    });
+  });
+
+  it('returns null for invalid, expired or revoked codes without tripping session expiry', async () => {
+    const expiredListener = vi.fn();
+    vi.stubGlobal('window', { dispatchEvent: expiredListener });
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 401 });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(pairWithAccessCode('ZZZZ9999')).resolves.toBeNull();
+    expect(expiredListener).not.toHaveBeenCalled();
+    await expect(pairWithAccessCode('   ')).resolves.toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns null when the network request throws', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    await expect(pairWithAccessCode('AB12CD34')).resolves.toBeNull();
   });
 });

@@ -6,6 +6,7 @@ import { nexus } from '../../nexus/api';
 import type { TunnelStatus } from '../../types';
 import { useTranslation } from 'react-i18next';
 import { asArray } from '../../lib/safeArray';
+import { formatAccessCode } from './remoteAccessModel';
 import styles from './SettingsSurface.module.scss';
 
 export const RemoteAccessTab: React.FC = () => {
@@ -20,6 +21,7 @@ export const RemoteAccessTab: React.FC = () => {
   const [qrData, setQrData] = useState<{
     url: string;
     bootstrap_url: string;
+    access_code: string;
     expires_in_seconds: number;
   } | null>(null);
 
@@ -231,6 +233,39 @@ export const RemoteAccessTab: React.FC = () => {
               </InlineAlert>
               <p className={styles.qrLabel}>{t('settings.remote.accessURL')}</p>
               <code className={styles.qrUrl}>{qrData.url}</code>
+
+              {qrData.access_code && (
+                <div className={styles.accessCodeBlock}>
+                  <p className={styles.qrLabel}>{t('settings.remote.accessCode')}</p>
+                  <div className={styles.accessCodeRow}>
+                    <code className={styles.accessCodeValue}>
+                      {formatAccessCode(qrData.access_code)}
+                    </code>
+                    <Button
+                      tone="ghost"
+                      onClick={() => {
+                        void navigator.clipboard.writeText(qrData.access_code).catch(() =>
+                          setError(
+                            t('settings.remote.errors.copy', {
+                              defaultValue: 'Não foi possível copiar o convite.',
+                            }),
+                          ),
+                        );
+                      }}
+                    >
+                      <Copy size={14} />
+                      {t('settings.remote.copyCode', { defaultValue: 'Copiar código' })}
+                    </Button>
+                  </div>
+                  <p className={styles.mutedTextSmall}>
+                    {t('settings.remote.accessCodeHint', {
+                      defaultValue:
+                        'Digite este código no dispositivo remoto para parear sem escanear. Uso único, válido por 15 minutos.',
+                    })}
+                  </p>
+                </div>
+              )}
+
               <Button tone="ghost" onClick={() => void generateInvite()} disabled={loading}>
                 <RefreshCw size={14} />
                 {t('settings.remote.generateInvite', { defaultValue: 'Gerar outro convite' })}

@@ -1,0 +1,132 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.title {
+  font-size: 0.929rem;
+  font-weight: 600;
+  color: var(--nx-text);
+}
+
+.note {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--nx-muted);
+}
+
+.createRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ttlField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 0 1 12rem;
+  min-width: 0;
+
+  > span {
+    font-size: 0.8125rem;
+    color: var(--nx-muted);
+  }
+
+  input[aria-invalid='true'] {
+    border-color: var(--nx-danger);
+  }
+}
+
+.fieldError {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--nx-danger);
+}
+
+.error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--nx-danger);
+}
+
+.empty {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--nx-muted);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm, 6px);
+
+  &[data-tone='revoked'],
+  &[data-tone='expired'] {
+    opacity: 0.75;
+  }
+}
+
+.grantId {
+  font-family: var(--nx-font-mono);
+  font-size: 0.75rem;
+  color: var(--nx-text);
+}
+
+.meta {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.8125rem;
+  color: var(--nx-muted);
+}
+
+.revoke {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: transparent;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm, 6px);
+  color: var(--nx-danger);
+  padding: 0.25rem 0.5rem;
+  min-height: var(--nx-touch-min, 32px);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--nx-danger-soft);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--nx-accent);
+    outline-offset: 1px;
+  }
+}

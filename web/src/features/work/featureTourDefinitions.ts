@@ -13,7 +13,11 @@ export type FeatureTourSurface =
   | 'flow-editor'
   | 'flow-run'
   | 'resources'
-  | 'agent-terminal';
+  | 'agents'
+  | 'agent-terminal'
+  | 'browser-inspector'
+  | 'notifications'
+  | 'projects';
 
 export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
   'composer-start': [
@@ -170,6 +174,14 @@ export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
       body: 'tour.providerDiscoveryBody',
     },
   ],
+  agents: [
+    {
+      id: 'groups',
+      target: '[data-tour="agent-groups"]',
+      title: 'tour.agentGroupsTitle',
+      body: 'tour.agentGroupsBody',
+    },
+  ],
   'agent-terminal': [
     {
       id: 'attention-choice',
@@ -182,6 +194,36 @@ export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
       target: '[data-tour="agent-terminal-follow"]',
       title: 'tour.agentTerminalFollowTitle',
       body: 'tour.agentTerminalFollowBody',
+    },
+  ],
+  'browser-inspector': [
+    {
+      id: 'selected-element',
+      target: '[data-tour="browser-inspector-entry"]',
+      title: 'tour.browserInspectTitle',
+      body: 'tour.browserInspectBody',
+    },
+    {
+      id: 'visual-diff',
+      target: '[data-tour="browser-visual-diff-tab"]',
+      title: 'tour.browserVisualDiffTitle',
+      body: 'tour.browserVisualDiffBody',
+    },
+  ],
+  notifications: [
+    {
+      id: 'queue',
+      target: '[data-tour="focus-queue"]',
+      title: 'tour.focusQueueTitle',
+      body: 'tour.focusQueueBody',
+    },
+  ],
+  projects: [
+    {
+      id: 'workspace-sharing',
+      target: '[data-tour="workspace-sharing-card"]',
+      title: 'tour.workspaceSharingTitle',
+      body: 'tour.workspaceSharingBody',
     },
   ],
 };

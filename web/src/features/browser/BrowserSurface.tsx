@@ -5,7 +5,6 @@ import {
   Bot,
   Camera,
   Copy,
-  ExternalLink,
   Globe,
   Keyboard,
   Lock,
@@ -18,15 +17,19 @@ import {
   Search,
   Send,
   Smartphone,
-  Terminal,
   Unlock,
   X,
 } from 'lucide-react';
 import { getDesktopAuthToken, getWebSocketEndpoint, request } from '../../api';
 import { useTranslation } from 'react-i18next';
-import { resolveTerminalInfo } from './terminalResolution';
-import type { Agent, RuntimeSession } from '../../types';
+import type { Agent } from '../../types';
+import { asArray } from '../../lib/safeArray';
+import { nexus } from '../../nexus/api';
+import { handoffDesignInspectionToSelectedAgent } from './designInspectHandoff';
+import { VisualDiffPanel } from './VisualDiffPanel';
+import type { VisualDiffRequest, VisualDiffResult } from './visualDiffModel';
 import styles from './BrowserSurface.module.scss';
+import { FeatureTour } from '../work';
 
 export function normalizeBrowserURL(
   input: string,
@@ -156,6 +159,18 @@ export type NexusBrowserSnapshot = {
   elements: NexusBrowserElement[];
 };
 
+export type NexusBrowserDesignInspection = {
+  selector: string;
+  tag: string;
+  role?: string;
+  name?: string;
+  text?: string;
+  attributes?: Record<string, string>;
+  computed_styles: Record<string, string>;
+  masking_applied: boolean;
+  crop_jpeg?: string;
+};
+
 const endpoint = '/api/v1/browser/sessions';
 const browserRoute = (id: string) => `${endpoint}/${encodeURIComponent(id)}`;
 
@@ -195,7 +210,17 @@ export const browserAPI = {
       method: 'DELETE',
       body: JSON.stringify({ id: grantId }),
     }),
+  visualDiff: (body: VisualDiffRequest, id: string) =>
+    request<VisualDiffResult>(`${browserRoute(id)}/visual-diff`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   snapshot: (id: string) => request<NexusBrowserSnapshot>(`${browserRoute(id)}/snapshot`),
+  inspect: (id: string, selector: string) =>
+    request<NexusBrowserDesignInspection>(`${browserRoute(id)}/inspect`, {
+      method: 'POST',
+      body: JSON.stringify({ selector }),
+    }),
   close: (id: string) =>
     request<{ status: string }>(browserRoute(id), {
       method: 'DELETE',
@@ -222,10 +247,18 @@ export const BrowserSurface: React.FC<{
   const [visible, setVisible] = useState(true);
   const [snapshot, setSnapshot] = useState('');
   const [elements, setElements] = useState<NexusBrowserElement[]>([]);
+  const [selectedInspection, setSelectedInspection] = useState<NexusBrowserDesignInspection | null>(
+    null,
+  );
+  const [projectAgents, setProjectAgents] = useState<Agent[]>([]);
+  const [selectedAgentId, setSelectedAgentId] = useState('');
+  const [handoffStatus, setHandoffStatus] = useState('');
   const [zoom, setZoom] = useState(100);
   const [viewMode, setViewMode] = useState<'fit' | 'actual'>('fit');
   const [devToolsOpen, setDevToolsOpen] = useState(false);
-  const [drawerTab, setDrawerTab] = useState<'inspector' | 'input' | 'agents'>('inspector');
+  const [drawerTab, setDrawerTab] = useState<'inspector' | 'input' | 'agents' | 'diff'>(
+    'inspector',
+  );
   const [handoff, setHandoff] = useState<BrowserHandoff>({ status: '' });
   const [grants, setGrants] = useState<AgentGrant[]>([]);
   const [privateInput, setPrivateInput] = useState(false);
@@ -234,6 +267,33 @@ export const BrowserSurface: React.FC<{
   const [dragging, setDragging] = useState(false);
   const [selectionText, setSelectionText] = useState('');
   const [updatedTabs, setUpdatedTabs] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    let active = true;
+    void nexus
+      .listAgents(projectId)
+      .then((agents) => {
+        if (active) setProjectAgents(asArray<Agent>(agents));
+      })
+      .catch(() => {
+        if (active) setProjectAgents([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!selectedInspection) return;
+    const frameId = window.requestAnimationFrame(() => {
+      const container = drawerBodyRef.current;
+      const target = selectedInspectionRef.current;
+      if (!container || !target) return;
+      const offset = target.getBoundingClientRect().top - container.getBoundingClientRect().top - 4;
+      container.scrollTop += offset;
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [selectedInspection]);
 
   const previousBrowserState = useRef<
     Map<string, { lastActiveAt: string; url: string; activeActor: string }>
@@ -247,6 +307,8 @@ export const BrowserSurface: React.FC<{
   const wantsControlRef = useRef(wantsControl);
   wantsControlRef.current = wantsControl;
   const rootRef = useRef<HTMLElement>(null);
+  const drawerBodyRef = useRef<HTMLDivElement>(null);
+  const selectedInspectionRef = useRef<HTMLElement>(null);
   const addressInputRef = useRef<HTMLInputElement>(null);
   const isAddressFocused = useRef(false);
   const frameObjectURL = useRef('');
@@ -896,6 +958,7 @@ export const BrowserSurface: React.FC<{
 
   const inspect = () => {
     if (!session) return;
+    setSelectedInspection(null);
     setBusy(true);
     void browserAPI
       .snapshot(session.id)
@@ -908,6 +971,44 @@ export const BrowserSurface: React.FC<{
       })
       .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)))
       .finally(() => setBusy(false));
+  };
+
+  const inspectElement = async (selector: string) => {
+    if (!session) return;
+    setBusy(true);
+    setError('');
+    try {
+      const result = await browserAPI.inspect(session.id, selector);
+      setSelectedInspection(result);
+      setDevToolsOpen(true);
+      setDrawerTab('inspector');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const sendInspectionToAgent = async () => {
+    if (!selectedInspection) return;
+    setBusy(true);
+    setHandoffStatus('');
+    setError('');
+    try {
+      await handoffDesignInspectionToSelectedAgent({
+        agents: projectAgents,
+        projectId,
+        selectedAgentId,
+        inspection: selectedInspection,
+        askAgent: (agentId, prompt, startIfNeeded) =>
+          nexus.askAgent(agentId, prompt, startIfNeeded),
+      });
+      setHandoffStatus(t('browserDesignInspect.handoffSuccess'));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
   };
 
   const copySelection = async () => {
@@ -1054,8 +1155,10 @@ export const BrowserSurface: React.FC<{
     <section
       ref={rootRef}
       className={styles.root}
+      data-feature-tour-scope={`browser-${projectId}-${session?.id ?? 'pending'}`}
       aria-label={t('browser.title', 'Navegador Nexus')}
     >
+      <FeatureTour projectId={projectId} surface="browser-inspector" />
       {/* Linha 1: Tab Bar Nativa */}
       {availableBrowsers.length > 0 && (
         <div
@@ -1445,7 +1548,7 @@ export const BrowserSurface: React.FC<{
         <div
           className={styles.devToolsDrawer}
           role="region"
-          aria-label="Console de inspeção e agentes"
+          aria-label={t('browserDesignInspect.drawerLabel')}
         >
           <div className={styles.drawerHeader}>
             <div className={styles.drawerTabs} role="tablist">
@@ -1457,7 +1560,7 @@ export const BrowserSurface: React.FC<{
                 data-active={drawerTab === 'inspector'}
                 onClick={() => setDrawerTab('inspector')}
               >
-                Seletores & DOM ({elements.length})
+                {t('browserDesignInspect.tabInspector', { count: elements.length })}
               </button>
               <button
                 type="button"
@@ -1467,7 +1570,7 @@ export const BrowserSurface: React.FC<{
                 data-active={drawerTab === 'input'}
                 onClick={() => setDrawerTab('input')}
               >
-                Entrada Manual & Teclas
+                {t('browserDesignInspect.tabInput')}
               </button>
               <button
                 type="button"
@@ -1477,7 +1580,18 @@ export const BrowserSurface: React.FC<{
                 data-active={drawerTab === 'agents'}
                 onClick={() => setDrawerTab('agents')}
               >
-                Agentes MCP ({grants.length})
+                {t('browserDesignInspect.tabAgents', { count: grants.length })}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={drawerTab === 'diff'}
+                className={styles.drawerTab}
+                data-active={drawerTab === 'diff'}
+                data-tour="browser-visual-diff-tab"
+                onClick={() => setDrawerTab('diff')}
+              >
+                {t('browserVisualDiff.tabLabel')}
               </button>
             </div>
             <div className={styles.drawerActions}>
@@ -1487,51 +1601,167 @@ export const BrowserSurface: React.FC<{
                   className={styles.drawerActionButton}
                   onClick={inspect}
                   disabled={!session || busy}
-                  title="Inspecionar elementos e capturar snapshot do DOM"
+                  title={t('browserDesignInspect.captureDomTitle')}
                 >
                   <Camera size={13} aria-hidden="true" />
-                  <span>Capturar DOM</span>
+                  <span>{t('browserDesignInspect.captureDom')}</span>
                 </button>
               )}
               <button
                 type="button"
                 className={styles.drawerCloseButton}
                 onClick={() => setDevToolsOpen(false)}
-                aria-label="Fechar painel de inspeção"
-                title="Fechar painel de inspeção (Esc)"
+                aria-label={t('browserDesignInspect.closeDrawer')}
+                title={t('browserDesignInspect.closeDrawerTitle')}
               >
                 <X size={14} aria-hidden="true" />
               </button>
             </div>
           </div>
-          <div className={styles.drawerBody}>
+          <div ref={drawerBodyRef} className={styles.drawerBody}>
             {drawerTab === 'inspector' && (
               <div className={styles.inspectorContent}>
-                {elements.length > 0 && (
+                {elements.length > 0 && !selectedInspection && (
                   <div className={styles.inspectionActions}>
                     {elements.map((item, index) => (
-                      <button
-                        key={`${item.selector}:${index}`}
-                        type="button"
-                        disabled={!session || busy}
-                        title={item.selector}
-                        onClick={() =>
-                          void perform({ type: 'click_selector', selector: item.selector })
-                        }
-                      >
-                        {item.label || item.text || item.tag}
-                      </button>
+                      <div key={`${item.selector}:${index}`} className={styles.inspectionItem}>
+                        <button
+                          type="button"
+                          disabled={!session || busy}
+                          title={item.selector}
+                          data-tour="browser-inspector-entry"
+                          onClick={() => void inspectElement(item.selector)}
+                        >
+                          {t('browserDesignInspect.selectElement', 'Inspect')}:{' '}
+                          {item.label || item.text || item.tag}
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.inspectionClick}
+                          disabled={!session || busy}
+                          title={t(
+                            'browserDesignInspect.activateElement',
+                            'Activate selected page element',
+                          )}
+                          onClick={() =>
+                            void perform({ type: 'click_selector', selector: item.selector })
+                          }
+                        >
+                          {t('browserDesignInspect.activateElementShort', 'Activate')}
+                        </button>
+                      </div>
                     ))}
                   </div>
                 )}
+                {selectedInspection && (
+                  <section
+                    ref={selectedInspectionRef}
+                    className={styles.designInspection}
+                    aria-live="polite"
+                  >
+                    <div className={styles.inspectionHeading}>
+                      <h3 data-design-inspection-part="heading">
+                        {selectedInspection.tag}
+                        {selectedInspection.role ? ` · ${selectedInspection.role}` : ''}
+                        {selectedInspection.name ? ` · ${selectedInspection.name}` : ''}
+                      </h3>
+                      <button
+                        type="button"
+                        data-design-inspection-part="action"
+                        className={styles.inspectionClick}
+                        disabled={!session || busy}
+                        title={`${t(
+                          'browserDesignInspect.activateElement',
+                          'Activate selected page element',
+                        )}: ${selectedInspection.selector}`}
+                        onClick={() =>
+                          void perform({
+                            type: 'click_selector',
+                            selector: selectedInspection.selector,
+                          })
+                        }
+                      >
+                        {t('browserDesignInspect.activateElementShort', 'Activate')}
+                      </button>
+                    </div>
+                    <p>
+                      {t('browserDesignInspect.selector', 'Selector')}:{' '}
+                      <span data-design-inspection-part="selector">
+                        {selectedInspection.selector}
+                      </span>
+                    </p>
+                    {selectedInspection.crop_jpeg && (
+                      <img
+                        data-design-inspection-part="crop"
+                        className={styles.inspectionCrop}
+                        src={`data:image/jpeg;base64,${selectedInspection.crop_jpeg}`}
+                        alt={t(
+                          'browserDesignInspect.maskedCrop',
+                          'Selected element crop with recognized content masked',
+                        )}
+                      />
+                    )}
+                    <p className={styles.inspectionNotice} data-design-inspection-part="notice">
+                      {t(
+                        'browserDesignInspect.cropNotice',
+                        'Forms and common secret patterns are masked; other sensitive imagery may remain.',
+                      )}
+                    </p>
+                    <select
+                      data-design-inspection-part="agent"
+                      id="design-inspect-agent"
+                      className={styles.inspectionAgentSelect}
+                      aria-label={t('browserDesignInspect.agentSelect')}
+                      value={selectedAgentId}
+                      onChange={(event) => setSelectedAgentId(event.currentTarget.value)}
+                      disabled={busy || projectAgents.length === 0}
+                    >
+                      <option value="">{t('browserDesignInspect.agentPlaceholder')}</option>
+                      {projectAgents.map((agent) => (
+                        <option key={agent.id} value={agent.id}>
+                          {agent.name} · {agent.status}
+                        </option>
+                      ))}
+                    </select>
+                    <p className={styles.inspectionConsent} data-design-inspection-part="consent">
+                      {t('browserDesignInspect.handoffConsent')}
+                    </p>
+                    <button
+                      type="button"
+                      data-design-inspection-part="send"
+                      className={styles.inspectionSend}
+                      disabled={busy || !selectedAgentId}
+                      onClick={() => void sendInspectionToAgent()}
+                    >
+                      {t('browserDesignInspect.handoffButton')}
+                    </button>
+                    {handoffStatus && <p role="status">{handoffStatus}</p>}
+                    <details className={styles.inspectionDetails}>
+                      <summary>
+                        {t('browserDesignInspect.details', 'DOM details and computed styles')}
+                      </summary>
+                      <pre className={styles.snapshotText}>
+                        {JSON.stringify(
+                          {
+                            attributes: selectedInspection.attributes ?? {},
+                            computed_styles: selectedInspection.computed_styles,
+                          },
+                          null,
+                          2,
+                        )}
+                      </pre>
+                    </details>
+                  </section>
+                )}
                 {snapshot ? (
                   <pre className={styles.snapshotText}>{snapshot}</pre>
-                ) : (
+                ) : !selectedInspection ? (
                   <p className={styles.emptyNotice}>
-                    Nenhum snapshot textual carregado. Clique em &quot;Capturar DOM&quot; para
-                    inspecionar os elementos da página.
+                    {t('browserDesignInspect.emptyInspector', {
+                      capture: t('browserDesignInspect.captureDom'),
+                    })}
                   </p>
-                )}
+                ) : null}
               </div>
             )}
             {drawerTab === 'input' && (
@@ -1550,23 +1780,27 @@ export const BrowserSurface: React.FC<{
                   type={privateInput ? 'password' : 'text'}
                   autoComplete="off"
                   aria-label={
-                    privateInput ? 'Texto sensível para login' : 'Texto para o elemento selecionado'
+                    privateInput
+                      ? t('browserDesignInspect.inputSensitive')
+                      : t('browserDesignInspect.inputText')
                   }
-                  placeholder="Digitar texto para enviar ao elemento remoto..."
+                  placeholder={t('browserDesignInspect.inputPlaceholder')}
                   value={text}
                   onChange={(event) => setText(event.target.value)}
                 />
                 <button
                   type="button"
                   onClick={() => setPrivateInput((value) => !value)}
-                  title="Ocultar caracteres digitados neste campo"
+                  title={t('browserDesignInspect.inputMaskTitle')}
                 >
-                  {privateInput ? 'Privado' : 'Ocultar'}
+                  {privateInput
+                    ? t('browserDesignInspect.inputMaskOn')
+                    : t('browserDesignInspect.inputMaskOff')}
                 </button>
                 <button
                   type="submit"
                   disabled={!session || !text || busy}
-                  aria-label="Enviar texto"
+                  aria-label={t('browserDesignInspect.inputSend')}
                 >
                   <Send size={14} />
                 </button>
@@ -1596,12 +1830,9 @@ export const BrowserSurface: React.FC<{
             {drawerTab === 'agents' && (
               <div className={styles.agentsContent}>
                 <div className={styles.agentActionRow}>
-                  <span>
-                    Agentes do Nexus recebem o Browser automaticamente. Crie acessos temporários
-                    para conexões MCP manuais.
-                  </span>
+                  <span>{t('browserDesignInspect.agentsNote')}</span>
                   <button type="button" onClick={() => void createAgentConnection()}>
-                    Gerar acesso temporário
+                    {t('browserDesignInspect.agentsGenerate')}
                   </button>
                 </div>
                 {connectionInfo && <p role="status">{connectionInfo}</p>}
@@ -1609,13 +1840,16 @@ export const BrowserSurface: React.FC<{
                   <textarea
                     readOnly
                     value={grantFallback}
-                    aria-label="Configuração MCP de uso único"
+                    aria-label={t('browserDesignInspect.agentsMcpConfig')}
                   />
                 )}
                 {grants.map((grant) => (
                   <div className={styles.grantRow} key={grant.id}>
                     <span>
-                      {grant.label} · expira às {new Date(grant.expires_at).toLocaleTimeString()}
+                      {grant.label} ·{' '}
+                      {t('browserDesignInspect.agentsExpires', {
+                        time: new Date(grant.expires_at).toLocaleTimeString(),
+                      })}
                     </span>
                     <button
                       type="button"
@@ -1632,11 +1866,17 @@ export const BrowserSurface: React.FC<{
                           );
                       }}
                     >
-                      Revogar
+                      {t('browserDesignInspect.agentsRevoke')}
                     </button>
                   </div>
                 ))}
               </div>
+            )}
+            {drawerTab === 'diff' && (
+              <VisualDiffPanel
+                sessionId={session?.id}
+                run={(request) => browserAPI.visualDiff(request, sessionId ?? '')}
+              />
             )}
           </div>
         </div>

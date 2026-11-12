@@ -54,6 +54,15 @@ describe('intelligenceCLIProfiles', () => {
       'codex:default',
     ]);
     expect(isIntelligenceCLICapable(codex)).toBe(false);
+    expect(
+      isIntelligenceCLICapable(
+        account({
+          provider: 'agy',
+          profile: 'untested-headless',
+          capabilities: { headless: 'NOT_TESTED', submit_prompt: 'SUPPORTED' },
+        }),
+      ),
+    ).toBe(false);
   });
 
   it('keeps the currently configured profile visible when missing from discovery', () => {

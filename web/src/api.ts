@@ -265,6 +265,31 @@ export async function tryLoopbackReauth(): Promise<BrowserSession | null> {
   }
 }
 
+/**
+ * Exchanges a human-typed remote access code (shown next to the tunnel QR
+ * link in Settings) for a session cookie. Raw fetch on purpose: a wrong code
+ * returns 401 and must not trip the session-expired machinery. Returns null
+ * for invalid, expired, replayed or revoked codes.
+ */
+export async function pairWithAccessCode(code: string): Promise<BrowserSession | null> {
+  const trimmed = code.trim();
+  if (!trimmed) return null;
+  try {
+    const res = await fetch('/api/v1/auth/pair', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: trimmed }),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as BrowserSession;
+    if (!data.authenticated) return null;
+    if (data.csrf_token) csrfToken = data.csrf_token;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 // Revalidation is read-only and single-flight: if a cookie was rotated by
 // another tab/request while our old request was in flight, a single 401 must
 // not force the entire app into the unauthenticated state.

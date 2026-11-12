@@ -1,0 +1,49 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 18px;
+  width: 100%;
+  max-width: 340px;
+}
+
+.label {
+  font-weight: 600;
+  font-size: 0.929rem;
+  color: var(--nx-text);
+}
+
+.hint {
+  font-size: 0.857rem;
+  color: var(--nx-text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.input {
+  background: var(--nx-bg-elevated);
+  border: 1px solid var(--nx-border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-family: 'SF Mono', ui-monospace, monospace;
+  font-size: 1.071rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--nx-text);
+
+  &:focus-visible {
+    outline: 2px solid var(--nx-accent);
+    outline-offset: 1px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}
+
+.error {
+  font-size: 0.857rem;
+  color: var(--nx-danger);
+  line-height: 1.5;
+  margin: 0;
+}

@@ -30,6 +30,8 @@
     "test:e2e:hud": "node scripts/e2e-hud.mjs",
     "test:e2e:mission-attention": "node scripts/e2e-mission-attention.mjs",
     "test:e2e:first-run-import": "node scripts/e2e-first-run-import.mjs",
+    "test:e2e:agent-groups": "node scripts/e2e-agent-groups-live-session.mjs",
+    "test:e2e:browser-design-inspect": "node scripts/e2e-browser-design-inspect.mjs",
     "test:a11y": "node scripts/e2e-hardening-verify.mjs",
     "test:visual": "node scripts/e2e-hardening-verify.mjs",
     "test:e2e-hardening": "node scripts/e2e-hardening-verify.mjs",

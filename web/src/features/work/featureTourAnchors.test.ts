@@ -21,6 +21,10 @@ const sourceFiles = [
   '../usage/UsageSurface.tsx',
   '../../nexus/AgentTerminal.tsx',
   '../../components/AttentionNotificationCard.tsx',
+  '../browser/BrowserSurface.tsx',
+  '../agents/AgentsSurface.tsx',
+  '../../notifications/FocusQueueSection.tsx',
+  '../projects/ProjectManagerSurface.tsx',
 ];
 const source = sourceFiles.map((file) => readFileSync(join(folder, file), 'utf8')).join('\n');
 

@@ -11,6 +11,7 @@ import {
 import { setNexusCSRF, nexus } from '../nexus/api';
 import { ThemeProvider } from '../design-system';
 import { NexusSplashScreen } from './NexusSplashScreen';
+import { AccessCodeGate } from './AccessCodeGate';
 import unauthorizedStyles from './NexusUnauthorized.module.scss';
 import { WorkspaceProvider, useWorkspace } from '../workspace/WorkspaceProvider';
 import {
@@ -160,6 +161,14 @@ export const NexusWorkspaceApp: React.FC<{
   }
 
   if (!authenticated) {
+    const hostname = window.location.hostname.toLowerCase();
+    const loopbackHost = [
+      'localhost',
+      '127.0.0.1',
+      '[::1]',
+      'nexus.dev',
+      'wails.localhost',
+    ].includes(hostname);
     return (
       <ThemeProvider>
         <div className={`nx-app-unauthorized ${unauthorizedStyles.container}`}>
@@ -169,10 +178,7 @@ export const NexusWorkspaceApp: React.FC<{
             </span>
             <h2 className={unauthorizedStyles.title}>{t('auth.sessionExpired')}</h2>
             <p className={unauthorizedStyles.hint}>
-              {window.location.protocol === 'http:' &&
-              !['localhost', '127.0.0.1', '[::1]', 'nexus.dev', 'wails.localhost'].includes(
-                window.location.hostname.toLowerCase(),
-              )
+              {window.location.protocol === 'http:' && !loopbackHost
                 ? t('auth.networkHttpsRequired', {
                     defaultValue:
                       'Acesso LAN por HTTP não permite autenticação segura. Configure HTTPS confiável ou utilize o túnel HTTPS.',
@@ -182,6 +188,14 @@ export const NexusWorkspaceApp: React.FC<{
                       'Sessão inválida, expirada ou convite já utilizado. Para um novo dispositivo, gere um convite de acesso no Nexus principal.',
                   })}
             </p>
+            {!loopbackHost && (
+              <AccessCodeGate
+                onPaired={(csrfToken) => {
+                  if (csrfToken) setNexusCSRF(csrfToken);
+                  setAuthenticated(true);
+                }}
+              />
+            )}
             <button
               type="button"
               className="nx-button"

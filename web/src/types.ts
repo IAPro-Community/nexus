@@ -41,6 +41,8 @@ export interface RuntimeSession {
   continuity?: string;
   lineage_id?: string;
   started_at: string;
+  /** Last registry update; approximates when the current episode was raised. */
+  updated_at?: string;
   attention_reason?:
     | 'QUESTION'
     | 'APPROVAL'
@@ -612,6 +614,19 @@ export interface Agent {
   last_started_at?: string;
 }
 
+export interface AgentGroup {
+  id: string;
+  project_id: string;
+  name: string;
+  task: string;
+  worktree: string;
+  feature: string;
+  position: number;
+  agent_ids: string[];
+  created_at: string;
+  updated_at: string;
+}
+
 export type DirectorActionKind =
   'DIRECTIVE' | 'STEER' | 'QUEUE_NEXT' | 'WAIT' | 'CANCEL' | 'INSPECT';
 export type DirectorAvailability =
@@ -933,6 +948,79 @@ export interface GitWorktree {
   detached: boolean;
   locked: boolean;
   prunable: boolean;
+}
+
+export interface ChangeCollisionWorktree {
+  path: string;
+  branch?: string;
+  head?: string;
+  changed_files: string[];
+}
+
+export interface ChangeCollision {
+  file: string;
+  worktrees: string[];
+  confidence: 'hunk-overlap' | 'same-file';
+  uncertain: boolean;
+  reason: string;
+}
+
+export interface ChangeCollisionScanError {
+  path: string;
+  reason: string;
+}
+
+export interface ChangeCollisionsReport {
+  project_id: string;
+  scanned_at: string;
+  worktrees: ChangeCollisionWorktree[];
+  collisions: ChangeCollision[];
+  uncertain_count: number;
+  scan_errors?: ChangeCollisionScanError[];
+}
+
+export interface ReleaseCommitSummary {
+  sha: string;
+  subject: string;
+  references: string[];
+}
+
+export interface ReleaseGate {
+  name: string;
+  verify_command: string;
+  status: 'verified' | 'unverified';
+  evidence?: string;
+}
+
+export interface ReleaseApproval {
+  approver: string;
+  approval_id: string;
+  sha: string;
+  approved_at: string;
+}
+
+/** One viewer share grant (workspace-sharing). Mirrors nexus.ObservationShareGrant. */
+export interface ObservationShareGrant {
+  id: string;
+  project_id: string;
+  agent_id?: string;
+  role: string;
+  created_at: string;
+  expires_at?: string;
+  revoked_at?: string;
+}
+
+export interface ReleaseDeskReport {
+  branch: string;
+  base_sha: string;
+  head_sha: string;
+  commits: ReleaseCommitSummary[];
+  pull_requests: string[];
+  issues: string[];
+  gates: ReleaseGate[];
+  approval?: ReleaseApproval;
+  merge_publish_allowed: boolean;
+  block_reasons: string[];
 }
 
 export interface GitBranchesResult {

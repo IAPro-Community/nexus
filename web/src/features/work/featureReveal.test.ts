@@ -47,6 +47,32 @@ describe('global feature announcement handoff', () => {
     expect(item?.id).toBe('agent-terminal-follow');
   });
 
+  it('reveals the Browser inspect tour only within the selected project Browser surface', () => {
+    requestFeatureReveal('browser-design-inspect', 'project-A', 1000);
+    expect(consumeFeatureReveal('project-B', 'browser-inspector', () => true, 1001)).toBeNull();
+    expect(consumeFeatureReveal('project-A', 'browser-inspector', () => false, 1002)).toBeNull();
+    const item = consumeFeatureReveal(
+      'project-A',
+      'browser-inspector',
+      (target) => target === '[data-tour="browser-inspector-entry"]',
+      1003,
+    );
+    expect(item?.id).toBe('browser-design-inspect');
+  });
+
+  it('reveals Agent groups only within the selected project Agents surface', () => {
+    requestFeatureReveal('agent-groups-task-worktree-feature', 'project-A', 1000);
+    expect(consumeFeatureReveal('project-B', 'agents', () => true, 1001)).toBeNull();
+    expect(consumeFeatureReveal('project-A', 'agent-terminal', () => true, 1002)).toBeNull();
+    const item = consumeFeatureReveal(
+      'project-A',
+      'agents',
+      (target) => target === '[data-tour="agent-groups"]',
+      1003,
+    );
+    expect(item?.id).toBe('agent-groups-task-worktree-feature');
+  });
+
   it('expires old requests so tours cannot surprise users later', () => {
     requestFeatureReveal('composer-idea-workspace', 'project-A', 1000);
     expect(hasPendingFeatureReveal('project-A', 'composer-start', 32_000)).toBe(false);

@@ -1,0 +1,88 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.title {
+  font-size: 0.929rem;
+  font-weight: 600;
+  color: var(--nx-text);
+}
+
+.status {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--nx-muted);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface-2);
+}
+
+.itemHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.file {
+  font-family: var(--nx-font-mono);
+  font-size: 0.8125rem;
+  color: var(--nx-text);
+  overflow-wrap: anywhere;
+}
+
+.reason {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--nx-muted);
+}
+
+.worktrees {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.reviewHint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--nx-warning);
+}
+
+.partial {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--nx-muted);
+}

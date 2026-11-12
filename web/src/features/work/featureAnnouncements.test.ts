@@ -23,8 +23,12 @@ const sourcePaths = [
   'FlowRunSurface.tsx',
   'ComparisonLabPanel.tsx',
   '../usage/UsageSurface.tsx',
+  '../agents/AgentsSurface.tsx',
   '../../nexus/AgentTerminal.tsx',
   '../../components/AttentionNotificationCard.tsx',
+  '../browser/BrowserSurface.tsx',
+  '../../notifications/FocusQueueSection.tsx',
+  '../projects/ProjectManagerSurface.tsx',
 ];
 const uiSources = sourcePaths.map((path) => readFileSync(join(folder, path), 'utf8')).join('\n');
 const localeSource = readFileSync(join(folder, '..', '..', 'i18n', 'resources.ts'), 'utf8');

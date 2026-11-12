@@ -813,17 +813,25 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 4px;
   padding: 3px 8px;
   background: var(--nx-surface-3);
   border-bottom: 1px solid var(--nx-border);
   min-height: 30px;
   flex-shrink: 0;
+  /* Narrow viewports (390px): tabs wrap below the actions instead of
+     being clipped by the drawer's overflow: hidden. */
+  flex-wrap: wrap;
 }
 
 .drawerTabs {
   display: flex;
   align-items: center;
   gap: 3px;
+  min-width: 0;
+  /* Tabs never shrink labels into invisible glyphs; they scroll. */
+  overflow-x: auto;
+  max-width: 100%;
 }
 
 .drawerTab {
@@ -835,6 +843,8 @@
   color: var(--nx-muted);
   border-radius: 4px;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: all 120ms ease;
 
   &:hover {
@@ -920,6 +930,12 @@
   flex-wrap: wrap;
   gap: 4px;
 
+  .inspectionItem {
+    display: flex;
+    gap: 3px;
+    max-width: 100%;
+  }
+
   button {
     border: 1px solid var(--nx-border);
     border-radius: 4px;
@@ -941,6 +957,126 @@
       opacity: 0.4;
       cursor: not-allowed;
     }
+  }
+}
+
+.inspectionActions .inspectionClick {
+  flex: 0 0 auto;
+  color: var(--nx-text-muted);
+}
+
+.designInspection {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  scroll-margin-top: 4px;
+
+  h3,
+  h4,
+  p {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  h3 {
+    color: var(--nx-text);
+    font-size: 11px;
+    line-height: 1.2;
+  }
+
+  h4,
+  p {
+    color: var(--nx-text-muted);
+    font-size: 10px;
+    line-height: 1.2;
+  }
+}
+
+.inspectionHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+
+  h3 {
+    min-width: 0;
+  }
+
+  .inspectionClick {
+    flex: 0 0 auto;
+    border: 1px solid var(--nx-border);
+    border-radius: 4px;
+    background: var(--nx-surface);
+    color: var(--nx-text-muted);
+    padding: 2px 5px;
+    font-size: 10px;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--nx-accent);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.inspectionNotice,
+.inspectionConsent {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.inspectionDetails {
+  color: var(--nx-text-muted);
+  font-size: 10px;
+
+  summary {
+    cursor: pointer;
+    color: var(--nx-text);
+  }
+}
+
+.inspectionCrop {
+  display: block;
+  max-width: 100%;
+  max-height: 24px;
+  object-fit: contain;
+  border: 1px solid var(--nx-border);
+  border-radius: 4px;
+  background: var(--nx-surface);
+}
+
+.inspectionAgentSelect,
+.inspectionSend {
+  min-height: 28px;
+  border: 1px solid var(--nx-border);
+  border-radius: 4px;
+  background: var(--nx-surface);
+  color: var(--nx-text);
+  padding: 4px 8px;
+  font: inherit;
+
+  &:focus-visible {
+    outline: 2px solid var(--nx-accent);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.inspectionSend {
+  justify-self: start;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--nx-surface-3);
   }
 }
 

@@ -17,6 +17,9 @@ import { sanitizeAttentionText } from '../components/attentionText';
 import { Button, IconButton } from '../design-system';
 import { ContextDrawer } from '../design-system/primitives/ContextDrawer';
 import { buildAttentionRadar, type RadarRuntimeItem } from '../app/attentionRadarModel';
+import type { FocusQueueItem } from '../app/focusQueueModel';
+import { FocusQueueSection } from './FocusQueueSection';
+import { FeatureTour } from '../features/work/FeatureTour';
 import {
   capacityAlertFromEvent,
   notificationFromQuotaEvent,
@@ -260,7 +263,7 @@ export const InAppNotificationCenter: React.FC<{
           })}
           width={440}
         >
-          <div className="nx-notification-drawer">
+          <div className="nx-notification-drawer" data-feature-tour-scope>
             {/* Tabs */}
             <div className="nx-notification-drawer__tabs" role="tablist">
               <button
@@ -317,6 +320,25 @@ export const InAppNotificationCenter: React.FC<{
             {/* Radar Panel */}
             {activeTab === 'radar' && (
               <div className="nx-notification-drawer__panel">
+                <FocusQueueSection
+                  runtimes={runtimes}
+                  onFocus={(item: FocusQueueItem) => {
+                    onCloseDrawer();
+                    const radarItem: RadarRuntimeItem = {
+                      runtimeId: item.runtimeId,
+                      agentId: item.agentId,
+                      projectId: item.projectId,
+                      projectName: item.projectName,
+                      title: item.title,
+                      badge: item.severity,
+                      context: item.context,
+                      fingerprint: item.fingerprint,
+                      promptKind: item.promptKind,
+                    };
+                    if (onFocusAttention) onFocusAttention(radarItem);
+                    else onFocusRuntime(item.runtimeId);
+                  }}
+                />
                 {radarGroups.length === 0 ? (
                   <div className="nx-notification-drawer__empty">
                     <Radio size={24} />
@@ -436,6 +458,10 @@ export const InAppNotificationCenter: React.FC<{
                   ))
                 )}
               </div>
+            )}
+
+            {focusedProjectId && (
+              <FeatureTour projectId={focusedProjectId} surface="notifications" />
             )}
           </div>
         </ContextDrawer>

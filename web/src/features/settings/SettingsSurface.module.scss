@@ -236,6 +236,32 @@
   word-break: break-all;
 }
 
+.accessCodeBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.accessCodeRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.accessCodeValue {
+  background: var(--nx-bg-elevated);
+  border: 1px solid var(--nx-border);
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-family: 'SF Mono', ui-monospace, monospace;
+  font-size: 1.286rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--nx-text);
+}
+
 .tunnelInfoList {
   display: flex;
   flex-direction: column;
