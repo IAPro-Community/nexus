@@ -3,9 +3,11 @@ package nexus
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -25,42 +27,80 @@ func TestFindMaestroBinPrefersStableAliasOverNodeVersionShims(t *testing.T) {
 	}
 	t.Setenv("PATH", dir)
 	t.Setenv("HOME", dir)
+	t.Setenv("NEXUS_MAESTRO_BIN", "")
 
 	if got, want := findMaestroBin(), filepath.Join(dir, "maestro"); got != want {
 		t.Fatalf("findMaestroBin() = %q, want preferred stable alias %q", got, want)
 	}
 }
 
-func TestMaestroCLIContractInterop(t *testing.T) {
+func TestNewMaestroClientSkipsAliasWithoutContractAndUsesCompatibleCandidate(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell executable fixtures are Unix-only")
+	}
+	dir := t.TempDir()
+	bad := filepath.Join(dir, "maestro")
+	if err := os.WriteFile(bad, []byte("#!/bin/sh\nexit 1\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	good := filepath.Join(dir, "orquestrador-maestro")
+	contents := `#!/bin/sh
+if [ "$1" = "bridge" ] && [ "$2" = "--stdio" ]; then
+  cat >/dev/null
+  printf '%s\n' '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":1,"capabilities":{"contextBrief":true,"projectContext":true,"plansValidate":true,"runsSubmit":false,"memory":{"read":true,"write":false}}}}'
+  exit 0
+fi
+exit 1
+`
+	if err := os.WriteFile(good, []byte(contents), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", dir)
+	t.Setenv("HOME", dir)
+	t.Setenv("NEXUS_MAESTRO_BIN", "")
+
+	client := NewMaestroClient()
+	if !client.Status().Available || client.maestroBin != good {
+		t.Fatalf("expected compatible candidate after stale alias, got bin=%q status=%+v", client.maestroBin, client.Status())
+	}
+}
+
+func TestExplicitMaestroBinIsAuthoritative(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell executable fixtures are Unix-only")
+	}
+	dir := t.TempDir()
+	bin := filepath.Join(dir, "selected-maestro")
+	if err := os.WriteFile(bin, []byte("#!/bin/sh\nexit 9\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", dir)
+	t.Setenv("HOME", dir)
+	t.Setenv("NEXUS_MAESTRO_BIN", bin)
+
+	client := NewMaestroClient()
+	if client.maestroBin != bin || client.Status().Available {
+		t.Fatalf("explicit incompatible binary must fail closed without another fallback: bin=%q status=%+v", client.maestroBin, client.Status())
+	}
+}
+
+func TestMaestroBridgeV1ContractInterop(t *testing.T) {
 	bin := os.Getenv("NEXUS_MAESTRO_CLI_TEST_PATH")
 	if bin == "" {
-		t.Skip("set NEXUS_MAESTRO_CLI_TEST_PATH to exercise the real Maestro CLI contract")
+		t.Skip("set NEXUS_MAESTRO_CLI_TEST_PATH to exercise the real Maestro Bridge v1 contract")
 	}
 	client := &MaestroClient{maestroBin: bin}
 	client.checkAvailability()
 	status := client.Status()
-	if !status.Available || status.Capabilities == nil {
-		t.Fatalf("real Maestro CLI capabilities unavailable: %+v", status)
+	if !status.Available || status.Capabilities == nil || status.Capabilities.Bridge == nil {
+		t.Fatalf("real Maestro Bridge v1 capabilities unavailable: %+v", status)
 	}
-	if status.Capabilities.Contracts.Advice != "1.0.0" || status.Capabilities.Contracts.Verification != "1.0.0" {
-		t.Fatalf("real Maestro CLI did not advertise contract v1: %+v", status.Capabilities.Contracts)
+	if status.Capabilities.Version != "bridge-v1" || status.Capabilities.Bridge.ProtocolVersion != 1 {
+		t.Fatalf("real Maestro returned unexpected Bridge protocol identity: %+v", status.Capabilities)
 	}
-	advice, err := client.GetAdvice(AdviceContext{ProjectID: "contract-test-project", Lifecycle: MaestroLifecycleTask}, "frontend-design")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if advice.Degraded || advice.Mode != MaestroAssist || len(advice.Recommended) == 0 {
-		t.Fatalf("real Maestro advice contract did not return routed skills: %+v", advice)
-	}
-	verification, err := client.Verify(context.Background(), MaestroVerifyRequest{
-		ProjectID: "contract-test-project", MissionID: "contract-test-run",
-		Checks: []string{"PASS: contract test (exit 0)"}, EvidenceRefs: []string{"evidence://contract-test/run"},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !verification.Passed || verification.Degraded || verification.Lifecycle != MaestroLifecycleVerify {
-		t.Fatalf("real Maestro verification contract returned an unexpected verdict: %+v", verification)
+	if !status.Capabilities.Bridge.ProjectContext || !status.Capabilities.Bridge.PlansValidate ||
+		status.Capabilities.Bridge.RunsSubmit {
+		t.Fatalf("real Maestro did not advertise the expected v1 capabilities or falsely enabled execution: %+v", status.Capabilities.Bridge)
 	}
 }
 
@@ -307,37 +347,48 @@ func TestMaestroVerifyRejectsSecretLikeInputBeforeExecution(t *testing.T) {
 	}
 }
 
-func TestMaestroCapabilitiesUsesExplicitSkillsListContract(t *testing.T) {
+func TestMaestroCapabilitiesNegotiatesBridgeV1Contract(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell executable fixtures are Unix-only")
+	}
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
-	bin := testutil.WriteFakeCommand(t, t.TempDir(), "maestro", []testutil.FakeCommandResponse{
-		{
-			Args:   []string{"capabilities", "--json"},
-			Stdout: "{\"version\":\"1.0.0\",\"modes\":[\"OFF\",\"ASSIST\",\"ORCHESTRATE\"],\"contracts\":{\"advice\":\"1.0.0\",\"verification\":\"1.0.0\"},\"skills\":[],\"gates\":[\"review\"],\"processes\":[\"verification\"]}\n",
-		},
-		{
-			Args:   []string{"skills", "list", "--json"},
-			Stdout: "{\"skills\":[{\"id\":\"security-review\",\"name\":\"Security Review\",\"description\":\"Review security\",\"version\":\"1.2.0\",\"risk\":\"medium\",\"triggers\":[\"security\"]}]}\n",
-		},
-		{Args: []string{"version"}, Stdout: "1.0.0\n"},
-		{Args: []string{"--version"}, Stdout: "1.0.0\n"},
-	}, 2, "")
+	marker := filepath.Join(t.TempDir(), "bridge-invoked")
+	reply := `{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":1,"capabilities":{"projectContext":true,"contextBrief":true,"plansValidate":true,"projectCompose":false,"plansRoutePreview":false,"runsObserve":true,"runsSubmissionsRead":true,"runsSubmissionsPoll":false,"runsSubmissionsCancel":false,"runsSubmit":false,"memory":{"read":true,"write":false}}}}`
+	bin := filepath.Join(t.TempDir(), "maestro")
+	script := fmt.Sprintf("#!/bin/sh\n: > %s\ncat <<'NEXUS_BRIDGE_REPLY'\n%s\nNEXUS_BRIDGE_REPLY\n", strconv.Quote(marker), reply)
+	if err := os.WriteFile(bin, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
 	client := &MaestroClient{maestroBin: bin}
 	capabilities, err := client.queryCapabilities()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if capabilities.Version != "1.0.0" || len(capabilities.Gates) != 1 || len(capabilities.Processes) != 1 {
-		t.Fatalf("capabilities contract was not preserved: %+v", capabilities)
+	if _, statErr := os.Stat(marker); statErr != nil {
+		t.Fatalf("Bridge handshake did not invoke the Maestro binary: %v", statErr)
 	}
-	if capabilities.Contracts.Advice != "1.0.0" || capabilities.Contracts.Verification != "1.0.0" {
-		t.Fatalf("advice/verification contracts were not negotiated: %+v", capabilities.Contracts)
+	if capabilities.Version != "bridge-v1" {
+		t.Fatalf("unexpected Bridge protocol identity: %+v", capabilities)
 	}
-	if len(capabilities.Skills) != 1 || capabilities.Skills[0].ID != "security-review" {
-		t.Fatalf("skills list contract was not consumed: %+v", capabilities.Skills)
+	if capabilities.Modes[0] != "OFF" || capabilities.Modes[1] != "ASSIST" || len(capabilities.Modes) != 2 {
+		t.Fatalf("Bridge v1 must not advertise ORCHESTRATE before a durable worker exists: %+v", capabilities.Modes)
 	}
-	if capabilities.Skills[0].Version != "1.2.0" || capabilities.Skills[0].Triggers[0] != "security" {
-		t.Fatalf("skills metadata was lost: %+v", capabilities.Skills[0])
+	bridge := capabilities.Bridge
+	if bridge == nil || bridge.ProtocolVersion != 1 {
+		t.Fatalf("Bridge v1 capabilities were not negotiated: %+v", bridge)
+	}
+	if !bridge.ProjectContext || !bridge.ContextBrief || !bridge.PlansValidate {
+		t.Fatalf("supported Nexus integration methods were lost: %+v", bridge)
+	}
+	if bridge.RunsSubmit || bridge.SubmissionsPoll || bridge.SubmissionsCancel {
+		t.Fatalf("execution submission must stay explicitly false without a durable worker: %+v", bridge)
+	}
+	if !bridge.MemoryRead || bridge.MemoryWrite {
+		t.Fatalf("memory contract was not preserved: %+v", bridge)
+	}
+	if len(capabilities.Skills) != 0 || len(capabilities.Gates) != 0 || len(capabilities.Processes) != 0 {
+		t.Fatalf("Bridge v1 must not invent gates, processes or skills: %+v", capabilities)
 	}
 }
 
@@ -354,7 +405,7 @@ func TestMaestroVersionAloneDoesNotSatisfyCapabilitiesContract(t *testing.T) {
 	if status.Available || status.Mode != MaestroOff {
 		t.Fatalf("version-only Maestro must remain degraded: %+v", status)
 	}
-	if !strings.Contains(status.Error, "capabilities contract unavailable") {
+	if !strings.Contains(status.Error, "maestro Bridge v1 unavailable") {
 		t.Fatalf("missing explicit degraded reason: %q", status.Error)
 	}
 }

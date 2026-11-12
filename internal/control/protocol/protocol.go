@@ -88,6 +88,14 @@ type EventsPayload struct {
 	Limit int `json:"limit,omitempty"`
 }
 
+// TerminalClientPayload binds a WebSocket identity to its exact attached
+// SessionHost stream. ActorID is an application-generated pseudonym; it must
+// never contain an authentication token or session secret.
+type TerminalClientPayload struct {
+	ClientID string `json:"client_id"`
+	ActorID  string `json:"actor_id"`
+}
+
 // EventData is the redacted transport representation returned by CmdEvents.
 // Keeping this type in protocol avoids coupling IPC clients to the event bus.
 type EventData struct {

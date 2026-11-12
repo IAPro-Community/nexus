@@ -263,7 +263,7 @@ func TestRemoteSessionsRemainEphemeralAfterTunnelStops(t *testing.T) {
 		t.Fatal(err)
 	}
 	auth.SetTunnelActive(true)
-	token, err := auth.IssueTunnelInvitation("example.trycloudflare.com")
+	token, _, err := auth.IssueTunnelInvitation("example.trycloudflare.com")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -299,7 +299,7 @@ func TestRotatedRemoteSessionNeverBecomesPersistent(t *testing.T) {
 		t.Fatal(err)
 	}
 	auth.SetTunnelActive(true)
-	token, err := auth.IssueTunnelInvitation("example.trycloudflare.com")
+	token, _, err := auth.IssueTunnelInvitation("example.trycloudflare.com")
 	if err != nil {
 		t.Fatal(err)
 	}

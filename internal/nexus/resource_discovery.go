@@ -346,19 +346,26 @@ func quotaStatusKnown(status string) bool {
 
 func effectiveCapabilityMap(caps driver.EffectiveCapabilities) map[string]string {
 	return map[string]string{
-		"process":           string(caps.Process.Status),
-		"terminal":          string(caps.Terminal.Status),
-		"attach":            string(caps.Attach.Status),
-		"structured_events": string(caps.StructuredEvents.Status),
-		"sessions":          string(caps.Sessions.Status),
-		"resume":            string(caps.Resume.Status),
-		"fork":              string(caps.Fork.Status),
-		"submit_prompt":     string(caps.SubmitPrompt.Status),
-		"cancel_turn":       string(caps.CancelTurn.Status),
-		"approvals":         string(caps.Approvals.Status),
-		"native_ui_attach":  string(caps.NativeUIAttach.Status),
-		"headless":          string(caps.Headless.Status),
-		"slash_control":     string(caps.SlashControl.Status),
-		"read_only_review":  string(caps.ReadOnlyReview.Status),
+		"process":           projectedCapabilityStatus(caps.Process),
+		"terminal":          projectedCapabilityStatus(caps.Terminal),
+		"attach":            projectedCapabilityStatus(caps.Attach),
+		"structured_events": projectedCapabilityStatus(caps.StructuredEvents),
+		"sessions":          projectedCapabilityStatus(caps.Sessions),
+		"resume":            projectedCapabilityStatus(caps.Resume),
+		"fork":              projectedCapabilityStatus(caps.Fork),
+		"submit_prompt":     projectedCapabilityStatus(caps.SubmitPrompt),
+		"cancel_turn":       projectedCapabilityStatus(caps.CancelTurn),
+		"approvals":         projectedCapabilityStatus(caps.Approvals),
+		"native_ui_attach":  projectedCapabilityStatus(caps.NativeUIAttach),
+		"headless":          projectedCapabilityStatus(caps.Headless),
+		"slash_control":     projectedCapabilityStatus(caps.SlashControl),
+		"read_only_review":  projectedCapabilityStatus(caps.ReadOnlyReview),
 	}
+}
+
+func projectedCapabilityStatus(evidence driver.CapabilityEvidence) string {
+	if evidence.Status == driver.CapabilitySupported && !evidence.Tested {
+		return string(driver.CapabilityNotTested)
+	}
+	return string(evidence.Status)
 }

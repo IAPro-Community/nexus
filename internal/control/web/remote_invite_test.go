@@ -90,7 +90,7 @@ func TestTunnelBootstrapSetsSecureCookieAndKeepsSession(t *testing.T) {
 		t.Fatal(err)
 	}
 	auth.SetTunnelActive(true)
-	token, err := auth.IssueTunnelInvitation(host)
+	token, _, err := auth.IssueTunnelInvitation(host)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,9 +158,12 @@ func TestExternalTunnelAdoptionAndStaleExitDoNotRevokeNewTunnel(t *testing.T) {
 	if err := srv.AttachExternalTunnel(first); err != nil {
 		t.Fatal(err)
 	}
-	host, invite, err := srv.NewTunnelInviteURL()
+	host, invite, code, err := srv.NewTunnelInviteURL()
 	if err != nil || host != first.URL {
 		t.Fatalf("adopted CLI tunnel must issue invites: host=%q err=%v", host, err)
+	}
+	if len(code) != accessCodeLength {
+		t.Fatalf("invite must carry a %d-character pairing code, got %q", accessCodeLength, code)
 	}
 	token := strings.TrimPrefix(invite, host+"/#nexus_bootstrap=")
 	if _, ok := auth.ExchangeBootstrapTokenForHost(token, "first.trycloudflare.com"); !ok {

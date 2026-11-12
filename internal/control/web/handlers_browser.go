@@ -212,6 +212,25 @@ func (s *Server) handleBrowserSession(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeJSON(w, http.StatusOK, snapshot)
+	case action == "visual-diff" && r.Method == http.MethodPost:
+		s.handleBrowserVisualDiff(w, r, session)
+	case action == "inspect" && r.Method == http.MethodPost:
+		var input struct {
+			Selector string `json:"selector"`
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, 4096)
+		d := json.NewDecoder(r.Body)
+		d.DisallowUnknownFields()
+		if err := d.Decode(&input); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid design inspection request")
+			return
+		}
+		inspection, err := session.Inspect(ctx, input.Selector)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, inspection)
 	case action == "action" && r.Method == http.MethodPost:
 		r.Body = http.MaxBytesReader(w, r.Body, 16384)
 		d := json.NewDecoder(r.Body)

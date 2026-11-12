@@ -85,11 +85,20 @@ func resolveLaunchProfile(ctx context.Context, provider, explicit, workspace, co
 					return result.SelectedProfile.Name, nil
 				}
 			}
-			// If live probe could not update (offline/timeout/lock), but healthy authenticated
-			// profiles exist that are not rate-limited, fall back safely.
+			// Fail closed on unverified capacity: a healthy auth state says
+			// nothing about remaining quota. Launching the default (or any
+			// arbitrary account) with UNKNOWN/stale evidence is how
+			// `nexus codex` ended up on an exhausted account. Automatic
+			// selection requires either fresh evidence after the refresh above
+			// or an explicit user override.
 			if fallback := findHealthyFallbackProfile(names, configuredDefault, accounts); fallback != "" {
-				fmt.Fprintf(stderr, "⚠ [nexus] quotas em tempo real indisponíveis; iniciando com %s:%s (fallback resiliente)\n", provider, fallback)
-				return fallback, nil
+				if launchProfileOverrideRequested() {
+					fmt.Fprintf(stderr, "⚠ [nexus] quotas em tempo real indisponíveis; iniciando com %s:%s por decisão explícita (fallback resiliente)\n", provider, fallback)
+					return fallback, nil
+				}
+				fmt.Fprintf(stderr, "⚠ [nexus] quotas em tempo real indisponíveis; seleção automática recusada (fail-closed).\n")
+				fmt.Fprintf(stderr, "  → use %s %s:<perfil> para escolher uma conta explicitamente, ou %s %s --accept-unverified-quota para aceitar o fallback %s.\n", progName(), provider, progName(), provider, fallback)
+				return "", fmt.Errorf("quota não verificável para %s; seleção automática recusada (fail-closed)", provider)
 			}
 		}
 		return "", selectionErr
@@ -146,6 +155,21 @@ func isAccountHealthyForFallback(acc model.AccountInfo) bool {
 		return false
 	}
 	return true
+}
+
+// launchProfileOverrideRequested reports whether the user explicitly accepted
+// launching without verified quota evidence. The flag is opt-in per launch:
+// automatic selection stays fail-closed by default.
+func launchProfileOverrideRequested() bool {
+	if os.Getenv("NEXUS_ACCEPT_UNVERIFIED_QUOTA") == "1" {
+		return true
+	}
+	for _, arg := range os.Args[1:] {
+		if arg == "--accept-unverified-quota" {
+			return true
+		}
+	}
+	return false
 }
 
 func launchWithBusyFailover(

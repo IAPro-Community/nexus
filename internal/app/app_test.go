@@ -274,6 +274,9 @@ func setupTestEnvironment(t *testing.T) (binDir, testOut string) {
 	t.Setenv("AI_CLI_CONFIG_DIR", cfg)
 	t.Setenv("AI_CLI_STATE_DIR", state)
 	t.Setenv("AI_TEST_OUT", testOut)
+	// Profile creation must not adopt this host's real CLI sessions; otherwise
+	// launcher selection below depends on whatever happens to be logged in.
+	t.Setenv("NEXUS_REAL_HOME", t.TempDir())
 
 	writeExe := func(name, body string) {
 		testutil.WriteFakeBinaryWithScript(t, binDir, name, body)

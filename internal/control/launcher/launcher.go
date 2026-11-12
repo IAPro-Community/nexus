@@ -68,6 +68,21 @@ func traceCaptureShellLaunchStage(stage string) {
 	}
 }
 
+// DriverSessionDiscoverer resolves the optional session-id discovery hook for
+// a driver. Terminal-only drivers (Codex) may need to read the provider's own
+// session store; drivers without discovery return nil and the host falls back
+// to structured provider session ids. Exported because detached host daemons
+// reconstruct their SessionHost in the app layer.
+func DriverSessionDiscoverer(d driver.ControlDriver) host.SessionIDDiscovererFunc {
+	discoverer, ok := d.(driver.SessionIDDiscoverer)
+	if !ok {
+		return nil
+	}
+	return func(ctx context.Context, session registry.RuntimeSession, startedAt time.Time) (string, error) {
+		return discoverer.DiscoverSessionID(ctx, model.Profile{Name: session.ProfileID, Provider: session.ProviderID}, session.Workspace, startedAt)
+	}
+}
+
 // Launch allocates, starts, and verifies a supervised runtime.
 func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.RuntimeSession, error) {
 	captureShell := strings.EqualFold(opts.ProviderID, "shell")
@@ -395,14 +410,15 @@ func (l *Launcher) Launch(ctx context.Context, opts LaunchOptions) (*registry.Ru
 
 	if opts.Standalone {
 		sh, err := host.NewSessionHost(host.Config{
-			Session:     sess,
-			Registry:    l.reg,
-			Binary:      bin,
-			Args:        extraArgs,
-			Env:         env,
-			Cwd:         opts.Workspace,
-			InitialRows: 24,
-			InitialCols: 80,
+			Session:             sess,
+			Registry:            l.reg,
+			Binary:              bin,
+			Args:                extraArgs,
+			Env:                 env,
+			Cwd:                 opts.Workspace,
+			InitialRows:         24,
+			InitialCols:         80,
+			SessionIDDiscoverer: DriverSessionDiscoverer(d),
 		})
 		if err != nil {
 			cleanupFailedLaunch()

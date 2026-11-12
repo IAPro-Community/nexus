@@ -98,6 +98,23 @@ func (s *Service) PerformAccountHandoff(ctx context.Context, sourceRuntimeID, ta
 		return nil, fmt.Errorf("handoff unavailable: source provider session ID is unknown. Cannot guarantee session continuity")
 	}
 
+	// Flag the source as pending continuity so an attached CLI can follow the
+	// replacement runtime instead of silently returning to the shell. The
+	// flag is transient: any outcome other than a completed handoff restores
+	// the previous value so a failed handoff never leaves a stale follow hint.
+	if source.Labels == nil {
+		source.Labels = map[string]string{}
+	}
+	previousPending := source.Labels["nexus.continuity_pending"]
+	source.Labels["nexus.continuity_pending"] = "true"
+	_ = reg.Register(source)
+	defer func() {
+		if tx.State != HandoffCompleted {
+			source.Labels["nexus.continuity_pending"] = previousPending
+			_ = reg.Register(source)
+		}
+	}()
+
 	tx.State = HandoffPreflight
 
 	// 5. Preflight: Target Profile Authentication & Driver Capabilities
@@ -206,6 +223,11 @@ func (s *Service) PerformAccountHandoff(ctx context.Context, sourceRuntimeID, ta
 		targetSession.Labels = map[string]string{}
 	}
 	targetSession.Labels["continuity"] = string(HandoffContinuityUnverified)
+	targetSession.Labels["nexus.continuity_replaces_runtime"] = source.RuntimeID
+	// The successor is not itself pending continuity: an attached CLI that
+	// follows into it must exit immediately when it later ends, not wait for
+	// another successor that will never come.
+	targetSession.Labels["nexus.continuity_pending"] = "false"
 	_ = reg.Register(*targetSession)
 	tx.State = HandoffContinuityUnverified
 

@@ -155,7 +155,7 @@ func (c *Core) NewRemoteInvitationURL() (string, error) {
 	if c.server == nil {
 		return "", fmt.Errorf("nexus core server not initialized")
 	}
-	_, inviteURL, err := c.server.NewTunnelInviteURL()
+	_, inviteURL, _, err := c.server.NewTunnelInviteURL()
 	return inviteURL, err
 }
 

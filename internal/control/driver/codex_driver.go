@@ -6,10 +6,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/control/terminal"
+	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/runtime"
 )
@@ -170,4 +173,16 @@ func (d *CodexDriver) BuildResumeArgs(ctx context.Context, p model.Profile, prov
 
 func (d *CodexDriver) BuildKickoffArgs(ctx context.Context, p model.Profile, kickoffPrompt string) ([]string, error) {
 	return spec.MustGet("codex").Kickoff(kickoffPrompt), nil
+}
+
+// DiscoverSessionID implements driver.SessionIDDiscoverer for supervised Codex
+// TUI runtimes. It reads this profile's own rollout store for the rollout the
+// live TUI wrote after `since`; it never writes to the profile or the PTY.
+func (d *CodexDriver) DiscoverSessionID(ctx context.Context, p model.Profile, workspace string, since time.Time) (string, error) {
+	_ = ctx
+	home, err := config.ProfileHome(d.ProviderID(), p.Name)
+	if err != nil {
+		return "", err
+	}
+	return codex.FindActiveSessionID(home, since, workspace)
 }

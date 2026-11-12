@@ -177,6 +177,13 @@ func executeProviderSupervised(provName, explicitProfile string, args []string, 
 		return busyOrLaunchError(provName, selected, explicitProfile, err)
 	}
 
+	// Keep the resident quota monitor alive for the lifetime of this CLI so
+	// quota-driven continuity can observe the supervised runtime even when no
+	// web/desktop core is running. StartQuotaMonitor is idempotent and its
+	// O_EXCL lease elects a single collector across processes; the detached
+	// host daemon starts its own monitor too, so continuity survives detach.
+	nexus.Default().StartQuotaMonitor(context.Background())
+
 	if !withLead {
 		fmt.Fprintf(os.Stderr, "⚡ [nexus] supervised %s:%s runtime=%s\n", provName, selected, session.RuntimeID)
 		return attachRuntime(session.RuntimeID)

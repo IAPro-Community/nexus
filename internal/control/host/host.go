@@ -44,37 +44,52 @@ type Config struct {
 	InitialRows int
 	InitialCols int
 
-	// terminalBackend is an internal lifecycle test seam. Production callers
+	// terminalBackend is an internal test seam. Production callers
 	// leave it nil and receive the platform backend from terminal.NewBackend.
 	terminalBackend terminal.Backend
+	// auditBus is an internal test seam. Production hosts publish to the shared
+	// event bus, whose Nexus recorder persists lease transitions to SQLite.
+	auditBus *events.Bus
+	// SessionIDDiscoverer optionally probes the provider's own session store
+	// for the live provider session id of terminal runtimes that cannot report
+	// it over a structured channel. It must be a read-only observer: no PTY
+	// writes, no profile mutations, no contention with the interactive TUI.
+	// Production wiring resolves it from the provider driver; tests may inject
+	// a stub. Nil disables discovery (structured backends do not need it).
+	SessionIDDiscoverer SessionIDDiscovererFunc
 }
 
 // SessionHost manages a single supervised process runtime and its IPC listener.
 type SessionHost struct {
-	mu            sync.RWMutex
-	session       registry.RuntimeSession
-	registry      *registry.Registry
-	cfg           Config
-	cmd           *exec.Cmd
-	termBackend   terminal.Backend
-	ringBuffer    *RingBuffer
-	fanout        *BoundedFanout
-	listener      net.Listener
-	clients       map[net.Conn]bool
-	activeWriter  net.Conn
-	stopChan      chan struct{}
-	doneChan      chan struct{}
-	streamDone    chan struct{}
-	detector      *AttentionDetector
-	shellInput    shellPipeInputNormalizer
-	terminalInput *nexusruntime.TerminalOutputScrubber
-	terminalMouse *nexusruntime.TerminalMouseState
-	stopOnce      sync.Once
-	doneOnce      sync.Once
-	codexTUILock  interface{ Release() error }
-	wireReducer   *agentwire.Reducer
-	wireEpoch     uint64
-	wireSequence  atomic.Uint64
+	mu             sync.RWMutex
+	session        registry.RuntimeSession
+	registry       *registry.Registry
+	cfg            Config
+	cmd            *exec.Cmd
+	termBackend    terminal.Backend
+	ringBuffer     *RingBuffer
+	fanout         *BoundedFanout
+	listener       net.Listener
+	clients        map[net.Conn]bool
+	clientIDs      map[net.Conn]string
+	clientActors   map[net.Conn]string
+	clientSequence atomic.Uint64
+	activeWriter   net.Conn
+	auditBus       *events.Bus
+	stopChan       chan struct{}
+	doneChan       chan struct{}
+	streamDone     chan struct{}
+	detector       *AttentionDetector
+	quotaWatcher   *QuotaLimitWatcher
+	shellInput     shellPipeInputNormalizer
+	terminalInput  *nexusruntime.TerminalOutputScrubber
+	terminalMouse  *nexusruntime.TerminalMouseState
+	stopOnce       sync.Once
+	doneOnce       sync.Once
+	codexTUILock   interface{ Release() error }
+	wireReducer    *agentwire.Reducer
+	wireEpoch      uint64
+	wireSequence   atomic.Uint64
 }
 
 // NewSessionHost creates a new SessionHost for a given runtime.
@@ -101,17 +116,23 @@ func NewSessionHost(cfg Config) (*SessionHost, error) {
 	}
 
 	sh := &SessionHost{
-		session:     cfg.Session,
-		registry:    cfg.Registry,
-		cfg:         cfg,
-		cmd:         cmd,
-		termBackend: termBackend,
-		ringBuffer:  NewRingBuffer(128 * 1024), // 128 KB terminal history
-		fanout:      NewBoundedFanout(256),
-		clients:     make(map[net.Conn]bool),
-		stopChan:    make(chan struct{}),
-		doneChan:    make(chan struct{}),
-		streamDone:  make(chan struct{}),
+		session:      cfg.Session,
+		registry:     cfg.Registry,
+		cfg:          cfg,
+		cmd:          cmd,
+		termBackend:  termBackend,
+		ringBuffer:   NewRingBuffer(128 * 1024), // 128 KB terminal history
+		fanout:       NewBoundedFanout(256),
+		clients:      make(map[net.Conn]bool),
+		clientIDs:    make(map[net.Conn]string),
+		clientActors: make(map[net.Conn]string),
+		auditBus:     cfg.auditBus,
+		stopChan:     make(chan struct{}),
+		doneChan:     make(chan struct{}),
+		streamDone:   make(chan struct{}),
+	}
+	if sh.auditBus == nil {
+		sh.auditBus = events.DefaultBus()
 	}
 
 	sh.detector = NewAttentionDetectorWithProject(
@@ -140,6 +161,18 @@ func NewSessionHost(cfg Config) (*SessionHost, error) {
 	// PTY regex is TERMINAL fallback only. EVENTS/CONTROL_API (future structured
 	// adapters) must not scrape stdout for agent attention.
 	sh.detector.SetControlPolicy(cfg.Session.ControlLevel, structuredMode, cfg.Session.AgentID)
+
+	// Quota pattern watcher (read-only): accelerates the quota evidence check
+	// when provider limit language shows up in the output stream. It never
+	// terminates or mutates the session by itself.
+	sh.quotaWatcher = NewQuotaLimitWatcher(
+		cfg.Session.RuntimeID,
+		cfg.Session.ProviderID,
+		cfg.Session.ProfileID,
+		cfg.Session.LineageID,
+		time.Now(),
+		sh.quotaPatternPublisher(),
+	)
 
 	if termBackend == nil && structuredMode {
 		sh.wireReducer = agentwire.NewReducer()
@@ -310,6 +343,14 @@ func (sh *SessionHost) Start() error {
 	// Monitor process termination.
 	go sh.waitProcess()
 
+	// Session continuity discovery (PTY runtimes). Structured backends learn
+	// the provider session id from the provider protocol; terminal runtimes
+	// only get it from the provider's own session store. The watcher is a
+	// read-only observer and never touches the input path.
+	if sh.cfg.SessionIDDiscoverer != nil {
+		go sh.discoverProviderSessionID(time.Now())
+	}
+
 	return nil
 }
 
@@ -352,17 +393,13 @@ func (sh *SessionHost) streamReader(r io.Reader) {
 						pending = nil
 						sh.ringBuffer.Write(chunk)
 						sh.broadcast(chunk)
-						if sh.detector != nil {
-							sh.detector.ProcessChunk(chunk)
-						}
+						sh.observeOutputChunk(chunk)
 					} else if len(pending) > MaxFrameSize {
 						chunk := pending
 						pending = nil
 						sh.ringBuffer.Write(chunk)
 						sh.broadcast(chunk)
-						if sh.detector != nil {
-							sh.detector.ProcessChunk(chunk)
-						}
+						sh.observeOutputChunk(chunk)
 					}
 					break
 				}
@@ -373,9 +410,7 @@ func (sh *SessionHost) streamReader(r io.Reader) {
 				}
 				sh.ringBuffer.Write(line)
 				sh.broadcast(line)
-				if sh.detector != nil {
-					sh.detector.ProcessChunk(line)
-				}
+				sh.observeOutputChunk(line)
 			}
 		}
 		if err != nil {
@@ -384,9 +419,7 @@ func (sh *SessionHost) streamReader(r io.Reader) {
 			if len(pending) > 0 && !isHostProtocolControlFrame(pending) {
 				sh.ringBuffer.Write(pending)
 				sh.broadcast(pending)
-				if sh.detector != nil {
-					sh.detector.ProcessChunk(pending)
-				}
+				sh.observeOutputChunk(pending)
 			}
 			break
 		}
@@ -646,6 +679,7 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 	var promptWrite []byte
 	var forwardWrite []byte
 	var controlCmd string
+	var auditEvents []events.Event
 	skipResponse := false
 
 	switch req.Command {
@@ -713,20 +747,31 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 		resp.Message = "runtime status"
 
 	case protocol.CmdAttach:
-		sh.clients[conn] = true
-		sh.fanout.AddClient(conn)
-		if sh.activeWriter == nil {
-			sh.activeWriter = conn
+		if !sh.clients[conn] {
+			sh.clients[conn] = true
+			sh.fanout.AddClient(conn)
+			sh.bindTerminalClientIdentityLocked(conn, req.Payload)
+			clientID := sh.terminalClientIDLocked(conn)
+			if sh.activeWriter == nil {
+				sh.activeWriter = conn
+				auditEvents = append(auditEvents, sh.terminalLeaseEventLocked(events.EventTerminalLeaseGranted, clientID, "initial_attach"))
+			}
 		}
 		history := sh.ringBuffer.Bytes()
 		resp, _ = protocol.NewResponse(string(history))
 
 	case protocol.CmdDetach:
-		delete(sh.clients, conn)
-		sh.fanout.RemoveClient(conn)
+		clientID := sh.clientIDs[conn]
+		if sh.clients[conn] {
+			delete(sh.clients, conn)
+			sh.fanout.RemoveClient(conn)
+		}
 		if sh.activeWriter == conn {
 			sh.activeWriter = nil
+			auditEvents = append(auditEvents, sh.terminalLeaseEventLocked(events.EventTerminalLeaseReleased, clientID, "detach"))
 		}
+		delete(sh.clientIDs, conn)
+		delete(sh.clientActors, conn)
 		resp = protocol.NewControlResponse(protocol.ControlResult{OK: true, Code: "DETACHED", RuntimeID: sh.session.RuntimeID, Action: string(protocol.CmdDetach), State: string(sh.session.State), Message: "detached"})
 
 	case protocol.CmdResize:
@@ -746,7 +791,11 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 				// CmdInput remains byte-transparent at the control layer. The final
 				// SessionHost terminal scrubber only preserves sequence atomicity and
 				// drops terminal metadata before the provider PTY.
-				forwardWrite = sh.collectAttachedInputLocked(conn, []byte(p.Data))
+				var auditEvent *events.Event
+				forwardWrite, auditEvent = sh.collectAttachedInputLocked(conn, []byte(p.Data))
+				if auditEvent != nil {
+					auditEvents = append(auditEvents, *auditEvent)
+				}
 				forwardWrite = sh.normalizeShellPipeInputLocked(forwardWrite)
 			}
 		}
@@ -888,12 +937,21 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 			resp = protocol.NewErrorResponse("lease acquisition requires attached streaming client")
 			break
 		}
+		clientID := sh.terminalClientIDLocked(conn)
+		if sh.activeWriter != conn {
+			if sh.activeWriter != nil {
+				previousClientID := sh.terminalClientIDLocked(sh.activeWriter)
+				auditEvents = append(auditEvents, sh.terminalLeaseEventLocked(events.EventTerminalLeaseRevoked, previousClientID, "takeover"))
+			}
+			auditEvents = append(auditEvents, sh.terminalLeaseEventLocked(events.EventTerminalLeaseGranted, clientID, "explicit_takeover"))
+		}
 		sh.activeWriter = conn
 		resp, _ = protocol.NewResponse("lease_acquired")
 
 	case protocol.CmdLeaseRelease:
 		if sh.activeWriter == conn {
 			sh.activeWriter = nil
+			auditEvents = append(auditEvents, sh.terminalLeaseEventLocked(events.EventTerminalLeaseReleased, sh.terminalClientIDLocked(conn), "explicit_release"))
 		}
 		resp, _ = protocol.NewResponse("lease_released")
 
@@ -909,6 +967,7 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 		skipResponse = true
 	}
 	sh.mu.Unlock()
+	sh.publishTerminalAuditEvents(auditEvents)
 
 	if resizeRows > 0 && resizeCols > 0 {
 		_ = sh.termBackend.Resize(resizeRows, resizeCols)
@@ -934,9 +993,12 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 func (sh *SessionHost) processAttachedInput(conn net.Conn, data []byte) {
 	nexusruntime.TraceTerminalBytes(sh.session.RuntimeID, "host.raw_attach.input", data)
 	sh.mu.Lock()
-	forward := sh.collectAttachedInputLocked(conn, data)
+	forward, auditEvent := sh.collectAttachedInputLocked(conn, data)
 	forward = sh.normalizeShellPipeInputLocked(forward)
 	sh.mu.Unlock()
+	if auditEvent != nil {
+		sh.publishTerminalAuditEvents([]events.Event{*auditEvent})
+	}
 
 	if len(forward) > 0 {
 		_ = sh.writeTerminalInput(forward)
@@ -968,17 +1030,115 @@ func (sh *SessionHost) normalizeShellPipeInputLocked(data []byte) []byte {
 	return sh.shellInput.Normalize(data)
 }
 
-func (sh *SessionHost) collectAttachedInputLocked(conn net.Conn, data []byte) []byte {
+// terminalClientIDLocked returns a process-local opaque connection ID. It is
+// stored in event summaries so lease changes remain traceable after the
+// bounded in-memory event history is gone, without logging auth/session data.
+func (sh *SessionHost) terminalClientIDLocked(conn net.Conn) string {
+	if sh.clientIDs == nil {
+		sh.clientIDs = make(map[net.Conn]string)
+	}
+	if clientID := sh.clientIDs[conn]; clientID != "" {
+		return clientID
+	}
+	clientID := fmt.Sprintf("host-%d-client-%d", sh.session.HostGeneration, sh.clientSequence.Add(1))
+	sh.clientIDs[conn] = clientID
+	return clientID
+}
+
+func validTerminalAuditIdentity(value string) bool {
+	if len(value) == 0 || len(value) > 96 {
+		return false
+	}
+	for _, char := range value {
+		if (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || (char >= '0' && char <= '9') || char == '-' || char == '_' {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+func (sh *SessionHost) bindTerminalClientIdentityLocked(conn net.Conn, payload json.RawMessage) {
+	var identity protocol.TerminalClientPayload
+	if len(payload) == 0 || json.Unmarshal(payload, &identity) != nil ||
+		!validTerminalAuditIdentity(identity.ClientID) || !validTerminalAuditIdentity(identity.ActorID) {
+		return
+	}
+	if sh.clientIDs == nil {
+		sh.clientIDs = make(map[net.Conn]string)
+	}
+	if sh.clientActors == nil {
+		sh.clientActors = make(map[net.Conn]string)
+	}
+	sh.clientIDs[conn] = identity.ClientID
+	sh.clientActors[conn] = identity.ActorID
+}
+
+// terminalLeaseEventLocked creates a scoped audit record while the host state
+// lock is held. Callers publish it only after releasing sh.mu because the
+// recorder may synchronously write to durable storage.
+func (sh *SessionHost) terminalLeaseEventLocked(kind events.EventType, clientID, reason string) events.Event {
+	verb := map[events.EventType]string{
+		events.EventTerminalLeaseGranted:  "granted",
+		events.EventTerminalLeaseRevoked:  "revoked",
+		events.EventTerminalLeaseReleased: "released",
+	}[kind]
+	data := map[string]any{
+		"client_id":        clientID,
+		"actor_id":         sh.clientActorsForEventLocked(clientID),
+		"lease_transition": verb,
+		"reason":           reason,
+		"host_generation":  sh.session.HostGeneration,
+	}
+	if sh.session.ProjectID != "" {
+		data["project_id"] = sh.session.ProjectID
+	}
+	if sh.session.AgentID != "" {
+		data["agent_id"] = sh.session.AgentID
+	}
+	actorID := sh.clientActorsForEventLocked(clientID)
+	summary := fmt.Sprintf("Terminal lease %s client=%s actor=%s generation=%d reason=%s", verb, clientID, actorID, sh.session.HostGeneration, reason)
+	return events.NewEventWithCorrelation(
+		sh.session.LineageID, sh.session.RuntimeID, sh.session.ProviderID,
+		sh.session.ProfileID, kind, summary, data,
+	)
+}
+
+func (sh *SessionHost) clientActorsForEventLocked(clientID string) string {
+	for conn, candidate := range sh.clientIDs {
+		if candidate == clientID {
+			if actorID := sh.clientActors[conn]; actorID != "" {
+				return actorID
+			}
+			return "local"
+		}
+	}
+	return "unknown"
+}
+
+func (sh *SessionHost) publishTerminalAuditEvents(auditEvents []events.Event) {
+	if sh.auditBus == nil {
+		return
+	}
+	for _, auditEvent := range auditEvents {
+		sh.auditBus.Publish(auditEvent)
+	}
+}
+
+func (sh *SessionHost) collectAttachedInputLocked(conn net.Conn, data []byte) ([]byte, *events.Event) {
 	// Only active writer (or first attached client) can send input to child process
 	if sh.activeWriter != nil && sh.activeWriter != conn {
-		return nil
+		return nil, nil
 	}
+	var auditEvent *events.Event
 	if sh.activeWriter == nil {
 		sh.activeWriter = conn
+		event := sh.terminalLeaseEventLocked(events.EventTerminalLeaseGranted, sh.terminalClientIDLocked(conn), "implicit_input")
+		auditEvent = &event
 	}
 	// This is deliberately a byte-for-byte copy. Escape, control, UTF-8 and
 	// provider-specific keyboard sequences all belong to the child PTY.
-	return append([]byte(nil), data...)
+	return append([]byte(nil), data...), auditEvent
 }
 
 func (sh *SessionHost) handleControlCommandLocked(cmd string) {
@@ -1031,12 +1191,18 @@ func (sh *SessionHost) handleControlCommandLocked(cmd string) {
 
 func (sh *SessionHost) removeClient(conn net.Conn) {
 	sh.mu.Lock()
-	defer sh.mu.Unlock()
+	clientID := sh.clientIDs[conn]
 	delete(sh.clients, conn)
 	sh.fanout.RemoveClient(conn)
+	var auditEvents []events.Event
 	if sh.activeWriter == conn {
 		sh.activeWriter = nil
+		auditEvents = append(auditEvents, sh.terminalLeaseEventLocked(events.EventTerminalLeaseReleased, clientID, "disconnect"))
 	}
+	delete(sh.clientIDs, conn)
+	delete(sh.clientActors, conn)
+	sh.mu.Unlock()
+	sh.publishTerminalAuditEvents(auditEvents)
 }
 
 func (sh *SessionHost) waitProcess() {

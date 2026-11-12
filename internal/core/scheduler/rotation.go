@@ -23,9 +23,22 @@ type rotationState struct {
 	LastSelected map[string]string `json:"last_selected"`
 }
 
-// SelectNextBalancedProfile rotates deterministically through eligible accounts
-// and persists the cursor under a cross-process lock. EvaluateAll remains the
-// authority for authentication, health, quota, cooldown and disabled gates.
+// balanceCandidate pairs an eligible evaluation with its measured quota
+// availability so the rotation can rank accounts by remaining balance.
+// measured=false means the provider exposes no trustworthy capacity metric
+// (OPAQUE); such accounts never outrank measured positive quota.
+type balanceCandidate struct {
+	evaluation *CandidateEvaluation
+	measured   bool
+	remaining  float64
+}
+
+// SelectNextBalancedProfile selects the eligible account with the most
+// measured quota remaining and persists the cursor under a cross-process
+// lock. Accounts tied at the same availability rotate fairly through the
+// cursor, so equal accounts still share usage deterministically.
+// EvaluateAll remains the authority for authentication, health, quota,
+// cooldown and disabled gates.
 func (s *Selector) SelectNextBalancedProfile(
 	ctx context.Context,
 	provider string,
@@ -36,7 +49,7 @@ func (s *Selector) SelectNextBalancedProfile(
 ) (*SelectionResult, error) {
 	provider = strings.ToLower(strings.TrimSpace(provider))
 	evaluations := s.EvaluateAll(provider, workspace, candidates, accounts, excludeProfiles)
-	eligible := make([]model.Profile, 0, len(evaluations))
+	eligible := make([]balanceCandidate, 0, len(evaluations))
 	var rejected []string
 	for i := range evaluations {
 		evaluation := &evaluations[i]
@@ -47,7 +60,13 @@ func (s *Selector) SelectNextBalancedProfile(
 			}
 		}
 		if evaluation.Eligible {
-			eligible = append(eligible, evaluation.Profile)
+			view := quota.BuildQuotaView(evaluation.Usage, evaluation.Account.Email, evaluation.Account.Plan)
+			remaining, measured := view.BestGroupRemaining()
+			eligible = append(eligible, balanceCandidate{
+				evaluation: evaluation,
+				measured:   measured,
+				remaining:  remaining,
+			})
 		} else {
 			rejected = append(rejected, fmt.Sprintf("%s (%s)", evaluation.Profile.Name, evaluation.RejectReason))
 		}
@@ -62,7 +81,35 @@ func (s *Selector) SelectNextBalancedProfile(
 	if err := ctx.Err(); err != nil {
 		return &SelectionResult{Evaluations: evaluations}, err
 	}
-	sort.Slice(eligible, func(i, j int) bool { return eligible[i].Name < eligible[j].Name })
+
+	// Rank by measured availability (most remaining first). Opaque/unmeasured
+	// capacity is a separate, lower tier: it must never outrank a resource
+	// backed by measured positive quota. Ties fall back to the name order so
+	// the cursor rotation below stays deterministic.
+	sort.SliceStable(eligible, func(i, j int) bool {
+		if eligible[i].measured != eligible[j].measured {
+			return eligible[i].measured
+		}
+		if eligible[i].measured && eligible[i].remaining != eligible[j].remaining {
+			return eligible[i].remaining > eligible[j].remaining
+		}
+		return eligible[i].evaluation.Profile.Name < eligible[j].evaluation.Profile.Name
+	})
+
+	// The leader tier is the set of accounts tied at the top availability;
+	// the persisted cursor rotates among them for fair reuse. An account that
+	// is strictly behind on measured quota is never selected while a leader
+	// has balance left.
+	leaderCount := 1
+	for i := 1; i < len(eligible); i++ {
+		tied := eligible[i].measured == eligible[0].measured &&
+			(!eligible[0].measured || eligible[i].remaining == eligible[0].remaining)
+		if !tied {
+			break
+		}
+		leaderCount++
+	}
+	leaders := eligible[:leaderCount]
 
 	stateDir, err := config.StateDir()
 	if err != nil {
@@ -92,20 +139,26 @@ func (s *Selector) SelectNextBalancedProfile(
 
 	last := state.LastSelected[provider]
 	selectedIndex := 0
-	for i, candidate := range eligible {
-		if candidate.Name == last {
-			selectedIndex = (i + 1) % len(eligible)
+	for i, candidate := range leaders {
+		if candidate.evaluation.Profile.Name == last {
+			selectedIndex = (i + 1) % len(leaders)
 			break
 		}
 	}
-	selected := eligible[selectedIndex]
-	state.LastSelected[provider] = selected.Name
+	selected := leaders[selectedIndex].evaluation
+	state.LastSelected[provider] = selected.Profile.Name
 	if err := writeRotationState(statePath, state); err != nil {
 		return &SelectionResult{Evaluations: evaluations}, err
 	}
+	reason := "selected the eligible account with the most measured quota remaining"
+	if !leaders[0].measured {
+		reason = "no measured quota evidence; balanced rotation among operationally eligible accounts"
+	} else if leaderCount > 1 {
+		reason = "balanced rotation among equally available eligible accounts"
+	}
 	return &SelectionResult{
-		SelectedProfile: &selected,
-		Reason:          "balanced rotation to next eligible account",
+		SelectedProfile: &selected.Profile,
+		Reason:          reason,
 		Evaluations:     evaluations,
 	}, nil
 }

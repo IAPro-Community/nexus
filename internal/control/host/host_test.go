@@ -16,6 +16,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/control/protocol"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/control/terminal"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 	nexusruntime "github.com/IAPro-Community/nexus/internal/runtime"
 )
 
@@ -446,7 +447,7 @@ func TestSessionHost_CmdInputForwardsTerminalBytesVerbatim(t *testing.T) {
 		"/e[31m literal text", `\e[31m literal text`, "\x1b]0;title\x07",
 	}
 	for _, input := range cases {
-		got := sh.collectAttachedInputLocked(writer, []byte(input))
+		got, _ := sh.collectAttachedInputLocked(writer, []byte(input))
 		if !bytes.Equal(got, []byte(input)) {
 			t.Fatalf("input %q was transformed to %q", input, got)
 		}
@@ -460,7 +461,7 @@ func TestSessionHost_CmdInputNeverRoutesSlashCommands(t *testing.T) {
 	defer peer.Close()
 
 	input := []byte("/nexus stop\r")
-	got := sh.collectAttachedInputLocked(writer, input)
+	got, _ := sh.collectAttachedInputLocked(writer, input)
 	if !bytes.Equal(got, input) {
 		t.Fatalf("slash command input was intercepted: got %q", got)
 	}
@@ -643,6 +644,161 @@ func TestSessionHost_ExplicitLeaseAcquireRelease(t *testing.T) {
 	}
 	if !resp.OK {
 		t.Fatalf("clientB lease_release not OK: %s", resp.Error)
+	}
+}
+
+func TestSessionHost_TwoClientLeaseHandoffIsAuditedAndSingleWriter(t *testing.T) {
+	runtimeID := "rt-device-handoff-audit"
+	projectID, agentID := "prj-device-handoff", "agt-device-handoff"
+	dataDir := t.TempDir()
+	auditStore, err := store.Open(filepath.Join(dataDir, "audit.db"))
+	if err != nil {
+		t.Fatalf("open audit store: %v", err)
+	}
+	defer auditStore.Close()
+	if _, err := auditStore.CreateProject(store.Project{
+		ID: projectID, Name: "Device Handoff", Slug: "device-handoff", CanonicalPath: dataDir,
+	}); err != nil {
+		t.Fatalf("create audit project: %v", err)
+	}
+	if _, err := auditStore.CreateAgent(store.Agent{
+		ID: agentID, ProjectID: projectID, Name: "Handoff Agent", Role: "test",
+	}); err != nil {
+		t.Fatalf("create audit agent: %v", err)
+	}
+
+	auditBus := events.NewBus(100)
+	auditBus.SetRecorder(func(event events.Event) {
+		project, _ := event.Data["project_id"].(string)
+		agent, _ := event.Data["agent_id"].(string)
+		if _, recordErr := auditStore.RecordEventMetadata(store.EventMetadata{
+			ID: event.ID, ProjectID: project, AgentID: agent,
+			CorrelationID: event.CorrelationID, Kind: string(event.Type),
+			Timestamp: event.Timestamp, Summary: event.Summary,
+		}); recordErr != nil {
+			t.Errorf("persist audit event %s: %v", event.Type, recordErr)
+		}
+	})
+
+	sess := registry.RuntimeSession{
+		RuntimeID: runtimeID, ProviderID: "test", ProfileID: "default",
+		ProjectID: projectID, AgentID: agentID, Workspace: dataDir,
+		State: registry.StateStarting, ControlLevel: registry.ControlLevelTerminal,
+	}
+	sh, err := NewSessionHost(Config{
+		Session: sess, Binary: interactiveTestTerminalBinary, Args: interactiveTestTerminalArgs(),
+		Env: os.Environ(), Cwd: dataDir, auditBus: auditBus,
+	})
+	if err != nil {
+		t.Fatalf("create SessionHost: %v", err)
+	}
+	if err := sh.Start(); err != nil {
+		t.Fatalf("start SessionHost: %v", err)
+	}
+	defer sh.Stop()
+	waitForHostEndpoint(t, runtimeID)
+
+	connect := func(name string) *protocol.Client {
+		t.Helper()
+		client, err := protocol.NewClient(runtimeID)
+		if err != nil {
+			t.Fatalf("connect %s: %v", name, err)
+		}
+		response, err := client.Send(protocol.CmdAttach, nil)
+		if err != nil {
+			client.Close()
+			t.Fatalf("attach %s: %v", name, err)
+		}
+		waitForTerminalReady(t, client, response.Data)
+		return client
+	}
+	alpha := connect("alpha")
+	defer alpha.Close()
+	beta := connect("beta")
+	defer beta.Close()
+
+	// Alpha acquired the initial lease. Beta's explicit handoff revokes Alpha
+	// and grants Beta under the same supervised process generation.
+	if response, err := beta.Send(protocol.CmdLeaseAcquire, nil); err != nil || !response.OK {
+		t.Fatalf("beta takeover: response=%+v err=%v", response, err)
+	}
+	if response, err := beta.Send(protocol.CmdLeaseRelease, nil); err != nil || !response.OK {
+		t.Fatalf("beta lease release: response=%+v err=%v", response, err)
+	}
+	if response, err := beta.Send(protocol.CmdLeaseAcquire, nil); err != nil || !response.OK {
+		t.Fatalf("beta reacquire: response=%+v err=%v", response, err)
+	}
+	if response, err := alpha.Send(protocol.CmdInput, protocol.InputPayload{Data: "REVOKED_ALPHA_INPUT\n"}); err != nil || !response.OK {
+		t.Fatalf("revoked client input request: response=%+v err=%v", response, err)
+	}
+	if _, err := beta.RawConn().Write([]byte("ONLY_BETA_INPUT\n")); err != nil {
+		t.Fatalf("write from controlling client: %v", err)
+	}
+
+	_ = alpha.RawConn().SetReadDeadline(time.Now().Add(3 * time.Second))
+	var alphaOutput strings.Builder
+	for !strings.Contains(alphaOutput.String(), "ONLY_BETA_INPUT") {
+		line, readErr := alpha.Reader().ReadString('\n')
+		if readErr != nil {
+			t.Fatalf("read echoed handoff input: %v; output=%q", readErr, alphaOutput.String())
+		}
+		alphaOutput.WriteString(line)
+	}
+	if strings.Contains(alphaOutput.String(), "REVOKED_ALPHA_INPUT") || strings.Count(alphaOutput.String(), "ONLY_BETA_INPUT") != 1 {
+		t.Fatalf("two-client handoff violated single-writer input: %q", alphaOutput.String())
+	}
+	_ = beta.RawConn().SetReadDeadline(time.Now().Add(3 * time.Second))
+	var betaOutput strings.Builder
+	for !strings.Contains(betaOutput.String(), "ONLY_BETA_INPUT") {
+		line, readErr := beta.Reader().ReadString('\n')
+		if readErr != nil {
+			t.Fatalf("read controlling client's echoed handoff input: %v; output=%q", readErr, betaOutput.String())
+		}
+		betaOutput.WriteString(line)
+	}
+	if strings.Count(betaOutput.String(), "ONLY_BETA_INPUT") != 1 {
+		t.Fatalf("controlling client did not observe exactly one provider execution: %q", betaOutput.String())
+	}
+	stored, err := auditStore.ListEventsMetadata(projectID, agentID, 20)
+	if err != nil {
+		t.Fatalf("list persisted lease events: %v", err)
+	}
+	counts := map[string]int{}
+	grantedClients := map[string]bool{}
+	revokedClients := map[string]bool{}
+	releasedClients := map[string]bool{}
+	for _, event := range stored {
+		counts[event.Kind]++
+		if marker := "client="; strings.Contains(event.Summary, marker) {
+			clientID := strings.Fields(strings.SplitN(event.Summary, marker, 2)[1])[0]
+			switch event.Kind {
+			case string(events.EventTerminalLeaseGranted):
+				grantedClients[clientID] = true
+			case string(events.EventTerminalLeaseRevoked):
+				revokedClients[clientID] = true
+			case string(events.EventTerminalLeaseReleased):
+				releasedClients[clientID] = true
+			}
+		}
+	}
+	if counts[string(events.EventTerminalLeaseGranted)] != 3 || counts[string(events.EventTerminalLeaseRevoked)] != 1 || counts[string(events.EventTerminalLeaseReleased)] != 1 {
+		t.Fatalf("persisted lease handoff trail incomplete: counts=%v events=%+v", counts, stored)
+	}
+	if len(grantedClients) != 2 || len(revokedClients) != 1 || len(releasedClients) != 1 {
+		t.Fatalf("persisted lease trail lacks distinct client identities: granted=%v revoked=%v released=%v", grantedClients, revokedClients, releasedClients)
+	}
+	for clientID := range revokedClients {
+		if !grantedClients[clientID] || releasedClients[clientID] {
+			t.Fatalf("revoked client identity does not match prior grant: granted=%v revoked=%v released=%v", grantedClients, revokedClients, releasedClients)
+		}
+	}
+	for clientID := range releasedClients {
+		if !grantedClients[clientID] || revokedClients[clientID] {
+			t.Fatalf("released client identity does not match active grant: granted=%v revoked=%v released=%v", grantedClients, revokedClients, releasedClients)
+		}
+	}
+	if stored[0].ProjectID != projectID || stored[0].AgentID != agentID {
+		t.Fatalf("lease event lost project/agent scope: %+v", stored[0])
 	}
 }
 

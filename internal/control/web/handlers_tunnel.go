@@ -100,7 +100,8 @@ func (s *Server) AttachExternalTunnel(tunnel *Tunnel) error {
 
 // NewTunnelInviteURL issues a fresh host-bound authorization link after the
 // public tunnel has been registered, independent of server bootstrap age.
-func (s *Server) NewTunnelInviteURL() (string, string, error) {
+// The pairing code is the short typed alternative to the QR link.
+func (s *Server) NewTunnelInviteURL() (string, string, string, error) {
 	tm := s.tunnelManager()
 	tm.mu.Lock()
 	active := !tm.starting && tunnelIsActive(tm.tunnel)
@@ -110,13 +111,13 @@ func (s *Server) NewTunnelInviteURL() (string, string, error) {
 	}
 	tm.mu.Unlock()
 	if !active || url == "" {
-		return "", "", fmt.Errorf("no active tunnel")
+		return "", "", "", fmt.Errorf("no active tunnel")
 	}
-	token, err := s.auth.IssueTunnelInvitation(extractTunnelHost(url))
+	token, code, err := s.auth.IssueTunnelInvitation(extractTunnelHost(url))
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
-	return url, url + "/#nexus_bootstrap=" + token, nil
+	return url, url + "/#nexus_bootstrap=" + token, code, nil
 }
 
 func (s *Server) handleTunnelStatus(w http.ResponseWriter, r *http.Request) {
@@ -349,7 +350,7 @@ func (s *Server) handleTunnelQR(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tunnelURL, bootstrapURL, err := s.NewTunnelInviteURL()
+	tunnelURL, bootstrapURL, accessCode, err := s.NewTunnelInviteURL()
 	if err != nil {
 		writeError(w, http.StatusConflict, "unable to generate invitation: "+err.Error())
 		return
@@ -358,6 +359,7 @@ func (s *Server) handleTunnelQR(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"url":                tunnelURL,
 		"bootstrap_url":      bootstrapURL,
+		"access_code":        accessCode,
 		"expires_in_seconds": int(remoteBootstrapTTL.Seconds()),
 	})
 }

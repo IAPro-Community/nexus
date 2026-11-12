@@ -3,6 +3,7 @@ package browsercontrol
 import (
 	"context"
 	"errors"
+	"strings"
 )
 
 // Each runtime has its own browser; browsers aren't created when a CLI is
@@ -25,15 +26,30 @@ func (m *Manager) OpenRuntimeBrowser(ctx context.Context, cap RuntimeCapability,
 	if cap.RuntimeID == "" || cap.ProjectID == "" {
 		return Info{}, errors.New("browser runtime capability invalid")
 	}
+	if m.previewRegistry == nil {
+		return Info{}, errors.New("runtime preview supervisor unavailable")
+	}
 	m.runtimeMu.Lock()
 	defer m.runtimeMu.Unlock()
+	registration, err := m.previewRegistry.ResolveOrRegister(cap.RuntimeID, cap.ProjectID, url)
+	if err != nil {
+		return Info{}, err
+	}
 	if s, ok := m.FindRuntimeBrowser(cap.RuntimeID); ok {
-		return s.Info(), nil
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		if s.previewOrigin != runtimePreviewOriginFromURL(registration.URL) {
+			return Info{}, errors.New("runtime browser is bound to a different supervised preview")
+		}
+		s.previewRegistry = m.previewRegistry
+		if strings.TrimSpace(url) != "" {
+			if err := s.navigate(ctx, url); err != nil {
+				return Info{}, err
+			}
+		}
+		return s.infoLocked(), nil
 	}
-	if url == "" {
-		url = "http://localhost:3000"
-	}
-	info, err := m.Create(ctx, cap.ProjectID, url)
+	info, err := m.create(ctx, cap.ProjectID, registration.URL, cap.RuntimeID, runtimePreviewOriginFromURL(registration.URL), m.previewRegistry)
 	if err != nil {
 		return Info{}, err
 	}
@@ -42,8 +58,19 @@ func (m *Manager) OpenRuntimeBrowser(ctx context.Context, cap RuntimeCapability,
 		return Info{}, errors.New("browser disappeared during provisioning")
 	}
 	s.mu.Lock()
-	s.info.OwnerRuntimeID = cap.RuntimeID
-	info = s.info
+	info = s.infoLocked()
 	s.mu.Unlock()
+	if _, err := m.previewRegistry.Resolve(cap.RuntimeID, cap.ProjectID, registration.URL); err != nil {
+		m.Close(info.ID)
+		return Info{}, err
+	}
 	return info, nil
+}
+
+func runtimePreviewOriginFromURL(raw string) string {
+	u, _, err := parseRuntimePreviewURL(raw)
+	if err != nil {
+		return ""
+	}
+	return runtimePreviewOrigin(u)
 }

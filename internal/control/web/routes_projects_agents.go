@@ -38,6 +38,8 @@ func (s *Server) routeProject(h *NexusHandler) http.HandlerFunc {
 			h.handleProjectEvents(w, r)
 		case strings.HasSuffix(r.URL.Path, "/layout"):
 			h.handleProjectLayout(w, r)
+		case strings.Contains(r.URL.Path, "/agent-groups"):
+			h.handleProjectAgentGroups(w, r)
 		case strings.HasSuffix(r.URL.Path, "/director"):
 			h.handleProjectDirector(w, r)
 		case strings.HasSuffix(r.URL.Path, "/agents"):
@@ -72,6 +74,14 @@ func (s *Server) routeProject(h *NexusHandler) http.HandlerFunc {
 			h.handleProjectOpenOS(w, r)
 		case strings.HasSuffix(r.URL.Path, "/git/branches"):
 			h.handleProjectGitBranches(w, r)
+		case strings.Contains(r.URL.Path, "/shares/"):
+			h.handleProjectShares(w, r)
+		case strings.HasSuffix(r.URL.Path, "/shares"):
+			h.handleProjectShares(w, r)
+		case strings.HasSuffix(r.URL.Path, "/change-collisions"):
+			h.handleProjectChangeCollisions(w, r)
+		case strings.HasSuffix(r.URL.Path, "/release-desk"):
+			h.handleProjectReleaseDesk(w, r)
 		case strings.HasSuffix(r.URL.Path, "/git/checkout"):
 			h.handleProjectGitCheckout(w, r)
 		default:

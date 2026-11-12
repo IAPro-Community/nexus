@@ -263,6 +263,7 @@ func Default() *Nexus {
 		defaultNexus = NewWithStoreAndExecutor(st, nil)
 		defaultNexus.quotaMonitor = NewQuotaMonitorService(DefaultQuotaDropMonitor(), events.DefaultBus())
 		defaultNexus.wireQuotaContinuity(defaultNexus.quotaMonitor)
+		defaultNexus.wireQuotaPatternContinuity()
 		if st != nil {
 			events.DefaultBus().SetRecorder(func(e events.Event) {
 				projectID, _ := e.Data["project_id"].(string)

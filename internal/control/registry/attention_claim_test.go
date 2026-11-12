@@ -3,6 +3,8 @@ package registry
 import (
 	"errors"
 	"path/filepath"
+	"strings"
+	"sync"
 	"testing"
 )
 
@@ -11,6 +13,102 @@ func waitingAttention() AttentionUpdate {
 		State: StateWaiting, Reason: "QUESTION", Kind: "needs_user",
 		Context: "Continue?", PromptKind: "yn", Fingerprint: "fingerprint-a",
 		Source: "INFERRED",
+	}
+}
+
+func newAttentionOperationRegistry(t *testing.T, path string) (*Registry, AttentionResponseExpectation) {
+	t.Helper()
+	reg := NewRegistry(path)
+	if err := reg.Register(RuntimeSession{RuntimeID: "operation-runtime", State: StateWaiting,
+		HostGeneration: 44, ProviderGeneration: 55}); err != nil {
+		t.Fatal(err)
+	}
+	if err := reg.UpdateAttentionMeta("operation-runtime", waitingAttention()); err != nil {
+		t.Fatal(err)
+	}
+	return reg, AttentionResponseExpectation{Fingerprint: "fingerprint-a", Revision: 1, Generation: "44:55"}
+}
+
+func TestAttentionOperationRetryReturnsPersistedOutcome(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "runtimes.json")
+	reg, expected := newAttentionOperationRegistry(t, path)
+	digest := strings.Repeat("a", 64)
+	claim, err := reg.ClaimAttentionOperation("operation-runtime", expected, AttentionOperationResponse, digest, "")
+	if err != nil || !claim.Dispatch || claim.Status != AttentionSubmissionPending {
+		t.Fatalf("initial claim=%+v err=%v", claim, err)
+	}
+	claim, err = reg.ClaimAttentionOperation("operation-runtime", expected, AttentionOperationResponse, digest, "")
+	if err != nil || claim.Dispatch || claim.Status != AttentionSubmissionPending {
+		t.Fatalf("concurrent retry=%+v err=%v", claim, err)
+	}
+	if err := reg.CompleteAttentionOperation("operation-runtime", expected, digest, AttentionSubmissionSubmitted); err != nil {
+		t.Fatal(err)
+	}
+	copy, _ := reg.Get("operation-runtime")
+	copy.AttentionSubmission.Status = AttentionSubmissionUncertain
+	original, _ := reg.Get("operation-runtime")
+	if original.AttentionSubmission.Status != AttentionSubmissionSubmitted {
+		t.Fatal("returned runtime must not expose mutable submission state")
+	}
+	restarted := NewRegistry(path)
+	claim, err = restarted.ClaimAttentionOperation("operation-runtime", expected, AttentionOperationResponse, digest, "")
+	if err != nil || claim.Dispatch || claim.Status != AttentionSubmissionSubmitted {
+		t.Fatalf("retry after restart=%+v err=%v", claim, err)
+	}
+	if _, err := restarted.ClaimAttentionOperation("operation-runtime", expected, AttentionOperationResponse, strings.Repeat("b", 64), ""); !errors.Is(err, ErrAttentionConflict) {
+		t.Fatalf("different operation must conflict, got %v", err)
+	}
+	if err := restarted.CompleteAttentionOperation("operation-runtime", expected, digest, AttentionSubmissionUncertain); !errors.Is(err, ErrAttentionConflict) {
+		t.Fatalf("final submitted outcome must not be downgraded, got %v", err)
+	}
+	if err := restarted.UpdateAttentionMeta("operation-runtime", AttentionUpdate{State: StateRunning, Kind: "working"}); err != nil {
+		t.Fatal(err)
+	}
+	claim, err = restarted.ClaimAttentionOperation("operation-runtime", expected, AttentionOperationResponse, digest, "")
+	if err != nil || claim.Dispatch || claim.Status != AttentionSubmissionSubmitted {
+		t.Fatalf("same operation after provider progressed=%+v err=%v", claim, err)
+	}
+	if err := restarted.UpdateAttentionMeta("operation-runtime", waitingAttention()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := restarted.ClaimAttentionOperation("operation-runtime", expected, AttentionOperationResponse, digest, ""); !errors.Is(err, ErrAttentionConflict) {
+		t.Fatalf("old revision must not replay into next prompt, got %v", err)
+	}
+}
+
+func TestAttentionOperationConcurrentClaimsDispatchOnceAcrossInstances(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "runtimes.json")
+	_, expected := newAttentionOperationRegistry(t, path)
+	digest := strings.Repeat("c", 64)
+	const clients = 12
+	results := make(chan AttentionSubmissionClaim, clients)
+	errorsSeen := make(chan error, clients)
+	var work sync.WaitGroup
+	for range clients {
+		work.Add(1)
+		go func() {
+			defer work.Done()
+			claim, err := NewRegistry(path).ClaimAttentionOperation("operation-runtime", expected, AttentionOperationResponse, digest, "")
+			results <- claim
+			errorsSeen <- err
+		}()
+	}
+	work.Wait()
+	close(results)
+	close(errorsSeen)
+	for err := range errorsSeen {
+		if err != nil {
+			t.Fatalf("same operation concurrent claim: %v", err)
+		}
+	}
+	dispatches := 0
+	for claim := range results {
+		if claim.Dispatch {
+			dispatches++
+		}
+	}
+	if dispatches != 1 {
+		t.Fatalf("dispatches=%d, want exactly one", dispatches)
 	}
 }
 

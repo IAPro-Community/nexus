@@ -131,6 +131,104 @@ func TestBalancedSelectionRotatesEligibleProfilesAndPersistsCursor(t *testing.T)
 	}
 }
 
+func TestBalancedSelectionPrefersMostAvailableAccount(t *testing.T) {
+	selector, ctx, _, _ := balancedTestInputs(t)
+	// codex single-pool accounts: full is the most available, drained is
+	// nearly empty. The rotation must pick full every time instead of
+	// walking alphabetically through the drained account.
+	codexProfiles := []model.Profile{
+		{Provider: "codex", Name: "account-drained"},
+		{Provider: "codex", Name: "account-full"},
+	}
+	codexAccounts := map[string]model.AccountInfo{
+		"account-drained": codexLiveAccount("account-drained",
+			model.UsageWindow{Kind: "5h", RemainingPercent: floatPtr(10)},
+			model.UsageWindow{Kind: "weekly", RemainingPercent: floatPtr(10)}),
+		"account-full": codexLiveAccount("account-full",
+			model.UsageWindow{Kind: "5h", RemainingPercent: floatPtr(85)},
+			model.UsageWindow{Kind: "weekly", RemainingPercent: floatPtr(85)}),
+	}
+	for i := 0; i < 3; i++ {
+		result, err := selector.SelectNextBalancedProfile(ctx, "codex", "/tmp", codexProfiles, codexAccounts, nil)
+		if err != nil {
+			t.Fatalf("selection %d: %v", i, err)
+		}
+		if result.SelectedProfile.Name != "account-full" {
+			t.Fatalf("selection %d = %q; the account with most remaining quota must win", i, result.SelectedProfile.Name)
+		}
+		if result.Reason != "selected the eligible account with the most measured quota remaining" {
+			t.Fatalf("selection %d reason = %q", i, result.Reason)
+		}
+	}
+}
+
+func TestBalancedSelectionOpaqueNeverOutranksMeasuredQuota(t *testing.T) {
+	selector, ctx, _, _ := balancedTestInputs(t)
+	codexProfiles := []model.Profile{
+		{Provider: "codex", Name: "account-low"},
+		{Provider: "codex", Name: "account-opaque"},
+	}
+	accounts := map[string]model.AccountInfo{
+		"account-low": codexLiveAccount("account-low",
+			model.UsageWindow{Kind: "5h", RemainingPercent: floatPtr(5)},
+			model.UsageWindow{Kind: "weekly", RemainingPercent: floatPtr(5)}),
+		"account-opaque": {
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Usage: model.UsageSnapshot{
+				ProviderID: "codex",
+				ProfileID:  "account-opaque",
+				Status:     model.UsageUnsupported,
+				Source:     model.SourceCLIOutput,
+				FetchedAt:  time.Now(),
+				Windows:    nil,
+			},
+		},
+	}
+	for i := 0; i < 2; i++ {
+		result, err := selector.SelectNextBalancedProfile(ctx, "codex", "/tmp", codexProfiles, accounts, nil)
+		if err != nil {
+			t.Fatalf("selection %d: %v", i, err)
+		}
+		if result.SelectedProfile.Name != "account-low" {
+			t.Fatalf("selection %d = %q; measured positive quota must outrank opaque evidence", i, result.SelectedProfile.Name)
+		}
+	}
+}
+
+func TestBalancedSelectionRotatesAmongTiedAvailability(t *testing.T) {
+	selector, ctx, candidates, accounts := balancedTestInputs(t)
+	// Same 80% everywhere: the cursor keeps fair rotation among equals.
+	want := []string{"account-a", "account-b", "account-c"}
+	for i, expected := range want {
+		result, err := selector.SelectNextBalancedProfile(ctx, "agy", "/tmp", candidates, accounts, nil)
+		if err != nil {
+			t.Fatalf("selection %d: %v", i, err)
+		}
+		if result.SelectedProfile.Name != expected {
+			t.Fatalf("tied selection %d = %q, want %q", i, result.SelectedProfile.Name, expected)
+		}
+		if result.Reason != "balanced rotation among equally available eligible accounts" {
+			t.Fatalf("tied selection %d reason = %q", i, result.Reason)
+		}
+	}
+}
+
+func codexLiveAccount(profile string, windows ...model.UsageWindow) model.AccountInfo {
+	return model.AccountInfo{
+		Authenticated: true,
+		Health:        model.HealthHealthy,
+		Usage: model.UsageSnapshot{
+			ProviderID: "codex",
+			ProfileID:  profile,
+			Status:     model.UsageLive,
+			Source:     model.SourceCLIOutput,
+			FetchedAt:  time.Now(),
+			Windows:    windows,
+		},
+	}
+}
+
 func TestBalancedSelectionSkipsQuotaIneligibleAndExcludedProfiles(t *testing.T) {
 	selector, ctx, candidates, accounts := balancedTestInputs(t)
 	selector.cooldown.RecordRateLimit("agy", "account-a", time.Hour, nil, "429")

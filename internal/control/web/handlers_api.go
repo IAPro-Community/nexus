@@ -141,6 +141,7 @@ func sanitizeSession(s registry.RuntimeSession) registry.RuntimeSession {
 	s.Env = nil
 	s.Args = nil
 	s.Binary = ""
+	s.AttentionSubmission = nil
 	return s
 }
 

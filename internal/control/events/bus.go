@@ -68,17 +68,31 @@ func (b *Bus) Publish(e Event) {
 		recorder(e)
 	}
 
+	// Unsubscribe closes channels under the same mutex. Reacquire it before
+	// sending so a subscriber removed while the recorder ran cannot race with
+	// close or trigger a send-on-closed-channel.
+	b.mu.Lock()
 	for _, ch := range targets {
-		// Protect against send-on-closed-channel when Unsubscribe races with Publish.
-		func(c chan Event) {
-			defer func() { recover() }() //nolint:errcheck // closed channel is expected race
-			select {
-			case c <- e:
-			default:
-				// Non-blocking drop if channel buffer is full
-			}
-		}(ch)
+		if !containsEventSubscriber(b.subscribers[e.RuntimeID], ch) &&
+			!containsEventSubscriber(b.subscribers["*"], ch) {
+			continue
+		}
+		select {
+		case ch <- e:
+		default:
+			// Non-blocking drop if the channel buffer is full.
+		}
 	}
+	b.mu.Unlock()
+}
+
+func containsEventSubscriber(subscribers []chan Event, target chan Event) bool {
+	for _, subscriber := range subscribers {
+		if subscriber == target {
+			return true
+		}
+	}
+	return false
 }
 
 // Subscribe opens a stream of events for a runtime ID (or "*" for all runtimes).

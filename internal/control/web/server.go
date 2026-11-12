@@ -118,7 +118,7 @@ func NewServer(opts ServerOptions) (*Server, error) {
 		auth:      auth,
 		api:       api,
 		terminal:  terminalHub,
-		browsers:  browsercontrol.NewManager(),
+		browsers:  browsercontrol.NewManagerWithRuntimePreviewInspector(browsercontrol.NewSystemRuntimePreviewInspector()),
 		bootstrap: bootstrapToken,
 		url:       fmt.Sprintf("http://%s:%d", opts.Host, tcpAddr.Port),
 		pid:       os.Getpid(),
@@ -381,6 +381,8 @@ func (s *Server) routePlan(h *NexusHandler) http.HandlerFunc {
 			h.handlePlanExecutionPreview(w, r)
 		case strings.HasSuffix(r.URL.Path, "/preflight"):
 			h.handleFlowPreflight(w, r)
+		case strings.HasSuffix(r.URL.Path, "/parallel-challenge"):
+			h.handlePlanParallelChallenge(w, r)
 		default:
 			h.handlePlanDetail(w, r)
 		}
@@ -539,6 +541,55 @@ func (s *Server) handleAuthBootstrap(w http.ResponseWriter, r *http.Request) {
 	}
 	s.setAuthenticatedSessionCookie(w, sess)
 	s.setLoopbackDeviceCookie(w)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"authenticated": true,
+		"csrf_token":    sess.CSRFToken,
+		"expires_at":    sess.ExpiresAt,
+	})
+}
+
+// handleAuthPair exchanges a short human-typed pairing code (shown next to the
+// tunnel QR link in Settings) for a session cookie, so a remote device can
+// pair without scanning or pasting the QR bootstrap link. The code inherits
+// the invitation's host binding, TTL, single-use semantics and brute-force
+// guard; it is never accepted from loopback bootstrap or persisted anywhere.
+func (s *Server) handleAuthPair(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	if origin := strings.TrimSpace(r.Header.Get("Origin")); origin != "" {
+		if !originpolicy.Validate(r.Host, origin) {
+			writeError(w, http.StatusForbidden, "invalid origin")
+			return
+		}
+		// HTTP LAN cannot retain Secure cookies. Require a TLS proxy/tunnel,
+		// rather than transmitting bearer cookies in plaintext.
+		requestHost := r.Host
+		if parsedHost, _, err := net.SplitHostPort(requestHost); err == nil {
+			requestHost = parsedHost
+		} else {
+			requestHost = strings.Trim(requestHost, "[]")
+		}
+		if strings.HasPrefix(strings.ToLower(origin), "http://") &&
+			!isLoopbackHost(requestHost) {
+			writeError(w, http.StatusUpgradeRequired, "HTTPS required for network access; use a TLS proxy or HTTPS tunnel")
+			return
+		}
+	}
+	var body struct {
+		Code string `json:"code"`
+	}
+	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "missing pairing code")
+		return
+	}
+	sess, ok := s.auth.ExchangeAccessCode(body.Code, r.Host)
+	if !ok || sess == nil {
+		writeError(w, http.StatusUnauthorized, "invalid or expired pairing code")
+		return
+	}
+	s.setAuthenticatedSessionCookie(w, sess)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"authenticated": true,
 		"csrf_token":    sess.CSRFToken,

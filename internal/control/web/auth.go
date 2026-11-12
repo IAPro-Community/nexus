@@ -24,6 +24,12 @@ const (
 	sessionTTL        = 24 * time.Hour
 	sessionIdleTTL    = 4 * time.Hour
 	deviceCookieTTL   = 90 * 24 * time.Hour
+
+	// Remote pairing codes are Crockford base32: 32^8 ≈ 2^40 candidates,
+	// visually unambiguous (no I/L/O/U) and typo-tolerant on entry.
+	accessCodeLength      = 8
+	accessCodeAlphabet    = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+	accessCodeMaxFailures = 10
 )
 
 type Session struct {
@@ -40,6 +46,10 @@ type Session struct {
 type remoteInvitation struct {
 	Host      string
 	ExpiresAt time.Time
+	// AccessCode is the short human-typed alternative to the QR bootstrap
+	// link. It shares the invitation's host binding, TTL and single-use
+	// semantics and is never written to logs or persisted storage.
+	AccessCode string
 }
 
 type AuthManager struct {
@@ -58,6 +68,12 @@ type AuthManager struct {
 	clock              func() time.Time
 	deviceToken        string
 	remoteInvitations  map[string]remoteInvitation
+	// accessCodeFailures counts consecutive rejected pairing codes since the
+	// last successful exchange or tunnel generation change. It is a global
+	// brute-force guard: when the cap trips, every pending invitation is
+	// destroyed and the owner must issue a fresh one.
+	accessCodeFailures int
+	sessionWatchers    map[string]map[chan struct{}]struct{}
 }
 
 func (a *AuthManager) SetDesktopSession(sess *Session) {
@@ -65,6 +81,7 @@ func (a *AuthManager) SetDesktopSession(sess *Session) {
 	defer a.mu.Unlock()
 	if a.desktopSession != nil && (sess == nil || a.desktopSession.ID != sess.ID) {
 		delete(a.sessions, a.desktopSession.ID)
+		a.notifySessionRevokedLocked(a.desktopSession.ID)
 	}
 	a.desktopSession = sess
 	if sess != nil {
@@ -86,6 +103,7 @@ func (a *AuthManager) GetDesktopSession() *Session {
 	now := time.Now()
 	if now.After(a.desktopSession.ExpiresAt) || now.Sub(a.desktopSession.LastActiveAt) > sessionIdleTTL {
 		delete(a.sessions, a.desktopSession.ID)
+		a.notifySessionRevokedLocked(a.desktopSession.ID)
 		a.desktopSession = nil
 		_ = a.persistLocked()
 		return nil
@@ -110,6 +128,7 @@ func NewAuthManagerWithStore(listenHost, listenPort, storeDir string) (*AuthMana
 		bootstrapToken:     bootstrapToken,
 		bootstrapCreatedAt: time.Now(),
 		sessions:           make(map[string]*Session),
+		sessionWatchers:    make(map[string]map[chan struct{}]struct{}),
 		listenHost:         listenHost,
 		listenPort:         listenPort,
 		storeDir:           strings.TrimSpace(storeDir),
@@ -248,6 +267,7 @@ func (a *AuthManager) AuthenticateRequest(r *http.Request) *Session {
 			a.desktopSession = nil
 		}
 		delete(a.sessions, token)
+		a.notifySessionRevokedLocked(token)
 		_ = a.persistLocked()
 		return nil
 	}
@@ -259,6 +279,99 @@ func (a *AuthManager) AuthenticateRequest(r *http.Request) *Session {
 	return sess
 }
 
+// WatchSession returns a channel that closes when the session is revoked or
+// expires. The boolean is false when the session is already inactive.
+func (a *AuthManager) WatchSession(sessionID string) (<-chan struct{}, func(), bool) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	sess, ok := a.sessions[sessionID]
+	if !ok {
+		return nil, func() {}, false
+	}
+	now := a.now()
+	if now.After(sess.ExpiresAt) || now.Sub(sess.LastActiveAt) > sessionIdleTTL {
+		if a.desktopSession != nil && a.desktopSession.ID == sessionID {
+			a.desktopSession = nil
+		}
+		delete(a.sessions, sessionID)
+		a.notifySessionRevokedLocked(sessionID)
+		_ = a.persistLocked()
+		return nil, func() {}, false
+	}
+	ch := make(chan struct{})
+	if a.sessionWatchers == nil {
+		a.sessionWatchers = make(map[string]map[chan struct{}]struct{})
+	}
+	if a.sessionWatchers[sessionID] == nil {
+		a.sessionWatchers[sessionID] = make(map[chan struct{}]struct{})
+	}
+	a.sessionWatchers[sessionID][ch] = struct{}{}
+	cleanup := func() {
+		a.mu.Lock()
+		defer a.mu.Unlock()
+		watchers := a.sessionWatchers[sessionID]
+		delete(watchers, ch)
+		if len(watchers) == 0 {
+			delete(a.sessionWatchers, sessionID)
+		}
+	}
+	return ch, cleanup, true
+}
+
+// SessionActive reports whether a session still satisfies its absolute and
+// idle expiry limits. It does not refresh LastActiveAt.
+func (a *AuthManager) SessionActive(sessionID string) bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	sess, ok := a.sessions[sessionID]
+	if !ok {
+		return false
+	}
+	now := a.now()
+	if now.After(sess.ExpiresAt) || now.Sub(sess.LastActiveAt) > sessionIdleTTL {
+		if a.desktopSession != nil && a.desktopSession.ID == sessionID {
+			a.desktopSession = nil
+		}
+		delete(a.sessions, sessionID)
+		a.notifySessionRevokedLocked(sessionID)
+		_ = a.persistLocked()
+		return false
+	}
+	return true
+}
+
+// TouchSession refreshes idle activity after an authenticated WebSocket frame.
+func (a *AuthManager) TouchSession(sessionID string) bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	sess, ok := a.sessions[sessionID]
+	if !ok {
+		return false
+	}
+	now := a.now()
+	if now.After(sess.ExpiresAt) || now.Sub(sess.LastActiveAt) > sessionIdleTTL {
+		if a.desktopSession != nil && a.desktopSession.ID == sessionID {
+			a.desktopSession = nil
+		}
+		delete(a.sessions, sessionID)
+		a.notifySessionRevokedLocked(sessionID)
+		_ = a.persistLocked()
+		return false
+	}
+	sess.LastActiveAt = now
+	if a.storeDir != "" && now.Sub(a.lastPersist) >= sessionPersistMinGap {
+		_ = a.persistLocked()
+	}
+	return true
+}
+
+func (a *AuthManager) notifySessionRevokedLocked(sessionID string) {
+	for ch := range a.sessionWatchers[sessionID] {
+		close(ch)
+	}
+	delete(a.sessionWatchers, sessionID)
+}
+
 // RevokeSession destroys an existing authenticated session (logout).
 func (a *AuthManager) RevokeSession(sessionID string) {
 	a.mu.Lock()
@@ -267,6 +380,7 @@ func (a *AuthManager) RevokeSession(sessionID string) {
 		a.desktopSession = nil
 	}
 	delete(a.sessions, sessionID)
+	a.notifySessionRevokedLocked(sessionID)
 	_ = a.persistLocked()
 }
 
@@ -302,6 +416,7 @@ func (a *AuthManager) RotateSession(oldSessionID string) (*Session, error) {
 		NonPersistable: nonPersistable,
 	}
 	delete(a.sessions, oldSessionID)
+	a.notifySessionRevokedLocked(oldSessionID)
 	a.sessions[sessID] = sess
 	if a.desktopSession != nil && a.desktopSession.ID == oldSessionID {
 		a.desktopSession = sess
@@ -319,6 +434,7 @@ func (a *AuthManager) SetTunnelActive(active bool) {
 	defer a.mu.Unlock()
 	if a.tunnelActive != active {
 		a.remoteInvitations = nil // revoke links when tunnel stops or changes generation
+		a.accessCodeFailures = 0
 	}
 	a.tunnelActive = active
 	if active {
@@ -338,12 +454,13 @@ func (a *AuthManager) IsTunnelActive() bool {
 
 // IssueTunnelInvitation creates a fresh one-time link for the active public
 // tunnel, with TTL starting at invitation creation instead of server startup.
-func (a *AuthManager) IssueTunnelInvitation(host string) (string, error) {
+// It also mints the short pairing code shown in Settings as a QR alternative.
+func (a *AuthManager) IssueTunnelInvitation(host string) (string, string, error) {
 	host = strings.ToLower(strings.TrimSpace(host))
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if !a.tunnelActive || host == "" {
-		return "", fmt.Errorf("tunnel invitation unavailable")
+		return "", "", fmt.Errorf("tunnel invitation unavailable")
 	}
 	now := a.now()
 	for token, grant := range a.remoteInvitations {
@@ -352,18 +469,57 @@ func (a *AuthManager) IssueTunnelInvitation(host string) (string, error) {
 		}
 	}
 	if len(a.remoteInvitations) >= 12 {
-		return "", fmt.Errorf("too many pending tunnel invitations")
+		return "", "", fmt.Errorf("too many pending tunnel invitations")
 	}
 	secret := make([]byte, 32)
 	if _, err := io.ReadFull(a.entropyReader(), secret); err != nil {
-		return "", err
+		return "", "", err
+	}
+	code, err := generateAccessCode(a.entropyReader())
+	if err != nil {
+		return "", "", err
 	}
 	if a.remoteInvitations == nil {
 		a.remoteInvitations = make(map[string]remoteInvitation)
 	}
 	token := hex.EncodeToString(secret)
-	a.remoteInvitations[token] = remoteInvitation{Host: host, ExpiresAt: now.Add(remoteBootstrapTTL)}
-	return token, nil
+	a.remoteInvitations[token] = remoteInvitation{Host: host, ExpiresAt: now.Add(remoteBootstrapTTL), AccessCode: code}
+	return token, code, nil
+}
+
+// generateAccessCode draws accessCodeLength unbiased characters from the
+// Crockford alphabet. The alphabet size (32) divides 256 evenly, so modulo
+// mapping introduces no distribution bias.
+func generateAccessCode(reader io.Reader) (string, error) {
+	buf := make([]byte, accessCodeLength)
+	if _, err := io.ReadFull(reader, buf); err != nil {
+		return "", err
+	}
+	out := make([]byte, accessCodeLength)
+	for i, b := range buf {
+		out[i] = accessCodeAlphabet[int(b)%len(accessCodeAlphabet)]
+	}
+	return string(out), nil
+}
+
+// normalizeAccessCode canonicalizes user-typed pairing input: uppercase,
+// punctuation/whitespace removed and Crockford ambiguous letters remapped
+// (I/L→1, O→0) so printed and typed codes always match.
+func normalizeAccessCode(code string) string {
+	code = strings.ToUpper(code)
+	var b strings.Builder
+	b.Grow(len(code))
+	for _, r := range code {
+		switch {
+		case r == 'I' || r == 'L':
+			b.WriteByte('1')
+		case r == 'O':
+			b.WriteByte('0')
+		case (r >= '0' && r <= '9') || (r >= 'A' && r <= 'Z'):
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 func (a *AuthManager) ExchangeBootstrapToken(token string) (*Session, bool) {
@@ -406,6 +562,22 @@ func (a *AuthManager) ExchangeBootstrapTokenForHost(token, host string) (*Sessio
 		}
 	}
 
+	sess, ok := a.newSessionLocked(exposure)
+	if !ok {
+		return nil, false
+	}
+	if consumeInvitation {
+		delete(a.remoteInvitations, token)
+	} else if !reusable {
+		a.usedBootstrap = true
+	}
+	return sess, true
+}
+
+// newSessionLocked mints and registers a fresh session for a bootstrap or
+// pairing exchange. Sessions minted under PUBLIC_REMOTE / PRIVATE_NETWORK are
+// never persisted.
+func (a *AuthManager) newSessionLocked(exposure ExposureMode) (*Session, bool) {
 	bytes := make([]byte, 32)
 	if _, err := io.ReadFull(a.entropyReader(), bytes); err != nil {
 		return nil, false
@@ -427,15 +599,57 @@ func (a *AuthManager) ExchangeBootstrapTokenForHost(token, host string) (*Sessio
 		LastActiveAt:   now,
 		NonPersistable: exposure != ExposureLoopback,
 	}
-	if consumeInvitation {
-		delete(a.remoteInvitations, token)
-	} else if !reusable {
-		a.usedBootstrap = true
-	}
 	a.sessions[sessID] = sess
-	// Never persist sessions minted under PUBLIC_REMOTE / PRIVATE_NETWORK.
 	if exposure == ExposureLoopback {
 		_ = a.persistLocked()
+	}
+	return sess, true
+}
+
+// ExchangeAccessCode authenticates a remote browser that typed the short
+// pairing code displayed next to the tunnel QR link. The code inherits the
+// invitation's host binding, TTL and single-use semantics. Repeated failures
+// trip a global brute-force guard that revokes every pending invitation.
+func (a *AuthManager) ExchangeAccessCode(code, host string) (*Session, bool) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	normalized := normalizeAccessCode(code)
+	if len(normalized) != accessCodeLength || !a.tunnelActive {
+		return nil, false
+	}
+	now := a.now()
+	matchedToken := ""
+	var matched remoteInvitation
+	for token, grant := range a.remoteInvitations {
+		if !now.Before(grant.ExpiresAt) {
+			delete(a.remoteInvitations, token)
+			continue
+		}
+		if subtle.ConstantTimeCompare([]byte(normalized), []byte(grant.AccessCode)) == 1 {
+			matchedToken = token
+			matched = grant
+			break
+		}
+	}
+	if matchedToken == "" {
+		a.accessCodeFailures++
+		if a.accessCodeFailures >= accessCodeMaxFailures {
+			// Destroy every pending invitation so guessing cannot continue;
+			// the owner issues a fresh invite from Settings.
+			a.remoteInvitations = nil
+		}
+		return nil, false
+	}
+	a.accessCodeFailures = 0
+	if strings.ToLower(strings.TrimSpace(host)) != matched.Host {
+		// Mirror the QR token contract: reject without consuming so the
+		// legitimate host can still pair with the same invitation.
+		return nil, false
+	}
+	delete(a.remoteInvitations, matchedToken)
+	sess, ok := a.newSessionLocked(a.effectiveExposureLocked())
+	if !ok {
+		return nil, false
 	}
 	return sess, true
 }

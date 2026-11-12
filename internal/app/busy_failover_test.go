@@ -303,6 +303,9 @@ func TestLaunchWithBusyFailoverFallsBackToHealthyProfileWhenStaleAndCannotRefres
 		err: errors.New("no usable codex profiles available: kiver (Quota desatualizada; atualize antes de selecionar automaticamente)"),
 	}
 
+	// Policy update (fail-closed): unverified quota no longer launches
+	// silently. Without the explicit override the launch is refused with a
+	// hint; with the override the resilient fallback is preserved.
 	session, selected, err := launchWithBusyFailover(
 		context.Background(),
 		l,
@@ -316,14 +319,14 @@ func TestLaunchWithBusyFailoverFallsBackToHealthyProfileWhenStaleAndCannotRefres
 		launcher.LaunchOptions{},
 		&stderr,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatalf("unverified quota must fail closed without override; selected=%q stderr=%q", selected, stderr.String())
 	}
-	if selected != "kiver" || session == nil {
-		t.Fatalf("expected fallback to kiver, got selected=%s", selected)
+	if session != nil || selected != "" {
+		t.Fatalf("unverified quota must not launch: session=%+v selected=%q", session, selected)
 	}
-	if !bytes.Contains(stderr.Bytes(), []byte("fallback resiliente")) {
-		t.Fatalf("expected resilient fallback warning, got %q", stderr.String())
+	if !bytes.Contains(stderr.Bytes(), []byte("fail-closed")) || !bytes.Contains(stderr.Bytes(), []byte("--accept-unverified-quota")) {
+		t.Fatalf("expected fail-closed notice with override hint, got %q", stderr.String())
 	}
 }
 

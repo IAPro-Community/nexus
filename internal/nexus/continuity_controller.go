@@ -70,6 +70,22 @@ func (c *ContinuityController) ContinueRuntime(ctx context.Context, runtimeID st
 	if !ok {
 		return nil, decision, fmt.Errorf("source runtime %q not found", decision.SourceRuntimeID)
 	}
+	// Interactive terminal runtimes are user-attached sessions. For them,
+	// continuity must stay a same-provider account handoff with a known
+	// provider session id: transparently moving a user's TUI to another
+	// provider (or attempting a handoff that is guaranteed to refuse) would be
+	// a surprise, not continuity. Agent runtimes keep the cross-provider
+	// fallback for unattended work.
+	interactiveTerminal := source.ControlLevel == registry.ControlLevelTerminal
+	if interactiveTerminal && strings.TrimSpace(source.ProviderSessionID) == "" {
+		return nil, decision, fmt.Errorf("continuity unavailable for interactive runtime %s: provider session id is unknown", source.RuntimeID)
+	}
+	if continuityPending(source) {
+		// A continuity handoff is already in flight for this runtime (the
+		// scheduled monitor and a PTY pattern trigger can race). One handoff
+		// at a time keeps the hop chain and labels consistent.
+		return nil, decision, fmt.Errorf("continuity already in flight for runtime %s", source.RuntimeID)
+	}
 	if source.AgentID != "" {
 		unlock, lockErr := c.nexus.lockAgentLifecycle(ctx, source.AgentID)
 		if lockErr != nil {
@@ -101,7 +117,7 @@ func (c *ContinuityController) ContinueRuntime(ctx context.Context, runtimeID st
 	if err != nil {
 		return nil, decision, fmt.Errorf("discover continuity resources: %w", err)
 	}
-	target, ok := selectContinuityTarget(source, accounts)
+	target, ok := selectContinuityTarget(source, accounts, interactiveTerminal)
 	if !ok {
 		return nil, decision, fmt.Errorf("no eligible continuity target for %s:%s", source.ProviderID, source.ProfileID)
 	}
@@ -216,7 +232,7 @@ func (c *ContinuityController) ContinueRuntime(ctx context.Context, runtimeID st
 	return next, decision, nil
 }
 
-func selectContinuityTarget(source registry.RuntimeSession, accounts []ProviderAccount) (ProviderAccount, bool) {
+func selectContinuityTarget(source registry.RuntimeSession, accounts []ProviderAccount, interactiveTerminal bool) (ProviderAccount, bool) {
 	excluded := continuityExcludedResources(source)
 	candidates := make([]ProviderAccount, 0, len(accounts))
 	for _, account := range accounts {
@@ -252,6 +268,12 @@ func selectContinuityTarget(source registry.RuntimeSession, accounts []ProviderA
 	}
 	if target, ok := pick(sameProvider); ok {
 		return target, true
+	}
+	// An interactive terminal session never jumps providers: the user is
+	// attached to this provider's TUI and a provider switch would replace
+	// their whole workspace view without consent.
+	if interactiveTerminal {
+		return ProviderAccount{}, false
 	}
 	return pick(candidates)
 }

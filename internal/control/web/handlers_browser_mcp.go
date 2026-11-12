@@ -154,7 +154,7 @@ func browserMCPTools() []map[string]any {
 	}
 	return []map[string]any{
 		spec("outputs_publish", "Register a generated image, PDF, video, document or other supported project file for immediate viewing in Nexus Outputs on desktop or mobile. Use only a path relative to the current project; the host Nexus Core verifies the runtime's authorization and file.", map[string]any{"path": str("Relative path within current Nexus Project, e.g. outputs/generated.png")}, "path"),
-		spec("browser_open", "Create or reopen this runtime's private Nexus Browser, visible in the same Workspace on desktop/mobile. Call once before other tools.", map[string]any{"url": str("Optional HTTP(S) starting URL")}),
+		spec("browser_open", "Create or reopen this runtime's private Nexus Browser on a local preview port owned by a supervised process. Call once before other tools.", map[string]any{"url": str("HTTP(S) loopback URL including the preview port")}, "url"),
 		spec("browser_state", "Read the browser, input lease and human-handoff state", map[string]any{}),
 		spec("browser_request_control", "Acquire or renew an input lease for this agent only", map[string]any{}),
 		spec("browser_release_control", "Release this agent's input lease", map[string]any{}),

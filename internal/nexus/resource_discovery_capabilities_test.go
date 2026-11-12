@@ -6,12 +6,21 @@ import (
 	"github.com/IAPro-Community/nexus/internal/control/driver"
 )
 
-func TestEffectiveCapabilityMapProjectsReadOnlyReview(t *testing.T) {
+func TestEffectiveCapabilityMapPreservesTestedEvidence(t *testing.T) {
 	caps := driver.EffectiveCapabilities{
-		ReadOnlyReview: driver.CapabilityEvidence{Status: driver.CapabilitySupported},
+		Process:          driver.CapabilityEvidence{Status: driver.CapabilitySupported, Tested: true},
+		ReadOnlyReview:   driver.CapabilityEvidence{Status: driver.CapabilitySupported},
+		StructuredEvents: driver.CapabilityEvidence{Status: driver.CapabilityPartial, Tested: true},
 	}
 	got := effectiveCapabilityMap(caps)
-	if got["read_only_review"] != string(driver.CapabilitySupported) {
-		t.Fatalf("read_only_review=%q, want %q", got["read_only_review"], driver.CapabilitySupported)
+	want := map[string]string{
+		"process":           string(driver.CapabilitySupported),
+		"read_only_review":  string(driver.CapabilityNotTested),
+		"structured_events": string(driver.CapabilityPartial),
+	}
+	for key, expected := range want {
+		if got[key] != expected {
+			t.Errorf("%s=%q, want %q", key, got[key], expected)
+		}
 	}
 }

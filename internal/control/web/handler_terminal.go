@@ -123,8 +123,21 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 		writeError(w, http.StatusForbidden, "invalid origin")
 		return
 	}
-	if h.auth != nil && h.auth.AuthenticateRequest(r) == nil {
-		http.Error(w, "authentication required", http.StatusUnauthorized)
+	var authenticatedSession *Session
+	if h.auth != nil {
+		authenticatedSession = h.auth.AuthenticateRequest(r)
+		if authenticatedSession == nil {
+			http.Error(w, "authentication required", http.StatusUnauthorized)
+			return
+		}
+	}
+	sessionID := ""
+	if authenticatedSession != nil {
+		sessionID = authenticatedSession.ID
+	}
+	clientIdentity, err := newTerminalClientIdentity(sessionID, agentID)
+	if err != nil {
+		http.Error(w, "unable to establish terminal client identity", http.StatusInternalServerError)
 		return
 	}
 	traceDocsCaptureTerminalStage("authenticated")
@@ -171,6 +184,17 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	}
 	defer ws.Close()
 	defer client.Close()
+	var sessionRevoked <-chan struct{}
+	var stopWatchingSession func()
+	if h.auth != nil {
+		var active bool
+		sessionRevoked, stopWatchingSession, active = h.auth.WatchSession(sessionID)
+		if !active {
+			_ = ws.Close()
+			return
+		}
+		defer stopWatchingSession()
+	}
 	traceDocsCaptureTerminalStage("websocket-upgraded")
 
 	compatibilityStarted := time.Now()
@@ -215,10 +239,30 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 		})
 	}
 	defer stop()
+	if sessionRevoked != nil {
+		go func() {
+			ticker := time.NewTicker(500 * time.Millisecond)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-sessionRevoked:
+					stop()
+					return
+				case <-ticker.C:
+					if !h.auth.SessionActive(sessionID) {
+						stop()
+						return
+					}
+				case <-stopChan:
+					return
+				}
+			}
+		}()
+	}
 
 	// Attach to host
 	traceDocsCaptureTerminalStage("attach-command-start")
-	resp, err := client.Send(protocol.CmdAttach, nil)
+	resp, err := client.Send(protocol.CmdAttach, clientIdentity)
 	if err != nil {
 		// Same as NewClient: attach timeout is not proof the child exited.
 		_ = safeWriteJSON(TerminalMessage{
@@ -559,6 +603,10 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	for {
 		var msg TerminalMessage
 		if err := ws.ReadJSON(&msg); err != nil {
+			stop()
+			return
+		}
+		if h.auth != nil && !h.auth.TouchSession(sessionID) {
 			stop()
 			return
 		}

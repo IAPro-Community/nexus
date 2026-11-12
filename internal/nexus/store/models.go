@@ -83,6 +83,21 @@ type Agent struct {
 	LastStartedAt     *time.Time `json:"last_started_at,omitempty"`
 }
 
+// AgentGroup is a durable, project-scoped grouping for persistent Agents.
+// AgentIDs are ordered explicitly and preserve the underlying Agent identities.
+type AgentGroup struct {
+	ID        string    `json:"id"`
+	ProjectID string    `json:"project_id"`
+	Name      string    `json:"name"`
+	Task      string    `json:"task"`
+	Worktree  string    `json:"worktree"`
+	Feature   string    `json:"feature"`
+	Position  int       `json:"position"`
+	AgentIDs  []string  `json:"agent_ids"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 // AgentRevision is an immutable, revisioned agent configuration (§23).
 type AgentRevision struct {
 	ID        string    `json:"id"`

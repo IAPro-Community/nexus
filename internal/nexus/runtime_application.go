@@ -2,6 +2,9 @@ package nexus
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -193,6 +196,27 @@ func (s *RuntimeApplicationService) MarkStopped(ctx context.Context, runtimeID s
 // ErrAttentionInput indicates an unsafe or malformed single-turn quick reply.
 var ErrAttentionInput = errors.New("invalid quick response input")
 
+// ErrAttentionDeliveryUncertain means the operation is reserved and must not
+// be resent. Retrying it only reads the persisted delivery outcome.
+var ErrAttentionDeliveryUncertain = errors.New("attention delivery uncertain")
+
+func attentionOperationDigest(expected registry.AttentionResponseExpectation, operation registry.AttentionOperation, value string) string {
+	encoded, _ := json.Marshal(struct {
+		Expectation registry.AttentionResponseExpectation
+		Operation   registry.AttentionOperation
+		Value       string
+	}{expected, operation, value})
+	digest := sha256.Sum256(encoded)
+	return hex.EncodeToString(digest[:])
+}
+
+func replayAttentionOutcome(claim registry.AttentionSubmissionClaim) error {
+	if claim.Status == registry.AttentionSubmissionSubmitted {
+		return nil
+	}
+	return ErrAttentionDeliveryUncertain
+}
+
 // RespondToAttention is separate from the legacy raw terminal input endpoint.
 // It reserves exactly one revision under the cross-process registry lock, and
 // does not optimistically mark the provider request as resolved. On uncertain
@@ -215,25 +239,37 @@ func (s *RuntimeApplicationService) RespondToAttention(
 	if err != nil {
 		return fmt.Errorf("%w: runtime not found", registry.ErrAttentionConflict)
 	}
-	if err := registry.ValidateAttentionResponse(sess, expected); err != nil {
-		return err
+	if sess.AttentionSubmittedRevision != expected.Revision {
+		if err := registry.ValidateAttentionResponse(sess, expected); err != nil {
+			return err
+		}
+		if sess.PromptKind == "yn" && !strings.EqualFold(input, "y") && !strings.EqualFold(input, "n") {
+			return ErrAttentionInput
+		}
 	}
-	if sess.PromptKind == "yn" && !strings.EqualFold(input, "y") && !strings.EqualFold(input, "n") {
-		return ErrAttentionInput
-	}
-	// Claim BEFORE opening the transport, so competing tabs cannot both send
-	// input. A failed IPC attempt remains uncertain: use the terminal to retry.
-	if err := s.registry.ClaimAttentionResponse(runtimeID, expected); err != nil {
-		return err
-	}
-	client, err := protocol.NewClient(runtimeID)
+	digest := attentionOperationDigest(expected, registry.AttentionOperationResponse, input)
+	claim, err := s.registry.ClaimAttentionOperation(runtimeID, expected, registry.AttentionOperationResponse, digest, "")
 	if err != nil {
-		return fmt.Errorf("attention response delivery uncertain: %w", err)
+		return err
+	}
+	if !claim.Dispatch {
+		return replayAttentionOutcome(claim)
+	}
+	// Persist the claim before opening the transport. A concurrent retry only
+	// reads this operation; it cannot type into this or a later question.
+	client, err := protocol.NewClientContext(ctx, runtimeID)
+	if err != nil {
+		_ = s.registry.CompleteAttentionOperation(runtimeID, expected, digest, registry.AttentionSubmissionUncertain)
+		return fmt.Errorf("%w: %v", ErrAttentionDeliveryUncertain, err)
 	}
 	defer client.Close()
 	_, err = client.SendContext(ctx, protocol.CmdInput, protocol.InputPayload{Data: input + "\n"})
 	if err != nil {
-		return fmt.Errorf("attention response delivery uncertain: %w", err)
+		_ = s.registry.CompleteAttentionOperation(runtimeID, expected, digest, registry.AttentionSubmissionUncertain)
+		return fmt.Errorf("%w: %v", ErrAttentionDeliveryUncertain, err)
+	}
+	if err := s.registry.CompleteAttentionOperation(runtimeID, expected, digest, registry.AttentionSubmissionSubmitted); err != nil {
+		return fmt.Errorf("%w: cannot persist delivery outcome: %v", ErrAttentionDeliveryUncertain, err)
 	}
 	return nil
 }
@@ -254,21 +290,18 @@ func (s *RuntimeApplicationService) ChooseAttention(
 			return ErrAttentionInput
 		}
 	}
-	sess, err := s.Get(ctx, runtimeID)
+	digest := attentionOperationDigest(expected, registry.AttentionOperationChoice, optionID)
+	claim, err := s.registry.ClaimAttentionOperation(runtimeID, expected, registry.AttentionOperationChoice, digest, optionID)
 	if err != nil {
-		return fmt.Errorf("%w: runtime not found", registry.ErrAttentionConflict)
-	}
-	if err := registry.ValidateAttentionChoice(sess, expected, optionID); err != nil {
 		return err
 	}
-	// Consume the revision before IPC. An uncertain result is never replayed
-	// into a later provider interaction.
-	if err := s.registry.ClaimAttentionChoice(runtimeID, expected, optionID); err != nil {
-		return err
+	if !claim.Dispatch {
+		return replayAttentionOutcome(claim)
 	}
-	client, err := protocol.NewClient(runtimeID)
+	client, err := protocol.NewClientContext(ctx, runtimeID)
 	if err != nil {
-		return fmt.Errorf("attention choice delivery uncertain: %w", err)
+		_ = s.registry.CompleteAttentionOperation(runtimeID, expected, digest, registry.AttentionSubmissionUncertain)
+		return fmt.Errorf("%w: %v", ErrAttentionDeliveryUncertain, err)
 	}
 	defer client.Close()
 	response, err := client.SendContext(ctx, protocol.CmdChooseInteraction, protocol.ChooseInteractionPayload{
@@ -276,10 +309,15 @@ func (s *RuntimeApplicationService) ChooseAttention(
 		OptionID:      optionID,
 	})
 	if err != nil {
-		return fmt.Errorf("attention choice delivery uncertain: %w", err)
+		_ = s.registry.CompleteAttentionOperation(runtimeID, expected, digest, registry.AttentionSubmissionUncertain)
+		return fmt.Errorf("%w: %v", ErrAttentionDeliveryUncertain, err)
 	}
 	if !response.OK {
-		return fmt.Errorf("attention choice delivery uncertain: provider host rejected the choice")
+		_ = s.registry.CompleteAttentionOperation(runtimeID, expected, digest, registry.AttentionSubmissionUncertain)
+		return ErrAttentionDeliveryUncertain
+	}
+	if err := s.registry.CompleteAttentionOperation(runtimeID, expected, digest, registry.AttentionSubmissionSubmitted); err != nil {
+		return fmt.Errorf("%w: cannot persist delivery outcome: %v", ErrAttentionDeliveryUncertain, err)
 	}
 	return nil
 }

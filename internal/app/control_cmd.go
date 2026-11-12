@@ -340,6 +340,7 @@ func controlHostCmd(args []string) error {
 	if err != nil {
 		return fmt.Errorf("driver not found for provider %s: %w", sess.ProviderID, err)
 	}
+	discoverer := launcher.DriverSessionDiscoverer(d)
 
 	p := model.Profile{Name: sess.ProfileID, Provider: sess.ProviderID}
 	launchArgs, customCommand, browserEnv, envelopeErr := launcher.ConsumeLaunchEnvelopeWithBrowser(runtimeID)
@@ -365,12 +366,13 @@ func controlHostCmd(args []string) error {
 		env = launchenv.Merge(env, browserEnv, nil)
 	}
 	sh, err := host.NewSessionHost(host.Config{
-		Session:  sess,
-		Registry: reg,
-		Binary:   bin,
-		Args:     cmdArgs,
-		Env:      env,
-		Cwd:      sess.Workspace,
+		Session:             sess,
+		Registry:            reg,
+		Binary:              bin,
+		Args:                cmdArgs,
+		Env:                 env,
+		Cwd:                 sess.Workspace,
+		SessionIDDiscoverer: discoverer,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create SessionHost: %w", err)
@@ -379,6 +381,13 @@ func controlHostCmd(args []string) error {
 	if err := sh.Start(); err != nil {
 		return fmt.Errorf("failed to start SessionHost: %w", err)
 	}
+
+	// Detached hosts outlive their launching CLI: keep the resident quota
+	// monitor alive here so quota-driven continuity keeps working after the
+	// attach process detaches or exits. StartQuotaMonitor is idempotent, and
+	// its O_EXCL lease elects a single collector across processes (attach
+	// CLIs, web core, sibling hosts).
+	nexus.Default().StartQuotaMonitor(context.Background())
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
@@ -565,7 +574,37 @@ func attachRuntime(runtimeID string) error {
 	return attachRuntimeWithInput(runtimeID, nil)
 }
 
+// attachRuntimeWithInput attaches to a supervised runtime and, for
+// interactive sessions, follows continuity replacements so an account handoff
+// never kicks the user back to the shell mid-work. Follow rules (Input
+// Integrity Gate):
+//   - the replacement runtime is attached fresh: its screen streams from its
+//     own ring buffer; the source history is never replayed into it;
+//   - typed input is never replayed across generations: only bytes sent after
+//     the new attach reach the new PTY, and each byte is delivered exactly
+//     once;
+//   - programmatic prompt delivery (input != nil) targets exactly one runtime
+//     generation and never follows.
 func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error {
+	for hop := 0; ; hop++ {
+		err := attachRuntimeOnce(runtimeID, input)
+		if err != nil {
+			return err
+		}
+		if hop == 0 && input != nil {
+			return nil
+		}
+		next, ok := waitForContinuityReplacementReg(registry.DefaultRegistry(), runtimeID, "")
+		if !ok {
+			return nil
+		}
+		fmt.Fprintf(os.Stderr, "\r\n[nexus] Continuidade: sessão migrada para %s (%s:%s). Reanexando…\r\n", next.RuntimeID, next.ProviderID, next.ProfileID)
+		runtimeID = next.RuntimeID
+		input = nil
+	}
+}
+
+func attachRuntimeOnce(runtimeID string, input func(io.Writer) error) error {
 	// No compatibility gate here (retired with the maximus sync): the runtime
 	// handshake below (generation/PID check) is the fail-closed attach
 	// authority. Unknown IDs still fail fast with a recreate hint.
@@ -742,7 +781,17 @@ func waitForContinuityReplacement(n *nexus.Nexus, oldRuntimeID, agentID string) 
 	if n == nil {
 		return registry.RuntimeSession{}, false
 	}
-	reg := n.RuntimeRegistry()
+	return waitForContinuityReplacementReg(n.RuntimeRegistry(), oldRuntimeID, agentID)
+}
+
+// waitForContinuityReplacementReg waits briefly for the continuity successor of
+// a replaced runtime. It returns false immediately unless the source runtime is
+// flagged with a pending continuity handoff, so a normal provider exit never
+// delays the caller.
+func waitForContinuityReplacementReg(reg *registry.Registry, oldRuntimeID, agentID string) (registry.RuntimeSession, bool) {
+	if reg == nil {
+		return registry.RuntimeSession{}, false
+	}
 	old, ok := reg.Get(oldRuntimeID)
 	if !ok || old.Labels == nil || old.Labels["nexus.continuity_pending"] != "true" {
 		return registry.RuntimeSession{}, false

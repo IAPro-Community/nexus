@@ -2,6 +2,7 @@ package driver
 
 import (
 	"context"
+	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/core/model"
@@ -24,6 +25,12 @@ type CapabilityEvidence struct {
 	Mechanism       string           `json:"mechanism,omitempty"`
 	Reason          string           `json:"reason,omitempty"`
 	Tested          bool             `json:"tested"`
+}
+
+// IsSupportedAndTested reports whether this evidence is safe to project as an
+// enabled capability in consumers that cannot preserve the full evidence.
+func (e CapabilityEvidence) IsSupportedAndTested() bool {
+	return e.Status == CapabilitySupported && e.Tested
 }
 
 // EffectiveCapabilities holds truthful derived capabilities for a supervised provider driver.
@@ -69,24 +76,21 @@ func (ec EffectiveCapabilities) ToBooleanCaps() ControlCapabilities {
 	// The legacy boolean contract has no field for confidence or verification.
 	// Only project a capability as enabled when its evidence is both supported
 	// and tested; richer clients can inspect EffectiveCapabilities directly.
-	supportedAndTested := func(e CapabilityEvidence) bool {
-		return e.Status == CapabilitySupported && e.Tested
-	}
 	return ControlCapabilities{
-		Process:          supportedAndTested(ec.Process),
-		Terminal:         supportedAndTested(ec.Terminal),
-		Attach:           supportedAndTested(ec.Attach),
-		StructuredEvents: supportedAndTested(ec.StructuredEvents),
-		Sessions:         supportedAndTested(ec.Sessions),
-		Resume:           supportedAndTested(ec.Resume),
-		Fork:             supportedAndTested(ec.Fork),
-		SubmitPrompt:     supportedAndTested(ec.SubmitPrompt),
-		CancelTurn:       supportedAndTested(ec.CancelTurn),
-		Approvals:        supportedAndTested(ec.Approvals),
-		NativeUIAttach:   supportedAndTested(ec.NativeUIAttach),
-		Headless:         supportedAndTested(ec.Headless),
-		SlashControl:     supportedAndTested(ec.SlashControl),
-		ReadOnlyReview:   supportedAndTested(ec.ReadOnlyReview),
+		Process:          ec.Process.IsSupportedAndTested(),
+		Terminal:         ec.Terminal.IsSupportedAndTested(),
+		Attach:           ec.Attach.IsSupportedAndTested(),
+		StructuredEvents: ec.StructuredEvents.IsSupportedAndTested(),
+		Sessions:         ec.Sessions.IsSupportedAndTested(),
+		Resume:           ec.Resume.IsSupportedAndTested(),
+		Fork:             ec.Fork.IsSupportedAndTested(),
+		SubmitPrompt:     ec.SubmitPrompt.IsSupportedAndTested(),
+		CancelTurn:       ec.CancelTurn.IsSupportedAndTested(),
+		Approvals:        ec.Approvals.IsSupportedAndTested(),
+		NativeUIAttach:   ec.NativeUIAttach.IsSupportedAndTested(),
+		Headless:         ec.Headless.IsSupportedAndTested(),
+		SlashControl:     ec.SlashControl.IsSupportedAndTested(),
+		ReadOnlyReview:   ec.ReadOnlyReview.IsSupportedAndTested(),
 		ControlLevel:     ec.ControlLevel,
 	}
 }
@@ -101,4 +105,14 @@ type ControlDriver interface {
 	CanResume(ctx context.Context, p model.Profile, providerSessionID string) (bool, string)
 	BuildResumeArgs(ctx context.Context, p model.Profile, providerSessionID string) ([]string, error)
 	BuildKickoffArgs(ctx context.Context, p model.Profile, kickoffPrompt string) ([]string, error)
+}
+
+// SessionIDDiscoverer is an optional driver capability for supervised terminal
+// runtimes that cannot report a provider session id over a structured channel.
+// It probes the provider's own session store for the live session id of a
+// runtime. Implementations must be strict read-only observers: no PTY writes,
+// no profile mutations, no provider commands, and no contention with an
+// interactive TUI (no locks, no probes that race the child process).
+type SessionIDDiscoverer interface {
+	DiscoverSessionID(ctx context.Context, p model.Profile, workspace string, since time.Time) (string, error)
 }

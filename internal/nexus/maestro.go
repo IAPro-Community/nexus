@@ -316,12 +316,31 @@ func MergeSkillCatalog(groups ...[]CatalogSkill) SkillCatalog {
 
 // MaestroCapability describes what the Maestro instance supports.
 type MaestroCapability struct {
-	Version   string             `json:"version"`
-	Modes     []string           `json:"modes"` // supported modes
-	Contracts MaestroContracts   `json:"contracts,omitempty"`
-	Skills    []MaestroSkillDesc `json:"skills"`    // available skills
-	Gates     []string           `json:"gates"`     // available gate types
-	Processes []string           `json:"processes"` // available process types
+	Version   string                     `json:"version"`
+	Modes     []string                   `json:"modes"` // supported modes
+	Contracts MaestroContracts           `json:"contracts,omitempty"`
+	Bridge    *MaestroBridgeCapabilities `json:"bridge,omitempty"`
+	Skills    []MaestroSkillDesc         `json:"skills"`    // available skills
+	Gates     []string                   `json:"gates"`     // available gate types
+	Processes []string                   `json:"processes"` // available process types
+}
+
+// MaestroBridgeCapabilities is the canonical, read-only capability projection
+// negotiated from Orquestrador Maestro Bridge protocol v1.
+type MaestroBridgeCapabilities struct {
+	ProtocolVersion   int  `json:"protocol_version"`
+	ProjectContext    bool `json:"project_context"`
+	ContextBrief      bool `json:"context_brief"`
+	PlansValidate     bool `json:"plans_validate"`
+	ProjectCompose    bool `json:"project_compose"`
+	PlansRoutePreview bool `json:"plans_route_preview"`
+	RunsObserve       bool `json:"runs_observe"`
+	SubmissionsRead   bool `json:"submissions_read"`
+	SubmissionsPoll   bool `json:"submissions_poll"`
+	SubmissionsCancel bool `json:"submissions_cancel"`
+	RunsSubmit        bool `json:"runs_submit"`
+	MemoryRead        bool `json:"memory_read"`
+	MemoryWrite       bool `json:"memory_write"`
 }
 
 // MaestroContracts advertises independently versioned machine-readable CLI contracts.
@@ -425,20 +444,55 @@ type MaestroClient struct {
 
 // NewMaestroClient creates a client that discovers the Maestro binary.
 func NewMaestroClient() *MaestroClient {
-	bin := findMaestroBin()
-	c := &MaestroClient{maestroBin: bin}
-	c.checkAvailability()
-	return c
+	candidates := findMaestroBins()
+	if len(candidates) == 0 {
+		c := &MaestroClient{}
+		c.checkAvailability()
+		return c
+	}
+
+	var last *MaestroClient
+	for _, bin := range candidates {
+		candidate := &MaestroClient{maestroBin: bin}
+		candidate.checkAvailability()
+		if candidate.status.Available {
+			return candidate
+		}
+		last = candidate
+	}
+	return last
 }
 
 func findMaestroBin() string {
+	bins := findMaestroBins()
+	if len(bins) == 0 {
+		return ""
+	}
+	return bins[0]
+}
+
+func findMaestroBins() []string {
+	if explicit := strings.TrimSpace(os.Getenv("NEXUS_MAESTRO_BIN")); explicit != "" {
+		if strings.ContainsRune(explicit, filepath.Separator) {
+			if info, err := os.Stat(explicit); err == nil && !info.IsDir() && info.Mode()&0111 != 0 {
+				return []string{explicit}
+			}
+			return nil
+		}
+		if resolved, err := runtime.LookPath(explicit); err == nil && resolved != "" {
+			return []string{resolved}
+		}
+		return nil
+	}
+
+	var candidates []string
 	// Prefer the stable `maestro` alias before versioned Node package shims.
 	// Multiple Node installations may expose stale `orquestrador-maestro`
-	// commands earlier in PATH; the alias is the user's selected integration.
-	candidates := []string{"maestro", "orquestrador-maestro", "orquestrador"}
-	for _, name := range candidates {
+	// commands earlier in PATH; every candidate must still pass the explicit
+	// machine-readable contract before Nexus treats Maestro as available.
+	for _, name := range []string{"maestro", "orquestrador-maestro", "orquestrador"} {
 		if path, err := runtime.LookPath(name); err == nil && path != "" {
-			return path
+			candidates = appendUniqueMaestroPath(candidates, path)
 		}
 	}
 
@@ -454,16 +508,39 @@ func findMaestroBin() string {
 		commonPaths = append(commonPaths, filepath.Join(home, ".orquestrador", "bin", "orquestrador-maestro"))
 		commonPaths = append(commonPaths, filepath.Join(home, ".orquestrador", "bin", "maestro"))
 		matches, _ := filepath.Glob(filepath.Join(home, ".nvm", "versions", "node", "*", "bin", "orquestrador-maestro"))
-		if len(matches) > 0 {
-			commonPaths = append(commonPaths, matches[len(matches)-1])
-		}
+		commonPaths = append(commonPaths, matches...)
 	}
 	for _, p := range commonPaths {
-		if fi, err := os.Stat(p); err == nil && !fi.IsDir() {
-			return p
+		if fi, err := os.Stat(p); err == nil && !fi.IsDir() && fi.Mode()&0111 != 0 {
+			candidates = appendUniqueMaestroPath(candidates, p)
 		}
 	}
-	return ""
+	return candidates
+}
+
+func appendUniqueMaestroPath(paths []string, candidate string) []string {
+	resolved, err := filepath.EvalSymlinks(candidate)
+	if err != nil {
+		resolved = candidate
+	}
+	resolved, err = filepath.Abs(resolved)
+	if err != nil {
+		resolved = filepath.Clean(candidate)
+	}
+	for _, existing := range paths {
+		existingResolved, err := filepath.EvalSymlinks(existing)
+		if err != nil {
+			existingResolved = existing
+		}
+		existingResolved, err = filepath.Abs(existingResolved)
+		if err != nil {
+			existingResolved = filepath.Clean(existing)
+		}
+		if existingResolved == resolved {
+			return paths
+		}
+	}
+	return append(paths, candidate)
 }
 
 func findOrquestradorDirs() []string {
@@ -549,7 +626,7 @@ func (c *MaestroClient) checkAvailability() {
 	}
 }
 
-func (c *MaestroClient) queryCapabilitiesFromDir(orqDir string) (*MaestroCapability, error) {
+func (c *MaestroClient) queryCapabilitiesFromDir(orqDir string) *MaestroCapability {
 	var skillDescs []MaestroSkillDesc
 	manifestPath := filepath.Join(orqDir, "SKILLS_MANIFEST.json")
 	if data, err := os.ReadFile(manifestPath); err == nil {
@@ -608,7 +685,7 @@ func (c *MaestroClient) queryCapabilitiesFromDir(orqDir string) (*MaestroCapabil
 		Skills:    skillDescs,
 		Gates:     []string{},
 		Processes: []string{},
-	}, nil
+	}
 }
 
 func (c *MaestroClient) queryCapabilitiesFromDirs(dirs []string) (*MaestroCapability, error) {
@@ -616,8 +693,8 @@ func (c *MaestroClient) queryCapabilitiesFromDirs(dirs []string) (*MaestroCapabi
 	// Discover global first and active profile last so profile metadata can
 	// intentionally override a canonical skill without hiding global skills.
 	for i := len(dirs) - 1; i >= 0; i-- {
-		cap, err := c.queryCapabilitiesFromDir(dirs[i])
-		if err != nil {
+		cap := c.queryCapabilitiesFromDir(dirs[i])
+		if cap == nil {
 			continue
 		}
 		for _, skill := range cap.Skills {
@@ -644,135 +721,75 @@ func readSkillPrompt(orqDir, skillID string) string {
 	return strings.TrimSpace(string(data))
 }
 
-func (c *MaestroClient) querySkillsList() ([]MaestroSkillDesc, error) {
-	if c == nil || strings.TrimSpace(c.maestroBin) == "" {
-		return nil, fmt.Errorf("no maestro binary")
-	}
-	out, err := executil.Command(c.maestroBin, "skills", "list", "--json").Output()
-	if err != nil {
-		return nil, err
-	}
-	var envelope struct {
-		Skills []MaestroSkillDesc `json:"skills"`
-	}
-	if err := json.Unmarshal(out, &envelope); err == nil && len(envelope.Skills) > 0 {
-		return normalizeMaestroSkillList(envelope.Skills), nil
-	}
-	var direct []MaestroSkillDesc
-	if err := json.Unmarshal(out, &direct); err != nil {
-		return nil, fmt.Errorf("decode maestro skills list: %w", err)
-	}
-	if len(direct) == 0 {
-		return nil, fmt.Errorf("maestro skills list returned no skills")
-	}
-	return normalizeMaestroSkillList(direct), nil
-}
-
-func normalizeMaestroSkillList(skills []MaestroSkillDesc) []MaestroSkillDesc {
-	byID := make(map[string]MaestroSkillDesc, len(skills))
-	for _, skill := range skills {
-		skill.ID = strings.TrimSpace(skill.ID)
-		if skill.ID == "" {
-			continue
-		}
-		if strings.TrimSpace(skill.Name) == "" {
-			skill.Name = skill.ID
-		}
-		byID[skill.ID] = skill
-	}
-	result := make([]MaestroSkillDesc, 0, len(byID))
-	for _, skill := range byID {
-		result = append(result, skill)
-	}
-	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
-	return result
-}
-
-func mergeMaestroSkillMetadata(authoritative, fallback []MaestroSkillDesc) []MaestroSkillDesc {
-	merged := make(map[string]MaestroSkillDesc, len(authoritative)+len(fallback))
-	for _, skill := range fallback {
-		if strings.TrimSpace(skill.ID) != "" {
-			merged[skill.ID] = skill
-		}
-	}
-	for _, skill := range authoritative {
-		if strings.TrimSpace(skill.ID) == "" {
-			continue
-		}
-		if previous, ok := merged[skill.ID]; ok {
-			if skill.Name == "" {
-				skill.Name = previous.Name
-			}
-			if skill.Description == "" {
-				skill.Description = previous.Description
-			}
-			if skill.Category == "" {
-				skill.Category = previous.Category
-			}
-			if skill.Risk == "" {
-				skill.Risk = previous.Risk
-			}
-			if len(skill.Triggers) == 0 {
-				skill.Triggers = append([]string(nil), previous.Triggers...)
-			}
-			if len(skill.Aliases) == 0 {
-				skill.Aliases = append([]string(nil), previous.Aliases...)
-			}
-			if skill.Prompt == "" {
-				skill.Prompt = previous.Prompt
-			}
-		}
-		merged[skill.ID] = skill
-	}
-	result := make([]MaestroSkillDesc, 0, len(merged))
-	for _, skill := range merged {
-		result = append(result, skill)
-	}
-	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
-	return result
-}
-
 func (c *MaestroClient) queryCapabilities() (*MaestroCapability, error) {
 	if c.maestroBin == "" {
-		orqDir := findOrquestradorDir()
-		if orqDir != "" {
-			return c.queryCapabilitiesFromDir(orqDir)
-		}
 		return nil, fmt.Errorf("no maestro binary")
 	}
-
-	// The explicit machine-readable contract is the compatibility boundary.
-	// A version string or local skills directory alone does not prove that the
-	// external Maestro runtime can negotiate modes, advice, or verification.
-	out, err := executil.Command(c.maestroBin, "capabilities", "--json").Output()
+	workspace, err := os.Getwd()
 	if err != nil {
-		return nil, fmt.Errorf("maestro capabilities contract unavailable: %w", err)
+		return nil, fmt.Errorf("maestro Bridge project path unavailable: %w", err)
 	}
-	var capability MaestroCapability
-	if err := json.Unmarshal(out, &capability); err != nil || strings.TrimSpace(capability.Version) == "" {
-		return nil, fmt.Errorf("maestro capabilities contract is invalid")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	request := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":1}}` + "\n"
+	cmd := executil.CommandContext(ctx, c.maestroBin, "bridge", "--stdio", "--project-path", workspace)
+	cmd.Stdin = strings.NewReader(request)
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("maestro Bridge v1 unavailable: %w", err)
 	}
-	if len(capability.Modes) == 0 {
-		return nil, fmt.Errorf("maestro capabilities contract has no modes")
+	var reply struct {
+		JSONRPC string `json:"jsonrpc"`
+		ID      int    `json:"id"`
+		Result  struct {
+			ProtocolVersion int `json:"protocolVersion"`
+			Capabilities    struct {
+				ProjectContext    bool `json:"projectContext"`
+				ContextBrief      bool `json:"contextBrief"`
+				PlansValidate     bool `json:"plansValidate"`
+				ProjectCompose    bool `json:"projectCompose"`
+				PlansRoutePreview bool `json:"plansRoutePreview"`
+				RunsObserve       bool `json:"runsObserve"`
+				SubmissionsRead   bool `json:"runsSubmissionsRead"`
+				SubmissionsPoll   bool `json:"runsSubmissionsPoll"`
+				SubmissionsCancel bool `json:"runsSubmissionsCancel"`
+				RunsSubmit        bool `json:"runsSubmit"`
+				Memory            struct {
+					Read  bool `json:"read"`
+					Write bool `json:"write"`
+				} `json:"memory"`
+			} `json:"capabilities"`
+		} `json:"result"`
+		Error json.RawMessage `json:"error"`
 	}
-
-	// Skills remain an independently queried inventory. Local manifests only
-	// enrich authoritative CLI entries or fill a missing skill list; they never
-	// make an incompatible Maestro binary appear available.
-	var localSkills []MaestroSkillDesc
-	if dirs := findOrquestradorDirs(); len(dirs) > 0 {
-		if cap, localErr := c.queryCapabilitiesFromDirs(dirs); localErr == nil && cap != nil {
-			localSkills = cap.Skills
-		}
+	if err := json.Unmarshal(bytes.TrimSpace(out), &reply); err != nil ||
+		reply.JSONRPC != "2.0" || reply.ID != 1 || len(reply.Error) > 0 || reply.Result.ProtocolVersion != 1 {
+		return nil, fmt.Errorf("maestro Bridge initialize returned an invalid protocol v1 contract")
 	}
-	if cliSkills, skillsErr := c.querySkillsList(); skillsErr == nil {
-		capability.Skills = mergeMaestroSkillMetadata(cliSkills, localSkills)
-	} else if len(capability.Skills) > 0 {
-		capability.Skills = mergeMaestroSkillMetadata(capability.Skills, localSkills)
-	} else {
-		capability.Skills = localSkills
+	bridge := reply.Result.Capabilities
+	if !bridge.ProjectContext && !bridge.ContextBrief && !bridge.PlansValidate {
+		return nil, fmt.Errorf("maestro Bridge v1 exposes no supported Nexus integration methods")
 	}
-	return &capability, nil
+	return &MaestroCapability{
+		Version: "bridge-v1",
+		Modes:   []string{"OFF", "ASSIST"},
+		Bridge: &MaestroBridgeCapabilities{
+			ProtocolVersion:   reply.Result.ProtocolVersion,
+			ProjectContext:    bridge.ProjectContext,
+			ContextBrief:      bridge.ContextBrief,
+			PlansValidate:     bridge.PlansValidate,
+			ProjectCompose:    bridge.ProjectCompose,
+			PlansRoutePreview: bridge.PlansRoutePreview,
+			RunsObserve:       bridge.RunsObserve,
+			SubmissionsRead:   bridge.SubmissionsRead,
+			SubmissionsPoll:   bridge.SubmissionsPoll,
+			SubmissionsCancel: bridge.SubmissionsCancel,
+			RunsSubmit:        bridge.RunsSubmit,
+			MemoryRead:        bridge.Memory.Read,
+			MemoryWrite:       bridge.Memory.Write,
+		},
+		Skills: []MaestroSkillDesc{}, Gates: []string{}, Processes: []string{},
+	}, nil
 }
 
 // Status returns the current Maestro integration status.
@@ -795,8 +812,8 @@ func (c *MaestroClient) Catalog() SkillCatalog {
 
 	groups := make([][]CatalogSkill, 0)
 	for i, dir := range findOrquestradorDirs() {
-		cap, err := c.queryCapabilitiesFromDir(dir)
-		if err != nil || cap == nil {
+		cap := c.queryCapabilitiesFromDir(dir)
+		if cap == nil {
 			continue
 		}
 		source := SkillSourceCommunity

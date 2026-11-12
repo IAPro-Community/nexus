@@ -133,33 +133,71 @@ type Action struct {
 }
 
 type Session struct {
-	mu              sync.Mutex
-	info            Info
-	wsURL           string
-	cmd             *exec.Cmd
-	done            chan struct{}
-	directory       string
-	closed          bool
-	cdpConn         *websocket.Conn
-	cdpNextID       int
-	controller      string
-	controllerUntil time.Time
-	handoff         Handoff
-	streamMu        sync.Mutex
-	streamReaders   map[chan []byte]struct{}
-	streamCancel    context.CancelFunc
+	mu                 sync.Mutex
+	info               Info
+	previewOrigin      string
+	previewRegistry    *RuntimePreviewRegistry
+	previewViolation   bool
+	onPreviewViolation func()
+	wsURL              string
+	cmd                *exec.Cmd
+	done               chan struct{}
+	directory          string
+	closed             bool
+	cdpConn            *websocket.Conn
+	cdpNextID          int
+	controller         string
+	controllerUntil    time.Time
+	handoff            Handoff
+	streamMu           sync.Mutex
+	streamReaders      map[chan []byte]struct{}
+	streamCancel       context.CancelFunc
 }
 
 type Manager struct {
-	runtimeMu sync.Mutex
-	mu        sync.RWMutex
-	sessions  map[string]*Session
-	pending   int
-	closing   bool
-	grants    map[[32]byte]grantEntry
+	runtimeMu       sync.Mutex
+	mu              sync.RWMutex
+	sessions        map[string]*Session
+	pending         int
+	closing         bool
+	grants          map[[32]byte]grantEntry
+	previewRegistry *RuntimePreviewRegistry
 }
 
-func NewManager() *Manager { return &Manager{sessions: make(map[string]*Session)} }
+func NewManager() *Manager { return NewManagerWithRuntimePreviewInspector(nil) }
+
+// NewManagerWithRuntimePreviewInspector enables runtime-owned previews only
+// when a platform supervisor can prove process lineage and socket ownership.
+// A nil inspector keeps runtime previews fail-closed; user-granted browser
+// sessions continue to support ordinary external navigation.
+func NewManagerWithRuntimePreviewInspector(inspector RuntimePreviewInspector) *Manager {
+	return &Manager{sessions: make(map[string]*Session), previewRegistry: NewRuntimePreviewRegistry(inspector)}
+}
+
+// RegisterRuntimePreview is reserved for a Nexus process supervisor. It is not
+// exposed by the browser MCP/API surface, and fails closed without an inspector.
+func (m *Manager) RegisterRuntimePreview(reg RuntimePreviewRegistration) error {
+	if m == nil || m.previewRegistry == nil {
+		return errors.New("runtime preview supervisor unavailable")
+	}
+	m.runtimeMu.Lock()
+	defer m.runtimeMu.Unlock()
+	return m.previewRegistry.Register(reg)
+}
+
+func (m *Manager) RevokeRuntimePreview(runtimeID string) {
+	if m == nil {
+		return
+	}
+	m.runtimeMu.Lock()
+	if m.previewRegistry != nil {
+		m.previewRegistry.Revoke(runtimeID)
+	}
+	if session, ok := m.FindRuntimeBrowser(runtimeID); ok {
+		m.Close(session.info.ID)
+	}
+	m.runtimeMu.Unlock()
+}
 
 func publicActorIdentity(actor string) string {
 	switch {
@@ -335,6 +373,10 @@ func resolveChromeUserAgent(binary string) string {
 }
 
 func (m *Manager) Create(ctx context.Context, projectID, initialURL string) (Info, error) {
+	return m.create(ctx, projectID, initialURL, "", "", nil)
+}
+
+func (m *Manager) create(ctx context.Context, projectID, initialURL, ownerRuntimeID, previewOrigin string, previewRegistry *RuntimePreviewRegistry) (Info, error) {
 	if strings.TrimSpace(projectID) == "" {
 		return Info{}, errors.New("project_id required")
 	}
@@ -424,13 +466,26 @@ func (m *Manager) Create(ctx context.Context, projectID, initialURL string) (Inf
 			ws, _ = findPage(port)
 		}
 	}
-	s := &Session{info: Info{ID: id, ProjectID: projectID, URL: initialURL, Width: 1280, Height: 800, LastActiveAt: time.Now()}, wsURL: ws, cmd: cmd, done: done, directory: directory}
+	s := &Session{
+		info:          Info{ID: id, ProjectID: projectID, URL: initialURL, Width: 1280, Height: 800, OwnerRuntimeID: ownerRuntimeID, LastActiveAt: time.Now()},
+		previewOrigin: previewOrigin, previewRegistry: previewRegistry,
+		wsURL: ws, cmd: cmd, done: done, directory: directory,
+	}
+	if ownerRuntimeID != "" {
+		s.onPreviewViolation = func() { m.Close(id) }
+	}
 	_ = s.call(ctx, "Network.enable", map[string]any{}, nil)
 	_ = s.call(ctx, "Network.setUserAgentOverride", map[string]any{
 		"userAgent":      userAgent,
 		"acceptLanguage": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
 	}, nil)
 	_ = s.call(ctx, "Page.enable", map[string]any{}, nil)
+	if s.previewOrigin != "" {
+		if err := s.call(ctx, "Fetch.enable", map[string]any{"patterns": []map[string]string{{"urlPattern": "*", "requestStage": "Request"}}}, nil); err != nil {
+			cleanup()
+			return Info{}, fmt.Errorf("enable runtime preview navigation guard: %w", err)
+		}
+	}
 	_ = s.call(ctx, "Emulation.setDeviceMetricsOverride", map[string]any{
 		"width": 1280, "height": 800, "deviceScaleFactor": 1, "mobile": false,
 	}, nil)
@@ -574,6 +629,8 @@ func (s *Session) call(ctx context.Context, method string, params any, into any)
 	for {
 		var msg struct {
 			ID     int             `json:"id"`
+			Method string          `json:"method"`
+			Params json.RawMessage `json:"params"`
 			Result json.RawMessage `json:"result"`
 			Error  *struct {
 				Message string `json:"message"`
@@ -583,6 +640,11 @@ func (s *Session) call(ctx context.Context, method string, params any, into any)
 			return fail(err)
 		}
 		if msg.ID != id {
+			if msg.Method == "Fetch.requestPaused" && s.previewOrigin != "" {
+				if err := s.handlePreviewRequestPaused(c, msg.Params); err != nil {
+					return err
+				}
+			}
 			continue
 		}
 		if msg.Error != nil {
@@ -595,11 +657,48 @@ func (s *Session) call(ctx context.Context, method string, params any, into any)
 	}
 }
 
+func (s *Session) handlePreviewRequestPaused(c *websocket.Conn, raw json.RawMessage) error {
+	var event struct {
+		RequestID    string `json:"requestId"`
+		ResourceType string `json:"resourceType"`
+		Request      struct {
+			URL string `json:"url"`
+		} `json:"request"`
+	}
+	if err := json.Unmarshal(raw, &event); err != nil || event.RequestID == "" {
+		return errors.New("invalid Chromium preview navigation event")
+	}
+	target, _, parseErr := parseRuntimePreviewURL(event.Request.URL)
+	if parseErr == nil && runtimePreviewOrigin(target) == s.previewOrigin {
+		s.cdpNextID++
+		return c.WriteJSON(map[string]any{"id": s.cdpNextID, "method": "Fetch.continueRequest", "params": map[string]any{"requestId": event.RequestID}})
+	}
+	s.cdpNextID++
+	_ = c.WriteJSON(map[string]any{"id": s.cdpNextID, "method": "Fetch.failRequest", "params": map[string]any{"requestId": event.RequestID, "errorReason": "BlockedByClient"}})
+	if event.ResourceType != "Document" {
+		return nil
+	}
+	s.previewViolation = true
+	s.closed = true
+	if s.previewRegistry != nil {
+		s.previewRegistry.Revoke(s.info.OwnerRuntimeID)
+	}
+	s.cdpConn = nil
+	_ = c.Close()
+	if s.cmd != nil && s.cmd.Process != nil {
+		_ = s.cmd.Process.Kill()
+	}
+	if s.onPreviewViolation != nil {
+		go s.onPreviewViolation()
+	}
+	return errors.New("runtime preview attempted cross-origin document navigation; browser session stopped")
+}
+
 func (s *Session) navigate(ctx context.Context, raw string) error {
-	raw = NormalizeURL(raw)
-	if err := ValidURL(raw); err != nil {
+	if err := s.validateNavigation(raw); err != nil {
 		return err
 	}
+	raw = NormalizeURL(raw)
 	var result struct {
 		ErrorText string `json:"errorText"`
 	}
@@ -610,6 +709,26 @@ func (s *Session) navigate(ctx context.Context, raw string) error {
 	s.info.LastActiveAt = time.Now()
 	if result.ErrorText != "" {
 		return &NavigationError{URL: raw, Reason: result.ErrorText}
+	}
+	return nil
+}
+
+func (s *Session) validateNavigation(raw string) error {
+	raw = NormalizeURL(raw)
+	if err := ValidURL(raw); err != nil {
+		return err
+	}
+	if s.previewOrigin != "" {
+		target, _, err := parseRuntimePreviewURL(raw)
+		if err != nil || runtimePreviewOrigin(target) != s.previewOrigin {
+			return errors.New("runtime preview navigation must stay on the supervised origin")
+		}
+		if s.previewRegistry == nil {
+			return errors.New("runtime preview registration is unavailable")
+		}
+		if _, err := s.previewRegistry.Resolve(s.info.OwnerRuntimeID, s.info.ProjectID, raw); err != nil {
+			return err
+		}
 	}
 	return nil
 }

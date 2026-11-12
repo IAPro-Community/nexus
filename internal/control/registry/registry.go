@@ -562,6 +562,10 @@ func (r *Registry) ListActive() []RuntimeSession {
 
 func cloneRuntimeSession(s RuntimeSession) RuntimeSession {
 	s.AttentionOptions = append([]AttentionOption(nil), s.AttentionOptions...)
+	if s.AttentionSubmission != nil {
+		submission := *s.AttentionSubmission
+		s.AttentionSubmission = &submission
+	}
 	return s
 }
 

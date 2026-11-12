@@ -29,6 +29,10 @@ type IntelligenceStatus struct {
 	Error      string                      `json:"error,omitempty"`
 }
 
+func intelligenceCLICapable(caps driver.EffectiveCapabilities) bool {
+	return caps.Headless.IsSupportedAndTested() && caps.SubmitPrompt.IsSupportedAndTested()
+}
+
 // GetIntelligenceConfig returns persisted non-secret configuration.
 func (n *Nexus) GetIntelligenceConfig() (coreconfig.IntelligenceConfig, error) {
 	cfg, err := coreconfig.LoadConfig()
@@ -142,7 +146,7 @@ func (n *Nexus) cliIntelligenceProvider(ctx context.Context, projectID string, c
 		return nil, fmt.Errorf("intelligence CLI %s is not installed: %s", providerID, detection.Error)
 	}
 	caps := d.EffectiveCaps(ctx, prof)
-	validated := caps.Headless.Status == driver.CapabilitySupported && caps.SubmitPrompt.Status == driver.CapabilitySupported
+	validated := intelligenceCLICapable(caps)
 	if !validated {
 		return nil, fmt.Errorf("provider %s cannot be used for Nexus Intelligence: headless=%s submit_prompt=%s", providerID, caps.Headless.Status, caps.SubmitPrompt.Status)
 	}
@@ -172,7 +176,7 @@ func (n *Nexus) cliIntelligenceProvider(ctx context.Context, projectID string, c
 				continue
 			}
 			pCaps := d.EffectiveCaps(ctx, p)
-			if pCaps.Headless.Status == driver.CapabilitySupported && pCaps.SubmitPrompt.Status == driver.CapabilitySupported {
+			if intelligenceCLICapable(pCaps) {
 				candidates = append(candidates, p)
 				seen[lowerName] = struct{}{}
 			}

@@ -85,3 +85,29 @@ func TestEventBusDurableRecorderHook(t *testing.T) {
 		t.Errorf("mismatched recorded event IDs: %+v", recorded)
 	}
 }
+
+func TestUnsubscribeRacesWithPublish(t *testing.T) {
+	bus := NewBus(10)
+	for iteration := 0; iteration < 100; iteration++ {
+		ch, unsubscribe := bus.Subscribe("rt-race")
+		started := make(chan struct{})
+		var publishers sync.WaitGroup
+		publishers.Add(1)
+		go func() {
+			defer publishers.Done()
+			close(started)
+			for event := 0; event < 50; event++ {
+				bus.Publish(NewEvent("rt-race", "test", "test", EventAgentWorking, "publish", nil))
+			}
+		}()
+		<-started
+		unsubscribe()
+		publishers.Wait()
+		if _, open := <-ch; open {
+			// Buffered events may have been delivered before unsubscribe; drain
+			// until the channel is closed to verify deterministic cleanup.
+			for range ch {
+			}
+		}
+	}
+}

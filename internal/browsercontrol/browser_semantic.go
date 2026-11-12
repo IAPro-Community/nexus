@@ -15,24 +15,30 @@ func (s *Session) querySelector(ctx context.Context, selector string) (int, erro
 	if selector == "" || len(selector) > 2048 {
 		return 0, errors.New("selector must be 1–2048 characters")
 	}
-	var doc struct {
-		Root struct {
+	for attempt := 0; attempt < 3; attempt++ {
+		var doc struct {
+			Root struct {
+				NodeID int `json:"nodeId"`
+			} `json:"root"`
+		}
+		if err := s.call(ctx, "DOM.getDocument", map[string]any{"depth": 0}, &doc); err != nil {
+			return 0, err
+		}
+		var node struct {
 			NodeID int `json:"nodeId"`
-		} `json:"root"`
+		}
+		if err := s.call(ctx, "DOM.querySelector", map[string]any{"nodeId": doc.Root.NodeID, "selector": selector}, &node); err != nil {
+			if strings.Contains(err.Error(), "Could not find node with given id") {
+				continue
+			}
+			return 0, err
+		}
+		if node.NodeID == 0 {
+			return 0, errors.New("selector not found")
+		}
+		return node.NodeID, nil
 	}
-	if err := s.call(ctx, "DOM.getDocument", map[string]any{"depth": 0}, &doc); err != nil {
-		return 0, err
-	}
-	var node struct {
-		NodeID int `json:"nodeId"`
-	}
-	if err := s.call(ctx, "DOM.querySelector", map[string]any{"nodeId": doc.Root.NodeID, "selector": selector}, &node); err != nil {
-		return 0, err
-	}
-	if node.NodeID == 0 {
-		return 0, errors.New("selector not found")
-	}
-	return node.NodeID, nil
+	return 0, errors.New("page document changed while resolving selector")
 }
 
 // clickSelector uses a real mouse event instead of HTMLElement.click().

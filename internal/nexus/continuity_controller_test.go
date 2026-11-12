@@ -30,7 +30,7 @@ func TestSelectContinuityTargetPrefersSameProviderAccount(t *testing.T) {
 		continuityTestAccount("codex", "a", 0.90),
 		continuityTestAccount("codex", "b", 0.55),
 	}
-	got, ok := selectContinuityTarget(source, accounts)
+	got, ok := selectContinuityTarget(source, accounts, false)
 	if !ok {
 		t.Fatal("expected continuity target")
 	}
@@ -45,7 +45,7 @@ func TestSelectContinuityTargetFallsBackAcrossProvider(t *testing.T) {
 		continuityTestAccount("codex", "a", 0),
 		continuityTestAccount("claude", "review", 0.80),
 	}
-	got, ok := selectContinuityTarget(source, accounts)
+	got, ok := selectContinuityTarget(source, accounts, false)
 	if !ok {
 		t.Fatal("expected cross-provider continuity target")
 	}
@@ -67,7 +67,7 @@ func TestSelectContinuityTargetDoesNotPingPong(t *testing.T) {
 		continuityTestAccount("codex", "b", 0.50),
 		continuityTestAccount("claude", "x", 0.60),
 	}
-	got, ok := selectContinuityTarget(source, accounts)
+	got, ok := selectContinuityTarget(source, accounts, false)
 	if !ok {
 		t.Fatal("expected target")
 	}
@@ -127,8 +127,23 @@ func TestSelectContinuityTargetAvoidsSharedUpstreamQuota(t *testing.T) {
 	duplicate.Scope = scope
 	independent := continuityTestAccount("codex", "c", 0.50)
 	independent.Scope = model.AccountScope{ProviderID: "codex", ProfileID: "c", AccountID: "independent", IdentityVersion: "v1"}
-	target, ok := selectContinuityTarget(source, []ProviderAccount{duplicate, independent})
+	target, ok := selectContinuityTarget(source, []ProviderAccount{duplicate, independent}, false)
 	if !ok || target.Profile != "c" {
 		t.Fatalf("shared upstream quota is not a fallback target: target=%+v ok=%t", target, ok)
+	}
+}
+
+func TestSelectContinuityTargetInteractiveNeverJumpsProviders(t *testing.T) {
+	source := registry.RuntimeSession{ProviderID: "codex", ProfileID: "a", ControlLevel: registry.ControlLevelTerminal}
+	accounts := []ProviderAccount{
+		continuityTestAccount("claude", "review", 0.95),
+	}
+	if _, ok := selectContinuityTarget(source, accounts, true); ok {
+		t.Fatal("interactive terminal session must not switch providers without consent")
+	}
+	// Agent runtimes keep the cross-provider fallback.
+	got, ok := selectContinuityTarget(source, accounts, false)
+	if !ok || got.Provider != "claude" {
+		t.Fatalf("agent continuity lost cross-provider fallback: target=%+v ok=%t", got, ok)
 	}
 }

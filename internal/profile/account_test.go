@@ -18,6 +18,9 @@ func TestGetAccountInfo(t *testing.T) {
 	cfg := t.TempDir()
 	t.Setenv("AI_CLI_DATA_DIR", data)
 	t.Setenv("AI_CLI_CONFIG_DIR", cfg)
+	// Profiles created here must not adopt this host's real CLI sessions;
+	// otherwise the invariants below depend on whatever is logged in locally.
+	t.Setenv("NEXUS_REAL_HOME", t.TempDir())
 
 	// Create AGY profile — google_accounts.json alone is not auth evidence.
 	if _, err := Create("agy", "google-acc"); err != nil {

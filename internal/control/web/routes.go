@@ -30,6 +30,7 @@ func registerControlRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/health", api.handleHealth)
 	mux.HandleFunc("/api/v1/session", api.handleSession)
 	mux.HandleFunc("/api/v1/auth/bootstrap", s.handleAuthBootstrap)
+	mux.HandleFunc("/api/v1/auth/pair", s.handleAuthPair)
 	mux.HandleFunc("/api/v1/auth/loopback-reauth", s.handleAuthLoopbackReauth)
 	mux.HandleFunc("/api/v1/desktop/bootstrap", s.handleDesktopBootstrap)
 	mux.HandleFunc("/api/v1/session/rotate", s.authMiddleware(s.handleSessionRotate))
@@ -116,6 +117,9 @@ func registerSystemRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/cost/summary", s.authMiddleware(h.handleCostSummary))
 	mux.HandleFunc("/api/v1/cost/analytics", s.authMiddleware(h.handleCostAnalytics))
 	mux.HandleFunc("/api/v1/cost/observations", s.authMiddleware(h.handleCostObservations))
+	// Shared observation reads authorize via the grant itself, not a host
+	// session (viewer-only, deny-by-default; see ADR-workspace-sharing-viewer-grants).
+	mux.HandleFunc("/api/v1/shared/observations", h.handleSharedObservations)
 	mux.HandleFunc("/api/v1/cost/observations.csv", s.authMiddleware(h.handleCostCSV))
 	mux.HandleFunc("/api/v1/cost/external-claude", s.authMiddleware(h.handleExternalClaudeUsage))
 	mux.HandleFunc("/api/v1/cost/preferences", s.authMiddleware(h.handleCostPreferences))

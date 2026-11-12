@@ -115,3 +115,11 @@ func TestSanitizeSessionPreservesLosslessGenerationIdentity(t *testing.T) {
 		t.Fatalf("unsafe generation projection: %s", ready.AttentionGeneration)
 	}
 }
+
+func TestSanitizeSessionOmitsPrivateAttentionOperation(t *testing.T) {
+	sess := registry.RuntimeSession{AttentionSubmission: &registry.AttentionSubmission{Digest: "private-operation-digest"}}
+	ready := sanitizeSession(sess)
+	if ready.AttentionSubmission != nil {
+		t.Fatal("private attention operation must not be exposed to HTTP clients")
+	}
+}
