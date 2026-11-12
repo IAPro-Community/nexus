@@ -123,9 +123,9 @@ vet:
 
 security:
 	@if command -v govulncheck >/dev/null 2>&1; then \
-		if [ -n "$(GO_TAGS)" ]; then GOTOOLCHAIN=go1.26.10 PATH="$(HOME)/go/bin:$(PATH)" govulncheck -tags="$(GO_TAGS)" ./...; else GOTOOLCHAIN=go1.26.10 PATH="$(HOME)/go/bin:$(PATH)" govulncheck ./...; fi; \
+		if [ -n "$(GO_TAGS)" ]; then GOTOOLCHAIN=go1.26.11 PATH="$(HOME)/go/bin:$(PATH)" govulncheck -tags="$(GO_TAGS)" ./...; else GOTOOLCHAIN=go1.26.11 PATH="$(HOME)/go/bin:$(PATH)" govulncheck ./...; fi; \
 	else \
-		if [ -n "$(GO_TAGS)" ]; then GOFLAGS="-tags=$(GO_TAGS)" GOTOOLCHAIN=go1.26.10 go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...; else GOTOOLCHAIN=go1.26.10 go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...; fi; \
+		if [ -n "$(GO_TAGS)" ]; then GOFLAGS="-tags=$(GO_TAGS)" GOTOOLCHAIN=go1.26.11 go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...; else GOTOOLCHAIN=go1.26.11 go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...; fi; \
 	fi
 
 # ─── Quality gates ──────────────────────────────────────────────────

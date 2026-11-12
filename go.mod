@@ -2,6 +2,10 @@ module github.com/IAPro-Community/nexus
 
 go 1.25.0
 
+// GO-2026-6859: HTTP/1 server MaxBytesReader header race fixed in 1.26.11.
+// GOTOOLCHAIN=auto (default) resolves this pin for every contributor.
+toolchain go1.26.11
+
 require (
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/Xuanwo/go-locale v1.1.3
