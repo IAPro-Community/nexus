@@ -1,0 +1,35 @@
+{
+  "inspectedAt": "2026-11-09",
+  "intent": "IMPROVE",
+  "posture": "EVOLVE",
+  "creativity": "low",
+  "status": "resolved",
+  "provider": "Nexus Design System (project-local)",
+  "version": "1.0.0-beta.11",
+  "sourcePath": "web/src/design-system",
+  "confidence": 0.95,
+  "implementationAllowed": true,
+  "designProfile": {
+    "status": "not-configured",
+    "decision": "Preserve existing Nexus UI patterns, semantic --nx-* tokens, SCSS Modules and shared ProductTour; no redesign."
+  },
+  "evidence": [
+    {
+      "source": "web/src/design-system/README.md",
+      "finding": "Names the Nexus UI as a project-local design system, documents reuse hierarchy, primitives, semantic tokens, themes and headless foundations."
+    },
+    {
+      "source": "web/src/design-system/index.ts",
+      "finding": "Public barrel exports the Nexus primitives and theme APIs."
+    },
+    {
+      "source": "AGENTS.md",
+      "finding": "User-supplied project contract requires SCSS Modules, semantic tokens, i18n, existing components/primitives and the shared ProductTour."
+    }
+  ],
+  "automatedDiscovery": {
+    "status": "ambiguous",
+    "confidence": 0.75,
+    "reason": "The discovery script misclassifies a relative import into web/src/design-system as an external provider (@../design-system)."
+  }
+}

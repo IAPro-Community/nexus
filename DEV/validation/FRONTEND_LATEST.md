@@ -1,7 +1,7 @@
 # Frontend verification report
 
-- Generated: `2026-10-28T11:51:35Z`
-- Branch: `release/v1.0.0` @ `f8315c81`
+- Generated: `2026-11-09T19:10:01Z`
+- Branch: `release/v1.0.0` @ `e7268be6`
 - Verdict: **PASS** (10 pass / 0 fail)
 - Dirty web/dist tree: **yes**
 
@@ -9,15 +9,15 @@
 
 | Gate | Hard | Status | Duration | Detail |
 | --- | --- | --- | --- | --- |
-| Prettier (`prettier --check`) | yes | PASS | 6003ms | Checking formatting...<br>All matched files use Prettier code style! |
-| TypeScript (`tsc --noEmit`) | yes | PASS | 9434ms | ok |
-| ESLint (`eslint src`) | yes | PASS | 5427ms | /projetos/nexus/web/src/features/browser/BrowserSurface.tsx<br>  255:6  warning  React Hook useEffect has missing dependencies: 'projectId' and 'session'. Either include them or remove the dependency array  react-hooks/exhaustive-deps<br>  373:6  warning  React Hook useEffect has a missing dependency: 'session'. Either include it or remove the dependency array                    react-hooks/exhaustive-deps<br>  417:6  warning  React Hook useEffect has a missing dependency: 'session'. Either incl |
-| Stylelint (`stylelint "src/**/*.css"`) | yes | PASS | 1207ms | ok |
-| Null-safe API array access | yes | PASS | 78ms | sem .length/.map direto em campos nullable conhecidos |
-| Vitest (`vitest run`) | yes | PASS | 5269ms | stderr | src/platform/platformBridge.test.ts<br><br>⚠️ Browser Environment Detected <br><br>Only UI previews are available in the browser. For full functionality, please run the application in desktop mode.<br>More information at: https://v3.wails.io/learn/build/#using-a-browser-for-development<br><br><br>stderr | src/features/projects/projectDirectoryPicker.test.ts<br><br>⚠️ Browser Environment Detected <br><br>Only UI previews are available in the browser. For full functionality, please run th |
-| i18n catalog parity | yes | PASS | 701ms | RUN  v4.1.12 /projetos/nexus/web<br><br> ✓ src/i18n/i18n.test.ts (7 tests) 13ms<br><br> Test Files  1 passed (1)<br>      Tests  7 passed (7)<br>   Start at  07:52:02<br>   Duration  412ms (transform 221ms, setup 0ms, import 279ms, tests 13ms, environment 0ms) |
-| Build + embed (`node scripts/build.mjs`) | yes | PASS | 1527ms | NEX 32-bit official SVG exported: /projetos/nexus/web/dist/nex<br>Nexus web build complete: /projetos/nexus/web/dist<br>≈ tailwindcss v4.3.3<br><br>Done in 197ms<br><br>  dist/bundle.js                                   425.7kb<br>  dist/chunks/chunk-AYVAVEXM.js                    359.1kb<br>  dist/chunks/chunk-QGVOQYY7.js                    281.2kb<br>  dist/chunks/chunk-MWQSFZRS.js                    275.8kb<br>  dist/chunks/FlowRunsHistorySurface-5XV4ZZLV.js   226.2kb<br>  dist/bundle.css     |
-| Embed sync (web/dist ≡ internal/.../embedded) | yes | PASS | 1ms | bundles idênticos (435889 bytes) |
+| Prettier (`prettier --check`) | yes | PASS | 6858ms | Checking formatting...<br>All matched files use Prettier code style! |
+| TypeScript (`tsc --noEmit`) | yes | PASS | 10586ms | ok |
+| ESLint (`eslint src`) | yes | PASS | 5585ms | /projetos/nexus/web/src/features/work/ComparisonLabPanel.tsx<br>  10:3  warning  'ComparisonRunEvidence' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars<br><br>/projetos/nexus/web/src/features/work/FlowRunSurface.tsx<br>  122:6  warning  React Hook useCallback has a missing dependency: 'plan.current_revision'. Either include it or remove the dependency array  react-hooks/exhaustive-deps<br><br>✖ 2 problems (0 errors, 2 warnings) |
+| Stylelint (`stylelint "src/**/*.css"`) | yes | PASS | 1194ms | ok |
+| Null-safe API array access | yes | PASS | 92ms | sem .length/.map direto em campos nullable conhecidos |
+| Vitest (`vitest run`) | yes | PASS | 5916ms | RUN  v4.1.12 /projetos/nexus/web<br><br><br> Test Files  135 passed (135)<br>      Tests  850 passed (850)<br>   Start at  15:10:25<br>   Duration  5.58s (transform 4.77s, setup 0ms, import 12.84s, tests 1.40s, environment 18ms) |
+| i18n catalog parity | yes | PASS | 693ms | RUN  v4.1.12 /projetos/nexus/web<br><br><br> Test Files  1 passed (1)<br>      Tests  8 passed (8)<br>   Start at  15:10:31<br>   Duration  411ms (transform 224ms, setup 0ms, import 282ms, tests 15ms, environment 0ms) |
+| Build + embed (`node scripts/build.mjs`) | yes | PASS | 1611ms | NEX 32-bit official SVG exported: /projetos/nexus/web/dist/nex<br>Nexus web build complete: /projetos/nexus/web/dist<br>≈ tailwindcss v4.3.3<br><br>Done in 214ms<br><br>  dist/bundle.js                                  437.9kb<br>  dist/chunks/chunk-44MWUHYB.js                   359.1kb<br>  dist/chunks/chunk-4QLW7V67.js                   320.8kb<br>  dist/chunks/chunk-4HQ5TX2J.js                   282.7kb<br>  dist/chunks/FlowRunsHistorySurface-PDEKAM5D.js  254.0kb<br>  dist/bundle.css          |
+| Embed sync (web/dist ≡ internal/.../embedded) | yes | PASS | 0ms | bundles idênticos (448420 bytes) |
 | Critical UI markers in bundle | yes | PASS | 3ms | marcadores críticos presentes (7) |
 
 ## Residual risks / next operator steps
@@ -31,18 +31,33 @@
 ```
 M web/package.json
  M web/src/app/tour/tourTargets.test.ts
- M web/src/components/attentionToastModel.test.ts
- M web/src/features/agents/NewAgentModal.tsx
- M web/src/features/work/ComposerReadOnlyHistory.tsx
- M web/src/features/work/ComposerSurface.tsx
- M web/src/features/work/FeatureTour.tsx
- M web/src/features/work/FlowRunSurface.tsx
+ M web/src/features/agents/AgentsSurface.module.scss
+ M web/src/features/agents/AgentsSurface.tsx
+ M web/src/features/browser/BrowserSurface.module.scss
+ M web/src/features/browser/BrowserSurface.tsx
+ M web/src/features/settings/intelligenceProfiles.test.ts
+ M web/src/features/work/ComparisonLabPanel.tsx
+ M web/src/features/work/featureAnnouncements.test.ts
+ M web/src/features/work/featureAnnouncements.ts
  M web/src/features/work/featureReveal.test.ts
- M web/src/features/work/featureReveal.ts
  M web/src/features/work/featureTour.test.ts
+ M web/src/features/work/featureTourAnchors.test.ts
+ M web/src/features/work/featureTourDefinitions.ts
  M web/src/i18n/resources.ts
+ M web/src/nexus/api.ts
+ M web/src/notifications/InAppNotificationCenter.tsx
  M web/src/types.ts
-?? web/vitest.config.ts
+?? web/scripts/e2e-agent-groups-live-session.mjs
+?? web/scripts/e2e-browser-design-inspect.mjs
+?? web/src/app/focusQueueModel.test.ts
+?? web/src/app/focusQueueModel.ts
+?? web/src/features/agents/AgentsSurface.test.ts
+?? web/src/features/agents/agentGroupsModel.test.ts
+?? web/src/features/agents/agentGroupsModel.ts
+?? web/src/features/browser/designInspectHandoff.test.ts
+?? web/src/features/browser/designInspectHandoff.ts
+?? web/src/notifications/FocusQueueSection.module.scss
+?? web/src/notifications/FocusQueueSection.tsx
 ```
 
 ## How to regenerate

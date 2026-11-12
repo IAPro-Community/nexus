@@ -1,4 +1,11 @@
-## Fechamento Nexus 1.0 / Maestro — estado 2026-11-09
+## Checkpoint de execução — estado 2026-11-09
+
+- Última árvore validada localmente: `release/v1.0.0@e7268be6` mais mudanças não commitadas. `make quality-full` e `make build` passaram (134 Web files/845 tests, Go completo + race, security). Ver [handoff atual](HANDOFF.md) e [gates](VERIFY.md).
+- Evidence map: 94/96 source+test, 2 source-only (cross-platform), zero unmapped e zero certificados. Design Inspect e Agent Groups passaram E2E/testes locais, ainda sem homologação no SHA publicado.
+- Frontend Design System resolvido por inspeção dos contratos locais: [evidência de descoberta](validation/current/design-system-discovery-20261109.json). O output automático é conhecido como falso ambíguo para imports relativos; nenhuma nova biblioteca foi introduzida.
+- NO_GO: somente 1/2 contas AGY elegíveis para janela 5h; CLI Maestro local compatível mas pacote oficial assinado/multiplataforma pendente; P0s, provider/custos e aceite exact-SHA das 48 capabilities pendentes.
+
+## Snapshot anterior — Fechamento Nexus 1.0 / Maestro — 2026-11-09
 
 - Status **NO_GO**. Handoff corrente: [DEV/HANDOFF.md](HANDOFF.md); execução/pendências: [DEV/VERIFY.md](VERIFY.md). Checkpoint A4 estruturado passou E2E, quality e build na árvore local, sem provider externo ou app distribuído; permanece parcial e sem capability certificada. Evidências em [A4](validation/current/attention-structured-choice/README.md).
 - AGY: refresh read-only confirma apenas 1/2 contas elegíveis à janela 5h; consulte [evidência sanitizada](validation/current/agy-balance/README.md).

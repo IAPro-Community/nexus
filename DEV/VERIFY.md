@@ -1,10 +1,168 @@
-## 2026-11-09 — A2 lifecycle concorrente e redaction de browser
+## 2026-11-12 — Non-stop Codex fatias 1–2 + fatias 14–16 + security GO-2026-6859
+
+- PASS — Go (toolchain 1.26.11): `make test-go` completo sem FAIL; `make vet`; `make lint-go` 0 issues; `make race` sem data races; `make security` "No vulnerabilities found"; `go build ./...` + gofmt limpos.
+- PASS — Novos testes Go: session discovery codex ×5; watcher host ×3 (+race); attach-follow ×5; fail-closed quota ×3; guarda interativa ×1; quota pattern watcher ×7; evidência/subscriber nexus ×5; challenge serviço ×6 + endpoint HTTP ×4; sharing fase 2 registry ×3 + HTTP ×2.
+- PASS — Web: `npm run quality` completo → **897/897 testes em 141 arquivos** (fatias 14 + 17: VisualDiffPanel + ShareGrantsCard + models 14 testes + discovery/tour/i18n ×3); tsc, eslint, stylelint, prettier, check:styles, build — todos verdes.
+- PASS — Contrato: `verify-agent-workspace-v1.mjs` = "scope 48, certification still pending"; evidence map 97 cláusulas (95 source+test, 2 source-only honestas de CI multi-SO), zero unmapped.
+- FAIL/NÃO EXECUTADO (gates externos do GO): aceite manual non-stop com 2 contas codex reais (maestro); NEX master visual (maestro); AGY 2/2; worker Maestro + pacote assinado; execução física 3 SOs; E2E two-client em app distribuído. GO segue **NO_GO** por esses gates, não por código.
+
+## 2026-11-10 — Fatia 13 (UI release-desk) + plano OMP
+
+- PASS — `npx vitest run releaseDeskModel.test.ts i18n.test.ts`: 13/13 (model com nulls/tones/Intl + paridade de chaves ×3).
+- PASS — `npm run typecheck`, eslint focado, stylelint do module.scss, prettier, `npm run build` — todos verdes.
+- Plano OMP registrado em `DEV/SPECS/OMP_QUOTA_ROUTING_PLAN.md` (somente planejamento; 4 decisões aguardando o maestro).
+- NÃO EXECUTADO: E2E visual do card no app distribuído; aceite.
+
+## 2026-11-10 — Rotação por saldo disponível
+
+- PASS — `go test ./internal/core/scheduler -run TestBalancedSelection -count=1 -v`: 8/8, incluindo 3 testes novos da política "mais saldo primeiro".
+- PASS — `go test ./internal/core/scheduler ./internal/core/quota ./internal/core/fallback -count=1` e `go test ./internal/app -count=1` (busy_failover): todos verdes; `go vet` limpo.
+- Comportamento novo codificado: conta com mais quota medida vence sempre; opaque fica em tier inferior; empate gira por cursor persistido.
+
+## 2026-11-10 — Visual Diff wiring
+
+- PASS — `go test ./internal/control/web -run TestBrowserVisualDiffExplicitPair -count=1`: par idêntico com artefato PNG, 422 de size mismatch, 400 sem limiares, 400 sem modo, 405 em GET.
+- PASS — `go test ./internal/control/web -count=1` completo (67s); build/vet limpos; validador do mapa PASS.
+- NÃO EXECUTADO: fluxo visual na UI (capturar dois frames e comparar); recheck server-side com sessão real de browser; aceite `pending`.
+
+## 2026-11-10 — Release Desk: aprovação assinada
+
+- PASS — `go test ./internal/nexus -run 'TestVerifyReleaseApproval|TestLoadReleaseApproval' -count=1`: 3 testes (round-trip, fail-closed com 4 cenários, skew).
+- PASS — `go test ./internal/control/web -run TestProjectReleaseDesk -count=1`: 4 testes, incluindo o fluxo assinado end-to-end via HTTP (trust store + bundle no repo do fixture).
+- PASS — `node --test scripts/sign-release-approval.test.mjs`: 2/2 (round-trip com verificação independente da canonical form; mismatch e overwrite recusados). Prettier PASS nos 2 arquivos.
+- PASS — `go test ./internal/nexus -count=1` completo (123s); validador do mapa PASS com os novos refs (padrão de testRefs Go-only mantido — teste node do signer registrado nos DEV docs, como o signer anterior).
+- NÃO EXECUTADO: aprovação real do maestro para o SHA de release (o circuito está pronto; o aceite é humano); UI do desk.
+
+## 2026-11-10 — Parallel Challenge
+
+- PASS — `go test ./internal/nexus -run TestEvaluateChallenge -count=1`: 5 testes puros verdes.
+- PASS — `go test ./internal/nexus -count=1` completo (116s); validadores do contrato/mapa PASS após `parallel-challenge` → `partial`.
+- NÃO EXECUTADO: despacho real multi-agente via MissionRunner + UI; aceite `pending`.
+
+## 2026-11-10 — Workspace Sharing
+
+- PASS — 8 testes puros do registry (`workspace_sharing_test.go`) + 3 testes de integração HTTP (`handlers_workspace_sharing_test.go`): viewer flow completo com revoke imediato (403 na chamada seguinte), deny explícito de grant desconhecido/parâmetro ausente, payload restrito ao projeto concedido.
+- PASS — `go test ./internal/nexus ./internal/control/web -count=1` completos verdes; gofmt limpo; validadores contrato/mapa PASS após `workspace-sharing` → `partial` (48 caps, 97 cláusulas, 95 source+test, 2 source-only).
+- Segurança: deny-by-default com razões determinísticas; viewer-only (mutação negada por teste); escopo obrigatório de projeto (cross-project negado por teste); IDs randômicos não enumeráveis; gestão de grants no caminho autenticado+CSRF. Sem secrets novos; sem mutação de dados de produção.
+- NÃO EXECUTADO: UI de gestão de grants; persistência durável (fase 2 — ADR follow-up); TTL e auditoria; aceite `pending`.
+
+## 2026-11-10 — Agent Compare
+
+- PASS — `go test ./internal/nexus -run TestCompareAgentImplementations -count=1`: 7 testes puros verdes (independência de worktree, critérios explícitos, peso de falhas, UNKNOWN≠0, custo decide só com evidência, empate misto, kind inválido explícito).
+- PASS — `go test ./internal/nexus -count=1` completo (127s); validadores do contrato/mapa PASS após `agent-compare` → `partial`.
+- NÃO EXECUTADO: orquestração de execução nas worktrees + wiring do custo real + UI — gaps explícitos; aceite `pending`.
+
+## 2026-11-10 — Visual Diff
+
+- PASS — `go test ./internal/nexus -run 'TestCompareScreenshots|TestRenderDiffArtifact' -count=1`: 7 testes puros (inclui determinismo e fronteiras de limiar) verdes.
+- PASS — `go test ./internal/nexus -count=1` completo (117s); gofmt limpo; validadores do contrato/mapa PASS após `visual-diff` → `partial`.
+- NÃO EXECUTADO: encadeamento com capturas reais do browser (serviço + UI), persistência de artefatos, homologação — gaps explícitos no mapa; capability `pending`.
+
+## 2026-11-10 — Release Desk
+
+- PASS — `go test ./internal/nexus -run 'ReleaseDesk|ParseCommitReferences|MergePublish|VerifyReleaseGate|ParseReleaseCommitLine' -count=1`: 8 testes puros verdes.
+- PASS — `go test ./internal/control/web -run TestProjectReleaseDesk -count=1`: 3 testes de integração com repo git real (range base/head correto via merge-base, 2 commits, PR #55 vs issue #114 separados, bloqueio com razão de aprovação, ref `main;rm` → 400, POST → 405).
+- PASS — pacotes completos: `go test ./internal/nexus -count=1` (132s) e `./internal/control/web -count=1` (69s); gofmt limpo.
+- PASS — `verify-agent-workspace-v1.mjs` + `verify-agent-workspace-evidence-map.mjs` após `release-desk` → `partial` (48 caps, 97 cláusulas, 95 source+test, 2 source-only).
+- NÃO EXECUTADO: UI do Release Desk (card pendente — gap explícito no mapa); homologação/aceite (pending); fluxo real de aprovação assinada integrado ao `sign-offline-release-evidence` (persistência pertence ao caminho offline, próximo passo natural da fatia).
+
+## 2026-11-10 — Design-inspect drawer UX
+
+- PASS — vitest: `BrowserSurface.test.ts` + `designInspectHandoff.test.ts` + `terminalResolution.test.ts` + `i18n.test.ts` (30/30) — handoff de inspeção, resolução e paridade ×3 com as 20 chaves novas.
+- PASS — typecheck; ESLint 0 em `BrowserSurface.tsx`/`resources.ts`; stylelint no module; prettier (1 arquivo com --write); build.
+- PASS — validador do mapa após atualização do gap do `design-inspect` (refs de UX reais).
+- NÃO EXECUTADO: screenshot 390/1280 no app distribuído (homologação visual — aceite segue `pending`); o crop era reparado por CSS wrap/scroll; evidência visual final exige SHA publicado.
+
+## 2026-11-10 — Agent parking honesto
+
+- PASS — `npx vitest run src/features/agents/agentParkingModel.test.ts`: 10 testes — logicalKey `agent:{id}:terminal`, detecção de superfície aberta, `parkingOptions(false)` sem suspend (nunca mente), `parkingOptions(true)` com suspend, `parkingStatusKey` (null aberta / hiddenWorking ativo / hiddenIdle parado), `isParkedWorking` exato, hint keys, e honestidade i18n ×3 (afirmação de execução contínua + negação explícita de pausa).
+- PASS — vitest conjunto com `changeCollisionsModel` e `i18n` (30/30), paridade PT-BR/EN/ES preservada com os novos blocos `agents.parking` e `agents.collisions`.
+- PASS — `npm run typecheck` (após afrouxar o tipo do array de locales no teste — literais do catálogo são incompatíveis entre locales por design); ESLint 0 nos arquivos tocados; stylelint; prettier `--write` em 2 arquivos; `npm run build`.
+- PASS — `node scripts/verify-agent-workspace-v1.mjs` + `verify-agent-workspace-evidence-map.mjs` (48 caps, 97 cláusulas, 95 source+test, 2 source-only, 0 unmapped) após `agent-parking` → `partial`.
+- NÃO EXECUTADO: interação real do botão "Ocultar superfície" em app distribuído (exige E2E visual); homologação — capability segue `partial`/`pending`.
+
+## 2026-11-10 — Detector de colisões de edição
+
+- PASS — `go test ./internal/nexus -run 'TestParseDiffHunks|TestDetectChangeCollisions' -count=1`: 6 testes puros (extração de faixas, caminho com espaço/arquivo novo, overlap de hunks, disjunto = incerto com razão, inserção-âncora vs edição da mesma linha, arquivos de worktree único ignorados, determinismo).
+- PASS — `go test ./internal/control/web -run TestProjectChangeCollisions -count=1`: 3 testes de integração com repositórios git reais em temp (repo + worktree vinculado, edições não commitadas) — overlap mesmo arquivo/mesma linha → `hunk-overlap` sem incerteza e 2 worktrees listados; edições disjuntas (linha 2 vs 28) → `same-file` incerto com `uncertain_count=1`; POST → 405.
+- PASS — `go test ./internal/nexus ./internal/control/web -count=1` completos (120s/66s) verdes — nenhuma regressão nos pacotes tocados.
+- PASS — web: `vitest` `changeCollisionsModel.test.ts` 6/6 e `i18n.test.ts` 8/8 (paridade dos 3 locales com as novas chaves `agents.collisions.*`); `npm run typecheck`; ESLint 0 erros nos arquivos novos/alterados; stylelint no novo module SCSS; prettier `--check`; `npm run build` (bundle + NEX SVG export).
+- PASS — `node scripts/verify-agent-workspace-v1.mjs` (escopo 48) após `change-collision-detector` → `partial`; evidence map reescrito com refs reais.
+- NÃO EXECUTADO: homologação do card em app distribuído/SHA publicado (aceite `pending`); scan em projeto real com >16 worktrees (limite coberto por código, não por teste); `make quality` consolidado da árvore multi-lane não reexecutado nesta fatia (gates focados + pacotes Go completos cobrem o diff).
+
+## 2026-11-10 — Reconciliação, trust store/signer e auditoria de galhos
+
+- PASS — Contrato reconciliado: `node scripts/verify-agent-workspace-v1.mjs` (escopo OK) + `node scripts/verify-agent-workspace-evidence-map.mjs` (48 caps, 97 cláusulas, 95 source+test, 2 source-only, 0 unmapped, 0 certificados) + testes do mapa 4/4 (contagem dinâmica). Statuses corrigidos: `design-inspect` e `maestro-managed-dependency` `missing→partial` com gaps reescritos; 9 `missing` restantes confirmados sem implementação por grep.
+- PASS — `node --test scripts/sign-offline-release-evidence.test.mjs` 4/4: round-trip Ed25519 (assinatura válida alcança checagem estrutural; chave não enrolada falha na assinatura), recusa de payload já assinado, `--hash` sha256. Smoke com chave real + trust store enrolado PASS (erro esperado = checagem estrutural, não de assinatura).
+- PASS — Auditoria de galhos por conteúdo: 8 galhos verificados 100% integrados/superseded (pr/55, pr/57, pr/58, pr/59, pr/64, pr-review/*, fix/beta2, fix/workspace-dir, homologation). Limpeza: `git worktree prune` + refs `pr/*`/`pr-review/*` removidas + 3 branches locais deletadas. Preservados: `origin/pr-61` (remote), `iapro/agent/*` (AI manager).
+- NÃO EXECUTADO: deleção de `origin/pr-61` no GitHub (exige push — decisão do maestro); E2E de túnel público do código de acesso; `make quality` re-executado não foi necessário nesta fatia (só docs/scripts JSON/JS — validadores específicos cobertos acima).
+
+## 2026-11-10 — Pareamento remoto por código de acesso
+
+- PASS — `go test ./internal/control/web -count=1` completo (66s): pacote integral verde, incluindo 8 novos testes de `access_code_test.go` (geração Crockford base32 sem duplicatas, uso único, normalização I/L/O + caixa + pontuação, guess errado não consome convite, vínculo ao host sem consumir, túnel inativo falha fechado, guarda de 10 falhas revoga convites, endpoint pair autentica/rejeita/revoga/nunca por GET). Regressão de auth (`TestExchangeBootstrap|TestTunnelInvite|TestLoopback|TestIssue|TestRemote|TestAuth`) PASS — refatoração `newSessionLocked` preserva semântica de consumo pós-entropia.
+- PASS — `go test -race ./internal/control/web -run 'AccessCode|ExchangeAccessCode|Pair' -count=1`; `go vet ./internal/app ./internal/control/web` limpo.
+- PASS — suíte web completa: `npx vitest run` 136 arquivos / 856 testes (6 novos: 3 de `remoteAccessModel`, 3 de `pairWithAccessCode` em `api.test.ts`).
+- PASS — typecheck strict, ESLint (0 erros; 1 warning pré-existente de outra lane em `FlowRunSurface.tsx:122`), stylelint, prettier (após `--write` em 2 arquivos), `npm run build` (bundle + NEX SVG export OK), `git diff --check` limpo.
+- PASS — `node scripts/verify-agent-workspace-evidence-map.mjs`: 48 capabilities, 97 acceptance clauses (95 source+test, 2 source-only, 0 unmapped, nenhum aceite); `node scripts/verify-agent-workspace-v1.mjs` escopo OK; testes do validador 4/4 após tornar a contagem de cláusulas dinâmica (soma do contrato; o literal "96" não sobreviveria à extensão legítima do aceite).
+- NÃO EXECUTADO: E2E em túnel público real com dois dispositivos físicos (depende de infra externa); `make quality-full` consolidado da árvore multi-lane permanece pendente de nova execução após todas as lanes convergirem.
+- PASS — Gates consolidados da árvore completa (multi-lane, 2026-11-10): `make quality` EXIT=0 (format/lint-frontend/lint-styles/typecheck/lint-go/test-go/test-frontend/version-check — 1ª execução falhou transitória no build de `scripts/sign-update-manifest` e `flatted` durante reescrita de node_modules; reexecução limpa), `make race` EXIT=0, `make security` EXIT=0 ("No vulnerabilities found"). `gofmt -w` aplicado a `access_code_test.go`.
+
+## 2026-11-09 — Focus Queue real + correções de gate (Comparison Lab, maestro, hermeticidade, marker race)
+
+- PASS — `npm --prefix web run test -- --run src/app/focusQueueModel.test.ts` (5/5): ordenação severidade→tempo, dedupe por episódio (`fp:`/`rt:`), não-reabertura (`attention_submitted_revision >= attention_revision`), only honest needs_user + erro observado, sanitização e determinismo de rebuild.
+- PASS — vitest focado 31/31 (`focusQueueModel`, `featureAnnouncements`, `featureTour`, `tourTargets`, `featureReveal`): catálogo de descoberta íntegro com a nova superfície `notifications`, âncora `data-tour="focus-queue"` presente em `FocusQueueSection.tsx`, i18n discovery/tour nos 3 idiomas.
+- PASS — `node scripts/verify-agent-workspace-evidence-map.mjs` (48 capabilities, 96 critérios; 94 source+test, 2 source-only, 0 unmapped, nenhum aceite) + `node --test scripts/verify-agent-workspace-evidence-map.test.mjs` (4/4). focus-queue agora aponta para os arquivos reais implementados; `assertionAudit: partial`, cobertura `unverified`.
+- PASS — `cd web && node scripts/verify-report.mjs` 10/10 (format, typecheck, lint, stylelint, null-arrays, test 135 arquivos/850 testes, i18n, build, embed-sync, ui-markers). O gate `null-arrays` voltou a PASS após normalizar `checks`/`changed_files` em `ComparisonLabPanel` com `asArray`/`asStringArray` (falha pré-existente em código commitado).
+- PASS — `go test ./internal/nexus -count=1` completo (129s) após remover código morto do contrato CLI antigo em `maestro.go` e reescrever `TestMaestroCapabilitiesNegotiatesBridgeV1Contract` (handshake fake com marker, `runsSubmit=false`, sem ORCHESTRATE, memória read-only).
+- PASS — `go test ./internal/profile -run TestGetAccountInfo` e `go test ./internal/app -run TestControlPlaneCLICommands` após fixar `NEXUS_REAL_HOME` temporário: `Create` adota credenciais reais do host (`AdoptHostAuth`) e os testes liam o estado AGY/Codex local (e-mail real vazava no output). Produto inalterado; teste agora determinístico.
+- PASS — `go test -race ./internal/control/web -run TestTerminalHandoffAuthenticatedClientsShareProcessAndPersistIdentity -count=5` após trocar leitura única do marker file por polling (`awaitMarkerContains`): o echo do WebSocket podia vencer o append do processo filho sob `-race`.
+- PASS — `make lint-go` (0 issues) e `make race` completo (`RACE_EXIT=0`, zero FAIL) após `go clean -cache` (cache Go corrompido no meio da 1ª tentativa por pressão de disco/outra lane: `link: cannot open file .cache/go-build/...`).
+- PASS — `make security` (`SECURITY_EXIT=0`, govulncheck: "No vulnerabilities found").
+- PASS — `make quality` sobre a árvore final (`QUALITY_EXIT=0`): format-check, lint-frontend (0 erros; warnings pré-existentes apenas), lint-styles, stylelint/check:styles, typecheck, lint-go, test-go, test-frontend, version-check ("all sources consistent").
+- PASS — `make build` sobre a árvore final (`BUILD_EXIT=0`).
+- PASS — `git diff --check` limpo.
+- FAIL esperado — nenhum. Continua **NO_GO**: gates externos abertos (AGY 1/2 elegíveis 5h, worker durável Maestro ausente com `runsSubmit=false`, pacote oficial assinado/multiplataforma, artefato distribuído exact-SHA, aceite 48/48, `make docs-verify` bloqueado por manifesto visual stale).
+
+## 2026-11-09 — Maestro Bridge v1 + revogação de terminal + corrida Event Bus
+
+- PASS — `NEXUS_MAESTRO_CLI_TEST_PATH=/tmp/nexus-maestro-v1-wrapper go test ./internal/nexus -run '^TestMaestroBridgeV1ContractInterop$' -count=1 -v`. O wrapper invoca o checkout real `/projetos/tools/Orquestrador-Maestro/bin/orquestrador-maestro.js` na branch `v1`; inicialização JSON-RPC v1, `project.context`, `plans.validate` e `runsSubmit=false` foram validados. O wrapper é temporário, não pacote instalado/distribuído.
+- PASS — `go test -race ./internal/control/events ./internal/control/web -run 'Test(UnsubscribeRacesWithPublish|AuthManagerSessionWatcher|TerminalHandoffAuthenticatedClientsShareProcessAndPersistIdentity)$' -count=1`. Prova revogação/expiração observada, fechamento de WebSocket, transferência de lease e ausência de input pós-revogação no processo; inclui regressão de corrida Publish/Unsubscribe.
+- PASS — testes focados de discovery Maestro e `go test ./internal/nexus -count=1` na revisão em curso. Ainda executar `make quality-full`, `make build`, contrato/evidence map e `git diff --check` depois das outras lanes.
+- Estado correto de Maestro: Bridge v1 é descoberto por handshake. Advice e verification genéricos não estão anunciados no Bridge canônico; endpoints CLI legados permanecem degradados, sem fallback/veredito local inventado. `runs.submit` está explicitamente false.
+- Auditorias das 48 capacidades/96 critérios terminaram: todas foram avaliadas semanticamente, mas nenhuma certificada. Foram identificados gaps locais (incluindo runtime-health, focus-queue, agent-timeline, change-radar, visual-diff, workspace-sharing e release-desk) além de gates externos. O evidence map estrutural não é aceite.
+- NO_GO — branch sem checkpoint, gates integral/build por repetir, dependência Maestro sem worker de execução durável, AGY com somente 1/2 contas elegíveis a 5h, providers/custos e artefatos/plataformas exact-SHA pendentes.
+
+## 2026-11-09 — Integração das lanes locais e gate integral
+
+- PASS — `make quality-full`: formato, lint (0 erros; 1 warning ESLint preexistente em `FlowRunSurface.tsx`), Stylelint, TypeScript, Web 134 arquivos/845 testes, Go completo + race e govulncheck (`No vulnerabilities found`). `make build` e `git diff --check` também passaram.
+- Nota de execução — a primeira tentativa de `make quality-full` falhou no estágio Go; o log não preservou de forma suficiente o primeiro pacote/teste. Em seguida, `make test-go`, `make race` e uma nova execução integral passaram. Manter atenção a eventual intermitência em execuções futuras.
+- PASS — `node scripts/verify-agent-workspace-v1.mjs`, `node scripts/verify-agent-workspace-evidence-map.mjs`, testes do contrato 5/5. Mapa 48/96: 94 source+test, 2 source-only, 0 unmapped, 0 certificados.
+- PASS — E2E Design Inspect local: elemento selecionado, inspeção read-only, send explícito para o Agent Beta escolhido, sem auto-start; asserts dos controles e textos completos nos viewports 1280/390. Vitest combinado das lanes: 8 arquivos/36 testes.
+- PASS — testes focados Agent Groups de store/API e Vitest model/surface/tour/âncoras; ESLint/Stylelint/Prettier e typecheck passaram. Limite: nenhum E2E demonstra runtime/PTY viva após reorder/filter.
+- PASS — `go test ./internal/core/scheduler -run 'TestBalancedSelection|TestBalancedAGY|TestAGYBalancedQuota' -count=1`; `go run ./cmd/nexus maestro status --json` com CLI instalado retorna `available=true`, ASSIST e contracts 1.0.0; interop real Go→Maestro passou com `NEXUS_MAESTRO_CLI_TEST_PATH` definido.
+- BLOCKED — `make docs-verify`: manifesto visual stale e alterações locais sem captura homologável no SHA publicado. Não regenerar snapshots sintéticos como substituto.
+- NO_GO — mudança local ainda sem SHA commitado; AGY só 1/2 elegíveis a 5h, Maestro oficial assinado/multiplataforma ausente, runtime móvel/túnel/provider e custos reais não comprovados; nenhuma das 48 capacidades foi certificada e 60 critérios referenciados ainda precisam auditoria de assertions.
+
+## Snapshot — A2 lifecycle concorrente e redaction de browser — 2026-11-09
 
 - PASS — `make quality-full`: format-check, ESLint (0 errors; six existing warnings), Stylelint, TypeScript, Web 131 arquivos/833 testes, Go completo + race; `internal/nexus` race passou em 287,551 s; `govulncheck` terminou `No vulnerabilities found`.
 - PASS — suites focalizadas browsercontrol, nexus e control/web; regressões sob `-race` para aquisição cancelada e serialização de Start/Stop/Recover/SafeApply/mission/interactive runtime/continuity. Redaction cobre active actor, URL e snapshot JSON/text. `make build` e smoke `NEXUS_BROWSER_INTEGRATION=1 go test ./internal/browsercontrol -run '^TestChromiumSmokeOptional$' -count=1 -v` passaram.
 - PASS — mapa estrutural 48/96: 93 referências source+test, 3 source-only, 0 unmapped, 0 certificados; contrato e mapa validados, testes do verificador 5/5 e `git diff --check` limpo.
 - BLOCKED — `make docs-verify`: enumera manifest visual stale para ComparisonCampaignPanel/i18n/tipos desde `1c048f8d` e alterações locais em DirectSession/UI sem evidência visual do SHA. Isso não constitui homologação.
 - NO_GO — referências no mapa não encerram os gaps de design-inspect (seleção/DOM), live-preview (processo/porta e controle de URL), device-handoff (dois clientes autenticados + execução única), nem requisitos externos AGY/Maestro/provider/exact-SHA.
+
+## 2026-11-09 — E2E DirectSession no commit publicado e recheck Maestro
+
+- PASS — exportei `e7268be6d08ee9aa1c6a0a067b140476d8fbcbb8` com `git archive` para evitar alterações locais concorrentes e rodei `NEXUS_E2E_ARTIFACTS_DIR=/tmp/nexus-e7268be6-source-artifacts npm --prefix <archive>/web run test:e2e:first-run-import`. Fluxo DirectSession atingiu Core compilado da árvore exata para CRUD/config/stop, verificou ordem start→stop→delete, Agent final ausente e 390 px sem overflow. Captura real arquivada em `DEV/validation/current/direct-session-cancel-e7268be6/`.
+- Limite — a UI é montada do bundle do checkout, host usa harness local e provider/start está em fixture. Não certifica runtime de provider, app desktop/distribuído, login de dois perfis ou GO.
+- Falha inicial observada — CLI antigo do PATH rejeitava `capabilities --json`. Apontei o alias do perfil ao CLI compatível no checkout Maestro e guardei o destino anterior como backup reversível. Revalidação sem override: `go run ./cmd/nexus maestro status --json` filtrado reportou `available=true`, `ASSIST`, CLI 1.1.0, contracts advice/verification 1.0.0; `NEXUS_MAESTRO_CLI_TEST_PATH=<alias maestro> go test ./internal/nexus -run '^TestMaestroCLIContractInterop$' -count=1 -v` passou. Ainda falta pacote oficial assinado e smoke no aplicativo distribuído.
+
+## 2026-11-09 — live-preview + device-handoff reais locais
+
+- PASS — `go test -race ./internal/browsercontrol -count=1`: processo filho/porta são validados por `/proc`; Chromium real bloqueou fetch e redirect cross-origin antes que o servidor externo recebesse qualquer hit. `go test ./internal/control/web -count=1`, `go vet ./internal/browsercontrol ./internal/control/web`, build cross-platform do pacote para Windows amd64 e macOS arm64 passaram. Não-Linux permanece intencionalmente fail-closed, ainda sem preview funcional nesses OS.
+- PASS — `go test ./internal/control/host ./internal/control/web ./internal/control/events ./internal/control/protocol -count=1`; integração authenticated HTTP/WebSocket x5 e race focal. Dois cookies distintos chegam ao mesmo runtime/process generation; lease takeover nega Alpha, executa marcador Beta exatamente uma vez e SQLite registra IDs/atores pseudônimos sem bearer.
+- PASS — mapa 48/96 estrutural: 93 source+test, 3 source-only, zero unmapped/certificados; verificador do mapa e testes do contrato (5/5).
+- Design-inspect: Go/browsercontrol/web, Vitest 42/42 e E2E 1280/390 passaram; porém a captura revisada mostrou resultado do inspector recortado no drawer e a lane está ajustando a apresentação. Ainda não contar a entrega UI como visualmente fechada. Máscaras cobrem formulários/padrões conhecidos; PII arbitrária em imagem continua fora da garantia.
 
 ## 2026-11-09 — A2: cancelamento autenticado de DirectSession sem órfão
 
@@ -2420,185 +2578,7 @@ Worktree `C:\Dev\nexus-hud-validation`, base `f6098b8c684a97bf7e8e56804109ca491c
 - **BLOCKED** — `node scripts/docs-verify.mjs` falha por alterações visuais não commitadas em `web/src`/`internal/desktop`; o gate exige SHA imutável. Nenhum GO, tag ou release.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-10-28T11:51:35Z
+## Frontend gate — 2026-11-09T19:10:01Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
-
-## P8 Linux security/distribution — 2026-10-25
-
-- `make security`: PASS (`No vulnerabilities found.`), govulncheck v1.7.0 / Go 1.26.10; escopo do scanner limitado, revisão arquitetural pendente.
-- `make release-dry-run`: PASS; build do frontend/CLI e contratos de versão.
-- GoReleaser v2.18.0 snapshot: PASS; CLI tar e DEB AMD64 com checksum válido e payload idêntico. DEB instalado/consultado/executado/removido em raiz dpkg temporária; instalação host intacta.
-- Source: HEAD/remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b` + fingerprint local `268a9e9a0036e89e39bcff07eca880869534c9c75cc13765384bb3fa3fc30b32` (1.421 fontes); worktree não congelada.
-- Evidências: [matriz](validation/linux-100-2026-10-25/TEST_MATRIX.md), [segurança](validation/linux-100-2026-10-25/SECURITY_VALIDATION.md), [distribuição](validation/linux-100-2026-10-25/DISTRIBUTION_VALIDATION.md).
-- Resultado global: `NO_GO_LINUX`; beta.10 sem assinatura/update oficial e campanhas P2/P9 permanecem abertas.
-
-## P9 fixture smoke e soak — 2026-10-25
-
-- `GOCACHE=/tmp/nexus-linux-100-2026-10-25/gocache-p9 make overnight-smoke`: PASS, exit 0 (15,864 s).
-- `GOCACHE=/tmp/nexus-linux-100-2026-10-25/gocache-p9 make overnight-soak DURATION=5m`: PASS, exit 0 (300,012 s); o teste exige ciclo não vazio e terminal permitido.
-- Cobertura é determinística e isolada. Persistência/reabertura para inspeção no dia seguinte e continuidade com provider real seguem pendentes. Ver [runtime](validation/linux-100-2026-10-25/RUNTIME_VALIDATION.md) e [matriz](validation/linux-100-2026-10-25/TEST_MATRIX.md).
-
-
-## Follow-up Linux — mascote único, CLI e Web lifecycle — 2026-10-25
-
-- **PASS** — direção de mascote: renderer único `NexusHud → GuardianMascot → NexPixelSprite`; 20/20 testes focados e verificação de arte. Evidência em `validation/linux-100-2026-10-25/MASCOT_VALIDATION.md`.
-- **PASS** — CLI: help e erros de argumentos ocorrem antes de inicializar o servidor; pacote `internal/app` e vet passaram; build atual instalado com backup. SHA-256 `51b58fe5972f27fcdb55c8284388b3f37998dc57db384b11223719ad6a132905`.
-- **PASS/BLOCKED P2** — servidor Web isolado passou dois ciclos health 200/shutdown/restart. A UI conectada fica BLOCKED: o XID observado pertenceu ao Desktop pré-existente PID 1235319; o ensaio não provou continuidade de um cliente isolado. A/B/C/D/E integrado e isolamento WebKit continuam pendentes. Capturas com nomes do host foram removidas. Um aviso opcional `/etc/hosts` foi registrado; arquivo não mudou.
-- **PASS** — GoReleaser snapshot CLI tar/DEB e ciclo dpkg temporário. Nenhuma publicação.
-- Global: **NO_GO_LINUX**, 104 PASS / 1 FAIL / 16 BLOCKED / 5 NOT_RUN. Fingerprint do overlay: `a2ed858e013e8e43391cec7c1bb6d6e00324a3170ea9804d0d068bf231e73dfd`; remoto `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`. Próxima ação: isolar o cliente WebKit e repetir UI conectada/restart do servidor, além de A/B/C/D/E; preservar processos existentes.
-- Reteste corrente do overlay: mascote 20/20 + arte oficial, `go test -count=1 ./internal/nexus/runner ./internal/control/web`, `git diff --check` e consistência matrix/JSON passaram. Log: `validation/linux-100-2026-10-25/logs/mascot-and-go-regression-recheck-2026-10-25.log`.
-## 2026-10-25 — reteste do mascote único e do Desktop nativo isolado
-
-- **PASS** — fonte ativa `NexusHud → GuardianMascot → NexPixelSprite`; seletor com Barra/Mascote/Bandeja do mesmo HUD, sem Companion 2D. Quatro suítes focadas passaram 20/20 e `bun run art:nex:check` passou. Log: `DEV/validation/linux-100-2026-10-25/logs/mascot-single-renderer-recheck-2026-10-25.txt`; captura XWayland mostra uma figura NEX.
-- **PASS** — P2-UI-001 retestado: janela Wails de teste PID 2154281/XID `0x140000e` continuou aberta durante restart do Core e renderizou a tela inicial após F5; HTTP 200 antes/depois. Build temporário alterou apenas IDs de instância para isolar o cliente. Log: `DEV/validation/linux-100-2026-10-25/logs/p2-native-ui-xwayland-isolated-instance-2026-10-25.txt`.
-- **FOLLOW-UP** — captura em 5 s estava preta; medir o primeiro paint. E2E integrado A/B/C/D/E e ACL multiusuário seguem NOT_RUN; não confundir o teste isolado com validação de isolamento cross-project.
-- Matriz/JSON: **105 PASS / 1 FAIL / 15 BLOCKED / 5 NOT_RUN (126)**; resultado `NO_GO_LINUX`. SHA base `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`; overlay `a2ed858e013e8e43391cec7c1bb6d6e00324a3170ea9804d0d068bf231e73dfd`, worktree modificada.
-
-## 2026-10-25 — first paint e tela inicial Wails medidos
-
-- **PASS** — sob o D-Bus real do GNOME, XWayland e perfil/home isolados, o fundo escuro persistiu até 5,87 s; splash visível aos 9,54 s; tela inicial/workspace aos 15,78 s e sem mudança até 30,66 s. Processo terminou com exit 0. A VM não tem aceleração 3D utilizável; não há SLA definido. Logs: `DEV/validation/linux-100-2026-10-25/logs/p2-native-first-paint-sessionbus-2026-10-25.txt` e `p2-native-startup-state-2026-10-25.txt`.
-- Capturas sem nomes de projeto do host: splash `p2-native-first-paint-sessionbus-visible-2026-10-25.png`; workspace `p2-native-startup-state-15s-2026-10-25.png`. As capturas aos 15 s e 30 s têm o mesmo SHA-256. O ensaio privado de D-Bus fica inconclusivo por erros de portal e detecção de janela; não conta como falha de produto.
-- `NO_GO_LINUX` permanece. P2 A/B/C/D/E integrado e ACL multiusuário continuam sem validação.
-
-## 2026-10-25 — Composer → MissionRunner (fixture)
-
-- **PASS:** `go test ./internal/nexus/... -count=1 -timeout=4m`.
-- **PASS:** `go vet ./internal/nexus/...`.
-- **PASS:** `go test -race ./internal/nexus -run '^(TestComposerApprovedFlowReachesMissionRunner|TestProviderResourceRequirementsKeepTaskSpecialtiesOutOfControlGate)$' -count=3`.
-- O fixture percorre Composer, WorkPlan com proveniência, preview pronto, token de aprovação, snapshot imutável e MissionRunner até `COMPLETED_VERIFIED`. Perfil/CLI Codex e auth/quota são sintéticos; nenhum provider externo foi chamado.
-- Evidências e limites: `validation/linux-100-2026-10-25/P5_COMPOSER_MISSION_VALIDATION.md`. Overlay `5e39faee13bd663dc56798cffe435e52e2bca081f5332f6d0619c0a61ddce011`, base `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`. P5 parcial; NO_GO_LINUX.
-
-## 2026-10-26 — Mission Codex real em fixture isolada
-
-- `make build` passou. Binário CLI testado: SHA-256 `437ccf9a14b04a3bd463ce994cc36ba6fcf947f98d8e452ba990fcd4b5fad51c`; HEAD `7a04f1b4cf5950b97b4ea1e156dda31ac513823b`, fingerprint de produto `101e6e62b8d4b9903cf4d40309caeea54c809183e5dba017d9e6a8770302669c`.
-- Uma execução real com sessão Codex descartável retornou `COMPLETED_VERIFIED` e package `VERIFIED`, porém o harness inicial não guardou o worktree/recibo. A repetição com inspeção explícita excedeu 180 s; o runtime foi encerrado, contagem final zero, Core exit 0 e raiz temporária removida.
-- RT-002 ficou **BLOCKED** até que worktree, recibo e DoD global sejam inspecionados juntos. Matriz/JSON: **NO_GO_LINUX — 169 PASS / 1 FAIL / 22 BLOCKED / 0 NOT_RUN (192)**.
-- O produto mantém um único mascote NEX, sem Companion 2D separado.
-
-## Terminais e agentes — YOLO e scrollback — 2026-10-26
-
-- Validação de implementação e testes para `--yolo` persistido, atualização do modo Safe/YOLO no terminal e preservação da rolagem manual em mouse/PageUp/PageDown/Home/End: ver `DEV/validation/TERMINALS_AGENTS_YOLO_SCROLL_20261026.md`.
-- Escopo coberto: Codex (alias para a flag nativa), normalização compartilhada do launcher e ambos os componentes PTY, usados por OpenCode e Oh My Pi. Não foi feita chamada a modelo.
-- O binário beta.11 instalado continua aberto e não contém este overlay; há runtime Codex ativo. A atualização/reinício do aplicativo fica pendente para não interromper essa sessão.
-
-## Balanceamento persistente de contas — 2026-11-06
-
-- **PASS local** — `go test ./internal/core/scheduler ./internal/core/fallback ./internal/app -count=1` e o mesmo conjunto com `-race` passaram. Cobre alternância/persistência do cursor, concorrência, exclusão por cooldown/quota, failover e aliases de seleção.
-- **PASS local** — `go vet ./internal/core/scheduler ./internal/core/fallback ./internal/app`; cross-compile do pacote scheduler para `GOOS=windows GOARCH=amd64`; `git diff --check`.
-- Seleção manual: `nexus agy:balance`, `nexus agy:auto` e `nexus agy:balanced`. Um perfil nomeado continua pinado. O cursor fica em `account-rotation.json`, com lock entre processos e substituição atômica. UNKNOWN, sem autenticação, desativado, cooldown e quota esgotada não são elegíveis.
-- **HOMOLOGAÇÃO PENDENTE** — não há evidência nesta execução com duas contas AGY autenticadas e quota real de 5h, nem build publicado/SHA imutável. Não alterar o estado das 48 capacidades por estes testes locais; release e Nexus/Maestro permanecem NO_GO.
-- Maestro: a suíte completa terminou 1334 pass / 4 fail / 4 skipped; os 4 failures observados envolvem `CODEX_HOME` em `doctor --strict` e validações de instalação de perfil. `advise --json` e `verify --json` ainda faltam no contrato, portanto integração não homologada.
-
-## Commits sincronizados — 2026-11-08
-
-- **Nexus PASS** — após integrar `origin/release/v1.0.0` (`ccfa109c`), `go test ./internal/core/scheduler ./internal/core/fallback ./internal/app ./internal/profile ./internal/control/driver ./internal/control/web ./internal/nexus -count=1` e `go vet` nos pacotes alterados passaram. `git diff --check` passou.
-- **Maestro PASS parcial** — após integrar os 30 commits de `origin/release/1.1.0`, `pwsh .../scripts/validate-public.ps1`, `git diff --check` e `node --test tests/legacy-compatibility.test.js` (7/7) passaram.
-- **Maestro suíte completa: FAIL** — `npm test`: 1360 pass / 3 fail / 4 skipped (1107 testes, 112 suítes); as falhas reportadas são verificações de instalação sob `CODEX_HOME` divergente.
-- Pushes concluídos: Nexus `release/v1.0.0@ee0e09c8`; Maestro `release/1.1.0@e97a204`. Sem force-push.
-- Follow-up remoto `aa137324` (capturas sintéticas/manifesto visual) integrado por merge; artefatos sintéticos não são evidência de homologação visual nem mudam o NO_GO.
-- GO continua bloqueado: E2E com duas contas AGY e quota real de 5h não executado; Maestro ainda não fornece `advise --json`/`verify --json`; 48 capacidades seguem pendentes.
-
-## Recheck integral de qualidade — 2026-11-08 — SHA `9291a49f`
-
-- PASS — `make lint-go`: 0 issues após corrigir os findings reportados.
-- PASS — `make test-go`: suíte Go integral.
-- PASS — `make quality` no SHA exato `9291a49f`: format-check; ESLint (0 erros, 6 warnings); Stylelint; TypeScript; Go lint (0 issues); testes Go; Vitest (131 arquivos, 818 testes); version-contract.
-- PASS — interoperação Nexus→Maestro CLI real no SHA `9291a49f`: `TestMaestroCLIContractInterop` (1 teste; 0,66 s).
-- Nota — uma execução integral anterior teve falha em `test-go` sem diagnóstico preservado pela saída truncada; `make test-go` isolado e duas execuções integrais subsequentes passaram.
-- NO_GO — estes gates de código não homologam P0, 48 capacidades, quota AGY em duas contas, UI visual no SHA publicado ou plataformas/distribuição.
-
-## Probe AGY e decisão de elegibilidade — 2026-11-08
-
-- PASS — home base do host consultado com `NEXUS_REAL_HOME=/home/desenvolvedor`: há dois perfis AGY autenticados.
-- PASS — probe de quota direcionado nos dois perfis via adapter `--print=/quota`; nenhuma tarefa de geração foi enviada.
-- BLOCKED — perfil 1 retornou `LIVE/CLI_OUTPUT` com duas janelas semanais, sem janela de 5h; perfil 2 não obteve observação atual e ficou `UNKNOWN` (último cache ~51 h).
-- PASS — `nexus explain agy` seleciona o perfil 1 e rejeita o perfil 2 por quota desconhecida.
-- NO_GO — round-robin de duas contas e preservação da janela 5h não homologados; investigar o probe da segunda conta e a cobertura das janelas no parser.
-
-## 2026-11-08 — auditoria semântica A1: agent-command-center
-
-- PASS — `go test ./internal/nexus -run '^TestAgentApplicationServiceListScopesProjectAndProjectsEffectiveRuntimeState$' -count=1`: lista real do serviço contém apenas Agents do projeto consultado, projeta WORKING com runtime morto como RECOVERABLE e preserva status COMPLETED armazenado.
-- PASS — `node scripts/verify-agent-workspace-evidence-map.mjs`: 48 capacidades/96 critérios consistentes; 88 source-and-test-referenced, 8 source-only, nenhum aceite certificado.
-- PASS — `node --test scripts/verify-agent-workspace-evidence-map.test.mjs`: 4/4; `git diff --check`.
-- GAP — não existe verificação UI cobrindo cards e seleção direta; fluxo estruturado de WAITING/FAILED/COMPLETED até os cartões não está provado. Há heurísticas textuais de PTY na detecção de atenção, então referências dessa área não demonstram o requisito “sem inferir estado do texto”. `agent-command-center` e estado geral permanecem **NO_GO**.
-
-## 2026-11-08 — auditoria semântica A1: review-studio
-
-- PASS — `go test ./internal/nexus/runner -run '^(TestReviewFindingIdentityDeduplicatesAndResolves|TestMissionTeamPlannerBuilderReviewerVerifierPipeline|TestMissionTeamPlannerBuilderReviewerVerifierWithRemediationCycle)$' -count=1` (3 testes).
-- PASS — verificador do mapa (4/4), contrato 48/96 sem certificação e `git diff --check`.
-- GAP — os testes citados cobrem ledger de findings e pipeline com executor fake; não provam diff/testes/evidências/terminal no mesmo workspace, review UI read-only nem autorização humana explícita antes de aplicar mudanças. `review-studio` e estado geral permanecem **NO_GO**.
-
-## 2026-11-08 — auditoria semântica A1: browser-studio
-
-- PASS — `go test ./internal/browsercontrol -run '^(TestBrowserHumanInterventionWorkflow|TestBrowserCapabilityScopeAndRevocation|TestBrowserProactiveHumanTakeover|TestRuntimeCapabilityLifecycleAndScoping|TestBrowserRuntimeRejectsEmptyScope)$' -count=1`.
-- PASS — `go test ./internal/control/web -run '^TestBrowserRoutesUseSessionAndCSRF$' -count=1`.
-- PASS — `npm --prefix web run test -- --run src/features/browser/BrowserSurface.test.ts`: 13 Vitest tests; os 7 node pretests também passaram.
-- PASS — evidence map 48/96, verificador 4/4, `git diff --check`.
-- GAP — não há E2E da BrowserSurface integrada a terminal/diff/Inspector; auth, grants e takeover cobertos em cenários unitários separados, sem prova E2E CDP/MCP e isolamento browser de dois projetos. Capability e release seguem **NO_GO**.
-
-## 2026-11-08 — auditoria semântica A1: comparison-lab
-
-- PASS — testes focados de worktree e integration: `TestResolveAutonomousExecutionWorkspaceFailsClosedWithoutWorktree`, `TestResolveExecutionWorkspaceWorktree`, `TestMissionDeliveryIntegrationCombinesParallelDisjointWorktrees` e `TestMissionDeliveryIntegrationRejectsParallelPathConflict`.
-- PASS — evidence map agora aponta 87 critérios source-and-test-referenced, 8 source-only e 1 unmapped; testes do verificador 4/4; nenhum aceite certificado.
-- GAP — isolação de worktree e integração de packages paralelos não equivalem a executar e comparar duas alternativas. Comparador de diff/testes/custo com decisão humana não localizado; integração da Mission pode combinar packages verificados. `comparison-lab` permanece pending/NO_GO.
-
-## 2026-11-08 — auditoria semântica A1: remote-companion
-
-- PASS — dois testes de lease/handover do host; quatro testes de túnel/convite (SSH tunnel, convite auth+CSRF, bootstrap seguro/uso único, stale exit da geração anterior); `attentionDelivery.test.ts` 5/5; node pretests 7/7.
-- PASS — verificador do evidence map 4/4; estrutura 48/96: 87 source+test, 8 source-only, 1 unmapped; `git diff --check`.
-- GAP — não existe evidência de Mobile Inbox ou terminal em dispositivo remoto real; handover de lease em attached clients locais e token de túnel não demonstram continuidade ao trocar dispositivo nem revogação completa do acesso remoto. Capability permanece pending/NO_GO.
-
-## 2026-11-08 — auditoria semântica A1: mission-observatory
-
-- PASS — testes Go de evidência canônica 2/2 e testes de ciclo durável/fencing do runner 2/2.
-- PASS — projeção de estado/presentation Web 8/8 + 7 node pretests; evidence-map 48/96, verificador 4/4.
-- GAP — nenhum E2E do Observatory visual/read-only; `MissionRun` não contém `ExecutionOwner`, e `FlowRunSurface` permite mutações por estado terminal sem checar owner. Não existe prova de que um só owner (Nexus/Maestro) controla retries/cancelamentos. Capability e integração seguem **NO_GO**.
-
-## 2026-11-08 — auditoria semântica A1: smart-layouts
-
-- PASS — `npm --prefix web run test -- --run src/workspace/arrangePresets.test.ts src/workspace/presentation.test.ts src/workspace/state.test.ts src/workspace/model.test.ts`: 63 Vitest; 7 node pretests.
-- PASS — evidence map 48/96, verificador 4/4 e `git diff --check`.
-- GAP — presets/recipes são estáticos, não recomendados por atividade; testes puros não comprovam E2E de zero spawn nem restauração completa após reload com foco/split/surface identity. Capability permanece pending/NO_GO.
-
-## 2026-11-08 — auditoria semântica A1: workspace-snapshots
-
-- PASS — `npm --prefix web run test -- --run src/services/WorkspaceLayoutService.test.ts src/workspace/state.test.ts src/workspace/model.test.ts`: 31 Vitest; 7 node pretests.
-- PASS — evidence-map estrutural e regressões do verificador 4/4; diff check.
-- GAP — layout v4 é versão de schema/revisão por projeto, não catálogo de snapshots nomeados. Dedupe e mount sem comando explícito estão na implementação, mas não há E2E de restauração com runtime morto/ativo provando ausência de spawn duplicado; capability permanece pending/NO_GO.
-
-## 2026-11-08 — auditoria semântica A1: agent-groups
-
-- PASS — cinco testes Go sobre seleção/pipeline de MissionTeam, preference round-trip, worktree isolada e integração de worktrees paralelas.
-- PASS — evidence-map 48/96 agora tem 86 source+test, 9 source-only e 1 unmapped; verificador 4/4; `git diff --check`.
-- GAP — MissionTeam é pipeline interno de phases/packages, não agrupamento de Agents no produto. AgentsSurface tem busca/filtros e identity key, mas nenhum reorder nem teste da interação; capability permanece pending/NO_GO.
-
-## 2026-11-08 — auditoria semântica A1: quick-switcher
-
-- PASS — `npm --prefix web run test -- --run src/app/commands/registry.test.ts src/keyboard/KeyboardShortcutRegistry.test.ts`: 13 Vitest; 7 node pretests.
-- PASS — evidence map 48/96 (86 source+test, 9 source-only, 1 unmapped), testes do verificador 4/4 e `git diff --check`.
-- GAP — sem teste de integração da lista dinâmica de projetos/Agents nem do componente CommandPalette/focus return; não há E2E keyboard/focus em desktop e mobile. Capability permanece pending/NO_GO.
-
-## 2026-11-09 — P0 A3: ACP → Registry → API → Radar no mesmo E2E
-
-- PASS — `npm --prefix web run test:e2e:attention-radar-process-api-focus` (exit 0; `TestACPAttentionRadarBrowserIntegration`, 10,43 s).
-- Dois subprocessos ACP supervisionados publicaram solicitações idênticas via Bridge/SessionHost no Registry; a API autenticada `/api/v1/runtimes` foi consumida sem overlay. Playwright confirmou fingerprints/contextos distintos, foco cross-project pelo runtime ID e conexão aos dois WebSockets dos SessionHosts.
-- PASS — `external provider is not called`: o teste prova integração de processo/harness sem invocar modelo; provider externo e app distribuído exact-SHA permanecem gates explícitos.
-- A3 avança de composição separada para E2E integrado, mas permanece parcial/pending. Nenhuma das 48 capacidades foi certificada. A validação de GO continua NO_GO.
-- Próximo — avançar A2/A4 e auditar os critérios do mapa; registrar provider externo, UX e pacote final apenas com evidência no SHA publicado.
-
-## 2026-11-09 — P0 A2: rollback DirectSession no Core real
-
-- PASS — `NEXUS_E2E_ARTIFACTS_DIR=/tmp/nexus-a2-real-core-rollback npm --prefix web run test:e2e:first-run-import` (exit 0).
-- O cenário DirectSession criou Agent pela API Core, injetou apenas a alocação de recurso, deixou `config/apply` real rejeitar o profile inexistente, observou o DELETE compensatório real e confirmou lista de Agents vazia e nenhum runtime associado; `/start` não foi chamado.
-- PASS — `make quality-full` no mesmo conteúdo de código depois commitado como `e5d2705d`: Web 131/825, Go integral, build, version-contract e security; `govulncheck` sem vulnerabilidades e 6 warnings ESLint preexistentes/0 erros.
-- PASS — `npm --prefix web run docs:capture` ancorou 10 superfícies sintéticas ao source SHA `e5d2705d057718a03c379174aea12af3afbfb8ea`; `make docs-verify` passou (245 Markdown/33 assets). Não é prova de UX deste fluxo.
-- Limite — não valida dois perfis autenticados, start/cancelamento de processo autenticado, provider real ou pacote distribuído; A2 permanece parcial/pending.
-- Tentativa anterior do harness falhou antes do cenário porque o coletor Playwright foi instalado antes da criação da página; corrigido e repetido com PASS. Nenhum provider foi iniciado.
-
-## 2026-11-09 — AGY balance: recheck de quota sem geração
-
-- PASS — `NEXUS_REAL_HOME=/home/desenvolvedor nexus usage --refresh --json`, sem chamar geração; saída foi sanitizada antes do registro.
-- Duas contas AGY autenticadas retornaram snapshots `CACHED/CLI_OUTPUT` recentes. Conta ordinal 1: sem janela 5h nos dois grupos conhecidos. Conta ordinal 2: janela 5h presente nos grupos Gemini e Claude/GPT. O gate de balance segue 1/2 elegíveis.
-- Resultado — nenhuma alternância live entre duas contas pode ser demonstrada agora. A elegibilidade fail-closed permanece correta; não consumir quota para fabricar a evidência.
 

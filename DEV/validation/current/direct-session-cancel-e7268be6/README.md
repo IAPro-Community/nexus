@@ -1,0 +1,7 @@
+# DirectSession cancellation visual check — `e7268be6`
+
+- Commit checked: `e7268be6d08ee9aa1c6a0a067b140476d8fbcbb8` on `release/v1.0.0`.
+- Command: exported the exact commit with `git archive e7268be6d08ee9aa1c6a0a067b140476d8fbcbb8`, linked only the existing `web/node_modules`, then ran `NEXUS_E2E_ARTIFACTS_DIR=/tmp/nexus-e7268be6-source-artifacts npm --prefix <archive>/web run test:e2e:first-run-import` — PASS. This avoids including concurrent dirty-worktree edits; the E2E script builds its Core binary from the archived source and uses the repository's local fixture server.
+- Observed flow: DirectSession requests `create → select-resource → apply-config → start → stop → delete`; the test waits for the in-flight start response before stop, then verifies that the dialog closes and the Agent list is empty. Mobile viewport is 390 px and has no horizontal overflow.
+- Screenshot is a real Playwright capture from the run: [direct-session-cancel-mobile.png](direct-session-cancel-mobile.png). It shows the in-flight cancellation state and the scrollable dialog.
+- Limitation: provider/start response is controlled by the test harness. This proves the browser interaction and cleanup ordering against the local E2E host, not a real provider, installed/distributed application, or production runtime. The separately tested Go SessionHost lifecycle covers process stop; together these remain partial A2 evidence, not exact-SHA release homologation.

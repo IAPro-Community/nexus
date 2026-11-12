@@ -1,4 +1,11 @@
-## Atualização corrente — 2026-11-09
+## Atualização corrente — integração local das lanes — 2026-11-09
+
+- Árvore `release/v1.0.0`, base `e7268be6`, ainda modificada localmente. `make quality-full` e `make build` passaram: Web 134/845, Go completo + race, govulncheck sem vulnerabilidades; um aviso ESLint preexistente em FlowRunSurface.
+- Design-inspect e Agent Groups agora implementados/testados localmente; live-preview Linux e device-handoff têm prova automatizada local. Nenhuma dessas provas equivale a app distribuído/plataforma física/provider real.
+- Evidence map 94 source+test / 2 source-only / 0 unmapped / 0 certificados. AGY mantém 1/2 contas elegíveis; Maestro CLI local `1.1.0` negocia contracts `1.0.0`, mas pacote oficial distribuído/assinado falta.
+- Consulte o bloco mais recente em `DEV/HANDOFF.md`; veredito segue **NO_GO** por exact-SHA, P0s, AGY, Maestro, provider/custo e 48 aceites. Handoffs abaixo são snapshots históricos.
+
+## Snapshot anterior — Atualização corrente — 2026-11-09
 
 - AGY recheck read-only: 2 perfis, só 1/2 com 5h numérica em todos os grupos (snapshots CACHED/CLI_OUTPUT). Rotação live segue sem prova, sem geração. Veja `DEV/validation/current/agy-balance/README.md`.
 - Maestro: corrigida descoberta no PATH que escolhia shim Node 22/24 sem `capabilities` antes do alias Node 20. Teste real da CLI e `make quality-full` passaram. Binário Linux de perfil atualizado para `deaf2802` com backup; hashes coincidem e status instalado confirma contracts v1. Distribuição multiplataforma/assinatura seguem pendentes; detalhes em `DEV/HANDOFF.md`/`DEV/VERIFY.md`.

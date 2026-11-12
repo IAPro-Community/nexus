@@ -1,10 +1,137 @@
-## Checkpoint consolidado — A2 lifecycle/privacy audit — 2026-11-09
+## Handoff corrente — Non-stop Codex (fatias 1–2) + fatia 14 UI visual-diff + security GO-2026-6859 — 2026-11-10/11
+
+- **Non-stop fatia 1+2 completo e verificado (sem commit)**: session discovery PTY (B2), monitor no supervised+daemon (B1), attach-follow com Input Integrity Gate (N3), guarda interativa, fail-closed de quota com override explícito (S2), trigger rápido por padrão PTY com porta de evidência (N4-fast). Detalhes e verificação no WORKLOG (duas entradas "Non-stop Codex").
+- **Fatia 14**: UI do visual-diff (`VisualDiffPanel` + model + SCSS module + i18n ×3 + discovery/tour + wiring na 4ª aba do drawer). Gates web completos: quality **891/891 PASS**, tsc/eslint/stylelint/prettier/check:styles/build OK.
+- **Security**: GO-2026-6859 resolvido na raiz — `toolchain go1.26.11` no go.mod + Makefile security; `make security` = "No vulnerabilities found"; suite Go completa (test-go/vet/race/lint) re-verificada sob 1.26.11.
+- **Contrato reconciliado**: 43/48 partial + 3 present, 2 missing (fonte: agent-workspace-v1.json; "44/48" estava errado). Verificador: "scope 48, certification still pending".
+- **GO continua NO_GO por gates externos** (não executáveis por agente): NEX master visual (CANDIDATE_PENDING_APPROVAL — requer maestro), AGY 2/2 contas reais, worker durável Maestro + pacote assinado, execução física 3 SOs no mesmo SHA, aceite 48/48 (maestro), E2E two-client em app distribuído + 2 dispositivos.
+- **Aceite manual non-stop** (requer maestro, 2 contas codex reais): abrir `nexus codex`, esgotar a conta A no meio da sessão; validar: (1) detecção ≤2min (monitor) ou segundos após banner (padrão PTY), (2) resume na conta B no MESMO terminal sem cair no shell (attach-follow), (3) histórico do thread preservado na B, (4) stdin não duplicado após a troca.
+- Restantes no loop de código: despacho do parallel-challenge via MissionRunner, fase 2 do sharing (persistência+UI+TTL). — **challenge mission-native + wiring HTTP + sharing fase 2 backend+UI (fatias 15–17) entregues; restante: consolidar evidence map com os fatias novos**.
+
+## Handoff corrente — Fatia 13 UI release-desk + Plano OMP — 2026-11-10
+
+- **Fatia 13 completa**: `ReleaseDeskCard` wired no `ProjectManagerSurface` (base ref input, gates honestos, aprovação assinada ou razões, veredito espelhado do backend); `releaseDeskModel.ts` testado; i18n `projects.releaseDesk.*` ×3. Gates web todos PASS.
+- **Plano OMP** (`DEV/SPECS/OMP_QUOTA_ROUTING_PLAN.md`): 4 fases para o OhMyPi absorver o fluxo de seleção por saldo; bloqueado por 4 decisões do maestro (fonte de saldo OMP, AccountScope, sequência pós-GO, flag). **Recomendação: após o GO do 1.0.** **REMOVIDO 2026-11-11** por decisão do maestro: Nexus não integra nem mantém OMP — apenas processos/invariantes já absorvidos (rotação por saldo, fail-closed, continuity).
+- **Fix rotação por saldo** (sessão): `SelectNextBalancedProfile` escolhe a conta com maior saldo medido; cursor só entre empatadas; opaque nunca supera medida (WORKLOG/VERIFY acima).
+- **Fatias 15–17 (2026-11-12)**: challenge mission-native + HTTP (`POST /api/v1/plans/{id}/parallel-challenge`, 6+4 testes); sharing fase 2 (migration 0036, TTL ≤7d, write-through antes do 201, hidratação once-per-store, 5 testes); UI `ShareGrantsCard` no ProjectManagerSurface + superfície de tour `projects` (897/897 web). Detalhes no WORKLOG.
+- Restantes no loop: UI do visual-diff (captura/envio de pares), despacho do parallel-challenge via MissionRunner, fase 2 do sharing (persistência+UI+TTL).
+
+## Handoff corrente — Rotação de licenças por saldo — 2026-11-10 (fix maestro)
+
+- **Fix**: `SelectNextBalancedProfile` agora escolhe a conta elegível com **maior saldo medido** (`BestGroupRemaining`); cursor só gira entre empatadas; opaque/unmeasured nunca supera quota medida. Fecha o problema "nexus codex pega licença sem saldo" no caminho de failover/`--balanced`. O caminho best-profile já era capacity-dominant.
+- Se o sintoma reaparecer com TODAS as contas stale/UNKNOWN, é o fail-closed honesto (sem evidência não há ranking) — atualizar quota no Capacity Monitor.
+- Fatia 13 (UI release-desk card) ficou **incompleta no wire**: tipos `ReleaseDeskReport` em `web/src/types.ts`, `getProjectReleaseDesk` em `api.ts`, `releaseDeskModel.ts` + testes e `ReleaseDeskCard`/scss/i18n/wire pendentes de terminar.
+
+## Handoff corrente — Visual Diff wiring no browser — 2026-11-10 (fatia 12)
+
+- **`POST /api/v1/browser/{id}/visual-diff`**: modo par explícito (base64 JPEG ×2, rastreável) e modo recheck server-side (delay ≤5s); região/limiar obrigatórios, 422 de size mismatch, artefato de revisão PNG opcional. Teste de integração com JPEGs reais; pacote web completo verde.
+- Restantes no loop: UI do release-desk card, UI do visual-diff (captura/envio), despacho do parallel-challenge via MissionRunner, fase 2 do sharing (persistência+UI+TTL).
+
+## Handoff corrente — Release Desk: aprovação assinada — 2026-11-10 (fatia 11)
+
+- **Circuito de aprovação fechado**: `scripts/sign-release-approval.mjs` (assina + `--verify` + recusa overwrite) ↔ `internal/nexus/release_approval.go` (verificação Ed25519 fail-closed com vínculo ao head exato, frescor 90d/skew 5min, signer enrolado na trust store). O desk agora lê `docs/reference/release-approval.json` do repo e integra a aprovação ao relato — aprovação sem gates verificados continua bloqueando (testado por HTTP). 9 testes novos verdes (3 Go verificador + 4 integração desk + 2 node script).
+- Como o maestro aprova uma release: gerar bundle com a chave pessoal enrolada (`node scripts/sign-release-approval.mjs --approver <nome> --approval-id <id> --source-sha <sha> --key <pem> --key-id maestro-owner --out docs/reference/release-approval.json`) e commitar no repo; o desk passa a exibir a aprovação.
+- Restantes no loop: wiring visual-diff ao browser, UI do release-desk card, despacho do parallel-challenge via MissionRunner, fase 2 do sharing (persistência+UI+TTL).
+
+## Handoff corrente — Parallel Challenge — 2026-11-10 (fatia 10)
+
+- **`parallel-challenge` `missing→partial`**: model `internal/nexus/parallel_challenge.go` — N≥2 agentes isolados (worktrees únicas), round-robin determinístico reutilizando agent-compare, ranking com desempate alfabético, **AutoMergeAllowed sempre false** com política explícita, UNKNOWN≠0 herdado e listado. 5 testes puros; pacote `internal/nexus` completo verde.
+- **Estado final do contrato nesta sessão**: **43/48 `partial` + 3 `present`, 2 `missing`** (`two-client-real-e2e`, `cross-platform-exact-sha` — ambos com gate externo: app distribuído e máquinas físicas). Aceite 0/48 — homologação no SHA distribuído permanece o bloqueio do GO, junto com NEX master visual, AGY 2/2, worker Maestro e pacote assinado.
+- Próximos passos naturais do loop (turnos seguintes): (1) integração dos modelos às superfícies reais — despacho do challenge via MissionRunner, wiring visual-diff ao browser, UI do release-desk, fase 2 do sharing (persistência); (2) aprovação assinada do release-desk no evidence path; (3) quando o maestro liberar: execução física no runbook, rotacionar chave Ed25519, master NEX.
+
+## Handoff corrente — Workspace Sharing — 2026-11-10 (fatia 9)
+
+- **`workspace-sharing` `missing→partial`**: grants viewer-only por projeto/agent com deny-by-default e revoke imediato (`internal/nexus/workspace_sharing.go` + `handlers_workspace_sharing.go`). Override da cadeia security registrado no ACTIVE.md; ADR `docs/architecture/ADR-workspace-sharing-viewer-grants.md` (Proposed). 11 testes novos (8 puros + 3 integração) verdes; pacotes completos verdes.
+- Restantes no loop: `parallel-challenge` (reusa agent-compare; UNKNOWN≠0) e os 2 gates externos (`two-client-real-e2e`, `cross-platform-exact-sha`). Fase 2 do sharing (persistência no evidence path, UI, TTL) é follow-up do ADR.
+- Estado do contrato: **41/48 partial, 4 missing** (2 locais + 2 externos); aceite 0/48 (homologação no SHA distribuído segue o gate externo).
+
+## Handoff corrente — Agent Compare — 2026-11-10 (fatia 8)
+
+- **`agent-compare` `missing→partial`**: model `internal/nexus/agent_compare.go` — dois lados em worktrees independentes obrigatórios, critérios explícitos (tests com falha 2×; cost só decide com evidência dupla), UNKNOWN nunca zero (veredito inconclusive + bloqueio de decisão automática), medidas ecoadas. 7 testes puros; pacote completo verde.
+- Restantes no loop: `workspace-sharing` (RBAC + viewer-only + revoke), `parallel-challenge` (distribuição multi-agente + UNKNOWN≠0), `two-client-real-e2e` e `cross-platform-exact-sha` (gates externos: app distribuído e máquinas físicas). Depois: UIs (release-desk card, visual-diff wiring), aprovação assinada no evidence path.
+- Estado do contrato: **40/48 partial, 5 missing** (3 locais + 2 externos), 3 implemented/other; aceite 0/48 (homologação no SHA distribuído segue o gate externo).
+
+## Handoff corrente — Visual Diff — 2026-11-10 (fatia 7)
+
+- **`visual-diff` `missing→partial`**: núcleo determinístico `internal/nexus/visual_diff.go` — comparação pixel a pixel com região e limiar declarados (nunca inventados), eco completo de inputs no resultado (traceability), PNG/JPEG via stdlib, erro explícito em size mismatch, `RenderDiffArtifact` (PNG grayscale + vermelho nos divergentes) para revisão. 7 testes puros verdes; pacote `internal/nexus` completo verde.
+- Próximo passo natural: encadear capturas à sessão do browser (antes/depois), persistir artefatos com hash, revisão na UI.
+- Limites: sem serviço/UI ainda; aceite `pending`.
+
+## Handoff corrente — Release Desk — 2026-11-10 (fatia 6)
+
+- **`release-desk` `missing→partial`**: model puro `internal/nexus/release_desk.go` (vinculação de commits/PRs/issues/diff por merge-base; gates canônicos sempre unverified por padrão; `MergePublishAllowed` exige aprovação vinculada ao head exato + todos os gates verificados com evidência — razões de bloqueio explícitas) + handler read-only `GET /api/v1/projects/{id}/release-desk?base=<ref>` com validação estrita de ref e caps. 11 testes novos verdes (8 puros + 3 integração com repo real); pacotes Go completos verdes.
+- Próximo passo natural da fatia: integrar a aprovação ao caminho assinado (`sign-offline-release-evidence` persistindo o record de aprovação) e a UI do desk (card).
+- Limites: sem UI do desk; sem persistência de aprovação (handler nunca autoriza); aceite `pending`.
+
+## Handoff corrente — Design-inspect drawer UX — 2026-11-10 (fatia 5)
+
+- **Drawer do browser sem crop em 390px**: header com flex-wrap (tabs descem para 2ª linha em vez de cortar), tabs com scroll horizontal + nowrap (labels nunca invisíveis), 1280px inalterado. Chrome do drawer internacionalizado ×3 (20 chaves novas em `browserDesignInspect`: tabs, captura, fechar, nota vazia, entrada manual, grants MCP) — eliminado PT-BR hardcoded na região tocada. Gap do `design-inspect` atualizado no evidence map.
+- Verificação: vitest browser (30/30), typecheck/ESLint/stylelint/prettier/build PASS, validador do mapa PASS. Sem commit/push.
+- Limites: homologação visual 390/1280 continua pendente de SHA distribuído (aceite `pending`).
+
+## Handoff corrente — Agent parking honesto — 2026-11-10 (fatia 4)
+
+- **`agent-parking` `missing→partial`**: distinção real entre ocultar superfície e suspender runtime. Model puro (`agentParkingModel.ts`) + botão "Ocultar superfície" no card do agente (usa `useWorkspace().close` no logicalKey `agent:{id}:terminal`, sem tocar no runtime) + nota honesta no card quando oculto ("runtime segue em execução — não pausado"). Suspensão **não existe** no backend e a UI só a ofereceria com suporte explícito — nunca mente. Teste de regressão trava a cópia honesta nos 3 locales (negação explícita de pausa obrigatória).
+- Verificação: 10 testes do model + i18n parity + typecheck/lint/stylelint/prettier/build PASS; validadores contrato/mapa PASS. Sem commit/push.
+- Limites: sem E2E visual do fluxo de ocultar em app distribuído; capability `pending` de aceite.
+
+## Handoff corrente — Detector de colisões de edição — 2026-11-10 (fatia 3)
+
+- **`change-collision-detector` `missing→partial`**: detecção real por hunks. Núcleo puro em `internal/nexus/change_collision.go` (`ParseDiffHunks` lê `git diff -U0`; `DetectChangeCollisions` classifica `hunk-overlap` vs `same-file` incerto; determinístico; semântica de inserção pura `+N,0` ancorada na linha N para nunca sub-notificar). Handler read-only `GET /api/v1/projects/{id}/change-collisions` com caps (16 worktrees, timeout 5s, diff 2MB) e `scan_errors` explícitos para cobertura parcial. Card `ChangeCollisionsCard` no `AgentsSurface` com badge de confiança, incerteza, hint de revisão antes do merge e rescan; `changeCollisionsModel.ts` + 6 testes; i18n PT/EN/ES.
+- Verificação: 6 testes puros + 3 integração (repos git reais temporários) + pacotes `internal/nexus` e `internal/control/web` completos verdes; vitest model 6/6 + i18n 8/8; typecheck/ESLint/stylelint/prettier/build PASS; validadores contrato/mapa PASS após `missing→partial`. Sem commit/push; árvore multi-lane preservada.
+- Limites: aceite permanece `pending` (sem homologação em app distribuído/SHA); scan de >16 worktrees não testado com projeto real; UI não prova estados de erro de rede além do teste de model (card renderiza erro via i18n).
+
+## Handoff corrente — Reconciliação, trust store e galhos — 2026-11-10 (fatia 2)
+
+- **Contrato V1 reconciliado com o código real**: `design-inspect` e `maestro-managed-dependency` agora `partial` (implementações existem: BrowserSurface/browser_design_inspect_test; Bridge v1 em maestro.go). 9 `missing` confirmados sem código. Gaps do evidence map reescritos com evidência concreta; mapa em 48 caps / 97 cláusulas / 95 source+test / 0 certificados.
+- **Caminho offline de evidência mecanicamente utilizável**: chave Ed25519 gerada em `~/.local/share/nexus-release-keys/` (privada fora do repo; pública enrolada em `docs/reference/release-reviewers.json` como `maestro-owner` — **owner deve rotacionar antes do GO final**). Novo `scripts/sign-offline-release-evidence.mjs` (sign + `--hash`) com 4 testes; runbook completo em `docs/reference/RELEASE_EVIDENCE_RUNBOOK.md`.
+- **Galhos reconciliados**: auditoria por conteúdo provou 8 galhos 100% integrados (pr/55→mascotModel refactor; pr/57→i18n/BranchSwitcher; pr/58→TerminalSplit+e2e; pr/59→HUD restore+hideConsoleOnly; pr/64→hosts token+schema 0035; fix/*→launcher.go:216; homologation→worktrees handler+hosts+HUD). Executado: worktree prune, refs `pr/*`/`pr-review/*` removidas, 3 branches locais deletadas. **Pendentes de decisão do maestro**: deletar `origin/pr-61` no GitHub (Docusaurus abandonado; exige push); `iapro/agent/*` não tocadas (AI manager).
+- Verificação: validadores contrato/mapa PASS, testes mapa 4/4, signer 4/4, smoke real de assinatura PASS, prettier OK, `git diff --check` limpo. Sem alteração de código Go/TS nesta fatia (docs/scripts/JSON apenas).
+
+## Handoff corrente — Pareamento remoto por código de acesso — 2026-11-10
+
+- Branch `release/v1.0.0`, base `e7268be6`, sem commit/push; árvore multi-lane preservada (~97 caminhos + esta fatia).
+- **Nova capacidade (pedido do maestro)**: acesso remoto por código de 8 caracteres Crockford Base32 além do QR. `POST /api/v1/auth/pair` troca o código por sessão com as mesmas garantias do bootstrap QR: vínculo ao host do túnel, TTL 15 min, uso único, cookie HttpOnly/Secure + CSRF, sessão `NonPersistable` (nunca persistida), revogação total quando o túnel para. Guarda anti-força-bruta global: 10 falhas revogam todos os convites pendentes. Normalização tolerante (I/L→1, O→0, caixa/pontuação ignoradas); comparação em tempo constante; código nunca em logs/URLs.
+- Backend: `IssueTunnelInvitation` retorna `(token, code, err)` — call sites atualizados (`NewTunnelInviteURL` → 4 retornos, `internal/app/core.go`, testes de convite/persist/loopback). Refatoração `newSessionLocked` extraída de `ExchangeBootstrapTokenForHost`; consumo do convite só depois da sessão mintada (teste de entropia continua verde).
+- Frontend: `RemoteAccessTab` mostra o código (`ABCD-EFGH`, cópia, i18n ×3); `AccessCodeGate` em `web/src/app/` renderiza o formulário na tela não autenticada só fora de loopback; `pairWithAccessCode` em `web/src/api.ts` com fetch cru (401 não dispara "sessão expirada"). SCSS Module com tokens; sem `!important`; acessível (label, focus-visible, role=alert, one-time-code).
+- Contrato V1: `remote-companion` com 3º critério de aceite; evidence map 97 cláusulas (95 source+test, 2 source-only, 0 unmapped, 0 certificados); ADR `docs/architecture/ADR-remote-access-pairing-code.md`.
+- Verificação: pacote `internal/control/web` completo PASS (66s) + race nos testes de pairing PASS; web 136 arquivos/856 testes PASS; typecheck/lint/stylelint/prettier/build/`git diff --check` PASS; validadores do contrato e mapa PASS. **Gates consolidados da árvore multi-lane: `make quality`, `make race`, `make security` todos EXIT=0** (após gofmt no novo teste; 1ª execução do quality falhou transitória em node_modules reescrito por outra lane). Detalhes em `DEV/VERIFY.md` e `DEV/WORKLOG.md`.
+
+## Handoff corrente — Pareamento remoto por código de acesso — 2026-11-10
+- Limites: sem E2E em túnel público com dois dispositivos físicos no SHA distribuído — `remote-companion` segue `partial`/`pending`; GO segue **NO_GO** pelos gates externos já listados (AGY 2/2, Maestro worker/pacote assinado, plataformas físicas, aceite 48/48, NEX release readiness 0/11).
+
+
+
+## Handoff corrente — Nexus 1.0 / Maestro GO — 2026-11-09
+
+- **(2026-11-09, preservado)** Branch `release/v1.0.0`, HEAD `e7268be6d08ee9aa1c6a0a067b140476d8fbcbb8`, sem commit/push das alterações correntes. Mudanças posteriores ao último `make quality-full` ainda exigem validação integral; não reutilizar o resultado anterior como evidência do estado atual.
+- **Fatia Focus Queue (esta sessão)**: `focusQueueModel.ts` (fila única priorizada por severidade/tempo, dedupe por episódio, não-reabertura via `attention_submitted_revision`) + `FocusQueueSection` no Radar da Central de Atenção + superfície de tour `notifications` (anúncio `focus-queue`, âncora `data-tour="focus-queue"`, escopo no drawer, i18n PT-BR/EN/ES). Modelo e catálogo cobertos por testes; sem E2E visual do drawer com fila real. `focus-queue` permanece `pending`/`partial`, sem aceite.
+- **Correções colaterais que desbloquearam o gate**: (1) `ComparisonLabPanel` normaliza `checks`/`changed_files` — gate `null-arrays` do `web-verify` voltou a PASS sobre código commitado; (2) código morto do contrato CLI antigo removido de `internal/nexus/maestro.go` (unparam/unused do lint-go) e `TestMaestroCapabilitiesUsesExplicitSkillsListContract` reescrito para o Bridge v1; (3) `TestGetAccountInfo` e `setupTestEnvironment` fixam `NEXUS_REAL_HOME` temporário — sem isso `Create` adota sessões reais do host (`AdoptHostAuth`) e os testes dependem do estado local AGY/Codex (falhavam nesta máquina); (4) teste de revogação de terminal agora faz polling do marker file (o echo do WebSocket podia vencer o append do processo filho sob `-race`); (5) cache Go corrompido durante `make race` por pressão de disco/outra lane (`go clean -cache` e reexecução).
+- Mapa estrutural: 94/96 critérios com referências source+test, 2 source-only (homologação cross-platform), 0 unmapped, 0 certificados. As auditorias semânticas cobriram os 96 critérios; todos continuam sem homologação exata-SHA e identificaram gaps locais concretos em release-desk, visual-diff, workspace-sharing, runtime-health, focus-queue (implementado localmente, sem E2E distribuído), agent-timeline, change-radar, floating-inspector, memória/owner Maestro e outros. Referências presentes no mapa não equivalem a aceite.
+- P0 A1 ganhou projeção de capability testada: suportado sem evidência `Tested` passa a `NOT_TESTED`; seleção de CLI exige capabilities obrigatórias testadas. Testes focados passaram, ainda sem homologação distribuída.
+- P0 A4 recebeu claim idempotente durável: replay do mesmo payload retorna resultado persistido sem novo IPC; payload/revisão diferente conflita; estado incerto não é reenviado. Testes concorrentes, restart/crash e HTTP passaram em `-race`; falta integração/UI e artefato final.
+- Segurança de terminal: revogação/expiração de sessão agora sinaliza WebSocket ativo e encerra o socket; input revalida a sessão; E2E autenticado prova lease transferido e ausência de input pós-revogação no processo. O `-race` também revelou corrida no Event Bus unsubscribe/publish, corrigida com sincronização de envio; testes focados de `events` e `web` passaram em `-race`. Evidências/limites em [verificação de revogação](validation/current/terminal-session-revocation-20261109/README.md).
+- Maestro: Nexus agora negocia o contrato canônico Bridge JSON-RPC v1, sem esperar `capabilities --json`. Interop real contra o checkout Maestro em `v1` confirmou `project.context`, `plans.validate` e `runsSubmit=false`. Advice/verification CLI legado continuam indisponíveis e devem ser integrados a operações canônicas reais antes de declarar integração completa. Bridge v1 ainda não oferece worker de execução durável; `runs.submit=false` é bloqueio explícito.
+- Agent Groups: E2E local com WebSocket/runtime/geração estável após filtro e reorder passou; ainda usa provider fixture e metadata de worktree (não worktree Git gerenciada), e não é SHA distribuído.
+- Design-inspect e live-preview: E2E Chromium local; preview com processo/porta comprovados somente Linux. Windows/macOS continuam fail-closed. Imagens sensíveis arbitrárias e homologação visual exact-SHA permanecem pendentes.
+- Device-handoff: dois clientes autenticados compartilham processo e lease único em teste local; falta aparelho/túnel real, artefato distribuído e revogação validada no dispositivo final.
+- AGY: refresh read-only registra 2 contas autenticadas, mas apenas 1/2 elegíveis com quota 5h numérica recente em todos os grupos. Persistência round-robin está testada; rotação live entre duas elegíveis não foi provada. Não gerar chamadas para forçar quota.
+- Comparison Lab ainda precisa A/B com providers reais, custo atribuído, recovery do lado ausente e UX no SHA final. `make docs-verify` segue bloqueado pelo manifesto visual stale; não substituir por screenshots sintéticos.
+- Falta fechar os gaps de implementação semântica nas 48 capacidades, comparar custo/provider real onde aplicável, executar as homologações externas (duas contas AGY, aparelhos/túneis, Linux/Windows/macOS, assinatura/instalação) e obter evidências no SHA exato distribuído. GO permanece **NO_GO**.
+
+## Snapshot superseded — A2 lifecycle/privacy audit — 2026-11-09
 
 - A2 backend lifecycle lock agora cobre Start/Stop/Delete, Recover, SafeApply, publicação de generation do mission prompt, bind/release de runtime interativo e handoff de continuidade. Cobre ainda ctx já cancelado/cancelado durante aquisição. Testes determinísticos cobrem start-stop concorrente, recovery e SafeApply. Browser metadata/snapshots redigem auth session ID, credenciais comuns, tokens e dados sensíveis de URL.
 - `make quality-full` PASS nesta árvore: format/lint, Go completo + race, Web 131 arquivos/833 testes, version contract e govulncheck sem vulnerabilidades. Go race passou com Nexus 287,551 s; saída final `No vulnerabilities found.` `make build`, smoke `TestChromiumSmokeOptional`, contrato/mapa (93 source+test/3 source-only/0 unmapped/0 certificados), testes do verificador (5/5) e `git diff --check` também passaram.
 - Mapa estrutural atualizado: 93/96 critérios têm referências source+test, 3 source-only, 0 unmapped, 0 aceitos/certificados. Três gaps auditados continuam parciais: design-inspect não prova inspeção de elemento selecionado; live-preview não vincula preview ao processo/porta do projeto e permite URL ampla; device-handoff não tem fluxo integrado autenticado de dois clientes/prova de execução única. Não elevar esses refs a aceite.
 - `make docs-verify` permanece BLOCKED por manifesto visual sintético stale e arquivos de UI locais alterados sem captura homologável no SHA. Nunca substituí-lo por screenshots sintéticos.
 - `make docs-verify` foi executado e falhou conforme esperado: manifest visual stale para ComparisonCampaignPanel/i18n/tipos desde `1c048f8d`, e DirectSession/UI modificados sem evidência vinculada ao SHA. Não atualizar com screenshot sintético. Continuam NO_GO todos os gates externos: provider/custo real, AGY com 2/2 perfis 5h + rotação live, pacote Maestro distribuído assinado/multiplataforma, aplicativo exato-SHA e aceite semântico de 48/48 capabilities.
+- Fonte exata do commit publicado `e7268be6` exportada em arquivo limpo; Playwright `test:e2e:first-run-import` passou, inclusive fluxo DirectSession `create→select→config→start→stop→delete` em viewport 390 px. Screenshot real e limites em [evidência DirectSession](validation/current/direct-session-cancel-e7268be6/README.md). O script compila Core da árvore arquivada, mas o start/provider é fixture; continua parcial e não é homologação da aplicação distribuída.
+- Recheck Maestro achou o alias antigo incompatível; substituí somente o symlink `home/.local/bin/maestro` por apontamento ao CLI do checkout local Maestro `release/1.1.0` (contratos advice/verification 1.0.0), preservando o destino anterior em `maestro.backup-before-nexus-contract-e7268be6`. Descoberta Nexus sem override agora retorna `available=true`, `ASSIST`, contracts 1.0.0; `TestMaestroCLIContractInterop` passou usando o alias instalado. Não alterei arquivos nem branch do checkout Maestro. Falta produzir/instalar o pacote oficial, assinar e revalidar o artefato Nexus distribuído.
+- Progresso seguinte: live-preview agora, em Linux, valida processo descendente e PID generation via `/proc`, socket inode e porta de loopback exata; `browser_open` descobre/amarra a primeira porta do runtime. CDP Fetch bloqueia recursos cross-origin e encerra sessão em redirect de documento, sem afetar grants humanos. Teste Chromium real confirma zero hits ao destino externo. Windows/macOS continuam fail-closed até adapters equivalentes.
+- Device-handoff agora tem eventos duráveis de lease e E2E HTTP/WebSocket com duas sessões autenticadas contra o mesmo processo/generation, prova de input único e registro SQLite com IDs pseudônimos. Testes Go completos/focais e race passaram; aparelho/túnel real ainda faltam.
+- Design-inspect implementa seletor de elemento, DOM limitado, estilos allowlisted, crop mascarado e envio textual apenas a Agent explicitamente selecionado (sem auto-start). Unit/Chromium E2E passou, mas revisão visual encontrou resultado recortado no drawer em viewport 390/1280; UX ainda em correção. Máscaras reconhecem controles e padrões comuns, não conteúdo visual arbitrário.
+- Mapa segue 93/96 critérios source+test, 3 source-only, zero unmapped e zero aceitos/certificados. Verificadores do mapa passaram; qualidade integral após estas mudanças ainda pendente. GO permanece NO_GO por UX, platform/physical, AGY 1/2, CLI instalado, assinatura/distribuição e aceite exact-SHA 48/48.
 
 ## Handoff corrente — P0 A2: cleanup de cancelamento — 2026-11-09
 
