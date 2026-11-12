@@ -219,7 +219,9 @@ const catalogGate = spawnSync(process.execPath, [path.join(root, 'scripts/verify
 if (catalogGate.status !== 0) errors.push('feature catalog gate failed: ' + (catalogGate.stderr || catalogGate.stdout || 'unknown error').trim());
 const workspaceEvidenceMapGate = spawnSync(process.execPath, [path.join(root, 'scripts/verify-agent-workspace-evidence-map.mjs')], { cwd: root, encoding: 'utf8' });
 if (workspaceEvidenceMapGate.status !== 0) errors.push('agent workspace source/test traceability gate failed: ' + (workspaceEvidenceMapGate.stderr || workspaceEvidenceMapGate.stdout || 'unknown error').trim());
-const workspaceEvidenceMapTests = spawnSync(process.execPath, ['--test', path.join(root, 'scripts/verify-agent-workspace-evidence-map.test.mjs')], { cwd: root, encoding: 'utf8' });
+const evidenceMapTestPath = path.join(root, 'scripts/verify-agent-workspace-evidence-map.test.mjs');
+const evidenceMapTestArgs = process.versions.bun ? ['test', evidenceMapTestPath] : ['--test', evidenceMapTestPath];
+const workspaceEvidenceMapTests = spawnSync(process.execPath, evidenceMapTestArgs, { cwd: root, encoding: 'utf8' });
 if (workspaceEvidenceMapTests.status !== 0) errors.push('agent workspace evidence map regression tests failed: ' + (workspaceEvidenceMapTests.stderr || workspaceEvidenceMapTests.stdout || 'unknown error').trim());
 const releaseDocsGate = spawnSync(process.execPath, [path.join(root, 'scripts/verify-release-docs.mjs')], { cwd: root, encoding: 'utf8' });
 if (releaseDocsGate.status !== 0) errors.push('release docs contract gate failed: ' + (releaseDocsGate.stderr || releaseDocsGate.stdout || 'unknown error').trim());

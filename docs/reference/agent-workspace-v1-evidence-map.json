@@ -1,1754 +1,1850 @@
 {
-  "schemaVersion": 1,
-  "contract": "docs/reference/agent-workspace-v1.json",
-  "policy": "TRACEABILITY_ONLY_NO_ACCEPTANCE_CLAIMS",
-  "sourceInventory": "docs/strategy/RELEASE_IMPLEMENTATION_AUDIT_2026-10-28.md",
-  "sourceInventorySha": "1c67e3b6509cdfdd9d84cc79e3dfcef547b63828",
-  "note": "Source/test paths are traceability candidates only. Path existence and test-file naming do not prove that a test asserts an acceptance clause. Every criterion and capability remains unverified until the current implementation and evidence are reviewed; release homologation is exact-SHA and external.",
-  "features": [
+ "schemaVersion": 1,
+ "contract": "docs/reference/agent-workspace-v1.json",
+ "policy": "TRACEABILITY_ONLY_NO_ACCEPTANCE_CLAIMS",
+ "sourceInventory": "docs/strategy/RELEASE_IMPLEMENTATION_AUDIT_2026-10-28.md",
+ "sourceInventorySha": "1c67e3b6509cdfdd9d84cc79e3dfcef547b63828",
+ "note": "Source/test paths are traceability candidates only. Path existence and test-file naming do not prove that a test asserts an acceptance clause. Every criterion and capability remains unverified until the current implementation and evidence are reviewed; release homologation is exact-SHA and external.",
+ "features": [
+  {
+   "id": "terminal-studio",
+   "criteria": [
     {
-      "id": "terminal-studio",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Native CLI em tab/split sem relançar provider",
-          "sourceRefs": [
-            "web/src/components/terminalViewModel.ts",
-            "web/src/features/agents/askAgentModel.ts",
-            "web/src/workspace/WorkspaceRenderer.tsx"
-          ],
-          "testRefs": [
-            "web/src/components/terminalViewModel.test.ts",
-            "web/src/features/agents/askAgentModel.test.ts",
-            "web/src/workspace/state.test.ts",
-            "web/src/workspace/presentation.test.ts",
-            "web/scripts/e2e-surface-isolation.mjs"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Auditoria: unit tests provam view sem duplicação, reutilização de Agent ativo e persistência do layout. E2E Playwright inicia shell supervisionado real e comprova identidade do runtime/superfície/xterm e só um POST de start ao alternar abas de produto. Ainda falta exercitar provider IA nativo e tab/split de PTYs com evidência de não relaunch; o aceite completo permanece pendente.",
-          "assertionAudit": "partial"
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Control lease, Ctrl+C, setas, scrollback e resize PTY/ConPTY com dois clientes",
-          "sourceRefs": [
-            "internal/control/host/host.go",
-            "web/src/workspace/WorkspaceRenderer.tsx"
-          ],
-          "testRefs": [
-            "internal/control/host/host_test.go",
-            "internal/control/host/qa_test.go",
-            "internal/control/host/slash_prefix_test.go",
-            "internal/control/host/terminal_windows_test.go",
-            "internal/control/protocol/protocol_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Auditoria: lease/handover, Ctrl+C routing, ring buffer, tecla ConPTY e resize efetivo para segundo cliente agora têm verificações, mas permanecem em cenários separados. Falta aceite integrado de concorrência/controle com scrollback após reconnect; validar resize em runner Windows/ConPTY continua necessário.",
-          "assertionAudit": "partial"
-        }
-      ],
-      "verification": "pending"
+     "acceptanceIndex": 0,
+     "acceptance": "Native CLI em tab/split sem relançar provider",
+     "sourceRefs": [
+      "web/src/components/terminalViewModel.ts",
+      "web/src/features/agents/askAgentModel.ts",
+      "web/src/workspace/WorkspaceRenderer.tsx"
+     ],
+     "testRefs": [
+      "web/src/components/terminalViewModel.test.ts",
+      "web/src/features/agents/askAgentModel.test.ts",
+      "web/src/workspace/state.test.ts",
+      "web/src/workspace/presentation.test.ts",
+      "web/scripts/e2e-surface-isolation.mjs"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Auditoria: unit tests provam view sem duplicação, reutilização de Agent ativo e persistência do layout. E2E Playwright inicia shell supervisionado real e comprova identidade do runtime/superfície/xterm e só um POST de start ao alternar abas de produto. Ainda falta exercitar provider IA nativo e tab/split de PTYs com evidência de não relaunch; o aceite completo permanece pendente.",
+     "assertionAudit": "partial"
     },
     {
-      "id": "agent-command-center",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Cartões de todos os Agents por projeto com estados observados e seleção direta",
-          "sourceRefs": [
-            "web/src/features/agents/AgentsSurface.tsx"
-          ],
-          "testRefs": [
-            "internal/nexus/agent_application_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Auditoria parcial: TestAgentApplicationServiceListScopesProjectAndProjectsEffectiveRuntimeState verifica a lista limitada ao projeto e estado RECOVERABLE projetado para runtime morto. Ainda falta teste de UI que prove os cartões e a seleção direta do Agent correto; capacidade pendente.",
-          "assertionAudit": "partial"
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Trabalhando/aguardando/erro/concluído sem inferir estado do texto do CLI",
-          "sourceRefs": [
-            "web/src/features/agents/AgentsSurface.tsx",
-            "internal/control/host/attention.go"
-          ],
-          "testRefs": [
-            "internal/nexus/agent_application_test.go",
-            "internal/control/host/attention_test.go",
-            "internal/control/host/osc7501_integration_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Auditoria parcial: a listagem preserva estados estruturados e converte WORKING com runtime morto em RECOVERABLE; os testes de atenção cobrem eventos estruturados, OSC e heurísticas textuais do PTY. Falta demonstrar no fluxo real que aguardando/erro/concluído chegam aos cartões por fonte estruturada sem heurística de texto; COMPLETED ainda não é um estado tipado do Agent. Capacidade pendente.",
-          "assertionAudit": "partial"
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "review-studio",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Diff, teste, evidência e terminal no mesmo workspace",
-          "sourceRefs": [
-            "internal/nexus/runner/review.go",
-            "internal/nexus/runner/runner.go"
-          ],
-          "testRefs": [
-            "internal/nexus/runner/review_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Auditoria parcial: review_test.go percorre fases de revisão/verificação com executor fake e evidencia ordem do pipeline, mas review.go só normaliza e mantém findings. Não há superfície que reúna diff, resultados reais de teste, evidências e terminal no workspace nem E2E desse aceite. Capability pendente.",
-          "assertionAudit": "partial"
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Review read-only por padrão com autorização explícita para aplicar mudanças",
-          "sourceRefs": [
-            "internal/nexus/runner/review.go",
-            "internal/nexus/runner/runner.go"
-          ],
-          "testRefs": [
-            "internal/nexus/runner/review_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Auditoria parcial: review.go mantém o ledger semântico de findings; review_test.go cobre findings, remediação e prova o pipeline com executor fake sem dispatch de escrita nas fases REVIEW/VERIFICATION. Ainda não demonstra autorização explícita do usuário para aplicar mudanças nem UI read-only por padrão. Capability pendente.",
-          "assertionAudit": "partial"
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "browser-studio",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "BrowserSurface integrada a terminal, diff e Agent Inspector",
-          "sourceRefs": [
-            "web/src/features/browser/BrowserSurface.tsx",
-            "web/src/app/WorkspaceSurfaceHost.tsx"
-          ],
-          "testRefs": [
-            "web/src/features/browser/BrowserSurface.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Auditoria parcial: BrowserSurface.test.ts verifica normalização de URL, títulos e modelo de controle; WorkspaceSurfaceHost monta a superfície sob o projectId. Nenhum teste comprova integração no mesmo workspace com terminal, diff e Agent Inspector; a superfície atual não recebe esses recursos como painel integrado. Capability pendente.",
-          "assertionAudit": "partial"
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Permissões de CDP/MCP, takeover humano e sessão de projeto isolada",
-          "sourceRefs": [
-            "web/src/features/browser/BrowserSurface.tsx",
-            "internal/browsercontrol/browser_collaboration.go",
-            "internal/browsercontrol/runtime_capability.go"
-          ],
-          "testRefs": [
-            "web/src/features/browser/BrowserSurface.test.ts",
-            "internal/browsercontrol/browser_collaboration_test.go",
-            "internal/browsercontrol/runtime_capability_test.go",
-            "internal/control/web/handlers_browser_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Auditoria parcial: testes cobrem modo observer/takeover no modelo UI, handoff humano com bloqueio do Agent, grants revogáveis por sessão e capabilities de runtime escopadas ao projeto. A rota HTTP prova auth/CSRF; falta fluxo E2E integrado CDP/MCP + isolamento da sessão de browser em dois projetos e grants por ator. Capability pendente.",
-          "assertionAudit": "partial"
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "comparison-lab",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Duas alternativas paralelas com worktrees e execução isolados",
-          "sourceRefs": [
-            "internal/nexus/comparison_campaign_application.go",
-            "internal/nexus/store/comparison_campaigns.go",
-            "web/src/features/work/ComparisonCampaignPanel.tsx",
-            "internal/nexus/comparison_application.go",
-            "internal/nexus/mission_executor.go",
-            "internal/nexus/mission_integration.go",
-            "web/src/features/work/ComparisonLabPanel.tsx"
-          ],
-          "testRefs": [
-            "internal/nexus/comparison_campaign_application_test.go",
-            "internal/nexus/store/comparison_campaigns_test.go",
-            "internal/nexus/comparison_application_test.go",
-            "internal/nexus/worktree_test.go",
-            "internal/nexus/mission_integration_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "O Comparison Lab agora persiste duas variantes congeladas do mesmo plano/revisão/base, cria previews independentes e despacha ambas pelo MissionRunner existente em workspaces isoladas; recuperação de restart não inicia trabalho e marca lançamento unilateral como parcial. Testes cobrem preparo, isolamento de identidade/dependências, consentimento dos previews, recuperação e comparação por campanha. Ainda falta execução A/B com provider real e validação no app distribuído/SHA exato; capability pendente.",
-          "assertionAudit": "partial"
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Comparador de testes/diffs/custo e decisão humana sem merge automático",
-          "sourceRefs": [
-            "internal/nexus/comparison_campaign_application.go",
-            "internal/nexus/store/comparison_campaigns.go",
-            "internal/control/web/handlers_comparison.go",
-            "web/src/features/work/ComparisonCampaignPanel.tsx",
-            "internal/nexus/comparison_application.go",
-            "internal/nexus/store/comparison.go",
-            "internal/control/web/handlers_comparison.go",
-            "web/src/features/work/ComparisonLabPanel.tsx"
-          ],
-          "testRefs": [
-            "internal/nexus/comparison_campaign_application_test.go",
-            "internal/nexus/store/comparison_campaigns_test.go",
-            "internal/control/web/handlers_comparison_test.go",
-            "internal/nexus/comparison_application_test.go",
-            "internal/nexus/store/comparison_test.go",
-            "internal/control/web/handlers_comparison_test.go",
-            "web/src/nexus/api.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "O comparador persistido registra testes, diffs, custos atribuídos (incluindo desconhecidos) e decisão humana one-way, sem aplicar merge. Campanhas agora ligam duas execuções à origem e variantes nomeadas. A cobertura automatizada ainda não demonstra chamadas reais a provider, métricas reais de custo nem experiência no app distribuído/SHA exato; capability pendente.",
-          "assertionAudit": "partial"
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "remote-companion",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Mobile Inbox e terminal remoto vinculados ao host",
-          "sourceRefs": [
-            "web/src/features/settings/RemoteAccessTab.tsx",
-            "internal/control/web/handlers_tunnel.go"
-          ],
-          "testRefs": [
-            "internal/control/web/remote_test.go",
-            "internal/control/web/remote_invite_test.go",
-            "web/src/notifications/attentionDelivery.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Auditoria parcial: RemoteAccessTab permite publicar túnel/QR e remote_test.go percorre bootstrap/API pelo túnel; remote_invite_test.go cobre convite autenticado de uso único; attentionDelivery.test.ts cobre chaves e foco da entrega. Não há teste de Mobile Inbox ou terminal remoto ponta a ponta em outro dispositivo/host. Capability pendente.",
-          "assertionAudit": "partial"
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Troca de dispositivo sem reiniciar sessão, com lease e revogação",
-          "sourceRefs": [
-            "web/src/features/settings/RemoteAccessTab.tsx",
-            "internal/control/host/host.go",
-            "internal/control/web/handlers_tunnel.go"
-          ],
-          "testRefs": [
-            "internal/control/host/qa_test.go",
-            "internal/control/host/host_test.go",
-            "internal/control/web/remote_invite_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Auditoria parcial: host_test e qa_test cobrem handover de lease entre dois attached clients sem reiniciar o PTY; remote_invite_test cobre convite/túnel seguro e corrida de gerações do túnel. Não há E2E real de troca de dispositivo com sessão preservada nem revogação imediata do dispositivo remoto/credencial. Capability pendente.",
-          "assertionAudit": "partial"
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "mission-observatory",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Visualização read-only de Missions, dependências, agentes e provas",
-          "sourceRefs": [
-            "web/src/features/work/FlowRunSurface.tsx"
-          ],
-          "testRefs": [
-            "internal/nexus/evidence_bundle_test.go",
-            "web/src/features/work/flowRunModel.test.ts",
-            "web/src/features/work/flowRunPresentation.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Auditoria parcial: FlowRunSurface projeta Mission, packages/agentes, dependências em capsules/receipts e bundle de evidências; flowRunModel/presentation cobrem mapeamentos de estado/dados e evidence_bundle_test prova receipts canônicos. Falta E2E da visualização read-only completa, vínculos de dependência e navegação do terminal no mesmo workspace. Capability pendente.",
-          "assertionAudit": "partial"
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "ExecutionOwner controla mutações, retries e cancelamento",
-          "sourceRefs": [
-            "web/src/features/work/FlowRunSurface.tsx",
-            "internal/nexus/runner/runner.go",
-            "internal/nexus/runner/types.go"
-          ],
-          "testRefs": [
-            "internal/nexus/runner/runner_durable_test.go",
-            "internal/nexus/runner/repository_concurrency_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Auditoria parcial: FlowRunSurface expõe pause/take-control/resume/cancel e MissionRunner persiste essas ações sob lease; testes cobrem ciclo durável e fencing. Porém MissionRun não tem campo ExecutionOwner e UI decide mutabilidade só pelo estado terminal, sem rotear por owner. Não há contrato/teste que faça owner único controlar retries e cancelamentos entre Nexus/Maestro. Capability pendente.",
-          "assertionAudit": "partial"
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "smart-layouts",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Layouts sugeridos por atividade sem spawn implícito de processo",
-          "sourceRefs": [
-            "web/src/workspace/arrangePresets.ts",
-            "web/src/workspace/WorkspacePresentationProvider.tsx"
-          ],
-          "testRefs": [
-            "web/src/workspace/arrangePresets.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Auditoria parcial: presets/recipes operam sobre IDs e geometria existentes, sem chamar API de launch; teste puro também apenas rearranja IDs fornecidos. Porém 'suggested by activity' não existe: Automatic/recipes são seleções estáticas, não recomendações derivadas de estado. Falta E2E de aplicar layout sem spawn implícito. Capability pendente.",
-          "assertionAudit": "partial"
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Preservação de surface IDs, foco, splits e restauração",
-          "sourceRefs": [
-            "web/src/workspace/WorkspacePresentationProvider.tsx",
-            "web/src/workspace/presentation.ts",
-            "web/src/workspace/state.ts",
-            "web/src/workspace/model.ts"
-          ],
-          "testRefs": [
-            "web/src/workspace/presentation.test.ts",
-            "web/src/workspace/state.test.ts",
-            "web/src/workspace/model.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Auditoria parcial: testes cobrem view/surface identity, foco, persistência/round-trip de layout, splits e restauração de janelas. arrangeByPreset preserva viewIds ao editar geometria. Falta E2E de salvar/restaurar layout completo no produto, incluindo surfaces/split/foco após recarga e múltiplos projetos. Capability pendente.",
-          "assertionAudit": "partial"
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "workspace-snapshots",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Salvar e restaurar estado visual versionado por projeto",
-          "sourceRefs": [
-            "web/src/services/WorkspaceLayoutService.ts",
-            "web/src/workspace/WorkspaceProvider.tsx",
-            "web/src/workspace/state.ts"
-          ],
-          "testRefs": [
-            "web/src/services/WorkspaceLayoutService.test.ts",
-            "web/src/workspace/state.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Auditoria parcial: WorkspaceLayoutService persiste/envelopa layout versionado v4 por projectId, com revisão, migração e export/import; testes cobrem save/load, versionamento, projeto e split. É um snapshot corrente por projeto, não histórico de snapshots nomeados; falta E2E no fluxo visual completo e sincronização/conflict handling real entre clientes. Capability pendente.",
-          "assertionAudit": "partial"
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Não ressuscitar processo morto nem duplicar runtime",
-          "sourceRefs": [
-            "web/src/services/WorkspaceLayoutService.ts",
-            "web/src/workspace/model.ts",
-            "web/src/app/WorkspaceSurfaceHost.tsx"
-          ],
-          "testRefs": [
-            "web/src/services/WorkspaceLayoutService.test.ts",
-            "web/src/workspace/model.test.ts",
-            "web/scripts/e2e-surface-isolation.mjs"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Auditoria parcial: desserialização remove superfícies lógicas duplicadas e WorkspaceSurfaceHost anexa por IDs/runtime existente; não chama start ao carregar estado. Testes cobrem dedupe e E2E tab-switch sem novo launch, não restauração de um snapshot contendo runtime morto nem garantem contra todo caminho de reabertura. Falta E2E restore com runtime encerrado/ativo e contagem de launches. Capability pendente.",
-          "assertionAudit": "partial"
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "agent-groups",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Agrupar Agents por tarefa, worktree e feature",
-          "sourceRefs": [
-            "internal/nexus/mission_team.go",
-            "internal/nexus/mission_executor.go",
-            "internal/nexus/mission_integration.go"
-          ],
-          "testRefs": [
-            "internal/nexus/mission_team_test.go",
-            "internal/nexus/worktree_test.go",
-            "internal/nexus/mission_integration_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Auditoria parcial: MissionTeam gera phases/packages por tarefa e runtime os isola em worktrees; testes provam pipeline e integração isolada. Isso não implementa grupos de Agents gerenciáveis/visíveis por worktree e feature. Falta entidade/UX de grupos com identidade e membership persistentes. Capability pendente.",
-          "assertionAudit": "partial"
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Filtrar e reordenar preservando identidade e sessão",
-          "sourceRefs": [
-            "web/src/features/agents/AgentsSurface.tsx"
-          ],
-          "testRefs": [],
-          "mappingStatus": "source-only",
-          "coverage": "unverified",
-          "gap": "Auditoria parcial de código: AgentsSurface filtra por status/pesquisa e usa agent.id como key/callback, mas não oferece reordenação manual nem teste da interação; preservar identidade é somente inferível da implementação. Falta filtro/reordenação com sessão e seleção estáveis, cobertos por UI/E2E. Capability pendente.",
-          "assertionAudit": "partial"
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "quick-switcher",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Command Palette pesquisa projetos, Agents, ações e superfícies",
-          "sourceRefs": [
-            "web/src/app/commands/registry.ts",
-            "web/src/app/NexusWorkspaceApp.tsx"
-          ],
-          "testRefs": [
-            "web/src/app/commands/registry.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Auditoria parcial: registry.test.ts cobre busca por label/keywords e prefixos project/agent/action/resource; NexusWorkspaceApp monta comandos de projetos e Agents reais, além de ações/surfaces. Falta teste de integração da lista dinâmica (troca de projeto, criação/remoção Agent) e execução da superfície correta sem efeito colateral de spawn além do comando explícito. Capability pendente.",
-          "assertionAudit": "partial"
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Atalhos e foco confiáveis em desktop e mobile",
-          "sourceRefs": [
-            "web/src/app/commands/CommandPalette.tsx",
-            "web/src/keyboard/KeyboardShortcutRegistry.ts",
-            "web/src/app/NexusWorkspaceApp.tsx"
-          ],
-          "testRefs": [
-            "web/src/keyboard/KeyboardShortcutRegistry.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Auditoria parcial: KeyboardShortcutRegistry.test.ts cobre escopo/teclas e evita disparar durante IME; CommandPalette implementa setas/Enter e SearchInput autoFocus, e app expõe acionador onCommand. Não há teste do componente para focus restore/trap e E2E desktop+mobile/teclado; comportamento responsivo e foco continuam pendentes. Capability pendente.",
-          "assertionAudit": "partial"
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "follow-agent",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Acompanhar visualização selecionada de Agent com pausa explícita",
-          "sourceRefs": [
-            "web/src/workspace/WorkspaceRenderer.tsx",
-            "web/src/nexus/AgentTerminal.tsx",
-            "web/src/nexus/terminalOutput.ts",
-            "web/src/features/work/FeatureTour.tsx"
-          ],
-          "testRefs": [
-            "web/src/nexus/terminalOutput.test.ts",
-            "web/scripts/e2e-agent-terminal-follow.mjs",
-            "web/src/features/work/featureTour.test.ts",
-            "web/src/features/work/featureTourAnchors.test.ts",
-            "web/src/features/work/featureReveal.test.ts",
-            "web/src/app/tour/tourTargets.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Ação explícita de pausar/retomar rolagem ao vivo implementada; bytes continuam sendo processados e a posição visível é preservada. E2E Playwright abriu Agent persistido via API real, exercitou o AgentTerminal/xterm e validou pause/resume; o WebSocket provider foi mockado. Ainda falta provar o pacote distribuído no SHA publicado e obter inspeção humana da UX.",
-          "assertionAudit": "partial"
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Não adquirir lease de input sem consentimento",
-          "sourceRefs": [
-            "web/src/nexus/AgentTerminal.tsx",
-            "web/src/nexus/agentTerminalModel.ts"
-          ],
-          "testRefs": [
-            "web/src/nexus/agentTerminalModel.test.ts",
-            "internal/control/host/host_test.go",
-            "web/scripts/e2e-agent-terminal-follow.mjs"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "E2E Playwright com servidor Nexus e Agent criado pela API prova que attach e tecla em VIEW_ONLY não emitem lease/input, botão explícito envia exatamente um lease_acquire, CONTROL envia input e revoke/reconnect não reacquire. WebSocket foi simulado no browser, portanto ainda falta teste do broker/host real para o mesmo ciclo de attach, lease e revoke; capability pendente.",
-          "assertionAudit": "partial"
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "floating-inspector",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Inspector destacável com status, identidade, evidência e lineage",
-          "sourceRefs": [
-            "web/src/features/work/ComposerInspector.tsx"
-          ],
-          "testRefs": [
-            "web/src/features/work/composerModel.test.ts",
-            "web/src/features/work/featureTour.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Somente estado observado e informação já autorizada",
-          "sourceRefs": [
-            "web/src/features/work/ComposerInspector.tsx"
-          ],
-          "testRefs": [
-            "web/src/features/work/composerModel.test.ts",
-            "web/src/features/work/featureTour.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "agent-parking",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Diferenciar ocultar superfície de suspender runtime quando suportado",
-          "sourceRefs": [
-            "web/src/features/agents/AgentsSurface.tsx"
-          ],
-          "testRefs": [
-            "internal/nexus/runtime_application_test.go",
-            "web/src/nexus/agentRecover.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "UI não diz que processo está pausado se só ficou oculto",
-          "sourceRefs": [
-            "web/src/features/agents/AgentsSurface.tsx"
-          ],
-          "testRefs": [
-            "internal/nexus/runtime_application_test.go",
-            "web/src/nexus/agentRecover.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "attention-radar",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Consolidar aprovações, perguntas, erros e blockers de CLIs heterogêneos",
-          "sourceRefs": [
-            "internal/control/agentwire/bridge.go",
-            "internal/control/agentwire/projection.go",
-            "internal/control/agentwire/state.go",
-            "internal/control/host/host.go",
-            "internal/control/host/attention.go",
-            "internal/control/registry/models.go",
-            "web/src/notifications/InAppNotificationCenter.tsx",
-            "web/src/app/attentionRadarModel.ts",
-            "web/src/app/NexusWorkspaceApp.tsx"
-          ],
-          "testRefs": [
-            "internal/control/host/attention_test.go",
-            "internal/control/host/structured_attention_pipeline_test.go",
-            "internal/control/web/structured_multiclient_process_e2e_test.go",
-            "web/src/app/attentionRadarModel.test.ts",
-            "web/src/app/surfaces.test.ts",
-            "web/src/i18n/i18n.test.ts",
-            "web/scripts/e2e-attention-radar-focus.mjs",
-            "web/scripts/e2e-attention-radar-process-api-browser.mjs"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "TestACPAttentionRadarBrowserIntegration combina subprocessos ACP determinísticos supervisionados, Bridge→SessionHost→Registry, GET autenticado /api/v1/runtimes sem overlay e Playwright que foca o runtime exato entre projetos e abre os WebSockets reais dos SessionHosts. O E2E passou no SHA publicado deaf2802 em 2026-11-09; ainda usa provider fixture, não valida provider externo nem aplicativo distribuído no SHA final. As assertions foram exercitadas, mas o critério e a capability continuam unverified/pending até provider real aplicável, homologação do artefato final e auditoria semântica completa.",
-          "assertionAudit": "partial"
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Ações direcionadas a geração e provider corretos com dados verificáveis",
-          "sourceRefs": [
-            "web/src/components/GlobalAttentionRadar.tsx",
-            "internal/control/web/handlers_api.go",
-            "internal/nexus/runtime_application.go",
-            "internal/control/registry/attention_claim.go",
-            "internal/control/host/attention.go",
-            "internal/control/host/structured_backend.go",
-            "internal/control/protocol/protocol.go",
-            "web/src/components/AttentionNotificationCard.tsx",
-            "web/src/components/attentionResponseGuard.ts"
-          ],
-          "testRefs": [
-            "internal/control/web/handlers_attention_fence_test.go",
-            "internal/control/web/handlers_nexus_test.go",
-            "internal/control/registry/attention_claim_test.go",
-            "internal/control/host/structured_attention_pipeline_test.go",
-            "internal/control/web/structured_multiclient_process_e2e_test.go",
-            "web/src/components/AttentionNotification.test.ts",
-            "web/scripts/e2e-attention-radar-process-api-browser.mjs"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Auditoria parcial: o guard valida fingerprint, revisão, generation e interaction_id; testes rejeitam revisão stale, input inseguro, opção não listada e guard de outro runtime/projeto sem reservar nenhuma intervenção. O E2E no SHA deaf2802 prova escolha estruturada permitida para Alpha pelo interaction ID, sem limpar Beta, através de IPC dedicado e sem PTY. Teste HTTP cobre sessão, CSRF e revogação; Mission intervention tem resolução idempotente após restart. Falta validar provider real/driver aplicável, recusa e continuidade da resposta em fluxo completo, além de autorização por projeto (o servidor permanece single-user, sem ACL por projeto). Capability pendente.",
-          "assertionAudit": "partial"
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "focus-queue",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Fila de pendências priorizadas por severidade e tempo",
-          "sourceRefs": [
-            "web/src/app/attentionRadarModel.ts"
-          ],
-          "testRefs": [
-            "web/src/app/attentionRadarModel.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Deduplicação, idempotência e resposta sem reabrir ações resolvidas",
-          "sourceRefs": [
-            "web/src/app/attentionRadarModel.ts"
-          ],
-          "testRefs": [
-            "web/src/app/attentionRadarModel.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "agent-timeline",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Linha de tempo de launch, attach, quota, handoff e recovery",
-          "sourceRefs": [
-            "web/src/app/activityModel.ts"
-          ],
-          "testRefs": [
-            "web/src/app/activityModel.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Eventos com timestamp, source, runtimeGeneration e correlação",
-          "sourceRefs": [
-            "web/src/app/activityModel.ts"
-          ],
-          "testRefs": [
-            "web/src/app/activityModel.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "resource-recommendations",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Recomendações com elegibilidade e motivo para conta/modelo",
-          "sourceRefs": [
-            "internal/nexus/resource_recommendation.go"
-          ],
-          "testRefs": [
-            "internal/nexus/resource_recommendation_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "LIVE/CACHED/UNKNOWN explícitos; respeitar PIN e quota",
-          "sourceRefs": [
-            "internal/nexus/resource_recommendation.go"
-          ],
-          "testRefs": [
-            "internal/nexus/resource_recommendation_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "runtime-health",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Diagnosticar lease, PTY, heartbeat, PID e provider capability",
-          "sourceRefs": [
-            "internal/control/registry/lifecycle.go"
-          ],
-          "testRefs": [
-            "internal/control/registry/lifecycle_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Erros e UNKNOWN visíveis sem afirmar recuperação falsa",
-          "sourceRefs": [
-            "internal/control/registry/lifecycle.go"
-          ],
-          "testRefs": [
-            "internal/control/registry/lifecycle_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "agent-compare",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Comparar duas implementações executadas em worktrees independentes",
-          "sourceRefs": [
-            "internal/nexus/runner/review.go"
-          ],
-          "testRefs": [
-            "internal/nexus/runner/review_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Testes e custo com evidência e critérios explícitos",
-          "sourceRefs": [
-            "internal/nexus/runner/review.go"
-          ],
-          "testRefs": [
-            "internal/nexus/runner/review_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "review-handoff",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Enviar diff de Agent para revisão independente delimitada",
-          "sourceRefs": [
-            "internal/nexus/mission_team.go"
-          ],
-          "testRefs": [
-            "internal/nexus/mission_team_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Resposta e proof vinculados ao dono do Run sem duplicar execução",
-          "sourceRefs": [
-            "internal/nexus/mission_team.go"
-          ],
-          "testRefs": [
-            "internal/nexus/mission_team_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "consult-another-agent",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Solicitar segunda opinião com contexto/scope do Maestro",
-          "sourceRefs": [
-            "internal/nexus/mission_team.go"
-          ],
-          "testRefs": [
-            "internal/nexus/mission_team_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Evitar loops, auto-delegação e ações externas não autorizadas",
-          "sourceRefs": [
-            "internal/nexus/mission_team.go"
-          ],
-          "testRefs": [
-            "internal/nexus/mission_team_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "change-radar",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Arquivos e hunks alterados agrupados por Agent/worktree",
-          "sourceRefs": [
-            "internal/control/web/handlers_git_worktrees.go"
-          ],
-          "testRefs": [
-            "internal/control/web/handlers_git_worktrees_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Aviso de colisão com base commit e revisão humana",
-          "sourceRefs": [
-            "internal/control/web/handlers_git_worktrees.go"
-          ],
-          "testRefs": [
-            "internal/control/web/handlers_git_worktrees_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "test-matrix",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Exibir resultados reais dos comandos de teste por worktree",
-          "sourceRefs": [
-            "internal/nexus/evidence_bundle.go"
-          ],
-          "testRefs": [
-            "internal/nexus/evidence_bundle_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Exit code, SHA, timestamp e logs; nenhuma declaração LLM vira PASS",
-          "sourceRefs": [
-            "internal/nexus/evidence_bundle.go"
-          ],
-          "testRefs": [
-            "internal/nexus/evidence_bundle_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "release-desk",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Vincular evidências, PRs, issues, diff e gates de uma release",
-          "sourceRefs": [
-            "internal/nexus/evidence_bundle.go"
-          ],
-          "testRefs": [
-            "internal/nexus/evidence_bundle_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Sem merge/publicação sem aprovação e checks verificáveis",
-          "sourceRefs": [
-            "internal/nexus/evidence_bundle.go"
-          ],
-          "testRefs": [
-            "internal/nexus/evidence_bundle_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "browser-pane",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Abrir Browser como superfície real do Workspace OS",
-          "sourceRefs": [
-            "web/src/features/browser/BrowserSurface.tsx"
-          ],
-          "testRefs": [
-            "web/src/features/browser/BrowserSurface.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Sem iframe como substituto de browser automation",
-          "sourceRefs": [
-            "web/src/features/browser/BrowserSurface.tsx"
-          ],
-          "testRefs": [
-            "web/src/features/browser/BrowserSurface.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "design-inspect",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Selecionar elemento e coletar DOM/estilos/screenshot sanitizados",
-          "sourceRefs": [
-            "internal/browsercontrol/browser.go",
-            "internal/browsercontrol/browser_semantic.go",
-            "internal/browsercontrol/browser_collaboration.go"
-          ],
-          "testRefs": [
-            "internal/browsercontrol/browser_test.go",
-            "internal/browsercontrol/browser_collaboration_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Candidate tests now verify sanitized snapshot URL/text and redaction of human auth session IDs. The implementation still lacks selected-element DOM/computed-style inspection, scoped sanitized screenshot crop, and a design-specific sanitizer for captured imagery; criterion remains partial/unverified.",
-          "assertionAudit": "partial"
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Encaminhar contexto apenas a Agent explicitamente escolhido",
-          "sourceRefs": [
-            "internal/control/web/handlers_browser.go",
-            "internal/control/web/handlers_browser_mcp.go",
-            "internal/browsercontrol/browser_collaboration.go"
-          ],
-          "testRefs": [
-            "internal/control/web/handlers_browser_test.go",
-            "internal/control/web/handlers_browser_mcp_test.go",
-            "internal/browsercontrol/browser_collaboration_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Existing tests cover project-scoped temporary grants, authentication, revocation, and private-human gating. A grant is still label/actor-scoped rather than bound to a persistent Agent explicitly selected in the UI; no selected-Agent-only inspection-context delivery exists. Criterion remains partial/unverified.",
-          "assertionAudit": "partial"
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "live-preview",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Exibir app web local autorizada vinculada ao processo host",
-          "sourceRefs": [
-            "internal/browsercontrol/browser_stream.go",
-            "internal/browsercontrol/browser_runtime_session.go",
-            "internal/browsercontrol/runtime_capability.go",
-            "web/src/features/browser/BrowserSurface.tsx"
-          ],
-          "testRefs": [
-            "internal/browsercontrol/browser_test.go",
-            "internal/browsercontrol/runtime_capability_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Local Chromium test exercises a local app screenshot/frame stream and runtime-capability tests bind access to a live runtime. Browser URL admission is not bound to the runtime host process or its listening port, so unrelated local services can still be selected. Criterion remains partial/unverified.",
-          "assertionAudit": "partial"
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Não expor host arbitrário nem segredos de sessão",
-          "sourceRefs": [
-            "internal/browsercontrol/browser.go",
-            "internal/control/web/handlers_browser.go",
-            "internal/control/web/handlers_browser_mcp.go"
-          ],
-          "testRefs": [
-            "internal/browsercontrol/browser_test.go",
-            "internal/browsercontrol/browser_collaboration_test.go",
-            "internal/control/web/handlers_browser_test.go",
-            "internal/control/web/handlers_browser_mcp_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Browser metadata/snapshot now redact embedded credentials, sensitive URL query values, common secret text, and human auth-session identifiers; targeted tests cover these boundaries. General browser navigation still allows arbitrary HTTP(S) hosts, and screenshots are not design-inspect sanitized. Capability remains partial/unverified.",
-          "assertionAudit": "partial"
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "browser-automation",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "MCP e CDP com capacidades verificáveis e grant temporário",
-          "sourceRefs": [
-            "internal/control/web/handlers_browser_mcp.go"
-          ],
-          "testRefs": [
-            "internal/control/web/handlers_browser_mcp_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Intervenção humana para MFA, revoke, isolamento e auditoria",
-          "sourceRefs": [
-            "internal/control/web/handlers_browser_mcp.go"
-          ],
-          "testRefs": [
-            "internal/control/web/handlers_browser_mcp_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "visual-diff",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Comparar antes/depois por screenshot determinística",
-          "sourceRefs": [
-            "web/src/features/browser/BrowserSurface.tsx"
-          ],
-          "testRefs": [
-            "web/src/features/browser/BrowserSurface.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Região e limiar declarados, revisão e artefatos rastreáveis",
-          "sourceRefs": [
-            "web/src/features/browser/BrowserSurface.tsx"
-          ],
-          "testRefs": [
-            "web/src/features/browser/BrowserSurface.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "device-preview",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Viewports de telefone, tablet e desktop na mesma browser session",
-          "sourceRefs": [
-            "web/src/features/browser/BrowserSurface.tsx"
-          ],
-          "testRefs": [
-            "web/src/features/browser/BrowserSurface.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Escalas, foco, acessibilidade e redimensionamento correto",
-          "sourceRefs": [
-            "web/src/features/browser/BrowserSurface.tsx"
-          ],
-          "testRefs": [
-            "web/src/features/browser/BrowserSurface.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "mobile-inbox",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Perguntas/approvals e jobs no celular vinculados à sessão",
-          "sourceRefs": [
-            "web/src/components/GlobalAttentionRadar.tsx"
-          ],
-          "testRefs": [
-            "web/src/app/attentionRadarModel.test.ts",
-            "web/src/notifications/attentionDelivery.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Responder uma vez, inclusive em reconexões ou falhas de rede",
-          "sourceRefs": [
-            "web/src/components/GlobalAttentionRadar.tsx"
-          ],
-          "testRefs": [
-            "web/src/app/attentionRadarModel.test.ts",
-            "web/src/notifications/attentionDelivery.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "remote-terminal",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Conectar ao terminal existente sem criar novo runtime",
-          "sourceRefs": [
-            "web/src/nexus/AgentTerminal.tsx"
-          ],
-          "testRefs": [
-            "web/src/nexus/agentTerminalModel.test.ts",
-            "web/src/nexus/terminalInput.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Controle único com token scoped, CSRF, expiry e revoke",
-          "sourceRefs": [
-            "web/src/nexus/AgentTerminal.tsx"
-          ],
-          "testRefs": [
-            "web/src/nexus/agentTerminalModel.test.ts",
-            "web/src/nexus/terminalInput.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "workspace-sharing",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Compartilhar observação por projeto/Agent sob RBAC",
-          "sourceRefs": [
-            "internal/browsercontrol/browser_collaboration.go"
-          ],
-          "testRefs": [
-            "internal/browsercontrol/browser_collaboration_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Viewer-only inicial; cross-project leakage negado e revoke imediato",
-          "sourceRefs": [
-            "internal/browsercontrol/browser_collaboration.go"
-          ],
-          "testRefs": [
-            "internal/browsercontrol/browser_collaboration_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "voice-actions",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Ação de voz exige controle explícito e identifica Agent de destino",
-          "sourceRefs": [
-            "web/src/features/voice/VoiceCaptureButton.tsx"
-          ],
-          "testRefs": [
-            "internal/desktop/voice_capture_test.go",
-            "internal/voice/service_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Não inserir Enter automaticamente nem ler segredos do prompt",
-          "sourceRefs": [
-            "web/src/features/voice/VoiceCaptureButton.tsx"
-          ],
-          "testRefs": [
-            "internal/desktop/voice_capture_test.go",
-            "internal/voice/service_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "contextual-hud",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "HUD exibe apenas estado/sinal real de Agent e atenção",
-          "sourceRefs": [
-            "web/src/features/hud/NexusHud.tsx"
-          ],
-          "testRefs": [
-            "cmd/nexus-hud/attention_monitor_test.go",
-            "web/src/features/hud/GuardianMascot.test.tsx",
-            "web/src/features/hud/hudModel.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Não bloquear janelas; reduced-motion e smoke nativo",
-          "sourceRefs": [
-            "web/src/features/hud/NexusHud.tsx"
-          ],
-          "testRefs": [
-            "cmd/nexus-hud/attention_monitor_test.go",
-            "web/src/features/hud/GuardianMascot.test.tsx",
-            "web/src/features/hud/hudModel.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "nex-companion",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Mascote abre a ação operacional correspondente a evento confirmado",
-          "sourceRefs": [
-            "web/src/features/hud/NexPixelSprite.tsx"
-          ],
-          "testRefs": [
-            "web/src/features/hud/mascotModel.test.ts",
-            "web/src/features/hud/nexCompanionBehavior.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Respeitar NEX identity lock, alto contraste e motion reduction",
-          "sourceRefs": [
-            "web/src/features/hud/NexPixelSprite.tsx"
-          ],
-          "testRefs": [
-            "web/src/features/hud/mascotModel.test.ts",
-            "web/src/features/hud/nexCompanionBehavior.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "workspace-recipes",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Cinco receitas Frontend/Backend/Review/Debug/Release selecionáveis no menu; evolução para receitas personalizadas e persistência por projeto ainda pendente",
-          "sourceRefs": [
-            "web/src/workspace/arrangePresets.ts"
-          ],
-          "testRefs": [
-            "web/src/workspace/arrangePresets.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Receita não inicia Agents ou ações automaticamente",
-          "sourceRefs": [
-            "web/src/workspace/arrangePresets.ts"
-          ],
-          "testRefs": [
-            "web/src/workspace/arrangePresets.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "parallel-challenge",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Distribuir uma especificação a múltiplos Agents isolados e compará-los",
-          "sourceRefs": [
-            "internal/nexus/worktree.go"
-          ],
-          "testRefs": [
-            "internal/nexus/worktree_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Sem merge automático, custo UNKNOWN não vira zero",
-          "sourceRefs": [
-            "internal/nexus/worktree.go"
-          ],
-          "testRefs": [
-            "internal/nexus/worktree_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "change-collision-detector",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Detectar alterações conflitantes por base commit/hunks",
-          "sourceRefs": [
-            "internal/control/web/handlers_git_worktrees.go"
-          ],
-          "testRefs": [
-            "internal/control/web/handlers_git_worktrees_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Informar incerteza e permitir revisão antes do merge",
-          "sourceRefs": [
-            "internal/control/web/handlers_git_worktrees.go"
-          ],
-          "testRefs": [
-            "internal/control/web/handlers_git_worktrees_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "device-handoff",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Continuar no mobile a sessão do host sem duplicar execução",
-          "sourceRefs": [
-            "internal/control/web/handler_terminal.go",
-            "internal/control/web/broker.go",
-            "internal/control/host/host.go",
-            "web/src/nexus/AgentTerminal.tsx"
-          ],
-          "testRefs": [
-            "internal/control/host/qa_test.go",
-            "internal/control/web/terminal_replay_test.go",
-            "internal/control/web/broker_watch_test.go",
-            "web/scripts/e2e-agent-terminal-follow.mjs"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Candidate tests exercise host attach/detach, replay completion, reattach watches, and explicit browser follow. They do not combine authenticated desktop/mobile clients with process/runtime identity and a single execution counter; the E2E socket is fixture-controlled. Physical phone/tunnel/provider continuity remains external evidence.",
-          "assertionAudit": "partial"
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Lease, reattach, estados reconciliados e histórico auditável",
-          "sourceRefs": [
-            "internal/control/web/broker.go",
-            "internal/control/host/host.go",
-            "internal/nexus/nexus.go",
-            "web/src/nexus/AgentTerminal.tsx"
-          ],
-          "testRefs": [
-            "internal/control/host/host_test.go",
-            "internal/control/host/qa_test.go",
-            "internal/control/web/handler_terminal_lease_test.go",
-            "internal/control/web/terminal_replay_test.go",
-            "internal/control/web/broker_watch_test.go",
-            "web/src/nexus/agentTerminalModel.test.ts"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Tests cover exclusive leases, explicit VIEW_ONLY/takeover, replay-before-live, and state reconciliation separately. Durable audit events for device lease transitions and a combined two-client input receipt/reconnect test are absent; no real mobile exact-SHA evidence exists. Criterion remains partial/unverified.",
-          "assertionAudit": "partial"
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "maestro-managed-dependency",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Nexus localiza/instala versão compatível e negocia capacidades",
-          "sourceRefs": [
-            "internal/nexus/maestro.go"
-          ],
-          "testRefs": [
-            "internal/nexus/maestro_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Maestro permanece standalone sem dependência do Nexus",
-          "sourceRefs": [
-            "internal/nexus/maestro.go"
-          ],
-          "testRefs": [
-            "internal/nexus/maestro_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "maestro-canonical-memory",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Migrar IntelligenceMemory com backup, dry-run, idempotência e rollback",
-          "sourceRefs": [
-            "internal/nexus/intelligence_memory.go"
-          ],
-          "testRefs": [
-            "internal/nexus/intelligence_memory_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Nexus retém somente checkpoint operacional e nunca segunda store semântica",
-          "sourceRefs": [
-            "internal/nexus/intelligence_memory.go"
-          ],
-          "testRefs": [
-            "internal/nexus/intelligence_memory_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "single-execution-owner",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Cada Run tem executor único NEXUS ou MAESTRO",
-          "sourceRefs": [
-            "internal/nexus/mission_executor.go"
-          ],
-          "testRefs": [
-            "internal/nexus/mission_executor_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Retry, cancel e terminal input seguem o owner; não há duplo supervisor",
-          "sourceRefs": [
-            "internal/nexus/mission_executor.go"
-          ],
-          "testRefs": [
-            "internal/nexus/mission_executor_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "composer-flow-onboarding",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Concluir Composer/Flow e tours por componente reutilizável",
-          "sourceRefs": [
-            "web/src/features/work/ComposerSurface.tsx",
-            "web/src/features/work/DirectSessionLauncher.tsx",
-            "web/src/features/work/directSessionLifecycle.ts",
-            "internal/control/web/handlers_agents.go",
-            "internal/nexus/nexus.go",
-            "internal/nexus/config.go",
-            "internal/nexus/mission_execution.go"
-          ],
-          "testRefs": [
-            "web/src/features/work/FlowPipeline.test.tsx",
-            "web/src/features/work/featureAnnouncements.test.ts",
-            "web/scripts/e2e-first-run-import.mjs",
-            "internal/control/web/handlers_nexus_test.go",
-            "internal/nexus/nexus_p0_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "E2E first-run percorre onboarding e cenário DirectSession. Em 2026-11-09 foi endurecido para criar Agent, validar config e executar rollback/delete pela API Core real quando o profile selecionado não existe; somente resource selection é fixture. O cancelamento solicitado na UI agora aguarda o start, executa stop e só depois delete; o browser verifica a ordem com Core real para CRUD/stop e resposta start controlada. TestAuthenticatedAgentCancellationStopsRuntimeWithoutOrphan complementa a prova com SessionHost real supervisionado e verifica Agent STOPPED, StoppedAt e runtime ausente/inativa no Registry. Ainda faltam dois perfis autenticados, cancelamento visual com provider real e instalação/distribuição final; critério segue unverified/pending. Lifecycle publication is serialized across StartAgent, RecoverAgent, SafeApply, mission prompt start, and continuity failover; focused regressions cover canceled lock acquisition and stop racing start/recovery/reconfiguration. This closes a local concurrency gap but still does not prove two real provider profiles or exact-SHA distributed cancellation.",
-          "assertionAudit": "partial"
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "E2E na distribuição final, PT/EN/ES, teclado e cenários reais",
-          "sourceRefs": [
-            "web/src/features/work/ComposerSurface.tsx",
-            "internal/nexus/nexus.go",
-            "internal/nexus/config.go",
-            "internal/nexus/mission_execution.go"
-          ],
-          "testRefs": [
-            "web/src/features/work/FlowPipeline.test.tsx",
-            "web/src/features/work/featureAnnouncements.test.ts",
-            "web/scripts/e2e-first-run-import.mjs",
-            "internal/control/web/handlers_nexus_test.go",
-            "internal/nexus/nexus_p0_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "E2E browser cobre importação/quick-connect com endpoints de provider fixture, rollback DirectSession antes do start e cancelamento solicitado durante start com sequência start→stop→delete; CRUD/stop passam pelo Core real, mas start é controlado pelo harness e não cria processo nessa execução. O teste Go adicional inicia SessionHost supervisionado de verdade e verifica o stop barrier autenticado/cleanup persistente. Ainda não cobre pacote distribuído no SHA final, dois perfis autenticados, ciclo provider real ou matriz completa PT/EN/ES e teclado; capability permanece unverified/pending. Lifecycle publication is serialized across StartAgent, RecoverAgent, SafeApply, mission prompt start, and continuity failover; focused regressions cover canceled lock acquisition and stop racing start/recovery/reconfiguration. This closes a local concurrency gap but still does not prove two real provider profiles or exact-SHA distributed cancellation.",
-          "assertionAudit": "partial"
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "remote-generated-outputs",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Listar e visualizar imagens, vídeo e arquivos gerados no host",
-          "sourceRefs": [
-            "internal/nexus/artifacts/catalog.go"
-          ],
-          "testRefs": [
-            "internal/nexus/artifacts/catalog_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "ACL por projeto, MIME/hash, TTL e não expor filesystem indiscriminadamente",
-          "sourceRefs": [
-            "internal/nexus/artifacts/catalog.go"
-          ],
-          "testRefs": [
-            "internal/nexus/artifacts/catalog_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "two-client-real-e2e",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Dois clientes simultâneos e dois Agents em worktrees distintos",
-          "sourceRefs": [
-            "internal/control/web/multi_runtime_attention_e2e_test.go"
-          ],
-          "testRefs": [
-            "internal/control/web/multi_runtime_attention_e2e_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "Leases, conflitos, handoffs, browsers e reconexões autenticados",
-          "sourceRefs": [
-            "internal/control/web/multi_runtime_attention_e2e_test.go"
-          ],
-          "testRefs": [
-            "internal/control/web/multi_runtime_attention_e2e_test.go"
-          ],
-          "mappingStatus": "source-and-test-referenced",
-          "coverage": "unverified",
-          "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
-        }
-      ],
-      "verification": "pending"
-    },
-    {
-      "id": "cross-platform-exact-sha",
-      "criteria": [
-        {
-          "acceptanceIndex": 0,
-          "acceptance": "Linux/Windows/macOS mesma revisão em release candidate",
-          "sourceRefs": [
-            ".github/workflows/ci.yml"
-          ],
-          "testRefs": [],
-          "mappingStatus": "source-only",
-          "coverage": "unverified",
-          "gap": "Aceite depende de evidência externa same-SHA em três sistemas, instalação/artefatos e assinatura; teste local não certifica esses runners."
-        },
-        {
-          "acceptanceIndex": 1,
-          "acceptance": "PTY/ConPTY, Browser, Desktop, HUD, install e artefatos rastreáveis",
-          "sourceRefs": [
-            ".github/workflows/ci.yml"
-          ],
-          "testRefs": [],
-          "mappingStatus": "source-only",
-          "coverage": "unverified",
-          "gap": "Aceite depende de evidência externa same-SHA em três sistemas, instalação/artefatos e assinatura; teste local não certifica esses runners."
-        }
-      ],
-      "verification": "pending"
+     "acceptanceIndex": 1,
+     "acceptance": "Control lease, Ctrl+C, setas, scrollback e resize PTY/ConPTY com dois clientes",
+     "sourceRefs": [
+      "internal/control/host/host.go",
+      "web/src/workspace/WorkspaceRenderer.tsx"
+     ],
+     "testRefs": [
+      "internal/control/host/host_test.go",
+      "internal/control/host/qa_test.go",
+      "internal/control/host/slash_prefix_test.go",
+      "internal/control/host/terminal_windows_test.go",
+      "internal/control/protocol/protocol_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Auditoria: lease/handover, Ctrl+C routing, ring buffer, tecla ConPTY e resize efetivo para segundo cliente agora têm verificações, mas permanecem em cenários separados. Falta aceite integrado de concorrência/controle com scrollback após reconnect; validar resize em runner Windows/ConPTY continua necessário.",
+     "assertionAudit": "partial"
     }
-  ]
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "agent-command-center",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Cartões de todos os Agents por projeto com estados observados e seleção direta",
+     "sourceRefs": [
+      "web/src/features/agents/AgentsSurface.tsx"
+     ],
+     "testRefs": [
+      "internal/nexus/agent_application_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Auditoria parcial: TestAgentApplicationServiceListScopesProjectAndProjectsEffectiveRuntimeState verifica a lista limitada ao projeto e estado RECOVERABLE projetado para runtime morto. Ainda falta teste de UI que prove os cartões e a seleção direta do Agent correto; capacidade pendente.",
+     "assertionAudit": "partial"
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Trabalhando/aguardando/erro/concluído sem inferir estado do texto do CLI",
+     "sourceRefs": [
+      "web/src/features/agents/AgentsSurface.tsx",
+      "internal/control/host/attention.go"
+     ],
+     "testRefs": [
+      "internal/nexus/agent_application_test.go",
+      "internal/control/host/attention_test.go",
+      "internal/control/host/osc7501_integration_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Auditoria parcial: a listagem preserva estados estruturados e converte WORKING com runtime morto em RECOVERABLE; os testes de atenção cobrem eventos estruturados, OSC e heurísticas textuais do PTY. Falta demonstrar no fluxo real que aguardando/erro/concluído chegam aos cartões por fonte estruturada sem heurística de texto; COMPLETED ainda não é um estado tipado do Agent. Capacidade pendente.",
+     "assertionAudit": "partial"
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "review-studio",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Diff, teste, evidência e terminal no mesmo workspace",
+     "sourceRefs": [
+      "internal/nexus/runner/review.go",
+      "internal/nexus/runner/runner.go"
+     ],
+     "testRefs": [
+      "internal/nexus/runner/review_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Auditoria parcial: review_test.go percorre fases de revisão/verificação com executor fake e evidencia ordem do pipeline, mas review.go só normaliza e mantém findings. Não há superfície que reúna diff, resultados reais de teste, evidências e terminal no workspace nem E2E desse aceite. Capability pendente.",
+     "assertionAudit": "partial"
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Review read-only por padrão com autorização explícita para aplicar mudanças",
+     "sourceRefs": [
+      "internal/nexus/runner/review.go",
+      "internal/nexus/runner/runner.go"
+     ],
+     "testRefs": [
+      "internal/nexus/runner/review_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Auditoria parcial: review.go mantém o ledger semântico de findings; review_test.go cobre findings, remediação e prova o pipeline com executor fake sem dispatch de escrita nas fases REVIEW/VERIFICATION. Ainda não demonstra autorização explícita do usuário para aplicar mudanças nem UI read-only por padrão. Capability pendente.",
+     "assertionAudit": "partial"
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "browser-studio",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "BrowserSurface integrada a terminal, diff e Agent Inspector",
+     "sourceRefs": [
+      "web/src/features/browser/BrowserSurface.tsx",
+      "web/src/app/WorkspaceSurfaceHost.tsx"
+     ],
+     "testRefs": [
+      "web/src/features/browser/BrowserSurface.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Auditoria parcial: BrowserSurface.test.ts verifica normalização de URL, títulos e modelo de controle; WorkspaceSurfaceHost monta a superfície sob o projectId. Nenhum teste comprova integração no mesmo workspace com terminal, diff e Agent Inspector; a superfície atual não recebe esses recursos como painel integrado. Capability pendente.",
+     "assertionAudit": "partial"
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Permissões de CDP/MCP, takeover humano e sessão de projeto isolada",
+     "sourceRefs": [
+      "web/src/features/browser/BrowserSurface.tsx",
+      "internal/browsercontrol/browser_collaboration.go",
+      "internal/browsercontrol/runtime_capability.go"
+     ],
+     "testRefs": [
+      "web/src/features/browser/BrowserSurface.test.ts",
+      "internal/browsercontrol/browser_collaboration_test.go",
+      "internal/browsercontrol/runtime_capability_test.go",
+      "internal/control/web/handlers_browser_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Auditoria parcial: testes cobrem modo observer/takeover no modelo UI, handoff humano com bloqueio do Agent, grants revogáveis por sessão e capabilities de runtime escopadas ao projeto. A rota HTTP prova auth/CSRF; falta fluxo E2E integrado CDP/MCP + isolamento da sessão de browser em dois projetos e grants por ator. Capability pendente.",
+     "assertionAudit": "partial"
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "comparison-lab",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Duas alternativas paralelas com worktrees e execução isolados",
+     "sourceRefs": [
+      "internal/nexus/comparison_campaign_application.go",
+      "internal/nexus/store/comparison_campaigns.go",
+      "web/src/features/work/ComparisonCampaignPanel.tsx",
+      "internal/nexus/comparison_application.go",
+      "internal/nexus/mission_executor.go",
+      "internal/nexus/mission_integration.go",
+      "web/src/features/work/ComparisonLabPanel.tsx"
+     ],
+     "testRefs": [
+      "internal/nexus/comparison_campaign_application_test.go",
+      "internal/nexus/store/comparison_campaigns_test.go",
+      "internal/nexus/comparison_application_test.go",
+      "internal/nexus/worktree_test.go",
+      "internal/nexus/mission_integration_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "O Comparison Lab agora persiste duas variantes congeladas do mesmo plano/revisão/base, cria previews independentes e despacha ambas pelo MissionRunner existente em workspaces isoladas; recuperação de restart não inicia trabalho e marca lançamento unilateral como parcial. Testes cobrem preparo, isolamento de identidade/dependências, consentimento dos previews, recuperação e comparação por campanha. Ainda falta execução A/B com provider real e validação no app distribuído/SHA exato; capability pendente.",
+     "assertionAudit": "partial"
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Comparador de testes/diffs/custo e decisão humana sem merge automático",
+     "sourceRefs": [
+      "internal/nexus/comparison_campaign_application.go",
+      "internal/nexus/store/comparison_campaigns.go",
+      "internal/control/web/handlers_comparison.go",
+      "web/src/features/work/ComparisonCampaignPanel.tsx",
+      "internal/nexus/comparison_application.go",
+      "internal/nexus/store/comparison.go",
+      "internal/control/web/handlers_comparison.go",
+      "web/src/features/work/ComparisonLabPanel.tsx"
+     ],
+     "testRefs": [
+      "internal/nexus/comparison_campaign_application_test.go",
+      "internal/nexus/store/comparison_campaigns_test.go",
+      "internal/control/web/handlers_comparison_test.go",
+      "internal/nexus/comparison_application_test.go",
+      "internal/nexus/store/comparison_test.go",
+      "internal/control/web/handlers_comparison_test.go",
+      "web/src/nexus/api.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "O comparador persistido registra testes, diffs, custos atribuídos (incluindo desconhecidos) e decisão humana one-way, sem aplicar merge. Campanhas agora ligam duas execuções à origem e variantes nomeadas. A cobertura automatizada ainda não demonstra chamadas reais a provider, métricas reais de custo nem experiência no app distribuído/SHA exato; capability pendente.",
+     "assertionAudit": "partial"
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "remote-companion",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Mobile Inbox e terminal remoto vinculados ao host",
+     "sourceRefs": [
+      "web/src/features/settings/RemoteAccessTab.tsx",
+      "internal/control/web/handlers_tunnel.go"
+     ],
+     "testRefs": [
+      "internal/control/web/remote_test.go",
+      "internal/control/web/remote_invite_test.go",
+      "web/src/notifications/attentionDelivery.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Auditoria parcial: RemoteAccessTab permite publicar túnel/QR e remote_test.go percorre bootstrap/API pelo túnel; remote_invite_test.go cobre convite autenticado de uso único; attentionDelivery.test.ts cobre chaves e foco da entrega. Não há teste de Mobile Inbox ou terminal remoto ponta a ponta em outro dispositivo/host. Capability pendente.",
+     "assertionAudit": "partial"
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Troca de dispositivo sem reiniciar sessão, com lease e revogação",
+     "sourceRefs": [
+      "web/src/features/settings/RemoteAccessTab.tsx",
+      "internal/control/host/host.go",
+      "internal/control/web/handlers_tunnel.go"
+     ],
+     "testRefs": [
+      "internal/control/host/qa_test.go",
+      "internal/control/host/host_test.go",
+      "internal/control/web/remote_invite_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Auditoria parcial: host_test e qa_test cobrem handover de lease entre dois attached clients sem reiniciar o PTY; remote_invite_test cobre convite/túnel seguro e corrida de gerações do túnel. Não há E2E real de troca de dispositivo com sessão preservada nem revogação imediata do dispositivo remoto/credencial. Capability pendente.",
+     "assertionAudit": "partial"
+    },
+    {
+     "acceptanceIndex": 2,
+     "acceptance": "Convite remoto por QR ou código de 8 caracteres de uso único, pareado e validado no dispositivo",
+     "sourceRefs": [
+      "internal/control/web/auth.go",
+      "internal/control/web/server.go",
+      "internal/control/web/handlers_tunnel.go",
+      "web/src/app/AccessCodeGate.tsx",
+      "web/src/api.ts",
+      "web/src/features/settings/RemoteAccessTab.tsx",
+      "web/src/features/settings/remoteAccessModel.ts"
+     ],
+     "testRefs": [
+      "internal/control/web/access_code_test.go",
+      "web/src/api.test.ts",
+      "web/src/features/settings/remoteAccessModel.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Auditoria parcial: access_code_test.go cobre geração Crockford, uso único, normalização I/L/O, vínculo ao host, túnel ativo, guarda anti-força-bruta e endpoint /api/v1/auth/pair; api.test.ts cobre a troca no cliente; remoteAccessModel.test.ts cobre a formatação. Falta E2E real com túnel público e dois dispositivos físicos no SHA distribuído. Assertion ainda não auditada e aceite pendente.",
+     "assertionAudit": "partial"
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "mission-observatory",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Visualização read-only de Missions, dependências, agentes e provas",
+     "sourceRefs": [
+      "web/src/features/work/FlowRunSurface.tsx"
+     ],
+     "testRefs": [
+      "internal/nexus/evidence_bundle_test.go",
+      "web/src/features/work/flowRunModel.test.ts",
+      "web/src/features/work/flowRunPresentation.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Auditoria parcial: FlowRunSurface projeta Mission, packages/agentes, dependências em capsules/receipts e bundle de evidências; flowRunModel/presentation cobrem mapeamentos de estado/dados e evidence_bundle_test prova receipts canônicos. Falta E2E da visualização read-only completa, vínculos de dependência e navegação do terminal no mesmo workspace. Capability pendente.",
+     "assertionAudit": "partial"
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "ExecutionOwner controla mutações, retries e cancelamento",
+     "sourceRefs": [
+      "web/src/features/work/FlowRunSurface.tsx",
+      "internal/nexus/runner/runner.go",
+      "internal/nexus/runner/types.go"
+     ],
+     "testRefs": [
+      "internal/nexus/runner/runner_durable_test.go",
+      "internal/nexus/runner/repository_concurrency_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Auditoria parcial: FlowRunSurface expõe pause/take-control/resume/cancel e MissionRunner persiste essas ações sob lease; testes cobrem ciclo durável e fencing. Porém MissionRun não tem campo ExecutionOwner e UI decide mutabilidade só pelo estado terminal, sem rotear por owner. Não há contrato/teste que faça owner único controlar retries e cancelamentos entre Nexus/Maestro. Capability pendente.",
+     "assertionAudit": "partial"
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "smart-layouts",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Layouts sugeridos por atividade sem spawn implícito de processo",
+     "sourceRefs": [
+      "web/src/workspace/arrangePresets.ts",
+      "web/src/workspace/WorkspacePresentationProvider.tsx"
+     ],
+     "testRefs": [
+      "web/src/workspace/arrangePresets.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Auditoria parcial: presets/recipes operam sobre IDs e geometria existentes, sem chamar API de launch; teste puro também apenas rearranja IDs fornecidos. Porém 'suggested by activity' não existe: Automatic/recipes são seleções estáticas, não recomendações derivadas de estado. Falta E2E de aplicar layout sem spawn implícito. Capability pendente.",
+     "assertionAudit": "partial"
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Preservação de surface IDs, foco, splits e restauração",
+     "sourceRefs": [
+      "web/src/workspace/WorkspacePresentationProvider.tsx",
+      "web/src/workspace/presentation.ts",
+      "web/src/workspace/state.ts",
+      "web/src/workspace/model.ts"
+     ],
+     "testRefs": [
+      "web/src/workspace/presentation.test.ts",
+      "web/src/workspace/state.test.ts",
+      "web/src/workspace/model.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Auditoria parcial: testes cobrem view/surface identity, foco, persistência/round-trip de layout, splits e restauração de janelas. arrangeByPreset preserva viewIds ao editar geometria. Falta E2E de salvar/restaurar layout completo no produto, incluindo surfaces/split/foco após recarga e múltiplos projetos. Capability pendente.",
+     "assertionAudit": "partial"
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "workspace-snapshots",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Salvar e restaurar estado visual versionado por projeto",
+     "sourceRefs": [
+      "web/src/services/WorkspaceLayoutService.ts",
+      "web/src/workspace/WorkspaceProvider.tsx",
+      "web/src/workspace/state.ts"
+     ],
+     "testRefs": [
+      "web/src/services/WorkspaceLayoutService.test.ts",
+      "web/src/workspace/state.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Auditoria parcial: WorkspaceLayoutService persiste/envelopa layout versionado v4 por projectId, com revisão, migração e export/import; testes cobrem save/load, versionamento, projeto e split. É um snapshot corrente por projeto, não histórico de snapshots nomeados; falta E2E no fluxo visual completo e sincronização/conflict handling real entre clientes. Capability pendente.",
+     "assertionAudit": "partial"
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Não ressuscitar processo morto nem duplicar runtime",
+     "sourceRefs": [
+      "web/src/services/WorkspaceLayoutService.ts",
+      "web/src/workspace/model.ts",
+      "web/src/app/WorkspaceSurfaceHost.tsx"
+     ],
+     "testRefs": [
+      "web/src/services/WorkspaceLayoutService.test.ts",
+      "web/src/workspace/model.test.ts",
+      "web/scripts/e2e-surface-isolation.mjs"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Auditoria parcial: desserialização remove superfícies lógicas duplicadas e WorkspaceSurfaceHost anexa por IDs/runtime existente; não chama start ao carregar estado. Testes cobrem dedupe e E2E tab-switch sem novo launch, não restauração de um snapshot contendo runtime morto nem garantem contra todo caminho de reabertura. Falta E2E restore com runtime encerrado/ativo e contagem de launches. Capability pendente.",
+     "assertionAudit": "partial"
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "agent-groups",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Agrupar Agents por tarefa, worktree e feature",
+     "sourceRefs": [
+      "internal/nexus/mission_team.go",
+      "internal/nexus/mission_executor.go",
+      "internal/nexus/mission_integration.go",
+      "internal/nexus/store/agent_groups.go",
+      "internal/control/web/handlers_agent_groups.go",
+      "web/src/features/agents/AgentsSurface.tsx"
+     ],
+     "testRefs": [
+      "internal/nexus/mission_team_test.go",
+      "internal/nexus/worktree_test.go",
+      "internal/nexus/mission_integration_test.go",
+      "internal/nexus/store/agent_groups_test.go",
+      "internal/control/web/agent_groups_api_test.go",
+      "web/src/features/agents/AgentsSurface.test.ts",
+      "web/scripts/e2e-agent-groups-live-session.mjs"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Core/HTTP/browser E2E local cria Agent groups pela UI com task/worktree/feature persistidos e captura 1280/768/320/390 sem overflow horizontal. Worktree é validado como metadado persistido; o teste não integra a associação a um git worktree real. Faltam execução/capturas no SHA publicado e homologação visual; capacidade permanece unverified.",
+     "assertionAudit": "partial"
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Filtrar e reordenar preservando identidade e sessão",
+     "sourceRefs": [
+      "web/src/features/agents/AgentsSurface.tsx",
+      "web/src/features/agents/agentGroupsModel.ts",
+      "internal/nexus/store/agent_groups.go"
+     ],
+     "testRefs": [
+      "web/src/features/agents/agentGroupsModel.test.ts",
+      "web/src/features/agents/AgentsSurface.test.ts",
+      "internal/nexus/store/agent_groups_test.go",
+      "internal/control/web/agent_groups_api_test.go",
+      "web/scripts/e2e-agent-groups-live-session.mjs"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "E2E local com Core/HTTP/browser reais usa OpenCode fixture local sem quota externa, cria duas gerações supervisionadas, filtra por grupo e sem grupo, reordena por Agent ID e verifica que o callback abre WebSocket real no mesmo agent_id/runtime_id; as duas gerações permanecem com os mesmos generation/runtime IDs e a UI não emite POST /start adicional. O fixture executa shell PTY, não sessão nativa de provedor; falta executar no SHA publicado e homologar o visual. Capability permanece unverified.",
+     "assertionAudit": "partial"
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "quick-switcher",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Command Palette pesquisa projetos, Agents, ações e superfícies",
+     "sourceRefs": [
+      "web/src/app/commands/registry.ts",
+      "web/src/app/NexusWorkspaceApp.tsx"
+     ],
+     "testRefs": [
+      "web/src/app/commands/registry.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Auditoria parcial: registry.test.ts cobre busca por label/keywords e prefixos project/agent/action/resource; NexusWorkspaceApp monta comandos de projetos e Agents reais, além de ações/surfaces. Falta teste de integração da lista dinâmica (troca de projeto, criação/remoção Agent) e execução da superfície correta sem efeito colateral de spawn além do comando explícito. Capability pendente.",
+     "assertionAudit": "partial"
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Atalhos e foco confiáveis em desktop e mobile",
+     "sourceRefs": [
+      "web/src/app/commands/CommandPalette.tsx",
+      "web/src/keyboard/KeyboardShortcutRegistry.ts",
+      "web/src/app/NexusWorkspaceApp.tsx"
+     ],
+     "testRefs": [
+      "web/src/keyboard/KeyboardShortcutRegistry.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Auditoria parcial: KeyboardShortcutRegistry.test.ts cobre escopo/teclas e evita disparar durante IME; CommandPalette implementa setas/Enter e SearchInput autoFocus, e app expõe acionador onCommand. Não há teste do componente para focus restore/trap e E2E desktop+mobile/teclado; comportamento responsivo e foco continuam pendentes. Capability pendente.",
+     "assertionAudit": "partial"
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "follow-agent",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Acompanhar visualização selecionada de Agent com pausa explícita",
+     "sourceRefs": [
+      "web/src/workspace/WorkspaceRenderer.tsx",
+      "web/src/nexus/AgentTerminal.tsx",
+      "web/src/nexus/terminalOutput.ts",
+      "web/src/features/work/FeatureTour.tsx"
+     ],
+     "testRefs": [
+      "web/src/nexus/terminalOutput.test.ts",
+      "web/scripts/e2e-agent-terminal-follow.mjs",
+      "web/src/features/work/featureTour.test.ts",
+      "web/src/features/work/featureTourAnchors.test.ts",
+      "web/src/features/work/featureReveal.test.ts",
+      "web/src/app/tour/tourTargets.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Ação explícita de pausar/retomar rolagem ao vivo implementada; bytes continuam sendo processados e a posição visível é preservada. E2E Playwright abriu Agent persistido via API real, exercitou o AgentTerminal/xterm e validou pause/resume; o WebSocket provider foi mockado. Ainda falta provar o pacote distribuído no SHA publicado e obter inspeção humana da UX.",
+     "assertionAudit": "partial"
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Não adquirir lease de input sem consentimento",
+     "sourceRefs": [
+      "web/src/nexus/AgentTerminal.tsx",
+      "web/src/nexus/agentTerminalModel.ts"
+     ],
+     "testRefs": [
+      "web/src/nexus/agentTerminalModel.test.ts",
+      "internal/control/host/host_test.go",
+      "web/scripts/e2e-agent-terminal-follow.mjs"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "E2E Playwright com servidor Nexus e Agent criado pela API prova que attach e tecla em VIEW_ONLY não emitem lease/input, botão explícito envia exatamente um lease_acquire, CONTROL envia input e revoke/reconnect não reacquire. WebSocket foi simulado no browser, portanto ainda falta teste do broker/host real para o mesmo ciclo de attach, lease e revoke; capability pendente.",
+     "assertionAudit": "partial"
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "floating-inspector",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Inspector destacável com status, identidade, evidência e lineage",
+     "sourceRefs": [
+      "web/src/features/work/ComposerInspector.tsx"
+     ],
+     "testRefs": [
+      "web/src/features/work/composerModel.test.ts",
+      "web/src/features/work/featureTour.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Somente estado observado e informação já autorizada",
+     "sourceRefs": [
+      "web/src/features/work/ComposerInspector.tsx"
+     ],
+     "testRefs": [
+      "web/src/features/work/composerModel.test.ts",
+      "web/src/features/work/featureTour.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "agent-parking",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Diferenciar ocultar superfície de suspender runtime quando suportado",
+     "sourceRefs": [
+      "web/src/features/agents/agentParkingModel.ts",
+      "web/src/features/agents/AgentsSurface.tsx"
+     ],
+     "testRefs": [
+      "web/src/features/agents/agentParkingModel.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Distinção implementada: ocultar superfície (workspace.close do logicalKey agent:{id}:terminal) é puramente visual; suspensão de runtime não existe no backend e o model só oferece a ação suspend quando explicitamente suportada (parkingOptions(false) jamais a inclui). Aceite permanece pendente de homologação em app distribuído."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "UI não diz que processo está pausado se só ficou oculto",
+     "sourceRefs": [
+      "web/src/features/agents/agentParkingModel.ts",
+      "web/src/features/agents/AgentsSurface.tsx",
+      "web/src/i18n/resources.ts"
+     ],
+     "testRefs": [
+      "web/src/features/agents/agentParkingModel.test.ts",
+      "web/src/i18n/i18n.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Regressão travada por teste: cópia de ocultar/oculto-em-execução nos 3 locales deve afirmar que o runtime continua em execução e conter a negação explícita (not paus/não paus/no paus); nota honesta no card quando superfície oculta e runtime WORKING. Aceite permanece pendente de homologação em app distribuído."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "attention-radar",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Consolidar aprovações, perguntas, erros e blockers de CLIs heterogêneos",
+     "sourceRefs": [
+      "internal/control/agentwire/bridge.go",
+      "internal/control/agentwire/projection.go",
+      "internal/control/agentwire/state.go",
+      "internal/control/host/host.go",
+      "internal/control/host/attention.go",
+      "internal/control/registry/models.go",
+      "web/src/notifications/InAppNotificationCenter.tsx",
+      "web/src/app/attentionRadarModel.ts",
+      "web/src/app/NexusWorkspaceApp.tsx"
+     ],
+     "testRefs": [
+      "internal/control/host/attention_test.go",
+      "internal/control/host/structured_attention_pipeline_test.go",
+      "internal/control/web/structured_multiclient_process_e2e_test.go",
+      "web/src/app/attentionRadarModel.test.ts",
+      "web/src/app/surfaces.test.ts",
+      "web/src/i18n/i18n.test.ts",
+      "web/scripts/e2e-attention-radar-focus.mjs",
+      "web/scripts/e2e-attention-radar-process-api-browser.mjs"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "TestACPAttentionRadarBrowserIntegration combina subprocessos ACP determinísticos supervisionados, Bridge→SessionHost→Registry, GET autenticado /api/v1/runtimes sem overlay e Playwright que foca o runtime exato entre projetos e abre os WebSockets reais dos SessionHosts. O E2E passou no SHA publicado deaf2802 em 2026-11-09; ainda usa provider fixture, não valida provider externo nem aplicativo distribuído no SHA final. As assertions foram exercitadas, mas o critério e a capability continuam unverified/pending até provider real aplicável, homologação do artefato final e auditoria semântica completa.",
+     "assertionAudit": "partial"
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Ações direcionadas a geração e provider corretos com dados verificáveis",
+     "sourceRefs": [
+      "web/src/components/GlobalAttentionRadar.tsx",
+      "internal/control/web/handlers_api.go",
+      "internal/nexus/runtime_application.go",
+      "internal/control/registry/attention_claim.go",
+      "internal/control/host/attention.go",
+      "internal/control/host/structured_backend.go",
+      "internal/control/protocol/protocol.go",
+      "web/src/components/AttentionNotificationCard.tsx",
+      "web/src/components/attentionResponseGuard.ts"
+     ],
+     "testRefs": [
+      "internal/control/web/handlers_attention_fence_test.go",
+      "internal/control/web/handlers_nexus_test.go",
+      "internal/control/registry/attention_claim_test.go",
+      "internal/control/host/structured_attention_pipeline_test.go",
+      "internal/control/web/structured_multiclient_process_e2e_test.go",
+      "web/src/components/AttentionNotification.test.ts",
+      "web/scripts/e2e-attention-radar-process-api-browser.mjs"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Auditoria parcial: o guard valida fingerprint, revisão, generation e interaction_id; testes rejeitam revisão stale, input inseguro, opção não listada e guard de outro runtime/projeto sem reservar nenhuma intervenção. O E2E no SHA deaf2802 prova escolha estruturada permitida para Alpha pelo interaction ID, sem limpar Beta, através de IPC dedicado e sem PTY. Teste HTTP cobre sessão, CSRF e revogação; Mission intervention tem resolução idempotente após restart. Falta validar provider real/driver aplicável, recusa e continuidade da resposta em fluxo completo, além de autorização por projeto (o servidor permanece single-user, sem ACL por projeto). Capability pendente.",
+     "assertionAudit": "partial"
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "focus-queue",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Fila de pendências priorizadas por severidade e tempo",
+     "sourceRefs": [
+      "web/src/app/focusQueueModel.ts",
+      "web/src/notifications/FocusQueueSection.tsx",
+      "web/src/notifications/InAppNotificationCenter.tsx"
+     ],
+     "testRefs": [
+      "web/src/app/focusQueueModel.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Auditoria: o modelo puro ordena pendências por severidade (needs_user antes de error) e depois pelo episódio mais antigo, deduplica por episódio e exclui o que já foi respondido na revisão corrente; a seção Fila na central de notificações projeta essa ordem com rótulos i18n e foco no runtime exato. Unit tests e gates de catálogo/tour passam. Falta E2E visual do drawer com fila real e homologação no app distribuído; o aceite permanece pendente.",
+     "assertionAudit": "partial"
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Deduplicação, idempotência e resposta sem reabrir ações resolvidas",
+     "sourceRefs": [
+      "web/src/app/focusQueueModel.ts",
+      "internal/control/registry/attention_claim.go",
+      "internal/control/registry/registry.go"
+     ],
+     "testRefs": [
+      "web/src/app/focusQueueModel.test.ts",
+      "internal/control/registry/attention_claim_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Auditoria: a fila nunca reapresenta episódio com attention_submitted_revision >= attention_revision, e o registro Go mantém claim one-shot durável (replay do mesmo payload retorna resultado persistido sem novo IPC; revisão nova reabre apenas o episódio novo). Testes cobrem dedupe, não-reabertura e claim idempotente; falta prova integrada de resposta na UI seguida de reconexão no app distribuído. Aceite permanece pendente.",
+     "assertionAudit": "partial"
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "agent-timeline",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Linha de tempo de launch, attach, quota, handoff e recovery",
+     "sourceRefs": [
+      "web/src/app/activityModel.ts"
+     ],
+     "testRefs": [
+      "web/src/app/activityModel.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Eventos com timestamp, source, runtimeGeneration e correlação",
+     "sourceRefs": [
+      "web/src/app/activityModel.ts"
+     ],
+     "testRefs": [
+      "web/src/app/activityModel.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "resource-recommendations",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Recomendações com elegibilidade e motivo para conta/modelo",
+     "sourceRefs": [
+      "internal/nexus/resource_recommendation.go"
+     ],
+     "testRefs": [
+      "internal/nexus/resource_recommendation_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "LIVE/CACHED/UNKNOWN explícitos; respeitar PIN e quota",
+     "sourceRefs": [
+      "internal/nexus/resource_recommendation.go"
+     ],
+     "testRefs": [
+      "internal/nexus/resource_recommendation_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "runtime-health",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Diagnosticar lease, PTY, heartbeat, PID e provider capability",
+     "sourceRefs": [
+      "internal/control/registry/lifecycle.go"
+     ],
+     "testRefs": [
+      "internal/control/registry/lifecycle_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Erros e UNKNOWN visíveis sem afirmar recuperação falsa",
+     "sourceRefs": [
+      "internal/control/registry/lifecycle.go"
+     ],
+     "testRefs": [
+      "internal/control/registry/lifecycle_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "agent-compare",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Comparar duas implementações executadas em worktrees independentes",
+     "sourceRefs": [
+      "internal/nexus/agent_compare.go"
+     ],
+     "testRefs": [
+      "internal/nexus/agent_compare_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Model de comparação implementado: lados exigem worktrees independentes (mesma worktree/ausente é bloqueado) e critérios explícitos obrigatórios. Falta: orquestração de execução das implementações nas worktrees (integração com ComparisonCampaign/SessionHost) e UI. Aceite pendente de homologação no SHA."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Testes e custo com evidência e critérios explícitos",
+     "sourceRefs": [
+      "internal/nexus/agent_compare.go",
+      "internal/nexus/comparison_application.go"
+     ],
+     "testRefs": [
+      "internal/nexus/agent_compare_test.go",
+      "internal/nexus/comparison_application_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Testes e custo com evidência: critério tests usa contagens pass/fail reais (falha pesa 2x); critério cost só decide com evidência completa dos dois lados — UNKNOWN nunca vira zero, lado sem evidência não vence e veredito fica inconclusive com unknowns listados e bloqueio explícito de decisão automática. Falta: wiring do ComparisonRunEvidence (custo real do store) no model e UI do veredito. Aceite pendente de homologação no SHA."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "review-handoff",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Enviar diff de Agent para revisão independente delimitada",
+     "sourceRefs": [
+      "internal/nexus/mission_team.go"
+     ],
+     "testRefs": [
+      "internal/nexus/mission_team_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Resposta e proof vinculados ao dono do Run sem duplicar execução",
+     "sourceRefs": [
+      "internal/nexus/mission_team.go"
+     ],
+     "testRefs": [
+      "internal/nexus/mission_team_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "consult-another-agent",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Solicitar segunda opinião com contexto/scope do Maestro",
+     "sourceRefs": [
+      "internal/nexus/mission_team.go"
+     ],
+     "testRefs": [
+      "internal/nexus/mission_team_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Evitar loops, auto-delegação e ações externas não autorizadas",
+     "sourceRefs": [
+      "internal/nexus/mission_team.go"
+     ],
+     "testRefs": [
+      "internal/nexus/mission_team_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "change-radar",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Arquivos e hunks alterados agrupados por Agent/worktree",
+     "sourceRefs": [
+      "internal/control/web/handlers_git_worktrees.go"
+     ],
+     "testRefs": [
+      "internal/control/web/handlers_git_worktrees_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Aviso de colisão com base commit e revisão humana",
+     "sourceRefs": [
+      "internal/control/web/handlers_git_worktrees.go"
+     ],
+     "testRefs": [
+      "internal/control/web/handlers_git_worktrees_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "test-matrix",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Exibir resultados reais dos comandos de teste por worktree",
+     "sourceRefs": [
+      "internal/nexus/evidence_bundle.go"
+     ],
+     "testRefs": [
+      "internal/nexus/evidence_bundle_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Exit code, SHA, timestamp e logs; nenhuma declaração LLM vira PASS",
+     "sourceRefs": [
+      "internal/nexus/evidence_bundle.go"
+     ],
+     "testRefs": [
+      "internal/nexus/evidence_bundle_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "release-desk",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Vincular evidências, PRs, issues, diff e gates de uma release",
+     "sourceRefs": [
+      "internal/nexus/release_desk.go",
+      "internal/control/web/handlers_release_desk.go"
+     ],
+     "testRefs": [
+      "internal/nexus/release_desk_test.go",
+      "internal/control/web/handlers_release_desk_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Projeção read-only GET /api/v1/projects/{id}/release-desk?base=<ref>: resolve merge-base, log %H%x00%s (cap 200), extrai PRs de (#N) e issues de #N, semeia gates canônicos (contrato, evidence map, evidência offline assinada, SHA multiplataforma, NEX readiness) sempre unverified por padrão. UI do desk pendente. Aceite pendente de homologação no SHA."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Sem merge/publicação sem aprovação e checks verificáveis",
+     "sourceRefs": [
+      "internal/nexus/release_desk.go",
+      "internal/nexus/release_approval.go",
+      "internal/control/web/handlers_release_desk.go",
+      "scripts/sign-release-approval.mjs"
+     ],
+     "testRefs": [
+      "internal/nexus/release_desk_test.go",
+      "internal/nexus/release_approval_test.go",
+      "internal/control/web/handlers_release_desk_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Aprovação assinada integrada ao evidence path: scripts/sign-release-approval.mjs assina payload canônico com chave Ed25519 enrolada em docs/reference/release-reviewers.json; o desk carrega docs/reference/release-approval.json, verifica assinatura Ed25519 (crypto/ed25519), vínculo ao head exato, janela de frescor 90d/skew 5min e signer enrolado — qualquer falha é fail-closed (sem aprovação, merge/publicação bloqueado). Testes: round-trip Go, tamper/mismatch/stale/unenrolled falham, skew tolerado, script assina+auto-verifica, HTTP mostra aprovação no relato com gates ainda bloqueando. Falta: UI. Aceite pendente de homologação no SHA."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "browser-pane",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Abrir Browser como superfície real do Workspace OS",
+     "sourceRefs": [
+      "web/src/features/browser/BrowserSurface.tsx"
+     ],
+     "testRefs": [
+      "web/src/features/browser/BrowserSurface.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Sem iframe como substituto de browser automation",
+     "sourceRefs": [
+      "web/src/features/browser/BrowserSurface.tsx"
+     ],
+     "testRefs": [
+      "web/src/features/browser/BrowserSurface.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "design-inspect",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Selecionar elemento e coletar DOM/estilos/screenshot sanitizados",
+     "sourceRefs": [
+      "internal/browsercontrol/browser.go",
+      "internal/browsercontrol/browser_semantic.go",
+      "internal/browsercontrol/browser_collaboration.go",
+      "web/src/features/browser/BrowserSurface.tsx",
+      "web/src/features/browser/BrowserSurface.module.scss"
+     ],
+     "testRefs": [
+      "internal/browsercontrol/browser_test.go",
+      "internal/browsercontrol/browser_collaboration_test.go",
+      "web/src/i18n/i18n.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Reconciliado 2026-11-10 (atualização UX): implementação real existe (BrowserSurface com seletor de elemento, DOM/estilos allowlisted, crop mascarado; browser_design_inspect_test.go cobre snapshot sanitizado). Correção do crop do drawer em viewports estreitos (390px): header com flex-wrap, tabs com scroll horizontal e white-space nowrap em vez de recorte silencioso; chrome do drawer (tabs, captura, fechar, nota vazia, entrada manual, grants MCP) internacionalizado PT-BR/EN/ES. Aceite permanece pendente de homologação visual no SHA distribuído.",
+     "assertionAudit": "partial"
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Encaminhar contexto apenas a Agent explicitamente escolhido",
+     "sourceRefs": [
+      "internal/control/web/handlers_browser.go",
+      "internal/control/web/handlers_browser_mcp.go",
+      "internal/browsercontrol/browser_collaboration.go"
+     ],
+     "testRefs": [
+      "internal/control/web/handlers_browser_test.go",
+      "internal/control/web/handlers_browser_mcp_test.go",
+      "internal/browsercontrol/browser_collaboration_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Existing tests cover project-scoped temporary grants, authentication, revocation, and private-human gating. A grant is still label/actor-scoped rather than bound to a persistent Agent explicitly selected in the UI; no selected-Agent-only inspection-context delivery exists. Criterion remains partial/unverified.",
+     "assertionAudit": "partial"
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "live-preview",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Exibir app web local autorizada vinculada ao processo host",
+     "sourceRefs": [
+      "internal/browsercontrol/browser_stream.go",
+      "internal/browsercontrol/browser_runtime_session.go",
+      "internal/browsercontrol/runtime_preview.go",
+      "internal/browsercontrol/runtime_preview_inspector_linux.go",
+      "internal/browsercontrol/runtime_capability.go",
+      "web/src/features/browser/BrowserSurface.tsx"
+     ],
+     "testRefs": [
+      "internal/browsercontrol/browser_test.go",
+      "internal/browsercontrol/runtime_capability_test.go",
+      "internal/browsercontrol/runtime_preview_test.go",
+      "internal/browsercontrol/runtime_preview_inspector_linux_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Linux production inspector now binds first-open to an explicit loopback port whose listening socket inode belongs to a process descended from the live SessionHost/provider; it rechecks PID generations/lineage and rejects unrelated ports. Real /proc child-process and Chromium tests pass. Windows/macOS remain fail-closed pending equivalent ownership adapters and the mobile/distributed exact-SHA proof; criterion remains partial/unverified.",
+     "assertionAudit": "partial"
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Não expor host arbitrário nem segredos de sessão",
+     "sourceRefs": [
+      "internal/browsercontrol/browser.go",
+      "internal/browsercontrol/runtime_preview.go",
+      "internal/browsercontrol/runtime_preview_inspector_linux.go",
+      "internal/control/web/handlers_browser.go",
+      "internal/control/web/handlers_browser_mcp.go"
+     ],
+     "testRefs": [
+      "internal/browsercontrol/browser_test.go",
+      "internal/browsercontrol/browser_collaboration_test.go",
+      "internal/browsercontrol/runtime_preview_test.go",
+      "internal/browsercontrol/runtime_preview_inspector_linux_test.go",
+      "internal/control/web/handlers_browser_test.go",
+      "internal/control/web/handlers_browser_mcp_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Runtime-owned sessions now allow only the registered process-owned origin; CDP Fetch blocks external subresources before reaching their target and closes/revokes on cross-origin document redirects. Real Chromium test observes zero external hits; human-granted browser automation keeps external navigation. Metadata/snapshot redaction is tested. Non-Linux runtime previews stay disabled pending platform adapters; arbitrary sensitive imagery is not generally classifiable. Capability remains partial/unverified.",
+     "assertionAudit": "partial"
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "browser-automation",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "MCP e CDP com capacidades verificáveis e grant temporário",
+     "sourceRefs": [
+      "internal/control/web/handlers_browser_mcp.go"
+     ],
+     "testRefs": [
+      "internal/control/web/handlers_browser_mcp_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Intervenção humana para MFA, revoke, isolamento e auditoria",
+     "sourceRefs": [
+      "internal/control/web/handlers_browser_mcp.go"
+     ],
+     "testRefs": [
+      "internal/control/web/handlers_browser_mcp_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "visual-diff",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Comparar antes/depois por screenshot determinística",
+     "sourceRefs": [
+      "internal/nexus/visual_diff.go",
+      "internal/control/web/handlers_browser_visual_diff.go",
+      "internal/control/web/handlers_browser.go"
+     ],
+     "testRefs": [
+      "internal/nexus/visual_diff_test.go",
+      "internal/control/web/handlers_browser_visual_diff_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Comparação determinística implementada e exposta no browser: POST /api/v1/browser/{id}/visual-diff com dois modos — par explícito (before/after base64 JPEG, totalmente rastreável) e recheck server-side com delay limitado a 5s; região e limiar obrigatoriamente declarados (nunca inventados), tamanho divergente é 422 explícito. Falta: UI que captura e envia os pares (fluxo de revisão visual). Aceite pendente de homologação no SHA."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Região e limiar declarados, revisão e artefatos rastreáveis",
+     "sourceRefs": [
+      "internal/nexus/visual_diff.go",
+      "internal/control/web/handlers_browser_visual_diff.go"
+     ],
+     "testRefs": [
+      "internal/nexus/visual_diff_test.go",
+      "internal/control/web/handlers_browser_visual_diff_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Região/limiar ecoados no resultado (traceability) e artefato de revisão PNG (grayscale + vermelho) opcional na resposta. Falta: persistência dos artefatos com hash no evidence path e revisão na UI. Aceite pendente de homologação no SHA."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "device-preview",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Viewports de telefone, tablet e desktop na mesma browser session",
+     "sourceRefs": [
+      "web/src/features/browser/BrowserSurface.tsx"
+     ],
+     "testRefs": [
+      "web/src/features/browser/BrowserSurface.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Escalas, foco, acessibilidade e redimensionamento correto",
+     "sourceRefs": [
+      "web/src/features/browser/BrowserSurface.tsx"
+     ],
+     "testRefs": [
+      "web/src/features/browser/BrowserSurface.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "mobile-inbox",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Perguntas/approvals e jobs no celular vinculados à sessão",
+     "sourceRefs": [
+      "web/src/components/GlobalAttentionRadar.tsx"
+     ],
+     "testRefs": [
+      "web/src/app/attentionRadarModel.test.ts",
+      "web/src/notifications/attentionDelivery.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Responder uma vez, inclusive em reconexões ou falhas de rede",
+     "sourceRefs": [
+      "web/src/components/GlobalAttentionRadar.tsx"
+     ],
+     "testRefs": [
+      "web/src/app/attentionRadarModel.test.ts",
+      "web/src/notifications/attentionDelivery.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "remote-terminal",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Conectar ao terminal existente sem criar novo runtime",
+     "sourceRefs": [
+      "web/src/nexus/AgentTerminal.tsx"
+     ],
+     "testRefs": [
+      "web/src/nexus/agentTerminalModel.test.ts",
+      "web/src/nexus/terminalInput.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Controle único com token scoped, CSRF, expiry e revoke",
+     "sourceRefs": [
+      "web/src/nexus/AgentTerminal.tsx"
+     ],
+     "testRefs": [
+      "web/src/nexus/agentTerminalModel.test.ts",
+      "web/src/nexus/terminalInput.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "workspace-sharing",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Compartilhar observação por projeto/Agent sob RBAC",
+     "sourceRefs": [
+      "internal/nexus/workspace_sharing.go",
+      "internal/control/web/handlers_workspace_sharing.go",
+      "docs/architecture/ADR-workspace-sharing-viewer-grants.md"
+     ],
+     "testRefs": [
+      "internal/nexus/workspace_sharing_test.go",
+      "internal/control/web/handlers_workspace_sharing_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Grants viewer-only por projeto (agent opcional) com Authorize deny-by-default e razões explícitas; gestão de grants autenticada+CSRF; leitura compartilhada /api/v1/shared/observations autorizada pelo grant em si. Falta: UI de gestão e persistência durável (registry em memória, fase 1 — ADR com follow-ups). Aceite pendente de homologação no SHA."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Viewer-only inicial; cross-project leakage negado e revoke imediato",
+     "sourceRefs": [
+      "internal/nexus/workspace_sharing.go"
+     ],
+     "testRefs": [
+      "internal/nexus/workspace_sharing_test.go",
+      "internal/control/web/handlers_workspace_sharing_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Viewer-only: única role emitida é viewer e action != read é negada. Cross-project: escopo obrigatório de projeto, divergência negada com razão explícita (teste dedicado). Revoke imediato: toda checagem consulta estado corrente; teste de integração prova 403 na requisição seguinte ao DELETE. Falta: TTL e auditoria de acesso (follow-ups do ADR). Aceite pendente de homologação no SHA."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "voice-actions",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Ação de voz exige controle explícito e identifica Agent de destino",
+     "sourceRefs": [
+      "web/src/features/voice/VoiceCaptureButton.tsx"
+     ],
+     "testRefs": [
+      "internal/desktop/voice_capture_test.go",
+      "internal/voice/service_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Não inserir Enter automaticamente nem ler segredos do prompt",
+     "sourceRefs": [
+      "web/src/features/voice/VoiceCaptureButton.tsx"
+     ],
+     "testRefs": [
+      "internal/desktop/voice_capture_test.go",
+      "internal/voice/service_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "contextual-hud",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "HUD exibe apenas estado/sinal real de Agent e atenção",
+     "sourceRefs": [
+      "web/src/features/hud/NexusHud.tsx"
+     ],
+     "testRefs": [
+      "cmd/nexus-hud/attention_monitor_test.go",
+      "web/src/features/hud/GuardianMascot.test.tsx",
+      "web/src/features/hud/hudModel.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Não bloquear janelas; reduced-motion e smoke nativo",
+     "sourceRefs": [
+      "web/src/features/hud/NexusHud.tsx"
+     ],
+     "testRefs": [
+      "cmd/nexus-hud/attention_monitor_test.go",
+      "web/src/features/hud/GuardianMascot.test.tsx",
+      "web/src/features/hud/hudModel.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "nex-companion",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Mascote abre a ação operacional correspondente a evento confirmado",
+     "sourceRefs": [
+      "web/src/features/hud/NexPixelSprite.tsx"
+     ],
+     "testRefs": [
+      "web/src/features/hud/mascotModel.test.ts",
+      "web/src/features/hud/nexCompanionBehavior.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Respeitar NEX identity lock, alto contraste e motion reduction",
+     "sourceRefs": [
+      "web/src/features/hud/NexPixelSprite.tsx"
+     ],
+     "testRefs": [
+      "web/src/features/hud/mascotModel.test.ts",
+      "web/src/features/hud/nexCompanionBehavior.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "workspace-recipes",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Cinco receitas Frontend/Backend/Review/Debug/Release selecionáveis no menu; evolução para receitas personalizadas e persistência por projeto ainda pendente",
+     "sourceRefs": [
+      "web/src/workspace/arrangePresets.ts"
+     ],
+     "testRefs": [
+      "web/src/workspace/arrangePresets.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Receita não inicia Agents ou ações automaticamente",
+     "sourceRefs": [
+      "web/src/workspace/arrangePresets.ts"
+     ],
+     "testRefs": [
+      "web/src/workspace/arrangePresets.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "parallel-challenge",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Distribuir uma especificação a múltiplos Agents isolados e compará-los",
+     "sourceRefs": [
+      "internal/nexus/parallel_challenge.go",
+      "internal/nexus/agent_compare.go"
+     ],
+     "testRefs": [
+      "internal/nexus/parallel_challenge_test.go",
+      "internal/nexus/agent_compare_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Model de challenge: distribuição de uma spec a N>=2 agentes isolados (worktrees únicas obrigatórias, spec e critérios explícitos exigidos), comparação round-robin determinística por pares reutilizando agent-compare. Falta: orquestração real de despacho via MissionRunner/worktrees (integração) e UI. Aceite pendente de homologação no SHA."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Sem merge automático, custo UNKNOWN não vira zero",
+     "sourceRefs": [
+      "internal/nexus/parallel_challenge.go"
+     ],
+     "testRefs": [
+      "internal/nexus/parallel_challenge_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Sem merge automático: AutoMergeAllowed é sempre false com política explícita no resultado e nos bloqueios; custo UNKNOWN nunca vira zero — participante sem evidência não vence critério de custo, unknowns listados e bloqueio de evidência incompleta. Falta: integração com custos reais do ledger e UI. Aceite pendente de homologação no SHA."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "change-collision-detector",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Detectar alterações conflitantes por base commit/hunks",
+     "sourceRefs": [
+      "internal/nexus/change_collision.go",
+      "internal/control/web/handlers_change_collisions.go",
+      "internal/control/web/routes_projects_agents.go",
+      "web/src/features/agents/ChangeCollisionsCard.tsx"
+     ],
+     "testRefs": [
+      "internal/nexus/change_collision_test.go",
+      "internal/control/web/handlers_change_collisions_test.go",
+      "web/src/features/agents/changeCollisionsModel.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Detecção implementada: hunks de git diff -U0 por worktree, overlap de linhas = conflito provável; mesmo arquivo sem overlap = incerto. Handler GET read-only com caps (16 worktrees, 5s, 2MB). Aceite permanece pendente de homologação no SHA."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Informar incerteza e permitir revisão antes do merge",
+     "sourceRefs": [
+      "internal/nexus/change_collision.go",
+      "web/src/features/agents/ChangeCollisionsCard.tsx",
+      "web/src/features/agents/changeCollisionsModel.ts",
+      "web/src/i18n/resources.ts"
+     ],
+     "testRefs": [
+      "internal/nexus/change_collision_test.go",
+      "internal/control/web/handlers_change_collisions_test.go",
+      "web/src/features/agents/changeCollisionsModel.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Incerteza explícita no relato (uncertain, uncertain_count, scan_errors de cobertura parcial) e na UI (badge de confiança, hint de revisão antes do merge, i18n PT/EN/ES). Card nunca bloqueia merge. Aceite permanece pendente de homologação no SHA."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "device-handoff",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Continuar no mobile a sessão do host sem duplicar execução",
+     "sourceRefs": [
+      "internal/control/web/handler_terminal.go",
+      "internal/control/web/broker.go",
+      "internal/control/host/host.go",
+      "internal/control/web/terminal_identity.go",
+      "web/src/nexus/AgentTerminal.tsx"
+     ],
+     "testRefs": [
+      "internal/control/host/qa_test.go",
+      "internal/control/web/terminal_replay_test.go",
+      "internal/control/web/broker_watch_test.go",
+      "internal/control/web/terminal_handoff_authenticated_test.go",
+      "web/scripts/e2e-agent-terminal-follow.mjs"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Authenticated integration now opens two distinct HTTP/WebSocket sessions against one supervised runtime/process generation, rejects unleased input, records exactly one authorized process side effect, and asserts durable pseudonymous actor/connection identity in SQLite. Real phone/mobile browser, tunnel continuity, provider run, and distributed exact-SHA evidence remain external; criterion is still partial/unverified.",
+     "assertionAudit": "partial"
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Lease, reattach, estados reconciliados e histórico auditável",
+     "sourceRefs": [
+      "internal/control/web/broker.go",
+      "internal/control/host/host.go",
+      "internal/control/events/events.go",
+      "internal/control/protocol/protocol.go",
+      "internal/control/web/handler_terminal.go",
+      "internal/control/web/terminal_identity.go",
+      "internal/nexus/nexus.go",
+      "web/src/nexus/AgentTerminal.tsx"
+     ],
+     "testRefs": [
+      "internal/control/host/host_test.go",
+      "internal/control/host/qa_test.go",
+      "internal/control/web/handler_terminal_lease_test.go",
+      "internal/control/web/terminal_replay_test.go",
+      "internal/control/web/broker_watch_test.go",
+      "internal/control/web/terminal_handoff_authenticated_test.go",
+      "web/src/nexus/agentTerminalModel.test.ts"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Lease grant/revoke/release now emits durable project/Agent-scoped events with pseudonymous actor and per-connection IDs. IPC and authenticated HTTP/WebSocket tests prove observer→takeover→release→reacquire, rejected old-client input, one accepted process effect, and SQLite audit trail. Physical mobile, tunnel reconnect/revocation, and exact-SHA distribution remain unverified.",
+     "assertionAudit": "partial"
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "maestro-managed-dependency",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Nexus localiza/instala versão compatível e negocia capacidades",
+     "sourceRefs": [
+      "internal/nexus/maestro.go"
+     ],
+     "testRefs": [
+      "internal/nexus/maestro_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Reconciliado 2026-11-10: localização/negociação existe (Bridge v1 JSON-RPC canônico em maestro.go, interop real contra checkout Maestro v1 com project.context/plans.validate/runsSubmit=false; contratos advice/verification legados ausentes no Maestro) e instalação gerenciada de versão compatível não existe. Parcial real, não missing; aceite pendente.",
+     "assertionAudit": "partial"
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Maestro permanece standalone sem dependência do Nexus",
+     "sourceRefs": [
+      "internal/nexus/maestro.go"
+     ],
+     "testRefs": [
+      "internal/nexus/maestro_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Reconciliado 2026-11-10: arquitetura mantém Maestro standalone (Nexus consome via bridge; nenhum código Maestro depende do Nexus — verificado no checkout v1). Falta homologação distribuída no SHA final. Aceite pendente.",
+     "assertionAudit": "partial"
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "maestro-canonical-memory",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Migrar IntelligenceMemory com backup, dry-run, idempotência e rollback",
+     "sourceRefs": [
+      "internal/nexus/intelligence_memory.go"
+     ],
+     "testRefs": [
+      "internal/nexus/intelligence_memory_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Nexus retém somente checkpoint operacional e nunca segunda store semântica",
+     "sourceRefs": [
+      "internal/nexus/intelligence_memory.go"
+     ],
+     "testRefs": [
+      "internal/nexus/intelligence_memory_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "single-execution-owner",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Cada Run tem executor único NEXUS ou MAESTRO",
+     "sourceRefs": [
+      "internal/nexus/mission_executor.go"
+     ],
+     "testRefs": [
+      "internal/nexus/mission_executor_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Retry, cancel e terminal input seguem o owner; não há duplo supervisor",
+     "sourceRefs": [
+      "internal/nexus/mission_executor.go"
+     ],
+     "testRefs": [
+      "internal/nexus/mission_executor_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "composer-flow-onboarding",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Concluir Composer/Flow e tours por componente reutilizável",
+     "sourceRefs": [
+      "web/src/features/work/ComposerSurface.tsx",
+      "web/src/features/work/DirectSessionLauncher.tsx",
+      "web/src/features/work/directSessionLifecycle.ts",
+      "internal/control/web/handlers_agents.go",
+      "internal/nexus/nexus.go",
+      "internal/nexus/config.go",
+      "internal/nexus/mission_execution.go"
+     ],
+     "testRefs": [
+      "web/src/features/work/FlowPipeline.test.tsx",
+      "web/src/features/work/featureAnnouncements.test.ts",
+      "web/scripts/e2e-first-run-import.mjs",
+      "internal/control/web/handlers_nexus_test.go",
+      "internal/nexus/nexus_p0_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "E2E first-run percorre onboarding e cenário DirectSession. Em 2026-11-09 foi endurecido para criar Agent, validar config e executar rollback/delete pela API Core real quando o profile selecionado não existe; somente resource selection é fixture. O cancelamento solicitado na UI agora aguarda o start, executa stop e só depois delete; o browser verifica a ordem com Core real para CRUD/stop e resposta start controlada. TestAuthenticatedAgentCancellationStopsRuntimeWithoutOrphan complementa a prova com SessionHost real supervisionado e verifica Agent STOPPED, StoppedAt e runtime ausente/inativa no Registry. Ainda faltam dois perfis autenticados, cancelamento visual com provider real e instalação/distribuição final; critério segue unverified/pending. Lifecycle publication is serialized across StartAgent, RecoverAgent, SafeApply, mission prompt start, and continuity failover; focused regressions cover canceled lock acquisition and stop racing start/recovery/reconfiguration. This closes a local concurrency gap but still does not prove two real provider profiles or exact-SHA distributed cancellation.",
+     "assertionAudit": "partial"
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "E2E na distribuição final, PT/EN/ES, teclado e cenários reais",
+     "sourceRefs": [
+      "web/src/features/work/ComposerSurface.tsx",
+      "internal/nexus/nexus.go",
+      "internal/nexus/config.go",
+      "internal/nexus/mission_execution.go"
+     ],
+     "testRefs": [
+      "web/src/features/work/FlowPipeline.test.tsx",
+      "web/src/features/work/featureAnnouncements.test.ts",
+      "web/scripts/e2e-first-run-import.mjs",
+      "internal/control/web/handlers_nexus_test.go",
+      "internal/nexus/nexus_p0_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "E2E browser cobre importação/quick-connect com endpoints de provider fixture, rollback DirectSession antes do start e cancelamento solicitado durante start com sequência start→stop→delete; CRUD/stop passam pelo Core real, mas start é controlado pelo harness e não cria processo nessa execução. O teste Go adicional inicia SessionHost supervisionado de verdade e verifica o stop barrier autenticado/cleanup persistente. Ainda não cobre pacote distribuído no SHA final, dois perfis autenticados, ciclo provider real ou matriz completa PT/EN/ES e teclado; capability permanece unverified/pending. Lifecycle publication is serialized across StartAgent, RecoverAgent, SafeApply, mission prompt start, and continuity failover; focused regressions cover canceled lock acquisition and stop racing start/recovery/reconfiguration. This closes a local concurrency gap but still does not prove two real provider profiles or exact-SHA distributed cancellation.",
+     "assertionAudit": "partial"
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "remote-generated-outputs",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Listar e visualizar imagens, vídeo e arquivos gerados no host",
+     "sourceRefs": [
+      "internal/nexus/artifacts/catalog.go"
+     ],
+     "testRefs": [
+      "internal/nexus/artifacts/catalog_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "ACL por projeto, MIME/hash, TTL e não expor filesystem indiscriminadamente",
+     "sourceRefs": [
+      "internal/nexus/artifacts/catalog.go"
+     ],
+     "testRefs": [
+      "internal/nexus/artifacts/catalog_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "two-client-real-e2e",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Dois clientes simultâneos e dois Agents em worktrees distintos",
+     "sourceRefs": [
+      "internal/control/web/multi_runtime_attention_e2e_test.go"
+     ],
+     "testRefs": [
+      "internal/control/web/multi_runtime_attention_e2e_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "Leases, conflitos, handoffs, browsers e reconexões autenticados",
+     "sourceRefs": [
+      "internal/control/web/multi_runtime_attention_e2e_test.go"
+     ],
+     "testRefs": [
+      "internal/control/web/multi_runtime_attention_e2e_test.go"
+     ],
+     "mappingStatus": "source-and-test-referenced",
+     "coverage": "unverified",
+     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+    }
+   ],
+   "verification": "pending"
+  },
+  {
+   "id": "cross-platform-exact-sha",
+   "criteria": [
+    {
+     "acceptanceIndex": 0,
+     "acceptance": "Linux/Windows/macOS mesma revisão em release candidate",
+     "sourceRefs": [
+      ".github/workflows/ci.yml"
+     ],
+     "testRefs": [],
+     "mappingStatus": "source-only",
+     "coverage": "unverified",
+     "gap": "Aceite depende de evidência externa same-SHA em três sistemas, instalação/artefatos e assinatura; teste local não certifica esses runners."
+    },
+    {
+     "acceptanceIndex": 1,
+     "acceptance": "PTY/ConPTY, Browser, Desktop, HUD, install e artefatos rastreáveis",
+     "sourceRefs": [
+      ".github/workflows/ci.yml"
+     ],
+     "testRefs": [],
+     "mappingStatus": "source-only",
+     "coverage": "unverified",
+     "gap": "Aceite depende de evidência externa same-SHA em três sistemas, instalação/artefatos e assinatura; teste local não certifica esses runners."
+    }
+   ],
+   "verification": "pending"
+  }
+ ]
 }

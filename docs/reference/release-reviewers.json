@@ -1,5 +1,11 @@
 {
   "schemaVersion": 1,
-  "reviewers": [],
+  "reviewers": [
+    {
+      "id": "maestro-owner",
+      "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA+qLiUAj1jc3c5jbGXMSi72ekBdq0duF4W8wP6jFqFMM=\n-----END PUBLIC KEY-----\n",
+      "note": "Keypair generated 2026-11-10 at the owner's request to unblock the offline release evidence path. Private key: ~/.local/share/nexus-release-keys/ed25519-private.pem (0600, never committed). The owner must rotate/re-enroll a personally held key before the final GO signature if this machine-managed key is not acceptable."
+    }
+  ],
   "note": "Fail-closed until an authorized release owner enrolls an Ed25519 public verification key. Never commit private keys."
 }

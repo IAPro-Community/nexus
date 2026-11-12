@@ -31,9 +31,28 @@ function withMap(mutator, callback) {
 }
 
 test("maps every canonical acceptance clause while keeping release verification pending", () => {
+  const contract = JSON.parse(
+    readFileSync(
+      join(
+        import.meta.dirname,
+        "..",
+        "docs",
+        "reference",
+        "agent-workspace-v1.json",
+      ),
+      "utf8",
+    ),
+  );
+  const clauseCount = contract.features.reduce(
+    (total, feature) => total + feature.acceptance.length,
+    0,
+  );
   const result = run(mapFile);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /48 capabilities, 96 acceptance clauses/);
+  assert.match(
+    result.stdout,
+    new RegExp(`48 capabilities, ${clauseCount} acceptance clauses`),
+  );
   assert.match(result.stdout, /no acceptance certified/);
 });
 
