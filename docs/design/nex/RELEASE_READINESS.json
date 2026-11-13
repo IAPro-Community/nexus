@@ -46,40 +46,62 @@
       "title": "Compact 64px e Standard 128px desenhados opticamente em pixel art",
       "contract": "docs/design/nex/RETRO_GAME_IDLE_DIRECTION.md",
       "status": "BLOCKED",
-      "evidence": [],
-      "notes": "Parcial: Standard 128px (atlas 96 frames) aprovado pelo owner em 2026-11-12 COM divergencia registrada (derivado por filtro de pixelizacao, nao clusters desenhados). Compact 64px NAO coberto pela aprovacao e ainda nao existe - gate permanece BLOCKED ate a variante 64px existir e ser aprovada."
+      "evidence": [
+        "docs/design/nex/hud-compact-v1/nex-idle-atlas-64.png (512x768, 12 acoes x 8 quadros x 64px, nearest-neighbor do atlas 128 aprovado)",
+        "docs/design/nex/hud-compact-v1/nex-compact-64-92-128-comparison.png (comparacao 64/92/128 do criterio COMPANION_2D_CLIPPY_LITE)",
+        "manifest.json com proveniencia NEX-ID-v1 + SHAs; tratamento filtrado identico ao aprovado 2026-11-12"
+      ],
+      "notes": "64px Compact GERADO (derivado nearest-neighbor do atlas 128 aprovado; mesma divergencia filtro registrada). Bloqueado apenas no aceite visual do owner, pois a aprovacao \"aprovo os dois\" (2026-11-12) nao cobria 64px."
     },
     {
       "id": "behavior_8",
       "title": "Oito comportamentos contextuais 2D com gestos reutilizados, redução de movimento e testes",
       "contract": "docs/design/nex/COMPANION_2D_CLIPPY_LITE.md",
       "status": "BLOCKED",
-      "evidence": [],
-      "notes": "BLOCKED: requer oito cenários reais e mock isolado para resolved, captura visual, testes e aprovação; os doze IDs técnicos do IdleDirector podem permanecer sem exigir doze artes únicas."
+      "evidence": [
+        "Lab E2E: web/scripts/e2e-companion-lab.mjs PASS (2026-11-13) - oito comportamentos contra o DesktopHudApp real com fixture isolado por context.route",
+        "Capturas por comportamento: DEV/validation/current/companion-lab/captures/01..08 (ambient, greet, look, thinking, attention, error, resolved, offline-still)",
+        "resolved com mock explicitamente marcado: completed bucket do Attention Center fixture (nunca inferido); dedupe por ID estavel assertado",
+        "Testes unitarios: nexCompanionBehavior.test.ts (mapeamento, preempcao, recusa de inferencia, dedupe) + nexIdleDirector.test.ts (preempcao/cleanup)"
+      ],
+      "notes": "Oito comportamentos demonstrados com capturas no app real (web) + testes. Bloqueado no item \"aprovacao\" do gate (owner) e na homologacao da janela nativa Wails (runtime_qa)."
     },
     {
       "id": "operational_5",
       "title": "5 estados reais idle/working/warning/critical/offline com cancelamento",
       "contract": "docs/design/NEX_ANIMATION_CONTRACT.md",
       "status": "BLOCKED",
-      "evidence": [],
-      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+      "evidence": [
+        "Lab E2E PASS: idle, working, attention/warning, critical, offline demonstrados via data-mood no HUD real (captures 01/04/05/06/08)",
+        "Preempcao: hover durante critical mantem error (assert); reduced-motion e offline estaticos assertados",
+        "Cancelamento: nexIdleDirector.test.ts - preempcao imediata em working/warning/critical/offline + cleanup de timer no destroy"
+      ],
+      "notes": "Cinco moods operacionais com preempcao e cancelamento demonstrados no shell web real. QA nativa por plataforma permanece em runtime_qa."
     },
     {
       "id": "interaction_safety",
       "title": "Comportamento contextual sem telemetria fictícia, com preempção, dedupe, foco, snooze e click-through",
       "contract": "docs/design/nex/COMPANION_2D_CLIPPY_LITE.md",
       "status": "BLOCKED",
-      "evidence": [],
-      "notes": "BLOCKED: avaliar contrato eventos/UX, segurança e preservação das ações atuais do HUD; 360° transferido para backlog #129."
+      "evidence": [
+        "Sem telemetria ficticia: lab asserta ausencia de [data-nex-progress] em idle e working",
+        "Preempcao canonica sobre gestos do usuario assertada (critical > greet/look)",
+        "Foco de teclado cumprimenta como ponteiro; blur volta ao repouso (a11y parity no lab)",
+        "Dedupe por ID estavel (resolved nao repete) e snooze persistido sem mutar o Attention Center: e2e-hud.mjs PASS",
+        "Sem listener global de cursor: olhar nao muda fora da hitbox (assert)"
+      ],
+      "notes": "Contrato de eventos/UX e seguranca demonstrados em E2E. Click-through nativo e drag pertencem a janela Wails real (runtime_qa/hud_integration)."
     },
     {
       "id": "hud_integration",
       "title": "Companion 2D validado no HUD mantendo BAR/MASCOT/TRAY, drag e hit regions",
       "contract": "docs/product/hud-guardian-v1.md",
       "status": "BLOCKED",
-      "evidence": [],
-      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+      "evidence": [
+        "Lab E2E renderiza o DesktopHudApp real (capsula nativa, appearance MASCOT default) com o companion e capturas por comportamento",
+        "e2e-hud.mjs PASS: HUD sobrevive a navegacao sem remount, popover acessivel, snooze persistido, reduced-motion, Axe desktop/mobile sem violacoes serious/critical"
+      ],
+      "notes": "Validado no shell web. Faltam BAR/MASCOT/TRAY reais, drag nativo e hit regions na janela Wails (requires runtime_qa Linux/Windows/macOS) - BLOCKED ate la."
     },
     {
       "id": "site_integration",
@@ -95,7 +117,7 @@
       "contract": "docs/design/NEX_VISUAL_REVIEW_CHECKLIST.md",
       "status": "BLOCKED",
       "evidence": [],
-      "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
+      "notes": "Parcial: Linux executavel localmente (smoke Wayland pendente nesta sessao); Windows/macOS exigem maquinas fisicas do owner. Checklist: NEX_VISUAL_REVIEW_CHECKLIST.md."
     },
     {
       "id": "site_qa",
