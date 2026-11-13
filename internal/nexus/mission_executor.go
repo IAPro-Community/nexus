@@ -126,9 +126,13 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 	if candidateErr != nil {
 		return runner.AllocationResult{}, candidateErr
 	}
-	candidateAccounts, isolationRejected := filterAccountsByAutonomyIsolation(candidateAccounts, run.Contract, false)
+	candidateAccounts, isolationRejected, isolationFallback := missionIsolationCandidates(accounts, candidateAccounts, run.Contract, preferenceMode)
 	if len(candidateAccounts) == 0 && len(isolationRejected) > 0 {
 		return runner.AllocationResult{}, fmt.Errorf("%w: no provider satisfies the Mission isolation contract for Flow Step %s: %s", ErrBlockedResource, pkg.PackageID, strings.Join(isolationRejected, "; "))
+	}
+	var isolationFallbackReason string
+	if isolationFallback {
+		isolationFallbackReason = "isolation fallback: desired provider rejected (" + strings.Join(isolationRejected, "; ") + "); routed to a verified provider"
 	}
 	if len(candidateAccounts) == 0 {
 		if preferenceMode == AffinityPin {
@@ -140,6 +144,9 @@ func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.Mission
 	var selected ProviderAccount
 	var keepCurrent bool
 	routingReason := ""
+	if isolationFallbackReason != "" {
+		routingReason = isolationFallbackReason
+	}
 	resourceRequirements := providerResourceRequirements(req)
 	if !isFailover {
 		selected, keepCurrent = selectCurrentResource(candidateAccounts, current, resourceRequirements, policy)

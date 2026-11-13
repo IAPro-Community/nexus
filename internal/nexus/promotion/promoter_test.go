@@ -192,6 +192,17 @@ func TestExplicitMissionMatcherAcceptsStandaloneLocalizedForms(t *testing.T) {
 	}
 }
 
+func TestExplicitMissionMatcherIgnoresIntentBuriedInMultilinePaste(t *testing.T) {
+	paste := "git clone --branch foundation/import-clean https://github.com/kivervinicius/web-builder.git\n\ncd web-builder\n\n passeio pelo histórico:\n- execute esta migração como Mission\n- depois rode de forma autônoma\n"
+	if IsExplicitMissionRequest(paste) {
+		t.Fatal("mission intent buried inside a multi-line paste must not promote the submission")
+	}
+	firstLineIntent := "execute esta migração como Mission\nsegunda linha com passos\n"
+	if !IsExplicitMissionRequest(firstLineIntent) {
+		t.Fatal("mission intent stated on the first line must still promote the submission")
+	}
+}
+
 func TestPromoterRegisteredProviderRequestDelegatesWithoutMission(t *testing.T) {
 	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
 	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())

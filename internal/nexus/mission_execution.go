@@ -356,6 +356,24 @@ func filterAccountsByAutonomyIsolation(accounts []ProviderAccount, contract runn
 	return eligible, rejected
 }
 
+// missionIsolationCandidates applies the approved autonomous isolation
+// contract to the affinity-selected candidates. When every affinity candidate
+// is rejected by the isolation contract and the affinity is not an explicit
+// user PIN, the whole registered pool is re-filtered so a verified provider
+// can run the step instead of blocking the mission on an unverifiable one.
+// A PIN is the maestro's explicit runtime choice and never drifts silently.
+func missionIsolationCandidates(accounts, candidates []ProviderAccount, contract runner.AutonomyContract, preferenceMode AffinityMode) ([]ProviderAccount, []string, bool) {
+	elig, rej := filterAccountsByAutonomyIsolation(candidates, contract, false)
+	if len(elig) > 0 || len(rej) == 0 || preferenceMode == AffinityPin {
+		return elig, rej, false
+	}
+	poolElig, poolRej := filterAccountsByAutonomyIsolation(accounts, contract, false)
+	if len(poolElig) == 0 {
+		return elig, rej, false
+	}
+	return poolElig, poolRej, true
+}
+
 func missionProviderArgs(provider string, args []string, policy agentPromptPolicy) ([]string, error) {
 	provider = strings.ToLower(strings.TrimSpace(provider))
 	out := append([]string(nil), args...)

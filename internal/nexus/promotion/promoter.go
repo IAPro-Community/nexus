@@ -157,6 +157,13 @@ func (p Promoter) Decide(ctx context.Context, projectID, line string, mode Mode)
 // Mission request from a heuristic promotion that may safely fall back to the
 // interactive Lead when admission cannot be satisfied.
 func IsExplicitMissionRequest(line string) bool {
+	// A Mission request is a conversational imperative typed at the prompt.
+	// Multi-line pastes (documents, logs, command dumps) routinely mention
+	// "mission" or "autônomo" deep inside their content; only the first line
+	// can express the intent that governs the whole submission.
+	if idx := strings.IndexByte(line, '\n'); idx >= 0 {
+		line = line[:idx]
+	}
 	tokens := strings.FieldsFunc(strings.ToLower(strings.TrimSpace(line)), func(r rune) bool {
 		// Keep hyphenated product/domain terms together so "mission-critical"
 		// is not reinterpreted as an explicit Mission request.

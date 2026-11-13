@@ -342,16 +342,23 @@ func (n *Nexus) previewWorkPackageExecution(st *store.Store, project store.Proje
 		step.Resource.Reason = candidateErr.Error()
 		return step
 	}
+	var isolationFallbackReason string
 	if autonomous {
 		var isolationRejected []string
-		candidateAccounts, isolationRejected = filterAccountsByAutonomyIsolation(candidateAccounts, contract, false)
+		var isolationFallback bool
+		candidateAccounts, isolationRejected, isolationFallback = missionIsolationCandidates(accounts, candidateAccounts, contract, preferenceMode)
 		if len(candidateAccounts) == 0 && len(isolationRejected) > 0 {
 			step.Ready = false
 			step.Blockers = append(step.Blockers, "no provider satisfies the approved Mission isolation contract: "+strings.Join(isolationRejected, "; "))
 			step.Resource.Reason = "Provider isolation contract is not verified"
 			return step
 		}
+		if isolationFallback {
+			isolationFallbackReason = "Desired provider rejected by the approved isolation contract (" + strings.Join(isolationRejected, "; ") + "); mission will route to a verified provider"
+			step.Resource.Reason = isolationFallbackReason
+		}
 	}
+	isolationFallbackNote := isolationFallbackReason
 	if len(candidateAccounts) == 0 {
 		step.Ready = false
 		step.Blockers = append(step.Blockers, "no eligible provider account for this step")
@@ -379,6 +386,9 @@ func (n *Nexus) previewWorkPackageExecution(st *store.Store, project store.Proje
 		selectedCandidate = recommendation.Recommended
 		selected = selectedCandidate.Account
 		step.Resource = previewResourceFromAccount(selected, policy, recommendation.Explanation, len(recommendation.Candidates), selectedCandidate)
+	}
+	if isolationFallbackNote != "" {
+		step.Resource.Reason = isolationFallbackNote + " | " + step.Resource.Reason
 	}
 
 	modelPreference := AffinityPreference{Mode: AffinityAuto}
