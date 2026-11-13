@@ -7521,3 +7521,4 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - **QA Playwright** (`scripts/nex-hero-qa.mjs`, Chrome do sistema): 5 viewports com overflow 0px, click-through 8/8 PASS, reduced-motion imóvel, LCP 36ms. Correções no caminho: botões clicados por label PT (teste antigo estava deslocado em 1) e observer LCP via addInitScript.
 - **Gates:** `site_integration` e `site_qa` com evidência real registrada (canônico + espelho); status continua BLOCKED — mount público PT/EN entra no flip atômico READY.
 - Site branch `feat/nex-companion-integration-20261113` pushada (c68a67d + commits do hero).
+- **A3:** pacote de aceite visual único em `DEV/validation/current/owner-visual-approval-20261113/` — hud_compact 64px + atlas no HUD + hero do site, com README de aceite por item e SHAs.
