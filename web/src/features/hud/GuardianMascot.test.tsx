@@ -34,13 +34,11 @@ describe('NEX single Guardian mascot', () => {
   it('renders the official NEX mascot as the only visual, with accessible pending controls', () => {
     const html = renderGuardian();
 
-    expect(html).toContain('data-nex-art="32bit-official"');
+    expect(html).toContain('data-nex-art="hud-32bit-atlas"');
     expect(html.match(/data-nex-art=/g) || []).toHaveLength(1);
-    expect(html).toContain('viewBox="0 0 128 128"');
-    expect(html).toContain('data-nex-part="helmet"');
-    expect(html).toContain('data-nex-part="face"');
-    expect(html).toContain('data-nex-part="reactor"');
-    expect((html.match(/data-nex-module=/g) || []).length).toBe(4);
+    // The default fixture projects a critical attention item, so the sprite
+    // carries the warning treatment.
+    expect(html).toContain('data-nex-mood="warning"');
     expect(html).not.toContain('data-companion-sprite="atlas"');
     expect(html).not.toContain('/companion/');
     expect(html).toContain('data-hud-mascot="true"');
@@ -50,21 +48,13 @@ describe('NEX single Guardian mascot', () => {
     expect(html).toContain('2');
   });
 
-  it('keeps articulated fins and four independently anchored orbital modules', () => {
+  it('keeps the operational mood rendered on the locked atlas sprite', () => {
     const html = renderGuardian({ mood: 'working' });
 
-    expect(html).toContain('data-nex-part="fins"');
-    expect(html).toContain('data-nex-fin="left"');
-    expect(html).toContain('data-nex-fin="right"');
-    expect(html).toContain('data-nex-part="orbit-front"');
-    expect(html.match(/data-nex-module=/g) || []).toHaveLength(4);
-    expect(html).toContain('transform="translate(14 96)"');
-    expect(html).toContain('transform="translate(114 96)"');
-    expect(html).toContain('transform="translate(30 115)"');
-    expect(html).toContain('transform="translate(98 115)"');
+    expect(html).toContain('data-nex-mood="working"');
+    expect(html).toContain('data-mood="working"');
     // Static SSR has no IntersectionObserver. Motion activates only after
     // client visibility is verified; the operational mood still renders.
-    expect(html).toContain('data-mood="working"');
     expect(html).toContain('data-motion="off"');
   });
 
@@ -116,6 +106,6 @@ describe('NEX single Guardian mascot', () => {
     const critical = renderGuardian({ mood: 'critical' });
 
     expect(critical).toContain('data-mood="critical"');
-    expect(critical).toContain('#FF496C');
+    expect(critical).toContain('data-nex-mood="critical"');
   });
 });

@@ -1,0 +1,186 @@
+// NEX hud-32bit atlas sprite — locked asset NEX-ID-v1 (see nexIdleAtlas.ts).
+// One 128x128 frame of a 1024x1536 grid is shown per state; CSS steps() walks
+// the 8 frames of the selected row. Only internal layers animate (the frame
+// element), never the anchor wrapper. Reduced motion renders a still frame.
+
+$mood-warning: #ff8a45; // same treatment colors as the previous vector mood palette
+$mood-critical: #ff496c;
+
+.sprite {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.frame {
+  position: absolute;
+  inset: 0;
+  background-image: url('/nex/hud-32bit/nex-idle-atlas-128.png');
+  background-repeat: no-repeat;
+
+  // 8 columns x 12 rows of 128x128 frames, scaled with the element size.
+  background-size: 800% 1200%;
+  background-position: 0 var(--nex-row, 0);
+}
+
+// --- Idle action rows (manifest order) -------------------------------------
+
+.rowHover {
+  --nex-row: 0px;
+}
+
+.rowBlink {
+  --nex-row: -128px;
+}
+
+.rowGlance {
+  --nex-row: -256px;
+}
+
+.rowOrbitBreathe {
+  --nex-row: -384px;
+}
+
+.rowHeadTilt {
+  --nex-row: -512px;
+}
+
+.rowFinTwitch {
+  --nex-row: -640px;
+}
+
+.rowModuleInspect {
+  --nex-row: -768px;
+}
+
+.rowOrbitShuffle {
+  --nex-row: -896px;
+}
+
+.rowCuriosity {
+  --nex-row: -1024px;
+}
+
+.rowMicroStretch {
+  --nex-row: -1152px;
+}
+
+.rowDrowse {
+  --nex-row: -1280px;
+}
+
+.rowWake {
+  --nex-row: -1408px;
+}
+
+// --- Frame playback ---------------------------------------------------------
+// from = frame 0, to = one frame past the last one; steps(8, end) therefore
+// displays exactly frames 0..7 (125 ms each, 1000 ms per animation).
+
+.playLoop {
+  animation: nex-atlas-play 1000ms steps(8, end) infinite;
+}
+
+.playOnce {
+  animation: nex-atlas-play 1000ms steps(8, end) 1 normal;
+}
+
+// Drowse holds the sleepy last frame until the director plays wake; wake
+// holds the awake last frame until the director returns to hover.
+.holdLast {
+  animation-fill-mode: forwards;
+}
+
+@keyframes nex-atlas-play {
+  from {
+    background-position: 0 var(--nex-row, 0);
+  }
+
+  to {
+    background-position: -1024px var(--nex-row, 0);
+  }
+}
+
+// --- Mood treatment ---------------------------------------------------------
+// The locked atlas has no dedicated mood frames; moods are a color treatment
+// over the authentic raster, never a new drawing. Offline stays still and
+// desaturated so no fake activity is signaled.
+
+.veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+  opacity: 0;
+}
+
+.sprite[data-nex-mood='warning'] {
+  .veil {
+    background: $mood-warning;
+    opacity: 0.3;
+  }
+
+  .frame {
+    filter: saturate(1.12);
+  }
+}
+
+.sprite[data-nex-mood='critical'] {
+  .veil {
+    background: $mood-critical;
+    opacity: 0.38;
+  }
+
+  .frame {
+    filter: saturate(1.15);
+  }
+}
+
+.sprite[data-nex-mood='offline'] {
+  .frame {
+    filter: grayscale(1) opacity(0.55);
+  }
+
+  .playLoop {
+    animation: none;
+  }
+
+  .veil {
+    opacity: 0;
+  }
+}
+
+// Working keeps the hover motion (the atlas has no dedicated working frames);
+// the global working sway rule on the wrapper no longer applies to raster
+// content, so a subtle internal breathing keeps the state visually alive.
+.sprite[data-nex-mood='working'] .frame {
+  animation: nex-atlas-work-breathe 1.3s ease-in-out infinite;
+}
+
+@keyframes nex-atlas-work-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+// --- Reduced motion ---------------------------------------------------------
+// No frame playback at all: a single still frame of the active row.
+
+@media (prefers-reduced-motion: reduce) {
+  .playLoop,
+  .playOnce,
+  .sprite[data-nex-mood='working'] .frame {
+    animation: none;
+  }
+
+  .holdLast {
+    animation: none;
+  }
+}

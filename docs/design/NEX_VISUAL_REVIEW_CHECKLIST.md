@@ -39,7 +39,7 @@
 
 ## C.1 Prévia reproduzível de animações
 
-- [ ] `cd web && npm run art:nex:preview` gera `dist/nex-motion-preview.html` sem falhas.
+- [ ] `cd web && npm run test:e2e:companion-lab` PASSA e as capturas mostram o atlas raster locked NEX-ID-v1.
 - [ ] O preview mostra exatamente cinco estados oficiais e mantém o mesmo personagem frontal.
 - [ ] O modo **Desativar animações** congela partes internas, movimento de entrada e hover.
 - [ ] Todas as poses preservam as âncoras dos quatro módulos; sem recorte de órbita/cabeça.

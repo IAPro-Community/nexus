@@ -2,31 +2,42 @@
 
 **Estado:** especificação de movimento oficial para o mascote da linha `release/v1.0.0`. **Não significa certificação de binários.**
 
-**Documento-mãe:** [NEX — contrato visual](NEX_32BIT_VISUAL_CONTRACT.md). **Arte de execução:** `web/src/features/hud/NexPixelSprite.tsx`. **Estilos:** `web/src/features/hud/_hudGuardian.scss` e `web/src/features/hud/GuardianMascot.module.scss`.
+**Documento-mãe:** [NEX — contrato visual](NEX_32BIT_VISUAL_CONTRACT.md). **Arte de execução:** o atlas locked `web/public/nex/hud-32bit/nex-idle-atlas-128.png` renderizado por `web/src/features/hud/NexPixelSprite.tsx`. **Estilos:** `web/src/features/hud/NexPixelSprite.module.scss` e `web/src/features/hud/GuardianMascot.module.scss`.
 
-> **Evolução artística escolhida:** a implementação CSS/SVG atual continua funcional, mas deve ser substituída por **sprites HD de pixel art de jogo retrô, com 12 ações de idle**. A referência do personagem e os critérios de substituição estão em [Retro Game + Idle](nex/RETRO_GAME_IDLE_DIRECTION.md). Não marcar as 12 ações como implementadas antes de existirem frames versionados e preview do mesmo SHA.
+> **Evolução artística escolhida:** a implementação CSS/SVG anterior foi
+> substituída pelo **atlas raster locked NEX-ID-v1** (`hud_32bit_idle_atlas`,
+> 12 ações × 8 frames em 1024×1536), renderizado por `NexPixelSprite.tsx` com
+> `steps()` CSS por linha do atlas. A referência do personagem e os critérios
+> de substituição estão em [Retro Game + Idle](nex/RETRO_GAME_IDLE_DIRECTION.md).
+> Os 12 ids de ação já têm frames versionados no atlas locked; o aceite visual
+> do render no HUD segue pelo gate `owner_visual_approval`.
 
 ## Intenção
 
 NEX mantém a **vista frontal**, a mesma cabeça, visor, aletas, núcleo e **exatamente quatro** módulos flutuantes. A animação apresenta estados existentes, mas não torna NEX um agente, assistente autônomo ou sensor de atividade. Nenhum frame deve alterar a anatomia, a perspectiva frontal ou o modo do HUD.
 
-Na v1, NEX usa **animação CSS vetorial suave** sobre o SVG de 128 × 128 unidades: **não** é um sprite sheet em pixel art quadro a quadro nem uma cópia perfeita da prancha raster conceitual. O termo “32 bits” descreve a direção estética. Não afirmar que há frames desenhados ou atlas completos quando apenas CSS/SVG estiver disponível.
+Na v1, NEX usa **playback de frames do atlas raster locked** (12 ações de idle derivadas do PNG aprovado): **não** é um sprite sheet desenhado à mão em pixel art nem uma cópia perfeita da prancha conceitual. O termo “32 bits” descreve a direção estética. Não afirmar que há frames desenhados manualmente ou giro 360° quando apenas os shifts de camada do raster estiverem disponíveis.
 
 ## Anatomia articulada e camadas independentes
 
-| Camada do SVG | Âncora/pivô | Movimento autorizado | Limite |
-| --- | --- | --- | --- |
-| Personagem frontal (`guardianSprite`) | centro / base | flutuação 0–3px; trabalho ±2° | não girar para 3/4 como pose padrão |
-| Aleta esquerda (`data-nex-fin=left`) | (39,31) | balanço até −2° | preservar os dois lados |
-| Aleta direita (`data-nex-fin=right`) | (89,31) | balanço espelhado até +2° | sem deslocamento da raiz |
-| Olhos (`guardianEyes`) | (64,59) | piscada pontual; expressão muda conforme mood | não criar boca/nariz |
-| Núcleo (`nexReactor`) | (64,99) | luminosidade/escala sutil; trabalho 1.1s | pulso não significa progresso mensurável |
-| Módulos 1–4 (`data-nex-module=1..4`) | transform de âncora externo | deslocamento local vertical 1–2px em fases independentes | não animar o `translate(x,y)` externo |
-| Órbita traseira (`guardianSignal`) | geometria fixa | oscilação de opacidade | não cruzar o rosto |
-| Órbita frontal (`nexOrbitFront`) | geometria fixa | brilho complementar | não alterar anatomia |
-| Sombra (`nexShadow`) | (64,123) | respiração sincronizada com flutuação | sem sombra quadrada da janela nativa |
+Na execução atual (atlas raster locked NEX-ID-v1), o movimento vem dos
+**frames do próprio raster aprovado** (shifts de camadas do PNG original,
+não desenho quadro a quadro): cada ação de idle é uma linha de 8 frames
+128×128 tocada em 8 fps via `steps()`. O wrapper do sprite é âncora e não
+recebe transform de animação; as regras de estado abaixo continuam válidas
+como contrato semântico.
 
-Os módulos continuam nos pontos **(14,96), (114,96), (30,115), (98,115)** em seu grupo SVG externo. Somente a camada interna se movimenta; isso elimina saltos de posição e regressões ao trocar de estado.
+| Camada/estado | Âncora/pivô | Movimento autorizado | Limite |
+| --- | --- | --- | --- |
+| Sprite do atlas (`data-nex-art="hud-32bit-atlas"`) | centro / base | sem transform de âncora | nenhum deslocamento do wrapper |
+| Linha de ação (idle_hover … idle_wake) | frame interno | playback de 8 frames, 125 ms cada | loop somente no hover (frame 8 = frame 1) |
+| Drowse/wake | frame interno | segurar o último frame até o director trocar | não sinalizar sono real do sistema |
+| Mood (`data-nex-mood`) | overlay de tratamento | véu colorido soft-light; offline dessaturado e imóvel | sem frames dedicados de mood ainda; nunca inferir sucesso |
+| Working | frame interno | respiração vertical 1.3s de 2px | não indica progresso mensurável |
+
+Os módulos, aletas, olhos e núcleo continuam presentes **dentro de cada
+frame do raster aprovado** — a anatomia é garantida pelo SHA do atlas no
+`identity-lock.json`, não por seletores de camada SVG.
 
 ## Contrato por estado: apenas evidência real
 
@@ -59,14 +70,20 @@ Em `GuardianMascot.tsx`, `CompanionMood.attention` é apresentado como `Guardian
 
 ## Prévia local sem executar o HUD nativo
 
-Após instalar as dependências do `web/`, execute:
+O sprite do HUD renderiza o **atlas raster locked NEX-ID-v1**
+(`web/public/nex/hud-32bit/nex-idle-atlas-128.png`, SHA verificado contra
+`docs/design/nex/identity-lock.json`) por meio de `NexPixelSprite.tsx` +
+`NexPixelSprite.module.scss`. A prévia local é o lab E2E do Companion, que
+exercita o HUD real e captura os oito comportamentos:
 
 ```bash
 cd web
-npm run art:nex:preview
+npm run test:e2e:companion-lab
 ```
 
-O comando exporta os cinco SVGs a partir do **mesmo** `NexPixelSprite.tsx`, compila o SCSS real de animações e gera `web/dist/nex-motion-preview.html`. Abra esse arquivo no navegador, troque entre os cinco estados e teste a opção **Desativar animações**.
+As capturas ficam em `DEV/validation/current/companion-lab/captures/`. O
+export estático de SVGs da direção vetorial anterior foi aposentado junto com
+o desenho rejeitado; o raster locked é a arte canônica.
 
 Essa página é apenas um auxílio à inspeção visual. Ela não representa o comportamento das janelas nativas nem homologa DPI, click-through, transparência, arraste ou bandeja.
 

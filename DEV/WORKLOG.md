@@ -7502,3 +7502,13 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - Instalado `scripts/verify-nex-publication.mjs` (guard ATOMIC_HUD_AND_SITE): sem arte NEX em componentes públicos enquanto BLOCKED; `--require-ready` falha até 11/11 + SHAs certificados + approval do owner. Espelho `src/data/nex-publication.json` aponta o canônico (repo/branch/path/SHA).
 - Wired no `npm run build` (fail-closed antes do astro build). Build 43 páginas PASSA em BLOCKED.
 - Evidência parcial registrada em `site_integration` (canônico + espelho); status continua BLOCKED honesto — falta o hero contextual PT/EN + site_qa.
+
+## 2026-11-13 (cont.) — HUD usa a arte nova do NEX (atlas locked NEX-ID-v1)
+
+- **Report do maestro:** "o hud não ta usando a imagem nova do nex" — confirmado: o `NexPixelSprite` desenhava o SVG vetorial antigo (direção rejeitada na comparação perceptual), não o raster aprovado.
+- **Descoberta:** o `identity-lock.json` FROZEN já destinava o atlas `nex-idle-atlas-128.png` (1024×1536, 12 ações de idle × 8 frames, 8fps) como `hud_32bit_idle_atlas`; o `nexIdleDirector.ts` já usava os 12 ids — faltava só o render.
+- **Implementação:** asset copiado byte-a-byte para `web/public/nex/hud-32bit/` (SHA verificado no build e em teste vitest); `NexPixelSprite.tsx` reescrito para playback CSS `steps(8)` por linha do atlas (hover em loop — frame 8 ≡ frame 1, delta 0.0; drowse/wake seguram o último frame); moods por véu soft-light + offline grayscale imóvel; reduced-motion desliga tudo; âncora sem transform (contrato de animação).
+- **Legado vetorial aposentado:** `export-nex-art.mjs` + SVGs mood estáticos removidos (sem consumidores; a fonte canônica agora é o raster locked); build verifica o SHA do atlas no dist.
+- **Evidência:** lab E2E companion PASS 8/8 com capturas novas (01-ambient, 06-error véu+badge, 08-offline grayscale conferidos visualmente); web 901/901; lint/typecheck/styles limpos; `verify-nex-identity-lock` FROZEN OK, `verify-nex-hybrid-assets` 14/14, release-readiness 2/11 sem regressão.
+- **Docs:** `NEX_ANIMATION_CONTRACT.md` atualizado (arte de execução = atlas locked; anatomia por SHA; moods por treatment); checklist visual aponta o lab E2E.
+- Pendente: aceite visual do owner do render no HUD (gate `owner_visual_approval`).

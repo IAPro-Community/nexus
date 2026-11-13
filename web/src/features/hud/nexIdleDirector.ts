@@ -71,8 +71,10 @@ export const NEX_IDLE_COOLDOWN_MS: Readonly<Record<NexIdleAction, number>> = {
 };
 
 export const NEX_IDLE_DURATION_MS: Readonly<Record<NexIdleAction, number>> = {
+  // Atlas animations play 8 frames at 125 ms (1000 ms); durations must not
+  // cut the locked art short. Values above 1000 ms hold the final frame.
   idle_hover: 2400,
-  idle_blink: 650,
+  idle_blink: 1000,
   idle_glance: 1700,
   idle_orbit_breathe: 2100,
   idle_head_tilt: 2200,

@@ -1,4 +1,5 @@
 import { build } from 'esbuild';
+import { createHash } from 'node:crypto';
 import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -97,20 +98,26 @@ if (collectedStyles.length > 0) {
 }
 
 await cp(resolve(webDir, 'index.html'), resolve(distDir, 'index.html'));
-// Copy static assets first, then generate the canonical NEX renders *into
-// dist only*. A build must never mutate checked-in web/public source assets:
-// exact-SHA CI and Windows homologation verify a clean source worktree.
+// Copy static assets first, then verify the locked NEX hud atlas *in dist only*.
+// A build must never mutate checked-in web/public source assets: exact-SHA CI
+// and Windows homologation verify a clean source worktree.
 const publicDir = resolve(webDir, 'public');
 if (existsSync(publicDir)) {
   await cp(publicDir, distDir, { recursive: true });
 }
-const nexArt = spawnSync(
-  process.execPath,
-  [resolve(webDir, 'scripts/export-nex-art.mjs'), `--output-dir=${resolve(distDir, 'nex')}`],
-  { cwd: webDir, stdio: 'inherit' },
-);
-if (nexArt.status !== 0) {
-  throw new Error(`NEX asset generation failed (exit: ${nexArt.status ?? 'unknown'})`);
+// The HUD renders the locked NEX-ID-v1 hud-32bit idle atlas (see
+// web/src/features/hud/nexIdleAtlas.ts). The previous vector SVG export was
+// retired with the rejected vector direction; the raster asset is the
+// canonical art and must ship byte-a-byte.
+const nexAtlasPath = resolve(distDir, 'nex', 'hud-32bit', 'nex-idle-atlas-128.png');
+const nexAtlasSha =
+  '8256a302fff77996e3563ef42d1e62685b59084c8a17446bb2acb2219e85dfda';
+if (!existsSync(nexAtlasPath)) {
+  throw new Error('Locked NEX hud-32bit atlas missing from dist: nex/hud-32bit/nex-idle-atlas-128.png');
+}
+const nexAtlasHash = createHash('sha256').update(readFileSync(nexAtlasPath)).digest('hex');
+if (nexAtlasHash !== nexAtlasSha) {
+  throw new Error(`Locked NEX hud atlas SHA mismatch in dist: ${nexAtlasHash}`);
 }
 const logo = existsSync(resolve(webDir, 'public/logo.png')) ? resolve(webDir, 'public/logo.png') : resolve(repoDir, 'logo.png');
 if (existsSync(logo)) await cp(logo, resolve(distDir, 'logo.png'));
