@@ -7485,3 +7485,12 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - `npm --prefix web run docs:capture` recapturou 10 superfícies sintéticas vinculadas ao SHA `bfdd95e6`; `make docs-verify` PASSA (251 Markdown, 33 assets). Evidência visual sintética em dia de novo (a pendência do push anterior está fechada).
 - Commits `45474bc9` (lab E2E), `7e3a5e44` (compact 64px + gates), `bfdd95e6` (evidência DEV + kits), `803af739` (recaptura) — push `e1e2b750..803af739` em `origin/release/v1.0.0`.
 - Evidence map: 95/97 critérios com source+test, 2 source-only, 0 unmapped, nenhum certificado (correto — certificação exige o aceite real).
+
+## 2026-11-13 — Fix: missão bloqueada por isolamento opencode + promoção por paste
+
+- **Report do maestro:** missão em `execution_preview` rejeitada — "no provider satisfies the approved Mission isolation contract: opencode:default (workspace-write/no-network not verified)" — e ele "não pediu missão em nenhum lugar".
+- **Causa 1 (bloqueio):** só o codex tem sandbox nativo verificado (`AutonomousIsolation: WORKSPACE_WRITE_NO_NETWORK`); opencode/gemini/claude/agy são UNVERIFIED (opencode v2.1.3 só tem `--auto`, sem sandbox OS de comandos de ferramenta). Gate fail-closed estava correto, mas PREFER não abria o pool.
+- **Fix:** `missionIsolationCandidates` — rejeitado o provider desejado por isolamento, o pool inteiro é re-filtrado e a missão usa um provider verificado (drift documentado no Resource.Reason do preview e no routing decision). PIN nunca deriva; pool sem nenhum provider verificado continua fail-closed. Testes: `TestMissionIsolationCandidates*` + `TestExecutionPreviewFallsBackToVerifiedProvider` (PASS).
+- **Causa 2 (promoção espúria):** `IsExplicitMissionRequest` varria o prompt inteiro — paste de 587 linhas com "mission/autônomo" no meio virou pedido explícito e promoveu Missão mesmo com delegation=OFF. Agora só a **primeira linha** expressa intenção. Teste com paste multi-linha (PASS).
+- Pacote `internal/nexus` integral + promotion PASS (gofmt/vet limpos). CLI reinstalado com o fix (commit `1aa6c0c8`).
+- Observação: codex continua o único provider autônomo verificado; avaliar wrapper bwrap/seatbelt como follow-up se o owner quiser opencode autônomo sem quebrar o tráfego de API do próprio CLI.
