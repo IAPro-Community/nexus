@@ -7494,3 +7494,11 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - **Causa 2 (promoção espúria):** `IsExplicitMissionRequest` varria o prompt inteiro — paste de 587 linhas com "mission/autônomo" no meio virou pedido explícito e promoveu Missão mesmo com delegation=OFF. Agora só a **primeira linha** expressa intenção. Teste com paste multi-linha (PASS).
 - Pacote `internal/nexus` integral + promotion PASS (gofmt/vet limpos). CLI reinstalado com o fix (commit `1aa6c0c8`).
 - Observação: codex continua o único provider autônomo verificado; avaliar wrapper bwrap/seatbelt como follow-up se o owner quiser opencode autônomo sem quebrar o tráfego de API do próprio CLI.
+
+## 2026-11-13 (cont.) — site_integration: guard de publicação conjunta no Nexus-Site
+
+- Branch `feat/nex-companion-integration-20261113` criada no Nexus-Site a partir do HEAD (preserva showcase/cases/productStories recentes).
+- **Branch antiga descartada como base:** `docs/nex-clippy-2d-publication-20261101` divergiu antes do trabalho recente e REMOVE scripts de honestidade mandatórios (verify-showcase-media, verify-case-evidence, verify-product-contracts, visual-smoke). Só sua política foi aproveitada, adaptada — nada de cherry-pick cego.
+- Instalado `scripts/verify-nex-publication.mjs` (guard ATOMIC_HUD_AND_SITE): sem arte NEX em componentes públicos enquanto BLOCKED; `--require-ready` falha até 11/11 + SHAs certificados + approval do owner. Espelho `src/data/nex-publication.json` aponta o canônico (repo/branch/path/SHA).
+- Wired no `npm run build` (fail-closed antes do astro build). Build 43 páginas PASSA em BLOCKED.
+- Evidência parcial registrada em `site_integration` (canônico + espelho); status continua BLOCKED honesto — falta o hero contextual PT/EN + site_qa.
