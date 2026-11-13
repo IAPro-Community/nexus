@@ -7482,3 +7482,6 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - **Runtime QA Linux/Wayland:** nexus-desktop + nexus-hud iniciam, embutem Core, renderizam WebKitGTK e encerram gracioso no SIGTERM (evidência `DEV/validation/current/runtime-qa-linux-wayland/`). libEGL = software render sem GPU. Windows/macOS NOT_RUN.
 - **Kits de GO:** `docs/reference/GO_CEREMONY_KITS.md` — 5 sessões do maestro com comandos prontos (AGY, chave+assinatura, plataformas físicas, two-client 2 dispositivos, non-stop+aceite 48/48+approval NEX).
 - Qualidade: hud vitest 79/79; pretter/eslint do lab OK; suíte completa + security no commit a seguir.
+- `npm --prefix web run docs:capture` recapturou 10 superfícies sintéticas vinculadas ao SHA `bfdd95e6`; `make docs-verify` PASSA (251 Markdown, 33 assets). Evidência visual sintética em dia de novo (a pendência do push anterior está fechada).
+- Commits `45474bc9` (lab E2E), `7e3a5e44` (compact 64px + gates), `bfdd95e6` (evidência DEV + kits), `803af739` (recaptura) — push `e1e2b750..803af739` em `origin/release/v1.0.0`.
+- Evidence map: 95/97 critérios com source+test, 2 source-only, 0 unmapped, nenhum certificado (correto — certificação exige o aceite real).
