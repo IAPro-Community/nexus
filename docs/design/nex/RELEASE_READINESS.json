@@ -109,7 +109,8 @@
       "contract": "docs/design/nex/COMPANION_2D_CLIPPY_LITE.md",
       "status": "BLOCKED",
       "evidence": [
-        "Guard de publicação conjunta ATOMIC_HUD_AND_SITE ativo no Nexus-Site (branch feat/nex-companion-integration-20261113): scripts/verify-nex-publication.mjs + espelho src/data/nex-publication.json espelhando este manifest no commit 293b328abed7b7d62532fba1fb02f8de77d56f0d; wired no npm build (fail-closed); BLOCKED passa sem arte pública, --require-ready falha até 11/11"
+        "Guard de publicação conjunta ATOMIC_HUD_AND_SITE ativo no Nexus-Site (branch feat/nex-companion-integration-20261113): scripts/verify-nex-publication.mjs + espelho src/data/nex-publication.json espelhando este manifest no commit 293b328abed7b7d62532fba1fb02f8de77d56f0d; wired no npm build (fail-closed); BLOCKED passa sem arte pública, --require-ready falha até 11/11",
+        "Hero contextual 2D construído no lab do Nexus-Site (nex-lab, noindex): 11 camadas raster locked NEX-ID-v1 importadas com SHA verificado (iguais às aprovadas no Nexus); player public/nex/hybrid-v1/index.html com os 8 comportamentos demo rotulados PT/EN (preempção offline>error>attention>thinking, rest segura até interação); guard ATOMIC_HUD_AND_SITE segue fail-closed. Mount público PT/EN fica para o commit atômico do flip READY."
       ],
       "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
     },
@@ -126,7 +127,9 @@
       "title": "Build, Chrome/Firefox/Safari/mobile, LCP e reduced motion aprovados",
       "contract": "docs/design/nex/hybrid-v1/BROWSER_QA_20261028.md",
       "status": "BLOCKED",
-      "evidence": [],
+      "evidence": [
+        "QA Playwright local (Chrome via system executable): capturas 320/390/768/1024/1440 com overflow 0px; click-through dos 8 comportamentos PASS; reduced-motion data-live=off; LCP 36ms. Capturas e results.json em DEV/validation/current/nex-hero-qa/. Firefox e mobile real ficam para as sessões externas (NOT_RUN)."
+      ],
       "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
     },
     {

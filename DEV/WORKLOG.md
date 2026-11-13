@@ -7512,3 +7512,12 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - **Evidência:** lab E2E companion PASS 8/8 com capturas novas (01-ambient, 06-error véu+badge, 08-offline grayscale conferidos visualmente); web 901/901; lint/typecheck/styles limpos; `verify-nex-identity-lock` FROZEN OK, `verify-nex-hybrid-assets` 14/14, release-readiness 2/11 sem regressão.
 - **Docs:** `NEX_ANIMATION_CONTRACT.md` atualizado (arte de execução = atlas locked; anatomia por SHA; moods por treatment); checklist visual aponta o lab E2E.
 - Pendente: aceite visual do owner do render no HUD (gate `owner_visual_approval`).
+
+## 2026-11-13 (cont.) — Fase A: hero contextual PT/EN no lab do Nexus-Site + QA
+
+- **Descoberta:** as camadas hybrid-v1 nunca foram importadas para o site (lab no fallback "pending"); site só tinha o turntable.
+- **Assets:** 11 arquivos locked (8 camadas + manifest + fonte original) copiados byte-a-byte; SHAs conferem com os registros do nex-lab e com o identity-lock do Nexus.
+- **Player contextual** (`public/nex/hybrid-v1/index.html`, autossuficiente): composição das camadas em % do canvas 1254×1254; 8 comportamentos demo rotulados PT/EN com toggle de idioma e de animações; preempção offline>error>attention>thinking>interação; rest segura até interação (contrato Clippy-lite); reduced-motion respeitado; sem som/WebGL/listener global de cursor.
+- **QA Playwright** (`scripts/nex-hero-qa.mjs`, Chrome do sistema): 5 viewports com overflow 0px, click-through 8/8 PASS, reduced-motion imóvel, LCP 36ms. Correções no caminho: botões clicados por label PT (teste antigo estava deslocado em 1) e observer LCP via addInitScript.
+- **Gates:** `site_integration` e `site_qa` com evidência real registrada (canônico + espelho); status continua BLOCKED — mount público PT/EN entra no flip atômico READY.
+- Site branch `feat/nex-companion-integration-20261113` pushada (c68a67d + commits do hero).
