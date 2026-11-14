@@ -139,3 +139,22 @@ func TestQuotaFailureCarriesResetAt(t *testing.T) {
 		t.Fatalf("expected reset within a weekly window, got %v", delta)
 	}
 }
+
+func TestClassifyCodexTuiLimitBanners(t *testing.T) {
+	cases := []struct {
+		name   string
+		output string
+	}{
+		{"hit usage limit", "✗ You've hit your usage limit. Your limit will reset at 5pm."},
+		{"reached usage limit", "You've reached your usage limit for this plan."},
+		{"reset signal only", "Your limit will reset in 2h 30m."},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			res := Classify(errors.New("exit status 1"), tc.output)
+			if res.Kind != model.FailureRateLimit {
+				t.Fatalf("kind = %s, want rate limit", res.Kind)
+			}
+		})
+	}
+}

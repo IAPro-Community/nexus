@@ -40,6 +40,14 @@ var quotaBannerPatterns = map[string][]quotaBannerPattern{
 		// Billing-style exhaustion.
 		{kind: model.FailureQuota, compiled: regexp.MustCompile(`(?i)(?:insufficient credits|out of credits|billing limit)`)},
 	},
+	"agy": {
+		// AGY weekly limit screen, locked from production evidence (2026-11-14):
+		// "⚠ Individual quota reached. Please upgrade your subscription to
+		// increase your limits. Resets in 167h58m45s." The same wording is
+		// covered by the shared exit classifier; this entry lets supervised
+		// runtimes accelerate the quota evidence check on the banner itself.
+		{kind: model.FailureQuota, compiled: regexp.MustCompile(`(?i)individual quota reached`)},
+	},
 }
 
 // matchQuotaBanner scans the window for the provider's own limit banners.

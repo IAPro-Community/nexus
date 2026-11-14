@@ -129,3 +129,25 @@ func TestSessionHostObserveOutputChunkKeepsDetectorBehavior(t *testing.T) {
 		t.Fatal("bare struct must not fabricate a watcher")
 	}
 }
+
+func TestQuotaLimitWatcherPublishesAgyWeeklyQuotaBanner(t *testing.T) {
+	published := &[]events.Event{}
+	w := NewQuotaLimitWatcher(
+		"rt-agy",
+		"agy",
+		"work",
+		"lineage-2",
+		time.Now().Add(-time.Minute), // past the min-uptime guard
+		func(e events.Event) {
+			*published = append(*published, e)
+		},
+	)
+
+	w.ProcessChunk([]byte("⚠ Individual quota reached. Please upgrade your subscription to increase your limits.\r\n"))
+	if len(*published) != 1 {
+		t.Fatalf("published %d events, want 1", len(*published))
+	}
+	if (*published)[0].Data["failure_kind"] != string(model.FailureQuota) {
+		t.Fatalf("failure_kind = %v", (*published)[0].Data["failure_kind"])
+	}
+}

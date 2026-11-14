@@ -15,6 +15,11 @@ var (
 		regexp.MustCompile(`(?i)\b(quota exceeded|usage limit reached|exceeded your current quota)\b`),
 		regexp.MustCompile(`(?i)\b(capacity reached|temporarily rate-limited)\b`),
 		regexp.MustCompile(`(?i)\bresource_exhausted\b`),
+		// Codex TUI limit screen, evidence-backed by the supervised host
+		// watcher (internal/control/host/quota_pattern.go): keep the exit
+		// classifier aligned so a direct launch classifies identically.
+		regexp.MustCompile(`(?i)\byou'?ve (?:hit|reached) your usage limit\b`),
+		regexp.MustCompile(`(?i)\blimit will reset (?:at|in)\b`),
 	}
 
 	authPatterns = []*regexp.Regexp{
