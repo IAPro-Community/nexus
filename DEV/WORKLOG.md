@@ -7542,3 +7542,10 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - **Higiene aplicada mesmo assim (`555b16e8`):** `npm audit fix` no `docs-site` limpou os 2 highs reais (`follow-redirects` GHSA-mrwp-f3q8-3g9p, `joi` GHSA-4528-x5fx-h6hg); restam 5 low (abaixo do gate `--audit-level=high`); `check:docs` (100 páginas) e `build` verdes localmente (node 22.17).
 - **Pendente do maestro (1 clique):** Settings → Environments → github-pages → Deployment branches → permitir `release/v1.0.0` (ou política "All branches"). Depois disso, um re-run do workflow publica o portal.
 - CI principal + Linux smoke: verdes no `555b16e8`.
+
+## 2026-11-14 (noite) — Publish Nexus documentation: diagnóstico fechado (infra preexistente)
+
+- **Não é regressão nossa:** 151 runs do workflow, 150 falhas, 1 único sucesso — na branch do portal (`docs/nexus-1.0-portal-20261022` @ `0b64885b`). Em `release/v1.0.0` ele NUNCA passou; falha em 2–3s, antes do primeiro step (padrão de rejection do environment `github-pages`, que existe: id 25070480296). Causa provável: deployment branch policy não inclui `release/v1.0.0`. Logs/annotations exigem auth que o ambiente local não tem (gh removido pós-restart).
+- **Ação do maestro (admin):** Settings → Environments → github-pages → Deployment branches → adicionar `release/v1.0.0` (ou habilitar Pages com source "GitHub Actions"). Alternativa de código: trocar o deploy para branch gh-pages clássica — decisão de infra que não tomei sem aprovação.
+- **Higiene aplicada mesmo assim (`555b16e8`):** `npm audit fix` no lockfile do docs-site limpou os 2 highs (follow-redirects GHSA-mrwp-f3q8-3g9p, joi GHSA-4528-x5fx-h6hg); gate `npm audit --audit-level=high` agora exit 0 local, check:docs 100 páginas e build OK.
+- **Estado CI no `555b16e8`:** Linux smoke SUCCESS; CI principal em andamento; docs publish segue vermelho pela causa de infra acima (não bloqueia gates de release — docs-verify local PASS é o gate honesto).
