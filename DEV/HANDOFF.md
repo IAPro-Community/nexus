@@ -2966,3 +2966,8 @@ O controle `Popup independente` agora fica imediatamente abaixo do cabeçalho do
 - docs-verify restaurado (manifest/verificador no contrato do atlas + recaptura no SHA `7a763e14`); push até `555b16e8`.
 - "Publish Nexus documentation" falha crônica pré-existente: job morre em 2–3s (github-pages environment bloqueia a branch). Maestro precisa liberar a branch em Settings → Environments → github-pages. Audit highs do docs-site já corrigidos.
 - Aceites visuais do owner (pacote pronto) + kits 1–5 continuam os bloqueadores reais do GO.
+
+## 2026-11-14 — varredura pós-restart (CI/infra)
+
+- "Refresh synthetic documentation captures": falhas são a guarda anti-drift correta (captura OK, push recusado porque a branch avançou na janela). Auto-cura no próximo push de `web/src/**`.
+- CI principal travado em `queued`: runner self-hosted `nexus-ci` não sobreviveu ao restart da máquina. **Kit de recuperação com comandos exatos: `DEV/RUNBOOK.md`** (runner + policy do github-pages + re-run do publish).
