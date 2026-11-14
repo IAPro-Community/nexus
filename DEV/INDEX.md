@@ -1,3 +1,9 @@
+## Estado corrente — 2026-11-14 (release/v1.0.0)
+
+- Handoff corrente: [HANDOFF.md](HANDOFF.md) · validação do dia: [VERIFY.md](VERIFY.md) · recuperação de infra CI/docs: [RUNBOOK.md](RUNBOOK.md) · histórico: [WORKLOG.md](WORKLOG.md) · contrato ativo: [SPECS/ACTIVE.md](SPECS/ACTIVE.md).
+- Release readiness: **BLOCKED 2/11 honesto** (`site_integration` + `site_qa` com evidência real). docs-verify restaurado no contrato do atlas locked (13–14/11). Site hero dual-browser QA PASS (`e5d74e3` no Nexus-Site).
+- Aguardando maestro: aceites visuais do owner (pacote pronto em `validation/current/owner-visual-approval-20261113/`), kits 1–5 do GO (`docs/reference/GO_CEREMONY_KITS.md`) e 2 ações admin de infra (runner `nexus-ci`, policy do github-pages — ver RUNBOOK).
+
 ## Checkpoint de execução — estado 2026-11-09
 
 - Última árvore validada localmente: `release/v1.0.0@e7268be6` mais mudanças não commitadas. `make quality-full` e `make build` passaram (134 Web files/845 tests, Go completo + race, security). Ver [handoff atual](HANDOFF.md) e [gates](VERIFY.md).

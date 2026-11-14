@@ -43,7 +43,7 @@ Os oito IDs abaixo são **comportamentos UX**, compostos de microgestos já exis
 **HUD (React/Wails)**
 
 - `GuardianMascot` permanece dono do componente e da ação de abrir/recolher. Incrementar os sinais de `data-` e props existentes, sem listeners globais desnecessários, novas janelas, hitboxes ampliadas ou alterações no drag nativo.
-- Usar `NexPixelSprite` como fallback; integrar gradualmente as camadas raster verificadas de `web/public/nex/hybrid-v1/` somente após comparação visual (fonte, SHA, recortes de olho e transparência). Um PNG editorial não é automaticamente um sprite pixel-art.
+- A execução do `NexPixelSprite` é o **atlas raster locked NEX-ID-v1** (`hud_32bit_idle_atlas`) — não é fallback. As camadas raster de `web/public/nex/hybrid-v1/` pertencem ao hero do Nexus-Site e só entram em outra superfície após comparação visual (fonte, SHA, recortes e transparência). Um PNG editorial não é automaticamente um sprite pixel-art.
 - Oito comportamentos são mapeados com função pura `state+event -> behavior` e animações locais; restringir a no máximo um gesto especial por vez. Se o PR #171 já oferece transições equivalentes, usar seu contrato sem criar duplicatas.
 - Preservar BAR/MASCOT/TRAY, atalhos de teclado, foco, `aria-label`, popover, `data-hud-hit-area` e preferências de motion.
 
@@ -62,7 +62,7 @@ Os oito IDs abaixo são **comportamentos UX**, compostos de microgestos já exis
 
 1. **Não gerar imagens por prompt a cada estado**, não instalar Three.js, não encomendar avatar 3D, não iniciar trabalho de 16 vistas.
 2. Inventariar e medir o que existe no PR #171, nos assets da PR #147, no PR de 16 frames frontais #160 e no laboratório do site. Reaproveitar somente o que preservar anatomia e proveniência.
-3. Entregar primeiro 8 combinações de gestos no SVG/camadas existentes. Ativos adicionais precisam justificar melhora em comparação a uma captura em tamanho real 64/92/128px e custo/complexidade mensuráveis.
+3. Entregar primeiro as combinações de gestos mapeadas para as ações do atlas locked existente. Ativos adicionais precisam justificar melhora em comparação a uma captura em tamanho real 64/92/128px e custo/complexidade mensuráveis.
 4. Rive só deve ser adotado após um POC com a arte real, licença/deployment/documentação definidos e comparação concreta de bundle, renderização e manutenção. Não duplicar arte entre Rive e código.
 
 ## 6. Critérios de aceite (evidência por SHA)
