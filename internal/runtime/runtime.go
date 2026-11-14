@@ -275,9 +275,14 @@ func RunInteractive(bin string, args []string, env []string, cwd string) (model.
 	defer func() { _ = tty.Restore() }()
 
 	var errBuf bytes.Buffer
+	// Fatal provider errors occasionally surface only on stdout (e.g. AGY
+	// weekly quota text). Keep a bounded tail so classification can consult
+	// it when stderr carries no actionable signal — without buffering the
+	// whole conversation in memory.
+	stdoutTail := &tailBuffer{max: 16 * 1024}
 	output := NewTerminalOutputScrubber(os.Stdout)
 	defer func() { _ = output.Flush() }()
-	cmd.Stdout = output
+	cmd.Stdout = io.MultiWriter(output, stdoutTail)
 	cmd.Stderr = io.MultiWriter(output, &errBuf)
 
 	sigChan := make(chan os.Signal, 1)
@@ -317,13 +322,46 @@ func RunInteractive(bin string, args []string, env []string, cwd string) (model.
 	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
-			fail := classifier.Classify(err, errBuf.String())
-			return fail, err
+			return classifyExitFailure(exitErr, errBuf.String(), stdoutTail.String()), err
 		}
 		return model.Failure{Kind: model.FailureUnknown, Message: err.Error()}, err
 	}
 
 	return model.Failure{Kind: model.FailureNone}, nil
+}
+
+// tailBuffer keeps only the last max bytes written to it, so interactive
+// session output can be inspected without buffering an entire conversation.
+type tailBuffer struct {
+	buf []byte
+	max int
+}
+
+func (t *tailBuffer) Write(p []byte) (int, error) {
+	t.buf = append(t.buf, p...)
+	if over := len(t.buf) - t.max; over > 0 {
+		copy(t.buf, t.buf[over:])
+		t.buf = t.buf[:len(t.buf)-over]
+	}
+	return len(p), nil
+}
+
+func (t *tailBuffer) String() string { return string(t.buf) }
+
+// classifyExitFailure prefers stderr evidence; when stderr yields no
+// actionable kind (None/Unknown), it consults the bounded stdout tail once.
+// Fatal provider errors (AGY weekly quota) sometimes surface only on stdout,
+// while stderr stays the precise channel for auth/usage signals.
+func classifyExitFailure(exitErr error, stderr, stdoutTail string) model.Failure {
+	fail := classifier.Classify(exitErr, stderr)
+	if fail.Kind == model.FailureNone || fail.Kind == model.FailureUnknown {
+		if strings.TrimSpace(stdoutTail) != "" {
+			if tail := classifier.Classify(exitErr, stdoutTail); tail.Kind != model.FailureNone && tail.Kind != model.FailureUnknown {
+				return tail
+			}
+		}
+	}
+	return fail
 }
 
 // NormalizeInteractiveEnv prevents provider TUIs from entering their

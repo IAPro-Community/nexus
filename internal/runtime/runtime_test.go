@@ -2,9 +2,13 @@ package runtime
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 func TestWriteTerminalKeyboardModeReset(t *testing.T) {
@@ -88,5 +92,70 @@ func TestInternalBrowserHelperCanBeRemovedWhileParentIsRunning(t *testing.T) {
 	}
 	if err := os.Remove(helper); err != nil {
 		t.Fatalf("browser helper must be independently removable while Nexus is running: %v", err)
+	}
+}
+
+func TestTailBufferKeepsOnlyLastMaxBytes(t *testing.T) {
+	tail := &tailBuffer{max: 8}
+	if _, err := tail.Write([]byte("abcdefghij")); err != nil {
+		t.Fatal(err)
+	}
+	if got := tail.String(); got != "cdefghij" {
+		t.Fatalf("tail = %q, want %q", got, "cdefghij")
+	}
+}
+
+func TestClassifyExitFailurePrefersStderrAndFallsBackToStdout(t *testing.T) {
+	exitErr := errors.New("exit status 1")
+	agyQuota := "⚠ Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 167h58m45s."
+
+	cases := []struct {
+		name      string
+		stderr    string
+		stdout    string
+		want      model.FailureKind
+		wantReset bool
+	}{
+		{
+			name:   "stderr quota classifies without consulting stdout",
+			stderr: agyQuota,
+			stdout: "",
+			want:   model.FailureQuota,
+		},
+		{
+			name:   "stderr auth wins over stdout quota wording",
+			stderr: "Please run /login to authenticate with your Google account.",
+			stdout: agyQuota,
+			want:   model.FailureAuth,
+		},
+		{
+			name:      "stdout-only quota falls back and carries reset",
+			stderr:    "",
+			stdout:    agyQuota,
+			want:      model.FailureQuota,
+			wantReset: true,
+		},
+		{
+			name:   "unrelated content stays unknown",
+			stderr: "",
+			stdout: "the agent discussed quota policy in the report",
+			want:   model.FailureUnknown,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := classifyExitFailure(exitErr, tc.stderr, tc.stdout)
+			if got.Kind != tc.want {
+				t.Fatalf("kind = %s, want %s", got.Kind, tc.want)
+			}
+			if tc.wantReset {
+				if got.ResetAt == nil {
+					t.Fatal("expected ResetAt for parsed reset window")
+				}
+				if delta := time.Until(*got.ResetAt); delta <= 0 || delta > 168*time.Hour {
+					t.Fatalf("expected weekly reset, got %v", delta)
+				}
+			}
+		})
 	}
 }

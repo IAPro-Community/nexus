@@ -7557,3 +7557,9 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - **Cadeia verificada:** `RunInteractive` → `classifier.Classify` → `FailureQuota` com ResetAt → `RecordFailureForScope` → rotação balanceada para o próximo elegível.
 - **Estado real das contas:** `agy:kivervinicius-gmail` medido Gemini 100% · Claude 100% — havia capacidade para onde trocar no momento do erro.
 - **Testes:** classifier (mensagem exata do erro + variantes de reset), adapter AGY `ClassifyError` com a saída real, `-race` em classifier/cooldown/fallback; suíte completa verde (incl. app 21s); `make lint-go` 0 issues; `make vet` limpo.
+
+## 2026-11-14 (noite III) — fallback de classificação via stdout (coda do fix AGY)
+
+- `RunInteractive` agora mantém um **tail limitado de 16KB do stdout** e, quando o stderr não produz um tipo acionável (None/Unknown), o classificador consulta o tail uma vez — cobre providers que imprimem erro fatal de quota só no stdout.
+- Precedência preservada: stderr é o canal preciso (auth/rate-limit vencem); stdout é sinal de último recurso. Falso-positivo minimizado: padrões AGY são strings específicas ("Individual quota reached", "please upgrade your subscription") e a consulta só acontece com exit não-zero.
+- Testes: `TestTailBufferKeepsOnlyLastMaxBytes`, `TestClassifyExitFailurePrefersStderrAndFallsBackToStdout` (stderr vence, fallback com ResetAt semanal, conteúdo não relacionado fica Unknown). `-race` verde; `make lint-go` 0 issues.
