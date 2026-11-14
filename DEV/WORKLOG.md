@@ -7522,3 +7522,9 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - **Gates:** `site_integration` e `site_qa` com evidência real registrada (canônico + espelho); status continua BLOCKED — mount público PT/EN entra no flip atômico READY.
 - Site branch `feat/nex-companion-integration-20261113` pushada (c68a67d + commits do hero).
 - **A3:** pacote de aceite visual único em `DEV/validation/current/owner-visual-approval-20261113/` — hud_compact 64px + atlas no HUD + hero do site, com README de aceite por item e SHAs.
+
+## 2026-11-14 — autonomia: decisões pendentes fechadas com evidência
+
+- **`nexus-app` antigo: MANTIDO.** Teste funcional com o binário novo: `nexus web --port 0 --listen` e `nexus web open` existem e o launcher completou com Bootstrap URL (exit 0). Não é stale — é conveniência compatível. Pendência resolvida sem remoção.
+- **Pesquisa web (sandbox opencode):** confirmado que o opencode segue **sem sandbox OS nativo** — issue #2242 aberta, PRs #20316 (bubblewrap) e #21538 (seatbelt) fechados sem merge, e PR #53937 documenta que as permissões atuais são advisory. O gate fail-closed de Missões autônomas permanece correto; dependência upstream registrada.
+- **site_qa com Firefox real:** playwright Firefox 155 instalado (cache local) e QA completo PASS em Chrome + Firefox (5 viewports overflow 0, click-through 8/8, reduced-motion imóvel, LCP 88/44 ms). Site `e5d74e3` pusheado; mobile físico segue NOT_RUN para as sessões externas.

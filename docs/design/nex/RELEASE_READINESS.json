@@ -128,7 +128,8 @@
       "contract": "docs/design/nex/hybrid-v1/BROWSER_QA_20261028.md",
       "status": "BLOCKED",
       "evidence": [
-        "QA Playwright local (Chrome via system executable): capturas 320/390/768/1024/1440 com overflow 0px; click-through dos 8 comportamentos PASS; reduced-motion data-live=off; LCP 36ms. Capturas e results.json em DEV/validation/current/nex-hero-qa/. Firefox e mobile real ficam para as sessões externas (NOT_RUN)."
+        "QA Playwright local (Chrome via system executable): capturas 320/390/768/1024/1440 com overflow 0px; click-through dos 8 comportamentos PASS; reduced-motion data-live=off; LCP 36ms. Capturas e results.json em DEV/validation/current/nex-hero-qa/. Firefox e mobile real ficam para as sessões externas (NOT_RUN).",
+        "Firefox 155 real (playwright build) executou o mesmo pass: 5 viewports overflow 0, click-through 8/8, reduced-motion imóvel, LCP 44ms; Chrome confirmado com LCP 88ms (results.json por browser). Mobile físico e outros engines seguem NOT_RUN para as sessões externas."
       ],
       "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
     },
