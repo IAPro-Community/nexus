@@ -7535,3 +7535,10 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - **Fix (`7a763e14`):** manifest → `LOCKED_RASTER_ATLAS_FRAMES` + spriteSheet publicada com SHA locked (`8256a302…`); verificador agora certifica SHA+bytes reais do atlas, mapeamento das 12 ações (rows), hold-last drowse/wake, véus de mood com a paleta do manifest, stillness offline e reduced-motion; referência morta `runtime_export_script` removida; `GuardianMascot.module.scss` cobre `[data-nex-art]` em hover/focus/motion-off (seletores svg mantidos para ícones).
 - **Capturas (`06257475`):** `docs:capture` recertificou as 11 superfícies sintéticas no SHA `7a763e14` (stale check verde). *Atenção pós-restart:* `/usr/bin/google-chrome` sumiu do ambiente (como o python3); o playwright chromium-1243 foi instalado no cache para o capture.
 - **Verificação:** `make docs-verify` PASS (251 Markdown, 33 assets), web tests 901/901, lint:styles PASS, identity-lock FROZEN OK, hybrid 14/14, readiness honesto BLOCKED 2/11.
+
+## 2026-11-14 (tarde II) — diagnóstico do "Publish Nexus documentation"
+
+- **Não é regressão nossa:** o workflow `docs-site.yml` falha em **2–3s, antes de qualquer step**, há **20+ runs consecutivos** na `release/v1.0.0` (histórico desde `c850f40e`). Padrão de falha na criação do job = `github-pages` environment rejeitando a ref (deployment branch policy/protection rules) — ajuste de **Settings → Environments**, fora do alcance de código.
+- **Higiene aplicada mesmo assim (`555b16e8`):** `npm audit fix` no `docs-site` limpou os 2 highs reais (`follow-redirects` GHSA-mrwp-f3q8-3g9p, `joi` GHSA-4528-x5fx-h6hg); restam 5 low (abaixo do gate `--audit-level=high`); `check:docs` (100 páginas) e `build` verdes localmente (node 22.17).
+- **Pendente do maestro (1 clique):** Settings → Environments → github-pages → Deployment branches → permitir `release/v1.0.0` (ou política "All branches"). Depois disso, um re-run do workflow publica o portal.
+- CI principal + Linux smoke: verdes no `555b16e8`.

@@ -2960,3 +2960,9 @@ O controle `Popup independente` agora fica imediatamente abaixo do cabeçalho do
 - A branch `fix/windows-agent-terminal-reliability` reúne estas alterações. Ver `DEV/validation/TERMINALS_AGENTS_YOLO_SCROLL_20261026.md` para causa, arquivos, verificações e limitações.
 - YOLO agora normaliza aliases vindos das opções persistidas e a UI lê o modo persistido; terminais preservam scrollback ao receber input de mouse/paginação.
 - Antes de testar no app desktop, preparar uma build local com o overlay atual. Não encerrar nem substituir o processo instalado enquanto houver uma sessão de agente Codex em execução, salvo pedido explícito do usuário.
+
+## 2026-11-14 — estado da Lane A
+
+- docs-verify restaurado (manifest/verificador no contrato do atlas + recaptura no SHA `7a763e14`); push até `555b16e8`.
+- "Publish Nexus documentation" falha crônica pré-existente: job morre em 2–3s (github-pages environment bloqueia a branch). Maestro precisa liberar a branch em Settings → Environments → github-pages. Audit highs do docs-site já corrigidos.
+- Aceites visuais do owner (pacote pronto) + kits 1–5 continuam os bloqueadores reais do GO.
