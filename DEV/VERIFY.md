@@ -2582,3 +2582,21 @@ Worktree `C:\Dev\nexus-hud-validation`, base `f6098b8c684a97bf7e8e56804109ca491c
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
 
+
+## 2026-11-14 — validação integral local (CI self-hosted indisponível)
+
+| Gate | Resultado |
+|---|---|
+| `make docs-verify` | PASS — 251 Markdown, 33 assets (manifest recertificado no SHA `7a763e14`) |
+| `verify-nex-visual.mjs` | PASS — contrato do atlas locked (SHA+bytes, 12 rows, hold-last, veils, offline, reduced-motion) |
+| `verify-nex-identity-lock.mjs` | PASS — FROZEN |
+| `verify-nex-hybrid-assets.mjs` | PASS 14/14 |
+| `verify-nex-release-readiness.mjs` | BLOCKED 2/11 honesto (`site_integration`+`site_qa` com evidência; resto aguarda owner/kits) |
+| Web vitest | 901/901 |
+| Web lint:styles | PASS |
+| Go `make test-go` | PASS |
+| Go `make lint-go` | 0 issues |
+| `make security` | No vulnerabilities found |
+| `make vet` | limpo |
+| docs:capture | 11 superfícies sintéticas recertificadas (manifest source_sha `7a763e14`) |
+| CI GitHub | Linux smoke SUCCESS nos SHAs do dia; `ci.yml` aguarda runner self-hosted `nexus-ci` (ver `DEV/RUNBOOK.md`) |
