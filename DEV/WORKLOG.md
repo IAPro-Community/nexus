@@ -7549,3 +7549,11 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - **Ação do maestro (admin):** Settings → Environments → github-pages → Deployment branches → adicionar `release/v1.0.0` (ou habilitar Pages com source "GitHub Actions"). Alternativa de código: trocar o deploy para branch gh-pages clássica — decisão de infra que não tomei sem aprovação.
 - **Higiene aplicada mesmo assim (`555b16e8`):** `npm audit fix` no lockfile do docs-site limpou os 2 highs (follow-redirects GHSA-mrwp-f3q8-3g9p, joi GHSA-4528-x5fx-h6hg); gate `npm audit --audit-level=high` agora exit 0 local, check:docs 100 páginas e build OK.
 - **Estado CI no `555b16e8`:** Linux smoke SUCCESS; CI principal em andamento; docs publish segue vermelho pela causa de infra acima (não bloqueia gates de release — docs-verify local PASS é o gate honesto).
+
+## 2026-11-14 (noite II) — failover de quota AGY consertado ("Individual quota reached")
+
+- **Causa raiz (confirmada pelo maestro: sessões sempre via Nexus):** a mensagem AGY `Individual quota reached. Please upgrade your subscription... Resets in 167h58m45s` não casava com nenhum padrão do `classifier` → `FailureUnknown` → `RunWithFallbackStrategy` retorna sem trocar de conta.
+- **Fix:** (1) `quotaExhaustedPatterns` + `individual quota reached` / `please upgrade your subscription`; (2) `ExtractRetryDuration` agora parseia `Resets in <h><m><s>` composto; (3) branch Quota popula `RetryAfter`/`ResetAt` → cooldown semanal via `EffectiveCooldown` (ResetAt tem precedência).
+- **Cadeia verificada:** `RunInteractive` → `classifier.Classify` → `FailureQuota` com ResetAt → `RecordFailureForScope` → rotação balanceada para o próximo elegível.
+- **Estado real das contas:** `agy:kivervinicius-gmail` medido Gemini 100% · Claude 100% — havia capacidade para onde trocar no momento do erro.
+- **Testes:** classifier (mensagem exata do erro + variantes de reset), adapter AGY `ClassifyError` com a saída real, `-race` em classifier/cooldown/fallback; suíte completa verde (incl. app 21s); `make lint-go` 0 issues; `make vet` limpo.

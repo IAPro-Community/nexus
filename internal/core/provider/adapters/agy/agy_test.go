@@ -307,3 +307,21 @@ func TestInspectAuthLoginKeyringAloneIsNotAuthenticated(t *testing.T) {
 		t.Fatal("desktop login.keyring alone must NOT count as AGY authentication")
 	}
 }
+
+// TestClassifyErrorAgyIndividualWeeklyQuota locks the exact production
+// surface (2026-11-14): without recognizing this text the fallback executor
+// treated the failure as Unknown and never rotated to the other account.
+func TestClassifyErrorAgyIndividualWeeklyQuota(t *testing.T) {
+	a := &Adapter{}
+	output := "⚠ Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 167h58m45s.\nError ID: 9afeb906-c1f0-4b24-8f6e-8382bc642753-353"
+	failure := a.ClassifyError(nil, output)
+	if failure.Kind != model.FailureQuota {
+		t.Fatalf("expected quota failure, got %s", failure.Kind)
+	}
+	if failure.ResetAt == nil {
+		t.Fatal("expected ResetAt parsed from the weekly reset window")
+	}
+	if delta := time.Until(*failure.ResetAt); delta <= 0 || delta > 168*time.Hour {
+		t.Fatalf("expected reset within a weekly window, got %v", delta)
+	}
+}

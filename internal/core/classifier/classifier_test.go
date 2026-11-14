@@ -72,6 +72,22 @@ func TestClassifyFailures(t *testing.T) {
 			wantKind:     model.FailureUnknown,
 			wantDuration: 0,
 		},
+		{
+			// Exact AGY weekly-quota surface seen in production (2026-11-14):
+			// previously classified as Unknown, so failover never rotated.
+			name:         "AGY individual quota with weekly reset",
+			err:          errors.New("exit status 1"),
+			output:       "⚠ Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 167h58m45s.\nError ID: 9afeb906-c1f0-4b24-8f6e-8382bc642753-353",
+			wantKind:     model.FailureQuota,
+			wantDuration: 167*time.Hour + 58*time.Minute + 45*time.Second,
+		},
+		{
+			name:         "AGY individual quota without reset hint",
+			err:          errors.New("exit status 1"),
+			output:       "Individual quota reached. Please upgrade your subscription to increase your limits.",
+			wantKind:     model.FailureQuota,
+			wantDuration: 0,
+		},
 	}
 
 	for _, tc := range tests {
@@ -86,5 +102,40 @@ func TestClassifyFailures(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestExtractResetDurationVariants(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		want time.Duration
+	}{
+		{"weekly hours minutes seconds", "Resets in 167h58m45s", 167*time.Hour + 58*time.Minute + 45*time.Second},
+		{"minutes seconds", "Resets in 58m45s", 58*time.Minute + 45*time.Second},
+		{"only seconds", "Resets in 45s", 45 * time.Second},
+		{"only hours", "Resets in 2h", 2 * time.Hour},
+		{"no digits yields zero", "Resets in a while", 0},
+		{"retry wording still parses", "Try again in 37 minutes", 37 * time.Minute},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := ExtractRetryDuration(tc.in); got != tc.want {
+				t.Fatalf("expected %v, got %v", tc.want, got)
+			}
+		})
+	}
+}
+
+func TestQuotaFailureCarriesResetAt(t *testing.T) {
+	res := Classify(errors.New("exit status 1"), "Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 167h58m45s.")
+	if res.Kind != model.FailureQuota {
+		t.Fatalf("expected quota, got %s", res.Kind)
+	}
+	if res.ResetAt == nil {
+		t.Fatal("expected ResetAt to be set when the provider states a reset window")
+	}
+	if delta := time.Until(*res.ResetAt); delta <= 0 || delta > 168*time.Hour {
+		t.Fatalf("expected reset within a weekly window, got %v", delta)
 	}
 }
