@@ -11,10 +11,13 @@ const failures = [];
 const check = (pass, message) => { if (!pass) failures.push(message); };
 const manifest = JSON.parse(read('docs/design/NEX_VISUAL_MANIFEST.json'));
 const source = read(manifest.source_of_truth.compact_runtime_component);
+const atlasSource = read('web/src/features/hud/nexIdleAtlas.ts');
 const guardianModel = read(manifest.source_of_truth.runtime_mood_type);
 const companionModel = read(manifest.source_of_truth.companion_mood_type);
 const integration = read('web/src/features/hud/GuardianMascot.tsx');
 const contract = read(manifest.source_of_truth.normative_contract);
+const spriteStyles = read(manifest.animation.runtimeStyles);
+const companionStyles = read(manifest.animation.interactionStyles);
 const values = (union, typeName) => {
   const match = union.match(new RegExp(`export type ${typeName}\\s*=\\s*([^;]+);`));
   if (!match) return [];
@@ -46,34 +49,43 @@ check(integration.includes("mood === 'attention' ? 'warning' : mood"),
 check(manifest.source_of_truth.mood_projection?.attention === 'warning',
   'manifest attention mapping is not warning');
 
-check(source.includes('data-nex-art="32bit-official"'), 'runtime lacks official art marker');
-check(source.includes('data-nex-facing="front"'), 'runtime facing must be front');
-check(source.includes('viewBox="0 0 128 128"'), 'Compact viewBox changed without review');
-check(source.includes('data-nex-module='), 'orbital modules not found');
-const coordinates = source.split('\n').filter((line) => {
-  const tuple = line.trim();
-  if (!tuple.startsWith('[') || !tuple.endsWith('],')) return false;
-  try {
-    const parsed = JSON.parse(tuple.slice(0, -1));
-    return Array.isArray(parsed) && parsed.length === 3
-      && parsed.every(Number.isInteger);
-  } catch {
-    return false;
-  }
-});
-check(coordinates.length === manifest.anatomy.orbital_module_count,
-  'module coordinates count differs from canonical anatomy');
-check((source.match(/data-nex-module=/g) || []).length === 1,
-  'orbitals should map from one canonical location list');
+check(source.includes('data-nex-art="hud-32bit-atlas"'), 'runtime lacks the locked atlas art marker');
+check(source.includes('data-nex-mood={mood}'), 'runtime does not project the mood onto the sprite');
+check(source.includes('data-idle-action={idleAction ?? undefined}'),
+  'runtime does not expose the active idle action for tests');
 
-for (const mood of manifestMoods) {
-  check(new RegExp(`\\b${mood}\\s*:`).test(source),
-    `missing official accent declaration for runtime mood: ${mood}`);
+// The locked atlas model must bind to the identity lock exactly.
+const atlasSha = manifest.animation.spriteSheet.sha256;
+check(source.includes("from './nexIdleAtlas'") && source.includes('NEX_ATLAS_HOLD_LAST_ACTIONS.has(idleAction)'),
+  'sprite component no longer binds to the locked atlas model');
+check(atlasSource.includes(`'${atlasSha}'`), 'atlas model SHA differs from the visual manifest');
+check(atlasSource.includes("'/nex/hud-32bit/nex-idle-atlas-128.png'"),
+  'atlas model URL drifted from the published sprite sheet');
+check(atlasSource.includes('NEX_ATLAS_FRAME_MS = 125') && atlasSource.includes('NEX_ATLAS_FRAMES = 8'),
+  'atlas timing must stay at 8 frames of 125 ms');
+check((atlasSource.match(/idle_\w+:\s*\d+/g) || []).length === 12,
+  'atlas model must declare exactly the twelve approved action rows');
+check(atlasSource.includes("'idle_drowse'") && atlasSource.includes("'idle_wake'"),
+  'drowse/wake must be declared as hold-last-frame actions');
+
+const atlasBytes = existsSync(local(manifest.animation.spriteSheet.file))
+  ? readFileSync(local(manifest.animation.spriteSheet.file))
+  : null;
+check(Boolean(atlasBytes), 'published sprite sheet bytes are missing');
+if (atlasBytes) {
+  check(createHash('sha256').update(atlasBytes).digest('hex') === atlasSha,
+    'published sprite sheet SHA-256 mismatch');
 }
-check(source.includes(manifest.palette.critical),
-  'critical source accent differs from manifest');
-check(source.includes(manifest.palette.warning),
-  'warning source accent differs from manifest');
+
+// Mood treatment lives in the runtime styles now, not in vector accents.
+check(spriteStyles.includes('$mood-warning'), 'runtime styles lack the warning treatment');
+check(spriteStyles.includes('$mood-critical'), 'runtime styles lack the critical treatment');
+check(spriteStyles.includes(manifest.palette.warning.replace('#', '').toLowerCase()) ||
+  spriteStyles.toLowerCase().includes(manifest.palette.warning.toLowerCase()),
+  'warning treatment color differs from the manifest palette');
+check(spriteStyles.toLowerCase().includes(manifest.palette.critical.toLowerCase()),
+  'critical treatment color differs from the manifest palette');
+check(spriteStyles.includes('grayscale(1)'), 'offline must render still and desaturated');
 
 const artwork = manifest.references || [];
 check(artwork.filter((ref) => ref.status === 'VERSIONED').length >= 3,
@@ -136,39 +148,31 @@ if (highFidelity) {
 const animation = manifest.animation;
 check(Boolean(animation), 'manifest has no NEX animation contract');
 if (animation) {
-  check(animation.implementation === 'CSS_SVG_ARTICULATED',
+  check(animation.implementation === 'LOCKED_RASTER_ATLAS_FRAMES',
     'NEX animation implementation changed without visual review');
-  check(animation.spriteSheetPublished === false,
-    'cannot claim a sprite sheet unless a real atlas has been published');
+  check(animation.spriteSheetPublished === true,
+    'the locked atlas is published; manifest must not claim otherwise');
   const animationDocument = read(animation.contract);
-  const spriteStyles = read(animation.runtimeStyles);
-  const companionStyles = read(animation.interactionStyles);
-  const integration = read('web/src/features/hud/GuardianMascot.tsx');
   check(animationDocument.includes('quatro') && animationDocument.includes('offline'),
     'animation contract omits canonical anatomy or idle safety');
   check(integration.includes("data-motion={motionEnabled ? 'on' : 'off'}"),
     'NEX Guardian no longer projects requested motion mode');
-  for (const className of ['nexFinLeft', 'nexFinRight', 'nexOrbitFront', 'nexModuleNear', 'nexModuleFar']) {
-    check(source.includes(`styles.${className}`),
-      `missing independently articulated SVG layer: ${className}`);
-    check(spriteStyles.includes(`.${className}`),
-      `missing animation styles for NEX layer: ${className}`);
+  // Frame playback walks one atlas row with CSS steps(); the wrapper stays an
+  // anchor and never transforms.
+  check(spriteStyles.includes('@keyframes nex-atlas-play'),
+    'missing atlas frame playback keyframes');
+  check(spriteStyles.includes('steps(8'), 'atlas playback must step through the 8 frames');
+  check(spriteStyles.includes('.l-body') === false && source.includes('.rig') === false,
+    'unexpected hybrid-v1 site layer classes leaked into the HUD sprite');
+  for (const row of ['.rowHover', '.rowBlink', '.rowDrowse', '.rowWake']) {
+    check(spriteStyles.includes(row), `missing atlas row mapping: ${row}`);
   }
-  for (const part of ['data-nex-fin="left"', 'data-nex-fin="right"', 'data-nex-part="orbit-front"']) {
-    check(source.includes(part), `missing SVG anatomy marker: ${part}`);
-  }
-  for (const keyframe of ['nex-fin-left', 'nex-fin-right', 'nex-module-hover',
-    'nex-module-hover-reverse', 'nex-reactor-work']) {
-    check(spriteStyles.includes(`@keyframes ${keyframe}`),
-      `missing approved motion keyframes: ${keyframe}`);
-  }
-  check(spriteStyles.includes(".guardian[data-motion='off'] .guardianSprite *"),
-    'explicitly disabled motion does not cover child SVG groups');
-  check(spriteStyles.includes('@media (prefers-reduced-motion: reduce)') &&
-    spriteStyles.includes('.guardian[data-motion] .guardianSprite *'),
-    'reduced-motion override does not cover the articulated groups');
-  check(companionStyles.includes(".root[data-motion='off'] .guardianButton svg"),
-    'hover still animates when the user disables motion');
+  check(spriteStyles.includes('prefers-reduced-motion: reduce'),
+    'reduced-motion override missing from atlas runtime styles');
+  check(spriteStyles.includes(".sprite[data-nex-mood='offline']"),
+    'offline stillness rule missing from atlas runtime styles');
+  check(companionStyles.includes(".root[data-motion='off'] .guardianButton [data-nex-art]"),
+    'explicitly disabled motion does not cover the atlas sprite');
 }
 
 check(contract.includes('assets/nex/nex-character-reference.svg'),

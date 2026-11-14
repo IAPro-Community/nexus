@@ -20,7 +20,6 @@
       "critical",
       "offline"
     ],
-    "runtime_export_script": "web/scripts/export-nex-art.mjs",
     "companion_ui_moods": [
       "idle",
       "working",
@@ -33,7 +32,8 @@
       "critical": "critical"
     },
     "runtime_mood_type": "web/src/features/hud/guardianModel.ts",
-    "companion_mood_type": "web/src/features/hud/companionModel.ts"
+    "companion_mood_type": "web/src/features/hud/companionModel.ts",
+    "execution_note": "Vector mood SVGs and the export pipeline were retired in 3fe50401; the locked atlas PNG is the single runtime source."
   },
   "references": [
     {
@@ -184,47 +184,33 @@
   "animation": {
     "status": "IMPLEMENTED_IN_SOURCE_NOT_NATIVE_CERTIFIED",
     "contract": "docs/design/NEX_ANIMATION_CONTRACT.md",
-    "implementation": "CSS_SVG_ARTICULATED",
-    "runtimeStyles": "web/src/features/hud/_hudGuardian.scss",
+    "implementation": "LOCKED_RASTER_ATLAS_FRAMES",
+    "spriteSheetPublished": true,
+    "spriteSheet": {
+      "file": "web/public/nex/hud-32bit/nex-idle-atlas-128.png",
+      "sha256": "8256a302fff77996e3563ef42d1e62685b59084c8a17446bb2acb2219e85dfda",
+      "identityLockRole": "hud_32bit_idle_atlas",
+      "canvas": [
+        1024,
+        1536
+      ],
+      "frameSize": [
+        128,
+        128
+      ],
+      "framesPerAction": 8,
+      "frameMs": 125,
+      "actions": 12,
+      "source": "PNG layer shifts of the approved raster, not hand-drawn pixel art"
+    },
+    "runtimeStyles": "web/src/features/hud/NexPixelSprite.module.scss",
     "interactionStyles": "web/src/features/hud/GuardianMascot.module.scss",
     "motionControlledBy": "GuardianMascot.tsx data-motion",
     "reducedMotionMediaQuery": true,
     "stillWhenOffline": true,
-    "independentParts": [
-      "fins:left",
-      "fins:right",
-      "eyes",
-      "reactor",
-      "orbit:back",
-      "orbit:front",
-      "module:1",
-      "module:2",
-      "module:3",
-      "module:4",
-      "shadow"
-    ],
-    "moduleCoordinates": [
-      [
-        14,
-        96
-      ],
-      [
-        114,
-        96
-      ],
-      [
-        30,
-        115
-      ],
-      [
-        98,
-        115
-      ]
-    ],
-    "maxModuleTravelPx": 2,
-    "turnaroundDefault": "front",
-    "spriteSheetPublished": false,
-    "heroAnimationPublished": false
+    "moodTreatment": "soft-light color veils per mood; offline is grayscale and still",
+    "source_of_truth_note": "Frame shifts derive from the locked raster; no hand-drawn sheets. Anatomy is guaranteed by the atlas SHA, not by SVG layer selectors.",
+    "atlasModel": "web/src/features/hud/nexIdleAtlas.ts"
   },
   "selected_style_direction": {
     "status": "CHARACTER_SELECTED_PIXEL_MASTER_PENDING",

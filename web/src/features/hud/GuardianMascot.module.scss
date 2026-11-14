@@ -43,31 +43,29 @@
   background: transparent;
 }
 
-.guardianButton svg {
+.guardianButton svg,
+.guardianButton [data-nex-art] {
   transition: transform 220ms ease-out;
 }
 
-.root[data-motion='on'] .guardianButton:hover svg {
+.root[data-motion='on'] .guardianButton:hover svg,
+.root[data-motion='on'] .guardianButton:hover [data-nex-art] {
   transform: translateY(-2px) scale(1.02);
 }
 
-.root[data-motion='on'] .guardianButton:focus-visible svg {
+.root[data-motion='on'] .guardianButton:focus-visible svg,
+.root[data-motion='on'] .guardianButton:focus-visible [data-nex-art] {
   filter: drop-shadow(0 0 4px var(--nx-accent));
 }
 
-.root[data-motion='on'] .guardianButton:focus-visible svg [data-nex-part='face'] {
-  transform: translateX(1px);
-  transition: transform 180ms ease-out;
-}
-
 @media (hover: hover) and (pointer: fine) {
-  .root[data-motion='on'] .guardianButton:hover svg [data-nex-part='face'] {
-    transform: translateX(1px);
-    transition: transform 180ms ease-out;
+  .root[data-motion='on'] .guardianButton:hover [data-nex-art] {
+    transform: translateY(-2px) scale(1.02);
   }
 }
 
-.root[data-motion='off'] .guardianButton svg {
+.root[data-motion='off'] .guardianButton svg,
+.root[data-motion='off'] .guardianButton [data-nex-art] {
   animation: none;
   transform: none;
   transition: none;
