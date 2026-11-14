@@ -9,13 +9,17 @@
 
 O usuário confirmou **o robô da prancha NEX apresentada na conversa** como **personagem principal**, mas pediu **uma transposição para pixel art de jogo retrô com detalhamento muito maior** e muitas expressões e **ações de idle**. A identidade do personagem e a direção estética são decisões de produto; a **arte-mestre de produção ainda não foi congelada nem incorporada como binário**. A especificação executável está em [Retro Game + 12 idles](nex/RETRO_GAME_IDLE_DIRECTION.md) e a procedência da imagem principal escolhida está em [identity-lock.json](nex/identity-lock.json), com SHA-256 do arquivo enviado.
 
-**Regra anti-deriva:** não recriar o personagem como X-Fold, N-Core, Flux ou outro mascote de forma diferente. A anatomia desta referência é preservada na arte pixelada final. O `NexPixelSprite.tsx` e suas animações CSS existentes são **fallback funcional**, não prova de que o sprite HD pixel art já foi entregue. Antes de atualizar HUD/site, criar um master editável em camadas e animações por frames com inspeção humana.
+**Regra anti-deriva:** não recriar o personagem como X-Fold, N-Core, Flux ou outro mascote de forma diferente. A anatomia desta referência é preservada na arte pixelada final. A execução atual (`NexPixelSprite.tsx` + atlas locked) **não é** o sprite HD pixel art desenhado à mão nem o master editável — o aceite visual do owner sobre o atlas segue pendente. Antes de atualizar HUD/site, criar um master editável em camadas e animações por frames com inspeção humana.
 
 ## Pranchas visuais detalhadas por função (estudo complementar)
 
 O [pacote de referências pixel art retrô](nex/reference-pack/README.md) documenta a mesma composição em dez arquivos: imagem geral, personagem, vistas, expressões, anatomia, doze ideias de idle, cinco estados, ações de interação, usos e paleta. O [manifesto](nex/reference-pack/manifest.json) registra hashes e se os PNGs **estão efetivamente versionados**. Até a ingestão binária, o novo material deve ser usado apenas como apoio neste chat, sem links quebrados ou declarações falsas no GitHub.
 
-**Precedência:** arquivo original selecionado pelo usuário → contratos de identidade e animação → referências conceituais auxiliares → SVG/CSS fallback do HUD. O resultado de IA pode conter rótulos imprecisos ou diferenças entre miniaturas e **não é** sprite sheet nem master editável. A interpretação final exige desenho manual com pivôs e revisão humana.
+**Precedência:** arquivo original selecionado pelo usuário → contratos de identidade e animação → referências conceituais auxiliares → execução atlas/CSS do HUD. O resultado de IA pode conter rótulos imprecisos ou diferenças entre miniaturas e **não é** sprite sheet nem master editável. A interpretação final exige desenho manual com pivôs e revisão humana.
+
+## Atualização de execução — 13/11/2026 (atlas raster locked)
+
+A execução do HUD passa a ser o **atlas raster locked NEX-ID-v1** (`web/public/nex/hud-32bit/nex-idle-atlas-128.png`, role `hud_32bit_idle_atlas`, SHA verificado por `verify-nex-visual.mjs`), renderizado por `NexPixelSprite.tsx` com playback CSS `steps(8)` por linha de ação (12 ações × 8 frames de 125 ms — ver [contrato de animação](NEX_ANIMATION_CONTRACT.md)). Os **cinco SVGs de mood** que antes o build exportava em `web/public/nex/` foram **aposentados** (commit `3fe50401`); os moods agora são tratamentos de cor sobre o raster autêntico, declarados no [manifesto](NEX_VISUAL_MANIFEST.json). A anatomia é garantida pelo SHA do atlas, não por seletores de camadas SVG. O aceite visual do owner sobre o atlas/HUD segue **pendente** e é gate da release.
 
 ## Personagem canônico
 
@@ -35,7 +39,7 @@ Os mesmos olhos, proporções, módulos, cores e perfil devem permanecer constan
 
 | Artefato | Status de decisão | Fonte e finalidade |
 | --- | --- | --- |
-| NEX Compact | **Arte oficial da v1 em source** | `web/src/features/hud/NexPixelSprite.tsx` — SVG em grade 128x128, exibido em ~92px no HUD |
+| NEX Compact | **Arte oficial da v1 em source** | `web/src/features/hud/NexPixelSprite.tsx` — renderiza o atlas raster locked NEX-ID-v1 (frames 128×128), exibido em ~92px no HUD |
 | NEX Standard | **Estilo oficial, master específico ainda não publicado** | versão futura 128–256px otimizada para interface, onboarding e docs |
 | NEX Hero | **Estilo oficial, master específico ainda não publicado** | versão futura 256px+ para site e marketing |
 | Ilustrações conceituais | Referências aprovadas de linguagem, **não sprites exportáveis** | pranchas do processo de design |
@@ -65,7 +69,7 @@ O *Guardian* permanece um **modo de apresentação do HUD**. NEX não é um agen
 
 As animações CSS são de apresentação, não barras de progresso de execução; o estado `verified` não é inferido de `working`. Estados como `thinking`, `routing` e `success` somente poderão ser ligados a telemetria própria futuramente.
 
-A implementação atual usa componentes visuais CSS/SVG, sem WebGL ou rede; favorece `prefers-reduced-motion: reduce`, renderização pixelada e mantém o texto acessível no controle pai. O HUD conserva BAR/MASCOT/TRAY, ponte nativa, preferências e geometria.
+A implementação atual usa playback CSS de frames do atlas raster locked, sem WebGL ou rede; favorece `prefers-reduced-motion: reduce`, renderização pixelada e mantém o texto acessível no controle pai. O HUD conserva BAR/MASCOT/TRAY, ponte nativa, preferências e geometria.
 
 
 ## Atlas visual versionado para humanos e outras IAs
@@ -88,14 +92,14 @@ A linha 1.0 vincula `idle`, `working`, `warning`, `critical` e `offline` a evid�
 
 ![NEX em usos Compact, Standard e Hero](assets/nex/nex-scales-layout.svg)
 
-O Compact usado pelo HUD é uma fonte React/SVG própria. As representações acima são *estudos de aplicação*, e não a publicação de masters Standard/Hero.
+O Compact usado pelo HUD executa o atlas raster locked NEX-ID-v1. As representações acima são *estudos de aplicação*, e não a publicação de masters Standard/Hero.
 
 ### Hierarquia de autoridade e resolução de conflitos
 
 1. Este **contrato** determina anatomia, pose, paleta, linguagem e proibições.
 2. `web/src/features/hud/NexPixelSprite.tsx` é a fonte executável do NEX **Compact**, não uma autoridade para redesenhar o personagem ou limitar a arte Hero.
 3. As [referências desenhadas versionadas](assets/nex/README.md) orientam criação por humanos e IAs, mas **não são recortes perfeitos** das imagens conceituais geradas anteriormente.
-4. Os cinco SVGs que o build exporta em `web/public/nex/` (`idle`, `working`, `warning`, `critical`, `offline`) representam os estados do Compact e não devem ser promovidos a arte Hero.
+4. Os cinco SVGs de mood (`idle`, `working`, `warning`, `critical`, `offline`) foram **aposentados da execução** em 13/11/2026 (commit `3fe50401`): os estados do Compact agora são o atlas locked + tratamentos de cor declarados no manifesto. Nenhum export do Compact deve ser promovido a arte Hero.
 5. A **prancha raster original aprovada** foi localizada e sua proveniência registrada no manifesto: PNG 1448 × 1086, SHA-256 `4dff7d9521687f77f666a56dcf04bbe3d04dd4cd895139b1fa98df5f90f35ed5`. Seus bytes **ainda não estão commitados**; usar `node scripts/import-nex-concept.mjs --source <arquivo-original.png>` para importar com validação estrita antes de criar o commit. Não afirmar que o PNG está versionado enquanto o manifesto marcar `IDENTIFIED_BINARY_NOT_VERSIONED`.
 6. Se o código divergir do desenho normativo, registrar a divergência e corrigir a implementação após revisão visual. **Não** reescrever o contrato automaticamente a partir de um resultado acidental do sprite ou de uma geração de IA.
 
@@ -117,13 +121,13 @@ Não criar diferentes personagens para Compact, Standard e Hero. Alterações de
 
 - `NexPixelSprite.tsx` é a fonte editável de NEX Compact, inclusive as variações por mood. Ajustes de anatomia devem atualizar testes.
 - Criações futuras de Standard/Hero partem das **proporções e silhueta acima**; não gerar cada estado independentemente e publicar como arte final.
-- Preserve um atlas ou master em camadas se o Compact migrar de SVG para PNG/sprite sheets; pivôs, coordenadas e quantidade de módulos não variam.
+- A migração do Compact para PNG/sprite sheet **aconteceu** (atlas locked NEX-ID-v1, role `hud_32bit_idle_atlas`): a anatomia é garantida pelo SHA do atlas, verificado por `verify-nex-visual.mjs`. Pivôs, coordenadas e quantidade de módulos não variam.
 - Os ícones de sistema operacional, tray e favicon **continuam exibindo o símbolo institucional do Nexus**, não uma cabeça pixelada pequena e ilegível.
 - Nos sites, a identidade visual pode ser mais rica, mas a pose institucional de NEX é frontal.
 
 ## Animação articulada oficial da v1
 
-O [contrato de animação NEX](NEX_ANIMATION_CONTRACT.md) define camadas independentes para aletas espelhadas, quatro módulos magnéticos, olhos, núcleo, sombra e órbita, sem mudar a posição frontal nem criar um novo mecanismo de telemetria. O movimento é CSS/SVG de baixa amplitude (não um atlas quadro a quadro); os cinco estados visuais continuam sendo `idle`, `working`, `warning`, `critical` e `offline`. A preferência explícita de animação desligada e `prefers-reduced-motion` devem congelar também hover e subcomponentes mesmo quando houver estilos específicos por estado.
+O [contrato de animação NEX](NEX_ANIMATION_CONTRACT.md) define as 12 ações de idle derivadas do raster aprovado, preservando a anatomia canônica (aletas, quatro módulos magnéticos, olhos, núcleo, sombra e órbita **dentro dos frames do raster**) sem mudar a posição frontal nem criar um novo mecanismo de telemetria. O movimento é playback de frames do atlas raster locked — 12 ações × 8 frames a 125 ms, via CSS `steps()` por linha do atlas; a âncora do sprite nunca recebe transform. Os cinco estados visuais continuam sendo `idle`, `working`, `warning`, `critical` e `offline`. A preferência explícita de animação desligada e `prefers-reduced-motion` devem congelar também hover e subcomponentes mesmo quando houver estilos específicos por estado.
 
 ## Gates de homologação (independentes da aprovação visual)
 

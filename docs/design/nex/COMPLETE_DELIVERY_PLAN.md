@@ -6,13 +6,13 @@
 
 ## Por que reduzir
 
-O repositório já contém uma base React/SVG no `GuardianMascot` e `NexPixelSprite`, um `NexIdleDirector` em PR #171, referências raster verificáveis, um laboratório de Hero e um catálogo de gestos. Produzir um modelo 3D, 16 novas vistas ou outro motor antes de provar a usabilidade gastaria recursos sem resolver o problema principal: reagir com clareza aos estados reais do produto.
+O repositório já contém a execução do atlas raster locked (`NexIdleDirector`, `NexPixelSprite`, `GuardianMascot`), referências raster verificáveis, um laboratório de Hero e um catálogo de gestos. Produzir um modelo 3D, 16 novas vistas ou outro motor antes de provar a usabilidade gastaria recursos sem resolver o problema principal: reagir com clareza aos estados reais do produto.
 
 ## Fonte de identidade e de estados
 
 - Personagem escolhido: [identity-lock.json](identity-lock.json), [referência visual](hybrid-v1/README.md), sem copiar o Clippy nem reinventar a anatomia do Nex.
 - Fonte operacional: `mascotModel.ts` + Centro de Atenção, sem novas consultas ao provider e sem estados fictícios.
-- Núcleo visual: `NexIdleDirector`, `NexPixelSprite`, `GuardianMascot`; animação 2D por SVG/CSS/WAAPI e camadas raster somente após comparação visual. Sem dependências de render pesadas como requisito.
+- Núcleo visual: `NexIdleDirector`, `NexPixelSprite`, `GuardianMascot`; animação 2D por playback do atlas raster locked + CSS/WAAPI. Sem dependências de render pesadas como requisito.
 - Oito comportamentos UX: `ambient`, `greet`, `look`, `thinking`, `attention`, `error`, `resolved`, `rest`. A reação `resolved` depende estritamente de um evento de conclusão real e deduplicável; na sua ausência, não tocar a animação em produção.
 - Cinco moods operacionais: `idle`, `working`, `attention/warning`, `critical`, `offline`, com preempção e movimento desativado no offline.
 

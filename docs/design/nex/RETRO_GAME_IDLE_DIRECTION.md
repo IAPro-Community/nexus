@@ -4,6 +4,8 @@
 
 **Status:** `CHARACTER_SELECTED_PIXEL_MASTER_PENDING`. A escolha de **personagem** está feita, mas **ainda não** existe sprite master em camadas homologado, nem atlas de animações na release. Não congelar `identity-lock.json` como `FROZEN` sem os binários, hashes e aprovação do master final. Essa escolha **substitui explorações de personagem X-Fold/Flux/N-Core como candidatas principais**, sem apagar seu histórico.
 
+> **Atualização 13/11/2026 — desambiguação de "atlas":** a execução atual do HUD é o **atlas raster locked NEX-ID-v1** (`hud_32bit_idle_atlas`, `web/public/nex/hud-32bit/nex-idle-atlas-128.png`), derivado por shifts de camada do raster aprovado. Ele **não é** o master retro HD desenhado à mão desta direção, que segue pendente (`PENDING_BINARY_INGEST` no pacote de referências). O `identity-lock.json` está `FROZEN` para a identidade v1 (raster aprovado + derivativo); isso **não** equivale à homologação do master retro HD nem ao aceite visual final do owner.
+
 ## Novas pranchas de apoio (27/10/2026)
 
 Criei um **pacote visual de dez imagens separadas** para consulta de outros agentes e para orientar desenho dos sprites: personagem principal, turnaround, expressões, anatomia, catálogo de 12 idles, cinco estados operacionais, ações ilustrativas, contextos de uso, paleta e prancha original integral do novo estudo. Consulte [inventário e proveniência](reference-pack/README.md) e [SHA-256 de cada recorte](reference-pack/manifest.json).
