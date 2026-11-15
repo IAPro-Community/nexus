@@ -7618,3 +7618,5 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - **Look nativo:** `pointer-events: auto` no canvas ativa o look-at-cursor do player (comportamento `look` fica visível no rig; cliques continuam borbulhando ao botão).
 - **Regressão permanente:** `e2e-companion-lab.mjs` agora assegura imobilidade visual — dois frames do canvas a 600ms de distância devem ser byte-idênticos sob offline e reduced-motion (com o código antigo a assertion falharia; rodou PASS no rig).
 - **Verificação:** 901/901, typecheck, eslint 0 erros, build OK, lab PASS com rig (sem skip), `verify-nex-visual` PASS. docs-verify recertifica após commit.
+
+- **Deploy:** recertificação `docs/assets/screenshots` @ `eea4e2a7` pushada; binário local reinstalado (commit de fix + docs). #189 (`feat/nex-interactive-motion-complete`) segue como candidato de absorção futura — sem pressa: o rig integrado cobre idle/orbit/look; #189 agrega renderer interativo completo + ADR.
