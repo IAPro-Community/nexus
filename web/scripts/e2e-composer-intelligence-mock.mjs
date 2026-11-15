@@ -28,7 +28,24 @@ export async function startComposerIntelligenceMock() {
     requests.push({ system: system.slice(0, 100), model: parsed.model });
     const plan = {
       discovery_complete: true,
-      clarifications: [],
+      // Vague goals surface one material, irreversible choice inline
+      // (discovery_complete keeps Composer from running a second interview);
+      // concrete goals must proceed without a form.
+      clarifications: user.includes('Improve authentication safely')
+        ? [
+            {
+              key: 'auth-strategy',
+              level: 'BLOCKING',
+              question: 'Qual estratégia de autenticação deve ser preservada ou introduzida?',
+              rationale: 'A escolha altera contratos de sessão e migração e não pode ser inferida com segurança.',
+              suggested_options: [
+                'OAuth com provedores externos',
+                'Sessões locais com cookies httpOnly',
+              ],
+              default_choice: 'Sessões locais com cookies httpOnly',
+            },
+          ]
+        : [],
       recommended_approaches: [
         'Iniciar com uma solução incremental e preservar comportamento existente; verificar hipóteses antes de alterar contratos.',
       ],

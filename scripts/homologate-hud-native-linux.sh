@@ -59,7 +59,7 @@ PID=$!
 WID=''
 for i in $(seq 1 100); do
   if ! kill -0 "$PID" 2>/dev/null; then RESULT=NO_GO; REASON='HUD exited at launch.'; exit 1; fi
-  WID="$(xdotool search --onlyvisible --pid "$PID" --name '^Nexus HUD 2>/dev/null | head -n 1 || true)"
+  WID="$(xdotool search --onlyvisible --pid "$PID" --name '^Nexus HUD' 2>/dev/null | head -n 1 || true)"
   [ -n "$WID" ] && break
   sleep .2
 done
@@ -93,53 +93,7 @@ click_capsule() {
   xdotool mousemove --sync "$cx" "$cy" click 1
 }
 popup_window() {
-  xdotool search --onlyvisible --pid "$PID" --name '^Nexus HUD Popup
- 2>/dev/null | head -n 1 || true)"
-  [ -n "$WID" ] && break
-  sleep .2
-done
-if [ -z "$WID" ]; then RESULT=BLOCKED; REASON='No X11 window attached to HUD PID.'; exit 1; fi
-geometry() {
-  local g
-  g="$(xdotool getwindowgeometry --shell "$WID")"
-  X="$(awk -F= '/^X=/{print $2}' <<<"$g")"
-  Y="$(awk -F= '/^Y=/{print $2}' <<<"$g")"
-  W="$(awk -F= '/^WIDTH=/{print $2}' <<<"$g")"
-  H="$(awk -F= '/^HEIGHT=/{print $2}' <<<"$g")"
-}
-expect_size() {
-  local expanded="$1"
-  for i in $(seq 1 35); do
-    geometry
-    if [ "$expanded" = yes ] && (( W >= 300 && H >= 300 )); then return 0; fi
-    if [ "$expanded" = no ] && (( W <= 330 && H <= 100 )); then return 0; fi
-    sleep .15
-  done
-  return 1
-}
-capture() {
-  local x=$((X-24)) y=$((Y-24)) w=$((W+48)) h=$((H+48))
-  if (( x < 0 )); then w=$((w+x)); x=0; fi
-  if (( y < 0 )); then h=$((h+y)); y=0; fi
-  import -silent -window root -crop "$w"x"$h"+"$x"+"$y" "$OUT/$1"
-}
-click_capsule() {
-  local cx=$(( X+W*68/100 )) cy=$(( Y+H-27 ))
-  xdotool mousemove --sync "$cx" "$cy" click 1
-}
-if ! expect_size no; then RESULT=NO_GO; REASON='Compact HUD geometry invalid.'; exit 1; fi
-capture HUD_BEFORE.png
-for n in $(seq 1 "$CYCLES"); do
-  geometry; click_capsule
-  if ! expect_size yes; then RESULT=NO_GO; REASON="Popup failed to expand on cycle $n"; exit 1; fi
-  if (( n == 1 )); then capture HUD_EXPANDED.png; fi
-  click_capsule
-  if ! expect_size no; then RESULT=NO_GO; REASON="Popup failed to collapse on cycle $n"; exit 1; fi
-  DONE="$n"
-done
-RESULT=PASS_FUNCTIONAL_PENDING_VISUAL
-echo "X11 mouse popup cycles: $DONE/$CYCLES; images in $OUT"
- 2>/dev/null | head -n 1 || true
+  xdotool search --onlyvisible --pid "$PID" --name '^Nexus HUD Popup' 2>/dev/null | head -n 1 || true
 }
 popup_geometry() {
   local g
@@ -205,48 +159,3 @@ for n in $(seq 1 "$CYCLES"); do
 done
 RESULT=PASS_FUNCTIONAL_PENDING_VISUAL
 echo "X11 $PRESENTATION mouse cycles: $DONE/$CYCLES; screenshots in $OUT"
- 2>/dev/null | head -n 1 || true)"
-  [ -n "$WID" ] && break
-  sleep .2
-done
-if [ -z "$WID" ]; then RESULT=BLOCKED; REASON='No X11 window attached to HUD PID.'; exit 1; fi
-geometry() {
-  local g
-  g="$(xdotool getwindowgeometry --shell "$WID")"
-  X="$(awk -F= '/^X=/{print $2}' <<<"$g")"
-  Y="$(awk -F= '/^Y=/{print $2}' <<<"$g")"
-  W="$(awk -F= '/^WIDTH=/{print $2}' <<<"$g")"
-  H="$(awk -F= '/^HEIGHT=/{print $2}' <<<"$g")"
-}
-expect_size() {
-  local expanded="$1"
-  for i in $(seq 1 35); do
-    geometry
-    if [ "$expanded" = yes ] && (( W >= 300 && H >= 300 )); then return 0; fi
-    if [ "$expanded" = no ] && (( W <= 330 && H <= 100 )); then return 0; fi
-    sleep .15
-  done
-  return 1
-}
-capture() {
-  local x=$((X-24)) y=$((Y-24)) w=$((W+48)) h=$((H+48))
-  if (( x < 0 )); then w=$((w+x)); x=0; fi
-  if (( y < 0 )); then h=$((h+y)); y=0; fi
-  import -silent -window root -crop "$w"x"$h"+"$x"+"$y" "$OUT/$1"
-}
-click_capsule() {
-  local cx=$(( X+W*68/100 )) cy=$(( Y+H-27 ))
-  xdotool mousemove --sync "$cx" "$cy" click 1
-}
-if ! expect_size no; then RESULT=NO_GO; REASON='Compact HUD geometry invalid.'; exit 1; fi
-capture HUD_BEFORE.png
-for n in $(seq 1 "$CYCLES"); do
-  geometry; click_capsule
-  if ! expect_size yes; then RESULT=NO_GO; REASON="Popup failed to expand on cycle $n"; exit 1; fi
-  if (( n == 1 )); then capture HUD_EXPANDED.png; fi
-  click_capsule
-  if ! expect_size no; then RESULT=NO_GO; REASON="Popup failed to collapse on cycle $n"; exit 1; fi
-  DONE="$n"
-done
-RESULT=PASS_FUNCTIONAL_PENDING_VISUAL
-echo "X11 mouse popup cycles: $DONE/$CYCLES; images in $OUT"

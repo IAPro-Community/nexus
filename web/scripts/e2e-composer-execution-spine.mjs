@@ -82,7 +82,7 @@ async function main() {
 
   await page.getByRole('button', { name: /existing prompt|prompt existente/i }).click();
 
-  const goal = page.locator('[data-tour="composer-goal"] textarea');
+  const goal = page.getByLabel(/descreva sua ideia|describe your idea|describa su idea/i);
   await goal.fill('Implement Google OAuth login safely');
 
   const source = page.getByPlaceholder(/original prompt|prompt original/i);
@@ -208,7 +208,10 @@ async function main() {
       response.request().method() === 'POST',
     { timeout: 30000 },
   );
-  await page.getByRole('button', { name: /approve.*run|aprovar.*executar/i }).click();
+  await page
+    .locator('.nx-composer-goal-bar')
+    .getByRole('button', { name: /approve.*run|aprovar.*executar/i })
+    .click();
 
   const planUpdateResponse = await planUpdatePromise;
   assert.equal(planUpdateResponse.status(), 200, 'semantic WorkPlan update must persist');
