@@ -116,6 +116,10 @@ type UnifiedUsageOptions struct {
 	InitialContinue  bool
 	// ProfilesToLoad triggers async quota fetch when non-empty.
 	ProfilesToLoad []model.Profile
+	// ForceLiveRefresh makes the initial async quota load query providers
+	// live instead of serving cached snapshots (the --refresh surface). The
+	// TUI stays interactive: the existing spinner reports the in-flight load.
+	ForceLiveRefresh bool
 	// LoadSessionsAsync defers conversation.ListRecent until after the TUI opens.
 	LoadSessionsAsync bool
 }
@@ -268,11 +272,7 @@ func quotaPollTick() tea.Cmd {
 	})
 }
 
-func loadQuotasCmd(profiles []model.Profile, defaults map[string]string) tea.Cmd {
-	return loadQuotasCmdOpts(profiles, defaults, false)
-}
-
-func loadQuotasCmdOpts(profiles []model.Profile, defaults map[string]string, silent bool) tea.Cmd {
+func loadQuotasCmdOpts(profiles []model.Profile, defaults map[string]string, silent, forceLive bool) tea.Cmd {
 	return func() tea.Msg {
 		type result struct {
 			rows []UsageTableRow
@@ -290,7 +290,12 @@ func loadQuotasCmdOpts(profiles []model.Profile, defaults map[string]string, sil
 				defer func() { <-sem }()
 				// This worker is asynchronous. Quota probing never executes on
 				// the Bubble Tea input loop or in the rendering path.
-				if p.Provider == "codex" {
+				if forceLive {
+					// --refresh surface: query providers live before reading
+					// the view. Failures surface honestly as a stale snapshot
+					// (status + freshness), there is no separate error API.
+					profile.RefreshUsageSnapshot(p.Provider, p.Name)
+				} else if p.Provider == "codex" {
 					snap := profile.GetUsageSnapshot(p.Provider, p.Name)
 					now := time.Now()
 					if codexNeedsAutoRefresh(snap, now) && claimCodexAutoRefresh(p.Provider, p.Name, now) {
@@ -617,7 +622,7 @@ func unknownQuotaLabel(status string) string {
 func RunUnifiedUsage(opts UnifiedUsageOptions) (*SelectionResult, error) {
 	if !term.IsTerminal(int(os.Stdin.Fd())) || !term.IsTerminal(int(os.Stdout.Fd())) {
 		if len(opts.ProfilesToLoad) > 0 {
-			msg := loadQuotasCmd(opts.ProfilesToLoad, opts.Defaults)()
+			msg := loadQuotasCmdOpts(opts.ProfilesToLoad, opts.Defaults, false, opts.ForceLiveRefresh)()
 			if loaded, ok := msg.(quotasLoadedMsg); ok {
 				opts.Rows = loaded.rows
 				for k, v := range loaded.accounts {
@@ -818,7 +823,7 @@ func newUnifiedUsageModel(opts UnifiedUsageOptions) usageTableModel {
 func (m usageTableModel) Init() tea.Cmd {
 	var cmds []tea.Cmd
 	if m.loadingQuotas {
-		cmds = append(cmds, loadQuotasCmd(m.options.ProfilesToLoad, m.options.Defaults), spinnerTick())
+		cmds = append(cmds, loadQuotasCmdOpts(m.options.ProfilesToLoad, m.options.Defaults, false, m.options.ForceLiveRefresh), spinnerTick())
 	}
 	if m.loadingSessions {
 		cmds = append(cmds, loadSessionsCmd(m.options.Workspace))
@@ -872,7 +877,7 @@ func (m usageTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.loadingQuotas || m.modalMode != ModalNone || len(m.options.ProfilesToLoad) == 0 {
 			return m, next
 		}
-		cacheUpdate := loadQuotasCmdOpts(m.options.ProfilesToLoad, m.options.Defaults, true)
+		cacheUpdate := loadQuotasCmdOpts(m.options.ProfilesToLoad, m.options.Defaults, true, false)
 		if time.Since(m.lastCodexProbe) >= 5*time.Minute {
 			var codexProfiles []model.Profile
 			for _, p := range m.options.ProfilesToLoad {

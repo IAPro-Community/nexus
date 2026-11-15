@@ -1090,7 +1090,7 @@ func TestRenderAccountCellsStalenessSuffix(t *testing.T) {
 		SnapshotStatus: string(model.UsageLive), FetchedAt: time.Now().Add(-2 * time.Hour),
 	}
 	cols := usageColumns(120)
-	cells := renderAccountCells(row, cols, 1)
+	cells := renderAccountCells(row, cols, 1, false)
 	statusCell := cells[len(cells)-1]
 	if !strings.Contains(statusCell, "h\u00e1") {
 		t.Fatalf("stale STATUS should contain age suffix, got %q", statusCell)
@@ -1103,7 +1103,7 @@ func TestRenderAccountCellsFreshNoSuffix(t *testing.T) {
 		SnapshotStatus: string(model.UsageLive), FetchedAt: time.Now().Add(-5 * time.Minute),
 	}
 	cols := usageColumns(120)
-	cells := renderAccountCells(row, cols, 1)
+	cells := renderAccountCells(row, cols, 1, false)
 	statusCell := cells[len(cells)-1]
 	if strings.Contains(statusCell, "h\u00e1") {
 		t.Fatalf("fresh STATUS should not have age suffix, got %q", statusCell)
@@ -1174,5 +1174,46 @@ func TestUsageTableReprobesCodexAfterLockCanBeReleased(t *testing.T) {
 	m = next.(usageTableModel)
 	if time.Since(m.lastCodexProbe) > time.Minute {
 		t.Fatal("refresh scheduling timestamp did not advance")
+	}
+}
+
+func TestUsageHealthSummaryBuckets(t *testing.T) {
+	rows := []UsageTableRow{
+		{Provider: "codex", Profile: "a", FiveHour: "80%", Weekly: "80%", Status: "OK"},
+		{Provider: "agy", Profile: "b", FiveHour: "0%", Weekly: "0%", Status: "ESGOTADA"},
+		{Provider: "gemini", Profile: "c", FiveHour: "—", Weekly: "—", Status: "SEM DADOS"},
+		{Provider: "cursor", Profile: "d", Status: "—", IsUnconfigured: true},
+	}
+	got := usageHealthSummary(rows)
+	if !strings.Contains(got, "1/3 lançáveis") {
+		t.Fatalf("expected 1/3 launchable (unconfigured excluded), got %q", got)
+	}
+	if !strings.Contains(got, "1 esgotada(s)") || !strings.Contains(got, "1 sem dados") {
+		t.Fatalf("expected exhausted and no-data buckets, got %q", got)
+	}
+	if unconfiguredOnly := usageHealthSummary(rows[3:]); unconfiguredOnly != "" {
+		t.Fatalf("expected empty summary for unconfigured-only, got %q", unconfiguredOnly)
+	}
+}
+
+func TestRenderAccountCellsCompactRepeatsUseGroupOnly(t *testing.T) {
+	row := UsageTableRow{
+		Provider: "agy", Profile: "work", Account: "user@example.com",
+		Group: "Claude & GPT Models", Status: "OK", FiveHour: "90%", Weekly: "90%",
+	}
+	cols := usageColumns(120)
+	full := renderAccountCells(row, cols, 1, false)
+	repeat := renderAccountCells(row, cols, 2, true)
+
+	fullIdentity := full[2]
+	repeatIdentity := repeat[2]
+	if !strings.Contains(fullIdentity, "user@example.com") {
+		t.Fatalf("first row should carry the full identity, got %q", fullIdentity)
+	}
+	if strings.Contains(repeatIdentity, "user@example.com") {
+		t.Fatalf("repeat row should not repeat the email, got %q", repeatIdentity)
+	}
+	if !strings.Contains(repeatIdentity, "↳") {
+		t.Fatalf("repeat row should be marked as same account, got %q", repeatIdentity)
 	}
 }

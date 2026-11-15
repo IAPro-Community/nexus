@@ -83,7 +83,17 @@ func (m usageTableModel) View() string {
 	if m.filter.Focused() {
 		filterHint = m.filter.View()
 	}
-	tabsLine := clipToWidth(fmt.Sprintf("%s  %s  %s", tab1, tab2, filterHint), availWidth)
+	health := usageHealthSummary(m.allAccounts)
+	healthSep := ""
+	if health != "" {
+		healthSep = "   "
+		style := subStyle
+		if strings.Contains(health, "esgotada") {
+			style = warnStyle
+		}
+		health = style.Render(health)
+	}
+	tabsLine := clipToWidth(fmt.Sprintf("%s  %s  %s%s%s", tab1, tab2, filterHint, healthSep, health), availWidth)
 
 	tableRows := tableBodyHeight(m.height)
 	var tableContent string
@@ -239,11 +249,22 @@ func (m usageTableModel) renderAccountTable(width, bodyRows int) string {
 		cursor = 0
 	}
 	start, end := accountViewport(len(m.filteredAccounts), cursor, bodyRows)
+	// A row exists per model group, so one account can legitimately appear
+	// multiple times. Repeat rows render a compact group-only identity so the
+	// table does not read as duplicated accounts.
+	seenAccounts := make(map[string]bool, start)
+	for i := 0; i < start; i++ {
+		r := m.filteredAccounts[i]
+		seenAccounts[r.Provider+":"+r.Profile] = true
+	}
 	lines := make([]string, 0, 1+(end-start))
 	lines = append(lines, header)
 	for i := start; i < end; i++ {
 		row := m.filteredAccounts[i]
-		cells := renderAccountCells(row, cols, i+1)
+		key := row.Provider + ":" + row.Profile
+		compact := seenAccounts[key]
+		seenAccounts[key] = true
+		cells := renderAccountCells(row, cols, i+1, compact)
 		line := lipgloss.JoinHorizontal(lipgloss.Top, cells...)
 		if i == cursor {
 			line = selectedStyle.Width(width).MaxWidth(width).Render(line)
@@ -279,7 +300,7 @@ func accountViewport(total, cursor, bodyRows int) (start, end int) {
 	return start, end
 }
 
-func renderAccountCells(row UsageTableRow, cols []table.Column, index int) []string {
+func renderAccountCells(row UsageTableRow, cols []table.Column, index int, compactIdentity bool) []string {
 	accountWidth := 24
 	fiveWidth, weeklyWidth := 0, 0
 	for _, c := range cols {
@@ -304,7 +325,15 @@ func renderAccountCells(row UsageTableRow, cols []table.Column, index int) []str
 		case "PROV":
 			cells = append(cells, renderTableCell(formatProviderBadge(row.Provider), c.Width, lipgloss.NewStyle()))
 		case "CONTA":
-			cells = append(cells, renderTableCell(formatAccountIdentity(row, accountWidth, star), c.Width, lipgloss.NewStyle()))
+			if compactIdentity {
+				label := shortGroupLabel(row.Group)
+				if label == "" {
+					label = "mesma conta"
+				}
+				cells = append(cells, renderTableCell("↳ "+label, c.Width, lipgloss.NewStyle().Foreground(lipgloss.Color("242"))))
+			} else {
+				cells = append(cells, renderTableCell(formatAccountIdentity(row, accountWidth, star), c.Width, lipgloss.NewStyle()))
+			}
 		case "5H":
 			cells = append(cells, renderTableCell(formatQuotaCell(row.FiveHour, fiveWidth, row.Status), c.Width, usageQuotaStyle(row.Status, row.FiveHour)))
 		case "SEMANA":

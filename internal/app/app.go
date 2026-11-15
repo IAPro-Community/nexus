@@ -1217,7 +1217,10 @@ func usageCmd(args []string) error {
 			initialContinue = true
 		}
 	}
-	if refresh {
+	if refresh && isJSON {
+		// JSON consumers need the data before marshaling, so this path stays
+		// synchronous. The interactive TUI path refreshes live inside the
+		// interface (ForceLiveRefresh) instead of blocking the open here.
 		fmt.Fprintln(os.Stderr, "Atualizando quotas ao vivo…")
 		for _, p := range ps {
 			fmt.Fprintf(os.Stderr, "  • %s:%s\n", p.Provider, p.Name)
@@ -1314,6 +1317,7 @@ func usageCmd(args []string) error {
 		InitialContinue:   initialContinue,
 		ProfilesToLoad:    profilesToLoad,
 		LoadSessionsAsync: true,
+		ForceLiveRefresh:  refresh,
 	}
 
 	sel, err := tui.RunUnifiedUsage(opts)

@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -98,6 +99,44 @@ func parseQuotaPercent(s string) (float64, bool) {
 		return 0, false
 	}
 	return n, true
+}
+
+// usageHealthSummary summarizes account availability for the tabs line.
+// Classification mirrors rowAvailability so the table and the summary agree;
+// unconfigured providers never enter the denominator.
+func usageHealthSummary(rows []UsageTableRow) string {
+	configured, launchable, exhausted, limited, nodata := 0, 0, 0, 0, 0
+	for _, row := range rows {
+		if row.IsUnconfigured {
+			continue
+		}
+		configured++
+		ai := rowAvailability(row)
+		switch {
+		case ai > 0:
+			launchable++
+		case ai == -3:
+			exhausted++
+		case ai == -3.5:
+			limited++
+		case ai == -4:
+			nodata++
+		}
+	}
+	if configured == 0 {
+		return ""
+	}
+	parts := []string{fmt.Sprintf("%d/%d lançáveis", launchable, configured)}
+	if exhausted > 0 {
+		parts = append(parts, fmt.Sprintf("%d esgotada(s)", exhausted))
+	}
+	if limited > 0 {
+		parts = append(parts, fmt.Sprintf("%d limitada(s)", limited))
+	}
+	if nodata > 0 {
+		parts = append(parts, fmt.Sprintf("%d sem dados", nodata))
+	}
+	return strings.Join(parts, " · ")
 }
 
 func filterSessionRows(sess []conversation.Conversation, query string) []conversation.Conversation {
