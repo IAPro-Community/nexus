@@ -54,6 +54,10 @@ var (
 	retryHoursRegex   = regexp.MustCompile(`(?i)(?:retry|try again|wait)\s+(?:in|after)?\s*(\d+)\s*(?:h|hr|hours)`)
 	// AGY weekly reset: "Resets in 167h58m45s" (also "58m45s", "45s").
 	resetCompoundRegex = regexp.MustCompile(`(?i)resets?\s+in\s+(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?`)
+	// Codex/Claude-style absolute reset: "Your limit will reset at 5pm",
+	// "reset at 9:30am", "reset at 17:00". Parsed to the next occurrence of
+	// that wall-clock time in the local timezone.
+	resetAbsoluteTimeRegex = regexp.MustCompile(`(?i)resets?\s+(?:at|@)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?`)
 )
 
 // Classify inspects an error and output log to determine the failure kind and retry parameters.
@@ -154,6 +158,31 @@ func ExtractRetryDuration(s string) time.Duration {
 		seconds, _ := strconv.Atoi(m[3])
 		if total := time.Duration(hours)*time.Hour + time.Duration(minutes)*time.Minute + time.Duration(seconds)*time.Second; total > 0 {
 			return total
+		}
+	}
+	if m := resetAbsoluteTimeRegex.FindStringSubmatch(s); len(m) > 1 {
+		hour, _ := strconv.Atoi(m[1])
+		minute := 0
+		if m[2] != "" {
+			minute, _ = strconv.Atoi(m[2])
+		}
+		switch strings.ToLower(m[3]) {
+		case "pm":
+			if hour < 12 {
+				hour += 12
+			}
+		case "am":
+			if hour == 12 {
+				hour = 0
+			}
+		}
+		if hour >= 0 && hour < 24 && minute >= 0 && minute < 60 {
+			now := time.Now()
+			candidate := time.Date(now.Year(), now.Month(), now.Day(), hour, minute, 0, 0, now.Location())
+			if !candidate.After(now) {
+				candidate = candidate.Add(24 * time.Hour)
+			}
+			return time.Until(candidate)
 		}
 	}
 	if m := retrySecondsRegex.FindStringSubmatch(s); len(m) > 1 {

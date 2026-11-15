@@ -158,3 +158,28 @@ func TestClassifyCodexTuiLimitBanners(t *testing.T) {
 		})
 	}
 }
+
+func TestExtractAbsoluteResetTime(t *testing.T) {
+	got := ExtractRetryDuration("Your limit will reset at 5pm.")
+	if got <= 0 || got > 24*time.Hour {
+		t.Fatalf("expected a next-occurrence window within 24h, got %v", got)
+	}
+	target := time.Now().Add(got)
+	if target.Hour() != 17 {
+		t.Fatalf("expected reset at 17h local, got %02d:%02d", target.Hour(), target.Minute())
+	}
+
+	got = ExtractRetryDuration("reset at 9:30am")
+	if got <= 0 || got > 24*time.Hour {
+		t.Fatalf("expected a next 09:30 window, got %v", got)
+	}
+	target = time.Now().Add(got)
+	if target.Hour() != 9 || target.Minute() != 30 {
+		t.Fatalf("expected 09:30 local, got %02d:%02d", target.Hour(), target.Minute())
+	}
+
+	// Relative compound resets remain the most authoritative signal.
+	if rel := ExtractRetryDuration("resets in 2h (full schedule resets at 5pm)"); rel != 2*time.Hour {
+		t.Fatalf("expected relative reset to win, got %v", rel)
+	}
+}
