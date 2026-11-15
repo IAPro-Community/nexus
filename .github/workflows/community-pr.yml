@@ -48,7 +48,7 @@ jobs:
         if: steps.scope.outputs.source_changed == 'true'
         uses: actions/setup-go@v6
         with:
-          go-version: '1.26.10'
+          go-version: '1.26.11'
           cache: false
       - name: Install Bun
         if: steps.scope.outputs.source_changed == 'true'
