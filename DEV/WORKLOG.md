@@ -7609,3 +7609,12 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - **Pendências honestas:** `hud_compact` 64px não coberto pela aprovação; master retro HD editável segue pendente; docs-verify recertifica após o commit (exige estado commitado por design).
 
 - **Product Discovery (justificativa escrita):** a troca de render do companion (rig-v1) é mudança de identidade visual do NEX, não funcionalidade nova nem alteração material de comportamento — nada a anunciar em `featureAnnouncements.ts`; nenhum tour/seletor novo (superfícies e `data-tour` existentes intocados).
+
+## 2026-11-15 (II) — 2ª onda: autoridade de motion no rig + look nativo + stillness no lab
+
+- **Avaliação #173/#171:** nada a reconciliar — o core já entrou via #193 (`nexCompanionBehavior.ts` + director + testes) e a release está à frente (rig, atlas locked, `COMPLETED_VERIFIED`). Gate `behavior_8` segue BLOCKED só no aceite do owner + homologação Wails (evidence atualizada com capturas do rig no novo SHA).
+- **Bug honesto encontrado na 1ª onda:** o player do rig nasce com `wantsMotion=true` — offline (mood) e motion off nas settings continuavam animando (só o véu CSS silenciava). Violação do contrato "offline dessaturado e imóvel".
+- **Fix:** `NexRigSprite` recebe `motionEnabled` do `GuardianMascot` e chama `setMotion()` no boot e a cada mudança (settings, offline, visibilidade, reduced-motion). `setMotion(false)` congela o rig no pose estática do PNG original.
+- **Look nativo:** `pointer-events: auto` no canvas ativa o look-at-cursor do player (comportamento `look` fica visível no rig; cliques continuam borbulhando ao botão).
+- **Regressão permanente:** `e2e-companion-lab.mjs` agora assegura imobilidade visual — dois frames do canvas a 600ms de distância devem ser byte-idênticos sob offline e reduced-motion (com o código antigo a assertion falharia; rodou PASS no rig).
+- **Verificação:** 901/901, typecheck, eslint 0 erros, build OK, lab PASS com rig (sem skip), `verify-nex-visual` PASS. docs-verify recertifica após commit.

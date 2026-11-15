@@ -7,11 +7,14 @@ import styles from './NexRigSprite.module.scss';
 type NexRigSpriteProps = {
   mood: GuardianMood;
   idleAction?: NexIdleAction | null;
+  /** Motion authority from the mascot (settings, offline, visibility, reduced motion). */
+  motionEnabled?: boolean;
 };
 
 type RigPlayerInstance = {
   load: () => void;
   destroy: () => void;
+  setMotion: (allowed: boolean) => void;
 };
 
 type RigPlayerConstructor = new (
@@ -39,33 +42,39 @@ type RigPlayerModule = {
  * progress is ever inferred: moods remain a color treatment, and offline
  * is still and desaturated.
  */
-export const NexRigSprite: React.FC<NexRigSpriteProps> = ({ mood, idleAction = null }) => {
+export const NexRigSprite: React.FC<NexRigSpriteProps> = ({
+  mood,
+  idleAction = null,
+  motionEnabled = true,
+}) => {
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
+  const playerRef = React.useRef<RigPlayerInstance | null>(null);
   const [rigReady, setRigReady] = React.useState(false);
 
   React.useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || typeof window === 'undefined') return;
     let disposed = false;
-    let player: RigPlayerInstance | null = null;
 
     const boot = async () => {
       try {
         const url = new URL('nex/rig-v1/nex-rig-player.mjs', window.location.origin).href;
         const mod = (await import(/* @vite-ignore */ url)) as RigPlayerModule;
         if (disposed || typeof mod?.NexRigPlayer !== 'function') return;
-        player = new mod.NexRigPlayer(canvas, {
+        const player = new mod.NexRigPlayer(canvas, {
           onReady: () => {
             if (!disposed) setRigReady(true);
           },
           onError: () => {
             // Atlas is the permanent fallback: show it again.
             if (disposed) return;
-            player?.destroy();
-            player = null;
+            player.destroy();
+            playerRef.current = null;
             setRigReady(false);
           },
         });
+        playerRef.current = player;
+        player.setMotion(motionEnabled);
         player.load();
       } catch {
         // Rig unavailable (test environment, blocked asset): the locked
@@ -76,10 +85,16 @@ export const NexRigSprite: React.FC<NexRigSpriteProps> = ({ mood, idleAction = n
 
     return () => {
       disposed = true;
-      player?.destroy();
-      player = null;
+      playerRef.current?.destroy();
+      playerRef.current = null;
     };
+    // Boot once; motion changes flow through the effect below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  React.useEffect(() => {
+    playerRef.current?.setMotion(motionEnabled);
+  }, [motionEnabled, rigReady]);
 
   return (
     <>

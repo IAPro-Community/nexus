@@ -237,6 +237,7 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
             <NexRigSprite
               mood={spriteMood}
               idleAction={motionEnabled && mood === 'idle' ? idleAction : null}
+              motionEnabled={motionEnabled}
             />
           </span>
           {count > 0 && (

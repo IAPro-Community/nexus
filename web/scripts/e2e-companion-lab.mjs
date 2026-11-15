@@ -156,6 +156,24 @@ async function main() {
         .locator('aside[aria-label="Nexus HUD"]')
         .screenshot({ path: path.join(captureDir, `${name}.png`) });
     };
+    // Visual stillness (the data layer already asserts data-motion=off):
+    // the render surface must produce byte-identical frames while frozen.
+    // With the rig active the surface is the canvas; with the atlas fallback
+    // the CSS steps() loop is the surface, so a non-rig canvas skips honestly.
+    const assertFrozenRender = async (label) => {
+      const canvas = page.locator('[data-nex-art="rig-v1"] canvas');
+      if ((await canvas.count()) === 0) {
+        console.log(`stillness: ${label} rendered the atlas fallback; canvas check skipped`);
+        return;
+      }
+      const frameA = await canvas.screenshot();
+      await page.waitForTimeout(600);
+      const frameB = await canvas.screenshot();
+      assert(
+        frameA.equals(frameB),
+        `${label} must freeze the rig render surface (frame diff detected)`,
+      );
+    };
 
     await openShell();
 
@@ -354,9 +372,11 @@ async function main() {
     assert.equal(await mascotRoot().getAttribute('data-motion'), 'off');
     await assertBehavior(mascotRoot(), 'still', 'offline must be fully static');
     await capture('08-offline-still');
+    await assertFrozenRender('offline');
 
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await assertBehavior(mascotRoot(), 'still', 'reduced motion must freeze the companion');
+    await assertFrozenRender('reduced-motion');
     await page.emulateMedia({ reducedMotion: 'no-preference' });
 
     const meaningfulFailures = meaningfulFixtureRequestFailures(collectors.requestFailures);
