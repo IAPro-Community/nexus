@@ -2627,3 +2627,12 @@ Evidências: `DEV/validation/nex-rig-compare/` (mock da aprovação + crop antes
 | typecheck/eslint/styles/format | PASS |
 | Build | OK |
 | Evidência visual | `DEV/validation/nex-rig-compare/expressions-sheet.png` (7 expressões @ 96px) |
+
+## 2026-11-15 — Infra CI: run 11/11 verde em self-hosted
+
+- PASS — CI `40d6ea18` completa **11/11 jobs SUCCESS** no runner self-hosted `Dev-Web-Kiver` (Sanitize, Cross-platform compile guard, Documentation visual capture, Security govulncheck gtk3/Go 1.26.11, Linux E2E, Frontend format+lint+styles+typecheck+unit+build, Release configuration, Browser E2E/Axe/visual smoke, Desktop Linux Wails, GoReleaser Snapshot, Smoke DEB).
+- PASS — "Publish Nexus documentation" verde (policy `release/v1.0.0` no environment `github-pages`); Linux smoke GitHub-hosted verde.
+- PASS — Composer spines: `e2e-composer-execution-spine` e `e2e-composer-vague-execution-spine` (clarifications=1) e `e2e-composer-workspace` PASS locais antes do push; todos PASS no CI.
+- PASS — `bash -n` nos scripts de homologação HUD (linux/macos) + `python3 -m unittest test_hud_native_evidence` após reconstrução do script corrompido; Desktop Linux PASS no CI.
+- PASS — Hardening E2E completo local ("All E2E Hardening assertions PASSED") com a graça de foco de 250ms; PASS no CI.
+- NÃO EXECUTADO (fora do escopo self-hosted): Windows/macOS homologation — runners físicos do maestro offline; Windows release workflow segue failure por runner ausente (não por código).

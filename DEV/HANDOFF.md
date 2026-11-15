@@ -2986,3 +2986,11 @@ O controle `Popup independente` agora fica imediatamente abaixo do cabeçalho do
 - Rig: motion-core v0.2 + player com blend/frozen determinístico; manifest/guard atualizados com SHAs novos.
 - Próximo aceite: owner vê `DEV/validation/nex-rig-compare/expressions-sheet.png` (e ao vivo no HUD); gate behavior_8 segue BLOCKED no aceite + Wails.
 - #189 segue arquivável como ADR-only se quiser registro formal do renderer (sem código novo relevante).
+
+## Handoff 2026-11-15 (fim do dia) — CI 100% verde self-hosted
+
+**Estado:** `release/v1.0.0` @ `1b39be25` (worklog; código parado em `40d6ea18` com CI 11/11 SUCCESS). Infra resolvida: runner `Dev-Web-Kiver` online (processo nohup do usuário; persistência pós-reboot opcional via `cd ~/actions-runner && sudo ./svc.sh install && sudo ./svc.sh start`), docs-pages policy corrigida por API, Go pins 1.26.11, bun 1.3.9, GOCACHE privado do runner, homologation script HUD reconstruído, composer spines alinhados ao produto (label a11y + mock de discovery com clarificação BLOCKING para goal vago), hardening deflaked, NEXUS_VERSION no snapshot.
+
+**Próximos passos do maestro (não delegáveis):** (1) responder o pacote de aceite `DEV/validation/current/owner-visual-approval-20261115-rig/` (3 itens — destrava owner_visual_approval/behavior_8/hud_compact); (2) ligar as máquinas Windows/macOS para os runners nativos (jobs skipped/failure só por runner ausente); (3) `sudo ./svc.sh install` se quiser runner persistente pós-reboot; (4) kits 1–5 do GO ceremony (~3h15) → Fase C/D.
+
+**Riscos conhecidos:** run de CI docs-only `1b39be25` em andamento (esperado verde); runner morre no reboot (sem svc.sh); go.dev sem 1.26.12 — GO-2026-6859 coberto pelo 1.26.11.
