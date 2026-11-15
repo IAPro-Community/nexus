@@ -49,7 +49,8 @@
       "evidence": [
         "docs/design/nex/hud-compact-v1/nex-idle-atlas-64.png (512x768, 12 acoes x 8 quadros x 64px, nearest-neighbor do atlas 128 aprovado)",
         "docs/design/nex/hud-compact-v1/nex-compact-64-92-128-comparison.png (comparacao 64/92/128 do criterio COMPANION_2D_CLIPPY_LITE)",
-        "manifest.json com proveniencia NEX-ID-v1 + SHAs; tratamento filtrado identico ao aprovado 2026-11-12"
+        "manifest.json com proveniencia NEX-ID-v1 + SHAs; tratamento filtrado identico ao aprovado 2026-11-12",
+        "Decisão preparada (2026-11-15): comparativo do player real rig@64px vs derivado nearest-neighbor em DEV/validation/nex-rig-compare/hud-compact-rig64.png — rig nítido no zoom, derivado degrada. Owner decide rig vs derivado (pacote item 2); implementação do rig no compacto já funciona (o player escala para qualquer tamanho, atlas-64 não é referenciado em código)."
       ],
       "notes": "64px Compact GERADO (derivado nearest-neighbor do atlas 128 aprovado; mesma divergencia filtro registrada). Bloqueado apenas no aceite visual do owner, pois a aprovacao \"aprovo os dois\" (2026-11-12) nao cobria 64px."
     },
@@ -138,7 +139,9 @@
       "title": "Aprovação humana final das duas superfícies e arte-mestre",
       "contract": "docs/design/nex/IDENTITY_GOVERNANCE.md",
       "status": "BLOCKED",
-      "evidence": [],
+      "evidence": [
+        "Aprovações parciais registradas do owner (2026-11-15): render rig-v1 no HUD aprovado (\"aprovo\", após comparativo hud-antes-depois) e expressions v1 + transbordar sutil aprovados (\"Aprovo tudo\"). Aprovação FINAL desta gate aguarda resposta formal ao pacote DEV/validation/current/owner-visual-approval-20261115-rig/ (itens 1-3) e a superfície site."
+      ],
       "notes": "Ainda não demonstrado como entrega final; protótipos não satisfazem este gate."
     }
   ],
