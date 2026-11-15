@@ -2600,3 +2600,19 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 | `make vet` | limpo |
 | docs:capture | 11 superfícies sintéticas recertificadas (manifest source_sha `7a763e14`) |
 | CI GitHub | Linux smoke SUCCESS nos SHAs do dia; `ci.yml` aguarda runner self-hosted `nexus-ci` (ver `DEV/RUNBOOK.md`) |
+
+## 2026-11-15 — rig-v1 como render do NEX no HUD (commits 730a6b96 + 64f354a4)
+
+| Verificação | Resultado |
+| --- | --- |
+| Testes web | 901/901 PASS (142 arquivos) |
+| `npm run lint` | 0 erros (1 warning pré-existente em FlowRunSurface, fora do escopo) |
+| `lint:styles` + `check:styles` + `format:check` | PASS |
+| `npm run build` | OK (rig modules em `dist/nex/rig-v1/`) |
+| `node scripts/verify-nex-visual.mjs` | PASS (rig bytes + fallback validados) |
+| `node scripts/verify-nex-identity-lock.mjs` | PASS (lock NEX-ID-v1 não editado) |
+| `node scripts/docs-verify.mjs` | PASS (recertificado @ 64f354a4) |
+| companion-lab | PASS — 8 capturas com rig vivo; "antes" preservado @ 38470c2c no git |
+| Live 127.0.0.1:13000 | rig-player/core/camadas 200; binário `~/.local/bin/nexus` @ 64f354a4 |
+
+Evidências: `DEV/validation/nex-rig-compare/` (mock da aprovação + crop antes/depois) e `DEV/validation/current/companion-lab/captures/` (depois).

@@ -2971,3 +2971,11 @@ O controle `Popup independente` agora fica imediatamente abaixo do cabeçalho do
 
 - "Refresh synthetic documentation captures": falhas são a guarda anti-drift correta (captura OK, push recusado porque a branch avançou na janela). Auto-cura no próximo push de `web/src/**`.
 - CI principal travado em `queued`: runner self-hosted `nexus-ci` não sobreviveu ao restart da máquina. **Kit de recuperação com comandos exatos: `DEV/RUNBOOK.md`** (runner + policy do github-pages + re-run do publish).
+
+## Handoff 2026-11-15 — Opção A concluída (rig-v1 no HUD)
+
+- **O que:** companion do HUD agora renderiza o rig-v1 (idle procedural + órbita real) com o atlas locked como first paint/fallback permanente. Owner aprovou ("aprovo", 2026-11-15) — registro `docs/design/nex/approval-records/NEX-HUD-RIG-V1-RENDER.md`.
+- **Onde:** `web/src/features/hud/NexRigSprite.tsx` (+ module.scss), wire em `GuardianMascot.tsx`, assets `web/public/nex/rig-v1/`, guards `verify-nex-visual.mjs` + `NEX_VISUAL_MANIFEST.json` (`animation.runtime_render`), linha no `NEX_ANIMATION_CONTRACT.md`.
+- **Estado:** pushado em `release/v1.0.0` (730a6b96 + 64f354a4), instalado (`~/.local/bin/nexus` @ 64f354a4) e verificado live (200 nos 3 endpoints de asset).
+- **Próximos passos (lane A):** 1) avaliar reconciliação de #173 (8 comportamentos) + #171 (director) sobre o rig — pode remover o gate `behavior_8`; 2) avaliar #189 para absorção posterior; 3) aguardar maestro: RUNBOOK de infra (runner CI + branch policy), aceites visuais e kits 1–5 → Fase C/D.
+- **Riscos/notas honestas:** `hud_compact` 64px não coberto pela aprovação; master retro HD editável pendente; release readiness segue BLOCKED 2/11 (honesto); homepage do site segue sem NEX até o gate liberar.

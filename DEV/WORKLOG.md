@@ -7607,3 +7607,5 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - **Evidência depois:** companion-lab PASS regenerado no working tree — 8 capturas com o rig vivo (módulos em órbita real, corpo mais nítido); "antes" preservado no git @ 38470c2c.
 - **Verificação:** 901/901 testes web, build OK, eslint 0 erros (1 warning pré-existente em FlowRunSurface, fora do escopo), stylelint/check:styles OK, format OK, `verify-nex-visual` PASS.
 - **Pendências honestas:** `hud_compact` 64px não coberto pela aprovação; master retro HD editável segue pendente; docs-verify recertifica após o commit (exige estado commitado por design).
+
+- **Product Discovery (justificativa escrita):** a troca de render do companion (rig-v1) é mudança de identidade visual do NEX, não funcionalidade nova nem alteração material de comportamento — nada a anunciar em `featureAnnouncements.ts`; nenhum tour/seletor novo (superfícies e `data-tour` existentes intocados).
