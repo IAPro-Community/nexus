@@ -1,39 +1,24 @@
 # Runbook — Recuperação de infra CI/Docs (2026-11-14)
 
-Contexto: o restart do servidor de 14/11 removeu `python3`, `/usr/bin/google-chrome` e o **runner self-hosted `nexus-ci`**. Dois workflows ficaram vermelhos por causas 100% administrativas (não são regressões de código). Diagnóstico completo em `DEV/WORKLOG.md` (seções de 14/11).
+Contexto: o restart do servidor de 14/11 removeu `python3`, `/usr/bin/google-chrome` e o **runner self-hosted `nexus-ci`**. Dois workflows ficaram vermelhos por causas 100% administrativas (não são regressões de código). **Status 2026-11-15: AMBOS RESOLVIDOS** (ver seções para o que sobrou opcional).
 
-## 1. CI principal em "queued" eterno — runner self-hosted sumiu
+## 1. CI principal em "queued" eterno — runner self-hosted sumiu ✅ RESOLVIDO 2026-11-15
 
-**Sintoma:** o run de `ci.yml` fica `queued` para sempre; job "Sanitize self-hosted workspace" sem runner. Todos os jobs de `ci.yml` exigem `[self-hosted, Linux, X64, nexus-ci]`.
+**Resolvido pelo orquestrador (token do credential helper, admin:true):** runner `Dev-Web-Kiver` registrado em `~/actions-runner` (v2.338.2, labels `[self-hosted, Linux, X64, nexus-ci]`), rodando como **processo do usuário (nohup)**. Correções de ambiente aplicadas: `BUN_INSTALL` privado no `.env`, cache `_tool` limpo, e `~/.bun/bin/bun` alinhado ao 1.3.9 pedido pelo CI (rename sobre binário busy — TUI do maestro intocado).
 
-**Ação do maestro (admin):**
+**Opcional (persistência após reboot) — única ação com sudo:**
 
 ```bash
-# Na máquina que hospedará o runner (anterior não sobreviveu ao restart):
-mkdir actions-runner && cd actions-runner
-# pegar o link atual em: GitHub → repo → Settings → Actions → Runners → New self-hosted runner → Linux X64
-curl -o actions-runner-linux-x64.tar.gz -L <URL_DO_PAINEL>
-tar xzf actions-runner-linux-x64.tar.gz
-./config.sh --url https://github.com/IAPro-Community/nexus \
-  --token <TOKEN_DO_PAINEL> \
-  --labels nexus-ci
-./svc.sh install && ./svc.sh start   # serviço persistente
+cd ~/actions-runner && sudo ./svc.sh install && sudo ./svc.sh start
 ```
 
 - O label `nexus-ci` é obrigatório (matches `[self-hosted, Linux, X64, nexus-ci]`).
 - `setup-go`/`setup-bun` instalam toolchains no runner automaticamente; não pré-instalar nada.
 - Segurança (ver `docs/community/ADMIN_SETUP.md`): runner **nunca** exposto a PRs de fork; `ci.yml` é push/dispatch only.
 
-## 2. "Publish Nexus documentation" vermelho — environment bloqueia a branch
+## 2. "Publish Nexus documentation" vermelho — environment bloqueia a branch ✅ RESOLVIDO 2026-11-15
 
-**Sintoma:** job falha em 2–3s, antes do primeiro step. Histórico: 151 runs, 1 único sucesso — na branch `docs/nexus-1.0-portal-20261022`. Causa: deployment branch policy do environment `github-pages` não inclui `release/v1.0.0`.
-
-**Ação do maestro (admin):**
-
-1. GitHub → **Settings → Environments → github-pages → Deployment branches and tags** → adicionar `release/v1.0.0` (ou "No restriction").
-2. **Actions → Publish Nexus documentation → run vermelho mais recente → Re-run failed jobs.**
-
-Pré-requisitos já satisfeitos por mim: `npm audit --audit-level=high` verde (2 highs corrigidos em `555b16e8`), `check:docs` (100 páginas) e `build` validados localmente.
+**Resolvido pelo orquestrador:** `release/v1.0.0` adicionada às deployment branch policies do environment `github-pages` via API (`POST /environments/github-pages/deployment-branch-policies`). Run de validação por dispatch → **success**. A crônica de 151 runs encerrou-se; nada mais a fazer.
 
 ## 3. "Refresh synthetic documentation captures" vermelho — comportamento correto
 
