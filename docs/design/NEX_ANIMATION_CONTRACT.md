@@ -30,6 +30,7 @@ como contrato semântico.
 | Camada/estado | Âncora/pivô | Movimento autorizado | Limite |
 | --- | --- | --- | --- |
 | Sprite do atlas (`data-nex-art="hud-32bit-atlas"`) | centro / base | sem transform de âncora | nenhum deslocamento do wrapper |
+| Rig-v1 no HUD (`data-nex-art="rig-v1"`, aprovado 2026-11-15) | centro / base | movimentos apenas em camadas internas do player (idle procedural, órbita dos 4 módulos); transform de âncora do wrapper intocado | `prefers-reduced-motion` mostra o PNG original estático; qualquer falha de load devolve o atlas (fallback permanente) |
 | Linha de ação (idle_hover … idle_wake) | frame interno | playback de 8 frames, 125 ms cada | loop somente no hover (frame 8 = frame 1) |
 | Drowse/wake | frame interno | segurar o último frame até o director trocar | não sinalizar sono real do sistema |
 | Mood (`data-nex-mood`) | overlay de tratamento | véu colorido soft-light; offline dessaturado e imóvel | sem frames dedicados de mood ainda; nunca inferir sucesso |

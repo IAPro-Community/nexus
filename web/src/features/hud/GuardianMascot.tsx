@@ -2,7 +2,7 @@ import React from 'react';
 import { GripHorizontal, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { MascotAttention, MascotMood } from './mascotModel';
-import { NexPixelSprite } from './NexPixelSprite';
+import { NexRigSprite } from './NexRigSprite';
 import type { GuardianMood } from './guardianModel';
 import { NexIdleDirector, type NexIdleAction, type NexIdleMood } from './nexIdleDirector';
 import { resolveNexCompanionBehavior, type NexCompanionInteraction } from './nexCompanionBehavior';
@@ -234,7 +234,7 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
             data-blink={idleAction === 'idle_blink' ? 'true' : 'false'}
             aria-hidden="true"
           >
-            <NexPixelSprite
+            <NexRigSprite
               mood={spriteMood}
               idleAction={motionEnabled && mood === 'idle' ? idleAction : null}
             />

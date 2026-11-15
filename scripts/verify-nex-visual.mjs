@@ -54,6 +54,30 @@ check(source.includes('data-nex-mood={mood}'), 'runtime does not project the moo
 check(source.includes('data-idle-action={idleAction ?? undefined}'),
   'runtime does not expose the active idle action for tests');
 
+// Owner-approved rig-v1 runtime render (2026-11-15): the HUD companion swaps
+// to the layered rig only after a successful load; the locked atlas stays the
+// first paint and the permanent fallback. Rig modules must exist byte-faithful.
+const rigRender = manifest.animation.runtime_render;
+check(Boolean(rigRender) && Boolean(rigRender.approval_record),
+  'manifest.animation.runtime_render (owner-approved HUD rig render) is missing');
+const rigComponent = rigRender ? read(rigRender.component) : '';
+check(rigComponent.includes('data-nex-art="hud-32bit-atlas"') === false,
+  'rig component must not fake the atlas marker on the rig surface');
+check(rigComponent.includes("data-nex-art={rigReady ? 'rig-v1' : undefined}"),
+  'rig component must expose its art marker only after the rig is ready');
+check(rigComponent.includes('<NexPixelSprite'),
+  'rig component lost the locked atlas fallback (first paint + permanent fallback)');
+check(rigComponent.includes('onError'),
+  'rig component must fall back to the atlas on rig errors');
+for (const moduleEntry of rigRender?.modules || []) {
+  const bytes = existsSync(local(moduleEntry.file)) ? readFileSync(local(moduleEntry.file)) : null;
+  check(Boolean(bytes), `rig module bytes are missing: ${moduleEntry.file}`);
+  if (bytes) {
+    check(createHash('sha256').update(bytes).digest('hex') === moduleEntry.sha256,
+      `rig module SHA-256 mismatch: ${moduleEntry.file}`);
+  }
+}
+
 // The locked atlas model must bind to the identity lock exactly.
 const atlasSha = manifest.animation.spriteSheet.sha256;
 check(source.includes("from './nexIdleAtlas'") && source.includes('NEX_ATLAS_HOLD_LAST_ACTIONS.has(idleAction)'),

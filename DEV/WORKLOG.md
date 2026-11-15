@@ -7588,3 +7588,22 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - **Fix:** helper `readClaudeIdentityJSON` (localização nova primeiro, legado como fallback) em todos os leitores; `claudeAccountEmail` agora aceita `emailAddress` além de `email`.
 - **Verificação:** probe via `RefreshUsageSnapshotContext` → LIVE 5h 79% / weekly 82%; testes novos (nested identity, emailAddress, preferência nested>legacy); `-race` claude+app verde; lint 0 issues.
 - **Nota honesta:** o fail-closed em si estava correto — o bug era a fonte de identidade incompleta que impedia a atribuição da evidência. Padrão para auditoria: providers com snapshot UNKNOWN sem `error` após refresh merecem bissecção adapter-vs-load.
+
+## 2026-11-15 (madrugada II) — gap visual NEX identificado: rig-v1 dos branches vs atlas locked
+
+- **Avaliação do maestro:** o NEX atual da release está "bem diferente e menos bem desenhado" que o de outros branches. Verificação visual confirma.
+- **Atlas atual (release):** `hud-32bit/nex-idle-atlas-128.png` — derivado por filtro do raster aprovado; sprite plano/pequeno no HUD. O documento-mãe já registra que o refino true-pixel está pendente.
+- **Branches não-mergeados com arte superior:** #175/#178 (`web/public/nex/rig-v1/` — nex-motion-core.mjs + nex-rig-player.mjs + index.html; idle expressivo + órbita real dos 4 módulos sobre as camadas PNG originais do hybrid-v1, sem SVG/3D inventado) e #189 (renderer interativo em camadas + ADR + regressões Windows, 48 arquivos). #173 carrega os 8 comportamentos; #171 o motion director + lab.
+- **Descoberta-chave:** as camadas `hybrid-v1/*.png` já estão na release — falta só o PLAYER (2 módulos mjs) e a fiação no GuardianMascot. Renderização verificada em chromium: rig composítico completo (olhos expressivos, núcleo, órbita) sem falhas de fetch.
+- **Governança:** trocar o sprite do HUD é mudança de identidade — exige comparação (este registro + screenshots), versão nova do lock e aprovação explícita do owner antes do flip. Os guards `verify-nex-visual`/docs-verify precisam apontar para a nova fonte de verdade após aprovação. Branches seguem fechados após reconciliação direta na release/v1.0.0.
+
+## 2026-11-15 — Opção A aprovada e integrada: rig-v1 como render do NEX no HUD
+
+- **Aprovação do owner:** "aprovo" (maestro, 2026-11-15), após mock antes/depois no tamanho real do HUD (96px + zoom ×2,5) — `DEV/validation/nex-rig-compare/hud-antes-depois.png`. Registro completo: `docs/design/nex/approval-records/NEX-HUD-RIG-V1-RENDER.md`.
+- **Arquitetura:** atlas locked continua first paint e fallback permanente; `NexRigSprite.tsx` carrega o player dinamicamente (`/nex/rig-v1/`, `@vite-ignore`) e só troca para o canvas após `onReady`; qualquer erro devolve o atlas. jsdom/testes renderizam só o atlas — `GuardianMascot.test.tsx` (exatamente 1 `data-nex-art`) verde sem mudança.
+- **Módulos:** `web/public/nex/rig-v1/nex-motion-core.mjs` (sha256 `a3e19dd9…`) + `nex-rig-player.mjs` (`d4f37bd5…`), byte-a-byte do branch polish `b7415ba4` (PRs #175/#178 reconciliados). Camadas animadas: as mesmas `hybrid-v1/*.png` aprovadas no NEX-ID-v1 — não é master novo.
+- **Mood treatment espelhado:** véu soft-light warning/critical + saturação; offline grayscale/imóvel — verificado na captura `08-offline-still.png`.
+- **Guards honestos:** `NEX_VISUAL_MANIFEST.json` ganhou `animation.runtime_render` (SHAs, approval pointer, política de fallback; campos do atlas intocados); `verify-nex-visual.mjs` agora valida módulos rig byte-faithful, marker `rig-v1` só quando pronto e fallback com onError; contrato de animação ganhou a linha do rig (camadas internas only, âncora intocada). `verify-nex-identity-lock.mjs` PASS (lock não editado).
+- **Evidência depois:** companion-lab PASS regenerado no working tree — 8 capturas com o rig vivo (módulos em órbita real, corpo mais nítido); "antes" preservado no git @ 38470c2c.
+- **Verificação:** 901/901 testes web, build OK, eslint 0 erros (1 warning pré-existente em FlowRunSurface, fora do escopo), stylelint/check:styles OK, format OK, `verify-nex-visual` PASS.
+- **Pendências honestas:** `hud_compact` 64px não coberto pela aprovação; master retro HD editável segue pendente; docs-verify recertifica após o commit (exige estado commitado por design).

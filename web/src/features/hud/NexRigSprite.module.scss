@@ -1,0 +1,67 @@
+// NEX rig-v1 runtime render (owner-approved 2026-11-15).
+// The layered rig draws into a canvas that fills the guardian button; the
+// locked atlas component (NexPixelSprite) remains the first paint and the
+// permanent fallback rendered by NexRigSprite while the rig is not ready.
+// Mood treatment mirrors the locked atlas veils (NexPixelSprite.module.scss):
+// a soft-light color wash plus a mild saturation lift; offline is grayscale,
+// dimmed and still — never a new drawing, never inferred success or progress.
+$mood-warning: #ff8a45; // same treatment colors as the atlas mood palette
+$mood-critical: #ff496c;
+
+.rig {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.rig canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+// The rig's own layers animate; mood is a color treatment only.
+.rig::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+  opacity: 0;
+}
+
+.rig[data-nex-mood='warning']::after {
+  background: $mood-warning;
+  opacity: 0.3;
+}
+
+.rig[data-nex-mood='warning'] canvas {
+  filter: saturate(1.12);
+}
+
+.rig[data-nex-mood='critical']::after {
+  background: $mood-critical;
+  opacity: 0.38;
+}
+
+.rig[data-nex-mood='critical'] canvas {
+  filter: saturate(1.15);
+}
+
+.rig[data-nex-mood='offline'] canvas {
+  filter: grayscale(1) opacity(0.55);
+}
+
+.rig[data-nex-mood='offline']::after {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  // The player already renders the byte-faithful source PNG as a static
+  // pose under reduced motion; keep the color treatment predictable.
+  .rig[data-nex-mood='warning'] canvas,
+  .rig[data-nex-mood='critical'] canvas {
+    filter: saturate(1);
+  }
+}

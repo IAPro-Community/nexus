@@ -210,7 +210,30 @@
     "stillWhenOffline": true,
     "moodTreatment": "soft-light color veils per mood; offline is grayscale and still",
     "source_of_truth_note": "Frame shifts derive from the locked raster; no hand-drawn sheets. Anatomy is guaranteed by the atlas SHA, not by SVG layer selectors.",
-    "atlasModel": "web/src/features/hud/nexIdleAtlas.ts"
+    "atlasModel": "web/src/features/hud/nexIdleAtlas.ts",
+    "runtime_render": {
+      "kind": "owner_approved_layered_rig",
+      "approved_on": "2026-11-15",
+      "approval_record": "docs/design/nex/approval-records/NEX-HUD-RIG-V1-RENDER.md",
+      "owner_approval": "aprovo (maestro, 2026-11-15, apos comparativo hud-antes-depois.png)",
+      "surface": "web HUD companion GuardianMascot (96px)",
+      "component": "web/src/features/hud/NexRigSprite.tsx",
+      "modules": [
+        {
+          "file": "web/public/nex/rig-v1/nex-motion-core.mjs",
+          "sha256": "a3e19dd98a4809112dd00db17ceea41d2a4ad41e46a45b9e3186d8b8b8fa112f",
+          "source_branch_sha": "b7415ba4edb9b3abc3fba822c616449d2d312841 (PRs #175/#178 reconciled)"
+        },
+        {
+          "file": "web/public/nex/rig-v1/nex-rig-player.mjs",
+          "sha256": "d4f37bd51ba380c6c320c9e5d1dedecf01e1c68b51a269e4dc77d8c8e6868741",
+          "source_branch_sha": "b7415ba4edb9b3abc3fba822c616449d2d312841 (PRs #175/#178 reconciled)"
+        }
+      ],
+      "layer_assets_directory": "web/public/nex/hybrid-v1/",
+      "identity_note": "Uses the same NEX-ID-v1 approved hybrid-v1 layers; not a new master. Identity-level implementation remains the locked atlas (first paint + permanent fallback). Procedural idle + real module orbit; prefers-reduced-motion shows the byte-faithful source PNG as a static pose.",
+      "fallback": "LOCKED_RASTER_ATLAS_FRAMES (first paint and permanent fallback; jsdom/tests render the atlas)"
+    }
   },
   "selected_style_direction": {
     "status": "CHARACTER_SELECTED_PIXEL_MASTER_PENDING",
