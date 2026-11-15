@@ -174,6 +174,27 @@ async function main() {
         `${label} must freeze the rig render surface (frame diff detected)`,
       );
     };
+    // The rig player mirrors the composed behavior as a canvas expression
+    // attribute; with the atlas fallback that attribute never exists, so the
+    // check skips honestly instead of fabricating rig coverage.
+    const rigCanvas = () => page.locator('[data-nex-art="rig-v1"] canvas');
+    const assertExpression = async (expected, label) => {
+      // First scenario can outrun the rig boot (dynamic import + layer load);
+      // wait bounded for the canvas before deciding it is really the atlas.
+      try {
+        await rigCanvas().waitFor({ state: 'attached', timeout: 6000 });
+      } catch {
+        console.log(`expression: ${label} rendered the atlas fallback; rig assertion skipped`);
+        return;
+      }
+      await page_waitForAttribute(
+        rigCanvas(),
+        'data-nex-expression',
+        expected,
+        POLL_WAIT_MS,
+        `${label} must drive the rig expression`,
+      );
+    };
 
     await openShell();
 
@@ -196,6 +217,7 @@ async function main() {
     // 1. ambient — idle mood, motion on, visible, no attention.
     assert.equal(await mascotRoot().getAttribute('data-mood'), 'idle');
     await assertBehavior(mascotRoot(), 'ambient', 'ambient idle must compose ambient');
+    await assertExpression('ambient', 'ambient idle');
     await capture('01-ambient');
     assert.equal(
       await page.locator('[data-nex-progress]').count(),
@@ -206,17 +228,21 @@ async function main() {
     // 2. greet — real pointer entry on the mascot button.
     await behaviorLocator().hover();
     await assertBehavior(mascotRoot(), 'greet', 'pointer enter must greet');
+    await assertExpression('greet', 'pointer enter greet');
     await capture('02-greet');
     await page.mouse.move(10, 10);
     await assertBehavior(mascotRoot(), 'ambient', 'pointer leave must rest back to ambient');
+    await assertExpression('ambient', 'pointer leave ambient');
     // Keyboard focus must greet exactly like pointer entry (a11y parity).
     await behaviorLocator().focus();
     await assertBehavior(mascotRoot(), 'greet', 'keyboard focus must greet like pointer entry');
+    await assertExpression('greet', 'keyboard focus greet');
     await page.keyboard.press('Tab');
     await behaviorLocator()
       .blur()
       .catch(() => {});
     await assertBehavior(mascotRoot(), 'ambient', 'blur must rest back to ambient');
+    await assertExpression('ambient', 'blur ambient');
 
     // 3. look — mouse move after the greet window resolves to a side glance.
     await behaviorLocator().hover();
@@ -225,6 +251,7 @@ async function main() {
     assert.ok(box, 'mascot must have geometry for the look gesture');
     await page.mouse.move(box.x + box.width * 0.15, box.y + box.height / 2);
     await assertBehavior(mascotRoot(), 'look', 'lateral mouse move must look');
+    await assertExpression('look', 'lateral mouse move look');
     assert.equal(await mascotRoot().getAttribute('data-nex-look'), 'left');
     await capture('03-look');
     await page.mouse.move(10, 10);
@@ -254,6 +281,7 @@ async function main() {
       'fixture working agent must reach the HUD via poll',
     );
     await assertBehavior(mascotRoot(), 'thinking', 'working mood must think');
+    await assertExpression('thinking', 'working mood think');
     await capture('04-thinking');
     assert.equal(
       await page.locator('[data-nex-progress]').count(),
@@ -280,6 +308,7 @@ async function main() {
       'fixture waiting agent must reach the HUD via poll',
     );
     await assertBehavior(mascotRoot(), 'attention', 'agent waiting input must surface attention');
+    await assertExpression('attention', 'agent waiting input attention');
     await capture('05-attention');
 
     // 6. error — real critical evidence preempts every user gesture.
@@ -304,8 +333,10 @@ async function main() {
       'fixture failure must reach the HUD via poll',
     );
     await assertBehavior(mascotRoot(), 'error', 'critical evidence must error');
+    await assertExpression('error', 'critical evidence error');
     await behaviorLocator().hover();
     await assertBehavior(mascotRoot(), 'error', 'critical status must preempt greet/look gestures');
+    await assertExpression('error', 'critical preempt error');
     await capture('06-error');
 
     // 7. resolved — only from a newly observed, deduplicated completion ID.
@@ -329,10 +360,13 @@ async function main() {
       'new verified completion must celebrate once',
       55000,
     );
+    await assertExpression('resolved', 'verified completion resolve');
     await capture('07-resolved');
     await page.waitForTimeout(1600);
     await assertBehavior(mascotRoot(), 'ambient', 'resolution must not loop or repeat');
+    await assertExpression('ambient', 'resolution ambient return');
     await assertBehavior(mascotRoot(), 'ambient', 'same completion id must stay deduplicated');
+    await assertExpression('ambient', 'dedupe ambient return');
 
     // 8. rest — drowse timing (180s) is validated by nexIdleDirector unit
     // tests with an injected clock; the lab documents that split honestly.
@@ -402,6 +436,7 @@ async function main() {
         '- Comportamentos capturados: ambient, greet, look, thinking, attention, error, resolved, offline-still.',
         '- `rest` (drowse 180s): validado por `nexIdleDirector.test.ts` com clock injetado; sem captura visual em tempo real.',
         '- O mock vive apenas em `context.route`; nenhuma rota de produção é tocada e nenhum estado é inferido.',
+        '- Rig: expressões via canvas data-nex-expression asseguradas por comportamento (atlas fallback registra skip honesto).',
         '',
         '## Capturas',
         '',

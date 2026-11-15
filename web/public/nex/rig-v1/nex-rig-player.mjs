@@ -1,5 +1,6 @@
 import {
-  CANVAS_SIZE, clamp01, lerp, smoothstep, idlePose, blinkScale, orbitPose, idleModulePose,
+  CANVAS_SIZE, ORBIT_CX, ORBIT_CY, clamp01, lerp, smoothstep,
+  idlePose, blinkScale, orbitPose, idleModulePose, EXPRESSIONS, expressionPose,
 } from './nex-motion-core.mjs';
 
 /**
@@ -8,10 +9,16 @@ import {
  * choreography of original transparent asset layers. Later rig exporters can
  * use the same semantic pivots/tracks.
  *
- * Asset lifecycle: load once, RAF only while visible + motion allowed,
- * reduce-motion uses the byte-faithful source PNG as a static pose.
+ * Asset lifecycle: load once, RAF only while visible + motion allowed;
+ * reduced motion and other frozen states redraw the rig at one fixed
+ * representative pose (staticTimeSec) so repeated renders stay byte-identical.
+ *
+ * Expressions: setExpression(name) — see nex-motion-core EXPRESSIONS;
+ * DOM hook canvas.dataset.nexExpression.
  */
 const ROOT = new URL('../hybrid-v1/', import.meta.url);
+/** Expression crossfade duration; envelopes inside expressions restart instantly. */
+const EXPRESSION_BLEND_SEC = 0.25;
 const loadImage = async (filename) => {
   const img = new Image();
   img.decoding = 'async';
@@ -40,6 +47,12 @@ export class NexRigPlayer {
     this.time = 0;
     this.orbitTime = 0;
     this.blend = 0;
+    this.expression = 'ambient';
+    this.expressionPrev = 'ambient';
+    this.renderedExpression = 'ambient';
+    this.expressionBlendT = 1;
+    this.expressionTimeSec = 0;
+    this.staticTimeSec = null;
     this.frame = 0;
     this.lastAt = 0;
     this.raf = null;
@@ -113,6 +126,30 @@ export class NexRigPlayer {
     this.sync();
   }
 
+  /**
+   * Switch the expression layer (presentation-only choreography; never a
+   * status claim). Blends over EXPRESSION_BLEND_SEC from the expression
+   * actually on screen (renderedExpression), and the frozen path shows the
+   * new pose immediately.
+   */
+  setExpression(name) {
+    if (!EXPRESSIONS.includes(name)) throw new Error('Unknown NEX expression');
+    if (name !== this.expression) {
+      this.expressionPrev = this.renderedExpression;
+      this.expression = name;
+      this.expressionBlendT = 0;
+      this.expressionTimeSec = 0;
+    }
+    // Mirror the expression for tests/e2e even when unchanged (idempotent):
+    // the boot-time ambient call must still publish the attribute.
+    this.canvas.dataset.nexExpression = this.expression;
+    if (!this.motionActive) this.render(true);
+  }
+
+  getExpression() {
+    return this.expression;
+  }
+
   setRigOverlay(enabled) {
     this.debugRig = Boolean(enabled);
     if (this.loaded) this.render(!this.motionActive);
@@ -160,6 +197,8 @@ export class NexRigPlayer {
     this.frame += dt;
     // Accumulate elapsed time continuously, but only rasterize at target FPS.
     this.time += dt;
+    this.expressionTimeSec += dt;
+    this.expressionBlendT = clamp01(this.expressionBlendT + dt / EXPRESSION_BLEND_SEC);
     const amount = this.mode === 'orbit' ? 1 : 0;
     // Exponential damping is frame-rate independent (30/60Hz match on mobile).
     this.blend = lerp(this.blend, amount, 1 - Math.exp(-dt * 3.0));
@@ -199,28 +238,66 @@ export class NexRigPlayer {
     ctx.setTransform(pixelSize / CANVAS_SIZE, 0, 0, pixelSize / CANVAS_SIZE, 0, 0);
     ctx.imageSmoothingEnabled = true;
 
-    // The static fallback is the exact source image: no resynthesized pixels.
-    if (still) {
-      ctx.drawImage(this.images['nex_source_original.png'], 0, 0, CANVAS_SIZE, CANVAS_SIZE);
-      return;
-    }
-    const pose = idlePose(this.time);
+    // Frozen renders (reduced motion, hidden, offline) reuse one fixed
+    // representative clock so two captures 600ms apart are byte-identical.
+    this.staticTimeSec = this.staticTimeSec ?? 1.37;
+    const t = still ? this.staticTimeSec : this.time;
+    const pose = idlePose(t);
+
+    // Expression layer: crossfade the previous shown expression into the
+    // active one; blends complete instantly on the frozen path. Envelopes
+    // (bounces, fades, settling) run on the per-expression clock so they
+    // restart on every setExpression, while idlePose keeps the continuous
+    // clock for bob/breathing continuity.
+    const rawBlend = still ? 1 : clamp01(this.expressionBlendT);
+    const blendT = smoothstep(rawBlend);
+    const exprT = still ? this.staticTimeSec : this.expressionTimeSec;
+    const prev = expressionPose(exprT, this.expressionPrev);
+    const next = expressionPose(exprT, this.expression);
+    const fx = {
+      bobOffset: lerp(prev.bobOffset, next.bobOffset, blendT),
+      swayDegOffset: lerp(prev.swayDegOffset, next.swayDegOffset, blendT),
+      coreLightOffset: lerp(prev.coreLightOffset, next.coreLightOffset, blendT),
+      eyeLookX: lerp(prev.eyeLookX, next.eyeLookX, blendT),
+      eyeLookY: lerp(prev.eyeLookY, next.eyeLookY, blendT),
+      eyeScaleY: lerp(prev.eyeScaleY, next.eyeScaleY, blendT),
+      moduleSpread: lerp(prev.moduleSpread, next.moduleSpread, blendT),
+      moduleLift: lerp(prev.moduleLift, next.moduleLift, blendT),
+      jitterX: lerp(prev.jitterX, next.jitterX, blendT),
+      sinkOffset: lerp(prev.sinkOffset, next.sinkOffset, blendT),
+    };
+    if (rawBlend >= 1) this.renderedExpression = this.expression;
+
     ctx.save();
     ctx.translate(CANVAS_SIZE / 2, CANVAS_SIZE / 2);
-    ctx.rotate(pose.swayDeg * Math.PI / 180);
+    ctx.rotate((pose.swayDeg + fx.swayDegOffset) * Math.PI / 180);
     ctx.scale(pose.breathing, pose.breathing);
-    ctx.translate(-CANVAS_SIZE / 2, -CANVAS_SIZE / 2 + pose.bob);
+    // Expression offsets ride the existing bob translate; the anchor
+    // transform of the whole composition stays untouched.
+    ctx.translate(-CANVAS_SIZE / 2 + fx.jitterX,
+      -CANVAS_SIZE / 2 + pose.bob + fx.bobOffset - fx.sinkOffset);
 
     const orbit = this.moduleInfo.map((layer, index) => {
       const orbital = orbitPose(index, this.orbitTime, this.blend);
-      const secondary = idleModulePose(index, this.time);
+      const secondary = idleModulePose(index, t);
       const idleInfluence = 1 - smoothstep(this.blend);
+      // moduleSpread scales the radial distance from the orbit center
+      // (1 preserves the home anchors exactly). moduleLift adds an extra
+      // radial offset biased toward front-top so lifted modules hover
+      // up over the head instead of drifting downward.
+      const spreadX = ORBIT_CX + (orbital.x - ORBIT_CX) * fx.moduleSpread;
+      const spreadY = ORBIT_CY + (orbital.y - ORBIT_CY) * fx.moduleSpread;
+      const radiusX = spreadX - ORBIT_CX;
+      const radiusY = spreadY - ORBIT_CY;
+      const radius = Math.hypot(radiusX, radiusY) || 1;
+      const liftX = (radiusX / radius) * fx.moduleLift;
+      const liftY = (radiusY / radius) * fx.moduleLift - fx.moduleLift;
       return {
         layer,
         motion: {
           ...orbital,
-          x: orbital.x + secondary.dx * idleInfluence,
-          y: orbital.y + secondary.dy * idleInfluence,
+          x: spreadX + liftX + secondary.dx * idleInfluence,
+          y: spreadY + liftY + secondary.dy * idleInfluence,
           rotation: orbital.rotation + secondary.rotation * idleInfluence,
           scale: orbital.scale * lerp(1, secondary.scale, idleInfluence),
         },
@@ -234,13 +311,13 @@ export class NexRigPlayer {
     }
     ctx.drawImage(this.images['body_base.png'], 0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
-    const blink = blinkScale(this.time);
+    const blink = blinkScale(t);
     for (const eye of this.eyeInfo) {
-      const lookX = this.pointer.x * 4.5;
-      const lookY = this.pointer.y * 2.1;
+      const lookX = this.pointer.x * 4.5 + fx.eyeLookX;
+      const lookY = this.pointer.y * 2.1 + fx.eyeLookY;
       ctx.save();
       ctx.translate(eye.anchor[0] + lookX, eye.anchor[1] + lookY);
-      ctx.scale(1, blink);
+      ctx.scale(1, blink * fx.eyeScaleY);
       ctx.drawImage(this.images[eye.file], eye.x - eye.anchor[0],
         eye.y - eye.anchor[1], eye.width, eye.height);
       ctx.restore();
@@ -249,12 +326,14 @@ export class NexRigPlayer {
     // Fin assets are ORIGINAL glints, not fabricated full hinged fins.
     for (const [index, fin] of this.finInfo.entries()) {
       this.paintLayer(fin, null,
-        0.055 + 0.075 * (0.5 + 0.5 * Math.sin(this.time * 0.8 + index * 2.2)));
+        0.055 + 0.075 * (0.5 + 0.5 * Math.sin(t * 0.8 + index * 2.2)));
     }
     // Subtle additive halo does not replace body art or paint new anatomy.
+    // Expression core light rides on the idle breathing, clamped to 0..1.
     ctx.save();
+    const coreLight = clamp01(pose.coreLight + fx.coreLightOffset);
     const light = ctx.createRadialGradient(627, 869, 0, 627, 869, 82);
-    light.addColorStop(0, `rgba(51,208,255,${0.085 * pose.coreLight})`);
+    light.addColorStop(0, `rgba(51,208,255,${0.085 * coreLight})`);
     light.addColorStop(1, 'rgba(33,162,255,0)');
     ctx.globalCompositeOperation = 'screen';
     ctx.fillStyle = light;

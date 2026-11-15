@@ -221,18 +221,37 @@
       "modules": [
         {
           "file": "web/public/nex/rig-v1/nex-motion-core.mjs",
-          "sha256": "a3e19dd98a4809112dd00db17ceea41d2a4ad41e46a45b9e3186d8b8b8fa112f",
+          "sha256": "31b97d385862c2fcee3bea703d62f8b02526c3990cdfbf6d53cf1c53ed992baa",
           "source_branch_sha": "b7415ba4edb9b3abc3fba822c616449d2d312841 (PRs #175/#178 reconciled)"
         },
         {
           "file": "web/public/nex/rig-v1/nex-rig-player.mjs",
-          "sha256": "d4f37bd51ba380c6c320c9e5d1dedecf01e1c68b51a269e4dc77d8c8e6868741",
+          "sha256": "ad3838f63a07101e93d0f0286f966753048c9629378737d57aa33317266c4db5",
           "source_branch_sha": "b7415ba4edb9b3abc3fba822c616449d2d312841 (PRs #175/#178 reconciled)"
         }
       ],
       "layer_assets_directory": "web/public/nex/hybrid-v1/",
-      "identity_note": "Uses the same NEX-ID-v1 approved hybrid-v1 layers; not a new master. Identity-level implementation remains the locked atlas (first paint + permanent fallback). Procedural idle + real module orbit; prefers-reduced-motion shows the byte-faithful source PNG as a static pose.",
-      "fallback": "LOCKED_RASTER_ATLAS_FRAMES (first paint and permanent fallback; jsdom/tests render the atlas)"
+      "identity_note": "Uses the same NEX-ID-v1 approved hybrid-v1 layers; not a new master. Identity-level implementation remains the locked atlas (first paint + permanent fallback). Procedural idle + real module orbit + expressions v1; prefers-reduced-motion/offline render one frozen representative rig pose.",
+      "fallback": "LOCKED_RASTER_ATLAS_FRAMES (first paint and permanent fallback; jsdom/tests render the atlas)",
+      "expressions": {
+        "approved": "2026-11-15 (Aprovo tudo + Transbordar sutil)",
+        "set": [
+          "ambient",
+          "greet",
+          "look",
+          "thinking",
+          "attention",
+          "error",
+          "resolved",
+          "rest",
+          "still"
+        ],
+        "dom_hook": "canvas[data-nex-expression]",
+        "blend_ms": 250,
+        "frozen_render": "one byte-stable representative frame (deterministic staticTimeSec); lab asserts two frames 600ms apart identical",
+        "mapping": "companion behavior drives expression by identity (behavior name = expression name); still handled by setMotion(false)",
+        "fit": "canvas 106% of the 96px button — subtle intentional module overflow (transbordar sutil)"
+      }
     }
   },
   "selected_style_direction": {

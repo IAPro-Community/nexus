@@ -10,17 +10,42 @@ $mood-critical: #ff496c;
 
 .rig {
   position: relative;
+  display: grid;
   width: 100%;
   height: 100%;
+  place-items: center;
+
+  // Overflow is intentional (owner-approved "transbordar sutil"): the rig
+  // canvas renders 6% larger than the 96px button so the orbital modules
+  // overflow the button edge by ~4-6px at rest. The guardian button has no
+  // overflow clipping, so the modules may draw past the circular boundary.
 }
 
 .rig canvas {
+  // Positioned so the canvas paints after ::before in tree order: the
+  // landing shadow stays behind the NEX, never over its pixels.
+  position: relative;
   display: block;
-  width: 100%;
-  height: 100%;
+  width: 106%;
+  height: 106%;
+
   // The player's built-in look-at-cursor reads pointermove on the canvas;
   // events still bubble to the guardian button so clicks keep working.
   pointer-events: auto;
+}
+
+// Soft landing shadow under the NEX, below the canvas in paint order.
+.rig::before {
+  content: '';
+  position: absolute;
+  bottom: 8%;
+  left: 50%;
+  width: 56%;
+  height: 10%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: radial-gradient(closest-side, rgb(0 0 0 / 35%), transparent);
+  filter: blur(3px);
 }
 
 // The rig's own layers animate; mood is a color treatment only.

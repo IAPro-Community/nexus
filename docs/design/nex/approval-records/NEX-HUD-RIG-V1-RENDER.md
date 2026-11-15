@@ -40,6 +40,20 @@
 - **Not covered by this approval**: `hud_compact` 64px variant (still pending, gate
   unchanged), site hero (unchanged), retro HD editable master (still pending).
 
+## Addendum — Expressions v1 (2026-11-15, mesma sessão)
+
+**Approved by:** maestro, in-plan answer **"Aprovo tudo"** + **"Transbordar sutil"**
+**Scope:** procedural expression layer on the rig player (`setExpression`, 9 expressions:
+ambient/greet/look/thinking/attention/error/resolved/rest/still) + HUD fit allowing subtle
+module overflow (~4–6px at rest, more on greet/resolved).
+
+- Still choreography of the SAME approved hybrid-v1 layers; no new art, no new master.
+- Movement remains internal-layers-only (anchor transform untouched); reduced motion and
+  offline render one frozen representative frame (byte-stable), asserted by the lab.
+- DOM hook `canvas[data-nex-expression]` gives tests/e2e an honest assertion surface.
+- Rig module SHAs change; `NEX_VISUAL_MANIFEST.json → animation.runtime_render` must be
+  updated in the same change, and `scripts/verify-nex-visual.mjs` keeps enforcing them.
+
 ## Guard updates (this commit, honest)
 
 - `NEX_VISUAL_MANIFEST.json`: new `animation.runtime_render` block (module SHA-256,

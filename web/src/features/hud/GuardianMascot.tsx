@@ -238,6 +238,7 @@ export const GuardianMascot: React.FC<GuardianMascotProps> = ({
               mood={spriteMood}
               idleAction={motionEnabled && mood === 'idle' ? idleAction : null}
               motionEnabled={motionEnabled}
+              behavior={behavior}
             />
           </span>
           {count > 0 && (

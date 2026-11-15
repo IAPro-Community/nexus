@@ -2616,3 +2616,14 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 | Live 127.0.0.1:13000 | rig-player/core/camadas 200; binário `~/.local/bin/nexus` @ 64f354a4 |
 
 Evidências: `DEV/validation/nex-rig-compare/` (mock da aprovação + crop antes/depois) e `DEV/validation/current/companion-lab/captures/` (depois).
+
+## 2026-11-15 (III) — Expressions v1 (rig) — commits desta rodada
+
+| Verificação | Resultado |
+| --- | --- |
+| Testes web | 901/901 PASS |
+| Lab e2e | PASS — 14 assertions de expressão no rig (0 skips) + stillness |
+| `verify-nex-visual` | PASS (SHAs rig atualizados: motion-core `31b97d38…`, player `ad3838f6…`) |
+| typecheck/eslint/styles/format | PASS |
+| Build | OK |
+| Evidência visual | `DEV/validation/nex-rig-compare/expressions-sheet.png` (7 expressões @ 96px) |

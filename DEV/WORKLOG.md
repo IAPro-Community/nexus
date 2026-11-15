@@ -7620,3 +7620,13 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - **Verificação:** 901/901, typecheck, eslint 0 erros, build OK, lab PASS com rig (sem skip), `verify-nex-visual` PASS. docs-verify recertifica após commit.
 
 - **Deploy:** recertificação `docs/assets/screenshots` @ `eea4e2a7` pushada; binário local reinstalado (commit de fix + docs). #189 (`feat/nex-interactive-motion-complete`) segue como candidato de absorção futura — sem pressa: o rig integrado cobre idle/orbit/look; #189 agrega renderer interativo completo + ADR.
+
+## 2026-11-15 (III) — Expressions v1 no rig: comportamentos visíveis, loops + subagents
+
+- **Execução:** plano aprovado pelo maestro ("Aprovo tudo" + "Transbordar sutil") executado com 3 subagents paralelos (A: coreografia nos módulos rig; B: fiação componente + SCSS; C: assertions no lab) + loop de integração do orquestrador.
+- **Nova API:** `expressionPose(timeSec, expression)` no motion-core (v0.2, determinística, 9 expressões) + `setExpression/getExpression` no player com blend 250ms, clock por expressão e frozen path byte-estável (staticTimeSec). Hook DOM `canvas[data-nex-expression]`.
+- **Coreografia:** greet (bounce duplo + leque + olhos felizes), thinking (olhar p/ cima + núcleo pulsando + módulo erguido), attention (aperto + núcleo forte + elevação), error (jitter decaindo + recuo), resolved (celebração + fan 1.22), rest (afundar + pálpebras), ambient/still neutros. Âncora intocada; zero arte nova.
+- **Bugs de integração pegos pelo loop:** (1) guard clause no setExpression não publicava o dataset quando a expressão não mudava (boot ambient = early return) — corrigido idempotente; (2) assertion do cenário 01 corria antes do boot do rig — helper agora espera o canvas (6s) antes de declarar skip honesto; (3) comentário do componente desatualizado (frozen path não pinta mais o PNG cru) — corrigido.
+- **Evidência:** lab PASS com **14 assertions de expressão no rig real (zero skips)** + stillness offline/reduced-motion; contact sheet das 7 expressões no 96px em `DEV/validation/nex-rig-compare/expressions-sheet.png`.
+- **Verificação:** 901/901 testes, typecheck, eslint 0 erros, styles/format OK, build OK, `verify-nex-visual` PASS (manifest com SHAs novos de core+player: `31b97d38…` / `ad3838f6…`).
+- **Notas honestas:** `docs/assets/demos/direct-workflow.webm` divergiu por regeneração do serviço nexus web no restart — fora do escopo, não commitado; jsdom continua no atlas fallback (testes intocados); gate `behavior_8` segue BLOCKED no aceite do owner + Wails.

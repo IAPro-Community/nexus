@@ -9,12 +9,16 @@ type NexRigSpriteProps = {
   idleAction?: NexIdleAction | null;
   /** Motion authority from the mascot (settings, offline, visibility, reduced motion). */
   motionEnabled?: boolean;
+  /** Companion behavior from the mascot; drives the rig expression ('ambient' when absent). */
+  behavior?: string | null;
 };
 
 type RigPlayerInstance = {
   load: () => void;
   destroy: () => void;
   setMotion: (allowed: boolean) => void;
+  setExpression: (name: string) => void;
+  getExpression: () => string;
 };
 
 type RigPlayerConstructor = new (
@@ -38,18 +42,22 @@ type RigPlayerModule = {
  * rig-v1 player reports ready, and swaps back to the atlas on any load
  * error. The rig animates the same approved hybrid-v1 layers (procedural
  * idle, real module orbit) and honors prefers-reduced-motion internally by
- * showing the byte-faithful source PNG as a static pose. No success or
- * progress is ever inferred: moods remain a color treatment, and offline
- * is still and desaturated.
+ * rendering one frozen representative rig pose. Expressions are
+ * owner-approved procedural choreography over those same approved layers;
+ * 'still' is not an expression — it is handled by setMotion(false). No
+ * success or progress is ever inferred: moods remain a color treatment, and
+ * offline is still and desaturated.
  */
 export const NexRigSprite: React.FC<NexRigSpriteProps> = ({
   mood,
   idleAction = null,
   motionEnabled = true,
+  behavior = null,
 }) => {
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
   const playerRef = React.useRef<RigPlayerInstance | null>(null);
   const [rigReady, setRigReady] = React.useState(false);
+  const expression = behavior ?? 'ambient';
 
   React.useEffect(() => {
     const canvas = canvasRef.current;
@@ -95,6 +103,12 @@ export const NexRigSprite: React.FC<NexRigSpriteProps> = ({
   React.useEffect(() => {
     playerRef.current?.setMotion(motionEnabled);
   }, [motionEnabled, rigReady]);
+
+  // Re-runs when rigReady flips so the freshly booted player receives the
+  // current expression (the player sets canvas.dataset.nexExpression).
+  React.useEffect(() => {
+    playerRef.current?.setExpression(expression);
+  }, [expression, rigReady]);
 
   return (
     <>

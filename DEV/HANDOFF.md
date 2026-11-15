@@ -2979,3 +2979,10 @@ O controle `Popup independente` agora fica imediatamente abaixo do cabeçalho do
 - **Estado:** pushado em `release/v1.0.0` (730a6b96 + 64f354a4), instalado (`~/.local/bin/nexus` @ 64f354a4) e verificado live (200 nos 3 endpoints de asset).
 - **Próximos passos (lane A):** 1) avaliar reconciliação de #173 (8 comportamentos) + #171 (director) sobre o rig — pode remover o gate `behavior_8`; 2) avaliar #189 para absorção posterior; 3) aguardar maestro: RUNBOOK de infra (runner CI + branch policy), aceites visuais e kits 1–5 → Fase C/D.
 - **Riscos/notas honestas:** `hud_compact` 64px não coberto pela aprovação; master retro HD editável pendente; release readiness segue BLOCKED 2/11 (honesto); homepage do site segue sem NEX até o gate liberar.
+
+## Handoff 2026-11-15 (III) — NEX companion "funcional e bonito" entregue
+
+- Comportamentos agora visíveis no rig: 8 expressões procedurais (setExpression) + look nativo + mood veils; transbordar sutil aprovado; sombra de pousagem.
+- Rig: motion-core v0.2 + player com blend/frozen determinístico; manifest/guard atualizados com SHAs novos.
+- Próximo aceite: owner vê `DEV/validation/nex-rig-compare/expressions-sheet.png` (e ao vivo no HUD); gate behavior_8 segue BLOCKED no aceite + Wails.
+- #189 segue arquivável como ADR-only se quiser registro formal do renderer (sem código novo relevante).
