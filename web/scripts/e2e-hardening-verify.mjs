@@ -736,6 +736,13 @@ async function main() {
       'false',
       'Escape must close arrange menu',
     );
+    // Radix restores trigger focus asynchronously after the panel unmounts;
+    // grant the same short grace window the Create menu assertion uses.
+    await page.waitForFunction(
+      () => document.activeElement?.classList.contains('nx-arrange-menu__trigger'),
+      undefined,
+      { timeout: 250 },
+    );
     assert.equal(
       await page.evaluate(() =>
         document.activeElement?.classList.contains('nx-arrange-menu__trigger'),
