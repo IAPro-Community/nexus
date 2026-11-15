@@ -7579,3 +7579,12 @@ Confirmei pelo Windows API que o processo desta sessão não tem handle de input
 - **#3 reset absoluto no classifier**: `resets at 5pm` / `at 9:30am` / `at 17:00` → próxima ocorrência do horário local (fecha a lacuna do cooldown heurístico do codex; reset relativo composto continua precedendo).
 - **#4 verificado**: 1 linha por grupo de modelos é por design (quotas distintas por grupo). Repetições da mesma conta agora renderizam identidade compacta `↳ grupo` em vez de repetir perfil·email.
 - **Testes**: `TestExtractAbsoluteResetTime`, `TestUsageHealthSummaryBuckets`, `TestRenderAccountCellsCompactRepeatsUseGroupOnly`; suíte tui/classifier/app verde + `-race`; lint 0 issues.
+
+## 2026-11-15 (madrugada) — claude fail-closed por identidade invisível (bug real, causa-raiz fechada)
+
+- **Sintoma (maestro, produção):** `nexus claude` recusou launch: "quota não verificável; seleção automática recusada (fail-closed)" apesar de conta autenticada e saudável.
+- **Diagnóstico por bissecção:** probe direto do adapter → LIVE (2 janelas); via `loadUsageSnapshot` → UNKNOWN silencioso. Gate em `usage.go:248` (`snapshotBelongsToProfile`) descartava a evidência porque `expectedAccount == ""`.
+- **Causa-raiz:** Claude Code novo grava identidade em `.claude/.claude.json` (aninhado); os leitores do adapter claude (InspectAuth, claudeAccountEmail, import/detect host) liam só `$HOME/.claude.json` (legado na raiz). Email invisível → nenhuma snapshot pode ser atribuída → quota LIVE virava UNKNOWN sem erro.
+- **Fix:** helper `readClaudeIdentityJSON` (localização nova primeiro, legado como fallback) em todos os leitores; `claudeAccountEmail` agora aceita `emailAddress` além de `email`.
+- **Verificação:** probe via `RefreshUsageSnapshotContext` → LIVE 5h 79% / weekly 82%; testes novos (nested identity, emailAddress, preferência nested>legacy); `-race` claude+app verde; lint 0 issues.
+- **Nota honesta:** o fail-closed em si estava correto — o bug era a fonte de identidade incompleta que impedia a atribuição da evidência. Padrão para auditoria: providers com snapshot UNKNOWN sem `error` após refresh merecem bissecção adapter-vs-load.

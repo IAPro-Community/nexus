@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -194,17 +192,21 @@ func claudeAccountEmail(home, credentialEmail string) string {
 	if email := strings.TrimSpace(credentialEmail); email != "" {
 		return email
 	}
-	data, err := os.ReadFile(filepath.Join(home, ".claude.json"))
+	data, err := readClaudeIdentityJSON(home)
 	if err != nil {
 		return ""
 	}
 	var identity struct {
 		OAuthAccount struct {
-			Email string `json:"email"`
+			Email        string `json:"email"`
+			EmailAddress string `json:"emailAddress"`
 		} `json:"oauthAccount"`
 	}
 	if json.Unmarshal(data, &identity) != nil {
 		return ""
+	}
+	if email := strings.TrimSpace(identity.OAuthAccount.EmailAddress); email != "" {
+		return email
 	}
 	return strings.TrimSpace(identity.OAuthAccount.Email)
 }

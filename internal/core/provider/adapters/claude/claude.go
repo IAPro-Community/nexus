@@ -152,8 +152,11 @@ func (a *Adapter) ImportHostAuth(ctx context.Context, p model.Profile) (bool, er
 			return false, errors.New("host Claude session could not be verified in the Nexus profile")
 		}
 		// Extract minimal, non-sensitive identity metadata from host ~/.claude.json
-		hostClaudeJSON := filepath.Join(hostHome, ".claude.json")
-		if data, err := os.ReadFile(hostClaudeJSON); err == nil {
+		var data []byte
+		if d, err := readClaudeIdentityJSON(hostHome); err == nil {
+			data = d
+		}
+		if data != nil {
 			var cData struct {
 				OAuthAccount struct {
 					Email        string `json:"email"`
@@ -200,7 +203,7 @@ func (a *Adapter) DetectHostAuth(ctx context.Context) (model.HostAuthDetection, 
 	}
 	email := cred.Email
 	if email == "" {
-		if data, err := os.ReadFile(filepath.Join(hostHome, ".claude.json")); err == nil {
+		if data, err := readClaudeIdentityJSON(hostHome); err == nil {
 			var cData struct {
 				OAuthAccount struct {
 					Email        string `json:"email"`
@@ -260,8 +263,9 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 	}
 
 	// Identity from ~/.claude.json is informative but not proof of a live token.
-	claudeJson := filepath.Join(home, ".claude.json")
-	if data, err := os.ReadFile(claudeJson); err == nil {
+	// Both known locations are accepted: recent Claude Code builds nest the
+	// file under .claude/, legacy builds wrote it at the home root.
+	if data, err := readClaudeIdentityJSON(home); err == nil {
 		var cData struct {
 			OAuthAccount struct {
 				Email        string `json:"email"`
