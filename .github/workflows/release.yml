@@ -60,7 +60,7 @@ jobs:
           )
           run_id=''
           for attempt in $(seq 1 60); do
-            run_json="$(gh run list --workflow ci.yml --commit "$SHA" --limit 20 --json databaseId,status,conclusion,headSha,event)"
+            run_json="$(gh run list --workflow ci.yml --commit "$SHA" --limit 20 --json databaseId,status,conclusion,headSha,event 2>/dev/null || printf '[]')"
             candidate="$(jq -c --arg sha "$SHA" '
               [.[] |
                 select(.headSha == $sha) |
@@ -68,7 +68,7 @@ jobs:
               ] |
               sort_by(.databaseId) |
               last // empty
-            ' <<<"$run_json")"
+            ' <<<"$run_json" 2>/dev/null || printf '{}')"
             run_id="$(jq -r '.databaseId // empty' <<<"${candidate:-{}}")"
             run_status="$(jq -r '.status // empty' <<<"${candidate:-{}}")"
             run_conclusion="$(jq -r '.conclusion // empty' <<<"${candidate:-{}}")"
