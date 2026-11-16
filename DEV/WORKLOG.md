@@ -1,6 +1,12 @@
-# 2026-11-10 — Estado do contrato reconciliado (43/48 partial + 3 present, 2 missing)
+# 2026-11-16 — Versão definitiva 1.0.0 + bandeja do HUD com resolução em lote
 
-- **Fonte da verdade** (`docs/reference/agent-workspace-v1.json`, auditado): **43 `partial` + 3 `present` + 2 `missing`** (`two-client-real-e2e`, `cross-platform-exact-sha`). As menções anteriores a "44/48 partial" estavam desatualizadas; o evidence map reporta **97 cláusulas de aceite, 95 source+test, 2 source-only** (as duas cláusulas de CI multi-plataforma do `cross-platform-exact-sha`, gap honesto: runners físicos não certificados localmente), zero unmapped.
+- **Versão definitiva**: `VERSION` e `web/package.json` → `1.0.0` (canal stable automático via `channelForVersion`); VERSION CONTRACT PASS; `verify-release-docs` PASS; docs-site/generated (release-status, TLDR) com menções beta.11→1.0.0 (aviso de honestidade mantido, data 16/11).
+- **Recurso da bandeja** (causa-raiz: `projectMascotAttention` não filtrava snoozes — "Adiar" só silenciava a bolha e o item ficava na lista para sempre): filtro de snoozes na lista; `groupMascotAttention` agrupa duplicatas por `target|titleKey|detailKey` com contador ×N; "Adiar todas" no header com persistência localStorage (1h); i18n `hud.mascot.snoozeAll` (EN/PT/ES); estilo `.mascotAttentionHeader` em `_hudGuardian.scss`.
+- **Verificação**: vitest 904/904 (142 arquivos) com 4 testes novos de snooze-filtro/agrupamento; `make quality` PASS completo (format, lint frontend, lint styles, typecheck, lint-go, test-go, version-check); stylelint PASS; eslint 0 erros.
+- **Runtime**: `make install-local` → `nexus v1.0.0 (commit 9e5d4548)` instalado e web vivo (HTTP 200, health `version: 1.0.0`).
+- Pendente: aceites do owner (pacote visual), Windows/macOS nativos (runners físicos), kits 1–5 do GO.
+
+# 2026-11-10 — Estado do contrato reconciliado (43/48 partial + 3 present, 2 missing)- **Fonte da verdade** (`docs/reference/agent-workspace-v1.json`, auditado): **43 `partial` + 3 `present` + 2 `missing`** (`two-client-real-e2e`, `cross-platform-exact-sha`). As menções anteriores a "44/48 partial" estavam desatualizadas; o evidence map reporta **97 cláusulas de aceite, 95 source+test, 2 source-only** (as duas cláusulas de CI multi-plataforma do `cross-platform-exact-sha`, gap honesto: runners físicos não certificados localmente), zero unmapped.
 - `node scripts/verify-agent-workspace-v1.mjs` (sem flags): **"scope 48, certification still pending"** — escopo íntegro; certificação exige evidência externa exact-SHA.
 - `--release --offline` falha conforme esperado (SHA candidato assinado + bundle externo ausentes) — fail-closed correto, não é regressão.
 - Bloqueios do GO inalterados (todos externos/maestro): NEX master visual, AGY 2/2 elegíveis, worker durável Maestro + pacote assinado, execução física 3 SOs no mesmo SHA, aceite 48/48, E2E two-client em app distribuído.

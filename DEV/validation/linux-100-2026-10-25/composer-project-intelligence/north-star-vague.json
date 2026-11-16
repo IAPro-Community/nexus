@@ -1,11 +1,11 @@
 {
-  "project_id": "prj_06GQ8EZRZFSFN9KSVZEMT6V4M4",
-  "composer_session_id": "cmp_06GQ8F0G5VAB89JMWX6BRRAZ70",
+  "project_id": "prj_06GY1W949TSZD7RRPC4M26DKR4",
+  "composer_session_id": "cmp_06GY1W9ZGX23SB6HH0EP1B896G",
   "initial_blocking_questions": 1,
-  "resolved_blocking_questions": 2,
-  "grounded_frontend_test_command": "test=vitest run · observed 2026-10-25T18:04:14.753226553Z",
+  "resolved_blocking_questions": 1,
+  "grounded_frontend_test_command": "test=vitest run · observed 2026-11-15T20:41:08.309191755Z",
   "complete_prompt_blocking_questions": 0,
-  "plan_id": "plan_06GQ8F16Z4F74V6AV5Y5A1GYT8",
+  "plan_id": "plan_06GY1WAFQQEGE9JZHCDBMCQ704",
   "revision": 1,
   "preview_ready": false,
   "step_count": 5,
@@ -17,20 +17,18 @@
     "Verification: no provider accounts discovered"
   ],
   "context_manifest": {
-    "fingerprint": "2ed5b74479616fe73515e37a0a6cc84f7a73ed276abe8e1af48051c12f114675",
+    "fingerprint": "f06a845c734fbcfba4830e14a8ebc882a61d48512344017c18a0b80991b5b3aa",
     "budget": {
       "max_estimated_tokens": 8000,
       "used_estimated_tokens": 153,
       "kept_items": 10,
-      "referenced_items": 8,
+      "referenced_items": 2,
       "dropped_items": 0
     },
-    "item_count": 18
+    "item_count": 12
   },
-  "skill_catalog_count": 69,
+  "skill_catalog_count": 16,
   "console_errors": [],
   "page_errors": [],
-  "request_failures": [
-    "HEAD http://127.0.0.1:36677/wails/custom.js → net::ERR_ABORTED"
-  ]
+  "request_failures": []
 }

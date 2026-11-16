@@ -1,3 +1,10 @@
+## 2026-11-16 — Versão definitiva 1.0.0 + bandeja do HUD com resolução em lote
+
+- PASS — Versão: `VERSION` = `web/package.json` = `1.0.0` (definitiva, canal stable automático); VERSION CONTRACT PASS; `verify-release-docs` PASS; `release-version.test` 3/3; testes Go de update/canal PASS (fixtures beta são cenários de canal, intocados).
+- PASS — Recurso da bandeja: filtro de snoozes em `projectMascotAttention` (correção: "Adiar" antes só silenciava a bolha e o item ficava na lista para sempre); `groupMascotAttention` agrupa duplicatas com contador ×N; "Adiar todas" com persistência localStorage; i18n EN/PT/ES; vitest **904/904** com 4 testes novos.
+- PASS — `make quality` completo (format-check, lint-frontend, lint-styles, typecheck, lint-go, test-go, test-frontend, version-check) + build + `make install-local` → runtime `1.0.0 @ 9e5d4548` vivo (HTTP 200, health ok).
+- NÃO EXECUTADO: aceites visuais do owner (pacote `owner-visual-approval-20261115-rig`), Windows/macOS nativos (runners físicos offline), kits 1–5 do GO.
+
 ## 2026-11-12 — Non-stop Codex fatias 1–2 + fatias 14–16 + security GO-2026-6859
 
 - PASS — Go (toolchain 1.26.11): `make test-go` completo sem FAIL; `make vet`; `make lint-go` 0 issues; `make race` sem data races; `make security` "No vulnerabilities found"; `go build ./...` + gofmt limpos.

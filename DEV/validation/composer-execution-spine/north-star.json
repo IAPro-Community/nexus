@@ -1,6 +1,6 @@
 {
-  "project_id": "prj_06GQ7S09DCXTJ150DZAYG5T7PM",
-  "plan_id": "plan_06GQ7S1DJBEPQ7RFWCP19NH6G0",
+  "project_id": "prj_06GY1TBPKC2FDN3G0DV0HKSME4",
+  "plan_id": "plan_06GY1TCSD20KJAZ590QMFXEN2C",
   "revision": 1,
   "preview_ready": false,
   "step_count": 5,
@@ -11,9 +11,24 @@
     "Review: no provider accounts discovered",
     "Verification: no provider accounts discovered"
   ],
+  "semantic_edit": {
+    "persisted": true,
+    "plan_revision": 2,
+    "preview_revision": 2,
+    "stale_approval_token_replaced": true,
+    "sentinel_persisted": true,
+    "mission_runs_created": 0,
+    "agents_created": 0,
+    "preview_ready": false,
+    "blockers": [
+      "Planning: no provider accounts discovered",
+      "Implementation: no provider accounts discovered",
+      "Implementation: no provider accounts discovered",
+      "Review: no provider accounts discovered",
+      "Verification: no provider accounts discovered"
+    ]
+  },
   "console_errors": [],
   "page_errors": [],
-  "request_failures": [
-    "HEAD http://127.0.0.1:39167/wails/custom.js → net::ERR_ABORTED"
-  ]
+  "request_failures": []
 }

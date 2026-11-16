@@ -1,4 +1,11 @@
-## Handoff corrente — Non-stop Codex (fatias 1–2) + fatia 14 UI visual-diff + security GO-2026-6859 — 2026-11-10/11
+## Handoff corrente — versão definitiva 1.0.0 + bandeja do HUD — 2026-11-16
+
+- **Estado**: `release/v1.0.0` com `VERSION`/`web/package.json` = `1.0.0` (definitiva; canal stable derivado da versão). Binário local instalado via `make install-local` @ `9e5d4548`, web vivo em 127.0.0.1:13000 com health `1.0.0`.
+- **Bandeja do HUD**: causa-raiz do acúmulo ("44 itens pendentes") era `projectMascotAttention` não filtrar snoozes — "Adiar" só silenciava a bolha. Agora: lista filtra snoozes (1h, localStorage), duplicatas agrupadas por `target|titleKey|detailKey` com ×N, botão "Adiar todas" no header. Testes: 904/904 (4 novos). `make quality` PASS.
+- **Próximos passos do maestro**: aceites do pacote `DEV/validation/current/owner-visual-approval-20261115-rig/` (destrava owner_visual_approval/behavior_8/hud_compact), Windows/macOS nativos (runners físicos), persistência do runner CI pós-reboot (`svc.sh install/start`), kits 1–5 (`docs/reference/GO_CEREMONY_KITS.md`).
+- **Não commitar**: `docs/assets/demos/direct-workflow.webm` (regenerado pelo install-local).
+
+## Handoff anterior — Non-stop Codex (fatias 1–2) + fatia 14 UI visual-diff + security GO-2026-6859 — 2026-11-10/11
 
 - **Non-stop fatia 1+2 completo e verificado (sem commit)**: session discovery PTY (B2), monitor no supervised+daemon (B1), attach-follow com Input Integrity Gate (N3), guarda interativa, fail-closed de quota com override explícito (S2), trigger rápido por padrão PTY com porta de evidência (N4-fast). Detalhes e verificação no WORKLOG (duas entradas "Non-stop Codex").
 - **Fatia 14**: UI do visual-diff (`VisualDiffPanel` + model + SCSS module + i18n ×3 + discovery/tour + wiring na 4ª aba do drawer). Gates web completos: quality **891/891 PASS**, tsc/eslint/stylelint/prettier/check:styles/build OK.
