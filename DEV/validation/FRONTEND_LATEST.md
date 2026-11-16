@@ -1,7 +1,7 @@
 # Frontend verification report
 
-- Generated: `2026-11-16T17:56:14Z`
-- Branch: `release/v1.0.0` @ `6ae54aa1`
+- Generated: `2026-11-16T18:19:32Z`
+- Branch: `release/v1.0.0` @ `4d07d831`
 - Verdict: **PASS** (10 pass / 0 fail)
 - Dirty web/dist tree: no
 
@@ -9,16 +9,16 @@
 
 | Gate | Hard | Status | Duration | Detail |
 | --- | --- | --- | --- | --- |
-| Prettier (`prettier --check`) | yes | PASS | 8596ms | Checking formatting...<br>All matched files use Prettier code style! |
-| TypeScript (`tsc --noEmit`) | yes | PASS | 11365ms | ok |
-| ESLint (`eslint src`) | yes | PASS | 6465ms | /projetos/nexus/web/src/features/work/FlowRunSurface.tsx<br>  122:6  warning  React Hook useCallback has a missing dependency: 'plan.current_revision'. Either include it or remove the dependency array  react-hooks/exhaustive-deps<br><br>✖ 1 problem (0 errors, 1 warning) |
-| Stylelint (`stylelint "src/**/*.css"`) | yes | PASS | 1376ms | ok |
-| Null-safe API array access | yes | PASS | 88ms | sem .length/.map direto em campos nullable conhecidos |
-| Vitest (`vitest run`) | yes | PASS | 9755ms | RUN  v4.1.12 /projetos/nexus/web<br><br><br> Test Files  142 passed (142)<br>      Tests  904 passed (904)<br>   Start at  13:56:42<br>   Duration  9.38s (transform 8.62s, setup 0ms, import 22.40s, tests 2.54s, environment 20ms) |
-| i18n catalog parity | yes | PASS | 791ms | RUN  v4.1.12 /projetos/nexus/web<br><br><br> Test Files  1 passed (1)<br>      Tests  8 passed (8)<br>   Start at  13:56:52<br>   Duration  483ms (transform 264ms, setup 0ms, import 340ms, tests 17ms, environment 0ms) |
-| Build + embed (`node scripts/build.mjs`) | yes | PASS | 1836ms | Nexus web build complete: /projetos/nexus/web/dist<br>≈ tailwindcss v4.3.3<br><br>Done in 276ms<br><br>  dist/bundle.js                                  435.7kb<br>  dist/chunks/chunk-YHPWPAJ3.js                   359.1kb<br>  dist/chunks/chunk-4YRQH3AP.js                   339.5kb<br>  dist/chunks/chunk-4HQ5TX2J.js                   282.7kb<br>  dist/chunks/FlowRunsHistorySurface-YQRPX7N7.js  254.0kb<br>  dist/bundle.css                                 161.8kb<br>  dist/chunks/chunk-LJIWKH22.js |
+| Prettier (`prettier --check`) | yes | PASS | 12071ms | Checking formatting...<br>All matched files use Prettier code style! |
+| TypeScript (`tsc --noEmit`) | yes | PASS | 12876ms | ok |
+| ESLint (`eslint src`) | yes | PASS | 9230ms | /projetos/nexus/web/src/features/work/FlowRunSurface.tsx<br>  122:6  warning  React Hook useCallback has a missing dependency: 'plan.current_revision'. Either include it or remove the dependency array  react-hooks/exhaustive-deps<br><br>✖ 1 problem (0 errors, 1 warning) |
+| Stylelint (`stylelint "src/**/*.css"`) | yes | PASS | 1451ms | ok |
+| Null-safe API array access | yes | PASS | 97ms | sem .length/.map direto em campos nullable conhecidos |
+| Vitest (`vitest run`) | yes | PASS | 9897ms | RUN  v4.1.12 /projetos/nexus/web<br><br><br> Test Files  142 passed (142)<br>      Tests  904 passed (904)<br>   Start at  14:20:08<br>   Duration  9.57s (transform 9.56s, setup 0ms, import 23.92s, tests 2.54s, environment 22ms) |
+| i18n catalog parity | yes | PASS | 1129ms | RUN  v4.1.12 /projetos/nexus/web<br><br><br> Test Files  1 passed (1)<br>      Tests  8 passed (8)<br>   Start at  14:20:18<br>   Duration  758ms (transform 438ms, setup 0ms, import 533ms, tests 19ms, environment 0ms) |
+| Build + embed (`node scripts/build.mjs`) | yes | PASS | 2361ms | Nexus web build complete: /projetos/nexus/web/dist<br>≈ tailwindcss v4.3.3<br><br>Done in 323ms<br><br>  dist/bundle.js                                  435.7kb<br>  dist/chunks/chunk-YHPWPAJ3.js                   359.1kb<br>  dist/chunks/chunk-4YRQH3AP.js                   339.5kb<br>  dist/chunks/chunk-4HQ5TX2J.js                   282.7kb<br>  dist/chunks/FlowRunsHistorySurface-YQRPX7N7.js  254.0kb<br>  dist/bundle.css                                 161.8kb<br>  dist/chunks/chunk-LJIWKH22.js |
 | Embed sync (web/dist ≡ internal/.../embedded) | yes | PASS | 1ms | bundles idênticos (446133 bytes) |
-| Critical UI markers in bundle | yes | PASS | 3ms | marcadores críticos presentes (7) |
+| Critical UI markers in bundle | yes | PASS | 5ms | marcadores críticos presentes (7) |
 
 ## Residual risks / next operator steps
 

@@ -1,11 +1,11 @@
 {
-  "project_id": "prj_06GY1W949TSZD7RRPC4M26DKR4",
-  "composer_session_id": "cmp_06GY1W9ZGX23SB6HH0EP1B896G",
+  "project_id": "prj_06GYB6K4P4DDGM8Q7H3T4B3YMM",
+  "composer_session_id": "cmp_06GYB6M5454RSJ9PQ2FWEV9Y7M",
   "initial_blocking_questions": 1,
   "resolved_blocking_questions": 1,
-  "grounded_frontend_test_command": "test=vitest run · observed 2026-11-15T20:41:08.309191755Z",
+  "grounded_frontend_test_command": "test=vitest run · observed 2026-11-16T18:24:30.055159561Z",
   "complete_prompt_blocking_questions": 0,
-  "plan_id": "plan_06GY1WAFQQEGE9JZHCDBMCQ704",
+  "plan_id": "plan_06GYB6MTC9JH1RHP9Q729QPEB4",
   "revision": 1,
   "preview_ready": false,
   "step_count": 5,
@@ -17,7 +17,7 @@
     "Verification: no provider accounts discovered"
   ],
   "context_manifest": {
-    "fingerprint": "f06a845c734fbcfba4830e14a8ebc882a61d48512344017c18a0b80991b5b3aa",
+    "fingerprint": "b4c580d3c43345cce138a7a57a0b387927dd37261ea4b65f6d6c3c41226e4d6a",
     "budget": {
       "max_estimated_tokens": 8000,
       "used_estimated_tokens": 153,
