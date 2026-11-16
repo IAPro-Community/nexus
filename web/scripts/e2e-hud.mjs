@@ -140,9 +140,16 @@ async function main() {
       'Mascot attention must use the canonical Attention Center fixture',
     );
     assert.equal(await attentionList.getByRole('button', { name: 'Abrir' }).count(), 1);
-    assert.equal(await attentionList.getByRole('button', { name: 'Adiar' }).count(), 1);
+    assert.equal(
+      await attentionList.getByRole('button', { name: 'Adiar', exact: true }).count(),
+      1,
+      'the per-item snooze action must stay unique next to the bulk header action',
+    );
+    assert.equal(await attentionList.getByRole('button', { name: 'Adiar todas' }).count(), 1);
     await attentionList.screenshot({ path: path.join(screenshotDir, 'web-hud-attention.png') });
-    await attentionList.getByRole('button', { name: 'Adiar' }).click();
+    await attentionList.getByRole('button', { name: 'Adiar', exact: true }).click();
+    // The snooze filter must hide the entry immediately (same-tick state update).
+    await page.locator('[data-mascot-attention-list]').waitFor({ state: 'detached', timeout: 5000 });
     assert.equal(
       await page.evaluate(() =>
         window.localStorage
@@ -152,6 +159,9 @@ async function main() {
       true,
       'Mascot snooze must be persisted without mutating canonical Attention Center state',
     );
+    // NOTE: the fixture browser clears localStorage on every navigation
+    // (launchFixtureBrowser init script), so the reload below necessarily
+    // shows the item again — persistence is asserted above, before reload.
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 15000 });
     await page.waitForSelector('.nx-os-shell', { timeout: 10000 });
     await page.locator('aside[aria-label="Nexus HUD"]').waitFor({ state: 'visible' });
@@ -160,7 +170,7 @@ async function main() {
     assert.equal(
       await page.locator('[data-mascot-attention-list]').count(),
       1,
-      'Snoozing the mascot notification must not hide the canonical Attention Center item',
+      'After the fixture storage reset the tray renders the canonical Attention Center item again',
     );
 
     // Exercise compiled detached-popup styles without claiming native Wails
