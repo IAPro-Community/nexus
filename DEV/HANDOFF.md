@@ -1,4 +1,12 @@
-## Handoff corrente — versão definitiva 1.0.0 + bandeja do HUD — 2026-11-16
+## Handoff corrente — GO ceremony kits (parte executável) — 2026-11-16
+
+- **Estado**: SHA final `4d07d831f3c2…` (`release/v1.0.0`, `1.0.0` definitiva, canal stable). Homologação Linux automatizada **PASS** completa; trust root rotacionada para a chave do owner (arquivo + GitHub var + buildio); pipeline de assinatura offline validado (ed25519 aceita, fail-closed nos gates de negócio).
+- **Sessões externas pendentes do maestro** (kits prontos em `docs/reference/GO_CEREMONY_KITS.md`): (1) abrir sessão `kiveromegasistemas` e aguardar janela 5h (Kit 1 fecha 2/2); (2) Windows/macOS no mesmo SHA com test-log + screenshot + deviceIdHash (Kit 3); (3) Kit 4 two-client com túnel + código de pareamento; (4) Kit 5 non-stop com 2ª conta codex + aceite 48/48 + NEX owner approval (`nex-compact-64-92-128-comparison.png` + companion-lab captures).
+- **Insumo único do Maestro para o payload final**: `maestroSha` (40 hex do checkout do Maestro) — payload draft em `~/.local/share/nexus-release-evidence/payload-draft-4d07d831.json` (placeholder inválido de propósito; NÃO assinar o final sem ele).
+- **Pós-sessões (orquestrador executa)**: recaptura docs no SHA final (auto-CI), `RELEASE_READINESS.json` 11/11 + payload assinado + `--require-ready` PASS, `make quality-full`, WORKLOG/VERIFY/HANDOFF + tag de release (tag depende de confirmação explícita do maestro).
+- **Evidência local** (gitignored por design): `DEV/validation/local-beta/1.0.0/4d07d831f3c2…/linux-x86_64/` — screenshot real, test.log, binário DEB `e2b50ab5…`, deviceIdHash `70195d28…` (Ubuntu 25.10).
+
+## Handoff anterior — versão definitiva 1.0.0 + bandeja do HUD — 2026-11-16
 
 - **Estado**: `release/v1.0.0` com `VERSION`/`web/package.json` = `1.0.0` (definitiva; canal stable derivado da versão). Binário local instalado via `make install-local` @ `9e5d4548`, web vivo em 127.0.0.1:13000 com health `1.0.0`.
 - **Bandeja do HUD**: causa-raiz do acúmulo ("44 itens pendentes") era `projectMascotAttention` não filtrar snoozes — "Adiar" só silenciava a bolha. Agora: lista filtra snoozes (1h, localStorage), duplicatas agrupadas por `target|titleKey|detailKey` com ×N, botão "Adiar todas" no header. Testes: 904/904 (4 novos). `make quality` PASS.

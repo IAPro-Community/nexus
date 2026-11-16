@@ -1,3 +1,11 @@
+## 2026-11-16 — GO ceremony kits (parte executável)
+
+- PASS — Kit 3/Linux: homologação automatizada completa **PASS** @ `1.0.0 / 4d07d831f3c2…` (docs-verify, frontend, gofmt/vet/golangci/govulncheck, version contract, race, control E2E, agent interop, builds ×3, browser E2E ×9, a11y, visual, goreleaser snapshot, DEB smoke). Evidência local gitignored com screenshot real 1440×900 + test.log + binário DEB (`e2b50ab5…`).
+- PASS — Kit 2 pipeline: trust root rotacionada (arquivo + var GitHub → `faa2e250…` = chave enrolada 10/11); ed25519 aceita pela trust store no verificador offline (dry-run); trio de produção no SHA final.
+- PASS — Kit 1 parcial: AGY **1/2** (kivervinicius-gmail 5h ok; kiveromegasistemas sem janela 5h — maestro). Evidência commitada em `DEV/validation/current/agy-quota-final.json`.
+- FAIL/NÃO EXECUTADO (maestro): AGY 2/2, Windows/macOS físicos, Kit 4 two-client, Kit 5 non-stop (2ª conta codex), aceite 48/48, NEX owner approval, maestroSha. Bundle offline fail-closed correto: "scope not certified" + "exactly three platforms".
+- PASS — CI @ tip: Linux smoke ✅; homologation Windows 🔴 apenas por runner físico offline (esperado).
+
 ## 2026-11-16 — Versão definitiva 1.0.0 + bandeja do HUD com resolução em lote
 
 - PASS — Versão: `VERSION` = `web/package.json` = `1.0.0` (definitiva, canal stable automático); VERSION CONTRACT PASS; `verify-release-docs` PASS; `release-version.test` 3/3; testes Go de update/canal PASS (fixtures beta são cenários de canal, intocados).
@@ -2585,7 +2593,7 @@ Worktree `C:\Dev\nexus-hud-validation`, base `f6098b8c684a97bf7e8e56804109ca491c
 - **BLOCKED** — `node scripts/docs-verify.mjs` falha por alterações visuais não commitadas em `web/src`/`internal/desktop`; o gate exige SHA imutável. Nenhum GO, tag ou release.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-11-16T17:56:14Z
+## Frontend gate — 2026-11-16T18:19:32Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
 
