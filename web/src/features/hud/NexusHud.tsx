@@ -45,6 +45,7 @@ import { normalizeHudAppearance, type HudAppearance } from './guardianModel';
 import {
   mascotMood,
   nextMascotBubble,
+  groupMascotAttention,
   projectMascotAttention,
   readMascotSnoozes,
   snoozeMascotAttention,
@@ -358,8 +359,12 @@ export const NexusHud: React.FC<NexusHudProps> = ({
 
   const state = response?.state;
   const mascotAttention = useMemo(
-    () => projectMascotAttention(state, attentionGroup),
-    [state, attentionGroup],
+    () => projectMascotAttention(state, attentionGroup, Date.now(), mascotSnoozes),
+    [state, attentionGroup, mascotSnoozes],
+  );
+  const mascotAttentionGroups = useMemo(
+    () => groupMascotAttention(mascotAttention),
+    [mascotAttention],
   );
   // A newly observed verified Mission may trigger a purely visual reaction.
   // Initial fetch is a baseline; old completions and other projects are ignored.
@@ -653,6 +658,26 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     }
   };
 
+  const snoozeAllMascotItems = () => {
+    const now = Date.now();
+    const until = now + 60 * 60 * 1000;
+    const next = { ...mascotSnoozes };
+    for (const item of mascotAttention) {
+      if (item.target === 'usage' && item.recordId) {
+        void handleAlert('snooze', item.recordId);
+        continue;
+      }
+      dismissMascotBubble(item.id);
+      next[item.id] = until;
+      try {
+        snoozeMascotAttention(window.localStorage, item.id, now);
+      } catch {
+        // The current window still honors the snooze when browser storage is unavailable.
+      }
+    }
+    setMascotSnoozes(next);
+  };
+
   const updateFloatingPosition = (x: number, y: number, persist = false) => {
     const floatingPosition = clampFloatingPosition(x, y);
     const next = { ...prefs, floatingPosition };
@@ -834,40 +859,60 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               </div>
             )}
 
-            {mascotAttention.length > 0 && (
+            {mascotAttentionGroups.length > 0 && (
               <section
                 className={styles.runtimeAttention}
                 aria-label={t('hud.mascot.pendingCount', { count: mascotAttention.length })}
                 data-mascot-attention-list
               >
-                <strong>
-                  <AlertTriangle size={14} aria-hidden="true" />
-                  {t('hud.mascot.pendingCount', { count: mascotAttention.length })}
-                </strong>
+                <div className={styles.mascotAttentionHeader}>
+                  <strong>
+                    <AlertTriangle size={14} aria-hidden="true" />
+                    {t('hud.mascot.pendingCount', { count: mascotAttention.length })}
+                  </strong>
+                  <button
+                    type="button"
+                    onClick={snoozeAllMascotItems}
+                    disabled={
+                      Boolean(alertActionPending) &&
+                      mascotAttention.some((item) => item.target === 'usage')
+                    }
+                  >
+                    {t('hud.mascot.snoozeAll')}
+                  </button>
+                </div>
                 <ul>
-                  {mascotAttention.slice(0, 8).map((item) => (
-                    <li key={item.id}>
-                      <span>
-                        <b>{t(item.titleKey)}</b>
-                        <br />
-                        <small>{t(item.detailKey)}</small>
-                      </span>
-                      <div className={styles.mascotAttentionActions}>
-                        <button type="button" onClick={() => openMascotAttention(item)}>
-                          {t('hud.mascot.open')}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => snoozeMascotItem(item)}
-                          disabled={alertActionPending && item.target === 'usage'}
-                        >
-                          {t('hud.mascot.snooze')}
-                        </button>
-                      </div>
-                    </li>
-                  ))}
+                  {mascotAttentionGroups.slice(0, 8).map((group) => {
+                    const first = group.items[0];
+                    return (
+                      <li key={group.key}>
+                        <span>
+                          <b>
+                            {t(group.titleKey)}
+                            {group.count > 1 && <small> ×{group.count}</small>}
+                          </b>
+                          <br />
+                          <small>{t(group.detailKey)}</small>
+                        </span>
+                        <div className={styles.mascotAttentionActions}>
+                          <button type="button" onClick={() => openMascotAttention(first)}>
+                            {t('hud.mascot.open')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => group.items.forEach(snoozeMascotItem)}
+                            disabled={alertActionPending && group.target === 'usage'}
+                          >
+                            {t('hud.mascot.snooze')}
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
-                {mascotAttention.length > 8 && <small>{mascotAttention.length - 8}</small>}
+                {mascotAttentionGroups.length > 8 && (
+                  <small>{mascotAttentionGroups.length - 8}</small>
+                )}
               </section>
             )}
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AttentionGroup } from '../../types';
 import type { HudAlert, HudState } from './hudModel';
 import {
+  groupMascotAttention,
   mascotMood,
   mascotMotionAllowed,
   nextMascotBubble,
@@ -258,5 +259,65 @@ describe('NEX Mascot projection', () => {
 
     expect(projectMascotAttention(nullableState, nullableAttention)).toEqual([]);
     expect(mascotMood(nullableState, [], false)).toBe('idle');
+  });
+
+  it('filters snoozed attention out of the tray list until the snooze expires', () => {
+    const failedAgentState = (id: string) =>
+      state({
+        agents: [
+          {
+            id,
+            project_id: 'project-1',
+            name: 'Builder',
+            status: 'FAILED',
+          },
+        ],
+      });
+    const first = projectMascotAttention(failedAgentState('agent-1'), undefined, 1000);
+    expect(first).toHaveLength(1);
+
+    const snoozed = { [first[0].id]: 6000 };
+    expect(projectMascotAttention(failedAgentState('agent-1'), undefined, 1000, snoozed)).toEqual(
+      [],
+    );
+    expect(
+      projectMascotAttention(failedAgentState('agent-1'), undefined, 6001, snoozed),
+    ).toHaveLength(1);
+  });
+
+  it('collapses repeated attention entries into one grouped row with a counter', () => {
+    const items = projectMascotAttention(
+      state({
+        agents: [
+          { id: 'agent-1', project_id: 'project-1', name: 'A', status: 'FAILED' },
+          { id: 'agent-2', project_id: 'project-1', name: 'B', status: 'FAILED' },
+          { id: 'agent-3', project_id: 'project-2', name: 'C', status: 'FAILED' },
+        ],
+      }),
+    );
+    expect(items).toHaveLength(3);
+
+    const groups = groupMascotAttention(items);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].count).toBe(3);
+    expect(groups[0].titleKey).toBe('hud.mascot.agentFailedTitle');
+    expect(groups[0].target).toBe('agents');
+    expect(groups[0].items[0].id).toBe(items[0].id);
+  });
+
+  it('keeps distinct attention kinds in separate groups', () => {
+    const items = projectMascotAttention(
+      state({
+        agents: [
+          { id: 'agent-1', project_id: 'project-1', name: 'A', status: 'FAILED' },
+          { id: 'agent-2', project_id: 'project-1', name: 'B', status: 'AWAITING_INPUT' },
+        ],
+      }),
+    );
+    expect(items).toHaveLength(2);
+
+    const groups = groupMascotAttention(items);
+    expect(groups).toHaveLength(2);
+    expect(groups.map((group) => group.count)).toEqual([1, 1]);
   });
 });

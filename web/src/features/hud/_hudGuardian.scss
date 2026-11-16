@@ -438,11 +438,18 @@
   color: #fff0da;
 }
 
-.runtimeAttention > strong {
+.mascotAttentionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+
+.mascotAttentionHeader > strong {
   display: flex;
   align-items: center;
   gap: 5px;
-  margin-bottom: 5px;
   font-size: 12px;
 }
 

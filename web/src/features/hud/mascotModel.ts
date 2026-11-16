@@ -89,6 +89,7 @@ export function projectMascotAttention(
   state: HudState | undefined,
   attentionGroup?: AttentionGroup,
   now = Date.now(),
+  snoozed: Record<string, number> = {},
 ): MascotAttention[] {
   if (!state && !attentionGroup) return [];
   const items: MascotAttention[] = [];
@@ -162,10 +163,52 @@ export function projectMascotAttention(
   }
 
   const priority = { critical: 0, warning: 1 };
-  return [...new Map(items.map((item) => [item.id, item])).values()].sort(
-    (left, right) =>
-      priority[left.severity] - priority[right.severity] || left.id.localeCompare(right.id),
-  );
+  return [...new Map(items.map((item) => [item.id, item])).values()]
+    .filter((item) => !snoozed[item.id] || snoozed[item.id] <= now)
+    .sort(
+      (left, right) =>
+        priority[left.severity] - priority[right.severity] || left.id.localeCompare(right.id),
+    );
+}
+
+export interface MascotAttentionGroup {
+  key: string;
+  titleKey: string;
+  detailKey: string;
+  severity: MascotAttention['severity'];
+  target: MascotAttention['target'];
+  count: number;
+  items: MascotAttention[];
+}
+
+/**
+ * Collapse repeated attention entries (same title + detail + target) into a
+ * single grouped row so one noisy failure mode cannot flood the companion tray.
+ */
+export function groupMascotAttention(items: MascotAttention[]): MascotAttentionGroup[] {
+  const groups: MascotAttentionGroup[] = [];
+  const byKey = new Map<string, MascotAttentionGroup>();
+  for (const item of items) {
+    const key = `${item.target}|${item.titleKey}|${item.detailKey}`;
+    const existing = byKey.get(key);
+    if (existing) {
+      existing.count += 1;
+      existing.items.push(item);
+      continue;
+    }
+    const group: MascotAttentionGroup = {
+      key,
+      titleKey: item.titleKey,
+      detailKey: item.detailKey,
+      severity: item.severity,
+      target: item.target,
+      count: 1,
+      items: [item],
+    };
+    byKey.set(key, group);
+    groups.push(group);
+  }
+  return groups;
 }
 
 export function mascotMood(
