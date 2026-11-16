@@ -2585,61 +2585,7 @@ Worktree `C:\Dev\nexus-hud-validation`, base `f6098b8c684a97bf7e8e56804109ca491c
 - **BLOCKED** — `node scripts/docs-verify.mjs` falha por alterações visuais não commitadas em `web/src`/`internal/desktop`; o gate exige SHA imutável. Nenhum GO, tag ou release.
 
 <!-- frontend-verify:latest -->
-## Frontend gate — 2026-11-09T19:10:01Z
+## Frontend gate — 2026-11-16T17:38:23Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
 
-
-## 2026-11-14 — validação integral local (CI self-hosted indisponível)
-
-| Gate | Resultado |
-|---|---|
-| `make docs-verify` | PASS — 251 Markdown, 33 assets (manifest recertificado no SHA `7a763e14`) |
-| `verify-nex-visual.mjs` | PASS — contrato do atlas locked (SHA+bytes, 12 rows, hold-last, veils, offline, reduced-motion) |
-| `verify-nex-identity-lock.mjs` | PASS — FROZEN |
-| `verify-nex-hybrid-assets.mjs` | PASS 14/14 |
-| `verify-nex-release-readiness.mjs` | BLOCKED 2/11 honesto (`site_integration`+`site_qa` com evidência; resto aguarda owner/kits) |
-| Web vitest | 901/901 |
-| Web lint:styles | PASS |
-| Go `make test-go` | PASS |
-| Go `make lint-go` | 0 issues |
-| `make security` | No vulnerabilities found |
-| `make vet` | limpo |
-| docs:capture | 11 superfícies sintéticas recertificadas (manifest source_sha `7a763e14`) |
-| CI GitHub | Linux smoke SUCCESS nos SHAs do dia; `ci.yml` aguarda runner self-hosted `nexus-ci` (ver `DEV/RUNBOOK.md`) |
-
-## 2026-11-15 — rig-v1 como render do NEX no HUD (commits 730a6b96 + 64f354a4)
-
-| Verificação | Resultado |
-| --- | --- |
-| Testes web | 901/901 PASS (142 arquivos) |
-| `npm run lint` | 0 erros (1 warning pré-existente em FlowRunSurface, fora do escopo) |
-| `lint:styles` + `check:styles` + `format:check` | PASS |
-| `npm run build` | OK (rig modules em `dist/nex/rig-v1/`) |
-| `node scripts/verify-nex-visual.mjs` | PASS (rig bytes + fallback validados) |
-| `node scripts/verify-nex-identity-lock.mjs` | PASS (lock NEX-ID-v1 não editado) |
-| `node scripts/docs-verify.mjs` | PASS (recertificado @ 64f354a4) |
-| companion-lab | PASS — 8 capturas com rig vivo; "antes" preservado @ 38470c2c no git |
-| Live 127.0.0.1:13000 | rig-player/core/camadas 200; binário `~/.local/bin/nexus` @ 64f354a4 |
-
-Evidências: `DEV/validation/nex-rig-compare/` (mock da aprovação + crop antes/depois) e `DEV/validation/current/companion-lab/captures/` (depois).
-
-## 2026-11-15 (III) — Expressions v1 (rig) — commits desta rodada
-
-| Verificação | Resultado |
-| --- | --- |
-| Testes web | 901/901 PASS |
-| Lab e2e | PASS — 14 assertions de expressão no rig (0 skips) + stillness |
-| `verify-nex-visual` | PASS (SHAs rig atualizados: motion-core `31b97d38…`, player `ad3838f6…`) |
-| typecheck/eslint/styles/format | PASS |
-| Build | OK |
-| Evidência visual | `DEV/validation/nex-rig-compare/expressions-sheet.png` (7 expressões @ 96px) |
-
-## 2026-11-15 — Infra CI: run 11/11 verde em self-hosted
-
-- PASS — CI `40d6ea18` completa **11/11 jobs SUCCESS** no runner self-hosted `Dev-Web-Kiver` (Sanitize, Cross-platform compile guard, Documentation visual capture, Security govulncheck gtk3/Go 1.26.11, Linux E2E, Frontend format+lint+styles+typecheck+unit+build, Release configuration, Browser E2E/Axe/visual smoke, Desktop Linux Wails, GoReleaser Snapshot, Smoke DEB).
-- PASS — "Publish Nexus documentation" verde (policy `release/v1.0.0` no environment `github-pages`); Linux smoke GitHub-hosted verde.
-- PASS — Composer spines: `e2e-composer-execution-spine` e `e2e-composer-vague-execution-spine` (clarifications=1) e `e2e-composer-workspace` PASS locais antes do push; todos PASS no CI.
-- PASS — `bash -n` nos scripts de homologação HUD (linux/macos) + `python3 -m unittest test_hud_native_evidence` após reconstrução do script corrompido; Desktop Linux PASS no CI.
-- PASS — Hardening E2E completo local ("All E2E Hardening assertions PASSED") com a graça de foco de 250ms; PASS no CI.
-- NÃO EXECUTADO (fora do escopo self-hosted): Windows/macOS homologation — runners físicos do maestro offline; Windows release workflow segue failure por runner ausente (não por código).
