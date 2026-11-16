@@ -220,7 +220,7 @@ $TargetPath = Join-Path $TargetDir $BinaryName
 $Installed = $false
 
 # Ed25519 public key for manifest signature verification (matches internal/update ProductionTrustRoot).
-$NexusPubKey = "ee2e268394ce6a0634a9ea2f414ee831dd536d12f7e2b80107f94566e58aa334"
+$NexusPubKey = "faa2e25008f58dcddce636c65cc4a2ef67a405dab476e1785bcc0fea316a14c3"
 
 # PowerShell 5.1 converts a native child's stderr into a terminating
 # NativeCommandError while ErrorActionPreference is Stop — for example the
