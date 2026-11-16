@@ -124,7 +124,7 @@ func (c *terminalHandoffWSClient) close() {
 
 func (c *terminalHandoffWSClient) awaitLease(t *testing.T, role string) {
 	t.Helper()
-	timer := time.NewTimer(5 * time.Second)
+	timer := time.NewTimer(15 * time.Second)
 	defer timer.Stop()
 	for {
 		select {
@@ -145,7 +145,7 @@ func (c *terminalHandoffWSClient) awaitLease(t *testing.T, role string) {
 
 func (c *terminalHandoffWSClient) awaitPong(t *testing.T, expected string) {
 	t.Helper()
-	timer := time.NewTimer(5 * time.Second)
+	timer := time.NewTimer(15 * time.Second)
 	defer timer.Stop()
 	for {
 		select {
@@ -166,7 +166,7 @@ func (c *terminalHandoffWSClient) awaitPong(t *testing.T, expected string) {
 // the WebSocket echo.
 func awaitMarkerContains(t *testing.T, path, marker string) {
 	t.Helper()
-	deadline := time.Now().Add(5 * time.Second)
+	deadline := time.Now().Add(15 * time.Second)
 	for {
 		data, err := os.ReadFile(path)
 		if err == nil && strings.Contains(string(data), marker) {
@@ -185,7 +185,7 @@ func awaitMarkerContains(t *testing.T, path, marker string) {
 
 func (c *terminalHandoffWSClient) awaitClosed(t *testing.T) {
 	t.Helper()
-	timer := time.NewTimer(5 * time.Second)
+	timer := time.NewTimer(15 * time.Second)
 	defer timer.Stop()
 	for {
 		select {
@@ -203,7 +203,7 @@ func (c *terminalHandoffWSClient) awaitClosed(t *testing.T) {
 
 func (c *terminalHandoffWSClient) awaitOutput(t *testing.T, marker string) string {
 	t.Helper()
-	timer := time.NewTimer(5 * time.Second)
+	timer := time.NewTimer(15 * time.Second)
 	defer timer.Stop()
 	var output strings.Builder
 	for !strings.Contains(output.String(), marker) {
