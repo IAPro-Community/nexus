@@ -214,7 +214,9 @@ async function main() {
       );
       await page.setViewportSize({ width: 775, height: 483 });
       const createCard = page.getByTestId('project-hub-create');
-      await createCard.waitFor({ state: 'visible', timeout: 5000 });
+      // Cold fixture boot (fragment exchange + provider/usage sync) lands the
+      // hub at ~5.5s on this suite's shared runner; 5s was tighter than real.
+      await createCard.waitFor({ state: 'visible', timeout: 15000 });
       const projectHubRoot = page.getByTestId('project-hub-root');
       const initialLayout = await projectHubRoot.evaluate((root) => ({
         headlineTop: root.querySelector('h1')?.getBoundingClientRect().top ?? -1,
