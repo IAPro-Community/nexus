@@ -1,0 +1,1151 @@
+[
+  {
+    "provider_id": "agy",
+    "profile_id": "kiveromegasistemas",
+    "status": "CACHED",
+    "source": "CLI_OUTPUT",
+    "fetched_at": "2026-11-16T13:06:03.664790629-04:00",
+    "windows": [
+      {
+        "kind": "weekly",
+        "group": "gemini",
+        "used_percent": 99,
+        "remaining_percent": 1,
+        "reset_description": "Refreshes in 119h 46m"
+      },
+      {
+        "kind": "claude_weekly",
+        "group": "claude_gpt",
+        "used_percent": 100,
+        "remaining_percent": 0,
+        "reset_description": "Refreshes in 121h 41m"
+      }
+    ],
+    "model_name": "Gemini Flash, Gemini Pro / Claude, GPT",
+    "account": "kiver.omegasistemas@gmail.com",
+    "account_scope": {
+      "provider_id": "agy",
+      "profile_id": "kiveromegasistemas",
+      "account_id": "d6b8d3f0d4feb628d85c026e9035e7ed",
+      "identity_version": "1"
+    },
+    "quota_view": {
+      "provider": "agy",
+      "profile": "kiveromegasistemas",
+      "account": "kiver.omegasistemas@gmail.com",
+      "plan": "Google AI Pro",
+      "status": "CACHED",
+      "source": "CLI_OUTPUT",
+      "model_groups": [
+        {
+          "key": "gemini",
+          "name": "Gemini Models",
+          "windows": [
+            {
+              "kind": "weekly",
+              "label": "Limite Semanal",
+              "remaining": 1,
+              "reset_desc": "Refreshes in 119h 46m",
+              "status": "CACHED",
+              "bar": "[░░░░░░░░░░]  1%"
+            }
+          ]
+        },
+        {
+          "key": "claude_gpt",
+          "name": "Claude \u0026 GPT Models",
+          "windows": [
+            {
+              "kind": "claude_weekly",
+              "label": "Limite Semanal",
+              "remaining": 0,
+              "reset_desc": "Refreshes in 121h 41m",
+              "status": "CACHED",
+              "bar": "[░░░░░░░░░░]  0%"
+            }
+          ]
+        }
+      ],
+      "fetched_at": "2026-11-16T13:06:03.664790629-04:00",
+      "available": true,
+      "avail_reasons": {
+        "exhausted_windows": [
+          "claude_weekly"
+        ]
+      }
+    },
+    "eligibility": {
+      "eligible": true,
+      "reason": "OK",
+      "confidence": "CACHED",
+      "capacity_evidence": "MEASURED"
+    },
+    "health": "HEALTHY",
+    "authenticated": true
+  },
+  {
+    "provider_id": "agy",
+    "profile_id": "kivervinicius-gmail",
+    "status": "CACHED",
+    "source": "CLI_OUTPUT",
+    "fetched_at": "2026-11-16T13:06:07.727922559-04:00",
+    "windows": [
+      {
+        "kind": "weekly",
+        "group": "gemini",
+        "used_percent": 19,
+        "remaining_percent": 81,
+        "reset_description": "Refreshes in 119h 1m"
+      },
+      {
+        "kind": "5h",
+        "group": "gemini",
+        "used_percent": 0,
+        "remaining_percent": 100,
+        "reset_description": "Refreshes in 4h 59m"
+      },
+      {
+        "kind": "claude_weekly",
+        "group": "claude_gpt",
+        "used_percent": 31,
+        "remaining_percent": 69,
+        "reset_description": "Refreshes in 122h 45m"
+      },
+      {
+        "kind": "claude_5h",
+        "group": "claude_gpt",
+        "used_percent": 0,
+        "remaining_percent": 100,
+        "reset_description": "Refreshes in 4h 59m"
+      }
+    ],
+    "model_name": "Gemini Flash, Gemini Pro / Claude, GPT",
+    "account": "kivervinicius@gmail.com",
+    "account_scope": {
+      "provider_id": "agy",
+      "profile_id": "kivervinicius-gmail",
+      "account_id": "69a74b159670a54d25f44cdf055342f5",
+      "identity_version": "1"
+    },
+    "quota_view": {
+      "provider": "agy",
+      "profile": "kivervinicius-gmail",
+      "account": "kivervinicius@gmail.com",
+      "plan": "Google AI Pro",
+      "status": "CACHED",
+      "source": "CLI_OUTPUT",
+      "model_groups": [
+        {
+          "key": "gemini",
+          "name": "Gemini Models",
+          "windows": [
+            {
+              "kind": "weekly",
+              "label": "Limite Semanal",
+              "remaining": 81,
+              "reset_desc": "Refreshes in 119h 1m",
+              "status": "CACHED",
+              "bar": "[████████░░] 81%"
+            },
+            {
+              "kind": "5h",
+              "label": "Limite 5 Horas",
+              "remaining": 100,
+              "reset_desc": "Refreshes in 4h 59m",
+              "status": "CACHED",
+              "bar": "[██████████] 100%"
+            }
+          ]
+        },
+        {
+          "key": "claude_gpt",
+          "name": "Claude \u0026 GPT Models",
+          "windows": [
+            {
+              "kind": "claude_weekly",
+              "label": "Limite Semanal",
+              "remaining": 69,
+              "reset_desc": "Refreshes in 122h 45m",
+              "status": "CACHED",
+              "bar": "[██████░░░░] 69%"
+            },
+            {
+              "kind": "claude_5h",
+              "label": "Limite 5 Horas",
+              "remaining": 100,
+              "reset_desc": "Refreshes in 4h 59m",
+              "status": "CACHED",
+              "bar": "[██████████] 100%"
+            }
+          ]
+        }
+      ],
+      "fetched_at": "2026-11-16T13:06:07.727922559-04:00",
+      "available": true,
+      "avail_reasons": {
+        "all_ok": true
+      }
+    },
+    "eligibility": {
+      "eligible": true,
+      "reason": "OK",
+      "confidence": "CACHED",
+      "capacity_evidence": "MEASURED"
+    },
+    "health": "HEALTHY",
+    "authenticated": true
+  },
+  {
+    "provider_id": "claude",
+    "profile_id": "claude",
+    "status": "CACHED",
+    "source": "OFFICIAL_API",
+    "confidence": "HIGH",
+    "fetched_at": "2026-11-16T13:06:04.97074453-04:00",
+    "windows": [
+      {
+        "kind": "5h",
+        "used_percent": 0,
+        "remaining_percent": 100
+      },
+      {
+        "kind": "weekly",
+        "used_percent": 0,
+        "remaining_percent": 100,
+        "reset_time": "2026-11-23T16:00:00Z",
+        "reset_description": "2026-11-23T16:00:00Z"
+      }
+    ],
+    "account": "kiver.omegaedu@gmail.com",
+    "plan": "pro",
+    "account_scope": {
+      "provider_id": "claude",
+      "profile_id": "claude",
+      "account_id": "52e21d01f8c607b6e219e729710386da",
+      "identity_version": "1"
+    },
+    "quota_view": {
+      "provider": "claude",
+      "profile": "claude",
+      "account": "kiver.omegaedu@gmail.com",
+      "plan": "Claude Pro / Team",
+      "status": "CACHED",
+      "source": "OFFICIAL_API",
+      "model_groups": [
+        {
+          "name": "",
+          "windows": [
+            {
+              "kind": "5h",
+              "label": "Limite 5 Horas",
+              "remaining": 100,
+              "reset_desc": "",
+              "status": "CACHED",
+              "bar": "[██████████] 100%"
+            },
+            {
+              "kind": "weekly",
+              "label": "Limite Semanal",
+              "remaining": 100,
+              "reset_desc": "2026-11-23T16:00:00Z",
+              "reset_time": "2026-11-23T16:00:00Z",
+              "status": "CACHED",
+              "bar": "[██████████] 100%"
+            }
+          ]
+        }
+      ],
+      "fetched_at": "2026-11-16T13:06:04.97074453-04:00",
+      "available": true,
+      "avail_reasons": {
+        "all_ok": true
+      }
+    },
+    "eligibility": {
+      "eligible": true,
+      "reason": "OK",
+      "confidence": "CACHED",
+      "capacity_evidence": "MEASURED"
+    },
+    "health": "HEALTHY",
+    "authenticated": true
+  },
+  {
+    "provider_id": "codex",
+    "profile_id": "--with",
+    "status": "UNKNOWN",
+    "source": "NONE",
+    "fetched_at": "2026-11-16T13:06:18.677979804-04:00",
+    "windows": null,
+    "account_scope": {
+      "provider_id": "",
+      "profile_id": "",
+      "account_id": "",
+      "identity_version": ""
+    },
+    "quota_view": {
+      "provider": "codex",
+      "profile": "--with",
+      "account": "kiver@omegasistemas.net.br",
+      "plan": "ChatGPT Plus",
+      "status": "UNKNOWN",
+      "source": "NONE",
+      "model_groups": [
+        {
+          "name": "",
+          "windows": [
+            {
+              "kind": "unknown",
+              "label": "Quota",
+              "remaining": 0,
+              "reset_desc": "",
+              "status": "UNKNOWN",
+              "bar": "[ UNKNOWN  ]"
+            }
+          ]
+        }
+      ],
+      "fetched_at": "2026-11-16T13:06:18.677979804-04:00",
+      "available": false,
+      "avail_reasons": {
+        "unknown_quota": true
+      }
+    },
+    "eligibility": {
+      "eligible": false,
+      "reason": "UNKNOWN_QUOTA",
+      "confidence": "UNKNOWN",
+      "capacity_evidence": "UNKNOWN",
+      "message": "Quota UNKNOWN — inelegível para alocação automática"
+    },
+    "health": "HEALTHY",
+    "authenticated": true
+  },
+  {
+    "provider_id": "codex",
+    "profile_id": "codex",
+    "status": "UNKNOWN",
+    "source": "NONE",
+    "fetched_at": "2026-11-16T13:06:18.678665642-04:00",
+    "windows": null,
+    "account_scope": {
+      "provider_id": "",
+      "profile_id": "",
+      "account_id": "",
+      "identity_version": ""
+    },
+    "quota_view": {
+      "provider": "codex",
+      "profile": "codex",
+      "account": "kiver@omegasistemas.net.br",
+      "plan": "ChatGPT Plus",
+      "status": "UNKNOWN",
+      "source": "NONE",
+      "model_groups": [
+        {
+          "name": "",
+          "windows": [
+            {
+              "kind": "unknown",
+              "label": "Quota",
+              "remaining": 0,
+              "reset_desc": "",
+              "status": "UNKNOWN",
+              "bar": "[ UNKNOWN  ]"
+            }
+          ]
+        }
+      ],
+      "fetched_at": "2026-11-16T13:06:18.678665642-04:00",
+      "available": false,
+      "avail_reasons": {
+        "unknown_quota": true
+      }
+    },
+    "eligibility": {
+      "eligible": false,
+      "reason": "UNKNOWN_QUOTA",
+      "confidence": "UNKNOWN",
+      "capacity_evidence": "UNKNOWN",
+      "message": "Quota UNKNOWN — inelegível para alocação automática"
+    },
+    "health": "HEALTHY",
+    "authenticated": true
+  },
+  {
+    "provider_id": "codex",
+    "profile_id": "default",
+    "status": "CACHED",
+    "source": "OFFICIAL_API",
+    "confidence": "HIGH",
+    "fetched_at": "2026-11-16T13:06:10.727633483-04:00",
+    "windows": [
+      {
+        "kind": "5h",
+        "group": "claude_gpt",
+        "used_percent": 0,
+        "remaining_percent": 100,
+        "reset_time": "2026-11-16T18:06:10-04:00",
+        "reset_description": "resets 18:06"
+      },
+      {
+        "kind": "weekly",
+        "group": "claude_gpt",
+        "used_percent": 27,
+        "remaining_percent": 73,
+        "reset_time": "2026-11-20T13:31:43-04:00",
+        "reset_description": "resets 13:31 on 20 Nov"
+      }
+    ],
+    "account": "802cf130-605a-4489-94f4-a6570dbdf8e7",
+    "plan": "ChatGPT Plus",
+    "account_scope": {
+      "provider_id": "codex",
+      "profile_id": "default",
+      "account_id": "2c10bf15e6854d6adba65bb4c5b965f2",
+      "identity_version": "1"
+    },
+    "quota_view": {
+      "provider": "codex",
+      "profile": "default",
+      "account": "kiver@omegasistemas.net.br",
+      "plan": "ChatGPT Plus",
+      "status": "CACHED",
+      "source": "OFFICIAL_API",
+      "model_groups": [
+        {
+          "key": "claude_gpt",
+          "name": "Codex",
+          "windows": [
+            {
+              "kind": "5h",
+              "label": "Limite 5 Horas",
+              "remaining": 100,
+              "reset_desc": "resets 18:06",
+              "reset_time": "2026-11-16T18:06:10-04:00",
+              "status": "CACHED",
+              "bar": "[██████████] 100%"
+            },
+            {
+              "kind": "weekly",
+              "label": "Limite Semanal",
+              "remaining": 73,
+              "reset_desc": "resets 13:31 on 20 Nov",
+              "reset_time": "2026-11-20T13:31:43-04:00",
+              "status": "CACHED",
+              "bar": "[███████░░░] 73%"
+            }
+          ]
+        }
+      ],
+      "fetched_at": "2026-11-16T13:06:10.727633483-04:00",
+      "available": true,
+      "avail_reasons": {
+        "all_ok": true
+      }
+    },
+    "eligibility": {
+      "eligible": true,
+      "reason": "OK",
+      "confidence": "CACHED",
+      "capacity_evidence": "MEASURED"
+    },
+    "health": "HEALTHY",
+    "authenticated": true
+  },
+  {
+    "provider_id": "codex",
+    "profile_id": "kiver",
+    "status": "UNKNOWN",
+    "source": "NONE",
+    "fetched_at": "2026-11-16T13:06:18.680223278-04:00",
+    "windows": null,
+    "account_scope": {
+      "provider_id": "",
+      "profile_id": "",
+      "account_id": "",
+      "identity_version": ""
+    },
+    "quota_view": {
+      "provider": "codex",
+      "profile": "kiver",
+      "account": "kiver@omegasistemas.net.br",
+      "plan": "ChatGPT Plus",
+      "status": "UNKNOWN",
+      "source": "NONE",
+      "model_groups": [
+        {
+          "name": "",
+          "windows": [
+            {
+              "kind": "unknown",
+              "label": "Quota",
+              "remaining": 0,
+              "reset_desc": "",
+              "status": "UNKNOWN",
+              "bar": "[ UNKNOWN  ]"
+            }
+          ]
+        }
+      ],
+      "fetched_at": "2026-11-16T13:06:18.680223278-04:00",
+      "available": false,
+      "avail_reasons": {
+        "unknown_quota": true
+      }
+    },
+    "eligibility": {
+      "eligible": false,
+      "reason": "UNKNOWN_QUOTA",
+      "confidence": "UNKNOWN",
+      "capacity_evidence": "UNKNOWN",
+      "message": "Quota UNKNOWN — inelegível para alocação automática"
+    },
+    "health": "HEALTHY",
+    "authenticated": true
+  },
+  {
+    "provider_id": "codex",
+    "profile_id": "kiver.omegasistemas",
+    "status": "UNKNOWN",
+    "source": "NONE",
+    "fetched_at": "2026-11-16T13:06:18.680932851-04:00",
+    "windows": null,
+    "account_scope": {
+      "provider_id": "",
+      "profile_id": "",
+      "account_id": "",
+      "identity_version": ""
+    },
+    "quota_view": {
+      "provider": "codex",
+      "profile": "kiver.omegasistemas",
+      "account": "kiver@omegasistemas.net.br",
+      "plan": "ChatGPT Plus",
+      "status": "UNKNOWN",
+      "source": "NONE",
+      "model_groups": [
+        {
+          "name": "",
+          "windows": [
+            {
+              "kind": "unknown",
+              "label": "Quota",
+              "remaining": 0,
+              "reset_desc": "",
+              "status": "UNKNOWN",
+              "bar": "[ UNKNOWN  ]"
+            }
+          ]
+        }
+      ],
+      "fetched_at": "2026-11-16T13:06:18.680932851-04:00",
+      "available": false,
+      "avail_reasons": {
+        "unknown_quota": true
+      }
+    },
+    "eligibility": {
+      "eligible": false,
+      "reason": "UNKNOWN_QUOTA",
+      "confidence": "UNKNOWN",
+      "capacity_evidence": "UNKNOWN",
+      "message": "Quota UNKNOWN — inelegível para alocação automática"
+    },
+    "health": "HEALTHY",
+    "authenticated": true
+  },
+  {
+    "provider_id": "codex",
+    "profile_id": "kivergmail",
+    "status": "CACHED",
+    "source": "OBSERVATION",
+    "fetched_at": "2026-11-16T17:06:03.357Z",
+    "windows": [
+      {
+        "kind": "5h",
+        "group": "claude_gpt",
+        "used_percent": 3,
+        "remaining_percent": 97,
+        "reset_time": "2026-11-16T17:36:09-04:00",
+        "reset_description": "resets 17:36"
+      },
+      {
+        "kind": "weekly",
+        "group": "claude_gpt",
+        "used_percent": 22,
+        "remaining_percent": 78,
+        "reset_time": "2026-11-20T12:16:18-04:00",
+        "reset_description": "resets 12:16 on 20 Nov"
+      }
+    ],
+    "model_name": "gpt-5.6-terra",
+    "account": "9cba8371-db95-468c-ad00-02e9ceddcb3e",
+    "account_scope": {
+      "provider_id": "codex",
+      "profile_id": "kivergmail",
+      "account_id": "dbcf862202324dc5d01716192bac7c70",
+      "identity_version": "1"
+    },
+    "quota_view": {
+      "provider": "codex",
+      "profile": "kivergmail",
+      "account": "kiver.omegaedu@gmail.com",
+      "plan": "ChatGPT Plus",
+      "status": "CACHED",
+      "source": "OBSERVATION",
+      "model_groups": [
+        {
+          "key": "claude_gpt",
+          "name": "Codex",
+          "windows": [
+            {
+              "kind": "5h",
+              "label": "Limite 5 Horas",
+              "remaining": 97,
+              "reset_desc": "resets 17:36",
+              "reset_time": "2026-11-16T17:36:09-04:00",
+              "status": "CACHED",
+              "bar": "[█████████░] 97%"
+            },
+            {
+              "kind": "weekly",
+              "label": "Limite Semanal",
+              "remaining": 78,
+              "reset_desc": "resets 12:16 on 20 Nov",
+              "reset_time": "2026-11-20T12:16:18-04:00",
+              "status": "CACHED",
+              "bar": "[███████░░░] 78%"
+            }
+          ]
+        }
+      ],
+      "fetched_at": "2026-11-16T17:06:03.357Z",
+      "available": true,
+      "avail_reasons": {
+        "all_ok": true
+      }
+    },
+    "eligibility": {
+      "eligible": true,
+      "reason": "OK",
+      "confidence": "CACHED",
+      "capacity_evidence": "MEASURED"
+    },
+    "health": "HEALTHY",
+    "authenticated": true
+  },
+  {
+    "provider_id": "codex",
+    "profile_id": "work",
+    "status": "UNKNOWN",
+    "source": "NONE",
+    "fetched_at": "2026-11-16T13:06:18.682408773-04:00",
+    "windows": null,
+    "account_scope": {
+      "provider_id": "",
+      "profile_id": "",
+      "account_id": "",
+      "identity_version": ""
+    },
+    "quota_view": {
+      "provider": "codex",
+      "profile": "work",
+      "account": "kiver@omegasistemas.net.br",
+      "plan": "ChatGPT Plus",
+      "status": "UNKNOWN",
+      "source": "NONE",
+      "model_groups": [
+        {
+          "name": "",
+          "windows": [
+            {
+              "kind": "unknown",
+              "label": "Quota",
+              "remaining": 0,
+              "reset_desc": "",
+              "status": "UNKNOWN",
+              "bar": "[ UNKNOWN  ]"
+            }
+          ]
+        }
+      ],
+      "fetched_at": "2026-11-16T13:06:18.682408773-04:00",
+      "available": false,
+      "avail_reasons": {
+        "unknown_quota": true
+      }
+    },
+    "eligibility": {
+      "eligible": false,
+      "reason": "UNKNOWN_QUOTA",
+      "confidence": "UNKNOWN",
+      "capacity_evidence": "UNKNOWN",
+      "message": "Quota UNKNOWN — inelegível para alocação automática"
+    },
+    "health": "HEALTHY",
+    "authenticated": true
+  },
+  {
+    "provider_id": "cursor",
+    "profile_id": "(sem perfil)",
+    "status": "UNSUPPORTED",
+    "source": "NONE",
+    "fetched_at": "2026-11-16T13:06:18.682820511-04:00",
+    "windows": null,
+    "account_scope": {
+      "provider_id": "",
+      "profile_id": "",
+      "account_id": "",
+      "identity_version": ""
+    },
+    "quota_view": {
+      "provider": "cursor",
+      "profile": "(sem perfil)",
+      "account": "",
+      "plan": "Cursor",
+      "status": "UNSUPPORTED",
+      "source": "NONE",
+      "model_groups": [
+        {
+          "name": "",
+          "windows": [
+            {
+              "kind": "unknown",
+              "label": "Quota",
+              "remaining": 0,
+              "reset_desc": "",
+              "status": "UNSUPPORTED",
+              "bar": "[UNSUPPORT ]"
+            }
+          ]
+        }
+      ],
+      "fetched_at": "2026-11-16T13:06:18.682820511-04:00",
+      "available": false,
+      "avail_reasons": {
+        "unknown_quota": true
+      }
+    },
+    "eligibility": {
+      "eligible": true,
+      "reason": "UNSUPPORTED_QUOTA",
+      "confidence": "UNSUPPORTED",
+      "capacity_evidence": "OPAQUE",
+      "message": "Quota não exposta pelo provedor; recurso operacionalmente elegível sem score de capacidade"
+    },
+    "health": "HEALTHY",
+    "authenticated": true
+  },
+  {
+    "provider_id": "cursor",
+    "profile_id": "--json",
+    "status": "UNSUPPORTED",
+    "source": "NONE",
+    "fetched_at": "2026-11-16T13:06:18.683266335-04:00",
+    "windows": null,
+    "account_scope": {
+      "provider_id": "",
+      "profile_id": "",
+      "account_id": "",
+      "identity_version": ""
+    },
+    "quota_view": {
+      "provider": "cursor",
+      "profile": "--json",
+      "account": "",
+      "plan": "Cursor",
+      "status": "UNSUPPORTED",
+      "source": "NONE",
+      "model_groups": [
+        {
+          "name": "",
+          "windows": [
+            {
+              "kind": "unknown",
+              "label": "Quota",
+              "remaining": 0,
+              "reset_desc": "",
+              "status": "UNSUPPORTED",
+              "bar": "[UNSUPPORT ]"
+            }
+          ]
+        }
+      ],
+      "fetched_at": "2026-11-16T13:06:18.683266335-04:00",
+      "available": false,
+      "avail_reasons": {
+        "unknown_quota": true
+      }
+    },
+    "eligibility": {
+      "eligible": true,
+      "reason": "UNSUPPORTED_QUOTA",
+      "confidence": "UNSUPPORTED",
+      "capacity_evidence": "OPAQUE",
+      "message": "Quota não exposta pelo provedor; recurso operacionalmente elegível sem score de capacidade"
+    },
+    "health": "HEALTHY",
+    "authenticated": true
+  },
+  {
+    "provider_id": "cursor",
+    "profile_id": "cursor",
+    "status": "UNSUPPORTED",
+    "source": "NONE",
+    "fetched_at": "2026-11-16T13:06:18.683563326-04:00",
+    "windows": null,
+    "account_scope": {
+      "provider_id": "",
+      "profile_id": "",
+      "account_id": "",
+      "identity_version": ""
+    },
+    "quota_view": {
+      "provider": "cursor",
+      "profile": "cursor",
+      "account": "",
+      "plan": "Cursor",
+      "status": "UNSUPPORTED",
+      "source": "NONE",
+      "model_groups": [
+        {
+          "name": "",
+          "windows": [
+            {
+              "kind": "unknown",
+              "label": "Quota",
+              "remaining": 0,
+              "reset_desc": "",
+              "status": "UNSUPPORTED",
+              "bar": "[UNSUPPORT ]"
+            }
+          ]
+        }
+      ],
+      "fetched_at": "2026-11-16T13:06:18.683563326-04:00",
+      "available": false,
+      "avail_reasons": {
+        "unknown_quota": true
+      }
+    },
+    "eligibility": {
+      "eligible": true,
+      "reason": "UNSUPPORTED_QUOTA",
+      "confidence": "UNSUPPORTED",
+      "capacity_evidence": "OPAQUE",
+      "message": "Quota não exposta pelo provedor; recurso operacionalmente elegível sem score de capacidade"
+    },
+    "health": "HEALTHY",
+    "authenticated": true
+  },
+  {
+    "provider_id": "cursor",
+    "profile_id": "default",
+    "status": "UNSUPPORTED",
+    "source": "NONE",
+    "fetched_at": "2026-11-16T13:06:18.683901166-04:00",
+    "windows": null,
+    "account_scope": {
+      "provider_id": "",
+      "profile_id": "",
+      "account_id": "",
+      "identity_version": ""
+    },
+    "quota_view": {
+      "provider": "cursor",
+      "profile": "default",
+      "account": "",
+      "plan": "Cursor",
+      "status": "UNSUPPORTED",
+      "source": "NONE",
+      "model_groups": [
+        {
+          "name": "",
+          "windows": [
+            {
+              "kind": "unknown",
+              "label": "Quota",
+              "remaining": 0,
+              "reset_desc": "",
+              "status": "UNSUPPORTED",
+              "bar": "[UNSUPPORT ]"
+            }
+          ]
+        }
+      ],
+      "fetched_at": "2026-11-16T13:06:18.683901166-04:00",
+      "available": false,
+      "avail_reasons": {
+        "unknown_quota": true
+      }
+    },
+    "eligibility": {
+      "eligible": true,
+      "reason": "UNSUPPORTED_QUOTA",
+      "confidence": "UNSUPPORTED",
+      "capacity_evidence": "OPAQUE",
+      "message": "Quota não exposta pelo provedor; recurso operacionalmente elegível sem score de capacidade"
+    },
+    "health": "HEALTHY",
+    "authenticated": true
+  },
+  {
+    "provider_id": "gemini",
+    "profile_id": "default",
+    "status": "UNKNOWN",
+    "source": "NONE",
+    "fetched_at": "2026-11-16T13:06:18.684364923-04:00",
+    "windows": null,
+    "account_scope": {
+      "provider_id": "",
+      "profile_id": "",
+      "account_id": "",
+      "identity_version": ""
+    },
+    "quota_view": {
+      "provider": "gemini",
+      "profile": "default",
+      "account": "kiver.omegasistemas@gmail.com",
+      "plan": "Google AI",
+      "status": "UNKNOWN",
+      "source": "NONE",
+      "model_groups": [
+        {
+          "name": "",
+          "windows": [
+            {
+              "kind": "unknown",
+              "label": "Quota",
+              "remaining": 0,
+              "reset_desc": "",
+              "status": "UNKNOWN",
+              "bar": "[ UNKNOWN  ]"
+            }
+          ]
+        }
+      ],
+      "fetched_at": "2026-11-16T13:06:18.684364923-04:00",
+      "available": false,
+      "avail_reasons": {
+        "unknown_quota": true
+      }
+    },
+    "eligibility": {
+      "eligible": false,
+      "reason": "UNKNOWN_QUOTA",
+      "confidence": "UNKNOWN",
+      "capacity_evidence": "UNKNOWN",
+      "message": "Quota UNKNOWN — inelegível para alocação automática"
+    },
+    "health": "DEGRADED",
+    "authenticated": true
+  },
+  {
+    "provider_id": "opencode",
+    "profile_id": "default",
+    "status": "UNSUPPORTED",
+    "source": "NONE",
+    "fetched_at": "2026-11-16T13:06:18.684699846-04:00",
+    "windows": null,
+    "account_scope": {
+      "provider_id": "",
+      "profile_id": "",
+      "account_id": "",
+      "identity_version": ""
+    },
+    "quota_view": {
+      "provider": "opencode",
+      "profile": "default",
+      "account": "",
+      "plan": "OpenCode Local (Ollama/Env)",
+      "status": "UNSUPPORTED",
+      "source": "NONE",
+      "model_groups": [
+        {
+          "name": "",
+          "windows": [
+            {
+              "kind": "unknown",
+              "label": "Quota",
+              "remaining": 0,
+              "reset_desc": "",
+              "status": "UNSUPPORTED",
+              "bar": "[UNSUPPORT ]"
+            }
+          ]
+        }
+      ],
+      "fetched_at": "2026-11-16T13:06:18.684699846-04:00",
+      "available": false,
+      "avail_reasons": {
+        "unknown_quota": true
+      }
+    },
+    "eligibility": {
+      "eligible": true,
+      "reason": "UNSUPPORTED_QUOTA",
+      "confidence": "UNSUPPORTED",
+      "capacity_evidence": "OPAQUE",
+      "message": "Quota não exposta pelo provedor; recurso operacionalmente elegível sem score de capacidade"
+    },
+    "health": "HEALTHY",
+    "authenticated": true
+  },
+  {
+    "provider_id": "opencode",
+    "profile_id": "demo",
+    "status": "UNSUPPORTED",
+    "source": "NONE",
+    "fetched_at": "2026-11-16T13:06:18.685180155-04:00",
+    "windows": null,
+    "account_scope": {
+      "provider_id": "",
+      "profile_id": "",
+      "account_id": "",
+      "identity_version": ""
+    },
+    "quota_view": {
+      "provider": "opencode",
+      "profile": "demo",
+      "account": "OpenCode Zen",
+      "plan": "OpenCode Zen",
+      "status": "UNSUPPORTED",
+      "source": "NONE",
+      "model_groups": [
+        {
+          "name": "",
+          "windows": [
+            {
+              "kind": "unknown",
+              "label": "Quota",
+              "remaining": 0,
+              "reset_desc": "",
+              "status": "UNSUPPORTED",
+              "bar": "[UNSUPPORT ]"
+            }
+          ]
+        }
+      ],
+      "fetched_at": "2026-11-16T13:06:18.685180155-04:00",
+      "available": false,
+      "avail_reasons": {
+        "unknown_quota": true
+      }
+    },
+    "eligibility": {
+      "eligible": true,
+      "reason": "UNSUPPORTED_QUOTA",
+      "confidence": "UNSUPPORTED",
+      "capacity_evidence": "OPAQUE",
+      "message": "Quota não exposta pelo provedor; recurso operacionalmente elegível sem score de capacidade"
+    },
+    "health": "HEALTHY",
+    "authenticated": true
+  },
+  {
+    "provider_id": "opencode",
+    "profile_id": "opencode",
+    "status": "UNSUPPORTED",
+    "source": "NONE",
+    "fetched_at": "2026-11-16T13:06:18.68575916-04:00",
+    "windows": null,
+    "account_scope": {
+      "provider_id": "",
+      "profile_id": "",
+      "account_id": "",
+      "identity_version": ""
+    },
+    "quota_view": {
+      "provider": "opencode",
+      "profile": "opencode",
+      "account": "deepseek",
+      "plan": "OpenCode (deepseek)",
+      "status": "UNSUPPORTED",
+      "source": "NONE",
+      "model_groups": [
+        {
+          "name": "",
+          "windows": [
+            {
+              "kind": "unknown",
+              "label": "Quota",
+              "remaining": 0,
+              "reset_desc": "",
+              "status": "UNSUPPORTED",
+              "bar": "[UNSUPPORT ]"
+            }
+          ]
+        }
+      ],
+      "fetched_at": "2026-11-16T13:06:18.68575916-04:00",
+      "available": false,
+      "avail_reasons": {
+        "unknown_quota": true
+      }
+    },
+    "eligibility": {
+      "eligible": true,
+      "reason": "UNSUPPORTED_QUOTA",
+      "confidence": "UNSUPPORTED",
+      "capacity_evidence": "OPAQUE",
+      "message": "Quota não exposta pelo provedor; recurso operacionalmente elegível sem score de capacidade"
+    },
+    "health": "HEALTHY",
+    "authenticated": true
+  },
+  {
+    "provider_id": "zcode",
+    "profile_id": "",
+    "status": "UNKNOWN",
+    "source": "NONE",
+    "fetched_at": "0001-01-01T00:00:00Z",
+    "windows": [],
+    "account": "ZCode",
+    "error": "sem perfil configurado",
+    "account_scope": {
+      "provider_id": "",
+      "profile_id": "",
+      "account_id": "",
+      "identity_version": ""
+    },
+    "quota_view": {
+      "provider": "zcode",
+      "profile": "",
+      "account": "",
+      "plan": "",
+      "status": "UNKNOWN",
+      "source": "NONE",
+      "model_groups": [
+        {
+          "name": "",
+          "windows": [
+            {
+              "kind": "unknown",
+              "label": "Quota",
+              "remaining": 0,
+              "reset_desc": "",
+              "status": "UNKNOWN",
+              "bar": "[ UNKNOWN  ]"
+            }
+          ]
+        }
+      ],
+      "fetched_at": "0001-01-01T00:00:00Z",
+      "available": false,
+      "avail_reasons": {
+        "unknown_quota": true
+      }
+    },
+    "eligibility": {
+      "eligible": false,
+      "reason": "NOT_AUTHENTICATED",
+      "confidence": "UNKNOWN",
+      "capacity_evidence": "UNKNOWN",
+      "message": "Conta não autenticada"
+    },
+    "health": "UNKNOWN",
+    "authenticated": false,
+    "unconfigured": true
+  }
+]
