@@ -84,6 +84,9 @@ func TestAgentObservationRejectsMutationAndUnscopedWait(t *testing.T) {
 	if got := call(http.MethodGet, "/api/v1/agents/a/wait?project_id=p&until=blocked&wait_ms=30000"); got != http.StatusBadRequest {
 		t.Fatalf("unbounded wait status = %d", got)
 	}
+	if got := call(http.MethodGet, "/api/v1/agents/a/wait?project_id=p&until=blocked&after_revision=7"); got != http.StatusBadRequest {
+		t.Fatalf("revision without generation could match an unrelated process, status = %d", got)
+	}
 }
 
 func TestAgentObservationAPIScopesAgentAndDoesNotFabricateRuntime(t *testing.T) {

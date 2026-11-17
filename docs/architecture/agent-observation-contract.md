@@ -48,8 +48,9 @@ provider/terminal's observed *turn* was settled. It must never be mapped to
 - `observation`: the latest redacted observation, including on unsuccessful waits.
 
 Clients should first call `explain` and supply **both** `after_revision` and
-`after_generation` on a subsequent `wait` call. Revision numbers alone are
-insufficient after a process restart or runtime replacement. Abort a pending
+`after_generation` on a subsequent `wait` call. A nonzero
+`after_revision` without `after_generation` is rejected (HTTP 400):
+revision numbers alone are insufficient after a process restart or runtime replacement. Abort a pending
 request when an Agent panel is closed or a project changes. A `NOT_LIVE` host
 terminates waiting without claiming that the Agent finished its task.
 

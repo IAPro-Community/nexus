@@ -175,6 +175,10 @@ func (h *NexusHandler) handleAgentObservation(w http.ResponseWriter, r *http.Req
 			writeError(w, http.StatusBadRequest, "after_generation is too long")
 			return
 		}
+		if afterRevision > 0 && afterGeneration == "" {
+			writeError(w, http.StatusBadRequest, "after_generation required with after_revision")
+			return
+		}
 		if raw := r.URL.Query().Get("wait_ms"); raw != "" {
 			millis, parseErr := strconv.Atoi(raw)
 			if parseErr != nil || millis < 0 || millis > 15000 {
