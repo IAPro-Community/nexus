@@ -1,0 +1,27 @@
+name: Temporary formatting diagnostics PR220
+on:
+  pull_request:
+    branches: ['release/v1.0.0']
+permissions:
+  contents: read
+jobs:
+  formatting:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+      - name: Install locked packages
+        working-directory: web
+        run: bun install --frozen-lockfile
+      - name: Show exact prettier changes for this PR
+        working-directory: web
+        run: |
+          bunx prettier --write src/components/TerminalPane.tsx src/i18n/resources.ts src/nexus/terminalFitModel.test.ts src/services/WorkspaceLayoutService.test.ts src/services/WorkspaceLayoutService.ts
+          echo "---FORMATTED-DIFF-BEGIN---"
+          git diff --unified=2 -- src/components/TerminalPane.tsx src/i18n/resources.ts src/nexus/terminalFitModel.test.ts src/services/WorkspaceLayoutService.test.ts src/services/WorkspaceLayoutService.ts
+          echo "---FORMATTED-DIFF-END---"
