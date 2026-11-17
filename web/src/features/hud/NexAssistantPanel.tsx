@@ -47,10 +47,12 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState('');
   const inFlight = React.useRef(false);
+  const chatAbortController = React.useRef<AbortController | null>(null);
   const allowResultsRef = React.useRef(!privacyMode);
   allowResultsRef.current = !privacyMode;
 
   React.useEffect(() => {
+    chatAbortController.current?.abort();
     setTurns([]);
     setOverview(null);
     setDraft('');
@@ -58,8 +60,11 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
     setIncludeProjectContext(false);
   }, [projectId]);
 
+  React.useEffect(() => () => chatAbortController.current?.abort(), []);
+
   React.useEffect(() => {
     if (privacyMode) {
+      chatAbortController.current?.abort();
       setExpanded(false);
       setTurns([]);
       setDraft('');
@@ -126,6 +131,8 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
     setBusy(true);
     setError('');
     setDraft('');
+    const controller = new AbortController();
+    chatAbortController.current = controller;
     const history = turns.slice(-8).map((turn) => ({
       role: turn.role,
       content: turn.content.slice(0, 200),
@@ -137,17 +144,18 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
         project_id: projectId || '',
         history,
         include_project_context: includeProjectContext && Boolean(projectId),
-      });
-      if (!allowResultsRef.current) return;
+      }, controller.signal);
+      if (controller.signal.aborted || !allowResultsRef.current) return;
       setTurns((current) =>
         [...current, { role: 'assistant' as const, content: reply.answer }].slice(-12),
       );
     } catch {
-      if (!allowResultsRef.current) return;
+      if (controller.signal.aborted || !allowResultsRef.current) return;
       setError(
         'O Nex não conseguiu responder. Confira a conexão e a configuração da inteligência. Os dados operacionais continuam disponíveis no HUD.',
       );
     } finally {
+      if (chatAbortController.current === controller) chatAbortController.current = null;
       inFlight.current = false;
       setBusy(false);
     }
@@ -230,6 +238,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
           <NexAssistantActions
             active={expanded}
             projectId={projectId}
+            allowProjectContext={includeProjectContext}
             onResult={(message) => {
               if (!allowResultsRef.current) return;
               setTurns((current) =>

@@ -1158,6 +1158,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               />
             )}
             <NexAssistantPanel
+              key={projectId || 'global'}
               projectId={projectId}
               privacyMode={prefs.privacyMode}
               onOpenMissions={onOpenMissions}

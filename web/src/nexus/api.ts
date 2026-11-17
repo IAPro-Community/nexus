@@ -77,15 +77,19 @@ export const nexus = {
     request<NexAssistantOverview>(
       `/api/v1/nex/assistant${projectId ? `?project_id=${encodeURIComponent(projectId)}` : ''}`,
     ),
-  askNexAssistant: (data: {
-    message: string;
-    project_id: string;
-    history: NexChatTurn[];
-    include_project_context?: boolean;
-  }) =>
+  askNexAssistant: (
+    data: {
+      message: string;
+      project_id: string;
+      history: NexChatTurn[];
+      include_project_context?: boolean;
+    },
+    signal?: AbortSignal,
+  ) =>
     request<NexChatResponse>('/api/v1/nex/assistant', {
       method: 'POST',
       body: JSON.stringify(data),
+      signal,
     }),
   listProviderInstallations: () => request<ProviderInfo[]>('/api/v1/providers'),
   registerProvider: (provider: string, profile?: string) =>
@@ -938,12 +942,18 @@ export const nexus = {
   schedulePlan: (
     planId: string,
     mode: 'AT' | 'AFTER_RUN' | 'WHEN_RESOURCES',
-    options?: { scheduledFor?: string; afterRunId?: string; agentId?: string },
+    options?: {
+      scheduledFor?: string;
+      afterRunId?: string;
+      agentId?: string;
+      planRevision?: number;
+    },
   ) =>
     request<import('../types').MissionSchedule>('/api/v1/schedules', {
       method: 'POST',
       body: JSON.stringify({
         plan_id: planId,
+        plan_revision: options?.planRevision,
         mode,
         scheduled_for: options?.scheduledFor,
         after_run_id: options?.afterRunId,

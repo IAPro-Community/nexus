@@ -6,6 +6,7 @@ import styles from './NexAssistantPanel.module.scss';
 interface NexAssistantActionsProps {
   active: boolean;
   projectId?: string;
+  allowProjectContext: boolean;
   onResult: (message: string) => void;
 }
 
@@ -13,6 +14,7 @@ interface NexAssistantActionsProps {
 export const NexAssistantActions: React.FC<NexAssistantActionsProps> = ({
   active,
   projectId,
+  allowProjectContext,
   onResult,
 }) => {
   const [busy, setBusy] = React.useState(false);
@@ -112,7 +114,7 @@ export const NexAssistantActions: React.FC<NexAssistantActionsProps> = ({
 
   const suggestImprovements = () =>
     perform(async () => {
-      if (!projectId) return;
+      if (!projectId || !allowProjectContext) return;
       const view = await nexus.getProjectIntelligence(projectId);
       if (!view.current_snapshot) {
         onResult(
@@ -154,6 +156,11 @@ export const NexAssistantActions: React.FC<NexAssistantActionsProps> = ({
   const schedule = () =>
     perform(async () => {
       if (!planId || !when || !projectId) return;
+      const selectedPlan = plans.find((plan) => plan.id === planId);
+      if (!selectedPlan || selectedPlan.current_revision < 1) {
+        onResult('A revisão selecionada não está mais disponível. Atualize os agendamentos.');
+        return;
+      }
       const whenDate = new Date(when);
       if (!Number.isFinite(whenDate.getTime()) || whenDate.getTime() <= Date.now()) {
         onResult('Selecione uma data e hora futura válida antes de agendar.');
@@ -161,6 +168,7 @@ export const NexAssistantActions: React.FC<NexAssistantActionsProps> = ({
       }
       const result = await nexus.schedulePlan(planId, 'AT', {
         scheduledFor: whenDate.toISOString(),
+        planRevision: selectedPlan.current_revision,
       });
       setSchedules((current) => [...current, result]);
       setConfirmPlan(false);
@@ -201,8 +209,9 @@ export const NexAssistantActions: React.FC<NexAssistantActionsProps> = ({
         <button
           type="button"
           className={styles.send}
-          disabled={busy || !projectId}
+          disabled={busy || !projectId || !allowProjectContext}
           onClick={suggestImprovements}
+          title={!allowProjectContext ? 'Autorize o envio de fatos estáticos do projeto acima' : undefined}
         >
           Sugerir melhorias
         </button>
