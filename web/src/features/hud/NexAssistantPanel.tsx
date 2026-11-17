@@ -55,10 +55,17 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
   React.useEffect(() => {
     if (!expanded) return;
     let active = true;
-    nexus.getNexAssistantOverview(projectId)
-      .then((next) => { if (active) setOverview(next); })
-      .catch(() => { if (active) setError('Não foi possível consultar o estado atual do Nexus.'); });
-    return () => { active = false; };
+    nexus
+      .getNexAssistantOverview(projectId)
+      .then((next) => {
+        if (active) setOverview(next);
+      })
+      .catch(() => {
+        if (active) setError('Não foi possível consultar o estado atual do Nexus.');
+      });
+    return () => {
+      active = false;
+    };
   }, [expanded, projectId]);
 
   const changeMode = (next: NexAssistantMode) => {
@@ -68,19 +75,30 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
 
   const runSuggestion = (suggestion: NexAssistantSuggestion) => {
     switch (suggestion.target) {
-      case 'missions': onOpenMissions?.(); break;
-      case 'agents': onOpenAgents?.(); break;
-      case 'usage': onOpenUsage?.(); break;
-      default: onOpenNexus?.();
+      case 'missions':
+        onOpenMissions?.();
+        break;
+      case 'agents':
+        onOpenAgents?.();
+        break;
+      case 'usage':
+        onOpenUsage?.();
+        break;
+      default:
+        onOpenNexus?.();
     }
   };
 
   const availableTarget = (suggestion: NexAssistantSuggestion): boolean => {
     switch (suggestion.target) {
-      case 'missions': return Boolean(onOpenMissions);
-      case 'agents': return Boolean(onOpenAgents);
-      case 'usage': return Boolean(onOpenUsage);
-      default: return Boolean(onOpenNexus);
+      case 'missions':
+        return Boolean(onOpenMissions);
+      case 'agents':
+        return Boolean(onOpenAgents);
+      case 'usage':
+        return Boolean(onOpenUsage);
+      default:
+        return Boolean(onOpenNexus);
     }
   };
 
@@ -100,12 +118,13 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
         project_id: projectId || '',
         history,
       });
-      setTurns((current) => [
-        ...current,
-        { role: 'assistant' as const, content: reply.answer },
-      ].slice(-12));
+      setTurns((current) =>
+        [...current, { role: 'assistant' as const, content: reply.answer }].slice(-12),
+      );
     } catch {
-      setError('O Nex não conseguiu responder. Confira a conexão e a configuração da inteligência. Os dados operacionais continuam disponíveis no HUD.');
+      setError(
+        'O Nex não conseguiu responder. Confira a conexão e a configuração da inteligência. Os dados operacionais continuam disponíveis no HUD.',
+      );
     } finally {
       inFlight.current = false;
       setBusy(false);
@@ -120,12 +139,21 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
         onClick={() => setExpanded((current) => !current)}
         aria-expanded={expanded}
       >
-        <span><MessageCircle size={14} aria-hidden="true" /> Assistente Nex</span>
-        {expanded ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
+        <span>
+          <MessageCircle size={14} aria-hidden="true" /> Assistente Nex
+        </span>
+        {expanded ? (
+          <ChevronUp size={14} aria-hidden="true" />
+        ) : (
+          <ChevronDown size={14} aria-hidden="true" />
+        )}
       </button>
       {expanded && (
         <div className={styles.body}>
-          <p className={styles.caption}>Posso explicar o estado do Nexus e ajudar a encontrar o próximo passo. Nenhuma ação será executada apenas por conversar.</p>
+          <p className={styles.caption}>
+            Posso explicar o estado do Nexus e ajudar a encontrar o próximo passo. Nenhuma ação será
+            executada apenas por conversar.
+          </p>
           <label className={styles.setting}>
             <input
               type="checkbox"
@@ -152,7 +180,8 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
           ) : null}
           {overview && (
             <p className={styles.caption}>
-              Estado consultado: {overview.agent_count} agentes ativos · {overview.needs_user} decisões pendentes.
+              Estado consultado: {overview.agent_count} agentes ativos · {overview.needs_user}{' '}
+              decisões pendentes.
             </p>
           )}
           <div className={styles.chatLog} aria-live="polite" aria-label="Conversa com Nex">
@@ -166,7 +195,9 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
             active={expanded}
             projectId={projectId}
             onResult={(message) => {
-              setTurns((current) => [...current, { role: 'assistant' as const, content: message }].slice(-12));
+              setTurns((current) =>
+                [...current, { role: 'assistant' as const, content: message }].slice(-12),
+              );
             }}
           />
           <form onSubmit={sendMessage} className={styles.inputRow}>
@@ -183,8 +214,14 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
               {busy ? '...' : 'Enviar'}
             </button>
           </form>
-          {error && <p className={styles.error} role="alert">{error}</p>}
-          <p className={styles.caption}>Sem voz · sem acesso automático a arquivos · contexto independente do Maestro</p>
+          {error && (
+            <p className={styles.error} role="alert">
+              {error}
+            </p>
+          )}
+          <p className={styles.caption}>
+            Sem voz · sem acesso automático a arquivos · contexto independente do Maestro
+          </p>
         </div>
       )}
     </section>

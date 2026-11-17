@@ -80,21 +80,21 @@ func buildNexAssistantOverview(state nexus.HUDState, now time.Time) nexAssistant
 		out.Suggestions = append(out.Suggestions, nexAssistantSuggestion{
 			ID: "mission-needs-user", Title: "Revisar decisões pendentes",
 			Description: "Existem execuções aguardando sua intervenção.",
-			Target: "missions",
+			Target:      "missions",
 		})
 	}
 	if out.Alerts > 0 {
 		out.Suggestions = append(out.Suggestions, nexAssistantSuggestion{
 			ID: "capacity-alert", Title: "Examinar alertas",
 			Description: "Há alertas operacionais não reconhecidos.",
-			Target: "usage",
+			Target:      "usage",
 		})
 	}
 	if out.AgentCount > 0 {
 		out.Suggestions = append(out.Suggestions, nexAssistantSuggestion{
 			ID: "active-agents", Title: "Acompanhar agentes",
 			Description: "Há agentes ativos; consulte o estado real de suas sessões.",
-			Target: "agents",
+			Target:      "agents",
 		})
 	}
 	return out
@@ -171,7 +171,7 @@ func (h *NexusHandler) handleNexAssistant(w http.ResponseWriter, r *http.Request
 		cfg, err := h.nexus.GetIntelligenceConfig()
 		if err != nil || cfg.Mode != coreconfig.IntelligenceOpenAICompatible {
 			writeJSON(w, http.StatusServiceUnavailable, map[string]any{
-				"error": "nex_model_unavailable",
+				"error":  "nex_model_unavailable",
 				"detail": "Configure uma inteligência OpenAI-compatible; chat via CLI exige um perfil read-only homologado.",
 			})
 			return
@@ -181,7 +181,7 @@ func (h *NexusHandler) handleNexAssistant(w http.ResponseWriter, r *http.Request
 		provider, err := h.nexus.ConfiguredIntelligenceProvider(ctx, body.ProjectID)
 		if err != nil {
 			writeJSON(w, http.StatusServiceUnavailable, map[string]any{
-				"error": "nex_model_unavailable",
+				"error":  "nex_model_unavailable",
 				"detail": "O modelo configurado não está disponível.",
 			})
 			return
@@ -196,14 +196,14 @@ func (h *NexusHandler) handleNexAssistant(w http.ResponseWriter, r *http.Request
 		// credentials, filesystem contents, or private transcripts.
 		data, _ := json.Marshal(struct {
 			Overview nexAssistantOverview `json:"overview"`
-			System   nexus.HUDSystemState  `json:"system"`
-			History  []nexAssistantTurn    `json:"history"`
-			Message  string                `json:"message"`
+			System   nexus.HUDSystemState `json:"system"`
+			History  []nexAssistantTurn   `json:"history"`
+			Message  string               `json:"message"`
 		}{
 			Overview: overview,
-			System: state.System,
-			History: body.History,
-			Message: body.Message,
+			System:   state.System,
+			History:  body.History,
+			Message:  body.Message,
 		})
 		answer, err := chat.NexReply(ctx, nexPersonaV1, string(data))
 		if err != nil {
@@ -213,7 +213,7 @@ func (h *NexusHandler) handleNexAssistant(w http.ResponseWriter, r *http.Request
 			// Never echo raw provider errors: CLI/API errors may contain tokens
 			// or prompt material.
 			writeJSON(w, http.StatusBadGateway, map[string]any{
-				"error": "nex_reply_failed",
+				"error":  "nex_reply_failed",
 				"detail": "Não consegui consultar o modelo configurado.",
 			})
 			return

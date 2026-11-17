@@ -18,10 +18,8 @@ export function resolveNexRigPresentation(
   motionEnabled: boolean,
 ): NexRigPresentation {
   if (!motionEnabled || behavior === 'still') return { mode: 'idle', expression: 'still' };
-  if (behavior !== 'ambient' && behavior !== 'rest')
-    return { mode: 'idle', expression: behavior };
-  if (behavior === 'rest' && action !== 'idle_wake')
-    return { mode: 'idle', expression: 'rest' };
+  if (behavior !== 'ambient' && behavior !== 'rest') return { mode: 'idle', expression: behavior };
+  if (behavior === 'rest' && action !== 'idle_wake') return { mode: 'idle', expression: 'rest' };
 
   switch (action) {
     case 'idle_orbit_shuffle':

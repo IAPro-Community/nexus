@@ -5,14 +5,18 @@ import { resolveNexRigPresentation } from './nexRigProjection';
 describe('NEX procedural rig projection', () => {
   it('keeps the operational and completion expressions authoritative', () => {
     for (const behavior of ['thinking', 'attention', 'error', 'resolved'] as const) {
-      expect(resolveNexRigPresentation(behavior, 'idle_orbit_shuffle', true))
-        .toEqual({ mode: 'idle', expression: behavior });
+      expect(resolveNexRigPresentation(behavior, 'idle_orbit_shuffle', true)).toEqual({
+        mode: 'idle',
+        expression: behavior,
+      });
     }
   });
 
   it('uses the existing true orbit only for approved idle orbit gestures', () => {
-    expect(resolveNexRigPresentation('ambient', 'idle_orbit_shuffle', true))
-      .toEqual({ mode: 'orbit', expression: 'ambient' });
+    expect(resolveNexRigPresentation('ambient', 'idle_orbit_shuffle', true)).toEqual({
+      mode: 'orbit',
+      expression: 'ambient',
+    });
     expect(resolveNexRigPresentation('ambient', 'idle_orbit_breathe', true).mode).toBe('orbit');
     expect(resolveNexRigPresentation('ambient', null, true).mode).toBe('idle');
   });
@@ -26,9 +30,13 @@ describe('NEX procedural rig projection', () => {
   });
 
   it('disables orbit and decorative expression when motion is unavailable', () => {
-    expect(resolveNexRigPresentation('ambient', 'idle_orbit_shuffle', false))
-      .toEqual({ mode: 'idle', expression: 'still' });
-    expect(resolveNexRigPresentation('still', 'idle_orbit_shuffle', true))
-      .toEqual({ mode: 'idle', expression: 'still' });
+    expect(resolveNexRigPresentation('ambient', 'idle_orbit_shuffle', false)).toEqual({
+      mode: 'idle',
+      expression: 'still',
+    });
+    expect(resolveNexRigPresentation('still', 'idle_orbit_shuffle', true)).toEqual({
+      mode: 'idle',
+      expression: 'still',
+    });
   });
 });
