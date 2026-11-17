@@ -2,6 +2,7 @@ import React from 'react';
 import { MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { nexus } from '../../nexus/api';
 import type {
+  NexActionProposal,
   NexAssistantOverview,
   NexAssistantSuggestion,
   NexChatTurn,
@@ -21,6 +22,8 @@ export interface NexAssistantPanelProps {
   onOpenAgents?: () => void;
   onOpenUsage?: () => void;
   onOpenNexus?: () => void;
+  onOpenSettings?: () => void;
+  onOpenNewAgent?: () => void;
 }
 
 /**
@@ -36,6 +39,8 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
   onOpenAgents,
   onOpenUsage,
   onOpenNexus,
+  onOpenSettings,
+  onOpenNewAgent,
 }) => {
   const [expanded, setExpanded] = React.useState(false);
   const [overview, setOverview] = React.useState<NexAssistantOverview | null>(null);
@@ -43,6 +48,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
     () => readNexAssistantPreferences().mode,
   );
   const [turns, setTurns] = React.useState<NexChatTurn[]>([]);
+  const [proposal, setProposal] = React.useState<NexActionProposal | null>(null);
   const [persistHistory, setPersistHistory] = React.useState(
     () => readNexAssistantPreferences().persistHistory,
   );
@@ -59,6 +65,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
   React.useEffect(() => {
     chatAbortController.current?.abort();
     setTurns([]);
+    setProposal(null);
     setOverview(null);
     setDraft('');
     setError('');
@@ -73,6 +80,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
       chatAbortController.current?.abort();
       setExpanded(false);
       setTurns([]);
+      setProposal(null);
       setDraft('');
       setError('');
       setIncludeProjectContext(false);
@@ -151,6 +159,12 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
       case 'usage':
         onOpenUsage?.();
         break;
+      case 'settings':
+        onOpenSettings?.();
+        break;
+      case 'new-agent':
+        onOpenNewAgent?.();
+        break;
       default:
         onOpenNexus?.();
     }
@@ -164,6 +178,10 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
         return Boolean(onOpenAgents);
       case 'usage':
         return Boolean(onOpenUsage);
+      case 'settings':
+        return Boolean(onOpenSettings);
+      case 'new-agent':
+        return Boolean(onOpenNewAgent);
       default:
         return Boolean(onOpenNexus);
     }
@@ -177,6 +195,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
     setBusy(true);
     setError('');
     setDraft('');
+    setProposal(null);
     const controller = new AbortController();
     chatAbortController.current = controller;
     const history = turns.slice(-8).map((turn) => ({
@@ -197,6 +216,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
         controller.signal,
       );
       if (controller.signal.aborted || !allowResultsRef.current) return;
+      setProposal(reply.proposal ?? null);
       setTurns((current) =>
         [...current, { role: 'assistant' as const, content: reply.answer }].slice(-12),
       );
@@ -325,6 +345,25 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
               </p>
             ))}
           </div>
+          {proposal && (
+            <div className={styles.suggestions} aria-label="Ação sugerida pelo Nex">
+              <p className={styles.caption}>
+                Proposta de navegação · nenhuma alteração foi executada
+              </p>
+              <button
+                type="button"
+                className={styles.action}
+                disabled={!availableTarget(proposal)}
+                onClick={() => {
+                  runSuggestion(proposal);
+                  setProposal(null);
+                }}
+              >
+                <strong>{proposal.title}</strong>
+                <small>{proposal.description}</small>
+              </button>
+            </div>
+          )}
           <NexAssistantActions
             active={expanded}
             projectId={projectId}

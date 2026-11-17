@@ -1165,6 +1165,8 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               onOpenAgents={onOpenAgents}
               onOpenUsage={onOpenUsage}
               onOpenNexus={onOpenNexus}
+              onOpenSettings={onOpenSettings}
+              onOpenNewAgent={onOpenNewAgent}
             />
             <div className={styles.footerActions}>
               {onOpenNewAgent && (
