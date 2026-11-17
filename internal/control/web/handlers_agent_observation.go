@@ -202,10 +202,10 @@ func (h *NexusHandler) handleAgentObservation(w http.ResponseWriter, r *http.Req
 		matched, generationChanged := evaluatedAgentWait(view, until, afterRevision, afterGeneration)
 		if matched || generationChanged || view.ProcessState != "LIVE" || !time.Now().Before(deadline) {
 			writeJSON(w, http.StatusOK, map[string]any{
-				"matched": matched,
+				"matched":            matched,
 				"generation_changed": generationChanged,
-				"timed_out": !matched && !generationChanged && view.ProcessState == "LIVE",
-				"observation": view,
+				"timed_out":          !matched && !generationChanged && view.ProcessState == "LIVE",
+				"observation":        view,
 			})
 			return
 		}
