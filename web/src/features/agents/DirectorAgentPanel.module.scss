@@ -135,3 +135,27 @@
   outline: 2px solid var(--nx-accent);
   outline-offset: 2px;
 }
+
+/* Flat Inspector: data is aligned by rows instead of boxed tiles. */
+:global(:root[data-finish='flat']) {
+  .metadata,
+  .actions,
+  .events {
+    gap: 0;
+  }
+
+  .metadata > div {
+    padding: 0.65rem 0;
+    border: 0;
+    border-bottom: 1px solid var(--nx-border);
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .action,
+  .event {
+    border: 0;
+    border-bottom: 1px solid var(--nx-border);
+    border-radius: 0;
+  }
+}

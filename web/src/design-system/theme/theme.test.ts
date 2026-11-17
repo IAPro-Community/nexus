@@ -5,6 +5,7 @@ import {
   getThemePresetFinish,
   normalizeThemePreferences,
   resolveScheme,
+  resolveVisualFinish,
   resolveThemeStyleVariables,
   themeStorageKey,
   type ThemePreferences,
@@ -55,6 +56,7 @@ describe('theme model', () => {
       scheme: 'system',
       accent: 'purple',
       density: 'compact',
+      visualFinish: 'flat',
       reducedMotion: false,
       preset: 'nexus-dark',
       isCustomized: false,
@@ -70,6 +72,7 @@ describe('theme model', () => {
       scheme: 'dark',
       accent: 'blue',
       density: 'comfortable',
+      visualFinish: 'subtle-gradient',
       reducedMotion: true,
       isCustomized: false,
       fontScale: 1.15,
@@ -80,6 +83,32 @@ describe('theme model', () => {
     const parsed = JSON.parse(serialized);
     const normalized = normalizeThemePreferences(parsed);
     expect(normalized).toEqual(original);
+  });
+
+  it('uses flat finish for legacy saved preferences without changing their palette', () => {
+    const legacy = normalizeThemePreferences({
+      preset: 'nord',
+      scheme: 'dark',
+      density: 'comfortable',
+    });
+    expect(legacy.preset).toBe('nord');
+    expect(legacy.density).toBe('comfortable');
+    expect(legacy.visualFinish).toBe('flat');
+    expect(resolveVisualFinish(legacy, 'dark')).toBe('flat');
+    expect(resolveThemeStyleVariables(legacy, 'dark')['--nx-bg']).toBe('#242933');
+  });
+
+  it('validates finish independently and protects high contrast', () => {
+    const prefs = normalizeThemePreferences({
+      ...defaultThemePreferences,
+      preset: 'paper-flat',
+      visualFinish: 'subtle-gradient',
+    });
+    expect(resolveVisualFinish(prefs, 'light')).toBe('subtle-gradient');
+    expect(resolveVisualFinish(prefs, 'high-contrast')).toBe('standard');
+    expect(normalizeThemePreferences({
+      visualFinish: 'neon',
+    } as unknown as ThemePreferences).visualFinish).toBe('flat');
   });
 
   it('repairs persisted preset/scheme mismatches when the theme is not customized', () => {
