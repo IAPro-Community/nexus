@@ -1,3 +1,12 @@
+## 2026-11-16 — Tag v1.0.0 @ 14622be8 + pipeline parado no gate nativo (correto)
+
+- PASS — `make quality-full` @ tip `14622be8` com **MAKE EXIT: 0** (format, lint, styles, typecheck, lint-go, test-go, 904 frontend, race suite completa, govulncheck, version contract).
+- PASS — Deflake honesto: waits WS do teste de handoff autenticado 5s→15s (0,11s isolado × timeout sob race do pacote cheio; wait não é asserção de latência).
+- PASS — Tag `v1.0.0` @ `14622be8` pushed; CI 9/9 required **success no SHA exato da tag** (verificado por API).
+- PASS — Gate "Same-SHA CI" do release **funcionou end-to-end**: encontrou o ci.yml completed success no SHA (match client-side `head_sha`+`path`+`event`+`completed`), validou os 9 jobs por nome.
+- EXPECTED FAIL — Run Signed Release parou em **"requires exact-SHA native certification policy=all"**: Windows/macOS/Seal checks aguardam as sessões físicas do maestro. Fail-closed correto; nada publicável sem 3 plataformas.
+- LIÇÃO — `actions/runs?head_sha=` retorna 0 no repo (server-side filter quebrado); filtrar sempre client-side por jq. E `last` por id sem filtro de workflow pega o Linux smoke — usar `path == ".github/workflows/ci.yml"`.
+
 ## 2026-11-16 — GO ceremony kits (parte executável)
 
 - PASS — Kit 3/Linux: homologação automatizada completa **PASS** @ `1.0.0 / 4d07d831f3c2…` (docs-verify, frontend, gofmt/vet/golangci/govulncheck, version contract, race, control E2E, agent interop, builds ×3, browser E2E ×9, a11y, visual, goreleaser snapshot, DEB smoke). Evidência local gitignored com screenshot real 1440×900 + test.log + binário DEB (`e2b50ab5…`).

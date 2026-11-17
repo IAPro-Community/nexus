@@ -1,3 +1,17 @@
+# 2026-11-16 — Tag v1.0.0 @ 14622be8 + release pipeline honesto até o gate nativo
+
+- **quality-full final PASS** com exit determinístico (`MAKE EXIT: 0`) no tip: format, lint frontend/styles, typecheck, lint-go, test-go, 904 testes frontend, race suite completa (todos os pacotes ok), govulncheck limpo, version contract. Um flake de carga foi deflakado honesto antes (`TestTerminalHandoffAuthenticatedClientsShareProcessAndPersistIdentity`: 0,11s isolado × timeout 5s fixo sob race — waits do cliente WS 5s→15s, semântica inalterada; waits por mensagem esperada não são asserção de latência).
+- **Tag `v1.0.0` movida para o tip `14622be8`** (autorização explícita do maestro via "faça"). Cadeia pós-homologação (`21acb3b5`): test-only (`f9d9efdd`), workflow fixes (`050aac06`, `f0792961`, `32f81564`, `14622be8`) — nenhum código de produto.
+- **Gate "Same-SHA CI" do release.yml — 4 iterações, causas-raiz documentadas**:
+  1. `gh run list --commit $SHA` → `jq: parse error (col 129)` no runner (payload malformado transitório matava o loop com `set -e` sem retry).
+  2. Fix fallback tolerante ainda morreu igual (o payload rico do runner quebrava; local `[]` parseava limpo — não reproduzível fora).
+  3. Reescrita para `actions/runs` API direta + `?head_sha=` server-side → **o parâmetro retorna 0 runs mesmo com runs existentes no repo** (verificado unauthenticated: `total_count:0` para SHAs com CI green) → loop silencioso 60min.
+  4. Fix final: fetch sem filtro (`per_page=50`) + **match client-side** jq `head_sha == $sha && path == ".github/workflows/ci.yml" && event push/dispatch && status completed`, `sort_by(.id) | last`; debug dump dos 2 primeiros payloads; tolerância total em fetch/parse (fallback `{}`).
+  - Lição extra: `sort_by(.id) | last` sem filtro de workflow pegava o **Linux smoke** (id maior, mesmo SHA) e o gate falhava em "Missing successful required check: Frontend…" — o filtro `path == .github/workflows/ci.yml` resolve.
+- **Estado final do pipeline Signed Release @ tag `14622be8`**: gate CI **PASSOU** (encontrou ci.yml completed success no SHA exato, validou os 9 required jobs) e o run parou honestamente em **"Release v1.0.0 requires exact-SHA native certification policy=all"** — os checks `Windows native certification`, `macOS arm64 native certification`, `Seal native certification evidence` só ficam verdes com as sessões físicas do maestro. Fail-closed no lugar certo: nada publicável sem as 3 plataformas.
+- **Release é build-only** (`--skip=publish`); secrets de assinatura presentes (`NEXUS_UPDATE_PRIVATE_KEY`/`KEY_ID`/`DIST_TOKEN`). CI tag-ref redundante cancelada para não ocupar o runner serializado.
+- **Bloqueios inalterados (todos maestro)**: AGY 2/2, Windows/macOS físicos, Kit 4, Kit 5.1/5.2/5.3, maestroSha, RELEASE_READINESS NEX 2/11.
+
 # 2026-11-16 — GO ceremony kits: execução da parte executável (Kits 1–3/Linux + Kit 2 pipeline)
 
 - **Kit 1 (AGY)**: evidência capturada (`DEV/validation/current/agy-quota-final.json`) — **1/2 elegível**: `kivervinicius-gmail` expõe janelas 5h (gemini + claude_gpt, 100%); `kiveromegasistemas` só weekly → maestro precisa abrir sessão da conta e aguardar a janela 5h.
