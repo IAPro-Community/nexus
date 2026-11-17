@@ -147,6 +147,11 @@ export const WorkspaceProvider: React.FC<{
   }, [fallback, initialLayout, layoutService, projectId]);
   const revisionRef = useRef<number>(initialRevision || initialPersisted.revision || 1);
   const [presentation, setPresentation] = React.useState(initialPersisted.presentation);
+  // Debounced snapshots avoid synchronous localStorage writes on every drag frame.
+  const pendingLocalLayoutRef = useRef<{
+    service: WorkspaceLayoutService;
+    envelope: ReturnType<WorkspaceLayoutService['normalize']>;
+  } | null>(null);
 
   useEffect(() => {
     if (typeof initialRevision === 'number' && initialRevision > 0) {
@@ -174,7 +179,22 @@ export const WorkspaceProvider: React.FC<{
   }, [initialLayout, initialPersisted.model]);
 
   useEffect(() => {
-    if (!saveLayout) return;
+    const flushOnPageHide = () => {
+      const pending = pendingLocalLayoutRef.current;
+      if (pending) {
+        pending.service.save(pending.envelope);
+        pendingLocalLayoutRef.current = null;
+      }
+    };
+    window.addEventListener('pagehide', flushOnPageHide);
+    return () => {
+      window.removeEventListener('pagehide', flushOnPageHide);
+      // Also preserve a pending edit when switching workspaces in the SPA.
+      flushOnPageHide();
+    };
+  }, []);
+
+  useEffect(() => {
     const envelope = layoutService.normalize({
       ...initialPersisted,
       revision: revisionRef.current,
@@ -182,6 +202,15 @@ export const WorkspaceProvider: React.FC<{
       presentation,
       updatedAt: new Date().toISOString(),
     });
+    // Persist locally even without the remote writer. Drag/move can update
+    // state every frame, so coalesce writes while flushing on pagehide.
+    const pending = { service: layoutService, envelope };
+    pendingLocalLayoutRef.current = pending;
+    const localTimer = window.setTimeout(() => {
+      layoutService.save(envelope);
+      if (pendingLocalLayoutRef.current === pending) pendingLocalLayoutRef.current = null;
+    }, 200);
+    if (!saveLayout) return () => window.clearTimeout(localTimer);
     const timer = window.setTimeout(async () => {
       try {
         const res = (await saveLayout(JSON.stringify(envelope), revisionRef.current)) as
@@ -193,7 +222,10 @@ export const WorkspaceProvider: React.FC<{
         // Revision conflict or network error — handled gracefully
       }
     }, 500);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(localTimer);
+      window.clearTimeout(timer);
+    };
   }, [layoutService, model, initialPersisted, presentation, projectId, saveLayout]);
 
   const persistence = useMemo<WorkspaceLayoutPersistence>(

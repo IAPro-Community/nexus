@@ -5,6 +5,7 @@ import { nexus } from '../../nexus/api';
 import type { Agent, DirectorFleetProjection } from '../../types';
 import styles from './DirectorAgentPanel.module.scss';
 import { useDirectorPolling } from './useDirectorPolling';
+import { filterDirectorFleet, type FleetStateFilter } from './directorFleetModel';
 
 export function DirectorFleetPanel({
   projectId,
@@ -21,8 +22,14 @@ export function DirectorFleetPanel({
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [lastObservedAt, setLastObservedAt] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FleetStateFilter>('all');
+  const [search, setSearch] = useState('');
   const { revision, refresh } = useDirectorPolling(loading || refreshing);
   const agentById = useMemo(() => new Map(agents.map((agent) => [agent.id, agent])), [agents]);
+  const visible = useMemo(
+    () => filterDirectorFleet(view?.agents ?? [], agentById, filter, search),
+    [view, agentById, filter, search],
+  );
 
   useEffect(() => {
     let active = true;
@@ -83,8 +90,36 @@ export function DirectorFleetPanel({
           <p className={styles.notice}>
             {t('director.fleetCount', { shown: view.agents.length, total: view.total })}
           </p>
+          <div className={styles.fleetFilters}>
+            <label>
+              {t('director.filterStatus')}
+              <select
+                value={filter}
+                onChange={(event) => setFilter(event.target.value as FleetStateFilter)}
+              >
+                <option value="all">{t('director.filterAll')}</option>
+                <option value="blocked">{t('director.filterBlocked')}</option>
+                <option value="working">{t('director.filterWorking')}</option>
+                <option value="idle">{t('director.filterIdle')}</option>
+                <option value="done">{t('director.filterDone')}</option>
+                <option value="offline">{t('director.filterOffline')}</option>
+              </select>
+            </label>
+            <label>
+              {t('director.filterSearch')}
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder={t('director.filterSearch')}
+              />
+            </label>
+          </div>
+          <p className={styles.notice} role="status">
+            {t('director.filteredCount', { shown: visible.length, total: view.agents.length })}
+          </p>
           <ul className={styles.actions}>
-            {view.agents.map((item) => {
+            {visible.map((item) => {
               const agent = agentById.get(item.agent_id);
               return (
                 <li className={styles.action} key={item.agent_id}>
@@ -92,6 +127,10 @@ export function DirectorFleetPanel({
                     <strong>{agent?.name || item.agent_id}</strong>
                     {' · '}
                     {t('director.processStates.' + item.process_state)}
+                    {' · '}
+                    <span title={item.observed_reason || undefined}>
+                      {t('director.observedState')}: {item.observed_state || 'unknown'}
+                    </span>
                     {' · '}
                     {item.provider || t('director.notAvailable')}
                   </span>
@@ -110,6 +149,9 @@ export function DirectorFleetPanel({
             })}
           </ul>
           {view.agents.length === 0 && <p>{t('director.fleetEmpty')}</p>}
+          {view.agents.length > 0 && visible.length === 0 && (
+            <p className={styles.notice}>{t('director.filterNone')}</p>
+          )}
           {view.truncated && <p className={styles.notice}>{t('director.fleetTruncated')}</p>}
         </>
       )}
