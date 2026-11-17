@@ -11,6 +11,7 @@ import {
   saveNexAssistantPreferences,
   type NexAssistantMode,
 } from './nexAssistantPreferences';
+import { NexAssistantActions } from './NexAssistantActions';
 import styles from './NexAssistantPanel.module.scss';
 
 export interface NexAssistantPanelProps {
@@ -161,6 +162,13 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
               </p>
             ))}
           </div>
+          <NexAssistantActions
+            active={expanded}
+            projectId={projectId}
+            onResult={(message) => {
+              setTurns((current) => [...current, { role: 'assistant' as const, content: message }].slice(-12));
+            }}
+          />
           <form onSubmit={sendMessage} className={styles.inputRow}>
             <input
               className={styles.input}

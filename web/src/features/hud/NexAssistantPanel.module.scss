@@ -155,3 +155,40 @@
     animation: none;
   }
 }
+
+.actions {
+  display: grid;
+  gap: 7px;
+}
+
+.actionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.actionGrid button {
+  min-width: 0;
+  white-space: normal;
+  font-size: 10px;
+}
+
+.scheduleBox {
+  display: grid;
+  gap: 7px;
+  padding: 8px;
+  border: 1px solid #526781;
+  border-radius: 8px;
+  font-size: 11px;
+}
+
+.scheduleItem {
+  display: grid;
+  gap: 4px;
+  padding-block: 5px;
+  border-bottom: 1px solid #445770;
+}
+
+.scheduleItem small {
+  color: #b5c5d9;
+}

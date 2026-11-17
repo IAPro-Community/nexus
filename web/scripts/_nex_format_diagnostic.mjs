@@ -6,6 +6,8 @@ const files = [
   'src/features/hud/nexAssistantPreferences.ts',
   'src/features/hud/nexRigProjection.test.ts',
   'src/features/hud/nexRigProjection.ts',
+  'src/features/hud/NexAssistantActions.tsx',
+  'src/features/hud/NexAssistantPanel.module.scss',
 ];
 for (const path of files) {
   const original = await readFile(path, 'utf8');
