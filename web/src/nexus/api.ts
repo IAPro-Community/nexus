@@ -30,6 +30,11 @@ import {
 } from '../types';
 import { request, setCSRFToken } from '../api';
 import type {
+  NexProactivitySettings,
+  NexProactivityState,
+  NexProactivityClaim,
+} from '../features/hud/nexProactivityTypes';
+import type {
   NexAssistantOverview,
   NexConversationHistory,
   NexChatResponse,
@@ -83,6 +88,25 @@ export const nexus = {
       `/api/v1/nex/conversation${projectId ? `?project_id=${encodeURIComponent(projectId)}` : ''}`,
       { method: 'DELETE' },
     ),
+  getNexProactivity: (projectId?: string) =>
+    request<NexProactivityState>(
+      `/api/v1/nex/proactivity${projectId ? `?project_id=${encodeURIComponent(projectId)}` : ''}`,
+    ),
+  configureNexProactivity: (projectId: string, settings: NexProactivitySettings) =>
+    request<{ status: string }>('/api/v1/nex/proactivity', {
+      method: 'POST',
+      body: JSON.stringify({ project_id: projectId, operation: 'configure', settings }),
+    }),
+  claimNexSuggestion: (projectId: string, fingerprint: string) =>
+    request<NexProactivityClaim>('/api/v1/nex/proactivity', {
+      method: 'POST',
+      body: JSON.stringify({ project_id: projectId, operation: 'claim', fingerprint }),
+    }),
+  decideNexSuggestion: (projectId: string, fingerprint: string, operation: 'dismiss' | 'snooze', minutes = 0) =>
+    request<{ status: string }>('/api/v1/nex/proactivity', {
+      method: 'POST',
+      body: JSON.stringify({ project_id: projectId, operation, fingerprint, minutes }),
+    }),
   getNexAssistantOverview: (projectId?: string) =>
     request<NexAssistantOverview>(
       `/api/v1/nex/assistant${projectId ? `?project_id=${encodeURIComponent(projectId)}` : ''}`,
