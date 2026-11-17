@@ -93,6 +93,10 @@ export function DirectorFleetPanel({
                     {' · '}
                     {t('director.processStates.' + item.process_state)}
                     {' · '}
+                    <span title={item.observed_reason || undefined}>
+                      {t('director.observedState')}: {item.observed_state || 'unknown'}
+                    </span>
+                    {' · '}
                     {item.provider || t('director.notAvailable')}
                   </span>
                   <Button

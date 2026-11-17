@@ -45,6 +45,9 @@ type directorProjection struct {
 	AgentStatus     string           `json:"agent_status"`
 	ProcessState    string           `json:"process_state"`
 	ProcessEvidence string           `json:"process_evidence"`
+	ObservedState   string           `json:"observed_state"`
+	ObservedSource  string           `json:"observed_source"`
+	ObservedReason  string           `json:"observed_reason"`
 	RuntimeID       string           `json:"runtime_id,omitempty"`
 	GenerationID    string           `json:"generation_id,omitempty"`
 	Provider        string           `json:"provider,omitempty"`
@@ -62,6 +65,9 @@ func projectDirectorAgent(agent store.Agent, gen *store.RuntimeGeneration, proce
 		AgentStatus:     agent.Status,
 		ProcessState:    "UNKNOWN",
 		ProcessEvidence: "NO_LIVE_RUNTIME_OBSERVED",
+		ObservedState:   "unknown",
+		ObservedSource:  "UNKNOWN",
+		ObservedReason:  "NO_CURRENT_GENERATION",
 		Actions: []directorAction{
 			{Kind: "INSPECT", Availability: "SUPPORTED", Reason: "READ_ONLY_AGENT_PROJECTION"},
 			// Existing TaskPreparationDialog is the only safe path for new
@@ -152,10 +158,18 @@ func (h *NexusHandler) directorViewForStoredAgent(st *store.Store, agent store.A
 		return directorProjection{}, err
 	}
 	live := false
+	var bound *registry.RuntimeSession
 	if generation != nil && generation.RuntimeID != "" {
-		if session, exists := h.nexus.RuntimeRegistry().Get(generation.RuntimeID); exists {
-			live = directorRuntimeMatches(agent, *generation, session) && session.HostLive()
+		if session, exists := h.nexus.RuntimeRegistry().Get(generation.RuntimeID); exists &&
+			directorRuntimeMatches(agent, *generation, session) {
+			bound = &session
+			live = session.HostLive()
 		}
 	}
-	return projectDirectorAgent(agent, generation, live), nil
+	view := projectDirectorAgent(agent, generation, live)
+	observed := projectAgentObservation(agent.ID, agent.ProjectID, generation, bound, live)
+	view.ObservedState = observed.AgentState
+	view.ObservedSource = observed.SignalSource
+	view.ObservedReason = observed.ReasonCode
+	return view, nil
 }
