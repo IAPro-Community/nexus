@@ -35,7 +35,8 @@ type TerminalObserver struct {
 	conn    *websocket.Conn
 	role    string // "CONTROL" | "VIEW_ONLY"
 	created time.Time
-	writeMu *sync.Mutex
+	writeMu    *sync.Mutex
+	onPromote func() error // bind the SessionHost lease before notifying the browser
 }
 
 func writeTerminal(conn *websocket.Conn, mu *sync.Mutex, payload []byte) {
@@ -92,6 +93,46 @@ func (b *AgentTerminalBroker) Attach(agentID string, conn *websocket.Conn, hasRu
 	return role
 }
 
+// SetPromotionHook binds a fully attached host IPC stream to this WebSocket.
+// A transferred broker CONTROL lease is only useful when the SessionHost also
+// grants input to the promoted stream. No separate client identity is created.
+func (b *AgentTerminalBroker) SetPromotionHook(agentID string, conn *websocket.Conn, hook func() error) bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	state := b.agents[agentID]
+	if state == nil || hook == nil {
+		return false
+	}
+	observer, exists := state.connections[conn]
+	if !exists {
+		return false
+	}
+	observer.onPromote = hook
+	state.connections[conn] = observer
+	return true
+}
+
+func notifyTerminalPromotion(observer TerminalObserver) {
+	if observer.conn == nil {
+		return
+	}
+	// The host must know which attached IPC writer is now authoritative before
+	// the browser sees CONTROL and is allowed to submit any subsequent input.
+	if observer.onPromote != nil {
+		if err := observer.onPromote(); err != nil {
+			errorMsg, _ := json.Marshal(map[string]string{
+				"type": "error", "data": "Terminal host lease transfer could not be confirmed; retry acquiring control.",
+			})
+			writeTerminal(observer.conn, observer.writeMu, errorMsg)
+		}
+	}
+	leaseMsg, _ := json.Marshal(map[string]string{
+		"type": "lease",
+		"role": "CONTROL",
+	})
+	writeTerminal(observer.conn, observer.writeMu, leaseMsg)
+}
+
 // Detach removes a WebSocket connection and transfers writer lease if needed.
 func (b *AgentTerminalBroker) Detach(agentID string, conn *websocket.Conn) {
 	b.mu.Lock()
@@ -121,13 +162,7 @@ func (b *AgentTerminalBroker) Detach(agentID string, conn *websocket.Conn) {
 
 	b.mu.Unlock()
 
-	if transfer.conn != nil {
-		leaseMsg, _ := json.Marshal(map[string]string{
-			"type": "lease",
-			"role": "CONTROL",
-		})
-		writeTerminal(transfer.conn, transfer.writeMu, leaseMsg)
-	}
+	notifyTerminalPromotion(transfer)
 }
 
 // TakeControl steals the writer lease from the current writer.
@@ -188,13 +223,7 @@ func (b *AgentTerminalBroker) ReleaseControl(agentID string, conn *websocket.Con
 	}
 	b.mu.Unlock()
 
-	if transfer.conn != nil {
-		leaseMsg, _ := json.Marshal(map[string]string{
-			"type": "lease",
-			"role": "CONTROL",
-		})
-		writeTerminal(transfer.conn, transfer.writeMu, leaseMsg)
-	}
+	notifyTerminalPromotion(transfer)
 }
 
 // IsWriter returns true if the given WebSocket connection currently holds the

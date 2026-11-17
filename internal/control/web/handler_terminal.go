@@ -275,6 +275,16 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	traceDocsCaptureTerminalStage("attach-command-complete")
 
 	rawConn := client.RawConn()
+	// The broker and SessionHost must agree on the promoted writer. Serialize
+	// host-side lease acquisition with input from the same attached stream.
+	inputMu := sync.Mutex{}
+	if !broker.SetPromotionHook(agentID, ws, func() error {
+		inputMu.Lock()
+		defer inputMu.Unlock()
+		return sendAttachedCommandWithRetry(rawConn, 3)
+	}) {
+		return // detached before the attached host stream was ready
+	}
 	resizeRequests := make(chan [2]int, 1)
 	go func() {
 		for {
@@ -465,7 +475,6 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	// stateful filter: SessionHost is the final PTY input authority. Stacking
 	// timers across WebSocket and host caused delayed, reordered Escape/arrow
 	// fragments that could interrupt an active Codex session.
-	inputMu := sync.Mutex{}
 	processTerminalInput := func(data string) {
 		if data == "" {
 			return
