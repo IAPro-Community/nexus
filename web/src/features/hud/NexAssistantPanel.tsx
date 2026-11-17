@@ -26,7 +26,8 @@ export interface NexAssistantPanelProps {
 /**
  * Separate from HUD operational presentation: conversations never mutate
  * missions, capacity, agent state, or the character's canonical mood.
- * History is transient and never sent to Maestro or browser localStorage.
+ * Persisted history is opt-in and stored by Nexus Core in SQLite, never in
+ * the browser localStorage or Maestro's semantic project memory.
  */
 export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
   projectId,
@@ -42,6 +43,10 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
     () => readNexAssistantPreferences().mode,
   );
   const [turns, setTurns] = React.useState<NexChatTurn[]>([]);
+  const [persistHistory, setPersistHistory] = React.useState(
+    () => readNexAssistantPreferences().persistHistory,
+  );
+  const [confirmClear, setConfirmClear] = React.useState(false);
   const [draft, setDraft] = React.useState('');
   const [includeProjectContext, setIncludeProjectContext] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
@@ -58,6 +63,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
     setDraft('');
     setError('');
     setIncludeProjectContext(false);
+    setConfirmClear(false);
   }, [projectId]);
 
   React.useEffect(() => () => chatAbortController.current?.abort(), []);
@@ -91,7 +97,47 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
 
   const changeMode = (next: NexAssistantMode) => {
     setMode(next);
-    saveNexAssistantPreferences({ version: 1, mode: next });
+    saveNexAssistantPreferences({ version: 1, mode: next, persistHistory });
+  };
+
+  const changePersistence = (next: boolean) => {
+    setPersistHistory(next);
+    saveNexAssistantPreferences({ version: 1, mode, persistHistory: next });
+    setTurns([]);
+    setConfirmClear(false);
+  };
+
+  React.useEffect(() => {
+    if (!expanded || privacyMode || !persistHistory) return;
+    let active = true;
+    nexus
+      .getNexConversationHistory(projectId)
+      .then((history) => {
+        if (!active || inFlight.current) return;
+        setTurns(
+          (history.turns || []).map((turn) => ({
+            role: turn.role,
+            content: turn.content,
+          })),
+        );
+      })
+      .catch(() => {
+        if (active) setError('Não foi possível recuperar a conversa armazenada no Nexus.');
+      });
+    return () => {
+      active = false;
+    };
+  }, [expanded, privacyMode, persistHistory, projectId]);
+
+  const clearHistory = async () => {
+    if (!confirmClear || busy || privacyMode) return;
+    try {
+      await nexus.deleteNexConversationHistory(projectId);
+      setTurns([]);
+      setConfirmClear(false);
+    } catch {
+      setError('Não foi possível apagar o histórico armazenado.');
+    }
   };
 
   const runSuggestion = (suggestion: NexAssistantSuggestion) => {
@@ -145,6 +191,8 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
           project_id: projectId || '',
           history,
           include_project_context: includeProjectContext && Boolean(projectId),
+          persist: persistHistory,
+          request_id: persistHistory ? window.crypto.randomUUID() : undefined,
         },
         controller.signal,
       );
@@ -199,6 +247,45 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
             />
             Mostrar sugestões contextuais
           </label>
+          <label className={styles.setting}>
+            <input
+              type="checkbox"
+              checked={persistHistory}
+              onChange={(event) => changePersistence(event.target.checked)}
+              disabled={busy}
+            />
+            Guardar conversa neste Nexus para retomar em outro dispositivo
+          </label>
+          {persistHistory && (
+            <div className={styles.historyActions}>
+              {confirmClear ? (
+                <>
+                  <span className={styles.caption}>
+                    Apagar permanentemente a conversa deste contexto?
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.send}
+                    onClick={() => void clearHistory()}
+                    disabled={busy}
+                  >
+                    Confirmar exclusão
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.send}
+                    onClick={() => setConfirmClear(false)}
+                  >
+                    Cancelar
+                  </button>
+                </>
+              ) : (
+                <button type="button" className={styles.send} onClick={() => setConfirmClear(true)}>
+                  Apagar histórico
+                </button>
+              )}
+            </div>
+          )}
           {mode === 'contextual' && overview?.suggestions.length ? (
             <div className={styles.suggestions} aria-label="Opções com evidência operacional">
               {overview.suggestions.map((suggestion) => (
