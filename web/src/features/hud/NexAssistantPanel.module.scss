@@ -1,0 +1,157 @@
+.shell {
+  display: grid;
+  gap: 8px;
+  margin: 9px 0;
+  padding: 9px;
+  border: 1px solid #3b4d66;
+  border-radius: 11px;
+  background: #132136;
+  color: #e9f1fc;
+  font-size: 12px;
+}
+
+.openButton {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 3px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.openButton:focus-visible,
+.send:focus-visible,
+.action:focus-visible,
+.setting:focus-visible {
+  outline: 2px solid #a6c7ff;
+  outline-offset: 2px;
+}
+
+.body {
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+}
+
+.caption {
+  margin: 0;
+  color: #a9bad0;
+  font-size: 11px;
+}
+
+.setting {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #d6e3f6;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.suggestions {
+  display: grid;
+  gap: 6px;
+}
+
+.action {
+  display: grid;
+  gap: 2px;
+  padding: 9px;
+  border: 1px solid #455b77;
+  border-radius: 8px;
+  background: #1c2e47;
+  color: #f2f5fc;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.action:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.action small {
+  color: #b4c2d7;
+  font-size: 10px;
+}
+
+.chatLog {
+  display: grid;
+  max-height: 155px;
+  gap: 6px;
+  overflow-y: auto;
+  padding: 2px;
+  overscroll-behavior: contain;
+}
+
+.turn {
+  margin: 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: #263852;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+
+.turn[data-role='user'] {
+  background: #2a3f63;
+  border-inline-start: 2px solid #98b9ff;
+}
+
+.inputRow {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.input {
+  min-width: 0;
+  flex: 1;
+  padding: 9px;
+  border: 1px solid #50617b;
+  border-radius: 8px;
+  background: #0c1829;
+  color: #f8fbff;
+  font: inherit;
+}
+
+.input::placeholder {
+  color: #acbad0;
+}
+
+.send {
+  min-height: 34px;
+  padding: 6px 9px;
+  border: 1px solid #6f9dd6;
+  border-radius: 8px;
+  background: #315888;
+  color: white;
+  cursor: pointer;
+}
+
+.send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error {
+  margin: 0;
+  color: #ffbba9;
+  font-size: 11px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell * {
+    scroll-behavior: auto;
+    transition: none;
+    animation: none;
+  }
+}

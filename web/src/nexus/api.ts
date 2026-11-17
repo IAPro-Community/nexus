@@ -29,6 +29,11 @@ import {
   HostSessionImportResult,
 } from '../types';
 import { request, setCSRFToken } from '../api';
+import type {
+  NexAssistantOverview,
+  NexChatResponse,
+  NexChatTurn,
+} from '../features/hud/nexAssistantTypes';
 import { normalizeWorkPlan } from './workPlan';
 import { missionAttentionQueryPath, type MissionAttentionFilter } from './missionAttentionModel';
 
@@ -68,6 +73,15 @@ export function setNexusCSRF(token: string) {
 export { NexusRequestError as NexusAPIError } from '../api';
 
 export const nexus = {
+  getNexAssistantOverview: (projectId?: string) =>
+    request<NexAssistantOverview>(
+      `/api/v1/nex/assistant${projectId ? `?project_id=${encodeURIComponent(projectId)}` : ''}`,
+    ),
+  askNexAssistant: (data: { message: string; project_id: string; history: NexChatTurn[] }) =>
+    request<NexChatResponse>('/api/v1/nex/assistant', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   listProviderInstallations: () => request<ProviderInfo[]>('/api/v1/providers'),
   registerProvider: (provider: string, profile?: string) =>
     request<{
