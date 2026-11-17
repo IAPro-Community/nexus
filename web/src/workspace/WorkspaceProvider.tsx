@@ -174,7 +174,6 @@ export const WorkspaceProvider: React.FC<{
   }, [initialLayout, initialPersisted.model]);
 
   useEffect(() => {
-    if (!saveLayout) return;
     const envelope = layoutService.normalize({
       ...initialPersisted,
       revision: revisionRef.current,
@@ -182,6 +181,10 @@ export const WorkspaceProvider: React.FC<{
       presentation,
       updatedAt: new Date().toISOString(),
     });
+    // Persist the complete visual workbench locally even when the remote
+    // layout writer is unavailable. Recovery is scoped to this project.
+    layoutService.save(envelope);
+    if (!saveLayout) return;
     const timer = window.setTimeout(async () => {
       try {
         const res = (await saveLayout(JSON.stringify(envelope), revisionRef.current)) as

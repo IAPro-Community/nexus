@@ -85,6 +85,40 @@ describe('WorkspaceLayoutService', () => {
     expect(service.load(fallback).revision).toBe(1);
   });
 
+  it('recovers when current layout JSON is valid but its tabs are malformed', () => {
+    const first = service.load(fallback);
+    service.save({ ...first, revision: 1 });
+    service.save({ ...first, revision: 2 });
+    mockLocalStorage.setItem(
+      service.storageKey,
+      JSON.stringify({
+        ...first,
+        revision: 99,
+        model: { version: 2, root: { kind: 'stack', id: 'bad', activeId: 'bad', tabs: [null] } },
+      }),
+    );
+    expect(service.load(fallback).revision).toBe(1);
+  });
+
+  it('refuses to import a foreign-project layout without overwriting storage', () => {
+    const initial = service.load(fallback);
+    service.save(initial);
+    const unchanged = mockLocalStorage.getItem(service.storageKey);
+    expect(() =>
+      service.import(JSON.stringify({ ...initial, workspaceId: 'foreign-project' }), fallback),
+    ).toThrow(/different project/);
+    expect(() =>
+      service.import(
+        JSON.stringify({
+          ...initial,
+          model: { version: 2, root: { kind: 'stack', id: 'bad', activeId: '', tabs: [null] } },
+        }),
+        fallback,
+      ),
+    ).toThrow(/invalid/);
+    expect(mockLocalStorage.getItem(service.storageKey)).toBe(unchanged);
+  });
+
   it('migrates from legacy v1/v2 storage keys smoothly', () => {
     mockLocalStorage.setItem(service.legacyModelKey, JSON.stringify(fallback));
     mockLocalStorage.setItem(

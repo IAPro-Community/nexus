@@ -1,5 +1,10 @@
 import { surfaceViewId, type WorkspaceModel } from '../workspace/model';
-import { deserializeWorkspace, serializeWorkspace, workspaceStorageKey } from '../workspace/state';
+import {
+  deserializeWorkspace,
+  isValidWorkspaceModel,
+  serializeWorkspace,
+  workspaceStorageKey,
+} from '../workspace/state';
 import {
   createPresentationState,
   migratePresentationState,
@@ -62,7 +67,7 @@ export class WorkspaceLayoutService {
             !candidate ||
             typeof candidate !== 'object' ||
             (candidate.workspaceId && candidate.workspaceId !== this.projectId) ||
-            !candidate.model?.root ||
+            !isValidWorkspaceModel(candidate.model) ||
             ![1, 2, 3, WORKSPACE_LAYOUT_VERSION].includes(Number(candidate.version))
           ) {
             return null;
@@ -136,7 +141,7 @@ export class WorkspaceLayoutService {
           if (
             parsed.version === WORKSPACE_LAYOUT_VERSION &&
             parsed.workspaceId === this.projectId &&
-            parsed.model?.root
+            isValidWorkspaceModel(parsed.model)
           ) {
             window.localStorage.setItem(this.backupStorageKey, previous);
           }
@@ -263,7 +268,18 @@ export class WorkspaceLayoutService {
   }
 
   import(json: string, fallbackModel: WorkspaceModel): PersistedWorkbenchLayout {
-    const parsed = JSON.parse(json);
+    const parsed: unknown = JSON.parse(json);
+    if (!parsed || typeof parsed !== 'object') {
+      throw new Error('Invalid workspace layout document');
+    }
+    const candidate = parsed as Partial<PersistedWorkbenchLayout>;
+    if (
+      !isValidWorkspaceModel(candidate.model) ||
+      ![1, 2, 3, WORKSPACE_LAYOUT_VERSION].includes(Number(candidate.version)) ||
+      (candidate.workspaceId && candidate.workspaceId !== this.projectId)
+    ) {
+      throw new Error('Layout is invalid or belongs to a different project');
+    }
     const migrated = this.migrateAndNormalize(parsed, fallbackModel);
     this.save(migrated);
     return migrated;
