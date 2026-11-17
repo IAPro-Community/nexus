@@ -1,3 +1,15 @@
+# 2026-11-17 — 2ª varredura: PR #217 integrado (conserta ps1 corrupto do #215), 2 branches superseded removidos
+
+- **#215 deixou o `certify-windows-first-run.ps1` corrupto** (squash duplicou blocos: `conpty-terminal-regression` ×2, `web-first-run-typecheck` ×2; **9 erros de parse PS** no tip). **PR #217** (sessão Windows do maestro) reconstrói o preflight do baseline íntegro + adiciona guarda de sintaxe PS no `community-pr.yml` (Parser::ParseFile como gate). Validado antes de mergear: ps1 do PR = **0 erros**, conpty 1×. Ready→**squash-merged** @ `6ab69945`, branch deletado. Verificação no tip: ps1 0 erros, yaml OK, `make quality` completo (0 FAILs, 911/911, version contract PASS).
+- **Trabalho único dos branches classificado por conteúdo** (fetch de cada ref):
+  - **`fix/hud-show-restore-v2`** → **SUPERSEDED**: `restoreHUDWindowWhenShown` já em `internal/desktop/hud_window.go` (+teste) e `CommandNoConsole` em `internal/executil/command.go` no tip. **DELETADO**.
+  - **`docs/nexus-1.0-portal-20261022`** → superseded (portal Docusaurus já em `docs-site/` no tip; PR original fechado sem merge em out/2026). **DELETADO** (4 commits eram fixes de links/assets do portal antigo).
+  - **NEX motion/companion** (`nex-rig-idle-orbit` ×2 (34/42), `companion-behaviors` (27), `interactive-motion-complete` (9), `nex-codex-implementation` (7), `nex-codex-production-handoff` (2), `docs/nex-clippy-lite-scope`, `docs/nex-companion-gates`, `assets/*`) → **MANTER sob governança**: cruzam com o identity lock NEX-ID-v1 e os gates visuais do owner (#119/#120/#141/#174). Não integrar sem aprovação visual (pré-emptaria a autoridade do owner); não apagar (trabalho real sob hold).
+  - **v1.1/product** (`nexus-companion-v1.1` (36), `v1-contextual-workspace-experience` (36, PR58-era), `orca-worktree-visibility-v1` (11)) → manter como linhas futuras; decisão de reconciliar pós-1.0.
+- **Branches remotos: 65 → 63** (2 superseded). Totais da faxina: **80 removidos** em duas passadas.
+- **Issues**: sem mudança — #214 segue real (race @15s em CI), #216 = sessão Windows, resto = roadmap/gates visuais. PRs abertos: **0** (todos integrados ou fechados).
+- **Verificação**: `quality` completo @ `6ab69945` (ps1/yaml não são compilados; race/security intocados desde o quality-full @ `eb391b36` com MAKE EXIT 0).
+
 # 2026-11-17 — Triagem remota: PR #215 integrado, 78 branches mortos removidos, quality-full verde
 
 - **PR #215** (draft→ready→**squash-merged** @ `eb391b36`): `certify-windows-first-run.ps1` deriva o pin Go do `go.mod` (elimina false NO_GO na sessão Windows Kit 3) + bateria first-run (conpty, typecheck, fixtures); null-safety no System Doctor do Assistant. 3/3 checks. Branch deletado.

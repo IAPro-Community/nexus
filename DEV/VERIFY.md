@@ -1,3 +1,10 @@
+## 2026-11-17 — 2ª varredura
+
+- PASS — PR #217 merged @ `6ab69945`: ps1 do first-run reconstruído (**tip anterior tinha 9 erros de parse** e blocos duplicados do squash do #215) + guarda de sintaxe PS no CI. Tip: ps1 0 erros, yaml OK, `make quality` 0 FAILs/911.
+- PASS — `fix/hud-show-restore-v2` deletado (conteúdo 100% presente no tip); `docs/nexus-1.0-portal-20261022` deletado (superseded por `docs-site/`; PR original era closed-unmerged). Remotos **63** (80 removidos no total).
+- KEEP — NEX motion/companion branches sob governança de identidade (não integrar sem owner visual); v1.1 lines mantidas para pós-1.0.
+- OPEN — #214 (race estrutural handoff pós-revoke, estoura 15s em CI) aguarda ordem de investigação.
+
 ## 2026-11-17 — Triagem remota
 
 - PASS — PR #215 squash-merged @ `eb391b36` (Windows Go pin do `go.mod` + null-safety Assistant); quality-full **MAKE EXIT: 0** no tip (1º run morreu por OOM — runner CI na mesma máquina; rerun limpo).
