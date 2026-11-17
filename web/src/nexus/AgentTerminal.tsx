@@ -378,7 +378,14 @@ export const AgentTerminal: React.FC<{
       const ws = wsRef.current;
       if (ws?.readyState !== WebSocket.OPEN) return;
       const nextSize = { rows, cols };
-      if (!shouldSendAuthorizedTerminalResize(roleRef.current === 'CONTROL', nextSize, lastSentSize, force))
+      if (
+        !shouldSendAuthorizedTerminalResize(
+          roleRef.current === 'CONTROL',
+          nextSize,
+          lastSentSize,
+          force,
+        )
+      )
         return;
       lastSentSize = nextSize;
       ws.send(JSON.stringify({ type: 'resize', rows, cols }));
