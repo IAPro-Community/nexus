@@ -211,7 +211,11 @@ export const NexAssistantActions: React.FC<NexAssistantActionsProps> = ({
           className={styles.send}
           disabled={busy || !projectId || !allowProjectContext}
           onClick={suggestImprovements}
-          title={!allowProjectContext ? 'Autorize o envio de fatos estáticos do projeto acima' : undefined}
+          title={
+            !allowProjectContext
+              ? 'Autorize o envio de fatos estáticos do projeto acima'
+              : undefined
+          }
         >
           Sugerir melhorias
         </button>

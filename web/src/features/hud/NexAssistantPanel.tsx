@@ -139,12 +139,15 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
     }));
     setTurns((current) => [...current, { role: 'user' as const, content: message }].slice(-12));
     try {
-      const reply = await nexus.askNexAssistant({
-        message,
-        project_id: projectId || '',
-        history,
-        include_project_context: includeProjectContext && Boolean(projectId),
-      }, controller.signal);
+      const reply = await nexus.askNexAssistant(
+        {
+          message,
+          project_id: projectId || '',
+          history,
+          include_project_context: includeProjectContext && Boolean(projectId),
+        },
+        controller.signal,
+      );
       if (controller.signal.aborted || !allowResultsRef.current) return;
       setTurns((current) =>
         [...current, { role: 'assistant' as const, content: reply.answer }].slice(-12),
