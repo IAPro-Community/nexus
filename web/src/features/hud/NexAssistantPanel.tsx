@@ -126,7 +126,10 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
     setBusy(true);
     setError('');
     setDraft('');
-    const history = turns.slice(-8);
+    const history = turns.slice(-8).map((turn) => ({
+      role: turn.role,
+      content: turn.content.slice(0, 200),
+    }));
     setTurns((current) => [...current, { role: 'user' as const, content: message }].slice(-12));
     try {
       const reply = await nexus.askNexAssistant({

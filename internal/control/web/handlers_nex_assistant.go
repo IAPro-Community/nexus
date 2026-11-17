@@ -192,7 +192,7 @@ func (h *NexusHandler) handleNexAssistant(w http.ResponseWriter, r *http.Request
 		}
 		body.ProjectID = strings.TrimSpace(body.ProjectID)
 		body.Message = strings.TrimSpace(body.Message)
-		if len(body.Message) == 0 || len(body.Message) > 2000 ||
+		if len(body.Message) == 0 || len(body.Message) > 8000 ||
 			len(body.ProjectID) > 128 || len(body.History) > 8 {
 			writeError(w, http.StatusBadRequest, "Nex request limits exceeded")
 			return
