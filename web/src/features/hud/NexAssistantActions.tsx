@@ -115,14 +115,17 @@ export const NexAssistantActions: React.FC<NexAssistantActionsProps> = ({
       if (!projectId) return;
       const view = await nexus.getProjectIntelligence(projectId);
       if (!view.current_snapshot) {
-        onResult('Ainda não existe um snapshot estático atual deste projeto. Execute Analisar projeto primeiro e aguarde o resultado.');
+        onResult(
+          'Ainda não existe um snapshot estático atual deste projeto. Execute Analisar projeto primeiro e aguarde o resultado.',
+        );
         return;
       }
       const reply = await nexus.askNexAssistant({
         project_id: projectId,
         history: [],
         include_project_context: true,
-        message: 'Com base apenas nas evidências estáticas disponíveis, sugira até três oportunidades de melhoria. Para cada uma, diferencie observação de hipótese e indique como verificar antes de mudar código. Não alegue ter inspecionado arquivos completos nem realizado alterações.',
+        message:
+          'Com base apenas nas evidências estáticas disponíveis, sugira até três oportunidades de melhoria. Para cada uma, diferencie observação de hipótese e indique como verificar antes de mudar código. Não alegue ter inspecionado arquivos completos nem realizado alterações.',
       });
       onResult(reply.answer);
     });
@@ -195,7 +198,12 @@ export const NexAssistantActions: React.FC<NexAssistantActionsProps> = ({
         <button type="button" className={styles.send} disabled={busy || !projectId} onClick={scan}>
           Analisar projeto
         </button>
-        <button type="button" className={styles.send} disabled={busy || !projectId} onClick={suggestImprovements}>
+        <button
+          type="button"
+          className={styles.send}
+          disabled={busy || !projectId}
+          onClick={suggestImprovements}
+        >
           Sugerir melhorias
         </button>
         <button type="button" className={styles.send} disabled={busy} onClick={refreshResources}>

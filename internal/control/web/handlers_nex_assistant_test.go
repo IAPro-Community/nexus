@@ -59,8 +59,8 @@ func TestNexProjectFactsAreBoundedAndAllowlisted(t *testing.T) {
 	for i := 0; i < 30; i++ {
 		facts = append(facts, contextsnapshot.ProjectFact{
 			Category: "stack", Key: fmt.Sprintf("stack.%d", i),
-			Value: strings.Repeat("a", 400),
-			Basis: contextsnapshot.FactObserved,
+			Value:      strings.Repeat("a", 400),
+			Basis:      contextsnapshot.FactObserved,
 			Confidence: contextsnapshot.ConfidenceHigh,
 		})
 	}

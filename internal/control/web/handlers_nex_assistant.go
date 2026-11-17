@@ -151,10 +151,10 @@ type nexAssistantTurn struct {
 }
 
 type nexAssistantChatRequest struct {
-	ProjectID string             `json:"project_id"`
-	Message   string             `json:"message"`
-	History   []nexAssistantTurn `json:"history,omitempty"`
-	IncludeProjectContext bool `json:"include_project_context,omitempty"`
+	ProjectID             string             `json:"project_id"`
+	Message               string             `json:"message"`
+	History               []nexAssistantTurn `json:"history,omitempty"`
+	IncludeProjectContext bool               `json:"include_project_context,omitempty"`
 }
 
 func nexDeterministicReply(message string, view nexAssistantOverview) (string, bool) {
@@ -250,19 +250,19 @@ func (h *NexusHandler) handleNexAssistant(w http.ResponseWriter, r *http.Request
 		// The model gets a bounded factual projection, not raw provider output,
 		// credentials, filesystem contents, or private transcripts.
 		data, _ := json.Marshal(struct {
-			Overview       nexAssistantOverview `json:"overview"`
-			System         nexus.HUDSystemState  `json:"system"`
-			History        []nexAssistantTurn    `json:"history"`
-			Message        string                `json:"message"`
-			ProjectContextRequested bool         `json:"project_context_requested"`
-			ProjectFacts   []nexProjectFact      `json:"project_facts"`
+			Overview                nexAssistantOverview `json:"overview"`
+			System                  nexus.HUDSystemState `json:"system"`
+			History                 []nexAssistantTurn   `json:"history"`
+			Message                 string               `json:"message"`
+			ProjectContextRequested bool                 `json:"project_context_requested"`
+			ProjectFacts            []nexProjectFact     `json:"project_facts"`
 		}{
-			Overview: overview,
-			System: state.System,
-			History: body.History,
-			Message: body.Message,
+			Overview:                overview,
+			System:                  state.System,
+			History:                 body.History,
+			Message:                 body.Message,
 			ProjectContextRequested: body.IncludeProjectContext,
-			ProjectFacts: projectFacts,
+			ProjectFacts:            projectFacts,
 		})
 		answer, err := chat.NexReply(ctx, nexPersonaV1, string(data))
 		if err != nil {

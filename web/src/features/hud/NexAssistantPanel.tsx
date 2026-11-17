@@ -168,7 +168,9 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
           <ChevronDown size={14} aria-hidden="true" />
         )}
       </button>
-      {privacyMode && <p className={styles.caption}>Assistente oculto pelo modo de privacidade do HUD.</p>}
+      {privacyMode && (
+        <p className={styles.caption}>Assistente oculto pelo modo de privacidade do HUD.</p>
+      )}
       {expanded && !privacyMode && (
         <div className={styles.body}>
           <p className={styles.caption}>
