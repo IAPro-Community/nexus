@@ -133,129 +133,22 @@ try {
     }
     try {
         Run-Gate 'toolchain-consistency' {
-            # The exact patched toolchain is specified by go.mod. Keep the
-            # native preflight aligned with CI instead of pinning an older
-            # version here and generating a false release NO_GO.
-            $toolchainPin = @(
-                Get-Content -LiteralPath (Join-Path $root 'go.mod') |
-                    Where-Object { $_ -match '^toolchain\s+go[0-9]+\.[0-9]+\.[0-9]+
-            if ($LASTEXITCODE -ne 0 -or $bun -ne '1.3.9') {
-                throw "Canonical Bun 1.3.9 required"
+            # Read the canonical patched Go version from go.mod.
+            # Keep this preflight in sync with the release CI toolchain.
+            $modulePin = @(Get-Content -LiteralPath (Join-Path $root 'go.mod') |
+                Where-Object { $_ -match '^toolchain\s+go[0-9]+\.[0-9]+\.[0-9]+\s*$' })
+            if ($modulePin.Count -ne 1) {
+                throw 'Exactly one canonical Go toolchain pin is required in go.mod'
             }
-        }
-        Run-Gate 'powershell-installer-uninstaller-fixtures' {
-            Run-Native 'powershell.exe' @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $root 'scripts\test-uninstall-windows.ps1'))
-        }
-        Run-Gate 'project-directory-regression' {
-            Run-Native 'go' @('test', '-count=1', './internal/nexus', '-run', 'TestProjectApplicationServiceRejectsInvalidDirectories|TestProjectApplicationServiceCRUDPreservesCoreRules')
-        }
-        Run-Gate 'conpty-terminal-regression' {
-            Run-Native 'go' @('test', '-count=1', './internal/control/terminal', './internal/control/host', './internal/runtime')
-        }
-        Run-Gate 'web-first-run-typecheck' {
-            Run-Native 'bun' @('run', '--cwd', 'web', 'typecheck')
-        }
-        Run-Gate 'web-first-run-unit-tests' {
-            Run-Native 'bun' @('run', '--cwd', 'web', 'test')
-        }
-        Run-Gate 'build-cli-exact-source' {
-            $binDir = Split-Path -Parent $binary
-            New-Item -ItemType Directory -Force -Path $binDir | Out-Null
-            Run-Native 'go' @('build', '-trimpath', '-o', $binary, './cmd/nexus')
-            if (-not (Test-Path -LiteralPath $binary -PathType Leaf)) {
-                throw 'Built Nexus executable does not exist'
-            }
-        }
-        if (Test-Path -LiteralPath $binary -PathType Leaf) {
-            # Probe in a disposable environment with an empty Codex home.
-            # Do not reuse, inspect or alter the user's configured accounts.
-            New-Item -ItemType Directory -Force -Path $fixture | Out-Null
-            $env:NEXUS_DATA_DIR = Join-Path $fixture 'data'
-            $env:NEXUS_CONFIG_DIR = Join-Path $fixture 'config'
-            $env:NEXUS_STATE_DIR = Join-Path $fixture 'state'
-            $env:CODEX_HOME = Join-Path $fixture 'empty-codex-home'
-            New-Item -ItemType Directory -Force -Path $env:CODEX_HOME | Out-Null
-            Run-Gate 'read-only-provider-discovery' {
-                $probe = Probe-Nexus @('providers', 'status', '--json')
-                Require-ExitZero $probe 'Provider discovery'
-                $parsed = $probe.output | ConvertFrom-Json
-                if ($null -eq $parsed) { throw 'Provider JSON was empty or invalid' }
-            }
-            Run-Gate 'windows-project-registration-and-persistence' {
-                $directory = Join-Path $fixture ('Project With Spaces ' + [char]0x00E7 + 'ao')
-                New-Item -ItemType Directory -Force -Path $directory | Out-Null
-                $created = Probe-Nexus @('projects', 'add', $directory, '--name', 'Windows First Run Fixture')
-                Require-ExitZero $created 'Valid project creation'
-                $listed = Probe-Nexus @('projects', 'list')
-                Require-ExitZero $listed 'Project listing'
-                if ($listed.output -notmatch 'Windows First Run Fixture') {
-                    throw 'Persisted project was missing from a new CLI process'
-                }
-                $missing = Join-Path $fixture 'does-not-exist'
-                $rejected = Probe-Nexus @('projects', 'add', $missing, '--name', 'Invalid Project')
-                if ($rejected.code -eq 0) { throw 'CLI accepted a nonexistent directory' }
-                $file = Join-Path $fixture 'not-a-folder.txt'
-                [System.IO.File]::WriteAllText($file, 'fixture')
-                $rejectedFile = Probe-Nexus @('projects', 'add', $file, '--name', 'Invalid File')
-                if ($rejectedFile.code -eq 0) { throw 'CLI accepted a regular file as a directory' }
-                $after = Probe-Nexus @('projects', 'list')
-                Require-ExitZero $after 'Final project listing'
-                if ($after.output -match 'Invalid Project|Invalid File') {
-                    throw 'A rejected project was persisted'
-                }
-            }
-        } else {
-            Add-Gate 'read-only-provider-discovery' 'BLOCKED' 'CLI build did not complete'
-            Add-Gate 'windows-project-registration-and-persistence' 'BLOCKED' 'CLI build did not complete'
-        }
-        # Explicitly untested native acceptance criteria. Never infer these from
-        # unit tests, synthetic screenshots or a successful CLI compilation.
-        Add-Gate 'desktop-wails-first-run' 'NOT_RUN' 'Requires native desktop interaction and screenshots'
-        Add-Gate 'codex-conpty-mouse-scroll-live' 'NOT_RUN' 'Requires prolonged real Codex interactive session'
-        Add-Gate 'multiple-authenticated-codex-accounts' 'NOT_RUN' 'Requires approved live multi-account test'
-        Add-Gate 'signed-installer-install-update-rollback' 'NOT_RUN' 'Requires signed distributable and isolated Windows test'
-    } finally {
-        foreach ($key in $originalEnvironment.Keys) {
-            [Environment]::SetEnvironmentVariable($key, $originalEnvironment[$key], 'Process')
-        }
-        if (Test-Path -LiteralPath $fixture) {
-            Remove-Item -LiteralPath $fixture -Recurse -Force -ErrorAction SilentlyContinue
-        }
-    }
-    $failures = @($script:results | Where-Object { $_.status -eq 'FAIL' -or $_.status -eq 'BLOCKED' })
-    $automated = if ($failures.Count -eq 0) { 'PASS' } else { 'FAIL' }
-    $summary = [ordered]@{
-        schema_version = 1
-        source_sha = $sha
-        branch = $branchName
-        version = $version
-        generated_at_utc = [DateTime]::UtcNow.ToString('o')
-        automated_result = $automated
-        release_verdict = 'NO_GO_WINDOWS'
-        release_note = 'Native UI, signed distribution and authenticated Codex interaction require separate exact-SHA evidence'
-        gates = @($script:results.ToArray())
-    }
-    $summaryFile = Join-Path $outputRoot 'WINDOWS_FIRST_RUN_SUMMARY.json'
-    $summary | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $summaryFile -Encoding utf8
-    Write-Host "Sanitized summary: $summaryFile"
-    Write-Host "Raw local logs in private-logs must be reviewed before sharing."
-    if ($failures.Count -gt 0) { exit 1 }
-} finally {
-    Pop-Location
-} } |
-                    Select-Object -First 1
-            )
-            if ($toolchainPin.Count -ne 1) {
-                throw "Canonical Go toolchain pin is missing from go.mod"
-            }
-            $requiredGo = ($toolchainPin[0].Trim() -split '\s+')[-1]
-            $go = (& go version).Trim()
-            if ($LASTEXITCODE -ne 0 -or $go -notmatch ('\b' + [regex]::Escape($requiredGo) + '\b')) {
+            $requiredGo = ($modulePin[0].Trim() -split '\s+')[1]
+            $goOutput = (& go version).Trim()
+            $goTokens = @($goOutput -split '\s+')
+            if ($LASTEXITCODE -ne 0 -or $goTokens.Count -lt 3 -or $goTokens[2] -ne $requiredGo) {
                 throw "Canonical patched Go $requiredGo required"
             }
             $bun = (& bun --version).Trim()
             if ($LASTEXITCODE -ne 0 -or $bun -ne '1.3.9') {
-                throw "Canonical Bun 1.3.9 required"
+                throw 'Canonical Bun 1.3.9 required'
             }
         }
         Run-Gate 'powershell-installer-uninstaller-fixtures' {
