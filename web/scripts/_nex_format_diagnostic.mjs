@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import prettier from 'prettier';
+import { execFileSync } from 'node:child_process';
 
 const files = [
   'src/features/hud/NexAssistantPanel.tsx',
@@ -16,4 +17,15 @@ for (const path of files) {
     filepath: path,
   });
   console.log('NEX_FORMAT:' + path + ':' + Buffer.from(formatted).toString('base64'));
+}
+
+const goFiles = [
+  'internal/nexus/intelligence/nex_chat.go',
+  'internal/control/web/handlers_nex_assistant.go',
+  'internal/control/web/handlers_nex_assistant_test.go',
+  'internal/nexus/intelligence/nex_chat_test.go',
+];
+for (const path of goFiles) {
+  const formatted = execFileSync('gofmt', ['../' + path]);
+  console.log('NEX_GOFORMAT:' + path + ':' + formatted.toString('base64'));
 }
