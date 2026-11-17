@@ -159,6 +159,8 @@ type nexAssistantChatRequest struct {
 	Message               string             `json:"message"`
 	History               []nexAssistantTurn `json:"history,omitempty"`
 	IncludeProjectContext bool               `json:"include_project_context,omitempty"`
+	Persist               bool               `json:"persist,omitempty"`
+	RequestID             string             `json:"request_id,omitempty"`
 }
 
 func nexDeterministicReply(message string, view nexAssistantOverview) (string, bool) {
@@ -213,7 +215,60 @@ func (h *NexusHandler) handleNexAssistant(w http.ResponseWriter, r *http.Request
 			return
 		}
 		overview := buildNexAssistantOverview(state, time.Now())
+		// Persist only after explicit opt-in from the client. The normal
+		// conversation mode remains transient and sends no store writes.
+		var persistExchange func(string, string) (string, error)
+		if body.Persist {
+			if len(body.RequestID) < 8 || len(body.RequestID) > 128 ||
+				strings.TrimSpace(body.RequestID) != body.RequestID {
+				writeError(w, http.StatusBadRequest, "invalid Nex conversation request id")
+				return
+			}
+			st, openErr := h.nexus.OpenProject()
+			if openErr != nil {
+				writeError(w, http.StatusServiceUnavailable, "Nex conversation store unavailable")
+				return
+			}
+			if body.ProjectID != "" {
+				if _, openErr = st.GetProject(body.ProjectID); openErr != nil {
+					writeError(w, http.StatusNotFound, "Nex project not found")
+					return
+				}
+			}
+			persistUser := security.Redact(body.Message)
+			if saved, found, lookupErr := st.FindNexConversationReply(body.ProjectID, body.RequestID, persistUser); lookupErr != nil {
+				writeError(w, http.StatusConflict, "Nex request id conflict")
+				return
+			} else if found {
+				writeJSON(w, http.StatusOK, map[string]any{"answer": saved, "source": "stored"})
+				return
+			}
+			stored, loadErr := st.ListNexConversation(body.ProjectID)
+			if loadErr != nil {
+				writeError(w, http.StatusServiceUnavailable, "Nex conversation unavailable")
+				return
+			}
+			body.History = []nexAssistantTurn{}
+			for _, turn := range stored {
+				body.History = append(body.History, nexAssistantTurn{Role: turn.Role, Content: turn.Content})
+			}
+			if len(body.History) > 8 {
+				body.History = body.History[len(body.History)-8:]
+			}
+			persistExchange = func(answer, source string) (string, error) {
+				return st.StoreNexConversationExchange(body.ProjectID, body.RequestID,
+					persistUser, security.Redact(answer), source)
+			}
+		}
 		if answer, matched := nexDeterministicReply(body.Message, overview); matched {
+			if persistExchange != nil {
+				saved, saveErr := persistExchange(answer, "nexus_snapshot")
+				if saveErr != nil {
+					writeError(w, http.StatusServiceUnavailable, "Nex conversation not saved")
+					return
+				}
+				answer = saved
+			}
 			writeJSON(w, http.StatusOK, map[string]any{"answer": answer, "source": "nexus_snapshot"})
 			return
 		}
@@ -280,6 +335,14 @@ func (h *NexusHandler) handleNexAssistant(w http.ResponseWriter, r *http.Request
 				"detail": "Não consegui consultar o modelo configurado.",
 			})
 			return
+		}
+		if persistExchange != nil {
+			saved, saveErr := persistExchange(answer, "configured_model")
+			if saveErr != nil {
+				writeError(w, http.StatusServiceUnavailable, "Nex conversation not saved")
+				return
+			}
+			answer = saved
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"answer": answer, "source": "configured_model"})
 	default:
