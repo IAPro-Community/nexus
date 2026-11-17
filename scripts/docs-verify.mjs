@@ -133,7 +133,11 @@ if (existsSync(manifestPath)) {
   if (manifest.source_sha && !/^[0-9a-f]{40}$/i.test(manifest.source_sha)) {
     errors.push('visual manifest has invalid source_sha');
   }
-  if (manifest.source_sha) {
+  // PR review cannot inherit frozen screenshots from a different source SHA.
+  // The release/full verification path still requires exact provenance.
+  // This opt-in ONLY defers the source-diff/dirty check, never status, hashes,
+  // existence or synthetic-data policy of the existing captures.
+  if (manifest.source_sha && !process.argv.includes('--defer-visual-provenance')) {
     // Visual capture provenance must track every module used by live rendering.
     // NexIdleDirector now animates GuardianMascot, so its changes invalidate
     // captures. Test/spec files still do not ship to the renderer.
