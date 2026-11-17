@@ -41,12 +41,12 @@ describe('Director fleet filtering and ordering', () => {
       'pending',
       'offline',
     ]);
-    expect(filterDirectorFleet(fleet, agents, 'blocked', '').map((agent) => agent.agent_id)).toEqual([
-      'reviewer',
-    ]);
-    expect(filterDirectorFleet(fleet, agents, 'offline', '').map((agent) => agent.agent_id)).toEqual([
-      'offline',
-    ]);
+    expect(
+      filterDirectorFleet(fleet, agents, 'blocked', '').map((agent) => agent.agent_id),
+    ).toEqual(['reviewer']);
+    expect(
+      filterDirectorFleet(fleet, agents, 'offline', '').map((agent) => agent.agent_id),
+    ).toEqual(['offline']);
   });
 
   it('matches known display names and roles without modifying the original ordering', () => {
