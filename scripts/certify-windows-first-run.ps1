@@ -133,14 +133,22 @@ try {
     }
     try {
         Run-Gate 'toolchain-consistency' {
-            # The exact patched toolchain is specified by go.mod. Keep the
-            # native preflight aligned with CI instead of pinning an older
-            # version here and generating a false release NO_GO.
-            $toolchainPin = @(
-                Get-Content -LiteralPath (Join-Path $root 'go.mod') |
-                    Where-Object { $_ -match '^toolchain\s+go[0-9]+\.[0-9]+\.[0-9]+
+            # Read the canonical patched Go version from go.mod.
+            # Keep this preflight in sync with the release CI toolchain.
+            $modulePin = @(Get-Content -LiteralPath (Join-Path $root 'go.mod') |
+                Where-Object { $_ -match '^toolchain\s+go[0-9]+\.[0-9]+\.[0-9]+\s*$' })
+            if ($modulePin.Count -ne 1) {
+                throw 'Exactly one canonical Go toolchain pin is required in go.mod'
+            }
+            $requiredGo = ($modulePin[0].Trim() -split '\s+')[1]
+            $goOutput = (& go version).Trim()
+            $goTokens = @($goOutput -split '\s+')
+            if ($LASTEXITCODE -ne 0 -or $goTokens.Count -lt 3 -or $goTokens[2] -ne $requiredGo) {
+                throw "Canonical patched Go $requiredGo required"
+            }
+            $bun = (& bun --version).Trim()
             if ($LASTEXITCODE -ne 0 -or $bun -ne '1.3.9') {
-                throw "Canonical Bun 1.3.9 required"
+                throw 'Canonical Bun 1.3.9 required'
             }
         }
         Run-Gate 'powershell-installer-uninstaller-fixtures' {

@@ -138,6 +138,19 @@ jobs:
             }
           }
           "source_changed=$($sourceChanged.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+      - name: Validate Windows first-run PowerShell syntax
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          $file = Join-Path $env:GITHUB_WORKSPACE 'scripts/certify-windows-first-run.ps1'
+          [System.Management.Automation.Language.Parser]::ParseFile($file, [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) {
+            foreach ($parseError in $errors) {
+              Write-Host "::error file=$file,line=$($parseError.Extent.StartLineNumber)::$($parseError.Message)"
+            }
+            throw 'Invalid Windows first-run PowerShell syntax'
+          }
       - name: Install Bun
         if: steps.scope.outputs.source_changed == 'true'
         uses: oven-sh/setup-bun@v2
