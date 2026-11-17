@@ -1,4 +1,4 @@
-export type NexAssistantTarget = 'missions' | 'agents' | 'usage' | 'nexus';
+export type NexAssistantTarget = 'missions' | 'agents' | 'usage' | 'nexus' | 'settings' | 'new-agent';
 
 export interface NexAssistantSuggestion {
   id: string;
@@ -24,9 +24,15 @@ export interface NexChatTurn {
   content: string;
 }
 
+export interface NexActionProposal extends NexAssistantSuggestion {
+  risk: 'navigation';
+  requires_confirmation: true;
+}
+
 export interface NexChatResponse {
   answer: string;
   source: 'nexus_snapshot' | 'configured_model' | 'stored';
+  proposal?: NexActionProposal;
 }
 
 export interface NexConversationHistory {
