@@ -14,6 +14,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/security"
 	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 )
 
 const nexPersonaV1 = `Você é o Nex, assistente pessoal do Nexus.
@@ -65,8 +66,7 @@ func buildNexAssistantOverview(state nexus.HUDState, now time.Time) nexAssistant
 		}
 	}
 	for _, run := range state.Missions {
-		if run.State != "COMPLETED_VERIFIED" && run.State != "CANCELLED" &&
-			run.State != "FAILED" {
+		if !runner.IsTerminalState(runner.State(run.State)) {
 			out.RunCount++
 		}
 		if run.NeedsUser {
@@ -121,7 +121,7 @@ func boundedNexProjectFacts(view *nexus.ProjectIntelligenceView) []nexProjectFac
 	}
 	for _, fact := range view.CurrentSnapshot.Facts {
 		switch fact.Category {
-		case "stack", "frameworks", "architecture", "tests", "dependencies", "commands", "ci", "scripts":
+		case "stack", "frameworks", "architecture", "tests":
 		default:
 			continue
 		}
@@ -136,8 +136,12 @@ func boundedNexProjectFacts(view *nexus.ProjectIntelligenceView) []nexProjectFac
 		if len(value) > 170 {
 			value = strings.ToValidUTF8(value[:170], "")
 		}
+		key := security.Redact(fact.Key)
+		if len(key) > 96 {
+			key = strings.ToValidUTF8(key[:96], "")
+		}
 		facts = append(facts, nexProjectFact{
-			Category: fact.Category, Key: security.Redact(fact.Key),
+			Category: fact.Category, Key: key,
 			Value: value, Basis: string(fact.Basis),
 			Confidence: string(fact.Confidence),
 		})

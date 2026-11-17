@@ -21,5 +21,10 @@ export function readNexAssistantPreferences(): NexAssistantPreferences {
 
 export function saveNexAssistantPreferences(value: NexAssistantPreferences): void {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(NEX_ASSISTANT_PREFERENCES_KEY, JSON.stringify(value));
+  try {
+    window.localStorage.setItem(NEX_ASSISTANT_PREFERENCES_KEY, JSON.stringify(value));
+  } catch {
+    // Local storage can be unavailable in private/embedded WebViews.
+    // The in-memory preference remains usable for this session.
+  }
 }

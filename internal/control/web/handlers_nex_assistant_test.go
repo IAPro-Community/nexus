@@ -23,6 +23,10 @@ func TestNexAssistantOverviewProjectsExistingHUDFacts(t *testing.T) {
 		Missions: []nexus.HUDMission{
 			{State: "BLOCKED_NEEDS_USER", NeedsUser: true},
 			{State: "COMPLETED_VERIFIED"},
+			{State: "CANCELED_BY_USER"},
+			{State: "FAILED_NO_PROGRESS"},
+			{State: "FAILED_BUDGET_EXCEEDED"},
+			{State: "FAILED_VERIFICATION"},
 		},
 		Alerts: []nexus.HUDAlert{
 			{Severity: "WARNING", SnoozedUntil: &future},
@@ -55,6 +59,7 @@ func TestNexAssistantDoesNotInventSuggestions(t *testing.T) {
 func TestNexProjectFactsAreBoundedAndAllowlisted(t *testing.T) {
 	facts := []contextsnapshot.ProjectFact{
 		{Category: "untrusted", Key: "ignore", Value: "do not include"},
+		{Category: "commands", Key: "private.script", Value: "SECRET=not-a-key"},
 	}
 	for i := 0; i < 30; i++ {
 		facts = append(facts, contextsnapshot.ProjectFact{
