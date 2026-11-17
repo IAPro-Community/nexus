@@ -187,7 +187,11 @@ export const WorkspaceProvider: React.FC<{
       }
     };
     window.addEventListener('pagehide', flushOnPageHide);
-    return () => window.removeEventListener('pagehide', flushOnPageHide);
+    return () => {
+      window.removeEventListener('pagehide', flushOnPageHide);
+      // Also preserve a pending edit when switching workspaces in the SPA.
+      flushOnPageHide();
+    };
   }, []);
 
   useEffect(() => {
