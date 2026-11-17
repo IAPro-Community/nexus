@@ -175,7 +175,7 @@ export const NexProactivityControls: React.FC<NexProactivityControlsProps> = ({
             >
               <option value="manual">Somente quando eu pedir</option>
               <option value="contextual">Mostrar sugestões no painel</option>
-              <option value="proactive">Sugerir novidades enquanto o HUD estiver ativo</option>
+              <option value="proactive">Apresentar sugestões enquanto este painel estiver aberto</option>
             </select>
           </label>
           <label className={styles.setting}>
