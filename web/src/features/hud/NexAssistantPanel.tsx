@@ -92,7 +92,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
     setError('');
     setDraft('');
     const history = turns.slice(-8);
-    setTurns((current) => [...current, { role: 'user', content: message }].slice(-12));
+    setTurns((current) => [...current, { role: 'user' as const, content: message }].slice(-12));
     try {
       const reply = await nexus.askNexAssistant({
         message,
@@ -101,7 +101,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
       });
       setTurns((current) => [
         ...current,
-        { role: 'assistant', content: reply.answer },
+        { role: 'assistant' as const, content: reply.answer },
       ].slice(-12));
     } catch {
       setError('O Nex não conseguiu responder. Confira a conexão e a configuração da inteligência. Os dados operacionais continuam disponíveis no HUD.');
