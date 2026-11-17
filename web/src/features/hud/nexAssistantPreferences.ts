@@ -16,7 +16,12 @@ export function readNexAssistantPreferences(): NexAssistantPreferences {
     ) as Partial<NexAssistantPreferences>;
     return {
       version: 1,
-      mode: raw.mode === 'proactive' ? 'proactive' : raw.mode === 'contextual' ? 'contextual' : 'manual',
+      mode:
+        raw.mode === 'proactive'
+          ? 'proactive'
+          : raw.mode === 'contextual'
+            ? 'contextual'
+            : 'manual',
       persistHistory: raw.persistHistory === true,
     };
   } catch {

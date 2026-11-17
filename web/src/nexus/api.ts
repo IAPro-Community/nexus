@@ -102,7 +102,12 @@ export const nexus = {
       method: 'POST',
       body: JSON.stringify({ project_id: projectId, operation: 'claim', fingerprint }),
     }),
-  decideNexSuggestion: (projectId: string, fingerprint: string, operation: 'dismiss' | 'snooze', minutes = 0) =>
+  decideNexSuggestion: (
+    projectId: string,
+    fingerprint: string,
+    operation: 'dismiss' | 'snooze',
+    minutes = 0,
+  ) =>
     request<{ status: string }>('/api/v1/nex/proactivity', {
       method: 'POST',
       body: JSON.stringify({ project_id: projectId, operation, fingerprint, minutes }),

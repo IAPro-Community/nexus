@@ -96,7 +96,11 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
 
   const changePersistence = (next: boolean) => {
     setPersistHistory(next);
-    saveNexAssistantPreferences({ version: 1, mode: readNexAssistantPreferences().mode, persistHistory: next });
+    saveNexAssistantPreferences({
+      version: 1,
+      mode: readNexAssistantPreferences().mode,
+      persistHistory: next,
+    });
     setTurns([]);
     setConfirmClear(false);
   };

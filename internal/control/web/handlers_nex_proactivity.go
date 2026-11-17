@@ -43,9 +43,9 @@ func nexProactiveCandidates(hud nexus.HUDState, now time.Time) []nexProactiveCan
 		}
 		out = append(out, nexProactiveCandidate{
 			Fingerprint: nexCandidateFingerprint(hud.ProjectID, "decision", mission.RunID+"|"+mission.State+"|"+mission.CurrentTaskID),
-			Title: "Missão aguardando decisão",
+			Title:       "Missão aguardando decisão",
 			Description: "Uma execução solicita sua intervenção. Abra as missões para revisar.",
-			Target: "missions", Evidence: "mission_needs_user", ObservedAt: mission.UpdatedAt,
+			Target:      "missions", Evidence: "mission_needs_user", ObservedAt: mission.UpdatedAt,
 		})
 	}
 	for _, alert := range hud.Alerts {
@@ -55,9 +55,9 @@ func nexProactiveCandidates(hud nexus.HUDState, now time.Time) []nexProactiveCan
 		}
 		out = append(out, nexProactiveCandidate{
 			Fingerprint: nexCandidateFingerprint(hud.ProjectID, "alert", alert.Fingerprint),
-			Title: "Alerta operacional",
+			Title:       "Alerta operacional",
 			Description: "Existe um alerta não reconhecido. Confira os dados de recursos.",
-			Target: "usage", Evidence: "hud_alert", ObservedAt: alert.LastObservedAt,
+			Target:      "usage", Evidence: "hud_alert", ObservedAt: alert.LastObservedAt,
 		})
 	}
 	sort.SliceStable(out, func(i, j int) bool {
@@ -73,11 +73,11 @@ func nexProactiveCandidates(hud nexus.HUDState, now time.Time) []nexProactiveCan
 }
 
 type nexProactivityRequest struct {
-	ProjectID string                           `json:"project_id"`
-	Operation string                           `json:"operation"`
-	Settings  store.NexProactivityPreferences `json:"settings"`
-	Fingerprint string                         `json:"fingerprint"`
-	Minutes   int                              `json:"minutes"`
+	ProjectID   string                          `json:"project_id"`
+	Operation   string                          `json:"operation"`
+	Settings    store.NexProactivityPreferences `json:"settings"`
+	Fingerprint string                          `json:"fingerprint"`
+	Minutes     int                             `json:"minutes"`
 }
 
 func (h *NexusHandler) handleNexProactivity(w http.ResponseWriter, r *http.Request) {

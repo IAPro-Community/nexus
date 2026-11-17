@@ -25,7 +25,10 @@ func TestNexProactivityClaimDedupeCooldownQuietHoursAndSnooze(t *testing.T) {
 	if err := db.SetNexProactivityPreferences("", p); err != nil {
 		t.Fatal(err)
 	}
-	for _, tc := range []struct{t time.Time;quiet bool}{
+	for _, tc := range []struct {
+		t     time.Time
+		quiet bool
+	}{
 		{time.Date(2026, 11, 17, 23, 0, 0, 0, time.UTC), true},
 		{time.Date(2026, 11, 18, 7, 59, 0, 0, time.UTC), true},
 		{now, false},

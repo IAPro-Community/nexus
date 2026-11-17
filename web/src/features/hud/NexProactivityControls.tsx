@@ -1,9 +1,6 @@
 import React from 'react';
 import { nexus } from '../../nexus/api';
-import type {
-  NexProactivityCandidate,
-  NexProactivitySettings,
-} from './nexProactivityTypes';
+import type { NexProactivityCandidate, NexProactivitySettings } from './nexProactivityTypes';
 import styles from './NexAssistantPanel.module.scss';
 
 export interface NexProactivityControlsProps {
@@ -73,8 +70,9 @@ export const NexProactivityControls: React.FC<NexProactivityControlsProps> = ({
         // Surface only fresh evidence; old alerts remain in Center of Attention.
         const recent = (result.candidates || []).filter((candidate) => {
           const time = Date.parse(candidate.observed_at);
-          return Number.isFinite(time) && Date.now() - time >= 0 &&
-            Date.now() - time <= 15 * 60 * 1000;
+          return (
+            Number.isFinite(time) && Date.now() - time >= 0 && Date.now() - time <= 15 * 60 * 1000
+          );
         });
         for (const item of recent) {
           const claim = await nexus.claimNexSuggestion(scope, item.fingerprint);
@@ -89,7 +87,9 @@ export const NexProactivityControls: React.FC<NexProactivityControlsProps> = ({
       }
     };
     void refresh();
-    return () => { epoch.current += 1; };
+    return () => {
+      epoch.current += 1;
+    };
     // Proposal is held while visible; new snapshots cannot overwrite it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, privacyMode, revision, scope]);
@@ -97,7 +97,7 @@ export const NexProactivityControls: React.FC<NexProactivityControlsProps> = ({
   const changeSettings = <K extends keyof NexProactivitySettings>(
     field: K,
     value: NexProactivitySettings[K],
-  ) => setDraft((current) => current ? { ...current, [field]: value } : current);
+  ) => setDraft((current) => (current ? { ...current, [field]: value } : current));
 
   const save = async () => {
     if (!draft || busy || privacyMode) return;
@@ -120,7 +120,12 @@ export const NexProactivityControls: React.FC<NexProactivityControlsProps> = ({
     setBusy(true);
     setError('');
     try {
-      await nexus.decideNexSuggestion(scope, proposed.fingerprint, choice, choice === 'snooze' ? 60 : 0);
+      await nexus.decideNexSuggestion(
+        scope,
+        proposed.fingerprint,
+        choice,
+        choice === 'snooze' ? 60 : 0,
+      );
       setProposed(null);
     } catch {
       setError('Não foi possível registrar a decisão sobre a sugestão.');
@@ -150,7 +155,9 @@ export const NexProactivityControls: React.FC<NexProactivityControlsProps> = ({
               className={styles.input}
               value={draft.mode}
               disabled={busy}
-              onChange={(event) => changeSettings('mode', event.target.value as NexProactivitySettings['mode'])}
+              onChange={(event) =>
+                changeSettings('mode', event.target.value as NexProactivitySettings['mode'])
+              }
             >
               <option value="manual">Somente quando eu pedir</option>
               <option value="contextual">Mostrar sugestões no painel</option>
@@ -159,60 +166,116 @@ export const NexProactivityControls: React.FC<NexProactivityControlsProps> = ({
           </label>
           <label className={styles.setting}>
             Silêncio a partir de
-            <input className={styles.input} type="time" value={draft.quiet_start}
-              disabled={busy} onChange={(event) => changeSettings('quiet_start', event.target.value)} />
+            <input
+              className={styles.input}
+              type="time"
+              value={draft.quiet_start}
+              disabled={busy}
+              onChange={(event) => changeSettings('quiet_start', event.target.value)}
+            />
           </label>
           <label className={styles.setting}>
             Até
-            <input className={styles.input} type="time" value={draft.quiet_end}
-              disabled={busy} onChange={(event) => changeSettings('quiet_end', event.target.value)} />
+            <input
+              className={styles.input}
+              type="time"
+              value={draft.quiet_end}
+              disabled={busy}
+              onChange={(event) => changeSettings('quiet_end', event.target.value)}
+            />
           </label>
           <label className={styles.setting}>
             Fuso IANA
-            <input className={styles.input} value={draft.timezone} disabled={busy}
+            <input
+              className={styles.input}
+              value={draft.timezone}
+              disabled={busy}
               onChange={(event) => changeSettings('timezone', event.target.value)}
-              placeholder="America/Sao_Paulo" />
-            <button type="button" className={styles.send} disabled={busy}
-              onClick={() => changeSettings('timezone', LOCAL_ZONE)}>
+              placeholder="America/Sao_Paulo"
+            />
+            <button
+              type="button"
+              className={styles.send}
+              disabled={busy}
+              onClick={() => changeSettings('timezone', LOCAL_ZONE)}
+            >
               Usar local
             </button>
           </label>
           <label className={styles.setting}>
             Intervalo mínimo (minutos)
-            <input className={styles.input} type="number" min={5} max={1440}
-              value={draft.min_interval_minutes} disabled={busy}
-              onChange={(event) => changeSettings('min_interval_minutes', Number(event.target.value))} />
+            <input
+              className={styles.input}
+              type="number"
+              min={5}
+              max={1440}
+              value={draft.min_interval_minutes}
+              disabled={busy}
+              onChange={(event) =>
+                changeSettings('min_interval_minutes', Number(event.target.value))
+              }
+            />
           </label>
-          <button type="button" className={styles.send} disabled={busy || !settings ||
-            JSON.stringify(settings) === JSON.stringify(draft)} onClick={() => void save()}>
+          <button
+            type="button"
+            className={styles.send}
+            disabled={busy || !settings || JSON.stringify(settings) === JSON.stringify(draft)}
+            onClick={() => void save()}
+          >
             Salvar preferências
           </button>
         </>
       )}
-      {settings?.mode === 'contextual' && candidates.map((candidate) => (
-        <button type="button" className={styles.action} key={candidate.fingerprint}
-          disabled={busy || (candidate.target === 'missions' ? !onOpenMissions : !onOpenUsage)}
-          onClick={() => navigate(candidate)}>
-          <strong>{candidate.title}</strong>
-          <small>{candidate.description}</small>
-        </button>
-      ))}
+      {settings?.mode === 'contextual' &&
+        candidates.map((candidate) => (
+          <button
+            type="button"
+            className={styles.action}
+            key={candidate.fingerprint}
+            disabled={busy || (candidate.target === 'missions' ? !onOpenMissions : !onOpenUsage)}
+            onClick={() => navigate(candidate)}
+          >
+            <strong>{candidate.title}</strong>
+            <small>{candidate.description}</small>
+          </button>
+        ))}
       {settings?.mode === 'proactive' && proposed && (
         <div className={styles.scheduleBox} aria-live="polite">
           <strong>{proposed.title}</strong>
           <span>{proposed.description}</span>
           <div className={styles.historyActions}>
-            <button type="button" className={styles.send} disabled={busy ||
-              (proposed.target === 'missions' ? !onOpenMissions : !onOpenUsage)}
-              onClick={() => navigate(proposed)}>Revisar</button>
-            <button type="button" className={styles.send} disabled={busy}
-              onClick={() => void decide('snooze')}>Adiar 1h</button>
-            <button type="button" className={styles.send} disabled={busy}
-              onClick={() => void decide('dismiss')}>Dispensar</button>
+            <button
+              type="button"
+              className={styles.send}
+              disabled={busy || (proposed.target === 'missions' ? !onOpenMissions : !onOpenUsage)}
+              onClick={() => navigate(proposed)}
+            >
+              Revisar
+            </button>
+            <button
+              type="button"
+              className={styles.send}
+              disabled={busy}
+              onClick={() => void decide('snooze')}
+            >
+              Adiar 1h
+            </button>
+            <button
+              type="button"
+              className={styles.send}
+              disabled={busy}
+              onClick={() => void decide('dismiss')}
+            >
+              Dispensar
+            </button>
           </div>
         </div>
       )}
-      {error && <p className={styles.error} role="alert">{error}</p>}
+      {error && (
+        <p className={styles.error} role="alert">
+          {error}
+        </p>
+      )}
     </section>
   );
 };
