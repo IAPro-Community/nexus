@@ -86,3 +86,23 @@
   font-size: 0.8125rem;
   color: var(--nx-muted);
 }
+
+/* The report is an informational row, not a third nested card inside Agents. */
+:global(:root[data-finish='flat']) {
+  .card {
+    padding: 0.75rem 0;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--nx-border);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .item {
+    padding: 0.5rem 0;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--nx-border);
+    border-radius: 0;
+  }
+}

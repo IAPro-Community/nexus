@@ -396,19 +396,45 @@
     padding: 1rem;
   }
 
-  .summaryStrip,
+  .summaryStrip {
+    gap: 1px;
+    background: var(--nx-border);
+    border: 1px solid var(--nx-border);
+    border-radius: 6px;
+  }
+
   .agentGrid {
     gap: 0.625rem;
   }
 
   .summaryCard {
     padding: 0.65rem 0.8rem;
-    border-radius: 6px;
-    background: var(--nx-surface);
+    border: 0;
+    border-radius: 0;
+    background: var(--nx-bg-elevated);
   }
 
   .summaryCard:hover {
     transform: none;
+    background: var(--nx-surface-2);
+  }
+
+  .summaryCard.activeFilter {
+    border: 0;
+    background: var(--nx-accent-soft);
+    box-shadow: inset 0 -2px var(--nx-accent);
+  }
+
+  .summaryCard:focus-visible {
+    outline-offset: -2px;
+  }
+
+  .creationSection {
+    padding: 0.75rem 0;
+    border: 0;
+    border-bottom: 1px solid var(--nx-border);
+    border-radius: 0;
+    background: transparent;
   }
 
   .controlBar {
