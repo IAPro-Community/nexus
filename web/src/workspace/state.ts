@@ -45,7 +45,7 @@ function validNode(node: unknown, depth = 0): node is WorkspaceNode {
 /** Validate untrusted local/imported workspace envelopes before normalization. */
 export function isValidWorkspaceModel(raw: unknown): raw is WorkspaceModel {
   if (!raw || typeof raw !== 'object') return false;
-  const candidate = raw as Partial<WorkspaceModel>;
+  const candidate = raw as { version?: number; root?: unknown };
   return (candidate.version === 1 || candidate.version === 2) && validNode(candidate.root);
 }
 
