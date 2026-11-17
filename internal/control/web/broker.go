@@ -32,10 +32,10 @@ type agentTerminalState struct {
 
 // TerminalObserver represents one browser tab connected to an agent's terminal.
 type TerminalObserver struct {
-	conn    *websocket.Conn
-	role    string // "CONTROL" | "VIEW_ONLY"
-	created time.Time
-	writeMu    *sync.Mutex
+	conn      *websocket.Conn
+	role      string // "CONTROL" | "VIEW_ONLY"
+	created   time.Time
+	writeMu   *sync.Mutex
 	onPromote func() error // bind the SessionHost lease before notifying the browser
 }
 
