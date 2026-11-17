@@ -1,3 +1,10 @@
+## 2026-11-17 — Triagem remota
+
+- PASS — PR #215 squash-merged @ `eb391b36` (Windows Go pin do `go.mod` + null-safety Assistant); quality-full **MAKE EXIT: 0** no tip (1º run morreu por OOM — runner CI na mesma máquina; rerun limpo).
+- PASS — 78 branches mortos removidos (71 PR-merged + 7 contidos), remotos 143→65; `origin/pr-61` local limpa.
+- KEEP — 25 issues abertas nenhuma fechada: #214 real (falha @15s no CI — race estrutural pós-revoke, investigar antes do mobile/remote), resto = sessões/roadmap/gates visuais.
+- DECISÃO MAESTRO — ~10 branches com trabalho único não integrado (NEX rig/companion/v1.1, 2–42 commits): reconciliar × fechar; cruzam com identity lock.
+
 ## 2026-11-16 — Tag v1.0.0 @ 14622be8 + pipeline parado no gate nativo (correto)
 
 - PASS — `make quality-full` @ tip `14622be8` com **MAKE EXIT: 0** (format, lint, styles, typecheck, lint-go, test-go, 904 frontend, race suite completa, govulncheck, version contract).
