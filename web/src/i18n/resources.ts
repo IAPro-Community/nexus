@@ -240,7 +240,8 @@ export const en = {
     theme: 'Theme',
     themeDescription: 'Choose scheme and accent without changing product semantics.',
     visualFinish: 'Visual finish',
-    visualFinishDescription: 'Independent of colors. Reduces effects without changing the terminal or accessible contrast.',
+    visualFinishDescription:
+      'Independent of colors. Reduces effects without changing the terminal or accessible contrast.',
     finishFlat: 'Flat',
     finishStandard: 'Classic',
     finishGradient: 'Soft gradient',
@@ -2991,7 +2992,8 @@ export const ptBR = {
     theme: 'Tema',
     themeDescription: 'Escolha o esquema e o destaque sem alterar a semântica do produto.',
     visualFinish: 'Acabamento visual',
-    visualFinishDescription: 'Independente das cores. Reduz efeitos sem alterar o terminal ou o contraste acessível.',
+    visualFinishDescription:
+      'Independente das cores. Reduz efeitos sem alterar o terminal ou o contraste acessível.',
     finishFlat: 'Flat',
     finishStandard: 'Clássico',
     finishGradient: 'Degradê suave',
@@ -5759,7 +5761,8 @@ export const es = {
     theme: 'Tema',
     themeDescription: 'Elige el esquema y el acento sin cambiar la semántica del producto.',
     visualFinish: 'Acabado visual',
-    visualFinishDescription: 'Independiente de los colores. Reduce efectos sin alterar la terminal ni el contraste accesible.',
+    visualFinishDescription:
+      'Independiente de los colores. Reduce efectos sin alterar la terminal ni el contraste accesible.',
     finishFlat: 'Plano',
     finishStandard: 'Clásico',
     finishGradient: 'Degradado suave',

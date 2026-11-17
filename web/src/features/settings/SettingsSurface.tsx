@@ -439,7 +439,10 @@ export const SettingsSurface: React.FC<{
               </div>
 
               <ThemeAccordionSelector theme={theme} />
-              <section className={styles.finishSection} aria-label={t('settings.visualFinish', 'Acabamento visual')}>
+              <section
+                className={styles.finishSection}
+                aria-label={t('settings.visualFinish', 'Acabamento visual')}
+              >
                 <div className="nx-settings-card__title">
                   <PanelsTopLeft size={17} />
                   <div>
@@ -459,7 +462,10 @@ export const SettingsSurface: React.FC<{
                   options={[
                     { value: 'flat', label: t('settings.finishFlat', 'Flat') },
                     { value: 'standard', label: t('settings.finishStandard', 'Clássico') },
-                    { value: 'subtle-gradient', label: t('settings.finishGradient', 'Degradê suave') },
+                    {
+                      value: 'subtle-gradient',
+                      label: t('settings.finishGradient', 'Degradê suave'),
+                    },
                   ]}
                 />
               </section>

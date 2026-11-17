@@ -26,7 +26,8 @@ const THEME_CATEGORIES: ThemeCategory[] = [
   {
     id: 'soft-gradient',
     title: 'Grafites suaves',
-    description: 'Paleta escura de baixo contraste cromático; o acabamento é escolhido separadamente.',
+    description:
+      'Paleta escura de baixo contraste cromático; o acabamento é escolhido separadamente.',
     presets: ['nexus-dusk'],
   },
   {

@@ -106,9 +106,11 @@ describe('theme model', () => {
     });
     expect(resolveVisualFinish(prefs, 'light')).toBe('subtle-gradient');
     expect(resolveVisualFinish(prefs, 'high-contrast')).toBe('standard');
-    expect(normalizeThemePreferences({
-      visualFinish: 'neon',
-    } as unknown as ThemePreferences).visualFinish).toBe('flat');
+    expect(
+      normalizeThemePreferences({
+        visualFinish: 'neon',
+      } as unknown as ThemePreferences).visualFinish,
+    ).toBe('flat');
   });
 
   it('repairs persisted preset/scheme mismatches when the theme is not customized', () => {
