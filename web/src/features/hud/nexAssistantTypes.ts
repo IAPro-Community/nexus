@@ -1,4 +1,5 @@
-export type NexAssistantTarget = 'missions' | 'agents' | 'usage' | 'nexus' | 'settings' | 'new-agent';
+export type NexAssistantTarget =
+  'missions' | 'agents' | 'usage' | 'nexus' | 'settings' | 'new-agent';
 
 export interface NexAssistantSuggestion {
   id: string;

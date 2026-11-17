@@ -20,32 +20,32 @@ var nexSafeNavigation = map[string]NexActionProposal{
 	"agentes": {
 		ID: "nexus.open.agents", Title: "Abrir agentes",
 		Description: "Navegar para a lista de agentes; nenhuma execução será iniciada.",
-		Target: "agents", Risk: "navigation", RequiresConfirmation: true,
+		Target:      "agents", Risk: "navigation", RequiresConfirmation: true,
 	},
 	"missoes": {
 		ID: "nexus.open.missions", Title: "Abrir missões",
 		Description: "Navegar para as missões existentes; não inicia nem cancela trabalho.",
-		Target: "missions", Risk: "navigation", RequiresConfirmation: true,
+		Target:      "missions", Risk: "navigation", RequiresConfirmation: true,
 	},
 	"alertas": {
 		ID: "nexus.open.usage", Title: "Examinar alertas",
 		Description: "Abrir as informações de recursos e alertas existentes.",
-		Target: "usage", Risk: "navigation", RequiresConfirmation: true,
+		Target:      "usage", Risk: "navigation", RequiresConfirmation: true,
 	},
 	"configuracoes": {
 		ID: "nexus.open.settings", Title: "Abrir configurações",
 		Description: "Abrir configurações para revisão; não modifica preferências.",
-		Target: "settings", Risk: "navigation", RequiresConfirmation: true,
+		Target:      "settings", Risk: "navigation", RequiresConfirmation: true,
 	},
 	"novo-agente": {
 		ID: "nexus.open.new-agent", Title: "Preparar novo agente",
 		Description: "Abrir o cadastro de agente, sem executar nem salvar automaticamente.",
-		Target: "new-agent", Risk: "navigation", RequiresConfirmation: true,
+		Target:      "new-agent", Risk: "navigation", RequiresConfirmation: true,
 	},
 	"nexus": {
 		ID: "nexus.open.home", Title: "Abrir Nexus",
 		Description: "Navegar para o Nexus sem iniciar qualquer operação.",
-		Target: "nexus", Risk: "navigation", RequiresConfirmation: true,
+		Target:      "nexus", Risk: "navigation", RequiresConfirmation: true,
 	},
 }
 

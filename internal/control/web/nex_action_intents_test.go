@@ -4,13 +4,13 @@ import "testing"
 
 func TestNexActionIntentsOnlyProduceConfirmableNavigation(t *testing.T) {
 	cases := map[string]string{
-		"Abra agentes!": "agents",
-		"ver missões": "missions",
-		"Mostrar execuções": "missions",
-		"mostre alertas": "usage",
+		"Abra agentes!":       "agents",
+		"ver missões":         "missions",
+		"Mostrar execuções":   "missions",
+		"mostre alertas":      "usage",
 		"abrir configurações": "settings",
-		"novo agente": "new-agent",
-		"abrir nexus": "nexus",
+		"novo agente":         "new-agent",
+		"abrir nexus":         "nexus",
 	}
 	for phrase, target := range cases {
 		proposal, ok := resolveNexActionIntent(phrase)

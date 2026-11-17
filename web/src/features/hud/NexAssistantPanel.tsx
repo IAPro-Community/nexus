@@ -347,7 +347,9 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
           </div>
           {proposal && (
             <div className={styles.suggestions} aria-label="Ação sugerida pelo Nex">
-              <p className={styles.caption}>Proposta de navegação · nenhuma alteração foi executada</p>
+              <p className={styles.caption}>
+                Proposta de navegação · nenhuma alteração foi executada
+              </p>
               <button
                 type="button"
                 className={styles.action}
