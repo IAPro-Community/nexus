@@ -18,13 +18,13 @@ func TestAgentObservationHonorsEvidenceAndNeverPromotesTurnToMission(t *testing.
 	sess := &registry.RuntimeSession{
 		RuntimeID: "runtime-1", AgentID: "agent-1", ProviderID: "opencode",
 		State: registry.StateRunning, ControlLevel: registry.ControlLevelEvents,
-		AttentionKind: "completed", AttentionRevision: 8,
+		AttentionKind: "completed", AttentionRevision: 8, AttentionSource: "AUTHORITATIVE",
 		AttentionContext: "PRIVATE_PROMPT", Env: []string{"SECRET=PRIVATE_KEY"},
 		UpdatedAt: time.Date(2026, 11, 17, 12, 0, 0, 0, time.UTC),
 	}
 	view := projectAgentObservation("agent-1", "project-1", gen, sess, true)
 	if view.AgentState != "done" || view.ReasonCode != "OBSERVED_TURN_SETTLED_NOT_VERIFIED" ||
-		view.SignalSource != "EVENTS" || view.AttentionRevision != 8 {
+		view.SignalSource != "AUTHORITATIVE" || view.AttentionRevision != 8 {
 		t.Fatalf("unexpected observed turn: %+v", view)
 	}
 	encoded, err := json.Marshal(view)
@@ -37,6 +37,10 @@ func TestAgentObservationHonorsEvidenceAndNeverPromotesTurnToMission(t *testing.
 		}
 	}
 	sess.AttentionKind = "needs_user"
+	sess.AttentionSource = ""
+	if got := projectAgentObservation("agent-1", "project-1", gen, sess, true); got.SignalSource != "UNKNOWN" {
+		t.Fatalf("control level does not prove event provenance: %+v", got)
+	}
 	if got := projectAgentObservation("agent-1", "project-1", gen, sess, true); got.AgentState != "blocked" {
 		t.Fatalf("expected exact blocked state, got %+v", got)
 	}

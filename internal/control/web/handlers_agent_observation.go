@@ -68,9 +68,11 @@ func projectAgentObservation(agentID, projectID string, gen *store.RuntimeGenera
 		view.ReasonCode = "STALE_ATTENTION_GENERATION"
 		return view
 	}
-	switch sess.ControlLevel {
-	case registry.ControlLevelAPI, registry.ControlLevelEvents, registry.ControlLevelTerminal, registry.ControlLevelProcess:
-		view.SignalSource = string(sess.ControlLevel)
+	// A capability (ControlLevel) is not provenance. Only the event's explicit
+	// recorded source can support confidence claims.
+	switch sess.AttentionSource {
+	case "AUTHORITATIVE", "SIGNALLED", "INFERRED":
+		view.SignalSource = sess.AttentionSource
 	}
 	switch strings.ToLower(sess.AttentionKind) {
 	case "needs_user":
