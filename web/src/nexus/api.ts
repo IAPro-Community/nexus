@@ -426,9 +426,17 @@ export const nexus = {
     until: Exclude<AgentObservation['agent_state'], 'unknown'>,
     waitMs = 0,
     afterRevision = 0,
+    afterGeneration = '',
+    signal?: AbortSignal,
   ) =>
-    request<{ matched: boolean; timed_out: boolean; observation: AgentObservation }>(
-      `/api/v1/agents/${encodeURIComponent(agentId)}/wait?project_id=${encodeURIComponent(projectId)}&until=${encodeURIComponent(until)}&wait_ms=${Math.max(0, Math.min(15000, Math.trunc(waitMs)))}&after_revision=${Math.max(0, Math.trunc(afterRevision))}`,
+    request<{
+      matched: boolean;
+      timed_out: boolean;
+      generation_changed: boolean;
+      observation: AgentObservation;
+    }>(
+      `/api/v1/agents/${encodeURIComponent(agentId)}/wait?project_id=${encodeURIComponent(projectId)}&until=${encodeURIComponent(until)}&wait_ms=${Math.max(0, Math.min(15000, Math.trunc(waitMs)))}&after_revision=${Math.max(0, Math.trunc(afterRevision))}&after_generation=${encodeURIComponent(afterGeneration)}`,
+      { signal },
     ),
   getDirectorAgent: (projectId: string, agentId: string) =>
     request<import('../types').DirectorAgentProjection>(

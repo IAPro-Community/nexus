@@ -121,6 +121,16 @@ func (h *NexusHandler) observeAgent(agentID, projectID string) (agentObservation
 	return projectAgentObservation(agent.ID, agent.ProjectID, &gen, &sess, sess.HostLive()), http.StatusOK, nil
 }
 
+// evaluatedAgentWait is tied to the current persistent Agent generation. A
+// changed runtime generation invalidates a prior observation cursor even when
+// two sessions happen to reuse the same attention revision counter.
+func evaluatedAgentWait(view agentObservation, until string, afterRevision uint64, afterGeneration string) (matched, generationChanged bool) {
+	generationChanged = afterGeneration != "" && view.GenerationID != afterGeneration
+	matched = !generationChanged && view.ProcessState == "LIVE" &&
+		view.AgentState == until && view.AttentionRevision > afterRevision
+	return matched, generationChanged
+}
+
 // GET /api/v1/agents/{id}/explain?project_id={id}
 // GET /api/v1/agents/{id}/wait?project_id={id}&until=blocked&wait_ms=5000
 // Wait is bounded observation, not provider prompt/turn completion or Mission wait.
@@ -142,6 +152,7 @@ func (h *NexusHandler) handleAgentObservation(w http.ResponseWriter, r *http.Req
 	w.Header().Set("Cache-Control", "no-store")
 	until := ""
 	var afterRevision uint64
+	afterGeneration := ""
 	waitFor := time.Duration(0)
 	if parts[1] == "wait" {
 		until = strings.ToLower(strings.TrimSpace(r.URL.Query().Get("until")))
@@ -158,6 +169,11 @@ func (h *NexusHandler) handleAgentObservation(w http.ResponseWriter, r *http.Req
 				writeError(w, http.StatusBadRequest, "invalid after_revision")
 				return
 			}
+		}
+		afterGeneration = strings.TrimSpace(r.URL.Query().Get("after_generation"))
+		if len(afterGeneration) > 160 {
+			writeError(w, http.StatusBadRequest, "after_generation is too long")
+			return
 		}
 		if raw := r.URL.Query().Get("wait_ms"); raw != "" {
 			millis, parseErr := strconv.Atoi(raw)
@@ -179,10 +195,12 @@ func (h *NexusHandler) handleAgentObservation(w http.ResponseWriter, r *http.Req
 			writeJSON(w, http.StatusOK, view)
 			return
 		}
-		matched := view.ProcessState == "LIVE" && view.AgentState == until && view.AttentionRevision > afterRevision
-		if matched || view.ProcessState != "LIVE" || !time.Now().Before(deadline) {
+		matched, generationChanged := evaluatedAgentWait(view, until, afterRevision, afterGeneration)
+		if matched || generationChanged || view.ProcessState != "LIVE" || !time.Now().Before(deadline) {
 			writeJSON(w, http.StatusOK, map[string]any{
-				"matched": matched, "timed_out": !matched && view.ProcessState == "LIVE",
+				"matched": matched,
+				"generation_changed": generationChanged,
+				"timed_out": !matched && !generationChanged && view.ProcessState == "LIVE",
 				"observation": view,
 			})
 			return

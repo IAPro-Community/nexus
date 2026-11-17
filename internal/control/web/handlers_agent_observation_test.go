@@ -171,3 +171,23 @@ func TestAgentObservationAPIScopesAgentAndDoesNotFabricateRuntime(t *testing.T) 
 		t.Fatalf("cross-project read status %d", response.StatusCode)
 	}
 }
+
+func TestEvaluatedAgentWaitBindsCursorToGeneration(t *testing.T) {
+	view := agentObservation{
+		AgentID: "agent-a", GenerationID: "gen-2", ProcessState: "LIVE",
+		AgentState: "blocked", AttentionRevision: 4,
+	}
+	if matched, changed := evaluatedAgentWait(view, "blocked", 3, "gen-1"); matched || !changed {
+		t.Fatalf("different generation must invalidate cursor, matched=%v changed=%v", matched, changed)
+	}
+	if matched, changed := evaluatedAgentWait(view, "blocked", 3, "gen-2"); !matched || changed {
+		t.Fatalf("same generation and higher revision must match, matched=%v changed=%v", matched, changed)
+	}
+	if matched, changed := evaluatedAgentWait(view, "blocked", 4, "gen-2"); matched || changed {
+		t.Fatalf("unchanged revision must not satisfy wait, matched=%v changed=%v", matched, changed)
+	}
+	view.ProcessState = "NOT_LIVE"
+	if matched, _ := evaluatedAgentWait(view, "blocked", 0, "gen-2"); matched {
+		t.Fatal("stopped runtime cannot satisfy wait using an old blocked state")
+	}
+}
