@@ -1,6 +1,7 @@
 package web
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -91,5 +92,69 @@ func TestBrokerPromotionHookRejectsUnknownConnection(t *testing.T) {
 	b := &AgentTerminalBroker{agents: make(map[string]*agentTerminalState)}
 	if b.SetPromotionHook("missing", nil, func() error { return nil }) {
 		t.Fatal("unattached connection must not register a host lease callback")
+	}
+}
+
+func TestBrokerHostLeaseFailureNeverGrantsBrowserControl(t *testing.T) {
+	for _, operation := range []string{"disconnect", "release"} {
+		t.Run(operation, func(t *testing.T) {
+			connected := make(chan *websocket.Conn, 2)
+			upgrader := websocket.Upgrader{CheckOrigin: func(*http.Request) bool { return true }}
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				conn, err := upgrader.Upgrade(w, r, nil)
+				if err == nil {
+					connected <- conn
+				}
+			}))
+			defer server.Close()
+			url := "ws" + strings.TrimPrefix(server.URL, "http")
+			connect := func() (*websocket.Conn, *websocket.Conn) {
+				t.Helper()
+				client, _, err := websocket.DefaultDialer.Dial(url, nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+				host := <-connected
+				t.Cleanup(func() {
+					_ = client.Close()
+					_ = host.Close()
+				})
+				return client, host
+			}
+			clientA, hostA := connect()
+			_, hostB := connect()
+			broker := &AgentTerminalBroker{agents: make(map[string]*agentTerminalState)}
+			broker.Attach("agent", hostA, true, &sync.Mutex{})
+			broker.Attach("agent", hostB, true, &sync.Mutex{})
+			if !broker.SetPromotionHook("agent", hostA, func() error {
+				return errors.New("simulated host lease write error")
+			}) {
+				t.Fatal("missing promotion hook")
+			}
+			if !broker.TakeControl("agent", hostB) {
+				t.Fatal("second client could not take control")
+			}
+			_ = clientA.SetReadDeadline(time.Now().Add(3 * time.Second))
+			var msg map[string]string
+			if err := clientA.ReadJSON(&msg); err != nil || msg["role"] != "VIEW_ONLY" {
+				t.Fatalf("initial demotion = %+v, %v", msg, err)
+			}
+			if operation == "disconnect" {
+				broker.Detach("agent", hostB)
+			} else {
+				broker.ReleaseControl("agent", hostB)
+			}
+			if err := clientA.ReadJSON(&msg); err != nil || msg["role"] != "VIEW_ONLY" {
+				t.Fatalf("host acquisition failure must not announce CONTROL: %+v, %v", msg, err)
+			}
+			if err := clientA.ReadJSON(&msg); err != nil || msg["type"] != "error" {
+				t.Fatalf("host acquisition failure must be reported: %+v, %v", msg, err)
+			}
+			if got := broker.Writer("agent"); got != nil {
+				t.Fatalf("broker granted a writer without SessionHost authority: %v", got)
+			}
+			broker.Detach("agent", hostA)
+			broker.Detach("agent", hostB)
+		})
 	}
 }
