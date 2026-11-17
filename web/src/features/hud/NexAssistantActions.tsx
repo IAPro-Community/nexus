@@ -85,7 +85,7 @@ export const NexAssistantActions: React.FC<NexAssistantActionsProps> = ({
   const diagnose = () =>
     perform(async () => {
       const report = await nexus.getSystemDoctor();
-      const problems = report.checks.filter(
+      const problems = (report.checks || []).filter(
         (check) => check.status === 'FAIL' || check.status === 'WARN',
       );
       if (!problems.length) {
