@@ -155,9 +155,23 @@ export const NexProactivityControls: React.FC<NexProactivityControlsProps> = ({
               className={styles.input}
               value={draft.mode}
               disabled={busy}
-              onChange={(event) =>
-                changeSettings('mode', event.target.value as NexProactivitySettings['mode'])
-              }
+              onChange={(event) => {
+                const next = event.target.value as NexProactivitySettings['mode'];
+                setDraft((current) =>
+                  current
+                    ? {
+                        ...current,
+                        mode: next,
+                        timezone:
+                          current.mode === 'manual' &&
+                          current.timezone === 'UTC' &&
+                          next !== 'manual'
+                            ? LOCAL_ZONE
+                            : current.timezone,
+                      }
+                    : current,
+                );
+              }}
             >
               <option value="manual">Somente quando eu pedir</option>
               <option value="contextual">Mostrar sugestões no painel</option>
