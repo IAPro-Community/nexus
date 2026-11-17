@@ -513,7 +513,8 @@ export const en = {
     observedState: 'State',
     observedSource: 'Signal source',
     observedReason: 'Evidence code',
-    observedDisclaimer: 'Idle/done describe the observed session, not a verified task or Mission completion.',
+    observedDisclaimer:
+      'Idle/done describe the observed session, not a verified task or Mission completion.',
     open: 'Direct agent',
     short: 'Director',
     title: 'Director Mode',
@@ -3250,7 +3251,8 @@ export const ptBR = {
     observedState: 'Estado',
     observedSource: 'Fonte do sinal',
     observedReason: 'Código da evidência',
-    observedDisclaimer: 'Ocioso/concluído descrevem a sessão observada, não uma tarefa ou Mission verificada.',
+    observedDisclaimer:
+      'Ocioso/concluído descrevem a sessão observada, não uma tarefa ou Mission verificada.',
     open: 'Direcionar agente',
     short: 'Diretor',
     title: 'Director Mode',
@@ -6007,7 +6009,8 @@ export const es = {
     observedState: 'Estado',
     observedSource: 'Fuente de la señal',
     observedReason: 'Código de evidencia',
-    observedDisclaimer: 'Inactivo/finalizado describen la sesión observada, no una tarea o misión verificada.',
+    observedDisclaimer:
+      'Inactivo/finalizado describen la sesión observada, no una tarea o misión verificada.',
     open: 'Dirigir agente',
     short: 'Director',
     title: 'Director Mode',

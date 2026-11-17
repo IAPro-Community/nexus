@@ -74,9 +74,7 @@ export class WorkspaceLayoutService {
       };
       // Corrupt or cross-project current layouts must not shadow the last good state.
       const restored =
-        read(this.storageKey) ??
-        read(this.backupStorageKey) ??
-        read(this.legacyV3StorageKey);
+        read(this.storageKey) ?? read(this.backupStorageKey) ?? read(this.legacyV3StorageKey);
       if (restored) return restored;
     }
     return this.loadLegacy(fallbackModel);

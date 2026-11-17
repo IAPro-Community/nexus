@@ -74,9 +74,14 @@ describe('WorkspaceLayoutService', () => {
     const first = service.load(fallback);
     service.save({ ...first, revision: 1 });
     service.save({ ...first, revision: 2 });
-    mockLocalStorage.setItem(service.storageKey, JSON.stringify({
-      ...first, workspaceId: 'foreign-project', revision: 99,
-    }));
+    mockLocalStorage.setItem(
+      service.storageKey,
+      JSON.stringify({
+        ...first,
+        workspaceId: 'foreign-project',
+        revision: 99,
+      }),
+    );
     expect(service.load(fallback).revision).toBe(1);
   });
 

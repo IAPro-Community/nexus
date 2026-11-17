@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { canFitTerminal, canRunTerminalFrame, shouldSendTerminalResize, shouldSendAuthorizedTerminalResize } from './terminalFitModel';
+import {
+  canFitTerminal,
+  canRunTerminalFrame,
+  shouldSendTerminalResize,
+  shouldSendAuthorizedTerminalResize,
+} from './terminalFitModel';
 
 const ready = () => ({
   disposed: false,

@@ -208,7 +208,8 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       const nextSize = { rows: term.rows, cols: term.cols };
       const ws = wsRef.current;
       if (ws?.readyState !== WebSocket.OPEN) return;
-      if (!shouldSendAuthorizedTerminalResize(ownsWriterLease, nextSize, lastSentSize, true)) return;
+      if (!shouldSendAuthorizedTerminalResize(ownsWriterLease, nextSize, lastSentSize, true))
+        return;
       lastSentSize = nextSize;
       ws.send(JSON.stringify({ type: 'resize', ...nextSize }));
     };
