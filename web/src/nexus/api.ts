@@ -420,7 +420,13 @@ export const nexus = {
     request<AgentObservation>(
       `/api/v1/agents/${encodeURIComponent(agentId)}/explain?project_id=${encodeURIComponent(projectId)}`,
     ),
-  waitForAgentState: (projectId: string, agentId: string, until: AgentObservation['agent_state'], waitMs = 0, afterRevision = 0) =>
+  waitForAgentState: (
+    projectId: string,
+    agentId: string,
+    until: Exclude<AgentObservation['agent_state'], 'unknown'>,
+    waitMs = 0,
+    afterRevision = 0,
+  ) =>
     request<{ matched: boolean; timed_out: boolean; observation: AgentObservation }>(
       `/api/v1/agents/${encodeURIComponent(agentId)}/wait?project_id=${encodeURIComponent(projectId)}&until=${encodeURIComponent(until)}&wait_ms=${Math.max(0, Math.min(15000, Math.trunc(waitMs)))}&after_revision=${Math.max(0, Math.trunc(afterRevision))}`,
     ),

@@ -152,9 +152,20 @@ export function DirectorAgentPanel({
             <>
               <h3 className={styles.heading}>{t('director.observedTitle')}</h3>
               <dl className={styles.metadata}>
-                <div><dt>{t('director.observedState')}</dt><dd>{observation.agent_state}</dd></div>
-                <div><dt>{t('director.observedSource')}</dt><dd>{observation.signal_source}</dd></div>
-                <div><dt>{t('director.observedReason')}</dt><dd><code>{observation.reason_code}</code></dd></div>
+                <div>
+                  <dt>{t('director.observedState')}</dt>
+                  <dd>{observation.agent_state}</dd>
+                </div>
+                <div>
+                  <dt>{t('director.observedSource')}</dt>
+                  <dd>{observation.signal_source}</dd>
+                </div>
+                <div>
+                  <dt>{t('director.observedReason')}</dt>
+                  <dd>
+                    <code>{observation.reason_code}</code>
+                  </dd>
+                </div>
               </dl>
               <p className={styles.notice}>{t('director.observedDisclaimer')}</p>
             </>

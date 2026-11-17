@@ -1,6 +1,7 @@
 package web
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -27,9 +28,13 @@ func TestAgentObservationHonorsEvidenceAndNeverPromotesTurnToMission(t *testing.
 		t.Fatalf("unexpected observed turn: %+v", view)
 	}
 	encoded, err := json.Marshal(view)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, sensitive := range []string{"PRIVATE_PROMPT", "PRIVATE_KEY", "account_scope", "COMPLETED_VERIFIED"} {
-		if strings.Contains(string(encoded), sensitive) { t.Fatalf("sensitive or unverified claim: %s", encoded) }
+		if strings.Contains(string(encoded), sensitive) {
+			t.Fatalf("sensitive or unverified claim: %s", encoded)
+		}
 	}
 	sess.AttentionKind = "needs_user"
 	if got := projectAgentObservation("agent-1", "project-1", gen, sess, true); got.AgentState != "blocked" {
@@ -74,5 +79,91 @@ func TestAgentObservationRejectsMutationAndUnscopedWait(t *testing.T) {
 	}
 	if got := call(http.MethodGet, "/api/v1/agents/a/wait?project_id=p&until=blocked&wait_ms=30000"); got != http.StatusBadRequest {
 		t.Fatalf("unbounded wait status = %d", got)
+	}
+}
+
+func TestAgentObservationAPIScopesAgentAndDoesNotFabricateRuntime(t *testing.T) {
+	client, srv, csrf := csrfClient(t)
+	base := srv.URL()
+	projectBody, _ := json.Marshal(map[string]string{"name": "Observation test", "path": t.TempDir()})
+	req, _ := http.NewRequest(http.MethodPost, base+"/api/v1/projects", bytes.NewReader(projectBody))
+	req.Header.Set("X-CSRF-Token", csrf)
+	response, err := client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("create project status %d", response.StatusCode)
+	}
+	var project store.Project
+	if err := json.NewDecoder(response.Body).Decode(&project); err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+
+	req, _ = http.NewRequest(http.MethodPost, base+"/api/v1/projects/"+project.ID+"/agents",
+		strings.NewReader(`{"name":"Observation agent","role":"developer"}`))
+	req.Header.Set("X-CSRF-Token", csrf)
+	response, err = client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("create agent status %d", response.StatusCode)
+	}
+	var agent store.Agent
+	if err := json.NewDecoder(response.Body).Decode(&agent); err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+
+	path := base + "/api/v1/agents/" + agent.ID + "/explain?project_id=" + project.ID
+	response, err = client.Get(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("explain status %d", response.StatusCode)
+	}
+	var view agentObservation
+	if err := json.NewDecoder(response.Body).Decode(&view); err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	if view.AgentID != agent.ID || view.ProjectID != project.ID ||
+		view.AgentState != "unknown" || view.ProcessState != "UNKNOWN" {
+		t.Fatalf("new agent must not claim active or completed turn: %+v", view)
+	}
+	if response.Header.Get("Cache-Control") != "no-store" {
+		t.Fatal("observation must not be cached")
+	}
+
+	response, err = client.Get(base + "/api/v1/agents/" + agent.ID +
+		"/wait?project_id=" + project.ID + "&until=blocked&wait_ms=0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("wait status %d", response.StatusCode)
+	}
+	var result struct {
+		Matched     bool             `json:"matched"`
+		Observation agentObservation `json:"observation"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	if result.Matched || result.Observation.AgentState != "unknown" {
+		t.Fatalf("wait cannot complete without evidence: %+v", result)
+	}
+
+	response, err = client.Get(base + "/api/v1/agents/" + agent.ID + "/explain?project_id=foreign")
+	if err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("cross-project read status %d", response.StatusCode)
 	}
 }

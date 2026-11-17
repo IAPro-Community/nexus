@@ -64,7 +64,9 @@ export class WorkspaceLayoutService {
             (candidate.workspaceId && candidate.workspaceId !== this.projectId) ||
             !candidate.model?.root ||
             ![1, 2, 3, WORKSPACE_LAYOUT_VERSION].includes(Number(candidate.version))
-          ) return null;
+          ) {
+            return null;
+          }
           return this.migrateAndNormalize(candidate, fallbackModel);
         } catch {
           return null;
@@ -133,8 +135,11 @@ export class WorkspaceLayoutService {
       if (previous) {
         try {
           const parsed = JSON.parse(previous) as Partial<PersistedWorkbenchLayout>;
-          if (parsed.version === WORKSPACE_LAYOUT_VERSION &&
-              parsed.workspaceId === this.projectId && parsed.model?.root) {
+          if (
+            parsed.version === WORKSPACE_LAYOUT_VERSION &&
+            parsed.workspaceId === this.projectId &&
+            parsed.model?.root
+          ) {
             window.localStorage.setItem(this.backupStorageKey, previous);
           }
         } catch {
