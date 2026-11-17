@@ -77,7 +77,12 @@ export const nexus = {
     request<NexAssistantOverview>(
       `/api/v1/nex/assistant${projectId ? `?project_id=${encodeURIComponent(projectId)}` : ''}`,
     ),
-  askNexAssistant: (data: { message: string; project_id: string; history: NexChatTurn[] }) =>
+  askNexAssistant: (data: {
+    message: string;
+    project_id: string;
+    history: NexChatTurn[];
+    include_project_context?: boolean;
+  }) =>
     request<NexChatResponse>('/api/v1/nex/assistant', {
       method: 'POST',
       body: JSON.stringify(data),

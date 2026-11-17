@@ -16,6 +16,7 @@ import styles from './NexAssistantPanel.module.scss';
 
 export interface NexAssistantPanelProps {
   projectId?: string;
+  privacyMode?: boolean;
   onOpenMissions?: () => void;
   onOpenAgents?: () => void;
   onOpenUsage?: () => void;
@@ -29,6 +30,7 @@ export interface NexAssistantPanelProps {
  */
 export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
   projectId,
+  privacyMode = false,
   onOpenMissions,
   onOpenAgents,
   onOpenUsage,
@@ -41,19 +43,33 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
   );
   const [turns, setTurns] = React.useState<NexChatTurn[]>([]);
   const [draft, setDraft] = React.useState('');
+  const [includeProjectContext, setIncludeProjectContext] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState('');
   const inFlight = React.useRef(false);
+  const allowResultsRef = React.useRef(!privacyMode);
+  allowResultsRef.current = !privacyMode;
 
   React.useEffect(() => {
     setTurns([]);
     setOverview(null);
     setDraft('');
     setError('');
+    setIncludeProjectContext(false);
   }, [projectId]);
 
   React.useEffect(() => {
-    if (!expanded) return;
+    if (privacyMode) {
+      setExpanded(false);
+      setTurns([]);
+      setDraft('');
+      setError('');
+      setIncludeProjectContext(false);
+    }
+  }, [privacyMode]);
+
+  React.useEffect(() => {
+    if (!expanded || privacyMode) return;
     let active = true;
     nexus
       .getNexAssistantOverview(projectId)
@@ -66,7 +82,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
     return () => {
       active = false;
     };
-  }, [expanded, projectId]);
+  }, [expanded, projectId, privacyMode]);
 
   const changeMode = (next: NexAssistantMode) => {
     setMode(next);
@@ -105,7 +121,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
   const sendMessage = async (event: React.FormEvent) => {
     event.preventDefault();
     const message = draft.trim();
-    if (!message || inFlight.current) return;
+    if (!message || inFlight.current || privacyMode) return;
     inFlight.current = true;
     setBusy(true);
     setError('');
@@ -117,11 +133,14 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
         message,
         project_id: projectId || '',
         history,
+        include_project_context: includeProjectContext && Boolean(projectId),
       });
+      if (!allowResultsRef.current) return;
       setTurns((current) =>
         [...current, { role: 'assistant' as const, content: reply.answer }].slice(-12),
       );
     } catch {
+      if (!allowResultsRef.current) return;
       setError(
         'O Nex não conseguiu responder. Confira a conexão e a configuração da inteligência. Os dados operacionais continuam disponíveis no HUD.',
       );
@@ -138,6 +157,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
         className={styles.openButton}
         onClick={() => setExpanded((current) => !current)}
         aria-expanded={expanded}
+        disabled={privacyMode}
       >
         <span>
           <MessageCircle size={14} aria-hidden="true" /> Assistente Nex
@@ -148,7 +168,8 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
           <ChevronDown size={14} aria-hidden="true" />
         )}
       </button>
-      {expanded && (
+      {privacyMode && <p className={styles.caption}>Assistente oculto pelo modo de privacidade do HUD.</p>}
+      {expanded && !privacyMode && (
         <div className={styles.body}>
           <p className={styles.caption}>
             Posso explicar o estado do Nexus e ajudar a encontrar o próximo passo. Nenhuma ação será
@@ -184,6 +205,16 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
               decisões pendentes.
             </p>
           )}
+          {projectId && (
+            <label className={styles.setting}>
+              <input
+                type="checkbox"
+                checked={includeProjectContext}
+                onChange={(event) => setIncludeProjectContext(event.target.checked)}
+              />
+              Permitir enviar fatos estáticos do projeto ao modelo configurado
+            </label>
+          )}
           <div className={styles.chatLog} aria-live="polite" aria-label="Conversa com Nex">
             {turns.map((turn, index) => (
               <p className={styles.turn} data-role={turn.role} key={index}>
@@ -195,6 +226,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
             active={expanded}
             projectId={projectId}
             onResult={(message) => {
+              if (!allowResultsRef.current) return;
               setTurns((current) =>
                 [...current, { role: 'assistant' as const, content: message }].slice(-12),
               );

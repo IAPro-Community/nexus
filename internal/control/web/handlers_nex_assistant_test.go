@@ -1,11 +1,13 @@
 package web
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/nexus"
+	"github.com/IAPro-Community/nexus/internal/nexus/contextsnapshot"
 )
 
 func TestNexAssistantOverviewProjectsExistingHUDFacts(t *testing.T) {
@@ -47,5 +49,34 @@ func TestNexAssistantDoesNotInventSuggestions(t *testing.T) {
 	answer, ok := nexDeterministicReply("status", view)
 	if !ok || !strings.Contains(answer, "0 agentes ativos") {
 		t.Fatalf("status must reflect actual snapshot: %q", answer)
+	}
+}
+
+func TestNexProjectFactsAreBoundedAndAllowlisted(t *testing.T) {
+	facts := []contextsnapshot.ProjectFact{
+		{Category: "untrusted", Key: "ignore", Value: "do not include"},
+	}
+	for i := 0; i < 30; i++ {
+		facts = append(facts, contextsnapshot.ProjectFact{
+			Category: "stack", Key: fmt.Sprintf("stack.%d", i),
+			Value: strings.Repeat("a", 400),
+			Basis: contextsnapshot.FactObserved,
+			Confidence: contextsnapshot.ConfidenceHigh,
+		})
+	}
+	view := &nexus.ProjectIntelligenceView{
+		CurrentSnapshot: &contextsnapshot.ProjectContextSnapshot{Facts: facts},
+	}
+	extracted := boundedNexProjectFacts(view)
+	if len(extracted) != 12 {
+		t.Fatalf("expected a bounded sample of 12 project facts, got %d", len(extracted))
+	}
+	for _, fact := range extracted {
+		if fact.Category != "stack" || len(fact.Value) > 170 {
+			t.Fatalf("project facts leaked an unexpected category or length: %+v", fact)
+		}
+	}
+	if got := boundedNexProjectFacts(nil); len(got) != 0 {
+		t.Fatal("missing snapshot must not fabricate context")
 	}
 }
