@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { ProtocolScrubber, decodeTerminalSocketEnvelope } from '../nexus/terminalProtocol';
 import { refreshTerminalAfterActivation, streamTerminalOutput } from '../nexus/terminalOutput';
-import { canFitTerminal, shouldSendTerminalResize } from '../nexus/terminalFitModel';
+import { canFitTerminal, shouldSendAuthorizedTerminalResize } from '../nexus/terminalFitModel';
 import { observeTerminalPaneResize } from './terminalPaneResize';
 import { TERMINAL_CONNECT_TIMEOUT_MS } from '../nexus/agentTerminalModel';
 import {
@@ -172,6 +172,8 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     let disposed = false;
     let terminalTraceEnabled = false;
     let sessionReady = false;
+    // UI resize never changes another client's shared PTY without a writer lease.
+    let ownsWriterLease = false;
     // Buffers split control-RPC lines across output messages (see ProtocolScrubber).
     const protocolScrubber = new ProtocolScrubber();
     const panel = terminalContainer.closest<HTMLElement>('.nx-workspace-panel');
@@ -206,7 +208,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       const nextSize = { rows: term.rows, cols: term.cols };
       const ws = wsRef.current;
       if (ws?.readyState !== WebSocket.OPEN) return;
-      if (!shouldSendTerminalResize(nextSize, lastSentSize, true)) return;
+      if (!shouldSendAuthorizedTerminalResize(ownsWriterLease, nextSize, lastSentSize, true)) return;
       lastSentSize = nextSize;
       ws.send(JSON.stringify({ type: 'resize', ...nextSize }));
     };
@@ -356,7 +358,13 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
         }
       } else if (msg.type === 'lease') {
         const nextRole = msg.role === 'CONTROL' ? 'CONTROL' : 'VIEW_ONLY';
+        ownsWriterLease = nextRole === 'CONTROL';
         setRole(nextRole);
+        if (ownsWriterLease) {
+          // The new controller must publish its current dimensions even if xterm did not change size.
+          lastSentSize = { rows: 0, cols: 0 };
+          safeFit(true);
+        }
         if (nextRole === 'CONTROL' && (!panel || panel.dataset.active === 'true')) {
           window.requestAnimationFrame(() => term.focus());
         }
@@ -445,7 +453,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
     const resizeListener = term.onResize(({ rows, cols }) => {
       if (disposed) return;
       const nextSize = { rows, cols };
-      if (!shouldSendTerminalResize(nextSize, lastSentSize)) return;
+      if (!shouldSendAuthorizedTerminalResize(ownsWriterLease, nextSize, lastSentSize)) return;
       if (ws.readyState === WebSocket.OPEN) {
         lastSentSize = nextSize;
         ws.send(JSON.stringify({ type: 'resize', rows, cols }));

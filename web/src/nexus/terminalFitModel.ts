@@ -46,3 +46,13 @@ export function shouldSendTerminalResize(
     (force || next.rows !== previous.rows || next.cols !== previous.cols)
   );
 }
+
+/** A read-only client can fit its local xterm but must never resize the shared PTY. */
+export function shouldSendAuthorizedTerminalResize(
+  ownsWriterLease: boolean,
+  next: TerminalDimensions,
+  previous: TerminalDimensions,
+  force = false,
+): boolean {
+  return ownsWriterLease && shouldSendTerminalResize(next, previous, force);
+}
