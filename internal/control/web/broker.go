@@ -121,11 +121,16 @@ func (b *AgentTerminalBroker) notifyTerminalPromotion(agentID string, observer T
 	// alone does not grant the host stream permission to send input.
 	if observer.onPromote == nil || observer.onPromote() != nil {
 		b.mu.Lock()
+		cleared := false
 		if state := b.agents[agentID]; state != nil && state.writerConn == observer.conn {
 			state.writerConn = nil
 			state.lease = "VIEW_ONLY"
+			cleared = true
 		}
 		b.mu.Unlock()
+		if !cleared {
+			return // another takeover superseded the failed promotion
+		}
 		leaseMsg, _ := json.Marshal(map[string]string{"type": "lease", "role": "VIEW_ONLY"})
 		writeTerminal(observer.conn, observer.writeMu, leaseMsg)
 		errorMsg, _ := json.Marshal(map[string]string{
@@ -183,6 +188,10 @@ func (b *AgentTerminalBroker) TakeControl(agentID string, conn *websocket.Conn) 
 	if !ok {
 		b.mu.Unlock()
 		return false
+	}
+	if _, attached := state.connections[conn]; !attached {
+		b.mu.Unlock()
+		return false // detached/foreign browser cannot become the broker writer
 	}
 
 	if state.writerConn == conn {

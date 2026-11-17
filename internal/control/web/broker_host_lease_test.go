@@ -158,3 +158,16 @@ func TestBrokerHostLeaseFailureNeverGrantsBrowserControl(t *testing.T) {
 		})
 	}
 }
+
+func TestBrokerTakeControlRejectsUnattachedBrowser(t *testing.T) {
+	foreign := &websocket.Conn{}
+	broker := &AgentTerminalBroker{agents: map[string]*agentTerminalState{
+		"agent": {connections: make(map[*websocket.Conn]TerminalObserver)},
+	}}
+	if broker.TakeControl("agent", foreign) {
+		t.Fatal("unattached WebSocket must not be allowed to take the writer lease")
+	}
+	if broker.Writer("agent") != nil {
+		t.Fatal("unattached connection was recorded as authoritative writer")
+	}
+}
