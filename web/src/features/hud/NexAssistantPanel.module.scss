@@ -192,3 +192,10 @@
 .scheduleItem small {
   color: #b5c5d9;
 }
+
+.historyActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
