@@ -58,6 +58,22 @@ export type SystemDoctorReport = {
   credentials: { status: string; mechanism: string; reason?: string };
 };
 
+export type AgentObservation = {
+  schema_version: number;
+  agent_id: string;
+  project_id: string;
+  runtime_id?: string;
+  generation_id?: string;
+  provider?: string;
+  process_state: 'UNKNOWN' | 'LIVE' | 'NOT_LIVE';
+  runtime_state?: string;
+  agent_state: 'unknown' | 'working' | 'blocked' | 'idle' | 'done' | 'error';
+  signal_source: string;
+  reason_code: string;
+  attention_revision: number;
+  observed_at?: string;
+};
+
 export type DurableActivityEvent = import('../app/activityModel').DurableActivityEvent;
 
 export type NexusErrorPayload = {
@@ -400,6 +416,14 @@ export const nexus = {
       body: JSON.stringify({ name, role }),
     }),
   getAgent: (id: string) => request<AgentDetail>(`/api/v1/agents/${id}`),
+  getAgentObservation: (projectId: string, agentId: string) =>
+    request<AgentObservation>(
+      `/api/v1/agents/${encodeURIComponent(agentId)}/explain?project_id=${encodeURIComponent(projectId)}`,
+    ),
+  waitForAgentState: (projectId: string, agentId: string, until: AgentObservation['agent_state'], waitMs = 0, afterRevision = 0) =>
+    request<{ matched: boolean; timed_out: boolean; observation: AgentObservation }>(
+      `/api/v1/agents/${encodeURIComponent(agentId)}/wait?project_id=${encodeURIComponent(projectId)}&until=${encodeURIComponent(until)}&wait_ms=${Math.max(0, Math.min(15000, Math.trunc(waitMs)))}&after_revision=${Math.max(0, Math.trunc(afterRevision))}`,
+    ),
   getDirectorAgent: (projectId: string, agentId: string) =>
     request<import('../types').DirectorAgentProjection>(
       `/api/v1/agents/${encodeURIComponent(agentId)}/director?project_id=${encodeURIComponent(projectId)}`,

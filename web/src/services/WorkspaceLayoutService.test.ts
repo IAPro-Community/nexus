@@ -56,6 +56,30 @@ describe('WorkspaceLayoutService', () => {
     expect(reloaded.openSurfaceIds).toContain(`view:${overviewId}`);
   });
 
+  it('recovers a previous good snapshot when the current layout is corrupt', () => {
+    const first = service.load(fallback);
+    service.save({ ...first, revision: 1 });
+    service.save({ ...first, revision: 2 });
+    expect(JSON.parse(mockLocalStorage.getItem(service.backupStorageKey) || '{}').revision).toBe(1);
+    mockLocalStorage.setItem(service.storageKey, '{invalid');
+    const restored = new WorkspaceLayoutService(projectId).load(fallback);
+    expect(restored.revision).toBe(1);
+    expect(restored.activeSurfaceId).toBe(overviewId);
+    // Rewriting cannot replace the valid backup with a damaged current snapshot.
+    service.save({ ...first, revision: 3 });
+    expect(JSON.parse(mockLocalStorage.getItem(service.backupStorageKey) || '{}').revision).toBe(1);
+  });
+
+  it('rejects a foreign-project layout and uses the local recovery snapshot', () => {
+    const first = service.load(fallback);
+    service.save({ ...first, revision: 1 });
+    service.save({ ...first, revision: 2 });
+    mockLocalStorage.setItem(service.storageKey, JSON.stringify({
+      ...first, workspaceId: 'foreign-project', revision: 99,
+    }));
+    expect(service.load(fallback).revision).toBe(1);
+  });
+
   it('migrates from legacy v1/v2 storage keys smoothly', () => {
     mockLocalStorage.setItem(service.legacyModelKey, JSON.stringify(fallback));
     mockLocalStorage.setItem(

@@ -30,6 +30,11 @@ export class WorkspaceLayoutService {
     return `iapro:nexus:workbench:${this.projectId}:v4`;
   }
 
+  /** Last known-good local snapshot; does not contain a running process. */
+  get backupStorageKey(): string {
+    return `${this.storageKey}:last-good`;
+  }
+
   get legacyV3StorageKey(): string {
     return `iapro:nexus:workbench:${this.projectId}:v3`;
   }
@@ -47,27 +52,31 @@ export class WorkspaceLayoutService {
    * to v3 / legacy model & presentation keys, migrating smoothly into v4 format.
    */
   load(fallbackModel: WorkspaceModel): PersistedWorkbenchLayout {
-    try {
-      if (typeof window !== 'undefined') {
-        const raw = window.localStorage.getItem(this.storageKey);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed && typeof parsed === 'object') {
-            return this.migrateAndNormalize(parsed, fallbackModel);
-          }
+    if (typeof window !== 'undefined') {
+      const read = (key: string): PersistedWorkbenchLayout | null => {
+        try {
+          const raw = window.localStorage.getItem(key);
+          if (!raw) return null;
+          const candidate = JSON.parse(raw) as Partial<PersistedWorkbenchLayout>;
+          if (
+            !candidate ||
+            typeof candidate !== 'object' ||
+            (candidate.workspaceId && candidate.workspaceId !== this.projectId) ||
+            !candidate.model?.root ||
+            ![1, 2, 3, WORKSPACE_LAYOUT_VERSION].includes(Number(candidate.version))
+          ) return null;
+          return this.migrateAndNormalize(candidate, fallbackModel);
+        } catch {
+          return null;
         }
-        const rawV3 = window.localStorage.getItem(this.legacyV3StorageKey);
-        if (rawV3) {
-          const parsedV3 = JSON.parse(rawV3);
-          if (parsedV3 && typeof parsedV3 === 'object') {
-            return this.migrateAndNormalize(parsedV3, fallbackModel);
-          }
-        }
-      }
-    } catch {
-      // Fall back to legacy keys
+      };
+      // Corrupt or cross-project current layouts must not shadow the last good state.
+      const restored =
+        read(this.storageKey) ??
+        read(this.backupStorageKey) ??
+        read(this.legacyV3StorageKey);
+      if (restored) return restored;
     }
-
     return this.loadLegacy(fallbackModel);
   }
 
@@ -118,6 +127,20 @@ export class WorkspaceLayoutService {
     try {
       const normalized = this.normalize(layout);
       const serialized = JSON.stringify(normalized);
+      // Snapshot the preceding verified layout before overwriting it. If the
+      // current value is corrupt, preserve the earlier recovery copy.
+      const previous = window.localStorage.getItem(this.storageKey);
+      if (previous) {
+        try {
+          const parsed = JSON.parse(previous) as Partial<PersistedWorkbenchLayout>;
+          if (parsed.version === WORKSPACE_LAYOUT_VERSION &&
+              parsed.workspaceId === this.projectId && parsed.model?.root) {
+            window.localStorage.setItem(this.backupStorageKey, previous);
+          }
+        } catch {
+          // Never overwrite last-good backup with corrupt storage contents.
+        }
+      }
       window.localStorage.setItem(this.storageKey, serialized);
       // Also update compatibility keys so older observers don't crash
       window.localStorage.setItem(this.legacyModelKey, serializeWorkspace(normalized.model));
