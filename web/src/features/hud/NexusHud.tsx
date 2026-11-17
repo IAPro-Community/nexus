@@ -52,6 +52,7 @@ import {
   type MascotAttention,
 } from './mascotModel';
 import { GuardianMascot } from './GuardianMascot';
+import { NexAssistantPanel } from './NexAssistantPanel';
 import { consumeNexNewCompletion } from './nexCompanionBehavior';
 import {
   shouldRenderHudCompactControl,
@@ -1156,6 +1157,15 @@ export const NexusHud: React.FC<NexusHudProps> = ({
                 onSelect={applySize}
               />
             )}
+            <NexAssistantPanel
+              key={projectId || 'global'}
+              projectId={projectId}
+              privacyMode={prefs.privacyMode}
+              onOpenMissions={onOpenMissions}
+              onOpenAgents={onOpenAgents}
+              onOpenUsage={onOpenUsage}
+              onOpenNexus={onOpenNexus}
+            />
             <div className={styles.footerActions}>
               {onOpenNewAgent && (
                 <button type="button" onClick={onOpenNewAgent}>

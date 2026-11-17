@@ -2,6 +2,8 @@ import React from 'react';
 import type { GuardianMood } from './guardianModel';
 import type { NexIdleAction } from './nexIdleDirector';
 import { NexPixelSprite } from './NexPixelSprite';
+import type { NexCompanionBehavior } from './nexCompanionBehavior';
+import { resolveNexRigPresentation } from './nexRigProjection';
 import styles from './NexRigSprite.module.scss';
 
 type NexRigSpriteProps = {
@@ -10,13 +12,14 @@ type NexRigSpriteProps = {
   /** Motion authority from the mascot (settings, offline, visibility, reduced motion). */
   motionEnabled?: boolean;
   /** Companion behavior from the mascot; drives the rig expression ('ambient' when absent). */
-  behavior?: string | null;
+  behavior?: NexCompanionBehavior | null;
 };
 
 type RigPlayerInstance = {
   load: () => void;
   destroy: () => void;
   setMotion: (allowed: boolean) => void;
+  setMode: (mode: 'idle' | 'orbit') => void;
   setExpression: (name: string) => void;
   getExpression: () => string;
 };
@@ -57,7 +60,7 @@ export const NexRigSprite: React.FC<NexRigSpriteProps> = ({
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
   const playerRef = React.useRef<RigPlayerInstance | null>(null);
   const [rigReady, setRigReady] = React.useState(false);
-  const expression = behavior ?? 'ambient';
+  const presentation = resolveNexRigPresentation(behavior ?? 'ambient', idleAction, motionEnabled);
 
   React.useEffect(() => {
     const canvas = canvasRef.current;
@@ -107,8 +110,11 @@ export const NexRigSprite: React.FC<NexRigSpriteProps> = ({
   // Re-runs when rigReady flips so the freshly booted player receives the
   // current expression (the player sets canvas.dataset.nexExpression).
   React.useEffect(() => {
-    playerRef.current?.setExpression(expression);
-  }, [expression, rigReady]);
+    const player = playerRef.current;
+    if (!player) return;
+    player.setMode(presentation.mode);
+    player.setExpression(presentation.expression);
+  }, [presentation.mode, presentation.expression, rigReady]);
 
   return (
     <>
@@ -116,6 +122,8 @@ export const NexRigSprite: React.FC<NexRigSpriteProps> = ({
         className={styles.rig}
         data-nex-art={rigReady ? 'rig-v1' : undefined}
         data-nex-mood={mood}
+        data-nex-idle-action={idleAction ?? undefined}
+        data-nex-rig-mode={presentation.mode}
         hidden={!rigReady}
         role="presentation"
       >

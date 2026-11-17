@@ -124,6 +124,7 @@ func registerSystemRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/cost/external-claude", s.authMiddleware(h.handleExternalClaudeUsage))
 	mux.HandleFunc("/api/v1/cost/preferences", s.authMiddleware(h.handleCostPreferences))
 	mux.HandleFunc("/api/v1/hud", s.authMiddleware(h.handleHUDState))
+	mux.HandleFunc("/api/v1/nex/assistant", s.authMiddleware(h.handleNexAssistant))
 	mux.HandleFunc("/api/v1/voice/settings", s.authMiddleware(h.handleVoiceSettings))
 	mux.HandleFunc("/api/v1/voice/transcribe", s.authMiddleware(h.handleVoiceTranscribe))
 }

@@ -83,7 +83,10 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$PR_SOURCE_CHANGED" == "true" ]]; then
-            node scripts/docs-verify.mjs
+            # UI PRs cannot re-certify immutable screenshots in source control.
+          # Preserve the exact-SHA requirement in release CI/docs capture.
+          node scripts/docs-verify.mjs --defer-visual-provenance
+          echo '::notice::PR visual provenance deferred; recapture and certify at the release SHA.'
           else
             node scripts/docs-verify.mjs --links-only
             node scripts/verify-feature-catalog.mjs
