@@ -65,6 +65,7 @@ jobs:
             candidate="$(printf '%s' "$runs_json" | jq -c --arg sha "$SHA" '
               [.workflow_runs[] |
                 select(.head_sha == $sha) |
+                select(.path == ".github/workflows/ci.yml") |
                 select(.event == "push" or .event == "workflow_dispatch") |
                 select(.status == "completed")
               ] |
