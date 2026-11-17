@@ -114,10 +114,12 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
       .getNexConversationHistory(projectId)
       .then((history) => {
         if (!active || inFlight.current) return;
-        setTurns((history.turns || []).map((turn) => ({
-          role: turn.role,
-          content: turn.content,
-        })));
+        setTurns(
+          (history.turns || []).map((turn) => ({
+            role: turn.role,
+            content: turn.content,
+          })),
+        );
       })
       .catch(() => {
         if (active) setError('Não foi possível recuperar a conversa armazenada no Nexus.');
@@ -258,11 +260,22 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
             <div className={styles.historyActions}>
               {confirmClear ? (
                 <>
-                  <span className={styles.caption}>Apagar permanentemente a conversa deste contexto?</span>
-                  <button type="button" className={styles.send} onClick={() => void clearHistory()} disabled={busy}>
+                  <span className={styles.caption}>
+                    Apagar permanentemente a conversa deste contexto?
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.send}
+                    onClick={() => void clearHistory()}
+                    disabled={busy}
+                  >
                     Confirmar exclusão
                   </button>
-                  <button type="button" className={styles.send} onClick={() => setConfirmClear(false)}>
+                  <button
+                    type="button"
+                    className={styles.send}
+                    onClick={() => setConfirmClear(false)}
+                  >
                     Cancelar
                   </button>
                 </>

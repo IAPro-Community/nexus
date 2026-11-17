@@ -73,7 +73,9 @@ func TestNexAssistantDeterministicChatPersistsWhenOptedIn(t *testing.T) {
 		if res.StatusCode != http.StatusOK {
 			t.Fatalf("persist chat status %d", res.StatusCode)
 		}
-		var reply struct{ Answer string `json:"answer"` }
+		var reply struct {
+			Answer string `json:"answer"`
+		}
 		if err := json.NewDecoder(res.Body).Decode(&reply); err != nil {
 			t.Fatal(err)
 		}
@@ -82,12 +84,16 @@ func TestNexAssistantDeterministicChatPersistsWhenOptedIn(t *testing.T) {
 	if a, b := send(), send(); a == "" || a != b {
 		t.Fatalf("dedup response mismatch: %q %q", a, b)
 	}
-	res, err := client.Get(srv.URL()+"/api/v1/nex/conversation")
+	res, err := client.Get(srv.URL() + "/api/v1/nex/conversation")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer res.Body.Close()
-	var data struct{ Turns []struct{ Role string `json:"role"` } `json:"turns"` }
+	var data struct {
+		Turns []struct {
+			Role string `json:"role"`
+		} `json:"turns"`
+	}
 	if err := json.NewDecoder(res.Body).Decode(&data); err != nil || len(data.Turns) != 2 {
 		t.Fatalf("Nex conversation not persisted: len=%d err=%v", len(data.Turns), err)
 	}

@@ -135,7 +135,7 @@ func (s *Store) StoreNexConversationExchange(projectID, requestID, user, reply, 
 		linkedProject = projectID
 	}
 	now := time.Now().UTC().Format(time.RFC3339Nano)
-	for _, turn := range []struct{role,content,source string}{
+	for _, turn := range []struct{ role, content, source string }{
 		{"user", user, ""},
 		{"assistant", reply, source},
 	} {
