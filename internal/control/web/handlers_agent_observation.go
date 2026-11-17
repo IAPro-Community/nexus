@@ -71,7 +71,7 @@ func projectAgentObservation(agentID, projectID string, gen *store.RuntimeGenera
 	// A capability (ControlLevel) is not provenance. Only the event's explicit
 	// recorded source can support confidence claims.
 	switch sess.AttentionSource {
-	case "AUTHORITATIVE", "SIGNALLED", "INFERRED":
+	case "AUTHORITATIVE", "SIGNALLED", "INFERRED": //nolint:misspell // SIGNALLED is a persisted registry protocol value.
 		view.SignalSource = sess.AttentionSource
 	}
 	switch strings.ToLower(sess.AttentionKind) {
