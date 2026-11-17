@@ -31,6 +31,7 @@ import {
 import { request, setCSRFToken } from '../api';
 import type {
   NexAssistantOverview,
+  NexConversationHistory,
   NexChatResponse,
   NexChatTurn,
 } from '../features/hud/nexAssistantTypes';
@@ -73,6 +74,15 @@ export function setNexusCSRF(token: string) {
 export { NexusRequestError as NexusAPIError } from '../api';
 
 export const nexus = {
+  getNexConversationHistory: (projectId?: string) =>
+    request<NexConversationHistory>(
+      `/api/v1/nex/conversation${projectId ? `?project_id=${encodeURIComponent(projectId)}` : ''}`,
+    ),
+  deleteNexConversationHistory: (projectId?: string) =>
+    request<{ status: string }>(
+      `/api/v1/nex/conversation${projectId ? `?project_id=${encodeURIComponent(projectId)}` : ''}`,
+      { method: 'DELETE' },
+    ),
   getNexAssistantOverview: (projectId?: string) =>
     request<NexAssistantOverview>(
       `/api/v1/nex/assistant${projectId ? `?project_id=${encodeURIComponent(projectId)}` : ''}`,
@@ -83,6 +93,8 @@ export const nexus = {
       project_id: string;
       history: NexChatTurn[];
       include_project_context?: boolean;
+      persist?: boolean;
+      request_id?: string;
     },
     signal?: AbortSignal,
   ) =>

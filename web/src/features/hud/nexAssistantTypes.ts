@@ -26,5 +26,10 @@ export interface NexChatTurn {
 
 export interface NexChatResponse {
   answer: string;
-  source: 'nexus_snapshot' | 'configured_model';
+  source: 'nexus_snapshot' | 'configured_model' | 'stored';
+}
+
+export interface NexConversationHistory {
+  persisted: boolean;
+  turns: Array<NexChatTurn & { sequence: number; source?: string; created_at: string }>;
 }
