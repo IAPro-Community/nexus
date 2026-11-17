@@ -72,7 +72,11 @@ import { TaskPreparationDialog } from '../components/TaskPreparationDialog';
 import type { RuntimeSession } from '../types';
 import { consumePtyOutputForChrome, extractOscTitle } from '../workspace/ptyLiveChrome';
 import { usePtyLiveChromeOptional } from '../workspace/PtyLiveChromeContext';
-import { canFitTerminal, canRunTerminalFrame, shouldSendTerminalResize } from './terminalFitModel';
+import {
+  canFitTerminal,
+  canRunTerminalFrame,
+  shouldSendAuthorizedTerminalResize,
+} from './terminalFitModel';
 import { observeTerminalPaneResize } from '../components/terminalPaneResize';
 import { VoiceCaptureButton } from '../features/voice/VoiceCaptureButton';
 import { sendVoiceTranscriptToTerminal } from '../features/voice/terminalVoice';
@@ -374,7 +378,8 @@ export const AgentTerminal: React.FC<{
       const ws = wsRef.current;
       if (ws?.readyState !== WebSocket.OPEN) return;
       const nextSize = { rows, cols };
-      if (!shouldSendTerminalResize(nextSize, lastSentSize, force)) return;
+      if (!shouldSendAuthorizedTerminalResize(roleRef.current === 'CONTROL', nextSize, lastSentSize, force))
+        return;
       lastSentSize = nextSize;
       ws.send(JSON.stringify({ type: 'resize', rows, cols }));
     };
@@ -641,7 +646,14 @@ export const AgentTerminal: React.FC<{
         } else if (payload.type === 'lease') {
           const next = normalizeTerminalRole(payload.role);
           reconnectAttempt = 0;
+          const gainedControl = next === 'CONTROL' && roleRef.current !== 'CONTROL';
           roleRef.current = next;
+          if (gainedControl) {
+            // A newly acquired writer must publish its own current PTY grid.
+            // Read-only peers never resize another client's terminal.
+            lastSentSize = { rows: 0, cols: 0 };
+            fitAndResize(true);
+          }
           term.options.disableStdin = !terminalInputEnabled(next);
           setRole(next);
           setMessage(next === 'CONTROL' ? '' : tRef.current('terminal.readOnlyNotice'));
