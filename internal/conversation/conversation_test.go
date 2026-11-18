@@ -1,6 +1,7 @@
 package conversation
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -56,5 +57,33 @@ func TestListRecentConversations(t *testing.T) {
 	}
 	if !foundCodex {
 		t.Errorf("conv-codex-1 not found: %+v", convs)
+	}
+}
+
+func TestListOtherReadOnlyKeepsLegacyProfilesUntouched(t *testing.T) {
+	data, host := t.TempDir(), t.TempDir()
+	t.Setenv("NEXUS_DATA_DIR", data)
+	t.Setenv("NEXUS_REAL_HOME", host)
+	t.Setenv("AI_REAL_HOME", host)
+	legacy := filepath.Join(data, "profiles", "agy", "legacy", "home")
+	if err := os.MkdirAll(legacy, 0700); err != nil {
+		t.Fatal(err)
+	}
+	history := filepath.Join(host, ".gemini", "antigravity-cli", "history.jsonl")
+	if err := os.MkdirAll(filepath.Dir(history), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(history, []byte(`{"display":"Other provider","timestamp":1787839787154,"workspace":"/elsewhere","conversationId":"other-1"}`+"\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	got, err := ListOtherReadOnly(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].ID != "other-1" {
+		t.Fatalf("other history missing: %+v", got)
+	}
+	if _, err := os.Stat(filepath.Join(filepath.Dir(legacy), "profile.json")); !os.IsNotExist(err) {
+		t.Fatal("discovery changed legacy profile")
 	}
 }

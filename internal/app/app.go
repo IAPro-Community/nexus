@@ -1911,29 +1911,79 @@ func runGoalCmd(args []string) error {
 
 func resumeCmd(args []string) error {
 	if len(args) == 0 {
-		cwd, _ := os.Getwd()
-		convs := conversation.ListRecent(10, cwd)
-		if len(convs) == 0 {
-			fmt.Println("No recent sessions found.")
+		fmt.Fprintln(os.Stderr, "Buscando histórico local de sessões…")
+		convs, err := codex.ListUnifiedResumeSessions(context.Background())
+		if err != nil {
+			return err
+		}
+		others, err := conversation.ListOtherReadOnly(context.Background())
+		if err != nil {
+			return err
+		}
+		if len(convs) == 0 && len(others) == 0 {
+			fmt.Println("Nenhuma sessão local encontrada.")
 			return nil
 		}
-		fmt.Println("Recent Sessions:")
-		for i, c := range convs {
-			fmt.Printf("  %d) [%s] %-36s (%s)\n", i+1, strings.ToUpper(c.Provider), c.Title, c.ID[:8])
+		rows := make([]tui.DataTableRow, 0, len(convs)+len(others))
+		times := make(map[string]time.Time, len(convs)+len(others))
+		for _, c := range convs {
+			when := "—"
+			if !c.UpdatedAt.IsZero() {
+				when = c.UpdatedAt.Local().Format("2006-01-02 15:04")
+			}
+			status := c.Profile
+			if c.UnavailableReason != "" {
+				status = c.UnavailableReason
+			}
+			values := []string{when, c.Account, c.Title, c.Workspace, status}
+			key := "codex\x00" + c.ID
+			times[key] = c.UpdatedAt
+			rows = append(rows, tui.DataTableRow{
+				Key: key, Values: values, Disabled: c.UnavailableReason != "",
+				SearchText: strings.Join(append(values, c.ID), " "),
+				Detail:     fmt.Sprintf("Conta: %s · Projeto: %s · Sessão: %s · %s", c.Account, c.Workspace, c.ID, status),
+			})
 		}
-		fmt.Print("Select session [1-9] (q to cancel): ")
-		var input string
-		fmt.Scanln(&input)
-		input = strings.TrimSpace(input)
-		if input == "q" || input == "Q" || input == "" {
+		for _, c := range others {
+			when := "—"
+			if !c.LastModified.IsZero() {
+				when = c.LastModified.Local().Format("2006-01-02 15:04")
+			}
+			key := c.Provider + "\x00" + c.ID
+			times[key] = c.LastModified
+			values := []string{when, strings.ToUpper(c.Provider), c.Title, c.Workspace, "perfil padrão"}
+			rows = append(rows, tui.DataTableRow{Key: key, Values: values,
+				SearchText: strings.Join(append(values, c.ID, c.Profile), " "),
+				Detail:     fmt.Sprintf("Provedor: %s · Projeto: %s · Sessão: %s · perfil padrão", c.Provider, c.Workspace, c.ID),
+			})
+		}
+		sort.SliceStable(rows, func(i, j int) bool { return times[rows[i].Key].After(times[rows[j].Key]) })
+		selected, err := tui.SelectDataTable(tui.DataTableOptions{
+			Title: "Nexus · Histórico de sessões", FilterPlaceholder: "buscar título, projeto, conta ou UUID",
+			Columns: []tui.DataTableColumn{{Title: "DATA", Width: 16}, {Title: "CONTA", Width: 24}, {Title: "TÍTULO", Width: 32}, {Title: "PROJETO", Width: 28}, {Title: "PERFIL / ESTADO", Width: 35}}, Rows: rows,
+		})
+		if err != nil || selected == "" {
+			return err
+		}
+		for _, c := range convs {
+			if "codex\x00"+c.ID != selected {
+				continue
+			}
+			failure, resumeErr := codex.New().ResumeUnified(context.Background(), c)
+			if resumeErr != nil {
+				return resumeErr
+			}
+			if failure.Kind != model.FailureNone && failure.Kind != "" {
+				return errors.New(failure.Message)
+			}
 			return nil
 		}
-		var idx int
-		if _, err := fmt.Sscanf(input, "%d", &idx); err != nil || idx < 1 || idx > len(convs) {
-			return errors.New("invalid selection")
+		for _, c := range others {
+			if c.Provider+"\x00"+c.ID == selected {
+				return executeResume(c.Provider, "", c.ID, nil)
+			}
 		}
-		chosen := convs[idx-1]
-		return executeResume(chosen.Provider, "", chosen.ID, nil)
+		return errors.New("sessão selecionada não encontrada")
 	}
 
 	sessionID := args[0]

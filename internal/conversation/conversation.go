@@ -2,9 +2,14 @@ package conversation
 
 import (
 	"context"
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/agy"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/claude"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
@@ -21,6 +26,50 @@ type Conversation struct {
 	Profile      string    `json:"profile,omitempty"`
 	Workspace    string    `json:"workspace"`
 	LastModified time.Time `json:"last_modified"`
+}
+
+// ListOtherReadOnly keeps the existing non-Codex resume entries available
+// while avoiding profile repair or authentication writes during discovery.
+func ListOtherReadOnly(ctx context.Context) ([]Conversation, error) {
+	data, err := config.DataDir()
+	if err != nil {
+		return nil, err
+	}
+	adapters := map[string]provider.ConversationProvider{
+		"agy": agy.New(), "claude": claude.New(), "opencode": opencode.New(), "gemini": gemini.New(),
+	}
+	var sessions []model.Session
+	for _, name := range []string{"agy", "claude", "opencode", "gemini"} {
+		adapter := adapters[name]
+		entries, readErr := os.ReadDir(filepath.Join(data, "profiles", name))
+		if readErr != nil && !os.IsNotExist(readErr) {
+			return nil, readErr
+		}
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				continue
+			}
+			raw, readErr := os.ReadFile(filepath.Join(data, "profiles", name, entry.Name(), "profile.json"))
+			var p model.Profile
+			if readErr != nil || json.Unmarshal(raw, &p) != nil || p.Provider != name || p.Name != entry.Name() {
+				continue
+			}
+			if list, listErr := adapter.ListConversations(ctx, p, ""); listErr == nil {
+				sessions = append(sessions, list...)
+			}
+		}
+		if list, listErr := adapter.ListConversations(ctx, model.Profile{Name: "default"}, ""); listErr == nil {
+			sessions = append(sessions, list...)
+		}
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+	}
+	var result []Conversation
+	for _, s := range session.NewStore().Aggregate(sessions, "") {
+		result = append(result, Conversation{ID: s.ID, Title: s.Title, Provider: s.ProviderID, Profile: s.ProfileID, Workspace: s.Workspace, LastModified: s.UpdatedAt})
+	}
+	return result, nil
 }
 
 // ListRecent returns unique recent conversations across all providers and profile stores.

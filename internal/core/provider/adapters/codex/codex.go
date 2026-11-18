@@ -172,6 +172,10 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 	if err := a.Prepare(ctx, p); err != nil {
 		return model.Failure{Kind: model.FailureCommand, Message: err.Error()}, err
 	}
+	return a.runPrepared(p, args, "")
+}
+
+func (a *Adapter) runPrepared(p model.Profile, args []string, expectedAccountID string) (model.Failure, error) {
 	bin, err := spec.MustGet("codex").ResolveBinary()
 	if err != nil {
 		return model.Failure{Kind: model.FailureProvider, Message: "codex binary not found"}, err
@@ -193,6 +197,11 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 		}
 	}
 	defer func() { _ = lock.Release() }()
+	if expectedAccountID != "" {
+		if err := validateUnifiedProfile(p.Name, expectedAccountID); err != nil {
+			return model.Failure{Kind: model.FailureCommand, Message: err.Error()}, err
+		}
+	}
 
 	cwd, _ := os.Getwd()
 	envOverrides := map[string]string{
