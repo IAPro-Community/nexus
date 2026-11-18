@@ -6,10 +6,19 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 func TestAgentGroupsAPIUsesDurableProjectScopedMembership(t *testing.T) {
+	// The package also tests durable and mutable global Nexus state. Keep
+	// this contract's projects/agents on a disposable isolated DB so a
+	// concurrent capacity/agent worker cannot change their identity kind.
+	dataDir := t.TempDir()
+	t.Setenv("NEXUS_DATA_DIR", dataDir)
+	t.Setenv("AI_CLI_DATA_DIR", dataDir)
+	nexus.ResetDefaultForTest()
+	t.Cleanup(nexus.ResetDefaultForTest)
 	client, srv, csrf := csrfClient(t)
 	base := srv.URL()
 	create := func(name string) store.Project {
@@ -94,8 +103,14 @@ func TestAgentGroupsAPIUsesDurableProjectScopedMembership(t *testing.T) {
 		t.Fatal(err)
 	}
 	if response.StatusCode != http.StatusOK {
+		// The response contains only this test's synthetic project data.
+		// Decode rather than reading arbitrarily sized error output.
+		var detail struct {
+			Error string `json:"error"`
+		}
+		_ = json.NewDecoder(response.Body).Decode(&detail)
 		response.Body.Close()
-		t.Fatalf("update group status=%d", response.StatusCode)
+		t.Fatalf("update group status=%d, detail=%q", response.StatusCode, detail.Error)
 	}
 	var updated store.AgentGroup
 	if err := json.NewDecoder(response.Body).Decode(&updated); err != nil {
