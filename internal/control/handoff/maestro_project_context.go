@@ -40,19 +40,47 @@ type maestroBridgeEnvelope struct {
 	ID      *int            `json:"id"`
 	Result  json.RawMessage `json:"result"`
 	Error   *struct {
-		Code int `json:"code"`
+		Code int    `json:"code"`
+		Data *struct {
+			Code string `json:"code"`
+		} `json:"data"`
 	} `json:"error"`
+}
+
+// MaestroBridgeError carries the constant fail-closed domain code returned by
+// the Bridge (when present) so callers can translate specific blockers.
+type MaestroBridgeError struct {
+	RPCCode    int
+	DomainCode string
+}
+
+func (e *MaestroBridgeError) Error() string {
+	if e.DomainCode != "" {
+		return fmt.Sprintf("maestro Bridge rejected the request (%s)", e.DomainCode)
+	}
+	return fmt.Sprintf("maestro Bridge method unavailable (%d)", e.RPCCode)
+}
+
+// MaestroDomainCode extracts the Bridge domain blocker code, if any.
+func MaestroDomainCode(err error) string {
+	var bridge *MaestroBridgeError
+	if errors.As(err, &bridge) {
+		return bridge.DomainCode
+	}
+	return ""
 }
 
 type maestroBridgeInit struct {
 	ProtocolVersion int `json:"protocolVersion"`
 	Capabilities    struct {
-		ProjectContext      bool `json:"projectContext"`
-		ContextBrief        bool `json:"contextBrief"`
-		PlansRoutePreview   bool `json:"plansRoutePreview"`
-		RunsSubmissionsPoll bool `json:"runsSubmissionsPoll"`
-		ProjectCompose      bool `json:"projectCompose"`
-		Memory              struct {
+		ProjectContext        bool `json:"projectContext"`
+		ContextBrief          bool `json:"contextBrief"`
+		PlansRoutePreview     bool `json:"plansRoutePreview"`
+		RunsSubmissionsPoll   bool `json:"runsSubmissionsPoll"`
+		RunsSubmissionsCancel bool `json:"runsSubmissionsCancel"`
+		RunsSubmit            bool `json:"runsSubmit"`
+		ProjectCompose        bool `json:"projectCompose"`
+		Memory                struct {
 			Read bool `json:"read"`
 		} `json:"memory"`
 	} `json:"capabilities"`
@@ -134,7 +162,11 @@ func readMaestroBridgeReply(reader *bufio.Reader, expectedID int) (json.RawMessa
 		return nil, errors.New("maestro Bridge response identity mismatch")
 	}
 	if reply.Error != nil {
-		return nil, fmt.Errorf("maestro Bridge method unavailable (%d)", reply.Error.Code)
+		domain := ""
+		if reply.Error.Data != nil {
+			domain = reply.Error.Data.Code
+		}
+		return nil, &MaestroBridgeError{RPCCode: reply.Error.Code, DomainCode: domain}
 	}
 	if len(reply.Result) == 0 || string(reply.Result) == "null" {
 		return nil, errors.New("empty Maestro Bridge result")
