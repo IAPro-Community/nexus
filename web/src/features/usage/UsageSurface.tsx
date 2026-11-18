@@ -29,6 +29,7 @@ import {
 import { AccountLoginModal } from './AccountLoginModal';
 import { CostSummaryStrip } from './CostSummaryStrip';
 import { ConsumptionAnalyticsPanel } from './ConsumptionAnalyticsPanel';
+import { ConsumptionBreakdownPanel } from './ConsumptionBreakdownPanel';
 import { RegisterProviderModal } from './RegisterProviderModal';
 import { SchedulerExplainModal } from './SchedulerExplainModal';
 import { UsageAccountCard } from './UsageAccountCard';
@@ -528,6 +529,7 @@ export const UsageSurface: React.FC<{
         <>
           <CostSummaryStrip summary={costSummary} />
           <ConsumptionAnalyticsPanel />
+          <ConsumptionBreakdownPanel />
         </>
       ) : null}
 

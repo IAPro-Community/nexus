@@ -1,15 +1,33 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Activity, ArrowDownToLine, CircleDollarSign, Database, RefreshCw } from 'lucide-react';
+import {
+  Activity,
+  ArrowDownToLine,
+  CircleDollarSign,
+  Database,
+  Download,
+  RefreshCw,
+} from 'lucide-react';
 import { Button } from '../../design-system';
+import { downloadAuthenticatedCsv } from '../../lib/downloadAuthenticatedCsv';
 import { nexus } from '../../nexus/api';
 import type { CostAnalyticsReport, CostAnalyticsTotals } from '../../types';
-import { cacheRate, costEvidenceLabel } from './consumptionAnalyticsModel';
+import {
+  cacheRate,
+  costEvidenceLabel,
+  dailyMetricAvailable,
+  dailyMetricMax,
+  dailyMetricValue,
+  formatAmount,
+  formatMicroUSD,
+  type DailyMetric,
+} from './consumptionAnalyticsModel';
 import styles from './ConsumptionAnalyticsPanel.module.scss';
 
 type Period = 7 | 30 | 90;
 const periods: readonly Period[] = [7, 30, 90];
 const refreshMs = 60_000;
+const metricOrder: readonly DailyMetric[] = ['invocations', 'tokens', 'cost'];
 
 function money(microUSD: number): string {
   return new Intl.NumberFormat(undefined, {
@@ -32,6 +50,11 @@ function observedUSD(totals: CostAnalyticsTotals, kind: 'reported' | 'equivalent
   return money(value);
 }
 
+function formatMetricValue(metric: DailyMetric, value: number): string {
+  if (metric === 'cost') return formatMicroUSD(value);
+  return formatAmount(value);
+}
+
 export function ConsumptionAnalyticsPanel({ projectId }: { projectId?: string }) {
   const { t, i18n } = useTranslation();
   const [period, setPeriod] = useState<Period>(7);
@@ -40,6 +63,9 @@ export function ConsumptionAnalyticsPanel({ projectId }: { projectId?: string })
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [revision, setRevision] = useState(0);
+  const [preferredMetric, setPreferredMetric] = useState<DailyMetric>('invocations');
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -80,10 +106,48 @@ export function ConsumptionAnalyticsPanel({ projectId }: { projectId?: string })
   }, [period, projectId, revision, t]);
 
   const cache = data ? cacheRate(data.total) : null;
-  const maxDaily = useMemo(
-    () => Math.max(1, ...(data?.by_day.map((bucket) => bucket.observation_count) || [])),
-    [data],
+  const byDay = useMemo(() => data?.by_day ?? [], [data]);
+  // A selected metric without measured evidence in the current report falls
+  // back to invocations instead of plotting fabricated zeros.
+  const activeMetric: DailyMetric = useMemo(
+    () => (dailyMetricAvailable(byDay, preferredMetric) ? preferredMetric : 'invocations'),
+    [byDay, preferredMetric],
   );
+  const maxDaily = useMemo(() => dailyMetricMax(byDay, activeMetric), [byDay, activeMetric]);
+
+  const exportCsv = () => {
+    if (!data || data.total.observation_count === 0 || exporting) return;
+    setExporting(true);
+    setExportError('');
+    downloadAuthenticatedCsv(
+      `/api/v1/cost/observations.csv?days=${period}`,
+      `nexus-cost-observations-${period}d.csv`,
+    )
+      .catch((reason: unknown) => {
+        setExportError(reason instanceof Error ? reason.message : t('consumption.exportCsvError'));
+      })
+      .finally(() => setExporting(false));
+  };
+
+  const onMetricKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    const index = metricOrder.indexOf(activeMetric);
+    const delta =
+      event.key === 'ArrowRight' || event.key === 'ArrowDown'
+        ? 1
+        : event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+          ? -1
+          : 0;
+    if (delta === 0) return;
+    event.preventDefault();
+    for (let step = 1; step <= metricOrder.length; step += 1) {
+      const next =
+        metricOrder[(index + delta * step + metricOrder.length * 2) % metricOrder.length];
+      if (dailyMetricAvailable(byDay, next)) {
+        setPreferredMetric(next);
+        return;
+      }
+    }
+  };
 
   return (
     <section className={styles.root} aria-label={t('consumption.title')}>
@@ -118,8 +182,22 @@ export function ConsumptionAnalyticsPanel({ projectId }: { projectId?: string })
             <RefreshCw size={14} aria-hidden="true" />
             {t('consumption.refresh')}
           </Button>
+          <Button
+            size="sm"
+            tone="ghost"
+            disabled={loading || exporting || !data || data.total.observation_count === 0}
+            onClick={exportCsv}
+          >
+            <Download size={14} aria-hidden="true" />
+            {exporting ? t('consumption.exportCsvBusy') : t('consumption.exportCsv')}
+          </Button>
         </div>
       </header>
+      {exportError && (
+        <p role="alert" className={styles.error}>
+          {exportError}
+        </p>
+      )}
 
       {loading && (
         <p role="status" className={styles.note}>
@@ -186,33 +264,81 @@ export function ConsumptionAnalyticsPanel({ projectId }: { projectId?: string })
             <div className={styles.layout}>
               <div className={styles.section}>
                 <h3>{t('consumption.daily')}</h3>
-                <p className={styles.note}>{t('consumption.dailyExplanation')}</p>
-                <ol className={styles.timeline}>
-                  {data.by_day.map((bucket) => (
-                    <li key={bucket.date} className={styles.day}>
-                      <time dateTime={bucket.date}>
-                        {new Date(`${bucket.date}T12:00:00Z`).toLocaleDateString(i18n.language, {
-                          month: 'short',
-                          day: '2-digit',
-                        })}
-                      </time>
-                      <div
-                        className={styles.barTrack}
-                        role="img"
-                        aria-label={t('consumption.dayObservations', {
-                          date: bucket.date,
-                          count: bucket.observation_count,
-                        })}
+                <div
+                  className={styles.metricToggle}
+                  role="radiogroup"
+                  aria-label={t('consumption.metric')}
+                  onKeyDown={onMetricKeyDown}
+                >
+                  {metricOrder.map((metric) => {
+                    const available = dailyMetricAvailable(byDay, metric);
+                    const checked = activeMetric === metric;
+                    return (
+                      <button
+                        key={metric}
+                        type="button"
+                        role="radio"
+                        aria-checked={checked}
+                        aria-disabled={!available}
+                        tabIndex={checked ? 0 : -1}
+                        className={styles.metricOption}
+                        onClick={() => {
+                          if (available) setPreferredMetric(metric);
+                        }}
                       >
-                        <span
-                          className={styles.bar}
-                          style={{ width: `${(bucket.observation_count / maxDaily) * 100}%` }}
-                        />
-                      </div>
-                      <strong>{amount(bucket.observation_count)}</strong>
-                    </li>
-                  ))}
+                        {t(`consumption.metricOptions.${metric}`)}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className={styles.note}>
+                  {activeMetric === 'invocations'
+                    ? t('consumption.dailyExplanation')
+                    : t(`consumption.dailyExplanationFor.${activeMetric}`)}
+                </p>
+                <ol className={styles.timeline}>
+                  {data.by_day.map((bucket) => {
+                    const value = dailyMetricValue(bucket, activeMetric);
+                    const hasEvidence = value !== null;
+                    return (
+                      <li key={bucket.date} className={styles.day}>
+                        <time dateTime={bucket.date}>
+                          {new Date(`${bucket.date}T12:00:00Z`).toLocaleDateString(i18n.language, {
+                            month: 'short',
+                            day: '2-digit',
+                          })}
+                        </time>
+                        <div
+                          className={styles.barTrack}
+                          role="img"
+                          aria-label={
+                            hasEvidence
+                              ? t(`consumption.dayMetric.${activeMetric}`, {
+                                  date: bucket.date,
+                                  value: formatMetricValue(activeMetric, value),
+                                })
+                              : t('consumption.dayNoEvidence', {
+                                  date: bucket.date,
+                                  metric: t(`consumption.metricOptions.${activeMetric}`),
+                                })
+                          }
+                          data-missing={hasEvidence ? undefined : 'true'}
+                        >
+                          <span
+                            className={styles.bar}
+                            style={{
+                              width: hasEvidence ? `${(value / maxDaily) * 100}%` : undefined,
+                            }}
+                          />
+                        </div>
+                        <strong>
+                          {hasEvidence ? formatMetricValue(activeMetric, value) : '—'}
+                        </strong>
+                      </li>
+                    );
+                  })}
                 </ol>
+                <p className={styles.note}>{t('consumption.dayMissingHint')}</p>
               </div>
               <div className={styles.section}>
                 <h3>{t('consumption.models')}</h3>

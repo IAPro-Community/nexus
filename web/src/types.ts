@@ -569,6 +569,10 @@ export interface CostObservation {
   source: string;
   status?: string;
   account_scope?: string;
+  session_id?: string;
+  /** Not-measured latency/throughput evidence stays absent, never zero. */
+  ttft_ms?: number;
+  output_tokens_per_second?: number;
   observed_at: string;
 }
 

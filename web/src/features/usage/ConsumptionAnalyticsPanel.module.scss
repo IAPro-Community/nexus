@@ -92,6 +92,40 @@
   outline-offset: 2px;
 }
 
+.metricToggle {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface);
+}
+
+.metricOption {
+  background: transparent;
+  color: var(--nx-muted);
+  border: 0;
+  border-radius: var(--nx-radius-sm);
+  padding: 5px 9px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.metricOption[aria-checked='true'] {
+  background: var(--nx-bg-elevated);
+  color: var(--nx-text);
+  font-weight: 650;
+}
+
+.metricOption[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.metricOption:focus-visible {
+  outline: 2px solid var(--nx-accent);
+  outline-offset: 2px;
+}
+
 .metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -190,6 +224,17 @@
   height: 100%;
   border-radius: inherit;
   background: var(--nx-accent);
+}
+
+/* A day without measured evidence keeps an empty track (dashed) instead of a
+ * fabricated zero-width bar. */
+.barTrack[data-missing='true'] {
+  border: 1px dashed var(--nx-border);
+  background: transparent;
+}
+
+.barTrack[data-missing='true'] .bar {
+  display: none;
 }
 
 .tableScroll {

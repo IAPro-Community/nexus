@@ -1,0 +1,267 @@
+.root {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  min-width: 0;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  background: var(--nx-bg-elevated);
+}
+
+.header,
+.heading,
+.actions,
+.groupBlock,
+.detailArea,
+.detailHead,
+.row,
+.facts {
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.heading > svg {
+  flex: 0 0 auto;
+  color: var(--nx-accent);
+  margin-top: 2px;
+}
+
+.heading h2,
+.detailHead h3,
+.groupBlock h3 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--nx-text);
+}
+
+.detailHead h3,
+.groupBlock h3 {
+  font-size: 12px;
+}
+
+.heading p,
+.note {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--nx-muted);
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.periods {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface);
+}
+
+.period {
+  background: transparent;
+  color: var(--nx-muted);
+  border: 0;
+  border-radius: var(--nx-radius-sm);
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.period[aria-pressed='true'] {
+  background: var(--nx-bg-elevated);
+  color: var(--nx-text);
+  font-weight: 650;
+}
+
+.period:focus-visible,
+.groupButton:focus-visible {
+  outline: 2px solid var(--nx-accent);
+  outline-offset: 2px;
+}
+
+.groupBlock {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface);
+  padding: 12px;
+}
+
+.groups {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.groupButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-bg-elevated);
+  color: var(--nx-text);
+  font-size: 11px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.groupButton:hover {
+  border-color: var(--nx-accent);
+}
+
+.groupId {
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.groupCount {
+  flex: 0 0 auto;
+  color: var(--nx-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.detailArea {
+  display: grid;
+  gap: 10px;
+}
+
+.detailHead {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.rows {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface);
+}
+
+.rowHead {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.model {
+  color: var(--nx-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.model small {
+  margin-left: 6px;
+  color: var(--nx-muted);
+  font-weight: 400;
+}
+
+.status {
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--nx-border);
+  color: var(--nx-text);
+  font-size: 10px;
+}
+
+.status[data-absent='true'] {
+  color: var(--nx-muted);
+  border-style: dashed;
+}
+
+.observedAt {
+  margin-left: auto;
+  color: var(--nx-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 6px 12px;
+  margin: 0;
+}
+
+.fact dt {
+  color: var(--nx-muted);
+  font-size: 10px;
+}
+
+.fact dd {
+  margin: 2px 0 0;
+  color: var(--nx-text);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.fact dd small {
+  color: var(--nx-muted);
+}
+
+.mono {
+  overflow-wrap: anywhere;
+  font-family: var(--nx-font-mono);
+}
+
+.empty {
+  margin: 0;
+  padding: 12px;
+  color: var(--nx-muted);
+  font-size: 12px;
+}
+
+.error {
+  margin: 0;
+  color: var(--nx-danger);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 540px) {
+  .root {
+    padding: 12px;
+  }
+
+  .observedAt {
+    margin-left: 0;
+  }
+}
