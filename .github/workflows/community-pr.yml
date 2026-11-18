@@ -151,6 +151,9 @@ jobs:
             }
             throw 'Invalid Windows first-run PowerShell syntax'
           }
+      - name: Validate sanitized Windows Go diagnostics
+        shell: pwsh
+        run: ./scripts/test-windows-first-run-failure-summary.ps1
       - name: Install Bun
         if: steps.scope.outputs.source_changed == 'true'
         uses: oven-sh/setup-bun@v2

@@ -9,6 +9,7 @@ param(
 # installation or removal of provider accounts, no user-data mutation.
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'windows-first-run-failure-summary.ps1')
 $root = Split-Path -Parent $PSScriptRoot
 Push-Location $root
 try {
@@ -87,6 +88,10 @@ try {
                 if ($codes.Count -gt 0) {
                     $detail = 'TypeScript diagnostic codes: ' + ($codes -join ', ') + '; see private log'
                 }
+            }
+            if ($Id -eq 'conpty-terminal-regression' -and (Test-Path -LiteralPath $script:activeLog)) {
+                $goDiagnostics = Get-Content -LiteralPath $script:activeLog -Raw -ErrorAction SilentlyContinue
+                $detail = Get-NexusGoFailureSummary -RawDiagnostics ([string]$goDiagnostics)
             }
             Add-Gate $Id 'FAIL' $detail
             $_.Exception.ToString() | Out-File -LiteralPath $script:activeLog -Append -Encoding utf8
