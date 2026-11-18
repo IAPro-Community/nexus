@@ -10,13 +10,14 @@ import type {
 import {
   readNexAssistantPreferences,
   saveNexAssistantPreferences,
-  type NexAssistantMode,
 } from './nexAssistantPreferences';
+import { NexProactivityControls } from './NexProactivityControls';
 import { NexAssistantActions } from './NexAssistantActions';
 import styles from './NexAssistantPanel.module.scss';
 
 export interface NexAssistantPanelProps {
   projectId?: string;
+  revision?: string;
   privacyMode?: boolean;
   onOpenMissions?: () => void;
   onOpenAgents?: () => void;
@@ -34,6 +35,7 @@ export interface NexAssistantPanelProps {
  */
 export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
   projectId,
+  revision,
   privacyMode = false,
   onOpenMissions,
   onOpenAgents,
@@ -44,8 +46,8 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
 }) => {
   const [expanded, setExpanded] = React.useState(false);
   const [overview, setOverview] = React.useState<NexAssistantOverview | null>(null);
-  const [mode, setMode] = React.useState<NexAssistantMode>(
-    () => readNexAssistantPreferences().mode,
+  const [showOverviewSuggestions, setShowOverviewSuggestions] = React.useState(
+    () => readNexAssistantPreferences().mode === 'contextual',
   );
   const [turns, setTurns] = React.useState<NexChatTurn[]>([]);
   const [proposal, setProposal] = React.useState<NexActionProposal | null>(null);
@@ -71,6 +73,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
     setError('');
     setIncludeProjectContext(false);
     setConfirmClear(false);
+    setShowOverviewSuggestions(readNexAssistantPreferences().mode === 'contextual');
   }, [projectId]);
 
   React.useEffect(() => () => chatAbortController.current?.abort(), []);
@@ -84,6 +87,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
       setDraft('');
       setError('');
       setIncludeProjectContext(false);
+      setShowOverviewSuggestions(false);
     }
   }, [privacyMode]);
 
@@ -103,14 +107,13 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
     };
   }, [expanded, projectId, privacyMode]);
 
-  const changeMode = (next: NexAssistantMode) => {
-    setMode(next);
-    saveNexAssistantPreferences({ version: 1, mode: next, persistHistory });
-  };
-
   const changePersistence = (next: boolean) => {
     setPersistHistory(next);
-    saveNexAssistantPreferences({ version: 1, mode, persistHistory: next });
+    saveNexAssistantPreferences({
+      version: 1,
+      mode: readNexAssistantPreferences().mode,
+      persistHistory: next,
+    });
     setTurns([]);
     setConfirmClear(false);
   };
@@ -259,14 +262,22 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
             Posso explicar o estado do Nexus e ajudar a encontrar o próximo passo. Nenhuma ação será
             executada apenas por conversar.
           </p>
-          <label className={styles.setting}>
-            <input
-              type="checkbox"
-              checked={mode === 'contextual'}
-              onChange={(event) => changeMode(event.target.checked ? 'contextual' : 'manual')}
-            />
-            Mostrar sugestões contextuais
-          </label>
+          <NexProactivityControls
+            active={expanded}
+            projectId={projectId}
+            revision={revision}
+            privacyMode={privacyMode}
+            onOpenMissions={onOpenMissions}
+            onOpenUsage={onOpenUsage}
+          />
+          <button
+            type="button"
+            className={styles.send}
+            aria-expanded={showOverviewSuggestions}
+            onClick={() => setShowOverviewSuggestions((current) => !current)}
+          >
+            {showOverviewSuggestions ? 'Ocultar opções disponíveis' : 'Ver opções disponíveis'}
+          </button>
           <label className={styles.setting}>
             <input
               type="checkbox"
@@ -306,7 +317,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
               )}
             </div>
           )}
-          {mode === 'contextual' && overview?.suggestions.length ? (
+          {showOverviewSuggestions && overview?.suggestions.length ? (
             <div className={styles.suggestions} aria-label="Opções com evidência operacional">
               {overview.suggestions.map((suggestion) => (
                 <button
