@@ -640,6 +640,9 @@ export interface DirectorAgentProjection {
   agent_status: string;
   process_state: 'LIVE' | 'NOT_LIVE' | 'UNKNOWN';
   process_evidence: string;
+  observed_state?: 'unknown' | 'working' | 'blocked' | 'idle' | 'done' | 'error';
+  observed_source?: string;
+  observed_reason?: string;
   runtime_id?: string;
   generation_id?: string;
   provider?: string;

@@ -260,6 +260,21 @@ func (h *NexusHandler) handleNexAssistant(w http.ResponseWriter, r *http.Request
 					persistUser, security.Redact(answer), source)
 			}
 		}
+		if proposal, matched := resolveNexActionIntent(body.Message); matched {
+			answer := "Posso abrir essa área do Nexus. Revise a proposta e confirme na interface; não executei nenhuma operação."
+			if persistExchange != nil {
+				saved, saveErr := persistExchange(answer, "nexus_snapshot")
+				if saveErr != nil {
+					writeError(w, http.StatusServiceUnavailable, "Nex conversation not saved")
+					return
+				}
+				answer = saved
+			}
+			writeJSON(w, http.StatusOK, map[string]any{
+				"answer": answer, "source": "nexus_snapshot", "proposal": proposal,
+			})
+			return
+		}
 		if answer, matched := nexDeterministicReply(body.Message, overview); matched {
 			if persistExchange != nil {
 				saved, saveErr := persistExchange(answer, "nexus_snapshot")

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../design-system';
-import { nexus } from '../../nexus/api';
+import { nexus, type AgentObservation } from '../../nexus/api';
 import type {
   Agent,
   DirectorActionKind,
@@ -39,6 +39,7 @@ export function DirectorAgentPanel({
 }) {
   const { t, i18n } = useTranslation();
   const [view, setView] = useState<DirectorAgentProjection | null>(null);
+  const [observation, setObservation] = useState<AgentObservation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -50,11 +51,14 @@ export function DirectorAgentPanel({
     setRefreshing(true);
     setError('');
 
-    nexus
-      .getDirectorAgent(agent.project_id, agent.id)
-      .then((result) => {
+    Promise.all([
+      nexus.getDirectorAgent(agent.project_id, agent.id),
+      nexus.getAgentObservation(agent.project_id, agent.id).catch(() => null),
+    ])
+      .then(([result, observed]) => {
         if (active) {
           setView(result);
+          setObservation(observed);
           setLastObservedAt(new Date().toISOString());
         }
       })
@@ -144,6 +148,28 @@ export function DirectorAgentPanel({
               </div>
             ))}
           </dl>
+          {observation && (
+            <>
+              <h3 className={styles.heading}>{t('director.observedTitle')}</h3>
+              <dl className={styles.metadata}>
+                <div>
+                  <dt>{t('director.observedState')}</dt>
+                  <dd>{observation.agent_state}</dd>
+                </div>
+                <div>
+                  <dt>{t('director.observedSource')}</dt>
+                  <dd>{observation.signal_source}</dd>
+                </div>
+                <div>
+                  <dt>{t('director.observedReason')}</dt>
+                  <dd>
+                    <code>{observation.reason_code}</code>
+                  </dd>
+                </div>
+              </dl>
+              <p className={styles.notice}>{t('director.observedDisclaimer')}</p>
+            </>
+          )}
           <h3 className={styles.heading}>{t('director.controls')}</h3>
           <p className={styles.notice}>{t('director.preparationNotice')}</p>
           <ul className={styles.actions}>

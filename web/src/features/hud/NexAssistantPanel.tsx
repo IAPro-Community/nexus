@@ -2,6 +2,7 @@ import React from 'react';
 import { MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { nexus } from '../../nexus/api';
 import type {
+  NexActionProposal,
   NexAssistantOverview,
   NexAssistantSuggestion,
   NexChatTurn,
@@ -22,6 +23,8 @@ export interface NexAssistantPanelProps {
   onOpenAgents?: () => void;
   onOpenUsage?: () => void;
   onOpenNexus?: () => void;
+  onOpenSettings?: () => void;
+  onOpenNewAgent?: () => void;
 }
 
 /**
@@ -38,10 +41,14 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
   onOpenAgents,
   onOpenUsage,
   onOpenNexus,
+  onOpenSettings,
+  onOpenNewAgent,
 }) => {
   const [expanded, setExpanded] = React.useState(false);
   const [overview, setOverview] = React.useState<NexAssistantOverview | null>(null);
+  const [showOverviewSuggestions, setShowOverviewSuggestions] = React.useState(false);
   const [turns, setTurns] = React.useState<NexChatTurn[]>([]);
+  const [proposal, setProposal] = React.useState<NexActionProposal | null>(null);
   const [persistHistory, setPersistHistory] = React.useState(
     () => readNexAssistantPreferences().persistHistory,
   );
@@ -58,11 +65,13 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
   React.useEffect(() => {
     chatAbortController.current?.abort();
     setTurns([]);
+    setProposal(null);
     setOverview(null);
     setDraft('');
     setError('');
     setIncludeProjectContext(false);
     setConfirmClear(false);
+    setShowOverviewSuggestions(false);
   }, [projectId]);
 
   React.useEffect(() => () => chatAbortController.current?.abort(), []);
@@ -72,9 +81,11 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
       chatAbortController.current?.abort();
       setExpanded(false);
       setTurns([]);
+      setProposal(null);
       setDraft('');
       setError('');
       setIncludeProjectContext(false);
+      setShowOverviewSuggestions(false);
     }
   }, [privacyMode]);
 
@@ -149,6 +160,12 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
       case 'usage':
         onOpenUsage?.();
         break;
+      case 'settings':
+        onOpenSettings?.();
+        break;
+      case 'new-agent':
+        onOpenNewAgent?.();
+        break;
       default:
         onOpenNexus?.();
     }
@@ -162,6 +179,10 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
         return Boolean(onOpenAgents);
       case 'usage':
         return Boolean(onOpenUsage);
+      case 'settings':
+        return Boolean(onOpenSettings);
+      case 'new-agent':
+        return Boolean(onOpenNewAgent);
       default:
         return Boolean(onOpenNexus);
     }
@@ -175,6 +196,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
     setBusy(true);
     setError('');
     setDraft('');
+    setProposal(null);
     const controller = new AbortController();
     chatAbortController.current = controller;
     const history = turns.slice(-8).map((turn) => ({
@@ -195,6 +217,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
         controller.signal,
       );
       if (controller.signal.aborted || !allowResultsRef.current) return;
+      setProposal(reply.proposal ?? null);
       setTurns((current) =>
         [...current, { role: 'assistant' as const, content: reply.answer }].slice(-12),
       );
@@ -245,6 +268,69 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
             onOpenMissions={onOpenMissions}
             onOpenUsage={onOpenUsage}
           />
+          <button
+            type="button"
+            className={styles.send}
+            aria-expanded={showOverviewSuggestions}
+            onClick={() => setShowOverviewSuggestions((current) => !current)}
+          >
+            {showOverviewSuggestions ? 'Ocultar opções disponíveis' : 'Ver opções disponíveis'}
+          </button>
+          <label className={styles.setting}>
+            <input
+              type="checkbox"
+              checked={persistHistory}
+              onChange={(event) => changePersistence(event.target.checked)}
+              disabled={busy}
+            />
+            Guardar conversa neste Nexus para retomar em outro dispositivo
+          </label>
+          {persistHistory && (
+            <div className={styles.historyActions}>
+              {confirmClear ? (
+                <>
+                  <span className={styles.caption}>
+                    Apagar permanentemente a conversa deste contexto?
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.send}
+                    onClick={() => void clearHistory()}
+                    disabled={busy}
+                  >
+                    Confirmar exclusão
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.send}
+                    onClick={() => setConfirmClear(false)}
+                  >
+                    Cancelar
+                  </button>
+                </>
+              ) : (
+                <button type="button" className={styles.send} onClick={() => setConfirmClear(true)}>
+                  Apagar histórico
+                </button>
+              )}
+            </div>
+          )}
+          {showOverviewSuggestions && overview?.suggestions.length ? (
+            <div className={styles.suggestions} aria-label="Opções com evidência operacional">
+              {overview.suggestions.map((suggestion) => (
+                <button
+                  key={suggestion.id}
+                  type="button"
+                  className={styles.action}
+                  disabled={!availableTarget(suggestion)}
+                  onClick={() => runSuggestion(suggestion)}
+                >
+                  <strong>{suggestion.title}</strong>
+                  <small>{suggestion.description}</small>
+                </button>
+              ))}
+            </div>
+          ) : null}
           {overview && (
             <p className={styles.caption}>
               Estado consultado: {overview.agent_count} agentes ativos · {overview.needs_user}{' '}
@@ -268,6 +354,25 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
               </p>
             ))}
           </div>
+          {proposal && (
+            <div className={styles.suggestions} aria-label="Ação sugerida pelo Nex">
+              <p className={styles.caption}>
+                Proposta de navegação · nenhuma alteração foi executada
+              </p>
+              <button
+                type="button"
+                className={styles.action}
+                disabled={!availableTarget(proposal)}
+                onClick={() => {
+                  runSuggestion(proposal);
+                  setProposal(null);
+                }}
+              >
+                <strong>{proposal.title}</strong>
+                <small>{proposal.description}</small>
+              </button>
+            </div>
+          )}
           <NexAssistantActions
             active={expanded}
             projectId={projectId}

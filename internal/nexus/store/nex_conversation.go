@@ -73,7 +73,7 @@ func (s *Store) FindNexConversationReply(projectID, requestID, message string) (
 		return "", false, err
 	}
 	if original != message {
-		return "", false, fmt.Errorf("Nex request ID conflict")
+		return "", false, fmt.Errorf("nex request ID conflict")
 	}
 	var reply string
 	err = s.db.QueryRow(`SELECT content FROM nex_conversation_turns
@@ -89,7 +89,7 @@ func (s *Store) FindNexConversationReply(projectID, requestID, message string) (
 }
 
 // StoreNexConversationExchange commits both turns atomically after the provider
-// returns. Failed/cancelled requests do not leave a misleading partial history.
+// returns. Failed/canceled requests do not leave a misleading partial history.
 // requestID deduplicates client retries after uncertain network completion.
 func (s *Store) StoreNexConversationExchange(projectID, requestID, user, reply, source string) (string, error) {
 	if len(requestID) < 8 || len(requestID) > 128 || strings.TrimSpace(requestID) != requestID {
@@ -112,7 +112,7 @@ func (s *Store) StoreNexConversationExchange(projectID, requestID, user, reply, 
 		AND request_id=? AND role='user'`, scope, requestID).Scan(&previousUser)
 	if err == nil {
 		if previousUser != user {
-			return "", fmt.Errorf("Nex request ID conflict")
+			return "", fmt.Errorf("nex request ID conflict")
 		}
 		if err := tx.QueryRow(`SELECT content FROM nex_conversation_turns WHERE project_scope=?
 			AND request_id=? AND role='assistant'`, scope, requestID).Scan(&previousReply); err != nil {
@@ -158,7 +158,7 @@ func (s *Store) StoreNexConversationExchange(projectID, requestID, user, reply, 
 	return reply, nil
 }
 
-// DeleteNexConversation permanently removes operational dialogue for one scope.
+// DeleteNexConversation permanently removes operational dialog for one scope.
 func (s *Store) DeleteNexConversation(projectID string) error {
 	_, err := s.db.Exec(`DELETE FROM nex_conversation_turns WHERE project_scope=?`,
 		nexConversationScope(projectID))

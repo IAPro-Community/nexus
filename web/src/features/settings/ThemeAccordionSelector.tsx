@@ -25,14 +25,15 @@ interface ThemeCategory {
 const THEME_CATEGORIES: ThemeCategory[] = [
   {
     id: 'soft-gradient',
-    title: 'Degradê Suave',
-    description: 'Grafite quase preto, profundidade discreta e acentos pouco saturados.',
+    title: 'Grafites suaves',
+    description:
+      'Paleta escura de baixo contraste cromático; o acabamento é escolhido separadamente.',
     presets: ['nexus-dusk'],
   },
   {
     id: 'flat-essentials',
-    title: 'Essenciais Flat',
-    description: 'Menos efeitos, fundos sólidos e acentos discretos para uso prolongado.',
+    title: 'Paletas minimalistas',
+    description: 'Cores neutras e acentos discretos; combinam com qualquer acabamento.',
     presets: ['slate-flat', 'paper-flat', 'clay-flat'],
   },
   {

@@ -32,10 +32,11 @@ type agentTerminalState struct {
 
 // TerminalObserver represents one browser tab connected to an agent's terminal.
 type TerminalObserver struct {
-	conn    *websocket.Conn
-	role    string // "CONTROL" | "VIEW_ONLY"
-	created time.Time
-	writeMu *sync.Mutex
+	conn      *websocket.Conn
+	role      string // "CONTROL" | "VIEW_ONLY"
+	created   time.Time
+	writeMu   *sync.Mutex
+	onPromote func() error // bind the SessionHost lease before notifying the browser
 }
 
 func writeTerminal(conn *websocket.Conn, mu *sync.Mutex, payload []byte) {
@@ -92,6 +93,61 @@ func (b *AgentTerminalBroker) Attach(agentID string, conn *websocket.Conn, hasRu
 	return role
 }
 
+// SetPromotionHook binds a fully attached host IPC stream to this WebSocket.
+// A transferred broker CONTROL lease is only useful when the SessionHost also
+// grants input to the promoted stream. No separate client identity is created.
+func (b *AgentTerminalBroker) SetPromotionHook(agentID string, conn *websocket.Conn, hook func() error) bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	state := b.agents[agentID]
+	if state == nil || hook == nil {
+		return false
+	}
+	observer, exists := state.connections[conn]
+	if !exists {
+		return false
+	}
+	observer.onPromote = hook
+	state.connections[conn] = observer
+	return true
+}
+
+func (b *AgentTerminalBroker) notifyTerminalPromotion(agentID string, observer TerminalObserver) {
+	if observer.conn == nil || !b.IsWriter(agentID, observer.conn) {
+		return
+	}
+	// A browser CONTROL notification must never follow a failed SessionHost
+	// acquisition. The broker had selected the candidate, but that selection
+	// alone does not grant the host stream permission to send input.
+	if observer.onPromote == nil || observer.onPromote() != nil {
+		b.mu.Lock()
+		cleared := false
+		if state := b.agents[agentID]; state != nil && state.writerConn == observer.conn {
+			state.writerConn = nil
+			state.lease = "VIEW_ONLY"
+			cleared = true
+		}
+		b.mu.Unlock()
+		if !cleared {
+			return // another takeover superseded the failed promotion
+		}
+		leaseMsg, _ := json.Marshal(map[string]string{"type": "lease", "role": "VIEW_ONLY"})
+		writeTerminal(observer.conn, observer.writeMu, leaseMsg)
+		errorMsg, _ := json.Marshal(map[string]string{
+			"type": "error", "data": "Terminal host lease transfer could not be confirmed; retry acquiring control.",
+		})
+		writeTerminal(observer.conn, observer.writeMu, errorMsg)
+		return
+	}
+	// A competing detach/takeover may have superseded this candidate while
+	// host acquisition ran. Never send a known-stale CONTROL notification.
+	if !b.IsWriter(agentID, observer.conn) {
+		return
+	}
+	leaseMsg, _ := json.Marshal(map[string]string{"type": "lease", "role": "CONTROL"})
+	writeTerminal(observer.conn, observer.writeMu, leaseMsg)
+}
+
 // Detach removes a WebSocket connection and transfers writer lease if needed.
 func (b *AgentTerminalBroker) Detach(agentID string, conn *websocket.Conn) {
 	b.mu.Lock()
@@ -121,13 +177,7 @@ func (b *AgentTerminalBroker) Detach(agentID string, conn *websocket.Conn) {
 
 	b.mu.Unlock()
 
-	if transfer.conn != nil {
-		leaseMsg, _ := json.Marshal(map[string]string{
-			"type": "lease",
-			"role": "CONTROL",
-		})
-		writeTerminal(transfer.conn, transfer.writeMu, leaseMsg)
-	}
+	b.notifyTerminalPromotion(agentID, transfer)
 }
 
 // TakeControl steals the writer lease from the current writer.
@@ -138,6 +188,10 @@ func (b *AgentTerminalBroker) TakeControl(agentID string, conn *websocket.Conn) 
 	if !ok {
 		b.mu.Unlock()
 		return false
+	}
+	if _, attached := state.connections[conn]; !attached {
+		b.mu.Unlock()
+		return false // detached/foreign browser cannot become the broker writer
 	}
 
 	if state.writerConn == conn {
@@ -188,12 +242,17 @@ func (b *AgentTerminalBroker) ReleaseControl(agentID string, conn *websocket.Con
 	}
 	b.mu.Unlock()
 
-	if transfer.conn != nil {
-		leaseMsg, _ := json.Marshal(map[string]string{
-			"type": "lease",
-			"role": "CONTROL",
-		})
-		writeTerminal(transfer.conn, transfer.writeMu, leaseMsg)
+	b.notifyTerminalPromotion(agentID, transfer)
+}
+
+// FailWriterAcquire makes a failed host-side lease acquisition fail closed.
+// No alternate WebSocket is promoted until a fresh, explicit acquisition.
+func (b *AgentTerminalBroker) FailWriterAcquire(agentID string, conn *websocket.Conn) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if state := b.agents[agentID]; state != nil && state.writerConn == conn {
+		state.writerConn = nil
+		state.lease = "VIEW_ONLY"
 	}
 }
 

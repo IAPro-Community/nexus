@@ -275,6 +275,16 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	traceDocsCaptureTerminalStage("attach-command-complete")
 
 	rawConn := client.RawConn()
+	// The broker and SessionHost must agree on the promoted writer. Serialize
+	// host-side lease acquisition with input from the same attached stream.
+	inputMu := sync.Mutex{}
+	if !broker.SetPromotionHook(agentID, ws, func() error {
+		inputMu.Lock()
+		defer inputMu.Unlock()
+		return sendAttachedCommandWithRetry(rawConn, 3)
+	}) {
+		return // detached before the attached host stream was ready
+	}
 	resizeRequests := make(chan [2]int, 1)
 	go func() {
 		for {
@@ -296,13 +306,24 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	// Attach so SessionHost can bind the lease to the exact streaming client,
 	// not to an unrelated RPC connection.
 	//
-	// Never demote CONTROL when the host write fails: the broker already
-	// granted the seat; the client can retry lease_acquire. Demoting here
-	// left the UI read-only even though no other writer held the lease.
+	// The SessionHost is the input authority, not the broker. Never advertise
+	// CONTROL after a failed host-side acquisition. The host processes bytes
+	// on this attached IPC stream in order before subsequent terminal input.
 	effectiveRole := role
 	if role == "CONTROL" {
 		traceDocsCaptureTerminalStage("lease-acquire-pipe-start")
-		_ = sendAttachedCommandWithRetry(rawConn, 3)
+		inputMu.Lock()
+		leaseErr := sendAttachedCommandWithRetry(rawConn, 3)
+		inputMu.Unlock()
+		if leaseErr != nil {
+			broker.FailWriterAcquire(agentID, ws)
+			effectiveRole = "VIEW_ONLY"
+			_ = safeWriteJSON(TerminalMessage{
+				Type: "error",
+				Code: "HOST_LEASE_WRITE_FAILED",
+				Data: "Terminal host lease could not be acquired; retry control.",
+			})
+		}
 		traceDocsCaptureTerminalStage("lease-acquire-pipe-finished")
 	}
 	traceDocsCaptureTerminalStage("lease-websocket-write-start")
@@ -465,7 +486,6 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	// stateful filter: SessionHost is the final PTY input authority. Stacking
 	// timers across WebSocket and host caused delayed, reordered Escape/arrow
 	// fragments that could interrupt an active Codex session.
-	inputMu := sync.Mutex{}
 	processTerminalInput := func(data string) {
 		if data == "" {
 			return
@@ -685,11 +705,29 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 
 		case "lease_acquire":
 			if broker.TakeControl(agentID, ws) {
+				// Write to the exact attached SessionHost stream before
+				// granting browser input. The same mutex orders subsequent
+				// bytes, so keystrokes cannot overtake this control frame.
+				inputMu.Lock()
+				leaseErr := sendAttachedCommandWithRetry(rawConn, 3)
+				inputMu.Unlock()
+				if leaseErr != nil {
+					broker.FailWriterAcquire(agentID, ws)
+					_ = safeWriteJSON(TerminalMessage{
+						Type: "lease",
+						Role: "VIEW_ONLY",
+					})
+					_ = safeWriteJSON(TerminalMessage{
+						Type: "error",
+						Code: "HOST_LEASE_WRITE_FAILED",
+						Data: "Terminal host lease could not be acquired; retry control.",
+					})
+					continue
+				}
 				_ = safeWriteJSON(TerminalMessage{
 					Type: "lease",
 					Role: "CONTROL",
 				})
-				_ = sendAttachedCommandWithRetry(rawConn, 3)
 			}
 
 		case "lease_release":
@@ -770,7 +808,11 @@ func sendAttachedCommand(conn interface{ Write([]byte) (int, error) }, command p
 	if err != nil {
 		return err
 	}
-	_, err = conn.Write(append(data, '\n'))
+	frame := append(data, '\n')
+	n, err := conn.Write(frame)
+	if err == nil && n != len(frame) {
+		return io.ErrShortWrite
+	}
 	return err
 }
 

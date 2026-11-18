@@ -8,7 +8,7 @@ import React, {
 } from 'react';
 import {
   defaultThemePreferences,
-  getThemePresetFinish,
+  resolveVisualFinish,
   MANAGED_THEME_COLOR_VARS,
   normalizeThemePreferences,
   resolveScheme,
@@ -16,6 +16,7 @@ import {
   themeStorageKey,
   type ThemeAccent,
   type ThemeDensity,
+  type ThemeVisualFinish,
   type ThemeFontFamily,
   type ThemeIconStyle,
   type ThemePreferences,
@@ -29,6 +30,7 @@ interface ThemeContextValue extends ThemePreferences {
   setScheme: (scheme: ThemeScheme) => void;
   setAccent: (accent: ThemeAccent) => void;
   setDensity: (density: ThemeDensity) => void;
+  setVisualFinish: (finish: ThemeVisualFinish) => void;
   setReducedMotion: (value: boolean) => void;
   setPreset: (preset: ThemePresetKey) => void;
   setFontScale: (scale: number) => void;
@@ -82,10 +84,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     root.dataset.density = preferences.density;
     root.dataset.fontFamily = preferences.fontFamily;
     root.dataset.iconStyle = preferences.iconStyle;
-    // The flat visual treatment is opt-in per preset; legacy themes stay unchanged.
-    // High-contrast overrides are never flattened.
-    root.dataset.finish =
-      resolvedScheme === 'high-contrast' ? 'standard' : getThemePresetFinish(preferences.preset);
+    // Finish is independent from the palette. Never flatten high-contrast mode.
+    root.dataset.finish = resolveVisualFinish(preferences, resolvedScheme);
     root.dataset.reducedMotion = preferences.reducedMotion ? 'true' : 'false';
     const scale = preferences.fontScale || 1.0;
     root.dataset.fontScale = String(scale);
@@ -125,6 +125,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           isCustomized: true,
         })),
       setDensity: (density) => setPreferences((current) => ({ ...current, density })),
+      setVisualFinish: (visualFinish) =>
+        setPreferences((current) => ({ ...current, visualFinish })),
       setReducedMotion: (reducedMotion) =>
         setPreferences((current) => ({ ...current, reducedMotion })),
       setPreset: (preset) =>

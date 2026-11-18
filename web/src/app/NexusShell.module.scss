@@ -204,3 +204,36 @@
     transform: none;
   }
 }
+
+/* Local shell finish only; accent, focus and critical indicators are preserved. */
+:global(:root[data-finish='flat']) {
+  .shell::before {
+    background: none;
+  }
+
+  .topbar {
+    background: var(--nx-bg-elevated);
+    box-shadow: none;
+    border-bottom: 1px solid var(--nx-border);
+  }
+
+  .commandButton,
+  .attentionIndicator {
+    box-shadow: none;
+  }
+
+  .projectButton:hover {
+    transform: none;
+  }
+
+  .projectSwitchStatus {
+    background: var(--nx-surface-2);
+    box-shadow: none;
+    backdrop-filter: none;
+    border-radius: var(--nx-radius-md);
+  }
+
+  .focusToggleBtn {
+    border-radius: var(--nx-radius-md);
+  }
+}

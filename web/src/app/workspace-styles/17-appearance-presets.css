@@ -1,5 +1,5 @@
-/* Flat finish: shared semantic appearance treatment, opt-in through ThemeProvider.
-   No theme ID selectors; existing presets and high-contrast mode are untouched. */
+/* Flat finish: shared semantic treatment independent of the chosen color preset.
+   High-contrast mode remains unmodified; keep terminal pixels and focus rings intact. */
 :root[data-finish="flat"] .nx-project-rail,
 :root[data-finish="flat"] .nx-workspace-host,
 :root[data-finish="flat"] .nx-desktop-workspace {
@@ -178,4 +178,59 @@
 
 :root[data-icon-style="bold"] svg.lucide {
   stroke-width: 2.5;
+}
+
+/* Flat workspace: surface hierarchy is communicated by tone and spacing,
+   not card-on-card shadows, glows or repeated borders. Keep transient dialogs
+   and operational status semantics unchanged. */
+:root[data-finish="flat"] .nx-topbar,
+:root[data-finish="flat"] .nx-project-rail {
+  background: var(--nx-bg-elevated);
+  box-shadow: none;
+}
+
+:root[data-finish="flat"] .nx-project-rail__brand,
+:root[data-finish="flat"] .nx-desktop-dock,
+:root[data-finish="flat"] .nx-workspace-stack,
+:root[data-finish="flat"] .nx-desktop-window,
+:root[data-finish="flat"] .nx-desktop-window[data-active="true"] {
+  box-shadow: none;
+}
+
+:root[data-finish="flat"] .nx-workspace-stack,
+:root[data-finish="flat"] .nx-desktop-window {
+  border-color: var(--nx-border);
+}
+
+:root[data-finish="flat"] .nx-composer-goal-bar,
+:root[data-finish="flat"] .nx-flow-editor-toolbar,
+:root[data-finish="flat"] .nx-flow-canvas__toolbar {
+  background: var(--nx-bg-elevated);
+  box-shadow: none;
+}
+
+:root[data-finish="flat"] .nx-flow-node {
+  background: var(--nx-surface);
+  box-shadow: none;
+  border-color: var(--nx-border);
+}
+
+:root[data-finish="flat"] .nx-flow-node[data-selected="true"] {
+  border-color: var(--nx-accent);
+  box-shadow: 0 0 0 2px var(--nx-accent-soft);
+}
+
+:root[data-finish="flat"] .nx-flow-inspector,
+:root[data-finish="flat"] .nx-composer-flow-inspector-pane {
+  box-shadow: none;
+  background: var(--nx-bg-elevated);
+}
+
+:root[data-finish="flat"] .nx-desktop-card:hover {
+  box-shadow: none;
+}
+
+:root[data-finish="flat"] .nx-splash-card {
+  box-shadow: none;
+  border: 1px solid var(--nx-border);
 }
