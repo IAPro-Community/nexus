@@ -71,13 +71,13 @@ func TestMaestroRunAckValidation(t *testing.T) {
 		t.Fatalf("terminal replay ACK rejected: %v", err)
 	}
 	tests := map[string]func(*MaestroRunAck){
-		"unqueued status":      func(a *MaestroRunAck) { a.Status = "EXECUTING" },
-		"forged authority id":  func(a *MaestroRunAck) { a.SubmissionID = "../escape" },
-		"short digest":         func(a *MaestroRunAck) { a.RequestDigest = "abc" },
-		"missing approval":     func(a *MaestroRunAck) { a.ApprovalDigest = "" },
-		"path in branch":       func(a *MaestroRunAck) { a.Branch = "../escape" },
-		"unknown schema":       func(a *MaestroRunAck) { a.SchemaVersion = 2 },
-		"foreign fingerprint":  func(a *MaestroRunAck) { a.WorkspaceFingerprint = strings.Repeat("z", 63) },
+		"unqueued status":     func(a *MaestroRunAck) { a.Status = "EXECUTING" },
+		"forged authority id": func(a *MaestroRunAck) { a.SubmissionID = "../escape" },
+		"short digest":        func(a *MaestroRunAck) { a.RequestDigest = "abc" },
+		"missing approval":    func(a *MaestroRunAck) { a.ApprovalDigest = "" },
+		"path in branch":      func(a *MaestroRunAck) { a.Branch = "../escape" },
+		"unknown schema":      func(a *MaestroRunAck) { a.SchemaVersion = 2 },
+		"foreign fingerprint": func(a *MaestroRunAck) { a.WorkspaceFingerprint = strings.Repeat("z", 63) },
 	}
 	for name, mutate := range tests {
 		t.Run(name, func(t *testing.T) {

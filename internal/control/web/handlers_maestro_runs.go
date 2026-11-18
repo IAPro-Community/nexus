@@ -13,11 +13,11 @@ import (
 )
 
 type maestroRunSubmitBody struct {
-	ArtifactID string                          `json:"artifact_id"`
-	PlanID     string                          `json:"plan_id"`
-	Assignments []maestroRunAssignmentBody     `json:"assignments"`
-	ApprovedBy string                          `json:"approved_by,omitempty"`
-	MaxCostUSD *float64                        `json:"max_cost_usd,omitempty"`
+	ArtifactID  string                     `json:"artifact_id"`
+	PlanID      string                     `json:"plan_id"`
+	Assignments []maestroRunAssignmentBody `json:"assignments"`
+	ApprovedBy  string                     `json:"approved_by,omitempty"`
+	MaxCostUSD  *float64                   `json:"max_cost_usd,omitempty"`
 }
 
 type maestroRunAssignmentBody struct {

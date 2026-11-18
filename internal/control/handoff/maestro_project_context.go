@@ -40,7 +40,7 @@ type maestroBridgeEnvelope struct {
 	ID      *int            `json:"id"`
 	Result  json.RawMessage `json:"result"`
 	Error   *struct {
-		Code int    `json:"code"`
+		Code int `json:"code"`
 		Data *struct {
 			Code string `json:"code"`
 		} `json:"data"`
