@@ -129,7 +129,9 @@ export const NexRigSprite: React.FC<NexRigSpriteProps> = ({
       >
         <canvas ref={canvasRef} width={192} height={192} />
       </div>
-      {!rigReady && <NexPixelSprite mood={mood} idleAction={idleAction} />}
+      {!rigReady && (
+        <NexPixelSprite mood={mood} idleAction={idleAction} motionEnabled={motionEnabled} />
+      )}
     </>
   );
 };

@@ -177,7 +177,14 @@ async function main() {
     // focus, transparency or mouse hit-testing has been certified.
     await hud.evaluate((element) => {
       element.dataset.detachedView = 'popover';
+      element.dataset.native = 'true';
+      element.querySelector('[data-hud-panel]').dataset.appearance = 'MASCOT';
     });
+    const maxHeight = await page.locator('#nexus-hud-popover').evaluate((element) =>
+      parseFloat(getComputedStyle(element).maxHeight),
+    );
+    assert.equal(maxHeight, (await page.evaluate(() => window.innerHeight)) - 16,
+      'detached mascot panel must use the full popup height');
     const entrance = await page.locator('#nexus-hud-popover').evaluate((element) => {
       const animation = getComputedStyle(element);
       return { name: animation.animationName, duration: animation.animationDuration };
@@ -193,6 +200,8 @@ async function main() {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await hud.evaluate((element) => {
       delete element.dataset.detachedView;
+      element.dataset.native = 'false';
+      element.querySelector('[data-hud-panel]').dataset.appearance = 'BAR';
     });
 
     const axeDesktop = await new AxeBuilder({ page }).exclude('.xterm').analyze();
@@ -230,6 +239,71 @@ async function main() {
       path: path.join(screenshotDir, 'web-hud-mobile.png'),
       fullPage: true,
     });
+
+    // Exercise the detached React tree with a Wails user agent. Native window
+    // geometry and focus events still require a real desktop smoke test.
+    const popupContext = await browser.newContext({
+      userAgent: 'Mozilla/5.0 Wails',
+      viewport: { width: 380, height: 560 },
+    });
+    try {
+      await seedFixtureProject(popupContext, bootstrapUrl, isolatedProjectPath);
+      const popup = await popupContext.newPage();
+      await popup.goto(new URL('/?nativeHud=1&hudView=popover', apiOrigin).toString());
+      const assistant = popup.getByRole('button', { name: /assistente nex/i });
+      await assistant.waitFor({ state: 'visible', timeout: 15000 });
+      await assistant.click();
+      const input = popup.getByRole('textbox', { name: 'Perguntar ao Nex' });
+      assert.equal(await input.evaluate((element) => element === document.activeElement), true,
+        'opening the assistant must focus the conversation input');
+      const inputVisible = await input.evaluate((element) => {
+        const inputBounds = element.getBoundingClientRect();
+        const panelBounds = document.querySelector('#nexus-hud-popover').getBoundingClientRect();
+        return inputBounds.top >= panelBounds.top && inputBounds.bottom <= panelBounds.bottom;
+      });
+      assert.equal(inputVisible, true, 'focused conversation input must be inside the visible panel');
+      const conversationBeforeSettings = await input.evaluate((element) => {
+        const settings = document.querySelector('[aria-label="Proatividade do Nex"]');
+        return Boolean(settings &&
+          (element.compareDocumentPosition(settings) & Node.DOCUMENT_POSITION_FOLLOWING));
+      });
+      assert.equal(conversationBeforeSettings, true,
+        'conversation must precede the proactive settings');
+      await input.fill('Rascunho de teste');
+      await popup.evaluate(() => window.dispatchEvent(new Event('focus')));
+      await input.waitFor({ state: 'visible' });
+      assert.equal(await input.inputValue(), 'Rascunho de teste',
+        'focus must preserve the open assistant and its draft');
+      const overflow = await popup.locator('#nexus-hud-popover').evaluate((element) => ({
+        scroll: element.scrollWidth,
+        width: element.clientWidth,
+      }));
+      assert.ok(overflow.scroll <= overflow.width,
+        `assistant controls must fit the popup: ${overflow.scroll} > ${overflow.width}`);
+      const popupAxe = await new AxeBuilder({ page: popup }).analyze();
+      const seriousPopup = popupAxe.violations.filter((violation) =>
+        ['serious', 'critical'].includes(violation.impact),
+      );
+      assert.equal(seriousPopup.length, 0,
+        `HUD popup Axe serious/critical: ${JSON.stringify(seriousPopup.map((violation) => ({
+          id: violation.id,
+          nodes: violation.nodes.map((node) => ({ html: node.html, summary: node.failureSummary })),
+        })))}`);
+      await popup.screenshot({ path: path.join(screenshotDir, 'detached-assistant.png') });
+      await popupContext.route('**/api/v1/nex/assistant', async (route) => {
+        if (route.request().method() !== 'POST') return route.continue();
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await route.fulfill({ json: { answer: 'Resposta de teste', source: 'nexus_snapshot' } });
+      });
+      await popup.getByRole('button', { name: 'Enviar' }).click();
+      await popup.getByRole('status').filter({ hasText: 'Nex está preparando uma resposta' })
+        .waitFor({ state: 'visible' });
+      await popup.getByText('Resposta de teste').waitFor({ state: 'visible' });
+      assert.equal(await popup.getByRole('status')
+        .filter({ hasText: 'Nex está preparando uma resposta' }).count(), 0);
+    } finally {
+      await popupContext.close();
+    }
 
     const meaningfulFailures = meaningfulFixtureRequestFailures(collectors.requestFailures);
     assert.equal(

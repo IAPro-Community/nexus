@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { nexus } from '../../nexus/api';
 import type {
@@ -44,6 +45,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
   onOpenSettings,
   onOpenNewAgent,
 }) => {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = React.useState(false);
   const [overview, setOverview] = React.useState<NexAssistantOverview | null>(null);
   const [showOverviewSuggestions, setShowOverviewSuggestions] = React.useState(
@@ -61,6 +63,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
   const [error, setError] = React.useState('');
   const inFlight = React.useRef(false);
   const chatAbortController = React.useRef<AbortController | null>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
   const allowResultsRef = React.useRef(!privacyMode);
   allowResultsRef.current = !privacyMode;
 
@@ -77,6 +80,10 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
   }, [projectId]);
 
   React.useEffect(() => () => chatAbortController.current?.abort(), []);
+
+  React.useEffect(() => {
+    if (expanded && !privacyMode) inputRef.current?.focus();
+  }, [expanded, privacyMode]);
 
   React.useEffect(() => {
     if (privacyMode) {
@@ -262,14 +269,6 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
             Posso explicar o estado do Nexus e ajudar a encontrar o próximo passo. Nenhuma ação será
             executada apenas por conversar.
           </p>
-          <NexProactivityControls
-            active={expanded}
-            projectId={projectId}
-            revision={revision}
-            privacyMode={privacyMode}
-            onOpenMissions={onOpenMissions}
-            onOpenUsage={onOpenUsage}
-          />
           <button
             type="button"
             className={styles.send}
@@ -349,7 +348,12 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
               Permitir enviar fatos estáticos do projeto ao modelo configurado
             </label>
           )}
-          <div className={styles.chatLog} aria-live="polite" aria-label="Conversa com Nex">
+          <div
+            className={styles.chatLog}
+            role="log"
+            aria-live="polite"
+            aria-label="Conversa com Nex"
+          >
             {turns.map((turn, index) => (
               <p className={styles.turn} data-role={turn.role} key={index}>
                 {turn.content}
@@ -375,19 +379,9 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
               </button>
             </div>
           )}
-          <NexAssistantActions
-            active={expanded}
-            projectId={projectId}
-            allowProjectContext={includeProjectContext}
-            onResult={(message) => {
-              if (!allowResultsRef.current) return;
-              setTurns((current) =>
-                [...current, { role: 'assistant' as const, content: message }].slice(-12),
-              );
-            }}
-          />
           <form onSubmit={sendMessage} className={styles.inputRow}>
             <input
+              ref={inputRef}
               className={styles.input}
               value={draft}
               maxLength={2000}
@@ -400,11 +394,35 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
               {busy ? '...' : 'Enviar'}
             </button>
           </form>
+          {busy && (
+            <p className={styles.caption} role="status">
+              {t('hud.assistantReplyPending')}
+            </p>
+          )}
           {error && (
             <p className={styles.error} role="alert">
               {error}
             </p>
           )}
+          <NexAssistantActions
+            active={expanded}
+            projectId={projectId}
+            allowProjectContext={includeProjectContext}
+            onResult={(message) => {
+              if (!allowResultsRef.current) return;
+              setTurns((current) =>
+                [...current, { role: 'assistant' as const, content: message }].slice(-12),
+              );
+            }}
+          />
+          <NexProactivityControls
+            active={expanded}
+            projectId={projectId}
+            revision={revision}
+            privacyMode={privacyMode}
+            onOpenMissions={onOpenMissions}
+            onOpenUsage={onOpenUsage}
+          />
           <p className={styles.caption}>
             Sem voz · sem acesso automático a arquivos · contexto independente do Maestro
           </p>

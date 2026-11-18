@@ -121,6 +121,7 @@ async function main() {
           page = await context.newPage();
           attachCollectors(page);
           await page.goto(shellUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
+          await page.bringToFront();
           await page
             .locator('aside[aria-label="Nexus HUD"]')
             .waitFor({ state: 'visible', timeout: 15000 });
@@ -218,6 +219,10 @@ async function main() {
     assert.equal(await mascotRoot().getAttribute('data-mood'), 'idle');
     await assertBehavior(mascotRoot(), 'ambient', 'ambient idle must compose ambient');
     await assertExpression('ambient', 'ambient idle');
+    const guardianFilter = await page.locator('[data-hud-mascot] > [data-mood]').evaluate(
+      (element) => getComputedStyle(element).filter,
+    );
+    assert.equal(guardianFilter, 'none', 'idle animation must avoid a full-sprite shadow filter');
     await capture('01-ambient');
     assert.equal(
       await page.locator('[data-nex-progress]').count(),

@@ -69,6 +69,7 @@ describe('NEX single Guardian mascot', () => {
     for (const overrides of [{ mood: 'offline' as const }, { motion: false }]) {
       const html = renderGuardian(overrides);
       expect(html).toContain('data-motion="off"');
+      expect(html).toContain('data-nex-motion="off"');
     }
   });
 

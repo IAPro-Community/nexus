@@ -7,6 +7,7 @@ import styles from './NexPixelSprite.module.scss';
 type NexPixelSpriteProps = {
   mood: GuardianMood;
   idleAction?: NexIdleAction | null;
+  motionEnabled?: boolean;
 };
 
 const ROW_CLASS_BY_ACTION: Record<NexIdleAction, string> = {
@@ -29,10 +30,14 @@ const ROW_CLASS_BY_ACTION: Record<NexIdleAction, string> = {
  *
  * The 1024x1536 raster atlas (12 idle actions x 8 frames, 125 ms per frame)
  * is the approved HUD art; frame playback walks one row with CSS steps().
- * Moods are a color treatment overlay over the authentic raster, and offline
+ * Moods use a color treatment around the authentic raster, and offline
  * renders still and desaturated. No success or progress is ever inferred.
  */
-export const NexPixelSprite: React.FC<NexPixelSpriteProps> = ({ mood, idleAction = null }) => {
+export const NexPixelSprite: React.FC<NexPixelSpriteProps> = ({
+  mood,
+  idleAction = null,
+  motionEnabled = true,
+}) => {
   const holdLast = idleAction != null && NEX_ATLAS_HOLD_LAST_ACTIONS.has(idleAction);
   const frameClassName = [
     styles.frame,
@@ -48,10 +53,10 @@ export const NexPixelSprite: React.FC<NexPixelSpriteProps> = ({ mood, idleAction
       className={styles.sprite}
       data-nex-art="hud-32bit-atlas"
       data-nex-mood={mood}
+      data-nex-motion={motionEnabled ? 'on' : 'off'}
       role="presentation"
     >
       <div className={frameClassName} data-idle-action={idleAction ?? undefined} />
-      <div className={styles.veil} aria-hidden="true" />
     </div>
   );
 };

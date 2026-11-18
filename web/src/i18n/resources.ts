@@ -92,6 +92,7 @@ export const en = {
     decisionRequired: 'Decision required',
   },
   hud: {
+    assistantReplyPending: 'Nex is preparing a response…',
     sizeTitle: 'HUD size',
     sizeCompact: 'Compact',
     sizeComfortable: 'Comfortable',
@@ -2844,6 +2845,7 @@ export const ptBR = {
     decisionRequired: 'Decisão necessária',
   },
   hud: {
+    assistantReplyPending: 'Nex está preparando uma resposta…',
     sizeTitle: 'Tamanho do HUD',
     sizeCompact: 'Compacto',
     sizeComfortable: 'Confortável',
@@ -5612,6 +5614,7 @@ export const es = {
     decisionRequired: 'Decisión necesaria',
   },
   hud: {
+    assistantReplyPending: 'Nex está preparando una respuesta…',
     sizeTitle: 'Tamaño del HUD',
     sizeCompact: 'Compacto',
     sizeComfortable: 'Cómodo',

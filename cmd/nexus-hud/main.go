@@ -115,12 +115,6 @@ func main() {
 			return existing, nil
 		}
 		popup := native.Window.NewWithOptions(hudDetachedPopupOptions(stateManager.Load()))
-		popup.OnWindowEvent(events.Common.WindowLostFocus, func(*application.WindowEvent) {
-			// Do not re-enter SetHUDExpanded from a native focus event: Hide()
-			// can itself dispatch further focus and hide notifications.
-			hudController.NotifyHUDPopupHidden()
-			popup.Hide()
-		})
 		popup.OnWindowEvent(events.Common.WindowHide, func(*application.WindowEvent) {
 			// Never Hide() again from WindowHide: avoid reentrant native events.
 			hudController.NotifyHUDPopupHidden()

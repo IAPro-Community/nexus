@@ -145,7 +145,6 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   const [nativePopupSupported, setNativePopupSupported] = useState(true);
   const isDetachedPopup = native && nativeView === 'popover';
   const showPopoverContent = shouldRenderHudPopover(expanded, native, nativeView, nativeDetached);
-  const [popupPresentation, setPopupPresentation] = useState(0);
   const [offline, setOffline] = useState(false);
   const [lastSuccessAt, setLastSuccessAt] = useState<number | null>(null);
   const [paceWarning, setPaceWarning] = useState<CapacityResourceStatus | null>(null);
@@ -248,15 +247,6 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   }, []);
 
   useEffect(() => {
-    if (!isDetachedPopup) return;
-    const replayEntrance = () => setPopupPresentation((current) => current + 1);
-    // Replaying on native focus allows the same persistent WebView to animate
-    // every time the popup is shown, not only on its first mount.
-    window.addEventListener('focus', replayEntrance);
-    return () => window.removeEventListener('focus', replayEntrance);
-  }, [isDetachedPopup]);
-
-  useEffect(() => {
     if (!native) return;
     let active = true;
     let detachedMode = false;
@@ -275,7 +265,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         .getDetachedPopoverEnabled()
         .then((enabled) => {
           if (!active) return;
-          const next = Boolean(enabled);
+          const next = enabled === true;
           if (next !== detachedMode) {
             detachedMode = next;
             setNativeDetached(next);
@@ -289,7 +279,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
           void hudV3
             .getExpanded()
             .then((value) => {
-              if (active && !nativeExpansionPending.current) setExpanded(Boolean(value));
+              if (active && !nativeExpansionPending.current) setExpanded(value === true);
             })
             .catch(() => undefined);
         })
@@ -786,7 +776,6 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       >
         {showPopoverContent && state && !waiting && (
           <div
-            key={isDetachedPopup ? `popup-${popupPresentation}` : 'inline-popover'}
             id="nexus-hud-popover"
             className={styles.popover}
             data-hud-hit-area={isDetachedPopup ? undefined : 'true'}
@@ -1195,7 +1184,6 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         )}
         {showPopoverContent && (!state || waiting) && (
           <div
-            key={isDetachedPopup ? `diagnostic-${popupPresentation}` : 'inline-diagnostic'}
             id="nexus-hud-popover"
             className={styles.popover}
             data-hud-hit-area={isDetachedPopup ? undefined : 'true'}
@@ -1273,7 +1261,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
               completionEventId={recentCompletionId}
               count={attentionCount}
               expanded={expanded}
-              motion={prefs.mascotMotion}
+              motion={prefs.mascotMotion && !expanded}
               bubble={visibleMascotBubble}
               popoverId={nativeDetached ? undefined : 'nexus-hud-popover'}
               native

@@ -1,5 +1,7 @@
 .shell {
   display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   margin: 9px 0;
   padding: 9px;
@@ -35,6 +37,7 @@
 
 .body {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 9px;
   min-width: 0;
 }
@@ -47,6 +50,7 @@
 
 .setting {
   display: inline-flex;
+  min-width: 0;
   align-items: center;
   gap: 7px;
   color: #d6e3f6;
@@ -158,6 +162,8 @@
 
 .actions {
   display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
   gap: 7px;
 }
 
@@ -175,11 +181,17 @@
 
 .scheduleBox {
   display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
   gap: 7px;
   padding: 8px;
   border: 1px solid #526781;
   border-radius: 8px;
   font-size: 11px;
+}
+
+.scheduleBox .setting {
+  flex-wrap: wrap;
 }
 
 .scheduleItem {

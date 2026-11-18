@@ -108,33 +108,15 @@ $mood-critical: #ff496c;
 // over the authentic raster, never a new drawing. Offline stays still and
 // desaturated so no fake activity is signaled.
 
-.veil {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  mix-blend-mode: soft-light;
-  opacity: 0;
-}
-
 .sprite[data-nex-mood='warning'] {
-  .veil {
-    background: $mood-warning;
-    opacity: 0.3;
-  }
-
   .frame {
-    filter: saturate(1.12);
+    filter: saturate(1.12) drop-shadow(0 0 3px $mood-warning);
   }
 }
 
 .sprite[data-nex-mood='critical'] {
-  .veil {
-    background: $mood-critical;
-    opacity: 0.38;
-  }
-
   .frame {
-    filter: saturate(1.15);
+    filter: saturate(1.15) drop-shadow(0 0 3px $mood-critical);
   }
 }
 
@@ -146,10 +128,6 @@ $mood-critical: #ff496c;
   .playLoop {
     animation: none;
   }
-
-  .veil {
-    opacity: 0;
-  }
 }
 
 // Working keeps the hover motion (the atlas has no dedicated working frames);
@@ -157,6 +135,10 @@ $mood-critical: #ff496c;
 // content, so a subtle internal breathing keeps the state visually alive.
 .sprite[data-nex-mood='working'] .frame {
   animation: nex-atlas-work-breathe 1.3s ease-in-out infinite;
+}
+
+.sprite[data-nex-motion='off'] .frame {
+  animation: none;
 }
 
 @keyframes nex-atlas-work-breathe {
