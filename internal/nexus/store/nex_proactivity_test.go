@@ -90,3 +90,47 @@ func TestNexProactivityRejectsInvalidSettingsAndCrossScopeClaims(t *testing.T) {
 		t.Fatal("cross-project decision must be rejected")
 	}
 }
+
+func TestNexProactivityInheritsGlobalPolicyAndProjectOverride(t *testing.T) {
+	db, err := Open(filepath.Join(t.TempDir(), "nex-proactive-policy.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	now := time.Date(2026, 11, 17, 12, 0, 0, 0, time.UTC)
+	global := NexProactivityPreferences{
+		Mode: "proactive", QuietStart: "22:00", QuietEnd: "08:00",
+		TimeZone: "UTC", MinIntervalMinutes: 30,
+	}
+	if err := db.SetNexProactivityPreferences("", global); err != nil {
+		t.Fatal(err)
+	}
+	got, err := db.GetNexProactivityPreferences("project-one")
+	if err != nil || got != global {
+		t.Fatalf("project must inherit global settings until overridden: %+v %v", got, err)
+	}
+	if claimed, err := db.TryClaimNexSuggestion("project-one", "project:pending-task", now); err != nil || !claimed {
+		t.Fatalf("project claim must use inherited global opt-in: %v %v", claimed, err)
+	}
+
+	override := global
+	override.Mode = "manual"
+	if err := db.SetNexProactivityPreferences("project-one", override); err != nil {
+		t.Fatal(err)
+	}
+	got, err = db.GetNexProactivityPreferences("project-one")
+	if err != nil || got.Mode != "manual" {
+		t.Fatalf("project override not honored: %+v %v", got, err)
+	}
+	if claimed, err := db.TryClaimNexSuggestion("project-one", "project:second-task", now.Add(time.Minute)); err != nil || claimed {
+		t.Fatalf("manual override must disable unsolicited claims: %v %v", claimed, err)
+	}
+	other, err := db.GetNexProactivityPreferences("project-two")
+	if err != nil || other.Mode != "proactive" {
+		t.Fatalf("project override must not leak to another project: %+v %v", other, err)
+	}
+	if claimed, err := db.TryClaimNexSuggestion("", "project:pending-task", now); err != nil || !claimed {
+		t.Fatalf("global receipt must remain isolated from project receipt: %v %v", claimed, err)
+	}
+}
