@@ -179,6 +179,12 @@ export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
       title: 'tour.providerDiscoveryTitle',
       body: 'tour.providerDiscoveryBody',
     },
+    {
+      id: 'usage-diagnostics',
+      target: '[data-tour="usage-diagnostics"]',
+      title: 'tour.usageDiagnosticsTitle',
+      body: 'tour.usageDiagnosticsBody',
+    },
   ],
   agents: [
     {

@@ -1265,6 +1265,9 @@ export const en = {
     providerDiscoveryTitle: 'Connect an existing provider session',
     providerDiscoveryBody:
       'Nexus can detect a supported CLI session on this computer and copy it into an isolated account profile after you choose Connect.',
+    usageDiagnosticsTitle: 'Usage diagnostics at a glance',
+    usageDiagnosticsBody:
+      'See collection health per account, stale evidence and Maestro integration problems with a direct action for each one.',
     agentTerminalFollowTitle: 'Follow an Agent terminal at your pace',
     agentTerminalFollowBody:
       'Pause automatic scrolling while output keeps arriving, then resume following the live terminal when you are ready.',
@@ -1298,6 +1301,9 @@ export const en = {
     providerDiscoveryTitle: 'Existing provider sessions',
     providerDiscoveryBody:
       'Connect a supported session detected on this computer to an isolated account profile.',
+    usageDiagnosticsTitle: 'Usage diagnostics',
+    usageDiagnosticsBody:
+      'Collection health, stale evidence and Maestro integration issues, each with a direct action.',
     agentTerminalFollowTitle: 'Follow the Agent terminal at your pace',
     agentTerminalFollowBody:
       'Pause automatic scrolling while output keeps arriving, then resume following the live terminal when you are ready.',
@@ -1628,6 +1634,71 @@ export const en = {
     },
   },
   usage: {
+    areasLabel: 'Usage areas',
+    areaAccounts: 'Accounts & limits',
+    areaConsumption: 'Consumption',
+    areaDiagnostics: 'Diagnostics',
+    diagnostics: {
+      title: 'Collection diagnostics',
+      subtitle:
+        'Read-only view of the evidence behind accounts, monitors and the Maestro integration.',
+      problemSummary: 'Deduced problems: {{count}}',
+      noProblems: 'No problems deduced from the current evidence.',
+      noAccounts: 'No evidence: no account registered yet.',
+      collectionTitle: 'Collection health per account',
+      collectionEmpty: 'No accounts to inspect.',
+      sourceValue: 'Source: {{source}}',
+      noSource: 'No source reported',
+      noObservationTime: 'No observation timestamp',
+      noReason: 'No reason reported',
+      refreshObservation: 'Refresh {{provider}}/{{profile}}',
+      statesTitle: 'Stale and critical states',
+      statesEmpty: 'No stale or critical state in the current evidence.',
+      maestroTitle: 'Maestro integration',
+      maestroChecking: 'Checking Maestro status…',
+      maestroAvailable: 'Maestro available',
+      maestroUnavailable: 'Maestro unavailable',
+      maestroUnavailableHint:
+        'Check that the Maestro service is running and reachable. Nexus does not start or reconfigure it from this panel; inspect the terminal and environment first.',
+      maestroRefresh: 'Check Maestro again',
+      maestroError: 'Could not reach the Maestro status endpoint',
+      maestroMode: 'Mode',
+      maestroVersion: 'Version',
+      maestroModes: 'Modes',
+      maestroSkills: 'Skills',
+      maestroGates: 'Gates',
+      maestroLastCheck: 'Last check',
+      problemsTitle: 'Problems and actions',
+      severity: {
+        critical: 'Critical',
+        warning: 'Warning',
+        info: 'Info',
+      },
+      age: {
+        seconds: '{{count}}s ago',
+        minutes: '{{count}}m ago',
+        hours: '{{count}}h ago',
+      },
+      problems: {
+        authRequired:
+          '{{provider}}/{{profile}} requires authentication before quota evidence can be collected.',
+        noLiveObservation:
+          'No live observation for {{provider}}/{{profile}} (state: {{state}}). Refresh to collect evidence.',
+        staleObservation:
+          'Cached observation for {{provider}}/{{profile}} is older than the freshness limit. Refresh before trusting it.',
+        monitorCritical:
+          'Capacity monitor reports {{state}} for {{provider}}/{{profile}}. Reason: {{reason}}',
+        maestroUnavailable: 'Maestro status endpoint unavailable. {{error}}',
+        installedWithoutProfile:
+          '{{provider}} is installed on this host but has no registered profile.',
+      },
+      actions: {
+        refresh: 'Refresh quota',
+        login: 'Log in',
+        terminal: 'Open terminal',
+        register: 'Register profile',
+      },
+    },
     summary: 'Fleet summary',
     usable: 'Usable',
     exhausted: 'Exhausted',
@@ -2225,6 +2296,7 @@ export const en = {
     LIVE: 'Live',
     CACHED: 'Cached',
     ESTIMATED: 'Estimated',
+    UNAVAILABLE: 'Unavailable',
   },
   welcome: {
     title: 'Welcome to IAPro Nexus',
@@ -4140,6 +4212,9 @@ export const ptBR = {
     providerDiscoveryTitle: 'Conecte uma sessão de provedor existente',
     providerDiscoveryBody:
       'O Nexus detecta uma sessão compatível neste computador e a copia para um perfil isolado após você escolher Conectar.',
+    usageDiagnosticsTitle: 'Diagnóstico de uso num relance',
+    usageDiagnosticsBody:
+      'Veja a saúde da coleta por conta, evidências stale e problemas de integração com o Maestro, com uma ação direta para cada um.',
     agentTerminalFollowTitle: 'Acompanhe o terminal do Agent no seu ritmo',
     agentTerminalFollowBody:
       'Pause a rolagem automática enquanto a saída continua chegando e retome o acompanhamento ao vivo quando quiser.',
@@ -4173,6 +4248,9 @@ export const ptBR = {
     providerDiscoveryTitle: 'Sessões existentes de provedores',
     providerDiscoveryBody:
       'Conecte uma sessão compatível detectada neste computador a um perfil isolado.',
+    usageDiagnosticsTitle: 'Diagnóstico de uso',
+    usageDiagnosticsBody:
+      'Saúde da coleta, evidências stale e problemas de integração com o Maestro, cada um com uma ação direta.',
     agentTerminalFollowTitle: 'Acompanhe o terminal do Agent no seu ritmo',
     agentTerminalFollowBody:
       'Pause a rolagem automática enquanto a saída continua chegando e retome o acompanhamento ao vivo quando quiser.',
@@ -4503,6 +4581,71 @@ export const ptBR = {
     },
   },
   usage: {
+    areasLabel: 'Áreas de uso',
+    areaAccounts: 'Contas e limites',
+    areaConsumption: 'Consumo',
+    areaDiagnostics: 'Diagnósticos',
+    diagnostics: {
+      title: 'Diagnósticos de coleta',
+      subtitle:
+        'Visão somente leitura das evidências por trás das contas, monitores e integração Maestro.',
+      problemSummary: 'Problemas deduzidos: {{count}}',
+      noProblems: 'Nenhum problema deduzido a partir das evidências atuais.',
+      noAccounts: 'Sem evidências: nenhuma conta registrada ainda.',
+      collectionTitle: 'Saúde da coleta por conta',
+      collectionEmpty: 'Sem contas para inspecionar.',
+      sourceValue: 'Fonte: {{source}}',
+      noSource: 'Sem fonte declarada',
+      noObservationTime: 'Sem horário de observação',
+      noReason: 'Sem motivo declarado',
+      refreshObservation: 'Atualizar {{provider}}/{{profile}}',
+      statesTitle: 'Estados stale e críticos',
+      statesEmpty: 'Nenhum estado stale ou crítico nas evidências atuais.',
+      maestroTitle: 'Integração Maestro',
+      maestroChecking: 'Verificando status do Maestro…',
+      maestroAvailable: 'Maestro disponível',
+      maestroUnavailable: 'Maestro indisponível',
+      maestroUnavailableHint:
+        'Verifique se o serviço Maestro está em execução e acessível. O Nexus não inicia nem reconfigura o serviço por este painel; inspecione o terminal e o ambiente primeiro.',
+      maestroRefresh: 'Verificar Maestro novamente',
+      maestroError: 'Não foi possível acessar o endpoint de status do Maestro',
+      maestroMode: 'Modo',
+      maestroVersion: 'Versão',
+      maestroModes: 'Modos',
+      maestroSkills: 'Skills',
+      maestroGates: 'Gates',
+      maestroLastCheck: 'Última verificação',
+      problemsTitle: 'Problemas e ações',
+      severity: {
+        critical: 'Crítico',
+        warning: 'Atenção',
+        info: 'Informativo',
+      },
+      age: {
+        seconds: '{{count}}s atrás',
+        minutes: '{{count}}min atrás',
+        hours: '{{count}}h atrás',
+      },
+      problems: {
+        authRequired:
+          '{{provider}}/{{profile}} precisa de autenticação antes de coletar evidências de quota.',
+        noLiveObservation:
+          'Nenhuma observação LIVE para {{provider}}/{{profile}} (estado: {{state}}). Atualize para coletar evidências.',
+        staleObservation:
+          'A observação em cache de {{provider}}/{{profile}} ultrapassou o limite de frescor. Atualize antes de confiar nela.',
+        monitorCritical:
+          'O monitor de capacidade reporta {{state}} para {{provider}}/{{profile}}. Motivo: {{reason}}',
+        maestroUnavailable: 'Endpoint de status do Maestro indisponível. {{error}}',
+        installedWithoutProfile:
+          '{{provider}} está instalado neste computador, mas não tem perfil registrado.',
+      },
+      actions: {
+        refresh: 'Atualizar cota',
+        login: 'Fazer login',
+        terminal: 'Abrir terminal',
+        register: 'Registrar perfil',
+      },
+    },
     summary: 'Resumo da frota',
     usable: 'Utilizáveis',
     exhausted: 'Esgotadas',
@@ -5108,6 +5251,7 @@ export const ptBR = {
     AUTH_REQUIRED: 'Autenticação necessária',
     LIVE: 'Ao vivo',
     CACHED: 'Em cache',
+    UNAVAILABLE: 'Indisponível',
     ESTIMATED: 'Estimado',
   },
   welcome: {
@@ -7031,6 +7175,9 @@ export const es = {
     providerDiscoveryTitle: 'Conecte una sesión existente del proveedor',
     providerDiscoveryBody:
       'Nexus detecta una sesión compatible en este equipo y la copia a un perfil aislado cuando elige Conectar.',
+    usageDiagnosticsTitle: 'Diagnóstico de uso de un vistazo',
+    usageDiagnosticsBody:
+      'Vea la salud de recolección por cuenta, evidencias stale y problemas de integración con Maestro, con una acción directa para cada uno.',
     agentTerminalFollowTitle: 'Siga el terminal del Agent a su ritmo',
     agentTerminalFollowBody:
       'Pause el desplazamiento automático mientras llega nueva salida y reanude el seguimiento en vivo cuando quiera.',
@@ -7064,6 +7211,9 @@ export const es = {
     providerDiscoveryTitle: 'Sesiones existentes de proveedores',
     providerDiscoveryBody:
       'Conecte una sesión compatible detectada en este equipo a un perfil aislado.',
+    usageDiagnosticsTitle: 'Diagnóstico de uso',
+    usageDiagnosticsBody:
+      'Salud de recolección, evidencias stale y problemas de integración con Maestro, cada uno con una acción directa.',
     agentTerminalFollowTitle: 'Siga el terminal del Agent a su ritmo',
     agentTerminalFollowBody:
       'Pause el desplazamiento automático mientras llega nueva salida y reanude el seguimiento en vivo cuando quiera.',
@@ -7394,6 +7544,71 @@ export const es = {
     },
   },
   usage: {
+    areasLabel: 'Áreas de uso',
+    areaAccounts: 'Cuentas y límites',
+    areaConsumption: 'Consumo',
+    areaDiagnostics: 'Diagnósticos',
+    diagnostics: {
+      title: 'Diagnósticos de recolección',
+      subtitle:
+        'Vista de solo lectura de las evidencias detrás de las cuentas, monitores y la integración Maestro.',
+      problemSummary: 'Problemas deducidos: {{count}}',
+      noProblems: 'Ningún problema deducido de las evidencias actuales.',
+      noAccounts: 'Sin evidencias: todavía no hay ninguna cuenta registrada.',
+      collectionTitle: 'Salud de recolección por cuenta',
+      collectionEmpty: 'Sin cuentas para inspeccionar.',
+      sourceValue: 'Fuente: {{source}}',
+      noSource: 'Sin fuente declarada',
+      noObservationTime: 'Sin hora de observación',
+      noReason: 'Sin motivo declarado',
+      refreshObservation: 'Actualizar {{provider}}/{{profile}}',
+      statesTitle: 'Estados obsoletos y críticos',
+      statesEmpty: 'Ningún estado obsoleto o crítico en las evidencias actuales.',
+      maestroTitle: 'Integración Maestro',
+      maestroChecking: 'Verificando el estado de Maestro…',
+      maestroAvailable: 'Maestro disponible',
+      maestroUnavailable: 'Maestro no disponible',
+      maestroUnavailableHint:
+        'Comprueba que el servicio Maestro esté en ejecución y accesible. Nexus no inicia ni reconfigura el servicio desde este panel; inspecciona primero el terminal y el entorno.',
+      maestroRefresh: 'Comprobar Maestro de nuevo',
+      maestroError: 'No se pudo acceder al endpoint de estado de Maestro',
+      maestroMode: 'Modo',
+      maestroVersion: 'Versión',
+      maestroModes: 'Modos',
+      maestroSkills: 'Skills',
+      maestroGates: 'Gates',
+      maestroLastCheck: 'Última comprobación',
+      problemsTitle: 'Problemas y acciones',
+      severity: {
+        critical: 'Crítico',
+        warning: 'Atención',
+        info: 'Informativo',
+      },
+      age: {
+        seconds: 'hace {{count}}s',
+        minutes: 'hace {{count}}min',
+        hours: 'hace {{count}}h',
+      },
+      problems: {
+        authRequired:
+          '{{provider}}/{{profile}} requiere autenticación antes de recolectar evidencias de cuota.',
+        noLiveObservation:
+          'Ninguna observación LIVE para {{provider}}/{{profile}} (estado: {{state}}). Actualiza para recolectar evidencias.',
+        staleObservation:
+          'La observación en caché de {{provider}}/{{profile}} superó el límite de frescura. Actualiza antes de confiar en ella.',
+        monitorCritical:
+          'El monitor de capacidad informa {{state}} para {{provider}}/{{profile}}. Motivo: {{reason}}',
+        maestroUnavailable: 'Endpoint de estado de Maestro no disponible. {{error}}',
+        installedWithoutProfile:
+          '{{provider}} está instalado en este equipo pero no tiene perfil registrado.',
+      },
+      actions: {
+        refresh: 'Actualizar cuota',
+        login: 'Iniciar sesión',
+        terminal: 'Abrir terminal',
+        register: 'Registrar perfil',
+      },
+    },
     summary: 'Resumen de la flota',
     usable: 'Utilizables',
     exhausted: 'Agotadas',
@@ -8001,6 +8216,7 @@ export const es = {
     AUTH_REQUIRED: 'Autenticación requerida',
     LIVE: 'En vivo',
     CACHED: 'En caché',
+    UNAVAILABLE: 'No disponible',
     ESTIMATED: 'Estimado',
   },
   welcome: {

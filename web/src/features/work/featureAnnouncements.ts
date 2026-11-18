@@ -124,6 +124,16 @@ export const featureAnnouncements: readonly FeatureAnnouncement[] = [
     tourStep: 'provider-discovery',
   },
   {
+    id: 'usage-areas-and-diagnostics',
+    revision: 1,
+    surfaces: ['resources'],
+    openSurface: 'resources',
+    target: '[data-tour="usage-diagnostics"]',
+    title: 'discovery.usageDiagnosticsTitle',
+    summary: 'discovery.usageDiagnosticsBody',
+    tourStep: 'usage-diagnostics',
+  },
+  {
     id: 'agent-terminal-follow',
     revision: 1,
     surfaces: ['agent-terminal'],

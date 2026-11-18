@@ -6,6 +6,39 @@ import {
 } from '../work/directSessionModel';
 import { asArray } from '../../lib/safeArray';
 
+// Usage surface areas ("Contas e limites | Consumo | Diagnósticos").
+export const USAGE_AREAS = ['accounts', 'consumption', 'diagnostics'] as const;
+export type UsageArea = (typeof USAGE_AREAS)[number];
+export const USAGE_AREA_STORAGE_KEY = 'nexus.usage.area';
+
+export function normalizeUsageArea(value: string | null | undefined): UsageArea {
+  return (USAGE_AREAS as readonly string[]).includes(String(value))
+    ? (value as UsageArea)
+    : 'accounts';
+}
+
+/** Tolerant read: storage failures fall back to the default area. */
+export function readStoredUsageArea(
+  storage: Pick<Storage, 'getItem'> | null | undefined,
+): UsageArea {
+  try {
+    return normalizeUsageArea(storage?.getItem(USAGE_AREA_STORAGE_KEY) ?? null);
+  } catch {
+    return 'accounts';
+  }
+}
+
+export function writeStoredUsageArea(
+  storage: Pick<Storage, 'setItem'> | null | undefined,
+  area: UsageArea,
+): void {
+  try {
+    storage?.setItem(USAGE_AREA_STORAGE_KEY, area);
+  } catch {
+    /* storage unavailable: the selection just is not restored next visit */
+  }
+}
+
 export function installedProvidersWithoutAccounts(
   providers: ProviderInfo[],
   accounts: ProviderAccount[],

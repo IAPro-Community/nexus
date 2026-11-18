@@ -74,6 +74,63 @@
   }
 }
 
+.areaTabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  background: var(--nx-surface-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  width: fit-content;
+  max-width: 100%;
+}
+
+.areaTabs [role='tab'] {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 7px 14px;
+  border-radius: var(--nx-radius-sm);
+  background: transparent;
+  color: var(--nx-muted);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.areaTabs [role='tab']:hover {
+  color: var(--nx-text);
+  background: var(--nx-surface);
+}
+
+.areaTabs [role='tab']:focus-visible {
+  outline: 2px solid var(--nx-accent);
+  outline-offset: 2px;
+}
+
+.areaTabs [role='tab'][data-active='true'] {
+  background: var(--nx-surface);
+  color: var(--nx-accent-text);
+  border-color: var(--nx-accent);
+}
+
+.areaPanel {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.areaPanel:focus-visible {
+  outline: 2px solid var(--nx-accent);
+  outline-offset: 2px;
+}
+
 .toolbar {
   display: flex;
   flex-wrap: wrap;

@@ -9,7 +9,10 @@ import {
   RefreshCw,
   Search,
   Sparkles,
+  Stethoscope,
+  Users,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button, EmptyState, SearchInput, Spinner } from '../../design-system';
@@ -33,6 +36,7 @@ import { ConsumptionBreakdownPanel } from './ConsumptionBreakdownPanel';
 import { RegisterProviderModal } from './RegisterProviderModal';
 import { SchedulerExplainModal } from './SchedulerExplainModal';
 import { UsageAccountCard } from './UsageAccountCard';
+import { UsageDiagnosticsPanel } from './UsageDiagnosticsPanel';
 import { UsagePolicyPanel } from './UsagePolicyPanel';
 import { UsageRecommendRail } from './UsageRecommendRail';
 import { UsageSummaryStrip } from './UsageSummaryStrip';
@@ -41,8 +45,11 @@ import {
   filterAccounts,
   groupAccountsByProvider,
   installedProvidersWithoutAccounts,
+  readStoredUsageArea,
   summarizeAccounts,
+  writeStoredUsageArea,
   type FleetFilterStatus,
+  type UsageArea,
 } from './usageModel';
 import { FRESHNESS_TICK_MS, USAGE_POLL_MS } from './usageRefresh';
 import styles from './UsageSurface.module.scss';
@@ -64,6 +71,35 @@ const monitorSeverityRank = (state: string): number => {
     default:
       return 0;
   }
+};
+
+// Usage surface areas: "Contas e limites | Consumo | Diagnósticos".
+const areaTabs: Array<{ id: UsageArea; labelKey: string; Icon: LucideIcon }> = [
+  { id: 'accounts', labelKey: 'usage.areaAccounts', Icon: Users },
+  { id: 'consumption', labelKey: 'usage.areaConsumption', Icon: Gauge },
+  { id: 'diagnostics', labelKey: 'usage.areaDiagnostics', Icon: Stethoscope },
+];
+
+const handleAreaTabKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+  // Manual activation: arrows move focus only, Enter/Space activates.
+  if (
+    event.key !== 'ArrowRight' &&
+    event.key !== 'ArrowLeft' &&
+    event.key !== 'Home' &&
+    event.key !== 'End'
+  )
+    return;
+  const tabs = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+  const current = tabs.indexOf(document.activeElement as HTMLButtonElement);
+  if (current === -1) return;
+  event.preventDefault();
+  const next =
+    event.key === 'Home'
+      ? 0
+      : event.key === 'End'
+        ? tabs.length - 1
+        : (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+  tabs[next]?.focus();
 };
 
 export const UsageSurface: React.FC<{
@@ -92,6 +128,16 @@ export const UsageSurface: React.FC<{
     useState<HostSessionImportSummary | null>(null);
   const [hostSessionImportError, setHostSessionImportError] = useState('');
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
+
+  // Area navigation ("Contas e limites | Consumo | Diagnósticos"). The last
+  // selection is restored from sessionStorage, like Flow runs history.
+  const [activeArea, setActiveArea] = useState<UsageArea>(() =>
+    readStoredUsageArea(typeof window === 'undefined' ? null : window.sessionStorage),
+  );
+  const selectArea = (area: UsageArea) => {
+    setActiveArea(area);
+    writeStoredUsageArea(typeof window === 'undefined' ? null : window.sessionStorage, area);
+  };
 
   // Search & Filtering State
   const [search, setSearch] = useState('');
@@ -373,38 +419,42 @@ export const UsageSurface: React.FC<{
               {t('usage.loadedAt', 'Atualizado')}: {new Date(loadedAt).toLocaleTimeString()}
             </small>
           ) : null}
-          <Button
-            size="sm"
-            tone="default"
-            disabled={loading || refreshing || importingHostSessions}
-            data-testid="usage-import-host-sessions"
-            onClick={() => void importHostSessions()}
-          >
-            <KeyRound size={13} aria-hidden="true" />
-            {importingHostSessions
-              ? t('usage.importHostSessionsLoading')
-              : t('usage.importHostSessions')}
-          </Button>
-          <Button
-            size="sm"
-            tone="brand"
-            disabled={loading || refreshing}
-            onClick={() => setShowAddAccount(true)}
-          >
-            <Plus size={13} />
-            {t('usage.addAccount', 'Adicionar conta')}
-          </Button>
-          <Button
-            size="sm"
-            tone="default"
-            disabled={loading || refreshing}
-            onClick={() => void refresh()}
-          >
-            <RefreshCw size={13} className={refreshing ? 'nx-spin' : ''} />
-            {refreshing
-              ? t('usage.refreshing', 'Atualizando…')
-              : t('usage.refresh', 'Atualizar cota')}
-          </Button>
+          {activeArea === 'accounts' ? (
+            <>
+              <Button
+                size="sm"
+                tone="default"
+                disabled={loading || refreshing || importingHostSessions}
+                data-testid="usage-import-host-sessions"
+                onClick={() => void importHostSessions()}
+              >
+                <KeyRound size={13} aria-hidden="true" />
+                {importingHostSessions
+                  ? t('usage.importHostSessionsLoading')
+                  : t('usage.importHostSessions')}
+              </Button>
+              <Button
+                size="sm"
+                tone="brand"
+                disabled={loading || refreshing}
+                onClick={() => setShowAddAccount(true)}
+              >
+                <Plus size={13} />
+                {t('usage.addAccount', 'Adicionar conta')}
+              </Button>
+              <Button
+                size="sm"
+                tone="default"
+                disabled={loading || refreshing}
+                onClick={() => void refresh()}
+              >
+                <RefreshCw size={13} className={refreshing ? 'nx-spin' : ''} />
+                {refreshing
+                  ? t('usage.refreshing', 'Atualizando…')
+                  : t('usage.refresh', 'Atualizar cota')}
+              </Button>
+            </>
+          ) : null}
         </div>
       </div>
 
@@ -469,192 +519,252 @@ export const UsageSurface: React.FC<{
       {error ? <div className="nx-inline-error">{error}</div> : null}
       {loading ? <Spinner label={t('resources.loading')} /> : null}
 
-      {!loading && unconfiguredClis.length > 0 ? (
-        <div className={styles.detectedBanner}>
-          <div className={styles.detectedCopy}>
-            <strong>
-              <Cpu size={15} color="var(--nx-accent)" />
-              {t('usage.installedCliTitle', 'Provedores CLI detectados no sistema')}
-            </strong>
-            <span>{t('usage.installedCliSubtitle')}</span>
-            <div className={styles.detectedChips}>
-              {unconfiguredClis.map((provider) => (
-                <span key={provider.id} className={styles.detectedChip}>
-                  {provider.id} ({provider.version || 'instalado'})
-                </span>
-              ))}
-            </div>
-          </div>
-          <Button
-            size="sm"
-            tone="brand"
-            onClick={() => {
-              setAddAccountTargetProvider(
-                unconfiguredClis.length === 1 ? unconfiguredClis[0].id : '',
-              );
-              setShowAddAccount(true);
-            }}
+      <div
+        className={styles.areaTabs}
+        role="tablist"
+        aria-label={t('usage.areasLabel', 'Áreas de uso')}
+        onKeyDown={handleAreaTabKeyDown}
+      >
+        {areaTabs.map(({ id, labelKey, Icon }) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            id={`usage-tab-${id}`}
+            aria-selected={activeArea === id}
+            aria-controls={`usage-panel-${id}`}
+            tabIndex={activeArea === id ? 0 : -1}
+            data-active={activeArea === id ? 'true' : 'false'}
+            onClick={() => selectArea(id)}
           >
-            <Plus size={13} />
-            {t('usage.addAccount', 'Registrar')}
-          </Button>
-        </div>
-      ) : null}
+            <Icon size={13} aria-hidden="true" />
+            {t(labelKey)}
+          </button>
+        ))}
+      </div>
 
-      {!loading && accounts.length === 0 && unconfiguredClis.length === 0 ? (
-        <EmptyState
-          icon={<Gauge size={20} />}
-          title={t('resources.empty')}
-          hint={t('resources.emptyHint')}
-          action={
-            <Button tone="brand" onClick={() => setShowAddAccount(true)}>
-              <Plus size={14} />
-              {t('usage.addAccount', 'Adicionar conta')}
-            </Button>
-          }
-        />
-      ) : null}
+      <div
+        role="tabpanel"
+        id={`usage-panel-${activeArea}`}
+        aria-labelledby={`usage-tab-${activeArea}`}
+        tabIndex={0}
+        className={styles.areaPanel}
+      >
+        {activeArea === 'accounts' ? (
+          <>
+            {!loading && unconfiguredClis.length > 0 ? (
+              <div className={styles.detectedBanner}>
+                <div className={styles.detectedCopy}>
+                  <strong>
+                    <Cpu size={15} color="var(--nx-accent)" />
+                    {t('usage.installedCliTitle', 'Provedores CLI detectados no sistema')}
+                  </strong>
+                  <span>{t('usage.installedCliSubtitle')}</span>
+                  <div className={styles.detectedChips}>
+                    {unconfiguredClis.map((provider) => (
+                      <span key={provider.id} className={styles.detectedChip}>
+                        {provider.id} ({provider.version || 'instalado'})
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  tone="brand"
+                  onClick={() => {
+                    setAddAccountTargetProvider(
+                      unconfiguredClis.length === 1 ? unconfiguredClis[0].id : '',
+                    );
+                    setShowAddAccount(true);
+                  }}
+                >
+                  <Plus size={13} />
+                  {t('usage.addAccount', 'Registrar')}
+                </Button>
+              </div>
+            ) : null}
 
-      {!loading && accounts.length > 0 ? (
-        <UsageSummaryStrip
-          summary={summary}
-          bestLabel={bestLabel}
-          activeStatusFilter={statusFilter}
-          onSelectStatusFilter={setStatusFilter}
-          onSelectBest={handleSelectBest}
-        />
-      ) : null}
-
-      {!loading ? (
-        <>
-          <CostSummaryStrip summary={costSummary} />
-          <ConsumptionAnalyticsPanel />
-          <ConsumptionBreakdownPanel />
-        </>
-      ) : null}
-
-      {!loading && accounts.length > 0 ? (
-        <>
-          <div className={styles.toolbar}>
-            <div className={styles.searchWrap}>
-              <SearchInput
-                value={search}
-                onChange={setSearch}
-                placeholder={t('usage.searchPlaceholder')}
+            {!loading && accounts.length === 0 && unconfiguredClis.length === 0 ? (
+              <EmptyState
+                icon={<Gauge size={20} />}
+                title={t('resources.empty')}
+                hint={t('resources.emptyHint')}
+                action={
+                  <Button tone="brand" onClick={() => setShowAddAccount(true)}>
+                    <Plus size={14} />
+                    {t('usage.addAccount', 'Adicionar conta')}
+                  </Button>
+                }
               />
-            </div>
+            ) : null}
 
-            <div className={styles.filterPills} role="group" aria-label="Filtro de provedores">
-              <button
-                type="button"
-                className={styles.filterPill}
-                data-active={providerFilter === 'all'}
-                onClick={() => setProviderFilter('all')}
-              >
-                {t('usage.filterProviderAll', 'Todos provedores')} ({accounts.length})
-              </button>
-              {availableProviders.map((prov) => {
-                const count = accounts.filter((a) => a.provider === prov).length;
-                return (
-                  <button
-                    key={prov}
-                    type="button"
-                    className={styles.filterPill}
-                    data-active={providerFilter === prov}
-                    onClick={() => setProviderFilter(providerFilter === prov ? 'all' : prov)}
+            {!loading && accounts.length > 0 ? (
+              <UsageSummaryStrip
+                summary={summary}
+                bestLabel={bestLabel}
+                activeStatusFilter={statusFilter}
+                onSelectStatusFilter={setStatusFilter}
+                onSelectBest={handleSelectBest}
+              />
+            ) : null}
+
+            {!loading && accounts.length > 0 ? (
+              <>
+                <div className={styles.toolbar}>
+                  <div className={styles.searchWrap}>
+                    <SearchInput
+                      value={search}
+                      onChange={setSearch}
+                      placeholder={t('usage.searchPlaceholder')}
+                    />
+                  </div>
+
+                  <div
+                    className={styles.filterPills}
+                    role="group"
+                    aria-label="Filtro de provedores"
                   >
-                    {prov.toUpperCase()} ({count})
-                  </button>
-                );
-              })}
-            </div>
-
-            <Button
-              size="sm"
-              tone="default"
-              onClick={() => setRailCollapsed((prev) => !prev)}
-              title={t('usage.toggleSidebar', 'Alternar scheduler')}
-            >
-              {railCollapsed ? <PanelRightOpen size={14} /> : <PanelRightClose size={14} />}
-              {railCollapsed ? 'Scheduler' : null}
-            </Button>
-          </div>
-
-          <div className={styles.layout} data-rail-collapsed={railCollapsed}>
-            <div className={styles.main}>
-              {groups.length === 0 ? (
-                <EmptyState
-                  icon={<Search size={20} />}
-                  title={t('common.noResults', 'Nenhuma conta encontrada')}
-                  hint="Nenhum provedor corresponde aos filtros selecionados."
-                  action={
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setSearch('');
-                        setProviderFilter('all');
-                        setStatusFilter('all');
-                      }}
+                    <button
+                      type="button"
+                      className={styles.filterPill}
+                      data-active={providerFilter === 'all'}
+                      onClick={() => setProviderFilter('all')}
                     >
-                      Limpar filtros
-                    </Button>
-                  }
-                />
-              ) : null}
+                      {t('usage.filterProviderAll', 'Todos provedores')} ({accounts.length})
+                    </button>
+                    {availableProviders.map((prov) => {
+                      const count = accounts.filter((a) => a.provider === prov).length;
+                      return (
+                        <button
+                          key={prov}
+                          type="button"
+                          className={styles.filterPill}
+                          data-active={providerFilter === prov}
+                          onClick={() => setProviderFilter(providerFilter === prov ? 'all' : prov)}
+                        >
+                          {prov.toUpperCase()} ({count})
+                        </button>
+                      );
+                    })}
+                  </div>
 
-              <div className={styles.fleet}>
-                {groups.map((group) => (
-                  <section key={group.provider} className={styles.providerGroup}>
-                    <h2 className={styles.providerHeading}>
-                      <span>{group.provider}</span>
-                      <small>{t('resources.accountCount', { count: group.accounts.length })}</small>
-                    </h2>
-                    <div className={styles.accountGrid}>
-                      {group.accounts.map((account) => (
-                        <UsageAccountCard
-                          key={account.id}
-                          account={account}
-                          now={now}
-                          isRecommended={
-                            recommend?.recommended?.account?.id === account.id ||
-                            (recommend?.recommended?.account?.provider === account.provider &&
-                              recommend?.recommended?.account?.profile === account.profile)
-                          }
-                          monitorState={
-                            monitorByAccount[`${account.provider}/${account.profile}`] || null
-                          }
-                          onRefreshNeeded={() => refresh(account.provider, account.profile)}
-                          onCapacityChange={() => void load()}
-                          onRequestLogin={(acc) => setLoginAccount(acc)}
-                          onOpenTerminal={onOpenProviderTerminal}
-                          onRequestExplain={() => setShowExplain(true)}
-                          onAddProfile={(prov) => {
-                            setAddAccountTargetProvider(prov);
-                            setShowAddAccount(true);
-                          }}
-                        />
+                  <Button
+                    size="sm"
+                    tone="default"
+                    onClick={() => setRailCollapsed((prev) => !prev)}
+                    title={t('usage.toggleSidebar', 'Alternar scheduler')}
+                  >
+                    {railCollapsed ? <PanelRightOpen size={14} /> : <PanelRightClose size={14} />}
+                    {railCollapsed ? 'Scheduler' : null}
+                  </Button>
+                </div>
+
+                <div className={styles.layout} data-rail-collapsed={railCollapsed}>
+                  <div className={styles.main}>
+                    {groups.length === 0 ? (
+                      <EmptyState
+                        icon={<Search size={20} />}
+                        title={t('common.noResults', 'Nenhuma conta encontrada')}
+                        hint="Nenhum provedor corresponde aos filtros selecionados."
+                        action={
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setSearch('');
+                              setProviderFilter('all');
+                              setStatusFilter('all');
+                            }}
+                          >
+                            Limpar filtros
+                          </Button>
+                        }
+                      />
+                    ) : null}
+
+                    <div className={styles.fleet}>
+                      {groups.map((group) => (
+                        <section key={group.provider} className={styles.providerGroup}>
+                          <h2 className={styles.providerHeading}>
+                            <span>{group.provider}</span>
+                            <small>
+                              {t('resources.accountCount', { count: group.accounts.length })}
+                            </small>
+                          </h2>
+                          <div className={styles.accountGrid}>
+                            {group.accounts.map((account) => (
+                              <UsageAccountCard
+                                key={account.id}
+                                account={account}
+                                now={now}
+                                isRecommended={
+                                  recommend?.recommended?.account?.id === account.id ||
+                                  (recommend?.recommended?.account?.provider === account.provider &&
+                                    recommend?.recommended?.account?.profile === account.profile)
+                                }
+                                monitorState={
+                                  monitorByAccount[`${account.provider}/${account.profile}`] || null
+                                }
+                                onRefreshNeeded={() => refresh(account.provider, account.profile)}
+                                onCapacityChange={() => void load()}
+                                onRequestLogin={(acc) => setLoginAccount(acc)}
+                                onOpenTerminal={onOpenProviderTerminal}
+                                onRequestExplain={() => setShowExplain(true)}
+                                onAddProfile={(prov) => {
+                                  setAddAccountTargetProvider(prov);
+                                  setShowAddAccount(true);
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </section>
                       ))}
                     </div>
-                  </section>
-                ))}
-              </div>
-            </div>
+                  </div>
 
-            {!railCollapsed && (
-              <aside className={styles.rail}>
-                <UsageRecommendRail
-                  loading={recommendLoading}
-                  result={recommend}
-                  error={recommendError}
-                  onRequestExplain={() => setShowExplain(true)}
-                  onOpenTerminal={onOpenProviderTerminal}
-                />
-                <UsagePolicyPanel policy={policy} />
-              </aside>
-            )}
+                  {!railCollapsed && (
+                    <aside className={styles.rail}>
+                      <UsageRecommendRail
+                        loading={recommendLoading}
+                        result={recommend}
+                        error={recommendError}
+                        onRequestExplain={() => setShowExplain(true)}
+                        onOpenTerminal={onOpenProviderTerminal}
+                      />
+                      <UsagePolicyPanel policy={policy} />
+                    </aside>
+                  )}
+                </div>
+              </>
+            ) : null}
+          </>
+        ) : null}
+
+        {activeArea === 'consumption' && !loading ? (
+          <>
+            <CostSummaryStrip summary={costSummary} />
+            <ConsumptionAnalyticsPanel />
+            <ConsumptionBreakdownPanel />
+          </>
+        ) : null}
+
+        {activeArea === 'diagnostics' && !loading ? (
+          <div data-tour="usage-diagnostics">
+            <UsageDiagnosticsPanel
+              accounts={accounts}
+              monitorByAccount={monitorByAccount}
+              unconfiguredProviders={unconfiguredClis}
+              now={now}
+              onRefreshAccount={(provider, profile) => void refresh(provider, profile)}
+              onRequestLogin={(account) => setLoginAccount(account)}
+              onOpenProviderTerminal={onOpenProviderTerminal}
+              onRegisterProvider={(provider) => {
+                setAddAccountTargetProvider(provider);
+                setShowAddAccount(true);
+              }}
+            />
           </div>
-        </>
-      ) : null}
+        ) : null}
+      </div>
 
       <AccountLoginModal
         account={loginAccount}
