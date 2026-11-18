@@ -73,7 +73,7 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Verify complete V1 Workspace scope inventory (not a certification)
         run: |
-          node --test scripts/verify-agent-workspace-v1.test.mjs
+          node --test scripts/verify-agent-workspace-v1.test.mjs scripts/tests/agent-workspace-doc-sync.test.mjs
           node scripts/verify-agent-workspace-v1.mjs
       - name: Verify beta bump/rollback contract
         run: node --test scripts/release-version.test.mjs
