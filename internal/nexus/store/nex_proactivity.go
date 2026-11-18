@@ -69,19 +69,35 @@ func NexQuietHours(p NexProactivityPreferences, now time.Time) bool {
 	return t >= a || t < b // overnight quiet hours
 }
 
-func (s *Store) GetNexProactivityPreferences(projectID string) (NexProactivityPreferences, error) {
+// nexPreferenceQuerier lets GET and the atomic claim transaction resolve
+// precisely the same effective policy, including global defaults.
+type nexPreferenceQuerier interface {
+	QueryRow(query string, args ...any) *sql.Row
+}
+
+func resolveNexProactivityPreferences(q nexPreferenceQuerier, projectID string) (NexProactivityPreferences, error) {
 	p := defaultNexProactivityPreferences()
-	err := s.db.QueryRow(`SELECT mode,quiet_start,quiet_end,timezone,min_interval_minutes
-		FROM nex_proactivity_preferences WHERE project_scope=?`,
-		nexConversationScope(projectID)).Scan(&p.Mode, &p.QuietStart, &p.QuietEnd,
-		&p.TimeZone, &p.MinIntervalMinutes)
-	if errors.Is(err, sql.ErrNoRows) {
-		return p, nil
+	scopes := []string{nexConversationScope(projectID)}
+	if strings.TrimSpace(projectID) != "" {
+		scopes = append(scopes, nexConversationScope(""))
 	}
-	if err != nil {
-		return p, err
+	for _, scope := range scopes {
+		err := q.QueryRow(`SELECT mode,quiet_start,quiet_end,timezone,min_interval_minutes
+			FROM nex_proactivity_preferences WHERE project_scope=?`, scope).
+			Scan(&p.Mode, &p.QuietStart, &p.QuietEnd, &p.TimeZone, &p.MinIntervalMinutes)
+		if errors.Is(err, sql.ErrNoRows) {
+			continue
+		}
+		if err != nil {
+			return p, err
+		}
+		return p, ValidateNexProactivityPreferences(p)
 	}
-	return p, ValidateNexProactivityPreferences(p)
+	return p, nil
+}
+
+func (s *Store) GetNexProactivityPreferences(projectID string) (NexProactivityPreferences, error) {
+	return resolveNexProactivityPreferences(s.db, projectID)
 }
 
 func (s *Store) SetNexProactivityPreferences(projectID string, p NexProactivityPreferences) error {
@@ -115,11 +131,8 @@ func (s *Store) TryClaimNexSuggestion(projectID, fingerprint string, now time.Ti
 		return false, err
 	}
 	defer tx.Rollback()
-	p := defaultNexProactivityPreferences()
-	err = tx.QueryRow(`SELECT mode,quiet_start,quiet_end,timezone,min_interval_minutes
-		FROM nex_proactivity_preferences WHERE project_scope=?`, scope).
-		Scan(&p.Mode, &p.QuietStart, &p.QuietEnd, &p.TimeZone, &p.MinIntervalMinutes)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	p, err := resolveNexProactivityPreferences(tx, projectID)
+	if err != nil {
 		return false, err
 	}
 	if p.Mode != "proactive" || NexQuietHours(p, now) {
