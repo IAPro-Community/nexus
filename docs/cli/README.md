@@ -67,6 +67,7 @@ de automatizar.
 | `nexus agents [project-id]` | lista Agents persistentes de um projeto |
 | `nexus plan [list\|create\|show\|compile\|run]` | gerencia WorkPlans |
 | `nexus sessions [search] [--json]` | consulta índice universal de sessões |
+| `nexus cost summary\|analytics [--days N] [--project-id <id>] [--json]` | custo local sobre o ledger de observações (mesmo schema de `/api/v1/cost/analytics`) |
 | `nexus workspaces [--json]` | mostra workspaces, histórico e bindings |
 | `nexus current` | mostra provider/perfil ativo |
 | `nexus bind`, `unbind`, `bindings` | gerencia preferências por workspace |
@@ -172,6 +173,21 @@ nexus usage
 nexus usage --json        # Ideal para integrações e dashboards
 nexus usage --refresh     # Força chamada ativa às APIs/CLIs para atualizar cache
 ```
+
+### `nexus cost summary` e `nexus cost analytics`
+Custo local sobre o ledger canônico de observações (somente leitura; mesmo
+schema de `GET /api/v1/cost/analytics`):
+```bash
+nexus cost summary [--days 7] [--project-id <id>] [--json]
+nexus cost analytics [--days 7] [--project-id <id>] [--json]
+```
+
+- `--days` segue a validação do endpoint (1..365); `--project-id` é opcional.
+- `--json` emite o `CostAnalyticsReport` integral (`source`, `total`,
+  `by_day`, `by_model`, `models_truncated`), idêntico ao endpoint Web.
+- Custos reportados, equivalentes e desconhecidos nunca são mesclados em uma
+  "fatura"; evidência sem custo classificável é exibida como contagem, não
+  como zero fabricado.
 
 ### `nexus explain <provider>`
 Explica detalhadamente por que uma determinada conta/perfil foi selecionada, expondo a matriz de pontuação (pesos de quota, janelas de 5h e 7 dias, latência e histórico de rate limits):
