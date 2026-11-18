@@ -46,7 +46,9 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
 }) => {
   const [expanded, setExpanded] = React.useState(false);
   const [overview, setOverview] = React.useState<NexAssistantOverview | null>(null);
-  const [showOverviewSuggestions, setShowOverviewSuggestions] = React.useState(false);
+  const [showOverviewSuggestions, setShowOverviewSuggestions] = React.useState(
+    () => readNexAssistantPreferences().mode === 'contextual',
+  );
   const [turns, setTurns] = React.useState<NexChatTurn[]>([]);
   const [proposal, setProposal] = React.useState<NexActionProposal | null>(null);
   const [persistHistory, setPersistHistory] = React.useState(
@@ -71,7 +73,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
     setError('');
     setIncludeProjectContext(false);
     setConfirmClear(false);
-    setShowOverviewSuggestions(false);
+    setShowOverviewSuggestions(readNexAssistantPreferences().mode === 'contextual');
   }, [projectId]);
 
   React.useEffect(() => () => chatAbortController.current?.abort(), []);
