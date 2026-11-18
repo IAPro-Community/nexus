@@ -165,6 +165,12 @@ export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
       title: 'tour.flowCanvasTitle',
       body: 'tour.flowCanvasBody',
     },
+    {
+      id: 'maestro-missions',
+      target: '[data-tour="flow-maestro-missions"]',
+      title: 'tour.flowMaestroMissionsTitle',
+      body: 'tour.flowMaestroMissionsBody',
+    },
   ],
   resources: [
     {

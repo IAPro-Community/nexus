@@ -1,0 +1,58 @@
+.panel {
+  margin-block: 0.75rem;
+}
+
+.summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding-block: 0.25rem;
+}
+
+.description,
+.hint {
+  color: var(--nx-text-muted, var(--text-muted, #8a8a8a));
+  font-size: 0.85rem;
+  line-height: 1.55;
+  margin-block: 0.75rem;
+}
+
+.rows {
+  list-style: none;
+  margin-block: 0.75rem;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--nx-border, var(--border, #555));
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.65rem;
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.status {
+  font-family: var(--nx-font-mono, ui-monospace, monospace);
+  font-size: 0.78rem;
+  color: var(--nx-accent, var(--accent, currentColor));
+}
+
+.meta {
+  color: var(--nx-text-muted, var(--text-muted, #8a8a8a));
+  overflow-wrap: anywhere;
+}
+
+.cancel {
+  margin-inline-start: auto;
+}

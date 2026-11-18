@@ -1257,6 +1257,9 @@ export const en = {
     flowGraphTitle: 'Visual planning and dependencies',
     flowGraphBody:
       'Review the pipeline and inspect dependencies with the graph in the same WorkPlan.',
+    flowMaestroRunsTitle: 'Durable Maestro missions',
+    flowMaestroRunsBody:
+      'Admit the approved plan into the Maestro queue and follow its real submission state. Nexus observes; Maestro dispatches.',
     flowEvidenceTitle: 'Mission progress and evidence',
     flowEvidenceBody: 'See real execution status and evidence, not just an AI prediction.',
     providerDiscoveryTitle: 'Connect an existing provider session',
@@ -1370,6 +1373,9 @@ export const en = {
     flowCanvasTitle: 'Steps, dependencies and inspection',
     flowCanvasBody:
       'Select a step to inspect or change it. Saving and execution are separate actions; the MissionRunner remains the authority for dispatch and recovery.',
+    flowMaestroMissionsTitle: 'Durable Maestro missions',
+    flowMaestroMissionsBody:
+      'Admit the approved plan into the Maestro queue and watch the real submission state. Nexus observes only; dispatch stays Maestro-owned.',
     flowRunStatusTitle: 'Mission state',
     flowRunStatusBody:
       'This is a running or completed Mission, bound to a frozen plan revision. You can see progress and outstanding human decisions.',
@@ -1758,6 +1764,66 @@ export const en = {
     maestroDraftPhaseTitle: 'Maestro · plan for review',
     maestroExecutionNotReady:
       'This plan was composed by Maestro. Delegated execution needs the durable Maestro execution API and cannot start through Nexus MissionRunner.',
+    maestroSubmitTitle: 'Admit durable mission · Maestro',
+    maestroSubmitDescription:
+      'Creates a durable submission in the Maestro queue. Dispatch happens only while the Maestro worker is running (maestro runs worker); Nexus never executes on its own.',
+    maestroSubmitConsent:
+      'I approve this plan and the assignments above; the approval will be recorded by Maestro.',
+    maestroSubmitBudget: 'Explicit budget (USD, optional)',
+    maestroSubmitBudgetHint: '0 = corrections require a human decision',
+    maestroSubmitting: 'Admitting into Maestro…',
+    maestroSubmit: 'Admit mission',
+    maestroSubmitError: 'Could not admit the mission into Maestro.',
+    maestroSubmitFailed: 'Submission not admitted',
+    maestroAckReplayed: 'Existing submission reused (idempotent)',
+    maestroAckTitle: 'Mission admitted into the Maestro queue',
+    maestroAckSubmission: 'Submission',
+    maestroAckStatus: 'State',
+    maestroAckBranch: 'Branch',
+    maestroAckManifest: 'Manifest',
+    maestroAckHint:
+      'The state stays PENDING_WORKER until the Maestro worker claims the submission. Follow it under Maestro missions below.',
+    maestroMissionTitle: 'Maestro missions · durable queue',
+    maestroMissionDescription:
+      'Maestro-owned durable submissions for this project. Nexus only observes: dispatch and receipts belong to Maestro.',
+    maestroMissionLoading: 'Loading submissions…',
+    maestroMissionUnavailable: 'Maestro unavailable for observation.',
+    maestroMissionUnavailableTitle: 'Maestro unavailable',
+    maestroMissionUnavailableText:
+      'Existing durable submissions remain in Maestro. There is no alternative execution in Nexus.',
+    maestroMissionEmpty: 'No durable submissions yet. Admit a mission from a ready pre-validation.',
+    maestroMissionTasks: 'Tasks',
+    maestroMissionCancel: 'Cancel',
+    maestroMissionCancelling: 'Requesting…',
+    maestroMissionCancelFailed: 'The cancellation could not be requested.',
+    maestroMissionCancelFailedTitle: 'Cancellation not confirmed',
+    maestroMissionCancelFailedText:
+      'The request was recorded or rejected by Maestro; the real state remains in the queue.',
+    maestroMissionRefreshing: 'Refreshing…',
+    maestroBlocker: {
+      WORKSPACE_RESERVED: 'Workspace already reserved by another pending submission',
+      MANIFEST_WORKSPACE_CHANGED: 'Git workspace changed since the manifest was approved',
+      WORKSPACE_CHANGED_DURING_APPROVAL:
+        'Git workspace changed while the approval was being checked',
+      RUN_SUBMISSION_CONFLICT: 'Idempotency key reused for a different approved request',
+      PROVIDER_NOT_REGISTERED: 'Provider is not registered in this Maestro runtime',
+      PROVIDER_UNAVAILABLE: 'Provider is not installed or unavailable on this host',
+      SANDBOX_NOT_SUPPORTED: 'Provider does not support the requested sandbox mode',
+      MODEL_LOCK_DISPATCH_UNSUPPORTED:
+        'Model-specific dispatch is not certified; use the provider default model',
+      PLAN_NOT_EXECUTABLE: 'Plan must pass Maestro DAG validation before submission',
+      MANIFEST_MULTI_WORKTREE_UNSUPPORTED: 'More than five distinct worktrees are not supported',
+      MANIFEST_LIMIT_EXCEEDED: 'Submission exceeds the duration limit',
+      EXECUTABLE_MANIFEST_NOT_FOUND: 'Executable manifest does not exist',
+      MANIFEST_WORKTREE_CONFLICT: 'Independent tasks cannot write the same worktree',
+      MANIFEST_BUDGET_EXCEEDED: 'Task budgets exceed the approved total',
+      MODEL_USE_NOT_APPROVED: 'External model use must be explicitly approved',
+      PROJECT_SCOPE_MISMATCH: 'Project root does not match a registered Maestro project',
+      INVALID_WORKSPACE_AUTHORITY: 'Workspace is not a valid Git worktree of the project',
+      WORKSPACE_FINGERPRINT_MISMATCH: 'Workspace identity does not match the approved manifest',
+      APPROVAL_NOT_VERIFIED: 'Human approval could not be verified by Maestro',
+      INVALID_SUBMISSION: 'Submission parameters are invalid or incomplete',
+    },
     maestroDispatchPending: 'Maestro execution unavailable',
     maestroPlanReviewOnly:
       'Maestro-composed plan: you can review and save the draft. Delegated execution remains blocked until the Maestro executor is integrated; no task will be sent to the Nexus MissionRunner.',
@@ -4015,6 +4081,9 @@ export const ptBR = {
     flowJourneyBody: 'O Flow separa planejamento, revisão, execução de Mission e evidências.',
     flowGraphTitle: 'Planejamento visual e dependências',
     flowGraphBody: 'Veja a pipeline e explore dependências no grafo usando o mesmo WorkPlan.',
+    flowMaestroRunsTitle: 'Missões duráveis do Maestro',
+    flowMaestroRunsBody:
+      'Admita o plano aprovado na fila do Maestro e acompanhe o estado real da submissão. O Nexus observa; o Maestro despacha.',
     flowEvidenceTitle: 'Progresso e evidências da Mission',
     flowEvidenceBody:
       'Consulte resultados e estados reais de execução, não apenas previsões da IA.',
@@ -4129,6 +4198,9 @@ export const ptBR = {
     flowCanvasTitle: 'Etapas e inspector',
     flowCanvasBody:
       'Selecione uma etapa para examiná-la ou editá-la. Salvar e executar são ações diferentes; o MissionRunner controla despacho e recuperação.',
+    flowMaestroMissionsTitle: 'Missões duráveis do Maestro',
+    flowMaestroMissionsBody:
+      'Admita o plano aprovado na fila do Maestro e acompanhe o estado real da submissão. O Nexus apenas observa; o despacho pertence ao Maestro.',
     flowRunStatusTitle: 'Estado da Mission',
     flowRunStatusBody:
       'Esta Mission usa uma revisão congelada do plano. Veja progresso e decisões pendentes de intervenção.',
@@ -4521,6 +4593,69 @@ export const ptBR = {
     maestroDraftPhaseTitle: 'Maestro · plano para revisão',
     maestroExecutionNotReady:
       'Este plano foi composto pelo Maestro. A execução delegada exige a API durável do Maestro e não pode ser iniciada pelo MissionRunner do Nexus.',
+    maestroSubmitTitle: 'Admitir missão durável · Maestro',
+    maestroSubmitDescription:
+      'Cria uma submissão durável na fila do Maestro. O despacho só acontece com o worker do Maestro em execução (maestro runs worker); o Nexus não executa por conta própria.',
+    maestroSubmitConsent:
+      'Aprovei este plano e as atribuições acima; a aprovação ficará registrada no Maestro.',
+    maestroSubmitBudget: 'Orçamento explícito (USD, opcional)',
+    maestroSubmitBudgetHint: '0 = correções exigem decisão humana',
+    maestroSubmitting: 'Admitindo no Maestro…',
+    maestroSubmit: 'Admitir missão',
+    maestroSubmitError: 'Não foi possível admitir a missão no Maestro.',
+    maestroSubmitFailed: 'Submissão não admitida',
+    maestroAckReplayed: 'Submissão existente reutilizada (idempotente)',
+    maestroAckTitle: 'Missão admitida na fila do Maestro',
+    maestroAckSubmission: 'Submissão',
+    maestroAckStatus: 'Estado',
+    maestroAckBranch: 'Branch',
+    maestroAckManifest: 'Manifesto',
+    maestroAckHint:
+      'O estado permanece PENDING_WORKER até o worker do Maestro reivindicar a submissão. Acompanhe em Missões do Maestro abaixo.',
+    maestroMissionTitle: 'Missões do Maestro · fila durável',
+    maestroMissionDescription:
+      'Submissões duráveis Maestro-owned deste projeto. O Nexus apenas observa: o despacho e os receipts pertencem ao Maestro.',
+    maestroMissionLoading: 'Carregando submissões…',
+    maestroMissionUnavailable: 'Maestro indisponível para observação.',
+    maestroMissionUnavailableTitle: 'Maestro indisponível',
+    maestroMissionUnavailableText:
+      'As submissões duráveis existentes continuam no Maestro. Não há execução alternativa no Nexus.',
+    maestroMissionEmpty:
+      'Nenhuma submissão durável ainda. Admita uma missão a partir de uma pré-validação pronta.',
+    maestroMissionTasks: 'Tarefas',
+    maestroMissionCancel: 'Cancelar',
+    maestroMissionCancelling: 'Solicitando…',
+    maestroMissionCancelFailed: 'Não foi possível solicitar o cancelamento.',
+    maestroMissionCancelFailedTitle: 'Cancelamento não confirmado',
+    maestroMissionCancelFailedText:
+      'A solicitação foi registrada ou rejeitada pelo Maestro; o estado real permanece na fila.',
+    maestroMissionRefreshing: 'Atualizando…',
+    maestroBlocker: {
+      WORKSPACE_RESERVED: 'Workspace já reservado por outra submissão pendente',
+      MANIFEST_WORKSPACE_CHANGED: 'O workspace Git mudou desde a aprovação do manifesto',
+      WORKSPACE_CHANGED_DURING_APPROVAL:
+        'O workspace Git mudou enquanto a aprovação era verificada',
+      RUN_SUBMISSION_CONFLICT: 'Chave de idempotência reutilizada para outro pedido aprovado',
+      PROVIDER_NOT_REGISTERED: 'Provider não registrado neste runtime do Maestro',
+      PROVIDER_UNAVAILABLE: 'Provider não instalado ou indisponível neste host',
+      SANDBOX_NOT_SUPPORTED: 'O provider não suporta o modo de sandbox solicitado',
+      MODEL_LOCK_DISPATCH_UNSUPPORTED:
+        'Despacho com modelo específico não certificado; use o modelo padrão do provider',
+      PLAN_NOT_EXECUTABLE:
+        'O plano precisa passar na validação de DAG do Maestro antes da submissão',
+      MANIFEST_MULTI_WORKTREE_UNSUPPORTED: 'Mais de cinco worktrees distintos não são suportados',
+      MANIFEST_LIMIT_EXCEEDED: 'A submissão excede o limite de duração',
+      EXECUTABLE_MANIFEST_NOT_FOUND: 'Manifesto executável não existe',
+      MANIFEST_WORKTREE_CONFLICT: 'Tarefas independentes não podem escrever a mesma worktree',
+      MANIFEST_BUDGET_EXCEEDED: 'Os orçamentos por tarefa excedem o total aprovado',
+      MODEL_USE_NOT_APPROVED: 'O uso de modelo externo precisa ser aprovado explicitamente',
+      PROJECT_SCOPE_MISMATCH: 'A raiz do projeto não corresponde a um projeto Maestro registrado',
+      INVALID_WORKSPACE_AUTHORITY: 'O workspace não é uma worktree Git válida do projeto',
+      WORKSPACE_FINGERPRINT_MISMATCH:
+        'A identidade do workspace não corresponde ao manifesto aprovado',
+      APPROVAL_NOT_VERIFIED: 'A aprovação humana não pôde ser verificada pelo Maestro',
+      INVALID_SUBMISSION: 'Parâmetros da submissão inválidos ou incompletos',
+    },
     maestroDispatchPending: 'Execução Maestro indisponível',
     maestroPlanReviewOnly:
       'Plano composto pelo Maestro: você pode revisar e salvar o rascunho. O despacho durável permanece bloqueado até a integração com o executor Maestro; nenhuma tarefa será transferida ao MissionRunner do Nexus.',
@@ -6789,6 +6924,9 @@ export const es = {
     flowJourneyBody: 'Flow separa planificación, revisión, Mission y evidencias.',
     flowGraphTitle: 'Planificación visual y dependencias',
     flowGraphBody: 'Examine el pipeline y las dependencias en el grafo del mismo WorkPlan.',
+    flowMaestroRunsTitle: 'Misiones duraderas de Maestro',
+    flowMaestroRunsBody:
+      'Admita el plan aprobado en la cola de Maestro y siga el estado real de la admisión. Nexus observa; Maestro despacha.',
     flowEvidenceTitle: 'Progreso y evidencias de Mission',
     flowEvidenceBody: 'Consulte estados y resultados reales, no solo previsiones de IA.',
     providerDiscoveryTitle: 'Conecte una sesión existente del proveedor',
@@ -6902,6 +7040,9 @@ export const es = {
     flowCanvasTitle: 'Etapas e inspector',
     flowCanvasBody:
       'Seleccione una etapa para verla o editarla. Guardar y ejecutar son acciones distintas; MissionRunner controla la ejecución.',
+    flowMaestroMissionsTitle: 'Misiones duraderas de Maestro',
+    flowMaestroMissionsBody:
+      'Admita el plan aprobado en la cola de Maestro y observe el estado real de la admisión. Nexus solo observa; el despacho pertenece a Maestro.',
     flowRunStatusTitle: 'Estado de Mission',
     flowRunStatusBody:
       'Esta Mission se vincula a una revisión congelada del plan. Consulte progreso y decisiones pendientes.',
@@ -7294,6 +7435,70 @@ export const es = {
     maestroDraftPhaseTitle: 'Maestro · plan para revisión',
     maestroExecutionNotReady:
       'Este plan fue compuesto por Maestro. La ejecución delegada requiere la API duradera de Maestro y no puede iniciarse mediante Nexus MissionRunner.',
+    maestroSubmitTitle: 'Admitir misión duradera · Maestro',
+    maestroSubmitDescription:
+      'Crea una admisión duradera en la cola de Maestro. El despacho ocurre solo con el worker de Maestro en ejecución (maestro runs worker); Nexus no ejecuta por sí mismo.',
+    maestroSubmitConsent:
+      'Apruebo este plan y las asignaciones anteriores; la aprobación quedará registrada en Maestro.',
+    maestroSubmitBudget: 'Presupuesto explícito (USD, opcional)',
+    maestroSubmitBudgetHint: '0 = las correcciones requieren decisión humana',
+    maestroSubmitting: 'Admitiendo en Maestro…',
+    maestroSubmit: 'Admitir misión',
+    maestroSubmitError: 'No se pudo admitir la misión en Maestro.',
+    maestroSubmitFailed: 'Admisión no realizada',
+    maestroAckReplayed: 'Admisión existente reutilizada (idempotente)',
+    maestroAckTitle: 'Misión admitida en la cola de Maestro',
+    maestroAckSubmission: 'Admisión',
+    maestroAckStatus: 'Estado',
+    maestroAckBranch: 'Rama',
+    maestroAckManifest: 'Manifiesto',
+    maestroAckHint:
+      'El estado permanece PENDING_WORKER hasta que el worker de Maestro reclame la admisión. Síguela en Misiones de Maestro abajo.',
+    maestroMissionTitle: 'Misiones de Maestro · cola duradera',
+    maestroMissionDescription:
+      'Admisiones duraderas propiedad de Maestro para este proyecto. Nexus solo observa: el despacho y los recibos pertenecen a Maestro.',
+    maestroMissionLoading: 'Cargando admisiones…',
+    maestroMissionUnavailable: 'Maestro no disponible para observación.',
+    maestroMissionUnavailableTitle: 'Maestro no disponible',
+    maestroMissionUnavailableText:
+      'Las admisiones duraderas existentes permanecen en Maestro. No hay ejecución alternativa en Nexus.',
+    maestroMissionEmpty:
+      'Aún no hay admisiones duraderas. Admita una misión desde una prevalidación lista.',
+    maestroMissionTasks: 'Tareas',
+    maestroMissionCancel: 'Cancelar',
+    maestroMissionCancelling: 'Solicitando…',
+    maestroMissionCancelFailed: 'No se pudo solicitar la cancelación.',
+    maestroMissionCancelFailedTitle: 'Cancelación no confirmada',
+    maestroMissionCancelFailedText:
+      'La solicitud fue registrada o rechazada por Maestro; el estado real permanece en la cola.',
+    maestroMissionRefreshing: 'Actualizando…',
+    maestroBlocker: {
+      WORKSPACE_RESERVED: 'Workspace ya reservado por otra admisión pendiente',
+      MANIFEST_WORKSPACE_CHANGED: 'El workspace Git cambió desde la aprobación del manifiesto',
+      WORKSPACE_CHANGED_DURING_APPROVAL:
+        'El workspace Git cambió mientras se verificaba la aprobación',
+      RUN_SUBMISSION_CONFLICT: 'Clave de idempotencia reutilizada para otra solicitud aprobada',
+      PROVIDER_NOT_REGISTERED: 'Proveedor no registrado en este runtime de Maestro',
+      PROVIDER_UNAVAILABLE: 'Proveedor no instalado o no disponible en este host',
+      SANDBOX_NOT_SUPPORTED: 'El proveedor no soporta el modo de sandbox solicitado',
+      MODEL_LOCK_DISPATCH_UNSUPPORTED:
+        'Despacho con modelo específico no certificado; use el modelo por defecto del proveedor',
+      PLAN_NOT_EXECUTABLE:
+        'El plan debe pasar la validación de DAG de Maestro antes de la admisión',
+      MANIFEST_MULTI_WORKTREE_UNSUPPORTED: 'No se admiten más de cinco worktrees distintos',
+      MANIFEST_LIMIT_EXCEEDED: 'La admisión excede el límite de duración',
+      EXECUTABLE_MANIFEST_NOT_FOUND: 'El manifiesto ejecutable no existe',
+      MANIFEST_WORKTREE_CONFLICT: 'Tareas independientes no pueden escribir la misma worktree',
+      MANIFEST_BUDGET_EXCEEDED: 'Los presupuestos por tarea exceden el total aprobado',
+      MODEL_USE_NOT_APPROVED: 'El uso de modelo externo debe aprobarse explícitamente',
+      PROJECT_SCOPE_MISMATCH:
+        'La raíz del proyecto no corresponde a un proyecto Maestro registrado',
+      INVALID_WORKSPACE_AUTHORITY: 'El workspace no es una worktree Git válida del proyecto',
+      WORKSPACE_FINGERPRINT_MISMATCH:
+        'La identidad del workspace no coincide con el manifiesto aprobado',
+      APPROVAL_NOT_VERIFIED: 'La aprobación humana no pudo ser verificada por Maestro',
+      INVALID_SUBMISSION: 'Los parámetros de la admisión son inválidos o incompletos',
+    },
     maestroDispatchPending: 'Ejecución Maestro no disponible',
     maestroPlanReviewOnly:
       'Plan compuesto por Maestro: puede revisar y guardar el borrador. La ejecución delegada sigue bloqueada hasta integrar el ejecutor de Maestro; no se enviará ninguna tarea al MissionRunner de Nexus.',

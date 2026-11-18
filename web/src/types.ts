@@ -2237,6 +2237,65 @@ export interface MaestroWorkAssignmentInput {
   worktreePath: string;
 }
 
+export type MaestroSubmissionStatus =
+  | 'PENDING_WORKER'
+  | 'CLAIMED'
+  | 'DISPATCHED'
+  | 'CANCEL_REQUESTED'
+  | 'RECONCILIATION_REQUIRED'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'BLOCKED'
+  | 'TIMED_OUT'
+  | 'CANCELLED';
+
+// Durable admission receipt. A queued submission is not an execution promise:
+// dispatch stays Maestro-owned and observable via the submissions snapshot.
+export interface MaestroRunAck {
+  schemaVersion: 1;
+  submissionId: string;
+  requestDigest: string;
+  manifestId: string;
+  manifestDigest: string;
+  approvalDigest: string;
+  status: MaestroSubmissionStatus;
+  replayed: boolean;
+  workspaceFingerprint: string;
+  branch: string;
+  headCommit: string;
+}
+
+export interface MaestroSubmissionStatusRow {
+  schemaVersion: 1;
+  authority: 'MAESTRO';
+  owner: 'MAESTRO';
+  submissionId: string;
+  status: MaestroSubmissionStatus;
+  runId: string;
+  manifestId: string;
+  taskCount: number;
+  providers: string[];
+  createdAt: string;
+  updatedAt: string;
+  resultEvidence: 'RUN_STORE_OBSERVED';
+}
+
+export interface MaestroSubmissionSnapshot {
+  schemaVersion: 1;
+  authority: 'MAESTRO';
+  owner: 'MAESTRO';
+  delivery: 'SNAPSHOT_POLL';
+  replayable: false;
+  projectId: string;
+  cursor: string;
+  changed: boolean;
+  total: number;
+  offset: number;
+  limit: number;
+  nextOffset: number | null;
+  submissions: MaestroSubmissionStatusRow[];
+}
+
 export interface MaestroRoutePreviewResult {
   schemaVersion: 1;
   authority: 'MAESTRO';

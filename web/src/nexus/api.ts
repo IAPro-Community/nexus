@@ -870,6 +870,40 @@ export const nexus = {
         }),
       },
     ),
+  // Durable admission into the Maestro queue. The ACK is a queued submission
+  // receipt; dispatch stays Maestro-owned (`maestro runs worker`).
+  submitMaestroRun: (
+    projectId: string,
+    body: {
+      artifact_id: string;
+      plan_id: string;
+      assignments: import('../types').MaestroWorkAssignmentInput[];
+      approved_by?: string;
+      max_cost_usd?: number;
+    },
+  ) =>
+    request<import('../types').MaestroRunAck>(
+      `/api/v1/projects/${encodeURIComponent(projectId)}/maestro/runs`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  listMaestroSubmissions: (
+    projectId: string,
+    query: { cursor?: string; limit?: number; offset?: number } = {},
+  ) => {
+    const params = new URLSearchParams();
+    if (query.cursor) params.set('cursor', query.cursor);
+    if (query.limit !== undefined) params.set('limit', String(query.limit));
+    if (query.offset !== undefined) params.set('offset', String(query.offset));
+    const suffix = params.toString() ? `?${params.toString()}` : '';
+    return request<import('../types').MaestroSubmissionSnapshot>(
+      `/api/v1/projects/${encodeURIComponent(projectId)}/maestro/submissions${suffix}`,
+    );
+  },
+  cancelMaestroSubmission: (projectId: string, submissionId: string) =>
+    request<import('../types').MaestroSubmissionStatusRow>(
+      `/api/v1/projects/${encodeURIComponent(projectId)}/maestro/submissions/cancel`,
+      { method: 'POST', body: JSON.stringify({ submission_id: submissionId }) },
+    ),
   preflightFlow: (planId: string) =>
     request<import('../types').FlowPreflightReport>(`/api/v1/plans/${planId}/preflight`, {
       method: 'POST',

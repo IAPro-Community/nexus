@@ -5,6 +5,7 @@ import { nexusApi } from '../../nexus/api';
 import type {
   MaestroRoutePreviewResult,
   MaestroRoutingProvider,
+  MaestroRunAck,
   MaestroWorkAssignmentInput,
   Project,
   WorkPlan,
@@ -78,6 +79,14 @@ export function MaestroRoutingPreview({
   const [preview, setPreview] = useState<MaestroRoutePreviewResult | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // Durable submission into the Maestro queue. The ACK is a queued receipt;
+  // dispatch stays Maestro-owned and requires the external worker.
+  const [submitConsent, setSubmitConsent] = useState(false);
+  const [submitBudget, setSubmitBudget] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [submitErrorCode, setSubmitErrorCode] = useState('');
+  const [ack, setAck] = useState<MaestroRunAck | null>(null);
   const requestVersion = useRef(0);
   const draftFingerprint = JSON.stringify({
     id: draft.id,
@@ -97,6 +106,11 @@ export function MaestroRoutingPreview({
     requestVersion.current += 1;
     setPreview(null);
     setError('');
+    setAck(null);
+    setSubmitError('');
+    setSubmitErrorCode('');
+    setSubmitConsent(false);
+    setSubmitBudget('');
   }, [draftFingerprint, plan.current_revision, artifactId]);
 
   useEffect(() => {
@@ -187,6 +201,53 @@ export function MaestroRoutingPreview({
       setLoading(false);
     }
   };
+
+  const submitMission = async () => {
+    if (!canSubmit) return;
+    const version = ++requestVersion.current;
+    setSubmitting(true);
+    setSubmitError('');
+    setSubmitErrorCode('');
+    try {
+      const choices = draft.steps.map((step): MaestroWorkAssignmentInput => {
+        const choice = selected(step);
+        return {
+          taskId: step.id,
+          providerId: choice.providerId as MaestroRoutingProvider,
+          model: choice.model.trim() || undefined,
+          sandbox: choice.sandbox,
+          worktreePath: choice.worktreePath.trim(),
+        };
+      });
+      const budgetValue = Number.parseFloat(submitBudget);
+      const result = await nexusApi.submitMaestroRun(project.id, {
+        artifact_id: artifactId,
+        plan_id: plan.id,
+        assignments: choices,
+        approved_by: 'nexus-flow-operator',
+        ...(Number.isFinite(budgetValue) && budgetValue > 0 ? { max_cost_usd: budgetValue } : {}),
+      });
+      if (version === requestVersion.current) setAck(result);
+    } catch (reason) {
+      if (version === requestVersion.current) {
+        const code =
+          reason && typeof reason === 'object' && 'code' in reason
+            ? String((reason as { code?: unknown }).code ?? '')
+            : '';
+        setSubmitErrorCode(code);
+        setSubmitError(
+          reason instanceof Error
+            ? reason.message
+            : t('flow.maestroSubmitError', 'Não foi possível admitir a missão no Maestro.'),
+        );
+      }
+    } finally {
+      if (version === requestVersion.current) setSubmitting(false);
+    }
+  };
+
+  const canSubmit =
+    Boolean(preview?.ready) && Boolean(artifactId) && !dirty && !submitting && Boolean(plan.id);
 
   return (
     <Card className={styles.panel}>
@@ -351,6 +412,93 @@ export function MaestroRoutingPreview({
                   )}
                 </p>
               </div>
+            )}
+            {preview?.ready && (
+              <fieldset className={styles.step} disabled={submitting}>
+                <legend>{t('flow.maestroSubmitTitle', 'Admitir missão durável · Maestro')}</legend>
+                <p className={styles.description}>
+                  {t(
+                    'flow.maestroSubmitDescription',
+                    'Cria uma submissão durável na fila do Maestro. O despacho só acontece com o worker do Maestro em execução (maestro runs worker); o Nexus não executa por conta própria.',
+                  )}
+                </p>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={submitConsent}
+                    onChange={(event) => setSubmitConsent(event.target.checked)}
+                  />{' '}
+                  {t(
+                    'flow.maestroSubmitConsent',
+                    'Aprovei este plano e as atribuições acima; a aprovação ficará registrada no Maestro.',
+                  )}
+                </label>
+                <label>
+                  {t('flow.maestroSubmitBudget', 'Orçamento explícito (USD, opcional)')}
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    value={submitBudget}
+                    placeholder={t(
+                      'flow.maestroSubmitBudgetHint',
+                      '0 = correções exigem decisão humana',
+                    )}
+                    onChange={(event) => setSubmitBudget(event.target.value)}
+                  />
+                </label>
+                <Button
+                  disabled={!submitConsent || !canSubmit}
+                  onClick={() => void submitMission()}
+                >
+                  {submitting
+                    ? t('flow.maestroSubmitting', 'Admitindo no Maestro…')
+                    : t('flow.maestroSubmit', 'Admitir missão')}
+                </Button>
+                {submitError && (
+                  <InlineAlert
+                    tone="danger"
+                    title={t('flow.maestroSubmitFailed', 'Submissão não admitida')}
+                  >
+                    {submitErrorCode
+                      ? `${t(`flow.maestroBlocker.${submitErrorCode}`, submitErrorCode)}`
+                      : submitError}
+                  </InlineAlert>
+                )}
+                {ack && (
+                  <div className={styles.result} aria-live="polite">
+                    <strong>
+                      {ack.replayed
+                        ? t(
+                            'flow.maestroAckReplayed',
+                            'Submissão existente reutilizada (idempotente)',
+                          )
+                        : t('flow.maestroAckTitle', 'Missão admitida na fila do Maestro')}
+                    </strong>
+                    <ul>
+                      <li>
+                        {t('flow.maestroAckSubmission', 'Submissão')}: {ack.submissionId}
+                      </li>
+                      <li>
+                        {t('flow.maestroAckStatus', 'Estado')}: {ack.status}
+                      </li>
+                      <li>
+                        {t('flow.maestroAckBranch', 'Branch')}: {ack.branch}
+                      </li>
+                      <li>
+                        {t('flow.maestroAckManifest', 'Manifesto')}: {ack.manifestId}
+                      </li>
+                    </ul>
+                    <p className={styles.hint}>
+                      {t(
+                        'flow.maestroAckHint',
+                        'O estado permanece PENDING_WORKER até o worker do Maestro reivindicar a submissão. Acompanhe em Missões do Maestro abaixo.',
+                      )}
+                    </p>
+                  </div>
+                )}
+              </fieldset>
             )}
           </>
         )}

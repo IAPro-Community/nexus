@@ -84,6 +84,16 @@ export const featureAnnouncements: readonly FeatureAnnouncement[] = [
     tourStep: 'canvas',
   },
   {
+    id: 'flow-maestro-durable-runs',
+    revision: 1,
+    surfaces: ['flow-editor'],
+    openSurface: 'missions',
+    target: '[data-tour="flow-maestro-missions"]',
+    title: 'discovery.flowMaestroRunsTitle',
+    summary: 'discovery.flowMaestroRunsBody',
+    tourStep: 'maestro-missions',
+  },
+  {
     id: 'flow-mission-evidence',
     revision: 1,
     surfaces: ['flow-run'],

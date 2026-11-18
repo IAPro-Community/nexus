@@ -11,6 +11,7 @@ import { FeatureTour } from './FeatureTour';
 import { FeatureHint } from './FeatureHint';
 import { ComposerHandoffSummary } from './ComposerHandoffSummary';
 import { MaestroRoutingPreview } from './MaestroRoutingPreview';
+import { MaestroMissionPanel } from './MaestroMissionPanel';
 import { MaestroComposePreview } from './MaestroComposePreview';
 import { draftFromMaestroComposition } from './maestroComposeFlow';
 import { FlowPipeline } from './FlowPipeline';
@@ -112,6 +113,10 @@ export const FlowDraftEditor: React.FC<{
           }
         />
       )}
+
+      <div data-tour="flow-maestro-missions">
+        <MaestroMissionPanel project={project} />
+      </div>
 
       {planError && (
         <InlineAlert
