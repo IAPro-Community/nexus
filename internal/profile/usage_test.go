@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 )
@@ -543,5 +545,187 @@ func TestSnapshotBelongsToProfileRejectsCodexIdentityOutsideHistory(t *testing.T
 	}
 	if snapshotBelongsToProfile(snap, "codex", "gmail", "current-account-id") {
 		t.Fatal("Codex identity outside persisted history must be rejected")
+	}
+}
+
+// agyAccountSwitchFixture prepares an isolated AGY profile authenticated as
+// account A, seeds A's scoped cache with a distinct remaining percentage, and
+// installs a fake `agy` CLI on PATH whose only job is to switch the profile
+// identity to account B in the middle of the quota probe and then answer with
+// B's quota evidence (77%). The switch happens inside the probe subprocess —
+// no sleeps, no goroutines, fully deterministic.
+func agyAccountSwitchFixture(t *testing.T) (scopeA model.AccountScope, home string) {
+	t.Helper()
+	dataDir := t.TempDir()
+	cfgDir := t.TempDir()
+	t.Setenv("NEXUS_DATA_DIR", dataDir)
+	t.Setenv("AI_MANAGER_DATA_DIR", dataDir)
+	t.Setenv("AI_CLI_DATA_DIR", dataDir)
+	t.Setenv("NEXUS_CONFIG_DIR", cfgDir)
+	t.Setenv("AI_MANAGER_CONFIG_DIR", cfgDir)
+	t.Setenv("AI_CLI_CONFIG_DIR", cfgDir)
+	t.Setenv("NEXUS_CODEX_APP_SERVER", "0")
+
+	if _, err := Create("agy", "swap"); err != nil {
+		t.Fatal(err)
+	}
+	home, err := Home("agy", "swap")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(home, ".gemini"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(home, ".gemini", "google_accounts.json"), []byte(`{"active":"a@example.test"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	// A valid, non-expired OAuth token is the only authentication evidence the
+	// live probe accepts (google_accounts.json alone fails closed).
+	token := fmt.Sprintf(`{"token":{"access_token":"at-test","refresh_token":"rt-test","expiry":%q}}`, time.Now().Add(2*time.Hour).UTC().Format(time.RFC3339Nano))
+	if err := os.WriteFile(filepath.Join(home, ".gemini", "antigravity-oauth-token"), []byte(token), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	scopeA, err = AccountScope("agy", "swap", "a@example.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	remaining := 42.0
+	used := 58.0
+	if err := quota.NewEngine(time.Minute).SaveUsageForScope(scopeA, model.UsageSnapshot{
+		ProviderID: "agy",
+		ProfileID:  "swap",
+		Status:     model.UsageLive,
+		Source:     model.SourceCLIOutput,
+		Account:    "a@example.test",
+		FetchedAt:  time.Now(),
+		Windows: []model.UsageWindow{{
+			Kind:             "5h",
+			Group:            "gemini",
+			RemainingPercent: &remaining,
+			UsedPercent:      &used,
+		}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	fakeBinDir := t.TempDir()
+	script := `#!/usr/bin/env bash
+# The Google account switch happens in the middle of the live quota probe:
+# identity files now belong to account B, and the probe answers with B's quota.
+printf '{"active":"b@example.test"}' > "$HOME/.gemini/google_accounts.json"
+printf '{"account":"b@example.test"}' > "$HOME/../usage.json"
+printf '{"account":"b@example.test"}' > "$HOME/usage.json"
+printf 'gemini\t5h\t77%%\t2h\n'
+`
+	if err := os.WriteFile(filepath.Join(fakeBinDir, "agy"), []byte(script), 0700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", fakeBinDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	return scopeA, home
+}
+
+// TestRefreshUsageSnapshotDiscardsMidFlightAccountSwitch covers the F2.8
+// scenario (issue #228): a refresh started for account A observes a snapshot
+// identified as account B (the Google account switched while the probe was in
+// flight). The B response must be discarded by snapshotBelongsToProfile and
+// must never be served or persisted as account A's current quota; A's own
+// last-known evidence (42%) must survive the failed refresh.
+func TestRefreshUsageSnapshotDiscardsMidFlightAccountSwitch(t *testing.T) {
+	scopeA, home := agyAccountSwitchFixture(t)
+
+	snap := RefreshUsageSnapshot("agy", "swap")
+
+	// Sanity check: the fake probe really ran and really switched the identity
+	// mid-flight (this is what makes the B-identified observation possible).
+	switched, err := os.ReadFile(filepath.Join(home, ".gemini", "google_accounts.json"))
+	if err != nil || !strings.Contains(string(switched), "b@example.test") {
+		t.Fatalf("fake probe did not perform the mid-flight account switch: %q (%v)", switched, err)
+	}
+
+	// The discarded B response must not reach the caller as live data.
+	if snap.Status == model.UsageLive || snap.Status == model.UsageCached {
+		t.Fatalf("status=%s; the foreign B snapshot must be discarded, not served as current", snap.Status)
+	}
+	if snap.Account == "b@example.test" {
+		t.Fatalf("account=%q; the B-identified response must not be attributed to this profile", snap.Account)
+	}
+	for _, w := range snap.Windows {
+		if w.RemainingPercent != nil && *w.RemainingPercent == 77 {
+			t.Fatalf("the discarded B quota evidence (77%%) leaked into the refresh response: %+v", snap.Windows)
+		}
+	}
+
+	// The failed refresh falls back to A's preserved last-known observation.
+	if snap.Status != model.UsageEstimated {
+		t.Fatalf("status=%s, want ESTIMATED built from A's preserved last-known", snap.Status)
+	}
+	if snap.Account != "a@example.test" {
+		t.Fatalf("account=%q, want a@example.test (A's last-known identity)", snap.Account)
+	}
+	if len(snap.Windows) != 1 || snap.Windows[0].RemainingPercent == nil || *snap.Windows[0].RemainingPercent != 42 {
+		t.Fatalf("windows=%+v, want A's preserved 42%% observation", snap.Windows)
+	}
+	if snap.Error == "" {
+		t.Fatal("expected a diagnostic explaining the degraded snapshot")
+	}
+
+	// The scoped cache for A still holds A's evidence — the B observation must
+	// not have overwritten it.
+	cached, found := quota.NewEngine(time.Minute).GetCachedUsageForScope(scopeA)
+	if !found {
+		t.Fatal("A's scoped cache vanished after the discarded mid-flight switch")
+	}
+	if cached.Account != "a@example.test" {
+		t.Fatalf("cached account=%q, want a@example.test", cached.Account)
+	}
+	for _, w := range cached.Windows {
+		if w.RemainingPercent != nil && *w.RemainingPercent == 77 {
+			t.Fatalf("B's 77%% evidence was persisted into A's scoped cache: %+v", cached.Windows)
+		}
+	}
+
+	// The on-disk cache file itself must never have carried B's evidence. The
+	// adapter now refuses to persist snapshots whose identity is not bound to
+	// the profile (F2.8, issue #228), so the transient window in which B's
+	// quota sat under A's scope key before the ESTIMATED re-save is closed at
+	// the source.
+	cacheRoot, err := config.ProfileRoot("agy", "swap")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rawCache, err := os.ReadFile(filepath.Join(cacheRoot, "usage.json"))
+	if err != nil {
+		t.Fatalf("A's cache file missing after the refresh: %v", err)
+	}
+	if strings.Contains(string(rawCache), "b@example.test") || strings.Contains(string(rawCache), "\"remaining_percent\": 77") {
+		t.Fatalf("B's evidence found in A's on-disk cache file: %s", rawCache)
+	}
+	if !strings.Contains(string(rawCache), "a@example.test") {
+		t.Fatalf("A's on-disk cache file should still hold A's evidence: %s", rawCache)
+	}
+
+	// B never owns persisted quota evidence under its own identity either.
+	scopeB, err := AccountScope("agy", "swap", "b@example.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, foundB := quota.NewEngine(time.Minute).GetCachedUsageForScope(scopeB); foundB {
+		t.Fatal("the discarded B snapshot must not be persisted under B's own identity")
+	}
+
+	// The identity guard that powers the discard rejects the exact B snapshot
+	// the probe produced.
+	foreign := model.UsageSnapshot{
+		ProviderID:   "agy",
+		ProfileID:    "swap",
+		Account:      "b@example.test",
+		Status:       model.UsageLive,
+		Source:       model.SourceCLIOutput,
+		FetchedAt:    time.Now(),
+		AccountScope: scopeA,
+	}
+	if snapshotBelongsToProfile(foreign, "agy", "swap", "a@example.test") {
+		t.Fatal("a snapshot identified as account B must be rejected for a profile resolved as A")
 	}
 }

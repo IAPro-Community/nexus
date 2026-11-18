@@ -477,8 +477,17 @@ func (a *Adapter) RefreshUsage(ctx context.Context, p model.Profile) model.Usage
 	if debug {
 		slog.Debug("AGY RefreshUsage: trying live fetch first", "profile", p.Name)
 	}
+	// F2.8 (issue #228): anchor the profile's identity BEFORE the live probe
+	// runs. The AGY CLI answers with whatever Google account is active at the
+	// moment it executes, so an account switch in google_accounts.json while
+	// the probe is in flight would otherwise let account B's quota be persisted
+	// under account A's scope key.
+	var identityAnchor string
+	if p.AccountScope.Verifiable() {
+		identityAnchor = a.profileIdentityAnchor(p)
+	}
 	if live, ok := a.fetchLiveQuota(ctx, p); ok {
-		if p.AccountScope.Verifiable() {
+		if p.AccountScope.Verifiable() && a.snapshotBoundToProfile(p, live, identityAnchor) {
 			live.AccountScope = p.AccountScope
 			_ = quota.NewEngine(quota.DefaultTTL).SaveUsageForScope(p.AccountScope, live)
 		}
@@ -506,6 +515,60 @@ func (a *Adapter) RefreshUsage(ctx context.Context, p model.Profile) model.Usage
 		Source:     model.SourceNone,
 		FetchedAt:  time.Now(),
 	}
+}
+
+// profileIdentityAnchor resolves the Google identity this profile was
+// authenticated with, using only authoritative identity artifacts: the active
+// account in google_accounts.json, jetski_state.pbtxt, or the email claim
+// inside the profile's own OAuth token. Cache files such as usage.json are
+// evidence, not identity proof, and are deliberately ignored. Returns "" when
+// no identity can be proven — the caller must then fail closed.
+func (a *Adapter) profileIdentityAnchor(p model.Profile) string {
+	root, err := config.ProfileRoot(string(a.ID()), p.Name)
+	if err != nil {
+		return ""
+	}
+	home := filepath.Join(root, "home")
+	if email := a.resolveAuthenticatedEmail(home); email != "" {
+		return strings.TrimSpace(email)
+	}
+	for _, path := range oauthTokenPaths(home) {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		if email := emailFromIDToken(data); email != "" {
+			return strings.TrimSpace(email)
+		}
+	}
+	return ""
+}
+
+// snapshotBoundToProfile is the fail-closed identity gate for persisting a
+// live quota observation. The anchor is the profile identity captured before
+// the probe started; the observation may only be written to disk when the
+// snapshot's account matches that anchor and the identity artifacts still
+// agree after the probe finished. Any doubt returns false: the snapshot is
+// still returned to the caller (the profile layer discards it or degrades to
+// ESTIMATED), but no evidence of another account is ever persisted under this
+// profile's scope.
+func (a *Adapter) snapshotBoundToProfile(p model.Profile, live model.UsageSnapshot, anchor string) bool {
+	anchor = strings.TrimSpace(anchor)
+	if anchor == "" {
+		return false
+	}
+	account := strings.TrimSpace(live.Account)
+	if account == "" {
+		return false
+	}
+	if !strings.EqualFold(account, anchor) {
+		return false
+	}
+	identityAfter := a.profileIdentityAnchor(p)
+	if identityAfter == "" || !strings.EqualFold(identityAfter, anchor) {
+		return false
+	}
+	return true
 }
 
 func (a *Adapter) readCachedQuotaFiles(p model.Profile) (model.UsageSnapshot, bool) {
