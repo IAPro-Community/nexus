@@ -42,7 +42,7 @@ func ValidateNexProactivityPreferences(p NexProactivityPreferences) error {
 		return fmt.Errorf("unknown timezone")
 	}
 	if p.MinIntervalMinutes < 5 || p.MinIntervalMinutes > 1440 {
-		return fmt.Errorf("Nex notification interval must be between 5 and 1440 minutes")
+		return fmt.Errorf("nex notification interval must be between 5 and 1440 minutes")
 	}
 	return nil
 }

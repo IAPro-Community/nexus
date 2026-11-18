@@ -55,7 +55,7 @@ func nexProactiveCandidates(hud nexus.HUDState, now time.Time) []nexProactiveCan
 		}
 		out = append(out, nexProactiveCandidate{
 			Fingerprint: nexCandidateFingerprint(hud.ProjectID, "alert", alert.Fingerprint),
-			Title:       "Alerta operacional",
+			Title:       "Alerta de operação",
 			Description: "Existe um alerta não reconhecido. Confira os dados de recursos.",
 			Target:      "usage", Evidence: "hud_alert", ObservedAt: alert.LastObservedAt,
 		})
