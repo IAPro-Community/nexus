@@ -55,18 +55,20 @@ npm run test:release-evidence:offline
 
 O modo `--release --offline` existente exige 48 funcionalidades com provas,
 dois SHAs, atestação Ed25519 autorizada, três dispositivos físicos e revisão.
-O arquivo `docs/reference/release-reviewers.json` ainda não possui revisores
-autorizados; nenhuma chave privada deve ser commitada. Isso também bloqueia
-GO, independentemente do resultado do teste sintético.
+O arquivo `docs/reference/release-reviewers.json` possui uma chave pública
+Ed25519 cadastrada sob `maestro-owner`. Isso não comprova a custódia humana
+da chave privada nem constitui aceite da homologação. Antes do GO, o
+responsável deve confirmar sua custódia ou reenrolar uma chave pessoal,
+assinar o bundle do SHA final e registrar revisão independente. Nenhuma
+chave privada deve ser commitada; testes sintéticos não substituem o aceite.
 
 ### Evidência visual separada de homologação
 
-As dez superfícies Web da fixture sintética foram capturadas no
-source SHA `6c0e492cef2825dab571c5bdf97e4dbfbbb03029` e publicadas em
-`01053cd94f1e97ada305e06aa29687789c323ad5` (#201 concluída).
+O manifesto `docs/assets/screenshots/manifest.json` identifica o SHA fonte
+de cada captura Web sintética e distingue a referência Desktop histórica.
 `VIS-011` permanece `HISTORICAL`, não homologada para a versão atual.
-Essas capturas anteriores não certificam novas alterações no frontend nem
-o release distribuído.
+Nenhuma captura sintética certifica o HEAD atual, novas mudanças no frontend
+ou o release distribuído sem a homologação física exigida pela issue #115.
 
 
 > **Nexus 1.0 — escopo integral obrigatório:** o [contrato Agent Workspace v1](product/agent-workspace-v1-acceptance.md) rastreia 48 entregas e possui gate fail-closed no Signed Release. O código ainda está incompleto e não há evidence artifact aprovado: **NO-GO**. A execução do verificador estrutural no CI não equivale à certificação.

@@ -6,6 +6,7 @@ import { resolve, sep } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import process from 'node:process';
 import { verifyOfflineReleaseEvidence } from './offline-release-evidence.mjs';
+import { verifyAgentWorkspaceAcceptanceDoc } from './agent-workspace-doc-sync.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const expectedGroups = Object.freeze({
@@ -141,9 +142,15 @@ function checkOfflineProof(features, expectedSha, maestroSha, filename) {
 }
 
 try {
-  const file = option('--manifest') || resolve(root, 'docs/reference/agent-workspace-v1.json');
+  const externalManifest = option('--manifest');
+  const file = externalManifest || resolve(root, 'docs/reference/agent-workspace-v1.json');
   const contract = readJson(file);
   const features = verifyManifest(contract);
+  if (!externalManifest) {
+    const acceptanceDoc = readFileSync(resolve(root, 'docs/product/agent-workspace-v1-acceptance.md'), 'utf8');
+    for (const issue of verifyAgentWorkspaceAcceptanceDoc(features, acceptanceDoc))
+      failures.push('Acceptance documentation drift: ' + issue);
+  }
   if (process.argv.includes('--offline') && !process.argv.includes('--release')) {
     failures.push('--offline requires --release');
   }
