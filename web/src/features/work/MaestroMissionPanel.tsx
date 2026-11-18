@@ -21,7 +21,20 @@ export function MaestroMissionPanel({ project }: { project: Project }) {
   const [refreshing, setRefreshing] = useState(false);
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState('');
+  const [usageImported, setUsageImported] = useState(0);
   const version = useRef(0);
+
+  // Silent receipt import of measured usage into the cost ledger. Failures
+  // are never surfaced as errors: the observation belongs to the user's own
+  // receipts and the next successful poll retries idempotently.
+  const importUsage = useCallback(async () => {
+    try {
+      const result = await nexusApi.importMaestroSubmissionUsage(project.id);
+      if (result.imported > 0) setUsageImported((count) => count + result.imported);
+    } catch {
+      // Intentionally silent; the ledger dedupe keeps retries safe.
+    }
+  }, [project.id]);
 
   const load = useCallback(
     async (quiet = false) => {
@@ -31,7 +44,10 @@ export function MaestroMissionPanel({ project }: { project: Project }) {
       if (!quiet) setError('');
       try {
         const result = await nexusApi.listMaestroSubmissions(project.id, { limit: 20 });
-        if (version.current === current) setSnapshot(result);
+        if (version.current === current) {
+          setSnapshot(result);
+          void importUsage();
+        }
       } catch (reason) {
         if (version.current === current) {
           setSnapshot(null);
@@ -48,7 +64,7 @@ export function MaestroMissionPanel({ project }: { project: Project }) {
         }
       }
     },
-    [project.id, t],
+    [project.id, importUsage, t],
   );
 
   useEffect(() => {
@@ -159,6 +175,17 @@ export function MaestroMissionPanel({ project }: { project: Project }) {
         {refreshing && (
           <p className={styles.hint} aria-live="polite">
             {t('flow.maestroMissionRefreshing', 'Atualizando…')}
+          </p>
+        )}
+        {usageImported > 0 && (
+          <p className={styles.hint} aria-live="polite">
+            {t(
+              'flow.maestroMissionUsageImported',
+              'Uso medido registrado no custo: {{count}} submissões',
+              {
+                count: usageImported,
+              },
+            )}
           </p>
         )}
       </details>

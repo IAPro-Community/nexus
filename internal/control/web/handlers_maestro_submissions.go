@@ -1,6 +1,7 @@
 package web
 
 import (
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -69,6 +70,52 @@ func (h *NexusHandler) handleProjectMaestroSubmissions(w http.ResponseWriter, r 
 	if err != nil {
 		// Do not leak executable paths, CLI stderr or provider metadata.
 		writeError(w, http.StatusServiceUnavailable, "Maestro submission polling unavailable or incompatible")
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, http.StatusOK, result)
+}
+
+// POST /api/v1/projects/{id}/maestro/submissions/import-usage imports
+// measured usage evidence from terminal Maestro submissions into the project
+// cost ledger. The body is empty (or {}): the caller chooses nothing — the
+// trusted project store picks the workspace and the Maestro run store owns
+// the evidence. Errors never leak CLI paths or bridge diagnostics.
+func (h *NexusHandler) handleProjectMaestroSubmissionUsageImport(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "POST required for Maestro usage import")
+		return
+	}
+	if r.Body != nil {
+		body, err := io.ReadAll(io.LimitReader(r.Body, 4097))
+		if err != nil || len(body) > 4096 {
+			writeError(w, http.StatusBadRequest, "invalid Maestro usage import body")
+			return
+		}
+		if trimmed := strings.TrimSpace(string(body)); trimmed != "" && trimmed != "{}" {
+			writeError(w, http.StatusBadRequest, "Maestro usage import takes no parameters")
+			return
+		}
+	}
+	projectID := projectIDFromPath(r.URL.Path)
+	if projectID == "" {
+		writeError(w, http.StatusNotFound, "missing project")
+		return
+	}
+	st, err := h.nexus.OpenProject()
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "Nexus project store unavailable")
+		return
+	}
+	project, err := st.GetProject(projectID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "project not found")
+		return
+	}
+	result, err := h.nexus.ImportMaestroUsageObservations(r.Context(), &project)
+	if err != nil {
+		// Do not leak executable paths, CLI stderr or bridge diagnostics.
+		writeError(w, http.StatusServiceUnavailable, "Maestro usage import unavailable or incompatible")
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")

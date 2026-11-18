@@ -904,6 +904,14 @@ export const nexus = {
       `/api/v1/projects/${encodeURIComponent(projectId)}/maestro/submissions/cancel`,
       { method: 'POST', body: JSON.stringify({ submission_id: submissionId }) },
     ),
+  // Observational receipt import: measured usage from terminal Maestro
+  // submissions into the cost ledger. Takes no parameters; the ledger dedupes
+  // by (source, invocation_id), so repeated calls never double count.
+  importMaestroSubmissionUsage: (projectId: string) =>
+    request<{ imported: number; skipped: number; conflicts: number }>(
+      `/api/v1/projects/${encodeURIComponent(projectId)}/maestro/submissions/import-usage`,
+      { method: 'POST', body: JSON.stringify({}) },
+    ),
   preflightFlow: (planId: string) =>
     request<import('../types').FlowPreflightReport>(`/api/v1/plans/${planId}/preflight`, {
       method: 'POST',

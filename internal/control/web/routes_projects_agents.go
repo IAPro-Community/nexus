@@ -50,6 +50,9 @@ func (s *Server) routeProject(h *NexusHandler) http.HandlerFunc {
 			}
 		case strings.HasSuffix(r.URL.Path, "/maestro/submissions/cancel"):
 			h.handleProjectMaestroSubmissionCancel(w, r)
+		// Must stay ahead of the generic "/maestro/submissions" suffix case.
+		case strings.HasSuffix(r.URL.Path, "/maestro/submissions/import-usage"):
+			h.handleProjectMaestroSubmissionUsageImport(w, r)
 		case strings.HasSuffix(r.URL.Path, "/maestro/submissions"):
 			h.handleProjectMaestroSubmissions(w, r)
 		case strings.HasSuffix(r.URL.Path, "/maestro/runs"):

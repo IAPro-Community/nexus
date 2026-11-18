@@ -32,18 +32,57 @@ type MaestroSubmissionSnapshot struct {
 }
 
 type MaestroSubmissionStatus struct {
-	SchemaVersion  int      `json:"schemaVersion"`
-	Authority      string   `json:"authority"`
-	Owner          string   `json:"owner"`
-	SubmissionID   string   `json:"submissionId"`
-	Status         string   `json:"status"`
-	RunID          string   `json:"runId"`
-	ManifestID     string   `json:"manifestId"`
-	TaskCount      int      `json:"taskCount"`
-	Providers      []string `json:"providers"`
-	CreatedAt      string   `json:"createdAt"`
-	UpdatedAt      string   `json:"updatedAt"`
-	ResultEvidence string   `json:"resultEvidence"`
+	SchemaVersion  int                     `json:"schemaVersion"`
+	Authority      string                  `json:"authority"`
+	Owner          string                  `json:"owner"`
+	SubmissionID   string                  `json:"submissionId"`
+	Status         string                  `json:"status"`
+	RunID          string                  `json:"runId"`
+	ManifestID     string                  `json:"manifestId"`
+	TaskCount      int                     `json:"taskCount"`
+	Providers      []string                `json:"providers"`
+	CreatedAt      string                  `json:"createdAt"`
+	UpdatedAt      string                  `json:"updatedAt"`
+	ResultEvidence string                  `json:"resultEvidence"`
+	Usage          *MaestroSubmissionUsage `json:"usage,omitempty"`
+}
+
+// MaestroSubmissionUsage is the optional measured-usage evidence block the
+// Maestro run store may attach to a submission row. It is a frozen object:
+// nil token/duration pointers mean "not measured" and must never be coerced
+// to zero. The block is omitted entirely when no usage was measured.
+type MaestroSubmissionUsage struct {
+	SchemaVersion   int    `json:"schemaVersion"`
+	Evidence        string `json:"evidence"`
+	TokensInput     *int64 `json:"tokensInput,omitempty"`
+	TokensOutput    *int64 `json:"tokensOutput,omitempty"`
+	TokensCached    *int64 `json:"tokensCached,omitempty"`
+	TokensReasoning *int64 `json:"tokensReasoning,omitempty"`
+	DurationMS      *int64 `json:"durationMs,omitempty"`
+}
+
+// validateMaestroSubmissionUsage fail-closes the optional usage block: wrong
+// schema version or evidence, or any negative measured value, invalidates the
+// whole row. Present-but-unmeasured fields stay nil, never zero.
+func validateMaestroSubmissionUsage(usage *MaestroSubmissionUsage) error {
+	if usage == nil {
+		return nil
+	}
+	if usage.SchemaVersion != 1 || usage.Evidence != "RUN_STORE_OBSERVED" {
+		return errors.New("invalid Maestro submission usage evidence")
+	}
+	for name, value := range map[string]*int64{
+		"tokensInput":     usage.TokensInput,
+		"tokensOutput":    usage.TokensOutput,
+		"tokensCached":    usage.TokensCached,
+		"tokensReasoning": usage.TokensReasoning,
+		"durationMs":      usage.DurationMS,
+	} {
+		if value != nil && *value < 0 {
+			return fmt.Errorf("negative Maestro submission usage %s", name)
+		}
+	}
+	return nil
 }
 
 func maestroSubmissionPollMethod(init maestroBridgeInit) (string, error) {
@@ -97,6 +136,9 @@ func decodeMaestroSubmissionSnapshot(raw json.RawMessage, previous string, limit
 			!maestroSubmissionID.MatchString(row.SubmissionID) || !statuses[row.Status] ||
 			row.TaskCount < 1 || row.TaskCount > 32 || len(row.Providers) != row.TaskCount {
 			return MaestroSubmissionSnapshot{}, errors.New("invalid Maestro submission row")
+		}
+		if err := validateMaestroSubmissionUsage(row.Usage); err != nil {
+			return MaestroSubmissionSnapshot{}, fmt.Errorf("invalid Maestro submission row: %w", err)
 		}
 		if _, exists := seen[row.SubmissionID]; exists {
 			return MaestroSubmissionSnapshot{}, errors.New("duplicate Maestro submission row")

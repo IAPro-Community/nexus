@@ -2280,6 +2280,18 @@ export interface MaestroRunAck {
   headCommit: string;
 }
 
+// Optional measured-usage evidence block attached by the Maestro run store.
+// Null means "not measured" and is never coerced to zero by the Nexus.
+export interface MaestroSubmissionUsage {
+  schemaVersion: 1;
+  evidence: 'RUN_STORE_OBSERVED';
+  tokensInput: number | null;
+  tokensOutput: number | null;
+  tokensCached: number | null;
+  tokensReasoning: number | null;
+  durationMs: number | null;
+}
+
 export interface MaestroSubmissionStatusRow {
   schemaVersion: 1;
   authority: 'MAESTRO';
@@ -2293,6 +2305,7 @@ export interface MaestroSubmissionStatusRow {
   createdAt: string;
   updatedAt: string;
   resultEvidence: 'RUN_STORE_OBSERVED';
+  usage?: MaestroSubmissionUsage;
 }
 
 export interface MaestroSubmissionSnapshot {

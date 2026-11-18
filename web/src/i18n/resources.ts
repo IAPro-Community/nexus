@@ -1848,6 +1848,8 @@ export const en = {
     maestroMissionCancelFailedText:
       'The request was recorded or rejected by Maestro; the real state remains in the queue.',
     maestroMissionRefreshing: 'Refreshing…',
+    maestroMissionUsageImported:
+      'Measured usage recorded in the cost ledger: {{count}} submission(s)',
     maestroBlocker: {
       WORKSPACE_RESERVED: 'Workspace already reserved by another pending submission',
       MANIFEST_WORKSPACE_CHANGED: 'Git workspace changed since the manifest was approved',
@@ -4726,6 +4728,7 @@ export const ptBR = {
     maestroMissionCancelFailedText:
       'A solicitação foi registrada ou rejeitada pelo Maestro; o estado real permanece na fila.',
     maestroMissionRefreshing: 'Atualizando…',
+    maestroMissionUsageImported: 'Uso medido registrado no custo: {{count}} submissão(ões)',
     maestroBlocker: {
       WORKSPACE_RESERVED: 'Workspace já reservado por outra submissão pendente',
       MANIFEST_WORKSPACE_CHANGED: 'O workspace Git mudou desde a aprovação do manifesto',
@@ -7616,6 +7619,7 @@ export const es = {
     maestroMissionCancelFailedText:
       'La solicitud fue registrada o rechazada por Maestro; el estado real permanece en la cola.',
     maestroMissionRefreshing: 'Actualizando…',
+    maestroMissionUsageImported: 'Uso medido registrado en el costo: {{count}} admisión(es)',
     maestroBlocker: {
       WORKSPACE_RESERVED: 'Workspace ya reservado por otra admisión pendiente',
       MANIFEST_WORKSPACE_CHANGED: 'El workspace Git cambió desde la aprobación del manifiesto',

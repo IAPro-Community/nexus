@@ -120,7 +120,7 @@ func SubmitMaestroRun(parent context.Context, workspace string, request MaestroR
 		}
 	}
 	params := map[string]any{
-		"clientKey":        "nexus-" + request.ArtifactID + "-" + request.SHA256[:16],
+		"clientKey": "nexus-" + request.ArtifactID + "-" + request.SHA256[:16],
 		"artifact": map[string]any{
 			"id": request.ArtifactID, "version": request.Version,
 			"content": request.Content, "sha256": strings.ToLower(request.SHA256),
@@ -195,6 +195,9 @@ func decodeMaestroSubmissionRow(raw json.RawMessage) (MaestroSubmissionStatus, e
 		!maestroSubmissionID.MatchString(row.SubmissionID) || !statuses[row.Status] ||
 		row.TaskCount < 1 || row.TaskCount > 32 || len(row.Providers) != row.TaskCount {
 		return MaestroSubmissionStatus{}, errors.New("invalid Maestro submission row")
+	}
+	if err := validateMaestroSubmissionUsage(row.Usage); err != nil {
+		return MaestroSubmissionStatus{}, fmt.Errorf("invalid Maestro submission row: %w", err)
 	}
 	return row, nil
 }
