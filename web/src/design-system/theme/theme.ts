@@ -3,11 +3,12 @@ import { THEME_PRESETS, type ThemeDefinition } from './themePresets';
 export type ThemeScheme = 'system' | 'dark' | 'light' | 'high-contrast';
 export type ThemeAccent = 'purple' | 'blue' | 'cyan' | 'neutral';
 export type ThemeDensity = 'compact' | 'comfortable';
+export type ThemeVisualFinish = 'flat' | 'standard' | 'subtle-gradient';
 export type ThemeFontFamily = 'default' | 'system' | 'readable';
 export type ThemeIconStyle = 'default' | 'light' | 'bold';
 export type ThemePresetKey = keyof typeof THEME_PRESETS;
 
-/** Visual effects are an opt-in quality of a preset, not a new theme renderer. */
+/** Legacy preset finish metadata. User preference now selects finish independently. */
 export function getThemePresetFinish(
   preset: ThemePresetKey,
 ): 'flat' | 'subtle-gradient' | 'standard' {
@@ -19,6 +20,7 @@ export interface ThemePreferences {
   scheme: ThemeScheme;
   accent: ThemeAccent;
   density: ThemeDensity;
+  visualFinish: ThemeVisualFinish;
   reducedMotion: boolean;
   preset: ThemePresetKey;
   isCustomized: boolean;
@@ -32,6 +34,7 @@ export const defaultThemePreferences: ThemePreferences = {
   scheme: 'system',
   accent: 'purple',
   density: 'compact',
+  visualFinish: 'flat',
   reducedMotion: false,
   preset: 'nexus-dark',
   isCustomized: false,
@@ -258,6 +261,14 @@ export function resolveThemeStyleVariables(
   return finalVars;
 }
 
+/** The finish is independent of palette and density, with contrast mode protected. */
+export function resolveVisualFinish(
+  preferences: ThemePreferences,
+  resolvedScheme: Exclude<ThemeScheme, 'system'>,
+): ThemeVisualFinish {
+  return resolvedScheme === 'high-contrast' ? 'standard' : preferences.visualFinish;
+}
+
 export interface ThemeColorPalette {
   bg: string;
   surface: string;
@@ -280,6 +291,7 @@ export function normalizeThemePreferences(
   const schemes: ThemeScheme[] = ['system', 'dark', 'light', 'high-contrast'];
   const accents: ThemeAccent[] = ['purple', 'blue', 'cyan', 'neutral'];
   const densities: ThemeDensity[] = ['compact', 'comfortable'];
+  const visualFinishes: ThemeVisualFinish[] = ['flat', 'standard', 'subtle-gradient'];
   const fontFamilies: ThemeFontFamily[] = ['default', 'system', 'readable'];
   const iconStyles: ThemeIconStyle[] = ['default', 'light', 'bold'];
   const presetKeys = Object.keys(THEME_PRESETS) as ThemePresetKey[];
@@ -305,6 +317,9 @@ export function normalizeThemePreferences(
     density: densities.includes(input?.density as ThemeDensity)
       ? input!.density!
       : defaultThemePreferences.density,
+    visualFinish: visualFinishes.includes(input?.visualFinish as ThemeVisualFinish)
+      ? input!.visualFinish!
+      : defaultThemePreferences.visualFinish,
     reducedMotion: Boolean(input?.reducedMotion),
     preset,
     isCustomized,

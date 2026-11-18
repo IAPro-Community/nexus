@@ -155,6 +155,9 @@ func (s *Server) routeAgent(h *NexusHandler) http.HandlerFunc {
 			case "director":
 				h.handleAgentDirector(w, r)
 				return
+			case "explain", "wait":
+				h.handleAgentObservation(w, r)
+				return
 			case "ask":
 				h.handleAgentAsk(w, r)
 				return

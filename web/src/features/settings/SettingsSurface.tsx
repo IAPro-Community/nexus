@@ -18,6 +18,7 @@ import {
   useTheme,
   type ThemeDensity,
   type ThemeFontFamily,
+  type ThemeVisualFinish,
   type ThemeIconStyle,
 } from '../../design-system';
 import { useWorkspace } from '../../workspace/WorkspaceProvider';
@@ -438,6 +439,36 @@ export const SettingsSurface: React.FC<{
               </div>
 
               <ThemeAccordionSelector theme={theme} />
+              <section
+                className={styles.finishSection}
+                aria-label={t('settings.visualFinish', 'Acabamento visual')}
+              >
+                <div className="nx-settings-card__title">
+                  <PanelsTopLeft size={17} />
+                  <div>
+                    <strong>{t('settings.visualFinish', 'Acabamento visual')}</strong>
+                    <small>
+                      {t(
+                        'settings.visualFinishDescription',
+                        'Independente das cores. Reduz efeitos sem alterar o terminal ou o contraste acessível.',
+                      )}
+                    </small>
+                  </div>
+                </div>
+                <Segmented
+                  ariaLabel={t('settings.visualFinish', 'Acabamento visual')}
+                  value={theme.visualFinish}
+                  onChange={(value) => theme.setVisualFinish(value as ThemeVisualFinish)}
+                  options={[
+                    { value: 'flat', label: t('settings.finishFlat', 'Flat') },
+                    { value: 'standard', label: t('settings.finishStandard', 'Clássico') },
+                    {
+                      value: 'subtle-gradient',
+                      label: t('settings.finishGradient', 'Degradê suave'),
+                    },
+                  ]}
+                />
+              </section>
             </Card>
 
             <Card className="nx-settings-card">

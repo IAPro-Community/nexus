@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { canFitTerminal, canRunTerminalFrame, shouldSendTerminalResize } from './terminalFitModel';
+import {
+  canFitTerminal,
+  canRunTerminalFrame,
+  shouldSendTerminalResize,
+  shouldSendAuthorizedTerminalResize,
+} from './terminalFitModel';
 
 const ready = () => ({
   disposed: false,
@@ -48,5 +53,19 @@ describe('shouldSendTerminalResize', () => {
     expect(shouldSendTerminalResize({ rows: 24, cols: NaN }, { rows: 24, cols: 80 }, true)).toBe(
       false,
     );
+  });
+});
+
+describe('shouldSendAuthorizedTerminalResize', () => {
+  const initial = { rows: 24, cols: 80 };
+  const resized = { rows: 32, cols: 100 };
+  it('never permits VIEW_ONLY clients to alter the shared PTY, even with forced redraw', () => {
+    expect(shouldSendAuthorizedTerminalResize(false, resized, initial)).toBe(false);
+    expect(shouldSendAuthorizedTerminalResize(false, initial, initial, true)).toBe(false);
+  });
+  it('publishes current dimensions on lease acquisition and deduplicates normal resizes', () => {
+    expect(shouldSendAuthorizedTerminalResize(true, initial, initial, true)).toBe(true);
+    expect(shouldSendAuthorizedTerminalResize(true, initial, initial)).toBe(false);
+    expect(shouldSendAuthorizedTerminalResize(true, resized, initial)).toBe(true);
   });
 });

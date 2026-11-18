@@ -64,3 +64,27 @@ line.
 Theme definitions live under `design-system/theme`. Component CSS consumes semantic
 variables and never theme IDs. See `docs/product/themes.md` for the preset contract and
 validation requirements.
+
+## Visual finish and flat workspace
+
+Appearance has three independent axes: `preset` selects semantic colors,
+`visualFinish` selects `flat`, `standard` or `subtle-gradient`, and
+`density` selects spacing. A preset switch must not silently change finish
+or density. `flat` is the default for new and legacy preferences missing
+`visualFinish`; the existing theme storage key remains compatible.
+
+`ThemeProvider` writes `data-finish` onto the document root. The shared
+finish selectors are in `web/src/app/workspace-styles/17-appearance-presets.css`.
+Component-specific changes belong in their existing CSS Modules, scoped by
+`:root[data-finish='flat']`, rather than a parallel component system.
+
+Keep terminal/xterm cell colors and measurements, focus indicators, alert
+severity, selection, accessibility controls, and layout behavior untouched.
+High-contrast mode always resolves to the standard finish to preserve its
+tested contrast contract. Flatness removes ornamental gradients, elevation
+and redundant nested borders; it must not hide statuses or interactive affordances.
+
+Validation gates: theme normalization/round-trip tests, TypeScript, lint,
+CSS style checks, keyboard/accessibility browser tests, dark/light/HC and
+desktop/mobile screenshot comparison. A green CI is not a substitute for
+native Windows/Linux/macOS acceptance evidence.
