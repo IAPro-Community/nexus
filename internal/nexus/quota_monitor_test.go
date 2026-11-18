@@ -1,6 +1,7 @@
 package nexus
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -139,6 +140,107 @@ func TestQuotaDropMonitor_StepDownAndSuppressionAtZero(t *testing.T) {
 	}
 	if len(rec.Payloads) != 6 {
 		t.Fatalf("expected 6 total notifications after re-arm, got %d", len(rec.Payloads))
+	}
+}
+
+// TestQuotaDropMonitor_PostResetRecoveryWithoutFalseAlert covers the full
+// exhaustion → real reset → operational recovery cycle (F2.8, issue #228):
+// after an exhaustion alert is dispatched and a NEW LIVE observation reports
+// restored capacity, the monitor must clear the exhausted latch silently (no
+// false re-alert on the recovery observation or its repeats) and must be
+// re-armed, so a subsequent genuine drop below the threshold notifies again.
+func TestQuotaDropMonitor_PostResetRecoveryWithoutFalseAlert(t *testing.T) {
+	rec := &notify.Recorder{}
+	bus := events.NewBus(100)
+	monitor := NewQuotaDropMonitor(rec, bus, 0.30, 0.05)
+
+	view := func(remaining float64) *quota.QuotaView {
+		return &quota.QuotaView{
+			Status:    "LIVE",
+			FetchedAt: time.Now(),
+			ModelGroups: []quota.ModelGroup{
+				{Key: "gemini", Windows: []quota.Window{{Kind: "weekly", Remaining: remaining, ResetDesc: "monday"}}},
+			},
+		}
+	}
+	acc := ProviderAccount{Provider: "agy", Profile: "work", DisplayName: "AGY Work", QuotaView: view(100)}
+	stateKey := fmt.Sprintf("%s:%s:%s", accountKey(acc), "gemini", "weekly")
+	countEvents := func(eventType events.EventType) int {
+		total := 0
+		for _, ev := range bus.GetHistory("", 0) {
+			if ev.Type == eventType {
+				total++
+			}
+		}
+		return total
+	}
+
+	// 1. Genuine step-down sequence ending in exhaustion: 30% -> 20% -> 10% -> 5% -> 0%.
+	for _, remaining := range []float64{30, 20, 10, 5} {
+		acc.QuotaView = view(remaining)
+		if act := monitor.CheckAccount(acc); act == nil || act.Kind != string(events.EventQuotaLow) {
+			t.Fatalf("remaining %v%%: expected QUOTA_LOW, got %+v", remaining, act)
+		}
+	}
+	acc.QuotaView = view(0)
+	if act := monitor.CheckAccount(acc); act == nil || act.Kind != string(events.EventQuotaExhausted) {
+		t.Fatalf("expected QUOTA_EXHAUSTED at 0%%, got %+v", act)
+	}
+	if st := monitor.states[stateKey]; st == nil || !st.Exhausted {
+		t.Fatalf("expected exhausted latch set after the alert, got %+v", st)
+	}
+	if got := countEvents(events.EventQuotaExhausted); got != 1 {
+		t.Fatalf("expected exactly 1 exhausted bus event, got %d", got)
+	}
+
+	// 2. The provider still reports 0% for a few cycles: suppression must hold.
+	for i := 0; i < 3; i++ {
+		if act := monitor.CheckAccount(acc); act != nil {
+			t.Fatalf("cycle %d: expected suppression while still at 0%%, got %+v", i, act)
+		}
+	}
+	if got := countEvents(events.EventQuotaExhausted); got != 1 {
+		t.Fatalf("suppressed cycles must not re-announce exhaustion, got %d events", got)
+	}
+
+	// 3. The quota REALLY resets: a fresh LIVE observation with restored
+	// capacity arrives. The monitor must go back to operational SILENTLY —
+	// the recovery observation itself is not an alert, and repeating it must
+	// not re-alert either.
+	acc.QuotaView = view(100)
+	if act := monitor.CheckAccount(acc); act != nil {
+		t.Fatalf("expected silent recovery on restored LIVE observation, got %+v", act)
+	}
+	if st := monitor.states[stateKey]; st == nil || st.Exhausted {
+		t.Fatalf("expected exhausted latch cleared after reset, got %+v", st)
+	}
+	if act := monitor.CheckAccount(acc); act != nil {
+		t.Fatalf("expected repeated restored observation to stay silent, got %+v", act)
+	}
+	if got := len(rec.Payloads); got != 5 {
+		t.Fatalf("recovery must not notify: got %d native notifications, want 5 (4 low + 1 exhausted)", got)
+	}
+	if got := countEvents(events.EventQuotaExhausted); got != 1 {
+		t.Fatalf("recovery must not re-announce exhaustion, got %d events", got)
+	}
+	if got := countEvents(events.EventQuotaLow); got != 4 {
+		t.Fatalf("recovery must not announce a low event, got %d low events", got)
+	}
+
+	// 4. After recovery the monitor is re-armed: a genuine drop below the
+	// threshold notifies again exactly once.
+	acc.QuotaView = view(20)
+	if act := monitor.CheckAccount(acc); act == nil || act.Kind != string(events.EventQuotaLow) {
+		t.Fatalf("expected re-armed QUOTA_LOW after recovery, got %+v", act)
+	}
+	if act := monitor.CheckAccount(acc); act != nil {
+		t.Fatalf("expected immediate repeat at 20%% to stay suppressed, got %+v", act)
+	}
+	if got := len(rec.Payloads); got != 6 {
+		t.Fatalf("expected 6 total notifications after re-arm, got %d", got)
+	}
+	if got := countEvents(events.EventQuotaLow); got != 5 {
+		t.Fatalf("expected 5 low events after re-arm, got %d", got)
 	}
 }
 

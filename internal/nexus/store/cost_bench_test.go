@@ -429,3 +429,58 @@ func TestCostLedgerTenThousandObservationReconciliation(t *testing.T) {
 		t.Fatalf("first page must hold 1000 rows in observed_at DESC order: got %d rows", len(rows))
 	}
 }
+
+// TestCostLedgerTenThousandObservationReconciliationUnderBudget is the F2.8
+// regression budget (issue #228): the full 10k-observation reconciliation —
+// writing every row (one transaction per row, INSERT OR IGNORE on the
+// (source, invocation_id) partial unique index), replaying the idempotency
+// samples, and running both the analytics and plain aggregate views — must
+// finish under a single wall-clock budget.
+//
+// This is deliberately NOT a microbenchmark: the 60s limit is a generous,
+// CI-stable guard against catastrophic regressions (an accidental O(n²)
+// rewrite loop, a lost index turning aggregation into full scans per row, or
+// per-row fsync churn), not a target to optimize against. On a dev host the
+// reconciliation test above completes in roughly 1-2s; a 30x headroom keeps
+// the guard stable on slower CI runners while still failing loudly if the
+// ledger collapses to pathological behavior.
+func TestCostLedgerTenThousandObservationReconciliationUnderBudget(t *testing.T) {
+	if testing.Short() {
+		t.Skip("budget guard skipped in -short mode")
+	}
+	const budget = 60 * time.Second
+
+	st := openTestStore(t)
+	base := time.Now().UTC().Add(-30 * 24 * time.Hour).Truncate(24 * time.Hour)
+
+	start := time.Now()
+
+	for i := 0; i < costBenchObservations; i++ {
+		if _, err := st.RecordCostObservation(reconciliationCostObservation(i, base)); err != nil {
+			t.Fatalf("record reconciliation observation %d: %v", i, err)
+		}
+	}
+	for i := 0; i < 25; i++ {
+		// i*10+1 keeps every sample off the i%10==9 legacy/no-invocation rows.
+		replay := reconciliationCostObservation(i*10+1, base)
+		if replay.InvocationID == "" {
+			t.Fatalf("sample %d must carry an invocation id", i)
+		}
+		replay.Status = "RUNNING"
+		if _, err := st.RecordCostObservation(replay); err != nil {
+			t.Fatalf("idempotent replay %d: %v", i, err)
+		}
+	}
+	if _, err := st.SummarizeCostAnalytics(CostObservationFilter{Since: base}, 50); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.SummarizeCostObservations(CostObservationFilter{}); err != nil {
+		t.Fatal(err)
+	}
+
+	elapsed := time.Since(start)
+	if elapsed > budget {
+		t.Fatalf("10k-observation reconciliation took %s, over the %s regression budget (write + replay + aggregation)", elapsed, budget)
+	}
+	t.Logf("10k-observation reconciliation: write + replay + aggregation in %s (budget %s)", elapsed, budget)
+}
