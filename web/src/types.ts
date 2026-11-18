@@ -399,6 +399,17 @@ export type CostEvidenceState = 'EMPTY' | 'ATTRIBUTION_ONLY' | 'PARTIAL' | 'MEAS
 
 export interface CostAnalyticsTotals {
   observation_count: number;
+  invocations_total: number;
+  invocations_failed: number;
+  /** Fraction 0..1 of invocations classified as failed. Omitted when the
+   * scope has no observations: missing evidence is never a fabricated 0. */
+  error_rate?: number;
+  /** Averages are present only when at least one observation actually
+   * measured the evidence (duration_ms > 0; ttft_ms / output_tokens_per_second
+   * NOT NULL). NULL evidence means "not measured", never zero. */
+  avg_duration_ms?: number;
+  avg_ttft_ms?: number;
+  avg_output_tokens_per_second?: number;
   known_cost_observations: number;
   unknown_cost_observations: number;
   known_token_observations: number;

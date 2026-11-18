@@ -181,6 +181,8 @@ func Run(args []string) error {
 		return statusCmd(args[1:])
 	case "usage", "quota":
 		return usageCmd(args[1:])
+	case "cost":
+		return costCmd(args[1:])
 	case "sessions":
 		return sessionsCmd(args[1:])
 	case "workspaces":
@@ -548,6 +550,8 @@ func usage() {
   %s history [--json]             View local session execution log
   %s stats [--json]               Aggregated statistics (sessions, fallbacks, rate limits)
   %s export [--json]              Export local session data
+  nexus cost summary [--days N] [--json]
+                                Local cost analytics summary (read-only; same schema as /api/v1/cost/analytics)
   %s issue-report                 Create a diagnostic issue report
   %s config <show|validate>       Manage control plane settings
   %s update                       Update Nexus only (use 'maestro update' explicitly for Maestro)
