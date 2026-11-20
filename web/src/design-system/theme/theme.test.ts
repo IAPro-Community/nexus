@@ -54,7 +54,7 @@ describe('theme model', () => {
     } as unknown as ThemePreferences);
     expect(value).toEqual({
       scheme: 'system',
-      accent: 'purple',
+      accent: 'blue',
       density: 'compact',
       visualFinish: 'flat',
       reducedMotion: false,
@@ -302,10 +302,10 @@ describe('resolveThemeStyleVariables', () => {
       'light',
     );
 
-    expect(vars['--nx-bg']).toBe('#f4f6fa');
+    expect(vars['--nx-bg']).toBe('#f5f5f5');
     expect(vars['--nx-surface']).toBe('#ffffff');
-    expect(vars['--nx-text']).toBe('#141821');
-    expect(vars['--nx-subtle']).toBe('#667085');
+    expect(vars['--nx-text']).toBe('#242424');
+    expect(vars['--nx-subtle']).toBe('#707070');
   });
 
   it('aplica variáveis nativas do preset quando isCustomized é false', () => {
@@ -341,7 +341,7 @@ describe('resolveThemeStyleVariables', () => {
       },
       'light',
     );
-    expect(vars['--nx-bg']).toBe('#f4f6fa'); // Sobrescrito pelo Light
+    expect(vars['--nx-bg']).toBe('#f5f5f5'); // Sobrescrito pelo Light
     expect(vars['--nx-accent']).toBe('#8b5cf6'); // Sobrescrito pelo Purple
     expect(vars['--nx-accent-text']).toBe('#6d28d9');
   });

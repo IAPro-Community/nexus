@@ -91,9 +91,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 4px 8px;
-  border-radius: 6px;
+  border-radius: var(--nx-radius);
   background: var(--nx-surface);
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
 }
 
 .readinessCheckLabel {
@@ -113,7 +113,7 @@
 .unknownCard {
   margin-top: 10px;
   padding: 8px;
-  border-radius: 8px;
+  border-radius: var(--nx-radius-md);
   background: var(--nx-surface);
   border: 1px solid var(--nx-border);
 }
@@ -128,7 +128,7 @@
 .unknownQuestion {
   margin: 0;
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--nx-font-size-sm);
 }
 
 .unknownAnswer {
@@ -158,14 +158,14 @@
 
 .sourceTextarea {
   width: 100%;
-  padding: 10px;
-  border-radius: 8px;
+  padding: var(--nx-space-3);
+  border-radius: var(--nx-radius-md);
   background: var(--nx-surface);
   color: var(--nx-text);
   border: 1px solid var(--nx-border);
   resize: vertical;
   font-family: inherit;
-  font-size: 0.929rem;
+  font-size: var(--nx-font-size-sm);
 }
 
 .composerTextarea {
@@ -173,12 +173,12 @@
   min-height: 48px;
   max-height: 180px;
   resize: vertical;
-  padding: 8px 12px;
-  border-radius: 8px;
+  padding: var(--nx-space-2) var(--nx-space-3);
+  border-radius: var(--nx-radius-md);
   background: var(--nx-bg-elevated);
   border: 1px solid var(--nx-border);
   color: var(--nx-text);
-  font-size: 0.929rem;
+  font-size: var(--nx-font-size-sm);
   line-height: 1.45;
   font-family: inherit;
 }
@@ -205,8 +205,8 @@
   margin-top: 10px;
   display: grid;
   gap: 6px;
-  padding: 10px;
-  border-radius: 8px;
+  padding: var(--nx-space-3);
+  border-radius: var(--nx-radius-md);
   background: var(--nx-surface);
   border: 1px solid var(--nx-border);
 }
@@ -229,7 +229,7 @@
 }
 
 .unknownAnswerInput {
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
   padding: 4px 8px;
 }
 
@@ -310,7 +310,7 @@
 .nextQuestionText {
   margin: 8px 0 0;
   color: var(--nx-text-soft);
-  font-size: 0.893rem;
+  font-size: var(--nx-font-size-sm);
   line-height: 1.45;
 }
 
@@ -324,7 +324,7 @@
 .readinessSummary {
   margin: 8px 0 0;
   color: var(--nx-text-soft);
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
   line-height: 1.45;
 }
 
@@ -348,7 +348,7 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  font-size: 0.75rem;
+  font-size: var(--nx-font-size-caption);
 }
 
 .destinationActions {
@@ -442,21 +442,21 @@
   max-width: 88%;
   padding: 9px 11px;
   border: 1px solid var(--nx-border);
-  border-radius: 9px;
+  border-radius: var(--nx-radius-md);
   background: var(--nx-surface-2);
 
   small {
     display: block;
     margin-bottom: 3px;
     color: var(--nx-subtle);
-    font-size: 0.75rem;
+    font-size: var(--nx-font-size-caption);
     font-weight: 650;
   }
 
   p {
     margin: 0;
     color: var(--nx-text-soft);
-    font-size: 0.893rem;
+    font-size: var(--nx-font-size-sm);
     line-height: 1.5;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
@@ -496,7 +496,7 @@
   gap: 8px;
   margin-bottom: 10px;
   color: var(--nx-danger);
-  font-size: 0.893rem;
+  font-size: var(--nx-font-size-sm);
 }
 
 .flexGrow {
@@ -504,7 +504,7 @@
 }
 
 .sessionSelect {
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
   height: 28px;
 }
 
@@ -531,7 +531,7 @@
   display: grid;
   gap: 4px;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--nx-radius-md);
   background: var(--nx-surface);
   border: 1px solid var(--nx-border);
 }
@@ -544,7 +544,7 @@
 .suitabilityReason {
   margin: 0;
   color: var(--nx-text-soft);
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
   line-height: 1.45;
 }
 
@@ -552,7 +552,7 @@
   display: grid;
   gap: 6px;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--nx-radius-md);
   background: var(--nx-surface);
   border: 1px solid var(--nx-border);
 }
@@ -567,13 +567,13 @@
 .contextChipsLabel {
   color: var(--nx-muted);
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: var(--nx-font-size-2xs);
 }
 
 .contextEmpty {
   margin: 0;
   color: var(--nx-subtle);
-  font-size: 0.821rem;
+  font-size: var(--nx-font-size-2xs);
 }
 
 .contextChipList {
@@ -591,10 +591,10 @@
   gap: 6px;
   max-width: 100%;
   padding: 3px 4px 3px 8px;
-  border-radius: 999px;
+  border-radius: var(--nx-radius-full);
   background: var(--nx-surface-2);
   border: 1px solid var(--nx-border);
-  font-size: 0.786rem;
+  font-size: var(--nx-font-size-2xs);
   color: var(--nx-text-soft);
 }
 
@@ -626,7 +626,7 @@
 .contextPickerHint {
   margin: 0;
   color: var(--nx-subtle);
-  font-size: 0.786rem;
+  font-size: var(--nx-font-size-2xs);
 }
 
 @media (max-width: 900px) {
@@ -776,7 +776,7 @@
   min-width: 16rem;
   padding: 0.65rem;
   border: 1px solid var(--nx-border);
-  border-radius: 0.75rem;
+  border-radius: var(--nx-radius-lg);
   background: var(--nx-bg-elevated, var(--nx-surface));
 }
 
@@ -874,12 +874,12 @@
 
 .composerWelcomeEntry {
   display: grid;
-  gap: 18px;
-  padding: clamp(18px, 2.5vw, 28px);
+  gap: var(--nx-space-4);
+  padding: clamp(var(--nx-space-4), 2.5vw, var(--nx-space-7));
   background: var(--nx-bg-elevated);
   border: 1px solid color-mix(in srgb, var(--nx-accent) 27%, var(--nx-border));
-  border-radius: 18px;
-  box-shadow: 0 14px 46px color-mix(in srgb, #000 14%, transparent);
+  border-radius: var(--nx-radius-xl);
+  box-shadow: var(--nx-shadow-lg);
 }
 
 .composerWelcomeEntry :global(input) {
@@ -891,38 +891,38 @@
   min-height: 132px;
   line-height: 1.65;
   resize: vertical;
-  font-size: 0.98rem;
-  padding: 15px 16px;
-  border-radius: 12px;
+  font-size: var(--nx-font-size-base);
+  padding: var(--nx-space-4);
+  border-radius: var(--nx-radius-xl);
   border-color: color-mix(in srgb, var(--nx-accent) 25%, var(--nx-border));
   background: var(--nx-bg);
 }
 
 .composerWelcomeGoal:focus-visible {
-  outline: 2px solid var(--nx-accent);
+  outline: 2px solid var(--nx-focus);
   outline-offset: 2px;
 }
 
 .composerWelcomeInputLabel {
   color: var(--nx-text);
   font-weight: 600;
-  font-size: 0.91rem;
+  font-size: var(--nx-font-size-sm);
 }
 
 .composerWelcomeHistory {
   display: grid;
-  gap: 14px;
-  padding: 17px 20px;
+  gap: var(--nx-space-3);
+  padding: var(--nx-space-4) var(--nx-space-5);
   border: 1px solid var(--nx-border);
   background: color-mix(in srgb, var(--nx-bg-elevated) 80%, transparent);
-  border-radius: 14px;
+  border-radius: var(--nx-radius-lg);
 }
 
 .composerWelcomeHistoryHeader {
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 0.88rem;
+  font-size: var(--nx-font-size-xs);
   color: var(--nx-text);
 }
 
@@ -937,9 +937,9 @@
   gap: 12px;
   padding: 16px;
   color: var(--nx-text);
-  border: 1px solid color-mix(in srgb, #f36d6d 40%, var(--nx-border));
-  border-radius: 12px;
-  background: color-mix(in srgb, #e34848 8%, var(--nx-bg-elevated));
+  border: 1px solid color-mix(in srgb, var(--nx-danger) 40%, var(--nx-border));
+  border-radius: var(--nx-radius-xl);
+  background: var(--nx-danger-soft);
 }
 
 @media (max-width: 640px) {
@@ -957,7 +957,7 @@
   .composerWelcomeEntry,
   .composerWelcomeHistory {
     padding: 16px;
-    border-radius: 12px;
+    border-radius: var(--nx-radius-xl);
   }
 
   .composerWelcomeEntry .flexRowBetween {

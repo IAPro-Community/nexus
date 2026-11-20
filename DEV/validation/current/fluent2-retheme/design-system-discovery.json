@@ -1,0 +1,102 @@
+{
+  "request": "Retheme the existing React app in the Fluent 2 visual style while preserving component structure, behavior, and business logic.",
+  "intent": ["MIGRATE", "PRESERVE", "NONE"],
+  "intentClassifierNote": "The bundled classifier returned IMPROVE because it does not recognize the verb 'retheme'; the explicit target style makes this a visual-system migration.",
+  "requestedSkill": {
+    "name": "ui-ux-pro-max",
+    "available": false,
+    "resolution": "Not present in the session skill catalog or local project/profile skill directories."
+  },
+  "fallbackSkill": "skill-frontend-excellence",
+  "designSystem": {
+    "status": "resolved",
+    "provider": "@../design-system",
+    "source": "web/src/design-system",
+    "confidence": 0.95,
+    "evidence": [
+      {
+        "type": "import-usage",
+        "provider": "@../design-system",
+        "matches": 11,
+        "confidence": 0.95
+      }
+    ],
+    "requiresUserDecision": false,
+    "implementationAllowed": true,
+    "packageVersion": null,
+    "profileFile": null
+  },
+  "target": {
+    "style": "Fluent 2",
+    "implementation": "Update the existing Nexus semantic tokens and component styles. Do not install or create a parallel component/theme system."
+  },
+  "framework": {
+    "react": "19.2.8",
+    "reactDom": "19.2.8",
+    "reactRouterDom": "7.18.3",
+    "tailwindcss": "4.3.3",
+    "sass": "1.104.0",
+    "typescript": "5.9.3",
+    "styling": "88 SCSS Modules and 17 ordered workspace CSS sections; canonical runtime variables live in workspace-styles/01-foundation.css, with SCSS aliases in styles/_tokens.scss."
+  },
+  "routes": [
+    "/", "/projects", "/settings", "/updates", "/welcome",
+    "/p/:projectId/{overview,work,missions,terminals,agents,outputs,maestro,sessions,settings,resources,legacy-*}",
+    "/p/:projectId/popout/:surface"
+  ],
+  "principalSurfaces": [
+    "NexusWorkspaceApp", "NexusShell", "projects", "overview", "work/Composer", "missions/Flow", "terminals", "agents", "outputs", "Maestro", "sessions", "settings"
+  ],
+  "baseline": {
+    "status": "pass",
+    "screenshots": ".tempmediaStorage/fluent2-retheme/baseline",
+    "screenshotCount": 60,
+    "themeCount": 20,
+    "viewports": [390, 768, 1440],
+    "checks": ["theme selection and persistence", "responsive Composer bounds", "Axe serious/critical violations", "browser and console errors"],
+    "result": "pass",
+    "e2eScriptCorrection": "The Composer theme E2E referenced old accordion labels and assumed the finish was coupled to the palette; selectors and setup now match the current UI."
+  },
+  "verification": {
+    "sourceBaseSha": "6c322427d92dd810456d2b267546a1a907ac1603",
+    "workingTreeUncommitted": true,
+    "qualityFull": {
+      "status": "pass",
+      "format": "pass",
+      "stylelint": "pass",
+      "styleAllowlist": "pass",
+      "typecheck": "pass",
+      "testFiles": 151,
+      "tests": 959,
+      "build": "pass",
+      "eslint": "pass with 1 pre-existing warning at web/src/features/work/FlowRunSurface.tsx:122"
+    },
+    "composerThemeE2e": {
+      "status": "pass",
+      "themeCount": 20,
+      "viewports": [390, 768, 1440],
+      "screenshots": ".tempmediaStorage/fluent2-retheme/after",
+      "screenshotCount": 60
+    },
+    "hardeningE2e": {
+      "status": "pass",
+      "viewports": ["775x483", "320x568", "390x844", "768x1024", "1024x768", "1280x800", "1366x768", "1440x900"],
+      "keyboardFocusAndEscape": "pass",
+      "systemLightDark": "pass",
+      "radixMenuSemantics": "pass",
+      "axe": "pass"
+    },
+    "remainingLiteralStyleScan": {
+      "stylesheetFilesWithFixedGeometryDeclarations": 101,
+      "literalColors": "canonical theme palettes, NEX/HUD identity styles, terminal ANSI tokens, and two splash/brand shadow effects"
+    },
+    "diffCheck": "pass",
+    "homologation": "not performed; working tree is not committed or published"
+  },
+  "scopeNotes": [
+    "Style-only migration; no product feature, action, route, tour, or business logic is added.",
+    "Preserve NEX identity assets and specialized terminal/code palettes.",
+    "Theme-specific palette values remain literal at the canonical token definitions; feature component styles should consume semantic tokens.",
+    "The responsive audit corrected a broken Project Hub CSS Module selector and the Composer read-only layout."
+  ]
+}

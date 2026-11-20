@@ -1,8 +1,8 @@
 .agentsContainer {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  padding: 1.5rem;
+  gap: var(--nx-space-5);
+  padding: var(--nx-space-6);
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
@@ -11,16 +11,16 @@
 .summaryStrip {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.875rem;
+  gap: var(--nx-space-3);
 }
 
 .summaryCard {
   display: flex;
   flex-direction: column;
-  padding: 0.875rem 1rem;
+  padding: var(--nx-space-3) var(--nx-space-4);
   background: var(--nx-bg-elevated);
   border: 1px solid var(--nx-border);
-  border-radius: 8px;
+  border-radius: var(--nx-radius-md);
   cursor: pointer;
   text-align: left;
   font: inherit;
@@ -34,7 +34,7 @@
 
   &:hover {
     border-color: var(--nx-border-hover);
-    transform: translateY(-1px);
+    background: var(--nx-surface-hover);
   }
 
   &.activeFilter {
@@ -43,7 +43,7 @@
   }
 
   &:focus-visible {
-    outline: 2px solid var(--nx-accent);
+    outline: 2px solid var(--nx-focus);
     outline-offset: 2px;
   }
 }
@@ -68,7 +68,7 @@
 }
 
 .summaryLabel {
-  font-size: 0.8125rem;
+  font-size: var(--nx-font-size-2xs);
   color: var(--nx-text-muted);
   margin-top: 0.25rem;
   display: flex;
@@ -80,7 +80,7 @@
   display: inline-block;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--nx-radius-full);
   background: var(--nx-success);
   animation: agent-pulse 1.8s ease-in-out infinite;
 }
@@ -100,11 +100,11 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--nx-space-4);
   background: var(--nx-bg-elevated);
   border: 1px solid var(--nx-border);
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
+  border-radius: var(--nx-radius-md);
+  padding: var(--nx-space-3) var(--nx-space-4);
 }
 
 .groupFilter,
@@ -113,21 +113,21 @@
   flex-direction: column;
   gap: 0.25rem;
   color: var(--nx-text-muted);
-  font-size: 0.7rem;
+  font-size: var(--nx-font-size-caption);
 
   select {
     min-height: 2rem;
     max-width: 13rem;
     padding: 0.25rem 0.5rem;
     border: 1px solid var(--nx-border);
-    border-radius: 6px;
+    border-radius: var(--nx-radius-sm);
     background: var(--nx-bg-elevated);
     color: var(--nx-text);
     font: inherit;
   }
 
   select:focus-visible {
-    outline: 2px solid var(--nx-accent);
+    outline: 2px solid var(--nx-focus);
     outline-offset: 2px;
   }
 }
@@ -135,11 +135,11 @@
 .groupsSummary {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--nx-space-2);
 
   h2 {
     margin: 0;
-    font-size: 0.95rem;
+    font-size: var(--nx-font-size-sm);
     color: var(--nx-text);
   }
 }
@@ -148,12 +148,12 @@
   display: grid;
   grid-template-columns: minmax(8rem, 1fr) 2fr auto;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.65rem 0.8rem;
+  gap: var(--nx-space-3);
+  padding: var(--nx-space-2) var(--nx-space-3);
   border: 1px solid var(--nx-border);
-  border-radius: 8px;
+  border-radius: var(--nx-radius-md);
   background: var(--nx-bg-elevated);
-  font-size: 0.8rem;
+  font-size: var(--nx-font-size-2xs);
 
   strong {
     color: var(--nx-text);
@@ -174,17 +174,17 @@
 }
 
 .displayedCount {
-  font-size: 0.8125rem;
+  font-size: var(--nx-font-size-2xs);
   color: var(--nx-text-muted);
 }
 
 .creationSection {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--nx-space-3);
   background: var(--nx-bg-elevated);
   border: 1px dashed var(--nx-border);
-  border-radius: 8px;
+  border-radius: var(--nx-radius-md);
   padding: 1rem;
 }
 
@@ -201,12 +201,12 @@
 .roleTemplates {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--nx-space-2);
   flex-wrap: wrap;
 }
 
 .roleLabel {
-  font-size: 0.75rem;
+  font-size: var(--nx-font-size-caption);
   color: var(--nx-text-muted);
   font-weight: 600;
 }
@@ -215,10 +215,10 @@
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.25rem 0.65rem;
-  font-size: 0.75rem;
+  padding: var(--nx-space-1) var(--nx-space-2);
+  font-size: var(--nx-font-size-caption);
   font-weight: 500;
-  border-radius: 9999px;
+  border-radius: var(--nx-radius-full);
   border: 1px solid var(--nx-border);
   background: var(--nx-surface-2);
   color: var(--nx-text-muted);
@@ -241,7 +241,7 @@
 .agentGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 1.25rem;
+  gap: var(--nx-space-5);
 }
 
 @media (max-width: 640px) {
@@ -265,7 +265,7 @@
   padding: 1.25rem;
   background: var(--nx-bg-elevated);
   border: 1px solid var(--nx-border);
-  border-radius: 10px;
+  border-radius: var(--nx-radius-lg);
   transition:
     border-color 0.2s,
     box-shadow 0.2s,
@@ -274,8 +274,7 @@
 
   &:hover {
     border-color: var(--nx-border-hover);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-    transform: translateY(-2px);
+    box-shadow: var(--nx-shadow-sm);
   }
 }
 
@@ -291,7 +290,7 @@
   justify-content: center;
   width: 2.75rem;
   height: 2.75rem;
-  border-radius: 8px;
+  border-radius: var(--nx-radius-md);
   background: var(--nx-surface-2);
   border: 1px solid var(--nx-border);
   font-weight: 700;
@@ -315,7 +314,7 @@
 }
 
 .agentIdSub {
-  font-size: 0.75rem;
+  font-size: var(--nx-font-size-caption);
   font-family: var(--nx-font-mono, monospace);
   color: var(--nx-text-muted);
   margin-top: 0.15rem;
@@ -330,13 +329,13 @@
 .metaSection {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 1rem;
-  padding: 0.75rem;
+  gap: var(--nx-space-2);
+  margin-top: var(--nx-space-4);
+  padding: var(--nx-space-3);
   background: var(--nx-surface-2);
-  border-radius: 6px;
+  border-radius: var(--nx-radius-sm);
   border: 1px solid var(--nx-border);
-  font-size: 0.8125rem;
+  font-size: var(--nx-font-size-2xs);
 }
 
 /* agent-parking: honest copy for a hidden surface (runtime not paused). */
@@ -344,29 +343,29 @@
   margin: 0;
   margin-top: 0.5rem;
   padding: 0.35rem 0.5rem;
-  font-size: 0.75rem;
+  font-size: var(--nx-font-size-caption);
   color: var(--nx-muted);
   background: var(--nx-surface-2);
   border: 1px solid var(--nx-border);
-  border-radius: 6px;
+  border-radius: var(--nx-radius-sm);
 }
 
 .metaRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: var(--nx-space-2);
 }
 
 .metaLabel {
   color: var(--nx-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--nx-font-size-caption);
 }
 
 .metaValue {
   font-weight: 500;
   color: var(--nx-text);
-  font-size: 0.75rem;
+  font-size: var(--nx-font-size-caption);
 }
 
 .metaClock {
@@ -400,7 +399,7 @@
     gap: 1px;
     background: var(--nx-border);
     border: 1px solid var(--nx-border);
-    border-radius: 6px;
+    border-radius: var(--nx-radius-sm);
   }
 
   .agentGrid {
@@ -447,7 +446,7 @@
 
   .agentCard {
     padding: 1rem;
-    border-radius: 6px;
+    border-radius: var(--nx-radius-sm);
   }
 
   .agentCard:hover {
@@ -464,6 +463,6 @@
   }
 
   .groupSummary {
-    border-radius: 4px;
+    border-radius: var(--nx-radius-xs);
   }
 }

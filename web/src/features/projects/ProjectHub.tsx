@@ -159,7 +159,7 @@ export const ProjectHub: React.FC<{ onCreated: (project: Project) => void }> = (
     <>
       <div className={styles.root} data-testid="project-hub-root">
         <div className={styles.brand}>
-          <span className="nx-brand-mark nx-brand-mark--hero">
+          <span className={`nx-brand-mark nx-brand-mark--hero ${styles.brandMark}`}>
             <img src="./nexus-icon.png" alt="Nexus" className="nx-brand-mark__img" />
           </span>
           <span className="nx-eyebrow">{t('projects.brandEyebrow')}</span>

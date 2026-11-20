@@ -1,11 +1,11 @@
 .trigger {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--nx-space-1);
   min-height: 32px;
   border: 1px solid transparent;
-  border-radius: 9px;
-  padding: 4px 8px;
+  border-radius: var(--nx-radius-md);
+  padding: var(--nx-space-1) var(--nx-space-2);
   color: var(--nx-text);
   background: transparent;
   cursor: pointer;
@@ -15,7 +15,7 @@
   background: var(--nx-accent-soft);
 }
 .trigger:focus-visible {
-  outline: 2px solid var(--nx-accent);
+  outline: 2px solid var(--nx-focus);
   outline-offset: 2px;
 }
 .menu {
@@ -23,18 +23,18 @@
   width: min(390px, calc(100vw - 26px));
   max-height: min(500px, calc(100dvh - 40px));
   overflow-y: auto;
-  padding: 8px;
+  padding: var(--nx-space-2);
   border: 1px solid var(--nx-border);
-  border-radius: 14px;
+  border-radius: var(--nx-radius-lg);
   color: var(--nx-text);
   background: var(--nx-bg-elevated);
-  box-shadow: 0 22px 65px color-mix(in srgb, #000 30%, transparent);
+  box-shadow: var(--nx-shadow-lg);
 }
 .heading {
   display: grid;
-  gap: 6px;
-  padding: 12px;
-  margin-bottom: 5px;
+  gap: var(--nx-space-2);
+  padding: var(--nx-space-3);
+  margin-bottom: var(--nx-space-1);
   border-bottom: 1px solid var(--nx-border);
 }
 .heading small {
@@ -43,9 +43,9 @@
 }
 .item {
   display: grid;
-  gap: 5px;
-  padding: 11px 12px;
-  border-radius: 9px;
+  gap: var(--nx-space-1);
+  padding: var(--nx-space-3);
+  border-radius: var(--nx-radius-md);
   cursor: pointer;
   outline: none;
 }
@@ -53,28 +53,32 @@
 .item[data-highlighted] {
   background: var(--nx-accent-soft);
 }
+.item:focus-visible,
+.markRead:focus-visible {
+  box-shadow: var(--nx-focus-ring);
+}
 .title {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   font-weight: 650;
-  font-size: 0.86rem;
+  font-size: var(--nx-font-size-xs);
 }
 .body {
   color: var(--nx-text-muted);
-  font-size: 0.78rem;
+  font-size: var(--nx-font-size-2xs);
   line-height: 1.45;
 }
 .action {
   color: var(--nx-accent-text);
-  font-size: 0.76rem;
+  font-size: var(--nx-font-size-caption);
   font-weight: 600;
 }
 .dot {
   width: 7px;
   height: 7px;
-  border-radius: 50%;
+  border-radius: var(--nx-radius-full);
   background: var(--nx-accent);
   flex: none;
 }
@@ -87,13 +91,13 @@
 .markRead {
   display: block;
   width: 100%;
-  padding: 11px 12px;
-  margin-top: 4px;
+  padding: var(--nx-space-3);
+  margin-top: var(--nx-space-1);
   border-top: 1px solid var(--nx-border);
   outline: none;
   color: var(--nx-accent-text);
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: var(--nx-font-size-2xs);
 }
 .markRead[data-highlighted] {
   background: var(--nx-accent-soft);

@@ -29,28 +29,28 @@ const themes = [
     preset: 'nexus-dusk',
     scheme: 'dark',
     finish: 'subtle-gradient',
-    category: /Degradê Suave/i,
+    category: /Grafites suaves/i,
     label: /Nexus Dusk/i,
   },
   {
     preset: 'slate-flat',
     scheme: 'dark',
     finish: 'flat',
-    category: /Essenciais Flat/i,
+    category: /Paletas minimalistas/i,
     label: /Slate Flat/i,
   },
   {
     preset: 'paper-flat',
     scheme: 'light',
     finish: 'flat',
-    category: /Essenciais Flat/i,
+    category: /Paletas minimalistas/i,
     label: /Paper Flat/i,
   },
   {
     preset: 'clay-flat',
     scheme: 'light',
     finish: 'flat',
-    category: /Essenciais Flat/i,
+    category: /Paletas minimalistas/i,
     label: /Clay Flat/i,
   },
   {
@@ -163,12 +163,13 @@ async function ensureThemeCategoryOpen(page, theme) {
 }
 
 async function assertThemeApplied(page, theme) {
+  const expectedFinish = theme.scheme === 'high-contrast' ? 'standard' : theme.finish || 'flat';
   await page.waitForFunction(
     ({ preset, scheme, finish }) =>
       document.documentElement.dataset.preset === preset &&
       document.documentElement.dataset.theme === scheme &&
       document.documentElement.dataset.finish === finish,
-    { preset: theme.preset, scheme: theme.scheme, finish: theme.finish || 'standard' },
+    { preset: theme.preset, scheme: theme.scheme, finish: expectedFinish },
     { timeout: 10000 },
   );
   const applied = await page.evaluate(() => {
@@ -185,7 +186,7 @@ async function assertThemeApplied(page, theme) {
   });
   assert.equal(applied.preset, theme.preset);
   assert.equal(applied.theme, theme.scheme);
-  assert.equal(applied.finish, theme.finish || 'standard');
+  assert.equal(applied.finish, expectedFinish);
   assert.ok(applied.background, `${theme.preset} must define --nx-bg`);
   assert.ok(applied.text, `${theme.preset} must define --nx-text`);
   assert.ok(applied.accent, `${theme.preset} must define --nx-accent`);
@@ -271,6 +272,20 @@ async function selectThemeThroughSettings(page, apiOrigin, theme) {
 
   const radio = await ensureThemeCategoryOpen(page, theme);
   await radio.click();
+
+  // Palette and visual finish are independent preferences. Select the finish
+  // explicitly so the matrix checks the intended UI state rather than relying
+  // on stale data from the previously selected preset.
+  if (theme.scheme !== 'high-contrast') {
+    const finishLabel =
+      theme.finish === 'subtle-gradient'
+        ? /Degradê suave/i
+        : theme.finish === 'standard'
+          ? /Clássico/i
+          : /Flat/i;
+    const finishGroup = page.getByRole('radiogroup', { name: /Acabamento visual/i });
+    await finishGroup.getByRole('radio', { name: finishLabel }).click();
+  }
   await assertThemeApplied(page, theme);
   assert.equal(await radio.getAttribute('aria-checked'), 'true');
 

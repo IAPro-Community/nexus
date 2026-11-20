@@ -179,7 +179,7 @@
   transition: all 0.15s ease;
 }
 .nx-statusbar-btn:hover {
-  background: var(--nx-surface-3);
+  background: var(--nx-surface-hover);
   border-color: var(--nx-border);
   color: var(--nx-text-primary);
 }
@@ -307,7 +307,7 @@
   text-align: left;
 }
 .nx-branch-item:hover {
-  background: var(--nx-surface-3);
+  background: var(--nx-surface-hover);
   color: var(--nx-accent-text);
 }
 .nx-branch-item--active {

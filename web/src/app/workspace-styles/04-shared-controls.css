@@ -2,15 +2,15 @@
   height: 42px;
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 0 12px;
+  gap: var(--nx-space-2);
+  padding: 0 var(--nx-space-3);
   border: 1px solid var(--nx-border);
-  border-radius: 8px;
+  border-radius: var(--nx-radius-lg);
   background: var(--nx-bg-elevated);
   color: var(--nx-muted);
 }
 .nx-search-input:focus-within {
-  border-color: var(--nx-accent);
+  border-color: var(--nx-focus);
 }
 .nx-search-input input {
   width: 100%;
@@ -31,7 +31,7 @@
   flex: 0 0 auto;
   padding: 2px;
   border: 1px solid var(--nx-border-strong);
-  border-radius: 999px;
+  border-radius: var(--nx-radius-full);
   background: var(--nx-surface-3);
   cursor: pointer;
 }
@@ -39,7 +39,7 @@
   display: block;
   width: 14px;
   height: 14px;
-  border-radius: 50%;
+  border-radius: var(--nx-radius-full);
   background: var(--nx-muted);
   transition: transform 0.14s;
 }
@@ -66,25 +66,25 @@
   display: inline-flex;
   padding: 2px;
   border: 1px solid var(--nx-border);
-  border-radius: 8px;
+  border-radius: var(--nx-radius-md);
   background: var(--nx-bg-elevated);
 }
 .nx-segmented__item {
-  min-height: 28px;
-  padding: 0 10px;
+  min-height: max(var(--nx-control-min-height), var(--nx-touch-min));
+  padding: 0 var(--nx-space-3);
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--nx-radius-sm);
   background: transparent;
   color: var(--nx-muted);
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
   font-weight: 550;
   cursor: pointer;
   transition: all 0.12s;
 }
 .nx-segmented__item[data-active="true"] {
-  background: var(--nx-surface-3);
+  background: var(--nx-surface-hover);
   color: var(--nx-text);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
+  box-shadow: var(--nx-shadow-sm);
 }
 .nx-choice-option {
   appearance: none;
@@ -94,7 +94,7 @@
   text-align: inherit;
 }
 .nx-choice-option:focus-visible {
-  outline: 2px solid var(--nx-accent);
+  outline: 2px solid var(--nx-focus);
   outline-offset: 2px;
 }
 .nx-progress {
@@ -191,7 +191,7 @@
   display: grid;
   place-items: center;
   padding: 16px;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--nx-scrim-strong);
   backdrop-filter: blur(4px);
 }
 .nx-dialog {
@@ -207,7 +207,7 @@
   border: 1px solid var(--nx-border-strong);
   border-radius: 12px;
   background: var(--nx-surface);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--nx-shadow-lg);
   overflow: hidden;
 }
 .nx-dialog[data-wide="true"] {
@@ -266,7 +266,7 @@
   border: 1px solid var(--nx-border-strong);
   color: var(--nx-text);
   font-size: 0.821rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--nx-shadow-md);
   pointer-events: none;
 }
 .nx-tooltip-arrow {
@@ -348,7 +348,7 @@
   position: fixed;
   inset: 0;
   z-index: 400;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--nx-scrim);
   pointer-events: none;
 }
 .nx-tour-highlight {
@@ -356,7 +356,7 @@
   border: 2px solid var(--nx-accent);
   border-radius: 9px;
   box-shadow:
-    0 0 0 9999px rgba(0, 0, 0, 0.4),
+    0 0 0 9999px var(--nx-scrim-subtle),
     0 0 28px var(--nx-accent-soft);
   pointer-events: none;
 }
@@ -367,7 +367,7 @@
   border: 1px solid var(--nx-border-strong);
   border-radius: 12px;
   background: var(--nx-surface);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--nx-shadow-lg);
   pointer-events: auto;
 }
 .nx-tour-card header,

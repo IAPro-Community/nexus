@@ -2,7 +2,7 @@
 
 :root {
   --nx-font-sans:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --nx-font-mono:
     'JetBrains Mono', 'Fira Code', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
     monospace;
@@ -11,6 +11,7 @@
   // 1rem is 14px at the default Nexus scale; rem keeps browser zoom and the
   // user-controlled font scale coherent across every surface.
   --nx-font-size-2xs: 0.786rem;
+  --nx-font-size-caption: 0.714rem;
   --nx-font-size-xs: 0.857rem;
   --nx-font-size-sm: 0.929rem;
   --nx-font-size-base: 1rem;
@@ -19,6 +20,7 @@
   --nx-font-size-xl: 1.429rem;
   --nx-font-size-2xl: 1.714rem;
   --nx-line-height-tight: 1.25;
+  --nx-line-height-caption: 1.4;
   --nx-line-height-normal: 1.5;
   --nx-line-height-relaxed: 1.75;
 }

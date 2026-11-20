@@ -14,7 +14,7 @@
 
 .card:hover {
   border-color: var(--nx-border-strong);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--nx-shadow-md);
 }
 
 .card[data-recommended='true'] {
@@ -24,7 +24,7 @@
     color-mix(in srgb, var(--nx-accent-soft) 40%, var(--nx-bg-elevated)) 0%,
     var(--nx-bg-elevated) 100%
   );
-  box-shadow: 0 0 16px var(--nx-accent-soft);
+  box-shadow: var(--nx-shadow-sm);
 }
 
 .card[data-available='false'] {
@@ -80,7 +80,7 @@
 
 .accountName {
   color: var(--nx-text);
-  font-size: 13.5px;
+  font-size: var(--nx-font-size-sm);
   font-weight: 650;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -93,7 +93,7 @@
   align-items: center;
   gap: 6px 10px;
   color: var(--nx-muted);
-  font-size: 11.5px;
+  font-size: var(--nx-font-size-2xs);
 }
 
 .metaRow small {
@@ -121,7 +121,7 @@
   border-radius: var(--nx-radius-sm);
   background: color-mix(in srgb, var(--nx-warning) 12%, transparent);
   color: var(--nx-warning);
-  font-size: 11.5px;
+  font-size: var(--nx-font-size-2xs);
   line-height: 1.4;
 }
 
@@ -149,7 +149,7 @@
 }
 
 .capsLabel {
-  font-size: 10.5px;
+  font-size: var(--nx-font-size-caption);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--nx-subtle);
@@ -164,7 +164,7 @@
 }
 
 .capChip {
-  font-size: 10.5px;
+  font-size: var(--nx-font-size-caption);
   color: var(--nx-text-soft);
   background: var(--nx-surface-2);
   border: 1px solid var(--nx-border);
@@ -198,7 +198,7 @@
 }
 
 .groupHeading span {
-  font-size: 11px;
+  font-size: var(--nx-font-size-2xs);
   font-weight: 700;
   color: var(--nx-text-soft);
   text-transform: uppercase;
@@ -214,12 +214,12 @@
 
 .windowLabel {
   color: var(--nx-subtle);
-  font-size: 11.5px;
+  font-size: var(--nx-font-size-2xs);
 }
 
 .reset {
   color: var(--nx-muted);
-  font-size: 11px;
+  font-size: var(--nx-font-size-2xs);
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
@@ -227,7 +227,7 @@
 }
 
 .stateLine {
-  font-size: 11.5px;
+  font-size: var(--nx-font-size-2xs);
   color: var(--nx-muted);
   margin: 0;
 }
@@ -260,7 +260,7 @@
 }
 
 .eligibilityNote {
-  font-size: 11px;
+  font-size: var(--nx-font-size-2xs);
   color: var(--nx-muted);
   margin: 0;
   display: inline-flex;
@@ -283,7 +283,7 @@
   border: 1px solid var(--nx-border-strong);
   border-radius: var(--nx-radius);
   padding: 4px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--nx-shadow-lg);
   z-index: var(--nx-z-popover);
 }
 
@@ -292,7 +292,7 @@
   align-items: center;
   gap: 8px;
   padding: 7px 10px;
-  font-size: 12px;
+  font-size: var(--nx-font-size-xs);
   color: var(--nx-text);
   border-radius: var(--nx-radius-sm);
   cursor: pointer;
@@ -302,7 +302,7 @@
 
 .menuItem:hover,
 .menuItem:focus {
-  background: var(--nx-surface-3);
+  background: var(--nx-surface-hover);
   color: var(--nx-accent-text);
 }
 

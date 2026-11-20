@@ -21,7 +21,7 @@
 .button:hover:not(:disabled) {
   border-color: var(--nx-accent);
   color: var(--nx-text);
-  background: var(--nx-surface-3);
+  background: var(--nx-surface-hover);
 }
 
 .button:focus-visible {

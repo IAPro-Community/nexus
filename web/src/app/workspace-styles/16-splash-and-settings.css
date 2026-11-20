@@ -202,7 +202,7 @@
   cursor: pointer;
 }
 .nx-font-scale-btn:hover {
-  background: var(--nx-surface-3);
+  background: var(--nx-surface-hover);
   border-color: var(--nx-border-strong);
 }
 .nx-font-scale-btn[data-active="true"] {

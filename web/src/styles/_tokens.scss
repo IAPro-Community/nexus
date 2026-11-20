@@ -10,20 +10,18 @@
   --nx-accent-subtle: var(--nx-accent-soft);
   --nx-accent-contrast: #000000;
   --nx-surface-raised: var(--nx-surface-2);
-  --nx-focus: var(--nx-accent);
+  --nx-focus: var(--nx-accent-text, var(--nx-accent));
   --nx-danger-border: var(--nx-danger);
   --nx-danger-subtle: var(--nx-danger-soft);
   --nx-warning-contrast: #000000;
   --nx-radius-md: var(--nx-radius);
-  --nx-radius-xl: var(--nx-radius-lg);
-  --nx-radius-full: 999px;
-  --nx-space-2: 0.5rem;
-  --nx-space-3: 0.75rem;
-  --nx-space-4: 1rem;
-  --nx-focus-ring: 0 0 0 2px var(--nx-bg), 0 0 0 4px var(--nx-accent);
-  --nx-shadow-sm: 0 1px 3px rgb(0 0 0 / 0.16);
-  --nx-shadow-md: 0 4px 14px rgb(0 0 0 / 0.35);
-  --nx-shadow-lg: 0 10px 25px -5px rgb(0 0 0 / 0.45);
+  --nx-space-2: var(--nx-spacing-2);
+  --nx-space-3: var(--nx-spacing-3);
+  --nx-space-4: var(--nx-spacing-4);
+  --nx-focus-ring: 0 0 0 2px var(--nx-bg), 0 0 0 4px var(--nx-focus);
+  --nx-shadow-sm: var(--nx-elevation-1, 0 1px 2px rgb(0 0 0 / 0.24));
+  --nx-shadow-md: var(--nx-elevation-2, 0 4px 8px rgb(0 0 0 / 0.28));
+  --nx-shadow-lg: var(--nx-elevation-3, 0 12px 24px rgb(0 0 0 / 0.3));
   --nx-overlay-strong: color-mix(in srgb, var(--nx-bg) 88%, transparent);
 
   // Specialized terminal palette stays stable across UI themes unless a future

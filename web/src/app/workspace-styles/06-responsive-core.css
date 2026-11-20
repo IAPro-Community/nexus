@@ -119,7 +119,7 @@
     flex: 0 0 var(--nx-rail, 260px);
     transform: translateX(-102%);
     transition: transform 0.18s ease-in-out;
-    box-shadow: 20px 0 60px rgba(0, 0, 0, 0.4);
+    box-shadow: 20px 0 60px var(--nx-scrim-subtle);
     z-index: var(--nx-z-drawer);
   }
   .nx-project-rail[data-open="true"] {
@@ -133,7 +133,7 @@
     inset: 0;
     z-index: var(--nx-z-modal-backdrop);
     display: block;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--nx-scrim-medium);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.18s;

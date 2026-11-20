@@ -4,7 +4,7 @@
   align-items: center;
   justify-content: flex-end;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: var(--nx-space-2);
   min-width: 0;
 }
 
@@ -16,14 +16,14 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--nx-space-2);
   max-width: 100%;
-  padding: 7px 10px;
+  padding: var(--nx-space-2) var(--nx-space-3);
   color: var(--nx-text);
   background: var(--nx-bg-elevated);
   border: 1px solid color-mix(in srgb, var(--nx-accent) 33%, var(--nx-border));
-  border-radius: 10px;
-  font-size: 0.8rem;
+  border-radius: var(--nx-radius-md);
+  font-size: var(--nx-font-size-2xs);
 }
 
 .notice > svg {
@@ -39,18 +39,18 @@
   z-index: 750;
   width: min(340px, calc(100vw - 28px));
   max-height: min(420px, calc(100dvh - 32px));
-  padding: 8px;
+  padding: var(--nx-space-2);
   overflow-y: auto;
   background: var(--nx-bg-elevated);
   color: var(--nx-text);
   border: 1px solid var(--nx-border);
-  border-radius: 13px;
-  box-shadow: 0 16px 48px color-mix(in srgb, #000 28%, transparent);
+  border-radius: var(--nx-radius-lg);
+  box-shadow: var(--nx-shadow-lg);
 }
 
 .menuHeading {
-  padding: 9px 11px;
-  font-size: 0.8rem;
+  padding: var(--nx-space-2) var(--nx-space-3);
+  font-size: var(--nx-font-size-2xs);
   font-weight: 750;
   border-bottom: 1px solid var(--nx-border);
   margin-bottom: 5px;
@@ -58,17 +58,22 @@
 
 .menuItem {
   display: grid;
-  gap: 5px;
-  padding: 10px 12px;
-  border-radius: 8px;
+  gap: var(--nx-space-1);
+  padding: var(--nx-space-3);
+  border-radius: var(--nx-radius-sm);
   outline: none;
   cursor: pointer;
-  font-size: 0.84rem;
+  font-size: var(--nx-font-size-xs);
 }
 
 .menuItem:hover,
 .menuItem[data-highlighted] {
   background: var(--nx-accent-soft);
+}
+
+.menuItem:focus-visible,
+.markRead:focus-visible {
+  box-shadow: var(--nx-focus-ring);
 }
 
 .menuTitle {
@@ -84,7 +89,7 @@
 }
 
 .menuAction {
-  font-size: 0.75rem;
+  font-size: var(--nx-font-size-caption);
   color: var(--nx-accent-text);
   font-weight: 600;
 }
@@ -94,17 +99,17 @@
   width: 6px;
   height: 6px;
   background: var(--nx-accent);
-  border-radius: 50%;
+  border-radius: var(--nx-radius-full);
 }
 
 .markRead {
   display: block;
   width: 100%;
-  padding: 10px 12px;
+  padding: var(--nx-space-3);
   border-top: 1px solid var(--nx-border);
   color: var(--nx-accent-text);
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: var(--nx-font-size-2xs);
   outline: none;
 }
 

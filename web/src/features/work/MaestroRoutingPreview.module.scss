@@ -10,21 +10,21 @@
 
 .description,
 .hint {
-  color: var(--nx-text-muted, var(--text-muted, #8a8a8a));
-  font-size: 0.85rem;
+  color: var(--nx-text-muted);
+  font-size: var(--nx-font-size-xs);
   line-height: 1.55;
   margin-block: 0.75rem;
 }
 
 .step {
-  border: 1px solid var(--nx-border, var(--border, #555));
-  border-radius: 0.625rem;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-lg);
   margin-block: 0.75rem;
   min-width: 0;
   padding: 0.75rem;
 
   legend {
-    font-size: 0.9rem;
+    font-size: var(--nx-font-size-sm);
     font-weight: 600;
     max-width: 100%;
     padding-inline: 0.35rem;
@@ -39,7 +39,7 @@
   label {
     display: flex;
     flex-direction: column;
-    font-size: 0.8rem;
+    font-size: var(--nx-font-size-2xs);
     font-weight: 500;
     gap: 0.35rem;
     min-width: 0;
@@ -48,8 +48,8 @@
   select,
   input {
     background: var(--nx-panel-bg, var(--surface, transparent));
-    border: 1px solid var(--nx-border, var(--border, #777));
-    border-radius: 0.45rem;
+    border: 1px solid var(--nx-border);
+    border-radius: var(--nx-radius-sm);
     color: inherit;
     font: inherit;
     min-height: 2.25rem;
@@ -69,7 +69,7 @@
 }
 
 .result {
-  border-top: 1px solid var(--nx-border, var(--border, #777));
+  border-top: 1px solid var(--nx-border);
   margin-top: 1rem;
   padding-top: 0.8rem;
 

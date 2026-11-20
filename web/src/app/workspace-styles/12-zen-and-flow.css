@@ -26,7 +26,7 @@
   inset: 0;
   z-index: var(--nx-z-modal-backdrop);
   display: block;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--nx-scrim-medium);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.18s;
@@ -189,7 +189,7 @@
   background: var(--nx-danger-soft);
   color: var(--nx-danger);
   font-size: 0.857rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  box-shadow: var(--nx-shadow-lg);
 }
 .nx-composer-surface {
   max-width: 1320px;

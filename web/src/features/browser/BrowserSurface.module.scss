@@ -46,7 +46,7 @@
   background: var(--nx-surface-3);
   border: 1px solid var(--nx-border);
   border-bottom: 0;
-  border-radius: 6px 6px 0 0;
+  border-radius: var(--nx-radius-sm) var(--nx-radius-sm) 0 0;
   color: var(--nx-muted);
   transition: all 120ms ease;
 
@@ -82,15 +82,15 @@
   background: transparent;
   color: inherit;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--nx-font-size-xs);
   text-align: left;
   cursor: pointer;
   outline: none;
 
   &:focus-visible {
-    outline: 2px solid var(--nx-accent);
+    outline: 2px solid var(--nx-focus);
     outline-offset: -2px;
-    border-radius: 4px;
+    border-radius: var(--nx-radius-xs);
   }
 }
 
@@ -126,7 +126,7 @@
   height: 18px;
   margin-right: 4px;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--nx-radius-xs);
   background: transparent;
   color: var(--nx-muted);
   cursor: pointer;
@@ -138,12 +138,12 @@
 
   &:hover {
     opacity: 1;
-    background: var(--nx-surface-3);
+    background: var(--nx-surface-hover);
     color: var(--nx-danger);
   }
 
   &:focus-visible {
-    outline: 2px solid var(--nx-accent);
+    outline: 2px solid var(--nx-focus);
     opacity: 1;
   }
 }
@@ -155,7 +155,7 @@
   width: 24px;
   height: 24px;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: var(--nx-radius-sm);
   background: transparent;
   color: var(--nx-muted);
   cursor: pointer;
@@ -169,7 +169,7 @@
   }
 
   &:focus-visible {
-    outline: 2px solid var(--nx-accent);
+    outline: 2px solid var(--nx-focus);
     outline-offset: 1px;
   }
 }
@@ -179,10 +179,10 @@
   align-items: center;
   gap: 4px;
   padding: 1px 5px;
-  border-radius: 10px;
+  border-radius: var(--nx-radius-lg);
   background: var(--nx-info-soft);
   color: var(--nx-info);
-  font-size: 10px;
+  font-size: var(--nx-font-size-caption);
   font-weight: 600;
   flex-shrink: 0;
 }
@@ -200,7 +200,7 @@
 .pulseDot {
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: var(--nx-radius-full);
   background: var(--nx-info);
   box-shadow: 0 0 6px var(--nx-info);
   animation: pulse-animation 1.5s infinite ease-in-out;
@@ -224,7 +224,7 @@
 .updateDot {
   width: 7px;
   height: 7px;
-  border-radius: 50%;
+  border-radius: var(--nx-radius-full);
   background: var(--nx-accent);
   box-shadow: 0 0 5px var(--nx-accent);
   flex-shrink: 0;
@@ -235,10 +235,10 @@
   align-items: center;
   gap: 3px;
   padding: 1px 5px;
-  border-radius: 4px;
+  border-radius: var(--nx-radius-xs);
   background: var(--nx-surface-2);
   color: var(--nx-text-muted);
-  font-size: 10px;
+  font-size: var(--nx-font-size-caption);
   font-family: var(--nx-font-mono, monospace);
   font-weight: 500;
   max-width: 90px;
@@ -253,9 +253,9 @@
   display: inline-flex;
   align-items: center;
   padding: 1px 5px;
-  border-radius: 8px;
+  border-radius: var(--nx-radius-md);
   background: var(--nx-accent);
-  color: var(--nx-accent-contrast, #fff);
+  color: var(--nx-accent-contrast);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -304,7 +304,7 @@
     border: 1px solid transparent;
     background: transparent;
     color: var(--nx-text);
-    border-radius: 5px;
+    border-radius: var(--nx-radius-sm);
     padding: 0;
     cursor: pointer;
     transition:
@@ -317,7 +317,7 @@
     }
 
     &:focus-visible {
-      outline: 2px solid var(--nx-accent);
+      outline: 2px solid var(--nx-focus);
       outline-offset: 1px;
     }
 
@@ -342,7 +342,7 @@
   height: 28px;
   background: var(--nx-surface-2);
   border: 1px solid var(--nx-border);
-  border-radius: 6px;
+  border-radius: var(--nx-radius);
   padding: 0 4px 0 8px;
   transition:
     border-color 120ms,
@@ -350,7 +350,7 @@
 
   &:focus-within {
     border-color: var(--nx-accent);
-    outline: 2px solid var(--nx-accent);
+    outline: 2px solid var(--nx-focus);
     outline-offset: -1px;
   }
 }
@@ -367,7 +367,7 @@
   border: none;
   background: transparent;
   color: var(--nx-text);
-  font-size: 12px;
+  font-size: var(--nx-font-size-xs);
   height: 100%;
   padding: 0;
   outline: none;
@@ -382,7 +382,7 @@
   border: none;
   background: transparent;
   color: var(--nx-muted);
-  border-radius: 4px;
+  border-radius: var(--nx-radius-xs);
   cursor: pointer;
   padding: 0;
   transition:
@@ -390,12 +390,12 @@
     background 120ms;
 
   &:hover:not(:disabled) {
-    background: var(--nx-surface-3);
+    background: var(--nx-surface-hover);
     color: var(--nx-text);
   }
 
   &:focus-visible {
-    outline: 2px solid var(--nx-accent);
+    outline: 2px solid var(--nx-focus);
   }
 
   &:disabled {
@@ -418,20 +418,20 @@
     height: 28px;
     padding: 0 7px;
     border: 1px solid var(--nx-border);
-    border-radius: 5px;
+    border-radius: var(--nx-radius-sm);
     background: var(--nx-surface-2);
     color: var(--nx-text);
-    font-size: 11px;
+    font-size: var(--nx-font-size-2xs);
     cursor: pointer;
     transition: all 120ms ease;
 
     &:hover:not(:disabled) {
-      background: var(--nx-surface-3);
+      background: var(--nx-surface-hover);
       border-color: var(--nx-border-strong);
     }
 
     &:focus-visible {
-      outline: 2px solid var(--nx-accent);
+      outline: 2px solid var(--nx-focus);
       outline-offset: 1px;
     }
 
@@ -463,30 +463,30 @@
   height: 28px;
   padding: 0 8px;
   border: 1px solid var(--nx-border);
-  border-radius: 5px;
+  border-radius: var(--nx-radius-sm);
   background: var(--nx-surface-2);
   color: var(--nx-text);
-  font-size: 11px;
+  font-size: var(--nx-font-size-2xs);
   font-weight: 500;
   cursor: pointer;
   transition: all 120ms ease;
 
   &:hover {
-    background: var(--nx-surface-3);
+    background: var(--nx-surface-hover);
     border-color: var(--nx-border-strong);
   }
 
   &:focus-visible {
-    outline: 2px solid var(--nx-accent);
+    outline: 2px solid var(--nx-focus);
   }
 }
 
 .modeText {
-  font-size: 11px;
+  font-size: var(--nx-font-size-2xs);
 }
 
 .selectionCount {
-  font-size: 10px;
+  font-size: var(--nx-font-size-caption);
   color: var(--nx-accent);
   font-weight: 600;
 }
@@ -506,10 +506,10 @@
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
-  border-radius: 8px;
+  border-radius: var(--nx-radius-md);
   background: var(--nx-accent);
   color: var(--nx-surface);
-  font-size: 10px;
+  font-size: var(--nx-font-size-caption);
   font-weight: 700;
 }
 
@@ -532,7 +532,7 @@
   background: var(--nx-warning-soft);
   border-bottom: 1px solid var(--nx-warning);
   color: var(--nx-text);
-  font-size: 12px;
+  font-size: var(--nx-font-size-xs);
   flex-shrink: 0;
 }
 
@@ -554,11 +554,11 @@
 
   button {
     border: 1px solid var(--nx-border-strong);
-    border-radius: 5px;
+    border-radius: var(--nx-radius-sm);
     background: var(--nx-surface);
     color: var(--nx-text);
     padding: 3px 8px;
-    font-size: 11px;
+    font-size: var(--nx-font-size-2xs);
     cursor: pointer;
 
     &:hover {
@@ -566,7 +566,7 @@
     }
 
     &:focus-visible {
-      outline: 2px solid var(--nx-accent);
+      outline: 2px solid var(--nx-focus);
     }
   }
 }
@@ -583,9 +583,9 @@
   background: var(--nx-surface-2);
   border-bottom: 2px solid var(--nx-accent);
   color: var(--nx-text);
-  font-size: 12px;
+  font-size: var(--nx-font-size-xs);
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--nx-shadow-sm);
   animation: slide-down-alert 200ms ease-out;
 }
 
@@ -615,7 +615,7 @@
   justify-content: center;
   width: 26px;
   height: 26px;
-  border-radius: 6px;
+  border-radius: var(--nx-radius);
   background: var(--nx-accent-soft);
   color: var(--nx-accent);
   flex-shrink: 0;
@@ -655,10 +655,10 @@
   gap: 5px;
   padding: 4px 10px;
   border: 0;
-  border-radius: 5px;
+  border-radius: var(--nx-radius-sm);
   background: var(--nx-accent);
-  color: var(--nx-accent-contrast, #fff);
-  font-size: 11px;
+  color: var(--nx-accent-contrast);
+  font-size: var(--nx-font-size-2xs);
   font-weight: 600;
   cursor: pointer;
   transition: opacity 120ms;
@@ -680,7 +680,7 @@
   width: 24px;
   height: 24px;
   border: 0;
-  border-radius: 5px;
+  border-radius: var(--nx-radius-sm);
   background: transparent;
   color: var(--nx-text-muted);
   cursor: pointer;
@@ -689,12 +689,12 @@
     color 120ms;
 
   &:hover {
-    background: var(--nx-surface-3);
+    background: var(--nx-surface-hover);
     color: var(--nx-text);
   }
 
   &:focus-visible {
-    outline: 2px solid var(--nx-accent);
+    outline: 2px solid var(--nx-focus);
   }
 }
 
@@ -736,7 +736,7 @@
   }
 
   &:focus-visible {
-    outline: 2px solid var(--nx-accent);
+    outline: 2px solid var(--nx-focus);
     outline-offset: -2px;
   }
 
@@ -755,8 +755,8 @@
       width: auto;
       height: auto;
       object-fit: contain;
-      box-shadow: 0 6px 28px rgba(0, 0, 0, 0.45);
-      border-radius: 4px;
+      box-shadow: var(--nx-shadow-md);
+      border-radius: var(--nx-radius-xs);
     }
   }
 
@@ -790,7 +790,7 @@
 .error {
   color: var(--nx-danger);
   margin: 4px 8px;
-  font-size: 12px;
+  font-size: var(--nx-font-size-xs);
   flex-shrink: 0;
 }
 
@@ -836,12 +836,12 @@
 
 .drawerTab {
   padding: 3px 8px;
-  font-size: 11px;
+  font-size: var(--nx-font-size-2xs);
   font-weight: 500;
   border: 1px solid transparent;
   background: transparent;
   color: var(--nx-muted);
-  border-radius: 4px;
+  border-radius: var(--nx-radius-xs);
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
@@ -858,7 +858,7 @@
   }
 
   &:focus-visible {
-    outline: 2px solid var(--nx-accent);
+    outline: 2px solid var(--nx-focus);
   }
 }
 
@@ -873,9 +873,9 @@
   align-items: center;
   gap: 4px;
   padding: 2px 7px;
-  font-size: 11px;
+  font-size: var(--nx-font-size-2xs);
   border: 1px solid var(--nx-border);
-  border-radius: 4px;
+  border-radius: var(--nx-radius-xs);
   background: var(--nx-surface);
   color: var(--nx-text);
   cursor: pointer;
@@ -885,7 +885,7 @@
   }
 
   &:focus-visible {
-    outline: 2px solid var(--nx-accent);
+    outline: 2px solid var(--nx-focus);
   }
 }
 
@@ -896,7 +896,7 @@
   width: 20px;
   height: 20px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--nx-radius-xs);
   background: transparent;
   color: var(--nx-muted);
   cursor: pointer;
@@ -907,7 +907,7 @@
   }
 
   &:focus-visible {
-    outline: 2px solid var(--nx-accent);
+    outline: 2px solid var(--nx-focus);
   }
 }
 
@@ -916,7 +916,7 @@
   min-height: 0;
   overflow: auto;
   padding: 6px 8px;
-  font-size: 12px;
+  font-size: var(--nx-font-size-xs);
 }
 
 .inspectorContent {
@@ -938,19 +938,19 @@
 
   button {
     border: 1px solid var(--nx-border);
-    border-radius: 4px;
+    border-radius: var(--nx-radius-xs);
     background: var(--nx-surface);
     color: var(--nx-text);
     padding: 3px 6px;
-    font-size: 11px;
+    font-size: var(--nx-font-size-2xs);
     cursor: pointer;
 
     &:hover:not(:disabled) {
-      background: var(--nx-surface-3);
+      background: var(--nx-surface-hover);
     }
 
     &:focus-visible {
-      outline: 2px solid var(--nx-accent);
+      outline: 2px solid var(--nx-focus);
     }
 
     &:disabled {
@@ -980,14 +980,14 @@
 
   h3 {
     color: var(--nx-text);
-    font-size: 11px;
+    font-size: var(--nx-font-size-2xs);
     line-height: 1.2;
   }
 
   h4,
   p {
     color: var(--nx-text-muted);
-    font-size: 10px;
+    font-size: var(--nx-font-size-caption);
     line-height: 1.2;
   }
 }
@@ -1006,15 +1006,15 @@
   .inspectionClick {
     flex: 0 0 auto;
     border: 1px solid var(--nx-border);
-    border-radius: 4px;
+    border-radius: var(--nx-radius-xs);
     background: var(--nx-surface);
     color: var(--nx-text-muted);
     padding: 2px 5px;
-    font-size: 10px;
+    font-size: var(--nx-font-size-caption);
     cursor: pointer;
 
     &:focus-visible {
-      outline: 2px solid var(--nx-accent);
+      outline: 2px solid var(--nx-focus);
     }
 
     &:disabled {
@@ -1032,7 +1032,7 @@
 
 .inspectionDetails {
   color: var(--nx-text-muted);
-  font-size: 10px;
+  font-size: var(--nx-font-size-caption);
 
   summary {
     cursor: pointer;
@@ -1046,7 +1046,7 @@
   max-height: 24px;
   object-fit: contain;
   border: 1px solid var(--nx-border);
-  border-radius: 4px;
+  border-radius: var(--nx-radius-xs);
   background: var(--nx-surface);
 }
 
@@ -1054,14 +1054,14 @@
 .inspectionSend {
   min-height: 28px;
   border: 1px solid var(--nx-border);
-  border-radius: 4px;
+  border-radius: var(--nx-radius-xs);
   background: var(--nx-surface);
   color: var(--nx-text);
   padding: 4px 8px;
   font: inherit;
 
   &:focus-visible {
-    outline: 2px solid var(--nx-accent);
+    outline: 2px solid var(--nx-focus);
     outline-offset: 2px;
   }
 
@@ -1076,7 +1076,7 @@
   cursor: pointer;
 
   &:hover:not(:disabled) {
-    background: var(--nx-surface-3);
+    background: var(--nx-surface-hover);
   }
 }
 
@@ -1084,19 +1084,19 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   font-family: var(--nx-font-mono);
-  font-size: 11px;
+  font-size: var(--nx-font-size-2xs);
   margin: 0;
   max-height: 120px;
   overflow: auto;
   background: var(--nx-surface);
   padding: 6px;
-  border-radius: 4px;
+  border-radius: var(--nx-radius-xs);
   border: 1px solid var(--nx-border);
 }
 
 .emptyNotice {
   color: var(--nx-muted);
-  font-size: 11px;
+  font-size: var(--nx-font-size-2xs);
   margin: 4px 0;
 }
 
@@ -1111,12 +1111,12 @@
     border: 1px solid var(--nx-border);
     background: var(--nx-surface);
     color: var(--nx-text);
-    border-radius: 5px;
+    border-radius: var(--nx-radius-sm);
     padding: 5px 8px;
-    font-size: 12px;
+    font-size: var(--nx-font-size-xs);
 
     &:focus-visible {
-      outline: 2px solid var(--nx-accent);
+      outline: 2px solid var(--nx-focus);
     }
   }
 
@@ -1128,17 +1128,17 @@
     border: 1px solid var(--nx-border);
     background: var(--nx-surface);
     color: var(--nx-text);
-    border-radius: 5px;
+    border-radius: var(--nx-radius-sm);
     padding: 4px 8px;
-    font-size: 11px;
+    font-size: var(--nx-font-size-2xs);
     cursor: pointer;
 
     &:hover:not(:disabled) {
-      background: var(--nx-surface-3);
+      background: var(--nx-surface-hover);
     }
 
     &:focus-visible {
-      outline: 2px solid var(--nx-accent);
+      outline: 2px solid var(--nx-focus);
     }
 
     &:disabled {
@@ -1160,9 +1160,9 @@
     background: var(--nx-surface);
     color: var(--nx-text);
     font-family: var(--nx-font-mono);
-    font-size: 11px;
+    font-size: var(--nx-font-size-2xs);
     overflow-wrap: anywhere;
-    border-radius: 4px;
+    border-radius: var(--nx-radius-xs);
     padding: 4px 6px;
   }
 }
@@ -1173,24 +1173,24 @@
   justify-content: space-between;
   gap: 8px;
   color: var(--nx-muted);
-  font-size: 11px;
+  font-size: var(--nx-font-size-2xs);
 
   button {
     border: 1px solid var(--nx-border-strong);
-    border-radius: 5px;
+    border-radius: var(--nx-radius-sm);
     background: var(--nx-surface);
     color: var(--nx-text);
     cursor: pointer;
     padding: 4px 8px;
-    font-size: 11px;
+    font-size: var(--nx-font-size-2xs);
     white-space: nowrap;
 
     &:hover {
-      background: var(--nx-surface-3);
+      background: var(--nx-surface-hover);
     }
 
     &:focus-visible {
-      outline: 2px solid var(--nx-accent);
+      outline: 2px solid var(--nx-focus);
     }
   }
 }
@@ -1201,7 +1201,7 @@
   align-items: center;
   justify-content: space-between;
   margin: 3px 0;
-  font-size: 11px;
+  font-size: var(--nx-font-size-2xs);
 
   span {
     color: var(--nx-muted);
@@ -1210,19 +1210,19 @@
 
   button {
     border: 1px solid var(--nx-border);
-    border-radius: 4px;
+    border-radius: var(--nx-radius-xs);
     background: var(--nx-surface);
     color: var(--nx-danger);
     cursor: pointer;
     padding: 2px 6px;
-    font-size: 10px;
+    font-size: var(--nx-font-size-caption);
 
     &:hover {
-      background: var(--nx-surface-3);
+      background: var(--nx-surface-hover);
     }
 
     &:focus-visible {
-      outline: 2px solid var(--nx-accent);
+      outline: 2px solid var(--nx-focus);
     }
   }
 }

@@ -225,7 +225,7 @@
   border: 1px solid var(--nx-border-strong);
   border-radius: 9px;
   background: var(--nx-bg-elevated);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+  box-shadow: var(--nx-shadow-lg);
   pointer-events: auto;
 }
 .nx-notification-toast[data-tone="success"] {

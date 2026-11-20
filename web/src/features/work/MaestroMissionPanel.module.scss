@@ -10,8 +10,8 @@
 
 .description,
 .hint {
-  color: var(--nx-text-muted, var(--text-muted, #8a8a8a));
-  font-size: 0.85rem;
+  color: var(--nx-text-muted);
+  font-size: var(--nx-font-size-xs);
   line-height: 1.55;
   margin-block: 0.75rem;
 }
@@ -29,8 +29,8 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
-  border: 1px solid var(--nx-border, var(--border, #555));
-  border-radius: 0.5rem;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
   padding: 0.5rem 0.65rem;
 }
 
@@ -44,12 +44,12 @@
 
 .status {
   font-family: var(--nx-font-mono, ui-monospace, monospace);
-  font-size: 0.78rem;
+  font-size: var(--nx-font-size-2xs);
   color: var(--nx-accent, var(--accent, currentColor));
 }
 
 .meta {
-  color: var(--nx-text-muted, var(--text-muted, #8a8a8a));
+  color: var(--nx-text-muted);
   overflow-wrap: anywhere;
 }
 

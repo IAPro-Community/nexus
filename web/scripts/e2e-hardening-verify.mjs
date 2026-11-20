@@ -335,8 +335,7 @@ async function main() {
       // scaffold projects or select real directories. The actual first-run
       // contract is an actionable, readable environment readiness assessment.
       assert.ok(
-        projectHubLayout.readinessCopy.exists &&
-          projectHubLayout.readinessCopy.status.length > 0,
+        projectHubLayout.readinessCopy.exists && projectHubLayout.readinessCopy.status.length > 0,
         'Project Hub must explain real first-run environment readiness: ' +
           JSON.stringify(projectHubLayout.readinessCopy),
       );
@@ -896,7 +895,7 @@ async function main() {
     await page.waitForFunction(
       () =>
         document.documentElement.dataset.theme === 'light' &&
-        getComputedStyle(document.documentElement).getPropertyValue('--nx-bg').trim() === '#f4f6fa',
+        getComputedStyle(document.documentElement).getPropertyValue('--nx-bg').trim() === '#f5f5f5',
     );
     assert.equal(
       await page.evaluate(() => document.documentElement.style.colorScheme),
@@ -910,7 +909,7 @@ async function main() {
       await page.evaluate(() =>
         getComputedStyle(document.documentElement).getPropertyValue('--nx-bg').trim(),
       ),
-      '#f4f6fa',
+      '#f5f5f5',
       'system theme must leave the light palette when the OS switches to dark',
     );
 

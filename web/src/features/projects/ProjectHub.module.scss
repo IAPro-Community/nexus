@@ -162,10 +162,6 @@
   .brand {
     gap: 2px;
 
-    :global(.nx-brand-mark--hero) {
-      display: none;
-    }
-
     h1 {
       font-size: 1.65rem;
       line-height: 1.1;
@@ -179,6 +175,7 @@
 
   .create {
     padding: 4px 8px;
+    gap: var(--nx-space-1, 4px);
   }
 
   .inputs {
@@ -188,6 +185,12 @@
   .error {
     font-size: 0.8rem;
     line-height: 1.25;
+  }
+}
+
+@media (max-height: 600px) {
+  .brandMark {
+    display: none;
   }
 }
 

@@ -68,7 +68,7 @@
   border-radius: 9px;
   background: var(--nx-bg-elevated);
   overflow: hidden;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--nx-shadow-md);
 }
 .nx-workspace-stack__tabs {
   min-width: 0;
@@ -256,10 +256,10 @@
   max-width: 170px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 10px;
+  gap: var(--nx-space-2);
+  padding: 0 var(--nx-space-3);
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--nx-radius-sm);
   background: transparent;
   color: var(--nx-muted);
   font-size: 0.821rem;
@@ -287,9 +287,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--nx-space-2);
   border: 1px solid var(--nx-border-strong);
-  border-radius: 7px;
+  border-radius: var(--nx-radius-md);
   background: var(--nx-surface-2);
   color: var(--nx-text-soft);
   cursor: pointer;
@@ -319,16 +319,25 @@
 .nx-button:hover:not(:disabled),
 .nx-icon-button:hover:not(:disabled) {
   border-color: var(--nx-border-strong);
-  background: var(--nx-surface-3);
+  background: var(--nx-surface-hover);
   color: var(--nx-text);
 }
+.nx-button:active:not(:disabled),
+.nx-icon-button:active:not(:disabled) {
+  background: var(--nx-surface-pressed);
+}
 .nx-button[data-tone="brand"] {
-  border-color: var(--nx-accent-text);
-  background: var(--nx-accent-text);
-  color: var(--nx-bg);
+  border-color: var(--nx-accent);
+  background: var(--nx-accent);
+  color: var(--nx-accent-contrast);
 }
 .nx-button[data-tone="brand"]:hover:not(:disabled) {
   background: var(--nx-accent-hover);
+  border-color: var(--nx-accent-hover);
+}
+.nx-button[data-tone="brand"]:active:not(:disabled) {
+  background: var(--nx-accent-hover);
+  border-color: var(--nx-accent-hover);
 }
 .nx-button[data-tone="danger"] {
   border-color: color-mix(in srgb, var(--nx-danger) 55%, var(--nx-border));

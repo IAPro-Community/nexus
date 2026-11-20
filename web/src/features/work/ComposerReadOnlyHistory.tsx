@@ -92,7 +92,7 @@ export const ComposerReadOnlyHistory: React.FC<{
     >
       <FeatureTour projectId={projectId} surface="composer-offline" />
       <section
-        className={styles.contextFix}
+        className={styles.contextFixSection}
         aria-label="Nexus Intelligence"
         data-tour="composer-offline-provider"
       >
@@ -112,7 +112,7 @@ export const ComposerReadOnlyHistory: React.FC<{
         </div>
       </section>
       <section
-        className={styles.contextFix}
+        className={styles.contextFixSection}
         aria-label="Histórico do Composer"
         data-tour="composer-offline-history"
       >
