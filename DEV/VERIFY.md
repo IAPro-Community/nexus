@@ -1,3 +1,12 @@
+## 2026-11-20 — Retheme Fluent 2: ondas 1 e 2 verificadas e instaladas
+
+- PASS — `npm --prefix web run quality:full` após o dedup: `check:styles` (allowlist de estilos, manifesto ordenado das 17 seções, paridade de tokens 485 aceitos / 0 regressões), formatação, ESLint, Stylelint, typecheck, 151 arquivos / 959 testes e build. ESLint mantém o warning preexistente em `FlowRunSurface.tsx`.
+- PASS — `npm --prefix web run test:e2e` ("All E2E Hardening assertions PASSED"); densidade medida no próprio segmented control: 36.0px confortável / 32.0px compacto.
+- PASS — bundle final: `dist/bundle.css` 492.871 bytes (antes 523.986), com `--nx-focus-ring`, `--nx-font-mono`, `--nx-space-2`, `--nx-radius-md` e `--nx-font-size-sm` aparecendo uma única vez. O `scripts/build.mjs` valida os 10 tokens obrigatórios.
+- PASS — `make install-local` (CLI) e `make build-desktop build-hud`; os três binários foram instalados atomicamente em `~/.local/bin`. Binários embutem o bundle: `nexus` com o bloco de tokens 1× (antes 13×).
+- PASS — superfícies: um único `nexus web` (PID 517979, `http://127.0.0.1:33517` servindo o bundle novo), `nexus-hud` relançado pela unit transient e `nexus-desktop` aberto anexado ao mesmo core. Os três `nexus web` antigos (20h+) foram encerrados.
+- Commit `7576610b` na `release/v1.0.0`, sem push. Onda 3 (`workspace-styles` → SCSS Modules) continua aberta. Release **NO_GO**.
+
 ## 2026-11-17 — 2ª varredura
 
 - PASS — PR #217 merged @ `6ab69945`: ps1 do first-run reconstruído (**tip anterior tinha 9 erros de parse** e blocos duplicados do squash do #215) + guarda de sintaxe PS no CI. Tip: ps1 0 erros, yaml OK, `make quality` 0 FAILs/911.

@@ -1,3 +1,11 @@
+## 2026-11-20 — Retheme Fluent 2: ondas 1 e 2 commitadas e instaladas
+
+- `feat(web): token parity gate, elevation hierarchy and dedup de tokens` (`7576610b`) fechou as ondas 1 e 2 sobre a âncora `a6bbb95d`: hierarquia de elevação (`--nx-elevation-overlay/modal`, `--nx-shadow-drawer-left/right`), densidade do segmented control, `--nx-space-7`, gate de paridade `check-token-parity.mjs` com catraca, asserção de tokens no `scripts/build.mjs` e 516 literais identicos substituidos.
+- Dedup além das ondas: `--nx-focus-ring`, `--nx-space-2/3/4` e `--nx-font-mono` passaram a ter uma única definição, e os blocos `:root` de `_tokens.scss`/`_typography.scss` saíram para um mixin incluído uma vez em `globals.scss` (antes 13× e 12× no bundle). `bundle.css` caiu de 523.986 para 492.871 bytes.
+- PASS — `npm --prefix web run quality:full` (check:styles com paridade 485/0, 151 arquivos/959 testes, build) e `npm --prefix web run test:e2e`.
+- Instalação: `make install-local` no CLI e `make build-desktop build-hud` para as duas superfícies nativas, porque elas embutem o bundle. Os três binários em `~/.local/bin` foram substituídos atomicamente (backups em `/tmp/opencode/nexus*.bak`); os três `nexus web` antigos foram encerrados e restou um único core, com `nexus-hud` (unit transient reiniciada via `systemctl --user`) e `nexus-desktop` anexados a ele.
+- Onda 3 (`workspace-styles` → SCSS Modules) segue em lote separado. Release continua **NO_GO**.
+
 # 2026-11-17 — 2ª varredura: PR #217 integrado (conserta ps1 corrupto do #215), 2 branches superseded removidos
 
 - **#215 deixou o `certify-windows-first-run.ps1` corrupto** (squash duplicou blocos: `conpty-terminal-regression` ×2, `web-first-run-typecheck` ×2; **9 erros de parse PS** no tip). **PR #217** (sessão Windows do maestro) reconstrói o preflight do baseline íntegro + adiciona guarda de sintaxe PS no `community-pr.yml` (Parser::ParseFile como gate). Validado antes de mergear: ps1 do PR = **0 erros**, conpty 1×. Ready→**squash-merged** @ `6ab69945`, branch deletado. Verificação no tip: ps1 0 erros, yaml OK, `make quality` completo (0 FAILs, 911/911, version contract PASS).

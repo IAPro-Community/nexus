@@ -1,3 +1,8 @@
+## Handoff atual — retheme Fluent 2 (ondas 1 e 2) instalado nas três superfícies — 2026-11-20
+
+- Retheme Fluent 2: ondas 1 e 2 mais o dedup de tokens estão commitados em `7576610b` (`release/v1.0.0`, sem push) e instalados. Um único `nexus web` serve o bundle novo em `http://127.0.0.1:33517`; `nexus-hud` (unit transient `nexus-hud-local-c0c63e43.service`) e `nexus-desktop` estão anexados a ele. Onda 3 (`workspace-styles` → SCSS Modules) segue aberta.
+- Evidência visual sintética recapturada no SHA `7576610b` (`make docs-verify` verde, 254 Markdown / 33 assets).
+
 ## Handoff corrente — Tag v1.0.0 @ 14622be8 publicada; pipeline aguarda maestro — 2026-11-16
 
 - **Estado**: tag `v1.0.0` @ `14622be8` (tip de `release/v1.0.0`; `1.0.0` definitiva, canal stable). `quality-full` PASS (exit 0 determinístico); CI 9/9 no SHA exato da tag. Pipeline Signed Release passou do gate de CI (fixado em 4 iterações — ver WORKLOG) e parou honestamente em **native certification policy=all**: `Windows native certification`, `macOS arm64 native certification`, `Seal native certification evidence` só verdes após as sessões físicas. Release é build-only (`--skip=publish`).
