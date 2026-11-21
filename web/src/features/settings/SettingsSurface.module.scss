@@ -113,7 +113,7 @@
   justify-content: space-between;
   gap: var(--nx-space-2);
   padding: var(--nx-space-2) var(--nx-space-3);
-  border-radius: var(--nx-radius);
+  border-radius: var(--nx-radius-sm);
   border: 1px solid var(--nx-border);
   background: var(--nx-bg-elevated);
   cursor: pointer;
@@ -187,7 +187,7 @@
 .tunnelUrl {
   background: var(--nx-bg-elevated);
   border: 1px solid var(--nx-border);
-  border-radius: var(--nx-radius);
+  border-radius: var(--nx-radius-sm);
   padding: var(--nx-space-2) var(--nx-space-3);
   font-family: var(--nx-font-mono);
   font-size: var(--nx-font-size-xs);
@@ -231,7 +231,7 @@
 .qrUrl {
   background: var(--nx-bg-elevated);
   border: 1px solid var(--nx-border);
-  border-radius: var(--nx-radius);
+  border-radius: var(--nx-radius-sm);
   padding: var(--nx-space-2) var(--nx-space-3);
   font-family: var(--nx-font-mono);
   font-size: var(--nx-font-size-xs);
@@ -242,7 +242,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--nx-space-2);
-  margin-top: 4px;
+  margin-top: var(--nx-space-1);
 }
 
 .accessCodeRow {
@@ -255,7 +255,7 @@
 .accessCodeValue {
   background: var(--nx-bg-elevated);
   border: 1px solid var(--nx-border);
-  border-radius: var(--nx-radius);
+  border-radius: var(--nx-radius-sm);
   padding: var(--nx-space-2) var(--nx-space-4);
   font-family: var(--nx-font-mono);
   font-size: 1.286rem;

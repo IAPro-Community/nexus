@@ -47,7 +47,7 @@
   flex-direction: column;
   background: var(--nx-surface);
   border-left: 1px solid var(--nx-border-strong);
-  box-shadow: var(--nx-shadow-lg);
+  box-shadow: var(--nx-shadow-drawer-right);
   outline: none;
   animation: nx-slide-in-right 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -60,7 +60,7 @@
   left: 0;
   border-left: none;
   border-right: 1px solid var(--nx-border-strong);
-  box-shadow: var(--nx-shadow-lg);
+  box-shadow: var(--nx-shadow-drawer-left);
   animation: nx-slide-in-left 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 

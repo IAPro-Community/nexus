@@ -25,7 +25,7 @@
   background: color-mix(in srgb, var(--nx-surface) 72%, transparent);
   backdrop-filter: blur(20px);
   box-shadow:
-    0 24px 64px rgba(0, 0, 0, 0.65),
+    var(--nx-shadow-modal),
     0 0 40px color-mix(in srgb, var(--nx-accent) 14%, transparent);
   text-align: center;
   animation: nx-splash-fade-in 0.35s ease-out;
@@ -54,7 +54,7 @@
   width: 84px;
   height: 84px;
   object-fit: contain;
-  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(var(--nx-drop-shadow-overlay));
 }
 .nx-splash-title {
   margin: 4px 0 0;
@@ -76,10 +76,10 @@
   position: relative;
   width: 260px;
   height: 3px;
-  border-radius: 999px;
+  border-radius: var(--nx-radius-full);
   background: var(--nx-surface-3);
   overflow: hidden;
-  margin-top: 8px;
+  margin-top: var(--nx-space-2);
 }
 .nx-splash-progress-shimmer {
   position: absolute;
@@ -94,7 +94,7 @@
 .nx-splash-status {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--nx-space-2);
   font-size: 0.893rem;
   font-weight: 600;
   color: var(--nx-text-soft);
@@ -115,11 +115,11 @@
 .nx-splash-footer {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--nx-space-2);
   margin-top: 10px;
   padding-top: 14px;
   border-top: 1px solid var(--nx-border);
-  font-size: 0.786rem;
+  font-size: var(--nx-font-size-2xs);
   color: var(--nx-subtle);
   letter-spacing: 0.04em;
 }
@@ -155,22 +155,22 @@
 /* Settings Surface Segmented Tabs & Controls */
 .nx-settings-tabs {
   display: flex;
-  gap: 8px;
+  gap: var(--nx-space-2);
   border-bottom: 1px solid var(--nx-border);
-  margin-bottom: 16px;
-  padding-bottom: 8px;
+  margin-bottom: var(--nx-space-4);
+  padding-bottom: var(--nx-space-2);
   overflow-x: auto;
 }
 .nx-settings-tab {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--nx-space-2);
   padding: 8px 14px;
-  border-radius: 8px;
+  border-radius: var(--nx-radius-lg);
   border: 1px solid transparent;
   background: transparent;
   color: var(--nx-muted);
-  font-size: 0.929rem;
+  font-size: var(--nx-font-size-sm);
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -188,16 +188,16 @@
 .nx-font-scale-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--nx-space-2);
 }
 .nx-font-scale-btn {
   height: 32px;
   padding: 0 12px;
-  border-radius: 6px;
+  border-radius: var(--nx-radius-md);
   border: 1px solid var(--nx-border);
   background: var(--nx-surface-2);
   color: var(--nx-text);
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
   font-weight: 600;
   cursor: pointer;
 }
@@ -251,7 +251,7 @@
   border: 1px solid var(--nx-border);
   border-radius: 9px;
   background: var(--nx-bg-elevated);
-  box-shadow: var(--nx-shadow-lg);
+  box-shadow: var(--nx-shadow-overlay);
   backdrop-filter: blur(12px);
   animation: nx-splash-fade-in 0.12s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -280,7 +280,7 @@
   height: 24px;
   display: grid;
   place-items: center;
-  border-radius: 6px;
+  border-radius: var(--nx-radius-md);
   flex-shrink: 0;
 }
 .nx-create-menu__icon--agent {
@@ -306,7 +306,7 @@
   color: var(--nx-text);
 }
 .nx-create-menu__text small {
-  font-size: 0.786rem;
+  font-size: var(--nx-font-size-2xs);
   color: var(--nx-muted);
   white-space: nowrap;
   overflow: hidden;

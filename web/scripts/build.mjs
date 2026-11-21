@@ -97,6 +97,26 @@ if (collectedStyles.length > 0) {
   await writeFile(resolve(distDir, 'bundle.css'), currentBundleCss + '\n' + stableStyles);
 }
 
+// Global sections live in the index.css graph while SCSS modules live in the
+// esbuild graph; the shipped bundle must carry both halves of the token contract.
+const requiredTokens = [
+  '--nx-elevation-overlay:',
+  '--nx-elevation-modal:',
+  '--nx-shadow-overlay:',
+  '--nx-shadow-modal:',
+  '--nx-shadow-drawer-left:',
+  '--nx-shadow-drawer-right:',
+  '--nx-drop-shadow-overlay:',
+  '--nx-space-7:',
+  '--nx-font-size-sm:',
+  '--nx-radius-md:',
+];
+const shippedCss = await readFile(resolve(distDir, 'bundle.css'), 'utf8');
+const missingTokens = requiredTokens.filter((token) => !shippedCss.includes(token));
+if (missingTokens.length > 0) {
+  throw new Error(`bundle.css is missing semantic tokens: ${missingTokens.join(', ')}`);
+}
+
 await cp(resolve(webDir, 'index.html'), resolve(distDir, 'index.html'));
 // Copy static assets first, then verify the locked NEX hud atlas *in dist only*.
 // A build must never mutate checked-in web/public source assets: exact-SHA CI

@@ -1,40 +1,51 @@
 // Shared semantic aliases used by SCSS modules. Theme values remain owned by
 // workspace-os.css; these aliases keep component styles on the token contract.
-:root {
-  --nx-surface-0: var(--nx-bg);
-  --nx-surface-1: var(--nx-surface);
-  --nx-text-primary: var(--nx-text);
-  --nx-text-muted: var(--nx-muted);
-  --nx-text-bright: var(--nx-text);
-  --nx-border-subtle: var(--nx-border);
-  --nx-accent-subtle: var(--nx-accent-soft);
-  --nx-accent-contrast: #000000;
-  --nx-surface-raised: var(--nx-surface-2);
-  --nx-focus: var(--nx-accent-text, var(--nx-accent));
-  --nx-danger-border: var(--nx-danger);
-  --nx-danger-subtle: var(--nx-danger-soft);
-  --nx-warning-contrast: #000000;
-  --nx-radius-md: var(--nx-radius);
-  --nx-space-2: var(--nx-spacing-2);
-  --nx-space-3: var(--nx-spacing-3);
-  --nx-space-4: var(--nx-spacing-4);
-  --nx-focus-ring: 0 0 0 2px var(--nx-bg), 0 0 0 4px var(--nx-focus);
-  --nx-shadow-sm: var(--nx-elevation-1, 0 1px 2px rgb(0 0 0 / 0.24));
-  --nx-shadow-md: var(--nx-elevation-2, 0 4px 8px rgb(0 0 0 / 0.28));
-  --nx-shadow-lg: var(--nx-elevation-3, 0 12px 24px rgb(0 0 0 / 0.3));
-  --nx-overlay-strong: color-mix(in srgb, var(--nx-bg) 88%, transparent);
+// Emitted once from globals.scss so CSS modules never duplicate the :root block.
+@mixin root {
+  :root {
+    --nx-surface-0: var(--nx-bg);
+    --nx-surface-1: var(--nx-surface);
+    --nx-text-primary: var(--nx-text);
+    --nx-text-muted: var(--nx-muted);
+    --nx-text-bright: var(--nx-text);
+    --nx-border-subtle: var(--nx-border);
+    --nx-accent-subtle: var(--nx-accent-soft);
+    --nx-accent-contrast: #000000;
+    --nx-surface-raised: var(--nx-surface-2);
+    --nx-focus: var(--nx-accent-text, var(--nx-accent));
+    --nx-danger-border: var(--nx-danger);
+    --nx-danger-subtle: var(--nx-danger-soft);
+    --nx-warning-contrast: #000000;
+    --nx-radius-md: var(--nx-radius);
+    --nx-shadow-sm: var(--nx-elevation-1, 0 1px 2px rgb(0 0 0 / 0.24));
+    --nx-shadow-md: var(--nx-elevation-2, 0 4px 8px rgb(0 0 0 / 0.28), 0 2px 4px rgb(0 0 0 / 0.18));
+    --nx-shadow-lg: var(--nx-elevation-3, 0 12px 24px rgb(0 0 0 / 0.3), 0 4px 8px rgb(0 0 0 / 0.2));
+    --nx-shadow-overlay: var(
+      --nx-elevation-overlay,
+      0 16px 40px rgb(0 0 0 / 0.45),
+      0 4px 12px rgb(0 0 0 / 0.28)
+    );
+    --nx-shadow-modal: var(
+      --nx-elevation-modal,
+      0 24px 70px rgb(0 0 0 / 0.45),
+      0 8px 24px rgb(0 0 0 / 0.35)
+    );
+    --nx-shadow-drawer-left: var(--nx-elevation-drawer-left, 8px 0 32px rgb(0 0 0 / 0.35));
+    --nx-shadow-drawer-right: var(--nx-elevation-drawer-right, -8px 0 32px rgb(0 0 0 / 0.35));
+    --nx-overlay-strong: color-mix(in srgb, var(--nx-bg) 88%, transparent);
 
-  // Specialized terminal palette stays stable across UI themes unless a future
-  // terminal theme explicitly overrides these semantic tokens.
-  --nx-terminal-frame: #07090d;
-  --nx-terminal-bg: #090b10;
-  --nx-terminal-pane-bg: #090d16;
-  --nx-terminal-surface: #0f1218;
-  --nx-terminal-border: #202530;
-  --nx-terminal-text: #e6e9ef;
-  --nx-terminal-text-soft: #aeb6c6;
-  --nx-terminal-muted: #8991a2;
-  --nx-terminal-cursor: #38bdf8;
-  --nx-terminal-selection: rgba(56, 189, 248, 0.3);
-  --nx-terminal-overlay: color-mix(in srgb, var(--nx-terminal-frame) 82%, transparent);
+    // Specialized terminal palette stays stable across UI themes unless a future
+    // terminal theme explicitly overrides these semantic tokens.
+    --nx-terminal-frame: #07090d;
+    --nx-terminal-bg: #090b10;
+    --nx-terminal-pane-bg: #090d16;
+    --nx-terminal-surface: #0f1218;
+    --nx-terminal-border: #202530;
+    --nx-terminal-text: #e6e9ef;
+    --nx-terminal-text-soft: #aeb6c6;
+    --nx-terminal-muted: #8991a2;
+    --nx-terminal-cursor: #38bdf8;
+    --nx-terminal-selection: rgba(56, 189, 248, 0.3);
+    --nx-terminal-overlay: color-mix(in srgb, var(--nx-terminal-frame) 82%, transparent);
+  }
 }

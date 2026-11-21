@@ -39,5 +39,33 @@ Responsive review exposed an invalid `:global()` selector in the Project Hub SCS
 - Literal colors remain in `01-foundation.css` and `themePresets.ts` as canonical values behind semantic theme tokens.
 - NEX/HUD components and sprites retain identity, mood/status, and pixel-art colors under the NEX visual contract.
 - `web/src/styles/_tokens.scss` retains terminal ANSI colors for code/output fidelity.
-- `16-splash-and-settings.css` retains two black shadow/drop-shadow values for the splash/brand glow. Generic modal and drawer scrims use `--nx-scrim-*` tokens.
-- Fixed component measurements (for example widths, heights, spacing, font sizes, radii, and one-pixel borders) remain across 101 stylesheet files matching the source scan. This pass tokenized theme-facing values in the shared shell and touched feature surfaces; it did not normalize every static layout measurement in every feature module. Those remaining values are the main follow-up if the goal is to make all UI geometry adjustable through tokens.
+- Generic modal and drawer scrims use `--nx-scrim-*` tokens. The last two splash literals were tokenized in the follow-up wave (`--nx-shadow-modal` + the accent glow layer, and `--nx-drop-shadow-overlay` for the logo).
+- Fixed component measurements (for example widths, heights, spacing, font sizes, radii, and one-pixel borders) remain across 101 stylesheet files matching the source scan. This pass tokenized theme-facing values in the shared shell and touched feature surfaces; it did not normalize every static layout measurement in every feature module. Those remaining values are tracked by `web/scripts/check-token-parity.mjs` and locked in `web/scripts/token-parity-baseline.json`.
+
+## Follow-up wave: hierarchy, density and parity gate
+
+Applied after the anchor retheme commit (`a6bbb95d`), on the same release branch.
+
+- Radius mapping outliers were normalized to the canonical scale so a single literal never renders two radii: 7 sites of `6px` tightened to `--nx-radius-sm` (4px), 3 sites of `8px` unified on `--nx-radius-md` (6px), and 1 site of `10px` unified on `--nx-radius-lg` (8px). A stricter per-hunk pairing of the anchor diff showed 11 real outliers; the previously estimated four font-size outliers were false positives of the aggregate method, because every font-size literal already mapped to exactly one token (`13.5px` already resolves to `--nx-font-size-sm`).
+- Elevation hierarchy restored: `--nx-elevation-overlay` / `--nx-elevation-modal` now sit above `--nx-elevation-3` with the pre-retheme depth of toasts, menus and dialogs, mirrored in `--nx-shadow-overlay` / `--nx-shadow-modal` aliases for SCSS modules. Horizontal drawer depth returned as `--nx-shadow-drawer-left` / `--nx-shadow-drawer-right` (±8px x-offset). `--nx-shadow-md` / `--nx-shadow-lg` fallbacks now match `--nx-elevation-2` / `-3` layer by layer. High contrast still inherits the dark elevation values, exactly as `--nx-elevation-1..3` already did.
+- `--nx-control-min-height` was removed; `.nx-segmented__item` now uses `max(var(--nx-touch-min), var(--nx-density-btn-h, 28px))`, keeping compact at the 32px touch minimum while comfortable grows back to 36px.
+- `--nx-space-7` was defined (it was referenced by Composer/Outputs `clamp()` padding without a value).
+- The parity gate `web/scripts/check-token-parity.mjs` now runs in `check:styles`. It is property-aware (spacing/radius/font-size), value-exact, and compares literal counts per `file|property|value` against `token-parity-baseline.json`; only regressions fail. A value-identical mechanical substitution applied 516 literals across the retheme-touched files. `scripts/build.mjs` now fails when the bundle is missing either half of the token contract.
+- Settings density E2E now measures the segmented control itself: comfortable resolves to 36px min-height and compact to 32px.
+
+## Dedup wave: single definition per token
+
+Applied after the follow-up wave, on the same release branch.
+
+- Every duplicate token *definition* was removed, keeping one owner and one effective value per name:
+  - `--nx-focus-ring` existed twice with divergent values (`--nx-accent` in the foundation, `--nx-focus` in the SCSS layer). The foundation keeps it, now resolving through `var(--nx-focus, var(--nx-accent))`, which reproduces the value the bundle already shipped.
+  - `--nx-space-2/3/4` were declared identically in both layers; the foundation owns them.
+  - `--nx-font-mono` was declared twice with different stacks. The foundation declaration was dead (the typography layer always won later in the bundle), so it was dropped and the typography stack is now the only one.
+- The `:root` blocks of `_tokens.scss` and `_typography.scss` were re-emitted by every SCSS module that `@use`s them, because `scopeCssModule` scopes class selectors but not `:root`. The bundle carried 13 copies of the token block and 12 copies of the typography block (~33 KB). Both partials now expose a `root` mixin that `globals.scss` includes once, so the blocks ship exactly once and modules keep consuming them through `var(--nx-*)` at runtime.
+- Measured effect: `dist/bundle.css` went from 523,986 to 492,871 bytes, and `--nx-focus-ring`, `--nx-font-mono`, `--nx-space-2`, `--nx-radius-md` and `--nx-font-size-sm` each appear exactly once in the shipped bundle.
+- Verification: `npm --prefix web run quality:full` (stylesheet architecture, workspace CSS manifest, token parity 485/0, 151 files / 959 tests, build) and `npm --prefix web run test:e2e` both green; `make install-local` installed the CLI, and `make build-desktop build-hud` rebuilt the two native surfaces so their embedded assets carry the same single-copy bundle.
+- Remaining naming overlap, deliberately not touched in this wave: `--nx-radius` (6px) vs the `--nx-radius-md` alias, and `--nx-font` vs `--nx-font-sans` (same stack, two names).
+
+## Onda 3 (deferred)
+
+The remaining `workspace-styles` sections are still global CSS. Migrating them to SCSS Modules (suggested order `16-splash-and-settings` → `15-context-and-responsive` → `09-project-management`, then updating `check-workspace-styles.mjs` and the allowlist) stays open as a separate batch.

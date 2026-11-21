@@ -2,8 +2,6 @@
   --nx-font-scale: 1;
   --nx-font:
     "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --nx-font-mono:
-    "SFMono-Regular", "Cascadia Code", "JetBrains Mono", "Roboto Mono", ui-monospace, monospace;
   --nx-bg: #141414;
   --nx-bg-elevated: #1f1f1f;
   --nx-surface: #292929;
@@ -44,8 +42,12 @@
   --nx-elevation-1: 0 1px 2px rgb(0 0 0 / 0.24);
   --nx-elevation-2: 0 4px 8px rgb(0 0 0 / 0.28), 0 2px 4px rgb(0 0 0 / 0.18);
   --nx-elevation-3: 0 12px 24px rgb(0 0 0 / 0.3), 0 4px 8px rgb(0 0 0 / 0.2);
-  --nx-focus-ring: 0 0 0 2px var(--nx-bg), 0 0 0 4px var(--nx-accent);
-  --nx-control-min-height: 32px;
+  --nx-elevation-overlay: 0 16px 40px rgb(0 0 0 / 0.45), 0 4px 12px rgb(0 0 0 / 0.28);
+  --nx-elevation-modal: 0 24px 70px rgb(0 0 0 / 0.45), 0 8px 24px rgb(0 0 0 / 0.35);
+  --nx-elevation-drawer-left: 8px 0 32px rgb(0 0 0 / 0.35);
+  --nx-elevation-drawer-right: -8px 0 32px rgb(0 0 0 / 0.35);
+  --nx-drop-shadow-overlay: 0 8px 16px rgb(0 0 0 / 0.5);
+  --nx-focus-ring: 0 0 0 2px var(--nx-bg), 0 0 0 4px var(--nx-focus, var(--nx-accent));
   /* Canonical spacing scale: 4px base, shared by Web and embedded Desktop UI. */
   --nx-spacing-0: 0;
   --nx-spacing-1: 4px;
@@ -69,6 +71,7 @@
   --nx-space-4: var(--nx-spacing-4);
   --nx-space-5: var(--nx-spacing-5);
   --nx-space-6: var(--nx-spacing-6);
+  --nx-space-7: var(--nx-spacing-7);
   --nx-space-8: var(--nx-spacing-8);
   --nx-space-12: var(--nx-spacing-12);
   --nx-topbar: 46px;
@@ -135,6 +138,11 @@
   --nx-elevation-1: 0 1px 2px rgb(0 0 0 / 0.08);
   --nx-elevation-2: 0 4px 8px rgb(0 0 0 / 0.1), 0 2px 4px rgb(0 0 0 / 0.06);
   --nx-elevation-3: 0 12px 24px rgb(0 0 0 / 0.12), 0 4px 8px rgb(0 0 0 / 0.08);
+  --nx-elevation-overlay: 0 16px 40px rgb(0 0 0 / 0.14), 0 4px 12px rgb(0 0 0 / 0.08);
+  --nx-elevation-modal: 0 24px 70px rgb(0 0 0 / 0.16), 0 8px 24px rgb(0 0 0 / 0.1);
+  --nx-elevation-drawer-left: 8px 0 32px rgb(0 0 0 / 0.12);
+  --nx-elevation-drawer-right: -8px 0 32px rgb(0 0 0 / 0.12);
+  --nx-drop-shadow-overlay: 0 8px 16px rgb(0 0 0 / 0.16);
   color-scheme: light;
 }
 :root[data-theme="high-contrast"] {
@@ -265,7 +273,7 @@ button {
 }
 ::-webkit-scrollbar-thumb {
   background: var(--nx-border-strong);
-  border-radius: 999px;
+  border-radius: var(--nx-radius-full);
 }
 .xterm .xterm-viewport {
   overflow-y: auto !important;

@@ -74,14 +74,14 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--nx-space-2);
 }
 
 .gateHint {
   margin: 0 0 8px;
   padding: 8px 10px;
   border: 1px solid color-mix(in srgb, var(--nx-warning) 40%, var(--nx-border));
-  border-radius: 8px;
+  border-radius: var(--nx-radius-lg);
   background: color-mix(in srgb, var(--nx-warning) 10%, var(--nx-surface));
   color: var(--nx-text-soft);
   font-size: 12.5px;

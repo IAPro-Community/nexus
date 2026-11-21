@@ -13,12 +13,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--nx-space-2);
   min-width: 0;
 }
 .nx-resource-account__group-name {
   color: var(--nx-accent-text);
-  font-size: 0.786rem;
+  font-size: var(--nx-font-size-2xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -28,7 +28,7 @@
 }
 .nx-resource-account__quota {
   display: grid;
-  gap: 8px;
+  gap: var(--nx-space-2);
   min-width: 0;
 }
 .nx-resource-account__quota-row {
@@ -40,11 +40,11 @@
 }
 .nx-resource-account__quota-label {
   color: var(--nx-subtle);
-  font-size: 0.786rem;
+  font-size: var(--nx-font-size-2xs);
 }
 .nx-resource-account__quota-value {
   color: var(--nx-text-soft);
-  font-size: 0.786rem;
+  font-size: var(--nx-font-size-2xs);
   font-weight: 600;
 }
 .nx-resource-account__quota-reset {
@@ -84,7 +84,7 @@
 .nx-attention-banner__content {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--nx-space-3);
   width: min(1440px, 100%);
   margin: 0 auto;
   max-width: 100%;
@@ -109,7 +109,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.786rem;
+  font-size: var(--nx-font-size-2xs);
   min-width: 0;
   overflow: hidden;
 }
@@ -123,7 +123,7 @@
 .nx-attention-banner__id {
   color: var(--nx-subtle);
   font-family: var(--nx-font-mono);
-  font-size: 0.714rem;
+  font-size: var(--nx-font-size-caption);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -142,7 +142,7 @@
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--nx-space-2);
   flex-wrap: wrap;
   justify-content: flex-end;
 }
@@ -150,13 +150,13 @@
 .nx-attention-banner__quick-btns {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--nx-space-1);
 }
 
 .nx-attention-banner__form {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--nx-space-1);
 }
 
 .nx-attention-banner__form input {
@@ -212,7 +212,7 @@
   bottom: calc(var(--nx-taskbar) + 12px);
   z-index: var(--nx-z-toast);
   display: grid;
-  gap: 8px;
+  gap: var(--nx-space-2);
   width: min(390px, calc(100vw - 28px));
   pointer-events: none;
 }
@@ -225,7 +225,7 @@
   border: 1px solid var(--nx-border-strong);
   border-radius: 9px;
   background: var(--nx-bg-elevated);
-  box-shadow: var(--nx-shadow-lg);
+  box-shadow: var(--nx-shadow-overlay);
   pointer-events: auto;
 }
 .nx-notification-toast[data-tone="success"] {
@@ -243,7 +243,7 @@
   color: var(--nx-text-soft);
 }
 .nx-notification-toast__body strong {
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
 }
 .nx-notification-toast__body span {
   overflow: hidden;
@@ -259,6 +259,6 @@
     width: calc(100vw - 16px);
   }
   .nx-notification-toast {
-    padding: 8px;
+    padding: var(--nx-space-2);
   }
 }

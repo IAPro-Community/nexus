@@ -859,19 +859,43 @@ async function main() {
     await settingsTabs.nth(1).click();
     await densityComfBtn.waitFor({ state: 'visible', timeout: 5000 });
     await densityCompBtn.waitFor({ state: 'visible', timeout: 5000 });
+    const readableMinHeight = () =>
+      page.evaluate(() => {
+        const item = document.querySelector('.nx-settings-card .nx-segmented__item');
+        return item ? Number.parseFloat(getComputedStyle(item).minHeight) : Number.NaN;
+      });
     await densityComfBtn.click();
     await page.waitForFunction(() => document.documentElement.dataset.density === 'comfortable');
+    await page.waitForTimeout(250);
     const boxComf = await card.boundingBox();
+    const itemComf = await readableMinHeight();
     await densityCompBtn.click();
     await page.waitForFunction(() => document.documentElement.dataset.density === 'compact');
+    await page.waitForTimeout(250);
     const boxComp = await card.boundingBox();
+    const itemComp = await readableMinHeight();
     assert.ok(boxComf && boxComp, 'density cards must have measurable bounds');
+    assert.ok(
+      Number.isFinite(itemComf) && Number.isFinite(itemComp),
+      'segmented density control must expose a computed min-height',
+    );
     console.log(
       `  Measured Card Height - Comfortable: ${boxComf.height.toFixed(1)}px, Compact: ${boxComp.height.toFixed(1)}px`,
+    );
+    console.log(
+      `  Measured Segmented min-height - Comfortable: ${itemComf.toFixed(1)}px, Compact: ${itemComp.toFixed(1)}px`,
     );
     assert.ok(
       boxComf.height > boxComp.height,
       'Comfortable card height must be strictly greater than Compact',
+    );
+    assert.ok(
+      itemComf >= itemComp + 3.5,
+      'Comfortable segmented item must grow past the Compact touch minimum',
+    );
+    assert.ok(
+      itemComp >= 31.5,
+      'Compact segmented item must keep the 32px touch minimum',
     );
 
     console.log('6.1. Testing system theme follows OS color scheme...');

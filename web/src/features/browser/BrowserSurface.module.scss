@@ -16,7 +16,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 4px;
+  gap: var(--nx-space-1);
   background: var(--nx-surface-2);
   border-bottom: 1px solid var(--nx-border);
   padding: 3px 6px 0;
@@ -30,7 +30,7 @@
 .tabList {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--nx-space-1);
   flex: 1;
   min-width: 0;
   overflow-x: auto;
@@ -124,7 +124,7 @@
   justify-content: center;
   width: 18px;
   height: 18px;
-  margin-right: 4px;
+  margin-right: var(--nx-space-1);
   border: 0;
   border-radius: var(--nx-radius-xs);
   background: transparent;
@@ -177,7 +177,7 @@
 .operatingBadge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--nx-space-1);
   padding: 1px 5px;
   border-radius: var(--nx-radius-lg);
   background: var(--nx-info-soft);
@@ -342,7 +342,7 @@
   height: 28px;
   background: var(--nx-surface-2);
   border: 1px solid var(--nx-border);
-  border-radius: var(--nx-radius);
+  border-radius: var(--nx-radius-sm);
   padding: 0 4px 0 8px;
   transition:
     border-color 120ms,
@@ -407,14 +407,14 @@
 .actionsGroup {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--nx-space-1);
   flex-shrink: 0;
 
   button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: var(--nx-space-1);
     height: 28px;
     padding: 0 7px;
     border: 1px solid var(--nx-border);
@@ -527,7 +527,7 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--nx-space-2);
   padding: 6px 12px;
   background: var(--nx-warning-soft);
   border-bottom: 1px solid var(--nx-warning);
@@ -578,7 +578,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--nx-space-3);
   padding: 8px 14px;
   background: var(--nx-surface-2);
   border-bottom: 2px solid var(--nx-accent);
@@ -615,7 +615,7 @@
   justify-content: center;
   width: 26px;
   height: 26px;
-  border-radius: var(--nx-radius);
+  border-radius: var(--nx-radius-sm);
   background: var(--nx-accent-soft);
   color: var(--nx-accent);
   flex-shrink: 0;
@@ -713,7 +713,7 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    padding: 8px;
+    padding: var(--nx-space-2);
   }
 }
 
@@ -782,7 +782,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: var(--nx-space-3);
   padding: 36px;
   color: var(--nx-muted);
 }
@@ -813,7 +813,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 4px;
+  gap: var(--nx-space-1);
   padding: 3px 8px;
   background: var(--nx-surface-3);
   border-bottom: 1px solid var(--nx-border);
@@ -865,13 +865,13 @@
 .drawerActions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--nx-space-1);
 }
 
 .drawerActionButton {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--nx-space-1);
   padding: 2px 7px;
   font-size: var(--nx-font-size-2xs);
   border: 1px solid var(--nx-border);
@@ -928,7 +928,7 @@
 .inspectionActions {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--nx-space-1);
 
   .inspectionItem {
     display: flex;
@@ -1171,7 +1171,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--nx-space-2);
   color: var(--nx-muted);
   font-size: var(--nx-font-size-2xs);
 
@@ -1197,7 +1197,7 @@
 
 .grantRow {
   display: flex;
-  gap: 8px;
+  gap: var(--nx-space-2);
   align-items: center;
   justify-content: space-between;
   margin: 3px 0;

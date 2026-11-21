@@ -9,8 +9,8 @@
   place-items: center;
   align-content: center;
   align-content: safe center;
-  gap: 16px;
-  padding: 28px;
+  gap: var(--nx-space-4);
+  padding: var(--nx-space-7);
   background:
     radial-gradient(circle at 50% 15%, var(--nx-accent-soft), transparent 32%), var(--nx-bg);
 }
@@ -45,7 +45,7 @@
   gap: 10px;
 
   strong {
-    font-size: 0.929rem;
+    font-size: var(--nx-font-size-sm);
   }
 
   small {
@@ -58,7 +58,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--nx-space-2);
   grid-column: 1 / -1;
   flex-wrap: wrap;
 }
@@ -77,7 +77,7 @@
 
 .inputs {
   display: grid;
-  gap: 8px;
+  gap: var(--nx-space-2);
   grid-column: 1 / -1;
 }
 
@@ -86,7 +86,7 @@
   min-width: 0;
   margin: 0;
   color: var(--nx-danger);
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
@@ -108,13 +108,13 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--nx-space-2);
 }
 
 .readinessTitle {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--nx-space-2);
   font-weight: 700;
   font-size: 0.92rem;
   color: var(--nx-text);
@@ -122,7 +122,7 @@
 
 .readinessMessage {
   display: grid;
-  gap: 4px;
+  gap: var(--nx-space-1);
 
   strong {
     font-size: 0.9rem;
@@ -147,9 +147,9 @@
   max-width: 620px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--nx-space-2);
   color: var(--nx-subtle);
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
 }
 
 @media (max-height: 600px) {
@@ -179,7 +179,7 @@
   }
 
   .inputs {
-    gap: 4px;
+    gap: var(--nx-space-1);
   }
 
   .error {
@@ -209,7 +209,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--nx-space-2);
   font-size: 0.83rem;
 
   span {

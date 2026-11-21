@@ -6,7 +6,7 @@
   gap: 10px;
   padding: 10px;
   border: 1px solid var(--nx-border);
-  border-radius: 8px;
+  border-radius: var(--nx-radius-lg);
   background: var(--nx-bg-elevated);
   color: var(--nx-text-soft);
   text-align: left;
@@ -31,7 +31,7 @@
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  font-size: 0.929rem;
+  font-size: var(--nx-font-size-sm);
 }
 .nx-resource-account__quota {
   display: block;
@@ -41,14 +41,14 @@
 .nx-scheduler-explanation {
   padding: 10px;
   border: 1px solid var(--nx-border);
-  border-radius: 8px;
+  border-radius: var(--nx-radius-lg);
   background: var(--nx-surface-2);
   color: var(--nx-muted);
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
 }
 .nx-maestro-panel {
   display: grid;
-  gap: 12px;
+  gap: var(--nx-space-3);
 }
 .nx-maestro-status,
 .nx-maestro-actions {
@@ -65,17 +65,17 @@
 }
 .nx-recommendation-card {
   display: grid;
-  gap: 8px;
+  gap: var(--nx-space-2);
 }
 .nx-recommendation-card p,
 .nx-recommendation-card small {
   margin: 0;
   color: var(--nx-muted);
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
 }
 .nx-recommendation-card code {
   padding: 6px;
-  border-radius: 6px;
+  border-radius: var(--nx-radius-md);
   background: var(--nx-bg-elevated);
   color: var(--nx-accent-text);
   font-size: 0.821rem;
@@ -155,7 +155,7 @@
   }
   .nx-topbar {
     padding: 0 10px;
-    gap: 8px;
+    gap: var(--nx-space-2);
   }
   .nx-workspace-tabs {
     min-height: 32px;
@@ -163,11 +163,11 @@
   }
   .nx-workspace-tab {
     padding: 0 10px;
-    font-size: 0.857rem;
+    font-size: var(--nx-font-size-xs);
   }
   .nx-workspace-statusbar {
     height: var(--nx-taskbar);
-    font-size: 0.786rem;
+    font-size: var(--nx-font-size-2xs);
     padding: 0 10px;
   }
   .nx-terminals-host__chrome {
@@ -187,7 +187,7 @@
     display: none;
   }
   .nx-project-nav {
-    padding-left: 8px;
+    padding-left: var(--nx-space-2);
   }
   .nx-agent-summary-wrap {
     display: none;
@@ -330,7 +330,7 @@
     min-height: 48px;
     padding: 0 12px;
     scroll-snap-align: start;
-    font-size: 0.929rem;
+    font-size: var(--nx-font-size-sm);
   }
 
   .nx-workspace-tab__close {
@@ -353,12 +353,12 @@
   }
 
   .nx-surface-scroll {
-    padding: 12px;
+    padding: var(--nx-space-3);
     overscroll-behavior: contain;
   }
 
   .nx-page-header {
-    margin-bottom: 12px;
+    margin-bottom: var(--nx-space-3);
     gap: 10px;
   }
 
@@ -367,7 +367,7 @@
   }
 
   .nx-page-header p {
-    font-size: 0.857rem;
+    font-size: var(--nx-font-size-xs);
   }
 
   button,
@@ -388,7 +388,7 @@
   }
 
   .nx-composer-destination-dock {
-    padding-bottom: 12px;
+    padding-bottom: var(--nx-space-3);
   }
 
   .nx-composer-goal-bar__row {
@@ -430,7 +430,7 @@
 .nx-scheduler-explanation ol {
   margin: 5px 0;
   color: var(--nx-muted);
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
   line-height: 1.5;
 }
 .nx-missions-layout {
@@ -438,13 +438,13 @@
   min-height: 440px;
   display: grid;
   grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
-  gap: 12px;
+  gap: var(--nx-space-3);
 }
 .nx-mission-list {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--nx-space-1);
   padding-right: 10px;
   border-right: 1px solid var(--nx-border);
 }
@@ -461,10 +461,10 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
-  padding: 8px;
+  gap: var(--nx-space-2);
+  padding: var(--nx-space-2);
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--nx-radius-lg);
   background: transparent;
   color: var(--nx-text-soft);
   text-align: left;
@@ -538,10 +538,10 @@
   display: grid;
   grid-template-columns: 20px minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 8px;
+  gap: var(--nx-space-2);
   padding: 9px;
   border: 1px solid var(--nx-border);
-  border-radius: 8px;
+  border-radius: var(--nx-radius-lg);
   background: var(--nx-bg-elevated);
 }
 .nx-task-status {
@@ -567,10 +567,10 @@
   gap: 6px;
   padding: 0 9px;
   border: 1px solid color-mix(in srgb, var(--nx-accent) 45%, var(--nx-border));
-  border-radius: 999px;
+  border-radius: var(--nx-radius-full);
   background: var(--nx-accent-soft);
   color: var(--nx-accent-text);
-  font-size: 0.786rem;
+  font-size: var(--nx-font-size-2xs);
   font-weight: 700;
   cursor: pointer;
   transition: all 0.14s;

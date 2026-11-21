@@ -16,7 +16,7 @@
   border: 1px solid var(--nx-border-strong);
   border-radius: var(--nx-radius-md);
   background: var(--nx-surface-2);
-  box-shadow: var(--nx-shadow-lg);
+  box-shadow: var(--nx-shadow-overlay);
   z-index: var(--nx-z-popover);
 }
 
@@ -32,7 +32,7 @@
   background: transparent;
   color: var(--nx-text-soft);
   font: inherit;
-  font-size: 0.929rem;
+  font-size: var(--nx-font-size-sm);
   text-align: left;
   cursor: pointer;
 }

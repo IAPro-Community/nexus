@@ -98,7 +98,7 @@
   border-bottom: 1px solid transparent;
   background: transparent;
   color: var(--nx-muted);
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
   font-weight: 550;
   cursor: pointer;
   white-space: nowrap;
@@ -136,7 +136,7 @@
   display: grid;
   place-items: center;
   padding: 2px;
-  border-radius: 4px;
+  border-radius: var(--nx-radius-sm);
   color: var(--nx-subtle);
   cursor: pointer;
 }
@@ -200,7 +200,7 @@
    their keyboard and pointer-friendly hit targets. */
 @media (min-width: 821px) and (max-width: 1366px) and (max-height: 820px) {
   .nx-topbar {
-    gap: 8px;
+    gap: var(--nx-space-2);
     padding-inline: 10px;
   }
 
@@ -209,12 +209,12 @@
   }
 
   .nx-rail-section-header {
-    padding-inline: 8px;
+    padding-inline: var(--nx-space-2);
   }
 
   .nx-rail-item-btn {
     min-height: 32px;
-    padding-inline: 8px;
+    padding-inline: var(--nx-space-2);
   }
 
   .nx-rail-tool-btn {
@@ -228,16 +228,16 @@
   .nx-workspace-tab {
     min-width: 76px;
     gap: 5px;
-    padding-inline: 8px;
+    padding-inline: var(--nx-space-2);
   }
 
   .nx-workspace-taskbar {
-    padding-inline: 8px;
+    padding-inline: var(--nx-space-2);
   }
 
   .nx-workspace-taskbar button {
     min-height: 32px;
-    padding-inline: 8px;
+    padding-inline: var(--nx-space-2);
   }
 }
 
@@ -245,7 +245,7 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--nx-space-1);
   padding: 3px 9px;
   border-top: 1px solid var(--nx-border);
   background: var(--nx-bg-elevated);
@@ -366,10 +366,10 @@
   max-width: 100%;
   padding: 3px 8px;
   border: 1px solid var(--nx-border);
-  border-radius: 999px;
+  border-radius: var(--nx-radius-full);
   background: var(--nx-surface-2);
   color: var(--nx-muted);
-  font-size: 0.786rem;
+  font-size: var(--nx-font-size-2xs);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -421,7 +421,7 @@
   border-radius: 7px;
   background: var(--nx-bg-elevated);
   color: var(--nx-text-soft);
-  font-size: 0.929rem;
+  font-size: var(--nx-font-size-sm);
   outline: 0;
 }
 .nx-input,
@@ -432,7 +432,7 @@
 .nx-select {
   appearance: none;
   -webkit-appearance: none;
-  padding-right: 28px;
+  padding-right: var(--nx-space-7);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a93a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 9px center;
@@ -460,13 +460,13 @@
 }
 .nx-input[data-mono="true"] {
   font-family: var(--nx-font-mono);
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
 }
 .nx-select-wrap {
   display: grid;
   gap: 6px;
   color: var(--nx-muted);
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
 }
 .nx-select-container {
   display: inline-block;

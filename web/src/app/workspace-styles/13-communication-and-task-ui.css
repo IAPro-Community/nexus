@@ -30,7 +30,7 @@
   border-radius: var(--nx-radius) !important;
   font-family: var(--nx-font) !important;
   font-size: 0.929rem !important;
-  box-shadow: var(--nx-shadow-lg) !important;
+  box-shadow: var(--nx-shadow-overlay) !important;
   padding: 12px 14px !important;
 }
 [data-sonner-toast][data-type="error"]:not(:has(.nx-uui-notification)) {
@@ -42,11 +42,11 @@
 
 .nx-uui-notification {
   width: 100%;
-  border-radius: 12px;
+  border-radius: var(--nx-radius-xl);
   border: 1px solid var(--nx-border-strong);
   background: var(--nx-bg-elevated);
-  box-shadow: var(--nx-shadow-lg);
-  padding: 16px;
+  box-shadow: var(--nx-shadow-overlay);
+  padding: var(--nx-space-4);
   color: var(--nx-text);
   font-family: var(--nx-font);
   animation: nx-uui-enter 0.22s cubic-bezier(0.16, 1, 0.3, 1);
@@ -102,14 +102,14 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--nx-space-2);
 }
 
 .nx-uui-notification__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--nx-space-2);
   min-width: 0;
 }
 
@@ -122,10 +122,10 @@
 }
 
 .nx-uui-badge {
-  font-size: 0.786rem;
+  font-size: var(--nx-font-size-2xs);
   font-weight: 600;
   padding: 2px 8px;
-  border-radius: 6px;
+  border-radius: var(--nx-radius-md);
   display: inline-flex;
   align-items: center;
   white-space: nowrap;
@@ -163,8 +163,8 @@
   background: transparent;
   border: none;
   color: var(--nx-subtle);
-  padding: 4px;
-  border-radius: 6px;
+  padding: var(--nx-space-1);
+  border-radius: var(--nx-radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -181,7 +181,7 @@
 
 .nx-uui-notification__text {
   margin: 0;
-  font-size: 0.929rem;
+  font-size: var(--nx-font-size-sm);
   line-height: 1.5;
   color: var(--nx-text-soft);
   word-break: break-word;
@@ -193,19 +193,19 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: 4px;
+  margin-top: var(--nx-space-1);
 }
 
 .nx-uui-notification__quick-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--nx-space-2);
   flex-wrap: wrap;
 }
 
 .nx-uui-btn {
   font-family: var(--nx-font);
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
   font-weight: 600;
   padding: 6px 12px;
   border-radius: 7px;
@@ -272,7 +272,7 @@
   border: 1px solid var(--nx-border);
   border-radius: 7px;
   color: var(--nx-text);
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
   outline: none;
   transition:
     border-color 0.12s ease,
@@ -315,7 +315,7 @@
 
 .nx-attention-radar {
   position: relative;
-  margin-left: 8px;
+  margin-left: var(--nx-space-2);
 }
 .nx-attention-radar__summary {
   height: 28px;
@@ -324,7 +324,7 @@
   gap: 6px;
   padding: 0 10px;
   border: 1px solid var(--nx-border);
-  border-radius: 999px;
+  border-radius: var(--nx-radius-full);
   background: var(--nx-surface);
   color: var(--nx-text-soft);
   font-size: 0.821rem;
@@ -345,9 +345,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
+  border-radius: var(--nx-radius-full);
   padding: 0 5px;
-  font-size: 0.714rem;
+  font-size: var(--nx-font-size-caption);
   font-weight: 700;
 }
 .nx-attention-radar__count {
@@ -368,14 +368,14 @@
   overflow: auto;
   padding: 10px;
   border: 1px solid var(--nx-border);
-  border-radius: 12px;
+  border-radius: var(--nx-radius-xl);
   background: var(--nx-bg-elevated);
-  box-shadow: var(--nx-shadow-lg);
+  box-shadow: var(--nx-shadow-overlay);
 }
 .nx-attention-radar__empty {
   margin: 0;
   color: var(--nx-subtle);
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
 }
 .nx-attention-radar__group {
   display: grid;
@@ -386,26 +386,26 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--nx-space-2);
   color: var(--nx-subtle);
-  font-size: 0.786rem;
+  font-size: var(--nx-font-size-2xs);
 }
 .nx-attention-radar__group ul {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 4px;
+  gap: var(--nx-space-1);
 }
 .nx-attention-radar__item {
   width: 100%;
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 8px;
+  gap: var(--nx-space-2);
   align-items: center;
   padding: 8px 10px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--nx-radius-lg);
   background: transparent;
   color: var(--nx-text);
   text-align: left;
@@ -418,8 +418,8 @@
 .nx-attention-radar__badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 0.714rem;
+  gap: var(--nx-space-1);
+  font-size: var(--nx-font-size-caption);
   text-transform: lowercase;
   color: var(--nx-subtle);
   white-space: nowrap;
@@ -432,7 +432,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
 }
 
 .nx-agent-summary-wrap {
@@ -448,7 +448,7 @@
 .nx-agent-summary-btn:focus-visible {
   outline: 2px solid var(--nx-accent);
   outline-offset: 3px;
-  border-radius: 999px;
+  border-radius: var(--nx-radius-full);
 }
 .nx-agent-summary-popover {
   position: absolute;
@@ -460,9 +460,9 @@
   overflow: auto;
   padding: 10px;
   border: 1px solid var(--nx-border);
-  border-radius: 12px;
+  border-radius: var(--nx-radius-xl);
   background: var(--nx-bg-elevated);
-  box-shadow: var(--nx-shadow-lg);
+  box-shadow: var(--nx-shadow-overlay);
 }
 .nx-agent-summary-popover__heading {
   display: flex;
@@ -471,14 +471,14 @@
   gap: 10px;
   padding: 2px 4px 9px;
   border-bottom: 1px solid var(--nx-border);
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
 }
 .nx-agent-summary-popover__heading button {
   border: 0;
   background: transparent;
   color: var(--nx-accent-text);
   cursor: pointer;
-  font-size: 0.786rem;
+  font-size: var(--nx-font-size-2xs);
 }
 .nx-agent-summary-row {
   width: 100%;
@@ -509,7 +509,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
 }
 .nx-agent-summary-row__name small {
   overflow: hidden;
@@ -532,25 +532,25 @@
   z-index: var(--nx-z-modal);
   display: grid;
   place-items: center;
-  padding: 16px;
+  padding: var(--nx-space-4);
   background: var(--nx-terminal-overlay);
   backdrop-filter: blur(3px);
 }
 .nx-terminal-confirm__panel {
   width: min(430px, 100%);
-  padding: 16px;
+  padding: var(--nx-space-4);
   border: 1px solid var(--nx-border-strong);
   border-radius: 10px;
   background: var(--nx-surface);
-  box-shadow: var(--nx-shadow-lg);
+  box-shadow: var(--nx-shadow-modal);
 }
 .nx-terminal-confirm__panel strong {
-  font-size: 1rem;
+  font-size: var(--nx-font-size-base);
 }
 .nx-terminal-confirm__panel p {
   margin: 7px 0 14px;
   color: var(--nx-muted);
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
   line-height: 1.45;
 }
 .nx-terminal-confirm__actions {
@@ -562,11 +562,11 @@
   min-height: 30px;
   padding: 0 9px;
   border: 1px solid var(--nx-border-strong);
-  border-radius: 6px;
+  border-radius: var(--nx-radius-md);
   background: var(--nx-surface-2);
   color: var(--nx-text-soft);
   cursor: pointer;
-  font-size: 0.786rem;
+  font-size: var(--nx-font-size-2xs);
 }
 .nx-terminal-confirm__actions button[data-tone="danger"] {
   border-color: color-mix(in srgb, var(--nx-danger) 55%, var(--nx-border));
@@ -581,10 +581,10 @@
 .nx-intel-combo {
   position: relative;
   display: grid;
-  gap: 8px;
+  gap: var(--nx-space-2);
 }
 .nx-intel-combo__label {
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
   color: var(--nx-text-soft);
 }
 .nx-intel-combo__trigger {
@@ -596,7 +596,7 @@
   min-height: 44px;
   padding: 8px 10px;
   border: 1px solid var(--nx-border);
-  border-radius: 8px;
+  border-radius: var(--nx-radius-lg);
   background: var(--nx-surface-2);
   color: var(--nx-text);
   text-align: left;
@@ -604,13 +604,13 @@
 }
 .nx-intel-combo__trigger strong {
   display: block;
-  font-size: 0.929rem;
+  font-size: var(--nx-font-size-sm);
 }
 .nx-intel-combo__trigger small {
   display: block;
   margin-top: 2px;
   color: var(--nx-muted);
-  font-size: 0.786rem;
+  font-size: var(--nx-font-size-2xs);
 }
 .nx-intel-combo__menu {
   z-index: var(--nx-z-popover);
@@ -620,22 +620,22 @@
   border: 1px solid var(--nx-border);
   border-radius: 10px;
   background: var(--nx-bg-elevated);
-  box-shadow: var(--nx-shadow-lg);
+  box-shadow: var(--nx-shadow-overlay);
   width: var(--radix-dropdown-menu-trigger-width);
   max-width: 94vw;
 }
 .nx-intel-combo__empty {
-  margin: 8px;
+  margin: var(--nx-space-2);
   color: var(--nx-muted);
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
 }
 .nx-intel-combo__option {
   width: 100%;
   display: grid;
-  gap: 4px;
-  padding: 8px;
+  gap: var(--nx-space-1);
+  padding: var(--nx-space-2);
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--nx-radius-lg);
   background: transparent;
   color: var(--nx-text);
   text-align: left;
@@ -653,18 +653,18 @@
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
 }
 .nx-intel-combo__option small {
   color: var(--nx-muted);
-  font-size: 0.786rem;
+  font-size: var(--nx-font-size-2xs);
 }
 .nx-intel-combo__models {
   display: grid;
   gap: 6px;
 }
 .nx-intel-combo__models > span {
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
   color: var(--nx-text-soft);
 }
 .nx-intel-combo__models > div {
@@ -675,10 +675,10 @@
 .nx-intel-combo__model {
   padding: 4px 8px;
   border: 1px solid var(--nx-border);
-  border-radius: 999px;
+  border-radius: var(--nx-radius-full);
   background: transparent;
   color: var(--nx-text-soft);
-  font-size: 0.786rem;
+  font-size: var(--nx-font-size-2xs);
   cursor: pointer;
 }
 .nx-intel-combo__model[data-active="true"] {
@@ -699,7 +699,7 @@
 .nx-project-create-actions .nx-button {
   height: 28px;
   padding: 0 8px;
-  gap: 4px;
+  gap: var(--nx-space-1);
   font-size: 0.821rem;
   white-space: nowrap;
 }
@@ -709,9 +709,9 @@
 .nx-workspace-tab {
   min-width: 118px;
   max-width: 240px;
-  gap: 8px;
+  gap: var(--nx-space-2);
   padding: 0 12px;
-  font-size: 0.929rem;
+  font-size: var(--nx-font-size-sm);
   font-weight: 600;
   color: var(--nx-text-soft);
 }

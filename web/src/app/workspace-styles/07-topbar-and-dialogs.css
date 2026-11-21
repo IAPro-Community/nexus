@@ -2,10 +2,10 @@
 .nx-topbar__project-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--nx-space-2);
   padding: 4px 8px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--nx-radius-lg);
   background: transparent;
   color: var(--nx-text);
   cursor: pointer;
@@ -28,7 +28,7 @@
   overflow: hidden;
 }
 .nx-project-info strong {
-  font-size: 0.929rem;
+  font-size: var(--nx-font-size-sm);
   line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -64,10 +64,10 @@
   gap: 6px;
   padding: 2px 8px;
   border: 1px solid var(--nx-border);
-  border-radius: 6px;
+  border-radius: var(--nx-radius-md);
   background: var(--nx-surface);
   color: var(--nx-subtle);
-  font-size: 0.786rem;
+  font-size: var(--nx-font-size-2xs);
   font-family: var(--nx-font-mono);
 }
 .nx-ver-nexus {
@@ -89,7 +89,7 @@
   border-radius: 7px;
   background: var(--nx-surface);
   color: var(--nx-text-soft);
-  font-size: 0.857rem;
+  font-size: var(--nx-font-size-xs);
   cursor: pointer;
   transition: all 0.12s;
 }
@@ -98,7 +98,7 @@
   background: var(--nx-surface-2);
 }
 .nx-lang-flag {
-  font-size: 0.929rem;
+  font-size: var(--nx-font-size-sm);
 }
 .nx-lang-short {
   font-weight: 700;
@@ -108,10 +108,10 @@
 .nx-lang-option {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--nx-space-2);
   padding: 6px 10px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--nx-radius-md);
   background: transparent;
   color: var(--nx-text-soft);
   font-size: 0.893rem;
@@ -146,7 +146,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--nx-space-3);
   padding: 0 12px;
   border-top: 1px solid var(--nx-border);
   background: var(--nx-bg-elevated);
@@ -168,12 +168,12 @@
 .nx-statusbar-branch {
   color: var(--nx-accent-text);
   font-family: var(--nx-font-mono);
-  font-size: 0.786rem;
+  font-size: var(--nx-font-size-2xs);
 }
 .nx-statusbar-btn {
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: var(--nx-radius-sm);
   padding: 2px 6px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -226,7 +226,7 @@
 }
 .nx-statusbar-version {
   font-family: var(--nx-font-mono);
-  font-size: 0.786rem;
+  font-size: var(--nx-font-size-2xs);
   color: var(--nx-muted);
 }
 .nx-statusbar-version strong {
@@ -240,7 +240,7 @@
 .nx-branch-switcher {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--nx-space-3);
 }
 .nx-branch-status-row {
   display: flex;
@@ -249,7 +249,7 @@
   padding: 8px 12px;
   background: var(--nx-surface-2);
   border: 1px solid var(--nx-border);
-  border-radius: 8px;
+  border-radius: var(--nx-radius-lg);
   font-size: 0.893rem;
 }
 .nx-branch-current {
@@ -265,30 +265,30 @@
 .nx-branch-search-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--nx-space-2);
 }
 .nx-branch-create-box {
   padding: 10px;
   background: var(--nx-surface-2);
   border: 1px solid var(--nx-border);
-  border-radius: 8px;
+  border-radius: var(--nx-radius-lg);
 }
 .nx-branch-create-input-group {
   display: flex;
-  gap: 8px;
+  gap: var(--nx-space-2);
   margin-top: 6px;
 }
 .nx-branch-list-container {
   max-height: 260px;
   overflow-y: auto;
   border: 1px solid var(--nx-border);
-  border-radius: 8px;
+  border-radius: var(--nx-radius-lg);
   background: var(--nx-surface-1);
 }
 .nx-branch-items {
   list-style: none;
   margin: 0;
-  padding: 4px;
+  padding: var(--nx-space-1);
 }
 .nx-branch-item {
   width: 100%;
@@ -298,7 +298,7 @@
   padding: 8px 10px;
   background: transparent;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--nx-radius-md);
   color: var(--nx-text-primary);
   font-size: 0.893rem;
   font-family: var(--nx-font-mono);
@@ -318,7 +318,7 @@
 .nx-branch-item-name {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--nx-space-2);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -326,23 +326,23 @@
 .nx-branch-active-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 0.786rem;
+  gap: var(--nx-space-1);
+  font-size: var(--nx-font-size-2xs);
   color: var(--nx-success);
   font-weight: 600;
 }
 .nx-branch-empty {
-  padding: 24px;
+  padding: var(--nx-space-6);
   text-align: center;
   color: var(--nx-text-muted);
-  font-size: 0.929rem;
+  font-size: var(--nx-font-size-sm);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
 }
 .nx-branch-loading {
-  padding: 24px;
+  padding: var(--nx-space-6);
   display: flex;
   justify-content: center;
 }

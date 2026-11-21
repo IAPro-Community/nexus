@@ -294,7 +294,7 @@
   background: var(--nx-surface-2);
   border: 1px solid var(--nx-border);
   font-weight: 700;
-  font-size: 1rem;
+  font-size: var(--nx-font-size-base);
   color: var(--nx-accent-text);
   flex-shrink: 0;
 }
@@ -305,7 +305,7 @@
 }
 
 .agentName {
-  font-size: 1rem;
+  font-size: var(--nx-font-size-base);
   font-weight: 600;
   color: var(--nx-text);
   overflow: hidden;
@@ -370,7 +370,7 @@
 
 .metaClock {
   display: inline;
-  margin-right: 4px;
+  margin-right: var(--nx-space-1);
   vertical-align: -1px;
 }
 

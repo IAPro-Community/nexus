@@ -2,6 +2,10 @@
 @use './typography';
 @use './mixins';
 
+// Token blocks ship once from the global stylesheet, never per CSS module.
+@include tokens.root;
+@include typography.root;
+
 // Global foundation additions
 *,
 *::before,

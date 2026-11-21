@@ -22,7 +22,7 @@
   color: var(--nx-text);
   background: var(--nx-bg-elevated);
   border: 1px solid color-mix(in srgb, var(--nx-accent) 33%, var(--nx-border));
-  border-radius: var(--nx-radius-md);
+  border-radius: var(--nx-radius-lg);
   font-size: var(--nx-font-size-2xs);
 }
 
@@ -45,7 +45,7 @@
   color: var(--nx-text);
   border: 1px solid var(--nx-border);
   border-radius: var(--nx-radius-lg);
-  box-shadow: var(--nx-shadow-lg);
+  box-shadow: var(--nx-shadow-overlay);
 }
 
 .menuHeading {
@@ -60,7 +60,7 @@
   display: grid;
   gap: var(--nx-space-1);
   padding: var(--nx-space-3);
-  border-radius: var(--nx-radius-sm);
+  border-radius: var(--nx-radius-md);
   outline: none;
   cursor: pointer;
   font-size: var(--nx-font-size-xs);
