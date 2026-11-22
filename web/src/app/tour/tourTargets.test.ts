@@ -66,4 +66,17 @@ describe('contextual tour target resolution', () => {
     expect(findTourTarget(scope(groupFilter), selector)).toBe(groupFilter);
     expect(findTourTarget(scope(), selector)).toBeNull();
   });
+
+  it('keeps every remote access target inside the Settings surface scope', () => {
+    const selectors = [
+      '[data-tour="remote-tunnel-card"]',
+      '[data-tour="remote-devices-card"]',
+      '[data-tour="remote-push-card"]',
+    ];
+    for (const selector of selectors) {
+      const remoteControl = target(true);
+      expect(findTourTarget(scope(remoteControl), selector)).toBe(remoteControl);
+      expect(findTourTarget(scope(), selector)).toBeNull();
+    }
+  });
 });

@@ -73,6 +73,43 @@ describe('global feature announcement handoff', () => {
     expect(item?.id).toBe('agent-groups-task-worktree-feature');
   });
 
+  it('reveals remote access only inside the selected project Settings surface', () => {
+    requestFeatureReveal('remote-access-stable-url', 'project-A', 1000);
+    expect(consumeFeatureReveal('project-B', 'settings', () => true, 1001)).toBeNull();
+    expect(consumeFeatureReveal('project-A', 'projects', () => true, 1002)).toBeNull();
+    const item = consumeFeatureReveal(
+      'project-A',
+      'settings',
+      (target) => target === '[data-tour="remote-tunnel-card"]',
+      1003,
+    );
+    expect(item?.id).toBe('remote-access-stable-url');
+  });
+
+  it('reveals the scoped remote invitation only when its own card is present', () => {
+    requestFeatureReveal('remote-access-scoped-invitations', 'project-A', 1000);
+    expect(consumeFeatureReveal('project-A', 'settings', () => false, 1001)).toBeNull();
+    const item = consumeFeatureReveal(
+      'project-A',
+      'settings',
+      (target) => target === '[data-tour="remote-devices-card"]',
+      1002,
+    );
+    expect(item?.id).toBe('remote-access-scoped-invitations');
+  });
+
+  it('reveals the remote push notice only inside the Settings surface', () => {
+    requestFeatureReveal('remote-access-push-notifications', 'project-A', 1000);
+    expect(consumeFeatureReveal('project-A', 'notifications', () => true, 1001)).toBeNull();
+    const item = consumeFeatureReveal(
+      'project-A',
+      'settings',
+      (target) => target === '[data-tour="remote-push-card"]',
+      1002,
+    );
+    expect(item?.id).toBe('remote-access-push-notifications');
+  });
+
   it('expires old requests so tours cannot surprise users later', () => {
     requestFeatureReveal('composer-idea-workspace', 'project-A', 1000);
     expect(hasPendingFeatureReveal('project-A', 'composer-start', 32_000)).toBe(false);
