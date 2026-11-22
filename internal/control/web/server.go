@@ -20,6 +20,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/browsercontrol"
 	"github.com/IAPro-Community/nexus/internal/control/originpolicy"
 	"github.com/IAPro-Community/nexus/internal/nexus"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 )
 
 // DefaultPort is the default TCP port for the Web Control Center when no
@@ -50,6 +51,15 @@ type Server struct {
 	tunnelHost string // Cloudflare Quick Tunnel public hostname
 	tunnel     *tunnelManager
 	tunnelMu   sync.Mutex
+	push       *pushService
+	pushInit   sync.Once
+	pushErr    error
+
+	// attentionSource feeds the Web Push watcher with the current pending
+	// attention items. It is nil until routes are registered.
+	attentionSource func(context.Context) (*runner.AttentionGroup, error)
+	pushWatchOnce   sync.Once
+	pushWatchCancel context.CancelFunc
 }
 
 func (s *Server) tunnelManager() *tunnelManager {
@@ -328,6 +338,12 @@ func (s *Server) routeRuntime(h *NexusHandler) http.HandlerFunc {
 					writeError(w, http.StatusUnauthorized, "authentication required")
 					return
 				}
+				// A viewer session may observe but never attach an interactive
+				// terminal, which can execute arbitrary commands.
+				if sess := s.auth.AuthenticateRequest(r); sess != nil && !sess.CanControl() {
+					writeError(w, http.StatusForbidden, "read-only session: terminal access is not allowed")
+					return
+				}
 				runtimeID := parts[0]
 				agentID, err := nexus.Default().ResolveAgentByRuntimeID(runtimeID)
 				if err != nil || agentID == "" {
@@ -353,6 +369,9 @@ func (s *Server) routePlan(h *NexusHandler) http.HandlerFunc {
 		sess := s.auth.AuthenticateRequest(r)
 		if sess == nil {
 			writeError(w, http.StatusUnauthorized, "authentication required")
+			return
+		}
+		if !enforceControl(sess, w, r) {
 			return
 		}
 		if r.Method != http.MethodGet && r.Method != http.MethodHead && r.Method != http.MethodOptions {
@@ -401,6 +420,9 @@ func (s *Server) routeRun(h *NexusHandler) http.HandlerFunc {
 			writeError(w, http.StatusUnauthorized, "authentication required")
 			return
 		}
+		if !enforceControl(sess, w, r) {
+			return
+		}
 		if r.Method != http.MethodGet && r.Method != http.MethodHead && r.Method != http.MethodOptions {
 			csrf := r.Header.Get(csrfHeaderName)
 			if csrf == "" || csrf != sess.CSRFToken {
@@ -426,6 +448,31 @@ func (s *Server) routeRun(h *NexusHandler) http.HandlerFunc {
 	}
 }
 
+// isReadOnlyMethod reports whether an HTTP method cannot change server or
+// workspace state. A viewer session may only use these.
+func isReadOnlyMethod(method string) bool {
+	switch method {
+	case http.MethodGet, http.MethodHead, http.MethodOptions:
+		return true
+	default:
+		return false
+	}
+}
+
+// enforceControl refuses a mutating request from a read-only (viewer) remote
+// session. It must run before any handler side effect.
+func enforceControl(sess *Session, w http.ResponseWriter, r *http.Request) bool {
+	if sess == nil {
+		writeError(w, http.StatusUnauthorized, "authentication required")
+		return false
+	}
+	if sess.CanControl() || isReadOnlyMethod(r.Method) {
+		return true
+	}
+	writeError(w, http.StatusForbidden, "read-only session: this device cannot change the workspace")
+	return false
+}
+
 func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !s.auth.ValidateOrigin(r) {
@@ -437,6 +484,12 @@ func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		sess := s.auth.AuthenticateRequest(r)
 		if sess == nil {
 			writeError(w, http.StatusUnauthorized, "authentication required")
+			return
+		}
+
+		// A viewer session is read-only: mutating requests are refused before
+		// the handler runs, so a viewer device can never mutate the workspace.
+		if !enforceControl(sess, w, r) {
 			return
 		}
 
@@ -471,6 +524,8 @@ func (s *Server) BootstrapToken() string {
 }
 
 func (s *Server) Start() error {
+	// Notify paired phones only after the attention projection is wired.
+	s.startAttentionPush()
 	// A Nexus CLI process discovers only the loopback broker URL. Browser
 	// grants are separately scoped and cannot authenticate the Nexus UI.
 	if tcp, ok := s.listener.Addr().(*net.TCPAddr); ok {
@@ -539,12 +594,15 @@ func (s *Server) handleAuthBootstrap(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "invalid or expired bootstrap token")
 		return
 	}
+	label, kind := DeviceLabelFromUserAgent(r.UserAgent())
+	_, _ = s.auth.AnnotateDevice(sess.ID, label, kind)
 	s.setAuthenticatedSessionCookie(w, sess)
 	s.setLoopbackDeviceCookie(w)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"authenticated": true,
 		"csrf_token":    sess.CSRFToken,
 		"expires_at":    sess.ExpiresAt,
+		"role":          sessionRole(sess),
 	})
 }
 
@@ -589,11 +647,14 @@ func (s *Server) handleAuthPair(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "invalid or expired pairing code")
 		return
 	}
+	label, kind := DeviceLabelFromUserAgent(r.UserAgent())
+	_, _ = s.auth.AnnotateDevice(sess.ID, label, kind)
 	s.setAuthenticatedSessionCookie(w, sess)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"authenticated": true,
 		"csrf_token":    sess.CSRFToken,
 		"expires_at":    sess.ExpiresAt,
+		"role":          sessionRole(sess),
 	})
 }
 
@@ -709,6 +770,9 @@ func (s *Server) handleDesktopBootstrap(w http.ResponseWriter, r *http.Request) 
 
 func (s *Server) Shutdown(ctx context.Context) error {
 	browsercontrol.UnpublishBrowserEndpoint(s.pid)
+	if s.pushWatchCancel != nil {
+		s.pushWatchCancel()
+	}
 	if s.browsers != nil {
 		s.browsers.Shutdown()
 	}

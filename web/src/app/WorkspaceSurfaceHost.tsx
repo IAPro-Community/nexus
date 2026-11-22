@@ -537,6 +537,7 @@ export const WorkspaceSurfaceHost: React.FC<{
       return (
         <SettingsSurface
           onTour={onTour}
+          projectId={project.id}
           initialTab={
             surface.data?.settingsTab === 'intelligence' ? 'intelligence' : settingsInitialTab
           }

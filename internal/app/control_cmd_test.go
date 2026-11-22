@@ -1,13 +1,9 @@
 package app
 
 import (
-	"os"
-	"strconv"
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/control/web"
 )
 
@@ -94,66 +90,5 @@ func TestRunWebRejectsUnknownFlagsBeforeStartup(t *testing.T) {
 	err := Run([]string{"web", "--unknown"})
 	if err == nil || !strings.Contains(err.Error(), "invalid web option") {
 		t.Fatalf("Run web with unknown flag must reject before startup, got %v", err)
-	}
-}
-
-func TestWaitForOwnedContinuityClaimBlocksUntilClaimSettles(t *testing.T) {
-	reg := registry.NewRegistry(t.TempDir() + "/runtimes.json")
-	if err := reg.Register(registry.RuntimeSession{
-		RuntimeID: "runtime-1",
-		State:     registry.StateHandoff,
-		Labels: map[string]string{
-			registry.ContinuityInFlightLabel: "true",
-			registry.ContinuityOwnerPIDLabel: strconv.Itoa(os.Getpid()),
-		},
-	}); err != nil {
-		t.Fatalf("register runtime: %v", err)
-	}
-
-	released := make(chan struct{})
-	go func() {
-		time.Sleep(150 * time.Millisecond)
-		_ = reg.UpdateLabels("runtime-1", map[string]string{
-			registry.ContinuityInFlightLabel: "false",
-		})
-		close(released)
-	}()
-
-	deadline := time.Now().Add(5 * time.Second)
-	waitForOwnedContinuityClaimUntil(reg, "runtime-1", deadline)
-	<-released
-
-	session, ok := reg.Get("runtime-1")
-	if !ok {
-		t.Fatal("runtime must stay registered")
-	}
-	if session.Labels[registry.ContinuityInFlightLabel] != "false" {
-		t.Fatalf("claim must be settled before the host exits: %+v", session.Labels)
-	}
-}
-
-func TestWaitForOwnedContinuityClaimIgnoresForeignOwner(t *testing.T) {
-	reg := registry.NewRegistry(t.TempDir() + "/runtimes.json")
-	if err := reg.Register(registry.RuntimeSession{
-		RuntimeID: "runtime-1",
-		State:     registry.StateHandoff,
-		Labels: map[string]string{
-			registry.ContinuityInFlightLabel: "true",
-			registry.ContinuityOwnerPIDLabel: strconv.Itoa(os.Getpid() + 1),
-		},
-	}); err != nil {
-		t.Fatalf("register runtime: %v", err)
-	}
-
-	done := make(chan struct{})
-	go func() {
-		waitForOwnedContinuityClaimUntil(reg, "runtime-1", time.Now().Add(5*time.Second))
-		close(done)
-	}()
-
-	select {
-	case <-done:
-	case <-time.After(2 * time.Second):
-		t.Fatal("host must not wait for a continuity claim owned by another process")
 	}
 }

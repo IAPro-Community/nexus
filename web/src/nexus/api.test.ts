@@ -488,4 +488,66 @@ describe('Mission coordination API', () => {
     expect((fetchMock.mock.calls[0][1] as RequestInit).method).toBe('POST');
     expect((fetchMock.mock.calls[1][1] as RequestInit).method).toBe('POST');
   });
+
+  it('sends the requested remote role when minting an invitation', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ role: 'viewer' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await nexusApi.createTunnelInvite('viewer');
+    await nexusApi.createTunnelInvite();
+
+    expect(String(fetchMock.mock.calls[0][0])).toBe('/api/v1/tunnel/invite');
+    expect(JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))).toEqual({
+      role: 'viewer',
+    });
+    expect(JSON.parse(String((fetchMock.mock.calls[1][1] as RequestInit).body))).toEqual({
+      role: 'controller',
+    });
+  });
+
+  it('lists and revokes paired remote devices', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ devices: [] }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await nexusApi.listRemoteDevices();
+    await nexusApi.revokeRemoteDevice('device 1/2');
+
+    expect(String(fetchMock.mock.calls[0][0])).toBe('/api/v1/remote/devices');
+    expect(String(fetchMock.mock.calls[1][0])).toBe(
+      '/api/v1/remote/devices?device_id=device%201%2F2',
+    );
+    expect((fetchMock.mock.calls[1][1] as RequestInit).method).toBe('DELETE');
+  });
+
+  it('registers, removes and tests a Web Push subscription', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ subscribed: true, subscriptions: 1 }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await nexusApi.pushState();
+    await nexusApi.subscribePush({
+      endpoint: 'https://push.example.test/sub/1',
+      keys: { p256dh: 'p256dh-key', auth: 'auth-secret' },
+    });
+    await nexusApi.unsubscribePush('https://push.example.test/sub/1');
+    await nexusApi.sendPushTest();
+
+    expect(String(fetchMock.mock.calls[0][0])).toBe('/api/v1/push/state');
+    expect(String(fetchMock.mock.calls[1][0])).toBe('/api/v1/push/subscribe');
+    expect(JSON.parse(String((fetchMock.mock.calls[1][1] as RequestInit).body))).toEqual({
+      endpoint: 'https://push.example.test/sub/1',
+      keys: { p256dh: 'p256dh-key', auth: 'auth-secret' },
+    });
+    expect(String(fetchMock.mock.calls[2][0])).toBe('/api/v1/push/unsubscribe');
+    expect((fetchMock.mock.calls[3][1] as RequestInit).method).toBe('POST');
+    expect(String(fetchMock.mock.calls[3][0])).toBe('/api/v1/push/test');
+  });
 });

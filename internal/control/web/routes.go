@@ -1,6 +1,11 @@
 package web
 
-import "net/http"
+import (
+	"context"
+	"net/http"
+
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+)
 
 // routeDependencies keeps route composition explicit while allowing Server to
 // remain responsible only for listener and middleware lifecycle.
@@ -14,6 +19,14 @@ type routeDependencies struct {
 // handlers remain in their existing packages and contracts; this boundary only
 // owns transport registration and middleware placement.
 func registerRoutes(mux *http.ServeMux, deps routeDependencies) {
+	// The Web Push watcher follows the same attention projection the UI reads,
+	// so a notification can never invent a pending item the user cannot see.
+	if deps.server != nil && deps.nexusHandler != nil {
+		h := deps.nexusHandler
+		deps.server.attentionSource = func(ctx context.Context) (*runner.AttentionGroup, error) {
+			return h.runs.AttentionFiltered(ctx, runner.AttentionFilter{})
+		}
+	}
 	registerControlRoutes(mux, deps)
 	registerNexusRoutes(mux, deps)
 	registerMaestroRoutes(mux, deps)
@@ -35,6 +48,11 @@ func registerControlRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/desktop/bootstrap", s.handleDesktopBootstrap)
 	mux.HandleFunc("/api/v1/session/rotate", s.authMiddleware(s.handleSessionRotate))
 	mux.HandleFunc("/api/v1/session/logout", s.authMiddleware(s.handleSessionLogout))
+	mux.HandleFunc("/api/v1/remote/devices", s.authMiddleware(s.handleRemoteDevices))
+	mux.HandleFunc("/api/v1/push/state", s.authMiddleware(s.handlePushState))
+	mux.HandleFunc("/api/v1/push/subscribe", s.authMiddleware(s.handlePushSubscribe))
+	mux.HandleFunc("/api/v1/push/unsubscribe", s.authMiddleware(s.handlePushUnsubscribe))
+	mux.HandleFunc("/api/v1/push/test", s.authMiddleware(s.handlePushTest))
 	mux.HandleFunc("/api/v1/workspaces", s.authMiddleware(api.handleWorkspaces))
 	mux.HandleFunc("/api/v1/runtimes", s.authMiddleware(api.handleRuntimes))
 	mux.HandleFunc("/api/v1/runtimes/", s.routeRuntime(deps.nexusHandler))

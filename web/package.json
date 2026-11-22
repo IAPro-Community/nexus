@@ -19,6 +19,7 @@
     "build": "node scripts/build.mjs",
     "verify": "node scripts/verify-report.mjs",
     "test:e2e": "node scripts/e2e-hardening-verify.mjs",
+    "test:e2e:remote-access": "node scripts/e2e-remote-access.mjs",
     "test:e2e:composer": "node scripts/e2e-composer-workspace.mjs",
     "test:e2e:surface": "node scripts/e2e-surface-isolation.mjs",
     "test:e2e:agent-terminal-follow": "node scripts/e2e-agent-terminal-follow.mjs",

@@ -39,6 +39,9 @@ linters:
       - path: internal/nexus/composer\.go
         linters:
           - misspell
+      - path: internal/app/tunnel_cmd\.go
+        linters:
+          - misspell
       - path: internal/nexus/composer_flow_handoff_v1_test\.go
         linters:
           - misspell

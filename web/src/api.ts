@@ -23,6 +23,7 @@ export type BrowserSession = {
   csrf_token?: string;
   expires_at?: string;
   idle_timeout?: number;
+  role?: 'controller' | 'viewer';
 };
 
 export type APIErrorPayload = {

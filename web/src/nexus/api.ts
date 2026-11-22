@@ -94,6 +94,30 @@ export function setNexusCSRF(token: string) {
 
 export { NexusRequestError as NexusAPIError } from '../api';
 
+/** A paired remote device as listed by GET /api/v1/remote/devices. */
+export interface RemoteDevice {
+  device_id: string;
+  label: string;
+  kind: string;
+  paired_at: string;
+  last_seen_at: string;
+  expires_at: string;
+}
+
+/** Web Push state exposed by GET /api/v1/push/state. */
+export interface PushState {
+  enabled: boolean;
+  public_key: string;
+  subscriptions: number;
+  role?: 'controller' | 'viewer';
+}
+
+/** A browser push subscription serialized for the Nexus store. */
+export interface PushSubscriptionPayload {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}
+
 export const nexus = {
   getNexConversationHistory: (projectId?: string) =>
     request<NexConversationHistory>(
@@ -1213,13 +1237,35 @@ export const nexus = {
     request<import('../types').TunnelStatus>('/api/v1/tunnel/start', { method: 'POST' }),
   stopTunnel: () =>
     request<import('../types').TunnelStatus>('/api/v1/tunnel/stop', { method: 'POST' }),
-  createTunnelInvite: () =>
+  createTunnelInvite: (role: 'controller' | 'viewer' = 'controller') =>
     request<{
       url: string;
       bootstrap_url: string;
       access_code: string;
+      role: 'controller' | 'viewer';
       expires_in_seconds: number;
-    }>('/api/v1/tunnel/invite', { method: 'POST', body: '{}' }),
+    }>('/api/v1/tunnel/invite', { method: 'POST', body: JSON.stringify({ role }) }),
+  listRemoteDevices: () => request<{ devices: RemoteDevice[] }>('/api/v1/remote/devices'),
+  revokeRemoteDevice: (deviceId: string) =>
+    request<{ revoked: string }>(
+      `/api/v1/remote/devices?device_id=${encodeURIComponent(deviceId)}`,
+      { method: 'DELETE' },
+    ),
+  pushState: () => request<PushState>('/api/v1/push/state'),
+  subscribePush: (subscription: PushSubscriptionPayload) =>
+    request<{ subscribed: boolean; subscriptions: number }>('/api/v1/push/subscribe', {
+      method: 'POST',
+      body: JSON.stringify(subscription),
+    }),
+  unsubscribePush: (endpoint: string) =>
+    request<{ subscribed: boolean; subscriptions: number }>('/api/v1/push/unsubscribe', {
+      method: 'POST',
+      body: JSON.stringify({ endpoint }),
+    }),
+  sendPushTest: () =>
+    request<{ attempted: number; delivered: number; pruned: number }>('/api/v1/push/test', {
+      method: 'POST',
+    }),
 
   // Attention Center
   getAttention: (filter?: MissionAttentionFilter) =>

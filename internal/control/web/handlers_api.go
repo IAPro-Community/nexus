@@ -198,6 +198,7 @@ func (h *APIHandler) handleSession(w http.ResponseWriter, r *http.Request) {
 		"csrf_token":    sess.CSRFToken,
 		"expires_at":    sess.ExpiresAt,
 		"idle_timeout":  int(sessionIdleTTL.Seconds()),
+		"role":          sessionRole(sess),
 	})
 }
 

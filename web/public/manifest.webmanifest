@@ -1,11 +1,19 @@
 {
+  "id": "/",
   "name": "IAPro Nexus · Workspace OS",
   "short_name": "Nexus",
   "description": "Local workspace OS for AI coding agents",
-  "start_url": "./",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
   "background_color": "#080a0f",
   "theme_color": "#080a0f",
+  "categories": ["productivity", "developer"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "./nexus-icon-192.png",

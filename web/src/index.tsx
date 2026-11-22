@@ -16,3 +16,9 @@ if (container) {
   const root = createRoot(container);
   root.render(<App />);
 }
+
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+  });
+}
