@@ -1,12 +1,9 @@
-## 2026-11-22 — #214 corrigido: takeover concorrente não sobrescreve writer vigente
+## 2026-11-22 — Gate 0: recaptura visual e `docs-verify` no HEAD funcional
 
-- SHA de trabalho: `release/v1.0.0` @ `82b90a3b` (base local, sem commit/push); alterações de #214 não commitadas em `internal/control/host/host.go`, `internal/control/host/host_test.go`, `internal/control/web/handler_terminal.go`. Evidências sanitizadas em `/tmp/opencode/gates-20261122/issue214i/` (40 execuções).
-- CAUSA RAIZ (medida) — na corrida de takeover, o `promotion_acquire` do writer **demovido** chegava ao `SessionHost` depois da lease do writer novo e sobrescrevia `activeWriter`, derrubando o input do writer vigente. Correção: ordem broker→host serializada (`terminalLeaseMu`), checagem `broker.IsWriter` antes de promover e **epoch monotônico** no lease; o host rejeita epoch antigo (`lease_stale`), preservando o writer atual.
-- PASS (build/vet) — `go build ./internal/control/...` exit 0; `go vet ./internal/control/host ./internal/control/web` exit 0.
-- PASS (race) — `go test -race -count=1 ./internal/control/host ./internal/control/web` exit 0 (`host` 13,9 s; `web` 108,3 s).
-- PASS (regressão #214, 40 execuções) — `NEXUS_TERMINAL_TRACE=1 go test -race -count=1 ./internal/control/web -run '^TestTerminalHandoffAuthenticatedClientsShareProcessAndPersistIdentity$'` → `fails=0 of 40`; logs por execução em `/tmp/opencode/gates-20261122/issue214i/`.
-- PASS (regressão determinística nova) — `internal/control/host/host_test.go::TestSessionHost_RejectsStaleLeaseEpochFromDemotedWriter`: takeover com epoch mais novo é aceito; frame tardio do writer demovido (epoch antigo), epoch igual de outra conexão e frame sem epoch são rejeitados com `lease_stale`; epoch ativo permanece o do writer vigente.
-- NÃO EXECUTADO — homologação em dois dispositivos físicos (Windows/macOS), ensaio com quota real esgotada e aceite do owner. Release **NO_GO**.
+- RECAPTURA VISUAL — `npm --prefix web run docs:capture` reexecutado no HEAD limpo; 12 arquivos de `docs/assets/` recapturados e commitados em `872e8b58` (`docs(visual): recapture synthetic Web evidence for gate 0 UI`), porque o Gate 0 alterou a UI visível (`RemoteAccessTab.tsx`, `SettingsSurface.tsx`, `featureAnnouncements.ts`, `featureTourDefinitions.ts`, manifest/PWA e o cliente de API web).
+- PASS (docs-verify) — `node scripts/docs-verify.mjs` → exit 0 (`docs verification passed: 255 Markdown files, 33 required assets/files`) em worktree limpo no HEAD com a recaptura; a procedência visual stale que quebrava o gate ficou resolvida.
+- HYGIENE DE ESCOPO — este commit retira dos `DEV/` versionados o bloco de documentação do workstream #214 (`DEV/VERIFY.md`) que entrou por arrastamento em `55ebdc5a` via `git add` de arquivo inteiro durante edição concorrente; o conteúdo volta ao working tree do outro agente, sem commit.
+- NÃO EXECUTADO — Named Tunnel com credencial real; Tailscale com tailnet real; push contra push service real; aparelho físico; SHA publicado. Release **NO_GO**.
 
 ## 2026-11-22 — Gate 0 tornado autocontido: commit de correção e prova em worktree limpo
 

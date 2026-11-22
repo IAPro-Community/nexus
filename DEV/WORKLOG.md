@@ -1,3 +1,11 @@
+## 2026-11-22 — Gate 0: recaptura visual e `docs-verify` verdes no HEAD funcional
+
+- **Recaptura visual** — `npm --prefix web run docs:capture` reexecutado no HEAD limpo; 12 arquivos em `docs/assets/` commitados em `872e8b58` (`docs(visual): recapture synthetic Web evidence for gate 0 UI`), necessária porque o Gate 0 alterou a UI visível (acesso remoto, anúncios, tour, PWA e cliente de API).
+- **`docs-verify` verde** — `node scripts/docs-verify.mjs` → exit 0 (`docs verification passed: 255 Markdown files, 33 required assets/files`) em worktree limpo no HEAD; a procedência visual stale que quebrava o gate foi resolvida pela recaptura.
+- **Higiene de escopo** — removido dos `DEV/` versionados o bloco do workstream #214 arrastado por `git add` de arquivo inteiro em `55ebdc5a`; o conteúdo permanece no working tree do outro agente, sem commit.
+- **HEAD funcional do Gate 0** — `release/v1.0.0@872e8b58`; os commits seguintes são exclusivamente `DEV/`.
+- **Pendente com o maestro** — credencial do Named Tunnel (hostname + token) ou a escolha da Opção B (Tailscale); ensaio em aparelho físico e no SHA publicado. Release **NO_GO**.
+
 ## 2026-11-22 — Gate 0 tornado autocontido: `3a31ec50` compila e passa os gates isolado
 
 - **Defeito corrigido** — `b035aa04` não compilava isolado (`s.push`, `s.attentionSource`, `enforceControl`, `isReadOnlyMethod` e as rotas de push/dispositivos faltavam) e havia arrastado mudanças de outro workstream em `internal/app/control_cmd.go` (continuity handoff + terminal input broker).
@@ -7926,10 +7934,3 @@ Correções aplicadas nesta onda, todas com causa-raiz verificada:
 9. **Runner hygiene**: processos git órfãos de 17:17 (run cancelada) seguravam locks no `.git` compartilhado do workdir e travavam checkouts novos por ~4h; órfãos mortos com kill seletivo (sem restart do runner).
 
 Restante vermelho honesto: **Windows release homologation** — exige runner `nexus-windows` (máquina física do maestro, offline). macOS idem (skipped).
-
-## 2026-11-22 — fix(terminal): lease epoch monotônico contra takeover concorrente (#214)
-
-- `internal/control/host/host.go`: `activeWriterEpoch` + `applyTerminalLeaseLocked` rejeita epoch obsoleto/igual-alheio/zero-com-writer-ativo (`lease_stale`).
-- `internal/control/web/handler_terminal.go`: epoch global monotônico (`nextTerminalLeaseEpoch()`), `terminalLeaseMu` serializa lease vs input;a promoção só emitida se `broker.IsWriter`.
-- Testes: regressão determinística nova em `host_test.go`; `go test -race` host+web verde; 40 runs do handoff autenticado `fails=0 of 40` (`/tmp/opencode/gates-20261122/issue214i/`).
-- Docs: `DEV/VERIFY.md`, `DEV/HANDOFF.md` atualizados. Sem commit automático; release **NO_GO**.
