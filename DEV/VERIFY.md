@@ -1,3 +1,13 @@
+## 2026-11-22 — #214 corrigido: takeover concorrente não sobrescreve writer vigente
+
+- SHA de trabalho: `release/v1.0.0` @ `82b90a3b` (base local, sem commit/push); alterações de #214 não commitadas em `internal/control/host/host.go`, `internal/control/host/host_test.go`, `internal/control/web/handler_terminal.go`. Evidências sanitizadas em `/tmp/opencode/gates-20261122/issue214i/` (40 execuções).
+- CAUSA RAIZ (medida) — na corrida de takeover, o `promotion_acquire` do writer **demovido** chegava ao `SessionHost` depois da lease do writer novo e sobrescrevia `activeWriter`, derrubando o input do writer vigente. Correção: ordem broker→host serializada (`terminalLeaseMu`), checagem `broker.IsWriter` antes de promover e **epoch monotônico** no lease; o host rejeita epoch antigo (`lease_stale`), preservando o writer atual.
+- PASS (build/vet) — `go build ./internal/control/...` exit 0; `go vet ./internal/control/host ./internal/control/web` exit 0.
+- PASS (race) — `go test -race -count=1 ./internal/control/host ./internal/control/web` exit 0 (`host` 13,9 s; `web` 108,3 s).
+- PASS (regressão #214, 40 execuções) — `NEXUS_TERMINAL_TRACE=1 go test -race -count=1 ./internal/control/web -run '^TestTerminalHandoffAuthenticatedClientsShareProcessAndPersistIdentity$'` → `fails=0 of 40`; logs por execução em `/tmp/opencode/gates-20261122/issue214i/`.
+- PASS (regressão determinística nova) — `internal/control/host/host_test.go::TestSessionHost_RejectsStaleLeaseEpochFromDemotedWriter`: takeover com epoch mais novo é aceito; frame tardio do writer demovido (epoch antigo), epoch igual de outra conexão e frame sem epoch são rejeitados com `lease_stale`; epoch ativo permanece o do writer vigente.
+- NÃO EXECUTADO — homologação em dois dispositivos físicos (Windows/macOS), ensaio com quota real esgotada e aceite do owner. Release **NO_GO**.
+
 ## 2026-11-22 — Gate 0 tornado autocontido: commit de correção e prova em worktree limpo
 
 - SHA final: `release/v1.0.0` @ `3a31ec50` (`fix(web): make gate 0 remote access commit self-contained`), sobre `b035aa04`. Sem push.
@@ -10,6 +20,7 @@
 - PASS (gate completo isolado) — `make quality` → exit 0 (0 issues, VERSION CONTRACT PASS). O `lint-go` acusou `comando` (pt-BR) como `misspell` em `internal/app/tunnel_cmd.go`; corrigido pela exclusão do arquivo no `misspell`, seguindo o padrão já usado no `.golangci.yml` para copy pt-BR.
 - PASS (E2E isolado) — `npm --prefix web run test:e2e:remote-access` → exit 0 no worktree limpo de `3a31ec50`: dois dispositivos 390px (Chrome Android + Safari iOS) por túnel HTTPS real, pareamento de `controller` e `viewer`, PWA instalável pela origem pública, `viewer` recusado em listagem e mutação sem efeito colateral, revogação isolada e reinício do Nexus medindo a troca de origem no Quick Tunnel.
 - PASS (gate final do HEAD completo) — worktree limpo em `bd17f90e` (`/tmp/opencode/nexus-release-check`): `go build ./...` exit 0; `go test ./internal/control/web/ ./internal/control/originpolicy/ ./internal/app/` exit 0 (`internal/control/web` 79,0 s); `make quality` exit 0 (VERSION CONTRACT PASS). A primeira execução do `make quality` falhou com `could not import ... no such file or directory` em `scripts/sign-update-manifest` — cache compartilhado do Go corrompido, não regressão de código (o diff `3a31ec50..bd17f90e` é só documentação). Reexecução com `GOCACHE=/tmp/opencode/gocache-verify` passou sem tocar no cache compartilhado.
+- PASS (E2E no HEAD final) — `npm --prefix web run test:e2e:remote-access` exit 0 em worktree limpo em `82b90a3b` (HEAD): pareamento de `controller` e `viewer`, PWA instalável pela origem pública, `viewer` recusado em listagem e mutação sem efeito colateral, revogação isolada e reinício medindo a troca de origem no Quick Tunnel. O diff entre `bd17f90e` (gate completo verde) e `82b90a3b` é exclusivamente `DEV/VERIFY.md` e `DEV/WORKLOG.md`, então o gate completo do código vale para o HEAD.
 - NÃO EXECUTADO — Named Tunnel com credencial real; Tailscale com tailnet real; push contra push service real; aparelho físico; SHA publicado. Release **NO_GO**.
 
 ## 2026-11-22 — #214 lease correlation instrumentation
