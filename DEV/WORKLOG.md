@@ -1,3 +1,10 @@
+## 2026-11-22 — Gate 0: gate completo verde no HEAD final `ffafedcd`
+
+- **Gate completo** — worktree limpo em `ffafedcd`: `make quality` → exit 0 (0 issues, Web 153 arquivos / 979 testes, `VERSION CONTRACT PASS`); `node scripts/docs-verify.mjs` → exit 0 (`docs verification passed: 255 Markdown files, 33 required assets/files`).
+- **Achado ambiental** — `internal/app` é byte-idêntico ao commit `bd17f90e` (onde o gate passou). Com o `$HOME` real, dois testes de quota (`TestResolveLaunchProfileFailsClosedOnUnverifiedQuota`, `TestResolveLaunchProfileOverrideAcceptsFallback`) falham por lerem estado local do Codex; com `HOME` isolado passam. Não é regressão do Gate 0, mas torna o gate dependente do ambiente.
+- **Higiene de escopo** — os blocos de documentação do workstream #214 que entraram nos commits `55ebdc5a`/`d7635092`/`b81e63bf` por `git add` de arquivo inteiro foram retirados da árvore commitada (`7347c59c`, `bc1be388`) e permanecem no working tree do outro agente, sem commit.
+- **Pendente com o maestro** — credencial do Named Tunnel (hostname + token) ou a escolha da Opção B (Tailscale); ensaio em aparelho físico e no SHA publicado. Release **NO_GO**.
+
 ## 2026-11-22 — Gate 0: recaptura visual e `docs-verify` verdes no HEAD funcional
 
 - **Recaptura visual** — `npm --prefix web run docs:capture` reexecutado no HEAD limpo; 12 arquivos em `docs/assets/` commitados em `872e8b58` (`docs(visual): recapture synthetic Web evidence for gate 0 UI`), necessária porque o Gate 0 alterou a UI visível (acesso remoto, anúncios, tour, PWA e cliente de API).

@@ -1,3 +1,10 @@
+## 2026-11-22 — Gate 0: gate completo verde no HEAD final e `docs-verify` aprovado
+
+- PASS (gate completo no HEAD final) — worktree limpo em `ffafedcd` (`/tmp/opencode/nexus-quality-final`): `make quality` → exit 0 (Prettier limpo; ESLint 0 erros + 1 warning preexistente em `FlowRunSurface.tsx`; lint Go 0 issues; suíte Go verde; Web 153 arquivos / 979 testes; `VERSION CONTRACT PASS`).
+- PASS (docs-verify no HEAD final) — `node scripts/docs-verify.mjs` → exit 0 (`docs verification passed: 255 Markdown files, 33 required assets/files`) em worktree limpo em `ffafedcd`.
+- ACHADO AMBIENTAL (não é regressão) — `internal/app` é **byte-idêntico** entre `bd17f90e` (gate verde medido antes) e `ffafedcd`; com o `$HOME` real, `TestResolveLaunchProfileFailsClosedOnUnverifiedQuota` e `TestResolveLaunchProfileOverrideAcceptsFallback` falham porque leem o estado local de quota do Codex; com `HOME` isolado os dois passam. O gate completo só é determinístico com `HOME` isolado — registrado aqui para não ser lido como defeito do Gate 0.
+- NÃO EXECUTADO — Named Tunnel com credencial real; Tailscale com tailnet real; push contra push service real; aparelho físico; SHA publicado. Release **NO_GO**.
+
 ## 2026-11-22 — Gate 0: recaptura visual e `docs-verify` no HEAD funcional
 
 - RECAPTURA VISUAL — `npm --prefix web run docs:capture` reexecutado no HEAD limpo; 12 arquivos de `docs/assets/` recapturados e commitados em `872e8b58` (`docs(visual): recapture synthetic Web evidence for gate 0 UI`), porque o Gate 0 alterou a UI visível (`RemoteAccessTab.tsx`, `SettingsSurface.tsx`, `featureAnnouncements.ts`, `featureTourDefinitions.ts`, manifest/PWA e o cliente de API web).
