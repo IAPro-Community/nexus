@@ -1,3 +1,11 @@
+## 2026-11-22 — Gate 0 (acesso remoto) — commit autocontido e verificado isolado
+
+- **Escopo desta fatia**: tornar o Gate 0 compilável e verificável **isoladamente**, sem arrastar mudanças de outros workstreams. Concluído em `release/v1.0.0@3a31ec50` (sobre `b035aa04`), sem push.
+- **Defeito corrigido**: `b035aa04` não compilava sozinho — `server.go`/`routes.go` ficaram de fora, então `handlers_push.go`, `push_attention.go` e `roles_test.go` referenciavam símbolos inexistentes (`s.push`, `s.pushInit`, `s.pushErr`, `s.attentionSource`, `s.pushWatchCancel`, `enforceControl`, `isReadOnlyMethod`) e as rotas `/api/v1/push/{state,subscribe,unsubscribe,test}` e `/api/v1/remote/devices` não existiam; `internal/control/web/private_origin_test.go` ficou untracked. O commit ainda continha mudanças de outro workstream em `internal/app/control_cmd.go` (continuity handoff + terminal input broker).
+- **Correção**: `control_cmd.go`/`control_cmd_test.go` voltam ao pai mantendo apenas o bloco de help do acesso remoto; entram `server.go`, `routes.go`, o hunk `role` de `handlers_api.go`, `private_origin_test.go`, o cliente de API web, o registro do service worker, manifest/metas PWA, o script `test:e2e:remote-access` e a exclusão do `misspell` para o copy pt-BR de `tunnel_cmd.go`.
+- **Aceite cumprido (worktree limpo em `3a31ec50`)**: `go build ./...` exit 0; `go test ./internal/control/web/ ./internal/control/originpolicy/ ./internal/app/` exit 0; `npm --prefix web run typecheck` exit 0; `npm --prefix web run test` 153/975 exit 0; `make quality` exit 0; `npm --prefix web run test:e2e:remote-access` exit 0.
+- **Contrato do Gate 0 permanece**: Opção A (Cloudflare Named Tunnel, `NEXUS_TUNNEL_TOKEN` + `NEXUS_TUNNEL_HOSTNAME`) recomendada; Opção B (Tailscale, `NEXUS_REMOTE_ORIGIN`) para privacidade; Quick Tunnel não serve de base para o PWA (origem muda entre reinícios, defeito medido). O Named Tunnel segue inativo até o maestro fornecer hostname + token. Release **NO_GO**.
+
 ## 2026-11-20 — Continuidade entre as contas: candidato pronto
 
 - Fase local concluída para `release/v1.0.0@6c322427`; árvore modificada, sem commit/push. A importação Codex exige origem parada/quiescente, lock exclusivo no destino, rollout exato e verificação do arquivo/marcador antes do start; erros de preparação acionam rollback. AGY segue bloqueado antes da parada da origem.

@@ -1,3 +1,12 @@
+## 2026-11-22 — Gate 0 tornado autocontido: `3a31ec50` compila e passa os gates isolado
+
+- **Defeito corrigido** — `b035aa04` não compilava isolado (`s.push`, `s.attentionSource`, `enforceControl`, `isReadOnlyMethod` e as rotas de push/dispositivos faltavam) e havia arrastado mudanças de outro workstream em `internal/app/control_cmd.go` (continuity handoff + terminal input broker).
+- **Correção** — novo commit `3a31ec50` na `release/v1.0.0` (sem push): devolve `control_cmd.go`/`control_cmd_test.go` ao pai mantendo só o help do acesso remoto, e adiciona `server.go`, `routes.go`, `handlers_api.go` (papel da sessão), `private_origin_test.go`, o cliente de API web, o registro do service worker, o manifest/metas PWA e o script do E2E.
+- **Prova** — worktree limpo em `3a31ec50`: `go build ./...` exit 0; `go test ./internal/control/web/ ./internal/control/originpolicy/ ./internal/app/` exit 0; `npm --prefix web run typecheck` exit 0; `npm --prefix web run test` 153/975 exit 0; `make quality` exit 0; `npm --prefix web run test:e2e:remote-access` exit 0 (dois dispositivos, viewer recusado, revogação isolada, PWA instalável).
+- **Correção de lint** — `misspell` acusava `comando` (pt-BR) em `internal/app/tunnel_cmd.go`; exclusão adicionada ao `.golangci.yml`, no mesmo padrão já usado para copy pt-BR.
+- **Working tree preservado** — nada dos outros workstreams foi commitado; o staging foi feito via índice (`git apply --cached`), sem tocar nos arquivos modificados alheios.
+- **Pendente com o maestro** — credencial do Named Tunnel (hostname + token) ou a escolha da Opção B (Tailscale); ensaio em aparelho físico e no SHA publicado. Release **NO_GO**.
+
 ## 2026-11-21 — Onda 1b (bis): defeito do coletor no `__control-host` corrigido; failover automático com coletor interno reprovado
 
 - Causa raiz do defeito de 21/11: o `__control-host` é simultaneamente supervisor do provider e executor da continuidade; o handoff para o provider de origem encerra o processo e abortava o handoff em voo. Correção mínima em `internal/app/control_cmd.go` (após `sh.Wait()`, drena o claim de continuidade de sua própria posse via `waitForOwnedContinuityClaim`, timeout 3 min) + `internal/control/launcher/orphan_hosts.go` (runtime com `nexus.continuity_in_flight=true` não é mais host órfão). 2 testes novos em `internal/app/control_cmd_test.go`. Binário de ensaio `/tmp/opencode/nexus-test2` (SHA-256 `996df50c…`).
