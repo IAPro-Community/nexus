@@ -23,6 +23,37 @@ do Nexus.
 | `NEXUS_TERMINAL_TRACE` | não | desativado | grava diagnóstico JSONL sanitizado do caminho de bytes do terminal (xterm/WebSocket/scrubber/SessionHost/PTTY), sem texto bruto de prompt | `NEXUS_TERMINAL_TRACE=1` |
 | `NEXUS_UPDATE_REGISTRY_URL` | não | `https://github.com/IAPro-Community/nexus/releases/download/channel-stable/update-manifest.json` (ou `channel-beta`) | URL completa do manifesto assinado; sobrescreve o default GitHub | `https://updates.example.invalid/manifest.json` |
 | `NEXUS_RELEASE_REPO` | não | `IAPro-Community/nexus` | owner/name do GitHub usado por installers e pelos ponteiros `channel-*` de update | `NEXUS_RELEASE_REPO=acme/fork` |
+| `NEXUS_TUNNEL_HOSTNAME` | não | Quick Tunnel (hostname aleatório) | hostname público estável do Cloudflare Named Tunnel; exige `NEXUS_TUNNEL_TOKEN` | `nexus.exemplo.com` |
+| `NEXUS_TUNNEL_TOKEN` | não | Quick Tunnel (hostname aleatório) | token do Named Tunnel; chega ao `cloudflared` pelo ambiente do processo filho, nunca em argv | `eyJhIjoi…` |
+| `NEXUS_REMOTE_ORIGIN` | não | nenhum | origem privada e estável que o operador compartilha com o aparelho pareado (por exemplo, um nome de tailnet do Tailscale ou um DNS interno servido por proxy confiável); URL absoluta `https://host` | `https://nexus.tail1234.ts.net` |
+
+Com `NEXUS_TUNNEL_TOKEN` e `NEXUS_TUNNEL_HOSTNAME` definidos, o acesso remoto
+sobe um Cloudflare Named Tunnel de hostname fixo; sem eles, usa o Quick Tunnel
+(hostname sorteado a cada início, o que invalida um PWA instalado). O túnel
+nomeado exige **porta local fixa** — `nexus web --port 13000` — porque a regra de
+ingress do dashboard aponta para um `http://localhost:<porta>` específico.
+Detalhe em [acesso remoto](../product/remote-access.md).
+
+`NEXUS_REMOTE_ORIGIN` é a peça da opção privada (Tailscale): um endereço de
+tailnet é um nome, não um IP, e a política de origem exige que o host do
+request seja idêntico à origem do navegador. Publicar a origem abre essa
+porta sem desligar a regra de host exato. Com ela definida, o botão **QR Code**
+do acesso remoto emite convite para esse endereço **sem** subir o túnel do
+Cloudflare — o túnel seria redundante. O botão **Ativar Acesso Remoto** do
+Cloudflare continua disponível e é o caminho da opção pública.
+
+A publicação descreve **um endereço exato**: mesmo esquema, mesmo hostname e
+mesma porta efetiva. Publicar `https://nexus.tail1234.ts.net` não autoriza
+`http://nexus.tail1234.ts.net` nem `https://nexus.tail1234.ts.net:8443` — outra
+porta é outro serviço. Se o proxy TLS usa uma porta própria, publique a
+origem com essa porta (`https://nexus.tail1234.ts.net:8443`).
+
+A publicação também é o que autoriza um proxy confiável que reescreve o
+`Host` do request (`tailscale serve` e equivalentes): nesse caso o `Origin` do
+navegador é o endereço publicado, enquanto o `Host` recebido é o serviço
+local. A regra de host exato continua valendo em todos os outros casos, e um
+request que chegue por interface pública não é coberto por uma publicação
+privada.
 
 As variáveis `OPENAI_API_KEY`, `DEEPSEEK_API_KEY` e equivalentes são lidas
 somente quando você configura um provider de inteligência correspondente. Nunca

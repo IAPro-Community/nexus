@@ -340,6 +340,15 @@ export const en = {
       stop: 'Stop Tunnel',
       stopping: 'Stopping…',
       active: 'Tunnel Active',
+      stableUrl: 'Stable URL',
+      stableUrlHint:
+        'This public address keeps the same after a restart, so an installed app on the phone stays valid.',
+      ephemeralUrl: 'Temporary URL',
+      ephemeralUrlHint:
+        'This address changes on every restart, so an installed app on the phone breaks. Configure a named tunnel for a stable URL.',
+      privateUrl: 'Private URL',
+      privateUrlHint:
+        'This address is served on your private network, so it stays the same and the app installed on the phone keeps working. The Cloudflare tunnel is not needed in this mode.',
       mobileQR: 'QR Code for Mobile',
       hideQR: 'Hide QR Code',
       refresh: 'Refresh tunnel status',
@@ -364,11 +373,48 @@ export const en = {
         'Data and settings remain on this computer.',
       ],
       statusVersion: 'Cloudflare tunnel v{{version}}',
+      role: {
+        legend: 'Permission for the next invitation',
+        viewer: 'Read only (recommended)',
+        controller: 'Full control (runs commands)',
+        consent: 'I confirm this device may run commands and change the workspace.',
+      },
+      viewerWarning:
+        'This invitation is read-only: the paired device cannot run commands or change the workspace.',
+      fullControlWarning:
+        'This invitation grants full access to the workspace. Share it only with someone you trust.',
+      devices: {
+        title: 'Paired devices',
+        subtitle: 'Revoke one device without ending the other sessions.',
+        empty: 'No paired device right now.',
+        lastSeen: 'last seen {{when}}',
+        revoke: 'Revoke',
+        revoking: 'Revoking…',
+        revokeError: 'Could not revoke the device.',
+        hostOnly: 'Only the main Nexus device can list and revoke paired devices.',
+      },
+      push: {
+        title: 'Phone notifications',
+        subtitle:
+          'Get alerts even when Nexus is closed on the device. The payload is encrypted end to end by Web Push.',
+        enable: 'Enable notifications',
+        disable: 'Disable notifications',
+        test: 'Send test',
+        enabled: 'Notifications enabled on this device.',
+        disabled: 'Notifications disabled on this device.',
+        blocked: 'Permission denied. Allow notifications in the browser settings.',
+        unsupported: 'This browser does not expose background notifications.',
+        unavailable: 'The notification service is not available on this host.',
+        noSubscribers: 'No device is subscribed to receive notifications.',
+        testSent: 'Test sent to {{count}} device(s).',
+        error: 'Could not change notifications.',
+      },
       errors: {
         status: 'Failed to check tunnel status',
         start: 'Failed to start tunnel',
         stop: 'Failed to stop tunnel',
         qr: 'Failed to load QR code',
+        consentRequired: 'Confirm full access before generating a controller invitation.',
       },
     },
   },
@@ -1295,6 +1341,15 @@ export const en = {
     focusQueueTitle: 'One prioritized queue of pending work',
     focusQueueBody:
       'The focus queue orders everything that needs you by severity and wait time. Answered episodes never reopen, and repeated alerts collapse into one row.',
+    remoteStableUrlTitle: 'Know whether the public address survives a restart',
+    remoteStableUrlBody:
+      'The remote access card now tells you if the public address is stable or temporary. A temporary address changes on every restart, which breaks an app installed on the phone. A private address, served on your own network, is stable and needs no tunnel.',
+    remoteRoleTitle: 'Scoped remote invitations',
+    remoteRoleBody:
+      'Remote access now issues a read-only invitation by default. Full control requires an explicit consent, and each paired device can be revoked on its own.',
+    remotePushTitle: 'Phone notifications for pending work',
+    remotePushBody:
+      'Turn on Web Push and this phone is alerted the moment a run needs your answer, even with Nexus closed. The payload is encrypted for the device that subscribed.',
   },
   tour: {
     featureOpen: 'Explore this area',
@@ -1328,6 +1383,15 @@ export const en = {
     focusQueueTitle: 'Work through the focus queue',
     focusQueueBody:
       'Rows are ordered by severity, then by wait time. Clicking a row opens that exact runtime; answered rows leave the queue.',
+    remoteStableUrlTitle: 'Stable or temporary public address',
+    remoteStableUrlBody:
+      'This card shows the public address and whether it survives a restart. A temporary address breaks the app installed on the phone, so configure a named tunnel for a stable one. A private address, served on your own network, is stable and needs no tunnel.',
+    remoteRoleTitle: 'Choose what a paired device may do',
+    remoteRoleBody:
+      'Read only lets the device observe the workspace. Full control runs commands and changes files, so it asks for a consent first. Each device is revoked individually.',
+    remotePushTitle: 'Be alerted when a run needs you',
+    remotePushBody:
+      'Enable notifications and this device is woken as soon as a mission reaches a question for you. The alert carries only the question, and the message is encrypted for this device.',
     composerPurposeTitle: 'What Composer does',
     composerPurposeBody:
       'Composer turns an idea or an existing project into a revisable plan. It does not execute code just by opening a session.',
@@ -3283,6 +3347,15 @@ export const ptBR = {
       stop: 'Parar Tunnel',
       stopping: 'Parando…',
       active: 'Tunnel Ativo',
+      stableUrl: 'URL Estável',
+      stableUrlHint:
+        'Este endereço público permanece o mesmo após reiniciar, então um app instalado no celular continua válido.',
+      ephemeralUrl: 'URL Temporária',
+      ephemeralUrlHint:
+        'Este endereço muda a cada reinício, então um app instalado no celular quebra. Configure um túnel nomeado para uma URL estável.',
+      privateUrl: 'URL Privada',
+      privateUrlHint:
+        'Este endereço é servido na sua rede privada, então permanece o mesmo e o app instalado no celular continua funcionando. O túnel do Cloudflare não é necessário neste modo.',
       mobileQR: 'QR Code para Mobile',
       hideQR: 'Ocultar QR Code',
       refresh: 'Atualizar status do tunnel',
@@ -3307,11 +3380,49 @@ export const ptBR = {
         'Dados e configurações permanecem neste computador.',
       ],
       statusVersion: 'Cloudflare tunnel v{{version}}',
+      role: {
+        legend: 'Permissão do próximo convite',
+        viewer: 'Somente leitura (recomendado)',
+        controller: 'Controle completo (executa comandos)',
+        consent: 'Confirmo que este dispositivo pode executar comandos e alterar o workspace.',
+      },
+      viewerWarning:
+        'Este convite é somente leitura: o dispositivo pareado não pode executar comandos nem alterar o workspace.',
+      fullControlWarning:
+        'Este convite concede acesso completo ao workspace. Compartilhe somente com alguém de confiança.',
+      devices: {
+        title: 'Dispositivos pareados',
+        subtitle: 'Revogue um dispositivo sem encerrar as outras sessões.',
+        empty: 'Nenhum dispositivo pareado no momento.',
+        lastSeen: 'visto em {{when}}',
+        revoke: 'Revogar',
+        revoking: 'Revogando…',
+        revokeError: 'Não foi possível revogar o dispositivo.',
+        hostOnly:
+          'Somente o dispositivo principal do Nexus pode listar e revogar dispositivos pareados.',
+      },
+      push: {
+        title: 'Notificações no celular',
+        subtitle:
+          'Receba alertas mesmo com o Nexus fechado no aparelho. O conteúdo é cifrado ponta a ponta pela Web Push.',
+        enable: 'Ativar notificações',
+        disable: 'Desativar notificações',
+        test: 'Enviar teste',
+        enabled: 'Notificações ativadas neste dispositivo.',
+        disabled: 'Notificações desativadas neste dispositivo.',
+        blocked: 'Permissão negada. Autorize notificações nas configurações do navegador.',
+        unsupported: 'Este navegador não expõe notificações em segundo plano.',
+        unavailable: 'O serviço de notificações não está disponível neste host.',
+        noSubscribers: 'Nenhum dispositivo inscrito para receber notificações.',
+        testSent: 'Teste enviado para {{count}} dispositivo(s).',
+        error: 'Não foi possível alterar as notificações.',
+      },
       errors: {
         status: 'Falha ao verificar o status do tunnel',
         start: 'Falha ao iniciar o tunnel',
         stop: 'Falha ao parar o tunnel',
         qr: 'Falha ao carregar o QR Code',
+        consentRequired: 'Confirme o acesso completo antes de gerar um convite de controle.',
       },
     },
   },
@@ -4242,6 +4353,15 @@ export const ptBR = {
     focusQueueTitle: 'Uma fila priorizada de pendências',
     focusQueueBody:
       'A fila de pendências ordena tudo que precisa de você por severidade e tempo de espera. Episódios respondidos não reabrem e alertas repetidos viram uma única linha.',
+    remoteStableUrlTitle: 'Veja se o endereço público sobrevive a um reinício',
+    remoteStableUrlBody:
+      'O cartão de acesso remoto agora informa se o endereço público é estável ou temporário. Um endereço temporário muda a cada reinício, o que quebra um app instalado no celular. Um endereço privado, servido na sua própria rede, é estável e não precisa de túnel.',
+    remoteRoleTitle: 'Convites remotos com escopo definido',
+    remoteRoleBody:
+      'O acesso remoto agora emite um convite somente leitura por padrão. O controle completo exige consentimento explícito, e cada dispositivo pareado pode ser revogado individualmente.',
+    remotePushTitle: 'Notificações no celular para o que depende de você',
+    remotePushBody:
+      'Ative as notificações e este aparelho é avisado no instante em que uma execução precisa de uma resposta, mesmo com o Nexus fechado. O payload é cifrado para o aparelho que se inscreveu.',
   },
   tour: {
     featureOpen: 'Conhecer esta área',
@@ -4275,6 +4395,15 @@ export const ptBR = {
     focusQueueTitle: 'Trabalhe pela fila de pendências',
     focusQueueBody:
       'As linhas são ordenadas por severidade e depois por tempo de espera. Clicar em uma linha abre o runtime exato; linhas respondidas saem da fila.',
+    remoteStableUrlTitle: 'Endereço público estável ou temporário',
+    remoteStableUrlBody:
+      'Este cartão mostra o endereço público e se ele sobrevive a um reinício. Um endereço temporário quebra o app instalado no celular, então configure um túnel nomeado para ter um endereço estável. Um endereço privado, servido na sua própria rede, é estável e não precisa de túnel.',
+    remoteRoleTitle: 'Defina o que um dispositivo pareado pode fazer',
+    remoteRoleBody:
+      'Somente leitura permite apenas observar o workspace. O controle completo executa comandos e altera arquivos, por isso exige consentimento. Cada dispositivo é revogado individualmente.',
+    remotePushTitle: 'Seja avisado quando uma execução precisar de você',
+    remotePushBody:
+      'Ative as notificações e este aparelho é despertado assim que uma missão chega a uma pergunta para você. O alerta carrega apenas a pergunta, e a mensagem é cifrada para este aparelho.',
     composerPurposeTitle: 'Para que serve o Composer',
     composerPurposeBody:
       'O Composer transforma uma ideia ou projeto existente em um planejamento revisável. Abrir uma elaboração não executa código.',
@@ -6247,6 +6376,15 @@ export const es = {
       stop: 'Detener túnel',
       stopping: 'Deteniendo…',
       active: 'Túnel activo',
+      stableUrl: 'URL estable',
+      stableUrlHint:
+        'Esta dirección pública se mantiene tras reiniciar, así una app instalada en el móvil sigue siendo válida.',
+      ephemeralUrl: 'URL temporal',
+      ephemeralUrlHint:
+        'Esta dirección cambia en cada reinicio, así una app instalada en el móvil se rompe. Configure un túnel con nombre para una URL estable.',
+      privateUrl: 'URL privada',
+      privateUrlHint:
+        'Esta dirección se sirve en tu red privada, así que se mantiene y la app instalada en el móvil sigue funcionando. El túnel de Cloudflare no hace falta en este modo.',
       mobileQR: 'Código QR para móvil',
       hideQR: 'Ocultar código QR',
       refresh: 'Actualizar estado del túnel',
@@ -6272,11 +6410,49 @@ export const es = {
         'Los datos y la configuración permanecen en este equipo.',
       ],
       statusVersion: 'Túnel de Cloudflare v{{version}}',
+      role: {
+        legend: 'Permiso de la próxima invitación',
+        viewer: 'Solo lectura (recomendado)',
+        controller: 'Control total (ejecuta comandos)',
+        consent: 'Confirmo que este dispositivo puede ejecutar comandos y modificar el workspace.',
+      },
+      viewerWarning:
+        'Esta invitación es de solo lectura: el dispositivo emparejado no puede ejecutar comandos ni modificar el workspace.',
+      fullControlWarning:
+        'Esta invitación concede acceso completo al workspace. Compártala solo con alguien de confianza.',
+      devices: {
+        title: 'Dispositivos emparejados',
+        subtitle: 'Revoque un dispositivo sin cerrar las demás sesiones.',
+        empty: 'Ningún dispositivo emparejado en este momento.',
+        lastSeen: 'visto {{when}}',
+        revoke: 'Revocar',
+        revoking: 'Revocando…',
+        revokeError: 'No se pudo revocar el dispositivo.',
+        hostOnly:
+          'Solo el dispositivo principal de Nexus puede listar y revocar dispositivos emparejados.',
+      },
+      push: {
+        title: 'Notificaciones en el móvil',
+        subtitle:
+          'Recibe alertas incluso con Nexus cerrado en el dispositivo. El contenido se cifra de extremo a extremo con Web Push.',
+        enable: 'Activar notificaciones',
+        disable: 'Desactivar notificaciones',
+        test: 'Enviar prueba',
+        enabled: 'Notificaciones activadas en este dispositivo.',
+        disabled: 'Notificaciones desactivadas en este dispositivo.',
+        blocked: 'Permiso denegado. Autoriza las notificaciones en el navegador.',
+        unsupported: 'Este navegador no expone notificaciones en segundo plano.',
+        unavailable: 'El servicio de notificaciones no está disponible en este host.',
+        noSubscribers: 'Ningún dispositivo está suscrito a las notificaciones.',
+        testSent: 'Prueba enviada a {{count}} dispositivo(s).',
+        error: 'No se pudieron cambiar las notificaciones.',
+      },
       errors: {
         status: 'No se pudo comprobar el estado del túnel',
         start: 'No se pudo iniciar el túnel',
         stop: 'No se pudo detener el túnel',
         qr: 'No se pudo cargar el código QR',
+        consentRequired: 'Confirme el acceso total antes de generar una invitación de control.',
       },
     },
   },
@@ -7205,6 +7381,15 @@ export const es = {
     focusQueueTitle: 'Una cola priorizada de pendientes',
     focusQueueBody:
       'La cola de pendientes ordena todo lo que te necesita por severidad y tiempo de espera. Los episodios respondidos no se reabren y las alertas repetidas se convierten en una sola fila.',
+    remoteStableUrlTitle: 'Sepa si la dirección pública sobrevive a un reinicio',
+    remoteStableUrlBody:
+      'La tarjeta de acceso remoto ahora indica si la dirección pública es estable o temporal. Una dirección temporal cambia en cada reinicio, lo que rompe una app instalada en el móvil. Una dirección privada, servida en tu propia red, es estable y no necesita túnel.',
+    remoteRoleTitle: 'Invitaciones remotas con alcance definido',
+    remoteRoleBody:
+      'El acceso remoto ahora emite por defecto una invitación de solo lectura. El control total exige un consentimiento explícito y cada dispositivo emparejado se revoca por separado.',
+    remotePushTitle: 'Notificaciones en el móvil para lo que depende de ti',
+    remotePushBody:
+      'Activa las notificaciones y este dispositivo recibe el aviso en el instante en que una ejecución necesita una respuesta, incluso con Nexus cerrado. El payload va cifrado para el dispositivo que se suscribió.',
   },
   tour: {
     featureOpen: 'Conocer esta área',
@@ -7238,6 +7423,15 @@ export const es = {
     focusQueueTitle: 'Trabaje con la cola de pendientes',
     focusQueueBody:
       'Las filas se ordenan por severidad y luego por tiempo de espera. Al hacer clic se abre el runtime exacto; las filas respondidas salen de la cola.',
+    remoteStableUrlTitle: 'Dirección pública estable o temporal',
+    remoteStableUrlBody:
+      'Esta tarjeta muestra la dirección pública y si sobrevive a un reinicio. Una dirección temporal rompe la app instalada en el móvil, así que configura un túnel con nombre para tener una dirección estable. Una dirección privada, servida en tu propia red, es estable y no necesita túnel.',
+    remoteRoleTitle: 'Define qué puede hacer un dispositivo emparejado',
+    remoteRoleBody:
+      'Solo lectura permite observar el workspace. El control total ejecuta comandos y modifica archivos, por eso pide consentimiento. Cada dispositivo se revoca de forma individual.',
+    remotePushTitle: 'Recibe un aviso cuando una ejecución te necesite',
+    remotePushBody:
+      'Activa las notificaciones y este dispositivo se despierta en cuanto una misión llega a una pregunta para ti. El aviso lleva solo la pregunta, y el mensaje va cifrado para este dispositivo.',
     composerPurposeTitle: 'Para qué sirve Composer',
     composerPurposeBody:
       'Composer convierte una idea o proyecto existente en un plan revisable. Abrir una elaboración no ejecuta código.',

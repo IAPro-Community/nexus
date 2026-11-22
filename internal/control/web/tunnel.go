@@ -414,24 +414,188 @@ func waitForTunnelReady(ctx context.Context, tunnelURL string) error {
 		},
 	}
 
+	// The last observed failure is reported so the operator can tell a
+	// misconfigured ingress (5xx from the edge) from a missing DNS record
+	// (no resolution at all).
+	lastStatus := 0
+	lastErr := "no response yet"
+
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return fmt.Errorf("tunnel readiness timeout (last status %d: %s): %w", lastStatus, lastErr, ctx.Err())
 		case <-ticker.C:
 			// Check DNS resolution via external resolver
 			ips, err := resolver.LookupHost(ctx, hostname)
 			if err != nil || len(ips) == 0 {
+				lastStatus = 0
+				lastErr = "hostname does not resolve"
 				continue
 			}
 			// DNS resolved, now try HTTP
 			resp, err := client.Get(tunnelURL)
-			if err == nil {
-				resp.Body.Close()
-				return nil
+			if err != nil {
+				lastStatus = 0
+				lastErr = err.Error()
+				continue
 			}
+			resp.Body.Close()
+			lastStatus = resp.StatusCode
+			if !tunnelResponseReady(resp.StatusCode) {
+				lastErr = "edge returned an error status"
+				continue
+			}
+			return nil
 		}
 	}
+}
+
+// tunnelResponseReady reports whether the edge answered with something that
+// proves the origin is reachable. Cloudflare answers 502/530 when the tunnel
+// has no working ingress, and 1033 when the tunnel is unknown to the edge:
+// those are failures, not readiness. Any non-5xx answer proves the request
+// reached the origin through the tunnel, which is what readiness means
+// here (the SPA answers 200 and unknown paths answer 404).
+func tunnelResponseReady(status int) bool {
+	return status > 0 && status < http.StatusInternalServerError
+}
+
+const (
+	tunnelTokenEnv    = "NEXUS_TUNNEL_TOKEN"
+	tunnelHostnameEnv = "NEXUS_TUNNEL_HOSTNAME"
+)
+
+// NamedTunnelConfig describes a Cloudflare Named Tunnel: a stable public
+// hostname backed by a token minted in the Cloudflare dashboard. The hostname
+// is what makes a paired phone's PWA survive restarts.
+type NamedTunnelConfig struct {
+	Hostname string
+	Token    string
+}
+
+// NamedTunnelConfigFromEnv reads the optional named-tunnel configuration.
+// Absent or partial configuration falls back to the Quick Tunnel.
+func NamedTunnelConfigFromEnv() (NamedTunnelConfig, bool) {
+	token := strings.TrimSpace(os.Getenv(tunnelTokenEnv))
+	host := strings.TrimSpace(os.Getenv(tunnelHostnameEnv))
+	if token == "" || host == "" {
+		return NamedTunnelConfig{}, false
+	}
+	return NamedTunnelConfig{Hostname: host, Token: token}, true
+}
+
+// StartNamedTunnel launches a Cloudflare Named Tunnel serving a stable
+// hostname. The token is handed to cloudflared through the environment so it
+// never appears in argv or logs.
+//
+// A named tunnel does not carry its own ingress rules: when cloudflared runs
+// with a token it applies the ingress configured in the Cloudflare dashboard,
+// which points at a fixed http://localhost:<port>. The local port therefore
+// has to be stable across restarts, and an ephemeral port (0) can never be
+// targeted by the dashboard rule.
+func StartNamedTunnel(ctx context.Context, localPort int, hostname, token string) (*Tunnel, error) {
+	hostname = strings.TrimSpace(strings.ToLower(hostname))
+	if hostname == "" || strings.ContainsAny(hostname, "/ \t\r\n") {
+		return nil, fmt.Errorf("invalid tunnel hostname")
+	}
+	if strings.TrimSpace(token) == "" {
+		return nil, fmt.Errorf("missing tunnel token")
+	}
+	if localPort <= 0 || localPort > 65535 {
+		return nil, fmt.Errorf(
+			"named tunnel requires a fixed local port (got %d): the Cloudflare ingress rule points at a fixed http://localhost:<port>, so the Nexus must not run on an ephemeral port",
+			localPort,
+		)
+	}
+	binPath, err := EnsureCloudflared(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	tunnelCtx, cancel := context.WithCancel(context.Background())
+	cmd, publicURL := namedTunnelCommand(tunnelCtx, binPath, hostname, token)
+
+	tunnel := &Tunnel{
+		URL:    publicURL,
+		cmd:    cmd,
+		cancel: cancel,
+	}
+
+	if err := cmd.Start(); err != nil {
+		cancel()
+		return nil, fmt.Errorf("failed to start cloudflared: %w", err)
+	}
+
+	exitCh := make(chan error, 1)
+	go func() { exitCh <- cmd.Wait() }()
+
+	select {
+	case waitErr := <-exitCh:
+		cancel()
+		if waitErr == nil {
+			return nil, fmt.Errorf("cloudflared exited during startup")
+		}
+		return nil, fmt.Errorf("cloudflared exited during startup: %w", waitErr)
+	case <-time.After(2 * time.Second):
+	case <-ctx.Done():
+		cancel()
+		_ = cmd.Process.Kill()
+		return nil, ctx.Err()
+	}
+
+	go func() {
+		<-exitCh
+		tunnel.mu.Lock()
+		already := tunnel.stopped
+		tunnel.stopped = true
+		onExit := tunnel.OnExit
+		tunnel.mu.Unlock()
+		if !already && onExit != nil {
+			onExit()
+		}
+	}()
+
+	return tunnel, nil
+}
+
+// The tunnel starters are indirected so the transport selection can be
+// exercised without a Cloudflare account or a cloudflared download.
+var (
+	startNamedTunnel = StartNamedTunnel
+	startQuickTunnel = StartTunnel
+)
+
+// startConfiguredTunnel selects the transport for a tunnel start: a Named
+// Tunnel when the stable-URL configuration is present, otherwise the Quick
+// Tunnel. The decision is extracted so it can be exercised with a stub
+// cloudflared instead of a real Cloudflare account.
+func startConfiguredTunnel(ctx context.Context, localPort int) (*Tunnel, error) {
+	if named, ok := NamedTunnelConfigFromEnv(); ok {
+		return startNamedTunnel(ctx, localPort, named.Hostname, named.Token)
+	}
+	return startQuickTunnel(ctx, localPort)
+}
+
+// StartConfiguredTunnel starts the transport selected by the environment:
+// the Named Tunnel when NEXUS_TUNNEL_TOKEN and NEXUS_TUNNEL_HOSTNAME are
+// present, the Quick Tunnel otherwise. Every entry point that opens a public
+// tunnel must use it, otherwise the CLI would silently ignore the stable-URL
+// configuration and hand out a random hostname that breaks the installed app.
+func StartConfiguredTunnel(ctx context.Context, localPort int) (*Tunnel, error) {
+	return startConfiguredTunnel(ctx, localPort)
+}
+
+// namedTunnelCommand builds the cloudflared invocation of a named tunnel and
+// the public URL it serves. The tunnel token travels in the child environment
+// (TUNNEL_TOKEN) and never in argv: any local process can read the command
+// line of another process, so a token in argv would be a credential leak.
+// The public URL is derived from the configured hostname, which is what makes
+// the origin stable across restarts.
+func namedTunnelCommand(ctx context.Context, binPath, hostname, token string) (*exec.Cmd, string) {
+	cmd := exec.CommandContext(ctx, binPath, "tunnel", "--no-autoupdate", "run")
+	cmd.Env = append(os.Environ(), "TUNNEL_TOKEN="+strings.TrimSpace(token))
+	executil.HideConsoleWindow(cmd)
+	return cmd, "https://" + hostname
 }
 
 // StartTunnel launches a Cloudflare Quick Tunnel pointing to the given local port.

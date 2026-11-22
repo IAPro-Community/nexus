@@ -47,3 +47,25 @@
   line-height: 1.5;
   margin: 0;
 }
+
+/* Handset pass (390px): the pairing form must own the full width and the input
+   stays at ≥16px so mobile Safari does not zoom on focus. */
+@media (max-width: 420px) {
+  .form {
+    max-width: 100%;
+    gap: var(--nx-space-3);
+  }
+
+  .input {
+    font-size: 1.125rem;
+    letter-spacing: 0.12em;
+    padding: var(--nx-space-3);
+    text-align: center;
+  }
+
+  .form :global(.nx-button) {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+}

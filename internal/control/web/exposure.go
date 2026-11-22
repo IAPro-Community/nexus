@@ -1,6 +1,10 @@
 package web
 
-import "time"
+import (
+	"time"
+
+	"github.com/IAPro-Community/nexus/internal/control/originpolicy"
+)
 
 // ExposureMode describes the effective reachability of the Control API.
 // Bind address alone is insufficient: a loopback socket behind Cloudflare
@@ -33,7 +37,7 @@ func (a *AuthManager) effectiveExposureLocked() ExposureMode {
 	if a.tunnelActive {
 		return ExposurePublicRemote
 	}
-	if a.isLoopbackListen() {
+	if a.isLoopbackListen() && !originpolicy.RemoteOriginConfigured() {
 		return ExposureLoopback
 	}
 	return ExposurePrivateNetwork

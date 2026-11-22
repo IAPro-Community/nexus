@@ -1,3 +1,11 @@
+## Continuidade e finalização — 2026-11-20
+
+- Acesso remoto (Gate 0): o fluxo completo está implementado e o E2E de dois dispositivos em túnel público real está verde (`npm --prefix web run test:e2e:remote-access`). **As duas opções do Gate 0 estão implementadas e verdes**: (A) Named Tunnel por `NEXUS_TUNNEL_TOKEN`+`NEXUS_TUNNEL_HOSTNAME` — cobertura unitária em `internal/control/web/tunnel_named_test.go`; (B) origem privada por `NEXUS_REMOTE_ORIGIN` (tailnet do Tailscale ou DNS interno), que emite convite para esse endereço sem subir o túnel — cobertura em `internal/control/web/private_origin_test.go`. O defeito da origem instável foi medido em execução (a origem muda entre reinícios no Quick Tunnel). Documentos: [ADR da URL estável](../docs/architecture/ADR-remote-access-stable-url.md) e [produto](../docs/product/remote-access.md). A ativação de qualquer uma das opções aguarda a credencial do maestro.
+
+- [Plano de finalização Nexus e Maestro](SPECS/RELEASE_FINALIZATION_PLAN.md) — roteiro para validar troca Codex entre contas, pausa do maestro, P0s, homologação e critérios até GO.
+- Checkpoint 2026-11-20: gate final passou e o candidato isolado com importação exata foi atualizado (SHA `38a91826…`); OAuth, identidade distinta, quota e ensaios reais permanecem pendentes. Ver [ACTIVE](SPECS/ACTIVE.md), [HANDOFF](HANDOFF.md), [VERIFY](VERIFY.md) e [plano](SPECS/RELEASE_FINALIZATION_PLAN.md).
+- [Handoff](HANDOFF.md) · [Verificação](VERIFY.md) · [Escopo ativo](SPECS/ACTIVE.md).
+
 ## Estado corrente — 2026-11-14 (release/v1.0.0)
 
 - Handoff corrente: [HANDOFF.md](HANDOFF.md) · validação do dia: [VERIFY.md](VERIFY.md) · recuperação de infra CI/docs: [RUNBOOK.md](RUNBOOK.md) · histórico: [WORKLOG.md](WORKLOG.md) · contrato ativo: [SPECS/ACTIVE.md](SPECS/ACTIVE.md).

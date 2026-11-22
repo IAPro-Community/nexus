@@ -115,7 +115,7 @@ SUBCOMMANDS:
   status <runtime-id> [--json]  Display runtime details
   attach <runtime-id>           Connect terminal to running session
   stop <runtime-id>             Gracefully stop a runtime
-  handoff <runtime-id> <provider:profile>
+  handoff <runtime-id> <provider:profile> [--no-attach]
                                 Same-provider account handoff
   continue <runtime-id> --with <provider[:profile]>
                                 Cross-provider context handoff
@@ -280,6 +280,20 @@ FLAGS:
       --no-open         Do not open a browser automatically
       --remote          Enable remote access mode
   -h, --help            Show this help message
+
+ACESSO REMOTO:
+  NEXUS_TUNNEL_TOKEN + NEXUS_TUNNEL_HOSTNAME
+    Sobem um Cloudflare Named Tunnel e publicam um hostname fixo, o mesmo a
+    cada execução. É o que mantém válido um app instalado no celular. A porta
+    local precisa ser fixa, porque a regra de ingress do dashboard aponta para
+    um http://localhost:<porta> específico.
+
+  NEXUS_REMOTE_ORIGIN
+    Publica um endereço privado e estável (um nome de tailnet do Tailscale ou
+    um DNS interno servido por proxy confiável), por exemplo
+    https://nexus.tail1234.ts.net. Nesse modo o Nexus emite o convite de
+    pareamento para esse endereço sem subir o túnel do Cloudflare. A
+    publicação descreve um endereço exato: mesmo esquema, hostname e porta.
 `, progName(), web.DefaultPort)
 }
 
@@ -397,7 +411,48 @@ func controlHostCmd(args []string) error {
 	}()
 
 	sh.Wait()
+
+	// A continuity handoff stops the provider process this host supervises.
+	// Exiting on provider exit would kill the in-flight handoff before it can
+	// publish the successor runtime. Stay alive as the continuity executor
+	// until the claim owned by this process settles.
+	waitForOwnedContinuityClaim(reg, runtimeID)
 	return nil
+}
+
+// continuityHostDrainTimeout bounds how long a host waits for an in-flight
+// continuity claim it owns before giving up and letting the handoff die with
+// the process.
+const continuityHostDrainTimeout = 3 * time.Minute
+
+// waitForOwnedContinuityClaim blocks while this process owns an in-flight
+// continuity claim for the runtime it supervises. A claim owned by another
+// process (attach CLI, web core) is left to that owner.
+func waitForOwnedContinuityClaim(reg *registry.Registry, runtimeID string) {
+	waitForOwnedContinuityClaimUntil(reg, runtimeID, time.Now().Add(continuityHostDrainTimeout))
+}
+
+func waitForOwnedContinuityClaimUntil(reg *registry.Registry, runtimeID string, deadline time.Time) {
+	if reg == nil || runtimeID == "" {
+		return
+	}
+	for {
+		session, ok := reg.Get(runtimeID)
+		if !ok || session.Labels == nil {
+			return
+		}
+		if session.Labels[registry.ContinuityInFlightLabel] != "true" {
+			return
+		}
+		ownerPID, err := strconv.Atoi(session.Labels[registry.ContinuityOwnerPIDLabel])
+		if err != nil || ownerPID <= 0 || ownerPID != os.Getpid() {
+			return
+		}
+		if !time.Now().Before(deadline) {
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 }
 
 func controlStartCmd(args []string) error {
@@ -585,26 +640,29 @@ func attachRuntime(runtimeID string) error {
 //     once;
 //   - programmatic prompt delivery (input != nil) targets exactly one runtime
 //     generation and never follows.
-func attachRuntimeWithInput(runtimeID string, input func(io.Writer) error) error {
+func attachRuntimeWithInput(runtimeID string, input func(io.Writer, io.Reader) error) error {
+	broker := newTerminalInputBroker(os.Stdin)
+	followCtx, stopFollow := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stopFollow()
 	for hop := 0; ; hop++ {
-		err := attachRuntimeOnce(runtimeID, input)
+		err := attachRuntimeOnce(runtimeID, input, broker)
 		if err != nil {
 			return err
 		}
 		if hop == 0 && input != nil {
 			return nil
 		}
-		next, ok := waitForContinuityReplacementReg(registry.DefaultRegistry(), runtimeID, "")
+		next, ok := waitForContinuityReplacementRegContext(followCtx, registry.DefaultRegistry(), runtimeID, "")
 		if !ok {
 			return nil
 		}
-		fmt.Fprintf(os.Stderr, "\r\n[nexus] Continuidade: sessão migrada para %s (%s:%s). Reanexando…\r\n", next.RuntimeID, next.ProviderID, next.ProfileID)
+		announceContinuityReplacement(runtimeID, next)
 		runtimeID = next.RuntimeID
 		input = nil
 	}
 }
 
-func attachRuntimeOnce(runtimeID string, input func(io.Writer) error) error {
+func attachRuntimeOnce(runtimeID string, input func(io.Writer, io.Reader) error, broker *terminalInputBroker) error {
 	// No compatibility gate here (retired with the maximus sync): the runtime
 	// handshake below (generation/PID check) is the fail-closed attach
 	// authority. Unknown IDs still fail fast with a recreate hint.
@@ -627,7 +685,9 @@ func attachRuntimeOnce(runtimeID string, input func(io.Writer) error) error {
 		return err
 	}
 	defer func() { _ = tty.Restore() }()
-
+	if broker == nil {
+		broker = newTerminalInputBroker(os.Stdin)
+	}
 	client, err := protocol.NewClient(runtimeID)
 	if err != nil {
 		return fmt.Errorf("failed to attach to runtime %q: %w", runtimeID, err)
@@ -733,15 +793,21 @@ func attachRuntimeOnce(runtimeID string, input func(io.Writer) error) error {
 		errChan <- copyErr
 	}()
 
-	// 5. Stream user stdin to runtime host
+	// 5. Stream the single broker-owned stdin reader to this runtime generation.
+	inputRoute, stopInputRoute := broker.attach()
+	defer stopInputRoute()
+	// Do not drain piped stdin before the initial generation has an input
+	// route. Later attach gaps remain intentionally lossy because the single
+	// reader continues running while no generation owns input.
+	broker.start()
+	stdinTrace := nexusruntime.NewTerminalTracingWriter(nil, runtimeID, "cli.stdin")
+	inputReader := io.TeeReader(inputRoute, stdinTrace)
 	go func() {
-		defer rawConn.Close()
 		if input != nil {
-			errChan <- input(inputStream)
+			errChan <- input(inputStream, inputReader)
 			return
 		}
-		stdin := io.TeeReader(os.Stdin, nexusruntime.NewTerminalTracingWriter(nil, runtimeID, "cli.stdin"))
-		_, copyErr := io.Copy(inputStream, stdin)
+		_, copyErr := io.Copy(inputStream, inputReader)
 		errChan <- copyErr
 	}()
 
@@ -757,47 +823,87 @@ func attachRuntimeOnce(runtimeID string, input func(io.Writer) error) error {
 // prompt lines pass through the promotion policy; control sequences and
 // bracketed paste are never interpreted as prompt text.
 func attachInteractiveLeadRuntime(runtimeID string, n *nexus.Nexus, session registry.RuntimeSession, agentID string) error {
+	if n == nil || session.ProjectID == "" || agentID == "" {
+		return attachRuntime(runtimeID)
+	}
 	currentID := runtimeID
 	current := session
+	firstGeneration := true
+	inputBroker := newTerminalInputBroker(os.Stdin)
+	followCtx, stopFollow := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stopFollow()
 	for {
-		err := attachInteractiveLeadRuntimeOnce(currentID, n, current, agentID)
+		var err error
+		if firstGeneration {
+			err = attachInteractiveLeadRuntimeOnce(currentID, n, current, agentID, inputBroker)
+			firstGeneration = false
+		} else {
+			// The interactive input interceptor owns the original stdin reader.
+			// After a continuity replacement, attach directly so a second
+			// interceptor cannot replay or race input from the previous generation.
+			err = attachRuntimeOnce(currentID, nil, inputBroker)
+		}
 		if n != nil {
 			_ = n.ReleaseInteractiveLeadRuntime(context.Background(), agentID, currentID)
 		}
 		if err != nil {
 			return err
 		}
-		next, ok := waitForContinuityReplacement(n, currentID, agentID)
+		next, ok := waitForContinuityReplacementContext(followCtx, n, currentID, agentID)
 		if !ok {
 			return nil
 		}
-		fmt.Fprintf(os.Stderr, "\r\n[nexus] Continuidade: runtime %s substituído por %s (%s:%s). Reanexando…\r\n", currentID, next.RuntimeID, next.ProviderID, next.ProfileID)
+		announceContinuityReplacement(currentID, next)
 		currentID = next.RuntimeID
 		current = next
 	}
 }
 
-func waitForContinuityReplacement(n *nexus.Nexus, oldRuntimeID, agentID string) (registry.RuntimeSession, bool) {
+func announceContinuityReplacement(oldRuntimeID string, next registry.RuntimeSession) {
+	if next.Labels != nil && next.Labels["nexus.continuity_recovery"] == "true" {
+		reason := strings.TrimSpace(next.Labels["nexus.continuity_failure"])
+		checkpointID := strings.TrimSpace(next.Labels["nexus.continuity_checkpoint_id"])
+		fmt.Fprintf(os.Stderr, "\r\n[nexus] Handoff falhou: %s. Sessão original restaurada em %s (%s:%s). Checkpoint: %s. Reanexando…\r\n", reason, next.RuntimeID, next.ProviderID, next.ProfileID, checkpointID)
+		return
+	}
+	fmt.Fprintf(os.Stderr, "\r\n[nexus] Continuidade: runtime %s substituído por %s (%s:%s). Reanexando…\r\n", oldRuntimeID, next.RuntimeID, next.ProviderID, next.ProfileID)
+}
+
+func waitForContinuityReplacementContext(ctx context.Context, n *nexus.Nexus, oldRuntimeID, agentID string) (registry.RuntimeSession, bool) {
 	if n == nil {
 		return registry.RuntimeSession{}, false
 	}
-	return waitForContinuityReplacementReg(n.RuntimeRegistry(), oldRuntimeID, agentID)
+	return waitForContinuityReplacementRegContext(ctx, n.RuntimeRegistry(), oldRuntimeID, agentID)
 }
 
 // waitForContinuityReplacementReg waits briefly for the continuity successor of
 // a replaced runtime. It returns false immediately unless the source runtime is
 // flagged with a pending continuity handoff, so a normal provider exit never
 // delays the caller.
-func waitForContinuityReplacementReg(reg *registry.Registry, oldRuntimeID, agentID string) (registry.RuntimeSession, bool) {
+func waitForContinuityReplacementReg(reg *registry.Registry, oldRuntimeID string) (registry.RuntimeSession, bool) {
+	return waitForContinuityReplacementRegContext(context.Background(), reg, oldRuntimeID, "")
+}
+
+func waitForContinuityReplacementRegContext(ctx context.Context, reg *registry.Registry, oldRuntimeID, agentID string) (registry.RuntimeSession, bool) {
 	if reg == nil {
 		return registry.RuntimeSession{}, false
+	}
+	if ctx == nil {
+		ctx = context.Background()
 	}
 	old, ok := reg.Get(oldRuntimeID)
 	if !ok || old.Labels == nil || old.Labels["nexus.continuity_pending"] != "true" {
 		return registry.RuntimeSession{}, false
 	}
-	deadline := time.Now().Add(8 * time.Second)
-	for time.Now().Before(deadline) {
+	legacyDeadline := time.Now().Add(8 * time.Second)
+	for {
+		if err := ctx.Err(); err != nil {
+			return registry.RuntimeSession{}, false
+		}
+		old, ok = reg.Get(oldRuntimeID)
+		if !ok || old.Labels == nil || old.Labels[registry.ContinuityPendingLabel] != "true" {
+			return registry.RuntimeSession{}, false
+		}
 		for _, candidate := range reg.List() {
 			if candidate.ParentRuntimeID != oldRuntimeID {
 				continue
@@ -809,23 +915,51 @@ func waitForContinuityReplacementReg(reg *registry.Registry, oldRuntimeID, agent
 				continue
 			}
 			switch candidate.State {
-			case registry.StateRunning, registry.StateWaiting, registry.StateStarting:
+			case registry.StateRunning, registry.StateWaiting, registry.StateDetached:
 				return candidate, true
+			case registry.StateStarting:
+				if !candidate.UpdatedAt.IsZero() && time.Since(candidate.UpdatedAt) > registry.ContinuityClaimStaleAfter {
+					return registry.RuntimeSession{}, false
+				}
+			default:
+				return registry.RuntimeSession{}, false
 			}
 		}
-		time.Sleep(50 * time.Millisecond)
+		if old.Labels[registry.ContinuityInFlightLabel] == "true" {
+			claimedAt, parseErr := time.Parse(time.RFC3339Nano, old.Labels[registry.ContinuityClaimedAtLabel])
+			if parseErr != nil || time.Since(claimedAt) > registry.ContinuityClaimStaleAfter || time.Since(claimedAt) < -time.Minute {
+				ownerPID, ownerErr := strconv.Atoi(old.Labels[registry.ContinuityOwnerPIDLabel])
+				if ownerErr != nil || ownerPID <= 0 {
+					// An old or malformed claim has no provable owner liveness. Do
+					// not revoke it, but let this attach return instead of waiting
+					// forever for a successor that may never be published.
+					return registry.RuntimeSession{}, false
+				}
+				if released, releaseErr := reg.ReleaseStaleContinuityClaim(oldRuntimeID); releaseErr == nil && released {
+					return registry.RuntimeSession{}, false
+				}
+			}
+		} else if time.Now().After(legacyDeadline) {
+			return registry.RuntimeSession{}, false
+		}
+		timer := time.NewTimer(50 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return registry.RuntimeSession{}, false
+		case <-timer.C:
+		}
 	}
-	return registry.RuntimeSession{}, false
 }
 
-func attachInteractiveLeadRuntimeOnce(runtimeID string, n *nexus.Nexus, session registry.RuntimeSession, agentID string) error {
+func attachInteractiveLeadRuntimeOnce(runtimeID string, n *nexus.Nexus, session registry.RuntimeSession, agentID string, broker *terminalInputBroker) error {
 	if n == nil || session.ProjectID == "" || agentID == "" {
 		return attachRuntime(runtimeID)
 	}
 	mode := interactiveDelegationMode(session)
 	// OFF disables heuristic Mission promotion. Explicit Mission requests and
 	// named-provider handoffs remain user-owned in-session actions.
-	return attachRuntimeWithInput(runtimeID, func(conn io.Writer) error {
+	return attachRuntimeOnce(runtimeID, func(conn io.Writer, inputReader io.Reader) error {
 		shadow := promotion.NewLineShadow()
 		promoter := promotion.NewPromoter(n, session.ProviderID)
 		buf := make([]byte, 1024)
@@ -880,7 +1014,7 @@ func attachInteractiveLeadRuntimeOnce(runtimeID string, n *nexus.Nexus, session 
 			go waitInteractiveDelegatedMission(n, session, agentID, prompt, accepted)
 		}
 		for {
-			nread, err := os.Stdin.Read(buf)
+			nread, err := inputReader.Read(buf)
 			if nread > 0 {
 				input := buf[:nread]
 				if pendingASK != "" {
@@ -952,7 +1086,7 @@ func attachInteractiveLeadRuntimeOnce(runtimeID string, n *nexus.Nexus, session 
 				return err
 			}
 		}
-	})
+	}, broker)
 }
 
 func clearLineSequence(providerID string) string {
@@ -975,18 +1109,31 @@ func controlStopCmd(args []string) error {
 }
 
 func controlHandoffCmd(args []string) error {
-	if len(args) < 2 {
-		return fmt.Errorf("usage: %s handoff <runtime-id> <provider:profile>", progName())
+	if len(args) < 2 || len(args) > 3 || (len(args) == 3 && args[2] != "--no-attach") {
+		return fmt.Errorf("usage: %s handoff <runtime-id> <provider:profile> [--no-attach]", progName())
 	}
 	runtimeID := args[0]
 	target := args[1]
+	noAttach := len(args) == 3
 
 	newSess, err := handoff.PerformAccountHandoff(context.Background(), runtimeID, target)
 	if err != nil {
+		if newSess != nil {
+			if noAttach {
+				return fmt.Errorf("account handoff failed and source session was restored as %s: %w", newSess.RuntimeID, err)
+			}
+			fmt.Fprintf(os.Stderr, "\r\n[nexus] Handoff falhou e a sessão original foi restaurada em %s (%s:%s). Reanexando…\r\n", newSess.RuntimeID, newSess.ProviderID, newSess.ProfileID)
+			if attachErr := attachRuntime(newSess.RuntimeID); attachErr != nil {
+				return fmt.Errorf("account handoff failed and recovered session %s could not be attached: %w (handoff: %v)", newSess.RuntimeID, attachErr, err)
+			}
+		}
 		return fmt.Errorf("account handoff failed: %w", err)
 	}
 
 	fmt.Printf("✓ Account handoff completed: %s -> %s (New Runtime: %s)\n", runtimeID, target, newSess.RuntimeID)
+	if noAttach {
+		return nil
+	}
 	return attachRuntime(newSess.RuntimeID)
 }
 

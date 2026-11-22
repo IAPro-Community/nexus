@@ -195,6 +195,18 @@
   word-break: break-all;
 }
 
+.tunnelOriginHint {
+  margin: 0;
+  color: var(--nx-text-muted);
+  font-size: var(--nx-font-size-xs);
+  line-height: var(--nx-line-height-caption);
+}
+
+.tunnelOriginHint strong {
+  color: var(--nx-text);
+  font-weight: 600;
+}
+
 .tunnelActions {
   display: flex;
   gap: var(--nx-space-3);
@@ -288,4 +300,55 @@
   margin-top: var(--nx-space-4);
   padding-top: var(--nx-space-4);
   border-top: 1px solid var(--nx-border);
+}
+
+/* Remote access on a phone (target 390px, covers narrow handsets): controls
+   stack vertically so every pairing action stays reachable with one thumb. */
+@media (max-width: 420px) {
+  .tunnelActions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--nx-space-2);
+
+    :global(.nx-btn) {
+      justify-content: center;
+      width: 100%;
+    }
+  }
+
+  .tunnelControls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .accessCodeRow {
+    align-items: stretch;
+    flex-direction: column;
+    gap: var(--nx-space-2);
+  }
+
+  .accessCodeValue {
+    font-size: 1.1rem;
+    letter-spacing: 0.14em;
+    padding: var(--nx-space-2) var(--nx-space-3);
+    text-align: center;
+  }
+
+  .tunnelInfoList {
+    max-width: 100%;
+  }
+
+  .qrContainer {
+    align-items: stretch;
+    flex-direction: column;
+    gap: var(--nx-space-4);
+  }
+
+  .qrInfo {
+    min-width: 0;
+  }
+
+  .qrCode {
+    align-self: center;
+  }
 }

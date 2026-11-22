@@ -245,3 +245,18 @@ nexus <subcomando> --help
 `nexus tunnel` é uma operação de acesso remoto separada da Web loopback padrão.
 Confirme status com `nexus tunnel status` e siga a política de segurança local
 antes de iniciar ou compartilhar uma URL.
+
+O transporte segue o ambiente:
+
+- Sem `NEXUS_TUNNEL_TOKEN` e `NEXUS_TUNNEL_HOSTNAME`, o comando usa o Quick
+  Tunnel: a URL pública é sorteada e **muda a cada execução**.
+- Com as duas variáveis, o comando sobe um Named Tunnel e publica o hostname
+  configurado, que é o mesmo a cada execução. Isso mantém válido um app
+  instalado no celular. A porta local precisa ser fixa, porque a regra de
+  ingress do dashboard aponta para um `http://localhost:<porta>` específico.
+- A opção privada (`NEXUS_REMOTE_ORIGIN`, tailnet do Tailscale ou DNS
+  interno) é servida por `nexus web --remote`, não por `nexus tunnel`: ela
+  publica um endereço de rede privada e dispensa o túnel do Cloudflare.
+
+O token chega ao `cloudflared` pela variável de ambiente do processo filho e
+nunca aparece na linha de comando.

@@ -203,6 +203,36 @@ export const featureAnnouncements: readonly FeatureAnnouncement[] = [
     summary: 'discovery.focusQueueBody',
     tourStep: 'queue',
   },
+  {
+    id: 'remote-access-stable-url',
+    revision: 2,
+    surfaces: ['settings'],
+    openSurface: 'settings',
+    target: '[data-tour="remote-tunnel-card"]',
+    title: 'discovery.remoteStableUrlTitle',
+    summary: 'discovery.remoteStableUrlBody',
+    tourStep: 'remote-stable-url',
+  },
+  {
+    id: 'remote-access-scoped-invitations',
+    revision: 1,
+    surfaces: ['settings'],
+    openSurface: 'settings',
+    target: '[data-tour="remote-devices-card"]',
+    title: 'discovery.remoteRoleTitle',
+    summary: 'discovery.remoteRoleBody',
+    tourStep: 'remote-role',
+  },
+  {
+    id: 'remote-access-push-notifications',
+    revision: 1,
+    surfaces: ['settings'],
+    openSurface: 'settings',
+    target: '[data-tour="remote-push-card"]',
+    title: 'discovery.remotePushTitle',
+    summary: 'discovery.remotePushBody',
+    tourStep: 'remote-push',
+  },
 ] as const;
 
 export const announcementStorageKey = (id: string) => `iapro:nexus:feature-announcement:v1:${id}`;

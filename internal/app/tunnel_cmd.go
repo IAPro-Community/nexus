@@ -65,8 +65,16 @@ func tunnelCmd(args []string) error {
 	}
 
 	// 2. Start tunnel FIRST (to get the public URL)
-	fmt.Fprintf(os.Stderr, "🔗 Iniciando Cloudflare Quick Tunnel...\n")
-	tunnel, err := web.StartTunnel(ctx, port)
+	// The transport follows the environment: a Named Tunnel when the stable-URL
+	// configuration is present, the Quick Tunnel otherwise. Using the Quick
+	// Tunnel unconditionally would hand out a random hostname and silently
+	// break the installed app.
+	if named, ok := web.NamedTunnelConfigFromEnv(); ok {
+		fmt.Fprintf(os.Stderr, "🔗 Iniciando Cloudflare Named Tunnel (%s)...\n", named.Hostname)
+	} else {
+		fmt.Fprintf(os.Stderr, "🔗 Iniciando Cloudflare Quick Tunnel...\n")
+	}
+	tunnel, err := web.StartConfiguredTunnel(ctx, port)
 	if err != nil {
 		return fmt.Errorf("failed to start tunnel: %w", err)
 	}
@@ -166,15 +174,15 @@ func tunnelCmd(args []string) error {
 
 func tunnelHelp() {
 	p := progName()
-	fmt.Fprintf(os.Stderr, `Nexus Tunnel — Acesso remoto gratuito via Cloudflare Quick Tunnel
+	fmt.Fprintf(os.Stderr, `Nexus Tunnel — Acesso remoto via Cloudflare
 
 USO:
   %s tunnel [flags]
 
 .DESCRIÇÃO:
-  Inicia o Nexus Web Server e cria um túnel temporário via Cloudflare,
-  gerando uma URL pública (https://xxx.trycloudflare.com) acessível
-  de qualquer dispositivo. Não requer conta, domínio ou configuração.
+  Inicia o Nexus Web Server e cria um túnel público via Cloudflare,
+  acessível de qualquer dispositivo. Por padrão usa o Quick Tunnel, que
+  não requer conta, domínio ou configuração.
 
   O cloudflared é baixado automaticamente na primeira execução (~30MB).
 
@@ -188,8 +196,15 @@ EXEMPLOS:
   %s tunnel --port 8080
   %s tunnel --port 3000
 
+URL ESTÁVEL:
+  Definindo NEXUS_TUNNEL_TOKEN e NEXUS_TUNNEL_HOSTNAME, o comando sobe um
+  Named Tunnel e publica o hostname configurado, que é o mesmo a cada
+  execução. Isso mantém válido um app instalado no celular. A porta local
+  precisa ser fixa, porque a regra de ingress do dashboard aponta para um
+  http://localhost:<porta> específico.
+
 NOTAS:
-  • A URL pública é temporária e muda a cada execução
+  • Sem as duas variáveis, a URL pública é temporária e muda a cada execução
   • O token de autenticação do Nexus continua obrigatório
   • Ctrl+C encerra o tunnel e o servidor
 `, p, web.DefaultPort, p, p, p)

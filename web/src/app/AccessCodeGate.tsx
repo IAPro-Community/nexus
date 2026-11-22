@@ -20,6 +20,15 @@ export const AccessCodeGate: React.FC<AccessCodeGateProps> = ({ onPaired }) => {
   const [error, setError] = useState('');
   const [pairing, setPairing] = useState(false);
 
+  const handleCodeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setCode(
+      event.target.value
+        .toUpperCase()
+        .replace(/[^0-9A-Z]/g, '')
+        .slice(0, 8),
+    );
+  };
+
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     const trimmed = code.trim();
@@ -71,10 +80,13 @@ export const AccessCodeGate: React.FC<AccessCodeGateProps> = ({ onPaired }) => {
         autoCapitalize="characters"
         autoCorrect="off"
         spellCheck={false}
-        maxLength={12}
+        inputMode="text"
+        enterKeyHint="done"
+        pattern="[0-9A-Za-z]*"
+        maxLength={8}
         placeholder={t('auth.accessCodePlaceholder', { defaultValue: 'Código de 8 caracteres' })}
         value={code}
-        onChange={(event) => setCode(event.target.value)}
+        onChange={handleCodeChange}
         disabled={pairing}
       />
       {error && (

@@ -37,6 +37,7 @@ import {
 import { pushNotifications } from '../../notifications/PushNotificationManager';
 import { SystemDiagnosticsCard } from './SystemDiagnosticsCard';
 import { RemoteAccessTab } from './RemoteAccessTab';
+import { FeatureTour } from '../work/FeatureTour';
 import { IntelligenceMemoriesPanel } from './IntelligenceMemoriesPanel';
 import { CapacityMonitorSettings } from './CapacityMonitorSettings';
 import { CostIntelligenceSettings } from './CostIntelligenceSettings';
@@ -69,7 +70,9 @@ const SETTINGS_TABS: SettingsTab[] = [
 export const SettingsSurface: React.FC<{
   onTour: () => void;
   initialTab?: SettingsTab;
-}> = ({ onTour, initialTab }) => {
+  /** Current project, used to scope feature discovery. */
+  projectId?: string;
+}> = ({ onTour, initialTab, projectId = 'global' }) => {
   const theme = useTheme();
   const { t } = useTranslation();
   const workspace = useWorkspace();
@@ -290,7 +293,7 @@ export const SettingsSurface: React.FC<{
   };
 
   return (
-    <div className="nx-surface-scroll">
+    <div className="nx-surface-scroll" data-feature-tour-scope="settings">
       <div className="nx-page-header">
         <div>
           <span className="nx-eyebrow">{t('settings.eyebrow')}</span>
@@ -966,6 +969,7 @@ export const SettingsSurface: React.FC<{
         )}
         {activeTab === 'hud' && <HudSettings />}
         {activeTab === 'remote' && <RemoteAccessTab />}
+        <FeatureTour projectId={projectId} surface="settings" />
       </div>
     </div>
   );

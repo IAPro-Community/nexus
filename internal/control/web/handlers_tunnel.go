@@ -2,7 +2,9 @@ package web
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"strings"
@@ -22,7 +24,18 @@ type TunnelStatusResponse struct {
 	BootstrapURL         string `json:"bootstrap_url,omitempty"`
 	CloudflaredInstalled bool   `json:"cloudflared_installed"`
 	CloudflaredVersion   string `json:"cloudflared_version,omitempty"`
-	Error                string `json:"error,omitempty"`
+	// StableURL tells the operator whether the public origin survives a
+	// restart. A Quick Tunnel mints a random hostname every time, which
+	// breaks an installed PWA and its host-bound session cookie.
+	StableURL bool `json:"stable_url"`
+	// NamedHostname is the configured stable hostname, when the Named Tunnel
+	// transport is active.
+	NamedHostname string `json:"named_hostname,omitempty"`
+	// RemoteOrigin is the published private origin (a tailnet hostname or a
+	// private DNS name) when the operator configured one. It is stable by
+	// construction and needs no Cloudflare tunnel to serve the paired device.
+	RemoteOrigin string `json:"remote_origin,omitempty"`
+	Error        string `json:"error,omitempty"`
 }
 
 // tunnelManager holds the runtime state for the Cloudflare Quick Tunnel.
@@ -102,6 +115,16 @@ func (s *Server) AttachExternalTunnel(tunnel *Tunnel) error {
 // public tunnel has been registered, independent of server bootstrap age.
 // The pairing code is the short typed alternative to the QR link.
 func (s *Server) NewTunnelInviteURL() (string, string, string, error) {
+	return s.NewTunnelInviteURLWithRole(RoleController)
+}
+
+// NewTunnelInviteURLWithRole issues an invitation bound to a permission role.
+// RoleViewer produces a read-only session on the paired device.
+//
+// The address shared with the device is the live tunnel URL while a Cloudflare
+// tunnel runs, and the published private origin otherwise (a tailnet hostname
+// or a private DNS name). Without either there is no address to pair.
+func (s *Server) NewTunnelInviteURLWithRole(role string) (string, string, string, error) {
 	tm := s.tunnelManager()
 	tm.mu.Lock()
 	active := !tm.starting && tunnelIsActive(tm.tunnel)
@@ -111,9 +134,13 @@ func (s *Server) NewTunnelInviteURL() (string, string, string, error) {
 	}
 	tm.mu.Unlock()
 	if !active || url == "" {
-		return "", "", "", fmt.Errorf("no active tunnel")
+		origin, ok := originpolicy.RemoteOrigin()
+		if !ok {
+			return "", "", "", fmt.Errorf("no active tunnel")
+		}
+		url = origin
 	}
-	token, code, err := s.auth.IssueTunnelInvitation(extractTunnelHost(url))
+	token, code, err := s.auth.IssueTunnelInvitationWithRole(extractTunnelHost(url), role)
 	if err != nil {
 		return "", "", "", err
 	}
@@ -143,12 +170,25 @@ func (s *Server) handleTunnelStatus(w http.ResponseWriter, r *http.Request) {
 	}
 	tm.mu.Unlock()
 
+	stableURL, namedHostname := tunnelOriginStability(url)
+	remoteOrigin, _ := originpolicy.RemoteOrigin()
+	if !stableURL && remoteOrigin != "" {
+		// A published private origin is stable by construction: it is a
+		// name the operator controls, not a hostname the transport mints at
+		// every start. Reporting it as unstable would tell the operator
+		// that the installed app breaks on restart, which is false.
+		stableURL = true
+	}
+
 	writeJSON(w, http.StatusOK, TunnelStatusResponse{
 		Active:               active,
 		Starting:             starting,
 		URL:                  url,
 		CloudflaredInstalled: installed,
 		CloudflaredVersion:   version,
+		StableURL:            stableURL,
+		NamedHostname:        namedHostname,
+		RemoteOrigin:         remoteOrigin,
 	})
 }
 
@@ -195,7 +235,10 @@ func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 		tm.mu.Unlock()
 	}()
 
-	tunnel, err := StartTunnel(ctx, s.port())
+	// A named tunnel keeps the same public hostname across restarts, which is
+	// what an installed PWA and its session cookie depend on. Without explicit
+	// configuration the Quick Tunnel remains the default.
+	tunnel, err := startConfiguredTunnel(ctx, s.port())
 	if err != nil {
 		tm.mu.Lock()
 		tm.starting = false
@@ -271,11 +314,14 @@ func (s *Server) handleTunnelStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	stableURL, namedHostname := tunnelOriginStability(tunnel.URL)
 	writeJSON(w, http.StatusOK, TunnelStatusResponse{
 		Active:               true,
 		URL:                  tunnel.URL,
 		CloudflaredInstalled: installed,
 		CloudflaredVersion:   version,
+		StableURL:            stableURL,
+		NamedHostname:        namedHostname,
 	})
 }
 
@@ -331,6 +377,31 @@ func extractTunnelHost(tunnelURL string) string {
 	return ""
 }
 
+// tunnelOriginStability reports whether the public origin of a tunnel
+// survives a restart, and the configured stable hostname when there is one.
+// The operator needs this distinction: a Quick Tunnel mints a random
+// hostname on every start, which breaks an installed PWA and its host-bound
+// session cookie, while a Named Tunnel always serves the same origin.
+//
+// A published private origin (a tailnet hostname or a private DNS name) is
+// stable by construction too: it does not depend on the Cloudflare transport.
+func tunnelOriginStability(tunnelURL string) (stable bool, namedHostname string) {
+	host := strings.ToLower(extractTunnelHost(tunnelURL))
+	if host == "" {
+		return false, ""
+	}
+	if named, ok := NamedTunnelConfigFromEnv(); ok {
+		configured := strings.ToLower(strings.TrimSpace(named.Hostname))
+		if configured != "" && configured == host {
+			return true, configured
+		}
+	}
+	if originpolicy.IsTrustedRemoteHost(host) {
+		return true, host
+	}
+	return false, ""
+}
+
 func (s *Server) port() int {
 	// http.Server.Addr is empty when Serve is called with our pre-bound
 	// listener. Cloudflared must use the actual TCP port, not DefaultPort.
@@ -343,14 +414,29 @@ func (s *Server) port() int {
 }
 
 // handleTunnelQR mints a fresh invitation on an authenticated POST.
-// GET requests must never create or reveal credentials.
+// GET requests must never create or reveal credentials. The optional body
+// selects the permission role granted to the paired device.
 func (s *Server) handleTunnelQR(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
 
-	tunnelURL, bootstrapURL, accessCode, err := s.NewTunnelInviteURL()
+	role := RoleController
+	var body struct {
+		Role string `json:"role"`
+	}
+	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body); err == nil {
+		if trimmed := strings.ToLower(strings.TrimSpace(body.Role)); trimmed != "" {
+			if trimmed != RoleController && trimmed != RoleViewer {
+				writeError(w, http.StatusBadRequest, "unsupported role")
+				return
+			}
+			role = trimmed
+		}
+	}
+
+	tunnelURL, bootstrapURL, accessCode, err := s.NewTunnelInviteURLWithRole(role)
 	if err != nil {
 		writeError(w, http.StatusConflict, "unable to generate invitation: "+err.Error())
 		return
@@ -360,6 +446,7 @@ func (s *Server) handleTunnelQR(w http.ResponseWriter, r *http.Request) {
 		"url":                tunnelURL,
 		"bootstrap_url":      bootstrapURL,
 		"access_code":        accessCode,
+		"role":               role,
 		"expires_in_seconds": int(remoteBootstrapTTL.Seconds()),
 	})
 }

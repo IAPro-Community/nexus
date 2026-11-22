@@ -1,3 +1,126 @@
+## 2026-11-21 — Onda 1b (bis): defeito do coletor no `__control-host` corrigido; failover automático com coletor interno reprovado
+
+- Causa raiz do defeito de 21/11: o `__control-host` é simultaneamente supervisor do provider e executor da continuidade; o handoff para o provider de origem encerra o processo e abortava o handoff em voo. Correção mínima em `internal/app/control_cmd.go` (após `sh.Wait()`, drena o claim de continuidade de sua própria posse via `waitForOwnedContinuityClaim`, timeout 3 min) + `internal/control/launcher/orphan_hosts.go` (runtime com `nexus.continuity_in_flight=true` não é mais host órfão). 2 testes novos em `internal/app/control_cmd_test.go`. Binário de ensaio `/tmp/opencode/nexus-test2` (SHA-256 `996df50c…`).
+- PASS — `gofmt` limpo, `go build ./...` OK, suítes verdes: `internal/app`, `internal/control/{registry,handoff,host,launcher}`, `internal/nexus`.
+- PASS — failover automático **com o coletor dentro do `__control-host`** (o caminho que antes falhava): origem `codex-06H02QXG3E1Z0NSH6FHREXKTWC` (conta A, `provider_session_id=01a2015f-…`), host/coletor pid 1232927 (lease `1232927-…`), sem core web separado. Esgotamento sintético (`evidence_origin=SYNTHETIC_TEST_EXHAUSTION`) → sucessor `codex-handoff-06H02RKN36DQAV6REHKR5A8RQG` (conta B) `RUNNING` com a mesma sessão; `continuity=ACCOUNT_HANDOFF`, `nexus.continuity_reason=QUOTA_EXHAUSTED`, `nexus.continuity_hops=1`, `nexus.continuity_excluded=codex:work`; lineage `lin-codex-06H02RKN34YWR4B48RAHMFE1Q4` + checkpoint `cp-codex-1795319559132429009`; geração única (pid 1242375); cópia cross-account com inode distinto e creator reescrito para a identidade de B.
+- Limitação de harness: `control start` isolado retém a lease de escrita do PTY (`activeWriter`) → input via protocolo é descartado; criação da sessão dirigida por tmux. Caminho esperado no produto é o core web/desktop.
+- Pendente: esgotamento real (sem OAuth/3ª identidade), recuperação pós-falha em runtime real, failback, AGY cross-account. Release **NO_GO**.
+
+## 2026-11-21 — Onda 1b: handoff manual e failover automático cross-account provados
+
+- Sandbox isolado `/home/desenvolvedor/nexus-sbx` (fora de `/tmp`: o Codex recusa `codex_home` sob `/tmp` — "Refusing to create helper binaries under temporary dir"). Binário de ensaio `/tmp/opencode/nexus-test` (SHA-256 `fc08dc7c72bbac7bc92164926c2c64a4edd914ab59ba8db7ddb06e86eeb90cef`), SHA de trabalho `release/v1.0.0` @ `16cc0811`. Contas: A = `codex:work` (omega, `802cf130-…`), B = `codex:kivergmail` (`9cba8371-…`).
+- **Handoff manual PASS** — `nexus control handoff <runtime> codex:kivergmail --no-attach` → sucessor `codex-handoff-06H0209ZJM8HRVP109RKWRC5RW`, mesma `provider_session_id` (`01a200fb-…`), `account_scope` de B, cópia cross-account com inode distinto (399051 → 1590829), `session_meta` creator reescrito para `user-PzabDJca6nMdrQT6ILjXmQKg`/`9cba8371-…` com `account_scoped=true`, marcador em `nexus-cross-account-sessions.jsonl`, checkpoint `cp-codex-1795313188432806585`, lineage `lin-codex-06H0209ZJQCMJK95R6XV1W4BKR`, geração única (1 processo `codex --no-daemon resume 01a200fb-…`), tela do sucessor com `Resuming session…` e `ACK-A1` preservado, `auth.json` de A e B com `account_id` distintos.
+- **Failover automático PASS** — sem handoff manual: o monitor detectou a conta A esgotada e criou `codex-handoff-06H026DZ5Y9ZNCSC98GC57P80R` com `continuity=ACCOUNT_HANDOFF`, `nexus.continuity_reason=QUOTA_EXHAUSTED`, `nexus.continuity_hops=1`, `nexus.continuity_excluded=codex:work`, lineage `lin-codex-06H026DZ5X4WNE31C9ZY30XBF8`, geração única, cópia no destino com creator de B.
+- Limite honesto: esgotamento da conta A **sintético** (`usage.json` reescrito com `remaining_percent=0`, `source=OFFICIAL_API`, marcador `evidence_origin=SYNTHETIC_TEST_EXHAUSTION`); conta B com quota real da API oficial (`5h=100%`/`weekly=100%`).
+- **Defeito medido** — o `__control-host` é simultaneamente supervisor do provider e executor da continuidade; parar a origem (passo obrigatório do handoff) encerra o processo e aborta o handoff em voo. 1ª tentativa (coletor no `__control-host`, pid 811849): checkpoint `cp-codex-1795314303230293059` + origem parada, **sem sucessor**. Com coletor em processo separado (`nexus control web`, pid 854630) o mesmo caminho completou o failover. Próximo passo: corrigir ou registrar a decisão do maestro.
+- Sessão viva do owner (`codex-06H00TEC04ASXH1EB0HP9HM0W0`, perfil `default`) não foi tocada; helpers temporários de evidência removidos. Release **NO_GO**.
+
+## 2026-11-22 — Gate 0 fechado nas duas opções: origem nomeada (A) e origem privada (B), com o CLI e a política de origem corrigidos
+
+- **CLI (`nexus tunnel`) corrigido** — `internal/app/tunnel_cmd.go` chamava `web.StartTunnel` direto, ignorando `NEXUS_TUNNEL_TOKEN`/`NEXUS_TUNNEL_HOSTNAME`: quem configurasse a URL estável pelo CLI recebia um hostname aleatório sem nenhum aviso. Agora usa `web.StartConfiguredTunnel` (exportado em `tunnel.go`), reporta qual transporte abriu e documenta a URL estável no `--help`. Guardas em `internal/app/tunnel_cmd_test.go` (3 testes) impedem a regressão para `web.StartTunnel(`.
+- **Opção B (Tailscale) deixou de ser teórica** — três furos reais impediam o modo privado:
+  1. `originpolicy.Validate` aceitava o bind em CGNAT (`bind.go` permite `100.64.0.0/10`) mas **rejeitava** esse range na validação de origem, e nenhum hostname de tailnet era aceito. Agora `100.64.0.0/10` é privado por definição, e `NEXUS_REMOTE_ORIGIN` publica a origem privada aceita como origem do navegador — sem desligar a regra de host exato.
+  2. **Não existia pareamento no modo privado**: `IssueTunnelInvitationWithRole` e `ExchangeAccessCode` exigiam `tunnelActive`, então sem o túnel do Cloudflare nenhum convite podia ser emitido. Agora o convite se liga à origem publicada (`remotePairingHostLocked`), e `NewTunnelInviteURLWithRole` usa a origem privada quando não há túnel.
+  3. **A exposição continuava `LOOPBACK`**: com a origem publicada, o servidor estava acessível pela rede privada mas ainda tinha bootstrap reutilizável, cookie sem `Secure` e sessão persistida. `effectiveExposureLocked` agora sai de `LOOPBACK` quando há origem publicada.
+- **Contrato visível** — `TunnelStatusResponse` ganhou `remote_origin`; `tunnelOriginStability` considera a origem privada estável por construção; a UI distingue `privada` (sem túnel, botão QR disponível) de `pública` (`remoteAccessMode` em `remoteAccessModel.ts`, 4 testes).
+- **Defeito corrigido no vínculo do convite**: `ExchangeAccessCode`/`ExchangeBootstrapTokenForHost` comparavam o `Host` cru do request com o hostname guardado. Uma origem privada com porta (`https://nexus.tail1234.ts.net:8443`) fazia o pareamento falhar em silêncio, porque o browser envia `host:8443` e o convite estava ligado a `host`. `normalizePairingHost` agora canonicaliza os dois lados (minúsculas, sem ponto final, sem porta); a porta não é fronteira de segurança aqui, porque a política de origem continua exigindo `Origin` idêntico ao `Host` do request.
+- **Incoerência corrigida no modelo do modo**: `remoteAccessMode()` dava precedência à origem privada sobre o túnel ativo, mas o servidor liga o convite à URL do túnel enquanto ele corre — a UI podia mostrar um endereço diferente do pareado. Agora o túnel ativo prevalece, e a origem privada aparece quando não há túnel.
+- **Modo privado provado no caminho HTTP real**: `TestPrivateRemoteOriginPairsThroughTheHTTPPath` — o host emite o convite por `POST /api/v1/tunnel/invite` (com CSRF e sessão do host), o aparelho troca o código de 8 caracteres em `POST /api/v1/auth/pair` contra a origem publicada, recebe cookie `Secure`/`HttpOnly`, aparece no registro de dispositivos e é revogado pelo host. Antes, o modo privado era provado só na camada de auth.
+- **Contrato da origem publicada endurecido** (dois defeitos reais): (1) a publicação era aceita em **qualquer** porta do hostname — agora define esquema, hostname e porta efetiva exatos, e é o que autoriza um proxy confiável que reescreve o `Host` do request (`tailscale serve`), que antes era bloqueado pela regra de host exato; (2) em modo privado o status reportava `stable_url=false`, dizendo ao operador que o app instalado quebra no reinício — falso, porque um nome controlado pelo operador não é um hostname sorteado a cada start.
+- **Desbloqueio de build fora do escopo**: `internal/control/host/host.go` (outro workstream, editado às 02:14) chamava `sh.activeWriterClientIDLocked()`, método inexistente — a árvore não compilava e nenhum gate rodava. Implementado o método com a semântica do call site (ID opaco do writer ativo, vazio quando não há writer). Não é comportamento de produto do acesso remoto; é desbloqueio para conseguir verificar.
+- **Runbook da Opção B corrigido para o caminho real**: a versão anterior mandava `nexus web --listen <ip-do-tailnet> --remote` e publicava `https://nexus.<tailnet>.ts.net` — dois endereços que não se combinam (o `tailscale serve` fala com `127.0.0.1`, e o `Host` do request seria reescrito). O runbook agora separa os dois caminhos: (a) `nexus web --port 13000` em loopback + `tailscale serve --bg http://127.0.0.1:13000` (recomendado, TLS termina na tailnet) e (b) servir direto na interface do tailnet, com a origem publicada apontando para o endereço que o browser usa de fato. O `nexus web --help` passou a documentar as duas variáveis de acesso remoto, com o aviso de porta fixa.
+- PASS — `go test ./internal/control/web/ ./internal/control/originpolicy/ -count=1` verdes (65 s); `originpolicy` 8 testes (faixa CGNAT, origem publicada, valor malformado ignorado, regra de host exato preservada); `private_origin_test.go` 7 testes (convite pareável, papel `viewer`, recusa de outro host, origem com porta ainda pareável, status publica a origem, nenhum convite sem origem); `exposure_test.go` novo caso para a origem publicada; `vitest` 988 testes (155 arquivos); `make quality` exit 0 (0 issues, VERSION CONTRACT PASS); E2E `test:e2e:remote-access` exit 0.
+- Docs: `docs/reference/configuration.md` (tabela com `NEXUS_REMOTE_ORIGIN`), `docs/product/remote-access.md` (runbook da Opção B com o comando completo), `docs/architecture/ADR-remote-access-stable-url.md` (alternativa implementada), `docs/cli/README.md` (transporte do CLI).
+- Bloqueio restante: **apenas a credencial do maestro** — hostname + token do Cloudflare (Opção A) ou a tailnet + o `NEXUS_REMOTE_ORIGIN` (Opção B). Nenhuma mudança de código substitui isso. Release **NO_GO**.
+
+## 2026-11-21 — Gate 0 visível na UI: o cartão de acesso remoto declara se a URL é estável ou temporária
+
+- Backend: `TunnelStatusResponse` ganhou `stable_url` e `named_hostname`; `tunnelOriginStability` compara o host publicado com o hostname nomeado configurado (`NEXUS_TUNNEL_HOSTNAME`). Quick Tunnel nunca é reportado como estável, mesmo com uma configuração nomeada presente — o hostname sorteado é outro. Cobertura em `internal/control/web/tunnel_named_test.go` (`TestTunnelOriginStability`: origem ausente, Quick, nomeada e Quick sob configuração nomeada).
+- Frontend: `TunnelStatus.stable_url`/`named_hostname` em `web/src/types.ts`; `tunnelOriginKind()` em `web/src/features/settings/remoteAccessModel.ts` (ausência do flag = efêmera, para não prometer ao operador que o app sobrevive a um reinício quando o servidor é anterior ao contrato); texto no cartão de acesso remoto com `settings.remote.stableUrl`/`ephemeralUrl` + dica, em PT-BR/EN/ES.
+- Descoberta de produto: âncora `data-tour="remote-tunnel-card"`, passo de tour `remote-stable-url` e anúncio `remote-access-stable-url` (revision 1) em `featureAnnouncements.ts`, com `discovery.remoteStableUrlTitle/Body` e `tour.remoteStableUrlTitle/Body` nos 3 idiomas.
+- PASS — `go test ./internal/control/web/ -run 'NamedTunnel|ConfiguredTunnel|TunnelResponse|TunnelOriginStability' -count=1` (8 testes); `vitest` das suítes de descoberta + modelo (5 arquivos / 28 testes); `tsc --noEmit` limpo; ESLint 0 erros (1 warning preexistente em `FlowRunSurface.tsx`); Stylelint e `check:styles` limpos; Prettier limpo; `make quality` → exit 0 (lint-go 0 issues, Web 154 arquivos / 973 testes, VERSION CONTRACT PASS).
+- Efeito no operador: o defeito do Gate 0 deixa de ser invisível. Quem abre o acesso remoto vê, no cartão, se o endereço público é o mesmo depois de reiniciar. Release **NO_GO**.
+
+## 2026-11-21 — Gate 0 coberto por teste: Named Tunnel sem credencial, origem estável medida
+
+- `internal/control/web/tunnel.go`: o transporte foi extraído em `namedTunnelCommand` (argv + URL pública derivados do hostname, token só via env `TUNNEL_TOKEN` do filho) e `startConfiguredTunnel` (escolhe Named ou Quick). `startNamedTunnel`/`startQuickTunnel` são indireções de pacote, o que permite exercitar a decisão sem conta Cloudflare nem download de `cloudflared`. `handlers_tunnel.go` passou a usar `startConfiguredTunnel`.
+- `internal/control/web/tunnel_named_test.go` (novo, 6 testes): configuração ausente/parcial/completa, token ausente do argv e presente no env do filho, URL derivada do hostname e estável entre starts, recusa de hostname/token inválidos, e a preferência do Named Tunnel quando a configuração existe.
+- `web/src/app/pwaOriginScope.test.ts` (novo, 4 testes): o manifest e o service worker não fixam origem absoluta — o app instalado continua válido quando o hostname muda de transporte.
+- `web/scripts/e2e-remote-access.mjs`: o roteiro agora reinicia o Nexus e compara a origem pública antes/depois. No Quick Tunnel ela **muda** (hostname novo sorteado) e isso é reportado; com `NEXUS_TUNNEL_TOKEN`/`NEXUS_TUNNEL_HOSTNAME` a igualdade passa a ser exigida e o roteiro falha se divergir.
+- PASS — `go test ./internal/control/web/ -count=1` (65,9 s) sem `-overlay`; `go vet`/`gofmt` limpos; `make lint-go` → 0 issues (o cache do Go local estava corrompido: `go clean -cache` antes); `npm --prefix web run test` → 154 arquivos / 970 testes; `npm --prefix web run test:e2e:remote-access` exit 0.
+- PROVA NEGATIVA (fail-closed) — com `NEXUS_TUNNEL_TOKEN` inválido e hostname configurado, o handler real respondeu `502 {"active":false,"error":"cloudflared exited during startup: exit status 255"}` e **não** publicou host nem armou o modo de autenticação de túnel. O caminho nomeado falha fechado.
+- PWA INSTALÁVEL PELA ORIGEM PÚBLICA — o E2E agora exige que `manifest.webmanifest` e `sw.js` respondam `200` no hostname do túnel, que o manifest peça modo de exibição instalável e que o service worker fique registrado no escopo público (`Public origin serves the installable app (registered)`).
+- DEFEITO CORRIGIDO — `waitForTunnelReady` aceitava **qualquer** resposta HTTP como "túnel pronto", incluindo o `502`/`530` que o Cloudflare devolve quando o ingress não alcança o Nexus. Sem isso, um Named Tunnel mal configurado apareceria como ativo com a URL pública quebrada. Agora `tunnelResponseReady` exige status `1–499` (o edge respondeu de fato pelo origin) e o timeout reporta o último status/erro observado em vez de um `context deadline exceeded` mudo. Coberto por `TestTunnelResponseReadyRejectsEdgeErrors` (200/201/301/302/401/403/404/429 aceitos; 500/502/503/504/530 e 0 recusados).
+- RESTRIÇÃO DESCOBERTA — um túnel nomeado não carrega ingress própria: com token, o `cloudflared` aplica a ingress do dashboard, que aponta para um `http://localhost:<porta>` fixo. `StartNamedTunnel` agora recusa porta efêmera (`0`/negativa) com mensagem explícita, em vez de publicar um host que responde `502`. O E2E usa porta fixa (`NEXUS_E2E_PORT`, padrão 13400) no modo nomeado e mantém a porta efêmera no modo Quick Tunnel.
+- EVIDÊNCIA — o defeito do Gate 0 medido em execução: `Origin before restart: https://piece-magnitude-implications-personalized.trycloudflare.com` → `Origin after restart: https://request-students-medieval-christine.trycloudflare.com`. É exatamente o que quebra o ícone do PWA instalado e o cookie host-bound.
+- Bloqueado: ativar o Named Tunnel exige `NEXUS_TUNNEL_TOKEN` + `NEXUS_TUNNEL_HOSTNAME` do maestro (opção A) ou a escolha por Tailscale (opção B). Nenhuma mudança de código substitui a credencial. Release **NO_GO**.
+
+## 2026-11-21 — E2E de dois dispositivos em túnel público real
+
+- `web/scripts/e2e-remote-access.mjs` (novo, `npm --prefix web run test:e2e:remote-access`): sobe o binário `nexus` real com porta efêmera e `NEXUS_DATA_DIR` isolado, instala o `cloudflared` oficial 2026.8.2 conferido por SHA-256 contra o mesmo digest fixado em `internal/control/web/tunnel.go`, inicia um Quick Tunnel HTTPS real, emite um convite `controller` e um `viewer` e pareia dois navegadores móveis distintos (iPhone 390px / Pixel 390px).
+- Cobertura provada: overflow horizontal zero na tela de pareamento a 390px; papel por sessão (`controller`/`viewer`); `viewer` recusado em `GET /api/v1/remote/devices` (403) e em mutação (403, com o workspace idêntico antes e depois — sem efeito colateral); registro de dispositivos no host com handle opaco e `kind=mobile`; revogação de um aparelho derrubando apenas a sessão dele (401 no revogado, 200 no irmão).
+- PASS — `npm --prefix web run test:e2e:remote-access` (exit 0): `Tunnel active: https://advert-nurse-bond-ebook.trycloudflare.com`, `Registry: Chrome · Android | Safari · iOS`, `Revoked device denied, sibling device still authorized.`
+- `internal/core/provider/adapters/codex/cross_account_sessions.go` foi reparado nesta rodada (campo `Auth` com tag JSON correta; código morto `hardlinkOrCopy` e o campo `indexEntry` removidos depois que a outra sessão trocou suas chamadas por `copyRolloutIntoProfile`/`synthesizeIndexEntry`), religando `go build ./...`, `go vet`, `go test` e `make lint-go` (0 issues) sem `-overlay`.
+- `internal/control/web/push.go`: `ecdsaKeyFromECDH` deixou de usar `elliptic.P256().ScalarBaseMult` (API de baixo nível depreciada) e agora lê o ponto público da codificação uncompressed do `crypto/ecdh`; a assinatura VAPID continua sendo validada pelo teste de formato do JWT.
+- Descoberta de produto fechada para o card de push: `data-tour="remote-push-card"`, passo `remote-push` na superfície `settings`, anúncio `remote-access-push-notifications` e i18n `discovery.remotePush*`/`tour.remotePush*` nos 3 locales.
+- Limite honesto: o ensaio usa navegador headless com UA de celular, não aparelho físico; e roda sobre o binário local, não sobre o SHA publicado. Release segue **NO_GO** pelos gates externos (aparelhos físicos, aceite do maestro no SHA distribuído, URL estável nomeada ainda sem credencial).
+
+## 2026-11-21 — Push automático em atenção e passagem mobile 390px
+
+- `push_attention.go`: watcher de 30 s sobre a mesma projeção que a UI lê (`Server.attentionSource` registrado em `registerRoutes` a partir de `h.runs.AttentionFiltered`), `attentionTracker` com dedupe por `missionID|state|reasonCode` (novo episódio notifica, re-poll não, episódio resolvido e reaberto notifica de novo, teto de 256 chaves), payload curto com pergunta/resumo. Iniciado em `Server.Start`, cancelado em `Shutdown`. Sem assinantes, o ciclo não consulta a projeção.
+- `handlers_push.go`: `pushService()` devolve o serviço já injetado quando existir (evita recriar chaves em teste/embed).
+- PASS — `go test ./internal/control/web/ -count=1` (64 s): `TestAttentionTrackerNotifiesOnlyNewEpisodes`, `TestAttentionSnapshotPrefersQuestion`, `TestAttentionPushPayloadCarriesSummary`, `TestPollAttentionDeliversOncePerEpisode` (entrega real em `httptest` com header `vapid` + `aes128gcm` e 0 reenvios no segundo poll) e `TestPollAttentionPrunesGoneSubscription` (410 remove a assinatura). `go vet`/`gofmt` limpos.
+- Mobile 390px: bloco `@media (max-width: 420px)` em `SettingsSurface.module.scss` (ações, linhas de código e QR empilhados, largura total) e em `AccessCodeGate.module.scss` (input 1.125rem acima do gatilho de zoom do iOS, botão 44px full-width, sem overflow). Guardado por `src/app/remoteAccessMobile.style.test.ts`.
+- PASS — `lint:styles`, `check:styles` (paridade 485/0, sem regressão), `typecheck`, `vitest` 966/966, `prettier --check`.
+- Limite: a verificação Go exigiu `-overlay` porque `internal/core/provider/adapters/codex/cross_account_sessions.go` (fora do escopo desta fatia) está com imports não usados na árvore compartilhada. Release **NO_GO**; falta o E2E dois dispositivos no SHA distribuído.
+
+## 2026-11-21 — Web Push (VAPID + aes128gcm) no acesso remoto
+
+- `internal/control/web/push.go`: serviço de push só com a stdlib — par de chaves VAPID P-256 persistido em `push.json` (0600), store de assinaturas por hash do endpoint, cifra RFC 8291 (`hkdf` + AES-128-GCM + header `salt|rs|idlen|as_public`) e JWT ES256 RFC 8292 para o header `Authorization: vapid`. Endpoints 404/410 removem a assinatura obsoleta. Nenhuma dependência nova.
+- `handlers_push.go` + `routes.go`: `GET /api/v1/push/state` (chave pública + contagem), `POST /api/v1/push/subscribe`, `POST /api/v1/push/unsubscribe` (qualquer sessão autenticada: o celular é justamente quem precisa receber) e `POST /api/v1/push/test` (só sessão do host, para evitar spam por dispositivo pareado).
+- `web/public/sw.js`: listeners `push` (renderiza o payload JSON, ícone do manifest, `data.url` só aceita caminho same-origin) e `notificationclick` (foca aba existente antes de abrir outra); `CACHE_VERSION` v2.
+- `RemoteAccessTab.tsx`: card "Notificações no celular" com ativar/desativar, `Notification.requestPermission`, `PushManager.subscribe` com a chave VAPID convertida de base64url, envio de teste e estados de bloqueio/navegador sem suporte; `nexus/api.ts` ganhou `pushState`/`subscribePush`/`unsubscribePush`/`sendPushTest`.
+- PASS — `go test ./internal/control/web/ -count=1` (65s), incluindo roundtrip de descriptografia do payload (`TestPushPayloadRoundTrip`), persistência de chave/assinatura entre reinícios, rejeição de entrada inválida e formato do JWT VAPID; `go vet`, `gofmt`, `node --check web/public/sw.js`, `typecheck`, `lint` (0 erros), `vitest` 964/964 e 45/45 nos módulos tocados.
+- Limite conhecido: o push automático por episódio de atenção ainda não está disparado — hoje só o endpoint `/api/v1/push/test` envia. Release **NO_GO**.
+
+## 2026-11-21 — Descoberta de produto para o Acesso remoto
+
+- `featureTourDefinitions.ts` ganhou a superfície `settings` e a etapa `remote-role`; `featureAnnouncements.ts` registra `remote-access-scoped-invitations` (revision 1, `openSurface: 'settings'`, alvo `[data-tour="remote-devices-card"]`).
+- `SettingsSurface.tsx` recebe `projectId` opcional (default `global`), marca `data-feature-tour-scope="settings"` e monta `<FeatureTour />`; `WorkspaceSurfaceHost.tsx` passa `project.id`. `RemoteAccessTab.tsx` expõe o Card de dispositivos como alvo do tour.
+- i18n `discovery.remoteRoleTitle/Body` e `tour.remoteRoleTitle/Body` em pt-BR/en/es; `featureTour.test.ts`, `featureAnnouncements.test.ts` e `featureTourAnchors.test.ts` cobrem a nova superfície e o novo alvo.
+- PASS — `npm --prefix web run typecheck`, `lint` (0 erros; warning preexistente em `FlowRunSurface.tsx`), `vitest run src/features/work src/features/settings src/app/tour` 176/176 e `npm --prefix web run test` 963/963.
+- Pendente: push VAPID, UI mobile 390px, E2E dois dispositivos no SHA publicado. Release **NO_GO**.
+
+## 2026-11-21 — Papéis viewer/controller e consentimento no pareamento
+
+- `auth.go`: `RoleController`/`RoleViewer`, `Session.Role` + `CanControl()`, `remoteInvitation.Role`, `IssueTunnelInvitationWithRole` (papel fixado na emissão, rejeita papel desconhecido) e propagação do papel em `ExchangeBootstrapTokenForHost`/`ExchangeAccessCode`. `sessionRole` exposto em `/api/v1/session` e no pair.
+- `server.go`: `isReadOnlyMethod`/`enforceControl` recusam mutação de sessão viewer com 403 nos dispatchers (`authMiddleware`, plano/run, terminal upgrade — terminal é bloqueado para viewer em qualquer método).
+- `handlers_tunnel.go`/`handlers_api.go`: `POST /api/v1/tunnel/invite` aceita `{"role":"viewer|controller"}` (400 em papel inválido) e devolve `role`; `NewTunnelInviteURLWithRole`.
+- `RemoteAccessTab.tsx`: seletor de permissão do próximo convite (viewer default), consentimento obrigatório para controlador e aviso distinto por papel; `nexus/api.ts` envia `{role}`.
+- PASS — `go test ./internal/control/web/ -count=1` (66s), `go vet`, `gofmt`, `roles_test.go` (`TestViewerInvitationGrantsReadOnlySession`, `TestViewerInvitationIsRefusedOnMutation`, `TestTunnelInviteRejectsUnknownRole`), `typecheck`, `lint`, `vitest` 40/40 nos módulos tocados.
+
+## 2026-11-21 — UI de dispositivos pareados no Acesso remoto
+
+- `nexus/api.ts`: `RemoteDevice` + `listRemoteDevices()` e `revokeRemoteDevice(deviceId)` (DELETE com `device_id`).
+- `RemoteAccessTab.tsx`: card "Dispositivos pareados" com label derivado, "visto em" via `Intl.DateTimeFormat`, botão Revogar por dispositivo e estados vazio/host-only (403 de sessão remota vira aviso, não erro). i18n por `t(..., { defaultValue })`, sem CSS novo.
+- PASS — `npm --prefix web run typecheck` (0), `lint` (0 erros; warning preexistente em `FlowRunSurface.tsx`), `prettier --check` após `--write`, `vitest run src/features/settings` 20/20.
+- Pendente: papéis viewer/controller, push VAPID, mobile 390px, `featureAnnouncements`, E2E dois dispositivos. Release **NO_GO**.
+
+## 2026-11-21 — Registro e revogação de dispositivos pareados
+
+- `auth.go`: `Session` ganhou `Remote`/`DeviceID`/`DeviceLabel`/`DeviceKind`; `AnnotateDevice` gera handle opaco (nunca o session ID bearer), `RemoteDevices()` lista com prune de expirados, `RevokeDevice(deviceID)` revoga só o dispositivo remoto. `DeviceLabelFromUserAgent` deriva "Chrome · Android" + kind sem guardar UA/IP crus.
+- `handlers_devices.go` + rota autenticada `GET/DELETE /api/v1/remote/devices` (DELETE exige CSRF pelo `authMiddleware`). Sessão remota recebe 403: um celular pareado não pode enumerar nem revogar outros dispositivos.
+- `server.go`: bootstrap (QR) e `/api/v1/auth/pair` anotam o dispositivo após emitir a sessão.
+- PASS — `go test ./internal/control/web/ -count=1` (pacote completo, 65s), incluindo `TestRemoteDevicesListAndRevoke` e `TestDeviceLabelFromUserAgent`.
+- Pendente: UI de dispositivos no `RemoteAccessTab`, papéis, push, mobile 390px, `featureAnnouncements`, E2E dois dispositivos. Release **NO_GO**.
+
+## 2026-11-21 — Acesso remoto: URL estável (Gate 0) e base PWA
+
+- `internal/control/web/tunnel.go` ganhou `NamedTunnelConfigFromEnv`/`StartNamedTunnel`: com `NEXUS_TUNNEL_TOKEN` + `NEXUS_TUNNEL_HOSTNAME` o Nexus sobe Cloudflare Named Tunnel com hostname fixo (token via env do filho, nunca em argv). `handlers_tunnel.go` escolhe nomeado ou Quick Tunnel; auth, TTL de 15 min, uso único e revogação no exit seguem inalterados. Decisão em `docs/architecture/ADR-remote-access-stable-url.md` e `docs/product/remote-access.md`.
+- PWA: `web/public/sw.js` (shell cache, sem `/api/`, navegação com fallback), registro em `web/src/index.tsx`, manifest com `id`/`scope`/`display_override`/`orientation` e metas iOS em `web/index.html`; `AccessCodeGate` normaliza o código (A-Z/0-9, 8 chars) e usa `inputMode`/`enterKeyHint`.
+- PASS — `go vet ./internal/control/web/`, `go test ./internal/control/web/ -run 'Tunnel|AccessCode|Pair'`, `npm --prefix web run typecheck`, `node --check web/public/sw.js`, parse do manifest.
+- Pendente/bloqueado: ativar o túnel nomeado exige domínio + token do maestro. Faltam registro de dispositivos, papéis, push, UI mobile 390px, `featureAnnouncements` e E2E dois dispositivos no SHA distribuído. Release **NO_GO**.
+
 ## 2026-11-20 — Retheme Fluent 2: ondas 1 e 2 commitadas e instaladas
 
 - `feat(web): token parity gate, elevation hierarchy and dedup de tokens` (`7576610b`) fechou as ondas 1 e 2 sobre a âncora `a6bbb95d`: hierarquia de elevação (`--nx-elevation-overlay/modal`, `--nx-shadow-drawer-left/right`), densidade do segmented control, `--nx-space-7`, gate de paridade `check-token-parity.mjs` com catraca, asserção de tokens no `scripts/build.mjs` e 516 literais identicos substituidos.
@@ -5,6 +128,80 @@
 - PASS — `npm --prefix web run quality:full` (check:styles com paridade 485/0, 151 arquivos/959 testes, build) e `npm --prefix web run test:e2e`.
 - Instalação: `make install-local` no CLI e `make build-desktop build-hud` para as duas superfícies nativas, porque elas embutem o bundle. Os três binários em `~/.local/bin` foram substituídos atomicamente (backups em `/tmp/opencode/nexus*.bak`); os três `nexus web` antigos foram encerrados e restou um único core, com `nexus-hud` (unit transient reiniciada via `systemctl --user`) e `nexus-desktop` anexados a ele.
 - Onda 3 (`workspace-styles` → SCSS Modules) segue em lote separado. Release continua **NO_GO**.
+
+## 2026-11-20 — Candidato de continuidade reconstruído após importação exata
+
+- O gate final passou na árvore atual: `make PATH="/home/desenvolvedor/go/bin:$PATH" quality-full` (Go lint 0, Go completo + race, Web 151/959, sem vulnerabilidades) e `make build build-desktop build-hud`.
+- Hashes dos builds: CLI `38a918264021ec306c5efca4ab4ce16d550ef7f9de7c215ee1f5c7e3f883e945`; Desktop `d3e69b54381a5150a4bcc2e0095a529dc3fcad7aa97df13de62dc5fd7cfdd54e`; HUD `f006a9d18753f83494153dc3d29578990b632537797c53e6a409edab3c83734e`. CLI `1.0.0`, metadata `6c322427`, Go 1.26.11.
+- Atualizei atomicamente apenas o candidato isolado em `/home/desenvolvedor/.local/share/ai-manager/profiles/codex/kivergmail/home/.local/share/nexus-continuity-check/nexus`; backup reversível `nexus.pre-exact-import-20261120T044219Z` mantém o SHA anterior `c84a3614040ed2ef4105908dfb54d17419ad21c09a6ed6d8e29999e72c3998fa`. Smoke `version` passou. Os binários padrão e processos ativos não foram tocados.
+- Nenhum OAuth, refresh, geração ou handoff real foi executado. O último recheck ainda tinha `kiver` sem autenticação e quota `UNKNOWN`; revalidar antes do ensaio. Resultado local não homologa continuidade nem release, que segue **NO_GO**.
+
+## 2026-11-19 — Hardening local de refresh, saldo e troca de conta
+
+- `RefreshUsageSnapshotContext` usa singleflight por provedor/perfil para que TUI, monitor e scheduler no mesmo processo compartilhem uma leitura ao vivo; a limpeza da chamada também é garantida em panic. Os nomes legados que não passam `ValidateName` são ignorados por `profile.List`.
+- TUI: cabeçalho/resumo dizem linhas; colunas dizem `REST.`; status do grupo usa o menor saldo entre janelas empilhadas e destaca `SALDO BAIXO` até 20%. Assim 0% 5h + 60% semanal fica ESGOTADA e 11% efetivos não aparece como OK.
+- Handoff: driver precisa opt-in explícito para cross-account resume. Codex suporta a via de seed de sessões, mas agora o handoff confirma que a identidade Codex fonte continua autenticada na mesma geração e que o destino tem fingerprint upstream diferente. AGY declara indisponível; a tentativa falha antes de parar a origem e deixa o checkpoint.
+- Testes cobrem singleflight, nome `--with`, saldo/status, identidade duplicada/rotacionada e bloqueio AGY fail-safe.
+- PASS — testes focados dos 5 pacotes; `make quality-full` (Go + race, Web 151/959, lint e security); `make build build-desktop build-hud`; `git diff --check`.
+- Candidate CLI do ensaio atualizado atomicamente em `~/.local/share/nexus-continuity-check/nexus`, SHA `c84a3614040ed2ef4105908dfb54d17419ad21c09a6ed6d8e29999e72c3998fa`. Backup reversível `nexus.pre-account-hardening-20261120T035834Z`; binários globais não foram trocados nesta implementação.
+- **NO_GO operacional:** sem OAuth/segunda identidade/quota válida, não executar chamada nem handoff real. Pausar para ensaio do maestro; fases 2–5 seguem no [plano](SPECS/RELEASE_FINALIZATION_PLAN.md). AGY exige fluxo alternativo de novo runtime com checkpoint/contexto ou suporte oficial que comprove importação.
+
+## 2026-11-20 — Substituição geral instalada com rollback
+
+- A pedido do maestro, substituí `nexus`, `nexus-desktop` e `nexus-hud` nos diretórios `/home/desenvolvedor/.local/bin` e no `.local/bin` do perfil Codex. Usei escrita temporária + rename atômico; preservei os seis binários anteriores em `/home/desenvolvedor/.local/share/nexus-install-backups/20261120T030422Z`.
+- Verificação: hashes atuais iguais nos dois diretórios (CLI `4ef28df…`, Desktop `67bd6e0…`, HUD `afa98ab…`); CLIs reportam Nexus 1.0.0 / commit `6c322427` / Go 1.26.11. Hashes dos backups conferidos.
+- Não encerrei runtimes nem HUD ativos. Esses processos mantêm o inode antigo e adotam o build novo após reinício; preservação evita interromper sessões Codex/AGY e OAuth. A troca em disco já está concluída.
+
+## 2026-11-19 — Recheck da tela de contas após substituição
+
+- A listagem sanitizada atual mostra quatro perfis Codex: três aliases autenticados com o mesmo fingerprint externo e `kiver` sem login; todas as quotas são `UNKNOWN`. A linha `--with` da captura não existe no inventário atual, e há processos TUI antigos que podem reter linhas em memória.
+- A inspeção de código confirmou que a TUI exibe uma linha por grupo de modelo, mas chama o total de “Contas” e conta linhas no resumo. A disponibilidade considera a menor janela; 98% de 5h e 11% semanal equivale a 11% efetivo. Plano/handoff foram atualizados para reabrir a TUI, resolver aliases e identidade, melhorar a clareza do saldo e só então testar continuidade.
+- Sem refresh remoto, remoção de perfis, geração, handoff ou reinício de runtimes nesta avaliação. Estado da release permanece **NO_GO**.
+
+## 2026-11-20 — Fase 1 da finalização implementada e validada localmente
+
+- Auditei as três worktrees paralelas: duas `iapro/agent/*` estavam 229 commits atrás, sem commits exclusivos, mas com docs/recibos locais; a worktree `/tmp` estava limpa, 18 commits atrás. Não havia processos de agente correspondentes. Preservei todas; os recibos têm baselines antigos e não são evidência atual.
+- Reconciliada a API local de eventos de missão com o patch de continuidade. Acrescentei teste HTTP à paginação/redação; o payload livre não expõe usuário ou ID de intervenção.
+- PASS — teste HTTP focado, `make quality-full` (Go + race, Web 151/959, security), builds CLI/Desktop/HUD, `make docs-verify` (254 Markdown/33 assets) e verificador estrutural 48/97. NEX readiness segue BLOCKED 2/11; zero capabilities certificadas.
+- Build atual do CLI (`6c322427`, Go 1.26.11) SHA-256 `4ef28dfaf430bd509e40db1e2e76884db4612fbb05bb78ec875d317d4cfbb628`, atualizado no candidato isolado; o binário anterior foi preservado ao lado. Nenhum executável padrão foi substituído.
+- Auditoria sanitizada de perfis: `default`, `omegasistemas` e `work` apontam para uma identidade omegaedu; `kiver` está sem autenticação; quotas Codex `UNKNOWN`. O login oficial de `kiver` segue aguardando callback. Não rodei quota refresh, geração ou handoff enquanto a identidade B não estiver confirmada.
+- Próximo: maestro concluir OAuth selecionando a conta `omegasistemas`, confirmar identidade distinta e quota positiva; então executar o ensaio manual e automático descrito no plano. Release geral continua **NO_GO**.
+
+## 2026-11-20 — Causa da quota Codex UNKNOWN
+
+- Reproduzido com `nexus usage --refresh --json`: app-server quota probe falha e não há leitura de sessão utilizável. O stderr do app-server informa que o access token salvo não pôde ser renovado e orienta a autenticação novamente. Assim, o estado UNKNOWN é resultado do token expirado/inválido, embora `InspectAuth` ainda marque credenciais salvas como autenticadas. Nenhuma chamada de geração foi executada.
+- O perfil `codex:kiver` está no fluxo de login oficial para renovar a autenticação. A sessão local aguarda OAuth no browser em `localhost:1455`. Depois do callback, verificar que o perfil volta a autenticar com a conta omegaedu e repetir quota ao vivo antes do handoff.
+- `codex:omegasistemas` ainda contém credencial importada do host que identifica omegaedu. Não usar como conta separada até OAuth no perfil correto e confirmação de identidade externa distinta.
+
+## 2026-11-20 — Perfil da conta omegasistemas e login
+
+- Após remover os aliases, Nexus tinha apenas `codex:kiver`, autenticado na conta omegaedu. Não havia perfil ou runtime Codex da conta omegasistemas disponível para o teste.
+- Criado perfil isolado `codex:omegasistemas` e iniciado o fluxo oficial OAuth do Codex no terminal. Login aguarda a conclusão no navegador local. Não executar handoff nem geração até o perfil autenticar, confirmar identidade distinta e mostrar quota elegível.
+- Próxima ação após concluir OAuth: validar `nexus profiles --json` e `nexus usage --refresh --json` de forma sanitizada, então retomar o ensaio manual descrito em `SPECS/RELEASE_FINALIZATION_PLAN.md`.
+
+## 2026-11-19 — Rebuild e reinstalação local
+
+- CLI compilado com metadados `1.0.0@6c322427` e instalado atomicamente em `~/.local/bin/nexus`. Backup recuperável em `~/.local/share/nexus-backups/nexus-before-reinstall-20261119T182653Z`. Perfis e credenciais mantidos.
+- Verificação: versão, perfis autenticados, help `handoff --no-attach` e `git diff --check`. Plano: [RELEASE_FINALIZATION_PLAN](SPECS/RELEASE_FINALIZATION_PLAN.md). A homologação com segunda conta continua pendente.
+
+## 2026-11-19 — Preparação do teste de continuidade
+
+- Adicionado `nexus handoff … --no-attach` para disparar a troca de um segundo terminal preservando o attach do terminal original.
+- Corrigida a ordem dos frames no SessionHost. O teste de failover de custos encontrou saída PTY chegando antes de JSON; o teste de regressão verifica a resposta antes da saída.
+- Candidato local e roteiro registrados no [plano de finalização](SPECS/RELEASE_FINALIZATION_PLAN.md). Próxima ação é a homologação manual do maestro, após login em segunda conta independente. Resultados em [VERIFY](VERIFY.md).
+
+## 2026-11-19 — Failover Codex e handoff no mesmo terminal
+
+- A seleção evita aliases pela identidade upstream Codex, preserva IDs opacos e case-sensitive e exige evidência recente de quota GPT positiva antes de reservar uma conta. Perfis de mesma conta não viram capacidade adicional.
+- O monitor reivindica atomicamente uma geração por vez, salva checkpoint quando não encontra reserva e registra falha de handoff com motivo redigido. Se a tentativa falha após parar a origem, o rollback retorna o runtime restaurado para o CLI seguir no mesmo terminal; a geração sucessora não recebe input inicial novamente.
+- Verificação local: suíte Go completa, lint Go, `make security`, build do CLI e race test do registry passaram. Não houve chamada de geração.
+- A transferência de credencial e a prova com quota real permanecem pendentes enquanto duas sessões AI Manager usam `kivergmail`. O arquivo segue na origem com modo `0600`; os metadados atuais indicam escopo de conta diferente, sem validar ainda o token.
+
+# 2026-11-19 — Triagem de release e aliases Codex
+
+- Release local e remota em `6c322427` antes do patch. GitHub tinha 60 issues abertas e nenhum PR aberto. #129 encerrada como fora do escopo da 1.0, conforme #141. #214, #216 e #218 seguem abertas. #218 tem correção da fixture integrada em #223, mas ainda requer investigação da causa na suíte completa e em Windows.
+- O binário de setembro no PATH do perfil retornava autenticação expirada. Substituído por link para o CLI instalado da release, com binário antigo preservado em `nexus.backup-f72dae8`. O status da release mostra dois perfis autenticados com um único ID Codex. O patch local agrupa a rotação pelo ID do provedor, evita repetir aliases no failover, inclui o escopo no launch supervisionado e sinaliza quota compartilhada na listagem. Nenhum perfil foi removido.
+- A próxima validação operacional requer um segundo login Codex distinto e elegível e uma sessão supervisionada com esgotamento observado. Consulte [VERIFY](VERIFY.md) e [HANDOFF](HANDOFF.md).
 
 # 2026-11-17 — 2ª varredura: PR #217 integrado (conserta ps1 corrupto do #215), 2 branches superseded removidos
 

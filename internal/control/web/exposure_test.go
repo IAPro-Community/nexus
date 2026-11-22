@@ -53,6 +53,28 @@ func TestEffectiveExposurePrivateBind(t *testing.T) {
 	}
 }
 
+// A published private origin makes the server reachable from the private
+// network even on a loopback bind. The exposure must leave LOOPBACK: the
+// bootstrap cannot be reusable and the cookie must be Secure, or a paired
+// device on the tailnet would inherit the local trust level.
+func TestEffectiveExposureLoopbackWithPublishedRemoteOrigin(t *testing.T) {
+	t.Setenv("NEXUS_REMOTE_ORIGIN", "https://nexus.tail1234.ts.net")
+
+	auth, _, err := NewAuthManager("127.0.0.1", "13000")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := auth.EffectiveExposure(); got != ExposurePrivateNetwork {
+		t.Fatalf("a published private origin must leave LOOPBACK, got %s", got)
+	}
+	if !auth.RequiresSecureCookie() {
+		t.Fatal("a published private origin must require Secure cookies")
+	}
+	if auth.BootstrapReusable() {
+		t.Fatal("a published private origin must not allow a reusable bootstrap")
+	}
+}
+
 func TestRemoteBootstrapExpires(t *testing.T) {
 	auth, token, err := NewAuthManager("127.0.0.1", "13000")
 	if err != nil {

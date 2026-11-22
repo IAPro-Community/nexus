@@ -2395,6 +2395,12 @@ export interface TunnelStatus {
   bootstrap_url?: string;
   cloudflared_installed: boolean;
   cloudflared_version?: string;
+  /** True when the public origin survives a restart (Named Tunnel). */
+  stable_url?: boolean;
+  /** Configured stable hostname, when the Named Tunnel transport is active. */
+  named_hostname?: string;
+  /** Published private origin (tailnet or private DNS), when configured. */
+  remote_origin?: string;
   error?: string;
 }
 

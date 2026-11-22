@@ -17,7 +17,8 @@ export type FeatureTourSurface =
   | 'agent-terminal'
   | 'browser-inspector'
   | 'notifications'
-  | 'projects';
+  | 'projects'
+  | 'settings';
 
 export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
   'composer-start': [
@@ -236,6 +237,26 @@ export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
       target: '[data-tour="workspace-sharing-card"]',
       title: 'tour.workspaceSharingTitle',
       body: 'tour.workspaceSharingBody',
+    },
+  ],
+  settings: [
+    {
+      id: 'remote-stable-url',
+      target: '[data-tour="remote-tunnel-card"]',
+      title: 'tour.remoteStableUrlTitle',
+      body: 'tour.remoteStableUrlBody',
+    },
+    {
+      id: 'remote-role',
+      target: '[data-tour="remote-devices-card"]',
+      title: 'tour.remoteRoleTitle',
+      body: 'tour.remoteRoleBody',
+    },
+    {
+      id: 'remote-push',
+      target: '[data-tour="remote-push-card"]',
+      title: 'tour.remotePushTitle',
+      body: 'tour.remotePushBody',
     },
   ],
 };

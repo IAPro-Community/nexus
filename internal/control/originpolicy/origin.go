@@ -120,6 +120,19 @@ func Validate(requestHost, origin string) bool {
 		return false
 	}
 	originHost := strings.ToLower(strings.TrimSuffix(u.Hostname(), "."))
+
+	// A private, stable hostname (a tailnet name or a private DNS entry) must
+	// be published explicitly by the operator. The publication defines one
+	// exact address: same scheme, same hostname, same effective port.
+	//
+	// This check comes before the exact-host rule because a trusted proxy that
+	// terminates TLS (tailscale serve and friends) rewrites the request Host
+	// to the local service, so the browser origin and the request Host stop
+	// being the same string. The publication is what restores the binding.
+	if TrustedOriginAllowsRequest(strings.TrimSpace(origin), requestHost) {
+		return true
+	}
+
 	if originHost != reqHost {
 		return false
 	}
@@ -140,8 +153,14 @@ func Validate(requestHost, origin string) bool {
 	if isAllowedTunnelHost(reqHost) {
 		return true
 	}
+	// A private overlay address (RFC1918, ULA, link-local, or the CGNAT range
+	// used by Tailscale and similar overlays) is reachable only from the
+	// private network, so the exact-host rule above is sufficient.
 	ip := net.ParseIP(reqHost)
-	return ip != nil && (ip.IsLoopback() || isPrivate(ip))
+	if ip != nil && isPrivateAddress(ip) {
+		return true
+	}
+	return false
 }
 
 func splitHostPortLoose(value string) (string, string) {
@@ -150,12 +169,4 @@ func splitHostPortLoose(value string) (string, string) {
 		return strings.Trim(host, "[]"), port
 	}
 	return strings.Trim(value, "[]"), ""
-}
-
-func isPrivate(ip net.IP) bool {
-	if ip.IsPrivate() {
-		return true
-	}
-	// Unique-local IPv6 for older Go/runtime variants.
-	return len(ip) == net.IPv6len && (ip[0]&0xfe) == 0xfc
 }
