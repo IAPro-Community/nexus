@@ -4,6 +4,7 @@
 - **Correção** — novo commit `3a31ec50` na `release/v1.0.0` (sem push): devolve `control_cmd.go`/`control_cmd_test.go` ao pai mantendo só o help do acesso remoto, e adiciona `server.go`, `routes.go`, `handlers_api.go` (papel da sessão), `private_origin_test.go`, o cliente de API web, o registro do service worker, o manifest/metas PWA e o script do E2E.
 - **Prova** — worktree limpo em `3a31ec50`: `go build ./...` exit 0; `go test ./internal/control/web/ ./internal/control/originpolicy/ ./internal/app/` exit 0; `npm --prefix web run typecheck` exit 0; `npm --prefix web run test` 153/975 exit 0; `make quality` exit 0; `npm --prefix web run test:e2e:remote-access` exit 0 (dois dispositivos, viewer recusado, revogação isolada, PWA instalável).
 - **Gate final do HEAD** — worktree limpo em `bd17f90e`: `go build ./...` exit 0; `go test ./internal/control/web/ ./internal/control/originpolicy/ ./internal/app/` exit 0; `make quality` exit 0 (VERSION CONTRACT PASS). A 1ª execução falhou só por cache compartilhado do Go corrompido (`could not import ... no such file or directory` em `scripts/sign-update-manifest`); reexecução com `GOCACHE` privado passou, sem regressão de código.
+- **Cobertura de discovery fechada** — `e7d643a4` adiciona os casos que faltavam em `tourTargets.test.ts` (os três alvos remotos resolvidos só dentro do escopo `settings`) e em `featureReveal.test.ts` (os três anúncios remotos revelados só na superfície `settings` do projeto selecionado e só com o cartão montado). Fecha a exigência de `AGENTS.md` §1 para recurso visível. 3 arquivos / 26 testes exit 0 nos arquivos de discovery.
 - **Correção de lint** — `misspell` acusava `comando` (pt-BR) em `internal/app/tunnel_cmd.go`; exclusão adicionada ao `.golangci.yml`, no mesmo padrão já usado para copy pt-BR.
 - **Working tree preservado** — nada dos outros workstreams foi commitado; o staging foi feito via índice (`git apply --cached`), sem tocar nos arquivos modificados alheios.
 - **Pendente com o maestro** — credencial do Named Tunnel (hostname + token) ou a escolha da Opção B (Tailscale); ensaio em aparelho físico e no SHA publicado. Release **NO_GO**.
@@ -7925,3 +7926,10 @@ Correções aplicadas nesta onda, todas com causa-raiz verificada:
 9. **Runner hygiene**: processos git órfãos de 17:17 (run cancelada) seguravam locks no `.git` compartilhado do workdir e travavam checkouts novos por ~4h; órfãos mortos com kill seletivo (sem restart do runner).
 
 Restante vermelho honesto: **Windows release homologation** — exige runner `nexus-windows` (máquina física do maestro, offline). macOS idem (skipped).
+
+## 2026-11-22 — fix(terminal): lease epoch monotônico contra takeover concorrente (#214)
+
+- `internal/control/host/host.go`: `activeWriterEpoch` + `applyTerminalLeaseLocked` rejeita epoch obsoleto/igual-alheio/zero-com-writer-ativo (`lease_stale`).
+- `internal/control/web/handler_terminal.go`: epoch global monotônico (`nextTerminalLeaseEpoch()`), `terminalLeaseMu` serializa lease vs input;a promoção só emitida se `broker.IsWriter`.
+- Testes: regressão determinística nova em `host_test.go`; `go test -race` host+web verde; 40 runs do handoff autenticado `fails=0 of 40` (`/tmp/opencode/gates-20261122/issue214i/`).
+- Docs: `DEV/VERIFY.md`, `DEV/HANDOFF.md` atualizados. Sem commit automático; release **NO_GO**.
