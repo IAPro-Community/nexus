@@ -1012,29 +1012,33 @@
      "acceptanceIndex": 0,
      "acceptance": "Exibir resultados reais dos comandos de teste por worktree",
      "sourceRefs": [
-      "internal/nexus/evidence_bundle.go"
+      "internal/nexus/evidence_bundle.go",
+      "internal/nexus/runner/verifier.go"
      ],
      "testRefs": [
-      "internal/nexus/evidence_bundle_test.go"
+      "internal/nexus/evidence_bundle_test.go",
+      "internal/nexus/runner/verifier_test.go"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: evidence_bundle_test.go afirma a projecao de prova canonica de uma Mission (TestEvidenceBundleRequiresAndProjectsCanonicalProof), nao a exibicao de resultados reais de comandos de teste por worktree.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: EvidenceBundle projeta test_matrix por worktree, com comando, exit code, SHA, timestamp e logs por resultado real (TestEvidenceBundleProjectsRealTestResultsPerWorktree); o motor de verificacao marca a origem command_execution (TestVerificationEngineRecordsCommandExecutionProvenance).",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
      "acceptance": "Exit code, SHA, timestamp e logs; nenhuma declaração LLM vira PASS",
      "sourceRefs": [
-      "internal/nexus/evidence_bundle.go"
+      "internal/nexus/evidence_bundle.go",
+      "internal/nexus/runner/verifier.go"
      ],
      "testRefs": [
-      "internal/nexus/evidence_bundle_test.go"
+      "internal/nexus/evidence_bundle_test.go",
+      "internal/nexus/runner/verifier_test.go"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: TestEvidenceBundleDoesNotPromoteTerminalStateWithoutProof cobre a recusa de promover estado terminal sem prova; exit code, SHA, timestamp e logs por worktree nao sao asertados nos testes referenciados.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: resultado so vira PASS quando tem provenance de execucao de comando e exit code 0; declaracao sem provenance permanece nao-PASS e gera missing_evidence command_execution_provenance, verified_at, logs e sha (TestEvidenceBundleProjectsRealTestResultsPerWorktree, TestVerificationEngineRecordsCommandExecutionProvenance).",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
