@@ -29,25 +29,28 @@ const (
 
 // Hunk is an inclusive changed line range on the new side of a diff.
 type Hunk struct {
-	Start int
-	End   int
+	Start int `json:"start"`
+	End   int `json:"end"`
 }
 
 // ChangeCollisionWorktree describes one scanned worktree.
 type ChangeCollisionWorktree struct {
-	Path         string   `json:"path"`
-	Branch       string   `json:"branch,omitempty"`
-	Head         string   `json:"head,omitempty"`
-	ChangedFiles []string `json:"changed_files"`
+	Path         string            `json:"path"`
+	Branch       string            `json:"branch,omitempty"`
+	Head         string            `json:"head,omitempty"`
+	ChangedFiles []string          `json:"changed_files"`
+	ChangedHunks map[string][]Hunk `json:"changed_hunks,omitempty"`
 }
 
 // ChangeCollision reports one file changed by more than one worktree.
 type ChangeCollision struct {
-	File       string   `json:"file"`
-	Worktrees  []string `json:"worktrees"`
-	Confidence string   `json:"confidence"`
-	Uncertain  bool     `json:"uncertain"`
-	Reason     string   `json:"reason"`
+	File                string   `json:"file"`
+	Worktrees           []string `json:"worktrees"`
+	BaseCommits         []string `json:"base_commits,omitempty"`
+	Confidence          string   `json:"confidence"`
+	Uncertain           bool     `json:"uncertain"`
+	RequiresHumanReview bool     `json:"requires_human_review"`
+	Reason              string   `json:"reason"`
 }
 
 // ChangeCollisionReport is the full read-only scan result for a project.
@@ -69,8 +72,10 @@ type ChangeCollisionScanError struct {
 
 // WorktreeChanges carries parsed diff hunks for one worktree.
 type WorktreeChanges struct {
-	Path  string
-	Hunks map[string][]Hunk
+	Path   string
+	Branch string
+	Head   string
+	Hunks  map[string][]Hunk
 }
 
 // hunksIntersect reports whether two inclusive line ranges overlap.
@@ -206,12 +211,25 @@ func DetectChangeCollisions(changes []WorktreeChanges) []ChangeCollision {
 				len(unique), file,
 			)
 		}
+		baseCommits := make([]string, 0, len(unique))
+		seenCommits := make(map[string]bool, len(unique))
+		for _, participant := range unique {
+			head := strings.TrimSpace(participant.Head)
+			if head == "" || seenCommits[head] {
+				continue
+			}
+			seenCommits[head] = true
+			baseCommits = append(baseCommits, head)
+		}
+		sort.Strings(baseCommits)
 		collisions = append(collisions, ChangeCollision{
-			File:       file,
-			Worktrees:  paths,
-			Confidence: confidence,
-			Uncertain:  !overlap,
-			Reason:     reason,
+			File:                file,
+			Worktrees:           paths,
+			BaseCommits:         baseCommits,
+			Confidence:          confidence,
+			Uncertain:           !overlap,
+			RequiresHumanReview: true,
+			Reason:              reason,
 		})
 	}
 	return collisions

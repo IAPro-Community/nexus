@@ -117,6 +117,26 @@ func TestDetectChangeCollisionsIgnoresSingleWorktreeFiles(t *testing.T) {
 	}
 }
 
+func TestDetectChangeCollisionsCarriesBaseCommitsAndHumanReview(t *testing.T) {
+	collisions := DetectChangeCollisions([]WorktreeChanges{
+		{Path: "/wt/a", Branch: "agent/a", Head: "aaaa111", Hunks: map[string][]Hunk{"shared.go": {{Start: 10, End: 12}}}},
+		{Path: "/wt/b", Branch: "agent/b", Head: "bbbb222", Hunks: map[string][]Hunk{"shared.go": {{Start: 12, End: 14}}}},
+	})
+	if len(collisions) != 1 {
+		t.Fatalf("expected one collision, got %+v", collisions)
+	}
+	collision := collisions[0]
+	if !collision.RequiresHumanReview {
+		t.Fatalf("collision must require human review before integration: %+v", collision)
+	}
+	if len(collision.BaseCommits) != 2 || collision.BaseCommits[0] != "aaaa111" || collision.BaseCommits[1] != "bbbb222" {
+		t.Fatalf("base commits = %v, want the sorted worktree heads", collision.BaseCommits)
+	}
+	if collision.Confidence != CollisionHunkOverlap {
+		t.Fatalf("confidence = %q, want %q", collision.Confidence, CollisionHunkOverlap)
+	}
+}
+
 func TestDetectChangeCollisionsDeterministicOutput(t *testing.T) {
 	build := func() []ChangeCollision {
 		return DetectChangeCollisions([]WorktreeChanges{
