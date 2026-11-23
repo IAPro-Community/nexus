@@ -140,9 +140,11 @@ if (existsSync(manifestPath)) {
   if (manifest.source_sha && !process.argv.includes('--defer-visual-provenance')) {
     // Visual capture provenance must track every module used by live rendering.
     // NexIdleDirector now animates GuardianMascot, so its changes invalidate
-    // captures. Test/spec files still do not ship to the renderer.
+    // captures. Test/spec files still do not ship to the renderer, including
+    // Go test files under internal/desktop (only the shipped sources render).
     const isRenderingChange = (name) =>
       !/\.(?:test|spec)\.(?:ts|tsx)$/.test(name) &&
+      !/_test\.go$/.test(name) &&
       // These source candidates are not imported by the live HUD or current
       // screenshot scenarios. Their own hash + browser QA gate is separate.
       !name.startsWith('web/public/nex/hybrid-v1/');
