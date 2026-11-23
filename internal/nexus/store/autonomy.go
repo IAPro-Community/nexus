@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -37,6 +38,7 @@ type MissionRunRecord struct {
 	ProjectID      string
 	State          string
 	PayloadJSON    string
+	ExecutionOwner string
 	LeaseOwner     string
 	LeaseToken     string
 	LeaseExpiresAt *time.Time
@@ -45,25 +47,38 @@ type MissionRunRecord struct {
 	UpdatedAt      time.Time
 }
 
+var ErrExecutionOwnerImmutable = errors.New("mission run execution owner is immutable")
+
 func (s *Store) UpsertMissionRun(rec MissionRunRecord) error {
 	now := time.Now().UTC()
 	if rec.CreatedAt.IsZero() {
 		rec.CreatedAt = now
 	}
 	rec.UpdatedAt = now
+	executionOwner, err := canonicalExecutionOwner(rec.ExecutionOwner)
+	if err != nil {
+		return err
+	}
 
 	// Lease metadata is authoritative and mutated only by Acquire/Renew/Release.
 	// A worker that holds a fencing token may update payload/state only while the
 	// same token is still current. User/control-plane writes without a token are
 	// accepted only while no live worker owns the run.
 	if rec.LeaseToken != "" {
-		res, err := s.db.Exec(`UPDATE mission_runs SET state=?,payload_json=?,updated_at=? WHERE id=? AND lease_token=?`,
-			rec.State, rec.PayloadJSON, rec.UpdatedAt.Format(time.RFC3339Nano), rec.ID, rec.LeaseToken)
+		res, err := s.db.Exec(`UPDATE mission_runs SET state=?,payload_json=?,updated_at=? WHERE id=? AND lease_token=? AND execution_owner=?`,
+			rec.State, rec.PayloadJSON, rec.UpdatedAt.Format(time.RFC3339Nano), rec.ID, rec.LeaseToken, executionOwner)
 		if err != nil {
 			return err
 		}
 		if n, _ := res.RowsAffected(); n == 0 {
-			return fmt.Errorf("mission run lease fencing mismatch")
+			exists, err := s.missionRunWriteConflict(rec.ID, executionOwner)
+			if err != nil {
+				return err
+			}
+			if exists {
+				return fmt.Errorf("mission run lease fencing mismatch")
+			}
+			return ErrNotFound
 		}
 		return nil
 	}
@@ -71,25 +86,40 @@ func (s *Store) UpsertMissionRun(rec MissionRunRecord) error {
 	// First persist is an INSERT. Existing rows are updated only if their lease
 	// is empty/expired, preventing pause/cancel/resume from racing a live worker.
 	res, err := s.db.Exec(`UPDATE mission_runs SET state=?,payload_json=?,updated_at=?
-		WHERE id=? AND (lease_token='' OR lease_expires_at IS NULL OR lease_expires_at<=?)`,
-		rec.State, rec.PayloadJSON, rec.UpdatedAt.Format(time.RFC3339Nano), rec.ID, now.Format(time.RFC3339Nano))
+		WHERE id=? AND execution_owner=? AND (lease_token='' OR lease_expires_at IS NULL OR lease_expires_at<=?)`,
+		rec.State, rec.PayloadJSON, rec.UpdatedAt.Format(time.RFC3339Nano), rec.ID, executionOwner, now.Format(time.RFC3339Nano))
 	if err != nil {
 		return err
 	}
 	if n, _ := res.RowsAffected(); n > 0 {
 		return nil
 	}
-	var exists int
-	if err := s.db.QueryRow(`SELECT EXISTS(SELECT 1 FROM mission_runs WHERE id=?)`, rec.ID).Scan(&exists); err != nil {
+	exists, err := s.missionRunWriteConflict(rec.ID, executionOwner)
+	if err != nil {
 		return err
 	}
-	if exists == 1 {
+	if exists {
 		return fmt.Errorf("mission run lease held")
 	}
-	_, err = s.db.Exec(`INSERT INTO mission_runs(id,plan_id,project_id,state,payload_json,lease_owner,lease_token,lease_expires_at,heartbeat_at,created_at,updated_at)
-		VALUES(?,?,?,?,?,'','',NULL,NULL,?,?)`,
-		rec.ID, rec.PlanID, rec.ProjectID, rec.State, rec.PayloadJSON, rec.CreatedAt.Format(time.RFC3339Nano), rec.UpdatedAt.Format(time.RFC3339Nano))
+	_, err = s.db.Exec(`INSERT INTO mission_runs(id,plan_id,project_id,state,payload_json,execution_owner,lease_owner,lease_token,lease_expires_at,heartbeat_at,created_at,updated_at)
+		VALUES(?,?,?,?,?,?,'','',NULL,NULL,?,?)`,
+		rec.ID, rec.PlanID, rec.ProjectID, rec.State, rec.PayloadJSON, executionOwner, rec.CreatedAt.Format(time.RFC3339Nano), rec.UpdatedAt.Format(time.RFC3339Nano))
 	return err
+}
+
+func (s *Store) missionRunWriteConflict(runID, executionOwner string) (bool, error) {
+	var currentOwner string
+	var exists int
+	if err := s.db.QueryRow(`SELECT EXISTS(SELECT 1 FROM mission_runs WHERE id=?), COALESCE((SELECT execution_owner FROM mission_runs WHERE id=?), '')`, runID, runID).Scan(&exists, &currentOwner); err != nil {
+		return false, err
+	}
+	if exists == 0 {
+		return false, nil
+	}
+	if currentOwner != executionOwner {
+		return true, ErrExecutionOwnerImmutable
+	}
+	return true, nil
 }
 
 // CommitMissionInterventionResolution atomically stores the updated run and
@@ -117,16 +147,27 @@ func (s *Store) CommitMissionInterventionResolution(run MissionRunRecord, resolu
 		return fmt.Errorf("begin intervention commit: %w", err)
 	}
 	defer tx.Rollback()
+	executionOwner, err := canonicalExecutionOwner(run.ExecutionOwner)
+	if err != nil {
+		return err
+	}
 	var result sql.Result
 	if run.LeaseToken != "" {
-		result, err = tx.Exec(`UPDATE mission_runs SET state=?,payload_json=?,updated_at=? WHERE id=? AND lease_token=?`, run.State, run.PayloadJSON, run.UpdatedAt.Format(time.RFC3339Nano), run.ID, run.LeaseToken)
+		result, err = tx.Exec(`UPDATE mission_runs SET state=?,payload_json=?,updated_at=? WHERE id=? AND lease_token=? AND execution_owner=?`, run.State, run.PayloadJSON, run.UpdatedAt.Format(time.RFC3339Nano), run.ID, run.LeaseToken, executionOwner)
 	} else {
-		result, err = tx.Exec(`UPDATE mission_runs SET state=?,payload_json=?,updated_at=? WHERE id=? AND (lease_token='' OR lease_expires_at IS NULL OR lease_expires_at<=?)`, run.State, run.PayloadJSON, run.UpdatedAt.Format(time.RFC3339Nano), run.ID, now.Format(time.RFC3339Nano))
+		result, err = tx.Exec(`UPDATE mission_runs SET state=?,payload_json=?,updated_at=? WHERE id=? AND execution_owner=? AND (lease_token='' OR lease_expires_at IS NULL OR lease_expires_at<=?)`, run.State, run.PayloadJSON, run.UpdatedAt.Format(time.RFC3339Nano), run.ID, executionOwner, now.Format(time.RFC3339Nano))
 	}
 	if err != nil {
 		return fmt.Errorf("persist intervention run: %w", err)
 	}
 	if affected, _ := result.RowsAffected(); affected == 0 {
+		var currentOwner string
+		if err := tx.QueryRow(`SELECT COALESCE(execution_owner,'') FROM mission_runs WHERE id=?`, run.ID).Scan(&currentOwner); err != nil {
+			return err
+		}
+		if currentOwner != executionOwner {
+			return ErrExecutionOwnerImmutable
+		}
 		return fmt.Errorf("mission run lease fencing mismatch")
 	}
 	_, err = tx.Exec(`INSERT OR IGNORE INTO mission_intervention_resolutions(id,run_id,intervention_id,version,option_id,idempotency_key,resolved_at,resolved_by,resume_status,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)`,
@@ -175,12 +216,12 @@ func (s *Store) ListMissionRunEvents(runID string) ([]MissionRunEventRecord, err
 }
 
 func (s *Store) GetMissionRun(id string) (*MissionRunRecord, error) {
-	row := s.db.QueryRow(`SELECT id,plan_id,project_id,state,payload_json,lease_owner,lease_token,lease_expires_at,heartbeat_at,created_at,updated_at FROM mission_runs WHERE id=?`, id)
+	row := s.db.QueryRow(`SELECT id,plan_id,project_id,state,payload_json,execution_owner,lease_owner,lease_token,lease_expires_at,heartbeat_at,created_at,updated_at FROM mission_runs WHERE id=?`, id)
 	return scanMissionRun(row)
 }
 
 func (s *Store) ListMissionRuns() ([]MissionRunRecord, error) {
-	rows, err := s.db.Query(`SELECT id,plan_id,project_id,state,payload_json,lease_owner,lease_token,lease_expires_at,heartbeat_at,created_at,updated_at FROM mission_runs ORDER BY updated_at DESC`)
+	rows, err := s.db.Query(`SELECT id,plan_id,project_id,state,payload_json,execution_owner,lease_owner,lease_token,lease_expires_at,heartbeat_at,created_at,updated_at FROM mission_runs ORDER BY updated_at DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +247,7 @@ func (s *Store) ListMissionRunsForProject(projectID string, limit int) ([]Missio
 	if limit <= 0 || limit > 50 {
 		limit = 10
 	}
-	rows, err := s.db.Query(`SELECT id,plan_id,project_id,state,payload_json,lease_owner,lease_token,lease_expires_at,heartbeat_at,created_at,updated_at
+	rows, err := s.db.Query(`SELECT id,plan_id,project_id,state,payload_json,execution_owner,lease_owner,lease_token,lease_expires_at,heartbeat_at,created_at,updated_at
 		FROM mission_runs WHERE project_id=? ORDER BY updated_at DESC LIMIT ?`, projectID, limit)
 	if err != nil {
 		return nil, err
@@ -229,7 +270,7 @@ func scanMissionRun(row missionRunScanner) (*MissionRunRecord, error) {
 	var rec MissionRunRecord
 	var leaseExp, heartbeat sql.NullString
 	var created, updated string
-	if err := row.Scan(&rec.ID, &rec.PlanID, &rec.ProjectID, &rec.State, &rec.PayloadJSON, &rec.LeaseOwner, &rec.LeaseToken, &leaseExp, &heartbeat, &created, &updated); err != nil {
+	if err := row.Scan(&rec.ID, &rec.PlanID, &rec.ProjectID, &rec.State, &rec.PayloadJSON, &rec.ExecutionOwner, &rec.LeaseOwner, &rec.LeaseToken, &leaseExp, &heartbeat, &created, &updated); err != nil {
 		return nil, err
 	}
 	rec.CreatedAt, _ = time.Parse(time.RFC3339Nano, created)

@@ -26,9 +26,26 @@ func newNexusPackageExecutor(n *Nexus) runner.PackageExecutor {
 	return &nexusPackageExecutor{n: n}
 }
 
+func requireLocalNexusExecutorOwner(run *runner.MissionRun) error {
+	if run == nil {
+		return fmt.Errorf("mission run is required")
+	}
+	owner, err := runner.CanonicalExecutionOwner(run.ExecutionOwner)
+	if err != nil {
+		return fmt.Errorf("%w: run %s", err, run.ID)
+	}
+	if owner != runner.ExecutionOwnerNexus {
+		return fmt.Errorf("%w: run %s is owned by %s", runner.ErrExecutionOwnerNotLocal, run.ID, owner)
+	}
+	return nil
+}
+
 func (e *nexusPackageExecutor) Allocate(ctx context.Context, run *runner.MissionRun, pkg *runner.PackageRun) (runner.AllocationResult, error) {
 	if e.n == nil {
 		return runner.AllocationResult{}, fmt.Errorf("nexus executor unavailable")
+	}
+	if err := requireLocalNexusExecutorOwner(run); err != nil {
+		return runner.AllocationResult{}, err
 	}
 	st, err := e.n.OpenProject()
 	if err != nil {
@@ -683,6 +700,9 @@ func isQuotaOrRateLimitFailure(kind model.FailureKind) bool {
 }
 
 func (e *nexusPackageExecutor) Compile(ctx context.Context, run *runner.MissionRun, pkg *runner.PackageRun) (runner.PromptArtifact, error) {
+	if err := requireLocalNexusExecutorOwner(run); err != nil {
+		return runner.PromptArtifact{}, err
+	}
 	if pkg.ContextCapsule == nil {
 		return runner.PromptArtifact{}, runner.ErrMissingContextCapsule
 	}
@@ -956,6 +976,9 @@ func coordinationReplaySafety(contract runner.AutonomyContract, before, after st
 }
 
 func (e *nexusPackageExecutor) Execute(ctx context.Context, run *runner.MissionRun, pkg *runner.PackageRun, prompt string) (runner.ExecutionResult, error) {
+	if err := requireLocalNexusExecutorOwner(run); err != nil {
+		return runner.ExecutionResult{}, err
+	}
 	if strings.TrimSpace(pkg.AssignedAgent) == "" {
 		return runner.ExecutionResult{}, fmt.Errorf("package has no assigned persistent agent")
 	}
@@ -1028,6 +1051,9 @@ func (e *nexusPackageExecutor) Execute(ctx context.Context, run *runner.MissionR
 }
 
 func (e *nexusPackageExecutor) Review(ctx context.Context, run *runner.MissionRun, pkg *runner.PackageRun) (runner.ReviewVerdict, error) {
+	if err := requireLocalNexusExecutorOwner(run); err != nil {
+		return runner.ReviewVerdict{}, err
+	}
 	st, err := e.n.OpenProject()
 	if err != nil {
 		return runner.ReviewVerdict{}, err

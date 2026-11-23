@@ -11,6 +11,146 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
+func TestTakeControlMissionRunRefusesNonLocalOwnersWithoutMutation(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		owner     string
+		wantError error
+	}{
+		{name: "maestro", owner: runner.ExecutionOwnerMaestro, wantError: runner.ErrExecutionOwnerNotLocal},
+		{name: "unknown", owner: "unknown-owner", wantError: runner.ErrInvalidExecutionOwner},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			n := openTestNexus(t)
+			st, err := n.OpenProject()
+			if err != nil {
+				t.Fatal(err)
+			}
+			project, err := st.CreateProject(store.Project{Name: "Manual takeover owner", CanonicalPath: t.TempDir()})
+			if err != nil {
+				t.Fatal(err)
+			}
+			agent, err := st.CreateAgent(store.Agent{ProjectID: project.ID, Name: "Implementer", Status: store.AgentStopped})
+			if err != nil {
+				t.Fatal(err)
+			}
+			revision, err := st.AddRevision(agent.ID, `{"provider":"fake","profile":"default"}`)
+			if err != nil {
+				t.Fatal(err)
+			}
+			agent.CurrentRevisionID = revision.ID
+			if err := st.UpdateAgent(agent); err != nil {
+				t.Fatal(err)
+			}
+
+			repo := runner.NewMemoryRunRepository()
+			run := &runner.MissionRun{
+				ID: "run-takeover-" + tc.name, State: runner.StateExecuting, ExecutionOwner: tc.owner,
+				PackageRuns: []runner.PackageRun{{PackageID: "pkg", AssignedAgent: agent.ID, State: runner.StateExecuting}},
+			}
+			if err := repo.SaveRun(context.Background(), run); err != nil {
+				t.Fatal(err)
+			}
+			n.runner = runner.NewMissionRunner(repo, nil)
+			workerCanceled := false
+			workerDone := make(chan struct{})
+			close(workerDone)
+			n.workers = map[string]*missionWorker{run.ID: {
+				id:     "worker-" + tc.name,
+				cancel: func() { workerCanceled = true },
+				done:   workerDone,
+			}}
+
+			if _, err := n.TakeControlMissionRun(context.Background(), run.ID, "manual takeover"); !errors.Is(err, tc.wantError) {
+				t.Fatalf("takeover error=%v, want %v", err, tc.wantError)
+			}
+			if workerCanceled {
+				t.Fatal("refused takeover stopped the autonomous worker")
+			}
+			assertManualControlRunUnchanged(t, repo, run.ID, runner.StateExecuting)
+			assertManualControlAgentUnchanged(t, st, agent.ID, store.AgentStopped)
+		})
+	}
+}
+
+func TestReturnMissionRunRefusesNonLocalOwnersWithoutMutation(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		owner     string
+		wantError error
+	}{
+		{name: "maestro", owner: runner.ExecutionOwnerMaestro, wantError: runner.ErrExecutionOwnerNotLocal},
+		{name: "unknown", owner: "unknown-owner", wantError: runner.ErrInvalidExecutionOwner},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			n := openTestNexus(t)
+			st, err := n.OpenProject()
+			if err != nil {
+				t.Fatal(err)
+			}
+			project, err := st.CreateProject(store.Project{Name: "Manual return owner", CanonicalPath: t.TempDir()})
+			if err != nil {
+				t.Fatal(err)
+			}
+			agent, err := st.CreateAgent(store.Agent{ProjectID: project.ID, Name: "Implementer", Status: store.AgentWorking})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			repo := runner.NewMemoryRunRepository()
+			run := &runner.MissionRun{
+				ID: "run-return-" + tc.name, State: runner.StatePaused, ExecutionOwner: tc.owner,
+				PackageRuns: []runner.PackageRun{{PackageID: "pkg", AssignedAgent: agent.ID, State: runner.StateExecuting}},
+			}
+			if err := repo.SaveRun(context.Background(), run); err != nil {
+				t.Fatal(err)
+			}
+			n.runner = runner.NewMissionRunner(repo, nil)
+
+			if _, err := n.ReturnMissionRun(context.Background(), run.ID); !errors.Is(err, tc.wantError) {
+				t.Fatalf("return error=%v, want %v", err, tc.wantError)
+			}
+			assertManualControlRunUnchanged(t, repo, run.ID, runner.StatePaused)
+			assertManualControlAgentUnchanged(t, st, agent.ID, store.AgentWorking)
+			n.workersMu.Lock()
+			workerCount := len(n.workers)
+			n.workersMu.Unlock()
+			if workerCount != 0 {
+				t.Fatalf("refused return started %d autonomous workers", workerCount)
+			}
+		})
+	}
+}
+
+func assertManualControlRunUnchanged(t *testing.T, repo runner.RunRepository, runID string, wantState runner.State) {
+	t.Helper()
+	stored, err := repo.GetRun(context.Background(), runID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.State != wantState {
+		t.Fatalf("refused manual control mutated run state: got %s want %s", stored.State, wantState)
+	}
+}
+
+func assertManualControlAgentUnchanged(t *testing.T, st *store.Store, agentID, wantStatus string) {
+	t.Helper()
+	agent, err := st.GetAgent(agentID, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if agent.Status != wantStatus {
+		t.Fatalf("refused manual control mutated Agent status: got %s want %s", agent.Status, wantStatus)
+	}
+	generations, err := st.ListGenerations(agentID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(generations) != 0 {
+		t.Fatalf("refused manual control started %d Agent runtimes", len(generations))
+	}
+}
+
 func TestReconcileEphemeralMissionAgentsPreservesActiveIdentity(t *testing.T) {
 	n := openTestNexus(t)
 	st, err := n.OpenProject()

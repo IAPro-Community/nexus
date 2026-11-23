@@ -2,6 +2,14 @@ package model
 
 import "time"
 
+// Execution owner constants identify the single runtime allowed to supervise a
+// Mission run. NEXUS runs are executed by the local MissionRunner; MAESTRO
+// runs are dispatched only by the external Maestro worker.
+const (
+	ExecutionOwnerNexus   = "NEXUS"
+	ExecutionOwnerMaestro = "MAESTRO"
+)
+
 // AccountScope is the identity boundary for account-owned state. Provider and
 // profile names are routing labels, not sufficient identities: one profile can
 // be re-authenticated and two accounts may have the same display email.

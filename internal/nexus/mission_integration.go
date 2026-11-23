@@ -31,6 +31,9 @@ func (e *nexusPackageExecutor) IntegrateDelivery(ctx context.Context, run *runne
 	if e == nil || e.n == nil || run == nil {
 		return runner.DeliveryIntegrationEvidence{}, fmt.Errorf("delivery integration requires Nexus executor and Mission run")
 	}
+	if err := requireLocalNexusExecutorOwner(run); err != nil {
+		return runner.DeliveryIntegrationEvidence{}, err
+	}
 	st, err := e.n.OpenProject()
 	if err != nil {
 		return runner.DeliveryIntegrationEvidence{}, err

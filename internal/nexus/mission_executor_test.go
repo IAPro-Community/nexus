@@ -1,6 +1,8 @@
 package nexus
 
 import (
+	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -45,5 +47,54 @@ func TestParseReviewVerdictUsesLastValidObjectFromCodexTranscript(t *testing.T) 
 func TestParseReviewVerdictFailsClosedWithoutValidObject(t *testing.T) {
 	if _, err := parseReviewVerdict(`{"approved":true|false,"findings":[]}`); err == nil {
 		t.Fatal("parseReviewVerdict accepted invalid reviewer JSON")
+	}
+}
+
+func TestNexusPackageExecutorRejectsMaestroOwnedRun(t *testing.T) {
+	executor := &nexusPackageExecutor{n: &Nexus{}}
+	run := &runner.MissionRun{ID: "run-maestro", ExecutionOwner: runner.ExecutionOwnerMaestro}
+	pkg := &runner.PackageRun{}
+
+	tests := []struct {
+		name string
+		call func() error
+	}{
+		{name: "allocate", call: func() error {
+			_, err := executor.Allocate(context.Background(), run, pkg)
+			return err
+		}},
+		{name: "compile", call: func() error {
+			_, err := executor.Compile(context.Background(), run, pkg)
+			return err
+		}},
+		{name: "execute", call: func() error {
+			_, err := executor.Execute(context.Background(), run, pkg, "prompt")
+			return err
+		}},
+		{name: "review", call: func() error {
+			_, err := executor.Review(context.Background(), run, pkg)
+			return err
+		}},
+		{name: "integrate delivery", call: func() error {
+			_, err := executor.IntegrateDelivery(context.Background(), run)
+			return err
+		}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if err := test.call(); !errors.Is(err, runner.ErrExecutionOwnerNotLocal) {
+				t.Fatalf("expected local owner guard, got %v", err)
+			}
+		})
+	}
+}
+
+func TestNexusPackageExecutorRejectsUnknownExecutionOwner(t *testing.T) {
+	executor := &nexusPackageExecutor{n: &Nexus{}}
+	run := &runner.MissionRun{ID: "run-unknown", ExecutionOwner: "UNKNOWN"}
+
+	_, err := executor.Allocate(context.Background(), run, &runner.PackageRun{})
+	if !errors.Is(err, runner.ErrInvalidExecutionOwner) {
+		t.Fatalf("expected invalid owner guard, got %v", err)
 	}
 }

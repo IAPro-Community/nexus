@@ -4,9 +4,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/ids"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 // WorkPlan is the structured, versioned root of engineering planning (Phase D).
@@ -14,6 +16,7 @@ type WorkPlan struct {
 	ID              string            `json:"id"`
 	ProjectID       string            `json:"project_id"`
 	MissionID       string            `json:"mission_id,omitempty"`
+	ExecutionOwner  string            `json:"execution_owner"`
 	Title           string            `json:"title"`
 	Description     string            `json:"description"`
 	Status          string            `json:"status"` // "DRAFT" | "READY" | "EXECUTING" | "COMPLETED" | "BLOCKED"
@@ -22,6 +25,21 @@ type WorkPlan struct {
 	StructuredFacts map[string]string `json:"structured_facts,omitempty"`
 	CreatedAt       time.Time         `json:"created_at"`
 	UpdatedAt       time.Time         `json:"updated_at"`
+}
+
+// canonicalExecutionOwner accepts only the two canonical execution owners.
+// Empty values identify legacy NEXUS-owned rows.
+func canonicalExecutionOwner(owner string) (string, error) {
+	normalized := strings.ToUpper(strings.TrimSpace(owner))
+	if normalized == "" {
+		return model.ExecutionOwnerNexus, nil
+	}
+	switch normalized {
+	case model.ExecutionOwnerNexus, model.ExecutionOwnerMaestro:
+		return normalized, nil
+	default:
+		return "", fmt.Errorf("invalid execution owner %q", owner)
+	}
 }
 
 // PlanPhase groups sequential or related WorkPackages.
@@ -100,6 +118,11 @@ func (s *Store) CreateWorkPlan(p WorkPlan) (*WorkPlan, error) {
 	if p.CurrentRevision == 0 {
 		p.CurrentRevision = 1
 	}
+	executionOwner, err := canonicalExecutionOwner(p.ExecutionOwner)
+	if err != nil {
+		return nil, err
+	}
+	p.ExecutionOwner = executionOwner
 	now := time.Now().UTC()
 	p.CreatedAt = now
 	p.UpdatedAt = now
@@ -124,9 +147,9 @@ func (s *Store) CreateWorkPlan(p WorkPlan) (*WorkPlan, error) {
 		missionIDVal = p.MissionID
 	}
 
-	_, err = tx.Exec(`INSERT INTO work_plans(id, project_id, mission_id, title, description, status, current_revision, phases_json, facts_json, created_at, updated_at)
-		VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		p.ID, p.ProjectID, missionIDVal, p.Title, p.Description, p.Status, p.CurrentRevision, string(phasesJSON), string(factsJSON),
+	_, err = tx.Exec(`INSERT INTO work_plans(id, project_id, mission_id, title, description, status, current_revision, phases_json, facts_json, execution_owner, created_at, updated_at)
+		VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		p.ID, p.ProjectID, missionIDVal, p.Title, p.Description, p.Status, p.CurrentRevision, string(phasesJSON), string(factsJSON), p.ExecutionOwner,
 		now.Format(time.RFC3339), now.Format(time.RFC3339))
 	if err != nil {
 		return nil, fmt.Errorf("insert work plan: %w", err)
@@ -154,10 +177,10 @@ func (s *Store) GetWorkPlan(id string) (*WorkPlan, error) {
 	var phasesRaw, factsRaw, createdAtStr, updatedAtStr string
 	var missionID sql.NullString
 
-	err := s.db.QueryRow(`SELECT id, project_id, mission_id, title, description, status, current_revision, phases_json, facts_json, created_at, updated_at
+	err := s.db.QueryRow(`SELECT id, project_id, mission_id, title, description, status, current_revision, phases_json, facts_json, execution_owner, created_at, updated_at
 		FROM work_plans WHERE id=?`, id).Scan(
 		&p.ID, &p.ProjectID, &missionID, &p.Title, &p.Description, &p.Status, &p.CurrentRevision,
-		&phasesRaw, &factsRaw, &createdAtStr, &updatedAtStr)
+		&phasesRaw, &factsRaw, &p.ExecutionOwner, &createdAtStr, &updatedAtStr)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +196,7 @@ func (s *Store) GetWorkPlan(id string) (*WorkPlan, error) {
 }
 
 func (s *Store) ListWorkPlans(projectID string) ([]WorkPlan, error) {
-	rows, err := s.db.Query(`SELECT id, project_id, mission_id, title, description, status, current_revision, phases_json, facts_json, created_at, updated_at
+	rows, err := s.db.Query(`SELECT id, project_id, mission_id, title, description, status, current_revision, phases_json, facts_json, execution_owner, created_at, updated_at
 		FROM work_plans WHERE project_id=? ORDER BY updated_at DESC`, projectID)
 	if err != nil {
 		return nil, err
@@ -186,7 +209,7 @@ func (s *Store) ListWorkPlans(projectID string) ([]WorkPlan, error) {
 		var phasesRaw, factsRaw, createdAtStr, updatedAtStr string
 		var missionID sql.NullString
 		if err := rows.Scan(&p.ID, &p.ProjectID, &missionID, &p.Title, &p.Description, &p.Status, &p.CurrentRevision,
-			&phasesRaw, &factsRaw, &createdAtStr, &updatedAtStr); err != nil {
+			&phasesRaw, &factsRaw, &p.ExecutionOwner, &createdAtStr, &updatedAtStr); err != nil {
 			return nil, err
 		}
 		if missionID.Valid {
@@ -201,9 +224,16 @@ func (s *Store) ListWorkPlans(projectID string) ([]WorkPlan, error) {
 	return list, nil
 }
 
+var ErrPlanExecutionOwnerImmutable = fmt.Errorf("work plan execution owner is immutable")
+
 func (s *Store) UpdateWorkPlan(p WorkPlan, changeSummary string) (*WorkPlan, *PlanRevision, error) {
 	now := time.Now().UTC()
 	expectedRevision := p.CurrentRevision
+	executionOwner, err := canonicalExecutionOwner(p.ExecutionOwner)
+	if err != nil {
+		return nil, nil, err
+	}
+	p.ExecutionOwner = executionOwner
 	p.UpdatedAt = now
 	p.CurrentRevision = expectedRevision + 1
 
@@ -217,9 +247,9 @@ func (s *Store) UpdateWorkPlan(p WorkPlan, changeSummary string) (*WorkPlan, *Pl
 	defer tx.Rollback()
 
 	result, err := tx.Exec(`UPDATE work_plans SET title=?, description=?, status=?, current_revision=?, phases_json=?, facts_json=?, updated_at=?
-		WHERE id=? AND current_revision=?`,
+		WHERE id=? AND current_revision=? AND execution_owner=?`,
 		p.Title, p.Description, p.Status, p.CurrentRevision, string(phasesJSON), string(factsJSON),
-		now.Format(time.RFC3339), p.ID, expectedRevision)
+		now.Format(time.RFC3339), p.ID, expectedRevision, executionOwner)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -229,8 +259,12 @@ func (s *Store) UpdateWorkPlan(p WorkPlan, changeSummary string) (*WorkPlan, *Pl
 	}
 	if rowsAffected == 0 {
 		var currentRevision int
-		if err := tx.QueryRow(`SELECT current_revision FROM work_plans WHERE id=?`, p.ID).Scan(&currentRevision); err != nil {
+		var currentOwner string
+		if err := tx.QueryRow(`SELECT current_revision, execution_owner FROM work_plans WHERE id=?`, p.ID).Scan(&currentRevision, &currentOwner); err != nil {
 			return nil, nil, err
+		}
+		if currentOwner != executionOwner {
+			return nil, nil, ErrPlanExecutionOwnerImmutable
 		}
 		if err := validateExpectedPlanRevision(expectedRevision, currentRevision); err != nil {
 			return nil, nil, err

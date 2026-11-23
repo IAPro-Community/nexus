@@ -19,6 +19,53 @@ var ErrStaleIntervention = errors.New("STALE_INTERVENTION")
 var ErrInvalidInterventionOption = errors.New("INVALID_INTERVENTION_OPTION")
 var ErrInterventionPolicyDenied = errors.New("INTERVENTION_POLICY_DENIED")
 var ErrDispatchNotSent = errors.New("external dispatch was not sent")
+var ErrExecutionOwnerNotLocal = errors.New("mission run execution owner is not NEXUS; local dispatch is forbidden")
+var ErrExecutionOwnerImmutable = errors.New("mission run execution owner is immutable")
+var ErrInvalidExecutionOwner = errors.New("invalid mission run execution owner")
+
+// ExecutionOwnerNexus and ExecutionOwnerMaestro are the only two execution
+// owners. A run has exactly one owner for its entire life.
+const (
+	ExecutionOwnerNexus   = model.ExecutionOwnerNexus
+	ExecutionOwnerMaestro = model.ExecutionOwnerMaestro
+)
+
+// CanonicalExecutionOwner resolves an owner to its canonical form. An empty
+// owner is legacy data created by the local runner and resolves to NEXUS.
+func CanonicalExecutionOwner(owner string) (string, error) {
+	normalized := strings.ToUpper(strings.TrimSpace(owner))
+	switch normalized {
+	case "":
+		return ExecutionOwnerNexus, nil
+	case ExecutionOwnerNexus, ExecutionOwnerMaestro:
+		return normalized, nil
+	default:
+		return normalized, fmt.Errorf("%w: %q", ErrInvalidExecutionOwner, owner)
+	}
+}
+
+// NormalizeExecutionOwner preserves unknown values visibly for diagnostics;
+// persistence and local mutation paths use CanonicalExecutionOwner and fail closed.
+func NormalizeExecutionOwner(owner string) string {
+	normalized, _ := CanonicalExecutionOwner(owner)
+	return normalized
+}
+
+// requireLocalExecutionOwner refuses local supervision of a run owned by an
+// external executor. Retry, cancel and terminal input must follow the owner.
+func requireLocalExecutionOwner(run *MissionRun) error {
+	if run == nil {
+		return fmt.Errorf("mission run is required")
+	}
+	owner, err := CanonicalExecutionOwner(run.ExecutionOwner)
+	if err != nil {
+		return fmt.Errorf("%w: run %s", err, run.ID)
+	}
+	if owner != ExecutionOwnerNexus {
+		return fmt.Errorf("%w: run %s is owned by %s", ErrExecutionOwnerNotLocal, run.ID, owner)
+	}
+	return nil
+}
 
 type dispatchOutcomeError struct {
 	outcome DispatchState
@@ -97,7 +144,11 @@ func (r *MissionRunner) StartMissionRun(ctx context.Context, plan PlanSpec, work
 	if leadAgentID == "" {
 		leadAgentID = defaultAgentID
 	}
-	run := &MissionRun{ID: "run_" + ids.NewRuntimeID(), PlanID: plan.ID, PlanRevision: plan.Revision, ExecutionSnapshotID: plan.ExecutionSnapshotID, ProjectID: plan.ProjectID, LeadAgentID: leadAgentID,
+	executionOwner := NormalizeExecutionOwner(plan.ExecutionOwner)
+	if executionOwner != ExecutionOwnerNexus {
+		return nil, fmt.Errorf("%w: plan %s is owned by %s", ErrExecutionOwnerNotLocal, plan.ID, executionOwner)
+	}
+	run := &MissionRun{ID: "run_" + ids.NewRuntimeID(), PlanID: plan.ID, PlanRevision: plan.Revision, ExecutionSnapshotID: plan.ExecutionSnapshotID, ExecutionOwner: executionOwner, ProjectID: plan.ProjectID, LeadAgentID: leadAgentID,
 		Workspace: workspace, State: StateExecuting, Contract: contract, Autonomous: plan.Autonomous, StartedAt: now, LastProgressAt: now, UpdatedAt: now}
 	for _, spec := range plan.Packages {
 		state := StatePending
@@ -149,6 +200,13 @@ func (r *MissionRunner) ListRuns(ctx context.Context) ([]*MissionRun, error) {
 }
 
 func (r *MissionRunner) ExecuteNextStep(ctx context.Context, runID string) (*MissionRun, bool, error) {
+	current, err := r.repo.GetRun(ctx, runID)
+	if err != nil {
+		return nil, false, err
+	}
+	if err := requireLocalExecutionOwner(current); err != nil {
+		return current, false, err
+	}
 	run, err := r.repo.AcquireLease(ctx, runID, r.owner, r.leaseTTL)
 	if err != nil {
 		return nil, false, err
@@ -771,6 +829,13 @@ func resolveIntegratedVerificationWorkspace(run *MissionRun) (string, error) {
 }
 
 func (r *MissionRunner) PauseRun(ctx context.Context, runID, reason string) (*MissionRun, error) {
+	current, err := r.repo.GetRun(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	if err := requireLocalExecutionOwner(current); err != nil {
+		return current, err
+	}
 	run, err := r.repo.AcquireLease(ctx, runID, r.owner, r.leaseTTL)
 	if err != nil {
 		return nil, err
@@ -789,6 +854,13 @@ func (r *MissionRunner) PauseRun(ctx context.Context, runID, reason string) (*Mi
 }
 
 func (r *MissionRunner) ResumeRun(ctx context.Context, runID string) (*MissionRun, error) {
+	current, err := r.repo.GetRun(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	if err := requireLocalExecutionOwner(current); err != nil {
+		return current, err
+	}
 	run, err := r.repo.AcquireLease(ctx, runID, r.owner, r.leaseTTL)
 	if err != nil {
 		return nil, err
@@ -824,6 +896,13 @@ func (r *MissionRunner) ResolveInterventionWithOutcome(ctx context.Context, runI
 }
 
 func (r *MissionRunner) resolveIntervention(ctx context.Context, runID, interventionID string, version int, optionID, resolvedBy string) (*MissionRun, bool, error) {
+	current, err := r.repo.GetRun(ctx, runID)
+	if err != nil {
+		return nil, false, err
+	}
+	if err := requireLocalExecutionOwner(current); err != nil {
+		return current, false, err
+	}
 	run, err := r.repo.AcquireLease(ctx, runID, r.owner, r.leaseTTL)
 	if err != nil {
 		return nil, false, err
@@ -1013,6 +1092,13 @@ func applyInterventionOption(pkg *PackageRun, option InterventionOption) error {
 }
 
 func (r *MissionRunner) CancelRun(ctx context.Context, runID, reason string) (*MissionRun, error) {
+	current, err := r.repo.GetRun(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	if err := requireLocalExecutionOwner(current); err != nil {
+		return current, err
+	}
 	run, err := r.repo.AcquireLease(ctx, runID, r.owner, r.leaseTTL)
 	if err != nil {
 		return nil, err

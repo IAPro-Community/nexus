@@ -270,6 +270,13 @@ func (r *MissionRunner) SubmitCoordinationRequest(ctx context.Context, runID str
 	if runID == "" {
 		return nil, fmt.Errorf("coordination run id is required")
 	}
+	current, err := r.repo.GetRun(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	if err := requireLocalExecutionOwner(current); err != nil {
+		return nil, err
+	}
 	run, err := r.repo.AcquireLease(ctx, runID, r.owner, r.leaseTTL)
 	if err != nil {
 		return nil, err
@@ -295,6 +302,19 @@ func (r *MissionRunner) ResolveCoordinationRequest(ctx context.Context, runID, r
 	receiptID = strings.TrimSpace(receiptID)
 	if status != CoordinationResolved && status != CoordinationRejected && status != CoordinationFailed && status != CoordinationCanceled {
 		return nil, fmt.Errorf("coordination resolution status %q is not terminal", status)
+	}
+	if r == nil || r.repo == nil {
+		return nil, fmt.Errorf("mission runner repository is unavailable")
+	}
+	runID = strings.TrimSpace(runID)
+	current, err := r.repo.GetRun(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	// Owner is checked before the lease so a MAESTRO-owned run is never even
+	// transiently supervised by the local runner.
+	if err := requireLocalExecutionOwner(current); err != nil {
+		return nil, err
 	}
 	run, err := r.repo.AcquireLease(ctx, runID, r.owner, r.leaseTTL)
 	if err != nil {
@@ -486,7 +506,17 @@ func (r *MissionRunner) MaterializeCoordinationWork(ctx context.Context, runID, 
 	if r == nil || r.repo == nil {
 		return nil, fmt.Errorf("mission runner repository is unavailable")
 	}
-	run, err := r.repo.AcquireLease(ctx, strings.TrimSpace(runID), r.owner, r.leaseTTL)
+	runID = strings.TrimSpace(runID)
+	current, err := r.repo.GetRun(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	// Owner is checked before the lease so a MAESTRO-owned run is never even
+	// transiently supervised by the local runner.
+	if err := requireLocalExecutionOwner(current); err != nil {
+		return nil, err
+	}
+	run, err := r.repo.AcquireLease(ctx, runID, r.owner, r.leaseTTL)
 	if err != nil {
 		return nil, err
 	}

@@ -43,6 +43,7 @@ func (r *storeRunRepository) SaveRun(ctx context.Context, run *runner.MissionRun
 		ProjectID:      run.ProjectID,
 		State:          string(run.State),
 		PayloadJSON:    string(payload),
+		ExecutionOwner: run.ExecutionOwner,
 		LeaseOwner:     run.LeaseOwner,
 		LeaseToken:     run.LeaseToken,
 		LeaseExpiresAt: run.LeaseExpiresAt,
@@ -135,7 +136,8 @@ func (r *storeRunRepository) CommitInterventionResolution(ctx context.Context, r
 	}
 	return r.st.CommitMissionInterventionResolution(store.MissionRunRecord{
 		ID: run.ID, PlanID: run.PlanID, ProjectID: run.ProjectID, State: string(run.State), PayloadJSON: string(payload),
-		LeaseOwner: run.LeaseOwner, LeaseToken: run.LeaseToken, LeaseExpiresAt: run.LeaseExpiresAt, HeartbeatAt: run.HeartbeatAt,
+		ExecutionOwner: run.ExecutionOwner,
+		LeaseOwner:     run.LeaseOwner, LeaseToken: run.LeaseToken, LeaseExpiresAt: run.LeaseExpiresAt, HeartbeatAt: run.HeartbeatAt,
 		CreatedAt: run.StartedAt, UpdatedAt: run.UpdatedAt,
 	}, store.MissionInterventionResolutionRecord{
 		RunID: run.ID, InterventionID: resolution.InterventionID, Version: resolution.Version,
@@ -152,7 +154,12 @@ func decodeMissionRun(rec *store.MissionRunRecord) (*runner.MissionRun, error) {
 	if err := json.Unmarshal([]byte(rec.PayloadJSON), &run); err != nil {
 		return nil, fmt.Errorf("decode mission run %s: %w", rec.ID, err)
 	}
-	// Lease columns are written atomically and may be newer than payload_json.
+	// Lease and execution-owner columns are written atomically and are
+	// authoritative over legacy payload JSON.
+	run.ExecutionOwner = rec.ExecutionOwner
+	if run.ExecutionOwner == "" {
+		run.ExecutionOwner = runner.ExecutionOwnerNexus
+	}
 	run.LeaseOwner = rec.LeaseOwner
 	run.LeaseToken = rec.LeaseToken
 	run.LeaseExpiresAt = rec.LeaseExpiresAt

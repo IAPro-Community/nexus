@@ -64,6 +64,9 @@ func (m *MemoryRunRepository) SaveRun(ctx context.Context, run *MissionRun) erro
 		if current.LeaseToken != "" && current.LeaseToken != run.LeaseToken {
 			return ErrLeaseHeld
 		}
+		if NormalizeExecutionOwner(current.ExecutionOwner) != NormalizeExecutionOwner(run.ExecutionOwner) {
+			return ErrExecutionOwnerImmutable
+		}
 		copy := cloneRun(run)
 		// Lease metadata is maintained only by Acquire/Renew/Release and must
 		// never move backwards because a worker saved an older in-memory copy.
@@ -71,10 +74,13 @@ func (m *MemoryRunRepository) SaveRun(ctx context.Context, run *MissionRun) erro
 		copy.LeaseToken = current.LeaseToken
 		copy.LeaseExpiresAt = current.LeaseExpiresAt
 		copy.HeartbeatAt = current.HeartbeatAt
+		copy.ExecutionOwner = current.ExecutionOwner
 		m.runs[run.ID] = copy
 		return nil
 	}
-	m.runs[run.ID] = cloneRun(run)
+	stored := cloneRun(run)
+	stored.ExecutionOwner = NormalizeExecutionOwner(run.ExecutionOwner)
+	m.runs[run.ID] = stored
 	return nil
 }
 func (m *MemoryRunRepository) GetRun(ctx context.Context, id string) (*MissionRun, error) {

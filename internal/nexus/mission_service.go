@@ -101,7 +101,7 @@ func planToRunnerSpec(plan *store.WorkPlan, snapshotID string) (runner.PlanSpec,
 	if plan == nil || plan.ID == "" || plan.ProjectID == "" {
 		return runner.PlanSpec{}, fmt.Errorf("valid work plan is required")
 	}
-	spec := runner.PlanSpec{ID: plan.ID, ProjectID: plan.ProjectID, Revision: plan.CurrentRevision, ExecutionSnapshotID: snapshotID}
+	spec := runner.PlanSpec{ID: plan.ID, ProjectID: plan.ProjectID, Revision: plan.CurrentRevision, ExecutionSnapshotID: snapshotID, ExecutionOwner: runner.NormalizeExecutionOwner(plan.ExecutionOwner)}
 	if decision, err := ReadDelegationDecisionFacts(plan.StructuredFacts); err == nil {
 		spec.LeadAgentID = decision.LeadAgentID
 	}
@@ -959,10 +959,34 @@ func (n *Nexus) ResumeMissionRun(ctx context.Context, runID string) (*runner.Mis
 	return run, nil
 }
 
+// requireLocalMissionControlOwner refuses manual takeover and return for runs
+// whose durable execution owner is not the local Nexus runtime. The check must
+// happen before any worker or Agent lifecycle mutation.
+func requireLocalMissionControlOwner(run *runner.MissionRun) error {
+	if run == nil {
+		return fmt.Errorf("mission run is required")
+	}
+	owner, err := runner.CanonicalExecutionOwner(run.ExecutionOwner)
+	if err != nil {
+		return fmt.Errorf("%w: run %s", err, run.ID)
+	}
+	if owner != runner.ExecutionOwnerNexus {
+		return fmt.Errorf("%w: run %s is owned by %s", runner.ErrExecutionOwnerNotLocal, run.ID, owner)
+	}
+	return nil
+}
+
 // TakeControlMissionRun pauses autonomous execution and starts an interactive
 // supervised runtime for the package's persistent implementer Agent on the same
 // isolated worktree. Mission state remains PAUSED until ReturnMissionRun.
 func (n *Nexus) TakeControlMissionRun(ctx context.Context, runID, reason string) (*runner.MissionRun, error) {
+	current, err := n.Runner().GetRun(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	if err := requireLocalMissionControlOwner(current); err != nil {
+		return nil, err
+	}
 	run, err := n.PauseMissionRun(ctx, runID, reason)
 	if err != nil {
 		return nil, err
@@ -998,6 +1022,9 @@ func (n *Nexus) TakeControlMissionRun(ctx context.Context, runID, reason string)
 func (n *Nexus) ReturnMissionRun(ctx context.Context, runID string) (*runner.MissionRun, error) {
 	run, err := n.Runner().GetRun(ctx, runID)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireLocalMissionControlOwner(run); err != nil {
 		return nil, err
 	}
 	agentID := runner.ManualControlAgentID(run)
