@@ -911,8 +911,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: mission_team_test.go cobre selecao de equipe, presets e runtime override, nao o envio de diff de Agent para revisao independente delimitada.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: a fase de revisao recebe o escopo de mudancas dos agentes (PhaseHandoff.ChangedArtifacts) e os IDs dos passos revisados (PhaseHandoff.ReviewedStepIDs), com papel reviewer, ReviewRequired e sem paths proprios (TestMissionTeamReviewReceivesBoundedAgentDiffScope).",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
@@ -925,8 +925,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: nenhum teste referenciado associa resposta e proof ao dono do Run nem prova ausencia de execucao duplicada no handoff de revisao.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: a revisao depende exatamente dos passos de implementacao ja executados (2 passos de implementacao, nenhum duplicado) e o handoff referencia esses mesmos IDs, ligando resposta e proof ao mesmo Run sem reexecutar o agente (TestMissionTeamReviewReceivesBoundedAgentDiffScope).",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
