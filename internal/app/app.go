@@ -560,6 +560,8 @@ func usage() {
   %s maestro <status|doctor|update> Manage optional Maestro integration explicitly
   nexus maestro memory-recovery-status [--json]
                                   Read-only check for incomplete restoration journals
+  nexus maestro memory-migrate <plan|apply|recover> --workspace <path> [--reason <text>] [--confirm] [--json]
+                                  Migrate legacy intelligence memory to Maestro canonical memory
   %s completion <bash|zsh|fish>   Generate shell completion scripts
   %s version [--json]             Display build and platform information
   %s release                      Interactively bump, build, install and validate Nexus

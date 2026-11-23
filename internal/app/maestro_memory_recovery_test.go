@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/IAPro-Community/nexus/internal/core/memoryrecovery"
+	"github.com/IAPro-Community/nexus/internal/nexus"
 )
 
 func TestMaestroRecoveryStatusIsReadOnlyAndNoJournalIsClean(t *testing.T) {
@@ -29,6 +30,44 @@ func TestMaestroRecoveryStatusRejectsInvalidParameters(t *testing.T) {
 		if err := maestroMemoryRecoveryStatusCmd(args); err == nil {
 			t.Fatalf("status unexpectedly accepted %q", args)
 		}
+	}
+}
+
+func TestMaestroMemoryMigrateRejectsUnsafeInvocations(t *testing.T) {
+	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
+	nexus.ResetDefaultForTest()
+	t.Cleanup(nexus.ResetDefaultForTest)
+	cases := [][]string{
+		{},
+		{"plan"},
+		{"plan", "--workspace"},
+		{"plan", "--unknown"},
+		{"apply", "--workspace", "/workspace"},
+		{"recover", "--workspace", "/workspace", "--confirm"},
+		{"unknown", "--workspace", "/workspace"},
+	}
+	for _, args := range cases {
+		if err := maestroMemoryMigrateCmd(args); err == nil {
+			t.Fatalf("memory-migrate unexpectedly accepted %q", args)
+		}
+	}
+}
+
+func TestMaestroMemoryMigratePlanIsReadOnly(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("NEXUS_DATA_DIR", dir)
+	t.Setenv("XDG_CONFIG_HOME", dir+"/config")
+	t.Setenv("HOME", dir+"/home")
+	nexus.ResetDefaultForTest()
+	t.Cleanup(nexus.ResetDefaultForTest)
+	if err := maestroMemoryMigrateCmd([]string{"plan", "--workspace", dir}); err != nil {
+		t.Fatalf("plan must succeed on an empty installation: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "memory-recovery-journal")); !os.IsNotExist(err) {
+		t.Fatalf("plan must not create a journal directory: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "migration-backups")); !os.IsNotExist(err) {
+		t.Fatalf("plan must not create backups: %v", err)
 	}
 }
 

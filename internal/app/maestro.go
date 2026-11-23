@@ -15,6 +15,9 @@ func maestroCmd(args []string) error {
 	if len(args) > 0 && args[0] == "memory-recovery-status" {
 		return maestroMemoryRecoveryStatusCmd(args[1:])
 	}
+	if len(args) > 0 && args[0] == "memory-migrate" {
+		return maestroMemoryMigrateCmd(args[1:])
+	}
 	subcmd := "status"
 	asJSON := false
 	for _, arg := range args {
