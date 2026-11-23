@@ -8,6 +8,8 @@
  "features": [
   {
    "id": "terminal-studio",
+   "issue": 78,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -53,6 +55,8 @@
   },
   {
    "id": "agent-command-center",
+   "issue": 104,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -90,6 +94,8 @@
   },
   {
    "id": "review-studio",
+   "issue": 109,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -126,6 +132,8 @@
   },
   {
    "id": "browser-studio",
+   "issue": 107,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -166,6 +174,8 @@
   },
   {
    "id": "comparison-lab",
+   "issue": 108,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -223,6 +233,8 @@
   },
   {
    "id": "remote-companion",
+   "issue": 111,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -286,6 +298,8 @@
   },
   {
    "id": "mission-observatory",
+   "issue": 85,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -325,6 +339,8 @@
   },
   {
    "id": "smart-layouts",
+   "issue": 105,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -365,6 +381,8 @@
   },
   {
    "id": "workspace-snapshots",
+   "issue": 105,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -406,6 +424,8 @@
   },
   {
    "id": "agent-groups",
+   "issue": 105,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -457,6 +477,8 @@
   },
   {
    "id": "quick-switcher",
+   "issue": 84,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -494,6 +516,8 @@
   },
   {
    "id": "follow-agent",
+   "issue": 105,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -539,6 +563,8 @@
   },
   {
    "id": "floating-inspector",
+   "issue": 104,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -552,7 +578,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: ComposerInspector.tsx existe e renderiza briefing, contexto e prompt, mas nenhum dos testes referenciados (composerModel.test.ts, featureTour.test.ts) asserta os campos exigidos de status, identidade, evidencia e lineage do inspector. Cobertura permanece indireta.",
+     "assertionAudit": "partial"
     },
     {
      "acceptanceIndex": 1,
@@ -566,13 +593,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: nenhum teste referenciado prova que o inspector projeta apenas estado observado e informacao ja autorizada; composerModel.test.ts cobre readiness e manifest de contexto, featureTour.test.ts cobre tours. Assertion direta ausente.",
+     "assertionAudit": "partial"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "agent-parking",
+   "issue": 114,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -586,7 +616,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Distinção implementada: ocultar superfície (workspace.close do logicalKey agent:{id}:terminal) é puramente visual; suspensão de runtime não existe no backend e o model só oferece a ação suspend quando explicitamente suportada (parkingOptions(false) jamais a inclui). Aceite permanece pendente de homologação em app distribuído."
+     "gap": "Auditoria: agentParkingModel.test.ts afirma a distincao entre ocultar superficie e suspender runtime (never offers suspend while the backend does not support it; only includes suspend when explicitly supported) e o chave logico do workspace.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
@@ -602,13 +633,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Regressão travada por teste: cópia de ocultar/oculto-em-execução nos 3 locales deve afirmar que o runtime continua em execução e conter a negação explícita (not paus/não paus/no paus); nota honesta no card quando superfície oculta e runtime WORKING. Aceite permanece pendente de homologação em app distribuído."
+     "gap": "Auditoria: agentParkingModel.test.ts (bloco parking i18n honesty) e web/src/i18n/i18n.test.ts (paridade de catalogos) assertam que estado oculto em execucao nao e descrito como pausado nos tres idiomas.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "attention-radar",
+   "issue": 100,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -672,6 +706,8 @@
   },
   {
    "id": "focus-queue",
+   "issue": 100,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -711,6 +747,8 @@
   },
   {
    "id": "agent-timeline",
+   "issue": 114,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -723,7 +761,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: activityModel.test.ts afirma apenas o mapeamento de um evento duravel generico (FLOW_BLOCKED). Nao ha assertion sobre a linha do tempo de launch, attach, quota, handoff e recovery.",
+     "assertionAudit": "partial"
     },
     {
      "acceptanceIndex": 1,
@@ -736,13 +775,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: a projecao expoe correlation_id, agent_id e timestamp, mas activityModel.test.ts nao afirma source nem runtimeGeneration; correlation_id aparece no contrato sem assertion de generation.",
+     "assertionAudit": "partial"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "resource-recommendations",
+   "issue": 87,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -755,7 +797,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: resource_recommendation_test.go afirma elegibilidade e motivo (TestResourceRecommendation_RequiredCapabilitiesAreHardGate, TestResourceRecommendationExplainsCapabilityRejection e eligible antes de rejeitado).",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
@@ -768,13 +811,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: resource_recommendation_test.go afirma confidence LIVE, CACHED e UNKNOWN (TestResourceRecommendation_ConfidenceIsExplicitLiveCachedUnknown), quota preservada e cooldown, UNKNOWN como hard gate, PIN de provider e de profile (TestResourceRecommendation_PinnedProviderExcludesOtherAccounts, TestResourceRecommendation_PinnedProviderUnavailableFailsClosed, TestResourceRecommendation_PinnedProfileExcludesOtherProfiles) e preservacao do pool em PREFER (TestResourceRecommendation_PreferModeKeepsPoolEligible).",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "runtime-health",
+   "issue": 114,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -787,7 +833,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: lifecycle_test.go cobre apenas transicoes de estado e idempotencia; nao ha assertion sobre diagnostico de lease, PTY, heartbeat, PID ou capability de provider.",
+     "assertionAudit": "partial"
     },
     {
      "acceptanceIndex": 1,
@@ -800,13 +847,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: nenhum teste referenciado expoe erros ou UNKNOWN ao usuario sem afirmar recuperacao falsa; lifecycle_test.go limita-se a transicoes de estado.",
+     "assertionAudit": "partial"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "agent-compare",
+   "issue": 108,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -819,7 +869,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Model de comparação implementado: lados exigem worktrees independentes (mesma worktree/ausente é bloqueado) e critérios explícitos obrigatórios. Falta: orquestração de execução das implementações nas worktrees (integração com ComparisonCampaign/SessionHost) e UI. Aceite pendente de homologação no SHA."
+     "gap": "Auditoria: agent_compare_test.go afirma worktrees independentes (TestCompareAgentImplementationsRejectsSharedWorktree) e criterios explicitos, e comparison_application_test.go compara runs isolados.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
@@ -834,13 +885,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Testes e custo com evidência: critério tests usa contagens pass/fail reais (falha pesa 2x); critério cost só decide com evidência completa dos dois lados — UNKNOWN nunca vira zero, lado sem evidência não vence e veredito fica inconclusive com unknowns listados e bloqueio explícito de decisão automática. Falta: wiring do ComparisonRunEvidence (custo real do store) no model e UI do veredito. Aceite pendente de homologação no SHA."
+     "gap": "Auditoria: agent_compare_test.go e comparison_application_test.go assertam peso de criterios, falha de testes, custo UNKNOWN nunca zero, decisao por custo somente com evidencia e decisao humana persistida.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "review-handoff",
+   "issue": 110,
+   "responsible": "INTEGRATION",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -853,7 +907,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: mission_team_test.go cobre selecao de equipe, presets e runtime override, nao o envio de diff de Agent para revisao independente delimitada.",
+     "assertionAudit": "partial"
     },
     {
      "acceptanceIndex": 1,
@@ -866,13 +921,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: nenhum teste referenciado associa resposta e proof ao dono do Run nem prova ausencia de execucao duplicada no handoff de revisao.",
+     "assertionAudit": "partial"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "consult-another-agent",
+   "issue": 110,
+   "responsible": "INTEGRATION",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -885,7 +943,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: mission_team_test.go cobre selecao de equipe e presets explicaveis, mas nao a solicitacao de segunda opiniao com contexto e scope do Maestro.",
+     "assertionAudit": "partial"
     },
     {
      "acceptanceIndex": 1,
@@ -898,13 +957,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: TestMissionTeamSelectionRespectsDelegationOff cobre ausencia de auto-delegacao; nao ha assertion sobre prevention de loops nem sobre acoes externas nao autorizadas.",
+     "assertionAudit": "partial"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "change-radar",
+   "issue": 109,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -917,7 +979,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: handlers_git_worktrees_test.go afirma parse do porcelain e leitura de linked checkouts, mas nao ha assertion de agrupamento de arquivos e hunks alterados por Agent ou worktree.",
+     "assertionAudit": "partial"
     },
     {
      "acceptanceIndex": 1,
@@ -930,13 +993,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: nenhum dos testes referenciados emite aviso de colisao por base commit nem exige revisao humana antes de integracao.",
+     "assertionAudit": "partial"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "test-matrix",
+   "issue": 109,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -949,7 +1015,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: evidence_bundle_test.go afirma a projecao de prova canonica de uma Mission (TestEvidenceBundleRequiresAndProjectsCanonicalProof), nao a exibicao de resultados reais de comandos de teste por worktree.",
+     "assertionAudit": "partial"
     },
     {
      "acceptanceIndex": 1,
@@ -962,13 +1029,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: TestEvidenceBundleDoesNotPromoteTerminalStateWithoutProof cobre a recusa de promover estado terminal sem prova; exit code, SHA, timestamp e logs por worktree nao sao asertados nos testes referenciados.",
+     "assertionAudit": "partial"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "release-desk",
+   "issue": 109,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -983,7 +1053,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Projeção read-only GET /api/v1/projects/{id}/release-desk?base=<ref>: resolve merge-base, log %H%x00%s (cap 200), extrai PRs de (#N) e issues de #N, semeia gates canônicos (contrato, evidence map, evidência offline assinada, SHA multiplataforma, NEX readiness) sempre unverified por padrão. UI do desk pendente. Aceite pendente de homologação no SHA."
+     "gap": "Auditoria: release_desk_test.go e handlers_release_desk_test.go assertam separacao entre PRs e issues, refs de commit, range de commits e vinculo da release com diff e gates.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
@@ -1001,13 +1072,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Aprovação assinada integrada ao evidence path: scripts/sign-release-approval.mjs assina payload canônico com chave Ed25519 enrolada em docs/reference/release-reviewers.json; o desk carrega docs/reference/release-approval.json, verifica assinatura Ed25519 (crypto/ed25519), vínculo ao head exato, janela de frescor 90d/skew 5min e signer enrolado — qualquer falha é fail-closed (sem aprovação, merge/publicação bloqueado). Testes: round-trip Go, tamper/mismatch/stale/unenrolled falham, skew tolerado, script assina+auto-verifica, HTTP mostra aprovação no relato com gates ainda bloqueando. Falta: UI. Aceite pendente de homologação no SHA."
+     "gap": "Auditoria: release_desk_test.go (bloqueio sem aprovacao, bloqueio com SHA divergente, liberacao so com aprovacao e gates verificados, gate nunca promovido silenciosamente), release_approval_test.go e handlers_release_desk_test.go assertam fail-closed de merge e publicacao.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "browser-pane",
+   "issue": 107,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -1020,7 +1094,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: BrowserSurface.test.ts afirma normalizacao de URL, titulo de aba e modo de controle de aba, mas nao afirma que o Browser e uma superficie real do Workspace OS.",
+     "assertionAudit": "partial"
     },
     {
      "acceptanceIndex": 1,
@@ -1033,13 +1108,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: nenhum teste referenciado prova que iframe nao substitui a automacao de browser; a verificacao de automacao real vive em handlers_browser_mcp_test.go, fora deste criterio.",
+     "assertionAudit": "partial"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "design-inspect",
+   "issue": 107,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -1084,6 +1162,8 @@
   },
   {
    "id": "live-preview",
+   "issue": 107,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -1135,6 +1215,8 @@
   },
   {
    "id": "browser-automation",
+   "issue": 83,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -1147,7 +1229,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: handlers_browser_mcp_test.go afirma schemas de ferramentas (TestBrowserMCPToolSchemas) e rejeicao de requisicao nao autenticada ou remota, mas nao afirma grant temporario com capability verificavel.",
+     "assertionAudit": "partial"
     },
     {
      "acceptanceIndex": 1,
@@ -1160,13 +1243,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: ha assertion de negacao para origem remota e nao autenticada; nao ha assertion de intervencao humana para MFA e revoke, nem de isolamento e auditoria da operacao.",
+     "assertionAudit": "partial"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "visual-diff",
+   "issue": 107,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -1182,7 +1268,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Comparação determinística implementada e exposta no browser: POST /api/v1/browser/{id}/visual-diff com dois modos — par explícito (before/after base64 JPEG, totalmente rastreável) e recheck server-side com delay limitado a 5s; região e limiar obrigatoriamente declarados (nunca inventados), tamanho divergente é 422 explícito. Falta: UI que captura e envia os pares (fluxo de revisão visual). Aceite pendente de homologação no SHA."
+     "gap": "Auditoria: visual_diff_test.go afirma comparacao deterministica de screenshots (identical, changed pixels, threshold, determinismo, inputs invalidos) e handlers_browser_visual_diff_test.go cobre o par explicito via HTTP.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
@@ -1197,13 +1284,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Região/limiar ecoados no resultado (traceability) e artefato de revisão PNG (grayscale + vermelho) opcional na resposta. Falta: persistência dos artefatos com hash no evidence path e revisão na UI. Aceite pendente de homologação no SHA."
+     "gap": "Auditoria: visual_diff_test.go afirma regiao (TestCompareScreenshotsRegionScopesComparison), tolerancia de limiar e artefato de diff renderizado (TestRenderDiffArtifactHighlightsDifferences).",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "device-preview",
+   "issue": 107,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -1216,7 +1306,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: BrowserSurface.test.ts nao contem assertion de viewports de telefone, tablet e desktop na mesma browser session.",
+     "assertionAudit": "partial"
     },
     {
      "acceptanceIndex": 1,
@@ -1229,13 +1320,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: nenhum teste referenciado verifica escala, foco, acessibilidade e redimensionamento correto dos previews de dispositivo.",
+     "assertionAudit": "partial"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "mobile-inbox",
+   "issue": 111,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -1249,7 +1343,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: attentionRadarModel.test.ts afirma agrupamento por projeto e runtime e linhas acionaveis honestas, e attentionDelivery.test.ts cobre entrega push; o vinculo ao celular e a jobs nao e asertado.",
+     "assertionAudit": "partial"
     },
     {
      "acceptanceIndex": 1,
@@ -1263,13 +1358,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: attentionDelivery.test.ts afirma re-notificacao de novo episodio e nao supressao entre runtimes independentes, mas nao afirma resposta unica sob falha de rede ou reconexao.",
+     "assertionAudit": "partial"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "remote-terminal",
+   "issue": 111,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -1283,27 +1381,34 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: agentTerminalModel.test.ts afirma reattach ao runtime existente apos mudanca de generation e que perda de transporte nunca cria segundo runtime (never auto-recovers or creates a second runtime on transport loss).",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
      "acceptance": "Controle único com token scoped, CSRF, expiry e revoke",
      "sourceRefs": [
-      "web/src/nexus/AgentTerminal.tsx"
+      "web/src/nexus/AgentTerminal.tsx",
+      "internal/control/web/server.go",
+      "internal/control/web/handler_terminal.go"
      ],
      "testRefs": [
       "web/src/nexus/agentTerminalModel.test.ts",
-      "web/src/nexus/terminalInput.test.ts"
+      "web/src/nexus/terminalInput.test.ts",
+      "internal/control/web/desktop_auth_test.go"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: agentTerminalModel.test.ts afirma controle apenas com lease CONTROL explicito; desktop_auth_test.go afirma recusa de attach sem autenticacao, Origin estrangeira, grant viewer e sessao revogada (TestTerminalAttachRejectsUnauthenticatedRevokedViewerAndForeignOrigin) e expiracao de sessao (TestDesktopSessionRevocationAndExpiry). Falta assertion de CSRF na superficie de terminal (attach e GET upgrade) e de token scoped por runtime.",
+     "assertionAudit": "partial"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "workspace-sharing",
+   "issue": 112,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -1319,7 +1424,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Grants viewer-only por projeto (agent opcional) com Authorize deny-by-default e razões explícitas; gestão de grants autenticada+CSRF; leitura compartilhada /api/v1/shared/observations autorizada pelo grant em si. Falta: UI de gestão e persistência durável (registry em memória, fase 1 — ADR com follow-ups). Aceite pendente de homologação no SHA."
+     "gap": "Auditoria: workspace_sharing_test.go e handlers_workspace_sharing_test.go assertam grant viewer-only, escopo por projeto e por Agent, listagem ordenada e hidratacao do grant persistido.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
@@ -1333,13 +1439,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Viewer-only: única role emitida é viewer e action != read é negada. Cross-project: escopo obrigatório de projeto, divergência negada com razão explícita (teste dedicado). Revoke imediato: toda checagem consulta estado corrente; teste de integração prova 403 na requisição seguinte ao DELETE. Falta: TTL e auditoria de acesso (follow-ups do ADR). Aceite pendente de homologação no SHA."
+     "gap": "Auditoria: TestCrossProjectAccessDenied, TestRevokeIsImmediate, TestViewerCannotMutate, TestAgentScopeRespected e TestShareGrantFromOneProjectCannotReadAnother assertam negacao cross-project, revoke imediato e viewer sem mutacao.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "voice-actions",
+   "issue": 114,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -1353,7 +1462,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: voice_capture_test.go afirma apenas a capacidade nativa por plataforma e voice/service_test.go cobre segredos e fallback de provider; nao ha assertion de que a acao de voz exige controle explicito e identifica o Agent de destino.",
+     "assertionAudit": "partial"
     },
     {
      "acceptanceIndex": 1,
@@ -1367,13 +1477,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: voice/service_test.go afirma que segredos nao vazam para settings nem para o arquivo de dados, mas nao ha assertion sobre nao inserir Enter automaticamente nem sobre leitura de segredo do prompt.",
+     "assertionAudit": "partial"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "contextual-hud",
+   "issue": 114,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -1388,7 +1501,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: GuardianMascot.test.tsx afirma que a acao de atencao so aparece para item projetado real e que o mood operacional vem do atlas travado; hudModel.test.ts afirma os estados loading, offline, disabled e ready.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
@@ -1403,13 +1517,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: GuardianMascot.test.tsx afirma motion decorativo desligado e drag por teclado, e attention_monitor_test.go rastreia requests reais e ruido filtrado; falta smoke nativo no candidato em Windows e macOS.",
+     "assertionAudit": "partial"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "nex-companion",
+   "issue": 114,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -1423,7 +1540,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: nexCompanionBehavior.test.ts afirma o mapeamento dos oito comportamentos contextuais, a precedencia por status canonico e a recusa de inferir sucesso; mascotModel.test.ts afirma severidade sem celebrar completion nao verificado.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
@@ -1437,13 +1555,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: mascotModel.test.ts afirma que nao anima quando motion esta desabilitado ou Nexus offline e nexCompanionBehavior.test.ts trata arrays nulos; contraste alto e o identity lock NEX-ID-v1 nao sao asertados nos testes referenciados.",
+     "assertionAudit": "partial"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "workspace-recipes",
+   "issue": 105,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -1456,7 +1577,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: arrangePresets.test.ts afirma exatamente cinco presets canonicos em PT-BR, resolucao de aliases legados e que receitas nao criam sessoes nem inventam layouts.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
@@ -1469,28 +1591,34 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: arrangePresets.test.ts (offers task recipes without creating sessions or inventing new layouts) afirma que a receita nao inicia Agents nem acoes automaticamente.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "parallel-challenge",
+   "issue": 108,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
      "acceptance": "Distribuir uma especificação a múltiplos Agents isolados e compará-los",
      "sourceRefs": [
       "internal/nexus/parallel_challenge.go",
+      "internal/nexus/parallel_challenge_mission.go",
       "internal/nexus/agent_compare.go"
      ],
      "testRefs": [
       "internal/nexus/parallel_challenge_test.go",
+      "internal/nexus/parallel_challenge_mission_test.go",
       "internal/nexus/agent_compare_test.go"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Model de challenge: distribuição de uma spec a N>=2 agentes isolados (worktrees únicas obrigatórias, spec e critérios explícitos exigidos), comparação round-robin determinística por pares reutilizando agent-compare. Falta: orquestração real de despacho via MissionRunner/worktrees (integração) e UI. Aceite pendente de homologação no SHA."
+     "gap": "Auditoria: parallel_challenge_test.go exige worktree isolado por participante e rejeita worktree compartilhado; parallel_challenge_mission_test.go afirma mapeamento de MissionRuns concluidos do mesmo plano para participantes e recusa runs incompletos ou de outro plano. Falta execucao real da distribuicao de uma especificacao a multiplos Agents isolados.",
+     "assertionAudit": "partial"
     },
     {
      "acceptanceIndex": 1,
@@ -1503,13 +1631,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Sem merge automático: AutoMergeAllowed é sempre false com política explícita no resultado e nos bloqueios; custo UNKNOWN nunca vira zero — participante sem evidência não vence critério de custo, unknowns listados e bloqueio de evidência incompleta. Falta: integração com custos reais do ledger e UI. Aceite pendente de homologação no SHA."
+     "gap": "Auditoria: TestEvaluateChallengeNeverAutoMerges e TestEvaluateChallengeUnknownCostNeverZero assertam ausencia de merge automatico e custo UNKNOWN nunca tratado como zero.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "change-collision-detector",
+   "issue": 109,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -1527,7 +1658,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Detecção implementada: hunks de git diff -U0 por worktree, overlap de linhas = conflito provável; mesmo arquivo sem overlap = incerto. Handler GET read-only com caps (16 worktrees, 5s, 2MB). Aceite permanece pendente de homologação no SHA."
+     "gap": "Auditoria: change_collision_test.go afirma colisao por hunk sobreposto e determinismo, handlers_change_collisions_test.go cobre o endpoint real e changeCollisionsModel.test.ts afirma separacao de contagens.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
@@ -1545,13 +1677,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Incerteza explícita no relato (uncertain, uncertain_count, scan_errors de cobertura parcial) e na UI (badge de confiança, hint de revisão antes do merge, i18n PT/EN/ES). Card nunca bloqueia merge. Aceite permanece pendente de homologação no SHA."
+     "gap": "Auditoria: TestDetectChangeCollisionsSameFileDisjointIsUncertain e changeCollisionsModel.test.ts (maps confidence levels to i18n keys, reports scan errors honestly) assertam incerteza e revisao humana antes do merge.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "device-handoff",
+   "issue": 111,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -1607,6 +1742,8 @@
   },
   {
    "id": "maestro-managed-dependency",
+   "issue": 113,
+   "responsible": "INTEGRATION",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -1641,70 +1778,103 @@
   },
   {
    "id": "maestro-canonical-memory",
+   "issue": 113,
+   "responsible": "INTEGRATION",
    "criteria": [
     {
      "acceptanceIndex": 0,
      "acceptance": "Migrar IntelligenceMemory com backup, dry-run, idempotência e rollback",
      "sourceRefs": [
-      "internal/nexus/intelligence_memory.go"
+      "internal/nexus/memory_migration.go",
+      "internal/core/memoryrecovery/gate.go",
+      "internal/core/memoryrecovery/resume.go",
+      "internal/nexus/store/legacy_memory_gate.go",
+      "internal/app/maestro_memory_recovery.go"
      ],
      "testRefs": [
-      "internal/nexus/intelligence_memory_test.go"
+      "internal/nexus/memory_migration_test.go",
+      "internal/nexus/store/legacy_memory_gate_test.go",
+      "internal/app/maestro_memory_recovery_test.go"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: migracao implementada com dry-run somente leitura (plan), backup snapshot em migration-backups, digest deterministico, journal com estagios, read-back obrigatorio, gate fail-closed como unico side effect persistente e recovery por resume idempotente. Rollback reabre o gate apenas sem lock de journal ativo; a migracao e copy-out e nunca apaga a fonte local. Certification continua pendente.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
      "acceptance": "Nexus retém somente checkpoint operacional e nunca segunda store semântica",
      "sourceRefs": [
-      "internal/nexus/intelligence_memory.go"
+      "internal/nexus/intelligence_memory.go",
+      "internal/core/memoryrecovery/gate.go",
+      "internal/nexus/store/intelligence_memories.go"
      ],
      "testRefs": [
-      "internal/nexus/intelligence_memory_test.go"
+      "internal/nexus/memory_migration_test.go",
+      "internal/nexus/store/legacy_memory_gate_test.go"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: apos migracao verificada o gate falha fechado para toda escrita de memoria legada (INSTALL em config.json e PROJECT em SQLite) e leitura continua permitida apenas como historico. Nexus nao assume autoridade semantica apos a migracao; a store canonica e o Maestro. A exclusao de leitura historica do escopo do produto exige decisao do owner.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "single-execution-owner",
+   "issue": 113,
+   "responsible": "INTEGRATION",
    "criteria": [
     {
      "acceptanceIndex": 0,
      "acceptance": "Cada Run tem executor único NEXUS ou MAESTRO",
      "sourceRefs": [
+      "internal/core/model/types.go",
+      "internal/nexus/store/migrations/0040_execution_owner.sql",
+      "internal/nexus/store/plans.go",
+      "internal/nexus/store/autonomy.go",
+      "internal/nexus/runner/runner.go",
+      "internal/nexus/runner/coordination.go",
       "internal/nexus/mission_executor.go"
      ],
      "testRefs": [
+      "internal/nexus/store/execution_owner_test.go",
+      "internal/nexus/runner/execution_owner_test.go",
       "internal/nexus/mission_executor_test.go"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: owner canônico NEXUS|MAESTRO é persistido em work_plans e mission_runs, permanece imutável e falha fechado para valores desconhecidos. O executor local recusa run MAESTRO em Allocate, Compile, Execute e Review. Cobertura executável existe; certification continua pendente.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
      "acceptance": "Retry, cancel e terminal input seguem o owner; não há duplo supervisor",
      "sourceRefs": [
-      "internal/nexus/mission_executor.go"
+      "internal/nexus/runner/runner.go",
+      "internal/nexus/runner/coordination.go",
+      "internal/nexus/mission_service.go",
+      "internal/nexus/mission_executor.go",
+      "internal/nexus/mission_integration.go"
      ],
      "testRefs": [
+      "internal/nexus/runner/execution_owner_test.go",
+      "internal/nexus/mission_worker_test.go",
       "internal/nexus/mission_executor_test.go"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: retry, step, pause, resume, cancel, intervenção, coordenação, takeover e return locais recusam run MAESTRO ou owner desconhecido antes de lease, dispatch, parada de runtime ou efeito colateral. O executor local recusa Allocate, Compile, Execute, Review e IntegrateDelivery. Terminal input não é dirigido por MissionRun: RuntimeApplicationService.Respond/RespondToAttention operam por runtimeID de sessão interativa, e runs MAESTRO nunca obtêm runtime local. Cobertura executável existe; certification continua pendente.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "composer-flow-onboarding",
+   "issue": 102,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -1756,6 +1926,8 @@
   },
   {
    "id": "remote-generated-outputs",
+   "issue": 94,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -1768,26 +1940,32 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: catalog_test.go afirma protecao de path do projeto, scan e listagem de outputs e serve com thumbnail; o catalogo expoe imagem, video e arquivos gerados no host.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
      "acceptance": "ACL por projeto, MIME/hash, TTL e não expor filesystem indiscriminadamente",
      "sourceRefs": [
-      "internal/nexus/artifacts/catalog.go"
+      "internal/nexus/artifacts/catalog.go",
+      "internal/nexus/artifacts/history.go"
      ],
      "testRefs": [
-      "internal/nexus/artifacts/catalog_test.go"
+      "internal/nexus/artifacts/catalog_test.go",
+      "internal/nexus/artifacts/history_test.go"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: catalog_test.go afirma confinamento ao root do projeto e rejeicao de path traversal e symlink (TestProjectPathProtection), digest SHA-256 igual ao original (TestServeAndThumbnail) e header nosniff; history_test.go afirma janela de retencao com poda e resposta private no-store (TestOutputHistoryRetentionAndPrivateCaching). Falta assertar Content-Type MIME do original servido e ACL de identidade por projeto (hoje o ACL e confinamento de path).",
+     "assertionAudit": "partial"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "two-client-real-e2e",
+   "issue": 81,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -1800,7 +1978,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: multi_runtime_attention_e2e_test.go executa dois clientes autenticados com cookies separados e dois Agents (alpha e beta), verificando reconstrucao de estado no cliente 2.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
@@ -1813,13 +1992,16 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Referências candidatas localizadas; assertions ainda não foram auditadas contra este critério e o aceite permanece pendente."
+     "gap": "Auditoria: o cenario referenciado cobre atencao, leases e reconexao de estado pela API; handoff, browser e reconexao de PTY ou lease nao sao exercitados no teste referenciado.",
+     "assertionAudit": "partial"
     }
    ],
    "verification": "pending"
   },
   {
    "id": "cross-platform-exact-sha",
+   "issue": 27,
+   "responsible": "NEXUS",
    "criteria": [
     {
      "acceptanceIndex": 0,
@@ -1830,7 +2012,8 @@
      "testRefs": [],
      "mappingStatus": "source-only",
      "coverage": "unverified",
-     "gap": "Aceite depende de evidência externa same-SHA em três sistemas, instalação/artefatos e assinatura; teste local não certifica esses runners."
+     "gap": "Auditoria: sem teste referenciado; exige evidencia externa de Linux, Windows e macOS no mesmo SHA do release candidate, conforme os jobs de CI.",
+     "assertionAudit": "partial"
     },
     {
      "acceptanceIndex": 1,
@@ -1841,7 +2024,8 @@
      "testRefs": [],
      "mappingStatus": "source-only",
      "coverage": "unverified",
-     "gap": "Aceite depende de evidência externa same-SHA em três sistemas, instalação/artefatos e assinatura; teste local não certifica esses runners."
+     "gap": "Auditoria: sem teste referenciado; PTY e ConPTY, Browser, Desktop, HUD, instalacao e artefatos rastreaveis dependem de runners fisicos, do par de SHAs congelado e da assinatura.",
+     "assertionAudit": "partial"
     }
    ],
    "verification": "pending"
