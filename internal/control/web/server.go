@@ -59,6 +59,7 @@ type Server struct {
 	// attention items. It is nil until routes are registered.
 	attentionSource func(context.Context) (*runner.AttentionGroup, error)
 	pushWatchOnce   sync.Once
+	pushWatchMu     sync.Mutex
 	pushWatchCancel context.CancelFunc
 }
 
@@ -770,8 +771,12 @@ func (s *Server) handleDesktopBootstrap(w http.ResponseWriter, r *http.Request) 
 
 func (s *Server) Shutdown(ctx context.Context) error {
 	browsercontrol.UnpublishBrowserEndpoint(s.pid)
-	if s.pushWatchCancel != nil {
-		s.pushWatchCancel()
+	s.pushWatchMu.Lock()
+	pushWatchCancel := s.pushWatchCancel
+	s.pushWatchCancel = nil
+	s.pushWatchMu.Unlock()
+	if pushWatchCancel != nil {
+		pushWatchCancel()
 	}
 	if s.browsers != nil {
 		s.browsers.Shutdown()

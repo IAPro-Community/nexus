@@ -161,7 +161,9 @@ func (s *Server) startAttentionPush() {
 	}
 	s.pushWatchOnce.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
+		s.pushWatchMu.Lock()
 		s.pushWatchCancel = cancel
+		s.pushWatchMu.Unlock()
 		go s.runAttentionPush(ctx)
 	})
 }
