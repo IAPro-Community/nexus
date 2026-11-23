@@ -1,3 +1,10 @@
+## 2026-11-23 — Lane 0 fechada no CI Linux; Lane A continua com `runtime-health` auditada — ativo
+
+- **Lane 0 (desbloqueio) — progresso medido** — `Linux E2E`, `Frontend` e `Documentation visual capture evidence` verdes no run `45259850030` (`ac66ff48`) depois do mutex em `pushWatchCancel` (`84967b97`) e do filtro `_test.go` no `docs-verify` (`ac66ff48`). `Security` reprovou por `GO-2026-6278` e foi corrigido com `gorilla/websocket v1.5.4-0.20240701034025-d67f41855da4` (`3bd88bc5`). O smoke Linux reprovou por dependência de `internal/control/registry/continuity_claim.go` (untracked de outro workstream); `ca4e1bfd` deixa o diagnóstico de runtime autocontido.
+- **Lane A — `runtime-health` auditada** — `DiagnoseRuntimeHealth` (`internal/control/registry/lifecycle.go`) diagnostica lease, PTY, heartbeat, PID e capability de provider como sinais `OK`/`UNKNOWN`/`ERROR`; `internal/doctor/terminal.go` expõe os sinais por runtime; evidence map com 2 critérios `audited` (`1e649749`). Próximas capacidades sem cobertura: `test-matrix`, `review-handoff`, `floating-inspector`.
+- **Estado** — `origin/release/v1.0.0` = `ca4e1bfd` (local `2267b391`); tag `v1.0.0` intacta (`d89797cd`), `v1.0.1` não criada. Release **NO_GO** até prova externa por capacidade no SHA exato.
+- **Bloqueios que exigem o maestro** — runner Windows/macOS (#216), aceite visual NEX em HUD+Site, credencial do Named Tunnel, quota real AGY, hardware físico, `memory-migrate apply` com Bridge ativo, chaves de assinatura.
+
 ## 2026-11-23 — GO 1.0.1: Lane 0 (desbloqueio) + plano de 6 lanes até GO — ativo
 
 - **Objetivo** — plano total até GO, executado por lanes verificáveis. Estado inicial medido: 48 capacidades com `sourceStatus` (12 `present`, 34 `partial`, 2 `missing`), **0 certificadas**; 97 critérios com `coverage: unverified` e 0 certificados; NEX **2/11**; runner CI offline desde 18/11.
