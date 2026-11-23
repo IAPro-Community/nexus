@@ -70,3 +70,51 @@ func TestOutputHistoryVersionsAndAgentProvenance(t *testing.T) {
 		t.Fatal("unsafe path accepted")
 	}
 }
+
+// Generated outputs are bounded and private: the revision ledger keeps only
+// maxRevisions versions, pruned versions stop being served, and file responses
+// are never publicly cacheable.
+func TestOutputHistoryRetentionAndPrivateCaching(t *testing.T) {
+	root, dir := makeTestRoot(t)
+	dataDir := t.TempDir()
+	var last Item
+	for i := 0; i < maxRevisions+2; i++ {
+		img := image.NewRGBA(image.Rect(0, 0, 4+i, 4))
+		img.Set(0, 0, color.RGBA{R: uint8(i * 20), A: 255})
+		buf := new(bytes.Buffer)
+		if err := png.Encode(buf, img); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "images", "a.png"), buf.Bytes(), 0600); err != nil {
+			t.Fatal(err)
+		}
+		item, err := Describe(root, "images/a.png")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if last, err = Observe(root, dataDir, "project-1", item, "agent", "agent-1", "runtime-1"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if last.Revisions != maxRevisions {
+		t.Fatalf("history must stay bounded to %d revisions, got %d", maxRevisions, last.Revisions)
+	}
+	rec, err := History(dataDir, "project-1", "images/a.png")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rec.Versions) != maxRevisions || rec.Versions[len(rec.Versions)-1].Number != last.Revision {
+		t.Fatalf("retention window mismatch: %+v (latest %d)", rec.Versions, last.Revision)
+	}
+	pruned := httptest.NewRequest(http.MethodGet, "/revision", nil)
+	if err := ServeRevision(httptest.NewRecorder(), pruned, dataDir, "project-1", "images/a.png", 1); err == nil {
+		t.Fatal("pruned revision must not be served after retention")
+	}
+	served := httptest.NewRecorder()
+	if err := Serve(served, httptest.NewRequest(http.MethodGet, "/serve", nil), root, "images/a.png", false); err != nil {
+		t.Fatal(err)
+	}
+	if got := served.Header().Get("Cache-Control"); got != "private, no-store" {
+		t.Fatalf("generated outputs must not be publicly cached, got %q", got)
+	}
+}
