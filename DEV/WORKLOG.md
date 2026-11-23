@@ -1,3 +1,40 @@
+## 2026-11-23 — Decisões do owner aplicadas: 4 blocos commitados e push para `origin/release/v1.0.0`
+
+- **Decisões do owner** — (1) commitar os 4 blocos sem push; (2) enviar `release/v1.0.0` para `origin` após os commits; (3) `memory-migrate apply` só no SHA publicado, com Bridge Maestro ativo (nenhum cutover local).
+- **Commits (staging por índice, sem tocar a working tree dos outros workstreams)** — `8b932b0c feat(go): enforce single execution owner on plans and runs` (16 arquivos: 13 alterados + migration `0040` + 2 testes novos), `2af8d233 feat(go): add Maestro canonical memory migration with gate and recovery` (11 arquivos), `7b2a5a41 feat(cli): expose nexus maestro memory-migrate plan|apply|recover` (4 arquivos), `a90ace4b feat(ci): produce native platform records and assemble release evidence` (4 arquivos). O owner, em paralelo, commitou `d6b1d72e` (fix do produtor) e `3867a1fd` (step `terminal-golden-e2e` em `ci.yml`, que ficou fora do meu fatiamento por ser de outro workstream).
+- **Hunks de terceiros preservados fora dos commits** — `internal/app/app.go` (help `handoff --no-attach`, aviso Codex quota, `profilesCmd`), `internal/nexus/store/autonomy.go` (paginador `Seq`/`ListMissionRunEvents`), `internal/nexus/mission_intervention_persistence_test.go` (depende do paginador) e o step `terminal-golden-e2e` (depois commitado pelo owner). Working tree segue com 98 modificados + 20 untracked de outros workstreams.
+- **Validação da árvore commitada** — worktree limpa em `3867a1fd`: `go build ./internal/...` OK, `gofmt -l internal/` vazio; `internal/nexus/runner` 20.3s, `internal/nexus/store` 16.9s, `internal/core/memoryrecovery` 4.1s, `internal/nexus` (migração + Mission/ExecutionOwner) 50.1s, `internal/app` (CLI) 0.1s, `internal/control/handoff` 0.5s; `node --test` 23/23; YAML de `ci.yml`/`release.yml` parseia; `verify-agent-workspace-v1.mjs` exit 0 (scope 48, certification pending).
+- **Push** — `git push origin release/v1.0.0`: `6c322427..3867a1fd` (fast-forward, 29 commits); `origin/release/v1.0.0` = `3867a1fd`; tag `v1.0.0` intacta em `d89797cd`; nenhuma tag nova. CI do push: run `45165787696` (`push`, `queued`) no SHA `3867a1fd`.
+- **Pendente com o owner** — `workflow_dispatch` nativo (`native_target_sha=3867a1fd`, `native_platform=all`) nos runners `nexus-windows`/`nexus-macos` (bloqueio #216) e o cutover da memória no SHA publicado com Bridge Maestro ativo. Release **NO_GO**.
+
+## 2026-11-22 — Fatiamento A–D verificado em worktree isolado; owner commitou `d6b1d72e`
+
+- **Novo commit do owner** — `d6b1d72e fix(ci): platform evidence honors native certification`: o produtor passa a validar a certificação nativa (`validCertification`) por capacidade e marca a plataforma `passed` só quando todas as capacidades estão cobertas ou certificadas; 2 casos novos no teste. Compatível com a montagem do `same-sha-gate`.
+- **Validação do fatiamento** — worktree temporária (`/tmp/opencode/blockwt`, HEAD `d6b1d72e`, criada e removida; worktrees do owner intactas): os 4 blocos foram aplicados cumulativamente com commit local em cada etapa, **fora** da árvore principal (working tree de `/projetos/nexus` intocada, 150 arquivos preservados):
+  1. `1648c490 feat(go): enforce single execution owner on plans and runs` — build OK; `runner`, `store` e `internal/nexus -run 'Mission|ExecutionOwner'` verdes (20s/20s/52s).
+  2. `a9a6758f feat(go): add Maestro canonical memory migration with gate and recovery` — build OK; migração, `store`, `memoryrecovery`, `config`, `handoff` verdes.
+  3. `be5f7ba5 feat(cli): expose nexus maestro memory-migrate plan|apply|recover` — build OK; CLI verde; `gofmt` limpo.
+  4. `6d6df72f feat(ci): produce native platform records and assemble release evidence` — build OK; `node --test` 11/11 (×3); YAML parseia; `verify-agent-workspace-v1` exit 0.
+- **Contaminação mapeada por hunk** — `app.go` (help quota/continuidade), `autonomy.go` (paginador `Seq`/`ListMissionRunEvents`), `mission_intervention_persistence_test.go` (depende do paginador) e `ci.yml` (step `terminal-golden-e2e`) têm hunks de outros workstreams; o fatiamento definitivo exige staging por índice. Detalhes em `DEV/HANDOFF_PACKAGE_20261122.md` §1b.
+- **Nada mudou na árvore principal** — nenhum commit (além do do owner), nenhum push, nenhum status de capacidade alterado. Release **NO_GO**.
+
+## 2026-11-22 — Pacote final para o owner e flake do singleton corrigido
+
+- **Pacote** — `DEV/HANDOFF_PACKAGE_20261122.md`: commits candidatos A (`execution_owner` + guards), B (migração Maestro memory com gate/journal/recovery), C (CLI `nexus maestro memory-migrate`), D (Fase B/C de CI); estado das 48 capacidades (`43 partial/pending`, `3 present/pending`, `2 missing/pending`, 0 certificações); action items externos (workflow_dispatch nativo, cutover da memória com Bridge ativo, fatiamento/commit/push por índice); faixa de risco da working tree compartilhada. Indexado em `DEV/INDEX.md`.
+- **Flake corrigido** — `internal/app` falhou 1/8 execuções no filtro `MaestroMemoryMigrate|MaestroRecovery` (`unable to open database file (14)`): o singleton `nexus.Default()` guardava o store de um `NEXUS_DATA_DIR` temporário removido. Isolamento via `nexus.ResetDefaultForTest()` + `t.Cleanup` nos testes do CLI; reexecução 60/60 verdes e suíte completa de `internal/app` verde (59.5s).
+- **Verificação da rodada** — `go build ./internal/...`, `go vet` (nexus/memoryrecovery/handoff/app), `gofmt` limpos; `go test` verde em `internal/nexus`, `internal/nexus/store`, `internal/core/memoryrecovery`, `internal/core/config`, `internal/control/handoff`, `internal/app`; `-race` verde no CLI e no conjunto migração/gate/journal.
+- **Bloqueios** — nada commitado/pushado nesta onda; #216 (runner Windows), Bridge Maestro ativo para o cutover, assinatura/`maestroSha`, NEX 2/11. Release **NO_GO**.
+
+## 2026-11-22 — GO 1.0.1 Fase B/C: registros nativos por plataforma e montagem fail-closed da evidência
+
+- **Produtores nativos (`ci.yml`)** — `native-windows` e `native-macos` agora rodam `workspace-acceptance-e2e.mjs run` com `--platform windows-amd64|macos-arm64`, `--sha {{ inputs.native_target_sha }}` e `--job-url` do próprio run de dispatch, e publicam `nexus-v1-workspace-acceptance-<platform>-<sha>` (o step usa `--allow-incomplete`, então o registro é evidência honesta mesmo com falha). `actions/setup-node@v4` (22.14.0) foi adicionado aos dois jobs porque o produtor é Node e os runners nativos só garantiam Go/Bun.
+- **Selo nativo** — o job `native-certification` baixa os dois registros, valida `producer`/`platform`/`sourceSha`/`jobUrl` com `node -e` antes de selar, e publica `native-acceptance-records.jsonl` junto de `certified-sha.txt`/`native-artifacts.sha256`.
+- **Montagem no gate (`release.yml`)** — `same-sha-gate` deixou de esperar `evidence.json` pronto no artefato Linux: baixa o artefato Linux do run de push, o selo nativo do run resolvido por `native-ci-run-id`, exige `certified-sha.txt` igual ao SHA candidato e exatamente dois registros, baixa cada record pelo manifesto e roda `workspace-acceptance-e2e.mjs assemble` antes de `verify-agent-workspace-v1.mjs --release`.
+- **Testes** — `scripts/workspace-acceptance-e2e.test.mjs` 11/11 (2 novos: record com `sourceSha` divergente é recusado; evidência em formato de release usa a URL do run nativo só na certificação e mantém `ciRunId`/`jobUrl`/plataformas corretos).
+- **Dry-run real do caminho** — três registros sintéticos + assemble geraram `evidence.json` com 48 capacidades e 3 plataformas; o verificador recusou exatamente pelos motivos esperados (`source/integration not completed` porque o contrato segue `present/pending`), provando que a montagem não inventa aceite.
+- **Docs** — `docs/product/agent-workspace-v1-acceptance.md` ganhou a seção "Registros por plataforma e montagem da evidência"; `verify-agent-workspace-v1.mjs` exit 0 e `docs-verify --links-only` exit 0 (256 Markdown).
+- **O que falta (owner + runners)** — rodar `workflow_dispatch` nativo no SHA alvo (exige `nexus-windows`/`nexus-macos`), então o gate real; só depois disso `sourceStatus`/`verification` das 48 capacidades podem virar `present`+`verified`. Nada disso foi fingido localmente. Release **NO_GO**.
+
 ## 2026-11-22 — GO 1.0.1 Fase A: versão, requiredClients e produtor de evidência
 
 - **Versão (`ef0560d1`)** — `VERSION` + `web/package.json` → `1.0.1`; refs vivas sincronizadas (`README.md`/`README.en.md`/`README.es.md`, `docs/TLDR.md`, `docs/release-status.md`); `make version-check` PASS. Identidade pública do GO: Nexus 1.0.1; tag remota `v1.0.0` (`d89797cd`) preservada; tag `v1.0.1` só no SHA final; sem push.
@@ -5,6 +42,25 @@
 - **Produtor (`ed2c7370`)** — `scripts/workspace-acceptance-e2e.mjs` (modos `plan`/`run`/`assemble`, detecção de dois clientes por regex real nas fontes, agrupamento Go por pacote e Vitest por arquivo) + `workspace-acceptance-e2e.test.mjs` 9/9; step `test-linux` roda o registro `linux-amd64` e publica o artefato `nexus-v1-workspace-acceptance-<SHA>` consumido por `release.yml:182`.
 - **Dry-run real** — `run --platform linux-amd64 --allow-incomplete` → 47/48 `passed`, 1 `blocked` (`cross-platform-exact-sha`), 52 steps, exit 0; 16/16 testes de scripts; `verify-agent-workspace-v1.mjs` exit 0 (scope 48); YAML do `ci.yml` commitado parseia (14 jobs).
 - **Próximo (Fase B/C)** — records `windows-amd64`/`macos-arm64` nos jobs nativos + montagem do `evidence.json` de 3 plataformas (`assemble` + `nativeCertifications`) no run de CI que o `release.yml` consulta; fechar as 48 capacidades em `present`+`verified`. Release **NO_GO**.
+
+## 2026-11-22 — auditoria de asserção das 97 cláusulas do mapa canônico
+
+- **Mapa** — `docs/reference/agent-workspace-v1-evidence-map.json`: `assertionAudit` em 97/97 (21 `audited`, 76 `partial`); `issue` + `responsible` por capacidade (48). Nenhum código alterado; `coverage` segue `unverified`, 0 certificações.
+- **Gates** — `verify-agent-workspace-evidence-map.mjs` exit 0; `node --test scripts/verify-agent-workspace-evidence-map.test.mjs` 4/4; `verify-agent-workspace-v1.mjs` exit 0.
+- **Próximo** — atacar as lacunas `partial` de maior risco (migração da memória legada, executor único, handoff/review, test-matrix, runtime-health) e cenários reais com providers. Release **NO_GO**.
+
+## 2026-11-22 — #196 golden replay no repo; #232/#176 contratos reconciliados
+
+- **#196** — fixture golden sanitizada versionada (`internal/runtime/testdata/pty196_golden.raw.bin` + `.scrubbed.bin`; só e-mail e path redigidos), regressão Go byte-exata e chunked (`internal/runtime/terminal_output_golden_test.go`) e replay real no xterm 5.3 via Chromium (`web/scripts/e2e-terminal-golden-replay.mjs`, `bun run test:e2e:terminal-golden`: `exact_match=true`, 3 linhas, 159 chars, 0 erros de console), com step de CI `terminal-golden-e2e`.
+- **#232/#176** — contratos versionados reconciliados (`docs/product/flow.md`, `docs/product/maestro.md`, `docs/architecture/core.md`, `docs/architecture/consumer-matrix.md`, `docs/reference/features.json` + matriz regenerada); nenhum código alterado.
+- **Gates** — `go vet`/`go test ./internal/runtime/` exit 0; `docs-verify --links-only` exit 0; `docs-site check:docs` exit 0; `verify-feature-catalog --check` exit 0.
+- **Próximo** — consolidação de evidência de #229/#230 e decisão de commit pelo owner; release **NO_GO**.
+
+## 2026-11-22 — #196 reconciliado no PTY/UI reais; #218 com classes 4xx/5xx separadas
+
+- **#196** — falso negativo do harness corrigido (comparava só a última linha do prompt): buffer completo do xterm 5.3 dá `exact_match=true` (159/159 PTY, 154/154 UI, 0 erros de console). Bytes PTY reais: 6545 bytes / 69 chunks, SHA-256 `b94fcbc59076d7226a0f33a071bf685329639b54dac6b8c332e2bb8cde58cb6b`. Issue OPEN (sintoma do owner não reproduzido).
+- **#218** — `ErrInvalidAgentGroup` (400) / `ErrNotFound` (404) / falha interna (500 genérico, sem vazamento) no store e no handler; fixture isolada em `c6cd9193` eliminou a interferência global. `go vet`, `go build ./internal/...`, `go test -race -count=30` (web+store) e suítes completas `-race -count=1` verdes. Sintoma intermitente não reproduzido; issue OPEN.
+- **Próximo** — inventário de fronteiras Nexus×Maestro (#232/#176) versionado, sem remoção de código. Release **NO_GO**.
 
 ## 2026-11-22 — Gate 0: gate completo verde no HEAD final `ffafedcd`
 
@@ -7949,3 +8005,10 @@ Correções aplicadas nesta onda, todas com causa-raiz verificada:
 9. **Runner hygiene**: processos git órfãos de 17:17 (run cancelada) seguravam locks no `.git` compartilhado do workdir e travavam checkouts novos por ~4h; órfãos mortos com kill seletivo (sem restart do runner).
 
 Restante vermelho honesto: **Windows release homologation** — exige runner `nexus-windows` (máquina física do maestro, offline). macOS idem (skipped).
+
+## 2026-11-22 — fix(terminal): lease epoch monotônico contra takeover concorrente (#214)
+
+- `internal/control/host/host.go`: `activeWriterEpoch` + `applyTerminalLeaseLocked` rejeita epoch obsoleto/igual-alheio/zero-com-writer-ativo (`lease_stale`).
+- `internal/control/web/handler_terminal.go`: epoch global monotônico (`nextTerminalLeaseEpoch()`), `terminalLeaseMu` serializa lease vs input;a promoção só emitida se `broker.IsWriter`.
+- Testes: regressão determinística nova em `host_test.go`; `go test -race` host+web verde; 40 runs do handoff autenticado `fails=0 of 40` (`/tmp/opencode/gates-20261122/issue214i/`).
+- Docs: `DEV/VERIFY.md`, `DEV/HANDOFF.md` atualizados. Sem commit automático; release **NO_GO**.

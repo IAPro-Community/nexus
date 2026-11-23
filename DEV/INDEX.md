@@ -175,6 +175,7 @@ não representam mais uma linha de release separada. O status operacional segue
 - [`VERIFY.md`](VERIFY.md): Evidências e histórico consolidado de validações e gates.
 - [`NEXUS_1_FINAL_ACCEPTANCE.md`](NEXUS_1_FINAL_ACCEPTANCE.md): ledger executável da aceitação RC do Nexus 1.0.
 - [`WORKLOG.md`](WORKLOG.md): Diário de bordo detalhado de todas as implementações e mudanças.
+- [`HANDOFF_PACKAGE_20261122.md`](HANDOFF_PACKAGE_20261122.md): pacote final para o owner — commits candidatos (`execution_owner`, migração Maestro memory com gate/recovery, CLI `memory-migrate`, CI Fase B/C), estado das 48 capacidades e action items externos para liberar a próxima etapa.
 - [`../DOCUMENTATION_COMPLETE.md`](../DOCUMENTATION_COMPLETE.md): entrega de documentação pública; inventário e ledger estão em `docs/internal/`.
 
 ---
