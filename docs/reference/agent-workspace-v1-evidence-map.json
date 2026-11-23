@@ -1099,29 +1099,35 @@
      "acceptanceIndex": 0,
      "acceptance": "Abrir Browser como superfície real do Workspace OS",
      "sourceRefs": [
+      "web/src/app/surfaces.ts",
+      "web/src/app/WorkspaceSurfaceHost.tsx",
       "web/src/features/browser/BrowserSurface.tsx"
      ],
      "testRefs": [
+      "web/src/app/browserSurfaces.test.ts",
       "web/src/features/browser/BrowserSurface.test.ts"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: BrowserSurface.test.ts afirma normalizacao de URL, titulo de aba e modo de controle de aba, mas nao afirma que o Browser e uma superficie real do Workspace OS.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: browserSurface cria janelas unicas no mesmo window manager do Workspace OS, sem classificar Browser como PTY; WorkspaceSurfaceHost monta BrowserSurface real e browserSurfaces.test.ts afirma coexistencia com terminal (TestBrowserInsideTerminalWorkspace).",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
      "acceptance": "Sem iframe como substituto de browser automation",
      "sourceRefs": [
+      "web/src/app/surfaces.ts",
+      "web/src/app/WorkspaceSurfaceHost.tsx",
       "web/src/features/browser/BrowserSurface.tsx"
      ],
      "testRefs": [
+      "web/src/app/browserSurfaces.test.ts",
       "web/src/features/browser/BrowserSurface.test.ts"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: nenhum teste referenciado prova que iframe nao substitui a automacao de browser; a verificacao de automacao real vive em handlers_browser_mcp_test.go, fora deste criterio.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: BrowserSurface renderiza frames do Chromium/CDP via endpoint de automacao e stream, sem iframe; BrowserSurface.test.ts cobre URLs, ownership e controle por aba (TestShouldUserControlTab).",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
