@@ -1,3 +1,10 @@
+## 2026-11-23 — Lane A: `runtime-health`, `test-matrix` e `review-handoff` auditadas — ativo
+
+- **Lane A — estado** — 14 das 48 capacidades com todos os critérios `audited` (34 ainda com `partial`). Nesta onda: `runtime-health` (diagnóstico por sinal de lease/PTY/heartbeat/PID/capability, exposto no doctor), `test-matrix` (matriz por worktree com exit code, SHA, timestamp e logs; PASS exige provenance `command_execution`) e `review-handoff` (revisão recebe `ChangedArtifacts` e `ReviewedStepIDs`, sem reexecutar a implementação).
+- **CI** — `Linux E2E`, `Frontend` e `Documentation visual capture evidence` verdes no run `45259850030`; `Security` falhou por `GO-2026-6278` e foi corrigido com `gorilla/websocket v1.5.4-0.20240701034025-d67f41855da4`; smoke Linux verde em `94bd4329`; contrato documental sincronizado (`verify-release-docs.mjs` exit 0).
+- **Estado** — `origin/release/v1.0.0` = `94bd4329` (local com docs da Lane A). Release **NO_GO** até prova externa por capacidade no SHA exato.
+- **Bloqueios que exigem o maestro** — aceite visual NEX em HUD+Site, runner Windows/macOS nativo e chaves de assinatura, credencial do Named Tunnel, quota real AGY, hardware físico, `memory-migrate apply` com Bridge ativo.
+
 ## 2026-11-23 — Lane 0 fechada no CI Linux; Lane A continua com `runtime-health` auditada — ativo
 
 - **Lane 0 (desbloqueio) — progresso medido** — `Linux E2E`, `Frontend` e `Documentation visual capture evidence` verdes no run `45259850030` (`ac66ff48`) depois do mutex em `pushWatchCancel` (`84967b97`) e do filtro `_test.go` no `docs-verify` (`ac66ff48`). `Security` reprovou por `GO-2026-6278` e foi corrigido com `gorilla/websocket v1.5.4-0.20240701034025-d67f41855da4` (`3bd88bc5`). O smoke Linux reprovou por dependência de `internal/control/registry/continuity_claim.go` (untracked de outro workstream); `ca4e1bfd` deixa o diagnóstico de runtime autocontido.
