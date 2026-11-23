@@ -24,6 +24,35 @@ func TestVerificationEnginePreservesQuotedShellArguments(t *testing.T) {
 	}
 }
 
+func TestVerificationEngineRecordsCommandExecutionProvenance(t *testing.T) {
+	workspace := t.TempDir()
+	results := NewVerificationEngine().RunVerification(context.Background(), workspace, []string{"exit 3"})
+	if len(results) != 1 {
+		t.Fatalf("expected one verification result, got %+v", results)
+	}
+	failed := results[0]
+	if failed.Source != VerificationSourceCommandExecution {
+		t.Fatalf("source = %q, want %q", failed.Source, VerificationSourceCommandExecution)
+	}
+	if failed.ExitCode != 3 {
+		t.Fatalf("exit code = %d, want 3", failed.ExitCode)
+	}
+	if failed.Passed {
+		t.Fatalf("failed command must not be reported as passed: %+v", failed)
+	}
+
+	passed := NewVerificationEngine().RunVerification(context.Background(), workspace, []string{"echo ok"})
+	if len(passed) != 1 || !passed[0].Passed {
+		t.Fatalf("expected one passing verification result, got %+v", passed)
+	}
+	if passed[0].Source != VerificationSourceCommandExecution {
+		t.Fatalf("source = %q, want %q", passed[0].Source, VerificationSourceCommandExecution)
+	}
+	if passed[0].VerifiedAt.IsZero() {
+		t.Fatalf("verification timestamp is missing: %+v", passed[0])
+	}
+}
+
 func TestValidateCommandAcceptsSafeCommands(t *testing.T) {
 	safe := []string{
 		"go test ./...",
