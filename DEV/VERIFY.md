@@ -1,3 +1,14 @@
+## 2026-11-23 — Lane A `change-radar`/`consult-another-agent`/`browser-pane` auditados; lease stale corrigido
+
+- SHA publicado: `origin/release/v1.0.0` @ `fc805351` (commits `503b8a81`, `ecc72433`, `8a227e94`, `2a2f7960`, `2611207c`, `b53f280c`, `dd1b384a`, `fc805351`). Responsavel: orquestrador. Ambiente: Linux + runner self-hosted `nexus-ci` em container.
+- PASS (`change-radar`) — `ChangeCollision` expoe `BaseCommits`, `RequiresHumanReview` e `ChangedHunks`; endpoint agrupa arquivos e hunks por worktree; evidence map: 2 criterios `partial` → `audited` (`8a227e94`).
+- PASS (`consult-another-agent`) — `ConsultationRequest` + `BuildConsultationStep` com scope/contexto/skills/diff do Maestro, hop unico, read-only e sem acao externa; evidence map: 2 criterios `partial` → `audited` (`2611207c`).
+- PASS (`browser-pane`) — `bun test src/app/browserSurfaces.test.ts src/features/browser/BrowserSurface.test.ts`: 15 pass / 0 fail (36 `expect()`); janelas Browser unicas no Workspace OS, frames CDP, sem iframe; evidence map: 2 criterios `partial` → `audited` (`dd1b384a`).
+- FAIL→FIX (Linux E2E) — run `45281023085` (`dd1b384a`): `TestTerminalHandoffAuthenticatedClientsShareProcessAndPersistIdentity` reprovou com `provider process received anything other than one leased input: ""`. Causa provada: o frame `lease_acquire` do attach inicial, processado em outra conexao depois do takeover, podia restaurar o escritor antigo e descartar o input do novo controlador. `fc805351` fenceia a lease por epoch monotonico no host e envia o epoch no comando web.
+- PASS (fix do lease) — `go build ./internal/control/...`; `go test -race -count=3 ./internal/control/web/ -run '^TestTerminalHandoffAuthenticatedClientsShareProcessAndPersistIdentity$'` verde (2,8 s); `go test ./internal/control/host/` verde (1,4 s); `gofmt -l` vazio nos dois arquivos; `git diff --cached --check` limpo. A suite `internal/control/web` completa com `-race` passou no SHA anterior (101,9 s) — a falha e do runner sob carga.
+- PASS (evidence map) — `node scripts/verify-agent-workspace-evidence-map.mjs` exit 0 (48 capacidades, 97 clausulas, 95 source+test, 2 source-only, 0 unmapped, 0 certificadas); `node --test scripts/verify-agent-workspace-evidence-map.test.mjs` 4/4.
+- PENDENTE — CI de `fc805351` ainda em execucao; `workspace-acceptance-linux-amd64.json` do SHA exato ainda nao coletado; Lane B (Bridge Maestro), Lane C (NEX 9 gates + aceite visual do owner), Lane D (runner Windows/macOS e chaves), Lane E (2 dispositivos fisicos, quota real AGY) e Lane F (48/48 certificadas, tag `v1.0.1`) dependem do maestro. Release **NO_GO**.
+
 ## 2026-11-23 — Lane A `test-matrix` e `review-handoff` com asserção e teste
 
 - SHA publicado: `origin/release/v1.0.0` @ `94bd4329` (commits `ebee6647`, `092510de`, `16dcab93`, `e99bf284`, `b21b32d4`, `fff5f40a`, `94bd4329`). Responsável: orquestrador. Ambiente: Linux + runner self-hosted `nexus-ci` em container.
