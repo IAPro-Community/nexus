@@ -248,22 +248,27 @@ export function assembleProof({
   }
 
   const ids = [...new Set(records.flatMap((record) => record.features.map((f) => f.id)))].sort();
+  const validCertification = (id) => {
+    const certification = nativeCertifications.find((entry) => entry.id === id);
+    return certification &&
+      certification.sourceSha === sourceSha &&
+      certification.jobUrl &&
+      ACTION_URL.test(certification.jobUrl) &&
+      Array.isArray(certification.tests) &&
+      certification.tests.length > 0
+      ? certification
+      : null;
+  };
   const features = ids.map((id) => {
     const perPlatform = PLATFORM_IDS.map((platform) => {
       const record = byPlatform.get(platform);
       return record.features.find((feature) => feature.id === id);
     });
-    const certification = nativeCertifications.find((entry) => entry.id === id);
+    const certification = validCertification(id);
     const coveredByPlatform = perPlatform.every(
       (feature) => feature?.status === "passed",
     );
-    const coveredByCertification =
-      certification &&
-      certification.sourceSha === sourceSha &&
-      certification.jobUrl &&
-      ACTION_URL.test(certification.jobUrl) &&
-      Array.isArray(certification.tests) &&
-      certification.tests.length > 0;
+    const coveredByCertification = certification !== null;
     const status =
       coveredByPlatform || coveredByCertification ? "passed" : "failed";
     const tests = [
@@ -291,10 +296,15 @@ export function assembleProof({
     platforms: Object.fromEntries(
       PLATFORM_IDS.map((platform) => {
         const record = byPlatform.get(platform);
+        const covered = record.features.every(
+          (feature) =>
+            feature?.status === "passed" ||
+            validCertification(feature?.id) !== null,
+        );
         return [
           platform,
           {
-            status: record.status === "passed" ? "passed" : "failed",
+            status: covered ? "passed" : "failed",
             sourceSha,
             jobUrl: record.jobUrl,
           },

@@ -192,6 +192,8 @@ test("native certification closes only the capability it names", () => {
   });
   assert.equal(withoutCertification.features[0].status, "failed");
   assert.deepEqual(withoutCertification.features[0].tests, []);
+  for (const platform of PLATFORM_IDS)
+    assert.equal(withoutCertification.platforms[platform].status, "failed");
 
   const withCertification = assembleProof({
     records,
@@ -211,6 +213,8 @@ test("native certification closes only the capability it names", () => {
   assert.deepEqual(withCertification.features[0].tests, [
     "native-certification-" + SHA,
   ]);
+  for (const platform of PLATFORM_IDS)
+    assert.equal(withCertification.platforms[platform].status, "passed");
 
   const forged = assembleProof({
     records,
@@ -227,6 +231,7 @@ test("native certification closes only the capability it names", () => {
     ],
   });
   assert.equal(forged.features[0].status, "failed");
+  assert.equal(forged.platforms["linux-amd64"].status, "failed");
 });
 
 test("native certification cannot approve another capability or another SHA", () => {
@@ -300,4 +305,6 @@ test("assemble fails capability when one native platform lacks evidence", () => 
   const proof = assembleProof({ records, sourceSha: SHA, ciRunId: "123" });
   assert.equal(proof.features[0].status, "failed");
   assert.equal(proof.platforms["macos-arm64"].status, "failed");
+  assert.equal(proof.platforms["linux-amd64"].status, "passed");
+  assert.equal(proof.platforms["windows-amd64"].status, "passed");
 });
