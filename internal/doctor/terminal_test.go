@@ -2,6 +2,7 @@ package doctor
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/IAPro-Community/nexus/internal/control/registry"
@@ -38,5 +39,44 @@ func TestBuildTerminalReportDescribesRecoveryContract(t *testing.T) {
 func TestRecoverTerminalIsSafeWithoutTTY(t *testing.T) {
 	if err := RecoverTerminal(os.Stdout); err != nil {
 		t.Fatalf("non-TTY recovery should be a no-op: %v", err)
+	}
+}
+
+func TestBuildTerminalReportExposesRuntimeHealthSignals(t *testing.T) {
+	report := BuildTerminalReport(-1, []registry.RuntimeSession{
+		{
+			RuntimeID:    "rt-health",
+			State:        registry.StateRunning,
+			ProviderID:   "codex",
+			ControlLevel: registry.ControlLevelTerminal,
+			LastFault:    registry.StartupFaultConPTYStartFailed,
+		},
+	})
+	if len(report.Runtimes) != 1 {
+		t.Fatalf("expected one diagnosable runtime, got %#v", report.Runtimes)
+	}
+	health := report.Runtimes[0].Health
+	if health.RuntimeID != "rt-health" {
+		t.Fatalf("unexpected health runtime id: %#v", health)
+	}
+	if health.PTY.Status != registry.HealthError {
+		t.Fatalf("pty status = %s, want ERROR", health.PTY.Status)
+	}
+	if health.PID.Status != registry.HealthError {
+		t.Fatalf("pid status = %s, want ERROR", health.PID.Status)
+	}
+	if health.Lease.Status != registry.HealthUnknown {
+		t.Fatalf("lease status = %s, want UNKNOWN", health.Lease.Status)
+	}
+	for name, detail := range map[string]string{
+		"lease":               health.Lease.Detail,
+		"pty":                 health.PTY.Detail,
+		"heartbeat":           health.Heartbeat.Detail,
+		"pid":                 health.PID.Detail,
+		"provider_capability": health.ProviderCapability.Detail,
+	} {
+		if strings.Contains(strings.ToLower(detail), "recovered") {
+			t.Fatalf("%s detail claims recovery: %q", name, detail)
+		}
 	}
 }

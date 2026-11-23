@@ -4,6 +4,7 @@ import (
 	"os"
 	stdruntime "runtime"
 	"strings"
+	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 	controlterminal "github.com/IAPro-Community/nexus/internal/control/terminal"
@@ -12,15 +13,16 @@ import (
 )
 
 type TerminalRuntimeReport struct {
-	RuntimeID        string `json:"runtime_id"`
-	State            string `json:"state"`
-	HostPID          int    `json:"host_pid,omitempty"`
-	HostGeneration   int64  `json:"host_generation,omitempty"`
-	HostLive         bool   `json:"host_live"`
-	BinaryGeneration string `json:"binary_generation,omitempty"`
-	BinaryStatus     string `json:"binary_status"`
-	Attachable       bool   `json:"attachable"`
-	RecoveryAction   string `json:"recovery_action"`
+	RuntimeID        string                 `json:"runtime_id"`
+	State            string                 `json:"state"`
+	HostPID          int                    `json:"host_pid,omitempty"`
+	HostGeneration   int64                  `json:"host_generation,omitempty"`
+	HostLive         bool                   `json:"host_live"`
+	BinaryGeneration string                 `json:"binary_generation,omitempty"`
+	BinaryStatus     string                 `json:"binary_status"`
+	Attachable       bool                   `json:"attachable"`
+	RecoveryAction   string                 `json:"recovery_action"`
+	Health           registry.RuntimeHealth `json:"health"`
 }
 
 type TerminalReport struct {
@@ -81,6 +83,7 @@ func BuildTerminalReport(fd int, sessions []registry.RuntimeSession) TerminalRep
 			HostLive:       session.HostLive(),
 			BinaryStatus:   "incompatible",
 			RecoveryAction: "recreate with nexus codex --yolo; old process is not terminated automatically",
+			Health:         registry.DiagnoseRuntimeHealth(session, time.Now().UTC()),
 		}
 		if session.HostBinaryFingerprint != "" {
 			fingerprint := session.HostBinaryFingerprint
