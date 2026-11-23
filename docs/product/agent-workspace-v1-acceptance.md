@@ -121,4 +121,10 @@ A coluna `Source` é inventário preliminar de implementação, não aprovação
 
 O JSON canônico declara `requiredClients` por capacidade: `1` por padrão e `2` quando o aceite exige duas sessões autenticadas simultâneas. Hoje `requiredClients: 2` vale para `terminal-studio`, `remote-companion`, `mobile-inbox`, `remote-terminal`, `workspace-sharing`, `device-handoff` e `two-client-real-e2e`. O campo é obrigatório: o verificador rejeita contrato sem ele, e a evidência precisa provar `clients >= requiredClients` nas três plataformas. A regra antiga por categoria (`multiagent`/`remote`) era mais ampla que o aceite e não é mais usada.
 
+### Registros por plataforma e montagem da evidência
+
+Cada plataforma produz seu próprio registro com `node scripts/workspace-acceptance-e2e.mjs run --platform <id> --sha <SHA> --job-url <URL do run>`: `test-linux` publica `linux-amd64` no run de push, e os jobs `native-windows` e `native-macos` publicam `windows-amd64` e `macos-arm64` no run de `workflow_dispatch` do SHA alvo. O job `native-certification` sela os dois registros nativos (`native-acceptance-records.jsonl` + `certified-sha.txt`).
+
+O `same-sha-gate` da release baixa os três registros dos runs exatos, roda `workspace-acceptance-e2e.mjs assemble` e só então `verify-agent-workspace-v1.mjs --release`. A montagem é fail-closed: exige exatamente três registros, `sourceSha` igual ao SHA candidato, `jobUrl` de um run real de Actions e fecha `cross-platform-exact-sha` apenas pelo selo nativo do mesmo SHA. Nenhuma capacidade é fechada sem os três registros do SHA exato.
+
 Veja também [Nexus 1.0 — linha única de release](https://github.com/IAPro-Community/nexus/issues/27), [matriz atual](../reference/feature-matrix.md), [Maestro](maestro.md) e [publicação](../PUBLICATION_CHECKLIST.md).

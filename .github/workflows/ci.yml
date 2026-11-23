@@ -688,6 +688,35 @@ jobs:
       - name: Runtime and Web E2E
         shell: pwsh
         run: go test -v -count=1 ./internal/control/host/... ./internal/control/web/...
+      - name: Produce V1 workspace acceptance record (windows-amd64)
+        id: workspace-acceptance-windows
+        shell: pwsh
+        env:
+          TARGET_SHA: ${{ inputs.native_target_sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = Join-Path $env:RUNNER_TEMP 'workspace-acceptance-windows-amd64.json'
+          $logs = Join-Path $env:RUNNER_TEMP 'workspace-acceptance-logs-windows'
+          $jobUrl = "https://github.com/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+          node scripts/workspace-acceptance-e2e.mjs run `
+            --platform windows-amd64 `
+            --sha $env:TARGET_SHA `
+            --job-url $jobUrl `
+            --log-dir $logs `
+            --out $out `
+            --allow-incomplete
+          if ($LASTEXITCODE -ne 0) { throw "V1 workspace acceptance record run failed on Windows" }
+          if (-not (Test-Path -LiteralPath $out) -or (Get-Item -LiteralPath $out).Length -eq 0) {
+            throw "V1 workspace acceptance record was not produced on Windows"
+          }
+      - name: Upload V1 workspace acceptance record (windows-amd64)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-v1-workspace-acceptance-windows-amd64-${{ inputs.native_target_sha }}
+          path: ${{ runner.temp }}/workspace-acceptance-windows-amd64.json
+          if-no-files-found: error
+          retention-days: 30
       - name: Verify signing and packaging prerequisites
         shell: pwsh
         env:
@@ -1042,6 +1071,30 @@ jobs:
             echo "platform=darwin"
             echo "status=PASS"
           } >"$evidence"
+      - name: Produce V1 workspace acceptance record (macos-arm64)
+        env:
+          TARGET_SHA: ${{ inputs.native_target_sha }}
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/workspace-acceptance-macos-arm64.json"
+          logs="$RUNNER_TEMP/workspace-acceptance-logs-macos"
+          job_url="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          node scripts/workspace-acceptance-e2e.mjs run \
+            --platform macos-arm64 \
+            --sha "$TARGET_SHA" \
+            --job-url "$job_url" \
+            --log-dir "$logs" \
+            --out "$out" \
+            --allow-incomplete
+          test -s "$out"
+      - name: Upload V1 workspace acceptance record (macos-arm64)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-v1-workspace-acceptance-macos-arm64-${{ inputs.native_target_sha }}
+          path: ${{ runner.temp }}/workspace-acceptance-macos-arm64.json
+          if-no-files-found: error
+          retention-days: 30
       - name: Smoke notarized PKG install and uninstall
         shell: bash
         run: |
@@ -1082,6 +1135,14 @@ jobs:
         with:
           name: native-macos-${{ inputs.native_target_sha }}
           path: native/macos
+      - uses: actions/download-artifact@v4
+        with:
+          name: nexus-v1-workspace-acceptance-windows-amd64-${{ inputs.native_target_sha }}
+          path: native/acceptance
+      - uses: actions/download-artifact@v4
+        with:
+          name: nexus-v1-workspace-acceptance-macos-arm64-${{ inputs.native_target_sha }}
+          path: native/acceptance
       - name: Seal exact-SHA native certificate
         shell: bash
         env:
@@ -1103,6 +1164,18 @@ jobs:
           test -f native/macos/apple-signing-evidence.txt
           test -f native/macos/nexus-hud-macos-smoke.txt
           grep -Fxq 'wails-v3.0.0-beta.25' native/macos/native-framework.txt
+          node -e '
+            const { readFileSync } = require("node:fs");
+            const windows = JSON.parse(readFileSync("native/acceptance/workspace-acceptance-windows-amd64.json", "utf8"));
+            const macos = JSON.parse(readFileSync("native/acceptance/workspace-acceptance-macos-arm64.json", "utf8"));
+            for (const [name, record] of [["windows-amd64", windows], ["macos-arm64", macos]]) {
+              if (record.producer !== "nexus-v1-agent-workspace-e2e") throw new Error(`${name}: producer mismatch`);
+              if (record.platform !== name) throw new Error(`${name}: platform mismatch`);
+              if (record.sourceSha !== process.env.TARGET_SHA) throw new Error(`${name}: sourceSha mismatch`);
+              if (!/^https:\/\/github\.com\/[^/]+\/[^/]+\/actions\/runs\/[0-9]+$/.test(record.jobUrl || "")) throw new Error(`${name}: jobUrl invalid`);
+            }
+            console.log("native acceptance records verified");
+          '
           printf '%s\n' "$TARGET_SHA" > certified-sha.txt
           find native -type f -print0 | sort -z | xargs -0 sha256sum > native-artifacts.sha256
           {
@@ -1114,6 +1187,10 @@ jobs:
             printf 'installer_lifecycle=passed\n'
             printf 'native_framework=wails-v3.0.0-beta.25\n'
           } > native-certification.txt
+          {
+            printf '{"platform":"windows-amd64","path":"native/acceptance/workspace-acceptance-windows-amd64.json"}\n'
+            printf '{"platform":"macos-arm64","path":"native/acceptance/workspace-acceptance-macos-arm64.json"}\n'
+          } > native-acceptance-records.jsonl
       - uses: actions/upload-artifact@v4
         with:
           name: native-certification-${{ inputs.native_target_sha }}
@@ -1121,6 +1198,7 @@ jobs:
             certified-sha.txt
             native-artifacts.sha256
             native-certification.txt
+            native-acceptance-records.jsonl
           if-no-files-found: error
           retention-days: 30
 

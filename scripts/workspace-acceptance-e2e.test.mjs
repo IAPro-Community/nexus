@@ -308,3 +308,50 @@ test("assemble fails capability when one native platform lacks evidence", () => 
   assert.equal(proof.platforms["linux-amd64"].status, "passed");
   assert.equal(proof.platforms["windows-amd64"].status, "passed");
 });
+
+test("native record with mismatched sha cannot pass release assembly", () => {
+  const records = PLATFORM_IDS.map((platform) => ({
+    schemaVersion: 1,
+    producer: PRODUCER,
+    platform,
+    sourceSha: SHA,
+    jobUrl: JOB_URL,
+    status: "passed",
+    features: [
+      { id: "terminal-studio", category: "experience", status: "passed", tests: ["t"], clients: 2 },
+    ],
+  }));
+  records[1].sourceSha = "c".repeat(40);
+  assert.throws(
+    () => assembleProof({ records, sourceSha: SHA, ciRunId: "123" }),
+    /windows-amd64 sourceSha mismatch/,
+  );
+});
+
+test("release-shaped evidence uses native run id for certifications only", () => {
+  const records = PLATFORM_IDS.map((platform) => ({
+    schemaVersion: 1,
+    producer: PRODUCER,
+    platform,
+    sourceSha: SHA,
+    jobUrl: JOB_URL,
+    status: "passed",
+    features: [
+      { id: "terminal-studio", category: "experience", status: "passed", tests: ["t"], clients: 2 },
+      { id: "cross-platform-exact-sha", category: "foundation", status: "blocked", tests: [], clients: 1 },
+    ],
+  }));
+  const nativeRunUrl = "https://github.com/IAPro-Community/nexus/actions/runs/456";
+  const proof = assembleProof({
+    records,
+    sourceSha: SHA,
+    ciRunId: "123",
+    nativeCertifications: [
+      { id: "cross-platform-exact-sha", sourceSha: SHA, jobUrl: nativeRunUrl, tests: ["native-certification-" + SHA], clients: 1 },
+    ],
+  });
+  assert.equal(proof.ciRunId, "123");
+  assert.equal(proof.features.find((f) => f.id === "terminal-studio").jobUrl, JOB_URL);
+  assert.equal(proof.features.find((f) => f.id === "cross-platform-exact-sha").status, "passed");
+  assert.equal(proof.platforms["windows-amd64"].sourceSha, SHA);
+});

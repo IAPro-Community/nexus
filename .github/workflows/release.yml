@@ -174,13 +174,35 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_SHA: ${{ github.sha }}
           CI_RUN_ID: ${{ steps.verify.outputs.ci-run-id }}
+          NATIVE_CI_RUN_ID: ${{ steps.verify.outputs.native-ci-run-id }}
         run: |
           set -euo pipefail
-          # Artifact must come from the same verified push CI run. Never
+          # Artifacts must come from the same verified exact-SHA CI runs. Never
           # accept a manually edited source-tree JSON as release proof.
           mkdir -p "$RUNNER_TEMP/nexus-v1-workspace-acceptance"
           gh run download "$CI_RUN_ID" --name "nexus-v1-workspace-acceptance-$EXPECTED_SHA" \
             --dir "$RUNNER_TEMP/nexus-v1-workspace-acceptance"
+          gh run download "$NATIVE_CI_RUN_ID" --name "native-certification-$EXPECTED_SHA" \
+            --dir "$RUNNER_TEMP/native-certification"
+          test -f "$RUNNER_TEMP/native-certification/native-acceptance-records.jsonl"
+          test "$(wc -l < "$RUNNER_TEMP/native-certification/native-acceptance-records.jsonl")" -eq 2
+          grep -Fxq "$EXPECTED_SHA" "$RUNNER_TEMP/native-certification/certified-sha.txt"
+          while IFS= read -r record; do
+            platform="$(printf '%s' "$record" | jq -r '.platform')"
+            path="$(printf '%s' "$record" | jq -r '.path')"
+            test -n "$platform" && test -n "$path"
+            gh run download "$NATIVE_CI_RUN_ID" --name "nexus-v1-workspace-acceptance-${platform}-${EXPECTED_SHA}" \
+              --dir "$RUNNER_TEMP/nexus-v1-workspace-acceptance-native"
+          done < "$RUNNER_TEMP/native-certification/native-acceptance-records.jsonl"
+          node scripts/workspace-acceptance-e2e.mjs assemble \
+            --sha "$EXPECTED_SHA" \
+            --ci-run-id "$CI_RUN_ID" \
+            --linux-amd64 "$RUNNER_TEMP/nexus-v1-workspace-acceptance/workspace-acceptance-linux-amd64.json" \
+            --windows-amd64 "$RUNNER_TEMP/nexus-v1-workspace-acceptance-native/workspace-acceptance-windows-amd64.json" \
+            --macos-arm64 "$RUNNER_TEMP/nexus-v1-workspace-acceptance-native/workspace-acceptance-macos-arm64.json" \
+            --native-certified cross-platform-exact-sha \
+            --native-certification-job-url "https://github.com/${GITHUB_REPOSITORY}/actions/runs/${NATIVE_CI_RUN_ID}" \
+            --out "$RUNNER_TEMP/nexus-v1-workspace-acceptance/evidence.json" > /dev/null
           node scripts/verify-agent-workspace-v1.mjs --release \
             --sha "$EXPECTED_SHA" --ci-run-id "$CI_RUN_ID" \
             --evidence "$RUNNER_TEMP/nexus-v1-workspace-acceptance/evidence.json"
