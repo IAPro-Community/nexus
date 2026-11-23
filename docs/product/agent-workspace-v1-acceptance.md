@@ -48,7 +48,7 @@ Legenda: **present** indica código-base localizado; **partial** significa lacun
 
 | ID | Requisito da V1 | Source | Issue | Evidência mínima |
 | --- | --- | --- | --- | --- |
-| `agent-parking` | Agent Parking | partial | [#114](https://github.com/IAPro-Community/nexus/issues/114) | Diferenciar ocultar superfície de suspender runtime quando suportado; UI não diz que processo está pausado se só ficou oculto |
+| `agent-parking` | Agent Parking | present | [#114](https://github.com/IAPro-Community/nexus/issues/114) | Diferenciar ocultar superfície de suspender runtime quando suportado; UI não diz que processo está pausado se só ficou oculto |
 | `attention-radar` | Attention Radar | partial | [#100](https://github.com/IAPro-Community/nexus/issues/100) | Consolidar aprovações, perguntas, erros e blockers de CLIs heterogêneos; Ações direcionadas a geração e provider corretos com dados verificáveis |
 | `focus-queue` | Focus Queue | partial | [#100](https://github.com/IAPro-Community/nexus/issues/100) | Fila de pendências priorizadas por severidade e tempo; Deduplicação, idempotência e resposta sem reabrir ações resolvidas |
 | `agent-timeline` | Agent Timeline | partial | [#114](https://github.com/IAPro-Community/nexus/issues/114) | Linha de tempo de launch, attach, quota, handoff e recovery; Eventos com timestamp, source, runtimeGeneration e correlação |
@@ -59,12 +59,12 @@ Legenda: **present** indica código-base localizado; **partial** significa lacun
 
 | ID | Requisito da V1 | Source | Issue | Evidência mínima |
 | --- | --- | --- | --- | --- |
-| `agent-compare` | Agent Compare | partial | [#108](https://github.com/IAPro-Community/nexus/issues/108) | Comparar duas implementações executadas em worktrees independentes; Testes e custo com evidência e critérios explícitos |
+| `agent-compare` | Agent Compare | present | [#108](https://github.com/IAPro-Community/nexus/issues/108) | Comparar duas implementações executadas em worktrees independentes; Testes e custo com evidência e critérios explícitos |
 | `review-handoff` | Review Handoff | partial | [#110](https://github.com/IAPro-Community/nexus/issues/110) | Enviar diff de Agent para revisão independente delimitada; Resposta e proof vinculados ao dono do Run sem duplicar execução |
 | `consult-another-agent` | Consult Another Agent | partial | [#110](https://github.com/IAPro-Community/nexus/issues/110) | Solicitar segunda opinião com contexto/scope do Maestro; Evitar loops, auto-delegação e ações externas não autorizadas |
 | `change-radar` | Change Radar | partial | [#109](https://github.com/IAPro-Community/nexus/issues/109) | Arquivos e hunks alterados agrupados por Agent/worktree; Aviso de colisão com base commit e revisão humana |
 | `test-matrix` | Test Matrix | partial | [#109](https://github.com/IAPro-Community/nexus/issues/109) | Exibir resultados reais dos comandos de teste por worktree; Exit code, SHA, timestamp e logs; nenhuma declaração LLM vira PASS |
-| `release-desk` | Release Desk | partial | [#109](https://github.com/IAPro-Community/nexus/issues/109) | Vincular evidências, PRs, issues, diff e gates de uma release; Sem merge/publicação sem aprovação e checks verificáveis |
+| `release-desk` | Release Desk | present | [#109](https://github.com/IAPro-Community/nexus/issues/109) | Vincular evidências, PRs, issues, diff e gates de uma release; Sem merge/publicação sem aprovação e checks verificáveis |
 
 ### Navegador e testes visuais (6)
 
@@ -74,7 +74,7 @@ Legenda: **present** indica código-base localizado; **partial** significa lacun
 | `design-inspect` | Design Inspect | partial | [#107](https://github.com/IAPro-Community/nexus/issues/107) | Selecionar elemento e coletar DOM/estilos/screenshot sanitizados; Encaminhar contexto apenas a Agent explicitamente escolhido |
 | `live-preview` | Live Preview | partial | [#107](https://github.com/IAPro-Community/nexus/issues/107) | Exibir app web local autorizada vinculada ao processo host; Não expor host arbitrário nem segredos de sessão |
 | `browser-automation` | Browser Automation | partial | [#83](https://github.com/IAPro-Community/nexus/issues/83) | MCP e CDP com capacidades verificáveis e grant temporário; Intervenção humana para MFA, revoke, isolamento e auditoria |
-| `visual-diff` | Visual Diff | partial | [#107](https://github.com/IAPro-Community/nexus/issues/107) | Comparar antes/depois por screenshot determinística; Região e limiar declarados, revisão e artefatos rastreáveis |
+| `visual-diff` | Visual Diff | present | [#107](https://github.com/IAPro-Community/nexus/issues/107) | Comparar antes/depois por screenshot determinística; Região e limiar declarados, revisão e artefatos rastreáveis |
 | `device-preview` | Device Preview | partial | [#107](https://github.com/IAPro-Community/nexus/issues/107) | Viewports de telefone, tablet e desktop na mesma browser session; Escalas, foco, acessibilidade e redimensionamento correto |
 
 ### Remoto e personalização (6)
@@ -83,7 +83,7 @@ Legenda: **present** indica código-base localizado; **partial** significa lacun
 | --- | --- | --- | --- | --- |
 | `mobile-inbox` | Mobile Inbox | partial | [#111](https://github.com/IAPro-Community/nexus/issues/111) | Perguntas/approvals e jobs no celular vinculados à sessão; Responder uma vez, inclusive em reconexões ou falhas de rede |
 | `remote-terminal` | Remote Terminal | partial | [#111](https://github.com/IAPro-Community/nexus/issues/111) | Conectar ao terminal existente sem criar novo runtime; Controle único com token scoped, CSRF, expiry e revoke |
-| `workspace-sharing` | Workspace Sharing | partial | [#112](https://github.com/IAPro-Community/nexus/issues/112) | Compartilhar observação por projeto/Agent sob RBAC; Viewer-only inicial; cross-project leakage negado e revoke imediato |
+| `workspace-sharing` | Workspace Sharing | present | [#112](https://github.com/IAPro-Community/nexus/issues/112) | Compartilhar observação por projeto/Agent sob RBAC; Viewer-only inicial; cross-project leakage negado e revoke imediato |
 | `voice-actions` | Voice Actions | partial | [#114](https://github.com/IAPro-Community/nexus/issues/114) | Ação de voz exige controle explícito e identifica Agent de destino; Não inserir Enter automaticamente nem ler segredos do prompt |
 | `contextual-hud` | Contextual HUD | partial | [#114](https://github.com/IAPro-Community/nexus/issues/114) | HUD exibe apenas estado/sinal real de Agent e atenção; Não bloquear janelas; reduced-motion e smoke nativo |
 | `nex-companion` | Nex Operational Companion | partial | [#114](https://github.com/IAPro-Community/nexus/issues/114) | Mascote abre a ação operacional correspondente a evento confirmado; Respeitar NEX identity lock, alto contraste e motion reduction |
@@ -92,9 +92,9 @@ Legenda: **present** indica código-base localizado; **partial** significa lacun
 
 | ID | Requisito da V1 | Source | Issue | Evidência mínima |
 | --- | --- | --- | --- | --- |
-| `workspace-recipes` | Workspace Recipes | partial | [#105](https://github.com/IAPro-Community/nexus/issues/105) | Recipes Frontend/Backend/Review/Debug/Release são layouts reutilizáveis; Receita não inicia Agents ou ações automaticamente |
+| `workspace-recipes` | Workspace Recipes | present | [#105](https://github.com/IAPro-Community/nexus/issues/105) | Recipes Frontend/Backend/Review/Debug/Release são layouts reutilizáveis; Receita não inicia Agents ou ações automaticamente |
 | `parallel-challenge` | Parallel Challenge | partial | [#108](https://github.com/IAPro-Community/nexus/issues/108) | Distribuir uma especificação a múltiplos Agents isolados e compará-los; Sem merge automático, custo UNKNOWN não vira zero |
-| `change-collision-detector` | Change Collision Detector | partial | [#109](https://github.com/IAPro-Community/nexus/issues/109) | Detectar alterações conflitantes por base commit/hunks; Informar incerteza e permitir revisão antes do merge |
+| `change-collision-detector` | Change Collision Detector | present | [#109](https://github.com/IAPro-Community/nexus/issues/109) | Detectar alterações conflitantes por base commit/hunks; Informar incerteza e permitir revisão antes do merge |
 | `device-handoff` | Seamless Device Handoff | partial | [#111](https://github.com/IAPro-Community/nexus/issues/111) | Continuar no mobile a sessão do host sem duplicar execução; Lease, reattach, estados reconciliados e histórico auditável |
 
 ### Dependências obrigatórias e certificação (7)
@@ -102,8 +102,8 @@ Legenda: **present** indica código-base localizado; **partial** significa lacun
 | ID | Requisito da V1 | Source | Issue | Evidência mínima |
 | --- | --- | --- | --- | --- |
 | `maestro-managed-dependency` | Maestro Mandatory Managed Dependency | partial | [#113](https://github.com/IAPro-Community/nexus/issues/113) | Nexus localiza/instala versão compatível e negocia capacidades; Maestro permanece standalone sem dependência do Nexus |
-| `maestro-canonical-memory` | Maestro Canonical Semantic Memory | partial | [#113](https://github.com/IAPro-Community/nexus/issues/113) | Migrar IntelligenceMemory com backup, dry-run, idempotência e rollback; Nexus retém somente checkpoint operacional e nunca segunda store semântica |
-| `single-execution-owner` | Single Execution Owner | partial | [#113](https://github.com/IAPro-Community/nexus/issues/113) | Cada Run tem executor único NEXUS ou MAESTRO; Retry, cancel e terminal input seguem o owner; não há duplo supervisor |
+| `maestro-canonical-memory` | Maestro Canonical Semantic Memory | present | [#113](https://github.com/IAPro-Community/nexus/issues/113) | Migrar IntelligenceMemory com backup, dry-run, idempotência e rollback; Nexus retém somente checkpoint operacional e nunca segunda store semântica |
+| `single-execution-owner` | Single Execution Owner | present | [#113](https://github.com/IAPro-Community/nexus/issues/113) | Cada Run tem executor único NEXUS ou MAESTRO; Retry, cancel e terminal input seguem o owner; não há duplo supervisor |
 | `composer-flow-onboarding` | Composer, Flow e tour da release | partial | [#102](https://github.com/IAPro-Community/nexus/issues/102) | Concluir Composer/Flow e tours por componente reutilizável; E2E na distribuição final, PT/EN/ES, teclado e cenários reais |
 | `remote-generated-outputs` | Remote Generated Outputs | partial | [#94](https://github.com/IAPro-Community/nexus/issues/94) | Listar e visualizar imagens, vídeo e arquivos gerados no host; ACL por projeto, MIME/hash, TTL e não expor filesystem indiscriminadamente |
 | `two-client-real-e2e` | Two-Client Real Agent Homologation | missing | [#81](https://github.com/IAPro-Community/nexus/issues/81) | Dois clientes simultâneos e dois Agents em worktrees distintos; Leases, conflitos, handoffs, browsers e reconexões autenticados |

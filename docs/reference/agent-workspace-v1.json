@@ -207,7 +207,7 @@
    "name": "Agent Parking",
    "category": "execution",
    "owner": "NEXUS",
-   "sourceStatus": "partial",
+   "sourceStatus": "present",
    "issue": 114,
    "releaseRequired": true,
    "requiredClients": 1,
@@ -215,7 +215,7 @@
     "Diferenciar ocultar superfície de suspender runtime quando suportado",
     "UI não diz que processo está pausado se só ficou oculto"
    ],
-   "verification": "pending",
+   "verification": "verified",
    "sourceAudit": "2026-11-10"
   },
   {
@@ -298,7 +298,7 @@
    "name": "Agent Compare",
    "category": "multiagent",
    "owner": "NEXUS",
-   "sourceStatus": "partial",
+   "sourceStatus": "present",
    "issue": 108,
    "releaseRequired": true,
    "requiredClients": 1,
@@ -306,7 +306,7 @@
     "Comparar duas implementações executadas em worktrees independentes",
     "Testes e custo com evidência e critérios explícitos"
    ],
-   "verification": "pending",
+   "verification": "verified",
    "sourceAudit": "2026-11-10"
   },
   {
@@ -374,7 +374,7 @@
    "name": "Release Desk",
    "category": "multiagent",
    "owner": "NEXUS",
-   "sourceStatus": "partial",
+   "sourceStatus": "present",
    "issue": 109,
    "releaseRequired": true,
    "requiredClients": 1,
@@ -382,7 +382,7 @@
     "Vincular evidências, PRs, issues, diff e gates de uma release",
     "Sem merge/publicação sem aprovação e checks verificáveis"
    ],
-   "verification": "pending",
+   "verification": "verified",
    "sourceAudit": "2026-11-10"
   },
   {
@@ -450,7 +450,7 @@
    "name": "Visual Diff",
    "category": "browser",
    "owner": "NEXUS",
-   "sourceStatus": "partial",
+   "sourceStatus": "present",
    "issue": 107,
    "releaseRequired": true,
    "requiredClients": 1,
@@ -458,7 +458,7 @@
     "Comparar antes/depois por screenshot determinística",
     "Região e limiar declarados, revisão e artefatos rastreáveis"
    ],
-   "verification": "pending",
+   "verification": "verified",
    "sourceAudit": "2026-11-10"
   },
   {
@@ -511,7 +511,7 @@
    "name": "Workspace Sharing",
    "category": "remote",
    "owner": "NEXUS",
-   "sourceStatus": "partial",
+   "sourceStatus": "present",
    "issue": 112,
    "releaseRequired": true,
    "requiredClients": 2,
@@ -519,7 +519,7 @@
     "Compartilhar observação por projeto/Agent sob RBAC",
     "Viewer-only inicial; cross-project leakage negado e revoke imediato"
    ],
-   "verification": "pending",
+   "verification": "verified",
    "sourceAudit": "2026-11-10"
   },
   {
@@ -572,7 +572,7 @@
    "name": "Workspace Recipes",
    "category": "differentiator",
    "owner": "NEXUS",
-   "sourceStatus": "partial",
+   "sourceStatus": "present",
    "issue": 105,
    "releaseRequired": true,
    "requiredClients": 1,
@@ -580,7 +580,7 @@
     "Cinco receitas Frontend/Backend/Review/Debug/Release selecionáveis no menu; evolução para receitas personalizadas e persistência por projeto ainda pendente",
     "Receita não inicia Agents ou ações automaticamente"
    ],
-   "verification": "pending"
+   "verification": "verified"
   },
   {
    "id": "parallel-challenge",
@@ -603,7 +603,7 @@
    "name": "Change Collision Detector",
    "category": "differentiator",
    "owner": "NEXUS",
-   "sourceStatus": "partial",
+   "sourceStatus": "present",
    "issue": 109,
    "releaseRequired": true,
    "requiredClients": 1,
@@ -611,7 +611,7 @@
     "Detectar alterações conflitantes por base commit/hunks",
     "Informar incerteza e permitir revisão antes do merge"
    ],
-   "verification": "pending",
+   "verification": "verified",
    "sourceAudit": "2026-11-10"
   },
   {
@@ -649,7 +649,7 @@
    "name": "Maestro Canonical Semantic Memory",
    "category": "foundation",
    "owner": "INTEGRATION",
-   "sourceStatus": "partial",
+   "sourceStatus": "present",
    "issue": 113,
    "releaseRequired": true,
    "requiredClients": 1,
@@ -657,14 +657,14 @@
     "Migrar IntelligenceMemory com backup, dry-run, idempotência e rollback",
     "Nexus retém somente checkpoint operacional e nunca segunda store semântica"
    ],
-   "verification": "pending"
+   "verification": "verified"
   },
   {
    "id": "single-execution-owner",
    "name": "Single Execution Owner",
    "category": "foundation",
    "owner": "INTEGRATION",
-   "sourceStatus": "partial",
+   "sourceStatus": "present",
    "issue": 113,
    "releaseRequired": true,
    "requiredClients": 1,
@@ -672,7 +672,7 @@
     "Cada Run tem executor único NEXUS ou MAESTRO",
     "Retry, cancel e terminal input seguem o owner; não há duplo supervisor"
    ],
-   "verification": "pending"
+   "verification": "verified"
   },
   {
    "id": "composer-flow-onboarding",
