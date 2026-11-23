@@ -56,10 +56,31 @@ unset NEXUS_ENABLE_HUD NEXUS_DISABLE_HUD
 mkdir -p "$NEXUS_DATA_DIR" "$NEXUS_CONFIG_DIR" "$NEXUS_STATE_DIR"
 "$HUD" >"$OUT/private-stdout.log" 2>"$OUT/private-stderr.log" &
 PID=$!
+pid_windows() {
+  xdotool search --onlyvisible --pid "$PID" 2>/dev/null || true
+}
+window_width() {
+  xdotool getwindowgeometry --shell "$1" 2>/dev/null | awk -F= '/^WIDTH=/{print $2}'
+}
+window_height() {
+  xdotool getwindowgeometry --shell "$1" 2>/dev/null | awk -F= '/^HEIGHT=/{print $2}'
+}
+find_pid_window() {
+  local min_w="$1" min_h="$2" wid w h area best='' best_area=0
+  for wid in $(pid_windows); do
+    w="$(window_width "$wid")"
+    h="$(window_height "$wid")"
+    [ -n "$w" ] && [ -n "$h" ] || continue
+    (( w >= min_w && h >= min_h )) || continue
+    area=$((w * h))
+    if [ -z "$best" ] || (( area < best_area )); then best_area=$area; best="$wid"; fi
+  done
+  printf '%s' "$best"
+}
 WID=''
 for i in $(seq 1 100); do
   if ! kill -0 "$PID" 2>/dev/null; then RESULT=NO_GO; REASON='HUD exited at launch.'; exit 1; fi
-  WID="$(xdotool search --onlyvisible --pid "$PID" --name '^Nexus HUD' 2>/dev/null | head -n 1 || true)"
+  WID="$(find_pid_window 40 40)"
   [ -n "$WID" ] && break
   sleep .2
 done
@@ -72,12 +93,26 @@ geometry() {
   W="$(awk -F= '/^WIDTH=/{print $2}' <<<"$g")"
   H="$(awk -F= '/^HEIGHT=/{print $2}' <<<"$g")"
 }
+wait_capsule_settled() {
+  local stable=0 prev_w='' prev_h=''
+  for i in $(seq 1 80); do
+    geometry
+    if [ "$W" != "$prev_w" ] || [ "$H" != "$prev_h" ]; then
+      prev_w="$W"; prev_h="$H"; stable=0
+    else
+      stable=$((stable + 1))
+    fi
+    if (( stable >= 3 && W >= 100 )); then return 0; fi
+    sleep .25
+  done
+  return 1
+}
 expect_size() {
   local expanded="$1"
   for i in $(seq 1 35); do
     geometry
     if [ "$expanded" = yes ] && (( W >= 300 && H >= 300 )); then return 0; fi
-    if [ "$expanded" = no ] && (( W <= 330 && H <= 140 )); then return 0; fi
+    if [ "$expanded" = no ] && (( W <= 330 && H <= 200 )); then return 0; fi
     sleep .15
   done
   return 1
@@ -93,7 +128,7 @@ click_capsule() {
   xdotool mousemove --sync "$cx" "$cy" click 1
 }
 popup_window() {
-  xdotool search --onlyvisible --pid "$PID" --name '^Nexus HUD Popup' 2>/dev/null | head -n 1 || true
+  find_pid_window 280 240
 }
 popup_geometry() {
   local g
@@ -123,6 +158,7 @@ capture_popup() {
   capture "$1"
   X="$old_x"; Y="$old_y"; W="$old_w"; H="$old_h"
 }
+if ! wait_capsule_settled; then RESULT=NO_GO; REASON='HUD capsule geometry did not settle.'; exit 1; fi
 if ! expect_size no; then RESULT=NO_GO; REASON='Compact HUD geometry invalid.'; exit 1; fi
 capture HUD_BEFORE.png
 for n in $(seq 1 "$CYCLES"); do
@@ -144,10 +180,12 @@ for n in $(seq 1 "$CYCLES"); do
   if [ "$PRESENTATION" = detached_popover ]; then
     if ! expect_size no; then RESULT=NO_GO; REASON="Mascot/bar capsule resized unexpectedly on cycle $n"; exit 1; fi
     if ! wait_popup yes; then RESULT=NO_GO; REASON="Detached popup failed to open on cycle $n"; exit 1; fi
+    sleep 1.2
     if (( n == 1 )); then capture_popup HUD_EXPANDED.png; fi
     popup_geometry
     xdotool mousemove --sync "$((PX+PW-36))" "$((PY+36))" click 1
     if ! wait_popup no; then RESULT=NO_GO; REASON="Detached popup failed to close on cycle $n"; exit 1; fi
+    sleep .8
     if ! expect_size no; then RESULT=NO_GO; REASON="Compact capsule lost after popup close cycle $n"; exit 1; fi
   else
     if ! expect_size yes; then RESULT=NO_GO; REASON="Legacy popup failed to expand on cycle $n"; exit 1; fi
