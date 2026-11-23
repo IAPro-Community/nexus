@@ -186,6 +186,48 @@ func TestProjectChangeCollisionsFlagsDisjointEditsAsUncertain(t *testing.T) {
 	}
 }
 
+func TestProjectChangeCollisionsGroupsHunksAndBaseCommits(t *testing.T) {
+	client, srv, csrf := csrfClient(t)
+	base := srv.URL()
+	root := collisionFixture(t)
+	repo := filepath.Join(root, "repo")
+	linked := filepath.Join(root, "linked")
+	overwriteLine(t, filepath.Join(repo, "shared.go"), 14, "edited by primary")
+	overwriteLine(t, filepath.Join(linked, "shared.go"), 14, "edited by linked")
+
+	projectID := createCollisionProject(t, client, base, repo, csrf)
+	resp, err := client.Get(base + "/api/v1/projects/" + projectID + "/change-collisions")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("GET change-collisions status=%d", resp.StatusCode)
+	}
+	var report nexus.ChangeCollisionReport
+	if err := json.NewDecoder(resp.Body).Decode(&report); err != nil {
+		t.Fatal(err)
+	}
+	if len(report.Worktrees) != 2 {
+		t.Fatalf("both worktrees must be grouped, got %+v", report.Worktrees)
+	}
+	for _, worktree := range report.Worktrees {
+		if len(worktree.ChangedFiles) == 0 || len(worktree.ChangedHunks["shared.go"]) == 0 {
+			t.Fatalf("worktree %s lost grouped files/hunks: %+v", worktree.Path, worktree)
+		}
+	}
+	if len(report.Collisions) != 1 {
+		t.Fatalf("expected 1 collision, got %+v", report.Collisions)
+	}
+	collision := report.Collisions[0]
+	if !collision.RequiresHumanReview {
+		t.Fatalf("collision must require human review before integration: %+v", collision)
+	}
+	if len(collision.BaseCommits) == 0 {
+		t.Fatalf("collision must carry the base commit of the involved worktrees: %+v", collision)
+	}
+}
+
 func TestProjectChangeCollisionsRejectsNonGet(t *testing.T) {
 	client, srv, csrf := csrfClient(t)
 	base := srv.URL()

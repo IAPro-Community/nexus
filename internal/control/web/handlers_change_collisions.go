@@ -87,8 +87,9 @@ func (h *NexusHandler) handleProjectChangeCollisions(w http.ResponseWriter, r *h
 			Branch:       worktree.Branch,
 			Head:         worktree.Head,
 			ChangedFiles: files,
+			ChangedHunks: hunks,
 		})
-		changes = append(changes, nexus.WorktreeChanges{Path: worktree.Path, Hunks: hunks})
+		changes = append(changes, nexus.WorktreeChanges{Path: worktree.Path, Branch: worktree.Branch, Head: worktree.Head, Hunks: hunks})
 	}
 	if truncated {
 		report.ScanErrors = append(report.ScanErrors, nexus.ChangeCollisionScanError{
