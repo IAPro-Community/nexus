@@ -241,6 +241,12 @@ jobs:
         run: |
           set -o pipefail
           bun run test:e2e:terminal-split 2>&1 | tee "$RUNNER_TEMP/nexus-browser-terminal-split.log"
+      - id: terminal-golden-e2e
+        if: always()
+        working-directory: web
+        run: |
+          set -o pipefail
+          bun run test:e2e:terminal-golden 2>&1 | tee "$RUNNER_TEMP/nexus-browser-terminal-golden.log"
       - id: capacity-e2e
         if: always()
         working-directory: web
