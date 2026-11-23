@@ -281,7 +281,12 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	if !broker.SetPromotionHook(agentID, ws, func() error {
 		inputMu.Lock()
 		defer inputMu.Unlock()
-		return sendAttachedCommandWithRetry(rawConn, 3)
+		terminalLeaseMu.Lock()
+		defer terminalLeaseMu.Unlock()
+		if !broker.IsWriter(agentID, ws) {
+			return nil
+		}
+		return sendAttachedLeaseCommandWithRetry(rawConn, terminalLeaseCommand{Epoch: nextTerminalLeaseEpoch()})
 	}) {
 		return // detached before the attached host stream was ready
 	}
@@ -313,8 +318,17 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 	if role == "CONTROL" {
 		traceDocsCaptureTerminalStage("lease-acquire-pipe-start")
 		inputMu.Lock()
-		leaseErr := sendAttachedCommandWithRetry(rawConn, 3)
+		terminalLeaseMu.Lock()
+		leaseErr := error(nil)
+		leaseAcquired := broker.IsWriter(agentID, ws)
+		if leaseAcquired {
+			leaseErr = sendAttachedLeaseCommandWithRetry(rawConn, terminalLeaseCommand{Epoch: nextTerminalLeaseEpoch()})
+		}
+		terminalLeaseMu.Unlock()
 		inputMu.Unlock()
+		if !leaseAcquired {
+			effectiveRole = "VIEW_ONLY"
+		}
 		if leaseErr != nil {
 			broker.FailWriterAcquire(agentID, ws)
 			effectiveRole = "VIEW_ONLY"
@@ -704,13 +718,19 @@ func (h *TerminalHub) HandleWebSocket(w http.ResponseWriter, r *http.Request, ag
 			}
 
 		case "lease_acquire":
-			if broker.TakeControl(agentID, ws) {
+			inputMu.Lock()
+			terminalLeaseMu.Lock()
+			acquired := broker.TakeControl(agentID, ws)
+			var leaseErr error
+			if acquired {
+				leaseErr = sendAttachedLeaseCommandWithRetry(rawConn, terminalLeaseCommand{Epoch: nextTerminalLeaseEpoch()})
+			}
+			terminalLeaseMu.Unlock()
+			inputMu.Unlock()
+			if acquired {
 				// Write to the exact attached SessionHost stream before
 				// granting browser input. The same mutex orders subsequent
 				// bytes, so keystrokes cannot overtake this control frame.
-				inputMu.Lock()
-				leaseErr := sendAttachedCommandWithRetry(rawConn, 3)
-				inputMu.Unlock()
 				if leaseErr != nil {
 					broker.FailWriterAcquire(agentID, ws)
 					_ = safeWriteJSON(TerminalMessage{
@@ -817,10 +837,14 @@ func sendAttachedCommand(conn interface{ Write([]byte) (int, error) }, command p
 }
 
 func sendAttachedCommandWithRetry(conn interface{ Write([]byte) (int, error) }, _ int) error {
+	return sendAttachedLeaseCommandWithRetry(conn, terminalLeaseCommand{})
+}
+
+func sendAttachedLeaseCommandWithRetry(conn interface{ Write([]byte) (int, error) }, lease terminalLeaseCommand) error {
 	const attempts = 3
 	var err error
 	for i := 0; i < attempts; i++ {
-		err = sendAttachedCommand(conn, protocol.CmdLeaseAcquire, nil)
+		err = sendAttachedCommand(conn, protocol.CmdLeaseAcquire, lease)
 		if err == nil {
 			return nil
 		}
@@ -829,6 +853,18 @@ func sendAttachedCommandWithRetry(conn interface{ Write([]byte) (int, error) }, 
 		}
 	}
 	return err
+}
+
+type terminalLeaseCommand struct {
+	Epoch uint64 `json:"epoch"`
+}
+
+var terminalLeaseMu sync.Mutex
+var terminalLeaseEpoch = uint64(time.Now().UnixNano())
+
+func nextTerminalLeaseEpoch() uint64 {
+	terminalLeaseEpoch++
+	return terminalLeaseEpoch
 }
 
 // MaxProtocolPending bounds incomplete JSON held while waiting for a newline

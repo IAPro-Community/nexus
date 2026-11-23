@@ -61,35 +61,36 @@ type Config struct {
 
 // SessionHost manages a single supervised process runtime and its IPC listener.
 type SessionHost struct {
-	mu             sync.RWMutex
-	session        registry.RuntimeSession
-	registry       *registry.Registry
-	cfg            Config
-	cmd            *exec.Cmd
-	termBackend    terminal.Backend
-	ringBuffer     *RingBuffer
-	fanout         *BoundedFanout
-	listener       net.Listener
-	clients        map[net.Conn]bool
-	clientIDs      map[net.Conn]string
-	clientActors   map[net.Conn]string
-	clientSequence atomic.Uint64
-	activeWriter   net.Conn
-	auditBus       *events.Bus
-	stopChan       chan struct{}
-	doneChan       chan struct{}
-	streamDone     chan struct{}
-	detector       *AttentionDetector
-	quotaWatcher   *QuotaLimitWatcher
-	shellInput     shellPipeInputNormalizer
-	terminalInput  *nexusruntime.TerminalOutputScrubber
-	terminalMouse  *nexusruntime.TerminalMouseState
-	stopOnce       sync.Once
-	doneOnce       sync.Once
-	codexTUILock   interface{ Release() error }
-	wireReducer    *agentwire.Reducer
-	wireEpoch      uint64
-	wireSequence   atomic.Uint64
+	mu                sync.RWMutex
+	session           registry.RuntimeSession
+	registry          *registry.Registry
+	cfg               Config
+	cmd               *exec.Cmd
+	termBackend       terminal.Backend
+	ringBuffer        *RingBuffer
+	fanout            *BoundedFanout
+	listener          net.Listener
+	clients           map[net.Conn]bool
+	clientIDs         map[net.Conn]string
+	clientActors      map[net.Conn]string
+	clientSequence    atomic.Uint64
+	activeWriter      net.Conn
+	activeWriterEpoch uint64
+	auditBus          *events.Bus
+	stopChan          chan struct{}
+	doneChan          chan struct{}
+	streamDone        chan struct{}
+	detector          *AttentionDetector
+	quotaWatcher      *QuotaLimitWatcher
+	shellInput        shellPipeInputNormalizer
+	terminalInput     *nexusruntime.TerminalOutputScrubber
+	terminalMouse     *nexusruntime.TerminalMouseState
+	stopOnce          sync.Once
+	doneOnce          sync.Once
+	codexTUILock      interface{ Release() error }
+	wireReducer       *agentwire.Reducer
+	wireEpoch         uint64
+	wireSequence      atomic.Uint64
 }
 
 // NewSessionHost creates a new SessionHost for a given runtime.
@@ -937,16 +938,21 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 			resp = protocol.NewErrorResponse("lease acquisition requires attached streaming client")
 			break
 		}
+		previousWriter := sh.activeWriter
+		granted, reason := sh.applyTerminalLeaseLocked(conn, req.Payload)
+		if !granted {
+			resp = protocol.NewErrorResponse(reason)
+			break
+		}
 		clientID := sh.terminalClientIDLocked(conn)
-		if sh.activeWriter != conn {
-			if sh.activeWriter != nil {
-				previousClientID := sh.terminalClientIDLocked(sh.activeWriter)
+		if previousWriter != conn {
+			if previousWriter != nil {
+				previousClientID := sh.terminalClientIDLocked(previousWriter)
 				auditEvents = append(auditEvents, sh.terminalLeaseEventLocked(events.EventTerminalLeaseRevoked, previousClientID, "takeover"))
 			}
 			auditEvents = append(auditEvents, sh.terminalLeaseEventLocked(events.EventTerminalLeaseGranted, clientID, "explicit_takeover"))
 		}
-		sh.activeWriter = conn
-		resp, _ = protocol.NewResponse("lease_acquired")
+		resp, _ = protocol.NewResponse(reason)
 
 	case protocol.CmdLeaseRelease:
 		if sh.activeWriter == conn {
@@ -1125,9 +1131,32 @@ func (sh *SessionHost) publishTerminalAuditEvents(auditEvents []events.Event) {
 	}
 }
 
+func (sh *SessionHost) applyTerminalLeaseLocked(conn net.Conn, payload []byte) (bool, string) {
+	var leaseCmd struct {
+		Epoch uint64 `json:"epoch"`
+	}
+	if len(payload) > 0 {
+		_ = json.Unmarshal(payload, &leaseCmd)
+	}
+	if leaseCmd.Epoch == 0 {
+		if sh.activeWriterEpoch > 0 {
+			return false, "lease_stale"
+		}
+	} else if leaseCmd.Epoch < sh.activeWriterEpoch ||
+		(leaseCmd.Epoch == sh.activeWriterEpoch && sh.activeWriter != conn) {
+		return false, "lease_stale"
+	}
+	sh.activeWriter = conn
+	if leaseCmd.Epoch > sh.activeWriterEpoch {
+		sh.activeWriterEpoch = leaseCmd.Epoch
+	}
+	return true, "lease_acquired"
+}
+
 func (sh *SessionHost) collectAttachedInputLocked(conn net.Conn, data []byte) ([]byte, *events.Event) {
 	// Only active writer (or first attached client) can send input to child process
 	if sh.activeWriter != nil && sh.activeWriter != conn {
+		nexusruntime.TraceTerminalBytes(sh.session.RuntimeID, "host.input.dropped.lease", data)
 		return nil, nil
 	}
 	var auditEvent *events.Event
