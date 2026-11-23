@@ -80,6 +80,7 @@ type PhaseHandoff struct {
 	PreviousPhaseResult string   `json:"previous_phase_result,omitempty"`
 	RelevantDecisions   []string `json:"relevant_decisions,omitempty"`
 	ChangedArtifacts    []string `json:"changed_artifacts,omitempty"`
+	ReviewedStepIDs     []string `json:"reviewed_step_ids,omitempty"`
 	Evidence            []string `json:"evidence,omitempty"`
 	KnownFailures       []string `json:"known_failures,omitempty"`
 	RejectedApproaches  []string `json:"rejected_approaches,omitempty"`
@@ -263,13 +264,22 @@ func BuildMissionTeamFlow(flow *FlowDefinition, selection MissionTeamSelection, 
 		flow.Phases = append(flow.Phases, FlowPhase{ID: phaseID, Title: humanPhaseTitle(phase.Type), Description: phase.RequiredRole, Order: order + 1, Type: string(phase.Type), RequiredRole: phase.RequiredRole, FailurePolicy: string(phase.FailurePolicy)})
 	}
 	phaseSteps := make(map[string][]string, len(definition.Phases))
+	implementationArtifacts := []string{}
+	implementationStepIDs := []string{}
 	for _, phase := range definition.Phases {
 		phase.ResourcePreference = applyMissionTeamRuntimeOverride(phase, firstRuntimeOverride(runtimeOverrides))
 		steps := []FlowStep{}
 		implementationStreams := implementationWorkstreams(workstreams)
+		changedArtifacts := []string{}
+		reviewedStepIDs := []string{}
+		if phase.Type == PhaseReview || phase.Type == PhaseSecurityReview {
+			changedArtifacts = append(changedArtifacts, implementationArtifacts...)
+			reviewedStepIDs = append(reviewedStepIDs, implementationStepIDs...)
+		}
 		if phase.Type == PhaseImplementation && len(implementationStreams) > 0 {
 			for index, stream := range implementationStreams {
-				steps = append(steps, missionTeamStep(flow, phase, phaseIDs[phase.ID], goal, stream.Goal, verification, skills, phaseDependencyStepIDs(phase, phaseSteps), stream.OwnedPaths, stream.SharedContracts, index))
+				steps = append(steps, missionTeamStep(flow, phase, phaseIDs[phase.ID], goal, stream.Goal, verification, skills, phaseDependencyStepIDs(phase, phaseSteps), stream.OwnedPaths, stream.SharedContracts, index, nil, nil))
+				implementationArtifacts = append(implementationArtifacts, stream.OwnedPaths...)
 			}
 		} else {
 			phaseGoal := goal
@@ -279,12 +289,15 @@ func BuildMissionTeamFlow(flow *FlowDefinition, selection MissionTeamSelection, 
 			if phase.Type == PhaseVerification {
 				phaseGoal = "Executar o plano de verificação e confirmar a Definition of Done."
 			}
-			steps = append(steps, missionTeamStep(flow, phase, phaseIDs[phase.ID], goal, phaseGoal, verification, skills, phaseDependencyStepIDs(phase, phaseSteps), nil, nil, 0))
+			steps = append(steps, missionTeamStep(flow, phase, phaseIDs[phase.ID], goal, phaseGoal, verification, skills, phaseDependencyStepIDs(phase, phaseSteps), nil, nil, 0, changedArtifacts, reviewedStepIDs))
 		}
 		phaseSteps[phase.ID] = make([]string, 0, len(steps))
 		for _, step := range steps {
 			phaseSteps[phase.ID] = append(phaseSteps[phase.ID], step.ID)
 			flow.Steps = append(flow.Steps, step)
+		}
+		if phase.Type == PhaseImplementation {
+			implementationStepIDs = append(implementationStepIDs, phaseSteps[phase.ID]...)
 		}
 	}
 	return nil
@@ -332,7 +345,7 @@ func implementationWorkstreams(workstreams []DelegatedWorkstream) []DelegatedWor
 	return out
 }
 
-func missionTeamStep(flow *FlowDefinition, phase MissionPhase, phaseID, missionGoal, phaseGoal string, verification, skills, dependencies, ownedPaths, sharedArtifacts []string, order int) FlowStep {
+func missionTeamStep(flow *FlowDefinition, phase MissionPhase, phaseID, missionGoal, phaseGoal string, verification, skills, dependencies, ownedPaths, sharedArtifacts []string, order int, changedArtifacts, reviewedStepIDs []string) FlowStep {
 	if len(dependencies) > 0 {
 		dependencies = append([]string(nil), dependencies...)
 	}
@@ -342,7 +355,7 @@ func missionTeamStep(flow *FlowDefinition, phase MissionPhase, phaseID, missionG
 	if len(acceptance) == 0 {
 		acceptance = []string{"phase exit criteria satisfied"}
 	}
-	handoff, _ := json.Marshal(PhaseHandoff{MissionObjective: missionGoal, PhaseObjective: phaseGoal, RelevantDecisions: []string{"team_preset=" + string(flowPolicyPreset(flow)), "required_role=" + phase.RequiredRole}, AcceptanceCriteria: acceptance, NextExpectedAction: "continue to next dependency-ready phase", ContextBudgetBytes: 32768})
+	handoff, _ := json.Marshal(PhaseHandoff{MissionObjective: missionGoal, PhaseObjective: phaseGoal, RelevantDecisions: []string{"team_preset=" + string(flowPolicyPreset(flow)), "required_role=" + phase.RequiredRole}, ChangedArtifacts: changedArtifacts, ReviewedStepIDs: reviewedStepIDs, AcceptanceCriteria: acceptance, NextExpectedAction: "continue to next dependency-ready phase", ContextBudgetBytes: 32768})
 	return FlowStep{ID: stepID, PhaseID: phaseID, Order: order + 1, Title: humanPhaseTitle(phase.Type), Goal: phaseGoal, Priority: "HIGH", Status: statusForDependencies(dependencies), Dependencies: dependencies, ParallelGroup: implementationParallelGroup(phase.Type), Role: phase.RequiredRole, PhaseType: string(phase.Type), ReviewRequired: reviewRequired, TaskRequirements: missionTaskRequirementsJSON(phaseGoal, phase), AssignmentStrategy: FlowAssignmentAuto, AcceptanceCriteria: acceptance, VerificationRequirements: append([]string(nil), verification...), RequiredEvidence: append([]string(nil), phase.RequiredEvidence...), EntryCriteria: append([]string(nil), phase.EntryCriteria...), ExitCriteria: append([]string(nil), phase.ExitCriteria...), HandoffJSON: string(handoff), SkillIDs: append([]string(nil), skills...), MaestroSkills: append([]string(nil), skills...), RelevantPaths: append([]string(nil), ownedPaths...), SharedArtifacts: append([]string(nil), sharedArtifacts...), DesiredProvider: affinityValue(phase.ResourcePreference.Provider), DesiredProfile: affinityValue(phase.ResourcePreference.Profile), CompiledPrompt: missionGoal}
 }
 

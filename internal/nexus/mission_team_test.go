@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -119,6 +120,62 @@ func TestBuildMissionTeamFlowCreatesOrderedRoleBasedPipeline(t *testing.T) {
 	roundTrip := WorkPlanFromFlow(*flow)
 	if !reflect.DeepEqual(roundTrip.Phases[1].Packages[0].HandoffJSON, flow.Steps[1].HandoffJSON) {
 		t.Fatal("handoff was lost across WorkPlan/Flow projection")
+	}
+}
+
+func TestMissionTeamReviewReceivesBoundedAgentDiffScope(t *testing.T) {
+	selection := MissionTeamSelection{Version: MissionTeamVersion, Strategy: IntentPlan, Preset: PresetFeatureDelivery, ReviewRequired: true}
+	flow := &FlowDefinition{ID: "flow", ProjectID: "project", StructuredFacts: map[string]string{}}
+	streams := []DelegatedWorkstream{
+		{ID: "backend", Goal: "backend", PreferredRoles: []string{"backend-engineer"}, OwnedPaths: []string{"internal/**"}},
+		{ID: "frontend", Goal: "frontend", PreferredRoles: []string{"frontend-engineer"}, OwnedPaths: []string{"web/src/**"}},
+		{ID: "qa", Goal: "qa", PreferredRoles: []string{"qa-engineer"}},
+	}
+	if err := BuildMissionTeamFlow(flow, selection, "feature", []string{"true"}, nil, streams); err != nil {
+		t.Fatal(err)
+	}
+
+	implementationSteps := []FlowStep{}
+	var review *FlowStep
+	for index := range flow.Steps {
+		switch flow.Steps[index].PhaseType {
+		case string(PhaseImplementation):
+			implementationSteps = append(implementationSteps, flow.Steps[index])
+		case string(PhaseReview):
+			step := flow.Steps[index]
+			review = &step
+		}
+	}
+	if review == nil {
+		t.Fatal("review step is missing from the mission team pipeline")
+	}
+	if len(implementationSteps) != 2 {
+		t.Fatalf("implementation steps = %d, want 2 without duplicated execution", len(implementationSteps))
+	}
+	if !review.ReviewRequired || review.Role != "reviewer" {
+		t.Fatalf("review gate lost its independent role: %+v", review)
+	}
+	if len(review.RelevantPaths) != 0 {
+		t.Fatalf("review must not own the implementation paths: %v", review.RelevantPaths)
+	}
+
+	var handoff PhaseHandoff
+	if err := json.Unmarshal([]byte(review.HandoffJSON), &handoff); err != nil {
+		t.Fatalf("review handoff is not structured: %v", err)
+	}
+	if !slices.Equal(handoff.ChangedArtifacts, []string{"internal/**", "web/src/**"}) {
+		t.Fatalf("review diff scope = %v, want the agent owned paths", handoff.ChangedArtifacts)
+	}
+	if len(handoff.ReviewedStepIDs) != len(implementationSteps) {
+		t.Fatalf("reviewed steps = %v, want the %d implementation steps", handoff.ReviewedStepIDs, len(implementationSteps))
+	}
+	for _, stepID := range handoff.ReviewedStepIDs {
+		if stepID == review.ID {
+			t.Fatal("review must not reference itself as reviewed step")
+		}
+		if !slices.Contains(review.Dependencies, stepID) {
+			t.Fatalf("review must depend on the reviewed step %q, deps=%v", stepID, review.Dependencies)
+		}
 	}
 }
 
