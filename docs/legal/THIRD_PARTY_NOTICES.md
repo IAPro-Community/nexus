@@ -19,7 +19,7 @@
 | `github.com/charmbracelet/bubbletea` | `v1.3.10` |
 | `github.com/charmbracelet/lipgloss` | `v1.1.1-0.20250404203927-76690c660834` |
 | `github.com/creack/pty` | `v1.1.24` |
-| `github.com/gorilla/websocket` | `v1.5.3` |
+| `github.com/gorilla/websocket` | `v1.5.4-0.20240701034025-d67f41855da4` |
 | `github.com/nicksnyder/go-i18n/v2` | `v2.6.1` |
 | `github.com/wailsapp/wails/v3` | `v3.0.0-beta.25` |
 | `golang.org/x/image` | `v0.45.0` |
