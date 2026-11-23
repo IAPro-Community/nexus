@@ -660,6 +660,9 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
       - working-directory: web
         run: bun install --frozen-lockfile
       - working-directory: web
@@ -903,6 +906,9 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
       - working-directory: web
         run: bun install --frozen-lockfile
       - working-directory: web
