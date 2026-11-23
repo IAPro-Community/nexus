@@ -1,8 +1,10 @@
 package registry
 
 import (
+	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -122,21 +124,25 @@ func TestRuntimeHealthReportsErrorsWithoutClaimingRecovery(t *testing.T) {
 
 func TestRuntimeHealthReportsFreshContinuityLease(t *testing.T) {
 	reg := NewRegistry(filepath.Join(t.TempDir(), "runtimes.json"))
+	now := time.Now().UTC()
 	if err := reg.Register(RuntimeSession{
 		RuntimeID:    "rt-health-lease",
 		ProviderID:   "codex",
 		State:        StateRunning,
 		ControlLevel: ControlLevelTerminal,
-		UpdatedAt:    time.Now().UTC(),
+		UpdatedAt:    now,
+		Labels: map[string]string{
+			healthLeaseClaimIDLabel:   "claim-1",
+			healthLeaseInFlightLabel:  "true",
+			healthLeaseClaimedAtLabel: now.Format(time.RFC3339Nano),
+			healthLeaseOwnerPIDLabel:  strconv.Itoa(os.Getpid()),
+		},
 	}); err != nil {
 		t.Fatalf("register runtime: %v", err)
 	}
-	if _, claimed, err := reg.ClaimContinuity("rt-health-lease"); err != nil || !claimed {
-		t.Fatalf("claim continuity: claimed=%t err=%v", claimed, err)
-	}
 	session, ok := reg.Get("rt-health-lease")
 	if !ok {
-		t.Fatal("runtime not found after claim")
+		t.Fatal("runtime not found after registration")
 	}
 
 	report := DiagnoseRuntimeHealth(session, time.Now().UTC())
@@ -150,25 +156,24 @@ func TestRuntimeHealthReportsFreshContinuityLease(t *testing.T) {
 
 func TestRuntimeHealthReportsStaleContinuityLeaseHeartbeat(t *testing.T) {
 	reg := NewRegistry(filepath.Join(t.TempDir(), "runtimes.json"))
+	now := time.Now().UTC()
 	if err := reg.Register(RuntimeSession{
 		RuntimeID:  "rt-health-stale-lease",
 		ProviderID: "codex",
 		State:      StateRunning,
-		UpdatedAt:  time.Now().UTC(),
+		UpdatedAt:  now,
+		Labels: map[string]string{
+			healthLeaseClaimIDLabel:   "claim-stale",
+			healthLeaseInFlightLabel:  "true",
+			healthLeaseClaimedAtLabel: now.Add(-30 * time.Minute).Format(time.RFC3339Nano),
+			healthLeaseOwnerPIDLabel:  strconv.Itoa(os.Getpid()),
+		},
 	}); err != nil {
 		t.Fatalf("register runtime: %v", err)
 	}
-	if _, claimed, err := reg.ClaimContinuity("rt-health-stale-lease"); err != nil || !claimed {
-		t.Fatalf("claim continuity: claimed=%t err=%v", claimed, err)
-	}
-	if err := reg.UpdateLabels("rt-health-stale-lease", map[string]string{
-		ContinuityClaimedAtLabel: time.Now().UTC().Add(-30 * time.Minute).Format(time.RFC3339Nano),
-	}); err != nil {
-		t.Fatalf("age continuity lease: %v", err)
-	}
 	session, ok := reg.Get("rt-health-stale-lease")
 	if !ok {
-		t.Fatal("runtime not found after claim")
+		t.Fatal("runtime not found after registration")
 	}
 
 	report := DiagnoseRuntimeHealth(session, time.Now().UTC())

@@ -53,6 +53,17 @@ const (
 	HealthError   HealthStatus = "ERROR"
 )
 
+// Durable continuity-lease labels and the staleness bound used by the runtime
+// health diagnosis. They are declared here so the diagnosis depends only on
+// the registry row, not on the continuity claim implementation.
+const (
+	healthLeaseClaimIDLabel   = "nexus.continuity_claim_id"
+	healthLeaseInFlightLabel  = "nexus.continuity_in_flight"
+	healthLeaseClaimedAtLabel = "nexus.continuity_claimed_at"
+	healthLeaseOwnerPIDLabel  = "nexus.continuity_owner_pid"
+	healthLeaseStaleAfter     = 2 * time.Minute
+)
+
 // HealthSignal is one diagnosed runtime signal with its evidence detail.
 type HealthSignal struct {
 	Status HealthStatus `json:"status"`
@@ -86,20 +97,29 @@ func DiagnoseRuntimeHealth(session RuntimeSession, now time.Time) RuntimeHealth 
 
 func healthLease(session RuntimeSession, now time.Time) HealthSignal {
 	labels := session.Labels
-	if labels == nil || labels[ContinuityClaimIDLabel] == "" {
+	if labels == nil || labels[healthLeaseClaimIDLabel] == "" {
 		return HealthSignal{Status: HealthUnknown, Detail: "no continuity lease recorded; the terminal writer lease is not observable from the registry"}
 	}
-	ownerPID, err := strconv.Atoi(labels[ContinuityOwnerPIDLabel])
+	ownerPID, err := strconv.Atoi(labels[healthLeaseOwnerPIDLabel])
 	if err != nil || ownerPID <= 0 {
 		ownerPID = 0
 	}
-	if labels[ContinuityInFlightLabel] != "true" {
+	if labels[healthLeaseInFlightLabel] != "true" {
 		return HealthSignal{Status: HealthOK, Detail: "continuity lease released"}
 	}
-	if continuityClaimIsStale(session, now) {
+	if healthLeaseIsStale(labels, now) {
 		return HealthSignal{Status: HealthError, Detail: fmt.Sprintf("continuity lease heartbeat is stale; owner pid %d liveness is reported separately", ownerPID)}
 	}
 	return HealthSignal{Status: HealthOK, Detail: fmt.Sprintf("continuity lease held by pid %d", ownerPID)}
+}
+
+func healthLeaseIsStale(labels map[string]string, now time.Time) bool {
+	claimedAt, err := time.Parse(time.RFC3339Nano, labels[healthLeaseClaimedAtLabel])
+	if err != nil {
+		return true
+	}
+	age := now.Sub(claimedAt)
+	return age < -time.Minute || age > healthLeaseStaleAfter
 }
 
 func healthPTY(session RuntimeSession) HealthSignal {
@@ -118,13 +138,13 @@ func healthPTY(session RuntimeSession) HealthSignal {
 
 func healthHeartbeat(session RuntimeSession, now time.Time) HealthSignal {
 	labels := session.Labels
-	if labels != nil && labels[ContinuityClaimIDLabel] != "" {
-		claimedAt, err := time.Parse(time.RFC3339Nano, labels[ContinuityClaimedAtLabel])
+	if labels != nil && labels[healthLeaseClaimIDLabel] != "" {
+		claimedAt, err := time.Parse(time.RFC3339Nano, labels[healthLeaseClaimedAtLabel])
 		if err != nil {
 			return HealthSignal{Status: HealthUnknown, Detail: "continuity lease heartbeat timestamp is unreadable"}
 		}
 		age := now.Sub(claimedAt)
-		if age > ContinuityClaimStaleAfter {
+		if age > healthLeaseStaleAfter {
 			return HealthSignal{Status: HealthError, Detail: fmt.Sprintf("continuity lease heartbeat is stale for %s", age.Round(time.Second))}
 		}
 		return HealthSignal{Status: HealthOK, Detail: fmt.Sprintf("continuity lease heartbeat refreshed %s ago", age.Round(time.Second))}
@@ -133,7 +153,7 @@ func healthHeartbeat(session RuntimeSession, now time.Time) HealthSignal {
 		return HealthSignal{Status: HealthUnknown, Detail: "registry row has no heartbeat timestamp"}
 	}
 	age := now.Sub(session.UpdatedAt)
-	if age > ContinuityClaimStaleAfter {
+	if age > healthLeaseStaleAfter {
 		return HealthSignal{Status: HealthError, Detail: fmt.Sprintf("registry row was not updated for %s", age.Round(time.Second))}
 	}
 	return HealthSignal{Status: HealthOK, Detail: fmt.Sprintf("registry row updated %s ago", age.Round(time.Second))}
