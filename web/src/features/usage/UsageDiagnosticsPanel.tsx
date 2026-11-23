@@ -3,6 +3,7 @@ import { RefreshCw, Stethoscope } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Badge, Button, EmptyState, IconButton } from '../../design-system';
 import { nexus } from '../../nexus/api';
+import { asArray } from '../../lib/safeArray';
 import { translateStatus } from '../../i18n';
 import type {
   CapacityResourceStatus,
@@ -308,7 +309,7 @@ export function UsageDiagnosticsPanel({
               {maestroCapabilities?.skills ? (
                 <div className={styles.maestroFact}>
                   <dt>{t('usage.diagnostics.maestroSkills')}</dt>
-                  <dd>{maestroCapabilities.skills.length}</dd>
+                  <dd>{asArray(maestroCapabilities.skills).length}</dd>
                 </div>
               ) : null}
               {maestroCapabilities?.gates ? (
