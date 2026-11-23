@@ -22,7 +22,7 @@ execute com isolamento e só conclua quando houver evidência verificável.
 
 ![Visão geral do Nexus v1](docs/assets/diagrams/nexus-v1-overview.svg)
 
-> **Estado conferido em 27/10/2026:** o source da branch `release/v1.0.0` declara `1.0.0-beta.11` e mantém histórico de reconciliação técnica registrado em 22/10 (`DEV/validation/current/BETA10_GAP_CLOSURE_20261022.md`).
+> **Estado conferido em 22/11/2026:** o source da branch `release/v1.0.0` declara `1.0.1` e mantém histórico de reconciliação técnica registrado em 22/10 (`DEV/validation/current/BETA10_GAP_CLOSURE_20261022.md`).
 > **A v1 estável não está homologada nem publicada.** Não inferir releases ou instaladores a partir da versão do código.
 > Consulte [status da release](docs/release-status.md) e [plataformas](docs/operations/platform-support.md).
 
