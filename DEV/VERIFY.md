@@ -1,3 +1,13 @@
+## 2026-11-23 — Lane A `test-matrix` e `review-handoff` com asserção e teste
+
+- SHA publicado: `origin/release/v1.0.0` @ `94bd4329` (commits `ebee6647`, `092510de`, `16dcab93`, `e99bf284`, `b21b32d4`, `fff5f40a`, `94bd4329`). Responsável: orquestrador. Ambiente: Linux + runner self-hosted `nexus-ci` em container.
+- PASS (`test-matrix`) — `go test ./internal/nexus/ -run TestEvidenceBundle` 3/3 e suíte completa do pacote `internal/nexus` verde (109,7 s). `runner.VerificationResult.Source` distingue execucao de comando (`command_execution`) de declaracao; a matriz por worktree carrega exit code, SHA, timestamp e logs, e resultado sem provenance permanece nao-PASS com `missing_evidence: command_execution_provenance`. Evidence map: `test-matrix` `partial` → `audited` nos 2 criterios.
+- PASS (`review-handoff`) — `go test ./internal/nexus/ -run TestMissionTeam` 7/7. A fase de revisao recebe `ChangedArtifacts` (paths dos agentes) e `ReviewedStepIDs` (passos revisados), depende dos mesmos passos e nao possui paths proprios; a implementacao continua com 2 passos, sem execucao duplicada. Evidence map: `review-handoff` `partial` → `audited` nos 2 criterios.
+- PASS (evidence map) — `node scripts/verify-agent-workspace-evidence-map.mjs` exit 0 (48 capacidades, 97 cláusulas, 95 source+test, 2 source-only, 0 unmapped, 0 certificadas); `node --test scripts/verify-agent-workspace-evidence-map.test.mjs` 4/4.
+- PASS (release docs) — `node scripts/verify-release-docs.mjs` exit 0 apos sincronizar `docs/legal/THIRD_PARTY_NOTICES.md` com `github.com/gorilla/websocket v1.5.4-0.20240701034025-d67f41855da4`.
+- PASS (workflows) — `Nexus release Linux smoke (GitHub-hosted)` success em `94bd4329`; `Publish Nexus documentation` success em `94bd4329` (a falha anterior no run `45270632553` foi race de API do GitHub apos upload bem-sucedido do artefato `github-pages`).
+- PENDENTE — CI do SHA `94bd4329` (run `45271602242`) ainda em fila; registro `workspace-acceptance-linux-amd64.json` do SHA final ainda não coletado; Lane B (Bridge Maestro), Lane C (NEX 9 gates, aceite visual do owner), Lane D (runner Windows/macOS nativo), Lane E (2 dispositivos físicos, quota real AGY) e Lane F (48/48 certificadas, tag `v1.0.1`) dependem do maestro. Release **NO_GO**.
+
 ## 2026-11-23 — Fixes de CI (race, manifesto visual, CVE) e Lane A `runtime-health`
 
 - SHA publicado: `origin/release/v1.0.0` @ `ca4e1bfd` (commits `84967b97`, `ac66ff48`, `3bd88bc5`, `77e8abaf`, `ab464bb0`, `1e649749`, `ca4e1bfd`). Responsável: orquestrador. Ambiente: Linux + runner self-hosted `nexus-ci` em container.
