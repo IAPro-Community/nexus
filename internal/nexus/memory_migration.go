@@ -125,7 +125,7 @@ func truncateMaestroSummary(value string) string {
 // collectMemoryMigrationSnapshot reads every legacy memory row and INSTALL
 // memory into a deterministic, sorted snapshot. pending.* promotion rows are
 // never exported: they are internal two-observation state, not durable facts.
-func collectMemoryMigrationSnapshot(ctx context.Context, n *Nexus, workspace string) ([]memoryMigrationEntry, error) {
+func collectMemoryMigrationSnapshot(n *Nexus) ([]memoryMigrationEntry, error) {
 	st, err := n.OpenProject()
 	if err != nil {
 		return nil, err
@@ -214,7 +214,7 @@ func (n *Nexus) PlanMemoryMigration(ctx context.Context, workspace string) (*Mem
 	if err != nil {
 		return nil, err
 	}
-	entries, digest, err := n.memoryMigrationSnapshot(ctx, absolute)
+	entries, digest, err := n.memoryMigrationSnapshot()
 	if err != nil {
 		return nil, err
 	}
@@ -238,11 +238,11 @@ func (n *Nexus) PlanMemoryMigration(ctx context.Context, workspace string) (*Mem
 	return plan, nil
 }
 
-func (n *Nexus) memoryMigrationSnapshot(ctx context.Context, workspace string) ([]memoryMigrationEntry, string, error) {
+func (n *Nexus) memoryMigrationSnapshot() ([]memoryMigrationEntry, string, error) {
 	if err := memoryMigrationJournalNotBlocked(); err != nil {
 		return nil, "", err
 	}
-	entries, err := collectMemoryMigrationSnapshot(ctx, n, workspace)
+	entries, err := collectMemoryMigrationSnapshot(n)
 	if err != nil {
 		return nil, "", err
 	}
@@ -291,7 +291,7 @@ func (n *Nexus) MigrateIntelligenceMemoryToMaestro(ctx context.Context, workspac
 	} else if exists && state.Phase == store.LegacyMemoryPhaseMigrated {
 		return nil, ErrMemoryAlreadyMigrated
 	}
-	entries, digest, err := n.memoryMigrationSnapshot(ctx, absolute)
+	entries, digest, err := n.memoryMigrationSnapshot()
 	if err != nil {
 		return nil, err
 	}
@@ -401,7 +401,7 @@ func (n *Nexus) RecoverMemoryMigration(ctx context.Context, workspace string, co
 	if err != nil {
 		return nil, err
 	}
-	entries, err := collectMemoryMigrationSnapshot(ctx, n, absolute)
+	entries, err := collectMemoryMigrationSnapshot(n)
 	if err != nil {
 		return nil, err
 	}
@@ -565,9 +565,7 @@ func writeMemoryMigrationBackup(dataDir, workspace string, entries []memoryMigra
 		Entries:       make([]memoryMigrationSnapshotEntry, 0, len(entries)),
 	}
 	for _, entry := range entries {
-		snapshot.Entries = append(snapshot.Entries, memoryMigrationSnapshotEntry{
-			ProjectID: entry.ProjectID, Key: entry.Key, Value: entry.Value, Source: entry.Source,
-		})
+		snapshot.Entries = append(snapshot.Entries, memoryMigrationSnapshotEntry(entry))
 	}
 	raw, err := json.MarshalIndent(snapshot, "", "  ")
 	if err != nil {

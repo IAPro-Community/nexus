@@ -206,33 +206,33 @@ func validateMaestroMemoryWriteRequest(workspace string, request MaestroMemoryWr
 	}
 	if !utf8.ValidString(request.Reason) || !utf8.ValidString(request.Summary) ||
 		!utf8.ValidString(request.Details) {
-		return errors.New("Maestro memory write text must be valid UTF-8")
+		return errors.New("maestro memory write text must be valid UTF-8")
 	}
 	reasonLength := maestroMemoryUTF16Length(strings.TrimSpace(request.Reason))
 	if reasonLength < 8 || maestroMemoryUTF16Length(request.Reason) > 200 {
-		return errors.New("Maestro memory reason must be 8 to 200 characters")
+		return errors.New("maestro memory reason must be 8 to 200 characters")
 	}
 	if !maestroMemoryTaskID.MatchString(request.IdempotencyKey) {
-		return errors.New("Maestro memory idempotency key must be a stable 1-128 character identifier")
+		return errors.New("maestro memory idempotency key must be a stable 1-128 character identifier")
 	}
 	if !maestroMemoryObservationTypes[request.Type] {
 		return errors.New("unknown Maestro memory observation type")
 	}
 	summaryLength := maestroMemoryUTF16Length(strings.TrimSpace(request.Summary))
 	if summaryLength < 1 || maestroMemoryUTF16Length(request.Summary) > 500 {
-		return errors.New("Maestro memory summary must be 1 to 500 characters")
+		return errors.New("maestro memory summary must be 1 to 500 characters")
 	}
 	if maestroMemoryUTF16Length(request.Details) > 4000 {
-		return errors.New("Maestro memory details must be at most 4000 characters")
+		return errors.New("maestro memory details must be at most 4000 characters")
 	}
 	if !maestroMemoryScopeLevels[request.ScopeLevel] {
-		return errors.New("Maestro memory scope level must be repository, branch, workspace, or task")
+		return errors.New("maestro memory scope level must be repository, branch, workspace, or task")
 	}
 	if request.TaskID != "" && !maestroMemoryTaskID.MatchString(request.TaskID) {
 		return errors.New("invalid Maestro memory task identifier")
 	}
 	if request.ScopeLevel == "task" && request.TaskID == "" {
-		return errors.New("Maestro memory task scope requires taskId")
+		return errors.New("maestro memory task scope requires taskId")
 	}
 	if err := validateMaestroMemoryWriteItems("tags", request.Tags, 128); err != nil {
 		return err
@@ -250,7 +250,7 @@ func validateMaestroMemoryWriteRequest(workspace string, request MaestroMemoryWr
 			return errors.New("invalid Maestro memory project path")
 		}
 		if filepath.Clean(projectPath) != filepath.Clean(workspacePath) {
-			return errors.New("Maestro memory project path must equal workspace")
+			return errors.New("maestro memory project path must equal workspace")
 		}
 	}
 	return nil
@@ -258,7 +258,7 @@ func validateMaestroMemoryWriteRequest(workspace string, request MaestroMemoryWr
 
 func validateMaestroMemoryWriteItems(name string, items []string, maxLength int) error {
 	if len(items) > 16 {
-		return fmt.Errorf("Maestro memory %s exceeds 16 items", name)
+		return fmt.Errorf("maestro memory %s exceeds 16 items", name)
 	}
 	for _, item := range items {
 		if !utf8.ValidString(item) {
@@ -281,7 +281,7 @@ func maestroMemoryUTF16Length(value string) int {
 func decodeMaestroMemoryWriteResult(raw json.RawMessage) (MaestroMemoryWriteResult, error) {
 	var result MaestroMemoryWriteResult
 	if len(raw) == 0 || len(raw) > maestroMemoryMaxResponse {
-		return result, errors.New("Maestro memory write response exceeds safety budget")
+		return result, errors.New("maestro memory write response exceeds safety budget")
 	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.DisallowUnknownFields()
@@ -324,10 +324,10 @@ func decodeMaestroMemoryWriteResult(raw json.RawMessage) (MaestroMemoryWriteResu
 
 func validateMaestroMemoryWriteScope(result MaestroMemoryWriteResult, request MaestroMemoryWriteRequest) error {
 	if result.Scope.Level != request.ScopeLevel {
-		return errors.New("Maestro memory write scope level does not match request")
+		return errors.New("maestro memory write scope level does not match request")
 	}
 	if request.ScopeLevel == "task" && result.Scope.TaskID != security.Redact(request.TaskID) {
-		return errors.New("Maestro memory write task scope does not match request")
+		return errors.New("maestro memory write task scope does not match request")
 	}
 	return nil
 }
@@ -445,7 +445,7 @@ func WriteMaestroMemory(parent context.Context, workspace string, request Maestr
 	}
 	result, err := maestroMemoryWriteBridgeCall(parent, workspace, 10*time.Second, params)
 	if err != nil {
-		return MaestroMemoryWriteResult{}, fmt.Errorf("Maestro memory write failed: %w", err)
+		return MaestroMemoryWriteResult{}, fmt.Errorf("maestro memory write failed: %w", err)
 	}
 	decoded, err := decodeMaestroMemoryWriteResult(result)
 	if err != nil {
