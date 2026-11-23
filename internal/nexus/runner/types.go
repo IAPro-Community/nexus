@@ -131,6 +131,8 @@ type ReviewVerdict struct {
 	ReviewIndependence  string          `json:"review_independence,omitempty"`
 }
 
+const VerificationSourceCommandExecution = "command_execution"
+
 type VerificationResult struct {
 	Command       string    `json:"command"`
 	Passed        bool      `json:"passed"`
@@ -138,6 +140,7 @@ type VerificationResult struct {
 	OutputSnippet string    `json:"output_snippet"`
 	DurationMs    int64     `json:"duration_ms"`
 	VerifiedAt    time.Time `json:"verified_at"`
+	Source        string    `json:"source,omitempty"`
 }
 
 // ContextCapsule is the bounded typed context frozen for one Flow Step before

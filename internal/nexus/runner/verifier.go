@@ -66,6 +66,7 @@ func (v *VerificationEngine) RunVerification(ctx context.Context, workspace stri
 				OutputSnippet: snippet,
 				DurationMs:    time.Since(started).Milliseconds(),
 				VerifiedAt:    time.Now().UTC(),
+				Source:        VerificationSourceCommandExecution,
 			}}
 		}
 	}
@@ -79,6 +80,7 @@ func (v *VerificationEngine) RunVerification(ctx context.Context, workspace stri
 				Command: cmdStr, Passed: false, ExitCode: -1,
 				OutputSnippet: "blocked by command validation: " + err.Error(),
 				DurationMs:    0, VerifiedAt: time.Now().UTC(),
+				Source: VerificationSourceCommandExecution,
 			})
 			break
 		}
@@ -100,7 +102,7 @@ func (v *VerificationEngine) RunVerification(ctx context.Context, workspace stri
 		if len(snippet) > 8192 {
 			snippet = snippet[len(snippet)-8192:]
 		}
-		results = append(results, VerificationResult{Command: cmdStr, Passed: passed, ExitCode: exitCode, OutputSnippet: snippet, DurationMs: dur, VerifiedAt: time.Now().UTC()})
+		results = append(results, VerificationResult{Command: cmdStr, Passed: passed, ExitCode: exitCode, OutputSnippet: snippet, DurationMs: dur, VerifiedAt: time.Now().UTC(), Source: VerificationSourceCommandExecution})
 		if !passed {
 			break
 		}
