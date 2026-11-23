@@ -1,3 +1,12 @@
+## 2026-11-22 — GO 1.0.1 Fase A: fatias commitadas e verificadas
+
+- SHA de trabalho: `release/v1.0.0` @ `ed2c7370` (sobre `fe1beec1`; árvore com alterações concorrentes de outros workstreams, sem push). Responsável: orquestrador. Ambiente: Linux.
+- PASS (versão) — `ef0560d1 build(release): bump version to 1.0.1`: `VERSION` e `web/package.json` = `1.0.1`; `README.md`/`README.en.md`/`README.es.md`, `docs/TLDR.md` e `docs/release-status.md` sincronizados (só arquivos vivos; histórico datado em `DEV/` e `CHANGELOG.md` intacto). `make version-check` → `VERSION CONTRACT PASS: all sources consistent`.
+- PASS (contrato) — `7744979f feat(workspace): declare requiredClients in v1 contract`: 48/48 com `requiredClients` (diff de 48 linhas, round-trip indent=1 idêntico); `node scripts/verify-agent-workspace-v1.mjs` exit 0 (scope 48); `node --test scripts/verify-agent-workspace-v1.test.mjs` 7/7.
+- PASS (produtor/CI) — `ed2c7370 feat(ci): produce v1 workspace acceptance record in test-linux`: `node --test scripts/workspace-acceptance-e2e.test.mjs` 9/9; dry-run real `run --platform linux-amd64 --allow-incomplete` → 47/48 `passed` + 1 `blocked` (`cross-platform-exact-sha`, exige certificação nativa Win/macOS), 52 steps, exit 0; YAML do `ci.yml` commitado parseia com pyyaml (14 jobs, steps `Produce`/`Upload` presentes).
+- HIGIENE DE ESCOPO — staging parcial por índice (`git hash-object` + `git update-index --cacheinfo`) em `web/package.json` e `.github/workflows/ci.yml` para não absorver o hunk concorrente `terminal-golden`; `docs/reference/agent-workspace-v1-evidence-map.json` (303 linhas, outro workstream) não foi staged; entradas DEV anexadas por índice (HEAD + bloco) preservando as edições concorrentes no worktree.
+- NÃO EXECUTADO — `make quality-full` e `docs-verify` no worktree limpo do SHA final (worktree sujo hoje: manifest visual stale, esperado); records Windows/macOS; montagem do `evidence.json`; push/tag. Release **NO_GO**.
+
 ## 2026-11-22 — Gate 0: gate completo verde no HEAD final e `docs-verify` aprovado
 
 - PASS (gate completo no HEAD final) — worktree limpo em `ffafedcd` (`/tmp/opencode/nexus-quality-final`): `make quality` → exit 0 (Prettier limpo; ESLint 0 erros + 1 warning preexistente em `FlowRunSurface.tsx`; lint Go 0 issues; suíte Go verde; Web 153 arquivos / 979 testes; `VERSION CONTRACT PASS`).

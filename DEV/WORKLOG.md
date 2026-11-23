@@ -1,3 +1,11 @@
+## 2026-11-22 — GO 1.0.1 Fase A: versão, requiredClients e produtor de evidência
+
+- **Versão (`ef0560d1`)** — `VERSION` + `web/package.json` → `1.0.1`; refs vivas sincronizadas (`README.md`/`README.en.md`/`README.es.md`, `docs/TLDR.md`, `docs/release-status.md`); `make version-check` PASS. Identidade pública do GO: Nexus 1.0.1; tag remota `v1.0.0` (`d89797cd`) preservada; tag `v1.0.1` só no SHA final; sem push.
+- **Contrato (`7744979f`)** — `requiredClients` (1|2) declarado nas 48 capacidades de `docs/reference/agent-workspace-v1.json`; o verificador exige o campo e passa a validar `clients >= requiredClients` (substitui a regra por categoria `multiagent`/`remote`); 2 testes novos (contrato sem campo rejeitado; evidência com 1 cliente rejeitada); doc de aceite com a seção "Clientes autenticados por capacidade" (`requiredClients: 2` em 7 de 48).
+- **Produtor (`ed2c7370`)** — `scripts/workspace-acceptance-e2e.mjs` (modos `plan`/`run`/`assemble`, detecção de dois clientes por regex real nas fontes, agrupamento Go por pacote e Vitest por arquivo) + `workspace-acceptance-e2e.test.mjs` 9/9; step `test-linux` roda o registro `linux-amd64` e publica o artefato `nexus-v1-workspace-acceptance-<SHA>` consumido por `release.yml:182`.
+- **Dry-run real** — `run --platform linux-amd64 --allow-incomplete` → 47/48 `passed`, 1 `blocked` (`cross-platform-exact-sha`), 52 steps, exit 0; 16/16 testes de scripts; `verify-agent-workspace-v1.mjs` exit 0 (scope 48); YAML do `ci.yml` commitado parseia (14 jobs).
+- **Próximo (Fase B/C)** — records `windows-amd64`/`macos-arm64` nos jobs nativos + montagem do `evidence.json` de 3 plataformas (`assemble` + `nativeCertifications`) no run de CI que o `release.yml` consulta; fechar as 48 capacidades em `present`+`verified`. Release **NO_GO**.
+
 ## 2026-11-22 — Gate 0: gate completo verde no HEAD final `ffafedcd`
 
 - **Gate completo** — worktree limpo em `ffafedcd`: `make quality` → exit 0 (0 issues, Web 153 arquivos / 979 testes, `VERSION CONTRACT PASS`); `node scripts/docs-verify.mjs` → exit 0 (`docs verification passed: 255 Markdown files, 33 required assets/files`).

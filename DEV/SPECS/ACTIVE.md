@@ -1,3 +1,10 @@
+## 2026-11-22 — GO 1.0.1 Fase A (versão + evidência por capacidade) — concluída
+
+- **Escopo desta fatia** — identidade pública do GO = Nexus 1.0.1 (escolha do maestro), sem reescrever a tag remota `v1.0.0` (`d89797cd`, Release nunca publicada) e sem push. Commits locais: `ef0560d1` (bump + refs vivas), `7744979f` (`requiredClients` nas 48 capacidades), `ed2c7370` (produtor de evidência + step de CI).
+- **Aceite cumprido** — `make version-check` PASS; `node scripts/verify-agent-workspace-v1.mjs` exit 0; `node --test` 16/16 (9 produtor + 7 verificador); dry-run real 47/48 `passed` + `cross-platform-exact-sha` `blocked` (esperado, exige Win/mac nativos); YAML do `ci.yml` commitado com 14 jobs; staging parcial por índice preservou os hunks concorrentes (`terminal-golden`) e o `agent-workspace-v1-evidence-map.json` de outro workstream.
+- **Fase B/C (ativo a seguir)** — records Win/mac nos jobs nativos (`workflow_dispatch`) + montagem do `evidence.json` de 3 plataformas consumido por `release.yml` (hoje o artefato do push CI só tem Linux); fechar as 48 capacidades em `present`+`verified`; gates no worktree limpo do SHA final. Fases D–F intactas: NEX 2/11 → 11/11, kits 1–5 do maestro, chaves + stable certification 8h + tag `v1.0.1`.
+- **Bloqueios** — credencial do túnel, sessões físicas, nativos Win/mac, push/tag: só com autorização explícita do maestro. Release **NO_GO**.
+
 ## 2026-11-22 — Gate 0 (acesso remoto) — commit autocontido e verificado isolado
 
 - **Escopo desta fatia**: tornar o Gate 0 compilável e verificável **isoladamente**, sem arrastar mudanças de outros workstreams. Concluído em `release/v1.0.0@3a31ec50` (sobre `b035aa04`), sem push.
