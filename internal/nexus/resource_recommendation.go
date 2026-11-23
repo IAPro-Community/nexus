@@ -205,6 +205,16 @@ func evaluateCandidate(acc ProviderAccount, req TaskRequirements, policy Schedul
 		return c
 	}
 
+	// Hard Gate: an explicit PIN is the maestro's runtime choice and never
+	// drifts silently. A pinned provider/profile removes every other account
+	// from the recommendation instead of ranking it by score.
+	if reason := pinnedAffinityRejection(acc, req); reason != "" {
+		c.Eligible = false
+		c.RejectionReason = reason
+		c.Cons = append(c.Cons, reason)
+		return c
+	}
+
 	// Hard Gate: every required capability must be explicitly SUPPORTED.
 	// PARTIAL/UNKNOWN/NOT_TESTED are not enough for a hard requirement.
 	for _, required := range req.RequiredCapabilities {
@@ -386,6 +396,24 @@ func quotaConfidence(acc ProviderAccount) string {
 
 func normalizeCapabilityName(value string) string {
 	return strings.ReplaceAll(strings.ToLower(strings.TrimSpace(value)), "-", "_")
+}
+
+// pinnedAffinityRejection reports why an account is excluded by an explicit
+// PIN in the request affinity. Only PIN excludes accounts: AUTO and PREFER
+// keep the whole pool eligible and are handled by scoring.
+func pinnedAffinityRejection(acc ProviderAccount, req TaskRequirements) string {
+	if req.RuntimeAffinity == nil {
+		return ""
+	}
+	provider := strings.TrimSpace(req.RuntimeAffinity.Provider.Value)
+	if req.RuntimeAffinity.Provider.Mode == AffinityPin && provider != "" && !strings.EqualFold(strings.TrimSpace(acc.Provider), provider) {
+		return fmt.Sprintf("PIN do maestro: provider %s é obrigatório", provider)
+	}
+	profile := strings.TrimSpace(req.RuntimeAffinity.Profile.Value)
+	if req.RuntimeAffinity.Profile.Mode == AffinityPin && profile != "" && !strings.EqualFold(strings.TrimSpace(acc.Profile), profile) {
+		return fmt.Sprintf("PIN do maestro: profile %s é obrigatório", profile)
+	}
+	return ""
 }
 
 func capabilityStatusLabel(status string) string {

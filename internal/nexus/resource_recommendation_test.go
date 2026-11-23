@@ -203,6 +203,118 @@ func TestResourceRecommendation_UnknownQuotaHardGate(t *testing.T) {
 	}
 }
 
+func TestResourceRecommendation_ConfidenceIsExplicitLiveCachedUnknown(t *testing.T) {
+	accounts := []ProviderAccount{
+		{ID: "live", Provider: "codex", Profile: "default", DisplayName: "Codex live", Authenticated: true, Available: true, QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.80, Health: "healthy"},
+		{ID: "cached", Provider: "agy", Profile: "default", DisplayName: "AGY cached", Authenticated: true, Available: true, QuotaView: &quota.QuotaView{Status: "CACHED"}, QuotaRemaining: 0.40, Health: "healthy"},
+		{ID: "unknown", Provider: "gemini", Profile: "default", DisplayName: "Gemini unknown", Authenticated: true, Available: true, QuotaView: &quota.QuotaView{Status: "UNKNOWN"}, QuotaRemaining: 0.99, Health: "healthy"},
+	}
+	res := RecommendResources(accounts, TaskRequirements{TaskKind: "coding"}, PolicyBalanced)
+	confidence := map[string]string{}
+	for _, candidate := range res.Candidates {
+		confidence[candidate.Account.ID] = candidate.Confidence
+	}
+	if confidence["live"] != "LIVE" {
+		t.Fatalf("LIVE quota confidence = %q, want LIVE", confidence["live"])
+	}
+	if confidence["cached"] != "CACHED" {
+		t.Fatalf("CACHED quota confidence = %q, want CACHED", confidence["cached"])
+	}
+	if confidence["unknown"] != "UNKNOWN" {
+		t.Fatalf("UNKNOWN quota confidence = %q, want UNKNOWN", confidence["unknown"])
+	}
+	for _, candidate := range res.Candidates {
+		if candidate.Account.ID == "unknown" && candidate.Eligible {
+			t.Fatalf("UNKNOWN quota must stay ineligible: %#v", candidate)
+		}
+	}
+}
+
+func TestResourceRecommendation_PinnedProviderExcludesOtherAccounts(t *testing.T) {
+	accounts := []ProviderAccount{
+		{ID: "codex", Provider: "codex", Profile: "default", DisplayName: "Codex", Authenticated: true, Available: true, QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.20, Health: "healthy"},
+		{ID: "agy", Provider: "agy", Profile: "default", DisplayName: "AGY", Authenticated: true, Available: true, QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.95, Health: "healthy"},
+	}
+	req := TaskRequirements{
+		TaskKind:        "coding",
+		RuntimeAffinity: &RuntimeAffinityPolicy{Provider: AffinityPreference{Mode: AffinityPin, Value: "codex"}},
+	}
+	res := RecommendResources(accounts, req, PolicyBalanced)
+	if res.Recommended == nil {
+		t.Fatalf("pinned provider must still be recommended, got %#v", res)
+	}
+	if res.Recommended.Account.Provider != "codex" {
+		t.Fatalf("pinned provider drifted to %s", res.Recommended.Account.Provider)
+	}
+	for _, candidate := range res.Candidates {
+		if candidate.Account.Provider == "agy" {
+			if candidate.Eligible {
+				t.Fatalf("account outside the PIN must not stay eligible: %#v", candidate)
+			}
+			if !strings.Contains(candidate.RejectionReason, "PIN") {
+				t.Fatalf("PIN rejection must be explicit, got %q", candidate.RejectionReason)
+			}
+		}
+	}
+}
+
+func TestResourceRecommendation_PinnedProviderUnavailableFailsClosed(t *testing.T) {
+	accounts := []ProviderAccount{
+		{ID: "agy", Provider: "agy", Profile: "default", DisplayName: "AGY", Authenticated: true, Available: true, QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.95, Health: "healthy"},
+	}
+	req := TaskRequirements{
+		TaskKind:        "coding",
+		RuntimeAffinity: &RuntimeAffinityPolicy{Provider: AffinityPreference{Mode: AffinityPin, Value: "codex"}},
+	}
+	res := RecommendResources(accounts, req, PolicyBalanced)
+	if res.Recommended != nil {
+		t.Fatalf("PIN must never drift to another provider, got %#v", res.Recommended)
+	}
+	if !strings.Contains(res.Explanation, "PIN") {
+		t.Fatalf("explanation must expose the PIN rejection, got %q", res.Explanation)
+	}
+}
+
+func TestResourceRecommendation_PinnedProfileExcludesOtherProfiles(t *testing.T) {
+	accounts := []ProviderAccount{
+		{ID: "codex-default", Provider: "codex", Profile: "default", DisplayName: "Codex default", Authenticated: true, Available: true, QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.90, Health: "healthy"},
+		{ID: "codex-work", Provider: "codex", Profile: "work", DisplayName: "Codex work", Authenticated: true, Available: true, QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.10, Health: "healthy"},
+	}
+	req := TaskRequirements{
+		TaskKind:        "coding",
+		RuntimeAffinity: &RuntimeAffinityPolicy{Profile: AffinityPreference{Mode: AffinityPin, Value: "work"}},
+	}
+	res := RecommendResources(accounts, req, PolicyBalanced)
+	if res.Recommended == nil || res.Recommended.Account.Profile != "work" {
+		t.Fatalf("pinned profile must win regardless of quota, got %#v", res.Recommended)
+	}
+	for _, candidate := range res.Candidates {
+		if candidate.Account.Profile == "default" && candidate.Eligible {
+			t.Fatalf("profile outside the PIN must not stay eligible: %#v", candidate)
+		}
+	}
+}
+
+func TestResourceRecommendation_PreferModeKeepsPoolEligible(t *testing.T) {
+	accounts := []ProviderAccount{
+		{ID: "codex", Provider: "codex", Profile: "default", DisplayName: "Codex", Authenticated: true, Available: true, QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.90, Health: "healthy"},
+		{ID: "agy", Provider: "agy", Profile: "default", DisplayName: "AGY", Authenticated: true, Available: true, QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.20, Health: "healthy"},
+	}
+	req := TaskRequirements{
+		TaskKind:        "coding",
+		RuntimeAffinity: &RuntimeAffinityPolicy{Provider: AffinityPreference{Mode: AffinityPrefer, Value: "agy"}},
+	}
+	res := RecommendResources(accounts, req, PolicyBalanced)
+	if res.Recommended == nil {
+		t.Fatalf("PREFER must keep the pool eligible, got %#v", res)
+	}
+	for _, candidate := range res.Candidates {
+		if !candidate.Eligible {
+			t.Fatalf("PREFER must not exclude accounts: %#v", candidate)
+		}
+	}
+}
+
 func TestResourceRecommendation_RequiredCapabilitiesAreHardGate(t *testing.T) {
 	accounts := []ProviderAccount{
 		{
