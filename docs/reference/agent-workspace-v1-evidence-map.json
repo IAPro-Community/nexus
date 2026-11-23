@@ -976,29 +976,33 @@
      "acceptanceIndex": 0,
      "acceptance": "Arquivos e hunks alterados agrupados por Agent/worktree",
      "sourceRefs": [
-      "internal/control/web/handlers_git_worktrees.go"
+      "internal/control/web/handlers_change_collisions.go",
+      "internal/nexus/change_collision.go"
      ],
      "testRefs": [
-      "internal/control/web/handlers_git_worktrees_test.go"
+      "internal/control/web/handlers_change_collisions_test.go",
+      "internal/nexus/change_collision_test.go"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: handlers_git_worktrees_test.go afirma parse do porcelain e leitura de linked checkouts, mas nao ha assertion de agrupamento de arquivos e hunks alterados por Agent ou worktree.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: report.Worktrees agrupa por worktree/agent os arquivos alterados e os ranges de hunks por arquivo; o detector ordena paths e arquivos deterministicamente (TestProjectChangeCollisionsGroupsHunksAndBaseCommits).",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
      "acceptance": "Aviso de colisão com base commit e revisão humana",
      "sourceRefs": [
-      "internal/control/web/handlers_git_worktrees.go"
+      "internal/control/web/handlers_change_collisions.go",
+      "internal/nexus/change_collision.go"
      ],
      "testRefs": [
-      "internal/control/web/handlers_git_worktrees_test.go"
+      "internal/control/web/handlers_change_collisions_test.go",
+      "internal/nexus/change_collision_test.go"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: nenhum dos testes referenciados emite aviso de colisao por base commit nem exige revisao humana antes de integracao.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: cada colisao carrega os commits base dos worktrees envolvidos e exige revisao humana antes da integracao; overlapping hunks tem confianca alta e edits disjuntos permanecem incertos (TestProjectChangeCollisionsGroupsHunksAndBaseCommits, TestDetectChangeCollisionsCarriesBaseCommitsAndHumanReview).",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
