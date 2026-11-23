@@ -947,8 +947,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: mission_team_test.go cobre selecao de equipe e presets explicaveis, mas nao a solicitacao de segunda opiniao com contexto e scope do Maestro.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: BuildConsultationStep cria solicitacao tipada e explicita entre Agents, com requester, target, runtime Maestro, scope, contexto, skills e diff revision; o parecer fica ligado ao diff no handoff (TestBuildConsultationStepBindsMaestroContextAndPreventsRecursion).",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
@@ -961,8 +961,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: TestMissionTeamSelectionRespectsDelegationOff cobre ausencia de auto-delegacao; nao ha assertion sobre prevention de loops nem sobre acoes externas nao autorizadas.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: consulta fica read-only e usa agent existente; hop recursivo, timeout acima do limite, escrita e acoes externas sao rejeitados (TestBuildConsultationStepRejectsUnboundedOrUnauthorizedRequests).",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
