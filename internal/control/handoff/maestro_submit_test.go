@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -107,19 +110,63 @@ func TestMaestroRunAckValidation(t *testing.T) {
 	}
 }
 
-func TestMaestroRunSubmitRequestValidation(t *testing.T) {
-	valid := MaestroRunSubmitRequest{
+func maestroSubmitFixture(t *testing.T, script string) {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix shell transport fixture; Windows Bridge contract is checked by Windows Go CI")
+	}
+	binDir := t.TempDir()
+	bin := filepath.Join(binDir, "orquestrador-maestro")
+	if err := os.WriteFile(bin, []byte("#!/bin/sh\n"+script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+}
+
+func maestroSubmitRequest() MaestroRunSubmitRequest {
+	return MaestroRunSubmitRequest{
 		ArtifactID: "artifact-001", Version: 1,
 		Content: "approved body", SHA256: strings.Repeat("a", 64),
 		ApprovedModelUse: true,
 		Plan:             json.RawMessage(`{"tasks":[]}`),
 		Assignments:      []MaestroWorkAssignment{{TaskID: "task-1", ProviderID: "opencode", Sandbox: "none"}},
 	}
-	if _, err := SubmitMaestroRun(context.Background(), "/tmp", valid); err == nil {
-		t.Fatal("submission without a real Bridge must fail")
-	} else if MaestroDomainCode(err) != "" {
+}
+
+func TestMaestroRunSubmitTransportFailureHasNoDomainCode(t *testing.T) {
+	maestroSubmitFixture(t, "exit 14\n")
+	ack, err := SubmitMaestroRun(context.Background(), t.TempDir(), maestroSubmitRequest())
+	if err == nil {
+		t.Fatal("unreachable Bridge must fail closed")
+	}
+	if ack.SubmissionID != "" {
+		t.Fatalf("failed admission must not return an ACK: %+v", ack)
+	}
+	if MaestroDomainCode(err) != "" {
 		t.Fatalf("transport failures must not fake a domain code: %v", err)
 	}
+}
+
+func TestMaestroRunSubmitSurfacesBridgeDomainCode(t *testing.T) {
+	maestroSubmitFixture(t,
+		"IFS= read -r request || exit 12\n"+
+			`printf '%s\n' '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":1,"capabilities":{"runsSubmit":true}}}'`+"\n"+
+			"IFS= read -r request || exit 13\n"+
+			`printf '%s\n' '{"jsonrpc":"2.0","id":2,"error":{"code":-32000,"data":{"code":"INVALID_SUBMISSION_PARAMS"}}}'`+"\n")
+	ack, err := SubmitMaestroRun(context.Background(), t.TempDir(), maestroSubmitRequest())
+	if err == nil {
+		t.Fatal("Bridge rejection must fail closed")
+	}
+	if ack.SubmissionID != "" {
+		t.Fatalf("rejected admission must not return an ACK: %+v", ack)
+	}
+	if got := MaestroDomainCode(err); got != "INVALID_SUBMISSION_PARAMS" {
+		t.Fatalf("Bridge domain blocker must be surfaced verbatim: %v", err)
+	}
+}
+
+func TestMaestroRunSubmitRequestValidation(t *testing.T) {
+	valid := maestroSubmitRequest()
 	noConsent := valid
 	noConsent.ApprovedModelUse = false
 	ack, err := SubmitMaestroRun(context.Background(), "/tmp", noConsent)

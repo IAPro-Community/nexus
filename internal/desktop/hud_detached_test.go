@@ -146,6 +146,7 @@ func TestWaylandRejectsRuntimePopupActivation(t *testing.T) {
 		t.Skip("Wayland display sessions exist on Linux")
 	}
 	t.Setenv("XDG_SESSION_TYPE", "wayland")
+	t.Setenv("GDK_BACKEND", "wayland")
 	manager := NewHUDWindowStateManager(filepath.Join(t.TempDir(), "hud.json"))
 	controller := NewHUDControllerWithDetachedPopover(manager, false)
 	persistedPreference := manager.Load().DetachedPopover
