@@ -1,3 +1,12 @@
+## 2026-11-23 — CI verde em Linux até o job Security; race, staleness visual e CVE do WebSocket corrigidos
+
+- **Data race no `internal/control/web`** — `startAttentionPush` escrevia `s.pushWatchCancel` enquanto `Shutdown` lia o mesmo campo sem sincronização (`WARNING: DATA RACE` no job `Linux E2E`, run `45251209869`). Corrigido com `pushWatchMu` em `84967b97`; `go test -race -count=1 ./internal/control/web/` verde (113 s) e o job `Linux E2E` do run `45259850030` passou.
+- **Manifesto visual stale** — `scripts/docs-verify.mjs` tratava `internal/desktop/hud_detached_test.go` como mudança de render e reprovava o job `Frontend` mesmo com mudança só de teste. Filtro `_test.go` adicionado em `ac66ff48`; `Frontend` e `Documentation visual capture evidence` passaram no mesmo run.
+- **CVE GO-2026-6278 (gorilla/websocket)** — o job `Security` reprovou por PRNG fraco na mask key do WebSocket em `github.com/gorilla/websocket@v1.5.3`. Dependência elevada para `v1.5.4-0.20240701034025-d67f41855da4` em `3bd88bc5`; `govulncheck@v1.7.0` local sobre `internal/control/web`, `internal/browsercontrol` e `internal/app` sem vulnerabilidade.
+- **Lane A — `runtime-health` auditada** — `DiagnoseRuntimeHealth` em `internal/control/registry/lifecycle.go` diagnostica lease, PTY, heartbeat, PID e capability de provider como sinais `OK`/`UNKNOWN`/`ERROR` (`77e8abaf`), exposto no relatório de doctor (`ab464bb0`) e registrado no evidence map (`1e649749`, 2 critérios `audited`). O diagnóstico foi tornado autocontido em `ca4e1bfd` porque `internal/control/registry/continuity_claim.go` ainda é untracked de outro workstream — sem isso o build do SHA publicado quebrava.
+- **Push** — `origin/release/v1.0.0` = `ca4e1bfd` (`b968cb7b..ca4e1bfd`); tag `v1.0.0` intacta (`d89797cd`); `v1.0.1` não criada. CI do push: run `45265761036`.
+- **Ainda bloqueado** — job `Windows beta.10 homologation` falha em `TestSessionHost_TwoClientLeaseHandoffIsAuditedAndSingleWriter` (janela ConPTY) e no gate de captura documental; Lane B (Bridge Maestro), Lane C (NEX 9 gates), Lane D (runner Windows/macOS), Lane E (hardware físico) e Lane F (freeze/tag) dependem do maestro. Release **NO_GO**.
+
 ## 2026-11-23 — Decisões do owner aplicadas: 4 blocos commitados e push para `origin/release/v1.0.0`
 
 - **Decisões do owner** — (1) commitar os 4 blocos sem push; (2) enviar `release/v1.0.0` para `origin` após os commits; (3) `memory-migrate apply` só no SHA publicado, com Bridge Maestro ativo (nenhum cutover local).
