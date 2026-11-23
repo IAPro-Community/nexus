@@ -215,7 +215,7 @@
     "Diferenciar ocultar superfície de suspender runtime quando suportado",
     "UI não diz que processo está pausado se só ficou oculto"
    ],
-   "verification": "verified",
+   "verification": "pending",
    "sourceAudit": "2026-11-10"
   },
   {
@@ -306,7 +306,7 @@
     "Comparar duas implementações executadas em worktrees independentes",
     "Testes e custo com evidência e critérios explícitos"
    ],
-   "verification": "verified",
+   "verification": "pending",
    "sourceAudit": "2026-11-10"
   },
   {
@@ -382,7 +382,7 @@
     "Vincular evidências, PRs, issues, diff e gates de uma release",
     "Sem merge/publicação sem aprovação e checks verificáveis"
    ],
-   "verification": "verified",
+   "verification": "pending",
    "sourceAudit": "2026-11-10"
   },
   {
@@ -458,7 +458,7 @@
     "Comparar antes/depois por screenshot determinística",
     "Região e limiar declarados, revisão e artefatos rastreáveis"
    ],
-   "verification": "verified",
+   "verification": "pending",
    "sourceAudit": "2026-11-10"
   },
   {
@@ -519,7 +519,7 @@
     "Compartilhar observação por projeto/Agent sob RBAC",
     "Viewer-only inicial; cross-project leakage negado e revoke imediato"
    ],
-   "verification": "verified",
+   "verification": "pending",
    "sourceAudit": "2026-11-10"
   },
   {
@@ -580,7 +580,7 @@
     "Cinco receitas Frontend/Backend/Review/Debug/Release selecionáveis no menu; evolução para receitas personalizadas e persistência por projeto ainda pendente",
     "Receita não inicia Agents ou ações automaticamente"
    ],
-   "verification": "verified"
+   "verification": "pending"
   },
   {
    "id": "parallel-challenge",
@@ -611,7 +611,7 @@
     "Detectar alterações conflitantes por base commit/hunks",
     "Informar incerteza e permitir revisão antes do merge"
    ],
-   "verification": "verified",
+   "verification": "pending",
    "sourceAudit": "2026-11-10"
   },
   {
@@ -657,7 +657,7 @@
     "Migrar IntelligenceMemory com backup, dry-run, idempotência e rollback",
     "Nexus retém somente checkpoint operacional e nunca segunda store semântica"
    ],
-   "verification": "verified"
+   "verification": "pending"
   },
   {
    "id": "single-execution-owner",
@@ -672,7 +672,7 @@
     "Cada Run tem executor único NEXUS ou MAESTRO",
     "Retry, cancel e terminal input seguem o owner; não há duplo supervisor"
    ],
-   "verification": "verified"
+   "verification": "pending"
   },
   {
    "id": "composer-flow-onboarding",
