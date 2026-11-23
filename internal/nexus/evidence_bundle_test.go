@@ -182,6 +182,122 @@ var deadlineLostIdentityDigest = func() string {
 	return hex.EncodeToString(sum[:])
 }()
 
+func TestEvidenceBundleProjectsRealTestResultsPerWorktree(t *testing.T) {
+	n := openTestNexus(t)
+	st, err := n.OpenProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	project, err := st.CreateProject(store.Project{Name: "Evidence Test Matrix", CanonicalPath: root})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := st.CreateWorkPlan(store.WorkPlan{
+		ID: "plan-evidence-test-matrix", ProjectID: project.ID, Title: "Evidence test matrix",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	run := &runner.MissionRun{
+		ID:           "run-evidence-test-matrix",
+		PlanID:       plan.ID,
+		PlanRevision: 1,
+		ProjectID:    project.ID,
+		Workspace:    root,
+		State:        runner.StateCompletedVerified,
+		PackageRuns: []runner.PackageRun{{
+			PackageID: "package-real", Title: "Build", Workspace: root, State: runner.StateVerified,
+		}},
+		GlobalVerifications: []runner.VerificationResult{{Command: "true", Passed: true}},
+		NeedsHuman:          &runner.HumanIntervention{Resolved: true},
+		StartedAt:           now,
+		UpdatedAt:           now,
+		CompletedAt:         &now,
+	}
+	repo := newStoreRunRepository(st)
+	if err := repo.SaveRun(context.Background(), run); err != nil {
+		t.Fatal(err)
+	}
+	evidenceRepo, ok := repo.(runner.EvidenceRepository)
+	if !ok {
+		t.Fatal("store run repository must implement runner.EvidenceRepository")
+	}
+	if err := evidenceRepo.SaveWorkReceipt(context.Background(), &runner.WorkReceipt{
+		ID: "receipt-evidence-test-matrix-real", RunID: run.ID, StepID: "package-real",
+		Status: "VERIFIED", Summary: "all tests passed", ResultRevision: "abc1234",
+		Tests: []runner.VerificationResult{{
+			Command: "go test ./...", Passed: true, ExitCode: 0,
+			OutputSnippet: "ok nexus", VerifiedAt: now,
+			Source: runner.VerificationSourceCommandExecution,
+		}},
+		CompletedAt: now,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := evidenceRepo.SaveWorkReceipt(context.Background(), &runner.WorkReceipt{
+		ID: "receipt-evidence-test-matrix-declared", RunID: run.ID, StepID: "package-declared",
+		Status: "VERIFIED", Summary: "tests passed",
+		Tests:       []runner.VerificationResult{{Command: "go test ./...", Passed: true, ExitCode: 0}},
+		CompletedAt: now,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	bundle, err := NewRunApplicationService(n).EvidenceBundle(context.Background(), run.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(bundle.TestMatrix) != 2 {
+		t.Fatalf("test matrix entries = %d, want 2: %+v", len(bundle.TestMatrix), bundle.TestMatrix)
+	}
+	byStep := map[string]WorktreeTestMatrix{}
+	for _, entry := range bundle.TestMatrix {
+		byStep[entry.StepID] = entry
+	}
+
+	real := byStep["package-real"]
+	if real.Workspace != root {
+		t.Fatalf("workspace = %q, want %q", real.Workspace, root)
+	}
+	if len(real.Results) != 1 {
+		t.Fatalf("real results = %+v, want one command result", real.Results)
+	}
+	result := real.Results[0]
+	if !result.Passed || result.ExitCode != 0 {
+		t.Fatalf("real command result must be passed with exit code 0: %+v", result)
+	}
+	if result.SHA != "abc1234" {
+		t.Fatalf("sha = %q, want abc1234", result.SHA)
+	}
+	if result.VerifiedAt.IsZero() {
+		t.Fatalf("verified_at is missing: %+v", result)
+	}
+	if result.Logs != "ok nexus" {
+		t.Fatalf("logs = %q, want %q", result.Logs, "ok nexus")
+	}
+	if result.Provenance != runner.VerificationSourceCommandExecution {
+		t.Fatalf("provenance = %q, want %q", result.Provenance, runner.VerificationSourceCommandExecution)
+	}
+	if len(real.MissingEvidence) != 0 {
+		t.Fatalf("real worktree must not miss evidence: %v", real.MissingEvidence)
+	}
+
+	declared := byStep["package-declared"]
+	if len(declared.Results) != 1 {
+		t.Fatalf("declared results = %+v, want one command result", declared.Results)
+	}
+	if declared.Results[0].Passed {
+		t.Fatalf("declaration without provenance must not become PASS: %+v", declared.Results[0])
+	}
+	for _, required := range []string{"command_execution_provenance", "verified_at", "logs", "sha"} {
+		if !slices.Contains(declared.MissingEvidence, required) {
+			t.Fatalf("missing_evidence=%v, want %q", declared.MissingEvidence, required)
+		}
+	}
+}
+
 func TestEvidenceBundleDoesNotPromoteTerminalStateWithoutProof(t *testing.T) {
 	n := openTestNexus(t)
 	st, err := n.OpenProject()

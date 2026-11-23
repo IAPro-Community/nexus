@@ -30,6 +30,7 @@ type EvidenceBundle struct {
 	DeliveryIntegration *runner.DeliveryIntegrationEvidence `json:"delivery_integration,omitempty"`
 	Capsules            []runner.ContextCapsule             `json:"capsules"`
 	Receipts            []runner.WorkReceipt                `json:"receipts"`
+	TestMatrix          []WorktreeTestMatrix                `json:"test_matrix"`
 	Routing             RoutingDecisionReport               `json:"routing"`
 	Validation          ValidationEvidenceReport            `json:"validation"`
 	GlobalVerifications []runner.VerificationResult         `json:"global_verifications,omitempty"`
@@ -156,7 +157,104 @@ func (s *RunApplicationService) EvidenceBundle(ctx context.Context, runID string
 
 	bundle.MissingEvidence = uniqueSortedStrings(bundle.MissingEvidence)
 	bundle.EvidenceComplete = len(bundle.MissingEvidence) == 0
+	bundle.TestMatrix = buildTestMatrix(run, receipts, capsules)
 	return bundle, nil
+}
+
+// WorktreeTestResult is one real command result projected for a worktree step.
+type WorktreeTestResult struct {
+	Command    string    `json:"command"`
+	ExitCode   int       `json:"exit_code"`
+	Passed     bool      `json:"passed"`
+	SHA        string    `json:"sha,omitempty"`
+	VerifiedAt time.Time `json:"verified_at"`
+	Logs       string    `json:"logs,omitempty"`
+	Provenance string    `json:"provenance,omitempty"`
+}
+
+// WorktreeTestMatrix projects the real test commands recorded for one
+// worktree step. A result is only PASS when it carries command execution
+// provenance and a zero exit code; declarations without provenance never
+// become PASS.
+type WorktreeTestMatrix struct {
+	StepID          string               `json:"step_id"`
+	AgentID         string               `json:"agent_id,omitempty"`
+	Branch          string               `json:"branch,omitempty"`
+	Workspace       string               `json:"workspace,omitempty"`
+	Results         []WorktreeTestResult `json:"results"`
+	MissingEvidence []string             `json:"missing_evidence,omitempty"`
+}
+
+func buildTestMatrix(run *runner.MissionRun, receipts []runner.WorkReceipt, capsules []runner.ContextCapsule) []WorktreeTestMatrix {
+	workspaceByStep := make(map[string]string, len(run.PackageRuns))
+	for _, pkg := range run.PackageRuns {
+		workspaceByStep[pkg.PackageID] = pkg.Workspace
+	}
+	branchByStep := make(map[string]string, len(capsules))
+	shaByStep := make(map[string]string, len(capsules))
+	for _, capsule := range capsules {
+		stepID := capsule.Step.ID
+		branchByStep[stepID] = capsule.Branch
+		if capsule.Head != "" {
+			shaByStep[stepID] = capsule.Head
+		}
+	}
+
+	matrix := make([]WorktreeTestMatrix, 0, len(receipts))
+	for _, receipt := range receipts {
+		sha := shaByStep[receipt.StepID]
+		if sha == "" {
+			sha = strings.TrimSpace(receipt.ResultRevision)
+		}
+		if sha == "" {
+			sha = strings.TrimSpace(receipt.BaseRevision)
+		}
+		entry := WorktreeTestMatrix{
+			StepID:          receipt.StepID,
+			AgentID:         receipt.AgentID,
+			Branch:          branchByStep[receipt.StepID],
+			Workspace:       workspaceByStep[receipt.StepID],
+			Results:         []WorktreeTestResult{},
+			MissingEvidence: []string{},
+		}
+		commands := receipt.Tests
+		if len(commands) == 0 {
+			commands = receipt.Verification
+		}
+		if len(commands) == 0 {
+			entry.MissingEvidence = append(entry.MissingEvidence, "test_commands")
+		}
+		for _, command := range commands {
+			result := WorktreeTestResult{
+				Command:    command.Command,
+				ExitCode:   command.ExitCode,
+				Passed:     command.Source == runner.VerificationSourceCommandExecution && command.ExitCode == 0,
+				SHA:        sha,
+				VerifiedAt: command.VerifiedAt,
+				Logs:       command.OutputSnippet,
+				Provenance: command.Source,
+			}
+			if command.Source != runner.VerificationSourceCommandExecution {
+				entry.MissingEvidence = append(entry.MissingEvidence, "command_execution_provenance")
+			}
+			if command.ExitCode < 0 {
+				entry.MissingEvidence = append(entry.MissingEvidence, "exit_code")
+			}
+			if command.VerifiedAt.IsZero() {
+				entry.MissingEvidence = append(entry.MissingEvidence, "verified_at")
+			}
+			if strings.TrimSpace(command.OutputSnippet) == "" {
+				entry.MissingEvidence = append(entry.MissingEvidence, "logs")
+			}
+			entry.Results = append(entry.Results, result)
+		}
+		if sha == "" {
+			entry.MissingEvidence = append(entry.MissingEvidence, "sha")
+		}
+		entry.MissingEvidence = uniqueSortedStrings(entry.MissingEvidence)
+		matrix = append(matrix, entry)
+	}
+	return matrix
 }
 
 func uniqueSortedStrings(values []string) []string {
