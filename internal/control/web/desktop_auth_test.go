@@ -298,3 +298,65 @@ func TestServerShutdownRevokesDesktopSession(t *testing.T) {
 		t.Fatal("desktop session must be revoked on server shutdown")
 	}
 }
+
+// A terminal attach is the most privileged surface in Nexus: it executes
+// arbitrary commands on the host. The scoped-control acceptance therefore
+// requires one authenticated controller, so a bare Origin, a foreign Origin, a
+// viewer grant and a revoked session must all be refused before the upgrade.
+func TestTerminalAttachRejectsUnauthenticatedRevokedViewerAndForeignOrigin(t *testing.T) {
+	testDir := t.TempDir()
+	t.Setenv("AI_MANAGER_DATA_DIR", testDir)
+	t.Setenv("AI_CLI_DATA_DIR", testDir)
+
+	srv, err := NewServer(ServerOptions{Host: "127.0.0.1", Port: 0, NoOpen: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = srv.Shutdown(context.Background()) }()
+
+	handler := srv.Handler()
+	host := strings.TrimPrefix(srv.URL(), "http://")
+
+	attach := func(sessionID, origin string) int {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/runtimes/rt-scoped/terminal", nil)
+		req.Host = host
+		req.Header.Set("Origin", origin)
+		if sessionID != "" {
+			req.Header.Set("Authorization", "Bearer "+sessionID)
+		}
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		return rec.Code
+	}
+
+	if code := attach("", "wails://wails"); code != http.StatusUnauthorized {
+		t.Fatalf("origin alone must not authenticate a terminal attach: got %d", code)
+	}
+
+	controller, err := srv.auth.CreateSession()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if code := attach(controller.ID, "https://attacker.example"); code != http.StatusForbidden {
+		t.Fatalf("foreign origin must be refused even with a valid session: got %d", code)
+	}
+
+	srv.auth.mu.Lock()
+	if sess := srv.auth.sessions[controller.ID]; sess != nil {
+		sess.Remote = true
+		sess.Role = RoleViewer
+	}
+	srv.auth.mu.Unlock()
+	if code := attach(controller.ID, "wails://wails"); code != http.StatusForbidden {
+		t.Fatalf("viewer grant must not attach an interactive terminal: got %d", code)
+	}
+
+	revoked, err := srv.auth.CreateSession()
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv.auth.RevokeSession(revoked.ID)
+	if code := attach(revoked.ID, "wails://wails"); code != http.StatusUnauthorized {
+		t.Fatalf("revoked session must not attach a terminal: got %d", code)
+	}
+}
