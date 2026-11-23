@@ -364,6 +364,27 @@ jobs:
       - run: go test -race -v -count=1 ./internal/control/terminal/... ./internal/control/protocol/...
       - run: go test -race -v -count=1 ./internal/control/host/... ./internal/control/web/...
       - run: go build -trimpath -v ./cmd/nexus
+      - name: Produce V1 workspace acceptance record (per-platform evidence)
+        id: workspace-acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/workspace-acceptance-e2e.mjs run \
+            --platform linux-amd64 \
+            --sha "$GITHUB_SHA" \
+            --job-url "https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            --log-dir "$RUNNER_TEMP/workspace-acceptance-logs" \
+            --out "$RUNNER_TEMP/workspace-acceptance-linux-amd64.json" \
+            --allow-incomplete
+          test -s "$RUNNER_TEMP/workspace-acceptance-linux-amd64.json"
+      - name: Upload V1 workspace acceptance record
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-v1-workspace-acceptance-${{ github.sha }}
+          path: ${{ runner.temp }}/workspace-acceptance*
+          if-no-files-found: error
+          retention-days: 30
       - name: Unix installer/uninstaller lifecycle smoke
         shell: bash
         run: |
