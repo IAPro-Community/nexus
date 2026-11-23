@@ -8012,3 +8012,11 @@ Restante vermelho honesto: **Windows release homologation** — exige runner `ne
 - `internal/control/web/handler_terminal.go`: epoch global monotônico (`nextTerminalLeaseEpoch()`), `terminalLeaseMu` serializa lease vs input;a promoção só emitida se `broker.IsWriter`.
 - Testes: regressão determinística nova em `host_test.go`; `go test -race` host+web verde; 40 runs do handoff autenticado `fails=0 of 40` (`/tmp/opencode/gates-20261122/issue214i/`).
 - Docs: `DEV/VERIFY.md`, `DEV/HANDOFF.md` atualizados. Sem commit automático; release **NO_GO**.
+
+## 2026-11-23 — publish 1.0.1 (bf7c85ec) remoto + install local
+
+- Push `a35ad648..bf7c85ec` em `origin/release/v1.0.0` (fast-forward, docs-only: `docs/reference/agent-workspace-v1.json` + `docs/product/agent-workspace-v1-acceptance.md`, 9 capacidades → `present`/`verified`). Push exigiu `-c credential.https://github.com.helper=store` (helper `gh` ausente na máquina).
+- Binário local: build em worktree limpa `/tmp/opencode/buildwt` @ `bf7c85ec` (`make install`) → `~/.local/bin/nexus` = `IAPro Nexus 1.0.1 commit bf7c85ec`; hash idêntico ao artefato do worktree.
+- Contrato pós-commit: `present=12 partial=34 missing=2`, `verified=9 pending=39`; `verify-agent-workspace-v1.mjs` exit 0 e `--release` ainda falha (exige SHA exato + CI run id + artefato externo). Release assinada **NO_GO**; tag `v1.0.1` não criada.
+- Working tree preservada: 115 entradas não commitadas de outros workstreams intactas.
+- Lane 0 (GO): runner `nexus-ci` religado com `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1` (host sem `libicu`, sem `sudo`) — CI do SHA publicado voltou a executar; `ef8f3556` remove a certificação antecipada de 9 capacidades (9 `verified`→`pending`); `c20a77c9` versiona o golden replay PTY #196 (fixtures + teste Go + replay xterm + step de CI), corrigindo claim falso do handoff anterior.
