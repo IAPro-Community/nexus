@@ -92,7 +92,7 @@ func joinLines(lines []string) string {
 
 func createCollisionProject(t *testing.T, client *http.Client, srvURL, repo, csrf string) string {
 	t.Helper()
-	body, _ := json.Marshal(map[string]string{"name": "Collision Fixture", "path": repo})
+	body, _ := json.Marshal(map[string]string{"name": "Collision Fixture " + t.Name(), "path": repo})
 	req, _ := http.NewRequest(http.MethodPost, srvURL+"/api/v1/projects", bytes.NewReader(body))
 	req.Header.Set("X-CSRF-Token", csrf)
 	resp, err := client.Do(req)
