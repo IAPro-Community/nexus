@@ -262,6 +262,10 @@ func allowed(previous, next Stage) bool {
 		return next == InstallCommitted || next == NeedsRecovery
 	case InstallCommitted:
 		return next == Verified || next == NeedsRecovery
+	case NeedsRecovery:
+		// Recovery resumes a partially applied operation. The coordinator must
+		// re-verify every side effect before advancing again.
+		return next == ProjectCommitted || next == Aborted
 	default:
 		return false
 	}

@@ -22,6 +22,9 @@ type IntelligenceMemory struct {
 }
 
 func (s *Store) UpsertIntelligenceMemory(m IntelligenceMemory) (*IntelligenceMemory, error) {
+	if err := s.checkLegacyMemoryGate(); err != nil {
+		return nil, err
+	}
 	m.Key = strings.TrimSpace(m.Key)
 	m.Value = strings.TrimSpace(m.Value)
 	m.Source = strings.TrimSpace(m.Source)
@@ -82,7 +85,31 @@ func (s *Store) ListIntelligenceMemories(projectID string) ([]IntelligenceMemory
 	return out, rows.Err()
 }
 
+// ListAllIntelligenceMemories returns every project-scoped memory row ordered
+// deterministically. It is read-only and used by the Maestro canonical memory
+// migration snapshot.
+func (s *Store) ListAllIntelligenceMemories() ([]IntelligenceMemory, error) {
+	rows, err := s.db.Query(`SELECT id,project_id,key,value,source,created_at,updated_at
+		FROM intelligence_memories ORDER BY project_id, key, id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []IntelligenceMemory{}
+	for rows.Next() {
+		m, err := scanIntelligenceMemory(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *m)
+	}
+	return out, rows.Err()
+}
+
 func (s *Store) DeleteIntelligenceMemory(projectID, id string) error {
+	if err := s.checkLegacyMemoryGate(); err != nil {
+		return err
+	}
 	return memoryrecovery.WithLegacyWriter(s.memoryFenceDir, func() error {
 		res, err := s.db.Exec(`DELETE FROM intelligence_memories WHERE project_id=? AND id=?`, projectID, id)
 		if err != nil {
@@ -97,6 +124,9 @@ func (s *Store) DeleteIntelligenceMemory(projectID, id string) error {
 }
 
 func (s *Store) DeleteIntelligenceMemoryByKey(projectID, key string) error {
+	if err := s.checkLegacyMemoryGate(); err != nil {
+		return err
+	}
 	return memoryrecovery.WithLegacyWriter(s.memoryFenceDir, func() error {
 		_, err := s.db.Exec(`DELETE FROM intelligence_memories WHERE project_id=? AND key=?`, projectID, key)
 		return err

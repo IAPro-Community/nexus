@@ -10,6 +10,7 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/control/ids"
 	coreconfig "github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/memoryrecovery"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
@@ -130,10 +131,31 @@ func (n *Nexus) ListIntelligenceMemories(ctx context.Context, projectID string) 
 	return out, nil
 }
 
+// ensureLegacyMemoryWritesAllowed fails closed once the Maestro canonical
+// memory migration latched the fail-closed gate. It covers the INSTALL
+// config.json path; the PROJECT SQLite path is gated inside the store.
+func ensureLegacyMemoryWritesAllowed() error {
+	dataDir, err := coreconfig.DataDir()
+	if err != nil {
+		return err
+	}
+	disabled, err := memoryrecovery.LegacyMemoryWritesDisabled(dataDir)
+	if err != nil {
+		return err
+	}
+	if disabled {
+		return memoryrecovery.ErrLegacyMemoryWritesDisabled
+	}
+	return nil
+}
+
 // UpsertIntelligenceMemory writes a habit memory. Scope INSTALL goes to config.json;
 // PROJECT goes to the project SQLite store.
 func (n *Nexus) UpsertIntelligenceMemory(ctx context.Context, scope, projectID, key, value, source string) (*MergedIntelligenceMemory, error) {
 	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if err := ensureLegacyMemoryWritesAllowed(); err != nil {
 		return nil, err
 	}
 	key = normalizeMemoryKey(key)
@@ -166,6 +188,9 @@ func (n *Nexus) UpsertIntelligenceMemory(ctx context.Context, scope, projectID, 
 // DeleteIntelligenceMemory removes one memory by scope + id.
 func (n *Nexus) DeleteIntelligenceMemory(ctx context.Context, scope, projectID, id string) error {
 	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := ensureLegacyMemoryWritesAllowed(); err != nil {
 		return err
 	}
 	switch strings.ToUpper(scope) {
