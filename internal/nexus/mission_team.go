@@ -90,6 +90,106 @@ type PhaseHandoff struct {
 	ContextBudgetBytes  int      `json:"context_budget_bytes"`
 }
 
+type ConsultationRequest struct {
+	RequestID            string   `json:"request_id"`
+	RequesterAgentID     string   `json:"requester_agent_id"`
+	TargetAgentID        string   `json:"target_agent_id"`
+	MaestroRuntimeID     string   `json:"maestro_runtime_id"`
+	Scope                []string `json:"scope"`
+	Context              []string `json:"context"`
+	SkillIDs             []string `json:"skill_ids,omitempty"`
+	DiffRevision         string   `json:"diff_revision"`
+	TimeoutSeconds       int      `json:"timeout_seconds"`
+	Hop                  int      `json:"hop"`
+	AllowWrite           bool     `json:"allow_write"`
+	AllowExternalActions bool     `json:"allow_external_actions"`
+}
+
+const maxConsultationTimeoutSeconds = 300
+
+func BuildConsultationStep(flow *FlowDefinition, request ConsultationRequest) (FlowStep, error) {
+	if flow == nil {
+		return FlowStep{}, fmt.Errorf("flow is required")
+	}
+	request.RequestID = strings.TrimSpace(request.RequestID)
+	request.RequesterAgentID = strings.TrimSpace(request.RequesterAgentID)
+	request.TargetAgentID = strings.TrimSpace(request.TargetAgentID)
+	request.MaestroRuntimeID = strings.TrimSpace(request.MaestroRuntimeID)
+	request.DiffRevision = strings.TrimSpace(request.DiffRevision)
+	if request.RequestID == "" || request.RequesterAgentID == "" || request.TargetAgentID == "" || request.MaestroRuntimeID == "" {
+		return FlowStep{}, fmt.Errorf("consultation request, requester, target, and Maestro runtime are required")
+	}
+	if request.RequesterAgentID == request.TargetAgentID {
+		return FlowStep{}, fmt.Errorf("consultation target must differ from requester")
+	}
+	if len(request.Scope) == 0 || len(request.Context) == 0 {
+		return FlowStep{}, fmt.Errorf("consultation scope and Maestro context are required")
+	}
+	if request.DiffRevision == "" {
+		return FlowStep{}, fmt.Errorf("consultation diff revision is required")
+	}
+	if request.Hop != 1 {
+		return FlowStep{}, fmt.Errorf("consultation hop must be 1")
+	}
+	if request.TimeoutSeconds <= 0 || request.TimeoutSeconds > maxConsultationTimeoutSeconds {
+		return FlowStep{}, fmt.Errorf("consultation timeout must be between 1 and %d seconds", maxConsultationTimeoutSeconds)
+	}
+	if request.AllowWrite || request.AllowExternalActions {
+		return FlowStep{}, fmt.Errorf("consultation must not allow write or external actions")
+	}
+
+	scope := append([]string(nil), request.Scope...)
+	context := append([]string(nil), request.Context...)
+	skills := append([]string(nil), request.SkillIDs...)
+	phaseID := "phase_consultation_" + ids.NewRuntimeID()
+	stepID := "step_consultation_" + ids.NewRuntimeID()
+	objective := "Produce a second opinion on the supplied diff without changing files or invoking external actions."
+	prompt := strings.Join(append(append([]string{objective, "Diff revision: " + request.DiffRevision, "Scope:"}, scope...), append([]string{"Maestro context:"}, context...)...), "\n")
+	handoff, _ := json.Marshal(PhaseHandoff{
+		MissionObjective:   objective,
+		PhaseObjective:     objective,
+		RelevantDecisions:  []string{"consultation_request_id=" + request.RequestID, "requester_agent_id=" + request.RequesterAgentID, "target_agent_id=" + request.TargetAgentID, "maestro_runtime_id=" + request.MaestroRuntimeID, "diff_revision=" + request.DiffRevision, "consultation_hop=1"},
+		ChangedArtifacts:   scope,
+		Evidence:           append([]string{"diff:" + request.DiffRevision}, context...),
+		AcceptanceCriteria: []string{"opinion linked to the supplied diff and scope", "no file writes", "no external actions"},
+		NextExpectedAction: "return opinion to Maestro",
+		ContextBudgetBytes: 32768,
+	})
+	requirements := ClassifyTaskRequirements(prompt)
+	requirements.Role = "reviewer"
+	requirements.PreferredRoles = []string{"reviewer"}
+	requirements.AcceptableRoles = []string{"reviewer"}
+	requirements.RequiredCapabilities = []string{"read_only_review"}
+	requirements.Constraints = append(requirements.Constraints, "no write actions", "no external actions", "no nested consultation")
+	encodedRequirements, _ := json.Marshal(requirements)
+
+	flow.Phases = append(flow.Phases, FlowPhase{ID: phaseID, Title: humanPhaseTitle(PhaseReview), Description: "reviewer", Order: len(flow.Phases) + 1, Type: string(PhaseReview), RequiredRole: "reviewer", FailurePolicy: string(FailureBlock)})
+	step := FlowStep{
+		ID:                 stepID,
+		PhaseID:            phaseID,
+		Order:              len(flow.Steps) + 1,
+		Title:              humanPhaseTitle(PhaseReview),
+		Goal:               objective,
+		Priority:           "HIGH",
+		Status:             "READY",
+		Role:               "reviewer",
+		PhaseType:          string(PhaseReview),
+		ReviewRequired:     true,
+		TaskRequirements:   string(encodedRequirements),
+		AssignmentStrategy: FlowAssignmentExisting,
+		AgentID:            request.TargetAgentID,
+		SkillIDs:           skills,
+		MaestroSkills:      skills,
+		RelevantPaths:      scope,
+		AcceptanceCriteria: []string{"opinion linked to the supplied diff and scope", "no file writes", "no external actions"},
+		RequiredEvidence:   []string{"REVIEW_COMPLETED"},
+		HandoffJSON:        string(handoff),
+		CompiledPrompt:     prompt,
+	}
+	flow.Steps = append(flow.Steps, step)
+	return step, nil
+}
+
 type MissionTeamPresetDefinition struct {
 	Preset      MissionTeamPreset `json:"preset"`
 	Description string            `json:"description"`

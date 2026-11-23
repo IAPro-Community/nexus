@@ -179,6 +179,93 @@ func TestMissionTeamReviewReceivesBoundedAgentDiffScope(t *testing.T) {
 	}
 }
 
+func TestBuildConsultationStepBindsMaestroContextAndPreventsRecursion(t *testing.T) {
+	flow := &FlowDefinition{ID: "flow", ProjectID: "project", StructuredFacts: map[string]string{}}
+	step, err := BuildConsultationStep(flow, ConsultationRequest{
+		RequestID:        "consult-1",
+		RequesterAgentID: "agent-maestro",
+		TargetAgentID:    "agent-reviewer",
+		MaestroRuntimeID: "runtime-maestro",
+		Scope:            []string{"internal/nexus/**"},
+		Context:          []string{"Maestro approved diff and acceptance criteria"},
+		SkillIDs:         []string{"review"},
+		DiffRevision:     "abc1234",
+		TimeoutSeconds:   60,
+		Hop:              1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if step.AgentID != "agent-reviewer" || step.Role != "reviewer" {
+		t.Fatalf("consultation must target explicit reviewer identity: %+v", step)
+	}
+	if step.AssignmentStrategy != FlowAssignmentExisting {
+		t.Fatalf("consultation must not auto-delegate: %+v", step)
+	}
+	if !slices.Equal(step.RelevantPaths, []string{"internal/nexus/**"}) {
+		t.Fatalf("consultation scope = %v", step.RelevantPaths)
+	}
+	if !slices.Equal(step.SkillIDs, []string{"review"}) {
+		t.Fatalf("consultation skills = %v", step.SkillIDs)
+	}
+	var handoff PhaseHandoff
+	if err := json.Unmarshal([]byte(step.HandoffJSON), &handoff); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(handoff.RelevantDecisions, "maestro_runtime_id=runtime-maestro") {
+		t.Fatalf("consultation lost Maestro runtime ownership: %+v", handoff)
+	}
+	if !slices.Contains(handoff.RelevantDecisions, "diff_revision=abc1234") {
+		t.Fatalf("consultation lost diff linkage: %+v", handoff)
+	}
+	if !slices.Contains(handoff.Evidence, "diff:abc1234") {
+		t.Fatalf("consultation evidence lost diff linkage: %+v", handoff)
+	}
+	var requirements TaskRequirements
+	if err := json.Unmarshal([]byte(step.TaskRequirements), &requirements); err != nil {
+		t.Fatal(err)
+	}
+	if requirements.Role != "reviewer" || !slices.Contains(requirements.RequiredCapabilities, "read_only_review") {
+		t.Fatalf("consultation must remain read-only: %+v", requirements)
+	}
+	for _, constraint := range requirements.Constraints {
+		if constraint == "no write actions" || constraint == "no external actions" || constraint == "no nested consultation" {
+			return
+		}
+	}
+	t.Fatalf("consultation constraints missing recursion/write/external guards: %+v", requirements.Constraints)
+}
+
+func TestBuildConsultationStepRejectsUnboundedOrUnauthorizedRequests(t *testing.T) {
+	base := ConsultationRequest{
+		RequestID: "consult-1", RequesterAgentID: "agent-maestro", TargetAgentID: "agent-reviewer",
+		MaestroRuntimeID: "runtime-maestro", Scope: []string{"internal/**"}, Context: []string{"context"},
+		DiffRevision: "abc1234", TimeoutSeconds: 60, Hop: 1,
+	}
+	cases := []struct {
+		name   string
+		mutate func(*ConsultationRequest)
+	}{
+		{name: "same agent", mutate: func(req *ConsultationRequest) { req.TargetAgentID = req.RequesterAgentID }},
+		{name: "missing scope", mutate: func(req *ConsultationRequest) { req.Scope = nil }},
+		{name: "missing context", mutate: func(req *ConsultationRequest) { req.Context = nil }},
+		{name: "missing diff", mutate: func(req *ConsultationRequest) { req.DiffRevision = "" }},
+		{name: "recursive hop", mutate: func(req *ConsultationRequest) { req.Hop = 2 }},
+		{name: "timeout", mutate: func(req *ConsultationRequest) { req.TimeoutSeconds = maxConsultationTimeoutSeconds + 1 }},
+		{name: "write", mutate: func(req *ConsultationRequest) { req.AllowWrite = true }},
+		{name: "external action", mutate: func(req *ConsultationRequest) { req.AllowExternalActions = true }},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			request := base
+			test.mutate(&request)
+			if _, err := BuildConsultationStep(&FlowDefinition{}, request); err == nil {
+				t.Fatalf("expected rejected consultation request: %+v", request)
+			}
+		})
+	}
+}
+
 func TestMissionTeamRuntimeOverrideRemainsPreferenceAndRoundTrips(t *testing.T) {
 	selection := MissionTeamSelection{Version: MissionTeamVersion, Strategy: IntentPlan, Preset: PresetFeatureDelivery, ReviewRequired: true}
 	flow := &FlowDefinition{ID: "flow", ProjectID: "project", StructuredFacts: map[string]string{}}
