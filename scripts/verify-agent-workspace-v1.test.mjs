@@ -177,3 +177,27 @@ test('offline verification fails closed on unknown reviewer, missing device and 
     assert.throws(fixture.check, /signature failed/);
   } finally { rmSync(temp, { recursive: true, force: true }); }
 });
+
+test('contract cannot drop the declared two-client requirement', () => {
+  const temp = mkdtempSync(join(tmpdir(), 'nexus-v1-clients-'));
+  try {
+    const doc = JSON.parse(readFileSync(manifest, 'utf8'));
+    delete doc.features[0].requiredClients;
+    const mutated = join(temp, 'altered.json');
+    writeFileSync(mutated, JSON.stringify(doc));
+    const p = run(['--manifest', mutated]);
+    assert.notEqual(p.status, 0);
+    assert.match(p.stderr, /requiredClients must declare 1 or 2 authenticated clients/);
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+});
+
+test('two-client capability stays blocked when evidence proves a single client', () => {
+  const temp = mkdtempSync(join(tmpdir(), 'nexus-offline-clients-'));
+  try {
+    const fixture = offlineFixture(temp);
+    const weakened = JSON.parse(JSON.stringify(fixture.payload));
+    weakened.features[0].clients = 1;
+    fixture.writeSigned(weakened);
+    assert.throws(fixture.check, /Two authenticated client evidence missing/);
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+});

@@ -51,6 +51,10 @@ function verifyManifest(doc) {
     check(allowedOwners.has(f.owner), f.id + ': invalid owner');
     check(allowedSourceStatuses.has(f.sourceStatus), f.id + ': invalid source status');
     check(f.releaseRequired === true, f.id + ': cannot drop mandatory scope');
+    check(
+      Number.isInteger(f.requiredClients) && f.requiredClients >= 1 && f.requiredClients <= 2,
+      f.id + ': requiredClients must declare 1 or 2 authenticated clients',
+    );
     check(Number.isInteger(f.issue) && f.issue > 0, f.id + ': missing tracked issue');
     check(f.verification === 'pending' || f.verification === 'verified', f.id + ': invalid verification');
     check(Array.isArray(f.acceptance) && f.acceptance.length >= 2 &&
@@ -103,8 +107,8 @@ function checkExternalProof(doc, features, expectedSha, expectedRunId, filename)
     check(f.sourceStatus === 'present' && f.verification === 'verified', f.id + ': source/integration not completed');
     check(item.status === 'passed' && item.sourceSha === expectedSha, f.id + ': exact-SHA proof missing');
     check(actionUrl(item.jobUrl) && Array.isArray(item.tests) && item.tests.length > 0, f.id + ': test provenance missing');
-    if (f.category === 'multiagent' || f.category === 'remote' || f.id === 'two-client-real-e2e')
-      check(Number.isInteger(item.clients) && item.clients >= 2, f.id + ': two-client proof missing');
+    if (f.requiredClients >= 2)
+      check(Number.isInteger(item.clients) && item.clients >= f.requiredClients, f.id + ': two-client proof missing');
   }
 }
 
@@ -132,9 +136,7 @@ function checkOfflineProof(features, expectedSha, maestroSha, filename) {
       trustFile: resolve(root, 'docs/reference/release-reviewers.json'),
       sourceSha: expectedSha, maestroSha,
       featureIds: features.map((feature) => feature.id),
-      twoClientIds: features.filter((feature) =>
-        feature.category === 'multiagent' || feature.category === 'remote' ||
-        feature.id === 'two-client-real-e2e').map((feature) => feature.id),
+      twoClientIds: features.filter((feature) => feature.requiredClients >= 2).map((feature) => feature.id),
     });
   } catch (error) {
     failures.push('Offline signed evidence rejected: ' + (error?.message || error));

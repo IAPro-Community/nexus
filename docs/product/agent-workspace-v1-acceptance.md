@@ -117,4 +117,8 @@ Legenda: **present** indica código-base localizado; **partial** significa lacun
 
 A coluna `Source` é inventário preliminar de implementação, não aprovação funcional. O verificador confere automaticamente a correspondência de ID, status e issue entre esta tabela e o JSON canônico. **Não** colocar um SHA fixo em um JSON versionado — um commit que altera esse JSON modifica seu próprio SHA.
 
+### Clientes autenticados por capacidade
+
+O JSON canônico declara `requiredClients` por capacidade: `1` por padrão e `2` quando o aceite exige duas sessões autenticadas simultâneas. Hoje `requiredClients: 2` vale para `terminal-studio`, `remote-companion`, `mobile-inbox`, `remote-terminal`, `workspace-sharing`, `device-handoff` e `two-client-real-e2e`. O campo é obrigatório: o verificador rejeita contrato sem ele, e a evidência precisa provar `clients >= requiredClients` nas três plataformas. A regra antiga por categoria (`multiagent`/`remote`) era mais ampla que o aceite e não é mais usada.
+
 Veja também [Nexus 1.0 — linha única de release](https://github.com/IAPro-Community/nexus/issues/27), [matriz atual](../reference/feature-matrix.md), [Maestro](maestro.md) e [publicação](../PUBLICATION_CHECKLIST.md).

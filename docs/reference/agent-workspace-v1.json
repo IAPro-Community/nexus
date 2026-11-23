@@ -14,6 +14,7 @@
    "sourceStatus": "present",
    "issue": 78,
    "releaseRequired": true,
+   "requiredClients": 2,
    "acceptance": [
     "Native CLI em tab/split sem relançar provider",
     "Control lease, Ctrl+C, setas, scrollback e resize PTY/ConPTY com dois clientes"
@@ -28,6 +29,7 @@
    "sourceStatus": "partial",
    "issue": 104,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Cartões de todos os Agents por projeto com estados observados e seleção direta",
     "Trabalhando/aguardando/erro/concluído sem inferir estado do texto do CLI"
@@ -42,6 +44,7 @@
    "sourceStatus": "partial",
    "issue": 109,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Diff, teste, evidência e terminal no mesmo workspace",
     "Review read-only por padrão com autorização explícita para aplicar mudanças"
@@ -56,6 +59,7 @@
    "sourceStatus": "partial",
    "issue": 107,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "BrowserSurface integrada a terminal, diff e Agent Inspector",
     "Permissões de CDP/MCP, takeover humano e sessão de projeto isolada"
@@ -70,6 +74,7 @@
    "sourceStatus": "partial",
    "issue": 108,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Duas alternativas paralelas com worktrees e execução isolados",
     "Comparador de testes/diffs/custo e decisão humana sem merge automático"
@@ -84,6 +89,7 @@
    "sourceStatus": "partial",
    "issue": 111,
    "releaseRequired": true,
+   "requiredClients": 2,
    "acceptance": [
     "Mobile Inbox e terminal remoto vinculados ao host",
     "Troca de dispositivo sem reiniciar sessão, com lease e revogação",
@@ -99,6 +105,7 @@
    "sourceStatus": "partial",
    "issue": 85,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Visualização read-only de Missions, dependências, agentes e provas",
     "ExecutionOwner controla mutações, retries e cancelamento"
@@ -113,6 +120,7 @@
    "sourceStatus": "partial",
    "issue": 105,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Layouts sugeridos por atividade sem spawn implícito de processo",
     "Preservação de surface IDs, foco, splits e restauração"
@@ -127,6 +135,7 @@
    "sourceStatus": "partial",
    "issue": 105,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Salvar e restaurar estado visual versionado por projeto",
     "Não ressuscitar processo morto nem duplicar runtime"
@@ -141,6 +150,7 @@
    "sourceStatus": "partial",
    "issue": 105,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Agrupar Agents por tarefa, worktree e feature",
     "Filtrar e reordenar preservando identidade e sessão"
@@ -155,6 +165,7 @@
    "sourceStatus": "present",
    "issue": 84,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Command Palette pesquisa projetos, Agents, ações e superfícies",
     "Atalhos e foco confiáveis em desktop e mobile"
@@ -169,6 +180,7 @@
    "sourceStatus": "partial",
    "issue": 105,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Acompanhar visualização selecionada de Agent com pausa explícita",
     "Não adquirir lease de input sem consentimento"
@@ -183,6 +195,7 @@
    "sourceStatus": "partial",
    "issue": 104,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Inspector destacável com status, identidade, evidência e lineage",
     "Somente estado observado e informação já autorizada"
@@ -197,6 +210,7 @@
    "sourceStatus": "partial",
    "issue": 114,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Diferenciar ocultar superfície de suspender runtime quando suportado",
     "UI não diz que processo está pausado se só ficou oculto"
@@ -212,6 +226,7 @@
    "sourceStatus": "partial",
    "issue": 100,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Consolidar aprovações, perguntas, erros e blockers de CLIs heterogêneos",
     "Ações direcionadas a geração e provider corretos com dados verificáveis"
@@ -226,6 +241,7 @@
    "sourceStatus": "partial",
    "issue": 100,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Fila de pendências priorizadas por severidade e tempo",
     "Deduplicação, idempotência e resposta sem reabrir ações resolvidas"
@@ -240,6 +256,7 @@
    "sourceStatus": "partial",
    "issue": 114,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Linha de tempo de launch, attach, quota, handoff e recovery",
     "Eventos com timestamp, source, runtimeGeneration e correlação"
@@ -254,6 +271,7 @@
    "sourceStatus": "partial",
    "issue": 87,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Recomendações com elegibilidade e motivo para conta/modelo",
     "LIVE/CACHED/UNKNOWN explícitos; respeitar PIN e quota"
@@ -268,6 +286,7 @@
    "sourceStatus": "partial",
    "issue": 114,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Diagnosticar lease, PTY, heartbeat, PID e provider capability",
     "Erros e UNKNOWN visíveis sem afirmar recuperação falsa"
@@ -282,6 +301,7 @@
    "sourceStatus": "partial",
    "issue": 108,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Comparar duas implementações executadas em worktrees independentes",
     "Testes e custo com evidência e critérios explícitos"
@@ -297,6 +317,7 @@
    "sourceStatus": "partial",
    "issue": 110,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Enviar diff de Agent para revisão independente delimitada",
     "Resposta e proof vinculados ao dono do Run sem duplicar execução"
@@ -311,6 +332,7 @@
    "sourceStatus": "partial",
    "issue": 110,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Solicitar segunda opinião com contexto/scope do Maestro",
     "Evitar loops, auto-delegação e ações externas não autorizadas"
@@ -325,6 +347,7 @@
    "sourceStatus": "partial",
    "issue": 109,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Arquivos e hunks alterados agrupados por Agent/worktree",
     "Aviso de colisão com base commit e revisão humana"
@@ -339,6 +362,7 @@
    "sourceStatus": "partial",
    "issue": 109,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Exibir resultados reais dos comandos de teste por worktree",
     "Exit code, SHA, timestamp e logs; nenhuma declaração LLM vira PASS"
@@ -353,6 +377,7 @@
    "sourceStatus": "partial",
    "issue": 109,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Vincular evidências, PRs, issues, diff e gates de uma release",
     "Sem merge/publicação sem aprovação e checks verificáveis"
@@ -368,6 +393,7 @@
    "sourceStatus": "present",
    "issue": 107,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Abrir Browser como superfície real do Workspace OS",
     "Sem iframe como substituto de browser automation"
@@ -382,6 +408,7 @@
    "sourceStatus": "partial",
    "issue": 107,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Selecionar elemento e coletar DOM/estilos/screenshot sanitizados",
     "Encaminhar contexto apenas a Agent explicitamente escolhido"
@@ -396,6 +423,7 @@
    "sourceStatus": "partial",
    "issue": 107,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Exibir app web local autorizada vinculada ao processo host",
     "Não expor host arbitrário nem segredos de sessão"
@@ -410,6 +438,7 @@
    "sourceStatus": "partial",
    "issue": 83,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "MCP e CDP com capacidades verificáveis e grant temporário",
     "Intervenção humana para MFA, revoke, isolamento e auditoria"
@@ -424,6 +453,7 @@
    "sourceStatus": "partial",
    "issue": 107,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Comparar antes/depois por screenshot determinística",
     "Região e limiar declarados, revisão e artefatos rastreáveis"
@@ -439,6 +469,7 @@
    "sourceStatus": "partial",
    "issue": 107,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Viewports de telefone, tablet e desktop na mesma browser session",
     "Escalas, foco, acessibilidade e redimensionamento correto"
@@ -453,6 +484,7 @@
    "sourceStatus": "partial",
    "issue": 111,
    "releaseRequired": true,
+   "requiredClients": 2,
    "acceptance": [
     "Perguntas/approvals e jobs no celular vinculados à sessão",
     "Responder uma vez, inclusive em reconexões ou falhas de rede"
@@ -467,6 +499,7 @@
    "sourceStatus": "partial",
    "issue": 111,
    "releaseRequired": true,
+   "requiredClients": 2,
    "acceptance": [
     "Conectar ao terminal existente sem criar novo runtime",
     "Controle único com token scoped, CSRF, expiry e revoke"
@@ -481,6 +514,7 @@
    "sourceStatus": "partial",
    "issue": 112,
    "releaseRequired": true,
+   "requiredClients": 2,
    "acceptance": [
     "Compartilhar observação por projeto/Agent sob RBAC",
     "Viewer-only inicial; cross-project leakage negado e revoke imediato"
@@ -496,6 +530,7 @@
    "sourceStatus": "partial",
    "issue": 114,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Ação de voz exige controle explícito e identifica Agent de destino",
     "Não inserir Enter automaticamente nem ler segredos do prompt"
@@ -510,6 +545,7 @@
    "sourceStatus": "partial",
    "issue": 114,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "HUD exibe apenas estado/sinal real de Agent e atenção",
     "Não bloquear janelas; reduced-motion e smoke nativo"
@@ -524,6 +560,7 @@
    "sourceStatus": "partial",
    "issue": 114,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Mascote abre a ação operacional correspondente a evento confirmado",
     "Respeitar NEX identity lock, alto contraste e motion reduction"
@@ -538,6 +575,7 @@
    "sourceStatus": "partial",
    "issue": 105,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Cinco receitas Frontend/Backend/Review/Debug/Release selecionáveis no menu; evolução para receitas personalizadas e persistência por projeto ainda pendente",
     "Receita não inicia Agents ou ações automaticamente"
@@ -552,6 +590,7 @@
    "sourceStatus": "partial",
    "issue": 108,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Distribuir uma especificação a múltiplos Agents isolados e compará-los",
     "Sem merge automático, custo UNKNOWN não vira zero"
@@ -567,6 +606,7 @@
    "sourceStatus": "partial",
    "issue": 109,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Detectar alterações conflitantes por base commit/hunks",
     "Informar incerteza e permitir revisão antes do merge"
@@ -582,6 +622,7 @@
    "sourceStatus": "partial",
    "issue": 111,
    "releaseRequired": true,
+   "requiredClients": 2,
    "acceptance": [
     "Continuar no mobile a sessão do host sem duplicar execução",
     "Lease, reattach, estados reconciliados e histórico auditável"
@@ -596,6 +637,7 @@
    "sourceStatus": "partial",
    "issue": 113,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Nexus localiza/instala versão compatível e negocia capacidades",
     "Maestro permanece standalone sem dependência do Nexus"
@@ -610,6 +652,7 @@
    "sourceStatus": "partial",
    "issue": 113,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Migrar IntelligenceMemory com backup, dry-run, idempotência e rollback",
     "Nexus retém somente checkpoint operacional e nunca segunda store semântica"
@@ -624,6 +667,7 @@
    "sourceStatus": "partial",
    "issue": 113,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Cada Run tem executor único NEXUS ou MAESTRO",
     "Retry, cancel e terminal input seguem o owner; não há duplo supervisor"
@@ -638,6 +682,7 @@
    "sourceStatus": "partial",
    "issue": 102,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Concluir Composer/Flow e tours por componente reutilizável",
     "E2E na distribuição final, PT/EN/ES, teclado e cenários reais"
@@ -652,6 +697,7 @@
    "sourceStatus": "partial",
    "issue": 94,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Listar e visualizar imagens, vídeo e arquivos gerados no host",
     "ACL por projeto, MIME/hash, TTL e não expor filesystem indiscriminadamente"
@@ -666,6 +712,7 @@
    "sourceStatus": "missing",
    "issue": 81,
    "releaseRequired": true,
+   "requiredClients": 2,
    "acceptance": [
     "Dois clientes simultâneos e dois Agents em worktrees distintos",
     "Leases, conflitos, handoffs, browsers e reconexões autenticados"
@@ -680,6 +727,7 @@
    "sourceStatus": "missing",
    "issue": 27,
    "releaseRequired": true,
+   "requiredClients": 1,
    "acceptance": [
     "Linux/Windows/macOS mesma revisão em release candidate",
     "PTY/ConPTY, Browser, Desktop, HUD, install e artefatos rastreáveis"
