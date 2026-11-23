@@ -826,29 +826,33 @@
      "acceptanceIndex": 0,
      "acceptance": "Diagnosticar lease, PTY, heartbeat, PID e provider capability",
      "sourceRefs": [
-      "internal/control/registry/lifecycle.go"
+      "internal/control/registry/lifecycle.go",
+      "internal/doctor/terminal.go"
      ],
      "testRefs": [
-      "internal/control/registry/lifecycle_test.go"
+      "internal/control/registry/lifecycle_test.go",
+      "internal/doctor/terminal_test.go"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: lifecycle_test.go cobre apenas transicoes de estado e idempotencia; nao ha assertion sobre diagnostico de lease, PTY, heartbeat, PID ou capability de provider.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: DiagnoseRuntimeHealth devolve lease, PTY, heartbeat, PID e capability de provider como sinais separados com status OK/UNKNOWN/ERROR e detalhe de evidencia (TestRuntimeHealthReportsFreshContinuityLease, TestRuntimeHealthReportsStaleContinuityLeaseHeartbeat, TestRuntimeHealthReportsErrorsWithoutClaimingRecovery, TestRuntimeHealthReportsUnknownForUnprovableSignals); o relatorio de doctor expoe os sinais por runtime (TestBuildTerminalReportExposesRuntimeHealthSignals).",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
      "acceptance": "Erros e UNKNOWN visíveis sem afirmar recuperação falsa",
      "sourceRefs": [
-      "internal/control/registry/lifecycle.go"
+      "internal/control/registry/lifecycle.go",
+      "internal/doctor/terminal.go"
      ],
      "testRefs": [
-      "internal/control/registry/lifecycle_test.go"
+      "internal/control/registry/lifecycle_test.go",
+      "internal/doctor/terminal_test.go"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: nenhum teste referenciado expoe erros ou UNKNOWN ao usuario sem afirmar recuperacao falsa; lifecycle_test.go limita-se a transicoes de estado.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: erros e UNKNOWN ficam visiveis por sinal e nenhum detalhe afirma recuperacao (TestRuntimeHealthReportsErrorsWithoutClaimingRecovery, TestRuntimeHealthReportsUnknownForUnprovableSignals, TestBuildTerminalReportExposesRuntimeHealthSignals); a recuperacao continua sendo acao explicita do operador.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
