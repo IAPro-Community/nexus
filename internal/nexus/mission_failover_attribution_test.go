@@ -14,6 +14,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 	profilepkg "github.com/IAPro-Community/nexus/internal/profile"
+	"github.com/IAPro-Community/nexus/internal/testutil"
 )
 
 // TestMissionFailoverCostObservationAttributionFollowsExecutingRuntime pins the
@@ -58,24 +59,9 @@ func TestMissionFailoverCostObservationAttributionFollowsExecutingRuntime(t *tes
 	// The quota-a profile fails its turn with the production 429 surface; the
 	// quota-b profile completes its turn. Both are the same fixture CLI; the
 	// provider home distinguishes the accounts.
-	fixtureCLI := "#!/bin/sh\n" +
-		"if [ \"$1\" = \"--version\" ]; then printf '%s\\n' 'codex fixture 1.0'; exit 0; fi\n" +
-		"case \"$CODEX_HOME\" in\n" +
-		"  *profiles/codex/quota-a*)\n" +
-		"    printf '%s\\n' 'Error: 429 Too Many Requests. Rate limit reached. Usage limit reached for profile quota-a.'\n" +
-		"    sleep 1\n" +
-		"    exit 1\n" +
-		"    ;;\n" +
-		"  *)\n" +
-		"    printf '%s\\n' 'FIXTURE_FAILOVER_TURN_COMPLETED'\n" +
-		"    sleep 1\n" +
-		"    exit 0\n" +
-		"    ;;\n" +
-		"esac\n"
-	if err := os.WriteFile(filepath.Join(binDir, "codex"), []byte(fixtureCLI), 0o700); err != nil {
-		t.Fatalf("write fake provider CLI: %v", err)
-	}
-	if resolved, err := exec.LookPath("codex"); err != nil || resolved != filepath.Join(binDir, "codex") {
+	fixturePath := testutil.WriteSpecBinary(t, binDir, "codex")
+	t.Setenv("FIXTURE_CLI_SPEC", `{"version":"codex fixture 1.0","responses":[{"when_env_contains":[["CODEX_HOME","profiles/codex/quota-a"]],"stdout":["Error: 429 Too Many Requests. Rate limit reached. Usage limit reached for profile quota-a."],"exit_code":1,"sleep_ms":1000}],"stdout":["FIXTURE_FAILOVER_TURN_COMPLETED"],"sleep_ms":1000}`)
+	if resolved, err := exec.LookPath("codex"); err != nil || resolved != fixturePath {
 		t.Fatalf("runtime would not resolve to the isolated fixture CLI: path=%q err=%v", resolved, err)
 	}
 
