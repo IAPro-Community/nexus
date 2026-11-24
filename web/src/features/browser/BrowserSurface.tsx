@@ -1633,17 +1633,19 @@ export const BrowserSurface: React.FC<{
               >
                 {t('browserDesignInspect.tabAgents', { count: grants.length })}
               </button>
-              {VISUAL_DIFF_ENABLED && <button
-                type="button"
-                role="tab"
-                aria-selected={drawerTab === 'diff'}
-                className={styles.drawerTab}
-                data-active={drawerTab === 'diff'}
-                data-tour="browser-visual-diff-tab"
-                onClick={() => setDrawerTab('diff')}
-              >
-                {t('browserVisualDiff.tabLabel')}
-              </button>}
+              {VISUAL_DIFF_ENABLED && (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={drawerTab === 'diff'}
+                  className={styles.drawerTab}
+                  data-active={drawerTab === 'diff'}
+                  data-tour="browser-visual-diff-tab"
+                  onClick={() => setDrawerTab('diff')}
+                >
+                  {t('browserVisualDiff.tabLabel')}
+                </button>
+              )}
             </div>
             <div className={styles.drawerActions}>
               {drawerTab === 'inspector' && (
