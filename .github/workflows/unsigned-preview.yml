@@ -252,7 +252,7 @@ jobs:
   hosted-matrix-seal:
     name: Hosted cross-platform matrix seal
     needs: [linux, windows, macos]
-    if: always()
+    if: always() && (github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[unsigned-preview]'))
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
