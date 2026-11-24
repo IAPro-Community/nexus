@@ -1,3 +1,12 @@
+## 2026-11-24 — Lane A fecha `mission-observatory`: ownership e leitura real no E2E
+
+- **Ownership** — `MissionRun` expõe `execution_owner`; `FlowRunSurface` deriva mutabilidade desse campo e bloqueia planning review, resolução de intervenção, pause, take-control, resume e cancelamento para runs MAESTRO. Runner/store já recusam takeover local de run MAESTRO e preservam owner imutável.
+- **E2E** — `web/scripts/e2e-mission-attention.mjs` PASS: Agent real via API, Mission MAESTRO read-only, dependência, capsule, receipt e arquivo provado visíveis; zero controles mutáveis; navegação abre o terminal do Agent no mesmo workspace.
+- **Contrato** — evidence map com 2 critérios `audited` (`00fa18de`); contrato `mission-observatory` de `partial` para `present`, `verification: pending` (`b878bdc8`); doc de aceite sincronizado.
+- **Verificação** — `GOCACHE=/tmp/opencode/go-build GOFLAGS=-mod=readonly npm --prefix web run test:e2e:mission-attention` PASS; typecheck PASS; `verify-agent-workspace-evidence-map.mjs` exit 0; testes do mapa 4/4; `verify-agent-workspace-v1.mjs` exit 0.
+- **CI anterior** — SHA `714c8dae`: Linux E2E e smoke verdes; registro `workspace-acceptance-linux-amd64.json` exato com 47 passed, 1 blocked (`cross-platform-exact-sha`), 0 failed. `ci.yml` falhou somente no lint de `terminalVoice.ts`; corrigido em `bb3f9d5a`.
+- **Estado** — 33 das 48 capabilities com todos os critérios `audited` (68/97 cláusulas); contrato 35 `present` / 12 `partial` / 1 `missing`, 0 certificadas. Release **NO_GO**.
+
 ## 2026-11-24 — Lane A fecha `design-inspect`: inspeção sanitizada e Agent explícito
 
 - **E2E real** — `web/scripts/e2e-browser-design-inspect.mjs` PASS: inspeção de elemento DOM/estilos/crop mascarado é read-only; Activate chama somente o seletor selecionado; envio gera uma única entrega ao Agent escolhido, `start_if_needed=false` e zero chamadas de start.

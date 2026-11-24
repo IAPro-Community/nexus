@@ -1,3 +1,13 @@
+## 2026-11-24 — Lane A `mission-observatory` auditada
+
+- SHA local: `release/v1.0.0` @ `bb3f9d5a` (owner `5d83fc40`, E2E `410e626f`, evidence map `00fa18de`, contrato `b878bdc8`, lint `bb3f9d5a`); `origin/release/v1.0.0` = `714c8dae` até o push desta linha. Responsável: orquestrador. Ambiente: Linux + Chromium local.
+- PASS (`mission-observatory`) — `GOCACHE=/tmp/opencode/go-build GOFLAGS=-mod=readonly npm --prefix web run test:e2e:mission-attention` PASS: Mission MAESTRO read-only, zero ações mutáveis, dependência/capsule/receipt/arquivo visíveis e navegação ao terminal do Agent no mesmo workspace. `npm --prefix web run typecheck` PASS.
+- PASS (ownership backend) — `GOCACHE=/tmp/opencode/go-build GOFLAGS=-mod=readonly go test ./internal/nexus/runner ./internal/nexus/store -run 'TestMissionRunnerRefusesMaestroOwnedRunForEveryLocalMutation|TestCoordinationFailsClosedForUnknownExecutionOwner|TestExecutionOwnerIsImmutableAndDefaultsToNexus|TestMissionRunExecutionOwnerPersistsAndIsImmutable' -count=1` PASS.
+- PASS (contrato) — evidence map com 2 critérios `audited`; contrato de `partial` para `present`, `verification: pending`; doc de aceite sincronizado. `verify-agent-workspace-evidence-map.mjs` exit 0 (48/97, 0 certificadas); testes do mapa 4/4; `verify-agent-workspace-v1.mjs` exit 0. Estado: 33 capabilities com todos os critérios `audited` (68/97 cláusulas); contrato 35 `present` / 12 `partial` / 1 `missing`.
+- PASS (registro Linux exato anterior) — SHA `714c8dae87d8f124fe513976dfb1e2131098a503`: `workspace-acceptance-linux-amd64.json` com 47 `passed`, 1 `blocked` (`cross-platform-exact-sha`), 0 `failed`; Linux E2E e smoke verdes.
+- FIX (CI anterior) — `ci.yml` `45325848046` falhou somente em ESLint `no-control-regex` em `web/src/features/voice/terminalVoice.ts`; `bb3f9d5a` substitui regex por inspeção de code point, preserva negação de controles, e lint agora passa com 1 warning preexistente.
+- PENDENTE — push do lote e CI do SHA novo; `workspace-acceptance-linux-amd64.json` desse SHA exato ainda não coletado; aceite externo por capability e lanes B–F dependem do maestro. Release **NO_GO**.
+
 ## 2026-11-24 — Lane A `design-inspect` auditada
 
 - SHA local: `release/v1.0.0` @ `d8f1a664` (evidence map `87a8f8ea`, contrato `d8f1a664`). Responsável: orquestrador. Ambiente: Linux + Chromium local.
