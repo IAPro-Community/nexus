@@ -549,8 +549,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Ação explícita de pausar/retomar rolagem ao vivo implementada; bytes continuam sendo processados e a posição visível é preservada. E2E Playwright abriu Agent persistido via API real, exercitou o AgentTerminal/xterm e validou pause/resume; o WebSocket provider foi mockado. Ainda falta provar o pacote distribuído no SHA publicado e obter inspeção humana da UX.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: acao explicita de pausar/retomar rolagem ao vivo; bytes continuam sendo processados e a posicao visivel e preservada (terminalOutput.test.ts, e2e-agent-terminal-follow.mjs). E2E Playwright abriu Agent persistido via API real, exercitou o AgentTerminal/xterm e validou pause preservando a posicao e resume seguindo a saida viva; o WebSocket provider foi mockado. Falta prova do pacote distribuido no SHA publicado e inspecao humana da UX.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
@@ -562,12 +562,13 @@
      "testRefs": [
       "web/src/nexus/agentTerminalModel.test.ts",
       "internal/control/host/host_test.go",
-      "web/scripts/e2e-agent-terminal-follow.mjs"
+      "web/scripts/e2e-agent-terminal-follow.mjs",
+      "internal/control/web/terminal_handoff_authenticated_test.go"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "E2E Playwright com servidor Nexus e Agent criado pela API prova que attach e tecla em VIEW_ONLY não emitem lease/input, botão explícito envia exatamente um lease_acquire, CONTROL envia input e revoke/reconnect não reacquire. WebSocket foi simulado no browser, portanto ainda falta teste do broker/host real para o mesmo ciclo de attach, lease e revoke; capability pendente.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: e2e-agent-terminal-follow.mjs afirma attach e tecla em VIEW_ONLY sem lease/input, exatamente um lease_acquire pelo botao explicito, input so com CONTROL e reconnect sem reacquire; agentTerminalModel.test.ts fixa o contrato de lease do cliente. terminal_handoff_authenticated_test.go exercita broker e SessionHost reais: attach de dois clientes autenticados, lease transferido com takeover explicito, input do cliente read-only nunca entregue ao processo, revogacao de sessao derrubando o socket e liberando o lease para o cliente restante, com trilha duravel por ator e conexao. Falta aceite externo no SHA publicado.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
