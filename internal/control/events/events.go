@@ -70,6 +70,58 @@ type Event struct {
 	AccountScope  model.AccountScope `json:"account_scope,omitempty"`
 }
 
+// Producer families used as the durable timeline source. The source names the
+// subsystem that owns the fact, not a guess about causality.
+const (
+	SourceProcess      = "process"
+	SourceRuntime      = "runtime"
+	SourceSession      = "session"
+	SourceTerminal     = "terminal"
+	SourceTool         = "tool"
+	SourceApproval     = "approval"
+	SourceQuota        = "quota"
+	SourceHandoff      = "handoff"
+	SourceMission      = "mission"
+	SourceIntervention = "intervention"
+	SourceError        = "error"
+)
+
+// Source returns the producer family of an event type. Producers may override
+// the derived value per event through Data["source"].
+func (t EventType) Source() string {
+	switch t {
+	case EventProcessStarted, EventProcessExited:
+		return SourceProcess
+	case EventRuntimeStarted, EventRuntimeStopped, EventRuntimeFailed, EventRuntimeReplaced:
+		return SourceRuntime
+	case EventSessionStarted, EventSessionResumed, EventSessionEnded,
+		EventAgentWorking, EventAgentWaiting:
+		return SourceSession
+	case EventTerminalLeaseGranted, EventTerminalLeaseRevoked, EventTerminalLeaseReleased:
+		return SourceTerminal
+	case EventToolStarted, EventToolFinished:
+		return SourceTool
+	case EventApprovalRequired, EventApproved, EventRejected:
+		return SourceApproval
+	case EventRateLimited, EventQuotaLow, EventQuotaExhausted,
+		EventQuotaFailoverRequested, EventQuotaFailoverCompleted, EventQuotaFailoverFailed,
+		EventQuotaMonitorDegraded, EventQuotaMonitorRecovered:
+		return SourceQuota
+	case EventHandoffCompleted:
+		return SourceHandoff
+	case EventMissionStarted, EventMissionStepStarted, EventMissionStepCompleted,
+		EventMissionPaused, EventMissionResumed, EventMissionCanceled,
+		EventMissionCompleted, EventMissionFailed, EventMissionResumeRequested:
+		return SourceMission
+	case EventHumanInterventionCreated, EventHumanInterventionResolved, EventHumanInterventionStaleRejected:
+		return SourceIntervention
+	case EventError:
+		return SourceError
+	default:
+		return ""
+	}
+}
+
 // WithAccountScope attaches the verified account boundary to an event without
 // changing the compatibility constructor used by older producers.
 func (e Event) WithAccountScope(scope model.AccountScope) Event {
