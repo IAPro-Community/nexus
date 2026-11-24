@@ -11,6 +11,29 @@ const directorSource = readFileSync(
   join(dirname(fileURLToPath(import.meta.url)), 'DirectorAgentPanel.tsx'),
   'utf8',
 );
+const dataSource = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), '../../app/useNexusData.ts'),
+  'utf8',
+);
+
+describe('Agent command center contract', () => {
+  it('lists every Agent of the selected project and renders observed status', () => {
+    expect(dataSource).toContain('nexus.listAgents(projectId)');
+    expect(source).toContain('data-agent-id={agent.id}');
+    expect(source).toContain(
+      '<Badge tone={tone(agent.status)}>{translateStatus(agent.status)}</Badge>',
+    );
+  });
+
+  it('derives the card status only from the structured Agent field', () => {
+    expect(source).not.toMatch(/output|stdout|last_message|attention_reason/i);
+  });
+
+  it('selects the exact Agent directly for terminal and Director', () => {
+    expect(source).toContain('onClick={() => onTerminal(agent)}');
+    expect(source).toContain('onClick={() => setDirectorAgent(agent)}');
+  });
+});
 
 describe('Agents grouping surface contract', () => {
   it('exposes persistent task, worktree, and feature groups in a scoped UI', () => {
