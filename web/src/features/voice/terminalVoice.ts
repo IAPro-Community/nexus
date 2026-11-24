@@ -19,7 +19,13 @@ export type TerminalVoiceTarget = {
 const SOCKET_OPEN = 1;
 
 /** Control characters would submit the turn (CR/LF) or forge PTY sequences. */
-const CONTROL_CHARACTER = /[\u0000-\u001f\u007f]/;
+function containsControlCharacter(text: string): boolean {
+  for (const character of text) {
+    const code = character.charCodeAt(0);
+    if (code <= 0x1f || code === 0x7f) return true;
+  }
+  return false;
+}
 
 function resolveVoiceTarget(
   socket: TerminalVoiceSocket,
@@ -67,7 +73,7 @@ export function sendVoiceTranscriptToTerminal(
   if (!destination.runtimeId && !destination.agentId) {
     throw new Error('Destino de voz não identificado.');
   }
-  if (CONTROL_CHARACTER.test(text)) {
+  if (containsControlCharacter(text)) {
     throw new Error('Transcrição de voz contém caracteres de controle.');
   }
 
