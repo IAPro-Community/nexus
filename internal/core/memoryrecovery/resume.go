@@ -57,9 +57,5 @@ func Resume(dataDir, operationID string) (*Journal, error) {
 	if last.Stage != NeedsRecovery {
 		return nil, fmt.Errorf("recovery operation stage %s does not allow recovery resume", last.Stage)
 	}
-	handle, err := os.Open(lockPath)
-	if err != nil {
-		return nil, err
-	}
-	return &Journal{directory: opDir, lockPath: lockPath, lock: handle, last: last}, nil
+	return &Journal{directory: opDir, lockPath: lockPath, active: true, last: last}, nil
 }

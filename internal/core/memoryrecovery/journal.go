@@ -72,7 +72,7 @@ type Inspection struct {
 type Journal struct {
 	directory string
 	lockPath  string
-	lock      *os.File
+	active    bool
 	last      Event
 }
 
@@ -200,7 +200,7 @@ func Begin(dataDir, projectID, backupPath, backupSHA, sourceSHA string) (*Journa
 		_ = file.Close()
 		return nil, fmt.Errorf("recovery operation directory durability unverified: %w", err)
 	}
-	journal := &Journal{directory: opDir, lockPath: lockPath, lock: file}
+	journal := &Journal{directory: opDir, lockPath: lockPath, active: true}
 	first := Event{Version: 1, OperationID: id, ProjectID: projectID,
 		BackupSHA256: backupSHA, SourceDigestSHA256: sourceSHA,
 		Stage: Prepared, Sequence: 0, Timestamp: time.Now().UTC()}
@@ -210,11 +210,16 @@ func Begin(dataDir, projectID, backupPath, backupSHA, sourceSHA string) (*Journa
 		_ = file.Close()
 		return nil, err
 	}
+	// The lock file is the fence (created with O_EXCL), not the handle. Closing
+	// it now keeps the fence and lets Close remove the file on Windows too.
+	if err := file.Close(); err != nil {
+		return nil, fmt.Errorf("release recovery lock handle: %w", err)
+	}
 	return journal, nil
 }
 
 func (j *Journal) Advance(next Stage) error {
-	if j == nil || j.lock == nil {
+	if j == nil || !j.active {
 		return errors.New("recovery journal session is not active")
 	}
 	if !allowed(j.last.Stage, next) {
@@ -230,18 +235,14 @@ func (j *Journal) Advance(next Stage) error {
 }
 
 func (j *Journal) Close() error {
-	if j == nil || j.lock == nil {
+	if j == nil || !j.active {
 		return nil
 	}
-	err := j.lock.Close()
-	j.lock = nil
+	j.active = false
 	// Never remove a lock after a partially applied operation or failed
 	// journal write. This intentionally blocks any new restore until reviewed.
 	if !terminal(j.last.Stage) {
 		return errors.New("unfinished recovery journal; lock retained for review")
-	}
-	if err != nil {
-		return err
 	}
 	lockInfo, err := os.Lstat(j.lockPath)
 	if err != nil || !lockInfo.Mode().IsRegular() {
