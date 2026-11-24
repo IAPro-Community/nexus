@@ -3,7 +3,9 @@ import {
   ARRANGE_MENU_PRESETS,
   WORKSPACE_RECIPES,
   arrangeByPreset,
+  deriveArrangeActivity,
   resolveArrangePreset,
+  suggestArrangePreset,
 } from './arrangePresets';
 
 describe('arrangeByPreset', () => {
@@ -24,6 +26,28 @@ describe('arrangeByPreset', () => {
       'Principal + fila',
       'Só a ativa',
     ]);
+  });
+
+  it('suggests layouts from current activity without creating sessions', () => {
+    expect(suggestArrangePreset('browser', 2)).toBe('two-columns');
+    expect(suggestArrangePreset('terminal', 3)).toBe('terminal-focus');
+    expect(suggestArrangePreset('review', 3)).toBe('three-columns');
+    expect(suggestArrangePreset('mixed', 2)).toBe('two-columns');
+    expect(suggestArrangePreset('mixed', 3)).toBe('three-columns');
+    expect(suggestArrangePreset('mixed', 1)).toBe('focus-mode');
+  });
+
+  it('derives activity from stable surface identity', () => {
+    expect(deriveArrangeActivity(['view:browser:project:1'], 'view:browser:project:1')).toBe(
+      'browser',
+    );
+    expect(
+      deriveArrangeActivity(['view:agent:1:terminal'], 'view:agent:1:terminal'),
+    ).toBe('terminal');
+    expect(
+      deriveArrangeActivity(['view:agent:1:agent-config'], 'view:agent:1:agent-config'),
+    ).toBe('review');
+    expect(deriveArrangeActivity(['view:a', 'view:b'])).toBe('mixed');
   });
 
   it('offers task recipes without creating sessions or inventing new layouts', () => {

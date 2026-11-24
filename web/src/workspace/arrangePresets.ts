@@ -14,6 +14,31 @@ export type ArrangeMenuPreset =
 export type ArrangePresetName =
   ArrangeMenuPreset | 'terminal-chat' | 'terminal-flow' | 'agents' | 'restore-default';
 
+export type ArrangeActivity = 'browser' | 'terminal' | 'review' | 'mixed';
+
+export function suggestArrangePreset(
+  activity: ArrangeActivity,
+  visibleSurfaceCount: number,
+): ArrangeMenuPreset {
+  const count = Math.max(0, visibleSurfaceCount);
+  if (count <= 1) return 'focus-mode';
+  if (activity === 'browser') return 'two-columns';
+  if (activity === 'terminal') return 'terminal-focus';
+  if (activity === 'review') return count >= 3 ? 'three-columns' : 'two-columns';
+  return count >= 3 ? 'three-columns' : 'two-columns';
+}
+
+export function deriveArrangeActivity(
+  viewIds: string[],
+  activeViewId?: string,
+): ArrangeActivity {
+  const active = activeViewId || '';
+  if (active.includes(':browser:')) return 'browser';
+  if (active.endsWith(':terminal') || active.includes(':shell:')) return 'terminal';
+  if (active.includes(':agent-config')) return 'review';
+  return 'mixed';
+}
+
 export const ARRANGE_MENU_PRESETS: ReadonlyArray<{
   id: ArrangeMenuPreset;
   label: string;
@@ -135,8 +160,12 @@ export function arrangeByPreset(
   const resolved = resolveArrangePreset(preset);
 
   switch (resolved) {
-    case 'automatic':
-      return arrangeSmart(bounds, prioritized);
+    case 'automatic': {
+      const activity = deriveArrangeActivity(prioritized, activeViewId);
+      const suggested = suggestArrangePreset(activity, prioritized.length);
+      if (suggested === 'automatic') return arrangeSmart(bounds, prioritized);
+      return arrangeByPreset(suggested, bounds, prioritized, activeViewId);
+    }
 
     case 'focus-mode': {
       return [
