@@ -40,6 +40,10 @@ jobs. New plan, Composer and Mission mutations are rejected with an
 actionable error; the database and existing files are never deleted.
 Basic terminal launch and Browser sessions are unaffected.
 
+The Nexus startup also skips Mission worker recovery and schedule-loop startup
+unless the global and MISSIONS flags are enabled. Restart the server when
+changing environment flags. Existing data is not deleted.
+
 The legacy 48-capability acceptance matrix is **not** automatically revised
 by these flags. The release owner must separately approve a revised product
 contract and exact-SHA validation. Advanced features require regression tests

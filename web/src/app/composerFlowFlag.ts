@@ -21,7 +21,7 @@ export function isExperimentalComposerFlowSurface(type: string): boolean {
  * All Composer, Flow and Mission surfaces are disabled by default,
  * including deep links to historic runs; their data is not deleted.
  */
-export function isExperimentalRouteBlocked(type: string, subId?: string): boolean {
+export function isExperimentalRouteBlocked(type: string, _subId?: string): boolean {
   if (!isExperimentalComposerFlowSurface(type)) return false;
   return true;
 }
