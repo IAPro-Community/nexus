@@ -1,3 +1,12 @@
+## 2026-11-24 — Lane A: `mission-observatory` auditada — ativo
+
+- **Lane A — estado** — 33 das 48 capabilities com todos os critérios `audited` (68/97 cláusulas), 15 ainda com cláusulas `partial`, 0 certificadas. Contrato: 35 `present`, 12 `partial`, 1 `missing`. Nesta onda: `mission-observatory` — Mission MAESTRO fica read-only no Nexus; dependências, agentes, capsules, receipts e navegação ao terminal permanecem observáveis.
+- **Provas** — `GOCACHE=/tmp/opencode/go-build GOFLAGS=-mod=readonly npm --prefix web run test:e2e:mission-attention` PASS; typecheck PASS; ownership Go focado PASS; `verify-agent-workspace-evidence-map.mjs` exit 0; testes do mapa 4/4; `verify-agent-workspace-v1.mjs` exit 0.
+- **CI anterior** — SHA `714c8dae`: Linux E2E e smoke verdes; registro `workspace-acceptance-linux-amd64.json` exato com 47 passed, 1 blocked (`cross-platform-exact-sha`), 0 failed. `ci.yml` falhou só no lint de `terminalVoice.ts`, corrigido em `bb3f9d5a`.
+- **Estado** — local `228cfd63`; `origin/release/v1.0.0` = `714c8dae` até o push desta linha; tag `v1.0.0` intacta (`d89797cd`), `v1.0.1` não criada. Release **NO_GO** até prova externa por capacidade no SHA exato.
+- **Próximo** — push e acompanhamento do CI; coletar `workspace-acceptance-linux-amd64.json`; continuar Lane A por capability `partial` com gap local comprovável; Lane C aguarda aceite visual do owner em HUD+Site.
+- **Bloqueios que exigem o maestro** — aceite visual NEX em HUD+Site, runner Windows/macOS nativo e chaves de assinatura, credencial do Named Tunnel, quota real AGY, hardware físico, `memory-migrate apply` com Bridge ativo.
+
 ## 2026-11-24 — Lane A: `design-inspect` auditada — ativo
 
 - **Lane A — estado** — 32 das 48 capabilities com todos os critérios `audited` (66/97 cláusulas), 16 ainda com cláusulas `partial`, 0 certificadas. Contrato: 34 `present`, 13 `partial`, 1 `missing`. Nesta onda: `design-inspect` — DOM/estilos/crop sanitizado, Activate read-only e entrega apenas ao Agent explicitamente escolhido, sem auto-start.

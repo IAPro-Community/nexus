@@ -1,3 +1,12 @@
+## Handoff 2026-11-24 — Lane A fecha `mission-observatory`; owner MAESTRO read-only
+
+- **Estado do Git** — `release/v1.0.0` local @ `bb3f9d5a` (owner `5d83fc40`, E2E `410e626f`, evidence map `00fa18de`, contrato `b878bdc8`, lint `bb3f9d5a`); `origin/release/v1.0.0` = `714c8dae` até o push desta linha. Tag `v1.0.0` intacta (`d89797cd`); `v1.0.1` não criada.
+- **Lane A** — 33 das 48 capabilities com todos os critérios `audited` (68/97 cláusulas); contrato 35 `present` / 12 `partial` / 1 `missing`, 0 certificadas. Fechada nesta onda: `mission-observatory` — Mission MAESTRO fica read-only no Nexus; dependências, agentes, capsules, receipts e navegação ao terminal permanecem observáveis.
+- **Provas locais** — `GOCACHE=/tmp/opencode/go-build GOFLAGS=-mod=readonly npm --prefix web run test:e2e:mission-attention` PASS; typecheck PASS; ownership Go focado PASS; `verify-agent-workspace-evidence-map.mjs` exit 0; testes do mapa 4/4; `verify-agent-workspace-v1.mjs` exit 0.
+- **CI anterior** — SHA `714c8dae`: Linux E2E e smoke verdes; registro `workspace-acceptance-linux-amd64.json` exato com 47 passed, 1 blocked (`cross-platform-exact-sha`), 0 failed. `ci.yml` falhou só no lint de `terminalVoice.ts`, corrigido em `bb3f9d5a`.
+- **Próximo passo** — (1) push do lote e acompanhamento do CI; (2) coletar `workspace-acceptance-linux-amd64.json` do SHA novo; (3) Lane A: próxima capability `partial` com gap local comprovável; (4) Lane C: aceite visual do owner no SHA exato (HUD+Site atômico).
+- **Bloqueios intactos** — aceite visual NEX (9 gates), runner Windows/macOS nativo e chaves ed25519, credencial do Named Tunnel, quota real AGY, hardware físico de 2 dispositivos, `memory-migrate apply` com Bridge ativo. Release **NO_GO**.
+
 ## Handoff 2026-11-24 — Lane A fecha `design-inspect`; inspeção sanitizada e Agent explícito
 
 - **Estado do Git** — `release/v1.0.0` local @ `8c9d3e22` (evidence map `87a8f8ea`, contrato `d8f1a664`, WORKLOG/VERIFY `8c9d3e22`). Tag `v1.0.0` intacta (`d89797cd`); `v1.0.1` não criada.
