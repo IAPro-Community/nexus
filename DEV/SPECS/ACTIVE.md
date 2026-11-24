@@ -1,3 +1,12 @@
+## 2026-11-23 — Lane A: `agent-command-center` auditada — ativo
+
+- **Lane A — estado** — 27 das 48 capabilities com todos os critérios `audited` (59/97 cláusulas), 21 ainda com cláusulas `partial`, 0 certificadas. Contrato: 29 `present`, 18 `partial`, 1 `missing`. Nesta onda: `agent-command-center` — lista de Agents por projeto, cartão por Agent, badge derivado só do estado estruturado, seleção direta do Agent correto e `COMPLETED` como constante tipada (`store.AgentCompleted`).
+- **Provas** — `go test ./internal/nexus -run TestAgentApplicationService -count=1` PASS; `vitest src/features/agents/AgentsSurface.test.ts` 7/7; `npm --prefix web run typecheck` limpo; `prettier --check` limpo; `gofmt -l` vazio; `verify-agent-workspace-evidence-map.mjs` exit 0; `verify-agent-workspace-v1.mjs` exit 0.
+- **CI** — run `45318330774` (`f6e009bb`): `Sanitize`, `Release configuration` e `Documentation visual capture evidence` verdes; `Linux E2E` em execução; `Frontend`/`Security`/`Cross-platform compile guard` em fila; smoke Linux (`45318330751`) verde; `Publish Nexus documentation` (`45318330781`) falhou só no deploy de Pages (race de API); `Windows beta.10` (`45318330753`) vermelho (ConPTY, #216).
+- **Estado** — local `70212f0b`; `origin/release/v1.0.0` = `f6e009bb` (push desta linha pendente); tag `v1.0.0` intacta (`d89797cd`), `v1.0.1` não criada. Release **NO_GO** até prova externa por capacidade no SHA exato.
+- **Próximo** — push e acompanhamento do CI/recaptura; coletar `workspace-acceptance-linux-amd64.json`; continuar Lane A pela próxima capability `partial` com gap local comprovável; Lane C aguarda aceite visual do owner em HUD+Site.
+- **Bloqueios que exigem o maestro** — aceite visual NEX em HUD+Site, runner Windows/macOS nativo e chaves de assinatura, credencial do Named Tunnel, quota real AGY, hardware físico, `memory-migrate apply` com Bridge ativo.
+
 ## 2026-11-23 — Lane A: `remote-companion`, `focus-queue`, `mobile-inbox` e `voice-actions` auditadas — ativo
 
 - **Lane A — estado** — 21 das 48 capacidades com todos os critérios `audited` (50/97 cláusulas), 27 ainda com cláusulas `partial`, 0 certificadas. Contrato: 15 `present`, 31 `partial`, 2 `missing`. Nesta onda: `remote-companion` (revogação imediata e isolada de dispositivo pareado + auditoria das três cláusulas), `focus-queue` (ordenação, dedupe e exclusão de respondidos auditadas), `mobile-inbox` (vínculo de sessão e identidade de episódio) e `voice-actions` (destino obrigatório, lease `CONTROL`, texto sem controles).
