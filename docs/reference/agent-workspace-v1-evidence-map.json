@@ -1672,8 +1672,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: parallel_challenge_test.go exige worktree isolado por participante e rejeita worktree compartilhado; parallel_challenge_mission_test.go afirma mapeamento de MissionRuns concluidos do mesmo plano para participantes e recusa runs incompletos ou de outro plano. Falta execucao real da distribuicao de uma especificacao a multiplos Agents isolados.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: parallel_challenge_test.go exige worktree isolado por participante e rejeita worktree compartilhado; parallel_challenge_mission_test.go agora tambem executa a distribuicao real (TestParallelChallengeDispatchesOneSpecificationToIsolatedAgents): uma mesma especificacao e despachada como dois MissionRuns para dois Agents distintos (lead agent por run), cada um executa de verdade em seu proprio worktree Git isolado (marcador escrito no worktree, verificacao real exec 0, revisao aprovada) e apenas os runs completados alimentam MissionChallengeParticipants/EvaluatePlanChallenge, com ranking deterministico e auto_merge=false.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
