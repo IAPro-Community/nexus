@@ -17,6 +17,7 @@ import {
   Search,
   Send,
   Smartphone,
+  Tablet,
   Unlock,
   X,
 } from 'lucide-react';
@@ -73,6 +74,29 @@ export type NexusBrowserInfo = {
   active_actor?: string;
   last_active_at?: string;
 };
+
+export type BrowserViewportPreset = {
+  id: 'phone' | 'tablet' | 'desktop';
+  width: number;
+  height: number;
+  label: string;
+};
+
+// Device previews share one browser session: the button resizes the same
+// session instead of opening a second one, so focus and cookies survive.
+export const BROWSER_VIEWPORT_PRESETS: readonly BrowserViewportPreset[] = [
+  { id: 'phone', width: 390, height: 844, label: 'Celular (390x844)' },
+  { id: 'tablet', width: 820, height: 1180, label: 'Tablet (820x1180)' },
+  { id: 'desktop', width: 1280, height: 800, label: 'Desktop (1280x800)' },
+];
+
+export function nextBrowserViewport(width?: number, height?: number): BrowserViewportPreset {
+  const current = BROWSER_VIEWPORT_PRESETS.find(
+    (preset) => preset.width === width && preset.height === height,
+  );
+  const index = current ? BROWSER_VIEWPORT_PRESETS.indexOf(current) : -1;
+  return BROWSER_VIEWPORT_PRESETS[(index + 1) % BROWSER_VIEWPORT_PRESETS.length];
+}
 
 export function formatTabTitle(candidate: NexusBrowserInfo): string {
   if (candidate.title && candidate.title.trim()) {
@@ -252,6 +276,11 @@ export const BrowserSurface: React.FC<{
   );
   const [projectAgents, setProjectAgents] = useState<Agent[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState('');
+  const currentViewport =
+    BROWSER_VIEWPORT_PRESETS.find(
+      (preset) => preset.width === session?.width && preset.height === session?.height,
+    ) || BROWSER_VIEWPORT_PRESETS[2];
+  const nextViewport = nextBrowserViewport(session?.width, session?.height);
   const [handoffStatus, setHandoffStatus] = useState('');
   const [zoom, setZoom] = useState(100);
   const [viewMode, setViewMode] = useState<'fit' | 'actual'>('fit');
@@ -1371,20 +1400,22 @@ export const BrowserSurface: React.FC<{
             type="button"
             disabled={!session || busy}
             onClick={() =>
-              void perform(
-                session?.width === 390
-                  ? { type: 'viewport', width: 1280, height: 800 }
-                  : { type: 'viewport', width: 390, height: 844 },
-              )
+              void perform({
+                type: 'viewport',
+                width: nextViewport.width,
+                height: nextViewport.height,
+              })
             }
-            aria-label={
-              session?.width === 390
-                ? 'Alternar para desktop (1280x800)'
-                : 'Alternar para celular (390x844)'
-            }
-            title={session?.width === 390 ? 'Desktop (1280x800)' : 'Celular (390x844)'}
+            aria-label={`Alternar para ${nextViewport.label}`}
+            title={currentViewport.label}
           >
-            {session?.width === 390 ? <Smartphone size={14} /> : <Monitor size={14} />}
+            {currentViewport.id === 'phone' ? (
+              <Smartphone size={14} />
+            ) : currentViewport.id === 'tablet' ? (
+              <Tablet size={14} />
+            ) : (
+              <Monitor size={14} />
+            )}
           </button>
 
           <button

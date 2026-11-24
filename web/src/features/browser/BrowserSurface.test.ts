@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BROWSER_VIEWPORT_PRESETS,
   formatTabTitle,
+  nextBrowserViewport,
   normalizeBrowserURL,
   shouldUserControlTab,
   type NexusBrowserInfo,
@@ -87,6 +89,43 @@ describe('formatTabTitle', () => {
       height: 800,
     };
     expect(formatTabTitle(candidate)).toBe('Aba · abcdef');
+  });
+});
+
+describe('nextBrowserViewport', () => {
+  it('cycles phone, tablet and desktop inside the same browser session', () => {
+    expect(nextBrowserViewport(1280, 800)).toMatchObject({
+      id: 'phone',
+      width: 390,
+      height: 844,
+    });
+    expect(nextBrowserViewport(390, 844)).toMatchObject({
+      id: 'tablet',
+      width: 820,
+      height: 1180,
+    });
+    expect(nextBrowserViewport(820, 1180)).toMatchObject({
+      id: 'desktop',
+      width: 1280,
+      height: 800,
+    });
+  });
+
+  it('starts the cycle from phone when the session has no known viewport', () => {
+    expect(nextBrowserViewport(undefined, undefined)).toMatchObject({ id: 'phone' });
+  });
+
+  it('keeps every device preview with an explicit label and size', () => {
+    expect(BROWSER_VIEWPORT_PRESETS.map((preset) => preset.id)).toEqual([
+      'phone',
+      'tablet',
+      'desktop',
+    ]);
+    for (const preset of BROWSER_VIEWPORT_PRESETS) {
+      expect(preset.width).toBeGreaterThan(0);
+      expect(preset.height).toBeGreaterThan(0);
+      expect(preset.label).toContain(`${preset.width}x${preset.height}`);
+    }
   });
 });
 
