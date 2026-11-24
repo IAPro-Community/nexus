@@ -709,7 +709,7 @@
    "name": "Two-Client Real Agent Homologation",
    "category": "foundation",
    "owner": "NEXUS",
-   "sourceStatus": "missing",
+   "sourceStatus": "present",
    "issue": 81,
    "releaseRequired": true,
    "requiredClients": 2,

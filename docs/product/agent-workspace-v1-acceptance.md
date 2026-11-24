@@ -106,7 +106,7 @@ Legenda: **present** indica código-base localizado; **partial** significa lacun
 | `single-execution-owner` | Single Execution Owner | present | [#113](https://github.com/IAPro-Community/nexus/issues/113) | Cada Run tem executor único NEXUS ou MAESTRO; Retry, cancel e terminal input seguem o owner; não há duplo supervisor |
 | `composer-flow-onboarding` | Composer, Flow e tour da release | partial | [#102](https://github.com/IAPro-Community/nexus/issues/102) | Concluir Composer/Flow e tours por componente reutilizável; E2E na distribuição final, PT/EN/ES, teclado e cenários reais |
 | `remote-generated-outputs` | Remote Generated Outputs | present | [#94](https://github.com/IAPro-Community/nexus/issues/94) | Listar e visualizar imagens, vídeo e arquivos gerados no host; ACL por projeto, MIME/hash, TTL e não expor filesystem indiscriminadamente |
-| `two-client-real-e2e` | Two-Client Real Agent Homologation | missing | [#81](https://github.com/IAPro-Community/nexus/issues/81) | Dois clientes simultâneos e dois Agents em worktrees distintos; Leases, conflitos, handoffs, browsers e reconexões autenticados |
+| `two-client-real-e2e` | Two-Client Real Agent Homologation | present | [#81](https://github.com/IAPro-Community/nexus/issues/81) | Dois clientes simultâneos e dois Agents em worktrees distintos; Leases, conflitos, handoffs, browsers e reconexões autenticados |
 | `cross-platform-exact-sha` | Cross-Platform Exact-SHA Certification | missing | [#27](https://github.com/IAPro-Community/nexus/issues/27) | Linux/Windows/macOS mesma revisão em release candidate; PTY/ConPTY, Browser, Desktop, HUD, install e artefatos rastreáveis |
 
 ## Integração com o processo de distribuição
