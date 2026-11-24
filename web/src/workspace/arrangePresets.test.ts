@@ -41,12 +41,12 @@ describe('arrangeByPreset', () => {
     expect(deriveArrangeActivity(['view:browser:project:1'], 'view:browser:project:1')).toBe(
       'browser',
     );
-    expect(
-      deriveArrangeActivity(['view:agent:1:terminal'], 'view:agent:1:terminal'),
-    ).toBe('terminal');
-    expect(
-      deriveArrangeActivity(['view:agent:1:agent-config'], 'view:agent:1:agent-config'),
-    ).toBe('review');
+    expect(deriveArrangeActivity(['view:agent:1:terminal'], 'view:agent:1:terminal')).toBe(
+      'terminal',
+    );
+    expect(deriveArrangeActivity(['view:agent:1:agent-config'], 'view:agent:1:agent-config')).toBe(
+      'review',
+    );
     expect(deriveArrangeActivity(['view:a', 'view:b'])).toBe('mixed');
   });
 

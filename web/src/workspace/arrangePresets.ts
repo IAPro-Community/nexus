@@ -28,10 +28,7 @@ export function suggestArrangePreset(
   return count >= 3 ? 'three-columns' : 'two-columns';
 }
 
-export function deriveArrangeActivity(
-  viewIds: string[],
-  activeViewId?: string,
-): ArrangeActivity {
+export function deriveArrangeActivity(viewIds: string[], activeViewId?: string): ArrangeActivity {
   const active = activeViewId || '';
   if (active.includes(':browser:')) return 'browser';
   if (active.endsWith(':terminal') || active.includes(':shell:')) return 'terminal';
