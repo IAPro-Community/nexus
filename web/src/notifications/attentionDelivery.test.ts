@@ -4,6 +4,7 @@ import {
   ATTENTION_ATTACH_WS_ROLE,
   ATTENTION_PUSH_AUTHORITY,
   attentionPushKey,
+  attentionResponseEpisodeKey,
   isPtyAttentionFocused,
 } from './attentionDelivery';
 
@@ -41,6 +42,42 @@ describe('attention delivery contract', () => {
     expect(attentionPushKey(original)).not.toBe(attentionPushKey(newEpisode));
     expect(attentionPushKey(original)).not.toBe(attentionPushKey(newGeneration));
     expect(attentionPushKey(original)).not.toContain('\0');
+  });
+
+  it('keeps one response episode identity across reconnects', () => {
+    const runtime = {
+      runtime_id: 'agent-a',
+      attention_reason: 'QUESTION',
+      attention_kind: 'needs_user',
+      attention_fingerprint: 'fp-1',
+      attention_revision: 4,
+      attention_generation: '9007199254740992:42',
+    } as RuntimeSession;
+    const reconnect = { ...runtime };
+    expect(attentionResponseEpisodeKey(runtime)).toBe(attentionResponseEpisodeKey(reconnect));
+    expect(attentionResponseEpisodeKey(runtime)).not.toBe(
+      attentionResponseEpisodeKey({ ...runtime, attention_revision: 5 }),
+    );
+    expect(attentionResponseEpisodeKey(runtime)).not.toBe(
+      attentionResponseEpisodeKey({ ...runtime, runtime_id: 'agent-b' }),
+    );
+    expect(attentionResponseEpisodeKey(runtime)).not.toBe(
+      attentionResponseEpisodeKey({ ...runtime, attention_interaction_id: 'req-2' }),
+    );
+  });
+
+  it('separates structured interactions that share the same provider fingerprint', () => {
+    const first = {
+      runtime_id: 'agent-a',
+      attention_reason: 'APPROVAL',
+      attention_kind: 'needs_user',
+      attention_fingerprint: 'same-fp',
+      attention_revision: 1,
+      attention_generation: '9007199254740992:42',
+      attention_interaction_id: 'req-1',
+    } as RuntimeSession;
+    const second = { ...first, attention_interaction_id: 'req-2' };
+    expect(attentionPushKey(first)).not.toBe(attentionPushKey(second));
   });
 
   it('distinguishes a question from an error with the same provider context', () => {

@@ -1,5 +1,5 @@
 import type { RuntimeSession } from '../types';
-import { attentionToastKey } from '../components/attentionToastModel';
+import { attentionFingerprintOf } from '../app/documentTitle';
 
 /**
  * Attention delivery contract (agents vs terminals).
@@ -36,8 +36,26 @@ export function isPtyAttentionFocused(input: {
 export function attentionPushKey(runtime: RuntimeSession): string {
   // JSON preserves field boundaries and escapes NUL separators for Notification.tag.
   return JSON.stringify([
-    attentionToastKey(runtime),
+    attentionResponseEpisodeKey(runtime),
     runtime.attention_reason || '',
     runtime.attention_kind || '',
+  ]);
+}
+
+/**
+ * Stable identity of one answerable episode across reconnects and clients.
+ * Runtime, process generation, durable revision, fingerprint and provider
+ * interaction id together identify exactly one permitted response.
+ */
+export function attentionResponseEpisodeKey(runtime: RuntimeSession): string {
+  const generation =
+    runtime.attention_generation ||
+    `${runtime.host_generation || 0}:${runtime.provider_generation || 0}`;
+  return JSON.stringify([
+    runtime.runtime_id,
+    generation,
+    runtime.attention_revision || 0,
+    attentionFingerprintOf(runtime),
+    runtime.attention_interaction_id || '',
   ]);
 }
