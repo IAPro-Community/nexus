@@ -1,3 +1,10 @@
+## 2026-11-24 — Matriz hospedada `fa8e13e6`: só a fixture de failover faltava
+
+- **Resultado** — Linux amd64 `passed`, macOS intel `passed`, macOS arm64 `cancelled` pelo runner (sem log disponível), Windows falhou apenas em `internal/nexus` (`TestMissionFailoverCostObservationAttributionFollowsExecutingRuntime`); `internal/control/launcher`, `internal/control/web`, `internal/core/provider/adapters/agy` e `internal/core/provider/adapters/codex` já passaram.
+- **Causa** — no Windows o runtime não expõe o caminho do profile em `CODEX_HOME`; a fixture de failover casava por substring de path e caía na resposta de sucesso.
+- **Correção** — `6e80f6b5`: a fixture passa a casar por `AI_PROFILE=quota-a`, que é o nome canônico do profile em todas as plataformas.
+- **Próximo** — nova matriz hospedada no SHA marcado; com Linux + macOS + Windows verdes, baixar os três registros e rodar `assemble`. Release **NO_GO**.
+
 ## 2026-11-24 — Matriz hospedada: macOS verde, Windows em ajuste final
 
 - **Resultado da matriz `0c0e7586`** — Linux `passed`, macOS arm64 `passed`, macOS intel `passed`; Windows falhou em 5 pacotes: `internal/control/launcher` (modo POSIX do envelope), `internal/control/web` (store aberto no cleanup + caminho do worktree), `internal/core/provider/adapters/agy` (fixture bash), `internal/core/provider/adapters/codex` (URI de arquivo opaca no índice SQLite) e `internal/nexus` (branch 429 da fixture de failover).

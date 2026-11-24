@@ -1,3 +1,11 @@
+## 2026-11-24 — Matriz hospedada `fa8e13e6`: Windows reducede a um único teste
+
+- **PASS (hospedado)** — Linux amd64 `success`, macOS intel `success`; `internal/control/launcher`, `internal/control/web`, `internal/core/provider/adapters/agy` e `internal/core/provider/adapters/codex` sem falhas no Windows.
+- **FAIL (hospedado)** — `internal/nexus`: `TestMissionFailoverCostObservationAttributionFollowsExecutingRuntime`; a fixture de 429 casava por substring de `CODEX_HOME` e no Windows o runtime não publica esse caminho.
+- **CANCELLED (hospedado)** — macOS arm64 `cancelled` pelo runner, sem log; não é falha de código observada.
+- **PASS (local)** — `go test -count=1 -run 'TestMissionFailoverCostObservationAttributionFollowsExecutingRuntime' ./internal/nexus` PASS após casar por `AI_PROFILE`.
+- **PENDENTE** — nova matriz hospedada com os três registros e `assemble`; aceite externo e assinatura continuam com o maestro. Release **NO_GO**.
+
 ## 2026-11-24 — Matriz hospedada `0c0e7586`: macOS verde, Windows corrigido localmente
 
 - **PASS (hospedado)** — Linux amd64, macOS arm64 e macOS intel concluíram `success` no run `45416597909`; o seal falhou apenas porque o Windows não produziu registro.
