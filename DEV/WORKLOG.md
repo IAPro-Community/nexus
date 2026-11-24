@@ -1,3 +1,11 @@
+## 2026-11-23 — Lane A fecha `mobile-inbox`: sessão vinculada e resposta única auditada
+
+- **`mobile-inbox` auditada** — linhas do radar carregam `provider_session_id` e o `response guard` do episódio exato (`1b6405f2`); a identidade do episódio (runtime + generation + revision + fingerprint + interaction id) passou a ser a identidade de push, estável entre reconexões e distinta por interação estruturada (`d49c1beb`); jobs de missão ganharam chave estável sobre mission/project/task/intervention version (`6a5173d0`), usada como chave React (`5abd77a6`).
+- **Contrato** — evidence map com 2 critérios `audited` (`44813009`); contrato `mobile-inbox` de `partial` para `present` com `verification: pending` (`6142f735`); doc de aceite sincronizado no mesmo commit.
+- **Verificação** — `vitest src/app/attentionRadarModel.test.ts` 10/10; `src/notifications/attentionDelivery.test.ts` + radar 17/17; `src/nexus/missionAttentionModel.test.ts` 5/5; `npm --prefix web run typecheck` limpo; `prettier --check` limpo; `node scripts/verify-agent-workspace-evidence-map.mjs` exit 0 (48 capacidades, 97 cláusulas, 95 source+test, 0 certificadas); `node --test scripts/verify-agent-workspace-evidence-map.test.mjs` 4/4; `node scripts/verify-agent-workspace-v1.mjs` exit 0.
+- **CI** — run `45314181244` (`768d6593`): `Frontend` vermelho só no step `Verify documentation` (`visual manifest is stale after visual changes … web/src/features/voice/terminalVoice.ts`), `Linux E2E` em execução, `Windows beta.10` vermelho (runner/ConPTY). Push `5f424f62..44813009` aceito; o workflow de captura sintética precisa recapturar no SHA novo antes de o `Frontend` ficar verde.
+- **Estado** — `origin/release/v1.0.0` = `44813009`; 19 das 48 capacidades com todos os critérios `audited` (45/97 cláusulas); tag `v1.0.0` intacta (`d89797cd`); `v1.0.1` não criada. Release **NO_GO**.
+
 ## 2026-11-23 — Lane A fecha `change-radar`, `consult-another-agent` e `browser-pane`; lease stale do SessionHost corrigido
 
 - **`change-radar` auditado** — `ChangeCollision` ganhou `BaseCommits`, `RequiresHumanReview` e `ChangedHunks` (`503b8a81`); o endpoint agrupa arquivos e hunks por worktree (`ecc72433`); evidence map com 2 critérios `audited` (`8a227e94`). O flake de slug do fixture foi isolado por caso (`b53f280c`).
