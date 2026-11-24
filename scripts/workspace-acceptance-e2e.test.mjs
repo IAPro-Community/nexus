@@ -104,7 +104,24 @@ test("run reports blocked when capability has no executable reference", () => {
     (feature) => feature.id === "cross-platform-exact-sha",
   );
   assert.equal(blocked.status, "blocked");
+  assert.equal(record.status, "blocked");
+});
+
+test("run keeps failed and blocked evidence distinct", () => {
+  const plan = planFor();
+  const failing = new Set(["./internal/control/host"]);
+  const record = runPlan(plan, {
+    runner: ({ args }) => ({
+      status: failing.has(args.at(-1)) ? 1 : 0,
+      stdout: "",
+      stderr: "",
+    }),
+  });
   assert.equal(record.status, "failed");
+  const blocked = record.features.find(
+    (feature) => feature.id === "cross-platform-exact-sha",
+  );
+  assert.equal(blocked.status, "blocked");
 });
 
 test("two-client evidence requires a real two-client test declaration", () => {
@@ -190,10 +207,10 @@ test("native certification closes only the capability it names", () => {
     sourceSha: SHA,
     ciRunId: "123",
   });
-  assert.equal(withoutCertification.features[0].status, "failed");
+  assert.equal(withoutCertification.features[0].status, "blocked");
   assert.deepEqual(withoutCertification.features[0].tests, []);
   for (const platform of PLATFORM_IDS)
-    assert.equal(withoutCertification.platforms[platform].status, "failed");
+    assert.equal(withoutCertification.platforms[platform].status, "blocked");
 
   const withCertification = assembleProof({
     records,
@@ -230,8 +247,8 @@ test("native certification closes only the capability it names", () => {
       },
     ],
   });
-  assert.equal(forged.features[0].status, "failed");
-  assert.equal(forged.platforms["linux-amd64"].status, "failed");
+  assert.equal(forged.features[0].status, "blocked");
+  assert.equal(forged.platforms["linux-amd64"].status, "blocked");
 });
 
 test("native certification cannot approve another capability or another SHA", () => {
@@ -266,7 +283,7 @@ test("native certification cannot approve another capability or another SHA", ()
       },
     ],
   });
-  assert.equal(wrongCapability.features[0].status, "failed");
+  assert.equal(wrongCapability.features[0].status, "blocked");
   const wrongSha = assembleProof({
     records,
     sourceSha: SHA,
@@ -281,7 +298,7 @@ test("native certification cannot approve another capability or another SHA", ()
       },
     ],
   });
-  assert.equal(wrongSha.features[0].status, "failed");
+  assert.equal(wrongSha.features[0].status, "blocked");
 });
 
 test("assemble fails capability when one native platform lacks evidence", () => {

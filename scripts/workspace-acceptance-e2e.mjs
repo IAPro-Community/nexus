@@ -205,9 +205,11 @@ export function runPlan(plan, { runner = defaultRunner, logDir } = {}) {
     schemaVersion: 1,
     producer: PRODUCER,
     platform: plan.platform,
-    status: features.some((feature) => feature.status !== "passed")
+    status: features.some((feature) => feature.status === "failed")
       ? "failed"
-      : "passed",
+      : features.some((feature) => feature.status === "blocked")
+        ? "blocked"
+        : "passed",
     features,
   };
 }
@@ -270,7 +272,11 @@ export function assembleProof({
     );
     const coveredByCertification = certification !== null;
     const status =
-      coveredByPlatform || coveredByCertification ? "passed" : "failed";
+      coveredByPlatform || coveredByCertification
+        ? "passed"
+        : perPlatform.some((feature) => feature?.status === "failed")
+          ? "failed"
+          : "blocked";
     const tests = [
       ...new Set([
         ...perPlatform.flatMap((feature) => feature?.tests || []),
@@ -301,10 +307,15 @@ export function assembleProof({
             feature?.status === "passed" ||
             validCertification(feature?.id) !== null,
         );
+        const failed = record.features.some(
+          (feature) =>
+            feature?.status === "failed" &&
+            validCertification(feature?.id) === null,
+        );
         return [
           platform,
           {
-            status: covered ? "passed" : "failed",
+            status: covered ? "passed" : failed ? "failed" : "blocked",
             sourceSha,
             jobUrl: record.jobUrl,
           },
