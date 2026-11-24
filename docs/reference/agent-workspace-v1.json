@@ -238,7 +238,7 @@
    "name": "Focus Queue",
    "category": "execution",
    "owner": "NEXUS",
-   "sourceStatus": "partial",
+   "sourceStatus": "present",
    "issue": 100,
    "releaseRequired": true,
    "requiredClients": 1,
