@@ -22,6 +22,7 @@ describe('Contextual feature tours', () => {
       'browser-inspector',
       'notifications',
       'projects',
+      'workspace',
       'settings',
     ]);
     for (const [surface, steps] of Object.entries(featureTourSteps)) {

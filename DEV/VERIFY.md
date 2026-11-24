@@ -1,3 +1,20 @@
+## 2026-11-24 — Workspace Snapshots UI + restore sem relaunch
+
+- **PASS (focused UI/service)** — Vitest: `WorkspaceLayoutService.test.ts`, `WorkspaceSnapshotsControl.test.tsx`, `featureAnnouncements.test.ts`, `featureReveal.test.ts`, `featureTour.test.ts`, `featureTourAnchors.test.ts` e `tourTargets.test.ts`; 7 arquivos, 51 testes.
+- **PASS (browser E2E)** — `GOCACHE=/tmp/opencode/go-build GOFLAGS=-mod=readonly npm --prefix web run test:e2e:workspace-snapshots`: UI salvou/listou/restaurou/excluiu; restore com runtime ativo e `STOPPED` manteve o contador de launches em 1 e o runtime ID; tour compartilhado abriu no escopo do projeto; segundo projeto não herdou snapshots; dialog/viewport móvel passou a 390 px.
+- **PASS (web quality)** — `npm --prefix web run quality`: check de estilos, Prettier, ESLint, Stylelint, TypeScript, testes Node e Vitest; 154 arquivos Vitest / 1.013 testes. ESLint reportou 1 warning preexistente em `FlowRunSurface.tsx:122`, sem erros.
+- **PASS (contrato/evidence map)** — `node --test scripts/verify-agent-workspace-evidence-map.test.mjs scripts/verify-agent-workspace-v1.test.mjs scripts/tests/agent-workspace-doc-sync.test.mjs` 16/16 (mapa 4/4); `node scripts/verify-agent-workspace-evidence-map.mjs` estruturalmente válido (48 capabilities, 97 cláusulas, 0 certificadas); `node scripts/verify-agent-workspace-v1.mjs` exit 0.
+- **PASS (integridade local)** — `git diff --check`; o build web executado pelo E2E concluiu.
+- **Limite** — a árvore foi testada localmente antes da entrega, baseada em `37d488a52285555eeb58a916a30762f840827436`; a evidência local não certifica o SHA externo. `workspace-snapshots.verification=pending`, coverage `unverified`, release **NO_GO**.
+- **Ambiente/ajustes** — E2E final passou com `GOCACHE=/tmp/opencode/go-build`; fixture não habilita o centro global de novidades, então a prova usa o FeatureTour local compartilhado. O cache Go compartilhado também negou permissão na primeira tentativa; a execução isolada passou.
+
+## 2026-11-24 — Hosted exact-SHA matrix e assemble verdes
+
+- **PASS (GitHub Actions)** — run `45442865742`, SHA `37d488a52285555eeb58a916a30762f840827436`: Linux amd64, Windows amd64, macOS arm64, macOS intel e `Hosted cross-platform matrix seal` concluíram `success`; `publish` `skipped`.
+- **PASS (registros)** — artifacts exatos: `nexus-v1-workspace-acceptance-linux-amd64-37d488a52285555eeb58a916a30762f840827436`, `nexus-v1-workspace-acceptance-windows-amd64-37d488a52285555eeb58a916a30762f840827436`, `nexus-v1-workspace-acceptance-macos-arm64-37d488a52285555eeb58a916a30762f840827436`.
+- **PASS (assemble)** — workflow executa `node scripts/workspace-acceptance-e2e.mjs assemble` com SHA alvo e os três JSONs; seal produziu `hosted-cross-platform-proof-37d488a52285555eeb58a916a30762f840827436` (digest `sha256:b7f621dccf8174e6fc3d4071b4dfc483c05adf9d2607a73a98988e662c56f9a7`).
+- **Limite** — hosted prova plataforma, não assinatura, hardware, aceite externo nem certificação; release **NO_GO**.
+
 ## 2026-11-24 — Matriz hospedada `fa8e13e6`: Windows reducede a um único teste
 
 - **PASS (hospedado)** — Linux amd64 `success`, macOS intel `success`; `internal/control/launcher`, `internal/control/web`, `internal/core/provider/adapters/agy` e `internal/core/provider/adapters/codex` sem falhas no Windows.

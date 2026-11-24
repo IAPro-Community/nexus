@@ -3,8 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { FolderGit2, GitBranch, Wifi, AlertTriangle } from 'lucide-react';
 import { nexus } from '../nexus/api';
 import { BranchSwitcherModal } from '../features/projects/BranchSwitcherModal';
+import { FeatureTour } from '../features/work/FeatureTour';
 import { Tooltip } from '../design-system';
 import type { Agent, Project } from '../types';
+import { WorkspaceSnapshotsControl } from './WorkspaceSnapshotsControl';
 import styles from './WorkspaceTaskbar.module.scss';
 
 export const WorkspaceTaskbar: React.FC<{
@@ -83,6 +85,7 @@ export const WorkspaceTaskbar: React.FC<{
     <div
       className={`nx-workspace-statusbar ${styles.statusbar}`}
       data-tour="taskbar"
+      data-feature-tour-scope="workspace"
       role="status"
       aria-label="Status Bar"
     >
@@ -121,6 +124,7 @@ export const WorkspaceTaskbar: React.FC<{
             />
           </>
         )}
+        {project?.id && <WorkspaceSnapshotsControl projectId={project.id} />}
       </div>
 
       {/* Center: Agents status */}
@@ -178,6 +182,7 @@ export const WorkspaceTaskbar: React.FC<{
           <Wifi size={11} />
           <span>{t('statusBar.local')}</span>
         </span>
+        {project?.id && <FeatureTour projectId={project.id} surface="workspace" />}
       </div>
     </div>
   );

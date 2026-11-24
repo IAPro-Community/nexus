@@ -28,6 +28,7 @@ interface WorkspaceContextValue {
   ensure: (surface: WorkspaceSurface, targetStackId?: string) => void;
   activate: (surfaceId: string) => void;
   close: (surfaceId: string) => void;
+  replaceModel: (model: WorkspaceModel) => void;
   updateSurface: (surfaceId: string, patch: Partial<WorkspaceSurface>) => void;
   split: (
     relativeSurfaceId: string,
@@ -263,6 +264,7 @@ export const WorkspaceProvider: React.FC<{
         dispatch({ type: 'ensure', surface, stackId });
       },
       activate: (surfaceId) => dispatch({ type: 'activate', surfaceId }),
+      replaceModel: (nextModel) => dispatch({ type: 'replace', model: nextModel }),
       close: (surfaceId) => {
         const surface = listSurfaces(model.root).find(
           (candidate) =>

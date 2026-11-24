@@ -283,6 +283,12 @@ jobs:
         run: |
           set -o pipefail
           bun run test:e2e:device-preview 2>&1 | tee "$RUNNER_TEMP/nexus-browser-device-preview.log"
+      - id: workspace-snapshots-e2e
+        if: always()
+        working-directory: web
+        run: |
+          set -o pipefail
+          bun run test:e2e:workspace-snapshots 2>&1 | tee "$RUNNER_TEMP/nexus-browser-workspace-snapshots.log"
       # browser-e2e runs Axe and visual assertions in e2e-hardening-verify.mjs.
       # Do not execute the same expensive browser suite three times.
       - name: Upload browser diagnostics

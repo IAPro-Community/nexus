@@ -37,6 +37,7 @@ import { getOptionalFeatures } from '../app/composerFlowFlag';
 
 interface ContextValue {
   state: WorkspacePresentationState;
+  replaceState: (state: WorkspacePresentationState) => void;
   setMode: (mode: WorkspacePresentationMode) => void;
   toggleZenMode: () => void;
   setZenMode: (enabled: boolean) => void;
@@ -74,6 +75,7 @@ interface ContextValue {
 }
 
 type Action =
+  | { type: 'replace'; state: WorkspacePresentationState }
   | { type: 'mode'; mode: WorkspacePresentationMode }
   | { type: 'toggleZenMode' }
   | { type: 'setZenMode'; enabled: boolean }
@@ -147,6 +149,8 @@ function applyPreset(
 
 function reducer(state: WorkspacePresentationState, action: Action): WorkspacePresentationState {
   switch (action.type) {
+    case 'replace':
+      return migratePresentationState(action.state);
     case 'mode':
       return setPresentationMode(state, action.mode);
     case 'toggleZenMode':
@@ -219,6 +223,7 @@ export const WorkspacePresentationProvider: React.FC<{
   const value = useMemo<ContextValue>(
     () => ({
       state,
+      replaceState: (nextState) => dispatch({ type: 'replace', state: nextState }),
       setMode: (mode) => dispatch({ type: 'mode', mode }),
       toggleZenMode: () => dispatch({ type: 'toggleZenMode' }),
       setZenMode: (enabled) => dispatch({ type: 'setZenMode', enabled }),

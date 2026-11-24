@@ -38,7 +38,7 @@ Legenda: **present** indica código-base localizado; **partial** significa lacun
 | ID | Requisito da V1 | Source | Issue | Evidência mínima |
 | --- | --- | --- | --- | --- |
 | `smart-layouts` | Smart Layouts | present | [#105](https://github.com/IAPro-Community/nexus/issues/105) | Layouts sugeridos por atividade sem spawn implícito de processo; Preservação de surface IDs, foco, splits e restauração |
-| `workspace-snapshots` | Workspace Snapshots | partial | [#105](https://github.com/IAPro-Community/nexus/issues/105) | Salvar e restaurar estado visual versionado por projeto; Não ressuscitar processo morto nem duplicar runtime |
+| `workspace-snapshots` | Workspace Snapshots | present | [#105](https://github.com/IAPro-Community/nexus/issues/105) | Taskbar por projeto salva/lista/restaura/exclui snapshots nomeados; E2E cobre runtime ativo e STOPPED sem aumento de launches. `verification=pending` até prova externa no SHA publicado |
 | `agent-groups` | Agent Groups | present | [#105](https://github.com/IAPro-Community/nexus/issues/105) | Agrupar Agents por tarefa, worktree e feature; Filtrar e reordenar preservando identidade e sessão |
 | `quick-switcher` | Quick Switcher | present | [#84](https://github.com/IAPro-Community/nexus/issues/84) | Command Palette pesquisa projetos, Agents, ações e superfícies; Atalhos e foco confiáveis em desktop e mobile |
 | `follow-agent` | Follow Agent | present | [#105](https://github.com/IAPro-Community/nexus/issues/105) | Acompanhar visualização selecionada de Agent com pausa explícita; Não adquirir lease de input sem consentimento |

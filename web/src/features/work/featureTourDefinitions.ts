@@ -18,6 +18,7 @@ export type FeatureTourSurface =
   | 'browser-inspector'
   | 'notifications'
   | 'projects'
+  | 'workspace'
   | 'settings';
 
 export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
@@ -243,6 +244,14 @@ export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
       target: '[data-tour="workspace-sharing-card"]',
       title: 'tour.workspaceSharingTitle',
       body: 'tour.workspaceSharingBody',
+    },
+  ],
+  workspace: [
+    {
+      id: 'snapshots',
+      target: '[data-tour="workspace-snapshots"]',
+      title: 'tour.workspaceSnapshotsTitle',
+      body: 'tour.workspaceSnapshotsBody',
     },
   ],
   settings: [

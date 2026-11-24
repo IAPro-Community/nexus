@@ -132,7 +132,7 @@
    "name": "Workspace Snapshots",
    "category": "organization",
    "owner": "NEXUS",
-   "sourceStatus": "partial",
+   "sourceStatus": "present",
    "issue": 105,
    "releaseRequired": true,
    "requiredClients": 1,

@@ -1,3 +1,20 @@
+## 2026-11-24 — Workspace Snapshots nomeados no taskbar do projeto
+
+- **UI** — Taskbar oferece salvar, listar, restaurar e excluir snapshots nomeados, com chave por projeto, diálogos/componentes existentes, SCSS Module, tokens e PT-BR/EN/ES. Feature discovery adicionada ao catálogo e ao ProductTour compartilhado.
+- **Segurança do restore** — `WorkspaceSnapshotsControl` substitui apenas o modelo e estado de apresentação; nenhuma ação de start é chamada. E2E prova mesmo runtimeId quando ativo e, após stop confirmado pela API, permanece `STOPPED`; contador de launches segue 1.
+- **Evidência local** — teste focado 51/51; E2E de snapshots PASS (runtime ativo/encerrado, tour local, projeto isolado e viewport 390 px); `npm --prefix web run quality` PASS (Vitest 154/1.013; ESLint 1 warning preexistente); testes de mapa/contrato/docs 16/16, mapa estrutural PASS e contrato PASS; `git diff --check` PASS.
+- **Contrato** — critérios locais marcados `audited`, capability `sourceStatus=present`; `coverage=unverified` e `verification=pending` até prova externa no SHA publicado. Release permanece **NO_GO**.
+- **Git** — baseado em `37d488a52285555eeb58a916a30762f840827436`; entrega direta na `release/v1.0.0` solicitada pelo owner. Sem tag ou publicação de artefato; prova externa continua pendente.
+
+## 2026-11-24 — Matriz hosted completa; exact-SHA assemble passou
+
+- **SHA/run** — `37d488a52285555eeb58a916a30762f840827436`, run `45442865742` (`workflow_dispatch`, `acceptance_only=true`).
+- **Plataformas** — Linux amd64, Windows amd64, macOS arm64 e macOS intel `success`; seal `success`; publish `skipped`.
+- **Registros** — artifacts Linux amd64, Windows amd64 e macOS arm64 publicados com nome contendo o SHA completo; seal executou `assemble` com os três e produziu `hosted-cross-platform-proof-37d488a52285555eeb58a916a30762f840827436`.
+- **Integridade** — `assembleProof` valida `sourceSha` idêntico e `jobUrl` Actions para cada plataforma; seal `success` confirma validação e assemble no runner.
+- **Estado** — prova hospedada não substitui assinatura/hardware; `certification` segue `pending`, `verification` pendente, release **NO_GO**; `v1.0.1` não criada.
+- **Próximo** — arquivar/analisar prova hospedada e continuar Lane A por capability parcial comprovável; tiers assinados permanecem com o maestro.
+
 ## 2026-11-24 — Matriz hospedada `fa8e13e6`: só a fixture de failover faltava
 
 - **Resultado** — Linux amd64 `passed`, macOS intel `passed`, macOS arm64 `cancelled` pelo runner (sem log disponível), Windows falhou apenas em `internal/nexus` (`TestMissionFailoverCostObservationAttributionFollowsExecutingRuntime`); `internal/control/launcher`, `internal/control/web`, `internal/core/provider/adapters/agy` e `internal/core/provider/adapters/codex` já passaram.

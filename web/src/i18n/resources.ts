@@ -1358,6 +1358,9 @@ export const en = {
     workspaceSharingTitle: 'Share observations with a viewer link',
     workspaceSharingBody:
       'Create a read-only, project-scoped viewer link, optionally bounded by a TTL, and revoke it immediately at any time. The link reads observations only — no preferences, accounts or provider identities.',
+    workspaceSnapshotsTitle: 'Named workspace snapshots',
+    workspaceSnapshotsBody:
+      'Save and restore this project’s workspace arrangement without restarting processes.',
     agentTimelineTitle: 'Inspect the Agent lifecycle timeline',
     agentTimelineBody:
       'Open Director Mode to follow launch, attach, quota, handoff, and recovery events with durable source, runtime generation, and correlation metadata.',
@@ -1403,6 +1406,9 @@ export const en = {
     workspaceSharingTitle: 'Create a viewer link',
     workspaceSharingBody:
       'In Shared observations, create a viewer link with an optional TTL and revoke it with one click. The link is read-only and immediately revocable.',
+    workspaceSnapshotsTitle: 'Save a workspace arrangement',
+    workspaceSnapshotsBody:
+      'Name the current project layout and restore it later. Restoring changes workspace state only; it does not start processes.',
     agentTimelineTitle: 'Inspect the Agent lifecycle timeline',
     agentTimelineBody:
       'Open Director Mode to follow launch, attach, quota, handoff, and recovery events with durable source, runtime generation, and correlation metadata.',
@@ -2360,6 +2366,23 @@ export const en = {
     mosaicMode: 'Mosaic mode',
     mosaic: 'Mosaic',
     arrange: 'Arrange',
+    snapshots: {
+      open: 'Snapshots',
+      title: 'Named workspace snapshots',
+      description:
+        'Save this project’s logical layout and restore it later. Restoring never starts or revives a process.',
+      nameLabel: 'Snapshot name',
+      namePlaceholder: 'e.g. Review layout',
+      save: 'Save snapshot',
+      restore: 'Restore',
+      delete: 'Delete',
+      deleteNamed: 'Delete snapshot {{name}}',
+      listLabel: 'Saved snapshots',
+      empty: 'No named snapshots saved for this project yet.',
+      saveError: 'Could not save this snapshot.',
+      restoreError: 'Could not restore this snapshot.',
+      deleteError: 'Could not delete this snapshot.',
+    },
     minimizeAgent: 'Minimize {{agent}}',
     restoreAgent: 'Restore {{agent}}',
     maximizeAgent: 'Maximize {{agent}}',
@@ -4399,6 +4422,9 @@ export const ptBR = {
     workspaceSharingTitle: 'Compartilhe observações com um link de visualização',
     workspaceSharingBody:
       'Crie um link somente leitura com escopo do projeto, opcionalmente limitado por TTL, e revogue-o imediatamente a qualquer momento. O link lê apenas observações — sem preferências, contas ou identidades de providers.',
+    workspaceSnapshotsTitle: 'Snapshots nomeados do workspace',
+    workspaceSnapshotsBody:
+      'Salve e restaure a organização do workspace deste projeto sem reiniciar processos.',
     agentTimelineTitle: 'Inspecione a linha de tempo do ciclo do Agent',
     agentTimelineBody:
       'Abra o Director Mode para acompanhar inicialização, anexo, quota, handoff e recuperação com origem durável, geração do runtime e metadados de correlação.',
@@ -4444,6 +4470,9 @@ export const ptBR = {
     workspaceSharingTitle: 'Crie um link de visualização',
     workspaceSharingBody:
       'Em Observações compartilhadas, crie um link de visualização com TTL opcional e revogue com um clique. O link é somente leitura e pode ser revogado imediatamente.',
+    workspaceSnapshotsTitle: 'Salve uma organização do workspace',
+    workspaceSnapshotsBody:
+      'Dê um nome ao layout atual do projeto e restaure-o depois. A restauração altera apenas o workspace e não inicia processos.',
     agentTimelineTitle: 'Inspecione a linha de tempo do ciclo do Agent',
     agentTimelineBody:
       'Abra o Director Mode para acompanhar inicialização, anexo, quota, handoff e recuperação com origem durável, geração do runtime e metadados de correlação.',
@@ -5410,6 +5439,23 @@ export const ptBR = {
     mosaicMode: 'Modo mosaico',
     mosaic: 'Mosaico',
     arrange: 'Arranjar',
+    snapshots: {
+      open: 'Snapshots',
+      title: 'Snapshots nomeados do workspace',
+      description:
+        'Salve o layout lógico deste projeto para restaurá-lo depois. Restaurar não inicia nem revive processos.',
+      nameLabel: 'Nome do snapshot',
+      namePlaceholder: 'Ex.: Layout de revisão',
+      save: 'Salvar snapshot',
+      restore: 'Restaurar',
+      delete: 'Excluir',
+      deleteNamed: 'Excluir snapshot {{name}}',
+      listLabel: 'Snapshots salvos',
+      empty: 'Ainda não há snapshots nomeados neste projeto.',
+      saveError: 'Não foi possível salvar este snapshot.',
+      restoreError: 'Não foi possível restaurar este snapshot.',
+      deleteError: 'Não foi possível excluir este snapshot.',
+    },
     minimizeAgent: 'Minimizar {{agent}}',
     restoreAgent: 'Restaurar {{agent}}',
     maximizeAgent: 'Maximizar {{agent}}',
@@ -7456,6 +7502,9 @@ export const es = {
     workspaceSharingTitle: 'Comparte observaciones con un enlace de visualización',
     workspaceSharingBody:
       'Crea un enlace de solo lectura con alcance del proyecto, opcionalmente limitado por TTL, y revócalo inmediatamente cuando quieras. El enlace solo lee observaciones — sin preferencias, cuentas ni identidades de providers.',
+    workspaceSnapshotsTitle: 'Snapshots con nombre del workspace',
+    workspaceSnapshotsBody:
+      'Guarde y restaure la distribución del workspace de este proyecto sin reiniciar procesos.',
     agentTimelineTitle: 'Inspeccione la línea de tiempo del ciclo del Agent',
     agentTimelineBody:
       'Abra Director Mode para seguir lanzamiento, conexión, cuota, transferencia y recuperación con origen durable, generación del runtime y metadatos de correlación.',
@@ -7501,6 +7550,9 @@ export const es = {
     workspaceSharingTitle: 'Crea un enlace de visualización',
     workspaceSharingBody:
       'En Observaciones compartidas, crea un enlace de visualización con TTL opcional y revoca con un clic. El enlace es de solo lectura y se revoca de inmediato.',
+    workspaceSnapshotsTitle: 'Guarde una distribución del workspace',
+    workspaceSnapshotsBody:
+      'Ponga nombre al diseño actual del proyecto y restáurelo después. La restauración cambia solo el workspace y no inicia procesos.',
     agentGroupsTitle: 'Agrupe agentes persistentes',
     agentGroupsBody:
       'Organice identidades estables de agentes por tarea, worktree y feature. Los filtros y el orden manual conservan sus sesiones existentes.',
@@ -8469,6 +8521,23 @@ export const es = {
     mosaicMode: 'Modo mosaico',
     mosaic: 'Mosaico',
     arrange: 'Organizar',
+    snapshots: {
+      open: 'Snapshots',
+      title: 'Snapshots con nombre del workspace',
+      description:
+        'Guarde la distribución lógica de este proyecto para restaurarla después. Restaurar no inicia ni revive procesos.',
+      nameLabel: 'Nombre del snapshot',
+      namePlaceholder: 'Ej.: Diseño de revisión',
+      save: 'Guardar snapshot',
+      restore: 'Restaurar',
+      delete: 'Eliminar',
+      deleteNamed: 'Eliminar snapshot {{name}}',
+      listLabel: 'Snapshots guardados',
+      empty: 'Todavía no hay snapshots con nombre en este proyecto.',
+      saveError: 'No se pudo guardar este snapshot.',
+      restoreError: 'No se pudo restaurar este snapshot.',
+      deleteError: 'No se pudo eliminar este snapshot.',
+    },
     minimizeAgent: 'Minimizar {{agent}}',
     restoreAgent: 'Restaurar {{agent}}',
     maximizeAgent: 'Maximizar {{agent}}',

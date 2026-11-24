@@ -26,6 +26,7 @@ const sourceFiles = [
   '../../notifications/FocusQueueSection.tsx',
   '../projects/ProjectManagerSurface.tsx',
   '../settings/RemoteAccessTab.tsx',
+  '../../workspace/WorkspaceSnapshotsControl.tsx',
 ];
 const source = sourceFiles.map((file) => readFileSync(join(folder, file), 'utf8')).join('\n');
 

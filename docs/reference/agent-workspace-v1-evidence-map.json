@@ -413,16 +413,21 @@
      "sourceRefs": [
       "web/src/services/WorkspaceLayoutService.ts",
       "web/src/workspace/WorkspaceProvider.tsx",
+      "web/src/workspace/WorkspacePresentationProvider.tsx",
+      "web/src/workspace/WorkspaceTaskbar.tsx",
+      "web/src/workspace/WorkspaceSnapshotsControl.tsx",
       "web/src/workspace/state.ts"
      ],
      "testRefs": [
       "web/src/services/WorkspaceLayoutService.test.ts",
-      "web/src/workspace/state.test.ts"
+      "web/src/workspace/state.test.ts",
+      "web/src/workspace/WorkspaceSnapshotsControl.test.tsx",
+      "web/scripts/e2e-workspace-snapshots.mjs"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria parcial: WorkspaceLayoutService persiste/envelopa layout versionado v4 por projectId, com revisão, migração e export/import; testes cobrem save/load, versionamento, projeto e split. É um snapshot corrente por projeto, não histórico de snapshots nomeados; falta E2E no fluxo visual completo e sincronização/conflict handling real entre clientes. Capability pendente.",
-     "assertionAudit": "partial"
+     "gap": "UI no taskbar do projeto integra salvar/listar/restaurar/excluir; teste do service cobre versionamento e isolamento por projectId, e o E2E de browser exercita o fluxo completo em dois projetos. Critério auditado localmente; coverage e verification permanecem pendentes de prova externa no SHA publicado.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
@@ -430,17 +435,19 @@
      "sourceRefs": [
       "web/src/services/WorkspaceLayoutService.ts",
       "web/src/workspace/model.ts",
+      "web/src/workspace/WorkspaceSnapshotsControl.tsx",
+      "web/src/workspace/WorkspacePresentationProvider.tsx",
       "web/src/app/WorkspaceSurfaceHost.tsx"
      ],
      "testRefs": [
       "web/src/services/WorkspaceLayoutService.test.ts",
       "web/src/workspace/model.test.ts",
-      "web/scripts/e2e-surface-isolation.mjs"
+      "web/scripts/e2e-workspace-snapshots.mjs"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria parcial: desserialização remove superfícies lógicas duplicadas e WorkspaceSurfaceHost anexa por IDs/runtime existente; não chama start ao carregar estado. Testes cobrem dedupe e E2E tab-switch sem novo launch, não restauração de um snapshot contendo runtime morto nem garantem contra todo caminho de reabertura. Falta E2E restore com runtime encerrado/ativo e contagem de launches. Capability pendente.",
-     "assertionAudit": "partial"
+      "gap": "Restore da UI substitui apenas modelo e apresentação lógica; WorkspaceSurfaceHost conserva a identidade da superfície. O E2E restaura com runtime ativo e STOPPED, confirma o mesmo runtimeId, estado STOPPED e contador de launches sem aumento. Critério auditado localmente; coverage e verification permanecem pendentes de prova externa no SHA publicado.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"

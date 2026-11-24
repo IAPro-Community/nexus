@@ -184,6 +184,16 @@ export const featureAnnouncements: readonly FeatureAnnouncement[] = [
     tourStep: 'workspace-sharing',
   },
   {
+    id: 'workspace-named-snapshots',
+    revision: 1,
+    surfaces: ['workspace'],
+    openSurface: 'terminals',
+    target: '[data-tour="workspace-snapshots"]',
+    title: 'discovery.workspaceSnapshotsTitle',
+    summary: 'discovery.workspaceSnapshotsBody',
+    tourStep: 'snapshots',
+  },
+  {
     id: 'agent-lifecycle-timeline',
     revision: 1,
     surfaces: ['agents'],

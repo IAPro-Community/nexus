@@ -79,4 +79,11 @@ describe('contextual tour target resolution', () => {
       expect(findTourTarget(scope(), selector)).toBeNull();
     }
   });
+
+  it('keeps named workspace snapshot discovery inside the project taskbar scope', () => {
+    const selector = '[data-tour="workspace-snapshots"]';
+    const snapshotControl = target(true);
+    expect(findTourTarget(scope(snapshotControl), selector)).toBe(snapshotControl);
+    expect(findTourTarget(scope(), selector)).toBeNull();
+  });
 });

@@ -86,6 +86,19 @@ describe('global feature announcement handoff', () => {
     expect(item?.id).toBe('remote-access-stable-url');
   });
 
+  it('reveals named workspace snapshots only in the selected project workspace', () => {
+    requestFeatureReveal('workspace-named-snapshots', 'project-A', 1000);
+    expect(consumeFeatureReveal('project-B', 'workspace', () => true, 1001)).toBeNull();
+    expect(consumeFeatureReveal('project-A', 'agent-terminal', () => true, 1002)).toBeNull();
+    const item = consumeFeatureReveal(
+      'project-A',
+      'workspace',
+      (target) => target === '[data-tour="workspace-snapshots"]',
+      1003,
+    );
+    expect(item?.id).toBe('workspace-named-snapshots');
+  });
+
   it('reveals the scoped remote invitation only when its own card is present', () => {
     requestFeatureReveal('remote-access-scoped-invitations', 'project-A', 1000);
     expect(consumeFeatureReveal('project-A', 'settings', () => false, 1001)).toBeNull();

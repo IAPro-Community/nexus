@@ -9,6 +9,14 @@ exigem evidência no SHA exato. Atualizar o verificador de perfil antes de
 publicar; não enfraquecer gates ou remover evidência anterior. Não usar entradas
 históricas abaixo como autorização para expansão automática.
 
+## Handoff 2026-11-24 — Workspace Snapshots nomeados (local, verificação pendente)
+
+- **Código** — `WorkspaceSnapshotsControl` no taskbar do projeto integra salvar/listar/restaurar/excluir via `WorkspaceLayoutService`; restore aplica somente `WorkspaceModel` e `WorkspacePresentationState`. Catálogo e tour compartilhado de feature discovery adicionados em PT-BR/EN/ES.
+- **Prova local** — E2E `web/scripts/e2e-workspace-snapshots.mjs` PASS: snapshot restaurado com runtime ativo e com runtime `STOPPED`; o runtime ID é preservado, a contagem de launches permanece 1, exclusão funciona e outro projeto não herda a lista.
+- **Gates locais** — quality Web PASS, 154 arquivos Vitest / 1.013 testes; focused tests 51/51; evidence-map tests 4/4; verificadores de mapa e contrato PASS; build web pelo E2E PASS. ESLint: um warning preexistente em `FlowRunSurface.tsx:122`.
+- **Contrato** — critérios auditados localmente; `workspace-snapshots` = `present`, `coverage=unverified`, `verification=pending`; prova externa no SHA publicado ainda não coletada; release **NO_GO**.
+- **Git** — base anterior `37d488a52285555eeb58a916a30762f840827436`; entrega direta na branch canônica solicitada pelo owner. Sem tag ou publicação de artefato; próxima etapa de homologação depende de prova externa no SHA enviado.
+
 ## Handoff 2026-11-24 — Matriz hospedada destravada: macOS e Windows portáveis
 
 - **Git** — `origin/release/v1.0.0` @ `f5f10a6e`; lotes de 1–2 arquivos: `ab0a7de2` (mapa + verificador `.mjs`), `8e5a4880` (contrato/doc), `72c6a9d9` (deadlock do fixture cursor), `36ab8250` (symlink worktree), `2c894523` (handle do lock de migração), `017894ab`/`97c13e63` (modo POSIX em Windows), `77c24499`+`5afc751f`/`24f143c1`/`be667acb`/`23e77794` (fixtures portáveis `fixturecli`), `f5f10a6e` (budget Windows).
