@@ -1,3 +1,11 @@
+## 2026-11-24 — Lane A `quick-switcher` auditada
+
+- SHA publicado: `origin/release/v1.0.0` @ `e814f68b`; implementação `bd10e592`, evidence map `e814f68b`. Responsável: orquestrador. Ambiente: Linux + Chromium local.
+- PASS (`quick-switcher`, escopo) — `GOCACHE=/tmp/opencode/go-build GOFLAGS=-mod=readonly npm --prefix web run test:e2e:smart-layouts` PASS: paleta lista superfícies reais via `~`, lista cresce após segundo PTY, comando ativa superfície existente, zero Agents/shells adicionais; Ctrl+K, foco inicial, focus trap e restauração do opener passam em desktop e 390px; palette não cria overflow horizontal próprio.
+- PASS (frontend) — `npm --prefix web run typecheck` PASS; ESLint focado `src/app/NexusWorkspaceApp.tsx` sem erros, 1 warning preexistente em `web/src/features/work/FlowRunSurface.tsx`; Prettier e `git diff --check` limpos.
+- PASS (contrato) — `node scripts/verify-agent-workspace-evidence-map.mjs` exit 0 (48 capabilities, 97 cláusulas, 0 certificadas); `node --test scripts/verify-agent-workspace-evidence-map.test.mjs` 4/4; `node scripts/verify-agent-workspace-v1.mjs` exit 0 (scope 48, certification pending). Estado: 35 capabilities com todos os critérios `audited` (72/97 cláusulas); contrato 36 `present` / 11 `partial` / 1 `missing`.
+- PENDENTE — CI e `workspace-acceptance-linux-amd64.json` do SHA exato final ainda não coletados; aceite externo por capability e lanes B–F dependem do maestro. Release **NO_GO**.
+
 ## 2026-11-24 — Lane A `mission-observatory` auditada
 
 - SHA local: `release/v1.0.0` @ `bb3f9d5a` (owner `5d83fc40`, E2E `410e626f`, evidence map `00fa18de`, contrato `b878bdc8`, lint `bb3f9d5a`); `origin/release/v1.0.0` = `714c8dae` até o push desta linha. Responsável: orquestrador. Ambiente: Linux + Chromium local.

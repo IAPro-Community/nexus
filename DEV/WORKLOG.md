@@ -1,3 +1,11 @@
+## 2026-11-24 — Lane A fecha `quick-switcher`: palette, foco e execução de superfícies
+
+- **Quick Switcher** — `web/src/app/NexusWorkspaceApp.tsx` (`bd10e592`) preserva e restaura o foco do opener ao fechar o palette; comandos `surface` ativam a superfície existente e PTYs também recebem foco de apresentação, sem criar Agents ou shells.
+- **E2E** — `web/scripts/e2e-smart-layouts.mjs` prova busca `~` de superfícies, crescimento da lista após abrir segundo PTY, execução da superfície correta, zero spawn colateral, Ctrl+K, foco no input, focus trap e restauração do opener em desktop e 390px, sem overflow horizontal próprio do palette.
+- **Contrato** — `docs/reference/agent-workspace-v1-evidence-map.json` (`e814f68b`) marca os 2 critérios de `quick-switcher` como `audited`; capability permanece `verification: pending`.
+- **Verificação** — Smart Layouts E2E PASS; TypeScript PASS; ESLint focado sem erros (1 warning preexistente em `FlowRunSurface.tsx`); Prettier e `git diff --check` limpos; evidence map 48/97, testes 4/4; contrato 48 capabilities, certification pending.
+- **Estado** — 35 das 48 capabilities com todos os critérios `audited` (72/97 cláusulas); contrato 36 `present` / 11 `partial` / 1 `missing`, 0 certificadas. Release **NO_GO**.
+
 ## 2026-11-24 — Lane A fecha `mission-observatory`: ownership e leitura real no E2E
 
 - **Ownership** — `MissionRun` expõe `execution_owner`; `FlowRunSurface` deriva mutabilidade desse campo e bloqueia planning review, resolução de intervenção, pause, take-control, resume e cancelamento para runs MAESTRO. Runner/store já recusam takeover local de run MAESTRO e preservam owner imutável.
