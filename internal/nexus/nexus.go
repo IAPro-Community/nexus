@@ -265,20 +265,7 @@ func Default() *Nexus {
 		defaultNexus.wireQuotaContinuity(defaultNexus.quotaMonitor)
 		defaultNexus.wireQuotaPatternContinuity()
 		if st != nil {
-			events.DefaultBus().SetRecorder(func(e events.Event) {
-				projectID, _ := e.Data["project_id"].(string)
-				agentID, _ := e.Data["agent_id"].(string)
-				_, _ = st.RecordEventMetadata(store.EventMetadata{
-					ID:            e.ID,
-					AgentID:       agentID,
-					ProjectID:     projectID,
-					CorrelationID: e.CorrelationID,
-					Kind:          string(e.Type),
-					Timestamp:     e.Timestamp,
-					Summary:       e.Summary,
-					AccountScope:  e.AccountScope,
-				})
-			})
+			events.DefaultBus().SetRecorder(newEventMetadataRecorder(st))
 			_ = defaultNexus.RecoverMissionRuns(context.Background())
 			defaultNexus.StartScheduleLoop()
 			// Purge expired events at startup (90d default).
