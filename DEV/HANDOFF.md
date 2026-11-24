@@ -1,3 +1,11 @@
+## Handoff 2026-11-24 — Lane A fecha `design-inspect`; inspeção sanitizada e Agent explícito
+
+- **Estado do Git** — `release/v1.0.0` local @ `8c9d3e22` (evidence map `87a8f8ea`, contrato `d8f1a664`, WORKLOG/VERIFY `8c9d3e22`). Tag `v1.0.0` intacta (`d89797cd`); `v1.0.1` não criada.
+- **Lane A** — 32 das 48 capabilities com todos os critérios `audited` (66/97 cláusulas); contrato 34 `present` / 13 `partial` / 1 `missing`, 0 certificadas. Fechada nesta onda: `design-inspect` — inspeção DOM/estilos/crop sanitizada, Activate read-only e entrega apenas ao Agent explicitamente escolhido, sem auto-start.
+- **Provas locais** — `npm --prefix web run test:e2e:browser-design-inspect` PASS; `go test ./internal/browsercontrol -run 'TestInspectRejectsEmptyOrOversizedSelectorBeforeCDP|TestChromiumDesignInspectOptional|TestMaskDesignCropOpaqueMasksSensitiveRect' -count=1` PASS; `verify-agent-workspace-evidence-map.mjs` exit 0; testes do mapa 4/4; `verify-agent-workspace-v1.mjs` exit 0.
+- **Próximo passo** — (1) push dos commits e acompanhamento do CI; (2) coletar `workspace-acceptance-linux-amd64.json` do SHA exato; (3) Lane A: próxima capability `partial` com gap local comprovável; (4) Lane C: aceite visual do owner no SHA exato (HUD+Site atômico).
+- **Bloqueios intactos** — aceite visual NEX (9 gates), runner Windows/macOS nativo e chaves ed25519, credencial do Named Tunnel, quota real AGY, hardware físico de 2 dispositivos, `memory-migrate apply` com Bridge ativo. Release **NO_GO**.
+
 ## Handoff 2026-11-24 — Lane A fecha `remote-terminal`; terminal por Agent escopado
 
 - **Estado do Git** — `origin/release/v1.0.0` = `9c8d6dfd` (fix `4b16c60d`, evidence map `1bdabb7d`, contrato `9c8d6dfd`). Tag `v1.0.0` intacta (`d89797cd`); `v1.0.1` não criada.
