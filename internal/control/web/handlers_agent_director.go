@@ -23,10 +23,12 @@ type directorAction struct {
 // Event summaries and account scopes may contain user prompts or credentials.
 // Director exposes only bounded operational metadata already persisted by Nexus.
 type directorEvent struct {
-	ID            string `json:"id"`
-	Kind          string `json:"kind"`
-	CorrelationID string `json:"correlation_id,omitempty"`
-	Timestamp     string `json:"ts"`
+	ID                  string `json:"id"`
+	Kind                string `json:"kind"`
+	CorrelationID       string `json:"correlation_id,omitempty"`
+	Source              string `json:"source,omitempty"`
+	RuntimeGenerationID string `json:"runtime_generation_id,omitempty"`
+	Timestamp           string `json:"ts"`
 }
 
 func projectDirectorEvents(records []store.EventMetadata) []directorEvent {
@@ -34,6 +36,7 @@ func projectDirectorEvents(records []store.EventMetadata) []directorEvent {
 	for _, item := range records {
 		events = append(events, directorEvent{
 			ID: item.ID, Kind: item.Kind, CorrelationID: item.CorrelationID,
+			Source: item.Source, RuntimeGenerationID: item.RuntimeGenerationID,
 			Timestamp: item.Timestamp.UTC().Format("2006-01-02T15:04:05Z07:00"),
 		})
 	}

@@ -121,6 +121,7 @@ func TestDirectorEndpointKeepsProjectScopeAndReadOnlyAuthentication(t *testing.T
 	_, err = st.RecordEventMetadata(store.EventMetadata{
 		AgentID: agent.ID, ProjectID: project.ID,
 		Kind: "agent.director.test", CorrelationID: "test-run-001",
+		Source: "runtime", RuntimeID: "runtime-director", RuntimeGenerationID: "generation-director",
 		Summary:   "PRIVATE_PROMPT_MUST_NOT_LEAK",
 		Timestamp: time.Now().UTC(),
 	})
@@ -157,6 +158,9 @@ func TestDirectorEndpointKeepsProjectScopeAndReadOnlyAuthentication(t *testing.T
 	for _, event := range view.RecentEvents {
 		if event.Kind == "agent.director.test" && event.CorrelationID == "test-run-001" {
 			found = true
+			if event.Source != "runtime" || event.RuntimeGenerationID != "generation-director" {
+				t.Fatalf("timeline metadata missing from Agent projection: %+v", event)
+			}
 		}
 	}
 	if !found {
