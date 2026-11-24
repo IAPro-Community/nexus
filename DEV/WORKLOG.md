@@ -1,3 +1,11 @@
+## 2026-11-23 — Lane A fecha `agent-groups`: worktree Git real no E2E local
+
+- **E2E endurecido** — `web/scripts/e2e-agent-groups-live-session.mjs` (`78161c8d`) passa a criar um repositório Git real e um `git worktree add` para o grupo, preenche o campo Worktree da UI com esse caminho e exige que o valor persistido continue ligado ao worktree (arquivo `.git` com `gitdir:`); a evidência JSON registra repositório e vínculo.
+- **Contrato** — evidence map com 2 critérios `audited` (`fd50e8fb`); contrato `agent-groups` de `partial` para `present`, `verification: pending` (`467676ea`); doc de aceite sincronizado.
+- **Verificação** — `npm --prefix web run test:e2e:agent-groups` PASS com `GOCACHE=/tmp/opencode/go-build` (Core/HTTP/browser reais, OpenCode fixture local, sem quota externa); worktree real logado; dois Agentes com uma geração cada; terminal anexa o mesmo `runtime_id`; 0 POST `/start` adicionais; viewports 1280/768/320/390 sem overflow; `node scripts/verify-agent-workspace-evidence-map.mjs` exit 0; testes do mapa 4/4; `node scripts/verify-agent-workspace-v1.mjs` exit 0.
+- **CI (SHA `36ffc734`)** — `Publish Nexus documentation`, `Nexus release Linux smoke (GitHub-hosted)` e `Refresh synthetic documentation captures` verdes; `ci.yml` (`45319282198`) com `Sanitize` e `Release configuration` verdes, `Linux E2E` em execução e `Frontend`/`Security`/`Cross-platform compile guard`/captura em fila; `Windows beta.10` (`45319282180`) falhou no job de homologação (ConPTY, #216).
+- **Estado** — 28 das 48 capabilities com todos os critérios `audited` (61/97 cláusulas); contrato 30 `present` / 17 `partial` / 1 `missing`, 0 certificadas. Release **NO_GO**.
+
 ## 2026-11-23 — Lane A fecha `agent-command-center`: cartão por Agent, seleção direta e `COMPLETED` tipado
 
 - **Estado tipado** — `store.AgentCompleted = "COMPLETED"` (`15c7fdd7`); `internal/nexus/agent_application_test.go` passa a exigir que a listagem por projeto preserve `WAITING`, `FAILED` e `COMPLETED` estruturados, converta apenas `WORKING` com runtime morto em `RECOVERABLE` e nunca infira estado do texto do CLI.
