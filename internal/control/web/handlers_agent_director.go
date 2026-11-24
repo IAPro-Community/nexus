@@ -1,12 +1,15 @@
 package web
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/profile"
 )
 
 // Director is a read-only projection over the existing Agent/RuntimeGeneration
@@ -37,23 +40,96 @@ func projectDirectorEvents(records []store.EventMetadata) []directorEvent {
 	return events
 }
 
+// directorLineage exposes the handoff edges of an Agent. Provider session
+// identifiers stay out of the projection; only durable runtime/checkpoint
+// identities are observable.
+type directorLineage struct {
+	ID            string    `json:"id"`
+	Relation      string    `json:"relation"`
+	SourceRuntime string    `json:"source_runtime"`
+	TargetRuntime string    `json:"target_runtime"`
+	CheckpointID  string    `json:"checkpoint_id"`
+	CreatedAt     time.Time `json:"created_at"`
+}
+
+// directorQuota keeps the observed quota provenance next to the value. An
+// unmeasured quota stays UNKNOWN; it never becomes zero.
+type directorQuota struct {
+	Status           string   `json:"status"`
+	Source           string   `json:"source"`
+	RemainingPercent *float64 `json:"remaining_percent,omitempty"`
+	Window           string   `json:"window,omitempty"`
+}
+
+func projectDirectorLineage(entries []store.LineageEntry) []directorLineage {
+	if len(entries) == 0 {
+		return nil
+	}
+	projected := make([]directorLineage, 0, len(entries))
+	for _, entry := range entries {
+		projected = append(projected, directorLineage{
+			ID:            entry.ID,
+			Relation:      entry.Relation,
+			SourceRuntime: entry.SourceRuntime,
+			TargetRuntime: entry.TargetRuntime,
+			CheckpointID:  entry.CheckpointID,
+			CreatedAt:     entry.CreatedAt.UTC(),
+		})
+	}
+	return projected
+}
+
+func projectDirectorQuota(providerID, profileID string) directorQuota {
+	if strings.TrimSpace(providerID) == "" || strings.TrimSpace(profileID) == "" {
+		return directorQuota{Status: "UNKNOWN", Source: "UNKNOWN"}
+	}
+	view := profile.GetQuotaView(providerID, profileID, "", "")
+	quota := directorQuota{Status: view.Status, Source: view.Source}
+	if remaining, window := view.Bottleneck(); window != "" {
+		quota.RemainingPercent = &remaining
+		quota.Window = window
+	}
+	return quota
+}
+
+// agentRevisionWorkspace reports the isolation and workspace declared by the
+// newest Agent revision. It never inspects the filesystem and never guesses a
+// worktree path.
+func agentRevisionWorkspace(revisions []store.AgentRevision) (string, string) {
+	if len(revisions) == 0 {
+		return "", ""
+	}
+	var config struct {
+		Isolation string `json:"isolation"`
+		Workspace string `json:"workspace"`
+	}
+	if json.Unmarshal([]byte(revisions[0].Config), &config) != nil {
+		return "", ""
+	}
+	return strings.TrimSpace(config.Isolation), strings.TrimSpace(config.Workspace)
+}
+
 type directorProjection struct {
-	SchemaVersion   int              `json:"schema_version"`
-	ExecutionOwner  string           `json:"execution_owner"`
-	AgentID         string           `json:"agent_id"`
-	ProjectID       string           `json:"project_id"`
-	AgentStatus     string           `json:"agent_status"`
-	ProcessState    string           `json:"process_state"`
-	ProcessEvidence string           `json:"process_evidence"`
-	ObservedState   string           `json:"observed_state"`
-	ObservedSource  string           `json:"observed_source"`
-	ObservedReason  string           `json:"observed_reason"`
-	RuntimeID       string           `json:"runtime_id,omitempty"`
-	GenerationID    string           `json:"generation_id,omitempty"`
-	Provider        string           `json:"provider,omitempty"`
-	Profile         string           `json:"profile,omitempty"`
-	Actions         []directorAction `json:"actions"`
-	RecentEvents    []directorEvent  `json:"recent_events,omitempty"`
+	SchemaVersion   int               `json:"schema_version"`
+	ExecutionOwner  string            `json:"execution_owner"`
+	AgentID         string            `json:"agent_id"`
+	ProjectID       string            `json:"project_id"`
+	AgentStatus     string            `json:"agent_status"`
+	ProcessState    string            `json:"process_state"`
+	ProcessEvidence string            `json:"process_evidence"`
+	ObservedState   string            `json:"observed_state"`
+	ObservedSource  string            `json:"observed_source"`
+	ObservedReason  string            `json:"observed_reason"`
+	RuntimeID       string            `json:"runtime_id,omitempty"`
+	GenerationID    string            `json:"generation_id,omitempty"`
+	Provider        string            `json:"provider,omitempty"`
+	Profile         string            `json:"profile,omitempty"`
+	Workspace       string            `json:"workspace,omitempty"`
+	Worktree        string            `json:"worktree,omitempty"`
+	Quota           directorQuota     `json:"quota"`
+	Lineage         []directorLineage `json:"lineage,omitempty"`
+	Actions         []directorAction  `json:"actions"`
+	RecentEvents    []directorEvent   `json:"recent_events,omitempty"`
 }
 
 func projectDirectorAgent(agent store.Agent, gen *store.RuntimeGeneration, processLive bool) directorProjection {
@@ -171,5 +247,25 @@ func (h *NexusHandler) directorViewForStoredAgent(st *store.Store, agent store.A
 	view.ObservedState = observed.AgentState
 	view.ObservedSource = observed.SignalSource
 	view.ObservedReason = observed.ReasonCode
+	view.Quota = projectDirectorQuota(view.Provider, view.Profile)
+	if bound != nil {
+		view.Workspace = bound.Workspace
+	}
+	revisions, err := st.ListRevisions(agent.ID)
+	if err != nil {
+		return directorProjection{}, err
+	}
+	isolation, declaredWorkspace := agentRevisionWorkspace(revisions)
+	if declaredWorkspace != "" {
+		view.Workspace = declaredWorkspace
+	}
+	if isolation == "worktree" && view.Workspace != "" {
+		view.Worktree = view.Workspace
+	}
+	lineage, err := st.ListLineage(agent.ID)
+	if err != nil {
+		return directorProjection{}, err
+	}
+	view.Lineage = projectDirectorLineage(lineage)
 	return view, nil
 }

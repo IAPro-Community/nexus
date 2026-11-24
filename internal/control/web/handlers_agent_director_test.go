@@ -128,6 +128,15 @@ func TestDirectorEndpointKeepsProjectScopeAndReadOnlyAuthentication(t *testing.T
 		t.Fatal(err)
 	}
 
+	if err := st.AddLineage(store.LineageEntry{
+		ID: "lineage-director", AgentID: agent.ID, Relation: "ACCOUNT_HANDOFF",
+		SourceRuntime: "runtime-source", SourceSession: "provider-secret-source",
+		TargetRuntime: "runtime-target", TargetSession: "provider-secret-target",
+		CheckpointID: "checkpoint-director", CreatedAt: time.Now().UTC(),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
 	url := base + "/api/v1/agents/" + agent.ID + "/director?project_id=" + project.ID
 	response, err = client.Get(url)
 	if err != nil {
@@ -152,6 +161,16 @@ func TestDirectorEndpointKeepsProjectScopeAndReadOnlyAuthentication(t *testing.T
 	}
 	if !found {
 		t.Fatalf("durable activity missing from Agent projection: %+v", view.RecentEvents)
+	}
+	if len(view.Lineage) != 1 || view.Lineage[0].ID != "lineage-director" ||
+		view.Lineage[0].Relation != "ACCOUNT_HANDOFF" ||
+		view.Lineage[0].SourceRuntime != "runtime-source" ||
+		view.Lineage[0].TargetRuntime != "runtime-target" ||
+		view.Lineage[0].CheckpointID != "checkpoint-director" {
+		t.Fatalf("lineage missing from Agent projection: %+v", view.Lineage)
+	}
+	if view.Quota.Status != "UNKNOWN" || view.Quota.Source != "UNKNOWN" {
+		t.Fatalf("quota without provider evidence must stay unknown: %+v", view.Quota)
 	}
 	encodedView, err := json.Marshal(view)
 	if err != nil {
