@@ -3251,3 +3251,11 @@ O controle `Popup independente` agora fica imediatamente abaixo do cabeçalho do
 - **Evidência:** `go build ./internal/control/...` OK; `go vet ./internal/control/host ./internal/control/web` OK; `go test -race` em ambos OK (host 13,9 s; web 108,3 s); 40 repetitiones do handoff autenticado → `fails=0 of 40` (logs `/tmp/opencode/gates-20261122/issue214i/`).
 - **Estado:** alterações não commitadas (preservar até decisão do maestro); release **NO_GO** (restam 48/48 certificações, NEX, homologações — ver plano de finalização).
 - **Próximo:** retomar #231, #196, #216, #229, #230 e ondas restantes; consolidar commits somente com autorização.
+
+## Handoff 2026-11-23 — Lane A em `1963b441`, dois bloqueios de CI removidos
+
+- **Estado do código:** `origin/release/v1.0.0` @ `1963b441` (5 commits acima de `57c1b069`): Bridge Maestro falso no fixture E2E (`9c8fcc43`), GTK4/WebKitGTK-6.0 para Wails v3 (`bcad0b48`), projeção Director com quota/lineage/workspace (`0078d12b`), tipos + i18n (`25d9d4b8`), painel do Inspector (`28208364`), contrato do Inspector + evidence map (`1963b441`). Docs deste handoff em `3fa11942` (ainda local).
+- **O que ficou verde localmente:** `go vet`/`gofmt`/`go test -run TestDirector`; `tsc --noEmit`; ESLint/Prettier; Vitest agents 47/47; `e2e-surface-isolation.mjs` completo; `go test ./cmd/nexus-hud` dentro do container do runner com gtk4 + webkitgtk-6.0.
+- **O que continua bloqueado:** CI do SHA exato (a conferir), artefato `nexus-v1-workspace-acceptance-<sha>` com `workspace-acceptance-linux-amd64.json`, aceite externo por capacidade, aceite visual do NEX (HUD+Site atômico), runners Windows/macOS, chaves ed25519, credencial Named Tunnel, quota AGY real, `memory-migrate apply` com Bridge ativo, hardware físico (2 dispositivos). Release **NO_GO**; tag `v1.0.1` não criada.
+- **Próximos passos do orquestrador:** (1) acompanhar o run de `1963b441` e corrigir o que ainda ficar vermelho; (2) retomar Lane A em `agent-timeline`, `device-preview`, `mobile-inbox`, `voice-actions`, `remote-companion`; (3) push do commit de docs junto do próximo lote de código.
+- **Working tree:** ~106 modificações alheias preservadas; commits sempre por índice, no máximo 2 arquivos por lote.
