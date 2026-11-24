@@ -146,6 +146,10 @@ export const WorkspaceProvider: React.FC<{
     };
   }, [fallback, initialLayout, layoutService, projectId]);
   const revisionRef = useRef<number>(initialRevision || initialPersisted.revision || 1);
+  const saveLayoutRef = useRef(saveLayout);
+  saveLayoutRef.current = saveLayout;
+  const remoteSaveChainRef = useRef<Promise<unknown>>(Promise.resolve());
+  const latestEnvelopeRef = useRef<ReturnType<WorkspaceLayoutService['normalize']> | null>(null);
   const [presentation, setPresentation] = React.useState(initialPersisted.presentation);
   // Debounced snapshots avoid synchronous localStorage writes on every drag frame.
   const pendingLocalLayoutRef = useRef<{
@@ -202,6 +206,7 @@ export const WorkspaceProvider: React.FC<{
       presentation,
       updatedAt: new Date().toISOString(),
     });
+    latestEnvelopeRef.current = envelope;
     // Persist locally even without the remote writer. Drag/move can update
     // state every frame, so coalesce writes while flushing on pagehide.
     const pending = { service: layoutService, envelope };
@@ -210,23 +215,43 @@ export const WorkspaceProvider: React.FC<{
       layoutService.save(envelope);
       if (pendingLocalLayoutRef.current === pending) pendingLocalLayoutRef.current = null;
     }, 200);
-    if (!saveLayout) return () => window.clearTimeout(localTimer);
-    const timer = window.setTimeout(async () => {
-      try {
-        const res = (await saveLayout(JSON.stringify(envelope), revisionRef.current)) as
-          { revision?: number } | undefined;
-        if (res && typeof res.revision === 'number') {
-          revisionRef.current = res.revision;
+    const remoteSave = saveLayoutRef.current;
+    if (!remoteSave) return () => window.clearTimeout(localTimer);
+    const timer = window.setTimeout(() => {
+      const saveEnvelope = async () => {
+        try {
+          const res = (await remoteSave(JSON.stringify(envelope), revisionRef.current)) as
+            { revision?: number } | undefined;
+          if (res && typeof res.revision === 'number') {
+            revisionRef.current = res.revision;
+          }
+        } catch (error) {
+          const currentRevision = (error as { payload?: { current_revision?: number } })?.payload
+            ?.current_revision;
+          if (typeof currentRevision !== 'number') return;
+          revisionRef.current = currentRevision;
+          try {
+            const retried = (await remoteSave(
+              JSON.stringify(latestEnvelopeRef.current ?? envelope),
+              currentRevision,
+            )) as { revision?: number } | undefined;
+            if (retried && typeof retried.revision === 'number') {
+              revisionRef.current = retried.revision;
+            }
+          } catch {
+            // Retry failed; the next layout change retries again.
+          }
         }
-      } catch {
-        // Revision conflict or network error — handled gracefully
-      }
+      };
+      remoteSaveChainRef.current = remoteSaveChainRef.current
+        .then(saveEnvelope, saveEnvelope)
+        .catch(() => undefined);
     }, 500);
     return () => {
       window.clearTimeout(localTimer);
       window.clearTimeout(timer);
     };
-  }, [layoutService, model, initialPersisted, presentation, projectId, saveLayout]);
+  }, [layoutService, model, initialPersisted, presentation, projectId]);
 
   const persistence = useMemo<WorkspaceLayoutPersistence>(
     () => ({
