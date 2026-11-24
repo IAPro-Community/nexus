@@ -60,7 +60,7 @@ func TestMissionFailoverCostObservationAttributionFollowsExecutingRuntime(t *tes
 	// quota-b profile completes its turn. Both are the same fixture CLI; the
 	// provider home distinguishes the accounts.
 	fixturePath := testutil.WriteSpecBinary(t, binDir, "codex")
-	t.Setenv("FIXTURE_CLI_SPEC", `{"version":"codex fixture 1.0","responses":[{"when_env_contains":[["CODEX_HOME","profiles/codex/quota-a"]],"stdout":["Error: 429 Too Many Requests. Rate limit reached. Usage limit reached for profile quota-a."],"exit_code":1,"sleep_ms":1000}],"stdout":["FIXTURE_FAILOVER_TURN_COMPLETED"],"sleep_ms":1000}`)
+	t.Setenv("FIXTURE_CLI_SPEC", `{"version":"codex fixture 1.0","responses":[{"when_env_contains":[["CODEX_HOME","quota-a"]],"stdout":["Error: 429 Too Many Requests. Rate limit reached. Usage limit reached for profile quota-a."],"exit_code":1,"sleep_ms":1000},{"when_env_contains":[["HOME","quota-a"]],"stdout":["Error: 429 Too Many Requests. Rate limit reached. Usage limit reached for profile quota-a."],"exit_code":1,"sleep_ms":1000}],"stdout":["FIXTURE_FAILOVER_TURN_COMPLETED"],"sleep_ms":1000}`)
 	if resolved, err := exec.LookPath("codex"); err != nil || resolved != fixturePath {
 		t.Fatalf("runtime would not resolve to the isolated fixture CLI: path=%q err=%v", resolved, err)
 	}
