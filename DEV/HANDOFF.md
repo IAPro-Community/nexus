@@ -1,3 +1,12 @@
+## Handoff 2026-11-24 — Lane A fecha `quick-switcher` com palette e foco auditados
+
+- **Estado do código** — `quick-switcher`: palette restaura foco no opener; comandos de superfície ativam a superfície existente e PTYs recebem foco de apresentação; E2E prova lista dinâmica `~`, execução correta e ausência de spawn colateral.
+- **Provas locais** — Smart Layouts E2E PASS; typecheck PASS; ESLint focado sem erros (1 warning preexistente); Prettier/diff limpos; evidence map 48/97, testes 4/4; contrato 48 capabilities, certification pending.
+- **Lane A** — 35/48 capabilities e 72/97 cláusulas auditadas; contrato 36 `present` / 11 `partial` / 1 `missing`, 0 certificadas. `quick-switcher` = `present`, `verification: pending`.
+- **Git** — implementação `bd10e592`; evidence map `e814f68b`; WORKLOG/VERIFY `205f2e03`; push publicado. Tag `v1.0.1` não criada; release **NO_GO**.
+- **Próximo passo** — CI/recaptura visual no SHA final e coleta de `workspace-acceptance-linux-amd64.json`; depois continuar Lane A por capability `partial` comprovável. Lane C aguarda aceite visual do owner em HUD+Site atômico.
+- **Bloqueios intactos** — aceite visual NEX, runner Windows/macOS nativo e chaves ed25519, credencial do Named Tunnel, quota real AGY, hardware físico de 2 dispositivos, `memory-migrate apply` com Bridge ativo.
+
 ## Handoff 2026-11-24 — Lane A fecha persistência e isolamento de `smart-layouts`
 
 - **Estado do código** — `smart-layouts`: gravação remota serializada no `WorkspaceProvider`; após `409 REVISION_CONFLICT`, reenvia apenas o envelope mais recente, evitando que snapshot antigo sobrescreva layout novo. E2E prova segundo PTY pelo command palette, split com dois runtimes distintos após reload sem respawn, persistência no servidor, isolamento entre projetos e retorno ao primeiro layout.

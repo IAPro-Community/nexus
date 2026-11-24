@@ -1,3 +1,11 @@
+## 2026-11-24 — Lane A: `quick-switcher` palette e foco auditados — ativo
+
+- **Lane A — estado** — 35 das 48 capabilities com todos os critérios `audited` (72/97 cláusulas), 13 ainda com cláusulas `partial`, 0 certificadas. Contrato: 36 `present`, 11 `partial`, 1 `missing`. Nesta onda: `quick-switcher` — busca de superfícies via `~`, lista dinâmica, execução da superfície existente sem spawn colateral, atalho Ctrl+K, focus trap e restauração do opener em desktop e 390px.
+- **Provas** — Smart Layouts E2E PASS; typecheck PASS; ESLint focado sem erros (1 warning preexistente); Prettier/diff limpos; `verify-agent-workspace-evidence-map.mjs` exit 0; testes do mapa 4/4; `verify-agent-workspace-v1.mjs` exit 0.
+- **Estado** — implementação `bd10e592`; evidence map `e814f68b`; WORKLOG/VERIFY `205f2e03`; tag `v1.0.1` não criada. Capability `verification: pending`; release **NO_GO** até prova externa por capacidade no SHA exato.
+- **Próximo** — acompanhar CI/recaptura; coletar `workspace-acceptance-linux-amd64.json`; continuar Lane A por capability `partial` com gap local comprovável; Lane C aguarda aceite visual do owner em HUD+Site.
+- **Bloqueios que exigem o maestro** — aceite visual NEX em HUD+Site, runner Windows/macOS nativo e chaves de assinatura, credencial do Named Tunnel, quota real AGY, hardware físico, `memory-migrate apply` com Bridge ativo.
+
 ## 2026-11-24 — Lane A: `smart-layouts` persistência e isolamento auditados — ativo
 
 - **Lane A — estado** — 34 das 48 capabilities com todos os critérios `audited` (70/97 cláusulas), 14 ainda com cláusulas `partial`, 0 certificadas. Contrato: 36 `present`, 11 `partial`, 1 `missing`. Nesta onda: `smart-layouts` — gravação remota serializada, reenvio apenas do snapshot mais recente após conflito de revisão, segundo PTY pelo command palette, split restaurado sem respawn e isolamento entre projetos.
