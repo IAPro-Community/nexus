@@ -89,7 +89,9 @@ export function buildPlan({
         kind: "go",
         cwd: root,
         command: "go",
-        args: ["test", "-count=1", `./${pkg}`],
+        // Linux builds the HUD/desktop packages with the gtk3 tag (see the
+        // Makefile); without it cmd/nexus-hud pulls GTK4 and fails to compile.
+        args: ["test", ...(platform.startsWith("linux") ? ["-tags=gtk3"] : []), "-count=1", `./${pkg}`],
         tests: tests.sort(),
         twoClient: tests.some((ref) => detectTwoClient(root, ref)),
       });

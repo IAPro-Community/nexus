@@ -38,7 +38,7 @@ test("plan covers every contract capability and classifies test references", () 
   assert.ok(kinds.has("vitest"));
   const goStep = plan.steps.find((step) => step.id.startsWith("go:"));
   assert.match(goStep.args[0], /^test$/);
-  assert.match(goStep.args[2], /^\.\//);
+  assert.match(goStep.args.at(-1), /^\.\//);
 });
 
 test("plan groups Go references by package and keeps feature attribution", () => {
