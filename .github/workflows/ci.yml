@@ -649,6 +649,11 @@ jobs:
         run: |
           set -euo pipefail
           go test -exec=/bin/true -run '^$'             ./cmd/nexus             ./internal/runtime             ./internal/browser             ./internal/update             ./internal/control/...             ./internal/core/...             ./internal/nexus/...
+      - name: Run Linux portability gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/portability-gate.sh
 
   native-windows:
     name: Windows native certification
