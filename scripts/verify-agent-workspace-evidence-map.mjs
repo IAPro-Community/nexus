@@ -45,7 +45,7 @@ function safeTrackedReference(ref, kind, featureId, criterionIndex) {
     `${featureId}[${criterionIndex}]: missing ${kind} path ${ref}`,
   );
   if (kind === "test") {
-    const unitTest = /(_test\.go|\.test\.[jt]sx?)$/.test(ref);
+    const unitTest = /(_test\.go|\.test\.(?:[cm]?[jt]sx?))$/.test(ref);
     const browserE2E = /^web\/scripts\/e2e-[a-z0-9-]+\.mjs$/.test(ref);
     check(
       unitTest || browserE2E,

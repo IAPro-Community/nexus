@@ -2095,13 +2095,17 @@
      "acceptanceIndex": 0,
      "acceptance": "Linux/Windows/macOS mesma revisão em release candidate",
      "sourceRefs": [
-      ".github/workflows/ci.yml"
+      ".github/workflows/ci.yml",
+      ".github/workflows/unsigned-preview.yml",
+      "scripts/portability-gate.sh"
      ],
-     "testRefs": [],
-     "mappingStatus": "source-only",
+     "testRefs": [
+      "scripts/workspace-acceptance-e2e.test.mjs"
+     ],
+     "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: sem teste referenciado; exige evidencia externa de Linux, Windows e macOS no mesmo SHA do release candidate, conforme os jobs de CI.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: o teste prova que o selo rejeita menos de tres plataformas, SHA divergente e jobUrl fora do GitHub; runners hospedados provam build e teste por plataforma, nao assinatura nem aceite externo no SHA publicado.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
