@@ -3065,3 +3065,11 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - **PASS** — `go vet ./internal/control/host/`, `gofmt -l` vazio, `go test ./internal/control/host/ -count=2` verde; o teste de handoff com dois clientes passa 10/10 no commit `1963b441` (worktree limpa) e 5/5 com o fix de fila do ack.
 - **PASS** (local) — `web/scripts/e2e-surface-isolation.mjs` completo com o Bridge Maestro falso; `tsc --noEmit` exit 0; ESLint/Prettier limpos; Vitest `web/src/features/agents` 47/47 e `web/src/features/browser/BrowserSurface.test.ts` 16/16.
 - **PENDENTE** — CI do SHA `94412171` e novo `workspace-acceptance-linux-amd64.json` com os passos `vitest:` executando de verdade; aceite externo por capacidade continua NO_GO.
+
+## Lane A — `device-preview` (E2E de escala, foco e Axe) — 2026-11-24
+
+- **PASS** — `npm --prefix web run test:e2e:device-preview`: ciclo desktop (1280x800) -> celular (390x844) -> tablet (820x1180) -> desktop na MESMA sessao, um `POST /action` viewport por passo, foco de teclado retido no botao e Axe (WCAG 2 AA) sem violacoes serious/critical nos tres presets. Saida: `Device preview E2E: PASS (3 presets, same session, Axe clean)`.
+- **PASS** — `npm --prefix web run test -- BrowserSurface.test.ts`: 18/18 (2 novos casos de `applyBrowserActionViewport`: avanco de viewport e no-op para action nao-viewport).
+- **PASS** — `npm --prefix web run typecheck` (exit 0); `npx eslint src/features/browser/BrowserSurface.tsx src/features/browser/BrowserSurface.test.ts` sem erros; `npm --prefix web run lint:styles` limpo; `npx prettier --check` limpo nos arquivos tocados.
+- **PASS** — `node scripts/verify-agent-workspace-evidence-map.mjs` exit 0 (48 capabilities, 97 clauses, nenhuma certificada); `node scripts/verify-agent-workspace-v1.mjs` exit 0.
+- **PENDENTE** — CI do SHA exato com o novo step `device-preview-e2e` e recaptura sintetica (a mudanca em `web/src` invalida o manifest visual); aceite visual externo no SHA publicado. Capability `verification: pending`; release **NO_GO**.
