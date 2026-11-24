@@ -1,3 +1,10 @@
+## 2026-11-24 — Matriz hospedada `0c0e7586`: macOS verde, Windows corrigido localmente
+
+- **PASS (hospedado)** — Linux amd64, macOS arm64 e macOS intel concluíram `success` no run `45416597909`; o seal falhou apenas porque o Windows não produziu registro.
+- **FAIL (hospedado, Windows)** — `internal/control/launcher` (modo POSIX do envelope de browser), `internal/control/web` (`nexus.db` aberto no cleanup de 3 testes e comparação literal do worktree), `internal/core/provider/adapters/agy` (fixture bash), `internal/core/provider/adapters/codex` (URI `file:C:/...` opaca deixava o índice SQLite sem títulos), `internal/nexus` (branch 429 da fixture de failover não casava no Windows).
+- **PASS (local, após correções)** — `go test -count=1 ./internal/core/provider/adapters/agy` PASS; `go test -count=1 ./internal/core/provider/adapters/codex` PASS; `go test -count=1 -run 'TestBrowserLaunchEnvelopeTransportsOnlyScopedRuntimeEnvironment' ./internal/control/launcher` PASS; `go test -count=1 -run 'TestAttachmentUploadRoundTrip|TestNexConversationEndpointRequiresAuthCSRFAndScopes|TestNexAssistantDeterministicChatPersistsWhenOptedIn' ./internal/control/web` PASS; `go test -count=1 -run 'TestMissionFailoverCostObservationAttributionFollowsExecutingRuntime' ./internal/nexus` PASS; `go test -count=1 -run 'TestTwoAgentsTwoClientsAttentionScenario' ./internal/control/web` PASS.
+- **PENDENTE** — nova matriz hospedada com os três registros `workspace-acceptance-*.json` e `assemble`; aceite externo e gates de assinatura continuam com o maestro. Release **NO_GO**.
+
 ## 2026-11-24 — Portabilidade hospedada (macOS + Windows) corrigida localmente
 
 - **PASS (macOS)** — `go test -count=1 -run 'TestGetAccountInfoContextStopsSlowCursorAuthenticationProbe|TestCursorAuthProbeFixture' ./internal/profile` PASS; `go test -count=1 -run 'TestTwoAgentsTwoClientsAttentionScenario' ./internal/control/web` PASS.

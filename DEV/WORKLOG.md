@@ -1,3 +1,9 @@
+## 2026-11-24 — Matriz hospedada: macOS verde, Windows em ajuste final
+
+- **Resultado da matriz `0c0e7586`** — Linux `passed`, macOS arm64 `passed`, macOS intel `passed`; Windows falhou em 5 pacotes: `internal/control/launcher` (modo POSIX do envelope), `internal/control/web` (store aberto no cleanup + caminho do worktree), `internal/core/provider/adapters/agy` (fixture bash), `internal/core/provider/adapters/codex` (URI de arquivo opaca no índice SQLite) e `internal/nexus` (branch 429 da fixture de failover).
+- **Correções** — `9dee2d24` (modo POSIX ignorado no Windows), `ca64988d` (store liberado no cleanup dos testes web), `8195a76c` (comparação de caminho normalizada), `b65dca36` (fixture `agy` nativa com escrita em `{HOME}`), `903cc389` (URI `file:///` absoluta para o índice do Codex), `c37066f1` (regra 429 por nome de perfil).
+- **Próximo** — nova matriz hospedada no SHA marcado; com os três registros, rodar `assemble` e reauditar F5/F7. Release **NO_GO**.
+
 ## 2026-11-24 — Portabilidade hospedada: primeira matriz real Linux/Windows/macOS
 
 - **Matriz** — `unsigned-preview.yml` no SHA `7ef578a8`: Linux `passed`; macOS arm64, macOS intel e Windows falharam por bugs reais de portabilidade, corrigidos em `72c6a9d9`..`f5f10a6e` (2 arquivos por lote no máximo).
