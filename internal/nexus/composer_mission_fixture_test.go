@@ -18,6 +18,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 	"github.com/IAPro-Community/nexus/internal/profile"
+	"github.com/IAPro-Community/nexus/internal/testutil"
 )
 
 // TestComposerApprovedFlowReachesMissionRunner uses a temporary authenticated
@@ -244,10 +245,8 @@ func seedCodexExecutionFixture(t *testing.T) {
 	if err := os.MkdirAll(binDir, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	codexPath := filepath.Join(binDir, "codex")
-	if err := os.WriteFile(codexPath, []byte("#!/bin/sh\nif [ \"${1:-}\" = \"--version\" ]; then printf '%s\\n' 'codex fixture 1.0'; exit 0; fi\nexit 0\n"), 0o700); err != nil {
-		t.Fatal(err)
-	}
+	_ = testutil.WriteSpecBinary(t, binDir, "codex")
+	t.Setenv("FIXTURE_CLI_SPEC", `{"version":"codex fixture 1.0"}`)
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 
 	if _, err := profile.Create("codex", "fixture"); err != nil {
