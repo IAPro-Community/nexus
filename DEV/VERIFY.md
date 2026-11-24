@@ -3000,3 +3000,12 @@ Worktree `C:\Dev\nexus-hud-validation`, base `f6098b8c684a97bf7e8e56804109ca491c
 ## Frontend gate — 2026-11-22T04:42:15Z
 
 Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](validation/FRONTEND_LATEST.md).
+
+## Lane A + CI — 2026-11-23 (SHA `1963b441`)
+
+- **PASS** — `go vet ./internal/control/web/`, `gofmt -l` vazio e `go test ./internal/control/web/ -run TestDirector -count=1` (projeção Director com lineage e quota UNKNOWN).
+- **PASS** — `tsc --noEmit` (exit 0), ESLint sem avisos em `DirectorAgentPanel.tsx`, Prettier limpo em `types.ts`/`resources.ts`/`DirectorAgentPanel.tsx`/`AgentsSurface.test.ts`.
+- **PASS** — Vitest `web/src/features/agents`: 10 arquivos / 47 testes; `AgentsSurface.test.ts` 4/4 com o contrato do Inspector.
+- **PASS** — `web/scripts/e2e-surface-isolation.mjs` local (worktree `dd1b384a` + fixture nova): o único 503 do fixture era `maestro/submissions`; com o Bridge falso o E2E fecha com "All Surface Isolation assertions PASSED".
+- **PASS** — container do runner `nexus-ci`: `pkg-config --exists gtk4` e `webkitgtk-6.0` verdadeiros; `go test -count=1 ./cmd/nexus-hud` ok dentro de `/tmp/nexus-runner-work/nexus/nexus`.
+- **PENDENTE** — CI do SHA `1963b441` (Linux E2E, Frontend, Browser E2E, Desktop Linux, GoReleaser Snapshot, Smoke DEB) e artefato `workspace-acceptance-linux-amd64.json` no SHA exato; aceite externo por capacidade continua NO_GO.
