@@ -2,6 +2,7 @@ package nexus
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,6 +15,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
+	"github.com/IAPro-Community/nexus/internal/testutil"
 )
 
 type standaloneSkillFixtureLauncher struct {
@@ -65,21 +67,14 @@ func TestSelectedSkillsReachAnIsolatedProviderSession(t *testing.T) {
 			t.Setenv("NEXUS_REAL_HOME", hostHome)
 			t.Setenv("NEXUS_CONFIG_DIR", filepath.Join(root, "config"))
 			t.Setenv("XDG_RUNTIME_DIR", runtimeDir)
-			t.Setenv("NEXUS_SKILL_FIXTURE_CAPTURE", capturePath)
-			t.Setenv("NEXUS_SKILL_FIXTURE_ENV", environmentPath)
 			t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 
-			fixtureCLI := "#!/bin/sh\n" +
-				"if [ \"$1\" = \"--version\" ]; then printf '%s\\n' 'codex fixture 1.0'; exit 0; fi\n" +
-				"printf '%s\\0' \"$@\" > \"$NEXUS_SKILL_FIXTURE_CAPTURE\"\n" +
-				"printf 'HOME=%s\\nCODEX_HOME=%s\\n' \"$HOME\" \"$CODEX_HOME\" > \"$NEXUS_SKILL_FIXTURE_ENV\"\n" +
-				"printf '%s\\n' 'FIXTURE_SKILL_SESSION_COMPLETED'\n" +
-				"sleep 1\n"
-			if err := os.WriteFile(filepath.Join(binDir, "codex"), []byte(fixtureCLI), 0o700); err != nil {
-				t.Fatalf("write fake provider CLI: %v", err)
-			}
+			fixturePath := testutil.WriteSpecBinary(t, binDir, "codex")
+			t.Setenv("FIXTURE_CLI_SPEC", fmt.Sprintf(
+				`{"version":"codex fixture 1.0","args_file":%q,"env_file":%q,"env_keys":["HOME","CODEX_HOME"],"stdout":["FIXTURE_SKILL_SESSION_COMPLETED"],"sleep_ms":1000}`,
+				capturePath, environmentPath))
 			resolvedCLI, err := exec.LookPath("codex")
-			if err != nil || resolvedCLI != filepath.Join(binDir, "codex") {
+			if err != nil || resolvedCLI != fixturePath {
 				t.Fatalf("runtime would not resolve to the isolated fixture CLI: path=%q err=%v", resolvedCLI, err)
 			}
 
