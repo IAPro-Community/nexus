@@ -1,3 +1,11 @@
+## Handoff 2026-11-24 — Lane A fecha `remote-terminal`; terminal por Agent escopado
+
+- **Estado do Git** — `origin/release/v1.0.0` = `9c8d6dfd` (fix `4b16c60d`, evidence map `1bdabb7d`, contrato `9c8d6dfd`). Tag `v1.0.0` intacta (`d89797cd`); `v1.0.1` não criada.
+- **Lane A** — 31 das 48 capabilities com todos os critérios `audited` (64/97 cláusulas); contrato 33 `present` / 14 `partial` / 1 `missing`, 0 certificadas. Fechada nesta onda: `remote-terminal` — viewer bloqueado, upgrade exige Origin válido e runtime de outro Agent não pode ser anexado pela rota por Agent.
+- **Provas locais** — `go test ./internal/control/web/ -run 'TestAgentTerminal|TestTerminalAttach' -count=1 -v` PASS; `go test ./internal/control/web/ -count=1` PASS; `go vet` e `gofmt -l` limpos; `verify-agent-workspace-evidence-map.mjs` exit 0; testes do mapa 4/4; `verify-agent-workspace-v1.mjs` exit 0.
+- **Próximo passo** — (1) acompanhar CI do SHA `9c8d6dfd`; (2) coletar `workspace-acceptance-linux-amd64.json` do SHA exato; (3) Lane A: próxima capability `partial` com gap local comprovável; (4) Lane C: aceite visual do owner no SHA exato (HUD+Site atômico).
+- **Bloqueios intactos** — aceite visual NEX (9 gates), runner Windows/macOS nativo e chaves ed25519, credencial do Named Tunnel, quota real AGY, hardware físico de 2 dispositivos, `memory-migrate apply` com Bridge ativo. Release **NO_GO**.
+
 ## Handoff 2026-11-23 — Lane A fecha `parallel-challenge`; dispatch real a Agents isolados
 
 - **Estado do Git** — `release/v1.0.0` local @ `41c9671d` (commits `c7141630` teste de dispatch, `c1cfdd41` evidence map, `41c9671d` contrato `present`); `origin/release/v1.0.0` = `0de2faf6` até o push desta linha. Tag `v1.0.0` intacta (`d89797cd`); `v1.0.1` não criada.
