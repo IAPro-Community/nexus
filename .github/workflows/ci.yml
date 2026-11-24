@@ -1255,7 +1255,7 @@ jobs:
 
   package-smoke-deb:
     name: Smoke DEB install
-    runs-on: [self-hosted, Linux, X64, nexus-ci]
+    runs-on: ubuntu-latest
     needs: snapshot
     container: ubuntu:24.04
     steps:
