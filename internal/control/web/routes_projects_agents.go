@@ -123,6 +123,12 @@ func (s *Server) routeAgent(h *NexusHandler) http.HandlerFunc {
 
 		// WebSocket terminal: /api/v1/agents/:id/terminal[?runtime_id=…]
 		if len(parts) == 2 && parts[1] == "terminal" && r.Method == http.MethodGet {
+			// An interactive terminal executes arbitrary host commands, so a
+			// read-only (viewer) session may never attach.
+			if !sess.CanControl() {
+				writeError(w, http.StatusForbidden, "read-only session: terminal access is not allowed")
+				return
+			}
 			agentID := parts[0]
 			runtimeID := strings.TrimSpace(r.URL.Query().Get("runtime_id"))
 			if runtimeID != "" {
@@ -135,6 +141,11 @@ func (s *Server) routeAgent(h *NexusHandler) http.HandlerFunc {
 						writeError(w, http.StatusNotFound, "runtime not found: "+runtimeID)
 						return
 					}
+				} else if !s.terminalRuntimeOwnedByAgent(h, agentID, runtimeID) {
+					// A live runtime owned by another agent must never be
+					// attached through this agent-scoped route.
+					writeError(w, http.StatusNotFound, "runtime not found: "+runtimeID)
+					return
 				}
 			} else {
 				var err error
@@ -185,6 +196,27 @@ func (s *Server) routeAgent(h *NexusHandler) http.HandlerFunc {
 		}
 		h.handleAgentDetail(w, r)
 	}
+}
+
+// terminalRuntimeOwnedByAgent proves that runtimeID belongs to agentID before
+// an interactive attach. The live registry row is authoritative; legacy rows
+// without an agent fall back to the durable runtime generation mapping and,
+// as a last proof, to the agent's own current live generation.
+func (s *Server) terminalRuntimeOwnedByAgent(h *NexusHandler, agentID, runtimeID string) bool {
+	if agentID == "" || runtimeID == "" {
+		return false
+	}
+	if sess, ok := s.terminal.registry.Get(runtimeID); ok && sess.AgentID != "" {
+		return sess.AgentID == agentID
+	}
+	if h == nil || h.nexus == nil {
+		return false
+	}
+	if owner, err := h.nexus.ResolveAgentByRuntimeID(runtimeID); err == nil && owner != "" {
+		return owner == agentID
+	}
+	freshID, err := h.resolveAgentRuntimeID(agentID)
+	return err == nil && freshID != "" && freshID == runtimeID
 }
 
 func projectIDFromPath(path string) string {

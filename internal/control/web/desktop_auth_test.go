@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/IAPro-Community/nexus/internal/control/registry"
 )
 
 func TestDesktopBootstrapRequiresDesktopOrigin(t *testing.T) {
@@ -358,5 +360,108 @@ func TestTerminalAttachRejectsUnauthenticatedRevokedViewerAndForeignOrigin(t *te
 	srv.auth.RevokeSession(revoked.ID)
 	if code := attach(revoked.ID, "wails://wails"); code != http.StatusUnauthorized {
 		t.Fatalf("revoked session must not attach a terminal: got %d", code)
+	}
+}
+
+// The agent-scoped terminal route accepts a runtime_id, so it must prove the
+// runtime belongs to the agent in the path. A viewer grant and a runtime owned
+// by another agent are both refused before the WebSocket upgrade.
+func TestAgentTerminalAttachRejectsViewerAndForeignRuntime(t *testing.T) {
+	testDir := t.TempDir()
+	t.Setenv("AI_MANAGER_DATA_DIR", testDir)
+	t.Setenv("AI_CLI_DATA_DIR", testDir)
+
+	srv, err := NewServer(ServerOptions{Host: "127.0.0.1", Port: 0, NoOpen: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = srv.Shutdown(context.Background()) }()
+
+	const foreignRuntime = "rt-agent-foreign"
+	if err := srv.terminal.registry.Register(registry.RuntimeSession{
+		RuntimeID: foreignRuntime,
+		AgentID:   "agent-other",
+		Transport: "mock",
+		State:     registry.StateRunning,
+		StartedAt: time.Now(),
+	}); err != nil {
+		t.Fatalf("register foreign runtime: %v", err)
+	}
+	defer func() { _ = srv.terminal.registry.Delete(foreignRuntime) }()
+
+	handler := srv.Handler()
+	attach := func(sessionID string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/agents/agent-mine/terminal?runtime_id="+foreignRuntime, nil)
+		req.Host = strings.TrimPrefix(srv.URL(), "http://")
+		if sessionID != "" {
+			req.Header.Set("Authorization", "Bearer "+sessionID)
+		}
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		return rec
+	}
+
+	controller, err := srv.auth.CreateSession()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := attach(controller.ID)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("runtime owned by another agent must be refused: got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "runtime not found") {
+		t.Fatalf("foreign runtime refusal must not disclose ownership: body=%s", rec.Body.String())
+	}
+
+	srv.auth.mu.Lock()
+	if sess := srv.auth.sessions[controller.ID]; sess != nil {
+		sess.Remote = true
+		sess.Role = RoleViewer
+	}
+	srv.auth.mu.Unlock()
+	if rec := attach(controller.ID); rec.Code != http.StatusForbidden {
+		t.Fatalf("viewer grant must not attach an agent terminal: got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+// A WebSocket upgrade carries no CSRF header, so the origin check is the
+// cross-site request forgery defense. An upgrade without Origin, or with a
+// foreign Origin, must be refused before the runtime is resolved.
+func TestAgentTerminalUpgradeRequiresSameOrigin(t *testing.T) {
+	testDir := t.TempDir()
+	t.Setenv("AI_MANAGER_DATA_DIR", testDir)
+	t.Setenv("AI_CLI_DATA_DIR", testDir)
+
+	srv, err := NewServer(ServerOptions{Host: "127.0.0.1", Port: 0, NoOpen: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = srv.Shutdown(context.Background()) }()
+
+	session, err := srv.auth.CreateSession()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	handler := srv.Handler()
+	upgrade := func(origin string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/agents/agent-mine/terminal", nil)
+		req.Host = strings.TrimPrefix(srv.URL(), "http://")
+		req.Header.Set("Authorization", "Bearer "+session.ID)
+		req.Header.Set("Connection", "Upgrade")
+		req.Header.Set("Upgrade", "websocket")
+		if origin != "" {
+			req.Header.Set("Origin", origin)
+		}
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		return rec
+	}
+
+	if rec := upgrade(""); rec.Code != http.StatusForbidden {
+		t.Fatalf("upgrade without origin must be refused: got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if rec := upgrade("https://attacker.example"); rec.Code != http.StatusForbidden {
+		t.Fatalf("upgrade with foreign origin must be refused: got %d body=%s", rec.Code, rec.Body.String())
 	}
 }
