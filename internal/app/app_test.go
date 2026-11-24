@@ -61,6 +61,8 @@ func TestRunTreatsColonInTaskGoalAsGoalNotProvider(t *testing.T) {
 }
 
 func TestRunGoalCommandReleasesStoreHandle(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
 	t.Setenv("NEXUS_CONFIG_DIR", t.TempDir())
 

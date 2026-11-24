@@ -84,7 +84,7 @@ func startInteractiveDelegatedMission(n *nexus.Nexus, session registry.RuntimeSe
 		return nil, fmt.Errorf("nexus is unavailable")
 	}
 	if !nexus.AdvancedFeatureEnabled("MISSIONS") {
-		return nil, fmt.Errorf("Mission desativada: habilite NEXUS_FEATURES_ENABLED=true e NEXUS_FEATURE_MISSIONS=true")
+		return nil, fmt.Errorf("mission desativada: habilite NEXUS_FEATURES_ENABLED=true e NEXUS_FEATURE_MISSIONS=true")
 	}
 	result, err := n.StartDispatch(context.Background(), nexus.DispatchRequest{
 		ProjectID:            session.ProjectID,

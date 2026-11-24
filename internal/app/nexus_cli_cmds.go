@@ -21,11 +21,11 @@ func planCmd(args []string) error {
 	switch args[0] {
 	case "create", "compile", "run":
 		if !nexus.AdvancedFeatureEnabled("FLOW") {
-			return fmt.Errorf("Flow desativado: habilite NEXUS_FEATURES_ENABLED=true e NEXUS_FEATURE_FLOW=true")
+			return fmt.Errorf("flow desativado: habilite NEXUS_FEATURES_ENABLED=true e NEXUS_FEATURE_FLOW=true")
 		}
 	}
 	if args[0] == "run" && !nexus.AdvancedFeatureEnabled("MISSIONS") {
-		return fmt.Errorf("Mission desativada: habilite NEXUS_FEATURES_ENABLED=true e NEXUS_FEATURE_MISSIONS=true")
+		return fmt.Errorf("mission desativada: habilite NEXUS_FEATURES_ENABLED=true e NEXUS_FEATURE_MISSIONS=true")
 	}
 
 	n := nexus.Default()
