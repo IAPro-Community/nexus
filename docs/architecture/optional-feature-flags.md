@@ -54,3 +54,8 @@ Known limitation: other optional UI panels that are not tied to the APIs above
 still need their own presentation-level guards before being classified as
 fully disabled. These flags are not a universal runtime kill switch for
 background jobs already started, so use existing cancellation mechanisms.
+
+The CLI also applies the MISSIONS flag to `nexus run <goal>` and supervised
+Lead Mission promotion. Invoking `nexus run <provider>` still launches the
+provider directly. Internal migration/test helpers are not public entrypoints
+and must not be treated as a substitute for these gates.

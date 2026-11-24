@@ -1861,6 +1861,9 @@ func runGoalCmd(args []string) error {
 	if goal == "" {
 		return fmt.Errorf("informe o objetivo da tarefa")
 	}
+	if !nexus.AdvancedFeatureEnabled("MISSIONS") {
+		return fmt.Errorf("execução autônoma Nexus desativada; habilite explicitamente NEXUS_FEATURES_ENABLED=true e NEXUS_FEATURE_MISSIONS=true")
+	}
 
 	ctx := context.Background()
 	n := nexus.Default()
