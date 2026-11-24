@@ -229,7 +229,7 @@ jobs:
   publish:
     name: Publish clearly unsigned preview to source repository
     needs: [linux, windows, macos]
-    if: github.event_name != 'workflow_dispatch' || !inputs.acceptance_only
+    if: (github.event_name != 'workflow_dispatch' || !inputs.acceptance_only) && !contains(github.event.head_commit.message, '[no-publish]')
     runs-on: ubuntu-24.04
     permissions:
       contents: write
