@@ -1,3 +1,11 @@
+## 2026-11-23 — Lane A fecha `remote-companion` e `focus-queue`: revogação isolada e auditoria de fila
+
+- **`remote-companion` auditada** — novo `TestRemoteDeviceRevocationClosesOnlyThatDeviceSession` (`852adf2e`) prova que revogar um dispositivo pareado fecha imediatamente o watcher da sessão dele sem tocar a sessão do outro dispositivo; evidence map com 3 critérios `audited` (`a6fc62af`); contrato de `partial` para `present` com `verification: pending` (`4bda618d`).
+- **`focus-queue` auditada** — evidence map com 2 critérios `audited` (`bb5e1b5f`) citing ordenação por severidade/tempo, dedupe, exclusão de respondidos e claim one-shot durável; contrato de `partial` para `present` (`f599dd7f`).
+- **Verificação** — `go test ./internal/control/web/ -run 'TestRemoteDevice' -count=1` 2/2 PASS; `node scripts/verify-agent-workspace-evidence-map.mjs` exit 0 (48/97, 0 certificadas); `node --test scripts/verify-agent-workspace-evidence-map.test.mjs` 4/4; `node scripts/verify-agent-workspace-v1.mjs` exit 0.
+- **CI** — `Publish Nexus documentation` do run `45315356441` (`4bda618d`) falhou no step `Publish GitHub Pages` com `Found 0 artifact(s)` depois do upload bem-sucedido: race de API do GitHub, não falha de código. O `Frontend` continua sujeito ao gate de provenance visual até a recaptura sintética no SHA novo.
+- **Estado** — `origin/release/v1.0.0` = `f599dd7f` (local, push pendente nesta linha); 21 das 48 capacidades com todos os critérios `audited` (50/97 cláusulas); contrato: 15 `present`, 31 `partial`, 2 `missing`, 0 certificadas. Release **NO_GO**.
+
 ## 2026-11-23 — Lane A fecha `mobile-inbox`: sessão vinculada e resposta única auditada
 
 - **`mobile-inbox` auditada** — linhas do radar carregam `provider_session_id` e o `response guard` do episódio exato (`1b6405f2`); a identidade do episódio (runtime + generation + revision + fingerprint + interaction id) passou a ser a identidade de push, estável entre reconexões e distinta por interação estruturada (`d49c1beb`); jobs de missão ganharam chave estável sobre mission/project/task/intervention version (`6a5173d0`), usada como chave React (`5abd77a6`).
