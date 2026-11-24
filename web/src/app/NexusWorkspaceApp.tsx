@@ -759,6 +759,20 @@ const WorkspaceCoordinator: React.FC<{
         keywords: [entry.id, entry.canonical_path || '', 'switch', 'workspace'],
         run: () => setProject(entry),
       })),
+      ...listSurfaces(workspace.model.root).map((surface) => {
+        const surfaceName = surface.titleKey
+          ? t(surface.titleKey, surface.titleParams)
+          : surface.title;
+        return {
+          id: `surface-${surface.logicalKey || surface.id}`,
+          kind: 'surface' as const,
+          label: t('commands.open', { name: surfaceName }),
+          group: t('commands.scopeSurfaces'),
+          description: surface.subtitle,
+          keywords: [surface.type, surface.data?.agentId || '', surface.data?.runtimeId || ''],
+          run: () => open(surface),
+        };
+      }),
       ...data.agents.flatMap((agent) => [
         {
           id: `terminal-${agent.id}`,
