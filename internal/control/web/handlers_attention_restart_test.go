@@ -225,6 +225,8 @@ func TestAttentionHTTPProjectionSurvivesRestartWithProjectIsolation(t *testing.T
 }
 
 func TestAttentionHTTPMultiMissionQuotaRecoverySurvivesRestart(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	ctx := context.Background()
 	dbPath := filepath.Join(t.TempDir(), "attention-multi-mission.db")
 	authDir := t.TempDir()

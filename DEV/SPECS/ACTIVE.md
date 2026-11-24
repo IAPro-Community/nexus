@@ -1,3 +1,24 @@
+## 2026-11-24 — Escopo vigente: Nexus session-first, opcionais default OFF
+
+**Esta direção supersede as instruções de expansão das 48 capacidades abaixo.**
+A prioridade é Projects/Agents/Direct, sessões e terminais, continuidade, contas,
+acesso remoto, segurança, Browser básico e Nex contextual. Preservar código e
+dados existentes; não expandir Composer, Flow, Missions, comparação,
+proatividade, voz e ferramentas visuais avançadas enquanto desativadas.
+Usar o catálogo central em `internal/nexus/feature_flags.go` e o contrato
+`docs/architecture/optional-feature-flags.md`. Nenhuma flag opcional nasce true.
+
+- Gates: corrigir regressões OFF e testar a ativação explícita ON de forma isolada.
+- Não reativar funcionalidades para satisfazer screenshots/testes antigos.
+- Não criar outro motor ou transferir complexidade legada para Maestro.
+- Manter o contrato histórico de 48 capacidades e suas evidências intactos;
+  versionar perfil session-first e verificador antes de alterar escopo obrigatório.
+- Segurança, PTY/ConPTY, continuidade, dispositivos e aceite exato não são dispensados.
+- Status **NO_GO** até CI e homologação do SHA final. Não publicar automaticamente.
+
+As entradas históricas a seguir são registro de trabalho anterior, não autorização
+para continuar a expansão de funcionalidades opcionais.
+
 ## 2026-11-24 — Lane A: portabilidade hospedada macOS/Windows — ativo
 
 - **Escopo** — tornar `go test -count=1 ./...` executável nos runners hospedados `windows-2022`, `macos-15` e `macos-15-intel` para que a matriz de `unsigned-preview.yml` produza os três registros de aceite no mesmo SHA, sem tocar em `release.yml`, assinatura ou gates de release.

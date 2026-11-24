@@ -1,3 +1,14 @@
+## Handoff 2026-11-24 — revisão das flags globais
+
+Escopo vigente em `DEV/SPECS/ACTIVE.md` (session-first, default OFF).
+Implementação integrada diretamente em `release/v1.0.0`: correções de lint e
+testes, catálogo e API de capacidades, UI consultando o host, bloqueios no
+domínio Mission, e controles opcionais. Histórico permanece acessível conforme
+contrato. Não tratar esta integração como homologação: CI e aceite final ainda
+exigem evidência no SHA exato. Atualizar o verificador de perfil antes de
+publicar; não enfraquecer gates ou remover evidência anterior. Não usar entradas
+históricas abaixo como autorização para expansão automática.
+
 ## Handoff 2026-11-24 — Matriz hospedada destravada: macOS e Windows portáveis
 
 - **Git** — `origin/release/v1.0.0` @ `f5f10a6e`; lotes de 1–2 arquivos: `ab0a7de2` (mapa + verificador `.mjs`), `8e5a4880` (contrato/doc), `72c6a9d9` (deadlock do fixture cursor), `36ab8250` (symlink worktree), `2c894523` (handle do lock de migração), `017894ab`/`97c13e63` (modo POSIX em Windows), `77c24499`+`5afc751f`/`24f143c1`/`be667acb`/`23e77794` (fixtures portáveis `fixturecli`), `f5f10a6e` (budget Windows).

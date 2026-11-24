@@ -1,6 +1,7 @@
 package web
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -66,5 +67,30 @@ func TestProjectOptionalRoutesAreScoped(t *testing.T) {
 		if got := featureForProjectMutation(path); got != want[i] {
 			t.Errorf("%s: got %q, want %q", path, got, want[i])
 		}
+	}
+}
+
+func TestEffectiveAdvancedFeaturesEndpointIsReadOnlyAndNotCached(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "false")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
+	rec := httptest.NewRecorder()
+	handleEffectiveAdvancedFeatures(rec, httptest.NewRequest(http.MethodGet, "/api/v1/system/features", nil))
+	if rec.Code != http.StatusOK || rec.Header().Get("Cache-Control") != "no-store" {
+		t.Fatalf("feature snapshot status=%d cache=%q", rec.Code, rec.Header().Get("Cache-Control"))
+	}
+	var payload struct {
+		Global   bool            `json:"global"`
+		Features map[string]bool `json:"features"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload.Global || payload.Features["MISSIONS"] {
+		t.Fatal("global off must override individual opt-in")
+	}
+	rec = httptest.NewRecorder()
+	handleEffectiveAdvancedFeatures(rec, httptest.NewRequest(http.MethodPost, "/api/v1/system/features", nil))
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("feature writes must be rejected, got %d", rec.Code)
 	}
 }
