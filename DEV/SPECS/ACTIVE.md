@@ -1,3 +1,11 @@
+## 2026-11-23 — Lane A: `remote-companion`, `focus-queue`, `mobile-inbox` e `voice-actions` auditadas — ativo
+
+- **Lane A — estado** — 21 das 48 capacidades com todos os critérios `audited` (50/97 cláusulas), 27 ainda com cláusulas `partial`, 0 certificadas. Contrato: 15 `present`, 31 `partial`, 2 `missing`. Nesta onda: `remote-companion` (revogação imediata e isolada de dispositivo pareado + auditoria das três cláusulas), `focus-queue` (ordenação, dedupe e exclusão de respondidos auditadas), `mobile-inbox` (vínculo de sessão e identidade de episódio) e `voice-actions` (destino obrigatório, lease `CONTROL`, texto sem controles).
+- **CI** — `Publish Nexus documentation` do run `45315356441` (`4bda618d`) falhou apenas no deploy de Pages (`Found 0 artifact(s)` após upload success): race de API do GitHub. O job `Frontend` depende de recaptura sintética no SHA novo, porque qualquer alteração em `web/src` invalida o manifest visual.
+- **Estado** — `origin/release/v1.0.0` = `4bda618d` (local `70a39ed8`, push pendente desta linha); tag `v1.0.0` intacta (`d89797cd`), `v1.0.1` não criada. Release **NO_GO** até prova externa por capacidade no SHA exato.
+- **Próximo** — push e acompanhamento do CI/recaptura; coletar `workspace-acceptance-linux-amd64.json`; retomar `agent-timeline` quando os hunks alheios de `web/src/app/activityModel.ts` forem liberados; Lane C aguarda aceite visual do owner em HUD+Site.
+- **Bloqueios que exigem o maestro** — aceite visual NEX em HUD+Site, runner Windows/macOS nativo e chaves de assinatura, credencial do Named Tunnel, quota real AGY, hardware físico, `memory-migrate apply` com Bridge ativo.
+
 ## 2026-11-23 — Lane A: `mobile-inbox` e `voice-actions` auditadas — ativo
 
 - **Lane A — estado** — 19 das 48 capacidades com todos os critérios `audited` (45/97 cláusulas), 29 ainda com cláusulas `partial`, 0 certificadas. Nesta onda: `mobile-inbox` (vínculo de sessão no radar e nos jobs de missão; identidade de episódio estável entre reconexões; claim durável e retry sem resend já cobertos no servidor) e `voice-actions` (destino obrigatório, lease `CONTROL`, texto sem caracteres de controle).
