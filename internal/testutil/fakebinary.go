@@ -90,3 +90,40 @@ func main() {
 	}
 	return exe
 }
+
+// WriteSpecBinary builds the portable provider-CLI stand-in into dir and
+// returns its executable path. The binary reads FIXTURE_CLI_SPEC (JSON) when it
+// runs, so tests get identical stdout, files, environment capture and exit code
+// on Unix and Windows without any shell script.
+func WriteSpecBinary(t *testing.T, dir, name string) string {
+	t.Helper()
+	exe := filepath.Join(dir, name)
+	if runtime.GOOS == "windows" {
+		exe += ".exe"
+	}
+	cmd := exec.Command("go", "build", "-o", exe, "./internal/testutil/fixturecli")
+	cmd.Dir = moduleRoot(t)
+	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("build fixture CLI %s: %v\n%s", name, err, out)
+	}
+	return exe
+}
+
+func moduleRoot(t *testing.T) string {
+	t.Helper()
+	dir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			t.Fatal("go.mod not found for fixture CLI build")
+		}
+		dir = parent
+	}
+}
