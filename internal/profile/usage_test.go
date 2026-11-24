@@ -11,6 +11,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
+	"github.com/IAPro-Community/nexus/internal/testutil"
 )
 
 func TestGetQuotaDetails(t *testing.T) {
@@ -610,17 +611,12 @@ func agyAccountSwitchFixture(t *testing.T) (scopeA model.AccountScope, home stri
 	}
 
 	fakeBinDir := t.TempDir()
-	script := `#!/usr/bin/env bash
-# The Google account switch happens in the middle of the live quota probe:
-# identity files now belong to account B, and the probe answers with B's quota.
-printf '{"active":"b@example.test"}' > "$HOME/.gemini/google_accounts.json"
-printf '{"account":"b@example.test"}' > "$HOME/../usage.json"
-printf '{"account":"b@example.test"}' > "$HOME/usage.json"
-printf 'gemini\t5h\t77%%\t2h\n'
-`
-	if err := os.WriteFile(filepath.Join(fakeBinDir, "agy"), []byte(script), 0700); err != nil {
-		t.Fatal(err)
-	}
+	_ = testutil.WriteSpecBinary(t, fakeBinDir, "agy")
+	t.Setenv("FIXTURE_CLI_SPEC", fmt.Sprintf(
+		`{"files":{%q:"{\"active\":\"b@example.test\"}",%q:"{\"account\":\"b@example.test\"}",%q:"{\"account\":\"b@example.test\"}"},"stdout":["gemini\t5h\t77%%\t2h"]}`,
+		filepath.Join(home, ".gemini", "google_accounts.json"),
+		filepath.Join(home, "usage.json"),
+		filepath.Join(home, "..", "usage.json")))
 	t.Setenv("PATH", fakeBinDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	return scopeA, home
 }
