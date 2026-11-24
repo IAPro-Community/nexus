@@ -1,3 +1,11 @@
+## Handoff 2026-11-24 — `agent-timeline` publicado e aceito no SHA `5a3e8091`
+
+- **Git** — `origin/release/v1.0.0` @ `5a3e80915f44cda219d30641d70a2d484887bca1`; árvore limpa; commits `4e564078`..`52ce3086` (lotes ≤2 arquivos) + capturas automáticas `502e9aae`.
+- **CI** — `ci.yml` 14/14 verde no SHA exato; `Windows beta.10 homologation` falha preexistente em `internal/app` (`UNKNOWN_JOURNAL_ENTRY`), reproduzida em SHAs anteriores.
+- **Aceite** — `workspace-acceptance-linux-amd64.json` exato: 48 capabilities, 47 `passed`, 1 `blocked` (`cross-platform-exact-sha`), 0 `failed`; `agent-timeline` `passed`.
+- **Estado** — capability `verification: pending`; tag `v1.0.0` intacta; `v1.0.1` não criada; release **NO_GO** até aceite externo por capacidade.
+- **Próximo passo** — continuar Lane A por capability `partial` com gap local comprovável; prova nativa Windows/macOS, chaves ed25519, Named Tunnel, quota AGY real, hardware físico e `memory-migrate apply` com Bridge ativo dependem do maestro; Lane C aguarda aceite visual NEX em HUD+Site.
+
 ## Handoff 2026-11-24 — Lane A fecha `agent-timeline` com metadados duráveis e projeção Director
 
 - **Estado do código** — migração `0041` adiciona `source`, `runtime_id` e `runtime_generation_id` a `events_metadata`; recorder único do barramento resolve geração/Agent/projeto sem inventar identidade, e a leitura atribui linhas legadas por `runtime_generations`/`agents`; projeção Director expõe `source`/`runtime_generation_id`; UI Director mostra fase, origem, geração e correlação localizados; catálogo de descoberta e i18n PT-BR/EN/ES atualizados.
