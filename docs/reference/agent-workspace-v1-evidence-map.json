@@ -782,29 +782,36 @@
      "acceptanceIndex": 0,
      "acceptance": "Linha de tempo de launch, attach, quota, handoff e recovery",
      "sourceRefs": [
-      "web/src/app/activityModel.ts"
+      "web/src/app/activityModel.ts",
+      "internal/nexus/event_recorder.go",
+      "internal/nexus/store/events.go"
      ],
      "testRefs": [
-      "web/src/app/activityModel.test.ts"
+      "web/src/app/activityModel.test.ts",
+      "internal/nexus/event_recorder_test.go"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: activityModel.test.ts afirma apenas o mapeamento de um evento duravel generico (FLOW_BLOCKED). Nao ha assertion sobre a linha do tempo de launch, attach, quota, handoff e recovery.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: activityModel.test.ts cobre as fases launch, attach, quota, handoff e recovery com ordenacao cronologica; event_recorder_test.go prova persistencia duravel de source, Agent, runtime generation e correlacao. Falta prova distribuida no app publicado no SHA exato; aceite permanece pendente.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
      "acceptance": "Eventos com timestamp, source, runtimeGeneration e correlação",
      "sourceRefs": [
-      "web/src/app/activityModel.ts"
+      "web/src/app/activityModel.ts",
+      "internal/nexus/event_recorder.go",
+      "internal/nexus/store/events.go",
+      "internal/control/web/handlers_agent_director.go"
      ],
      "testRefs": [
-      "web/src/app/activityModel.test.ts"
+      "web/src/app/activityModel.test.ts",
+      "internal/nexus/event_recorder_test.go"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: a projecao expoe correlation_id, agent_id e timestamp, mas activityModel.test.ts nao afirma source nem runtimeGeneration; correlation_id aparece no contrato sem assertion de generation.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: activityModel.test.ts afirma timestamp, source, runtime generation e correlacao; event_recorder_test.go prova a persistencia desses metadados e a projecao Director limita os campos operacionais expostos. Falta captura no app publicado no SHA exato; aceite permanece pendente.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"

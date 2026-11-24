@@ -51,7 +51,7 @@ Legenda: **present** indica código-base localizado; **partial** significa lacun
 | `agent-parking` | Agent Parking | present | [#114](https://github.com/IAPro-Community/nexus/issues/114) | Diferenciar ocultar superfície de suspender runtime quando suportado; UI não diz que processo está pausado se só ficou oculto |
 | `attention-radar` | Attention Radar | partial | [#100](https://github.com/IAPro-Community/nexus/issues/100) | Consolidar aprovações, perguntas, erros e blockers de CLIs heterogêneos; Ações direcionadas a geração e provider corretos com dados verificáveis |
 | `focus-queue` | Focus Queue | present | [#100](https://github.com/IAPro-Community/nexus/issues/100) | Fila de pendências priorizadas por severidade e tempo; Deduplicação, idempotência e resposta sem reabrir ações resolvidas |
-| `agent-timeline` | Agent Timeline | partial | [#114](https://github.com/IAPro-Community/nexus/issues/114) | Linha de tempo de launch, attach, quota, handoff e recovery; Eventos com timestamp, source, runtimeGeneration e correlação |
+| `agent-timeline` | Agent Timeline | present | [#114](https://github.com/IAPro-Community/nexus/issues/114) | Linha de tempo de launch, attach, quota, handoff e recovery; Eventos com timestamp, source, runtimeGeneration e correlação |
 | `resource-recommendations` | Resource Recommendations | present | [#87](https://github.com/IAPro-Community/nexus/issues/87) | Recomendações com elegibilidade e motivo para conta/modelo; LIVE/CACHED/UNKNOWN explícitos; respeitar PIN e quota |
 | `runtime-health` | Runtime Health | present | [#114](https://github.com/IAPro-Community/nexus/issues/114) | Diagnosticar lease, PTY, heartbeat, PID e provider capability; Erros e UNKNOWN visíveis sem afirmar recuperação falsa |
 
