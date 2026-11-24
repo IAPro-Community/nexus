@@ -82,7 +82,15 @@ func TestAgentApplicationServiceListScopesProjectAndProjectsEffectiveRuntimeStat
 	if err := st.SetAgentStatus(working.ID, store.AgentWorking); err != nil {
 		t.Fatal(err)
 	}
-	completed, err := st.CreateAgent(store.Agent{ProjectID: project.ID, Name: "Completed", Status: "COMPLETED"})
+	completed, err := st.CreateAgent(store.Agent{ProjectID: project.ID, Name: "Completed", Status: store.AgentCompleted})
+	if err != nil {
+		t.Fatal(err)
+	}
+	waiting, err := st.CreateAgent(store.Agent{ProjectID: project.ID, Name: "Waiting", Status: store.AgentWaiting})
+	if err != nil {
+		t.Fatal(err)
+	}
+	failed, err := st.CreateAgent(store.Agent{ProjectID: project.ID, Name: "Failed", Status: store.AgentFailed})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,8 +103,8 @@ func TestAgentApplicationServiceListScopesProjectAndProjectsEffectiveRuntimeStat
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(agents) != 2 {
-		t.Fatalf("project agent count = %d, want 2: %#v", len(agents), agents)
+	if len(agents) != 4 {
+		t.Fatalf("project agent count = %d, want 4: %#v", len(agents), agents)
 	}
 	states := make(map[string]string, len(agents))
 	for _, agent := range agents {
@@ -108,7 +116,16 @@ func TestAgentApplicationServiceListScopesProjectAndProjectsEffectiveRuntimeStat
 	if states[working.ID] != store.AgentRecoverable {
 		t.Errorf("dead runtime status = %q, want %q", states[working.ID], store.AgentRecoverable)
 	}
-	if states[completed.ID] != "COMPLETED" {
-		t.Errorf("completed status = %q, want COMPLETED", states[completed.ID])
+	for _, agent := range []struct {
+		id    string
+		state string
+	}{
+		{id: completed.ID, state: store.AgentCompleted},
+		{id: waiting.ID, state: store.AgentWaiting},
+		{id: failed.ID, state: store.AgentFailed},
+	} {
+		if states[agent.id] != agent.state {
+			t.Errorf("structured status = %q, want %q", states[agent.id], agent.state)
+		}
 	}
 }

@@ -42,6 +42,7 @@ const (
 	AgentStopping    = "STOPPING"
 	AgentFailed      = "FAILED"
 	AgentStale       = "STALE"
+	AgentCompleted   = "COMPLETED"
 )
 
 // Project is the root of the Nexus domain (§14-15). Identity is a stable
