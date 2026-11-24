@@ -19,7 +19,7 @@ func TestOptionalFeatureFlagsFailClosed(t *testing.T) {
 	}
 	t.Setenv("NEXUS_FEATURE_FLOW", "true")
 	if !optionalFeatureEnabled(featureFlow) {
-		t.Fatal("explicit global plus individual opt-in must enable feature")
+		t.Fatal("global plus individual opt-in must enable feature")
 	}
 	t.Setenv("NEXUS_FEATURE_FLOW", "1")
 	if optionalFeatureEnabled(featureFlow) {
@@ -35,39 +35,35 @@ func TestOptionalMutationGatePreservesHistoryAndCancellation(t *testing.T) {
 		reached++
 		w.WriteHeader(http.StatusNoContent)
 	})
-	cases := []struct {
-		method string
-		path   string
-		want   int
-	}{
-		{http.MethodGet, "/api/v1/runs/legacy", http.StatusNoContent},
-		{http.MethodPost, "/api/v1/runs/legacy/resume", http.StatusNotFound},
-		{http.MethodPost, "/api/v1/runs/legacy/cancel", http.StatusNoContent},
-		{http.MethodDelete, "/api/v1/runs/legacy", http.StatusNotFound},
-	}
-	for _, tt := range cases {
+	check := func(method, path string, want int) {
+		t.Helper()
 		rec := httptest.NewRecorder()
-		handler(rec, httptest.NewRequest(tt.method, tt.path, nil))
-		if rec.Code != tt.want {
-			t.Errorf("%s %s: got %d, want %d", tt.method, tt.path, rec.Code, tt.want)
+		handler(rec, httptest.NewRequest(method, path, nil))
+		if rec.Code != want {
+			t.Errorf("%s %s: got %d, want %d", method, path, rec.Code, want)
 		}
 	}
+	check(http.MethodGet, "/api/v1/runs/legacy", http.StatusNoContent)
+	check(http.MethodPost, "/api/v1/runs/legacy/resume", http.StatusNotFound)
+	check(http.MethodPost, "/api/v1/runs/legacy/cancel", http.StatusNoContent)
+	check(http.MethodDelete, "/api/v1/runs/legacy", http.StatusNotFound)
 	if reached != 2 {
 		t.Fatalf("got %d allowed handlers, want 2", reached)
 	}
 }
 
 func TestProjectOptionalRoutesAreScoped(t *testing.T) {
-	cases := map[string]string{
-		"/api/v1/projects/p/agents":                  "",
-		"/api/v1/projects/p/shell":                   "",
-		"/api/v1/projects/p/maestro/compose-preview": featureComposer,
-		"/api/v1/projects/p/plans":                   featureFlow,
-		"/api/v1/projects/p/maestro/runs":            featureMissions,
+	paths := []string{
+		"/api/v1/projects/p/agents",
+		"/api/v1/projects/p/shell",
+		"/api/v1/projects/p/maestro/compose-preview",
+		"/api/v1/projects/p/plans",
+		"/api/v1/projects/p/maestro/runs",
 	}
-	for path, want := range cases {
-		if got := featureForProjectMutation(path); got != want {
-			t.Errorf("%s: got %q, want %q", path, got, want)
+	want := []string{"", "", featureComposer, featureFlow, featureMissions}
+	for i, path := range paths {
+		if got := featureForProjectMutation(path); got != want[i] {
+			t.Errorf("%s: got %q, want %q", path, got, want[i])
 		}
 	}
 }
