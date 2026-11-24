@@ -502,6 +502,28 @@ describe('WCAG AA contrast automation for every registered preset', () => {
     }
   });
 
+  it('keeps explicit high-contrast presets above AAA text contrast', () => {
+    for (const id of ['high-contrast-dark', 'high-contrast-light'] as const) {
+      const definition = THEME_PRESETS[id];
+      const bg = definition.vars['--nx-bg'];
+      const surface = definition.vars['--nx-surface'];
+
+      for (const token of ['--nx-text', '--nx-text-soft', '--nx-muted', '--nx-subtle'] as const) {
+        expect(
+          contrastRatio(definition.vars[token], bg),
+          `High Contrast ${id} ${token}/bg contrast must be >= 7:1`,
+        ).toBeGreaterThanOrEqual(7);
+      }
+      for (const background of ['--nx-bg', '--nx-surface'] as const) {
+        expect(
+          contrastRatio(definition.vars['--nx-accent'], definition.vars[background]),
+          `High Contrast ${id} accent/${background} contrast must be >= 7:1`,
+        ).toBeGreaterThanOrEqual(7);
+      }
+      expect(contrastRatio(definition.vars['--nx-text'], surface)).toBeGreaterThanOrEqual(7);
+    }
+  });
+
   it('keeps High Contrast Light semantic status text readable on its surface', () => {
     const definition = THEME_PRESETS['high-contrast-light'];
     const surface = definition.vars['--nx-surface'];

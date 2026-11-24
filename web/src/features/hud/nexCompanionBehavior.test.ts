@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   consumeNexNewCompletion,
@@ -15,6 +17,25 @@ const base: NexCompanionInput = {
 };
 
 describe('NEX Companion 2D', () => {
+  it('keeps the companion bound to the frozen NEX-ID-v1 identity lock', () => {
+    const lock = JSON.parse(
+      readFileSync(
+        resolve(process.cwd(), '..', 'docs', 'design', 'nex', 'identity-lock.json'),
+        'utf8',
+      ),
+    ) as {
+      status: string;
+      proposed_lock_version: string;
+      invariants: { fins: number; ear_couplings: number; detached_orbital_modules: number };
+    };
+
+    expect(lock.status).toBe('FROZEN');
+    expect(lock.proposed_lock_version).toBe('NEX-ID-v1');
+    expect(lock.invariants.fins).toBe(2);
+    expect(lock.invariants.ear_couplings).toBe(2);
+    expect(lock.invariants.detached_orbital_modules).toBe(4);
+  });
+
   it('maps the eight contextual behaviors using the existing five operational moods', () => {
     expect(resolveNexCompanionBehavior(base)).toBe('ambient');
     expect(resolveNexCompanionBehavior({ ...base, interaction: 'greet' })).toBe('greet');
