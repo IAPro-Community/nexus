@@ -26,7 +26,7 @@
    "name": "Agent Command Center (Orbit)",
    "category": "experience",
    "owner": "NEXUS",
-   "sourceStatus": "partial",
+   "sourceStatus": "present",
    "issue": 104,
    "releaseRequired": true,
    "requiredClients": 1,

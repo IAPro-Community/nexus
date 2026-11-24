@@ -26,7 +26,7 @@ Legenda: **present** indica código-base localizado; **partial** significa lacun
 | ID | Requisito da V1 | Source | Issue | Evidência mínima |
 | --- | --- | --- | --- | --- |
 | `terminal-studio` | Terminal Studio | present | [#78](https://github.com/IAPro-Community/nexus/issues/78) | Native CLI em tab/split sem relançar provider; Control lease, Ctrl+C, setas, scrollback e resize PTY/ConPTY com dois clientes |
-| `agent-command-center` | Agent Command Center (Orbit) | partial | [#104](https://github.com/IAPro-Community/nexus/issues/104) | Cartões de todos os Agents por projeto com estados observados e seleção direta; Trabalhando/aguardando/erro/concluído sem inferir estado do texto do CLI |
+| `agent-command-center` | Agent Command Center (Orbit) | present | [#104](https://github.com/IAPro-Community/nexus/issues/104) | Cartões de todos os Agents por projeto com estados observados e seleção direta; Trabalhando/aguardando/erro/concluído sem inferir estado do texto do CLI |
 | `review-studio` | Review Studio | partial | [#109](https://github.com/IAPro-Community/nexus/issues/109) | Diff, teste, evidência e terminal no mesmo workspace; Review read-only por padrão com autorização explícita para aplicar mudanças |
 | `browser-studio` | Browser Studio | partial | [#107](https://github.com/IAPro-Community/nexus/issues/107) | BrowserSurface integrada a terminal, diff e Agent Inspector; Permissões de CDP/MCP, takeover humano e sessão de projeto isolada |
 | `comparison-lab` | Comparison Lab | partial | [#108](https://github.com/IAPro-Community/nexus/issues/108) | Duas alternativas paralelas com worktrees e execução isolados; Comparador de testes/diffs/custo e decisão humana sem merge automático |
