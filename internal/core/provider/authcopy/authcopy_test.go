@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -36,7 +37,9 @@ func TestCopyValidatedFileKeepsSourceAndUsesPrivatePermissions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Mode().Perm() != 0o600 {
+	// Windows does not carry POSIX permission bits; the copy still requests
+	// 0600, but the ACL there is what actually restricts the file.
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
 		t.Fatalf("destination mode = %04o, want 0600", info.Mode().Perm())
 	}
 }
