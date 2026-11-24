@@ -464,8 +464,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Core/HTTP/browser E2E local cria Agent groups pela UI com task/worktree/feature persistidos e captura 1280/768/320/390 sem overflow horizontal. Worktree é validado como metadado persistido; o teste não integra a associação a um git worktree real. Faltam execução/capturas no SHA publicado e homologação visual; capacidade permanece unverified.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: e2e-agent-groups-live-session.mjs cria Agent groups pela UI com task/worktree/feature persistidos, usa um worktree Git real (git worktree add) e exige que o caminho persistido continue ligado a esse worktree (arquivo .git com gitdir:); captura 1280/768/320/390 sem overflow horizontal. Faltam execucao/capturas no SHA publicado e homologacao visual; capability permanece unverified.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
@@ -484,8 +484,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "E2E local com Core/HTTP/browser reais usa OpenCode fixture local sem quota externa, cria duas gerações supervisionadas, filtra por grupo e sem grupo, reordena por Agent ID e verifica que o callback abre WebSocket real no mesmo agent_id/runtime_id; as duas gerações permanecem com os mesmos generation/runtime IDs e a UI não emite POST /start adicional. O fixture executa shell PTY, não sessão nativa de provedor; falta executar no SHA publicado e homologar o visual. Capability permanece unverified.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: e2e-agent-groups-live-session.mjs usa Core/HTTP/browser reais com OpenCode fixture local (sem quota externa), cria duas geracoes supervisionadas, filtra por grupo e sem grupo, reordena por Agent ID persistindo a ordem e verifica que o callback abre WebSocket real no mesmo agent_id/runtime_id; as duas geracoes mantem generation/runtime IDs e a UI nao emite POST /start adicional. Falta executar no SHA publicado, homologar o visual e exercitar sessao nativa de provider. Capability permanece unverified.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
