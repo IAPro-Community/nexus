@@ -2001,12 +2001,13 @@
      ],
      "testRefs": [
       "internal/nexus/artifacts/catalog_test.go",
-      "internal/nexus/artifacts/history_test.go"
+      "internal/nexus/artifacts/history_test.go",
+      "internal/control/web/handlers_api_test.go"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: catalog_test.go afirma confinamento ao root do projeto e rejeicao de path traversal e symlink (TestProjectPathProtection), digest SHA-256 igual ao original (TestServeAndThumbnail) e header nosniff; history_test.go afirma janela de retencao com poda e resposta private no-store (TestOutputHistoryRetentionAndPrivateCaching). Falta assertar Content-Type MIME do original servido e ACL de identidade por projeto (hoje o ACL e confinamento de path).",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: catalog_test.go afirma confinamento ao root do projeto e rejeicao de path traversal e symlink (TestProjectPathProtection), digest SHA-256 igual ao original (TestServeAndThumbnail), MIME do original servido com inline/attachment, nosniff, CSP sandbox e private no-store (TestServePreservesOriginalMIME) e isolamento entre roots de projetos diferentes (TestProjectRootsIsolateArtifactsBetweenProjects); history_test.go afirma janela de retencao com poda e resposta private no-store (TestOutputHistoryRetentionAndPrivateCaching); handlers_api_test.go afirma recusa sem sessao autenticada (401), bytes do artefato do proprio projeto, isolamento entre projetos e recusa de traversal pela rota HTTP (TestProjectFilesEnforceIdentityAndProjectScope). Falta homologacao no app distribuido no SHA publicado.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
