@@ -36,3 +36,14 @@ export function missionAttentionSections(
     { id: 'failed', items: asArray<AttentionItem>(group?.failed) },
   ];
 }
+
+export function missionAttentionSessionKey(item: AttentionItem): string {
+  const intervention = item.intervention;
+  return JSON.stringify([
+    item.mission_id,
+    item.project_id,
+    intervention?.task_id || '',
+    intervention?.id || '',
+    intervention?.version || 0,
+  ]);
+}

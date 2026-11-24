@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { missionAttentionQueryPath, missionAttentionSections } from './missionAttentionModel';
-import type { AttentionGroup } from '../types';
+import {
+  missionAttentionQueryPath,
+  missionAttentionSections,
+  missionAttentionSessionKey,
+} from './missionAttentionModel';
+import type { AttentionGroup, AttentionItem } from '../types';
 
 describe('mission attention query', () => {
   it('keeps workspace queries global when no filter is selected', () => {
@@ -82,5 +86,48 @@ describe('mission attention query', () => {
         ({ items }) => items,
       ),
     ).toEqual([[], [], []]);
+  });
+
+  it('binds a mobile job to its mission, task and intervention revision', () => {
+    const item: AttentionItem = {
+      mission_id: 'mission-1',
+      project_id: 'project-1',
+      state: 'BLOCKED_NEEDS_USER',
+      level: 'REQUIRE_USER',
+      reason_code: 'APPROVAL_REQUIRED',
+      summary: 'Approve deploy',
+      question: 'Approve?',
+      impact: 'release',
+      recommended_actions: [],
+      age_seconds: 3,
+      intervention: {
+        id: 'intervention-1',
+        reason_code: 'APPROVAL_REQUIRED',
+        summary: 'Approve deploy',
+        question: 'Approve?',
+        context: '',
+        recommended_actions: [],
+        impact: 'release',
+        mission_id: 'mission-1',
+        task_id: 'package-2',
+        source: 'NEXUS',
+        timestamp: '2026-11-23T00:00:00Z',
+        version: 3,
+        scope: 'project-1',
+        options: [],
+        resolved: false,
+      },
+    };
+    const reconnect = { ...item };
+    expect(missionAttentionSessionKey(item)).toBe(missionAttentionSessionKey(reconnect));
+    expect(missionAttentionSessionKey(item)).not.toBe(
+      missionAttentionSessionKey({ ...item, mission_id: 'mission-2' }),
+    );
+    expect(missionAttentionSessionKey(item)).not.toBe(
+      missionAttentionSessionKey({
+        ...item,
+        intervention: { ...item.intervention!, version: 4 },
+      }),
+    );
   });
 });
