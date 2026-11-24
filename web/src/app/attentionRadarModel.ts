@@ -1,6 +1,10 @@
 import type { RuntimeSession } from '../types';
 import { sanitizeAttentionText } from '../components/attentionText';
 import {
+  attentionResponseGuardForRuntime,
+  type AttentionResponseGuard,
+} from '../components/attentionResponseGuard';
+import {
   attentionFingerprintOf,
   isActiveAttentionRuntime,
   isHonestNeedsUser,
@@ -11,6 +15,7 @@ export type RadarBadge = 'needs_user' | 'working' | 'completed' | 'error' | 'idl
 export type RadarRuntimeItem = {
   runtimeId: string;
   agentId?: string;
+  providerSessionId?: string;
   projectId: string;
   projectName: string;
   title: string;
@@ -18,6 +23,7 @@ export type RadarRuntimeItem = {
   context?: string;
   fingerprint?: string;
   promptKind?: string;
+  responseGuard?: AttentionResponseGuard;
 };
 
 export type RadarProjectGroup = {
@@ -62,6 +68,7 @@ export function buildAttentionRadar(runtimes: RuntimeSession[]): RadarProjectGro
     const item: RadarRuntimeItem = {
       runtimeId: runtime.runtime_id,
       agentId: runtime.agent_id || undefined,
+      providerSessionId: runtime.provider_session_id || undefined,
       projectId,
       projectName,
       title: runtime.dynamic_title || runtime.title || runtime.runtime_id,
@@ -69,6 +76,7 @@ export function buildAttentionRadar(runtimes: RuntimeSession[]): RadarProjectGro
       context: sanitizedContext || undefined,
       fingerprint: messageKey,
       promptKind: runtime.prompt_kind,
+      responseGuard: honest ? (attentionResponseGuardForRuntime(runtime) ?? undefined) : undefined,
     };
 
     const existing = groups.get(projectId);

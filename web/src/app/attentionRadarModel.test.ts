@@ -98,6 +98,56 @@ describe('buildAttentionRadar', () => {
     expect(groups[0].items).toHaveLength(3);
   });
 
+  it('links pending rows to the provider session and the exact answerable episode', () => {
+    const groups = buildAttentionRadar([
+      rt({
+        runtime_id: 'mobile-1',
+        agent_id: 'agent-1',
+        provider_session_id: 'provider-session-1',
+        project_id: 'p1',
+        project_name: 'Alpha',
+        state: 'WAITING',
+        attention_kind: 'needs_user',
+        attention_source: 'INFERRED',
+        prompt_kind: 'yn',
+        attention_context: 'Continue?',
+        attention_fingerprint: 'fp-mobile',
+        attention_revision: 7,
+        attention_generation: '9007199254740993:42',
+        attention_reason: 'QUESTION',
+      }),
+    ]);
+    const item = groups[0].items[0];
+    expect(item.providerSessionId).toBe('provider-session-1');
+    expect(item.responseGuard).toEqual({
+      attention_fingerprint: 'fp-mobile',
+      attention_revision: 7,
+      attention_generation: '9007199254740993:42',
+      interaction_id: '',
+    });
+  });
+
+  it('does not expose an answer guard for an episode already submitted', () => {
+    const groups = buildAttentionRadar([
+      rt({
+        runtime_id: 'mobile-2',
+        provider_session_id: 'provider-session-2',
+        project_id: 'p1',
+        state: 'WAITING',
+        attention_kind: 'needs_user',
+        attention_source: 'INFERRED',
+        prompt_kind: 'yn',
+        attention_context: 'Continue?',
+        attention_fingerprint: 'fp-submitted',
+        attention_revision: 8,
+        attention_submitted_revision: 8,
+        attention_generation: '9007199254740994:42',
+        attention_reason: 'QUESTION',
+      }),
+    ]);
+    expect(groups[0].items[0].responseGuard).toBeUndefined();
+  });
+
   it('ignores stopped questions and no longer reports stale approval reasons', () => {
     const groups = buildAttentionRadar([
       rt({
