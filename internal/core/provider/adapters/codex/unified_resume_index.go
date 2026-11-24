@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"net/url"
 	"path/filepath"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -17,7 +18,13 @@ func readResumeSQLiteIndex(ctx context.Context, home string) map[string]sessionI
 	for _, dir := range []string{home, filepath.Join(home, ".codex")} {
 		paths, _ := filepath.Glob(filepath.Join(dir, "state_*.sqlite"))
 		for _, path := range paths {
-			uri := (&url.URL{Scheme: "file", Path: filepath.ToSlash(path), RawQuery: "mode=ro&immutable=1"}).String()
+			// Windows paths need a leading slash so the URI keeps the drive
+			// letter as part of the absolute path instead of becoming opaque.
+			uriPath := filepath.ToSlash(path)
+			if !strings.HasPrefix(uriPath, "/") {
+				uriPath = "/" + uriPath
+			}
+			uri := (&url.URL{Scheme: "file", Path: uriPath, RawQuery: "mode=ro&immutable=1"}).String()
 			db, err := sql.Open("sqlite", uri)
 			if err != nil {
 				continue
