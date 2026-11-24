@@ -687,6 +687,8 @@ export interface DirectorAgentProjection {
     id: string;
     kind: string;
     correlation_id?: string;
+    source?: string;
+    runtime_generation_id?: string;
     ts: string;
   }>;
 }

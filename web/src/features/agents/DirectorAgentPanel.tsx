@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { timelinePhase } from '../../app/activityModel';
 import { Button } from '../../design-system';
 import { nexus, type AgentObservation } from '../../nexus/api';
 import type {
@@ -228,20 +229,38 @@ export function DirectorAgentPanel({
             })}
           </ul>
           <p className={styles.notice}>{t('director.notCertified')}</p>
-          <h3 className={styles.heading}>{t('director.recentActivity')}</h3>
+          <h3 className={styles.heading} data-tour="agent-timeline">
+            {t('director.recentActivity')}
+          </h3>
           {view.recent_events?.length ? (
             <ol className={styles.events}>
-              {view.recent_events.map((event) => (
-                <li key={event.id} className={styles.event}>
-                  <strong>{event.kind}</strong>
-                  <time dateTime={event.ts}>
-                    {new Date(event.ts).toLocaleString(i18n.language)}
-                  </time>
-                  {event.correlation_id && (
-                    <code className={styles.eventCorrelation}>{event.correlation_id}</code>
-                  )}
-                </li>
-              ))}
+              {view.recent_events.map((event) => {
+                const phase = timelinePhase(event.kind);
+                return (
+                  <li key={event.id} className={styles.event}>
+                    <strong>{event.kind}</strong>
+                    {phase && <span>{t(`director.timelinePhases.${phase}`)}</span>}
+                    <time dateTime={event.ts}>
+                      {new Date(event.ts).toLocaleString(i18n.language)}
+                    </time>
+                    {event.source && (
+                      <span>
+                        {t('director.timelineSource')}: {event.source}
+                      </span>
+                    )}
+                    {event.runtime_generation_id && (
+                      <span>
+                        {t('director.timelineGeneration')}: {event.runtime_generation_id}
+                      </span>
+                    )}
+                    {event.correlation_id && (
+                      <span>
+                        {t('director.timelineCorrelation')}: {event.correlation_id}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
             </ol>
           ) : (
             <p className={styles.notice}>{t('director.noRecentActivity')}</p>
