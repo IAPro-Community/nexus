@@ -735,8 +735,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: o modelo puro ordena pendências por severidade (needs_user antes de error) e depois pelo episódio mais antigo, deduplica por episódio e exclui o que já foi respondido na revisão corrente; a seção Fila na central de notificações projeta essa ordem com rótulos i18n e foco no runtime exato. Unit tests e gates de catálogo/tour passam. Falta E2E visual do drawer com fila real e homologação no app distribuído; o aceite permanece pendente.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: o modelo puro ordena pendências por severidade (needs_user antes de error) e depois pelo episódio mais antigo, deduplica por episódio e exclui o que já foi respondido na revisão corrente; a seção Fila na central de notificações projeta essa ordem com rótulos i18n e foco no runtime exato. Asserções auditadas em focusQueueModel.test.ts (severidade, tempo, dedupe, exclusão de respondidos, sanitização e determinismo). Falta E2E visual do drawer com fila real e homologação no app distribuído; o aceite permanece pendente.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
@@ -752,8 +752,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: a fila nunca reapresenta episódio com attention_submitted_revision >= attention_revision, e o registro Go mantém claim one-shot durável (replay do mesmo payload retorna resultado persistido sem novo IPC; revisão nova reabre apenas o episódio novo). Testes cobrem dedupe, não-reabertura e claim idempotente; falta prova integrada de resposta na UI seguida de reconexão no app distribuído. Aceite permanece pendente.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: a fila nunca reapresenta episódio com attention_submitted_revision >= attention_revision, e o registro Go mantém claim one-shot durável (replay do mesmo payload retorna resultado persistido sem novo IPC; revisão nova reabre apenas o episódio novo). Asserções auditadas em focusQueueModel.test.ts (dedupe e não-reabertura) e internal/control/registry/attention_claim_test.go (claim idempotente e persistido após restart); falta prova integrada de resposta na UI seguida de reconexão no app distribuído. Aceite permanece pendente.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
