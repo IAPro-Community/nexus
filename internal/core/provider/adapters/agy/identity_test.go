@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/testutil"
 )
 
 // agyIdentityFixture builds an isolated AGY profile with a valid,
@@ -59,23 +60,23 @@ func agyIdentityFixture(t *testing.T, name, activeEmail string) (model.Profile, 
 	return model.Profile{Provider: "agy", Name: name, AccountScope: scope}, scope, root, home
 }
 
-// installFakeAgyCLI puts a fake `agy` binary at the front of PATH. The script
-// runs with HOME pointed at the profile home, exactly like the real probe.
-// It must only print quota lines and/or rewrite identity artifacts — never a
+// installFakeAgyCLI puts the portable `agy` stand-in at the front of PATH. Its
+// runs see HOME pointed at the profile home, exactly like the real probe. The
+// spec must only print quota lines and/or rewrite identity artifacts — never a
 // usage.json, so cache-file assertions below only observe adapter persistence.
-func installFakeAgyCLI(t *testing.T, script string) {
+func installFakeAgyCLI(t *testing.T, spec string) {
 	t.Helper()
 	fakeBinDir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(fakeBinDir, "agy"), []byte("#!/usr/bin/env bash\n"+script), 0700); err != nil {
-		t.Fatal(err)
-	}
+	_ = testutil.WriteSpecBinary(t, fakeBinDir, "agy")
+	t.Setenv("FIXTURE_CLI_SPEC", spec)
 	t.Setenv("PATH", fakeBinDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 }
 
-// quotaOutput is a minimal valid AGY quota response (a single family is
-// accepted by agyQuotaComplete).
-func quotaOutput(remaining float64) string {
-	return fmt.Sprintf("printf 'gemini\\t5h\\t%g%%%%\\t2h\\n'\n", remaining)
+// quotaSpec is a minimal valid AGY quota response (a single family is
+// accepted by agyQuotaComplete) with optional fixture file writes. {HOME} in a
+// file path expands to the fixture's HOME at run time.
+func quotaSpec(remaining float64, extra string) string {
+	return fmt.Sprintf(`{"stdout":["gemini\t5h\t%g%%\t2h"]%s}`, remaining, extra)
 }
 
 func assertNoPersistedUsage(t *testing.T, root string) {
@@ -97,9 +98,8 @@ func assertNoPersistedUsage(t *testing.T, root string) {
 // this profile's cache file.
 func TestRefreshUsageRefusesMidFlightAccountSwitch(t *testing.T) {
 	p, _, root, _ := agyIdentityFixture(t, "midflight", "a@example.test")
-	installFakeAgyCLI(t, quotaOutput(77)+
-		`printf '{"active":"b@example.test"}' > "$HOME/.gemini/google_accounts.json"
-`)
+	installFakeAgyCLI(t, quotaSpec(77,
+		`,"files":{"{HOME}|.gemini|google_accounts.json":"{\"active\":\"b@example.test\"}"}`))
 
 	snap := New().RefreshUsage(context.Background(), p)
 
@@ -127,7 +127,7 @@ func TestRefreshUsageRefusesMidFlightAccountSwitch(t *testing.T) {
 // snapshot exactly as before the identity gate was introduced.
 func TestRefreshUsagePersistsSameAccount(t *testing.T) {
 	p, scope, root, _ := agyIdentityFixture(t, "sameaccount", "a@example.test")
-	installFakeAgyCLI(t, quotaOutput(42))
+	installFakeAgyCLI(t, quotaSpec(42, ""))
 
 	snap := New().RefreshUsage(context.Background(), p)
 	if snap.Status != model.UsageLive {
@@ -159,7 +159,7 @@ func TestRefreshUsagePersistsSameAccount(t *testing.T) {
 // nothing.
 func TestRefreshUsageRefusesSnapshotWithoutProvableIdentity(t *testing.T) {
 	p, _, root, _ := agyIdentityFixture(t, "noidentity", "")
-	installFakeAgyCLI(t, quotaOutput(55))
+	installFakeAgyCLI(t, quotaSpec(55, ""))
 
 	snap := New().RefreshUsage(context.Background(), p)
 	if snap.Status != model.UsageLive {

@@ -5,6 +5,7 @@ package main
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -56,6 +57,7 @@ func main() {
 		_ = os.WriteFile(s.EnvFile, []byte(strings.Join(lines, "\n")+"\n"), 0o600)
 	}
 	for path, content := range s.Files {
+		path = expandPath(path)
 		_ = os.MkdirAll(fileDir(path), 0o700)
 		_ = os.WriteFile(path, []byte(content), 0o600)
 	}
@@ -91,6 +93,26 @@ func matches(rules [][2]string) bool {
 	return true
 }
 
+// expandPath replaces {VAR} placeholders with fixture environment values and
+// turns "|" into the platform separator, so a spec can target files under HOME
+// without OS-specific paths.
+func expandPath(path string) string {
+	path = strings.ReplaceAll(path, "|", "/")
+	for {
+		start := strings.Index(path, "{")
+		if start < 0 {
+			return filepath.FromSlash(path)
+		}
+		end := strings.Index(path[start:], "}")
+		if end < 0 {
+			return filepath.FromSlash(path)
+		}
+		name := path[start+1 : start+end]
+		path = path[:start] + os.Getenv(name) + path[start+end+1:]
+	}
+}
+
+// fileDir returns the directory part of a "/"-separated spec path.
 func fileDir(path string) string {
 	index := strings.LastIndexAny(path, `/\`)
 	if index <= 0 {
