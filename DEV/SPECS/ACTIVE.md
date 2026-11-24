@@ -1,3 +1,12 @@
+## 2026-11-23 — Lane A: `agent-groups` auditada — ativo
+
+- **Lane A — estado** — 28 das 48 capabilities com todos os critérios `audited` (61/97 cláusulas), 20 ainda com cláusulas `partial`, 0 certificadas. Contrato: 30 `present`, 17 `partial`, 1 `missing`. Nesta onda: `agent-groups` — o E2E local cria um `git worktree` real e exige que o Worktree persistido no grupo continue ligado a ele; filtro, reordenação, identidade de Agent e sessão real (mesmo `runtime_id`) permanecem provados com Core/HTTP/browser reais.
+- **Provas** — `npm --prefix web run test:e2e:agent-groups` PASS (OpenCode fixture local, sem quota externa); `verify-agent-workspace-evidence-map.mjs` exit 0; testes do mapa 4/4; `verify-agent-workspace-v1.mjs` exit 0.
+- **CI** — SHA `36ffc734`: `Publish Nexus documentation`, smoke Linux e `Refresh synthetic documentation captures` verdes; `ci.yml` (`45319282198`) com `Sanitize`/`Release configuration` verdes, `Linux E2E` em execução e demais jobs em fila; `Windows beta.10` (`45319282180`) vermelho (ConPTY, #216).
+- **Estado** — local `467676ea`; `origin/release/v1.0.0` = `36ffc734` (push desta linha pendente); tag `v1.0.0` intacta (`d89797cd`), `v1.0.1` não criada. Release **NO_GO** até prova externa por capacidade no SHA exato.
+- **Próximo** — push e acompanhamento do CI/recaptura; coletar `workspace-acceptance-linux-amd64.json`; continuar Lane A pela próxima capability `partial` com gap local comprovável; Lane C aguarda aceite visual do owner em HUD+Site.
+- **Bloqueios que exigem o maestro** — aceite visual NEX em HUD+Site, runner Windows/macOS nativo e chaves de assinatura, credencial do Named Tunnel, quota real AGY, hardware físico, `memory-migrate apply` com Bridge ativo.
+
 ## 2026-11-23 — Lane A: `agent-command-center` auditada — ativo
 
 - **Lane A — estado** — 27 das 48 capabilities com todos os critérios `audited` (59/97 cláusulas), 21 ainda com cláusulas `partial`, 0 certificadas. Contrato: 29 `present`, 18 `partial`, 1 `missing`. Nesta onda: `agent-command-center` — lista de Agents por projeto, cartão por Agent, badge derivado só do estado estruturado, seleção direta do Agent correto e `COMPLETED` como constante tipada (`store.AgentCompleted`).

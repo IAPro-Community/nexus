@@ -1,3 +1,12 @@
+## Handoff 2026-11-23 — Lane A fecha `agent-groups`; worktree Git real no E2E local
+
+- **Estado do Git** — `release/v1.0.0` local @ `467676ea` (commits `78161c8d` worktree real no E2E, `fd50e8fb` evidence map, `467676ea` contrato `present`); `origin/release/v1.0.0` = `36ffc734` até o push desta linha. Tag `v1.0.0` intacta (`d89797cd`); `v1.0.1` não criada.
+- **Lane A** — 28 das 48 capabilities com todos os critérios `audited` (61/97 cláusulas); contrato 30 `present` / 17 `partial` / 1 `missing`, 0 certificadas. Fechada nesta onda: `agent-groups` (grupo criado pela UI com task/worktree/feature; worktree agora é um `git worktree` real validado; filtro, reordenação, identidade e sessão preservados com Core/HTTP/browser reais).
+- **Provas locais** — `npm --prefix web run test:e2e:agent-groups` PASS (GOCACHE em `/tmp/opencode/go-build`); `node scripts/verify-agent-workspace-evidence-map.mjs` exit 0; testes do mapa 4/4; `node scripts/verify-agent-workspace-v1.mjs` exit 0.
+- **CI** — SHA `36ffc734`: docs, smoke Linux e recaptura sintética verdes; `ci.yml` `45319282198` com `Linux E2E` em execução e o resto em fila; `Windows beta.10` (`45319282180`) vermelho (ConPTY, #216).
+- **Próximo passo** — (1) push de `78161c8d`..`467676ea` e acompanhamento do CI/recaptura; (2) coletar `workspace-acceptance-linux-amd64.json` do artefato do SHA exato; (3) Lane A: próxima capability `partial` com gap local comprovável em até 2 arquivos; (4) Lane C: aceite visual do owner no SHA exato (HUD+Site atômico).
+- **Bloqueios intactos** — aceite visual NEX (9 gates), runner Windows (#216) e macOS, chaves ed25519, `maestroSha`, credencial do Named Tunnel, quota real AGY, hardware físico de 2 dispositivos, `memory-migrate apply` com Bridge ativo. Release **NO_GO**.
+
 ## Handoff 2026-11-23 — Lane A fecha `agent-command-center`; cartão por Agent, seleção direta e `COMPLETED` tipado
 
 - **Estado do Git** — `release/v1.0.0` local @ `70212f0b` (commits `15c7fdd7` estado tipado, `6aad3bb4` contrato de UI, `d7bcfd20` evidence map, `70212f0b` contrato `present`); `origin/release/v1.0.0` = `f6e009bb` até o push desta linha. Tag `v1.0.0` intacta (`d89797cd`); `v1.0.1` não criada.
