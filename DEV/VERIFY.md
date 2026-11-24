@@ -1,3 +1,12 @@
+## 2026-11-24 — Lane A `agent-timeline` aceita no SHA exato `5a3e8091`
+
+- **SHA publicado** — `origin/release/v1.0.0` @ `5a3e80915f44cda219d30641d70a2d484887bca1`; implementação `4e564078`..`52ce3086`; capturas automáticas `502e9aae`. Ambiente: Linux self-hosted `nexus-ci`.
+- **PASS (`ci.yml`)** — 14 jobs verdes: Frontend (format/lint/styles/typecheck/unit/build), Linux E2E, Security, Release configuration, Cross-platform compile guard, Documentation visual capture evidence, Browser E2E/Axe/visual smoke, Desktop Linux (Wails v3), GoReleaser Snapshot, Smoke DEB install; macOS/Windows native jobs continuam `skipped`.
+- **PASS (registro de aceite)** — `workspace-acceptance-linux-amd64.json` do artefato `nexus-v1-workspace-acceptance-5a3e8091…` traz `sourceSha` igual ao SHA exato: 48 capabilities, 47 `passed`, 1 `blocked` (`cross-platform-exact-sha`), 0 `failed`; `agent-timeline` `passed` via `vitest:web/src/app/activityModel.test.ts` e `go:internal/nexus`.
+- **FAIL não regressivo** — `Windows beta.10 homologation` falha em `internal/app` (`UNKNOWN_JOURNAL_ENTRY` no memory-migrate) também em `36141297`, `ad25230f`, `0fee7bda`, `bd10e592` e `9755514f`; preexistente, fora do escopo desta onda.
+- **PASS (local, pré-push)** — `bun run verify` com 10/10 verificações; 153 arquivos/1005 testes Vitest; `golangci-lint` limpo; `go test` nos 4 pacotes afetados; `docs-verify` 255 arquivos.
+- **PENDENTE** — aceite externo por capability e prova nativa Windows/macOS; release **NO_GO**.
+
 ## 2026-11-24 — Lane A `agent-timeline` auditada
 
 - SHA local: `release/v1.0.0`; implementação `4e564078`..`a16f1f61` (não publicado). Responsável: orquestrador. Ambiente: Linux.

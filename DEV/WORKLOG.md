@@ -1,3 +1,11 @@
+## 2026-11-24 — Lane A conclui `agent-timeline` no CI do SHA `5a3e8091`
+
+- **Entrega** — 12 lotes de até 2 arquivos (`4e564078`..`9755514f`) publicados em `origin/release/v1.0.0`; correção de lint morto (`52ce3086`) e capturas sintéticas recapturadas pelo fluxo automático (`502e9aae`).
+- **CI** — `ci.yml` do SHA exato `5a3e8091` com 14 jobs verdes, incluindo Linux E2E, Frontend, Browser E2E/Axe, Desktop Linux e Smoke DEB; `docs-verify` passou com manifesto ancorado no SHA.
+- **Aceite** — `workspace-acceptance-linux-amd64.json` exato: 47 `passed`, 1 `blocked` (`cross-platform-exact-sha`), 0 `failed`; `agent-timeline` `passed`.
+- **Estado** — tag `v1.0.0` intacta; `v1.0.1` não criada; capability `verification: pending`; release **NO_GO** até aceite externo.
+- **Próximo** — Lane A por capability `partial` comprovável; prova nativa Windows/macOS segue bloqueada no maestro.
+
 ## 2026-11-24 — Lane A fecha `agent-timeline`: metadados duráveis e Director UI
 
 - **Duração** — migração `0041` (`internal/nexus/store/migrations/0041_event_timeline_metadata.sql`) adiciona `source`, `runtime_id` e `runtime_generation_id`; recorder do barramento (`internal/nexus/event_recorder.go`) resolve geração/Agent/projeto sem inventar identidade; leitura (`internal/nexus/store/events.go`) atribui linhas legadas por `runtime_generations`/`agents`; fonte por tipo de evento em `internal/control/events/events.go`; Director expõe e UI (`web/src/features/agents/DirectorAgentPanel.tsx`) renderiza fase/origem/geração/correlação localizados; catálogo de descoberta e i18n PT-BR/EN/ES atualizados.
