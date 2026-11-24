@@ -2,7 +2,11 @@ package nexus
 
 import (
 	"context"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -175,5 +179,141 @@ func TestEvaluatePlanChallengeRequiresEnoughRuns(t *testing.T) {
 	n := &Nexus{runner: runner.NewMissionRunner(repo, nil)}
 	if _, err := n.EvaluatePlanChallenge(context.Background(), "plan-9", []AgentCompareCriterion{{Name: "tests", Kind: "tests", Weight: 1}}); err == nil {
 		t.Fatal("single completed run must be refused")
+	}
+}
+
+// challengeDispatchExecutor is a deterministic PackageExecutor: it writes the
+// Agent marker into the workspace it was allocated and approves its own review.
+// No provider is contacted; isolation comes from each run owning its own tree.
+type challengeDispatchExecutor struct {
+	mu         sync.Mutex
+	workspaces map[string]string
+}
+
+func (*challengeDispatchExecutor) Allocate(_ context.Context, run *runner.MissionRun, _ *runner.PackageRun) (runner.AllocationResult, error) {
+	return runner.AllocationResult{AgentID: run.LeadAgentID, Workspace: run.Workspace}, nil
+}
+
+func (*challengeDispatchExecutor) Compile(context.Context, *runner.MissionRun, *runner.PackageRun) (runner.PromptArtifact, error) {
+	return runner.PromptArtifact{VersionID: "challenge-dispatch-prompt-v1", Content: "implement the shared specification"}, nil
+}
+
+func (e *challengeDispatchExecutor) Execute(_ context.Context, run *runner.MissionRun, pkg *runner.PackageRun, _ string) (runner.ExecutionResult, error) {
+	e.mu.Lock()
+	if e.workspaces == nil {
+		e.workspaces = map[string]string{}
+	}
+	e.workspaces[run.ID] = pkg.Workspace
+	e.mu.Unlock()
+	marker := filepath.Join(pkg.Workspace, "agent-marker.txt")
+	if err := os.WriteFile(marker, []byte(run.LeadAgentID+"\n"), 0o600); err != nil {
+		return runner.ExecutionResult{}, err
+	}
+	return runner.ExecutionResult{RuntimeID: "runtime-" + run.LeadAgentID}, nil
+}
+
+func (*challengeDispatchExecutor) Review(context.Context, *runner.MissionRun, *runner.PackageRun) (runner.ReviewVerdict, error) {
+	return runner.ReviewVerdict{Approved: true, ReviewerAgentID: "reviewer-dispatch"}, nil
+}
+
+func dispatchGit(t *testing.T, repo string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", append([]string{"-C", repo}, args...)...)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git %v: %v: %s", args, err, strings.TrimSpace(string(out)))
+	}
+}
+
+func initDispatchWorktree(t *testing.T, workspace string) {
+	t.Helper()
+	dispatchGit(t, workspace, "init", "-q")
+	dispatchGit(t, workspace, "config", "user.email", "parallel-challenge@example.invalid")
+	dispatchGit(t, workspace, "config", "user.name", "Parallel Challenge Fixture")
+	if err := os.WriteFile(filepath.Join(workspace, "README.md"), []byte("# isolated worktree\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	dispatchGit(t, workspace, "add", "README.md")
+	dispatchGit(t, workspace, "commit", "-qm", "baseline")
+}
+
+// TestParallelChallengeDispatchesOneSpecificationToIsolatedAgents proves the
+// dispatch half of the capability: the same specification is really started as
+// two MissionRuns for two different Agents, each executing in its own isolated
+// Git worktree, and only the completed runs are compared.
+func TestParallelChallengeDispatchesOneSpecificationToIsolatedAgents(t *testing.T) {
+	repo := runner.NewMemoryRunRepository()
+	r := runner.NewMissionRunner(repo, &challengeDispatchExecutor{})
+	contract := runner.DefaultAutonomyContract()
+	contract.VerificationCommands = []string{"exit 0"}
+	spec := runner.PlanSpec{ID: "plan-dispatch", ProjectID: "proj-dispatch", Revision: 1, Packages: []runner.PackageSpec{{
+		ID: "pkg-shared", Title: "Implement the shared specification",
+		Goal: "Implement the shared specification", Priority: "HIGH",
+		AcceptanceCriteria: []string{"each Agent finishes in its own isolated worktree"},
+	}}}
+	workspaces := []string{t.TempDir(), t.TempDir()}
+	agents := []string{"agent-alpha", "agent-beta"}
+	runIDs := make([]string, 0, len(workspaces))
+	for index, workspace := range workspaces {
+		initDispatchWorktree(t, workspace)
+		run, err := r.StartMissionRun(context.Background(), spec, workspace, contract, agents[index])
+		if err != nil {
+			t.Fatalf("dispatch %s: %v", agents[index], err)
+		}
+		if run.LeadAgentID != agents[index] || run.Workspace != workspace {
+			t.Fatalf("run did not bind Agent %s to its isolated workspace: %+v", agents[index], run)
+		}
+		for step := 0; step < 50 && run.State != runner.StateCompletedVerified; step++ {
+			run, _, err = r.ExecuteNextStep(context.Background(), run.ID)
+			if err != nil {
+				t.Fatalf("step %d for %s: %v", step, agents[index], err)
+			}
+		}
+		if run.State != runner.StateCompletedVerified {
+			t.Fatalf("%s ended in %s instead of COMPLETED_VERIFIED", agents[index], run.State)
+		}
+		if len(run.PackageRuns) != 1 || len(run.PackageRuns[0].Verifications) == 0 {
+			t.Fatalf("%s completed without verification evidence: %+v", agents[index], run.PackageRuns)
+		}
+		if run.PackageRuns[0].Workspace != workspace {
+			t.Fatalf("%s executed outside its isolated worktree: %q", agents[index], run.PackageRuns[0].Workspace)
+		}
+		marker, err := os.ReadFile(filepath.Join(workspace, "agent-marker.txt"))
+		if err != nil || strings.TrimSpace(string(marker)) != agents[index] {
+			t.Fatalf("%s did not write its marker into its own worktree: %q (%v)", agents[index], string(marker), err)
+		}
+		runIDs = append(runIDs, run.ID)
+	}
+	if runIDs[0] == runIDs[1] {
+		t.Fatal("the specification must be dispatched to two distinct runs")
+	}
+	runs, err := r.ListRuns(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	dispatched := make([]runner.MissionRun, 0, len(runs))
+	worktrees := map[string]bool{}
+	for _, run := range runs {
+		dispatched = append(dispatched, *run)
+	}
+	participants, err := MissionChallengeParticipants(dispatched)
+	if err != nil {
+		t.Fatalf("MissionChallengeParticipants over real runs: %v", err)
+	}
+	for _, participant := range participants {
+		worktrees[participant.WorktreePath] = true
+	}
+	if len(worktrees) != 2 || !worktrees[workspaces[0]] || !worktrees[workspaces[1]] {
+		t.Fatalf("participants must map to the two isolated real worktrees: %v", worktrees)
+	}
+	n := &Nexus{runner: r}
+	result, err := n.EvaluatePlanChallenge(context.Background(), spec.ID, []AgentCompareCriterion{{Name: "tests", Kind: AgentCompareCriterionTests, Weight: 1}})
+	if err != nil {
+		t.Fatalf("EvaluatePlanChallenge over dispatched runs: %v", err)
+	}
+	if result.Participants != 2 || result.AutoMergeAllowed {
+		t.Fatalf("participants=%d auto_merge=%v", result.Participants, result.AutoMergeAllowed)
+	}
+	if len(result.Ranking) != 2 || result.Ranking[0] != "agent-alpha" || result.Ranking[1] != "agent-beta" {
+		t.Fatalf("ranking=%v want the deterministic tie-break agent-alpha, agent-beta", result.Ranking)
 	}
 }
