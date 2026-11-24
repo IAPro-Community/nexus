@@ -75,7 +75,7 @@ Legenda: **present** indica código-base localizado; **partial** significa lacun
 | `live-preview` | Live Preview | partial | [#107](https://github.com/IAPro-Community/nexus/issues/107) | Exibir app web local autorizada vinculada ao processo host; Não expor host arbitrário nem segredos de sessão |
 | `browser-automation` | Browser Automation | present | [#83](https://github.com/IAPro-Community/nexus/issues/83) | MCP e CDP com capacidades verificáveis e grant temporário; Intervenção humana para MFA, revoke, isolamento e auditoria |
 | `visual-diff` | Visual Diff | present | [#107](https://github.com/IAPro-Community/nexus/issues/107) | Comparar antes/depois por screenshot determinística; Região e limiar declarados, revisão e artefatos rastreáveis |
-| `device-preview` | Device Preview | partial | [#107](https://github.com/IAPro-Community/nexus/issues/107) | Viewports de telefone, tablet e desktop na mesma browser session; Escalas, foco, acessibilidade e redimensionamento correto |
+| `device-preview` | Device Preview | present | [#107](https://github.com/IAPro-Community/nexus/issues/107) | Viewports de telefone, tablet e desktop na mesma browser session; Escalas, foco, acessibilidade e redimensionamento correto |
 
 ### Remoto e personalização (6)
 
