@@ -1474,31 +1474,32 @@
      "acceptanceIndex": 0,
      "acceptance": "Ação de voz exige controle explícito e identifica Agent de destino",
      "sourceRefs": [
-      "web/src/features/voice/VoiceCaptureButton.tsx"
+      "web/src/features/voice/VoiceCaptureButton.tsx",
+      "web/src/features/voice/terminalVoice.ts"
      ],
      "testRefs": [
-      "internal/desktop/voice_capture_test.go",
-      "internal/voice/service_test.go"
+      "web/src/features/voice/terminalVoice.test.ts"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: voice_capture_test.go afirma apenas a capacidade nativa por plataforma e voice/service_test.go cobre segredos e fallback de provider; nao ha assertion de que a acao de voz exige controle explicito e identifica o Agent de destino.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: terminalVoice.test.ts afirma lease CONTROL explicito, recusa sem controle, identifica Agent/runtime de destino e falha fechado sem destino. Falta aceite externo no SHA publicado.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
      "acceptance": "Não inserir Enter automaticamente nem ler segredos do prompt",
      "sourceRefs": [
-      "web/src/features/voice/VoiceCaptureButton.tsx"
+      "web/src/features/voice/VoiceCaptureButton.tsx",
+      "web/src/features/voice/terminalVoice.ts"
      ],
      "testRefs": [
-      "internal/desktop/voice_capture_test.go",
+      "web/src/features/voice/terminalVoice.test.ts",
       "internal/voice/service_test.go"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: voice/service_test.go afirma que segredos nao vazam para settings nem para o arquivo de dados, mas nao ha assertion sobre nao inserir Enter automaticamente nem sobre leitura de segredo do prompt.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: terminalVoice.test.ts afirma insercao byte-exata sem Enter/CR/LF e recusa de caracteres de controle; voice/service_test.go afirma que segredos de provider nao vazam para settings nem para o arquivo de dados. Falta aceite externo no SHA publicado.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
