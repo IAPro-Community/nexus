@@ -1,3 +1,11 @@
+## 2026-11-24 — Lane A `remote-terminal` auditada
+
+- SHA publicado: `origin/release/v1.0.0` @ `9c8d6dfd`; fix de código `4b16c60d`, evidence map `1bdabb7d`, contrato `9c8d6dfd`. Responsável: orquestrador. Ambiente: Linux + runner self-hosted `nexus-ci` em container.
+- PASS (`remote-terminal`, escopo) — `go test ./internal/control/web/ -run 'TestAgentTerminal|TestTerminalAttach' -count=1 -v` PASS: viewer recebe 403 no attach por Agent, runtime de outro Agent recebe 404 sem revelar ownership, upgrade WS sem Origin ou com Origin estrangeira recebe 403, lease `CONTROL` continua único.
+- PASS (regressão) — `go test ./internal/control/web/ -count=1` PASS (69 s); `go vet ./internal/control/web/` limpo; `gofmt -l internal/control/web/routes_projects_agents.go internal/control/web/desktop_auth_test.go` vazio.
+- PASS (contrato) — evidence map `remote-terminal` com 2 critérios `audited`; contrato de `partial` para `present`, `verification: pending`; doc de aceite sincronizado. `node scripts/verify-agent-workspace-evidence-map.mjs` exit 0 (48 capacidades, 97 cláusulas, 95 source+test, 0 certificadas); testes do mapa 4/4; `node scripts/verify-agent-workspace-v1.mjs` exit 0. Estado: 31 capabilities com todos os critérios `audited` (64/97 cláusulas); contrato 33 `present` / 14 `partial` / 1 `missing`.
+- PENDENTE — CI do push `9c8d6dfd`; `workspace-acceptance-linux-amd64.json` do SHA exato ainda não coletado; aceite externo por capacidade e lanes B–F dependem do maestro. Release **NO_GO**.
+
 ## 2026-11-23 — Lane A `parallel-challenge` auditada
 
 - SHA publicado: `origin/release/v1.0.0` @ `0de2faf6`; SHA local ao fim: `41c9671d` (commits `c7141630`, `c1cfdd41`, `41c9671d`, sobre `0de2faf6`). Responsável: orquestrador. Ambiente: Linux + runner self-hosted `nexus-ci` em container.

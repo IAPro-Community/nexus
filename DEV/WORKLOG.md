@@ -1,3 +1,11 @@
+## 2026-11-24 — Lane A fecha `remote-terminal`: terminal por Agent escopado
+
+- **Fix de segurança** — `internal/control/web/routes_projects_agents.go` (`4b16c60d`) recusa viewer na rota WS `/api/v1/agents/:id/terminal`, exige Origin válido no upgrade e recusa `runtime_id` vivo pertencente a outro Agent com 404 sem revelar ownership.
+- **Testes** — `internal/control/web/desktop_auth_test.go` cobre viewer, runtime estrangeiro, upgrade sem Origin e upgrade com Origin estrangeiro; lease `CONTROL` único e identidade compartilhada permanecem cobertos por `terminal_handoff_authenticated_test.go`.
+- **Contrato** — evidence map com 2 critérios `audited` (`1bdabb7d`); contrato `remote-terminal` de `partial` para `present`, `verification: pending` (`9c8d6dfd`); doc de aceite sincronizado.
+- **Verificação** — `go test ./internal/control/web/ -run 'TestAgentTerminal|TestTerminalAttach' -count=1 -v` PASS; `go test ./internal/control/web/ -count=1` PASS (69 s); `go vet ./internal/control/web/` limpo; `gofmt -l` vazio; `verify-agent-workspace-evidence-map.mjs` exit 0; testes do mapa 4/4; `verify-agent-workspace-v1.mjs` exit 0.
+- **Estado** — 31 das 48 capabilities com todos os critérios `audited` (64/97 cláusulas); contrato 33 `present` / 14 `partial` / 1 `missing`, 0 certificadas. Release **NO_GO**.
+
 ## 2026-11-23 — Lane A fecha `parallel-challenge`: distribuição real a Agents isolados
 
 - **Dispatch real** — `internal/nexus/parallel_challenge_mission_test.go` (`c7141630`) adiciona `TestParallelChallengeDispatchesOneSpecificationToIsolatedAgents`: a mesma especificação é iniciada como dois `MissionRun` para dois Agents distintos (`agent-alpha`, `agent-beta`), cada run executa no próprio worktree Git isolado (marcador escrito pelo executor, verificação real `exit 0`, revisão aprovada) até `COMPLETED_VERIFIED`; só então `MissionChallengeParticipants`/`EvaluatePlanChallenge` comparam os runs, com ranking determinístico (`agent-alpha`, `agent-beta`) e `auto_merge=false`.
