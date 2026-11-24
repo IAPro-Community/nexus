@@ -466,7 +466,7 @@
    "name": "Device Preview",
    "category": "browser",
    "owner": "NEXUS",
-   "sourceStatus": "partial",
+   "sourceStatus": "present",
    "issue": 107,
    "releaseRequired": true,
    "requiredClients": 1,
@@ -474,7 +474,8 @@
     "Viewports de telefone, tablet e desktop na mesma browser session",
     "Escalas, foco, acessibilidade e redimensionamento correto"
    ],
-   "verification": "pending"
+   "verification": "pending",
+   "sourceAudit": "2026-11-24"
   },
   {
    "id": "mobile-inbox",

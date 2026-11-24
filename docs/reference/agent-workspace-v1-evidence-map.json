@@ -1345,11 +1345,12 @@
       "web/src/features/browser/BrowserSurface.tsx"
      ],
      "testRefs": [
-      "web/src/features/browser/BrowserSurface.test.ts"
+      "web/src/features/browser/BrowserSurface.test.ts",
+      "web/scripts/e2e-device-preview.mjs"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: o BrowserSurface redimensiona a MESMA sessao entre celular (390x844), tablet (820x1180) e desktop (1280x800), sem abrir aba nova; o teste afirma o ciclo completo dos tres viewports e que cada preset carrega tamanho e rotulo (nextBrowserViewport, BROWSER_VIEWPORT_PRESETS).",
+     "gap": "Auditoria: o BrowserSurface redimensiona a MESMA sessao entre celular (390x844), tablet (820x1180) e desktop (1280x800), sem abrir aba nova; o teste unitario afirma o ciclo completo dos tres viewports e que cada preset carrega tamanho e rotulo (nextBrowserViewport, BROWSER_VIEWPORT_PRESETS), e e2e-device-preview.mjs confirma no browser real que os tres presets sao aplicados na mesma sessao via POST /action viewport. Falta aceite visual no SHA publicado; capability permanece unverified.",
      "assertionAudit": "audited"
     },
     {
@@ -1359,12 +1360,13 @@
       "web/src/features/browser/BrowserSurface.tsx"
      ],
      "testRefs": [
-      "web/src/features/browser/BrowserSurface.test.ts"
+      "web/src/features/browser/BrowserSurface.test.ts",
+      "web/scripts/e2e-device-preview.mjs"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: o redimensionamento correto e as dimensoes de cada preview sao asseverados (390x844, 820x1180, 1280x800) e o botao mantem aria-label e title com o destino do proximo preset; escala visual, foco de teclado e contraste continuam dependentes do E2E de acessibilidade (Axe) e do aceite visual no SHA exato.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: e2e-device-preview.mjs alterna desktop (1280x800) -> celular (390x844) -> tablet (820x1180) -> desktop na MESMA sessao browser, exigindo um POST /action viewport por passo (390x844, 820x1180, 1280x800), foco de teclado retido no botao de alternancia e Axe (WCAG 2 AA) sem violacoes serious/critical em cada preset. O ciclo dependia de applyBrowserActionViewport: sem sincronizar a resposta do action no state da sessao o preset nunca avancava e o E2E falhava. Falta aceite visual no SHA publicado; capability permanece unverified.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
