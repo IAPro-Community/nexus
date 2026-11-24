@@ -662,6 +662,22 @@ export interface DirectorAgentProjection {
   generation_id?: string;
   provider?: string;
   profile?: string;
+  workspace?: string;
+  worktree?: string;
+  quota?: {
+    status: string;
+    source: string;
+    remaining_percent?: number;
+    window?: string;
+  };
+  lineage?: Array<{
+    id: string;
+    relation: string;
+    source_runtime: string;
+    target_runtime: string;
+    checkpoint_id: string;
+    created_at: string;
+  }>;
   actions: Array<{
     kind: DirectorActionKind;
     availability: DirectorAvailability;
