@@ -65,6 +65,9 @@ export const CommandPalette: React.FC<{
           <span>
             <kbd>&gt;</kbd> {t('commands.scopeActions')}
           </span>
+          <span>
+            <kbd>~</kbd> {t('commands.scopeSurfaces')}
+          </span>
         </div>
         <div className="nx-command-list" role="listbox" aria-label={t('commands.available')}>
           {filtered.map((command, index) => (
