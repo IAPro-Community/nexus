@@ -10,15 +10,15 @@ import (
 // Optional product capabilities are off in every installation unless both
 // the global switch AND the individual switch are explicitly true.
 // Never use a UI/localStorage query parameter as authorization to run them.
-const featureComposer = "COMPOSER"
-const featureFlow = "FLOW"
-const featureMissions = "MISSIONS"
-const featureParallelChallenge = "PARALLEL_CHALLENGE"
-const featureComparisonLab = "COMPARISON_LAB"
-const featureVoiceActions = "VOICE_ACTIONS"
-const featureNexProactivity = "NEX_PROACTIVITY"
-const featureDesignInspect = "DESIGN_INSPECT"
-const featureVisualDiff = "VISUAL_DIFF"
+const featureComposer = nexus.FeatureComposer
+const featureFlow = nexus.FeatureFlow
+const featureMissions = nexus.FeatureMissions
+const featureParallelChallenge = nexus.FeatureParallelChallenge
+const featureComparisonLab = nexus.FeatureComparisonLab
+const featureVoiceActions = nexus.FeatureVoiceActions
+const featureNexProactivity = nexus.FeatureNexProactivity
+const featureDesignInspect = nexus.FeatureDesignInspect
+const featureVisualDiff = nexus.FeatureVisualDiff
 
 func optionalFeatureEnabled(feature string) bool {
 	return nexus.AdvancedFeatureEnabled(feature)
@@ -103,4 +103,13 @@ func browserAdvancedFeatureGate(next http.HandlerFunc) http.HandlerFunc {
 		}
 		next(w, r)
 	}
+}
+
+func handleEffectiveAdvancedFeatures(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, http.StatusOK, nexus.AdvancedFeatureSnapshot())
 }

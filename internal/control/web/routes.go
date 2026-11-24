@@ -121,6 +121,7 @@ func registerMissionRoutes(mux *http.ServeMux, deps routeDependencies) {
 func registerSystemRoutes(mux *http.ServeMux, deps routeDependencies) {
 	s, h := deps.server, deps.nexusHandler
 	mux.HandleFunc("/api/v1/system/info", s.authMiddleware(deps.api.handleSystemInfo))
+	mux.HandleFunc("/api/v1/system/features", s.authMiddleware(handleEffectiveAdvancedFeatures))
 	mux.HandleFunc("/api/v1/system/doctor", s.authMiddleware(h.handleSystemDoctor))
 	mux.HandleFunc("/api/v1/system/updates", s.authMiddleware(h.handleSystemUpdates))
 	mux.HandleFunc("/api/v1/telemetry/stats", s.authMiddleware(h.handleTelemetryStats))
