@@ -98,6 +98,18 @@ export function nextBrowserViewport(width?: number, height?: number): BrowserVie
   return BROWSER_VIEWPORT_PRESETS[(index + 1) % BROWSER_VIEWPORT_PRESETS.length];
 }
 
+// applyBrowserActionViewport keeps the reported viewport in sync with the
+// applied browser action, so the device cycle advances inside the same
+// session instead of repeating the first preset forever.
+export function applyBrowserActionViewport(
+  current: NexusBrowserInfo,
+  action: NexusBrowserAction,
+  result: NexusBrowserInfo,
+): NexusBrowserInfo {
+  if (action.type !== 'viewport') return current;
+  return { ...current, width: result.width, height: result.height };
+}
+
 export function formatTabTitle(candidate: NexusBrowserInfo): string {
   if (candidate.title && candidate.title.trim()) {
     return candidate.title.trim();
@@ -778,7 +790,10 @@ export const BrowserSurface: React.FC<{
           }
         }
         try {
-          await browserAPI.action(session.id, action);
+          const applied = await browserAPI.action(session.id, action);
+          setSession((previous) =>
+            previous ? applyBrowserActionViewport(previous, action, applied) : previous,
+          );
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : String(err);
           if (msg.includes('lease unavailable')) {
@@ -787,7 +802,10 @@ export const BrowserSurface: React.FC<{
               setController(true);
               setWantsControl(true);
               userControlledSessions.current.add(session.id);
-              await browserAPI.action(session.id, action);
+              const applied = await browserAPI.action(session.id, action);
+              setSession((previous) =>
+                previous ? applyBrowserActionViewport(previous, action, applied) : previous,
+              );
             } else {
               throw err;
             }
@@ -1192,7 +1210,7 @@ export const BrowserSurface: React.FC<{
       {availableBrowsers.length > 0 && (
         <div
           className={styles.tabBar}
-          role="tablist"
+          role="group"
           aria-label={t('browser.tabs', 'Abas do navegador')}
           onKeyDown={(event) => {
             if (
@@ -1203,7 +1221,7 @@ export const BrowserSurface: React.FC<{
             )
               return;
             const tabs = Array.from(
-              event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'),
+              event.currentTarget.querySelectorAll<HTMLButtonElement>('[data-browser-tab]'),
             );
             const current = tabs.indexOf(document.activeElement as HTMLButtonElement);
             if (current === -1) return;
@@ -1217,7 +1235,7 @@ export const BrowserSurface: React.FC<{
             tabs[next]?.focus();
           }}
         >
-          <div className={styles.tabList}>
+          <div className={styles.tabList} role="presentation">
             {availableBrowsers.map((candidate) => {
               const isActive = candidate.id === session?.id;
               const isAgent = Boolean(candidate.owner_runtime_id);
@@ -1231,15 +1249,15 @@ export const BrowserSurface: React.FC<{
                 <div
                   key={candidate.id}
                   className={styles.tabItem}
+                  role="presentation"
                   data-active={isActive ? 'true' : 'false'}
                   data-operating={isOperating ? 'true' : 'false'}
                   data-updated={isUpdated ? 'true' : 'false'}
                 >
                   <button
                     type="button"
-                    role="tab"
-                    id={`nx-browser-tab-${candidate.id}`}
-                    aria-selected={isActive}
+                    data-browser-tab={candidate.id}
+                    aria-pressed={isActive}
                     className={styles.tabButton}
                     onClick={() => selectBrowser(candidate.id)}
                     title={`${title} (${candidate.url})`}
@@ -1342,6 +1360,7 @@ export const BrowserSurface: React.FC<{
             <span
               className={`${styles.liveIndicator} ${live ? styles.isLive : ''}`}
               title={live ? 'Conexão CDP ao vivo' : 'Capturas / Reconectando'}
+              role="img"
               aria-label={live ? 'Ao vivo' : 'Reconectando'}
             />
             <Search size={13} className={styles.searchIcon} aria-hidden="true" />

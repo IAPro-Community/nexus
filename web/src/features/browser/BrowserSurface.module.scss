@@ -361,6 +361,20 @@
   margin-right: 6px;
 }
 
+.liveIndicator {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--nx-radius-full);
+  background: var(--nx-muted);
+  flex-shrink: 0;
+  margin-right: 6px;
+}
+
+.liveIndicator.isLive {
+  background: var(--nx-info);
+  box-shadow: 0 0 6px var(--nx-info);
+}
+
 .address {
   flex: 1;
   min-width: 0;
