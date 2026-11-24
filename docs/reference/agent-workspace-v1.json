@@ -102,7 +102,7 @@
    "name": "Mission Observatory",
    "category": "experience",
    "owner": "NEXUS",
-   "sourceStatus": "partial",
+   "sourceStatus": "present",
    "issue": 85,
    "releaseRequired": true,
    "requiredClients": 1,
