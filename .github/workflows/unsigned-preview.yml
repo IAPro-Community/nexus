@@ -7,6 +7,11 @@ on:
   push:
     branches: ['release/v1.0.0']
   workflow_dispatch:
+    inputs:
+      acceptance_only:
+        description: 'Produce hosted platform acceptance evidence without publishing an unsigned preview tag'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -77,6 +82,9 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.3.9'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
       - name: Verify and build
         shell: pwsh
         run: |
@@ -104,9 +112,30 @@ jobs:
           foreach ($bin in @('nexus.exe','nexus-desktop.exe','nexus-hud.exe')) {
             if (-not (Test-Path "preview-out/payload/$bin")) { throw "missing $bin" }
             $metadata = (& go version -m "preview-out/payload/$bin") -join "`n"
-            if ($LASTEXITCODE -ne 0 -or $metadata -notmatch 'go1\.26\.10') { throw "unexpected Go toolchain for $bin" }
+            if ($LASTEXITCODE -ne 0 -or $metadata -notmatch 'go1\.26\.11') { throw "unexpected Go toolchain for $bin" }
           }
           Compress-Archive -Path preview-out/payload/* -DestinationPath preview-out/nexus-preview-windows-amd64.zip -Force
+      - name: Produce V1 workspace acceptance record (windows-amd64)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          node scripts/workspace-acceptance-e2e.mjs run `
+            --platform windows-amd64 `
+            --sha "$env:GITHUB_SHA" `
+            --job-url "https://github.com/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID" `
+            --log-dir "$env:RUNNER_TEMP/workspace-acceptance-logs" `
+            --out "$env:RUNNER_TEMP/workspace-acceptance-windows-amd64.json" `
+            --allow-incomplete
+          if ($LASTEXITCODE -ne 0) { throw 'acceptance record failed' }
+          if (-not (Test-Path "$env:RUNNER_TEMP/workspace-acceptance-windows-amd64.json")) { throw 'missing acceptance record' }
+      - name: Upload V1 workspace acceptance record (windows-amd64)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-v1-workspace-acceptance-windows-amd64-${{ github.sha }}
+          path: ${{ runner.temp }}/workspace-acceptance-windows-amd64.json
+          if-no-files-found: error
+          retention-days: 30
       - uses: actions/upload-artifact@v4
         with:
           name: preview-windows
@@ -136,6 +165,9 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.3.9'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
       - name: Verify and build native apps
         shell: bash
         run: |
@@ -167,6 +199,27 @@ jobs:
           rm -rf preview-out/cli
           ditto -c -k --sequesterRsrc --keepParent "staging/IAPro Nexus.app" preview-out/nexus-preview-macos-${{ matrix.arch }}-desktop.zip
           ditto -c -k --sequesterRsrc --keepParent "staging/IAPro Nexus HUD.app" preview-out/nexus-preview-macos-${{ matrix.arch }}-hud.zip
+      - name: Produce V1 workspace acceptance record (macos-arm64)
+        if: matrix.arch == 'arm64'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/workspace-acceptance-e2e.mjs run \
+            --platform macos-arm64 \
+            --sha "$GITHUB_SHA" \
+            --job-url "https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            --log-dir "$RUNNER_TEMP/workspace-acceptance-logs" \
+            --out "$RUNNER_TEMP/workspace-acceptance-macos-arm64.json" \
+            --allow-incomplete
+          test -s "$RUNNER_TEMP/workspace-acceptance-macos-arm64.json"
+      - name: Upload V1 workspace acceptance record (macos-arm64)
+        if: always() && matrix.arch == 'arm64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-v1-workspace-acceptance-macos-arm64-${{ github.sha }}
+          path: ${{ runner.temp }}/workspace-acceptance-macos-arm64.json
+          if-no-files-found: error
+          retention-days: 30
       - uses: actions/upload-artifact@v4
         with:
           name: preview-macos-${{ matrix.arch }}
@@ -176,6 +229,7 @@ jobs:
   publish:
     name: Publish clearly unsigned preview to source repository
     needs: [linux, windows, macos]
+    if: github.event_name != 'workflow_dispatch' || !inputs.acceptance_only
     runs-on: ubuntu-24.04
     permissions:
       contents: write
