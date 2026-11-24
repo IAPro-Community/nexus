@@ -1,4 +1,5 @@
 import React from 'react';
+import { durableActivityTimestamp } from '../../app/activityModel';
 import { nexus } from '../../nexus/api';
 import type { MissionSchedule, WorkPlan } from '../../types';
 import styles from './NexAssistantPanel.module.scss';
@@ -61,12 +62,14 @@ export const NexAssistantActions: React.FC<NexAssistantActionsProps> = ({
         nexus.listProjectEvents(projectId, 20),
         nexus.listComposerSessions(projectId),
       ]);
-      const recent = [...events].sort((a, b) => b.timestamp.localeCompare(a.timestamp))[0];
+      const recent = [...events]
+        .map((event) => ({ ...event, at: durableActivityTimestamp(event) }))
+        .sort((a, b) => b.at.localeCompare(a.at))[0];
       const composer = [...sessions].sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
       const lines = ['Retomada baseada nos registros disponíveis do Nexus:'];
       if (recent) {
         lines.push(
-          `Última atividade (${new Date(recent.timestamp).toLocaleString()}): ${recent.summary.slice(0, 250)}.`,
+          `Última atividade (${new Date(recent.at).toLocaleString()}): ${(recent.summary ?? '').slice(0, 250)}.`,
         );
       } else {
         lines.push('Não há eventos recentes registrados para esse projeto.');

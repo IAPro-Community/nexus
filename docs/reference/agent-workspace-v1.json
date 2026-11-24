@@ -253,7 +253,7 @@
    "name": "Agent Timeline",
    "category": "execution",
    "owner": "NEXUS",
-   "sourceStatus": "partial",
+   "sourceStatus": "present",
    "issue": 114,
    "releaseRequired": true,
    "requiredClients": 1,
