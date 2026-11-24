@@ -3,6 +3,7 @@ package launcher
 import (
 	"os"
 	"reflect"
+	"runtime"
 	"testing"
 )
 
@@ -22,7 +23,9 @@ func TestBrowserLaunchEnvelopeTransportsOnlyScopedRuntimeEnvironment(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Mode().Perm()&0077 != 0 {
+	// Windows carries no POSIX permission bits; the envelope is still written
+	// with a private mode there and protected by the profile directory ACL.
+	if runtime.GOOS != "windows" && info.Mode().Perm()&0077 != 0 {
 		t.Fatal("launch envelope permissions are too permissive")
 	}
 	recovered, custom, vars, err := ConsumeLaunchEnvelopeWithBrowser(id)
