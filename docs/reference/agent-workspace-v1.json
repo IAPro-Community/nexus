@@ -557,7 +557,7 @@
    "name": "Nex Operational Companion",
    "category": "remote",
    "owner": "NEXUS",
-   "sourceStatus": "partial",
+   "sourceStatus": "present",
    "issue": 114,
    "releaseRequired": true,
    "requiredClients": 1,

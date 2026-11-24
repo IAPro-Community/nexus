@@ -86,7 +86,7 @@ Legenda: **present** indica código-base localizado; **partial** significa lacun
 | `workspace-sharing` | Workspace Sharing | present | [#112](https://github.com/IAPro-Community/nexus/issues/112) | Compartilhar observação por projeto/Agent sob RBAC; Viewer-only inicial; cross-project leakage negado e revoke imediato |
 | `voice-actions` | Voice Actions | present | [#114](https://github.com/IAPro-Community/nexus/issues/114) | Ação de voz exige controle explícito e identifica Agent de destino; Não inserir Enter automaticamente nem ler segredos do prompt |
 | `contextual-hud` | Contextual HUD | partial | [#114](https://github.com/IAPro-Community/nexus/issues/114) | HUD exibe apenas estado/sinal real de Agent e atenção; Não bloquear janelas; reduced-motion e smoke nativo |
-| `nex-companion` | Nex Operational Companion | partial | [#114](https://github.com/IAPro-Community/nexus/issues/114) | Mascote abre a ação operacional correspondente a evento confirmado; Respeitar NEX identity lock, alto contraste e motion reduction |
+| `nex-companion` | Nex Operational Companion | present | [#114](https://github.com/IAPro-Community/nexus/issues/114) | Mascote abre a ação operacional correspondente a evento confirmado; Respeitar NEX identity lock, alto contraste e motion reduction |
 
 ### Diferenciais adicionais (4)
 
