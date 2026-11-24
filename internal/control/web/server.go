@@ -382,8 +382,15 @@ func (s *Server) routePlan(h *NexusHandler) http.HandlerFunc {
 				return
 			}
 		}
-		switch {
-		case strings.HasSuffix(r.URL.Path, "/delegation/approve"):
+		if optionalFeatureMutationBlocked(w, r, featureFlow) {
+            return
+        }
+        if strings.HasSuffix(r.URL.Path, "/parallel-challenge") &&
+            optionalFeatureMutationBlocked(w, r, featureParallelChallenge) {
+            return
+        }
+        switch {
+        case strings.HasSuffix(r.URL.Path, "/delegation/approve"):
 			h.handlePlanDelegationApprove(w, r)
 		case strings.HasSuffix(r.URL.Path, "/compile"):
 			h.handlePlanCompile(w, r)
@@ -431,7 +438,10 @@ func (s *Server) routeRun(h *NexusHandler) http.HandlerFunc {
 				return
 			}
 		}
-		path := strings.Trim(strings.TrimPrefix(r.URL.Path, "/api/v1/runs/"), "/")
+		if optionalFeatureMutationBlocked(w, r, featureMissions) {
+            return
+        }
+        path := strings.Trim(strings.TrimPrefix(r.URL.Path, "/api/v1/runs/"), "/")
 		parts := strings.Split(path, "/")
 		if len(parts) == 2 && strings.EqualFold(parts[1], "routing") {
 			h.handleRunRouting(w, r, parts[0])

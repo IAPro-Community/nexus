@@ -17,29 +17,29 @@ const surface = (type: string, id = type): WorkspaceSurface => ({
 });
 
 describe('Composer/Flow release gate', () => {
-  it('is enabled by default in normal test/build', () => {
-    expect(COMPOSER_FLOW_ENABLED).toBe(true);
+  it('is disabled by default in normal test/build', () => {
+    expect(COMPOSER_FLOW_ENABLED).toBe(false);
     expect(isExperimentalComposerFlowSurface('work')).toBe(true);
     expect(isExperimentalComposerFlowSurface('missions')).toBe(true);
     expect(isExperimentalComposerFlowSurface('flow-run')).toBe(true);
     expect(isExperimentalComposerFlowSurface('terminals')).toBe(false);
   });
 
-  it('keeps mission decision routes available while hiding experimental planning surfaces', () => {
-    expect(isExperimentalRouteBlocked('missions', 'mission-123')).toBe(false);
+  it('blocks legacy mission deep links as well as planning routes', () => {
+    expect(isExperimentalRouteBlocked('missions', 'mission-123')).toBe(true);
     expect(isExperimentalRouteBlocked('missions')).toBe(true);
     expect(isExperimentalRouteBlocked('work')).toBe(true);
     expect(isExperimentalRouteBlocked('flow-run', 'mission-123')).toBe(true);
   });
 
-  it('allows only a mission-specific Flow detail surface in the workspace', () => {
+  it('blocks all Flow detail surfaces in the workspace', () => {
     expect(isExperimentalWorkspaceSurfaceBlocked(surface('flow-run'))).toBe(true);
     expect(
       isExperimentalWorkspaceSurfaceBlocked({
         ...surface('flow-run'),
         data: { runId: 'mission-123' },
       }),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       isExperimentalWorkspaceSurfaceBlocked({
         ...surface('missions'),

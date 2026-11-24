@@ -5,36 +5,36 @@ import {
   type WorkspaceSurface,
 } from '../workspace/model';
 
-// Enabled by default for all builds. Can be explicitly disabled via compile-time define
-// __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__ = false.
+// Experimental product screens are OFF in every build by default.
+// Enabling this frontend define does not authorize server-side execution.
+// Server also requires NEXUS_FEATURES_ENABLED=true and per-feature opt-ins.
 declare const __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__: boolean | undefined;
 export const COMPOSER_FLOW_ENABLED =
-  typeof __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__ === 'undefined'
-    ? true
-    : Boolean(__NEXUS_EXPERIMENTAL_COMPOSER_FLOW__);
+  typeof __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__ !== 'undefined' &&
+  __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__ === true;
 
 export function isExperimentalComposerFlowSurface(type: string): boolean {
   return type === 'work' || type === 'missions' || type === 'flow-run';
 }
 
 /**
- * A mission detail is an actionable, stable surface even while mission
- * creation and history remain behind the Composer/Flow release gate.
+ * All Composer, Flow and Mission surfaces are disabled by default,
+ * including deep links to historic runs; their data is not deleted.
  */
 export function isExperimentalRouteBlocked(type: string, subId?: string): boolean {
   if (!isExperimentalComposerFlowSurface(type)) return false;
-  return !(type === 'missions' && Boolean(subId?.trim()));
+  return true;
 }
 
 /**
- * Workspace detail tabs are allowed only when they point to a specific
- * mission run. Generic Flow/Composer surfaces remain gated in stable builds.
+ * Restored experimental surfaces are hidden, including run detail tabs.
+ * Backend history remains available through authenticated read-only APIs.
  */
 export function isExperimentalWorkspaceSurfaceBlocked(
   surface: Pick<WorkspaceSurface, 'type' | 'data'>,
 ): boolean {
   if (!isExperimentalComposerFlowSurface(surface.type)) return false;
-  return !(surface.type === 'flow-run' && Boolean(surface.data?.runId?.trim()));
+  return true;
 }
 
 /**
