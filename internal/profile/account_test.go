@@ -133,5 +133,8 @@ func TestCursorAuthProbeFixture(t *testing.T) {
 	if os.Getenv("NEXUS_CURSOR_AUTH_FIXTURE") != "1" {
 		return
 	}
-	select {}
+	// A bare select{} lets the runtime report a deadlock and exit early, so the
+	// probe would finish before the caller's deadline. Sleeping keeps the
+	// fixture alive until the caller's context cancels it.
+	time.Sleep(30 * time.Second)
 }
