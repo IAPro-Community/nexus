@@ -1,3 +1,11 @@
+## 2026-11-24 — Portabilidade hospedada (macOS + Windows) corrigida localmente
+
+- **PASS (macOS)** — `go test -count=1 -run 'TestGetAccountInfoContextStopsSlowCursorAuthenticationProbe|TestCursorAuthProbeFixture' ./internal/profile` PASS; `go test -count=1 -run 'TestTwoAgentsTwoClientsAttentionScenario' ./internal/control/web` PASS.
+- **PASS (Windows)** — `go test -count=1 ./internal/core/memoryrecovery` PASS; `go test -count=1 -run 'TestRecoverMemoryMigrationResumesInterruptedOperationWithoutDuplicates|TestMigrateMemoryExportFailureLeavesNoDuplicatesAndNoGate' ./internal/nexus` PASS; fixtures portáveis exercitadas em `TestSelectedSkillsReachAnIsolatedProviderSession`, `TestMissionFailoverCostObservationAttributionFollowsExecutingRuntime`, `TestStartDispatchExplicitMissionForAtomicFixUsesSingleWorkPlanAndMissionPackage` e `TestRefreshUsageSnapshotDiscardsMidFlightAccountSwitch`, todas PASS; `go test -short ./internal/profile ./internal/core/provider/authcopy` PASS.
+- **PASS (ci local)** — `go build ./...`, `go vet ./internal/testutil/... ./internal/testutil/fixturecli/... ./internal/nexus/store`, `gofmt -l` vazio.
+- **FAIL anterior (não repetir sem evidência)** — matriz hospedada `7ef578a8`: macOS arm64/intel e Windows falharam em `go test -count=1 ./...`; Linux passou. Logs em `job-138498353516` (Windows), `job-138498354152` (arm64), `job-138498353784` (intel).
+- **PENDENTE** — nova matriz hospedada no SHA final com os três registros `workspace-acceptance-*.json`, `assemble` e reauditoria do mapa. Release **NO_GO**.
+
 ## 2026-11-24 — Lane A `agent-timeline` aceita no SHA exato `5a3e8091`
 
 - **SHA publicado** — `origin/release/v1.0.0` @ `5a3e80915f44cda219d30641d70a2d484887bca1`; implementação `4e564078`..`52ce3086`; capturas automáticas `502e9aae`. Ambiente: Linux self-hosted `nexus-ci`.

@@ -1,3 +1,11 @@
+## 2026-11-24 — Portabilidade hospedada: primeira matriz real Linux/Windows/macOS
+
+- **Matriz** — `unsigned-preview.yml` no SHA `7ef578a8`: Linux `passed`; macOS arm64, macOS intel e Windows falharam por bugs reais de portabilidade, corrigidos em `72c6a9d9`..`f5f10a6e` (2 arquivos por lote no máximo).
+- **macOS** — `internal/profile/account_test.go` usava `select {}` como fixture lenta; o runtime matava o filho por deadlock antes do deadline e o probe caía em `ErrAccountStatusUnverified`. `internal/control/web/multi_runtime_attention_e2e_test.go` comparava `/var/...` com o `/private/var/...` devolvido pelo git, agora resolve o symlink.
+- **Windows** — o lock do journal de migração mantinha o handle aberto e impedia `os.Remove` ao retomar sessão interrompida no mesmo processo (`internal/core/memoryrecovery`); fixtures de CLI em `#!/bin/sh` (`codex`, `agy`) foram substituídos pelo binário nativo `internal/testutil/fixturecli` guiado por `FIXTURE_CLI_SPEC`; asserts de modo POSIX em `authcopy` e `host_auth_import` passaram a ignorar Windows; o budget do cost ledger de 10k observações ganhou limite próprio em Windows (112s medidos).
+- **Contrato** — `cross-platform-exact-sha` deixou de ser `missing`: clause 0 do mapa virou `source-and-test-referenced` + `audited` (`ab0a7de2`), contrato/doc em `partial` (`8e5a4880`); verificador do mapa passou a aceitar `.mjs`; 0 certificações, 48 capacidades seguem `verification: pending`.
+- **Próximo** — disparar a matriz hospedada no SHA final, montar `assemble` com os três registros e revisar F5/F7 com o resultado real. Release **NO_GO**.
+
 ## 2026-11-24 — Lane A conclui `agent-timeline` no CI do SHA `5a3e8091`
 
 - **Entrega** — 12 lotes de até 2 arquivos (`4e564078`..`9755514f`) publicados em `origin/release/v1.0.0`; correção de lint morto (`52ce3086`) e capturas sintéticas recapturadas pelo fluxo automático (`502e9aae`).
