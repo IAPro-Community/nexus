@@ -3099,3 +3099,11 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - **PASS** — `npm --prefix web run typecheck` (exit 0); `npx eslint src/features/browser/BrowserSurface.tsx src/features/browser/BrowserSurface.test.ts` sem erros; `npm --prefix web run lint:styles` limpo; `npx prettier --check` limpo nos arquivos tocados.
 - **PASS** — `node scripts/verify-agent-workspace-evidence-map.mjs` exit 0 (48 capabilities, 97 clauses, nenhuma certificada); `node scripts/verify-agent-workspace-v1.mjs` exit 0.
 - **PENDENTE** — CI do SHA exato com o novo step `device-preview-e2e` e recaptura sintetica (a mudanca em `web/src` invalida o manifest visual); aceite visual externo no SHA publicado. Capability `verification: pending`; release **NO_GO**.
+
+## Lane A — `smart-layouts` (sugestão por atividade) — 2026-11-24 (SHA `8f78fb76`/`b0bab66f`)
+
+- **PASS** — `npm --prefix web run test -- --run src/workspace/arrangePresets.test.ts`: 12 pass após corrigir `deriveArrangeActivity` (`:agent-config` no fim do ID; antes exigia sufixo `:` extra → `mixed` em vez de `review`).
+- **PASS** — `npm --prefix web run test:e2e:smart-layouts`: preset Automático aplicado com zero spawns; IDs de surface (`view:shell:shell-…`) idênticos após reload integral; exatamente 1 `POST /shell` no fluxo todo; troca de preset sem `POST /agents`.
+- **PASS** — `node --check web/scripts/e2e-smart-layouts.mjs`.
+- **CI** — SHA `8f78fb76`: "Verify documentation" falhou (manifest visual stale); recapture sintético `c370692f` publicado a jusante; SHA `b0bab66f` com CI em execução na última checagem.
+- **PENDENTE** — E2E device-preview/surface-isolation no CI do SHA novo; aceite externo por capacidade; capability `smart-layouts` continua `verification: pending`; release **NO_GO**.

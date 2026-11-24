@@ -8136,3 +8136,11 @@ Restante vermelho honesto: **Windows release homologation** — exige runner `ne
 - **Contrato:** evidence map com os 2 criterios de `device-preview` `audited` (30/48 capabilities e 63/97 clauses); contrato `device-preview` `partial` -> `present`, `verification: pending`; doc de aceite sincronizado.
 - **Product Discovery:** sem novo anuncio. O lote corrige um bug de sincronia e a semantica de acessibilidade de uma superficie ja anunciada (`browser-design-inspect`/`browser-visual-diff`); nao introduz tour, hint ou feature nova, e `web/src/features/work/featureAnnouncements.ts` esta com hunks de outro workstream.
 - **Working tree:** ~104 modificacoes alheias preservadas (nenhum `git add` global). Release **NO_GO**.
+
+## 2026-11-24 — Lane A: `smart-layouts` fecha sugestão por atividade + E2E de restauração sem spawn
+
+- **Correção real:** `deriveArrangeActivity` não reconhecia IDs terminados em `:agent-config` (checagem exigia `:agent-config:`); sugestão automática `review` falhava para views de configuração de agente. Teste focal voltou a 12 pass.
+- **E2E novo:** `web/scripts/e2e-smart-layouts.mjs` — abre terminal pela UI real, aplica preset Automático, prova IDs de surface preservados após reload integral, runtime sem re-spawn (exatamente 1 `POST /shell`) e troca de preset sem spawn de agentes. Registrado em `web/package.json` (`test:e2e:smart-layouts`). PASS local.
+- **Git:** lote commitado (`5265e027` smart-layouts, `8f78fb76`→ conflito com docs-visual resolvido via stash+rebase, `b0bab66f` e2e smart-layouts). Push atual: `origin/release/v1.0.0` = `b0bab66f`. CI do SHA em execução.
+- **Incidente de push:** rejeição fast-forward por avanço remoto (`docs(visual)` `c370692f`); resolvido com stash `-u` dos 2 arquivos locais + `git rebase origin/release/v1.0.0` + push limpo. Nenhum hunk alheiro tocado.
+- **Working tree:** hunks alheios preservados (nenhum `git add` global). Release **NO_GO** (CI `c370692f` com "Verify documentation" falho em `8f78fb76` já recapturado a jusante).
