@@ -497,7 +497,7 @@
    "name": "Remote Terminal",
    "category": "remote",
    "owner": "NEXUS",
-   "sourceStatus": "partial",
+   "sourceStatus": "present",
    "issue": 111,
    "releaseRequired": true,
    "requiredClients": 2,
@@ -505,7 +505,8 @@
     "Conectar ao terminal existente sem criar novo runtime",
     "Controle único com token scoped, CSRF, expiry e revoke"
    ],
-   "verification": "pending"
+   "verification": "pending",
+   "sourceAudit": "2026-11-24"
   },
   {
    "id": "workspace-sharing",
