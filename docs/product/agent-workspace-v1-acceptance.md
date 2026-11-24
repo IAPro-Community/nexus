@@ -41,7 +41,7 @@ Legenda: **present** indica código-base localizado; **partial** significa lacun
 | `workspace-snapshots` | Workspace Snapshots | partial | [#105](https://github.com/IAPro-Community/nexus/issues/105) | Salvar e restaurar estado visual versionado por projeto; Não ressuscitar processo morto nem duplicar runtime |
 | `agent-groups` | Agent Groups | partial | [#105](https://github.com/IAPro-Community/nexus/issues/105) | Agrupar Agents por tarefa, worktree e feature; Filtrar e reordenar preservando identidade e sessão |
 | `quick-switcher` | Quick Switcher | present | [#84](https://github.com/IAPro-Community/nexus/issues/84) | Command Palette pesquisa projetos, Agents, ações e superfícies; Atalhos e foco confiáveis em desktop e mobile |
-| `follow-agent` | Follow Agent | partial | [#105](https://github.com/IAPro-Community/nexus/issues/105) | Acompanhar visualização selecionada de Agent com pausa explícita; Não adquirir lease de input sem consentimento |
+| `follow-agent` | Follow Agent | present | [#105](https://github.com/IAPro-Community/nexus/issues/105) | Acompanhar visualização selecionada de Agent com pausa explícita; Não adquirir lease de input sem consentimento |
 | `floating-inspector` | Floating Inspector | present | [#104](https://github.com/IAPro-Community/nexus/issues/104) | Inspector destacável com status, identidade, evidência e lineage; Somente estado observado e informação já autorizada |
 
 ### Execução e supervisão (6)
