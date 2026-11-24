@@ -184,6 +184,16 @@ export const featureAnnouncements: readonly FeatureAnnouncement[] = [
     tourStep: 'workspace-sharing',
   },
   {
+    id: 'agent-lifecycle-timeline',
+    revision: 1,
+    surfaces: ['agents'],
+    openSurface: 'agents',
+    target: '[data-tour="agent-timeline-entry"]',
+    title: 'discovery.agentTimelineTitle',
+    summary: 'discovery.agentTimelineBody',
+    tourStep: 'timeline',
+  },
+  {
     id: 'agent-groups-task-worktree-feature',
     revision: 1,
     surfaces: ['agents'],

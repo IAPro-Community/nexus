@@ -651,6 +651,7 @@ export const AgentsSurface: React.FC<{
                       tone="ghost"
                       onClick={() => setDirectorAgent(agent)}
                       title={t('director.open', 'Direcionar agente')}
+                      data-tour="agent-timeline-entry"
                     >
                       <Layers3 size={13} /> {t('director.short', 'Diretor')}
                     </Button>
