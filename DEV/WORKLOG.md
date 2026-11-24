@@ -1,3 +1,11 @@
+## 2026-11-24 — Lane A fecha `design-inspect`: inspeção sanitizada e Agent explícito
+
+- **E2E real** — `web/scripts/e2e-browser-design-inspect.mjs` PASS: inspeção de elemento DOM/estilos/crop mascarado é read-only; Activate chama somente o seletor selecionado; envio gera uma única entrega ao Agent escolhido, `start_if_needed=false` e zero chamadas de start.
+- **Backend** — `browser_design_inspect_test.go` recusa seletor vazio/oversized antes do CDP, prova redação de email e máscara de crop; grant Browser continua autenticado, revogável e restrito ao projeto.
+- **Contrato** — evidence map com 2 critérios `audited` (`87a8f8ea`); contrato `design-inspect` de `partial` para `present`, `verification: pending` (`d8f1a664`); doc de aceite sincronizado.
+- **Verificação** — `npm --prefix web run test:e2e:browser-design-inspect` PASS; `go test ./internal/browsercontrol -run 'TestInspectRejectsEmptyOrOversizedSelectorBeforeCDP|TestChromiumDesignInspectOptional|TestMaskDesignCropOpaqueMasksSensitiveRect' -count=1` PASS; `verify-agent-workspace-evidence-map.mjs` exit 0; testes do mapa 4/4; `verify-agent-workspace-v1.mjs` exit 0.
+- **Estado** — 32 das 48 capabilities com todos os critérios `audited` (66/97 cláusulas); contrato 34 `present` / 13 `partial` / 1 `missing`, 0 certificadas. Release **NO_GO**.
+
 ## 2026-11-24 — Lane A fecha `remote-terminal`: terminal por Agent escopado
 
 - **Fix de segurança** — `internal/control/web/routes_projects_agents.go` (`4b16c60d`) recusa viewer na rota WS `/api/v1/agents/:id/terminal`, exige Origin válido no upgrade e recusa `runtime_id` vivo pertencente a outro Agent com 404 sem revelar ownership.

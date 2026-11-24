@@ -1,3 +1,11 @@
+## 2026-11-24 — Lane A `design-inspect` auditada
+
+- SHA local: `release/v1.0.0` @ `d8f1a664` (evidence map `87a8f8ea`, contrato `d8f1a664`). Responsável: orquestrador. Ambiente: Linux + Chromium local.
+- PASS (`design-inspect`) — `npm --prefix web run test:e2e:browser-design-inspect` PASS: DOM/estilos/crop mascarado, Activate read-only, uma única entrega ao Agent explicitamente escolhido, `start_if_needed=false` e zero starts.
+- PASS (sanitização) — `go test ./internal/browsercontrol -run 'TestInspectRejectsEmptyOrOversizedSelectorBeforeCDP|TestChromiumDesignInspectOptional|TestMaskDesignCropOpaqueMasksSensitiveRect' -count=1` PASS: seletor vazio/oversized recusado antes do CDP, email redigido e crop sensível mascarado.
+- PASS (contrato) — evidence map com 2 critérios `audited`; contrato de `partial` para `present`, `verification: pending`; doc de aceite sincronizado. `verify-agent-workspace-evidence-map.mjs` exit 0 (48/97, 0 certificadas); testes do mapa 4/4; `verify-agent-workspace-v1.mjs` exit 0. Estado: 32 capabilities com todos os critérios `audited` (66/97 cláusulas); contrato 34 `present` / 13 `partial` / 1 `missing`.
+- PENDENTE — CI do push `d8f1a664`; `workspace-acceptance-linux-amd64.json` do SHA exato ainda não coletado; aceite externo por capacidade e lanes B–F dependem do maestro. Release **NO_GO**.
+
 ## 2026-11-24 — Lane A `remote-terminal` auditada
 
 - SHA publicado: `origin/release/v1.0.0` @ `9c8d6dfd`; fix de código `4b16c60d`, evidence map `1bdabb7d`, contrato `9c8d6dfd`. Responsável: orquestrador. Ambiente: Linux + runner self-hosted `nexus-ci` em container.
