@@ -13,6 +13,13 @@ Objetivo: organizar capacidades pós‑V1 sem colocá-las no caminho crítico da
 - [ ] Aprovações remotas.
 - [ ] Analytics avançado e histórico de inteligência por modelo/provedor.
 
+## Programa transversal — IAPro SDK (P2)
+
+- [ ] [Nexus #235](https://github.com/IAPro-Community/nexus/issues/235): extrair incrementalmente contratos de providers, quotas, troca de contas, runtime, coordenação entre agentes, AI Control e HUD para biblioteca compartilhada versionada.
+- [ ] [Calango #128](https://github.com/IAPro-Community/calango/issues/128): integrar primeiro slice e validar paridade entre consumidores.
+
+Lane 03 coordena a extração pós-V1; Lane 01 fornece evidência nativa de runtime e Lane 02 valida regressão e UX. A preparação não bloqueia a release atual. SDK independente dos produtos; sem duplicação permanente, serviço obrigatório ou mudança de defaults. Repositório alvo `IAPro-Community/iapro-sdk` ainda pendente de provisionamento. Aceite e sequência S0–S6 na issue #235.
+
 ## Guardrails
 
 - Acesso remoto suportado hoje continua sendo por SSH/VPN.
