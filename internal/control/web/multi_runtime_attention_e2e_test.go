@@ -179,8 +179,14 @@ func TestTwoAgentsTwoClientsAttentionScenario(t *testing.T) {
 		if err != nil {
 			t.Fatalf("runtime %s is not in a git worktree: %v %s", runtime.RuntimeID, err, output)
 		}
-		if strings.TrimSpace(string(output)) != runtime.Workspace {
-			t.Fatalf("runtime %s worktree = %q, want %q", runtime.RuntimeID, strings.TrimSpace(string(output)), runtime.Workspace)
+		// macOS resolves the /var temp root to /private/var, so compare the
+		// resolved worktree root rather than the literal fixture path.
+		want := runtime.Workspace
+		if resolved, resolveErr := filepath.EvalSymlinks(want); resolveErr == nil {
+			want = resolved
+		}
+		if strings.TrimSpace(string(output)) != want {
+			t.Fatalf("runtime %s worktree = %q, want %q", runtime.RuntimeID, strings.TrimSpace(string(output)), want)
 		}
 	}
 	if foundAlpha.AttentionContext != foundBeta.AttentionContext {
