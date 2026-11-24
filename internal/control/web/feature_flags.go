@@ -2,23 +2,24 @@ package web
 
 import (
 	"net/http"
-	"os"
 	"strings"
+
+	"github.com/IAPro-Community/nexus/internal/nexus"
 )
 
 // Optional product capabilities are off in every installation unless both
 // the global switch AND the individual switch are explicitly true.
 // Never use a UI/localStorage query parameter as authorization to run them.
 const (
-	featureComposer = "COMPOSER"
-	featureFlow = "FLOW"
-	featureMissions = "MISSIONS"
+	featureComposer          = "COMPOSER"
+	featureFlow              = "FLOW"
+	featureMissions          = "MISSIONS"
 	featureParallelChallenge = "PARALLEL_CHALLENGE"
-	featureComparisonLab = "COMPARISON_LAB"
-	featureVoiceActions = "VOICE_ACTIONS"
-	featureNexProactivity = "NEX_PROACTIVITY"
-	featureDesignInspect = "DESIGN_INSPECT"
-	featureVisualDiff = "VISUAL_DIFF"
+	featureComparisonLab     = "COMPARISON_LAB"
+	featureVoiceActions      = "VOICE_ACTIONS"
+	featureNexProactivity    = "NEX_PROACTIVITY"
+	featureDesignInspect     = "DESIGN_INSPECT"
+	featureVisualDiff        = "VISUAL_DIFF"
 )
 
 func optionalFeatureEnabled(feature string) bool {

@@ -37,8 +37,8 @@ func TestOptionalMutationGatePreservesHistoryAndCancellation(t *testing.T) {
 	})
 	cases := []struct {
 		method string
-		path string
-		want int
+		path   string
+		want   int
 	}{
 		{http.MethodGet, "/api/v1/runs/legacy", http.StatusNoContent},
 		{http.MethodPost, "/api/v1/runs/legacy/resume", http.StatusNotFound},
@@ -59,13 +59,13 @@ func TestOptionalMutationGatePreservesHistoryAndCancellation(t *testing.T) {
 
 func TestProjectOptionalRoutesAreScoped(t *testing.T) {
 	cases := map[string]string{
-		"/api/v1/projects/p/agents": "",
-		"/api/v1/projects/p/shell": "",
-		"/api/v1/projects/p/maestro/compose-preview":featureComposer,
-		"/api/v1/projects/p/plans": featureFlow,
-		"/api/v1/projects/p/maestro/runs": featureMissions,
+		"/api/v1/projects/p/agents":                  "",
+		"/api/v1/projects/p/shell":                   "",
+		"/api/v1/projects/p/maestro/compose-preview": featureComposer,
+		"/api/v1/projects/p/plans":                   featureFlow,
+		"/api/v1/projects/p/maestro/runs":            featureMissions,
 	}
-	for path,want:=range cases {
+	for path, want := range cases {
 		if got := featureForProjectMutation(path); got != want {
 			t.Errorf("%s: got %q, want %q", path, got, want)
 		}
