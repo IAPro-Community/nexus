@@ -3337,6 +3337,12 @@ O controle `Popup independente` agora fica imediatamente abaixo do cabeçalho do
 - **Próximos passos:** (1) confirmar o run de `2143e05a` com DEB verde; (2) retomar Lane A em `agent-timeline` (arquivos `web/src/app/activityModel.*` estão com hunks de outro workstream — coordenar antes), `mobile-inbox`, `voice-actions`, `remote-companion`; (3) E2E de dois Agents/dois clientes para `floating-inspector` ainda pendente.
 - **Working tree:** ~104 modificações alheias preservadas; commits por índice, máximo 2 arquivos por lote (exceção registrada: `internal/control/host/{host,fanout}.go` adotados da árvore compartilhada para destravar a race de attach).
 
+## Handoff 2026-11-24 — Lane A fecha `smart-layouts` (sugestão + E2E restauração)
+
+- **Estado do codigo** — `smart-layouts`: `deriveArrangeActivity` corrigido para IDs terminados em `:agent-config` (sugestão `review` agora correta); E2E novo `web/scripts/e2e-smart-layouts.mjs` prova aplicação do preset Automático sem spawn, preservação de IDs de surface após reload e ausência de re-spawn do runtime. Commit `b0bab66f` em `origin/release/v1.0.0`; CI em execução.
+- **Incidentes** — push rejeitado por avanço remoto (`c370692f` docs-visual); resolvido com stash `-u` + rebase. CI de `8f78fb76` falhou em "Verify documentation" (manifest visual stale); recapture `c370692f` publicado.
+- **Proximo passo** — coletar `workspace-acceptance-linux-amd64.json` do SHA `b0bab66f`; seguir Lane A (`remote-terminal` ou `contextual-hud`); Lane C aguarda aceite visual do owner.
+
 ## Handoff 2026-11-24 — Lane A fecha `device-preview` com E2E de escala, foco e Axe
 
 - **Estado do codigo** — `device-preview` fechada: bug real de sincronia de viewport corrigido (`applyBrowserActionViewport` aplica a resposta de `POST /action` ao state da sessao; antes o ciclo de presets nunca avancava) e duas violacoes Axe reais do `BrowserSurface` eliminadas (`aria-prohibited-attr` no indicador de live sem role e com classes SCSS inexistentes; `aria-required-children` no `role="tablist"` que continha botoes nao-tab). Tab bar do browser agora e grupo de botoes com `aria-pressed`/`data-browser-tab` (nenhum consumidor dependia de `role="tab"`).

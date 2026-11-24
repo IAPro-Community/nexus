@@ -803,3 +803,10 @@ Toggle do popup independente no topo do painel (inline e popup), validado por ha
 - **Estado** — local com este lote; `origin/release/v1.0.0` = `7adb9393`; tag `v1.0.0` intacta (`d89797cd`), `v1.0.1` nao criada. Release **NO_GO** ate prova externa por capacidade no SHA exato.
 - **Proximo** — push e acompanhamento do CI; coletar `workspace-acceptance-linux-amd64.json`; continuar Lane A por `remote-terminal` ou `contextual-hud`; Lane C aguarda aceite visual do owner em HUD+Site.
 - **Bloqueios que exigem o maestro** — aceite visual NEX em HUD+Site, runner Windows/macOS nativo e chaves de assinatura, credencial do Named Tunnel, quota real AGY, hardware fisico, `memory-migrate apply` com Bridge ativo.
+
+## 2026-11-24 — Lane A: `smart-layouts` auditada — ativo
+
+- **Lane A — estado** — `smart-layouts` fechada localmente: sugestão derivada de atividade (`browser`→duas colunas, `terminal`→principal+fila, `review`→três colunas) e preset `automatic` aplicando layout sem spawn. `deriveArrangeActivity` reconhece `:agent-config` no fim do ID.
+- **Provas** — `test:e2e:smart-layouts` PASS (preset automático, zero spawn, IDs preservados após reload, 1 `POST /shell`); `arrangePresets.test.ts` 12/12; `node --check` do script limpo.
+- **Estado** — `origin/release/v1.0.0` = `b0bab66f`; CI em execução; capability `verification: pending`; tag `v1.0.1` não criada. Release **NO_GO**.
+- **Proximo** — coletar `workspace-acceptance-linux-amd64.json` do SHA exato; continuar Lane A por `remote-terminal`/`contextual-hud`; Lane C bloqueada por aceite visual do owner.
