@@ -1,3 +1,12 @@
+## 2026-11-23 — Lane A fecha `agent-command-center`: cartão por Agent, seleção direta e `COMPLETED` tipado
+
+- **Estado tipado** — `store.AgentCompleted = "COMPLETED"` (`15c7fdd7`); `internal/nexus/agent_application_test.go` passa a exigir que a listagem por projeto preserve `WAITING`, `FAILED` e `COMPLETED` estruturados, converta apenas `WORKING` com runtime morto em `RECOVERABLE` e nunca infira estado do texto do CLI.
+- **UI** — `web/src/features/agents/AgentsSurface.test.ts` (`6aad3bb4`) fixa a listagem por projeto (`nexus.listAgents(projectId)`), um cartão por Agent (`data-agent-id`), badge derivado somente de `agent.status` e seleção direta do Agent correto (Terminal e Director).
+- **Contrato** — evidence map com 2 critérios `audited` (`d7bcfd20`); contrato `partial` → `present` com `verification: pending` (`70212f0b`).
+- **Verificação** — `go test ./internal/nexus -run TestAgentApplicationService -count=1` PASS; `gofmt -l` vazio nos dois arquivos Go; `npx prettier --check src/features/agents/AgentsSurface.test.ts` limpo; `npx vitest run src/features/agents/AgentsSurface.test.ts` 7/7; `npm --prefix web run typecheck` limpo; `node scripts/verify-agent-workspace-evidence-map.mjs` exit 0 (48/97, 95 source+test, 0 certificadas); `node --test scripts/verify-agent-workspace-evidence-map.test.mjs` 4/4; `node scripts/verify-agent-workspace-v1.mjs` exit 0.
+- **CI** — run `45318330774` (`f6e009bb`): `Sanitize`, `Release configuration` e `Documentation visual capture evidence` verdes; `Linux E2E` em execução; `Frontend`, `Security` e `Cross-platform compile guard` em fila (runner `nexus-ci` ocupado); `Publish Nexus documentation` (`45318330781`) falhou apenas no deploy de Pages (`Found 0 artifact(s)`) — race de API do GitHub; `Windows beta.10` (`45318330753`) vermelho (ConPTY, #216).
+- **Estado** — 27 das 48 capabilities com todos os critérios `audited` (59/97 cláusulas); contrato 29 `present` / 18 `partial` / 1 `missing`, 0 certificadas; tag `v1.0.0` intacta (`d89797cd`), `v1.0.1` não criada. Release **NO_GO**.
+
 ## 2026-11-23 — Lane A fecha `remote-companion` e `focus-queue`: revogação isolada e auditoria de fila
 
 - **`remote-companion` auditada** — novo `TestRemoteDeviceRevocationClosesOnlyThatDeviceSession` (`852adf2e`) prova que revogar um dispositivo pareado fecha imediatamente o watcher da sessão dele sem tocar a sessão do outro dispositivo; evidence map com 3 critérios `audited` (`a6fc62af`); contrato de `partial` para `present` com `verification: pending` (`4bda618d`).
