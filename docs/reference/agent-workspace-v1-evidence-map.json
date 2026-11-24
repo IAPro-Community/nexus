@@ -570,31 +570,33 @@
      "acceptanceIndex": 0,
      "acceptance": "Inspector destacável com status, identidade, evidência e lineage",
      "sourceRefs": [
-      "web/src/features/work/ComposerInspector.tsx"
+      "internal/control/web/handlers_agent_director.go",
+      "web/src/features/agents/DirectorAgentPanel.tsx"
      ],
      "testRefs": [
-      "web/src/features/work/composerModel.test.ts",
-      "web/src/features/work/featureTour.test.ts"
+      "internal/control/web/handlers_agent_director_test.go",
+      "web/src/features/agents/AgentsSurface.test.ts"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: ComposerInspector.tsx existe e renderiza briefing, contexto e prompt, mas nenhum dos testes referenciados (composerModel.test.ts, featureTour.test.ts) asserta os campos exigidos de status, identidade, evidencia e lineage do inspector. Cobertura permanece indireta.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: o Inspector de Agent projeta status observado, identidade (agent, provider/profile, generation, runtime), evidencia de processo, lineage de handoff, quota com procedencia e workspace/worktree declarados; o endpoint cobra lineage e quota UNKNOWN sem evidencia de provider (TestDirectorEndpointKeepsProjectScopeAndReadOnlyAuthentication) e o painel expoe os campos sem identificadores de sessao do provider (Agents Inspector contract). E2E com dois Agents e dois clientes segue pendente.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
      "acceptance": "Somente estado observado e informação já autorizada",
      "sourceRefs": [
-      "web/src/features/work/ComposerInspector.tsx"
+      "internal/control/web/handlers_agent_director.go",
+      "web/src/features/agents/DirectorAgentPanel.tsx"
      ],
      "testRefs": [
-      "web/src/features/work/composerModel.test.ts",
-      "web/src/features/work/featureTour.test.ts"
+      "internal/control/web/handlers_agent_director_test.go",
+      "web/src/features/agents/AgentsSurface.test.ts"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: nenhum teste referenciado prova que o inspector projeta apenas estado observado e informacao ja autorizada; composerModel.test.ts cobre readiness e manifest de contexto, featureTour.test.ts cobre tours. Assertion direta ausente.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: a projecao e read-only e por Agent, workspace/worktree vem da revisao persistida ou do runtime vivo, lineage expoe apenas identidades de runtime e checkpoint, e quota sem medicao permanece UNKNOWN em vez de zero; o teste do endpoint fixa escopo de projeto e autenticacao somente leitura e o painel nao referencia source_session, target_session nem provider_session.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"

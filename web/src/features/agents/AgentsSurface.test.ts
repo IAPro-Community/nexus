@@ -7,6 +7,10 @@ const source = readFileSync(
   join(dirname(fileURLToPath(import.meta.url)), 'AgentsSurface.tsx'),
   'utf8',
 );
+const directorSource = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), 'DirectorAgentPanel.tsx'),
+  'utf8',
+);
 
 describe('Agents grouping surface contract', () => {
   it('exposes persistent task, worktree, and feature groups in a scoped UI', () => {
@@ -25,5 +29,23 @@ describe('Agents grouping surface contract', () => {
     expect(source).toContain('key={agent.id}');
     expect(source).toContain('data-agent-id={agent.id}');
     expect(source).toContain('onTerminal(agent)');
+  });
+});
+
+describe('Agent Inspector contract', () => {
+  it('projects observed status, identity, evidence, quota and lineage', () => {
+    expect(directorSource).toContain("t('director.quotaStatus')");
+    expect(directorSource).toContain("t('director.quotaSource')");
+    expect(directorSource).toContain("t('director.quotaRemaining')");
+    expect(directorSource).toContain("t('director.lineageTitle')");
+    expect(directorSource).toContain('view.workspace');
+    expect(directorSource).toContain('view.worktree');
+    expect(directorSource).toContain("t('director.observedState')");
+  });
+
+  it('never projects provider session identifiers in the Inspector', () => {
+    expect(directorSource).not.toContain('source_session');
+    expect(directorSource).not.toContain('target_session');
+    expect(directorSource).not.toContain('provider_session');
   });
 });
