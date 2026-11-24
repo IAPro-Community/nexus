@@ -59,3 +59,10 @@ The CLI also applies the MISSIONS flag to `nexus run <goal>` and supervised
 Lead Mission promotion. Invoking `nexus run <provider>` still launches the
 provider directly. Internal migration/test helpers are not public entrypoints
 and must not be treated as a substitute for these gates.
+
+Optional browser/voice UI also defaults off. Its build-time master define is
+`__NEXUS_OPTIONAL_FEATURES__ = true`, and each feature additionally requires
+its own build define (`__NEXUS_EXPERIMENTAL_COMPOSER_FLOW__`,
+`__NEXUS_VOICE_ACTIONS__`, `__NEXUS_DESIGN_INSPECT__`,
+`__NEXUS_VISUAL_DIFF__`). None are implicitly enabled.
+The backend environment flags remain authoritative for permission to execute.

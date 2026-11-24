@@ -28,6 +28,7 @@ import { asArray } from '../../lib/safeArray';
 import { nexus } from '../../nexus/api';
 import { handoffDesignInspectionToSelectedAgent } from './designInspectHandoff';
 import { VisualDiffPanel } from './VisualDiffPanel';
+import { DESIGN_INSPECT_ENABLED, VISUAL_DIFF_ENABLED } from '../../app/composerFlowFlag';
 import type { VisualDiffRequest, VisualDiffResult } from './visualDiffModel';
 import styles from './BrowserSurface.module.scss';
 import { FeatureTour } from '../work';
@@ -1021,7 +1022,7 @@ export const BrowserSurface: React.FC<{
   };
 
   const inspectElement = async (selector: string) => {
-    if (!session) return;
+    if (!DESIGN_INSPECT_ENABLED || !session) return;
     setBusy(true);
     setError('');
     try {
@@ -1632,7 +1633,7 @@ export const BrowserSurface: React.FC<{
               >
                 {t('browserDesignInspect.tabAgents', { count: grants.length })}
               </button>
-              <button
+              {VISUAL_DIFF_ENABLED && <button
                 type="button"
                 role="tab"
                 aria-selected={drawerTab === 'diff'}
@@ -1642,7 +1643,7 @@ export const BrowserSurface: React.FC<{
                 onClick={() => setDrawerTab('diff')}
               >
                 {t('browserVisualDiff.tabLabel')}
-              </button>
+              </button>}
             </div>
             <div className={styles.drawerActions}>
               {drawerTab === 'inspector' && (
@@ -1671,7 +1672,7 @@ export const BrowserSurface: React.FC<{
           <div ref={drawerBodyRef} className={styles.drawerBody}>
             {drawerTab === 'inspector' && (
               <div className={styles.inspectorContent}>
-                {elements.length > 0 && !selectedInspection && (
+                {DESIGN_INSPECT_ENABLED && elements.length > 0 && !selectedInspection && (
                   <div className={styles.inspectionActions}>
                     {elements.map((item, index) => (
                       <div key={`${item.selector}:${index}`} className={styles.inspectionItem}>
@@ -1922,7 +1923,7 @@ export const BrowserSurface: React.FC<{
                 ))}
               </div>
             )}
-            {drawerTab === 'diff' && (
+            {VISUAL_DIFF_ENABLED && drawerTab === 'diff' && (
               <VisualDiffPanel
                 sessionId={session?.id}
                 run={(request) => browserAPI.visualDiff(request, sessionId ?? '')}

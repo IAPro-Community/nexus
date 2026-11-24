@@ -5,13 +5,35 @@ import {
   type WorkspaceSurface,
 } from '../workspace/model';
 
-// Experimental product screens are OFF in every build by default.
-// Enabling this frontend define does not authorize server-side execution.
-// Server also requires NEXUS_FEATURES_ENABLED=true and per-feature opt-ins.
+// Experimental product surfaces are OFF in every build by default.
+// Even explicit frontend opt-ins cannot authorize server-side execution.
+declare const __NEXUS_OPTIONAL_FEATURES__: boolean | undefined;
 declare const __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__: boolean | undefined;
+declare const __NEXUS_VOICE_ACTIONS__: boolean | undefined;
+declare const __NEXUS_DESIGN_INSPECT__: boolean | undefined;
+declare const __NEXUS_VISUAL_DIFF__: boolean | undefined;
+
+// All optional UI is disabled unless the global and resource flags are
+// explicitly set at build time. Backend authorization is separate and required.
+export const OPTIONAL_FEATURES_ENABLED =
+  typeof __NEXUS_OPTIONAL_FEATURES__ !== 'undefined' &&
+  __NEXUS_OPTIONAL_FEATURES__ === true;
 export const COMPOSER_FLOW_ENABLED =
+  OPTIONAL_FEATURES_ENABLED &&
   typeof __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__ !== 'undefined' &&
   __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__ === true;
+export const VOICE_ACTIONS_ENABLED =
+  OPTIONAL_FEATURES_ENABLED &&
+  typeof __NEXUS_VOICE_ACTIONS__ !== 'undefined' &&
+  __NEXUS_VOICE_ACTIONS__ === true;
+export const DESIGN_INSPECT_ENABLED =
+  OPTIONAL_FEATURES_ENABLED &&
+  typeof __NEXUS_DESIGN_INSPECT__ !== 'undefined' &&
+  __NEXUS_DESIGN_INSPECT__ === true;
+export const VISUAL_DIFF_ENABLED =
+  OPTIONAL_FEATURES_ENABLED &&
+  typeof __NEXUS_VISUAL_DIFF__ !== 'undefined' &&
+  __NEXUS_VISUAL_DIFF__ === true;
 
 export function isExperimentalComposerFlowSurface(type: string): boolean {
   return type === 'work' || type === 'missions' || type === 'flow-run';

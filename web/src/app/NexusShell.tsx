@@ -26,6 +26,7 @@ import { ProjectCreateMenu } from '../features/projects/ProjectCreateMenu';
 import type { Agent, AttentionItem, EventRecord, Project, RuntimeSession } from '../types';
 import type { RadarRuntimeItem } from './attentionRadarModel';
 import { VoiceCaptureButton } from '../features/voice/VoiceCaptureButton';
+import { VOICE_ACTIONS_ENABLED } from './composerFlowFlag';
 import { ProductUpdatesCenter } from './components/ProductUpdatesCenter';
 import styles from './NexusShell.module.scss';
 
@@ -197,7 +198,7 @@ export const NexusShell: React.FC<{
 
                 <LanguagePicker />
                 <FontScalePicker />
-                {onVoiceTranscript && (
+                {VOICE_ACTIONS_ENABLED && onVoiceTranscript && (
                   <VoiceCaptureButton
                     context="nexus"
                     showLabel

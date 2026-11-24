@@ -53,6 +53,7 @@ import {
 } from './mascotModel';
 import { GuardianMascot } from './GuardianMascot';
 import { NexAssistantPanel } from './NexAssistantPanel';
+import { COMPOSER_FLOW_ENABLED } from '../../app/composerFlowFlag';
 import { consumeNexNewCompletion } from './nexCompanionBehavior';
 import {
   shouldRenderHudCompactControl,
@@ -458,7 +459,8 @@ export const NexusHud: React.FC<NexusHudProps> = ({
         (!item.profile || item.profile.toLowerCase() === focus?.provider?.profile.toLowerCase()),
     ) || state?.alerts[0];
   const activeAgents = state?.agents.filter(isWorkingAgent) || [];
-  const currentMission = state ? hudVisibleMission(state.missions) : undefined;
+  const currentMission =
+    COMPOSER_FLOW_ENABLED && state ? hudVisibleMission(state.missions) : undefined;
   const activeMission = currentMission?.needs_user ? currentMission : undefined;
   const runtimeAttention = state?.runtime_attention || [];
   // Terminal waits have already been classified by the canonical runtime
