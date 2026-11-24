@@ -2,6 +2,7 @@ package browsercontrol
 
 import (
 	"context"
+	"crypto/sha256"
 	"strings"
 	"testing"
 	"time"
@@ -106,6 +107,82 @@ func TestBrowserCapabilityScopeAndRevocation(t *testing.T) {
 	}
 	if _, _, ok := m.ResolveAgentGrant(token); ok {
 		t.Fatal("revoked token still accepted")
+	}
+}
+
+func TestBrowserAgentGrantExpiresAndRevokeReleasesControl(t *testing.T) {
+	m := NewManager()
+	session := &Session{info: Info{ID: "browser-grant", ProjectID: "project-grant"}}
+	m.sessions[session.info.ID] = session
+
+	grant, token, err := m.IssueAgentGrant(session.info.ID, "Codex")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if grant.ExpiresAt.IsZero() || !grant.ExpiresAt.After(time.Now()) || grant.ExpiresAt.After(time.Now().Add(agentGrantDuration+time.Minute)) {
+		t.Fatalf("grant expiry is not a bounded future window: %v", grant.ExpiresAt)
+	}
+	if ok, reason := session.AcquireAgentControl(grant.Actor); !ok {
+		t.Fatalf("agent could not acquire control: %s", reason)
+	}
+
+	digest := sha256.Sum256([]byte(token))
+	m.mu.Lock()
+	entry := m.grants[digest]
+	entry.ExpiresAt = time.Now().Add(-time.Second)
+	m.grants[digest] = entry
+	m.mu.Unlock()
+	if _, _, ok := m.ResolveAgentGrant(token); ok {
+		t.Fatal("expired grant still resolved")
+	}
+
+	if !m.RevokeAgentGrant(session.info.ID, grant.ID) {
+		t.Fatal("revoke failed")
+	}
+	if _, _, ok := m.ResolveAgentGrant(token); ok {
+		t.Fatal("revoked grant still resolved")
+	}
+	if session.CanControl(grant.Actor) {
+		t.Fatal("revoke must release the agent browser lease")
+	}
+}
+
+func TestBrowserHumanInterventionRecordsAuditTrail(t *testing.T) {
+	session := &Session{info: Info{ID: "browser-audit", ProjectID: "project-audit"}}
+	agent := "agent:executor-audit"
+	other := "agent:executor-other"
+
+	if ok, reason := session.AcquireAgentControl(agent); !ok {
+		t.Fatalf("agent could not acquire control: %s", reason)
+	}
+	requestedAt := time.Now().Add(-time.Second)
+	state, err := session.RequestHuman(agent, "MFA code required")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if state.Status != "requested" || state.Reason != "MFA code required" {
+		t.Fatalf("handoff state does not expose the intervention reason: %+v", state)
+	}
+	if state.RequestedBy != agent {
+		t.Fatalf("handoff did not record the requesting actor: %+v", state)
+	}
+	if state.RequestedAt.Before(requestedAt) || state.UpdatedAt.Before(requestedAt) {
+		t.Fatalf("handoff did not record intervention timestamps: %+v", state)
+	}
+	if ok, _ := session.AcquireAgentControl(other); ok {
+		t.Fatal("another agent took control during human intervention")
+	}
+	if _, err := session.SnapshotAs(context.Background(), other); err == nil {
+		t.Fatal("another agent read the page during human intervention")
+	}
+	if _, err := session.BeginHuman("human:audit"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := session.FinishHuman("human:audit"); err != nil {
+		t.Fatal(err)
+	}
+	if got := session.HandoffState(); got.Status != "completed" || got.UpdatedAt.Before(state.UpdatedAt) {
+		t.Fatalf("handoff completion was not audited: %+v", got)
 	}
 }
 
