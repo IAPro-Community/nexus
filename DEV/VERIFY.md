@@ -1,3 +1,11 @@
+## 2026-11-23 — Lane A `parallel-challenge` auditada
+
+- SHA publicado: `origin/release/v1.0.0` @ `0de2faf6`; SHA local ao fim: `41c9671d` (commits `c7141630`, `c1cfdd41`, `41c9671d`, sobre `0de2faf6`). Responsável: orquestrador. Ambiente: Linux + runner self-hosted `nexus-ci` em container.
+- PASS (dispatch real) — `GOCACHE=/tmp/opencode/go-build GOFLAGS=-mod=readonly go test ./internal/nexus -run TestParallelChallengeDispatchesOneSpecificationToIsolatedAgents -count=1` PASS: mesma especificação despachada como dois `MissionRun` para `agent-alpha` e `agent-beta`; cada run executa no próprio worktree Git real (`git init` + marcador + verificação `exit 0` + revisão aprovada) até `COMPLETED_VERIFIED`; `MissionChallengeParticipants` recebe os runs reais e mapeia os dois worktrees isolados; `EvaluatePlanChallenge` ranqueia `agent-alpha`, `agent-beta` com `auto_merge=false`.
+- PASS (regressão) — `go test ./internal/nexus -count=1` PASS (117 s); `gofmt -l` vazio em `internal/nexus`.
+- PASS (contrato) — evidence map `parallel-challenge` com 2 critérios `audited` (`c1cfdd41`); contrato de `partial` para `present`, `verification: pending` (`41c9671d`); doc de aceite sincronizado. `node scripts/verify-agent-workspace-evidence-map.mjs` exit 0 (48 capacidades, 97 cláusulas, 95 source+test, 0 certificadas); testes do mapa 4/4; `node scripts/verify-agent-workspace-v1.mjs` exit 0. Estado: 29 capacidades com todos os critérios `audited` (62/97 cláusulas); contrato 31 `present` / 16 `partial` / 1 `missing`.
+- PENDENTE — CI do push `41c9671d`; recaptura sintética desnecessária (nenhum arquivo em `web/src`); `workspace-acceptance-linux-amd64.json` do SHA exato ainda não coletado; Lanes B–F dependem do maestro. Release **NO_GO**.
+
 ## 2026-11-23 — Lane A `agent-groups` auditada
 
 - SHA publicado: `origin/release/v1.0.0` @ `36ffc734`; SHA local ao fim: `467676ea` (commits `78161c8d`, `fd50e8fb`, `467676ea`, sobre `36ffc734`). Responsável: orquestrador. Ambiente: Linux + runner self-hosted `nexus-ci` em container.

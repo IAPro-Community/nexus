@@ -1,3 +1,11 @@
+## 2026-11-23 — Lane A fecha `parallel-challenge`: distribuição real a Agents isolados
+
+- **Dispatch real** — `internal/nexus/parallel_challenge_mission_test.go` (`c7141630`) adiciona `TestParallelChallengeDispatchesOneSpecificationToIsolatedAgents`: a mesma especificação é iniciada como dois `MissionRun` para dois Agents distintos (`agent-alpha`, `agent-beta`), cada run executa no próprio worktree Git isolado (marcador escrito pelo executor, verificação real `exit 0`, revisão aprovada) até `COMPLETED_VERIFIED`; só então `MissionChallengeParticipants`/`EvaluatePlanChallenge` comparam os runs, com ranking determinístico (`agent-alpha`, `agent-beta`) e `auto_merge=false`.
+- **Executor determinístico** — `challengeDispatchExecutor` no mesmo arquivo devolve `AgentID` do lead do run e `Workspace` do run, sem contatar provider.
+- **Contrato** — evidence map com 2 critérios `audited` (`c1cfdd41`); contrato `parallel-challenge` de `partial` para `present`, `verification: pending` (`41c9671d`); doc de aceite sincronizado.
+- **Verificação** — `go test ./internal/nexus -run TestParallelChallengeDispatchesOneSpecificationToIsolatedAgents -count=1` PASS; grupo `TestMissionChallenge|TestEvaluatePlanChallenge` PASS; `go test ./internal/nexus -count=1` PASS (117 s); `gofmt -l` vazio; `verify-agent-workspace-evidence-map.mjs` exit 0; testes do mapa 4/4; `verify-agent-workspace-v1.mjs` exit 0.
+- **Estado** — 29 das 48 capabilities com todos os critérios `audited` (62/97 cláusulas); contrato 31 `present` / 16 `partial` / 1 `missing`, 0 certificadas. Release **NO_GO**.
+
 ## 2026-11-23 — Lane A fecha `agent-groups`: worktree Git real no E2E local
 
 - **E2E endurecido** — `web/scripts/e2e-agent-groups-live-session.mjs` (`78161c8d`) passa a criar um repositório Git real e um `git worktree add` para o grupo, preenche o campo Worktree da UI com esse caminho e exige que o valor persistido continue ligado ao worktree (arquivo `.git` com `gitdir:`); a evidência JSON registra repositório e vínculo.
