@@ -366,15 +366,17 @@
      "acceptance": "Layouts sugeridos por atividade sem spawn implícito de processo",
      "sourceRefs": [
       "web/src/workspace/arrangePresets.ts",
-      "web/src/workspace/WorkspacePresentationProvider.tsx"
+      "web/src/workspace/WorkspacePresentationProvider.tsx",
+      "web/src/workspace/WorkspaceProvider.tsx"
      ],
      "testRefs": [
-      "web/src/workspace/arrangePresets.test.ts"
+      "web/src/workspace/arrangePresets.test.ts",
+      "web/scripts/e2e-smart-layouts.mjs"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria parcial: presets/recipes operam sobre IDs e geometria existentes, sem chamar API de launch; teste puro também apenas rearranja IDs fornecidos. Porém 'suggested by activity' não existe: Automatic/recipes são seleções estáticas, não recomendações derivadas de estado. Falta E2E de aplicar layout sem spawn implícito. Capability pendente.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: deriveArrangeActivity escolhe o preset Automático a partir da atividade da surface ativa, incluindo IDs de Agent Config; applyPreset e arrangeByPreset operam somente sobre geometria e IDs existentes. E2E real aplica Automático sem POST de shell ou Agents. Falta aceite externo no SHA publicado; capability pending.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
@@ -383,17 +385,19 @@
       "web/src/workspace/WorkspacePresentationProvider.tsx",
       "web/src/workspace/presentation.ts",
       "web/src/workspace/state.ts",
-      "web/src/workspace/model.ts"
+      "web/src/workspace/model.ts",
+      "web/src/workspace/WorkspaceProvider.tsx"
      ],
      "testRefs": [
       "web/src/workspace/presentation.test.ts",
       "web/src/workspace/state.test.ts",
-      "web/src/workspace/model.test.ts"
+      "web/src/workspace/model.test.ts",
+      "web/scripts/e2e-smart-layouts.mjs"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria parcial: testes cobrem view/surface identity, foco, persistência/round-trip de layout, splits e restauração de janelas. arrangeByPreset preserva viewIds ao editar geometria. Falta E2E de salvar/restaurar layout completo no produto, incluindo surfaces/split/foco após recarga e múltiplos projetos. Capability pendente.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: E2E real abre um segundo PTY pelo command palette, preserva IDs, foco e dois runtimes distintos após reload, não relança processos e prova isolamento entre projetos com retorno ao primeiro layout. Persistência remota serializada e revisão otimista impedem payload antigo sobrepor snapshot novo. Falta aceite externo no SHA publicado; capability pending.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
