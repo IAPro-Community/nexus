@@ -69,6 +69,19 @@ async function main() {
       isolatedProjectPath,
     );
 
+    const sessionResponse = await context.request.get(`${apiOrigin}/api/v1/session`);
+    assert.equal(sessionResponse.status(), 200, 'fixture session must be authenticated');
+    const session = await sessionResponse.json();
+    const createAgent = await context.request.post(
+      `${apiOrigin}/api/v1/projects/${project.id}/agents`,
+      {
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': session.csrf_token },
+        data: { name: 'Mission Observer E2E', role: 'observer' },
+      },
+    );
+    assert.equal(createAgent.status(), 201, 'Mission observer Agent must use real API');
+    const observerAgent = await createAgent.json();
+
     const alpha = { id: project.id, name: 'Attention Alpha', path: isolatedProjectPath };
     const beta = {
       id: 'fixture-project-beta',
@@ -108,10 +121,22 @@ async function main() {
       plan_revision: 1,
       project_id: alpha.id,
       workspace: isolatedProjectPath,
+      execution_owner: 'MAESTRO',
       state: 'BLOCKED_NEEDS_USER',
       current_pkg_index: 0,
       total_iterations: 0,
-      package_runs: [],
+      package_runs: [
+        {
+          id: 'package-alpha-1',
+          package_id: 'package-alpha-1',
+          title: 'Inspect mission evidence',
+          goal: 'Validate dependencies and receipts',
+          state: 'VERIFYING',
+          attempt: 1,
+          assigned_agent: observerAgent.id,
+          dependencies: ['package-alpha-0'],
+        },
+      ],
       started_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       needs_human: {
@@ -182,10 +207,60 @@ async function main() {
           body: JSON.stringify(missionRun),
         });
       } else if (pathname === `${runPath}/evidence`) {
+        const receipt = {
+          id: 'receipt-alpha-1',
+          run_id: needsUser.mission_id,
+          step_id: 'package-alpha-1',
+          status: 'VERIFIED',
+          summary: 'Mission evidence verified',
+          changed_files: ['web/src/features/work/FlowRunSurface.tsx'],
+          commands: ['npm --prefix web run typecheck'],
+          tests: [],
+          decisions: [],
+          artifacts: [],
+          remaining_issues: [],
+          verification: [],
+          agent_id: 'agent-alpha-observer',
+          base_revision: 'base-sha',
+          result_revision: 'result-sha',
+          started_at: new Date().toISOString(),
+          completed_at: new Date().toISOString(),
+        };
+        const capsule = {
+          id: 'capsule-alpha-1',
+          run_id: needsUser.mission_id,
+          project_id: alpha.id,
+          flow_id: missionPlan.id,
+          flow_revision: 1,
+          branch: 'release/v1.0.0',
+          head: 'result-sha',
+          dirty_fingerprint: 'clean',
+          step: {
+            id: 'package-alpha-1',
+            title: 'Inspect mission evidence',
+            goal: 'Validate dependencies and receipts',
+            role: 'observer',
+            dependencies: ['package-alpha-0'],
+            assignment_strategy: 'single-owner',
+            verification_requirements: ['typecheck'],
+          },
+          relevant_paths: ['web/src/features/work/FlowRunSurface.tsx'],
+          durable_context_refs: [],
+          dependency_receipts: [receipt],
+          skill_ids: [],
+          maestro_skills: [],
+          acceptance_criteria: ['Read-only observation'],
+          constraints: [],
+          created_at: new Date().toISOString(),
+        };
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ run_id: needsUser.mission_id, capsules: [], receipts: [] }),
+          body: JSON.stringify({
+            run_id: needsUser.mission_id,
+            capsules: [capsule],
+            receipts: [receipt],
+          }),
         });
       } else if (pathname === `${runPath}/evidence-bundle`) {
         await route.fulfill({ status: 200, contentType: 'application/json', body: 'null' });
@@ -292,6 +367,25 @@ async function main() {
     );
     await openedMission.waitFor({ state: 'visible', timeout: 10000 });
     await openedMission.getByText(needsUser.question).waitFor({ state: 'visible' });
+    assert.equal(
+      await openedMission.getAttribute('data-execution-owner'),
+      'MAESTRO',
+      'Mission owner must be projected from durable run metadata',
+    );
+    assert.equal(
+      await openedMission.locator('[data-mutation-action]').count(),
+      0,
+      'MAESTRO-owned Mission must remain read-only in the Nexus observatory',
+    );
+    await openedMission
+      .locator('.nx-flow-run-deps')
+      .filter({ hasText: 'package-alpha-0' })
+      .waitFor({ state: 'visible' });
+    await openedMission.locator('.nx-flow-run-receipt summary').click();
+    await openedMission.getByText('Mission evidence verified').waitFor({ state: 'visible' });
+    await openedMission.getByText('web/src/features/work/FlowRunSurface.tsx').waitFor({
+      state: 'visible',
+    });
     await page.screenshot({
       path: path.join(screenshotDir, 'mission-attention-opened-mission.png'),
     });
@@ -333,6 +427,14 @@ async function main() {
       'both mission filters must remain available on mobile',
     );
     assert.ok(mobileFilterColumns.every((width) => width > 0 && width < 390));
+
+    await page.keyboard.press('Escape');
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const openedMissionSurface = page.locator(
+      `.nx-flow-run-surface[data-run-id="${needsUser.mission_id}"]`,
+    );
+    await openedMissionSurface.getByRole('button', { name: /Abrir Agente|Open Agent/i }).click();
+    await page.locator('.nx-agent-terminal-surface').waitFor({ state: 'visible', timeout: 10000 });
 
     const requestFailures = meaningfulFixtureRequestFailures(collectors.requestFailures);
     assert.equal(

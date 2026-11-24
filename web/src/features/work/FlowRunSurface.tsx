@@ -295,6 +295,7 @@ export const FlowRunSurface: React.FC<{
     <div
       className="nx-surface-scroll nx-flow-run-surface"
       data-run-id={run.id}
+      data-execution-owner={run.execution_owner || 'NEXUS'}
       data-feature-tour-scope
     >
       <div className={styles.tourRow}>
@@ -315,10 +316,11 @@ export const FlowRunSurface: React.FC<{
         </div>
       </div>
 
-      {onOpenComposer && (
+      {onOpenComposer && canMutate && (
         <div className="nx-flow-run-review-actions">
           <Button
             size="sm"
+            data-mutation-action="planning-review"
             disabled={planningReviewBusy || Boolean(busy)}
             onClick={() => void requestPlanningReview()}
           >
@@ -474,7 +476,7 @@ export const FlowRunSurface: React.FC<{
                 ))}
               </ul>
             )}
-            {interventionOptions.length > 0 && (
+            {canMutate && interventionOptions.length > 0 && (
               <div>
                 <strong>{t('flowRun.decisionOptions')}</strong>
                 <div className="nx-flow-run-decision__options">
@@ -483,6 +485,7 @@ export const FlowRunSurface: React.FC<{
                       key={option.id}
                       size="sm"
                       tone="brand"
+                      data-mutation-action="resolve-intervention"
                       disabled={
                         Boolean(busy) || (Boolean(resolvingOption) && resolvingOption !== option.id)
                       }
@@ -729,6 +732,7 @@ export const FlowRunSurface: React.FC<{
         {canMutate && !resumable && !isBlocked && (
           <Button
             size="sm"
+            data-mutation-action="pause"
             onClick={() =>
               void perform('pause', () =>
                 nexusApi.pauseRun(run.id, 'paused from Flow Run workspace'),
@@ -742,6 +746,7 @@ export const FlowRunSurface: React.FC<{
         {canMutate && !resumable && !isBlocked && (
           <Button
             size="sm"
+            data-mutation-action="take-control"
             onClick={() =>
               void perform('control', () =>
                 nexusApi.takeControlRun(run.id, 'take control from Flow Run workspace'),
@@ -752,10 +757,11 @@ export const FlowRunSurface: React.FC<{
             <TerminalSquare size={12} /> {t('flowRun.takeControl')}
           </Button>
         )}
-        {resumable && (
+        {canMutate && resumable && (
           <Button
             size="sm"
             tone="brand"
+            data-mutation-action="resume"
             onClick={() => void perform('resume', () => nexusApi.resumeRun(run.id))}
             disabled={Boolean(busy)}
           >
@@ -771,6 +777,7 @@ export const FlowRunSurface: React.FC<{
           <Button
             size="sm"
             tone="danger"
+            data-mutation-action="cancel"
             onClick={() =>
               void perform('cancel', () =>
                 nexusApi.cancelRun(run.id, 'canceled from Flow Run workspace'),
