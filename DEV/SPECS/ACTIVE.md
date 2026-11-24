@@ -1,3 +1,11 @@
+## 2026-11-24 — Lane A: `smart-layouts` persistência e isolamento auditados — ativo
+
+- **Lane A — estado** — 34 das 48 capabilities com todos os critérios `audited` (70/97 cláusulas), 14 ainda com cláusulas `partial`, 0 certificadas. Contrato: 36 `present`, 11 `partial`, 1 `missing`. Nesta onda: `smart-layouts` — gravação remota serializada, reenvio apenas do snapshot mais recente após conflito de revisão, segundo PTY pelo command palette, split restaurado sem respawn e isolamento entre projetos.
+- **Provas** — `GOCACHE=/tmp/opencode/go-build GOFLAGS=-mod=readonly npm --prefix web run test:e2e:smart-layouts` PASS; `npm --prefix web run typecheck` PASS; Prettier/ESLint focados limpos; `verify-agent-workspace-evidence-map.mjs` exit 0; `verify-agent-workspace-v1.mjs` exit 0.
+- **Estado** — local `cd3596e4`; `origin/release/v1.0.0` = `6a08e9c6` até o push deste lote; tag `v1.0.1` não criada. Capability `verification: pending`; release **NO_GO** até prova externa por capacidade no SHA exato.
+- **Próximo** — push e acompanhamento do CI/recaptura; coletar `workspace-acceptance-linux-amd64.json`; continuar Lane A por capability `partial` com gap local comprovável; Lane C aguarda aceite visual do owner em HUD+Site.
+- **Bloqueios que exigem o maestro** — aceite visual NEX em HUD+Site, runner Windows/macOS nativo e chaves de assinatura, credencial do Named Tunnel, quota real AGY, hardware físico, `memory-migrate apply` com Bridge ativo.
+
 ## 2026-11-24 — Lane A: `mission-observatory` auditada — ativo
 
 - **Lane A — estado** — 33 das 48 capabilities com todos os critérios `audited` (68/97 cláusulas), 15 ainda com cláusulas `partial`, 0 certificadas. Contrato: 35 `present`, 12 `partial`, 1 `missing`. Nesta onda: `mission-observatory` — Mission MAESTRO fica read-only no Nexus; dependências, agentes, capsules, receipts e navegação ao terminal permanecem observáveis.

@@ -1,3 +1,12 @@
+## Handoff 2026-11-24 — Lane A fecha persistência e isolamento de `smart-layouts`
+
+- **Estado do código** — `smart-layouts`: gravação remota serializada no `WorkspaceProvider`; após `409 REVISION_CONFLICT`, reenvia apenas o envelope mais recente, evitando que snapshot antigo sobrescreva layout novo. E2E prova segundo PTY pelo command palette, split com dois runtimes distintos após reload sem respawn, persistência no servidor, isolamento entre projetos e retorno ao primeiro layout.
+- **Provas locais** — `GOCACHE=/tmp/opencode/go-build GOFLAGS=-mod=readonly npm --prefix web run test:e2e:smart-layouts` PASS; `npm --prefix web run typecheck` PASS; Prettier/ESLint focados limpos; `verify-agent-workspace-evidence-map.mjs` e `verify-agent-workspace-v1.mjs` exit 0.
+- **Lane A** — 34/48 capabilities e 70/97 cláusulas auditadas; contrato 36 `present` / 11 `partial` / 1 `missing`, 0 certificadas. `smart-layouts` = `present`, `verification: pending`.
+- **Git** — implementação `fc86056f`; evidence map/contrato `4b60476b`; aceite `6a08e9c6`; worklog/verify `cd3596e4`. Push deste lote pendente. Tag `v1.0.1` não criada; release **NO_GO**.
+- **Próximo passo** — push, CI/recaptura visual no SHA final e coleta de `workspace-acceptance-linux-amd64.json`; depois continuar Lane A por capability `partial` comprovável. Lane C aguarda aceite visual do owner em HUD+Site atômico.
+- **Bloqueios intactos** — aceite visual NEX, runner Windows/macOS nativo e chaves ed25519, credencial do Named Tunnel, quota real AGY, hardware físico de 2 dispositivos, `memory-migrate apply` com Bridge ativo.
+
 ## Handoff 2026-11-24 — Lane A fecha `mission-observatory`; owner MAESTRO read-only
 
 - **Estado do Git** — `release/v1.0.0` local @ `bb3f9d5a` (owner `5d83fc40`, E2E `410e626f`, evidence map `00fa18de`, contrato `b878bdc8`, lint `bb3f9d5a`); `origin/release/v1.0.0` = `714c8dae` até o push desta linha. Tag `v1.0.0` intacta (`d89797cd`); `v1.0.1` não criada.
