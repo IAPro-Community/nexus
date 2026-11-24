@@ -13,23 +13,26 @@ declare const __NEXUS_VOICE_ACTIONS__: boolean | undefined;
 declare const __NEXUS_DESIGN_INSPECT__: boolean | undefined;
 declare const __NEXUS_VISUAL_DIFF__: boolean | undefined;
 
-// All optional UI is disabled unless the global and resource flags are
-// explicitly set at build time. Backend authorization is separate and required.
-export const OPTIONAL_FEATURES_ENABLED =
-  typeof __NEXUS_OPTIONAL_FEATURES__ !== 'undefined' && __NEXUS_OPTIONAL_FEATURES__ === true;
-export const COMPOSER_FLOW_ENABLED =
-  OPTIONAL_FEATURES_ENABLED &&
-  typeof __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__ !== 'undefined' &&
-  __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__ === true;
-export const VOICE_ACTIONS_ENABLED =
-  OPTIONAL_FEATURES_ENABLED &&
-  typeof __NEXUS_VOICE_ACTIONS__ !== 'undefined' && __NEXUS_VOICE_ACTIONS__ === true;
-export const DESIGN_INSPECT_ENABLED =
-  OPTIONAL_FEATURES_ENABLED &&
-  typeof __NEXUS_DESIGN_INSPECT__ !== 'undefined' && __NEXUS_DESIGN_INSPECT__ === true;
-export const VISUAL_DIFF_ENABLED =
-  OPTIONAL_FEATURES_ENABLED &&
-  typeof __NEXUS_VISUAL_DIFF__ !== 'undefined' && __NEXUS_VISUAL_DIFF__ === true;
+// Both the global and each build-time flag must be explicitly defined true.
+// Short-circuiting keeps undeclared build constants safe at runtime.
+const hasOptionalFlag = typeof __NEXUS_OPTIONAL_FEATURES__ !== 'undefined';
+export const OPTIONAL_FEATURES_ENABLED = hasOptionalFlag && __NEXUS_OPTIONAL_FEATURES__ === true;
+
+const hasComposerFlag = typeof __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__ !== 'undefined';
+const composerOptIn = hasComposerFlag && __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__ === true;
+export const COMPOSER_FLOW_ENABLED = OPTIONAL_FEATURES_ENABLED && composerOptIn;
+
+const hasVoiceFlag = typeof __NEXUS_VOICE_ACTIONS__ !== 'undefined';
+const voiceOptIn = hasVoiceFlag && __NEXUS_VOICE_ACTIONS__ === true;
+export const VOICE_ACTIONS_ENABLED = OPTIONAL_FEATURES_ENABLED && voiceOptIn;
+
+const hasInspectFlag = typeof __NEXUS_DESIGN_INSPECT__ !== 'undefined';
+const inspectOptIn = hasInspectFlag && __NEXUS_DESIGN_INSPECT__ === true;
+export const DESIGN_INSPECT_ENABLED = OPTIONAL_FEATURES_ENABLED && inspectOptIn;
+
+const hasVisualDiffFlag = typeof __NEXUS_VISUAL_DIFF__ !== 'undefined';
+const visualDiffOptIn = hasVisualDiffFlag && __NEXUS_VISUAL_DIFF__ === true;
+export const VISUAL_DIFF_ENABLED = OPTIONAL_FEATURES_ENABLED && visualDiffOptIn;
 
 export function isExperimentalComposerFlowSurface(type: string): boolean {
   return type === 'work' || type === 'missions' || type === 'flow-run';
