@@ -8144,3 +8144,11 @@ Restante vermelho honesto: **Windows release homologation** — exige runner `ne
 - **Git:** lote commitado (`5265e027` smart-layouts, `8f78fb76`→ conflito com docs-visual resolvido via stash+rebase, `b0bab66f` e2e smart-layouts). Push atual: `origin/release/v1.0.0` = `b0bab66f`. CI do SHA em execução.
 - **Incidente de push:** rejeição fast-forward por avanço remoto (`docs(visual)` `c370692f`); resolvido com stash `-u` dos 2 arquivos locais + `git rebase origin/release/v1.0.0` + push limpo. Nenhum hunk alheiro tocado.
 - **Working tree:** hunks alheios preservados (nenhum `git add` global). Release **NO_GO** (CI `c370692f` com "Verify documentation" falho em `8f78fb76` já recapturado a jusante).
+
+## 2026-11-24 — Lane A: `smart-layouts` fecha persistência, split e isolamento entre projetos
+
+- **Correção de concorrência:** `WorkspaceProvider` agora serializa gravação remota, mantém o envelope mais recente e só reenvia esse snapshot após `409 REVISION_CONFLICT`; payload antigo não sobrescreve mais layout novo.
+- **E2E ampliado:** `web/scripts/e2e-smart-layouts.mjs` abre o segundo PTY pelo command palette, prova split com dois runtimes distintos após reload sem novo spawn, verifica persistência no servidor, isolamento do segundo projeto e restauração do primeiro ao voltar.
+- **Provas:** `GOCACHE=/tmp/opencode/go-build GOFLAGS=-mod=readonly npm --prefix web run test:e2e:smart-layouts` PASS; `npm --prefix web run typecheck` PASS; Prettier/ESLint focados limpos; verificadores do contrato e evidence map PASS.
+- **Contrato:** `smart-layouts` agora `present`, ambos os critérios `audited`; Lane A = 34/48 capabilities e 70/97 cláusulas auditadas; contrato = 36 `present` / 11 `partial` / 1 `missing`, 0 certificadas.
+- **Git:** `fc86056f` implementação, `4b60476b` evidence map/contrato, `6a08e9c6` doc de aceite. `origin/release/v1.0.0` = `6a08e9c6`; tag `v1.0.1` não criada. Release **NO_GO**.

@@ -3107,3 +3107,10 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - **PASS** — `node --check web/scripts/e2e-smart-layouts.mjs`.
 - **CI** — SHA `8f78fb76`: "Verify documentation" falhou (manifest visual stale); recapture sintético `c370692f` publicado a jusante; SHA `b0bab66f` com CI em execução na última checagem.
 - **PENDENTE** — E2E device-preview/surface-isolation no CI do SHA novo; aceite externo por capacidade; capability `smart-layouts` continua `verification: pending`; release **NO_GO**.
+
+## Lane A — `smart-layouts` (persistência, split e isolamento) — 2026-11-24 (SHA `fc86056f`/`6a08e9c6`)
+
+- **PASS** — `GOCACHE=/tmp/opencode/go-build GOFLAGS=-mod=readonly npm --prefix web run test:e2e:smart-layouts`: Automático sem spawn; segundo PTY pelo command palette; split com dois runtimes distintos após reload; exatamente 2 `POST /shell`; segundo projeto vazio; retorno restaura o split do primeiro.
+- **PASS** — `npm --prefix web run typecheck` exit 0; Prettier focado limpo; ESLint focado sem erros; `git diff --check` limpo.
+- **PASS** — `node scripts/verify-agent-workspace-evidence-map.mjs` exit 0 (48 capabilities, 97 acceptance clauses, nenhuma certificada); `node scripts/verify-agent-workspace-v1.mjs` exit 0.
+- **PENDENTE** — CI e `workspace-acceptance-linux-amd64.json` no SHA exato final; aceite externo por capacidade. Capability `verification: pending`; release **NO_GO**.
