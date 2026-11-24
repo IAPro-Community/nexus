@@ -100,6 +100,8 @@ func executeProviderSupervised(provName, explicitProfile string, args []string, 
 
 	fmt.Fprintf(os.Stderr, "⚡ [nexus] iniciando %s…\n", provName)
 
+	defer nexus.ReleaseDefault()
+
 	profiles, err := profile.List()
 	if err != nil {
 		return err

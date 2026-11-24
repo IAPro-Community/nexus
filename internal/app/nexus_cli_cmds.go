@@ -18,6 +18,7 @@ func planCmd(args []string) error {
 	}
 
 	n := nexus.Default()
+	defer nexus.ReleaseDefault()
 	st, err := n.OpenProject()
 	if err != nil {
 		return err
@@ -148,6 +149,7 @@ func waitAndPrintMission(ctx context.Context, n *nexus.Nexus, started *runner.Mi
 
 func agentsCmd(args []string) error {
 	n := nexus.Default()
+	defer nexus.ReleaseDefault()
 	st, err := n.OpenProject()
 	if err != nil {
 		return err
@@ -180,6 +182,7 @@ func agentsCmd(args []string) error {
 
 func projectsCmd(args []string) error {
 	n := nexus.Default()
+	defer nexus.ReleaseDefault()
 	st, err := n.OpenProject()
 	if err != nil {
 		return err
@@ -291,6 +294,7 @@ func conductorCmd(args []string) error {
 	args = cleanArgs
 
 	n := nexus.Default()
+	defer nexus.ReleaseDefault()
 	st, err := n.OpenProject()
 	if err != nil {
 		return err
