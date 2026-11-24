@@ -40,7 +40,7 @@ func NewBoundedFanout(bufCap int) *BoundedFanout {
 	}
 }
 
-func (f *BoundedFanout) AddClient(conn net.Conn) {
+func (f *BoundedFanout) AddClient(conn net.Conn, initialFrame ...[]byte) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -52,6 +52,9 @@ func (f *BoundedFanout) AddClient(conn net.Conn) {
 		conn:     conn,
 		queue:    make(chan []byte, f.bufCap),
 		doneChan: make(chan struct{}),
+	}
+	if len(initialFrame) > 0 && len(initialFrame[0]) > 0 {
+		worker.queue <- initialFrame[0]
 	}
 	f.clients[conn] = worker
 

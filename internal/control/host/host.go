@@ -681,6 +681,7 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 	var forwardWrite []byte
 	var controlCmd string
 	var auditEvents []events.Event
+	var newAttachment bool
 	skipResponse := false
 
 	switch req.Command {
@@ -750,7 +751,7 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 	case protocol.CmdAttach:
 		if !sh.clients[conn] {
 			sh.clients[conn] = true
-			sh.fanout.AddClient(conn)
+			newAttachment = true
 			sh.bindTerminalClientIdentityLocked(conn, req.Payload)
 			clientID := sh.terminalClientIDLocked(conn)
 			if sh.activeWriter == nil {
@@ -966,6 +967,13 @@ func (sh *SessionHost) handleRPCRequest(conn net.Conn, req protocol.Request) {
 	}
 	if resp.CorrelationID == "" {
 		resp.CorrelationID = req.ID
+	}
+	if newAttachment {
+		// Queue the attach acknowledgment before the connection can receive
+		// raw PTY output. The client still expects a JSON frame at this point.
+		data, _ := json.Marshal(resp)
+		sh.fanout.AddClient(conn, append(data, '\n'))
+		skipResponse = true
 	}
 
 	_, isAttached := sh.clients[conn]
