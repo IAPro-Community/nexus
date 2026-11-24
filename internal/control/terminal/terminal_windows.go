@@ -577,6 +577,11 @@ func (b *windowsBackend) Wait() error {
 	if code == stillActive {
 		return errors.New("process still active")
 	}
+	// Mirror exec.Cmd.Wait: the host classifies the runtime from this error, so
+	// a non-zero provider exit must not surface as a clean stop.
+	if code != 0 {
+		return fmt.Errorf("process exited with code %d", code)
+	}
 	return nil
 }
 
