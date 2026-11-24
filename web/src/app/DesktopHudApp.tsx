@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ThemeProvider } from '../design-system';
 import { toast } from 'sonner';
 import { initSession } from '../api';
+import { loadOptionalFeatures } from './composerFlowFlag';
 import { nexus } from '../nexus/api';
 import { NexusHud } from '../features/hud/NexusHud';
 import type { HudRuntimeAttention } from '../features/hud/hudModel';
@@ -59,9 +60,10 @@ export const DesktopHudApp: React.FC = () => {
   useEffect(() => {
     let active = true;
     void initSession()
-      .then((session) => {
+      .then(async (session) => {
         if (!active) return;
-        setAuthenticated(session.authenticated);
+        if (session.authenticated) await loadOptionalFeatures();
+        if (active) setAuthenticated(session.authenticated);
       })
       .finally(() => {
         if (active) setReady(true);

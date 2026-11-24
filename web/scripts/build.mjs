@@ -70,17 +70,6 @@ await build({
   plugins: [sassPlugin],
   define: {
     'process.env.NODE_ENV': '"production"',
-    '__NEXUS_OPTIONAL_FEATURES__': JSON.stringify(process.env.NEXUS_FEATURES_ENABLED === 'true'),
-    '__NEXUS_EXPERIMENTAL_COMPOSER_FLOW__': JSON.stringify(
-      ['COMPOSER', 'FLOW', 'MISSIONS'].every(
-        (feature) => process.env[`NEXUS_FEATURE_${feature}`] === 'true',
-      ),
-    ),
-    '__NEXUS_VOICE_ACTIONS__': JSON.stringify(process.env.NEXUS_FEATURE_VOICE_ACTIONS === 'true'),
-    '__NEXUS_DESIGN_INSPECT__': JSON.stringify(
-      process.env.NEXUS_FEATURE_DESIGN_INSPECT === 'true',
-    ),
-    '__NEXUS_VISUAL_DIFF__': JSON.stringify(process.env.NEXUS_FEATURE_VISUAL_DIFF === 'true'),
   },
   logLevel: 'info',
 });

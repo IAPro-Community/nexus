@@ -5,34 +5,54 @@ import {
   type WorkspaceSurface,
 } from '../workspace/model';
 
-// Experimental product surfaces are OFF in every build by default.
-// Even explicit frontend opt-ins cannot authorize server-side execution.
-declare const __NEXUS_OPTIONAL_FEATURES__: boolean | undefined;
-declare const __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__: boolean | undefined;
-declare const __NEXUS_VOICE_ACTIONS__: boolean | undefined;
-declare const __NEXUS_DESIGN_INSPECT__: boolean | undefined;
-declare const __NEXUS_VISUAL_DIFF__: boolean | undefined;
+import { request } from '../api';
 
-// Both the global and each build-time flag must be explicitly defined true.
-// Short-circuiting keeps undeclared build constants safe at runtime.
-const hasOptionalFlag = typeof __NEXUS_OPTIONAL_FEATURES__ !== 'undefined';
-export const OPTIONAL_FEATURES_ENABLED = hasOptionalFlag && __NEXUS_OPTIONAL_FEATURES__ === true;
+// The authenticated server snapshot is authoritative. Load it before mounting
+// the workspace/HUD; missing or invalid values are never treated as enabled.
+export let OPTIONAL_FEATURES_ENABLED = false;
+export let COMPOSER_FLOW_ENABLED = false;
+export let VOICE_ACTIONS_ENABLED = false;
+export let DESIGN_INSPECT_ENABLED = false;
+export let VISUAL_DIFF_ENABLED = false;
+export let NEX_PROACTIVITY_ENABLED = false;
+export let COMPARISON_LAB_ENABLED = false;
+export let SMART_LAYOUTS_ENABLED = false;
+export let DEVICE_PREVIEW_ENABLED = false;
 
-const hasComposerFlag = typeof __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__ !== 'undefined';
-const composerOptIn = hasComposerFlag && __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__ === true;
-export const COMPOSER_FLOW_ENABLED = OPTIONAL_FEATURES_ENABLED && composerOptIn;
+export function applyOptionalFeatureSnapshot(snapshot: unknown): void {
+  const record =
+    snapshot && typeof snapshot === 'object' ? (snapshot as Record<string, unknown>) : {};
+  const features =
+    record.features && typeof record.features === 'object'
+      ? (record.features as Record<string, unknown>)
+      : {};
+  OPTIONAL_FEATURES_ENABLED = record.global === true;
+  const enabled = (name: string) => OPTIONAL_FEATURES_ENABLED && features[name] === true;
+  COMPOSER_FLOW_ENABLED = enabled('COMPOSER') && enabled('FLOW') && enabled('MISSIONS');
+  VOICE_ACTIONS_ENABLED = enabled('VOICE_ACTIONS');
+  DESIGN_INSPECT_ENABLED = enabled('DESIGN_INSPECT');
+  VISUAL_DIFF_ENABLED = enabled('VISUAL_DIFF');
+  NEX_PROACTIVITY_ENABLED = enabled('NEX_PROACTIVITY');
+  COMPARISON_LAB_ENABLED = enabled('COMPARISON_LAB');
+  SMART_LAYOUTS_ENABLED = enabled('SMART_LAYOUTS');
+  DEVICE_PREVIEW_ENABLED = enabled('DEVICE_PREVIEW');
+}
 
-const hasVoiceFlag = typeof __NEXUS_VOICE_ACTIONS__ !== 'undefined';
-const voiceOptIn = hasVoiceFlag && __NEXUS_VOICE_ACTIONS__ === true;
-export const VOICE_ACTIONS_ENABLED = OPTIONAL_FEATURES_ENABLED && voiceOptIn;
-
-const hasInspectFlag = typeof __NEXUS_DESIGN_INSPECT__ !== 'undefined';
-const inspectOptIn = hasInspectFlag && __NEXUS_DESIGN_INSPECT__ === true;
-export const DESIGN_INSPECT_ENABLED = OPTIONAL_FEATURES_ENABLED && inspectOptIn;
-
-const hasVisualDiffFlag = typeof __NEXUS_VISUAL_DIFF__ !== 'undefined';
-const visualDiffOptIn = hasVisualDiffFlag && __NEXUS_VISUAL_DIFF__ === true;
-export const VISUAL_DIFF_ENABLED = OPTIONAL_FEATURES_ENABLED && visualDiffOptIn;
+export async function loadOptionalFeatures(): Promise<void> {
+  applyOptionalFeatureSnapshot(null);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 4000);
+  try {
+    const snapshot = await request<unknown>('/api/v1/system/features', {
+      signal: controller.signal,
+    });
+    applyOptionalFeatureSnapshot(snapshot);
+  } catch {
+    // Older hosts, unavailable hosts and malformed responses remain OFF.
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 export function isExperimentalComposerFlowSurface(type: string): boolean {
   return type === 'work' || type === 'missions' || type === 'flow-run';

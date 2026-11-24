@@ -26,7 +26,7 @@ import { ProjectCreateMenu } from '../features/projects/ProjectCreateMenu';
 import type { Agent, AttentionItem, EventRecord, Project, RuntimeSession } from '../types';
 import type { RadarRuntimeItem } from './attentionRadarModel';
 import { VoiceCaptureButton } from '../features/voice/VoiceCaptureButton';
-import { VOICE_ACTIONS_ENABLED } from './composerFlowFlag';
+import { COMPOSER_FLOW_ENABLED, VOICE_ACTIONS_ENABLED } from './composerFlowFlag';
 import { ProductUpdatesCenter } from './components/ProductUpdatesCenter';
 import styles from './NexusShell.module.scss';
 
@@ -113,7 +113,7 @@ export const NexusShell: React.FC<{
   const hasAvailableUpdates = Boolean(sysInfo?.nexus_update_available || sysInfo?.update_available);
 
   const hasAttentionAlerts =
-    missionNeedsCount > 0 ||
+    (COMPOSER_FLOW_ENABLED && missionNeedsCount > 0) ||
     runtimes.some(
       (rt) =>
         rt.attention_kind === 'needs_user' ||

@@ -97,6 +97,8 @@ import { attentionPushKey, isPtyAttentionFocused } from '../notifications/attent
 import { interpretNexusVoiceCommand } from '../features/voice/voiceCommand';
 import {
   COMPOSER_FLOW_ENABLED,
+  SMART_LAYOUTS_ENABLED,
+  loadOptionalFeatures,
   isExperimentalComposerFlowSurface,
   isExperimentalRouteBlocked,
   isExperimentalWorkspaceSurfaceBlocked,
@@ -143,9 +145,12 @@ export const NexusWorkspaceApp: React.FC<{
     };
     window.addEventListener('nexus:session-expired', onExpired);
     initSession()
-      .then((session) => {
-        setAuthenticated(session.authenticated);
+      .then(async (session) => {
+        if (!mounted) return;
         if (session.csrf_token) setNexusCSRF(session.csrf_token);
+        if (session.authenticated) await loadOptionalFeatures();
+        if (!mounted) return;
+        setAuthenticated(session.authenticated);
         if (session.authenticated) scheduleRotation(session);
       })
       .finally(() => setSessionReady(true));
@@ -192,7 +197,7 @@ export const NexusWorkspaceApp: React.FC<{
               <AccessCodeGate
                 onPaired={(csrfToken) => {
                   if (csrfToken) setNexusCSRF(csrfToken);
-                  setAuthenticated(true);
+                  void loadOptionalFeatures().then(() => setAuthenticated(true));
                 }}
               />
             )}
@@ -205,6 +210,7 @@ export const NexusWorkspaceApp: React.FC<{
                   const reauth = await tryLoopbackReauth();
                   if (reauth?.authenticated) {
                     if (reauth.csrf_token) setNexusCSRF(reauth.csrf_token);
+                    await loadOptionalFeatures();
                     setAuthenticated(true);
                     return;
                   }
@@ -507,6 +513,7 @@ const WorkspaceCoordinator: React.FC<{
   }, []);
 
   useEffect(() => {
+    if (!COMPOSER_FLOW_ENABLED) return;
     let mounted = true;
     void nexus
       .getRuns()
@@ -996,7 +1003,11 @@ const WorkspaceCoordinator: React.FC<{
           preset: 'restore-default' as const,
         },
       ]
-        .filter((p) => COMPOSER_FLOW_ENABLED || p.preset !== 'terminal-flow')
+        .filter(
+          (p) =>
+            (COMPOSER_FLOW_ENABLED || p.preset !== 'terminal-flow') &&
+            (SMART_LAYOUTS_ENABLED || p.preset !== 'automatic'),
+        )
         .map((p) => ({
           id: p.id,
           label: p.label,

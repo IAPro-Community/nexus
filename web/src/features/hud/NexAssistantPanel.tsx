@@ -13,6 +13,7 @@ import {
   saveNexAssistantPreferences,
 } from './nexAssistantPreferences';
 import { NexProactivityControls } from './NexProactivityControls';
+import { NEX_PROACTIVITY_ENABLED } from '../../app/composerFlowFlag';
 import { NexAssistantActions } from './NexAssistantActions';
 import styles from './NexAssistantPanel.module.scss';
 
@@ -415,14 +416,16 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
               );
             }}
           />
-          <NexProactivityControls
-            active={expanded}
-            projectId={projectId}
-            revision={revision}
-            privacyMode={privacyMode}
-            onOpenMissions={onOpenMissions}
-            onOpenUsage={onOpenUsage}
-          />
+          {NEX_PROACTIVITY_ENABLED && (
+            <NexProactivityControls
+              active={expanded}
+              projectId={projectId}
+              revision={revision}
+              privacyMode={privacyMode}
+              onOpenMissions={onOpenMissions}
+              onOpenUsage={onOpenUsage}
+            />
+          )}
           <p className={styles.caption}>
             Sem voz · sem acesso automático a arquivos · contexto independente do Maestro
           </p>

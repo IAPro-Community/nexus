@@ -43,6 +43,7 @@ import { CapacityMonitorSettings } from './CapacityMonitorSettings';
 import { CostIntelligenceSettings } from './CostIntelligenceSettings';
 import { HudSettings } from '../hud/HudSettings';
 import { VoiceSettings } from '../voice/VoiceSettings';
+import { VOICE_ACTIONS_ENABLED } from '../../app/composerFlowFlag';
 import type { SystemDoctorReport } from '../../nexus/api';
 import styles from './SettingsSurface.module.scss';
 import { ThemeAccordionSelector } from './ThemeAccordionSelector';
@@ -633,7 +634,7 @@ export const SettingsSurface: React.FC<{
               <Button onClick={onTour}>{t('settings.replayTour')}</Button>
             </Card>
 
-            <VoiceSettings />
+            {VOICE_ACTIONS_ENABLED && <VoiceSettings />}
           </>
         )}
 

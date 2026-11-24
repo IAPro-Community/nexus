@@ -29,6 +29,7 @@ import {
 } from './inAppNotificationModel';
 import { loadNotificationPrefs } from './notificationPrefs';
 import { MissionAttentionPanel } from './MissionAttentionPanel';
+import { COMPOSER_FLOW_ENABLED } from '../app/composerFlowFlag';
 
 const DISMISS_AFTER_MS = 7_000;
 
@@ -56,13 +57,16 @@ export const InAppNotificationCenter: React.FC<{
   const { t } = useTranslation();
   const [notifications, setNotifications] = useState<InAppNotification[]>([]);
   const [history, setHistory] = useState<InAppNotification[]>([]);
-  const [activeTab, setActiveTab] = useState<'missions' | 'radar' | 'notifications'>('missions');
+  const [activeTab, setActiveTab] = useState<'missions' | 'radar' | 'notifications'>(
+    COMPOSER_FLOW_ENABLED ? 'missions' : 'radar',
+  );
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [attentionNeedsCount, setAttentionNeedsCount] = useState(0);
   const observed = useRef(new Set<string>());
   const initialized = useRef(false);
 
   useEffect(() => {
+    if (!COMPOSER_FLOW_ENABLED) return;
     let active = true;
     const loadNeedsCount = () => {
       void nexus
@@ -266,19 +270,21 @@ export const InAppNotificationCenter: React.FC<{
           <div className="nx-notification-drawer" data-feature-tour-scope>
             {/* Tabs */}
             <div className="nx-notification-drawer__tabs" role="tablist">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === 'missions'}
-                className={`nx-notification-drawer__tab ${activeTab === 'missions' ? 'nx-notification-drawer__tab--active' : ''}`}
-                onClick={() => setActiveTab('missions')}
-              >
-                <ClipboardList size={13} />
-                <span>{t('notifications.missionAttentionTab')}</span>
-                {attentionNeedsCount > 0 && (
-                  <span className="nx-notification-drawer__badge">{attentionNeedsCount}</span>
-                )}
-              </button>
+              {COMPOSER_FLOW_ENABLED && (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === 'missions'}
+                  className={`nx-notification-drawer__tab ${activeTab === 'missions' ? 'nx-notification-drawer__tab--active' : ''}`}
+                  onClick={() => setActiveTab('missions')}
+                >
+                  <ClipboardList size={13} />
+                  <span>{t('notifications.missionAttentionTab')}</span>
+                  {attentionNeedsCount > 0 && (
+                    <span className="nx-notification-drawer__badge">{attentionNeedsCount}</span>
+                  )}
+                </button>
+              )}
               <button
                 type="button"
                 role="tab"
@@ -306,7 +312,7 @@ export const InAppNotificationCenter: React.FC<{
               </button>
             </div>
 
-            {activeTab === 'missions' && (
+            {COMPOSER_FLOW_ENABLED && activeTab === 'missions' && (
               <div className="nx-notification-drawer__panel">
                 <MissionAttentionPanel
                   onOpenMission={(item) => {
