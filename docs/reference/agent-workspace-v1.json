@@ -694,7 +694,7 @@
    "name": "Remote Generated Outputs",
    "category": "foundation",
    "owner": "NEXUS",
-   "sourceStatus": "partial",
+   "sourceStatus": "present",
    "issue": 94,
    "releaseRequired": true,
    "requiredClients": 1,
