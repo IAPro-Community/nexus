@@ -1,3 +1,9 @@
+## 2026-11-24 — Lane A fecha `agent-timeline`: metadados duráveis e Director UI
+
+- **Duração** — migração `0041` (`internal/nexus/store/migrations/0041_event_timeline_metadata.sql`) adiciona `source`, `runtime_id` e `runtime_generation_id`; recorder do barramento (`internal/nexus/event_recorder.go`) resolve geração/Agent/projeto sem inventar identidade; leitura (`internal/nexus/store/events.go`) atribui linhas legadas por `runtime_generations`/`agents`; fonte por tipo de evento em `internal/control/events/events.go`; Director expõe e UI (`web/src/features/agents/DirectorAgentPanel.tsx`) renderiza fase/origem/geração/correlação localizados; catálogo de descoberta e i18n PT-BR/EN/ES atualizados.
+- **Verificação** — `go test ./internal/nexus ./internal/nexus/store ./internal/control/events ./internal/control/web -count=1` PASS; `go build ./...` e `go vet` limpos; `gofmt -l` vazio; Vitest 12/12 focado; typecheck/ESLint/Prettier limpos; `verify-agent-workspace-evidence-map.mjs`, testes do mapa 4/4 e `verify-agent-workspace-v1.mjs` exit 0. Estado: 37/48 capabilities `audited` (74/97 cláusulas); 0 certificadas; release **NO_GO**.
+- **Próximo** — commits em lotes de 2 arquivos no máximo, push autorizado, CI + recaptura, coleta do `workspace-acceptance-linux-amd64.json`, atualização de WORKLOG/VERIFY.
+
 ## 2026-11-24 — Lane A fecha `quick-switcher`: palette, foco e execução de superfícies
 
 - **Quick Switcher** — `web/src/app/NexusWorkspaceApp.tsx` (`bd10e592`) preserva e restaura o foco do opener ao fechar o palette; comandos `surface` ativam a superfície existente e PTYs também recebem foco de apresentação, sem criar Agents ou shells.
