@@ -1,3 +1,12 @@
+## 2026-11-24 — Lane A `agent-timeline` auditada
+
+- SHA local: `release/v1.0.0`; implementação `4e564078`..`a16f1f61` (não publicado). Responsável: orquestrador. Ambiente: Linux.
+- PASS (`agent-timeline`, backend) — `go test ./internal/nexus ./internal/nexus/store ./internal/control/events ./internal/control/web -count=1` PASS; `TestEventMetadataRecorderPersistsTimelineIdentity` prova persistência de source, runtime, runtime generation, Agent, projeto e correlação, inclusive resolução de linha legada sem source; testes Director existentes PASS.
+- PASS (frontend) — Vitest focado 12/12 (`activityModel`, `featureAnnouncements`, `featureReveal`, `tourTargets`); `npm --prefix web run typecheck` PASS; ESLint e Prettier focados limpos; `git diff --check` limpo.
+- PASS (contrato) — `node scripts/verify-agent-workspace-evidence-map.mjs` exit 0 (48 capabilities, 97 cláusulas, 0 certificadas); testes do mapa 4/4; `node scripts/verify-agent-workspace-v1.mjs` exit 0. Estado: 37 capabilities com todos os critérios `audited` (74/97 cláusulas); contrato 37 `present` / 10 `partial` / 1 `missing`.
+- PASS (build) — `go build ./...` e `go vet` (nexus/control) limpos com `GOCACHE=/tmp/opencode/go-build`; `gofmt -l` vazio.
+- PENDENTE — commits/push desta onda, CI/recaptura e `workspace-acceptance-linux-amd64.json` do SHA exato final; aceite externo depende do maestro. Release **NO_GO**.
+
 ## 2026-11-24 — Lane A `quick-switcher` auditada
 
 - SHA publicado: `origin/release/v1.0.0` @ `e814f68b`; implementação `bd10e592`, evidence map `e814f68b`. Responsável: orquestrador. Ambiente: Linux + Chromium local.

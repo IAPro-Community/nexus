@@ -1,3 +1,12 @@
+## Handoff 2026-11-24 — Lane A fecha `agent-timeline` com metadados duráveis e projeção Director
+
+- **Estado do código** — migração `0041` adiciona `source`, `runtime_id` e `runtime_generation_id` a `events_metadata`; recorder único do barramento resolve geração/Agent/projeto sem inventar identidade, e a leitura atribui linhas legadas por `runtime_generations`/`agents`; projeção Director expõe `source`/`runtime_generation_id`; UI Director mostra fase, origem, geração e correlação localizados; catálogo de descoberta e i18n PT-BR/EN/ES atualizados.
+- **Provas locais** — Go focado PASS; build/vet/gofmt limpos; Vitest 12/12; typecheck/ESLint/Prettier/diff limpos; `verify-agent-workspace-evidence-map.mjs`, testes do mapa 4/4 e `verify-agent-workspace-v1.mjs` exit 0.
+- **Lane A** — 37/48 capabilities e 74/97 cláusulas auditadas; contrato 37 `present` / 10 `partial` / 1 `missing`, 0 certificadas. `agent-timeline` = `present`, `verification: pending`.
+- **Git** — commits locais `4e564078`..`a16f1f61` (12 lotes de até 2 arquivos); push pendente. Tag `v1.0.0` intacta; `v1.0.1` não criada; release **NO_GO**.
+- **Próximo passo** — commits em lotes de até 2 arquivos, push autorizado com credential helper, CI/recaptura, coleta de `workspace-acceptance-linux-amd64.json` do SHA exato; Lane C aguarda aceite visual do owner em HUD+Site.
+- **Bloqueios intactos** — aceite visual NEX, runner Windows/macOS nativo e chaves ed25519, credencial do Named Tunnel, quota real AGY, hardware físico de 2 dispositivos, `memory-migrate apply` com Bridge ativo.
+
 ## Handoff 2026-11-24 — Lane A fecha `quick-switcher` com palette e foco auditados
 
 - **Estado do código** — `quick-switcher`: palette restaura foco no opener; comandos de superfície ativam a superfície existente e PTYs recebem foco de apresentação; E2E prova lista dinâmica `~`, execução correta e ausência de spawn colateral.
