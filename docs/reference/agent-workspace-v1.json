@@ -727,7 +727,7 @@
    "name": "Cross-Platform Exact-SHA Certification",
    "category": "foundation",
    "owner": "NEXUS",
-   "sourceStatus": "missing",
+   "sourceStatus": "partial",
    "issue": 27,
    "releaseRequired": true,
    "requiredClients": 1,

@@ -107,7 +107,7 @@ Legenda: **present** indica código-base localizado; **partial** significa lacun
 | `composer-flow-onboarding` | Composer, Flow e tour da release | partial | [#102](https://github.com/IAPro-Community/nexus/issues/102) | Concluir Composer/Flow e tours por componente reutilizável; E2E na distribuição final, PT/EN/ES, teclado e cenários reais |
 | `remote-generated-outputs` | Remote Generated Outputs | present | [#94](https://github.com/IAPro-Community/nexus/issues/94) | Listar e visualizar imagens, vídeo e arquivos gerados no host; ACL por projeto, MIME/hash, TTL e não expor filesystem indiscriminadamente |
 | `two-client-real-e2e` | Two-Client Real Agent Homologation | present | [#81](https://github.com/IAPro-Community/nexus/issues/81) | Dois clientes simultâneos e dois Agents em worktrees distintos; Leases, conflitos, handoffs, browsers e reconexões autenticados |
-| `cross-platform-exact-sha` | Cross-Platform Exact-SHA Certification | missing | [#27](https://github.com/IAPro-Community/nexus/issues/27) | Linux/Windows/macOS mesma revisão em release candidate; PTY/ConPTY, Browser, Desktop, HUD, install e artefatos rastreáveis |
+| `cross-platform-exact-sha` | Cross-Platform Exact-SHA Certification | partial | [#27](https://github.com/IAPro-Community/nexus/issues/27) | Linux/Windows/macOS mesma revisão em release candidate; PTY/ConPTY, Browser, Desktop, HUD, install e artefatos rastreáveis |
 
 ## Integração com o processo de distribuição
 
@@ -124,6 +124,8 @@ O JSON canônico declara `requiredClients` por capacidade: `1` por padrão e `2`
 ### Registros por plataforma e montagem da evidência
 
 Cada plataforma produz seu próprio registro com `node scripts/workspace-acceptance-e2e.mjs run --platform <id> --sha <SHA> --job-url <URL do run>`: `test-linux` publica `linux-amd64` no run de push, e os jobs `native-windows` e `native-macos` publicam `windows-amd64` e `macos-arm64` no run de `workflow_dispatch` do SHA alvo. O job `native-certification` sela os dois registros nativos (`native-acceptance-records.jsonl` + `certified-sha.txt`).
+
+A camada hospedada (`unsigned-preview.yml`, runners `windows-2022`, `macos-15` e `macos-15-intel`) produz prova de build e teste nativo por plataforma no SHA exato, sem assinatura; ela não substitui os registros nativos selados.
 
 O `same-sha-gate` da release baixa os três registros dos runs exatos, roda `workspace-acceptance-e2e.mjs assemble` e só então `verify-agent-workspace-v1.mjs --release`. A montagem é fail-closed: exige exatamente três registros, `sourceSha` igual ao SHA candidato, `jobUrl` de um run real de Actions e fecha `cross-platform-exact-sha` apenas pelo selo nativo do mesmo SHA. Nenhuma capacidade é fechada sem os três registros do SHA exato.
 
