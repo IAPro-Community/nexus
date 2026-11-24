@@ -1253,29 +1253,36 @@
      "acceptanceIndex": 0,
      "acceptance": "MCP e CDP com capacidades verificáveis e grant temporário",
      "sourceRefs": [
-      "internal/control/web/handlers_browser_mcp.go"
+      "internal/control/web/handlers_browser_mcp.go",
+      "internal/browsercontrol/browser_collaboration.go",
+      "internal/browsercontrol/runtime_capability.go"
      ],
      "testRefs": [
-      "internal/control/web/handlers_browser_mcp_test.go"
+      "internal/control/web/handlers_browser_mcp_test.go",
+      "internal/browsercontrol/browser_collaboration_test.go",
+      "internal/browsercontrol/runtime_capability_test.go"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: handlers_browser_mcp_test.go afirma schemas de ferramentas (TestBrowserMCPToolSchemas) e rejeicao de requisicao nao autenticada ou remota, mas nao afirma grant temporario com capability verificavel.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: handlers_browser_mcp_test.go afirma schemas de ferramentas (TestBrowserMCPToolSchemas) e rejeicao de requisicao nao autenticada ou remota; browser_collaboration_test.go afirma grant de agente com expiracao limitada e verificavel, rejeicao apos expiracao e liberacao do lease no revoke (TestBrowserAgentGrantExpiresAndRevokeReleasesControl) e escopo por sessao/projeto (TestBrowserCapabilityScopeAndRevocation); runtime_capability_test.go afirma capability de runtime escopada a projeto, nao persistida em texto claro e revogavel. Falta homologacao no app distribuido no SHA publicado.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
      "acceptance": "Intervenção humana para MFA, revoke, isolamento e auditoria",
      "sourceRefs": [
-      "internal/control/web/handlers_browser_mcp.go"
+      "internal/control/web/handlers_browser_mcp.go",
+      "internal/browsercontrol/browser_collaboration.go"
      ],
      "testRefs": [
-      "internal/control/web/handlers_browser_mcp_test.go"
+      "internal/control/web/handlers_browser_mcp_test.go",
+      "internal/browsercontrol/browser_collaboration_test.go",
+      "internal/browsercontrol/browser_test.go"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: ha assertion de negacao para origem remota e nao autenticada; nao ha assertion de intervencao humana para MFA e revoke, nem de isolamento e auditoria da operacao.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: handlers_browser_mcp_test.go afirma negacao para origem remota e nao autenticada; browser_collaboration_test.go afirma intervencao humana com motivo MFA, registro de auditoria (requested_by, requested_at, updated_at), isolamento contra outro agente e leitura durante a intervencao, alem do revoke isolado (TestBrowserHumanInterventionRecordsAuditTrail, TestBrowserProactiveHumanTakeover); browser_test.go executa o fluxo completo com Chromium real (grant, pedido de ajuda, privacidade, retomada). Falta homologacao no app distribuido no SHA publicado.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
