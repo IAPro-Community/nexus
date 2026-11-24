@@ -131,6 +131,91 @@ async function main() {
       .getAttribute('data-runtime-id');
     assert.ok(runtimeId, 'project shell must expose its runtime identity');
 
+    await page.locator('.nx-workspace-tab[data-kind="terminals"]').first().focus();
+    await page.keyboard.press('Control+k');
+    await page.waitForSelector('.nx-command-palette', { timeout: 10000 });
+    assert.equal(
+      await page.evaluate(() => document.activeElement?.closest('.nx-command-palette') !== null),
+      true,
+      'command palette must focus its search input',
+    );
+    for (let index = 0; index < 12; index += 1) await page.keyboard.press('Tab');
+    assert.equal(
+      await page.evaluate(() => document.activeElement?.closest('.nx-dialog') !== null),
+      true,
+      'desktop command palette must trap keyboard focus',
+    );
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('.nx-command-palette', { state: 'detached', timeout: 10000 });
+    await page.waitForFunction(
+      () =>
+        document.activeElement ===
+        document.querySelector('.nx-workspace-tab[data-kind="terminals"]'),
+      undefined,
+      { timeout: 10000 },
+    );
+    console.log('  ✓ desktop command palette restores focus to its opener');
+
+    await page.keyboard.press('Control+k');
+    await page.waitForSelector('.nx-command-palette', { timeout: 10000 });
+    await page.locator('.nx-command-palette input').fill('~');
+    const initialSurfaceCommandCount = await page.locator('.nx-command-list button').count();
+    assert.ok(initialSurfaceCommandCount >= 3, 'surface scope must list open workspace surfaces');
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('.nx-command-palette', { state: 'detached', timeout: 10000 });
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.locator('.nx-workspace-tab[data-kind="terminals"]').first().focus();
+    await page.keyboard.press('Control+k');
+    await page.waitForSelector('.nx-command-palette', { timeout: 10000 });
+    const mobilePaletteBounds = await page.evaluate(() => {
+      const dialog = document.querySelector('.nx-dialog');
+      if (!dialog) return null;
+      const bounds = dialog.getBoundingClientRect();
+      const list = document.querySelector('.nx-command-list');
+      if (!list) return null;
+      return {
+        left: bounds.left,
+        right: bounds.right,
+        viewportWidth: window.innerWidth,
+        dialogScrollWidth: dialog.scrollWidth,
+        dialogClientWidth: dialog.clientWidth,
+        listScrollWidth: list.scrollWidth,
+        listClientWidth: list.clientWidth,
+      };
+    });
+    assert.ok(mobilePaletteBounds, 'mobile command palette must render a dialog');
+    assert.ok(
+      mobilePaletteBounds.left >= 0 &&
+        mobilePaletteBounds.right <= mobilePaletteBounds.viewportWidth,
+      'mobile command palette must stay inside the viewport',
+    );
+    assert.ok(
+      mobilePaletteBounds.dialogScrollWidth <= mobilePaletteBounds.dialogClientWidth,
+      'mobile command palette dialog must not overflow horizontally',
+    );
+    assert.ok(
+      mobilePaletteBounds.listScrollWidth <= mobilePaletteBounds.listClientWidth,
+      'mobile command palette list must not overflow horizontally',
+    );
+    for (let index = 0; index < 12; index += 1) await page.keyboard.press('Tab');
+    assert.equal(
+      await page.evaluate(() => document.activeElement?.closest('.nx-dialog') !== null),
+      true,
+      'mobile command palette must trap keyboard focus',
+    );
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('.nx-command-palette', { state: 'detached', timeout: 10000 });
+    await page.waitForFunction(
+      () =>
+        document.activeElement ===
+        document.querySelector('.nx-workspace-tab[data-kind="terminals"]'),
+      undefined,
+      { timeout: 10000 },
+    );
+    console.log('  ✓ mobile command palette restores focus to its opener');
+    await page.setViewportSize({ width: 1280, height: 800 });
+
     // Switch terminals presentation to DESKTOP and capture the arrange menu.
     const enterDesktop = openTerminalsAndDesktop(page);
     await enterDesktop();
@@ -226,6 +311,39 @@ async function main() {
       { timeout: 20000 },
     );
     console.log('  ✓ second PTY opened through command palette');
+
+    await page.keyboard.press('Control+k');
+    await page.waitForSelector('.nx-command-palette', { timeout: 10000 });
+    await page.locator('.nx-command-palette input').fill('~');
+    const updatedSurfaceCommandCount = await page.locator('.nx-command-list button').count();
+    assert.equal(
+      updatedSurfaceCommandCount,
+      initialSurfaceCommandCount + 1,
+      'surface scope must update when a workspace surface opens',
+    );
+    const overviewSurfaceCommand = page
+      .locator('.nx-command-list button', {
+        hasText: /Abrir Visão Geral|Abrir Visão geral|Open Overview/,
+      })
+      .first();
+    await overviewSurfaceCommand.click();
+    await page.waitForFunction(
+      () =>
+        document
+          .querySelector('.nx-workspace-tab[data-kind="overview"]')
+          ?.getAttribute('aria-selected') === 'true',
+    );
+    assert.equal(shellLaunches, 2, 'opening a surface must not launch another shell');
+    assert.equal(agentCreates, 0, 'opening a surface must not create agents');
+    console.log('  ✓ surface scope tracks list changes and activates an existing surface');
+
+    await page.locator('.nx-workspace-tab[data-kind="terminals"]').first().click();
+    await page.waitForFunction(
+      () =>
+        document
+          .querySelector('.nx-workspace-tab[data-kind="terminals"]')
+          ?.getAttribute('aria-selected') === 'true',
+    );
     await desktopToggle.click({ timeout: 10000 });
     await page.waitForSelector('.nx-arrange-menu__trigger', { timeout: 15000 });
 

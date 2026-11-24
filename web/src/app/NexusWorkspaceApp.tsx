@@ -454,6 +454,18 @@ const WorkspaceCoordinator: React.FC<{
   const presentation = useWorkspacePresentation();
   const [railOpen, setRailOpen] = useState(false);
   const [palette, setPalette] = useState(false);
+  const paletteOpenerRef = useRef<HTMLElement | null>(null);
+  const openPalette = useCallback(() => {
+    paletteOpenerRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setPalette(true);
+  }, []);
+  const closePalette = useCallback(() => {
+    setPalette(false);
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => paletteOpenerRef.current?.focus());
+    });
+  }, []);
   const [settingsInitialTab, setSettingsInitialTab] = useState<
     'appearance' | 'accessibility' | 'updates' | 'remote' | 'hud'
   >('appearance');
@@ -770,7 +782,13 @@ const WorkspaceCoordinator: React.FC<{
           group: t('commands.scopeSurfaces'),
           description: surface.subtitle,
           keywords: [surface.type, surface.data?.agentId || '', surface.data?.runtimeId || ''],
-          run: () => open(surface),
+          run: () => {
+            open(surface);
+            if (isPtySurface(surface)) {
+              presentation.setActivePty(surfaceViewId(surface));
+              presentation.focus(surfaceViewId(surface));
+            }
+          },
         };
       }),
       ...data.agents.flatMap((agent) => [
@@ -1032,7 +1050,7 @@ const WorkspaceCoordinator: React.FC<{
         return;
       }
       if (intent.kind === 'palette') {
-        setPalette(true);
+        openPalette();
         return;
       }
       if (intent.kind === 'command') {
@@ -1043,7 +1061,7 @@ const WorkspaceCoordinator: React.FC<{
       }
       throw new Error(`Comando de voz não reconhecido: "${transcript}"`);
     },
-    [commands, openKind],
+    [commands, openKind, openPalette],
   );
 
   // Scoped Keyboard Shortcuts via KeyboardShortcutRegistry
@@ -1056,7 +1074,7 @@ const WorkspaceCoordinator: React.FC<{
       scope: 'global',
       description: 'Open Command Palette',
       preventDefault: true,
-      action: () => setPalette((value) => !value),
+      action: () => (palette ? closePalette() : openPalette()),
     });
     const unregisterShiftP = registry.register({
       id: 'open-palette-shift',
@@ -1066,7 +1084,7 @@ const WorkspaceCoordinator: React.FC<{
       scope: 'global',
       description: 'Open Command Palette',
       preventDefault: true,
-      action: () => setPalette(true),
+      action: () => openPalette(),
     });
     const unregisterP = registry.register({
       id: 'open-projects',
@@ -1164,7 +1182,17 @@ const WorkspaceCoordinator: React.FC<{
       unregisterExecutionRole();
       unregisterAltTabs.forEach((unreg) => unreg());
     };
-  }, [project.id, presentation, workspace.model.root, openKind, shell, activeAgentRuntimeId]);
+  }, [
+    project.id,
+    presentation,
+    workspace.model.root,
+    openKind,
+    shell,
+    activeAgentRuntimeId,
+    palette,
+    openPalette,
+    closePalette,
+  ]);
 
   const handleProjectUpdated = (updated: Project) => {
     data.setProjects((cur) => cur.map((p) => (p.id === updated.id ? updated : p)));
@@ -1570,7 +1598,7 @@ const WorkspaceCoordinator: React.FC<{
         onOpenRail={() => setRailOpen(true)}
         onOpenSurface={openKind}
         discoveryEnabled={COMPOSER_FLOW_ENABLED}
-        onCommand={() => setPalette(true)}
+        onCommand={() => openPalette()}
         onOpenWelcome={() => setWelcomeOpen(true)}
         onOpenProjectManager={() => openKind('projects')}
         onSettings={(tab) => {
@@ -1631,7 +1659,7 @@ const WorkspaceCoordinator: React.FC<{
 
       {palette && (
         <React.Suspense fallback={null}>
-          <CommandPalette open={palette} onClose={() => setPalette(false)} commands={commands} />
+          <CommandPalette open={palette} onClose={closePalette} commands={commands} />
         </React.Suspense>
       )}
 
