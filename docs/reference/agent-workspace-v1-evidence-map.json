@@ -62,32 +62,36 @@
      "acceptanceIndex": 0,
      "acceptance": "Cartões de todos os Agents por projeto com estados observados e seleção direta",
      "sourceRefs": [
+      "web/src/app/useNexusData.ts",
       "web/src/features/agents/AgentsSurface.tsx"
      ],
      "testRefs": [
-      "internal/nexus/agent_application_test.go"
+      "internal/nexus/agent_application_test.go",
+      "web/src/features/agents/AgentsSurface.test.ts"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria parcial: TestAgentApplicationServiceListScopesProjectAndProjectsEffectiveRuntimeState verifica a lista limitada ao projeto e estado RECOVERABLE projetado para runtime morto. Ainda falta teste de UI que prove os cartões e a seleção direta do Agent correto; capacidade pendente.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: useNexusData.ts carrega a lista de Agents do projeto selecionado via nexus.listAgents(projectId); AgentsSurface.tsx renderiza um cartao por Agent com data-agent-id e o badge do estado observado; AgentsSurface.test.ts fixa o contrato de listagem por projeto, cartao por Agent e selecao direta do Agent correto (Terminal e Director). Falta aceite visual no app distribuido no SHA publicado.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
      "acceptance": "Trabalhando/aguardando/erro/concluído sem inferir estado do texto do CLI",
      "sourceRefs": [
       "web/src/features/agents/AgentsSurface.tsx",
+      "internal/nexus/store/models.go",
       "internal/control/host/attention.go"
      ],
      "testRefs": [
       "internal/nexus/agent_application_test.go",
+      "web/src/features/agents/AgentsSurface.test.ts",
       "internal/control/host/attention_test.go",
       "internal/control/host/osc7501_integration_test.go"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria parcial: a listagem preserva estados estruturados e converte WORKING com runtime morto em RECOVERABLE; os testes de atenção cobrem eventos estruturados, OSC e heurísticas textuais do PTY. Falta demonstrar no fluxo real que aguardando/erro/concluído chegam aos cartões por fonte estruturada sem heurística de texto; COMPLETED ainda não é um estado tipado do Agent. Capacidade pendente.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: agent_application_test.go prova que a listagem por projeto preserva os estados estruturados WAITING, FAILED e COMPLETED, converte apenas WORKING com runtime morto em RECOVERABLE e nao infere estado do texto do CLI; COMPLETED passou a ser constante tipada (store.AgentCompleted) e AgentsSurface.tsx deriva o badge apenas de agent.status. Falta aceite externo no SHA publicado.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
