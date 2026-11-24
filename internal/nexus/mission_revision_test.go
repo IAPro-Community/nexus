@@ -12,6 +12,8 @@ import (
 )
 
 func TestStartMissionRunApprovedRejectsStalePlanRevision(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	n := openTestNexus(t)
 	st, _ := n.OpenProject()
 	project, err := st.CreateProject(store.Project{Name: "P", CanonicalPath: t.TempDir()})
@@ -33,6 +35,8 @@ func TestStartMissionRunApprovedRejectsStalePlanRevision(t *testing.T) {
 }
 
 func TestScheduleMissionFreezesApprovedPlanRevision(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	n := openTestNexus(t)
 	st, _ := n.OpenProject()
 	project, err := st.CreateProject(store.Project{Name: "P", CanonicalPath: t.TempDir()})
@@ -81,6 +85,8 @@ func TestScheduleMissionFreezesApprovedPlanRevision(t *testing.T) {
 }
 
 func TestScheduleMissionRejectsUnknownPlanRevision(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	n := openTestNexus(t)
 	st, _ := n.OpenProject()
 	project, err := st.CreateProject(store.Project{Name: "P", CanonicalPath: t.TempDir()})
@@ -182,6 +188,8 @@ func TestCostBudgetAdmissionRequiresFreshExplicitConfirmation(t *testing.T) {
 }
 
 func TestScheduleMissionWithOptionsPersistsBudgetConfirmation(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	n := openTestNexus(t)
 	st, _ := n.OpenProject()
 	project, err := st.CreateProject(store.Project{Name: "P", CanonicalPath: t.TempDir()})
@@ -221,6 +229,8 @@ func TestScheduleMissionWithOptionsPersistsBudgetConfirmation(t *testing.T) {
 }
 
 func TestScheduleAdmissionFailureIsDurableAndDoesNotRetrySilently(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	n := openTestNexus(t)
 	st, _ := n.OpenProject()
 	project, err := st.CreateProject(store.Project{Name: "P", CanonicalPath: t.TempDir()})
@@ -255,6 +265,8 @@ func TestScheduleAdmissionFailureIsDurableAndDoesNotRetrySilently(t *testing.T) 
 }
 
 func TestWhenResourcesDoesNotClaimWithoutEligibleResource(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	n := openTestNexus(t)
 	st, _ := n.OpenProject()
 	project, err := st.CreateProject(store.Project{Name: "P", CanonicalPath: t.TempDir()})
@@ -322,6 +334,8 @@ func TestAutonomousResourceReadinessHonorsIsolationContract(t *testing.T) {
 }
 
 func TestStartMissionRunFreezesGoalContractInExecutionSnapshot(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	n := openTestNexus(t)
 	st, err := n.OpenProject()
 	if err != nil {

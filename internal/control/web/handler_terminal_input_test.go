@@ -23,6 +23,8 @@ func TestWebInteractiveLeadRequiresExplicitLabel(t *testing.T) {
 }
 
 func TestWebInteractiveDelegationModeFailsClosed(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	t.Setenv("NEXUS_DELEGATION_MODE", "")
 	if got := webInteractiveDelegationMode(registry.RuntimeSession{}); got != nexus.DelegationOff {
 		t.Fatalf("missing web delegation mode=%q want OFF", got)
@@ -118,5 +120,14 @@ func (shortTerminalWriter) Write(data []byte) (int, error) {
 func TestWriteAttachedTerminalInputRejectsShortWrite(t *testing.T) {
 	if got := writeAttachedTerminalInput(shortTerminalWriter{}, "hello"); got != io.ErrShortWrite {
 		t.Fatalf("short write must be reported, got %v", got)
+	}
+}
+
+func TestWebMissionDelegationRequiresGlobalOptIn(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "false")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
+	t.Setenv("NEXUS_DELEGATION_MODE", "AUTO")
+	if got := webInteractiveDelegationMode(registry.RuntimeSession{}); got != nexus.DelegationOff {
+		t.Fatalf("disabled global gate must keep delegation OFF, got %q", got)
 	}
 }

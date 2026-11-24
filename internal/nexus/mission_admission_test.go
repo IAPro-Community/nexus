@@ -41,6 +41,8 @@ func TestMissionAdmissionBlockersFailsClosedWithoutSpecificCheck(t *testing.T) {
 }
 
 func TestStartMissionRunTypesMalformedGoalContractAsPreparationFailure(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	n := openTestNexus(t)
 	st, err := n.OpenProject()
 	if err != nil {

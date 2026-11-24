@@ -203,6 +203,9 @@ func validateFlowExecutionContract(plan store.WorkPlan) error {
 // StartMissionRun binds an immutable plan revision/snapshot and starts the
 // durable state machine. autonomous=true starts a background worker immediately.
 func (n *Nexus) StartMissionRun(ctx context.Context, planID, defaultAgentID string, contract runner.AutonomyContract, autonomous bool) (*runner.MissionRun, error) {
+	if err := RequireAdvancedFeature(FeatureMissions); err != nil {
+		return nil, err
+	}
 	if err := n.RequireCapability(ctx, entitlement.CapMissionsRun); err != nil {
 		return nil, missionAdmissionError("entitlement", fmt.Sprintf("mission entitlement denied: %v", err))
 	}
@@ -323,6 +326,9 @@ func (n *Nexus) StartMissionRunApproved(ctx context.Context, planID string, appr
 }
 
 func (n *Nexus) StartMissionRunApprovedWithOptions(ctx context.Context, planID string, approvedRevision int, defaultAgentID string, contract runner.AutonomyContract, autonomous bool, options MissionAdmissionOptions) (*runner.MissionRun, error) {
+	if err := RequireAdvancedFeature(FeatureMissions); err != nil {
+		return nil, err
+	}
 	if err := n.RequireCapability(ctx, entitlement.CapMissionsRun); err != nil {
 		return nil, missionAdmissionError("entitlement", fmt.Sprintf("mission entitlement denied: %v", err))
 	}
@@ -424,6 +430,9 @@ func validateCostBudgetAdmission(ctx context.Context, st *store.Store, plan *sto
 }
 
 func (n *Nexus) startMissionRunAtRevisionWithAdmission(ctx context.Context, plan *store.WorkPlan, revision int, defaultAgentID string, contract runner.AutonomyContract, autonomous bool, preflight *FlowPreflightReport, preview *PlanExecutionPreview) (*runner.MissionRun, error) {
+	if err := RequireAdvancedFeature(FeatureMissions); err != nil {
+		return nil, err
+	}
 	st, err := n.OpenProject()
 	if err != nil {
 		return nil, missionPreparationError("store", err)
@@ -690,6 +699,9 @@ func (n *Nexus) startMissionWorker(runID string, replace bool) *missionWorker {
 }
 
 func (n *Nexus) startMissionWorkerWithHandoffTimeout(runID string, replace bool, handoffTimeout time.Duration) *missionWorker {
+	if !AdvancedFeatureEnabled(FeatureMissions) {
+		return nil
+	}
 	if strings.TrimSpace(runID) == "" {
 		return nil
 	}
@@ -914,6 +926,9 @@ func (n *Nexus) RecoverMissionRuns(ctx context.Context) error {
 }
 
 func (n *Nexus) recoverMissionRuns(ctx context.Context) ([]*missionWorker, error) {
+	if !AdvancedFeatureEnabled(FeatureMissions) {
+		return nil, nil
+	}
 	runs, err := n.Runner().ListRuns(ctx)
 	if err != nil {
 		return nil, err
@@ -951,6 +966,9 @@ func (n *Nexus) PauseMissionRun(ctx context.Context, runID, reason string) (*run
 }
 
 func (n *Nexus) ResumeMissionRun(ctx context.Context, runID string) (*runner.MissionRun, error) {
+	if err := RequireAdvancedFeature(FeatureMissions); err != nil {
+		return nil, err
+	}
 	run, err := n.Runner().ResumeRun(ctx, runID)
 	if err != nil {
 		return nil, err
@@ -980,6 +998,9 @@ func requireLocalMissionControlOwner(run *runner.MissionRun) error {
 // supervised runtime for the package's persistent implementer Agent on the same
 // isolated worktree. Mission state remains PAUSED until ReturnMissionRun.
 func (n *Nexus) TakeControlMissionRun(ctx context.Context, runID, reason string) (*runner.MissionRun, error) {
+	if err := RequireAdvancedFeature(FeatureMissions); err != nil {
+		return nil, err
+	}
 	current, err := n.Runner().GetRun(ctx, runID)
 	if err != nil {
 		return nil, err
@@ -1020,6 +1041,9 @@ func (n *Nexus) TakeControlMissionRun(ctx context.Context, runID, reason string)
 // autonomous worker. This prevents the headless executor from racing a live
 // human-controlled provider process on the same Agent/worktree.
 func (n *Nexus) ReturnMissionRun(ctx context.Context, runID string) (*runner.MissionRun, error) {
+	if err := RequireAdvancedFeature(FeatureMissions); err != nil {
+		return nil, err
+	}
 	run, err := n.Runner().GetRun(ctx, runID)
 	if err != nil {
 		return nil, err

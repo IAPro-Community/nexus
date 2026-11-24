@@ -193,6 +193,9 @@ func (n *Nexus) ResolveMissionIntervention(ctx context.Context, runID, intervent
 }
 
 func (n *Nexus) ResolveMissionInterventionWithOutcome(ctx context.Context, runID, interventionID string, version int, optionID, resolvedBy string) (*runner.MissionRun, bool, error) {
+	if err := RequireAdvancedFeature(FeatureMissions); err != nil {
+		return nil, false, err
+	}
 	run, created, err := n.Runner().ResolveInterventionWithOutcome(ctx, runID, interventionID, version, optionID, resolvedBy)
 	if err != nil {
 		return nil, false, err

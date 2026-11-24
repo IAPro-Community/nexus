@@ -90,6 +90,9 @@ func dispatchStatusForRunState(state runner.State) DispatchStatus {
 // immediately so Web callers can answer POST with 202 Accepted and follow up
 // via polling/stream instead of holding the request for the whole mission.
 func (n *Nexus) StartDispatch(ctx context.Context, req DispatchRequest) (*DispatchResult, error) {
+	if err := RequireAdvancedFeature(FeatureMissions); err != nil {
+		return nil, err
+	}
 	if n == nil {
 		return nil, fmt.Errorf("nexus is nil")
 	}

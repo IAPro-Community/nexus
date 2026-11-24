@@ -26,6 +26,8 @@ import (
 // Composer, WorkPlan, Execution Preview, approval, and MissionRunner boundaries
 // as production without reading host credentials or dispatching provider work.
 func TestComposerApprovedFlowReachesMissionRunner(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	if runtime.GOOS != "linux" {
 		t.Skip("the isolated Codex CLI fixture uses a POSIX executable")
 	}

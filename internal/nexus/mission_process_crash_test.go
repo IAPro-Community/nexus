@@ -85,6 +85,8 @@ func (*recoveryCountingExecutor) Review(context.Context, *runner.MissionRun, *ru
 // intent is committed. A new Nexus process must recover that run without
 // replaying a provider call whose outcome cannot be known.
 func TestMissionProcessCrashDuringProviderDispatchFailsClosed(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	if dbPath := os.Getenv(missionCrashDBEnv); dbPath != "" {
 		runMissionCrashChild(t, dbPath, os.Getenv(missionCrashMarkerEnv), os.Getenv(missionCrashWorkEnv))
 		return

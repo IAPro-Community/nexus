@@ -57,6 +57,8 @@ func TestGeneratedGoalIDIsULID(t *testing.T) {
 }
 
 func TestStartDispatchDefaultsDelegationOff(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	n := openTestNexus(t)
 	st, err := n.OpenProject()
 	if err != nil {
@@ -138,6 +140,8 @@ func TestWaitDispatchFailureIsNeverMarkedFallbackSafeAfterAcceptance(t *testing.
 }
 
 func TestStartDispatchReturnsPreparedPlanOnPreRunAdmissionFailure(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	n := openTestNexus(t)
 	st, err := n.OpenProject()
 	if err != nil {
@@ -178,6 +182,8 @@ func TestStartDispatchReturnsPreparedPlanOnPreRunAdmissionFailure(t *testing.T) 
 }
 
 func TestStartDispatchExplicitMissionForAtomicFixUsesSingleWorkPlanAndMissionPackage(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	seedCodexExecutionFixture(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()

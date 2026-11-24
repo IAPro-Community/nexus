@@ -786,6 +786,9 @@ func webInteractiveLeadEnabled(sess registry.RuntimeSession) bool {
 }
 
 func webInteractiveDelegationMode(sess registry.RuntimeSession) nexus.DelegationMode {
+	if !nexus.AdvancedFeatureEnabled(nexus.FeatureMissions) {
+		return nexus.DelegationOff
+	}
 	mode := nexus.DelegationOff
 	if configured := strings.TrimSpace(sess.Labels["nexus.delegation_mode"]); configured != "" {
 		mode = nexus.DelegationMode(configured)

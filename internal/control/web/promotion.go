@@ -31,6 +31,9 @@ func runPromotedSingleTurnDelegate(n *nexus.Nexus, session registry.RuntimeSessi
 // startPromotedMission runs only the admission prefix. The browser terminal
 // keeps the original prompt in the provider TUI until this returns ACCEPTED.
 func startPromotedMission(n *nexus.Nexus, session registry.RuntimeSession, prompt string) (*nexus.DispatchResult, error) {
+	if err := nexus.RequireAdvancedFeature(nexus.FeatureMissions); err != nil {
+		return nil, err
+	}
 	if n == nil || session.ProjectID == "" || session.AgentID == "" {
 		return nil, fmt.Errorf("mission promotion is unavailable for this runtime")
 	}

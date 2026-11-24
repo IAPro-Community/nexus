@@ -64,6 +64,8 @@ func initializeLocalGitRepository(t *testing.T, root string) {
 }
 
 func TestLocalAutopilotContractTraversesDiscoveryRoutingSkillsAndVerification(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	root := t.TempDir()
 	initializeLocalGitRepository(t, root)
 	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example\n\ngo 1.25\n"), 0600); err != nil {

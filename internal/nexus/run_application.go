@@ -136,6 +136,9 @@ func (s *RunApplicationService) Step(ctx context.Context, runID string) (*RunSte
 	if err := s.ready(ctx); err != nil {
 		return nil, err
 	}
+	if err := RequireAdvancedFeature(FeatureMissions); err != nil {
+		return nil, err
+	}
 	before, _ := s.nexus.Runner().GetRun(ctx, runID)
 	if before != nil {
 		s.publishRunEvent(before, events.EventMissionStepStarted, "Mission step started", map[string]any{"run_id": runID})
@@ -256,6 +259,9 @@ func (s *RunApplicationService) SubmitCoordination(ctx context.Context, runID st
 	if err := s.ready(ctx); err != nil {
 		return nil, err
 	}
+	if err := RequireAdvancedFeature(FeatureMissions); err != nil {
+		return nil, err
+	}
 	saved, err := s.nexus.Runner().SubmitCoordinationRequest(ctx, runID, req)
 	if err != nil {
 		return nil, err
@@ -307,6 +313,9 @@ func (s *RunApplicationService) SubmitCoordination(ctx context.Context, runID st
 
 func (s *RunApplicationService) MaterializeCoordination(ctx context.Context, runID, requestID string) (*RunCoordinationResult, error) {
 	if err := s.ready(ctx); err != nil {
+		return nil, err
+	}
+	if err := RequireAdvancedFeature(FeatureMissions); err != nil {
 		return nil, err
 	}
 	current, err := s.nexus.Runner().GetRun(ctx, runID)
@@ -363,6 +372,9 @@ func (s *RunApplicationService) MaterializeCoordination(ctx context.Context, run
 
 func (s *RunApplicationService) ResolveCoordination(ctx context.Context, runID, requestID string, status runner.CoordinationStatus, summary, receiptID string) (*runner.CoordinationRequest, error) {
 	if err := s.ready(ctx); err != nil {
+		return nil, err
+	}
+	if err := RequireAdvancedFeature(FeatureMissions); err != nil {
 		return nil, err
 	}
 	resolved, err := s.nexus.Runner().ResolveCoordinationRequest(ctx, runID, requestID, status, summary, receiptID)

@@ -241,6 +241,8 @@ func initDispatchWorktree(t *testing.T, workspace string) {
 // two MissionRuns for two different Agents, each executing in its own isolated
 // Git worktree, and only the completed runs are compared.
 func TestParallelChallengeDispatchesOneSpecificationToIsolatedAgents(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	repo := runner.NewMemoryRunRepository()
 	r := runner.NewMissionRunner(repo, &challengeDispatchExecutor{})
 	contract := runner.DefaultAutonomyContract()

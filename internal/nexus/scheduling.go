@@ -54,6 +54,9 @@ func (n *Nexus) ScheduleMission(ctx context.Context, planID string, args ...inte
 // scheduling. The legacy variadic facade remains for CLI/domain compatibility,
 // while UI/API callers can bind an exact revision and budget confirmation.
 func (n *Nexus) ScheduleMissionWithOptions(ctx context.Context, planID string, approved int, mode string, scheduledFor *time.Time, afterRunID, agentID string, contract runner.AutonomyContract, options MissionAdmissionOptions) (*store.MissionSchedule, error) {
+	if err := RequireAdvancedFeature(FeatureMissions); err != nil {
+		return nil, err
+	}
 	st, err := n.OpenProject()
 	if err != nil {
 		return nil, err
@@ -119,6 +122,9 @@ func (n *Nexus) CancelMissionSchedule(ctx context.Context, id string) error {
 }
 
 func (n *Nexus) StartScheduleLoop() {
+	if !AdvancedFeatureEnabled(FeatureMissions) {
+		return
+	}
 	n.schedulerOnce.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		n.scheduleCancel = cancel
@@ -181,6 +187,9 @@ func (n *Nexus) startScheduledMissionRun(ctx context.Context, planID string, rev
 }
 
 func (n *Nexus) processMissionSchedules(ctx context.Context) error {
+	if !AdvancedFeatureEnabled(FeatureMissions) {
+		return nil
+	}
 	st, err := n.OpenProject()
 	if err != nil {
 		return err

@@ -34,6 +34,8 @@ func (e *restartProbeExecutor) Review(context.Context, *runner.MissionRun, *runn
 }
 
 func TestInterventionResolutionSurvivesStoreReopen(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	ctx := context.Background()
 	dbPath := filepath.Join(t.TempDir(), "nexus.db")
 	st, err := store.Open(dbPath)

@@ -11,6 +11,8 @@ import (
 )
 
 func TestRunApplicationServiceRejectsCanceledContext(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	service := NewRunApplicationService(nil)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()

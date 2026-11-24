@@ -12,6 +12,8 @@ import (
 )
 
 func TestTakeControlMissionRunRefusesNonLocalOwnersWithoutMutation(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	for _, tc := range []struct {
 		name      string
 		owner     string
@@ -74,6 +76,8 @@ func TestTakeControlMissionRunRefusesNonLocalOwnersWithoutMutation(t *testing.T)
 }
 
 func TestReturnMissionRunRefusesNonLocalOwnersWithoutMutation(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	for _, tc := range []struct {
 		name      string
 		owner     string
@@ -297,6 +301,8 @@ func TestReleaseMissionWorkerCannotDeleteNewGeneration(t *testing.T) {
 }
 
 func TestMissionWorkerHandoffRetriesAfterOldWorkerExceedsTimeout(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	ctx := context.Background()
 	repo := runner.NewMemoryRunRepository()
 	exec := &delayedHandoffExecutor{
