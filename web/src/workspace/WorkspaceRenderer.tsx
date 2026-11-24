@@ -48,6 +48,7 @@ import { isWindowedPresentationMode, mosaicDropTargetViewId } from './presentati
 import { ptyWindowHeading } from './ptyLiveChrome';
 import { liveChromeFor, usePtyLiveChromeOptional } from './PtyLiveChromeContext';
 import { ARRANGE_MENU_PRESETS, WORKSPACE_RECIPES, type ArrangeMenuPreset } from './arrangePresets';
+import { SMART_LAYOUTS_ENABLED } from '../app/composerFlowFlag';
 import { resolveTerminalSplitViews } from './presentation';
 import splitStyles from './TerminalSplit.module.scss';
 import ptyTabStyles from './PtyTabs.module.scss';
@@ -333,7 +334,9 @@ const ArrangeLayoutMenu: React.FC<{
               value={activePreset}
               onValueChange={(value) => onSelect(value as ArrangeMenuPreset)}
             >
-              {ARRANGE_MENU_PRESETS.map((preset) => (
+              {ARRANGE_MENU_PRESETS.filter(
+                (preset) => SMART_LAYOUTS_ENABLED || preset.id !== 'automatic',
+              ).map((preset) => (
                 <DropdownMenu.RadioItem
                   key={preset.id}
                   value={preset.id}
@@ -350,7 +353,9 @@ const ArrangeLayoutMenu: React.FC<{
             <DropdownMenu.Label className="nx-arrange-menu__item">
               <span>{t('workspace.recipes', 'Receitas de trabalho')}</span>
             </DropdownMenu.Label>
-            {WORKSPACE_RECIPES.map((recipe) => (
+            {WORKSPACE_RECIPES.filter(
+              (recipe) => SMART_LAYOUTS_ENABLED || recipe.preset !== 'automatic',
+            ).map((recipe) => (
               <DropdownMenu.Item
                 key={recipe.id}
                 className="nx-arrange-menu__item"

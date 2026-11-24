@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/browsercontrol"
+	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/gorilla/websocket"
 )
 
@@ -238,6 +239,10 @@ func (s *Server) handleBrowserSession(w http.ResponseWriter, r *http.Request) {
 		var input browsercontrol.Action
 		if err := d.Decode(&input); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid browser action")
+			return
+		}
+		if input.Type == "viewport" && !optionalFeatureEnabled(nexus.FeatureDevicePreview) {
+			optionalFeatureUnavailable(w, nexus.FeatureDevicePreview)
 			return
 		}
 		if input.Type == "navigate" && input.URL != "" {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { createWorkspace, openSurface, splitWithSurface } from '../workspace/model';
 import type { WorkspaceSurface } from '../workspace/model';
 import {
@@ -7,6 +7,11 @@ import {
   VOICE_ACTIONS_ENABLED,
   DESIGN_INSPECT_ENABLED,
   VISUAL_DIFF_ENABLED,
+  NEX_PROACTIVITY_ENABLED,
+  COMPARISON_LAB_ENABLED,
+  SMART_LAYOUTS_ENABLED,
+  DEVICE_PREVIEW_ENABLED,
+  applyOptionalFeatureSnapshot,
   isExperimentalComposerFlowSurface,
   isExperimentalRouteBlocked,
   isExperimentalWorkspaceSurfaceBlocked,
@@ -21,6 +26,36 @@ const surface = (type: string, id = type): WorkspaceSurface => ({
 });
 
 describe('Composer/Flow release gate', () => {
+  afterEach(() => applyOptionalFeatureSnapshot(null));
+
+  it('accepts only explicitly enabled capabilities from the server', () => {
+    applyOptionalFeatureSnapshot({
+      global: false,
+      features: { COMPOSER: true, FLOW: true, MISSIONS: true, NEX_PROACTIVITY: true },
+    });
+    expect(COMPOSER_FLOW_ENABLED).toBe(false);
+    expect(NEX_PROACTIVITY_ENABLED).toBe(false);
+    applyOptionalFeatureSnapshot({
+      global: true,
+      features: {
+        COMPOSER: true,
+        FLOW: true,
+        MISSIONS: true,
+        NEX_PROACTIVITY: true,
+        VOICE_ACTIONS: 'true',
+        DEVICE_PREVIEW: true,
+      },
+    });
+    expect(COMPOSER_FLOW_ENABLED).toBe(true);
+    expect(NEX_PROACTIVITY_ENABLED).toBe(true);
+    expect(DEVICE_PREVIEW_ENABLED).toBe(true);
+    expect(VOICE_ACTIONS_ENABLED).toBe(false);
+    expect(COMPARISON_LAB_ENABLED).toBe(false);
+    expect(SMART_LAYOUTS_ENABLED).toBe(false);
+    applyOptionalFeatureSnapshot(null);
+    expect(COMPOSER_FLOW_ENABLED).toBe(false);
+  });
+
   it('is disabled by default in normal test/build', () => {
     expect(OPTIONAL_FEATURES_ENABLED).toBe(false);
     expect(COMPOSER_FLOW_ENABLED).toBe(false);

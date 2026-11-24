@@ -15,6 +15,7 @@ import { asArray } from '../../lib/safeArray';
 import { flowRunStateFromMission } from './flowRunModel';
 import { FlowDraftEditor } from './FlowDraftEditor';
 import { ComparisonLabPanel } from './ComparisonLabPanel';
+import { COMPARISON_LAB_ENABLED } from '../../app/composerFlowFlag';
 import { ComparisonCampaignPanel } from './ComparisonCampaignPanel';
 import { FeatureTour } from './FeatureTour';
 import { FLOW_DRAFT_KEY } from './WorkSurface';
@@ -80,8 +81,8 @@ export const FlowRunsHistorySurface: React.FC<{
       const [runResult, planResult, comparisonResult, campaignResult] = await Promise.allSettled([
         nexusApi.getRuns(),
         nexusApi.getPlans(project.id),
-        nexusApi.getComparisons(project.id),
-        nexusApi.getComparisonCampaigns(project.id),
+        COMPARISON_LAB_ENABLED ? nexusApi.getComparisons(project.id) : Promise.resolve([]),
+        COMPARISON_LAB_ENABLED ? nexusApi.getComparisonCampaigns(project.id) : Promise.resolve([]),
       ]);
       if (!isLatest()) return;
       if (planResult.status === 'rejected') throw planResult.reason;
@@ -568,7 +569,8 @@ export const FlowRunsHistorySurface: React.FC<{
                         {t(`flow.state.${state}`, state)}
                       </Badge>
                     </button>
-                    {run.state === 'COMPLETED_VERIFIED' &&
+                    {COMPARISON_LAB_ENABLED &&
+                      run.state === 'COMPLETED_VERIFIED' &&
                       run.delivery_integration &&
                       run.integrated_workspace && (
                         <label className={styles.compareRun}>
@@ -589,24 +591,28 @@ export const FlowRunsHistorySurface: React.FC<{
               );
             })}
           </div>
-          <ComparisonLabPanel
-            runs={runs}
-            campaigns={comparisonCampaigns.map((item) => item.campaign)}
-            comparisons={comparisons}
-            selectedRunIds={selectedRunIds}
-            selectedComparison={selectedComparison}
-            reason={comparisonReason}
-            busy={comparisonBusy}
-            error={comparisonError}
-            onCompare={() => void createComparison()}
-            onSelectComparison={(comparison) => {
-              setSelectedComparison(comparison);
-              setComparisonReason('');
-            }}
-            onReasonChange={setComparisonReason}
-            onDecide={(decision) => void decideComparison(decision)}
-          />
-          <ComparisonCampaignPanel project={project} plans={plans} onLaunched={() => void load()} />
+          {COMPARISON_LAB_ENABLED && (
+            <>
+              <ComparisonLabPanel
+                runs={runs}
+                campaigns={comparisonCampaigns.map((item) => item.campaign)}
+                comparisons={comparisons}
+                selectedRunIds={selectedRunIds}
+                selectedComparison={selectedComparison}
+                reason={comparisonReason}
+                busy={comparisonBusy}
+                error={comparisonError}
+                onCompare={() => void createComparison()}
+                onSelectComparison={(comparison) => {
+                  setSelectedComparison(comparison);
+                  setComparisonReason('');
+                }}
+                onReasonChange={setComparisonReason}
+                onDecide={(decision) => void decideComparison(decision)}
+              />
+              <ComparisonCampaignPanel project={project} plans={plans} onLaunched={() => void load()} />
+            </>
+          )}
         </>
       )}
     </div>

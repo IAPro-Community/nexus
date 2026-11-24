@@ -33,6 +33,7 @@ import type { WorkspaceSurface } from './model';
 import type { ArrangePresetName } from './arrangePresets';
 import { arrangeByPreset, resolveArrangePreset } from './arrangePresets';
 import { useWorkspaceLayoutPersistence } from './WorkspaceProvider';
+import { SMART_LAYOUTS_ENABLED } from '../app/composerFlowFlag';
 
 interface ContextValue {
   state: WorkspacePresentationState;
@@ -193,8 +194,9 @@ function reducer(state: WorkspacePresentationState, action: Action): WorkspacePr
     case 'canvas':
       return setPresentationCanvas(state, action.canvas);
     case 'rearrange':
-      return rearrangeSmart(state);
+      return SMART_LAYOUTS_ENABLED ? rearrangeSmart(state) : state;
     case 'rearrangePreset':
+      if (action.preset === 'automatic' && !SMART_LAYOUTS_ENABLED) return state;
       return applyPreset(state, action.preset);
   }
 }

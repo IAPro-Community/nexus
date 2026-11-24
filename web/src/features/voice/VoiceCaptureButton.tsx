@@ -9,6 +9,7 @@ import {
 } from './voiceCapture';
 import type { VoiceSettingsView, VoiceTranscribeResult } from './voiceModel';
 import styles from './VoiceCaptureButton.module.scss';
+import { VOICE_ACTIONS_ENABLED } from '../../app/composerFlowFlag';
 
 type VoiceContext = 'terminal' | 'nexus';
 
@@ -35,13 +36,21 @@ export const invalidateVoiceSettingsCache = () => {
   settingsPromise = null;
 };
 
-export const VoiceCaptureButton: React.FC<{
+type VoiceCaptureButtonProps = {
   context: VoiceContext;
   disabled?: boolean;
   showLabel?: boolean;
   className?: string;
   onTranscript: (text: string, result: VoiceTranscribeResult) => void | Promise<void>;
-}> = ({ context, disabled = false, showLabel = false, className = '', onTranscript }) => {
+};
+
+const EnabledVoiceCaptureButton: React.FC<VoiceCaptureButtonProps> = ({
+  context,
+  disabled = false,
+  showLabel = false,
+  className = '',
+  onTranscript,
+}) => {
   const [settings, setSettings] = useState<VoiceSettingsView | null>(cachedSettings);
   const [state, setState] = useState<'idle' | 'recording' | 'transcribing' | 'error'>('idle');
   const [detail, setDetail] = useState('');
@@ -179,3 +188,6 @@ export const VoiceCaptureButton: React.FC<{
     </span>
   );
 };
+
+export const VoiceCaptureButton: React.FC<VoiceCaptureButtonProps> = (props) =>
+  VOICE_ACTIONS_ENABLED ? <EnabledVoiceCaptureButton {...props} /> : null;

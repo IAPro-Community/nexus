@@ -28,7 +28,11 @@ import { asArray } from '../../lib/safeArray';
 import { nexus } from '../../nexus/api';
 import { handoffDesignInspectionToSelectedAgent } from './designInspectHandoff';
 import { VisualDiffPanel } from './VisualDiffPanel';
-import { DESIGN_INSPECT_ENABLED, VISUAL_DIFF_ENABLED } from '../../app/composerFlowFlag';
+import {
+  DESIGN_INSPECT_ENABLED,
+  DEVICE_PREVIEW_ENABLED,
+  VISUAL_DIFF_ENABLED,
+} from '../../app/composerFlowFlag';
 import type { VisualDiffRequest, VisualDiffResult } from './visualDiffModel';
 import styles from './BrowserSurface.module.scss';
 import { FeatureTour } from '../work';
@@ -1416,27 +1420,29 @@ export const BrowserSurface: React.FC<{
             </button>
           )}
 
-          <button
-            type="button"
-            disabled={!session || busy}
-            onClick={() =>
-              void perform({
-                type: 'viewport',
-                width: nextViewport.width,
-                height: nextViewport.height,
-              })
-            }
-            aria-label={`Alternar para ${nextViewport.label}`}
-            title={currentViewport.label}
-          >
-            {currentViewport.id === 'phone' ? (
-              <Smartphone size={14} />
-            ) : currentViewport.id === 'tablet' ? (
-              <Tablet size={14} />
-            ) : (
-              <Monitor size={14} />
-            )}
-          </button>
+          {DEVICE_PREVIEW_ENABLED && (
+            <button
+              type="button"
+              disabled={!session || busy}
+              onClick={() =>
+                void perform({
+                  type: 'viewport',
+                  width: nextViewport.width,
+                  height: nextViewport.height,
+                })
+              }
+              aria-label={`Alternar para ${nextViewport.label}`}
+              title={currentViewport.label}
+            >
+              {currentViewport.id === 'phone' ? (
+                <Smartphone size={14} />
+              ) : currentViewport.id === 'tablet' ? (
+                <Tablet size={14} />
+              ) : (
+                <Monitor size={14} />
+              )}
+            </button>
+          )}
 
           <button
             type="button"

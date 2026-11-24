@@ -163,6 +163,9 @@ func (h *NexusHandler) handleNexProactivity(w http.ResponseWriter, r *http.Reque
 		writeError(w, http.StatusServiceUnavailable, "Nex projection unavailable")
 		return
 	}
+	if !optionalFeatureEnabled(featureMissions) {
+		state.Missions = nil
+	}
 	candidates := nexProactiveCandidates(state, now)
 	if r.Method == http.MethodGet {
 		writeJSON(w, http.StatusOK, map[string]any{"settings": prefs, "candidates": candidates})
