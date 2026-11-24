@@ -29,10 +29,9 @@ false**. Enabling the global flag alone enables nothing. Enable only
 individually approved features; do not copy all examples into production
 configuration.
 
-For Composer/Flow navigation, the frontend also needs the build-time define
-`__NEXUS_EXPERIMENTAL_COMPOSER_FLOW__ = true`; its absence defaults to
-false. Enabling the frontend does not authorize backend changes, and enabling
-backend features does not silently expose screens in existing builds.
+For Composer/Flow navigation, the frontend bundle must be rebuilt with the
+same explicitly enabled environment flags. A stale or separately configured
+frontend cannot authorize backend changes.
 
 While disabled, historic reads remain accessible to authorized clients for
 export/recovery, and cancel/stop actions remain possible for already-running
@@ -60,9 +59,11 @@ Lead Mission promotion. Invoking `nexus run <provider>` still launches the
 provider directly. Internal migration/test helpers are not public entrypoints
 and must not be treated as a substitute for these gates.
 
-Optional browser/voice UI also defaults off. Its build-time master define is
-`__NEXUS_OPTIONAL_FEATURES__ = true`, and each feature additionally requires
-its own build define (`__NEXUS_EXPERIMENTAL_COMPOSER_FLOW__`,
-`__NEXUS_VOICE_ACTIONS__`, `__NEXUS_DESIGN_INSPECT__`,
-`__NEXUS_VISUAL_DIFF__`). None are implicitly enabled.
-The backend environment flags remain authoritative for permission to execute.
+Browser/voice UI also defaults off. The web esbuild pipeline uses the **same
+environment variables** as the backend and emits explicit compile-time flags.
+Build the frontend with the selected `NEXUS_FEATURES_ENABLED=true` and
+`NEXUS_FEATURE_<KEY>=true` values, then restart the server with matching
+values. Composer/Flow UI is one legacy surface group and requires all three
+COMPOSER, FLOW and MISSIONS opt-ins. The former
+`NEXUS_EXPERIMENTAL_COMPOSER_FLOW` variable no longer enables it implicitly.
+The backend always remains authoritative for permission to execute.
