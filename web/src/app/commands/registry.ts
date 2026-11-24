@@ -1,4 +1,4 @@
-export type NexusCommandKind = 'action' | 'project' | 'agent' | 'resource';
+export type NexusCommandKind = 'action' | 'project' | 'agent' | 'resource' | 'surface';
 
 export interface NexusCommand {
   id: string;
@@ -66,7 +66,9 @@ export function filterCommands(commands: NexusCommand[], query: string): NexusCo
           ? 'action'
           : prefix === '$'
             ? 'resource'
-            : null;
+            : prefix === '~'
+              ? 'surface'
+              : null;
   const needle = normalizeSearch(kind ? value.slice(1) : value);
   const terms = needle.split(/\s+/).filter(Boolean);
   return commands

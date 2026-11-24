@@ -68,6 +68,13 @@ describe('contextual quick-search prefixes', () => {
       keywords: ['split'],
       run: () => undefined,
     },
+    {
+      id: 'surface',
+      kind: 'surface',
+      label: 'Terminal Principal',
+      group: 'Superfícies',
+      run: () => undefined,
+    },
   ];
   it('filters accent-insensitively and checks all query terms', () => {
     expect(filterCommands(context, '#educacao').map((c) => c.id)).toEqual(['project']);
@@ -77,12 +84,14 @@ describe('contextual quick-search prefixes', () => {
   it('keeps scopes isolated and permits unscoped global results', () => {
     expect(filterCommands(context, '>terminais').map((c) => c.id)).toEqual(['action']);
     expect(filterCommands(context, '$contas').map((c) => c.id)).toEqual(['resource']);
+    expect(filterCommands(context, '~terminal').map((c) => c.id)).toEqual(['surface']);
     expect(filterCommands(context, '#').map((c) => c.id)).toEqual(['project']);
     expect(filterCommands(context, '').map((c) => c.id)).toEqual([
       'project',
       'agent',
       'resource',
       'action',
+      'surface',
     ]);
   });
 });
