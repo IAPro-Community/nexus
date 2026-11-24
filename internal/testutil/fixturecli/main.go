@@ -12,6 +12,7 @@ import (
 
 type response struct {
 	WhenEnvContains [][2]string `json:"when_env_contains"`
+	WhenArgsContain []string    `json:"when_args_contains"`
 	Stdout          []string    `json:"stdout"`
 	ExitCode        int         `json:"exit_code"`
 	SleepMS         int         `json:"sleep_ms"`
@@ -63,10 +64,14 @@ func main() {
 	}
 	chosen := response{Stdout: s.Stdout, ExitCode: s.ExitCode, SleepMS: s.SleepMS}
 	for _, candidate := range s.Responses {
-		if matches(candidate.WhenEnvContains) {
-			chosen = candidate
-			break
+		if !matches(candidate.WhenEnvContains) {
+			continue
 		}
+		if !matchesArgs(args, candidate.WhenArgsContain) {
+			continue
+		}
+		chosen = candidate
+		break
 	}
 	emit(chosen.Stdout)
 	if chosen.SleepMS > 0 {
@@ -87,6 +92,17 @@ func matches(rules [][2]string) bool {
 	for _, rule := range rules {
 		value := strings.ReplaceAll(os.Getenv(rule[0]), `\`, "/")
 		if !strings.Contains(value, rule[1]) {
+			return false
+		}
+	}
+	return true
+}
+
+// matchesArgs reports whether every substring is present in the joined args.
+func matchesArgs(args []string, substrings []string) bool {
+	joined := strings.Join(args, " ")
+	for _, substring := range substrings {
+		if !strings.Contains(joined, substring) {
 			return false
 		}
 	}

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -57,10 +58,11 @@ func TestMissionFailoverCostObservationAttributionFollowsExecutingRuntime(t *tes
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 
 	// The quota-a profile fails its turn with the production 429 surface; the
-	// quota-b profile completes its turn. Both are the same fixture CLI; the
-	// provider home distinguishes the accounts.
+	// quota-b profile completes its turn. Both are the same fixture CLI. The
+	// dispatch is keyed on the prompt in the args, which every platform
+	// delivers, instead of env that a detached Windows host may rebuild.
 	fixturePath := testutil.WriteSpecBinary(t, binDir, "codex")
-	t.Setenv("FIXTURE_CLI_SPEC", `{"version":"codex fixture 1.0","responses":[{"when_env_contains":[["AI_PROFILE","quota-a"]],"stdout":["Error: 429 Too Many Requests. Rate limit reached. Usage limit reached for profile quota-a."],"exit_code":1,"sleep_ms":1000},{"when_env_contains":[["CODEX_HOME","quota-a"]],"stdout":["Error: 429 Too Many Requests. Rate limit reached. Usage limit reached for profile quota-a."],"exit_code":1,"sleep_ms":1000},{"when_env_contains":[["HOME","quota-a"]],"stdout":["Error: 429 Too Many Requests. Rate limit reached. Usage limit reached for profile quota-a."],"exit_code":1,"sleep_ms":1000}],"stdout":["FIXTURE_FAILOVER_TURN_COMPLETED"],"sleep_ms":1000}`)
+	t.Setenv("FIXTURE_CLI_SPEC", `{"version":"codex fixture 1.0","env_file":`+strconv.Quote(filepath.Join(root, "fixture-env.txt"))+`,"env_keys":["AI_PROFILE","CODEX_HOME","HOME","USERPROFILE","PATH"],"responses":[{"when_args_contains":["quota-a"],"stdout":["Error: 429 Too Many Requests. Rate limit reached. Usage limit reached for profile quota-a."],"exit_code":1,"sleep_ms":1000}],"stdout":["FIXTURE_FAILOVER_TURN_COMPLETED"],"sleep_ms":1000}`)
 	if resolved, err := exec.LookPath("codex"); err != nil || resolved != fixturePath {
 		t.Fatalf("runtime would not resolve to the isolated fixture CLI: path=%q err=%v", resolved, err)
 	}
@@ -115,7 +117,8 @@ func TestMissionFailoverCostObservationAttributionFollowsExecutingRuntime(t *tes
 	// runtime evidence.
 	executionA, errA := n.executeAgentPrompt(ctx, agentA.ID, workspace, "attempt one under quota-a", policy)
 	if errA == nil {
-		t.Fatal("quota-exhausted attempt must not be reported as success")
+		env, _ := os.ReadFile(filepath.Join(root, "fixture-env.txt"))
+		t.Fatalf("quota-exhausted attempt must not be reported as success; fixture env was:\n%s", env)
 	}
 	if executionA == nil || executionA.RuntimeID == "" {
 		t.Fatalf("failed attempt must keep its runtime evidence: %+v (err=%v)", executionA, errA)
