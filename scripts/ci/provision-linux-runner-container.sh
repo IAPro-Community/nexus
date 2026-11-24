@@ -13,6 +13,7 @@ fi
 APT_OPTS=(
   -o APT::Sandbox::User=root
   -o Dir::Cache=/tmp/aptcache
+  -o Dir::Cache::archives=/tmp/aptcache/archives
 )
 
 PACKAGES=(
@@ -29,6 +30,8 @@ PACKAGES=(
   libglib2.0-dev
   libgtk-3-dev
   libwebkit2gtk-4.1-dev
+  libgtk-4-dev
+  libwebkitgtk-6.0-dev
   libsoup-3.0-dev
   libcairo2-dev
   libpango1.0-dev
@@ -57,6 +60,9 @@ PACKAGES=(
 )
 
 export DEBIAN_FRONTEND=noninteractive
+# A container restart can leave packages unpacked but unconfigured; apt then
+# refuses every install until dpkg finishes its pending work.
+dpkg --configure -a || true
 apt-get "${APT_OPTS[@]}" update
 apt-get "${APT_OPTS[@]}" install -y --no-install-recommends "${PACKAGES[@]}"
 

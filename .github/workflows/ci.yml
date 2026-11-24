@@ -423,8 +423,8 @@ jobs:
       - name: Verify Wails v3 Linux compatibility dependencies
         run: |
           set -euo pipefail
-          pkg-config --exists gtk+-3.0
-          pkg-config --exists webkit2gtk-4.1
+          pkg-config --exists gtk4
+          pkg-config --exists webkitgtk-6.0
           pkg-config --exists libsoup-3.0
           pkg-config --exists gio-unix-2.0
       - uses: actions/setup-go@v6
