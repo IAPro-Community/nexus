@@ -587,7 +587,7 @@
    "name": "Parallel Challenge",
    "category": "differentiator",
    "owner": "NEXUS",
-   "sourceStatus": "partial",
+   "sourceStatus": "present",
    "issue": 108,
    "releaseRequired": true,
    "requiredClients": 1,

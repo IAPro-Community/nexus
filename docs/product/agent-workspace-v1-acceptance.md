@@ -93,7 +93,7 @@ Legenda: **present** indica código-base localizado; **partial** significa lacun
 | ID | Requisito da V1 | Source | Issue | Evidência mínima |
 | --- | --- | --- | --- | --- |
 | `workspace-recipes` | Workspace Recipes | present | [#105](https://github.com/IAPro-Community/nexus/issues/105) | Recipes Frontend/Backend/Review/Debug/Release são layouts reutilizáveis; Receita não inicia Agents ou ações automaticamente |
-| `parallel-challenge` | Parallel Challenge | partial | [#108](https://github.com/IAPro-Community/nexus/issues/108) | Distribuir uma especificação a múltiplos Agents isolados e compará-los; Sem merge automático, custo UNKNOWN não vira zero |
+| `parallel-challenge` | Parallel Challenge | present | [#108](https://github.com/IAPro-Community/nexus/issues/108) | Distribuir uma especificação a múltiplos Agents isolados e compará-los; Sem merge automático, custo UNKNOWN não vira zero |
 | `change-collision-detector` | Change Collision Detector | present | [#109](https://github.com/IAPro-Community/nexus/issues/109) | Detectar alterações conflitantes por base commit/hunks; Informar incerteza e permitir revisão antes do merge |
 | `device-handoff` | Seamless Device Handoff | partial | [#111](https://github.com/IAPro-Community/nexus/issues/111) | Continuar no mobile a sessão do host sem duplicar execução; Lease, reattach, estados reconciliados e histórico auditável |
 
