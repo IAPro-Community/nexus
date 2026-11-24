@@ -103,6 +103,8 @@ export function DirectorAgentPanel({
           value: view.generation_id || t('director.notAvailable'),
         },
         { label: t('director.runtime'), value: view.runtime_id || t('director.notAvailable') },
+        ...(view.workspace ? [{ label: t('director.workspace'), value: view.workspace }] : []),
+        ...(view.worktree ? [{ label: t('director.worktree'), value: view.worktree }] : []),
       ]
     : [];
 
@@ -148,6 +150,43 @@ export function DirectorAgentPanel({
               </div>
             ))}
           </dl>
+          <h3 className={styles.heading}>{t('director.quotaTitle')}</h3>
+          <dl className={styles.metadata}>
+            <div>
+              <dt>{t('director.quotaStatus')}</dt>
+              <dd>{view.quota?.status || t('director.quotaUnknown')}</dd>
+            </div>
+            <div>
+              <dt>{t('director.quotaSource')}</dt>
+              <dd>{view.quota?.source || t('director.quotaUnknown')}</dd>
+            </div>
+            {view.quota?.remaining_percent !== undefined && (
+              <div>
+                <dt>{t('director.quotaRemaining')}</dt>
+                <dd>
+                  {`${view.quota.remaining_percent.toFixed(1)}%${
+                    view.quota.window ? ` · ${view.quota.window}` : ''
+                  }`}
+                </dd>
+              </div>
+            )}
+          </dl>
+          <h3 className={styles.heading}>{t('director.lineageTitle')}</h3>
+          {view.lineage?.length ? (
+            <ol className={styles.events}>
+              {view.lineage.map((entry) => (
+                <li key={entry.id} className={styles.event}>
+                  <strong>{entry.relation}</strong>
+                  <code>{`${entry.source_runtime} → ${entry.target_runtime}`}</code>
+                  {entry.checkpoint_id && (
+                    <code className={styles.eventCorrelation}>{entry.checkpoint_id}</code>
+                  )}
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className={styles.notice}>{t('director.lineageEmpty')}</p>
+          )}
           {observation && (
             <>
               <h3 className={styles.heading}>{t('director.observedTitle')}</h3>
