@@ -278,7 +278,9 @@ export const FlowRunSurface: React.FC<{
     );
   }
 
-  const canMutate = !terminalMissionStates.has(run.state);
+  const canMutate =
+    (!run.execution_owner || run.execution_owner === 'NEXUS') &&
+    !terminalMissionStates.has(run.state);
   const isBlocked = run.state === 'BLOCKED_NEEDS_USER';
   const resumable = run.state === 'PAUSED';
   const intervention = run.needs_human;

@@ -1982,6 +1982,7 @@ export interface MissionRun {
   plan_id: string;
   plan_revision: number;
   execution_snapshot_id?: string;
+  execution_owner?: 'NEXUS' | 'MAESTRO';
   project_id: string;
   workspace: string;
   integrated_workspace?: string;
