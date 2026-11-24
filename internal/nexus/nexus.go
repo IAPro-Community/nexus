@@ -353,14 +353,29 @@ func (n *Nexus) controlDrivers() *driver.Registry {
 	return driver.DefaultRegistry()
 }
 
-// ResetDefaultForTest releases the process-wide singleton between tests that
-// replace the configured data directory. Production code should use Default.
-func ResetDefaultForTest() {
+// releaseDefault shuts down the process-wide singleton and resets the lazy
+// initializer so a later Default call reopens the service.
+func releaseDefault() {
 	if defaultNexus != nil {
 		defaultNexus.Shutdown()
 		defaultNexus = nil
 	}
 	nexusOnce = sync.Once{}
+}
+
+// ReleaseDefault releases the process-wide Nexus service and its SQLite
+// handle. A later Default call reopens the service with the current data
+// directory. Short-lived CLI commands use it so the database file is not
+// held open after the command returns, which Windows requires before the
+// data directory can be removed.
+func ReleaseDefault() {
+	releaseDefault()
+}
+
+// ResetDefaultForTest releases the process-wide singleton between tests that
+// replace the configured data directory. Production code should use Default.
+func ResetDefaultForTest() {
+	releaseDefault()
 }
 
 // purgeExpiredEvents removes activity events older than the retention period.
