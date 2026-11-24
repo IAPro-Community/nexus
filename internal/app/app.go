@@ -76,6 +76,10 @@ func Run(args []string) error {
 	// Release the process-wide store before the CLI exits so SQLite never
 	// keeps the data directory locked after the command returns.
 	defer nexus.ReleaseDefault()
+	return runCommand(args)
+}
+
+func runCommand(args []string) error {
 	initRegistry()
 	cfg, _ := config.LoadConfig()
 	localization.Set(localization.Resolve("", cfg.Language))
