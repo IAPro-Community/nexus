@@ -3,7 +3,7 @@
 // an isolated `nexus web` server and seeds one fixture project, then hands the
 // caller a ready Playwright page with collectors attached.
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -32,6 +32,89 @@ export function terminateProcessOnExit(proc) {
 
 export { terminateProcess };
 
+// Fake Maestro Bridge used only by browser fixtures. Nexus talks to the
+// external `orquestrador-maestro bridge --stdio` process; without a Bridge the
+// read-only submissions projection answers 503 and Chromium logs it as a
+// console error, which the surface isolation gate treats as an unexpected
+// failure. The fake speaks the same JSON-RPC contract and never dispatches
+// work: it only answers initialize and the read-only submissions poll.
+const FAKE_MAESTRO_BRIDGE = String.raw`#!/usr/bin/env node
+'use strict';
+function send(payload) {
+  process.stdout.write(JSON.stringify(payload) + '\n');
+}
+function reply(id, result) {
+  send({ jsonrpc: '2.0', id: id, result: result });
+}
+function fail(id, message) {
+  send({ jsonrpc: '2.0', id: id, error: { code: -32601, message: message } });
+}
+function handle(request) {
+  const id = request.id;
+  const method = request.method;
+  const params = request.params || {};
+  if (method === 'initialize') {
+    reply(id, {
+      protocolVersion: 1,
+      capabilities: {
+        projectContext: true,
+        contextBrief: true,
+        plansRoutePreview: true,
+        runsSubmissionsPoll: true,
+        runsSubmissionsCancel: true,
+        runsSubmit: true,
+        projectCompose: true,
+        memory: { read: true },
+      },
+    });
+    return;
+  }
+  if (method === 'runs.submissions.poll') {
+    const limit = Number(params.limit || 20);
+    const offset = Number(params.offset || 0);
+    const previous = String(params.cursor || '');
+    const cursor = 's1:' + '0'.repeat(64);
+    reply(id, {
+      schemaVersion: 1,
+      authority: 'MAESTRO',
+      owner: 'MAESTRO',
+      delivery: 'SNAPSHOT_POLL',
+      replayable: false,
+      projectId: 'prj_e2e_maestro_fixture',
+      cursor: cursor,
+      changed: cursor !== previous,
+      total: 0,
+      offset: offset,
+      limit: limit,
+      nextOffset: null,
+      submissions: [],
+    });
+    return;
+  }
+  fail(id, 'method not found: ' + method);
+}
+let buffer = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', function (chunk) {
+  buffer += chunk;
+  let index = buffer.indexOf('\n');
+  while (index >= 0) {
+    const line = buffer.slice(0, index).trim();
+    buffer = buffer.slice(index + 1);
+    if (line) {
+      let request = null;
+      try {
+        request = JSON.parse(line);
+      } catch (error) {
+        request = null;
+      }
+      if (request) handle(request);
+    }
+    index = buffer.indexOf('\n');
+  }
+});
+`;
+
 export async function startFixtureServer({ composerFlow = false } = {}) {
   ensureNexusBinary(repoRoot, { composerFlow });
   const isolatedDataDir =
@@ -44,12 +127,18 @@ export async function startFixtureServer({ composerFlow = false } = {}) {
     const gitInit = spawnSync('git', ['init', '-q', isolatedProjectPath], { encoding: 'utf8' });
     if (gitInit.status !== 0) throw new Error(`fixture git init failed: ${gitInit.stderr || ''}`);
   }
+  const fakeBridgeDir = path.join(isolatedDataDir, 'fake-maestro-bin');
+  mkdirSync(fakeBridgeDir, { recursive: true });
+  writeFileSync(path.join(fakeBridgeDir, 'orquestrador-maestro'), FAKE_MAESTRO_BRIDGE, {
+    mode: 0o755,
+  });
   const serverEnv = {
     ...process.env,
     NEXUS_DATA_DIR: isolatedDataDir,
     NEXUS_CONFIG_DIR: path.join(isolatedDataDir, 'config'),
     AI_MANAGER_DATA_DIR: isolatedDataDir,
     NEXUS_E2E_PROJECT_PATH: isolatedProjectPath,
+    PATH: `${fakeBridgeDir}${path.delimiter}${process.env.PATH || ''}`,
   };
   let serverOutput = '';
   const appendOutput = (chunk) => {
