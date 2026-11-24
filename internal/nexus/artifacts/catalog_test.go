@@ -140,3 +140,78 @@ func TestServeAndThumbnail(t *testing.T) {
 		t.Fatal("fake image generated thumbnail")
 	}
 }
+
+func TestServePreservesOriginalMIME(t *testing.T) {
+	root, _ := makeTestRoot(t)
+	r := httptest.NewRequest(http.MethodGet, "/files", nil)
+
+	imageRec := httptest.NewRecorder()
+	if err := Serve(imageRec, r, root, "images/a.png", true); err != nil {
+		t.Fatal(err)
+	}
+	if got := imageRec.Header().Get("Content-Type"); got != "image/png" {
+		t.Fatalf("image MIME = %q, want image/png", got)
+	}
+	if got := imageRec.Header().Get("Content-Disposition"); got != `inline; filename="a.png"` {
+		t.Fatalf("image disposition = %q", got)
+	}
+	if got := imageRec.Header().Get("Cache-Control"); got != "private, no-store" {
+		t.Fatalf("cache control = %q", got)
+	}
+	if got := imageRec.Header().Get("Content-Security-Policy"); got != "sandbox" {
+		t.Fatalf("content security policy = %q", got)
+	}
+
+	textRec := httptest.NewRecorder()
+	if err := Serve(textRec, r, root, "notes.md", false); err != nil {
+		t.Fatal(err)
+	}
+	if got := textRec.Header().Get("Content-Type"); got != "text/plain; charset=utf-8" {
+		t.Fatalf("text MIME = %q, want text/plain; charset=utf-8", got)
+	}
+	if got := textRec.Header().Get("Content-Disposition"); got != `attachment; filename="notes.md"` {
+		t.Fatalf("text disposition = %q", got)
+	}
+
+	pdfRec := httptest.NewRecorder()
+	if err := Serve(pdfRec, r, root, "report.pdf", true); err != nil {
+		t.Fatal(err)
+	}
+	if got := pdfRec.Header().Get("Content-Type"); got != "application/pdf" {
+		t.Fatalf("pdf MIME = %q, want application/pdf", got)
+	}
+}
+
+func TestProjectRootsIsolateArtifactsBetweenProjects(t *testing.T) {
+	rootA, _ := makeTestRoot(t)
+
+	dirB := t.TempDir()
+	imageBytes := new(bytes.Buffer)
+	img := image.NewRGBA(image.Rect(0, 0, 8, 8))
+	img.Set(0, 0, color.RGBA{R: 10, G: 20, B: 30, A: 255})
+	if err := png.Encode(imageBytes, img); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dirB, "project-b.png"), imageBytes.Bytes(), 0600); err != nil {
+		t.Fatal(err)
+	}
+	rootB, err := Root(dirB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rootB.Close()
+
+	if _, err := Describe(rootA, "project-b.png"); err == nil {
+		t.Fatal("project A exposed an artifact owned by project B")
+	}
+	if err := Serve(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/files", nil), rootA, "../"+filepath.Base(dirB)+"/project-b.png", true); err == nil {
+		t.Fatal("project A served an artifact owned by project B through traversal")
+	}
+	item, err := Describe(rootB, "project-b.png")
+	if err != nil {
+		t.Fatalf("project B lost its own artifact: %v", err)
+	}
+	if item.Path != "project-b.png" || item.MIME != "image/png" {
+		t.Fatalf("unexpected project B artifact: %+v", item)
+	}
+}
