@@ -1,45 +1,19 @@
-# IAPro Nexus — Beta Terms (v1.0.0-beta.1)
+# IAPro Nexus — Beta Distribution Terms
 
-Status: draft for owner review before first external distribution.
+IAPro Nexus is open-source software licensed under the [MIT License](../../LICENSE). These terms describe the official beta distribution and optional services; they do not restrict any rights granted by the MIT License.
 
-## 1. What the beta is
+## Beta software
 
-A free, time-limited evaluation of the proprietary IAPro Nexus binaries
-(Linux, Windows, macOS). The beta initially costs nothing; paid plans
-(Free/Pro/Team) may be introduced later. Nothing in this beta promises
-future pricing.
+The beta is pre-release software provided as-is under the MIT License. Back up important work. Official support, hosted services and future commercial offerings may have separate terms and pricing.
 
-## 2. How you get it
+## Distribution and updates
 
-- Official channel only: signed binaries from the IAPro distribution
-  registry (see `docs/release/BETA_PLAYBOOK.md`). No source repository
-  access, no GitHub access, and no local build are required or provided.
-- Verify the signed channel manifest before installing. Never install a
-  beta binary from an unofficial link.
+Official signed builds are recommended. Verify signatures and checksums before installing. You may build, modify, redistribute and sell copies under the MIT License, including unofficial builds. Unofficial builds are not endorsed by IAPro.
 
-## 3. Your obligations
+## Privacy and diagnostics
 
-- Keep your installation updated to the latest beta while evaluating.
-- Do not share, repost, or mirror beta binaries or download links.
-- Report crashes and defects through the official support channel with a
-  diagnostics bundle you explicitly approve (see Privacy notice).
-- Do not use the beta with data you cannot afford to lose; back up
-  important work.
+Product analytics is opt-in. Review the [Privacy Notice](PRIVACY.md) before enabling analytics or submitting diagnostics. Third-party providers have their own terms.
 
-## 4. Telemetry and privacy
+## Official services
 
-- Local telemetry stays on your machine.
-- Product analytics is opt-in, sends only allowlisted aggregate event
-  names (never prompts, code, files, tokens, or paths), and can be
-  disabled at any time. Details: `docs/legal/PRIVACY.md`.
-
-## 5. No warranty, limited liability
-
-Pre-release software, "AS IS", to the maximum extent permitted by law.
-IAPro's aggregate liability for the beta is limited to amounts you paid
-for the beta (zero during the free beta).
-
-## 6. Term and termination
-
-These terms apply until the beta ends or is superseded. IAPro may end or
-suspend the beta, or revoke abusive installations, at any time.
+IAPro may change or discontinue its official beta distribution and optional services. This does not revoke rights to software already received under the MIT License. Third-party components retain their respective licenses; see [Third-Party Notices](THIRD_PARTY_NOTICES.md).

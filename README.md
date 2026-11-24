@@ -287,7 +287,7 @@ incluindo plataformas nativas e demais gates definidos no programa de fechamento
 
 ## Licença
 
-Software proprietário distribuído conforme [LICENSE](LICENSE) e os
-[Beta Terms](docs/legal/BETA_TERMS.md). Consulte também
+Software open source distribuído sob a [licença MIT](LICENSE).
+Consulte os [termos de distribuição beta](docs/legal/BETA_TERMS.md),
 [Privacy](docs/legal/PRIVACY.md) e
 [Third-Party Notices](docs/legal/THIRD_PARTY_NOTICES.md).

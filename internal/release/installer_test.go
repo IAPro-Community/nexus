@@ -489,8 +489,8 @@ func TestPublicLicenseMetadataMatchesLicenseFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasPrefix(string(license), "# IAPro Nexus — Proprietary Beta License") {
-		t.Fatalf("expected the vigente LICENSE file to be the proprietary beta license, got %q", strings.SplitN(string(license), "\n", 2)[0])
+	if !strings.HasPrefix(string(license), "MIT License\n") {
+		t.Fatalf("expected MIT LICENSE, got %q", strings.SplitN(string(license), "\n", 2)[0])
 	}
 
 	for _, name := range []string{"README.md", "README.en.md", "README.es.md"} {
@@ -499,19 +499,13 @@ func TestPublicLicenseMetadataMatchesLicenseFile(t *testing.T) {
 			t.Fatal(err)
 		}
 		text := string(data)
-		if strings.Contains(strings.ToLower(text), "apache") {
-			t.Errorf("%s still advertises Apache despite the proprietary LICENSE", name)
-		}
-		if strings.Contains(text, "MIT License") || strings.Contains(text, "Licencia MIT") || strings.Contains(text, "licença MIT") {
-			t.Errorf("%s still advertises MIT despite the proprietary LICENSE", name)
-		}
-		if !strings.Contains(strings.ToLower(text), "licen") {
-			t.Errorf("%s does not reference the vigente license", name)
+		if !strings.Contains(strings.ToLower(text), "mit") || !strings.Contains(text, "(LICENSE)") {
+			t.Errorf("%s must reference the MIT LICENSE", name)
 		}
 	}
 }
 
-// TestReleaseBuildsStripLocalPaths guards the closed-binary requirement:
+// TestReleaseBuildsStripLocalPaths guards distributed build privacy:
 // every Go build that can reach beta users must pass -trimpath as a BUILD
 // flag (never inside -ldflags, which the linker rejects) so build machine
 // paths never embed in distributed artifacts.

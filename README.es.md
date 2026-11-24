@@ -73,4 +73,4 @@ La [integración con Maestro](docs/product/maestro.md) es opcional para el camin
 
 ## Comunidad
 
-[Seguridad](SECURITY.md) · [Soporte](SUPPORT.md) · [Gobernanza](GOVERNANCE.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Licencia Beta](LICENSE)
+[Seguridad](SECURITY.md) · [Soporte](SUPPORT.md) · [Gobernanza](GOVERNANCE.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Licencia MIT](LICENSE)

@@ -12,7 +12,7 @@ PackageVersion: 0.0.0-PLACEHOLDER
 PackageLocale: en-US
 Publisher: IAPro
 PackageName: IAPro Nexus
-License: Proprietary
+License: MIT
 LicenseUrl: https://github.com/IAPro-Community/nexus/blob/main/LICENSE
 ShortDescription: Local workstation for operating coding agents
 Installers:
