@@ -241,17 +241,21 @@
      "acceptance": "Mobile Inbox e terminal remoto vinculados ao host",
      "sourceRefs": [
       "web/src/features/settings/RemoteAccessTab.tsx",
-      "internal/control/web/handlers_tunnel.go"
+      "internal/control/web/handlers_tunnel.go",
+      "web/src/app/attentionRadarModel.ts",
+      "web/src/nexus/missionAttentionModel.ts"
      ],
      "testRefs": [
       "internal/control/web/remote_test.go",
       "internal/control/web/remote_invite_test.go",
-      "web/src/notifications/attentionDelivery.test.ts"
+      "web/src/notifications/attentionDelivery.test.ts",
+      "web/src/app/attentionRadarModel.test.ts",
+      "web/src/nexus/missionAttentionModel.test.ts"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria parcial: RemoteAccessTab permite publicar túnel/QR e remote_test.go percorre bootstrap/API pelo túnel; remote_invite_test.go cobre convite autenticado de uso único; attentionDelivery.test.ts cobre chaves e foco da entrega. Não há teste de Mobile Inbox ou terminal remoto ponta a ponta em outro dispositivo/host. Capability pendente.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: linhas da Mobile Inbox carregam provider_session_id e o response guard do episodio exato (attentionRadarModel.test.ts) e jobs de missao carregam mission/project/task/intervention version (missionAttentionModel.test.ts); remote_test.go percorre bootstrap e API pelo tunel do mesmo host e remote_invite_test.go cobre convite autenticado de uso unico. Falta E2E em dois dispositivos fisicos no SHA publicado.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
@@ -259,17 +263,21 @@
      "sourceRefs": [
       "web/src/features/settings/RemoteAccessTab.tsx",
       "internal/control/host/host.go",
-      "internal/control/web/handlers_tunnel.go"
+      "internal/control/web/handlers_tunnel.go",
+      "internal/control/web/auth.go"
      ],
      "testRefs": [
       "internal/control/host/qa_test.go",
       "internal/control/host/host_test.go",
-      "internal/control/web/remote_invite_test.go"
+      "internal/control/web/remote_invite_test.go",
+      "internal/control/web/terminal_handoff_authenticated_test.go",
+      "internal/control/web/devices_test.go",
+      "web/scripts/e2e-remote-access.mjs"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria parcial: host_test e qa_test cobrem handover de lease entre dois attached clients sem reiniciar o PTY; remote_invite_test cobre convite/túnel seguro e corrida de gerações do túnel. Não há E2E real de troca de dispositivo com sessão preservada nem revogação imediata do dispositivo remoto/credencial. Capability pendente.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: handover de lease entre dois attached clients sem reiniciar o PTY (host_test.go, qa_test.go, terminal_handoff_authenticated_test.go); a revogacao de um dispositivo pareado fecha imediatamente o watcher da sessao dele sem tocar a sessao do outro dispositivo (devices_test.go, TestRemoteDeviceRevocationClosesOnlyThatDeviceSession); o roteiro web/scripts/e2e-remote-access.mjs cobre pareamento, papeis e revogacao isolada. Falta ensaio em dois aparelhos fisicos no SHA publicado.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 2,
@@ -285,13 +293,16 @@
      ],
      "testRefs": [
       "internal/control/web/access_code_test.go",
+      "internal/control/web/remote_invite_test.go",
+      "internal/control/web/private_origin_test.go",
       "web/src/api.test.ts",
-      "web/src/features/settings/remoteAccessModel.test.ts"
+      "web/src/features/settings/remoteAccessModel.test.ts",
+      "web/scripts/e2e-remote-access.mjs"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria parcial: access_code_test.go cobre geração Crockford, uso único, normalização I/L/O, vínculo ao host, túnel ativo, guarda anti-força-bruta e endpoint /api/v1/auth/pair; api.test.ts cobre a troca no cliente; remoteAccessModel.test.ts cobre a formatação. Falta E2E real com túnel público e dois dispositivos físicos no SHA distribuído. Assertion ainda não auditada e aceite pendente.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: access_code_test.go cobre geracao Crockford, uso unico, normalizacao I/L/O, vinculo ao host, tunel ativo, guarda anti-forca-bruta e /api/v1/auth/pair; remote_invite_test.go cobre emissao autenticada com CSRF e corrida de geracoes do tunel; private_origin_test.go cobre o pareamento pelo caminho HTTP real; api.test.ts e remoteAccessModel.test.ts cobrem cliente e formatacao; e2e-remote-access.mjs cobre QR + codigo de 8 caracteres em dois navegadores moveis. Falta aceite em dois aparelhos fisicos no SHA publicado.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
