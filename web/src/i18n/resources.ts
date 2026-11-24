@@ -621,6 +621,18 @@ export const en = {
     inspect: 'Inspect',
     recentActivity: 'Recent activity',
     noRecentActivity: 'No recent activity recorded for this Agent.',
+    timelineSource: 'Source',
+    timelineGeneration: 'Runtime generation',
+    timelineCorrelation: 'Correlation',
+    timelinePhases: {
+      launch: 'Launch',
+      attach: 'Attach',
+      quota: 'Quota',
+      handoff: 'Handoff',
+      recovery: 'Recovery',
+      error: 'Error',
+      approval: 'Approval',
+    },
     processStates: {
       LIVE: 'Process alive',
       NOT_LIVE: 'Process no longer available',
@@ -1346,6 +1358,9 @@ export const en = {
     workspaceSharingTitle: 'Share observations with a viewer link',
     workspaceSharingBody:
       'Create a read-only, project-scoped viewer link, optionally bounded by a TTL, and revoke it immediately at any time. The link reads observations only — no preferences, accounts or provider identities.',
+    agentTimelineTitle: 'Inspect the Agent lifecycle timeline',
+    agentTimelineBody:
+      'Open Director Mode to follow launch, attach, quota, handoff, and recovery events with durable source, runtime generation, and correlation metadata.',
     agentGroupsTitle: 'Group persistent Agents',
     agentGroupsBody:
       'Organize persistent Agents by task, worktree, and feature. Filter and reorder them while keeping their existing identities.',
@@ -1388,6 +1403,9 @@ export const en = {
     workspaceSharingTitle: 'Create a viewer link',
     workspaceSharingBody:
       'In Shared observations, create a viewer link with an optional TTL and revoke it with one click. The link is read-only and immediately revocable.',
+    agentTimelineTitle: 'Inspect the Agent lifecycle timeline',
+    agentTimelineBody:
+      'Open Director Mode to follow launch, attach, quota, handoff, and recovery events with durable source, runtime generation, and correlation metadata.',
     agentGroupsTitle: 'Group persistent Agents',
     agentGroupsBody:
       'Organize stable Agent identities by task, worktree, and feature. Filtering and manual order keep their existing sessions attached.',
@@ -3640,6 +3658,18 @@ export const ptBR = {
     inspect: 'Inspecionar',
     recentActivity: 'Atividade recente',
     noRecentActivity: 'Nenhuma atividade recente registrada para este agente.',
+    timelineSource: 'Origem',
+    timelineGeneration: 'Geração do runtime',
+    timelineCorrelation: 'Correlação',
+    timelinePhases: {
+      launch: 'Inicialização',
+      attach: 'Anexo',
+      quota: 'Quota',
+      handoff: 'Handoff',
+      recovery: 'Recuperação',
+      error: 'Erro',
+      approval: 'Aprovação',
+    },
     processStates: {
       LIVE: 'Processo ativo',
       NOT_LIVE: 'Processo indisponível',
@@ -4369,6 +4399,9 @@ export const ptBR = {
     workspaceSharingTitle: 'Compartilhe observações com um link de visualização',
     workspaceSharingBody:
       'Crie um link somente leitura com escopo do projeto, opcionalmente limitado por TTL, e revogue-o imediatamente a qualquer momento. O link lê apenas observações — sem preferências, contas ou identidades de providers.',
+    agentTimelineTitle: 'Inspecione a linha de tempo do ciclo do Agent',
+    agentTimelineBody:
+      'Abra o Director Mode para acompanhar inicialização, anexo, quota, handoff e recuperação com origem durável, geração do runtime e metadados de correlação.',
     agentGroupsTitle: 'Agrupe agentes persistentes',
     agentGroupsBody:
       'Organize agentes persistentes por tarefa, worktree e recurso. Filtre e reordene sem trocar suas identidades existentes.',
@@ -4411,6 +4444,9 @@ export const ptBR = {
     workspaceSharingTitle: 'Crie um link de visualização',
     workspaceSharingBody:
       'Em Observações compartilhadas, crie um link de visualização com TTL opcional e revogue com um clique. O link é somente leitura e pode ser revogado imediatamente.',
+    agentTimelineTitle: 'Inspecione a linha de tempo do ciclo do Agent',
+    agentTimelineBody:
+      'Abra o Director Mode para acompanhar inicialização, anexo, quota, handoff e recuperação com origem durável, geração do runtime e metadados de correlação.',
     agentGroupsTitle: 'Agrupe agentes persistentes',
     agentGroupsBody:
       'Organize identidades estáveis de agentes por tarefa, worktree e feature. Filtros e ordem manual mantêm as sessões existentes vinculadas.',
@@ -6681,6 +6717,18 @@ export const es = {
     inspect: 'Inspeccionar',
     recentActivity: 'Actividad reciente',
     noRecentActivity: 'No se registró actividad reciente para este agente.',
+    timelineSource: 'Fuente',
+    timelineGeneration: 'Generación del runtime',
+    timelineCorrelation: 'Correlación',
+    timelinePhases: {
+      launch: 'Lanzamiento',
+      attach: 'Conexión',
+      quota: 'Cuota',
+      handoff: 'Transferencia',
+      recovery: 'Recuperación',
+      error: 'Error',
+      approval: 'Aprobación',
+    },
     processStates: {
       LIVE: 'Proceso activo',
       NOT_LIVE: 'Proceso no disponible',
@@ -7408,6 +7456,9 @@ export const es = {
     workspaceSharingTitle: 'Comparte observaciones con un enlace de visualización',
     workspaceSharingBody:
       'Crea un enlace de solo lectura con alcance del proyecto, opcionalmente limitado por TTL, y revócalo inmediatamente cuando quieras. El enlace solo lee observaciones — sin preferencias, cuentas ni identidades de providers.',
+    agentTimelineTitle: 'Inspeccione la línea de tiempo del ciclo del Agent',
+    agentTimelineBody:
+      'Abra Director Mode para seguir lanzamiento, conexión, cuota, transferencia y recuperación con origen durable, generación del runtime y metadatos de correlación.',
     agentGroupsTitle: 'Agrupe agentes persistentes',
     agentGroupsBody:
       'Organice agentes persistentes por tarea, worktree y función. Filtre y reordene sin cambiar sus identidades existentes.',
@@ -7453,6 +7504,9 @@ export const es = {
     agentGroupsTitle: 'Agrupe agentes persistentes',
     agentGroupsBody:
       'Organice identidades estables de agentes por tarea, worktree y feature. Los filtros y el orden manual conservan sus sesiones existentes.',
+    agentTimelineTitle: 'Inspeccione la línea de tiempo del ciclo del Agent',
+    agentTimelineBody:
+      'Abra Director Mode para seguir lanzamiento, conexión, cuota, transferencia y recuperación con origen durable, generación del runtime y metadatos de correlación.',
     focusQueueTitle: 'Trabaje con la cola de pendientes',
     focusQueueBody:
       'Las filas se ordenan por severidad y luego por tiempo de espera. Al hacer clic se abre el runtime exacto; las filas respondidas salen de la cola.',

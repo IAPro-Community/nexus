@@ -189,6 +189,12 @@ export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
   ],
   agents: [
     {
+      id: 'timeline',
+      target: '[data-tour="agent-timeline-entry"]',
+      title: 'tour.agentTimelineTitle',
+      body: 'tour.agentTimelineBody',
+    },
+    {
       id: 'groups',
       target: '[data-tour="agent-groups"]',
       title: 'tour.agentGroupsTitle',
