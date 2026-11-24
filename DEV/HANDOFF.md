@@ -1,3 +1,11 @@
+## Handoff 2026-11-24 — Matriz hospedada destravada: macOS e Windows portáveis
+
+- **Git** — `origin/release/v1.0.0` @ `f5f10a6e`; lotes de 1–2 arquivos: `ab0a7de2` (mapa + verificador `.mjs`), `8e5a4880` (contrato/doc), `72c6a9d9` (deadlock do fixture cursor), `36ab8250` (symlink worktree), `2c894523` (handle do lock de migração), `017894ab`/`97c13e63` (modo POSIX em Windows), `77c24499`+`5afc751f`/`24f143c1`/`be667acb`/`23e77794` (fixtures portáveis `fixturecli`), `f5f10a6e` (budget Windows).
+- **Diagnóstico** — matriz `unsigned-preview.yml` no SHA `7ef578a8`: Linux `passed`; macOS arm64 `39f...`/intel e Windows falharam em `go test -count=1 ./...`. Causas: `select {}` do fixture cursor acionava o detector de deadlock (probe terminava em ~30ms), comparação literal `/var` vs `/private/var`, lock de journal aberto impedindo `os.Remove`, fixtures `#!/bin/sh` inexequíveis, asserts de modo POSIX e budget de 10k observações calibrado em Linux.
+- **Estado atual** — macOS e Windows cobertos por fixtures nativos e guards de plataforma; `cross-platform-exact-sha` agora `partial` com cláusula 0 `audited`; 0 certificações; 48 capacidades `verification: pending`; tag `v1.0.0` intacta; `v1.0.1` não criada; release **NO_GO**.
+- **Próximo passo** — rodar a matriz hospedada no SHA final (commit marcado `[unsigned-preview] [no-publish]`), baixar os três `workspace-acceptance-*.json`, rodar `assemble` e reauditar F5/F7 com o resultado. Depois: `ci.yml` verde no mesmo SHA e Lane A nas capabilities restantes.
+- **Bloqueios que exigem o maestro** — aceite externo por capacidade, aceite visual NEX (HUD+Site), runners `nexus-windows`/`nexus-macos` com chaves `native-signing`, credencial do Named Tunnel, quota real AGY, dois dispositivos físicos, `memory-migrate apply` com Bridge ativo.
+
 ## Handoff 2026-11-24 — `agent-timeline` publicado e aceito no SHA `5a3e8091`
 
 - **Git** — `origin/release/v1.0.0` @ `5a3e80915f44cda219d30641d70a2d484887bca1`; árvore limpa; commits `4e564078`..`52ce3086` (lotes ≤2 arquivos) + capturas automáticas `502e9aae`.
