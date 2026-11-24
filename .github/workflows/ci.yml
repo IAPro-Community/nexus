@@ -370,6 +370,12 @@ jobs:
       - run: go test -race -v -count=1 ./internal/control/terminal/... ./internal/control/protocol/...
       - run: go test -race -v -count=1 ./internal/control/host/... ./internal/control/web/...
       - run: go build -trimpath -v ./cmd/nexus
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+      - name: Install locked Web dependencies for acceptance evidence
+        working-directory: web
+        run: bun install --frozen-lockfile
       - name: Produce V1 workspace acceptance record (per-platform evidence)
         id: workspace-acceptance
         shell: bash
