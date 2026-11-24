@@ -1,6 +1,9 @@
 package web
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestRemoteDevicesListAndRevoke(t *testing.T) {
 	auth, _, err := NewAuthManager("127.0.0.1", "0")
@@ -54,6 +57,59 @@ func TestRemoteDevicesListAndRevoke(t *testing.T) {
 	}
 	if auth.RevokeDevice(deviceID) {
 		t.Fatal("revoking an unknown handle must be refused")
+	}
+}
+
+func TestRemoteDeviceRevocationClosesOnlyThatDeviceSession(t *testing.T) {
+	auth, _, err := NewAuthManager("127.0.0.1", "0")
+	if err != nil {
+		t.Fatalf("NewAuthManager: %v", err)
+	}
+	auth.SetTunnelActive(true)
+
+	phoneA, err := auth.CreateSession()
+	if err != nil {
+		t.Fatalf("CreateSession: %v", err)
+	}
+	deviceA, ok := auth.AnnotateDevice(phoneA.ID, "Chrome · Android", "mobile")
+	if !ok {
+		t.Fatal("AnnotateDevice must mint a device handle")
+	}
+	phoneB, err := auth.CreateSession()
+	if err != nil {
+		t.Fatalf("CreateSession: %v", err)
+	}
+	deviceB, ok := auth.AnnotateDevice(phoneB.ID, "Safari · iOS", "mobile")
+	if !ok {
+		t.Fatal("AnnotateDevice must mint a device handle")
+	}
+
+	revokedA, stopA, activeA := auth.WatchSession(phoneA.ID)
+	defer stopA()
+	revokedB, stopB, activeB := auth.WatchSession(phoneB.ID)
+	defer stopB()
+	if !activeA || !activeB {
+		t.Fatal("paired devices must start with live session watchers")
+	}
+
+	if !auth.RevokeDevice(deviceA) {
+		t.Fatal("RevokeDevice must revoke the paired device")
+	}
+	select {
+	case <-revokedA:
+	case <-time.After(2 * time.Second):
+		t.Fatal("revoking a device must immediately close its session watcher")
+	}
+	select {
+	case <-revokedB:
+		t.Fatal("revoking one device must not close another device session")
+	default:
+	}
+	if !auth.SessionActive(phoneB.ID) {
+		t.Fatal("the second paired device must stay active")
+	}
+	if !auth.RevokeDevice(deviceB) {
+		t.Fatal("the second device must remain independently revocable")
 	}
 }
 
