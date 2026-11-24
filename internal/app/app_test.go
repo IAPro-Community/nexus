@@ -58,6 +58,23 @@ func TestRunTreatsColonInTaskGoalAsGoalNotProvider(t *testing.T) {
 	}
 }
 
+func TestRunGoalCommandReleasesStoreHandle(t *testing.T) {
+	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
+	t.Setenv("NEXUS_CONFIG_DIR", t.TempDir())
+
+	st := nexus.Default().Store()
+	if st == nil {
+		t.Fatal("project store unavailable")
+	}
+	err := runCmd([]string{"Create a file: verify its contents"})
+	if err == nil || !strings.Contains(err.Error(), "nenhum projeto ativo") {
+		t.Fatalf("task goal must enter the Nexus task pipeline, got %v", err)
+	}
+	if pingErr := st.DB().Ping(); pingErr == nil {
+		t.Fatal("CLI task command must release the SQLite store handle")
+	}
+}
+
 func TestRunProviderInvocationRecognizesOnlyProviderForms(t *testing.T) {
 	tests := []struct {
 		name string

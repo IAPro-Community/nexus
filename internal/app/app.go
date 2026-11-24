@@ -73,6 +73,9 @@ func progName() string {
 }
 
 func Run(args []string) error {
+	// Release the process-wide store before the CLI exits so SQLite never
+	// keeps the data directory locked after the command returns.
+	defer nexus.ReleaseDefault()
 	initRegistry()
 	cfg, _ := config.LoadConfig()
 	localization.Set(localization.Resolve("", cfg.Language))
@@ -1864,6 +1867,10 @@ func runGoalCmd(args []string) error {
 
 	ctx := context.Background()
 	n := nexus.Default()
+	// Release the process-wide store when the command returns so SQLite does
+	// not keep the data directory locked. Windows cannot remove a database
+	// file that is still open.
+	defer nexus.ReleaseDefault()
 	st, err := n.OpenProject()
 	if err != nil {
 		return err
