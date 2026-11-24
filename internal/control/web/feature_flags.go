@@ -35,8 +35,17 @@ func optionalFeatureMutationBlocked(w http.ResponseWriter, r *http.Request, feat
 	if optionalFeatureEnabled(feature) || isReadOnlyMethod(r.Method) {
 		return false
 	}
-	if strings.HasSuffix(r.URL.Path, "/cancel") || strings.HasSuffix(r.URL.Path, "/stop") {
-		return false
+	// Only exact shutdown routes may bypass the admission gate.
+	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if r.Method == http.MethodPost && feature == featureMissions {
+		if len(parts) == 5 && parts[0] == "api" && parts[1] == "v1" && parts[2] == "runs" &&
+			(parts[4] == "cancel" || parts[4] == "pause") {
+			return false
+		}
+		if len(parts) == 7 && parts[0] == "api" && parts[1] == "v1" && parts[2] == "projects" &&
+			parts[4] == "maestro" && parts[5] == "submissions" && parts[6] == "cancel" {
+			return false
+		}
 	}
 	optionalFeatureUnavailable(w, feature)
 	return true
@@ -71,11 +80,8 @@ func featureForProjectMutation(path string) string {
 		return featureFlow
 	case strings.HasSuffix(path, "/maestro/runs"),
 		strings.HasSuffix(path, "/maestro/submissions"),
-		strings.HasSuffix(path, "/maestro/submissions/cancel"),
-		strings.HasSuffix(path, "/maestro/submissions/import-usage"):
+		strings.HasSuffix(path, "/maestro/submissions/cancel"):
 		return featureMissions
-	case strings.HasSuffix(path, "/release-desk"):
-		return featureComparisonLab
 	}
 	return ""
 }

@@ -45,6 +45,7 @@ func TestOptionalMutationGatePreservesHistoryAndCancellation(t *testing.T) {
 	}
 	check(http.MethodGet, "/api/v1/runs/legacy", http.StatusNoContent)
 	check(http.MethodPost, "/api/v1/runs/legacy/resume", http.StatusNotFound)
+	check(http.MethodPost, "/api/v1/runs/legacy/resume/cancel", http.StatusNotFound)
 	check(http.MethodPost, "/api/v1/runs/legacy/cancel", http.StatusNoContent)
 	check(http.MethodDelete, "/api/v1/runs/legacy", http.StatusNotFound)
 	if reached != 2 {

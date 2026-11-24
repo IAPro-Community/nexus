@@ -12,6 +12,8 @@ import (
 )
 
 func TestInteractiveDelegationModeFailsClosedAndHonorsExplicitOverride(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	t.Setenv("NEXUS_DELEGATION_MODE", "")
 	if got := interactiveDelegationMode(registry.RuntimeSession{}); got != nexus.DelegationOff {
 		t.Fatalf("missing runtime mode=%q want OFF", got)
@@ -117,5 +119,14 @@ func TestConfirmedInteractiveDelegationModeClearsAskPendingApproval(t *testing.T
 	}
 	if got := confirmedInteractiveDelegationMode(nexus.DelegationAuto); got != nexus.DelegationAuto {
 		t.Fatalf("AUTO must remain AUTO, got %s", got)
+	}
+}
+
+func TestGlobalFlagPreventsMissionPromotion(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "false")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
+	t.Setenv("NEXUS_DELEGATION_MODE", "AUTO")
+	if got := interactiveDelegationMode(registry.RuntimeSession{}); got != nexus.DelegationOff {
+		t.Fatalf("disabled global gate must keep delegation OFF, got %q", got)
 	}
 }
