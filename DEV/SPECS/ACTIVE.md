@@ -1,3 +1,11 @@
+## 2026-11-23 — Lane A: `mobile-inbox` e `voice-actions` auditadas — ativo
+
+- **Lane A — estado** — 19 das 48 capacidades com todos os critérios `audited` (45/97 cláusulas), 29 ainda com cláusulas `partial`, 0 certificadas. Nesta onda: `mobile-inbox` (vínculo de sessão no radar e nos jobs de missão; identidade de episódio estável entre reconexões; claim durável e retry sem resend já cobertos no servidor) e `voice-actions` (destino obrigatório, lease `CONTROL`, texto sem caracteres de controle).
+- **CI** — run `45314181244` (`768d6593`): `Frontend` vermelho apenas em `Verify documentation` (`visual manifest is stale … web/src/features/voice/terminalVoice.ts`); `Linux E2E` em execução; `Windows beta.10 homologation` vermelho (runner ConPTY, #216). Push `44813009` publicado; o workflow `Refresh synthetic documentation captures` precisa recapturar no SHA novo para o `Frontend` ficar verde.
+- **Estado** — `origin/release/v1.0.0` = `44813009`; tag `v1.0.0` intacta (`d89797cd`), `v1.0.1` não criada. Release **NO_GO** até prova externa por capacidade no SHA exato.
+- **Próximo** — acompanhar CI/captura de `44813009`; coletar `workspace-acceptance-linux-amd64.json`; fechar `remote-companion` e, quando os hunks alheios liberarem, `agent-timeline`.
+- **Bloqueios que exigem o maestro** — aceite visual NEX em HUD+Site, runner Windows/macOS nativo e chaves de assinatura, credencial do Named Tunnel, quota real AGY, hardware físico, `memory-migrate apply` com Bridge ativo.
+
 ## 2026-11-23 — Lane A: `runtime-health`, `test-matrix` e `review-handoff` auditadas — ativo
 
 - **Lane A — estado** — 14 das 48 capacidades com todos os critérios `audited` (34 ainda com `partial`). Nesta onda: `runtime-health` (diagnóstico por sinal de lease/PTY/heartbeat/PID/capability, exposto no doctor), `test-matrix` (matriz por worktree com exit code, SHA, timestamp e logs; PASS exige provenance `command_execution`) e `review-handoff` (revisão recebe `ChangedArtifacts` e `ReviewedStepIDs`, sem reexecutar a implementação).
