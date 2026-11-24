@@ -1601,12 +1601,13 @@
      ],
      "testRefs": [
       "web/src/features/hud/mascotModel.test.ts",
-      "web/src/features/hud/nexCompanionBehavior.test.ts"
+      "web/src/features/hud/nexCompanionBehavior.test.ts",
+      "web/src/design-system/theme/theme.test.ts"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: mascotModel.test.ts afirma que nao anima quando motion esta desabilitado ou Nexus offline e nexCompanionBehavior.test.ts trata arrays nulos; contraste alto e o identity lock NEX-ID-v1 nao sao asertados nos testes referenciados.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: mascotModel.test.ts afirma que nao anima quando motion esta desabilitado ou Nexus offline; nexCompanionBehavior.test.ts afirma o identity lock FROZEN NEX-ID-v1 e as invariantes de duas aletas, dois acoplamentos e quatro modulos; theme.test.ts exige contraste AAA >= 7:1 nos presets high-contrast-dark e high-contrast-light para texto, texto suave, muted, subtle e accent sobre fundo e superficie. Falta aceite visual externo no SHA publicado.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
