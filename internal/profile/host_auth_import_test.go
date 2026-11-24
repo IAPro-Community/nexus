@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -279,7 +280,8 @@ func TestImportHostSessionsComposesInstalledAdapterWithHostCredential(t *testing
 		t.Fatalf("isolated auth differs from fixture: %v", err)
 	}
 	info, err := os.Stat(destination)
-	if err != nil || info.Mode().Perm() != 0o600 {
+	// Windows carries no POSIX permission bits; the import still requests 0600.
+	if err != nil || (runtime.GOOS != "windows" && info.Mode().Perm() != 0o600) {
 		t.Fatalf("imported auth mode = %v, %v; want 0600", info, err)
 	}
 	if got, err := os.ReadFile(source); err != nil || string(got) != string(hostAuth) {
