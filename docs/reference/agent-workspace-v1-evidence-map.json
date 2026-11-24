@@ -1355,31 +1355,41 @@
      "acceptanceIndex": 0,
      "acceptance": "Perguntas/approvals e jobs no celular vinculados à sessão",
      "sourceRefs": [
-      "web/src/components/GlobalAttentionRadar.tsx"
+      "web/src/components/GlobalAttentionRadar.tsx",
+      "web/src/app/attentionRadarModel.ts",
+      "web/src/notifications/MissionAttentionPanel.tsx",
+      "web/src/nexus/missionAttentionModel.ts"
      ],
      "testRefs": [
       "web/src/app/attentionRadarModel.test.ts",
-      "web/src/notifications/attentionDelivery.test.ts"
+      "web/src/nexus/missionAttentionModel.test.ts",
+      "web/src/app/focusQueueModel.test.ts"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: attentionRadarModel.test.ts afirma agrupamento por projeto e runtime e linhas acionaveis honestas, e attentionDelivery.test.ts cobre entrega push; o vinculo ao celular e a jobs nao e asertado.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: linhas de pergunta/approval carregam provider_session_id e o response guard do episodio exato (attentionRadarModel.test.ts); jobs de missao carregam mission, project, task e intervention version numa chave estavel (missionAttentionModel.test.ts); a fila de foco mantem o vinculo por runtime e remove episodios ja respondidos (focusQueueModel.test.ts). Falta E2E em dois aparelhos fisicos no SHA publicado.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
      "acceptance": "Responder uma vez, inclusive em reconexões ou falhas de rede",
      "sourceRefs": [
-      "web/src/components/GlobalAttentionRadar.tsx"
+      "web/src/components/attentionResponseGuard.ts",
+      "web/src/notifications/attentionDelivery.ts",
+      "internal/control/registry/attention_claim.go",
+      "internal/nexus/runtime_application.go"
      ],
      "testRefs": [
+      "internal/control/registry/attention_claim_test.go",
+      "internal/control/web/handlers_attention_retry_test.go",
+      "web/src/notifications/attentionDelivery.test.ts",
       "web/src/app/attentionRadarModel.test.ts",
-      "web/src/notifications/attentionDelivery.test.ts"
+      "web/src/app/focusQueueModel.test.ts"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: attentionDelivery.test.ts afirma re-notificacao de novo episodio e nao supressao entre runtimes independentes, mas nao afirma resposta unica sob falha de rede ou reconexao.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: o claim duravel reserva a revisao antes do transporte e mantem UNCERTAIN quando a entrega falha, persistindo o resultado apos restart (attention_claim_test.go); o retry HTTP reproduz o resultado persistido sem resendere (handlers_attention_retry_test.go); o cliente zera o guard apos submitted_revision e usa identidade de episodio estavel entre reconexoes (attentionDelivery.test.ts, attentionRadarModel.test.ts, focusQueueModel.test.ts). Falta ensaio com falha de rede real em dois dispositivos.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
