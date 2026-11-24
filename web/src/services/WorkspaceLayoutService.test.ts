@@ -191,4 +191,63 @@ describe('WorkspaceLayoutService', () => {
     expect(reset.version).toBe(WORKSPACE_LAYOUT_VERSION);
     expect(reset.model.root.kind).toBe('stack');
   });
+
+  it('keeps a named snapshot history per project', () => {
+    const layout = service.load(fallback);
+    const first = service.saveNamedSnapshot('before review', layout);
+    const second = service.saveNamedSnapshot('after review', layout);
+
+    const history = service.listNamedSnapshots();
+    expect(history.map((entry) => entry.id)).toEqual([second.id, first.id]);
+    expect(history[0].name).toBe('after review');
+    expect(history[0].layout.workspaceId).toBe(projectId);
+    expect(service.listNamedSnapshots()[0].layout.model.root.kind).toBe('stack');
+  });
+
+  it('restores a named snapshot as the current layout', () => {
+    const layout = service.load(fallback);
+    const snapshot = service.saveNamedSnapshot('before split', layout);
+    service.reset(fallback);
+
+    const restored = service.restoreNamedSnapshot(snapshot.id, fallback);
+    expect(restored.workspaceId).toBe(projectId);
+    expect(restored.model.root.kind).toBe('stack');
+    expect(restored.activeSurfaceId).toBe(overviewId);
+    const reloaded = new WorkspaceLayoutService(projectId).load(fallback);
+    expect(reloaded.activeSurfaceId).toBe(overviewId);
+  });
+
+  it('rejects empty snapshot names and unknown snapshot ids', () => {
+    const layout = service.load(fallback);
+    expect(() => service.saveNamedSnapshot('   ', layout)).toThrow(/name is required/i);
+    expect(() => service.restoreNamedSnapshot('snap_missing', fallback)).toThrow(
+      /unknown workspace snapshot/i,
+    );
+  });
+
+  it('deletes a named snapshot without touching the current layout', () => {
+    const layout = service.load(fallback);
+    service.save(layout);
+    const snapshot = service.saveNamedSnapshot('keep me', layout);
+
+    expect(service.deleteNamedSnapshot(snapshot.id)).toBe(true);
+    expect(service.deleteNamedSnapshot(snapshot.id)).toBe(false);
+    expect(service.listNamedSnapshots()).toHaveLength(0);
+    expect(service.load(fallback).workspaceId).toBe(projectId);
+  });
+
+  it('ignores snapshots that belong to another project', () => {
+    const layout = service.load(fallback);
+    service.saveNamedSnapshot('local', layout);
+    const foreign = {
+      id: 'snap_foreign',
+      name: 'foreign',
+      createdAt: new Date().toISOString(),
+      revision: 1,
+      layout: { ...layout, workspaceId: 'another-project' },
+    };
+    mockLocalStorage.setItem(service.namedSnapshotsStorageKey, JSON.stringify([foreign]));
+
+    expect(service.listNamedSnapshots()).toHaveLength(0);
+  });
 });

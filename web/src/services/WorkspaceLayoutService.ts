@@ -24,6 +24,21 @@ export interface PersistedWorkbenchLayout {
   openSurfaceIds: string[];
 }
 
+/**
+ * Named visual snapshot. It stores logical workspace state only: no process
+ * handle, no runtime handle, so restoring it can never resurrect a dead
+ * process or duplicate a runtime.
+ */
+export interface WorkspaceNamedSnapshot {
+  id: string;
+  name: string;
+  createdAt: string;
+  revision: number;
+  layout: PersistedWorkbenchLayout;
+}
+
+const NAMED_SNAPSHOT_LIMIT = 20;
+
 export class WorkspaceLayoutService {
   private readonly projectId: string;
 
@@ -159,6 +174,112 @@ export class WorkspaceLayoutService {
     } catch {
       // Storage quota or private browsing error — safe ignore
     }
+  }
+
+  /** Named snapshot history for this project. */
+  get namedSnapshotsStorageKey(): string {
+    return `${this.storageKey}:snapshots`;
+  }
+
+  /**
+   * List named snapshots, newest first. Foreign-project or corrupted entries
+   * are ignored instead of shadowing the local history.
+   */
+  listNamedSnapshots(): WorkspaceNamedSnapshot[] {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = window.localStorage.getItem(this.namedSnapshotsStorageKey);
+      if (!raw) return [];
+      const parsed: unknown = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter((entry) => this.isNamedSnapshot(entry));
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Store the current layout under a name so a previous visual state can be
+   * restored later. The snapshot keeps logical state only.
+   */
+  saveNamedSnapshot(name: string, layout: PersistedWorkbenchLayout): WorkspaceNamedSnapshot {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      throw new Error('Snapshot name is required');
+    }
+    const normalized = this.normalize(layout);
+    const snapshot: WorkspaceNamedSnapshot = {
+      id: `snap_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+      name: trimmed,
+      createdAt: new Date().toISOString(),
+      revision: normalized.revision,
+      layout: normalized,
+    };
+    if (typeof window !== 'undefined') {
+      const history = [snapshot, ...this.listNamedSnapshots()].slice(0, NAMED_SNAPSHOT_LIMIT);
+      try {
+        window.localStorage.setItem(this.namedSnapshotsStorageKey, JSON.stringify(history));
+      } catch {
+        // Storage quota error — the caller still receives the snapshot.
+      }
+    }
+    return snapshot;
+  }
+
+  /**
+   * Restore a named snapshot as the current layout. Restoring only writes
+   * logical state; the host reattaches existing surfaces by identity and
+   * never starts a process from snapshot data.
+   */
+  restoreNamedSnapshot(id: string, fallbackModel: WorkspaceModel): PersistedWorkbenchLayout {
+    const snapshot = this.listNamedSnapshots().find((entry) => entry.id === id);
+    if (!snapshot) {
+      throw new Error('Unknown workspace snapshot');
+    }
+    const restored = this.normalize({
+      ...snapshot.layout,
+      model: deserializeWorkspace(
+        JSON.stringify(snapshot.layout.model),
+        fallbackModel,
+        this.projectId,
+      ),
+    });
+    this.save(restored);
+    return restored;
+  }
+
+  /** Remove a named snapshot. Returns false when the snapshot is unknown. */
+  deleteNamedSnapshot(id: string): boolean {
+    const history = this.listNamedSnapshots();
+    const next = history.filter((entry) => entry.id !== id);
+    if (next.length === history.length) return false;
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(this.namedSnapshotsStorageKey, JSON.stringify(next));
+      } catch {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private isNamedSnapshot(entry: unknown): entry is WorkspaceNamedSnapshot {
+    if (!entry || typeof entry !== 'object') return false;
+    const candidate = entry as Partial<WorkspaceNamedSnapshot>;
+    if (
+      typeof candidate.id !== 'string' ||
+      !candidate.id ||
+      typeof candidate.name !== 'string' ||
+      !candidate.name ||
+      typeof candidate.createdAt !== 'string' ||
+      !candidate.layout
+    ) {
+      return false;
+    }
+    return (
+      candidate.layout.workspaceId === this.projectId &&
+      isValidWorkspaceModel(candidate.layout.model)
+    );
   }
 
   /**
