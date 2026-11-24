@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/cookiejar"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -20,6 +22,29 @@ func TestTwoAgentsTwoClientsAttentionScenario(t *testing.T) {
 	t.Setenv("AI_CLI_DATA_DIR", testDir)
 
 	reg := registry.DefaultRegistry()
+
+	canonical := filepath.Join(testDir, "canonical")
+	if err := os.MkdirAll(canonical, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	git := func(dir string, args ...string) {
+		t.Helper()
+		command := exec.Command("git", args...)
+		command.Dir = dir
+		if output, err := command.CombinedOutput(); err != nil {
+			t.Fatalf("git %s: %v %s", strings.Join(args, " "), err, output)
+		}
+	}
+	git(canonical, "init", "-q")
+	git(canonical, "config", "user.email", "nexus-test@example.invalid")
+	git(canonical, "config", "user.name", "Nexus Test")
+	if err := os.WriteFile(filepath.Join(canonical, "README.md"), []byte("fixture\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	git(canonical, "add", "README.md")
+	git(canonical, "commit", "-q", "-m", "fixture")
+	git(canonical, "worktree", "add", "-q", "-b", "agent-alpha", filepath.Join(testDir, "proj-a"))
+	git(canonical, "worktree", "add", "-q", "-b", "agent-beta", filepath.Join(testDir, "proj-b"))
 
 	// 1. Setup two runtimes in two different projects
 	runtime1 := registry.RuntimeSession{
@@ -143,6 +168,20 @@ func TestTwoAgentsTwoClientsAttentionScenario(t *testing.T) {
 	}
 	if foundAlpha.ProjectID != "project-alpha" || foundBeta.ProjectID != "project-beta" {
 		t.Fatalf("project IDs incorrect: alpha=%s, beta=%s", foundAlpha.ProjectID, foundBeta.ProjectID)
+	}
+	if foundAlpha.Workspace == foundBeta.Workspace {
+		t.Fatalf("agents shared one worktree: %s", foundAlpha.Workspace)
+	}
+	for _, runtime := range []*registry.RuntimeSession{foundAlpha, foundBeta} {
+		command := exec.Command("git", "rev-parse", "--show-toplevel")
+		command.Dir = runtime.Workspace
+		output, err := command.CombinedOutput()
+		if err != nil {
+			t.Fatalf("runtime %s is not in a git worktree: %v %s", runtime.RuntimeID, err, output)
+		}
+		if strings.TrimSpace(string(output)) != runtime.Workspace {
+			t.Fatalf("runtime %s worktree = %q, want %q", runtime.RuntimeID, strings.TrimSpace(string(output)), runtime.Workspace)
+		}
 	}
 	if foundAlpha.AttentionContext != foundBeta.AttentionContext {
 		t.Fatalf("questions should be identical fixture: %s vs %s", foundAlpha.AttentionContext, foundBeta.AttentionContext)

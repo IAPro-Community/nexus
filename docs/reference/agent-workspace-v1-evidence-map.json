@@ -2030,22 +2030,28 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: multi_runtime_attention_e2e_test.go executa dois clientes autenticados com cookies separados e dois Agents (alpha e beta), verificando reconstrucao de estado no cliente 2.",
+     "gap": "Auditoria: multi_runtime_attention_e2e_test.go executa dois clientes autenticados com cookies separados e dois Agents (alpha e beta) em worktrees Git reais e distintos, verificando reconstrucao de estado no cliente 2. Falta homologacao externa no app distribuido no SHA publicado.",
      "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
      "acceptance": "Leases, conflitos, handoffs, browsers e reconexões autenticados",
      "sourceRefs": [
-      "internal/control/web/multi_runtime_attention_e2e_test.go"
+      "internal/control/web/broker.go",
+      "internal/control/web/terminal_handoff_authenticated_test.go",
+      "internal/browsercontrol/browser_collaboration.go",
+      "internal/control/web/handlers_browser.go"
      ],
      "testRefs": [
-      "internal/control/web/multi_runtime_attention_e2e_test.go"
+      "internal/control/web/terminal_handoff_authenticated_test.go",
+      "internal/browsercontrol/browser_collaboration_test.go",
+      "internal/control/web/handlers_browser_test.go",
+      "web/scripts/e2e-agent-terminal-follow.mjs"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: o cenario referenciado cobre atencao, leases e reconexao de estado pela API; handoff, browser e reconexao de PTY ou lease nao sao exercitados no teste referenciado.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: terminal_handoff_authenticated_test.go usa dois clientes autenticados sobre um SessionHost real, prova lease unico, conflito VIEW_ONLY/CONTROL, takeover, revogacao e transferencia de lease; browser_collaboration_test.go prova conflito, takeover humano, expiracao, revogacao e trilha de handoff; handlers_browser_test.go prova autenticacao e CSRF das rotas browser; e2e-agent-terminal-follow.mjs prova reconexao do terminal sem adquirir lease silenciosamente. Falta unificar o fluxo em um unico E2E de dois dispositivos no app distribuido e aceitar no SHA publicado.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
