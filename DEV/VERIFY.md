@@ -3009,3 +3009,9 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - **PASS** — `web/scripts/e2e-surface-isolation.mjs` local (worktree `dd1b384a` + fixture nova): o único 503 do fixture era `maestro/submissions`; com o Bridge falso o E2E fecha com "All Surface Isolation assertions PASSED".
 - **PASS** — container do runner `nexus-ci`: `pkg-config --exists gtk4` e `webkitgtk-6.0` verdadeiros; `go test -count=1 ./cmd/nexus-hud` ok dentro de `/tmp/nexus-runner-work/nexus/nexus`.
 - **PENDENTE** — CI do SHA `1963b441` (Linux E2E, Frontend, Browser E2E, Desktop Linux, GoReleaser Snapshot, Smoke DEB) e artefato `workspace-acceptance-linux-amd64.json` no SHA exato; aceite externo por capacidade continua NO_GO.
+
+## Race de attach e acceptance linux-amd64 — 2026-11-23 (SHA `94412171`)
+
+- **PASS** — `go vet ./internal/control/host/`, `gofmt -l` vazio, `go test ./internal/control/host/ -count=2` verde; o teste de handoff com dois clientes passa 10/10 no commit `1963b441` (worktree limpa) e 5/5 com o fix de fila do ack.
+- **PASS** (local) — `web/scripts/e2e-surface-isolation.mjs` completo com o Bridge Maestro falso; `tsc --noEmit` exit 0; ESLint/Prettier limpos; Vitest `web/src/features/agents` 47/47 e `web/src/features/browser/BrowserSurface.test.ts` 16/16.
+- **PENDENTE** — CI do SHA `94412171` e novo `workspace-acceptance-linux-amd64.json` com os passos `vitest:` executando de verdade; aceite externo por capacidade continua NO_GO.
