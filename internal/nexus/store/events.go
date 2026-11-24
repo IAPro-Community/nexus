@@ -25,8 +25,6 @@ type EventMetadata struct {
 	AccountScope        model.AccountScope `json:"account_scope,omitempty"`
 }
 
-const eventMetadataColumns = `id,agent_id,project_id,correlation_id,source,runtime_id,runtime_generation_id,kind,ts,summary,account_provider_id,account_id,identity_version`
-
 // RecordEventMetadata records an activity event into the durable SQLite store.
 func (s *Store) RecordEventMetadata(e EventMetadata) (EventMetadata, error) {
 	if e.ID == "" {
