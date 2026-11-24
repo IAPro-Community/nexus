@@ -30,7 +30,7 @@ Legenda: **present** indica código-base localizado; **partial** significa lacun
 | `review-studio` | Review Studio | partial | [#109](https://github.com/IAPro-Community/nexus/issues/109) | Diff, teste, evidência e terminal no mesmo workspace; Review read-only por padrão com autorização explícita para aplicar mudanças |
 | `browser-studio` | Browser Studio | partial | [#107](https://github.com/IAPro-Community/nexus/issues/107) | BrowserSurface integrada a terminal, diff e Agent Inspector; Permissões de CDP/MCP, takeover humano e sessão de projeto isolada |
 | `comparison-lab` | Comparison Lab | partial | [#108](https://github.com/IAPro-Community/nexus/issues/108) | Duas alternativas paralelas com worktrees e execução isolados; Comparador de testes/diffs/custo e decisão humana sem merge automático |
-| `remote-companion` | Remote Companion | partial | [#111](https://github.com/IAPro-Community/nexus/issues/111) | Mobile Inbox e terminal remoto vinculados ao host; Troca de dispositivo sem reiniciar sessão, com lease e revogação |
+| `remote-companion` | Remote Companion | present | [#111](https://github.com/IAPro-Community/nexus/issues/111) | Mobile Inbox e terminal remoto vinculados ao host; Troca de dispositivo sem reiniciar sessão, com lease e revogação |
 | `mission-observatory` | Mission Observatory | partial | [#85](https://github.com/IAPro-Community/nexus/issues/85) | Visualização read-only de Missions, dependências, agentes e provas; ExecutionOwner controla mutações, retries e cancelamento |
 
 ### Organização e navegação (6)
