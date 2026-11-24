@@ -1326,8 +1326,8 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: BrowserSurface.test.ts nao contem assertion de viewports de telefone, tablet e desktop na mesma browser session.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: o BrowserSurface redimensiona a MESMA sessao entre celular (390x844), tablet (820x1180) e desktop (1280x800), sem abrir aba nova; o teste afirma o ciclo completo dos tres viewports e que cada preset carrega tamanho e rotulo (nextBrowserViewport, BROWSER_VIEWPORT_PRESETS).",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
@@ -1340,7 +1340,7 @@
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: nenhum teste referenciado verifica escala, foco, acessibilidade e redimensionamento correto dos previews de dispositivo.",
+     "gap": "Auditoria: o redimensionamento correto e as dimensoes de cada preview sao asseverados (390x844, 820x1180, 1280x800) e o botao mantem aria-label e title com o destino do proximo preset; escala visual, foco de teclado e contraste continuam dependentes do E2E de acessibilidade (Axe) e do aceite visual no SHA exato.",
      "assertionAudit": "partial"
     }
    ],
