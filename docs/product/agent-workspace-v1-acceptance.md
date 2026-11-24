@@ -71,7 +71,7 @@ Legenda: **present** indica código-base localizado; **partial** significa lacun
 | ID | Requisito da V1 | Source | Issue | Evidência mínima |
 | --- | --- | --- | --- | --- |
 | `browser-pane` | Browser Pane | present | [#107](https://github.com/IAPro-Community/nexus/issues/107) | Abrir Browser como superfície real do Workspace OS; Sem iframe como substituto de browser automation |
-| `design-inspect` | Design Inspect | partial | [#107](https://github.com/IAPro-Community/nexus/issues/107) | Selecionar elemento e coletar DOM/estilos/screenshot sanitizados; Encaminhar contexto apenas a Agent explicitamente escolhido |
+| `design-inspect` | Design Inspect | present | [#107](https://github.com/IAPro-Community/nexus/issues/107) | Selecionar elemento e coletar DOM/estilos/screenshot sanitizados; Encaminhar contexto apenas a Agent explicitamente escolhido |
 | `live-preview` | Live Preview | partial | [#107](https://github.com/IAPro-Community/nexus/issues/107) | Exibir app web local autorizada vinculada ao processo host; Não expor host arbitrário nem segredos de sessão |
 | `browser-automation` | Browser Automation | present | [#83](https://github.com/IAPro-Community/nexus/issues/83) | MCP e CDP com capacidades verificáveis e grant temporário; Intervenção humana para MFA, revoke, isolamento e auditoria |
 | `visual-diff` | Visual Diff | present | [#107](https://github.com/IAPro-Community/nexus/issues/107) | Comparar antes/depois por screenshot determinística; Região e limiar declarados, revisão e artefatos rastreáveis |

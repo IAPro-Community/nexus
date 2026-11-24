@@ -405,7 +405,7 @@
    "name": "Design Inspect",
    "category": "browser",
    "owner": "NEXUS",
-   "sourceStatus": "partial",
+   "sourceStatus": "present",
    "issue": 107,
    "releaseRequired": true,
    "requiredClients": 1,
@@ -413,7 +413,8 @@
     "Selecionar elemento e coletar DOM/estilos/screenshot sanitizados",
     "Encaminhar contexto apenas a Agent explicitamente escolhido"
    ],
-   "verification": "pending"
+   "verification": "pending",
+   "sourceAudit": "2026-11-24"
   },
   {
    "id": "live-preview",
