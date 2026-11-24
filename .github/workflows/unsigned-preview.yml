@@ -38,6 +38,9 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.3.9'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
       - name: Install native Wails build prerequisites
         run: |
           sudo apt-get update
@@ -63,6 +66,26 @@ jobs:
           test -x preview-out/payload/nexus-hud
           tar -czf preview-out/nexus-preview-linux-amd64.tar.gz -C preview-out/payload .
           rm -rf preview-out/payload
+      - name: Produce V1 workspace acceptance record (linux-amd64)
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/workspace-acceptance-e2e.mjs run \
+            --platform linux-amd64 \
+            --sha "$GITHUB_SHA" \
+            --job-url "https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            --log-dir "$RUNNER_TEMP/workspace-acceptance-logs" \
+            --out "$RUNNER_TEMP/workspace-acceptance-linux-amd64.json" \
+            --allow-incomplete
+          test -s "$RUNNER_TEMP/workspace-acceptance-linux-amd64.json"
+      - name: Upload V1 workspace acceptance record (linux-amd64)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-v1-workspace-acceptance-linux-amd64-${{ github.sha }}
+          path: ${{ runner.temp }}/workspace-acceptance-linux-amd64.json
+          if-no-files-found: error
+          retention-days: 30
       - uses: actions/upload-artifact@v4
         with:
           name: preview-linux
@@ -225,6 +248,46 @@ jobs:
           name: preview-macos-${{ matrix.arch }}
           path: preview-out/*
           if-no-files-found: error
+
+  hosted-matrix-seal:
+    name: Hosted cross-platform matrix seal
+    needs: [linux, windows, macos]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: nexus-v1-workspace-acceptance-*
+          path: acceptance
+          merge-multiple: true
+      - name: Seal hosted exact-SHA cross-platform proof
+        shell: bash
+        env:
+          TARGET_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test "${#TARGET_SHA}" -eq 40
+          test -s acceptance/workspace-acceptance-linux-amd64.json
+          test -s acceptance/workspace-acceptance-windows-amd64.json
+          test -s acceptance/workspace-acceptance-macos-arm64.json
+          node scripts/workspace-acceptance-e2e.mjs assemble \
+            --sha "$TARGET_SHA" \
+            --ci-run-id "$GITHUB_RUN_ID" \
+            --linux-amd64 acceptance/workspace-acceptance-linux-amd64.json \
+            --windows-amd64 acceptance/workspace-acceptance-windows-amd64.json \
+            --macos-arm64 acceptance/workspace-acceptance-macos-arm64.json \
+            --out hosted-cross-platform-proof.json
+          test -s hosted-cross-platform-proof.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hosted-cross-platform-proof-${{ github.sha }}
+          path: hosted-cross-platform-proof.json
+          if-no-files-found: error
+          retention-days: 30
 
   publish:
     name: Publish clearly unsigned preview to source repository
