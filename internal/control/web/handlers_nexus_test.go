@@ -30,6 +30,9 @@ func newTestClient(t *testing.T) (*http.Client, *Server) {
 		t.Fatalf("create server: %v", err)
 	}
 	go func() { _ = srv.Start() }()
+	// The process-wide store keeps nexus.db open; Windows cannot delete the
+	// temp directory while it is held, so release it after the server stops.
+	t.Cleanup(nexus.ReleaseDefault)
 	t.Cleanup(func() { _ = srv.Shutdown(context.Background()) })
 
 	jar, _ := cookiejar.New(nil)
