@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applyBrowserActionViewport,
   BROWSER_VIEWPORT_PRESETS,
   formatTabTitle,
   nextBrowserViewport,
@@ -206,5 +207,32 @@ describe('shouldUserControlTab', () => {
     userControlledSet.delete(agentTab.id);
     expect(shouldUserControlTab(agentTab, userControlledSet)).toBe(false);
     expect(shouldUserControlTab(humanTab, userControlledSet)).toBe(true);
+  });
+});
+
+describe('applyBrowserActionViewport', () => {
+  const baseSession: NexusBrowserInfo = {
+    id: 'sess-1',
+    url: 'http://localhost:3000',
+    title: 'Fixture',
+    width: 390,
+    height: 844,
+  } as NexusBrowserInfo;
+
+  it('advances the session viewport after a viewport action is applied', () => {
+    const tablet = BROWSER_VIEWPORT_PRESETS[1];
+    const applied = applyBrowserActionViewport(
+      baseSession,
+      { type: 'viewport', width: tablet.width, height: tablet.height },
+      { ...baseSession, width: tablet.width, height: tablet.height },
+    );
+    expect(applied.width).toBe(820);
+    expect(applied.height).toBe(1180);
+    expect(nextBrowserViewport(applied.width, applied.height).id).toBe('desktop');
+  });
+
+  it('keeps the session untouched for non-viewport actions', () => {
+    const applied = applyBrowserActionViewport(baseSession, { type: 'reload' }, baseSession);
+    expect(applied).toBe(baseSession);
   });
 });
