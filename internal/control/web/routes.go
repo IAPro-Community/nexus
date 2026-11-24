@@ -114,7 +114,7 @@ func registerMissionRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/comparisons/", s.authMiddleware(requireOptionalMutation(featureComparisonLab, h.handleComparisonDetail)))
 	mux.HandleFunc("/api/v1/comparison-campaigns", s.authMiddleware(requireOptionalMutation(featureComparisonLab, h.handleComparisonCampaigns)))
 	mux.HandleFunc("/api/v1/comparison-campaigns/", s.authMiddleware(requireOptionalMutation(featureComparisonLab, h.handleComparisonCampaignDetail)))
-	mux.HandleFunc("/api/v1/schedules", s.authMiddleware(requireOptionalMutation(featureMissions, h.handleMissionSchedules)))
+	mux.HandleFunc("/api/v1/schedules", s.authMiddleware(h.handleMissionSchedules))
 	mux.HandleFunc("/api/v1/attention", s.authMiddleware(h.handleAttentionCenter))
 }
 

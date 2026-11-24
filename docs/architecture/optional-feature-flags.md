@@ -67,3 +67,14 @@ values. Composer/Flow UI is one legacy surface group and requires all three
 COMPOSER, FLOW and MISSIONS opt-ins. The former
 `NEXUS_EXPERIMENTAL_COMPOSER_FLOW` variable no longer enables it implicitly.
 The backend always remains authoritative for permission to execute.
+
+## Regression coverage
+
+Legacy optional-feature tests explicitly enable their corresponding flags.
+Composer attachment uploads are scoped to Composer sessions; standalone
+Agent/terminal operations are not gated by that route. Historical Maestro
+usage import and the read-only Release Desk API keep their existing contracts.
+Existing Mission schedules may be canceled when creation is disabled; only
+exact cancel/pause routes bypass the disabled mutation gate. The CLI plan
+create/compile/run commands require Flow opt-in; run additionally requires
+Missions. No automatic fallback to a different execution owner.

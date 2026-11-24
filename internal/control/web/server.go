@@ -395,6 +395,9 @@ func (s *Server) routePlan(h *NexusHandler) http.HandlerFunc {
 		case strings.HasSuffix(r.URL.Path, "/compile"):
 			h.handlePlanCompile(w, r)
 		case strings.HasSuffix(r.URL.Path, "/run"):
+			if optionalFeatureMutationBlocked(w, r, featureMissions) {
+				return
+			}
 			h.handlePlanRun(w, r)
 		case strings.HasSuffix(r.URL.Path, "/restore"):
 			h.handlePlanRestore(w, r)
