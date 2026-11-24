@@ -1162,18 +1162,21 @@
       "internal/browsercontrol/browser.go",
       "internal/browsercontrol/browser_semantic.go",
       "internal/browsercontrol/browser_collaboration.go",
+      "internal/browsercontrol/browser_design_inspect.go",
       "web/src/features/browser/BrowserSurface.tsx",
       "web/src/features/browser/BrowserSurface.module.scss"
      ],
      "testRefs": [
       "internal/browsercontrol/browser_test.go",
       "internal/browsercontrol/browser_collaboration_test.go",
-      "web/src/i18n/i18n.test.ts"
+      "internal/browsercontrol/browser_design_inspect_test.go",
+      "web/src/i18n/i18n.test.ts",
+      "web/scripts/e2e-browser-design-inspect.mjs"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Reconciliado 2026-11-10 (atualização UX): implementação real existe (BrowserSurface com seletor de elemento, DOM/estilos allowlisted, crop mascarado; browser_design_inspect_test.go cobre snapshot sanitizado). Correção do crop do drawer em viewports estreitos (390px): header com flex-wrap, tabs com scroll horizontal e white-space nowrap em vez de recorte silencioso; chrome do drawer (tabs, captura, fechar, nota vazia, entrada manual, grants MCP) internacionalizado PT-BR/EN/ES. Aceite permanece pendente de homologação visual no SHA distribuído.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: browser_design_inspect_test.go recusa seletor vazio/oversized antes do CDP, prova redacao de email e mascara de crop; e2e-browser-design-inspect.mjs exercita selecao, DOM/estilos, crop mascarado e drawer responsivo. Correcao do crop do drawer em viewports estreitos (390px): header com flex-wrap, tabs com scroll horizontal e white-space nowrap em vez de recorte silencioso; chrome do drawer internacionalizado PT-BR/EN/ES. Homologacao visual no SHA distribuido permanece externa.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
@@ -1181,17 +1184,19 @@
      "sourceRefs": [
       "internal/control/web/handlers_browser.go",
       "internal/control/web/handlers_browser_mcp.go",
-      "internal/browsercontrol/browser_collaboration.go"
+      "internal/browsercontrol/browser_collaboration.go",
+      "web/src/features/browser/BrowserSurface.tsx"
      ],
      "testRefs": [
       "internal/control/web/handlers_browser_test.go",
       "internal/control/web/handlers_browser_mcp_test.go",
-      "internal/browsercontrol/browser_collaboration_test.go"
+      "internal/browsercontrol/browser_collaboration_test.go",
+      "web/scripts/e2e-browser-design-inspect.mjs"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Existing tests cover project-scoped temporary grants, authentication, revocation, and private-human gating. A grant is still label/actor-scoped rather than bound to a persistent Agent explicitly selected in the UI; no selected-Agent-only inspection-context delivery exists. Criterion remains partial/unverified.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: e2e-browser-design-inspect.mjs exige Agent explicitamente selecionado, uma unica entrega ao Agent escolhido, start_if_needed=false e zero chamadas de start; handlers Browser e grants cobrem autenticacao, revogacao, escopo de projeto e human gating.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
