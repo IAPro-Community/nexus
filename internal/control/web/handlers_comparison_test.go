@@ -7,6 +7,8 @@ import (
 )
 
 func TestComparisonRoutesRequireProjectScopeAndCSRF(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_COMPARISON_LAB", "true")
 	client, srv, csrf := csrfClient(t)
 	get, err := client.Get(srv.URL() + "/api/v1/comparisons")
 	if err != nil {

@@ -241,6 +241,8 @@ func uploadAttachment(t *testing.T, client *http.Client, url, csrf, filename, pa
 }
 
 func TestAttachmentUploadRoundTrip(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_COMPOSER", "true")
 	dataDir := t.TempDir()
 	t.Setenv("NEXUS_DATA_DIR", dataDir)
 	client, srv, csrf := csrfClient(t)
@@ -344,6 +346,8 @@ func TestAttachmentUploadRoundTrip(t *testing.T) {
 }
 
 func TestAttachmentAdversarialUploads(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_COMPOSER", "true")
 	dataDir := t.TempDir()
 	t.Setenv("NEXUS_DATA_DIR", dataDir)
 	client, srv, csrf := csrfClient(t)

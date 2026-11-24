@@ -45,6 +45,11 @@ func (h *NexusHandler) handleMissionSchedules(w http.ResponseWriter, r *http.Req
 			writeJSON(w, http.StatusOK, map[string]bool{"canceled": true})
 			return
 		}
+		// Allow cancellation of an existing schedule even with Missions off.
+		if !optionalFeatureEnabled(featureMissions) {
+			optionalFeatureUnavailable(w, featureMissions)
+			return
+		}
 		contract := body.Contract
 		if contract.MaxRetries == 0 {
 			contract = runner.DefaultAutonomyContract()

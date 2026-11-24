@@ -99,21 +99,21 @@ func registerPlanningRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/intelligence/memories/recall", s.authMiddleware(h.handleIntelligenceMemoryRecall))
 	mux.HandleFunc("/api/v1/intelligence/memories/reflect", s.authMiddleware(h.handleIntelligenceMemoryReflect))
 	mux.HandleFunc("/api/v1/intelligence/memories/", s.authMiddleware(h.handleIntelligenceMemoryDelete))
-	mux.HandleFunc("/api/v1/clarifications/", s.authMiddleware(h.handleClarification))
-	mux.HandleFunc("/api/v1/composer-sessions/", s.authMiddleware(h.handleComposerSession))
+	mux.HandleFunc("/api/v1/clarifications/", s.authMiddleware(requireOptionalMutation(featureComposer, h.handleClarification)))
+	mux.HandleFunc("/api/v1/composer-sessions/", s.authMiddleware(requireOptionalMutation(featureComposer, h.handleComposerSession)))
 	mux.HandleFunc("/api/v1/attachments/", s.authMiddleware(h.handleAttachmentByID))
-	mux.HandleFunc("/api/v1/prompt-artifacts/", s.authMiddleware(h.handlePromptArtifact))
+	mux.HandleFunc("/api/v1/prompt-artifacts/", s.authMiddleware(requireOptionalMutation(featureComposer, h.handlePromptArtifact)))
 	mux.HandleFunc("/api/v1/plans/", s.routePlan(h))
 }
 
 func registerMissionRoutes(mux *http.ServeMux, deps routeDependencies) {
 	s, h := deps.server, deps.nexusHandler
-	mux.HandleFunc("/api/v1/runs", s.authMiddleware(h.handleRunsList))
+	mux.HandleFunc("/api/v1/runs", s.authMiddleware(requireOptionalMutation(featureMissions, h.handleRunsList)))
 	mux.HandleFunc("/api/v1/runs/", s.routeRun(h))
-	mux.HandleFunc("/api/v1/comparisons", s.authMiddleware(h.handleComparisons))
-	mux.HandleFunc("/api/v1/comparisons/", s.authMiddleware(h.handleComparisonDetail))
-	mux.HandleFunc("/api/v1/comparison-campaigns", s.authMiddleware(h.handleComparisonCampaigns))
-	mux.HandleFunc("/api/v1/comparison-campaigns/", s.authMiddleware(h.handleComparisonCampaignDetail))
+	mux.HandleFunc("/api/v1/comparisons", s.authMiddleware(requireOptionalMutation(featureComparisonLab, h.handleComparisons)))
+	mux.HandleFunc("/api/v1/comparisons/", s.authMiddleware(requireOptionalMutation(featureComparisonLab, h.handleComparisonDetail)))
+	mux.HandleFunc("/api/v1/comparison-campaigns", s.authMiddleware(requireOptionalMutation(featureComparisonLab, h.handleComparisonCampaigns)))
+	mux.HandleFunc("/api/v1/comparison-campaigns/", s.authMiddleware(requireOptionalMutation(featureComparisonLab, h.handleComparisonCampaignDetail)))
 	mux.HandleFunc("/api/v1/schedules", s.authMiddleware(h.handleMissionSchedules))
 	mux.HandleFunc("/api/v1/attention", s.authMiddleware(h.handleAttentionCenter))
 }
@@ -144,9 +144,9 @@ func registerSystemRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/hud", s.authMiddleware(h.handleHUDState))
 	mux.HandleFunc("/api/v1/nex/assistant", s.authMiddleware(h.handleNexAssistant))
 	mux.HandleFunc("/api/v1/nex/conversation", s.authMiddleware(h.handleNexConversation))
-	mux.HandleFunc("/api/v1/nex/proactivity", s.authMiddleware(h.handleNexProactivity))
-	mux.HandleFunc("/api/v1/voice/settings", s.authMiddleware(h.handleVoiceSettings))
-	mux.HandleFunc("/api/v1/voice/transcribe", s.authMiddleware(h.handleVoiceTranscribe))
+	mux.HandleFunc("/api/v1/nex/proactivity", s.authMiddleware(requireOptionalFeature(featureNexProactivity, h.handleNexProactivity)))
+	mux.HandleFunc("/api/v1/voice/settings", s.authMiddleware(requireOptionalFeature(featureVoiceActions, h.handleVoiceSettings)))
+	mux.HandleFunc("/api/v1/voice/transcribe", s.authMiddleware(requireOptionalFeature(featureVoiceActions, h.handleVoiceTranscribe)))
 }
 
 func registerFilesystemRoutes(mux *http.ServeMux, deps routeDependencies) {
@@ -171,5 +171,5 @@ func registerBrowserRoutes(mux *http.ServeMux, deps routeDependencies) {
 	s := deps.server
 	mux.HandleFunc("/api/v1/browser/mcp", s.handleBrowserMCP)
 	mux.HandleFunc("/api/v1/browser/sessions", s.authMiddleware(s.handleBrowserSessions))
-	mux.HandleFunc("/api/v1/browser/sessions/", s.authMiddleware(s.handleBrowserSession))
+	mux.HandleFunc("/api/v1/browser/sessions/", s.authMiddleware(browserAdvancedFeatureGate(s.handleBrowserSession)))
 }

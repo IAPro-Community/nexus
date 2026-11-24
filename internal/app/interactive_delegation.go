@@ -48,6 +48,10 @@ func runInteractiveSingleTurnDelegate(n *nexus.Nexus, session registry.RuntimeSe
 }
 
 func interactiveDelegationMode(session registry.RuntimeSession) nexus.DelegationMode {
+	// Do not let a previously saved Agent profile auto-promote prompts to Mission.
+	if !nexus.AdvancedFeatureEnabled("MISSIONS") {
+		return nexus.DelegationOff
+	}
 	mode := nexus.DelegationOff
 	if session.Labels != nil {
 		if configured := strings.TrimSpace(session.Labels["nexus.delegation_mode"]); configured != "" {
@@ -78,6 +82,9 @@ func confirmedInteractiveDelegationMode(mode nexus.DelegationMode) nexus.Delegat
 func startInteractiveDelegatedMission(n *nexus.Nexus, session registry.RuntimeSession, leadAgentID, prompt string, mode nexus.DelegationMode) (*nexus.DispatchResult, error) {
 	if n == nil {
 		return nil, fmt.Errorf("nexus is unavailable")
+	}
+	if !nexus.AdvancedFeatureEnabled("MISSIONS") {
+		return nil, fmt.Errorf("Mission desativada: habilite NEXUS_FEATURES_ENABLED=true e NEXUS_FEATURE_MISSIONS=true")
 	}
 	result, err := n.StartDispatch(context.Background(), nexus.DispatchRequest{
 		ProjectID:            session.ProjectID,

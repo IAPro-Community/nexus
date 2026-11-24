@@ -24,6 +24,11 @@ func (s *Server) routeProject(h *NexusHandler) http.HandlerFunc {
 				return
 			}
 		}
+		if feature := featureForProjectMutation(r.URL.Path); feature != "" {
+			if optionalFeatureMutationBlocked(w, r, feature) {
+				return
+			}
+		}
 		// Collection endpoint (no project id): /api/v1/projects/summaries
 		if strings.Trim(strings.TrimPrefix(r.URL.Path, "/api/v1/projects/"), "/") == "summaries" {
 			h.handleProjectSummaries(w, r)

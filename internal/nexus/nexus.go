@@ -266,8 +266,12 @@ func Default() *Nexus {
 		defaultNexus.wireQuotaPatternContinuity()
 		if st != nil {
 			events.DefaultBus().SetRecorder(newEventMetadataRecorder(st))
-			_ = defaultNexus.RecoverMissionRuns(context.Background())
-			defaultNexus.StartScheduleLoop()
+			// Keep legacy runs durable but do not restart their workers or scheduler
+			// unless the operator explicitly opted into this experimental mode.
+			if AdvancedFeatureEnabled("MISSIONS") {
+				_ = defaultNexus.RecoverMissionRuns(context.Background())
+				defaultNexus.StartScheduleLoop()
+			}
 			// Purge expired events at startup (90d default).
 			go defaultNexus.purgeExpiredEvents()
 		}

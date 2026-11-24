@@ -17,6 +17,17 @@ func planCmd(args []string) error {
 		return nil
 	}
 
+	// Read-only plan history remains accessible while legacy execution is off.
+	switch args[0] {
+	case "create", "compile", "run":
+		if !nexus.AdvancedFeatureEnabled("FLOW") {
+			return fmt.Errorf("Flow desativado: habilite NEXUS_FEATURES_ENABLED=true e NEXUS_FEATURE_FLOW=true")
+		}
+	}
+	if args[0] == "run" && !nexus.AdvancedFeatureEnabled("MISSIONS") {
+		return fmt.Errorf("Mission desativada: habilite NEXUS_FEATURES_ENABLED=true e NEXUS_FEATURE_MISSIONS=true")
+	}
+
 	n := nexus.Default()
 	defer nexus.ReleaseDefault()
 	st, err := n.OpenProject()

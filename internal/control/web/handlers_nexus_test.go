@@ -138,6 +138,8 @@ func requestResolveIntervention(t *testing.T, client *http.Client, baseURL, sess
 }
 
 func TestResolveInterventionHTTPDecisionSurvivesServerRestartExactlyOnce(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	ctx := context.Background()
 	dbPath := filepath.Join(t.TempDir(), "nexus.db")
 	st, err := store.Open(dbPath)
@@ -372,6 +374,8 @@ func csrfClient(t *testing.T) (*http.Client, *Server, string) {
 }
 
 func TestUpdatePlanReturnsConflictForStaleRevision(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_FLOW", "true")
 	client, srv, csrf := csrfClient(t)
 	n := nexus.Default()
 	st, err := n.OpenProject()
@@ -445,6 +449,8 @@ func TestHostSessionImportRequiresCSRF(t *testing.T) {
 }
 
 func TestResolveRunInterventionRejectsMalformedAndNonPositiveVersion(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	client, srv, csrf := csrfClient(t)
 	tests := []struct {
 		name string

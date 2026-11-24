@@ -5,36 +5,57 @@ import {
   type WorkspaceSurface,
 } from '../workspace/model';
 
-// Enabled by default for all builds. Can be explicitly disabled via compile-time define
-// __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__ = false.
+// Experimental product surfaces are OFF in every build by default.
+// Even explicit frontend opt-ins cannot authorize server-side execution.
+declare const __NEXUS_OPTIONAL_FEATURES__: boolean | undefined;
 declare const __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__: boolean | undefined;
-export const COMPOSER_FLOW_ENABLED =
-  typeof __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__ === 'undefined'
-    ? true
-    : Boolean(__NEXUS_EXPERIMENTAL_COMPOSER_FLOW__);
+declare const __NEXUS_VOICE_ACTIONS__: boolean | undefined;
+declare const __NEXUS_DESIGN_INSPECT__: boolean | undefined;
+declare const __NEXUS_VISUAL_DIFF__: boolean | undefined;
+
+// Both the global and each build-time flag must be explicitly defined true.
+// Short-circuiting keeps undeclared build constants safe at runtime.
+const hasOptionalFlag = typeof __NEXUS_OPTIONAL_FEATURES__ !== 'undefined';
+export const OPTIONAL_FEATURES_ENABLED = hasOptionalFlag && __NEXUS_OPTIONAL_FEATURES__ === true;
+
+const hasComposerFlag = typeof __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__ !== 'undefined';
+const composerOptIn = hasComposerFlag && __NEXUS_EXPERIMENTAL_COMPOSER_FLOW__ === true;
+export const COMPOSER_FLOW_ENABLED = OPTIONAL_FEATURES_ENABLED && composerOptIn;
+
+const hasVoiceFlag = typeof __NEXUS_VOICE_ACTIONS__ !== 'undefined';
+const voiceOptIn = hasVoiceFlag && __NEXUS_VOICE_ACTIONS__ === true;
+export const VOICE_ACTIONS_ENABLED = OPTIONAL_FEATURES_ENABLED && voiceOptIn;
+
+const hasInspectFlag = typeof __NEXUS_DESIGN_INSPECT__ !== 'undefined';
+const inspectOptIn = hasInspectFlag && __NEXUS_DESIGN_INSPECT__ === true;
+export const DESIGN_INSPECT_ENABLED = OPTIONAL_FEATURES_ENABLED && inspectOptIn;
+
+const hasVisualDiffFlag = typeof __NEXUS_VISUAL_DIFF__ !== 'undefined';
+const visualDiffOptIn = hasVisualDiffFlag && __NEXUS_VISUAL_DIFF__ === true;
+export const VISUAL_DIFF_ENABLED = OPTIONAL_FEATURES_ENABLED && visualDiffOptIn;
 
 export function isExperimentalComposerFlowSurface(type: string): boolean {
   return type === 'work' || type === 'missions' || type === 'flow-run';
 }
 
 /**
- * A mission detail is an actionable, stable surface even while mission
- * creation and history remain behind the Composer/Flow release gate.
+ * All Composer, Flow and Mission surfaces are disabled by default,
+ * including deep links to historic runs; their data is not deleted.
  */
-export function isExperimentalRouteBlocked(type: string, subId?: string): boolean {
+export function isExperimentalRouteBlocked(type: string, _subId?: string): boolean {
   if (!isExperimentalComposerFlowSurface(type)) return false;
-  return !(type === 'missions' && Boolean(subId?.trim()));
+  return true;
 }
 
 /**
- * Workspace detail tabs are allowed only when they point to a specific
- * mission run. Generic Flow/Composer surfaces remain gated in stable builds.
+ * Restored experimental surfaces are hidden, including run detail tabs.
+ * Backend history remains available through authenticated read-only APIs.
  */
 export function isExperimentalWorkspaceSurfaceBlocked(
   surface: Pick<WorkspaceSurface, 'type' | 'data'>,
 ): boolean {
   if (!isExperimentalComposerFlowSurface(surface.type)) return false;
-  return !(surface.type === 'flow-run' && Boolean(surface.data?.runId?.trim()));
+  return true;
 }
 
 /**

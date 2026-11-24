@@ -49,6 +49,8 @@ func captureStdout(f func() error) (string, error) {
 }
 
 func TestRunTreatsColonInTaskGoalAsGoalNotProvider(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	t.Setenv("NEXUS_DATA_DIR", t.TempDir())
 	t.Setenv("NEXUS_CONFIG_DIR", t.TempDir())
 
@@ -578,5 +580,14 @@ func TestQuotaUnknownLabelReturnsStatusAwarePlaceholder(t *testing.T) {
 		if got := quotaUnknownLabel(tt.status); got != tt.want {
 			t.Errorf("quotaUnknownLabel(%q) = %q, want %q", tt.status, got, tt.want)
 		}
+	}
+}
+
+func TestGoalModeIsDisabledWithoutOptIn(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "false")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
+	err := runGoalCmd([]string{"test goal"})
+	if err == nil || !strings.Contains(err.Error(), "desativada") {
+		t.Fatalf("expected disabled goal mode, got %v", err)
 	}
 }
