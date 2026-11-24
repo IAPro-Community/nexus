@@ -511,12 +511,13 @@
       "web/src/app/NexusWorkspaceApp.tsx"
      ],
      "testRefs": [
-      "web/src/app/commands/registry.test.ts"
+      "web/src/app/commands/registry.test.ts",
+      "web/scripts/e2e-smart-layouts.mjs"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria parcial: registry.test.ts cobre busca por label/keywords e prefixos project/agent/action/resource; NexusWorkspaceApp monta comandos de projetos e Agents reais, além de ações/surfaces. Falta teste de integração da lista dinâmica (troca de projeto, criação/remoção Agent) e execução da superfície correta sem efeito colateral de spawn além do comando explícito. Capability pendente.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: registry.test.ts cobre busca por label/keywords e prefixos project/agent/action/resource; NexusWorkspaceApp monta comandos de projetos, Agents, ações e superfícies reais. E2E prova que a lista de superfícies cresce quando um segundo PTY abre, que a execução ativa a superfície existente correta e não cria Agents nem shells adicionais. Falta executar no SHA publicado e aceitar externamente; capability pendente.",
+     "assertionAudit": "audited"
     },
     {
      "acceptanceIndex": 1,
@@ -527,12 +528,13 @@
       "web/src/app/NexusWorkspaceApp.tsx"
      ],
      "testRefs": [
-      "web/src/keyboard/KeyboardShortcutRegistry.test.ts"
+      "web/src/keyboard/KeyboardShortcutRegistry.test.ts",
+      "web/scripts/e2e-smart-layouts.mjs"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria parcial: KeyboardShortcutRegistry.test.ts cobre escopo/teclas e evita disparar durante IME; CommandPalette implementa setas/Enter e SearchInput autoFocus, e app expõe acionador onCommand. Não há teste do componente para focus restore/trap e E2E desktop+mobile/teclado; comportamento responsivo e foco continuam pendentes. Capability pendente.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: KeyboardShortcutRegistry.test.ts cobre escopo/teclas e evita disparar durante IME; CommandPalette implementa setas/Enter e SearchInput autoFocus. E2E 390px prova atalho Ctrl+K, foco no input, focus trap, restauração do opener e ausência de overflow horizontal próprio no desktop e mobile. Falta executar no SHA publicado e aceitar externamente; capability pendente.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
