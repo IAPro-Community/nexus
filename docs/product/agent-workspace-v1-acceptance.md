@@ -81,7 +81,7 @@ Legenda: **present** indica código-base localizado; **partial** significa lacun
 
 | ID | Requisito da V1 | Source | Issue | Evidência mínima |
 | --- | --- | --- | --- | --- |
-| `mobile-inbox` | Mobile Inbox | partial | [#111](https://github.com/IAPro-Community/nexus/issues/111) | Perguntas/approvals e jobs no celular vinculados à sessão; Responder uma vez, inclusive em reconexões ou falhas de rede |
+| `mobile-inbox` | Mobile Inbox | present | [#111](https://github.com/IAPro-Community/nexus/issues/111) | Perguntas/approvals e jobs no celular vinculados à sessão; Responder uma vez, inclusive em reconexões ou falhas de rede |
 | `remote-terminal` | Remote Terminal | partial | [#111](https://github.com/IAPro-Community/nexus/issues/111) | Conectar ao terminal existente sem criar novo runtime; Controle único com token scoped, CSRF, expiry e revoke |
 | `workspace-sharing` | Workspace Sharing | present | [#112](https://github.com/IAPro-Community/nexus/issues/112) | Compartilhar observação por projeto/Agent sob RBAC; Viewer-only inicial; cross-project leakage negado e revoke imediato |
 | `voice-actions` | Voice Actions | partial | [#114](https://github.com/IAPro-Community/nexus/issues/114) | Ação de voz exige controle explícito e identifica Agent de destino; Não inserir Enter automaticamente nem ler segredos do prompt |

@@ -481,7 +481,7 @@
    "name": "Mobile Inbox",
    "category": "remote",
    "owner": "NEXUS",
-   "sourceStatus": "partial",
+   "sourceStatus": "present",
    "issue": 111,
    "releaseRequired": true,
    "requiredClients": 2,
