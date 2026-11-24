@@ -4,7 +4,10 @@ import { nexus } from '../nexus/api';
 import { asArray } from '../lib/safeArray';
 import type { AttentionGroup, AttentionItem, Project } from '../types';
 import { sanitizeAttentionText } from '../components/attentionText';
-import { missionAttentionSections } from '../nexus/missionAttentionModel';
+import {
+  missionAttentionSections,
+  missionAttentionSessionKey,
+} from '../nexus/missionAttentionModel';
 import styles from './MissionAttentionPanel.module.scss';
 
 export const MissionAttentionPanel: React.FC<{
@@ -146,7 +149,7 @@ export const MissionAttentionPanel: React.FC<{
                 return (
                   <button
                     type="button"
-                    key={item.mission_id}
+                    key={missionAttentionSessionKey(item)}
                     className={styles.item}
                     data-level={section.id}
                     onClick={() => onOpenMission(item)}
