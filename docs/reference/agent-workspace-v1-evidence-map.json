@@ -1445,17 +1445,19 @@
      "sourceRefs": [
       "web/src/nexus/AgentTerminal.tsx",
       "internal/control/web/server.go",
-      "internal/control/web/handler_terminal.go"
+      "internal/control/web/handler_terminal.go",
+      "internal/control/web/routes_projects_agents.go"
      ],
      "testRefs": [
       "web/src/nexus/agentTerminalModel.test.ts",
       "web/src/nexus/terminalInput.test.ts",
-      "internal/control/web/desktop_auth_test.go"
+      "internal/control/web/desktop_auth_test.go",
+      "internal/control/web/terminal_handoff_authenticated_test.go"
      ],
      "mappingStatus": "source-and-test-referenced",
      "coverage": "unverified",
-     "gap": "Auditoria: agentTerminalModel.test.ts afirma controle apenas com lease CONTROL explicito; desktop_auth_test.go afirma recusa de attach sem autenticacao, Origin estrangeira, grant viewer e sessao revogada (TestTerminalAttachRejectsUnauthenticatedRevokedViewerAndForeignOrigin) e expiracao de sessao (TestDesktopSessionRevocationAndExpiry). Falta assertion de CSRF na superficie de terminal (attach e GET upgrade) e de token scoped por runtime.",
-     "assertionAudit": "partial"
+     "gap": "Auditoria: agentTerminalModel.test.ts afirma controle apenas com lease CONTROL explicito; desktop_auth_test.go afirma recusa de attach sem autenticacao, Origin estrangeira, grant viewer e sessao revogada (TestTerminalAttachRejectsUnauthenticatedRevokedViewerAndForeignOrigin), expiracao de sessao (TestDesktopSessionRevocationAndExpiry), Origin ausente ou estrangeira no upgrade (TestAgentTerminalUpgradeRequiresSameOrigin) e runtime pertencente a outro Agent (TestAgentTerminalAttachRejectsViewerAndForeignRuntime); terminal_handoff_authenticated_test.go prova lease CONTROL unico e escopo por Agent/runtime.",
+     "assertionAudit": "audited"
     }
    ],
    "verification": "pending"
