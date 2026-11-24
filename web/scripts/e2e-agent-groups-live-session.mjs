@@ -2,7 +2,8 @@
 // Real Core/HTTP/DOM/PTY E2E for Agent grouping. OpenCode is a local fixture
 // binary: it reports a version and execs a shell, so no provider quota is used.
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -73,6 +74,25 @@ async function main() {
       ? '@echo off\r\nif "%1"=="--version" (echo opencode-fixture/1 & exit /b 0)\r\n%COMSPEC% /Q\r\n'
       : '#!/bin/sh\nif [ "$1" = "--version" ]; then echo opencode-fixture/1; exit 0; fi\nexec /bin/sh\n';
   writeFileSync(fixturePath, fixtureContents, { mode: 0o700 });
+
+  // agent-groups criterion 0: the group's worktree must be a real linked Git
+  // worktree of a project repository, not free-form metadata.
+  const gitRepo = path.join(fixtureRoot, 'repo');
+  const groupWorktree = path.join(fixtureRoot, 'worktrees', 'release-e2e');
+  mkdirSync(gitRepo, { recursive: true });
+  const git = (...args) => execFileSync('git', args, { stdio: 'pipe' });
+  git('init', '-q', gitRepo);
+  git('-C', gitRepo, 'config', 'user.email', 'agent-groups@example.invalid');
+  git('-C', gitRepo, 'config', 'user.name', 'Agent Groups Fixture');
+  writeFileSync(path.join(gitRepo, 'README.md'), '# agent-groups fixture\n');
+  git('-C', gitRepo, 'add', 'README.md');
+  git('-C', gitRepo, 'commit', '-qm', 'baseline');
+  git('-C', gitRepo, 'worktree', 'add', '-q', '-b', 'release-e2e', groupWorktree);
+  assert.ok(
+    existsSync(path.join(groupWorktree, '.git')),
+    'group worktree must be a real linked Git worktree',
+  );
+  assert.match(readFileSync(path.join(groupWorktree, '.git'), 'utf8'), /^gitdir: /);
 
   const previousPath = process.env.PATH || '';
   const previousRealHome = process.env.NEXUS_REAL_HOME;
@@ -186,7 +206,7 @@ async function main() {
     await createGroupButton.click();
     await page.getByLabel(/Group name|Nome do grupo|Nombre del grupo/i).fill('Release E2E');
     await page.getByLabel(/^Task$|^Tarefa$/i).fill('Preserve live session while organizing');
-    await page.getByLabel(/^Worktree$/i).fill('../worktrees/release-e2e');
+    await page.getByLabel(/^Worktree$/i).fill(groupWorktree);
     await page.getByLabel(/^Feature$/i).fill('agent-groups');
     const createResponse = page.waitForResponse(
       (response) =>
@@ -259,8 +279,13 @@ async function main() {
     );
     const confirmedGroup = groupDetail.find((group) => group.id === createdGroup.id);
     assert.equal(confirmedGroup.task, 'Preserve live session while organizing');
-    assert.equal(confirmedGroup.worktree, '../worktrees/release-e2e');
+    assert.equal(confirmedGroup.worktree, groupWorktree);
     assert.equal(confirmedGroup.feature, 'agent-groups');
+    assert.equal(
+      readFileSync(path.join(confirmedGroup.worktree, '.git'), 'utf8').startsWith('gitdir: '),
+      true,
+      'persisted group worktree must stay linked to a real Git worktree',
+    );
 
     const viewportEvidence = [];
     viewportEvidence.push(
@@ -326,6 +351,8 @@ async function main() {
             id: confirmedGroup.id,
             task: confirmedGroup.task,
             worktree: confirmedGroup.worktree,
+            worktreeRepository: gitRepo,
+            worktreeIsLinkedGitWorktree: true,
             feature: confirmedGroup.feature,
             orderedAgentIds: confirmedGroup.agent_ids,
           },
@@ -346,6 +373,7 @@ async function main() {
     );
     console.log('PASS Core created two real supervised OpenCode fixture runtimes; no provider quota was called');
     console.log('PASS UI created a task/worktree/feature group and persisted its ordered Agent IDs');
+    console.log(`PASS group worktree is a real linked Git worktree: ${groupWorktree}`);
     console.log('PASS live terminal attached to the same Agent ID and runtime generation after reorder');
     console.log(`PASS browser issued ${pageStartRequests.length} additional start calls after initial setup`);
     console.log(`CAPTURE ${path.join(artifacts, 'agent-groups-1280x900.png')}`);
