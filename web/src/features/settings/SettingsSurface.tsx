@@ -43,7 +43,7 @@ import { CapacityMonitorSettings } from './CapacityMonitorSettings';
 import { CostIntelligenceSettings } from './CostIntelligenceSettings';
 import { HudSettings } from '../hud/HudSettings';
 import { VoiceSettings } from '../voice/VoiceSettings';
-import { VOICE_ACTIONS_ENABLED } from '../../app/composerFlowFlag';
+import { useOptionalFeatures } from '../../app/composerFlowFlag';
 import type { SystemDoctorReport } from '../../nexus/api';
 import styles from './SettingsSurface.module.scss';
 import { ThemeAccordionSelector } from './ThemeAccordionSelector';
@@ -74,6 +74,7 @@ export const SettingsSurface: React.FC<{
   /** Current project, used to scope feature discovery. */
   projectId?: string;
 }> = ({ onTour, initialTab, projectId = 'global' }) => {
+  const { VOICE_ACTIONS_ENABLED } = useOptionalFeatures();
   const theme = useTheme();
   const { t } = useTranslation();
   const workspace = useWorkspace();

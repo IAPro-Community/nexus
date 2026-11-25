@@ -48,7 +48,7 @@ import { isWindowedPresentationMode, mosaicDropTargetViewId } from './presentati
 import { ptyWindowHeading } from './ptyLiveChrome';
 import { liveChromeFor, usePtyLiveChromeOptional } from './PtyLiveChromeContext';
 import { ARRANGE_MENU_PRESETS, WORKSPACE_RECIPES, type ArrangeMenuPreset } from './arrangePresets';
-import { SMART_LAYOUTS_ENABLED } from '../app/composerFlowFlag';
+import { useOptionalFeatures } from '../app/composerFlowFlag';
 import { resolveTerminalSplitViews } from './presentation';
 import splitStyles from './TerminalSplit.module.scss';
 import ptyTabStyles from './PtyTabs.module.scss';
@@ -305,6 +305,7 @@ const ArrangeLayoutMenu: React.FC<{
   onSelect: (preset: ArrangeMenuPreset) => void;
   onReset?: () => void;
 }> = ({ activePreset, onSelect, onReset }) => {
+  const { SMART_LAYOUTS_ENABLED } = useOptionalFeatures();
   const { t } = useTranslation();
 
   return (

@@ -29,7 +29,7 @@ import {
 } from './inAppNotificationModel';
 import { loadNotificationPrefs } from './notificationPrefs';
 import { MissionAttentionPanel } from './MissionAttentionPanel';
-import { COMPOSER_FLOW_ENABLED } from '../app/composerFlowFlag';
+import { useOptionalFeatures } from '../app/composerFlowFlag';
 
 const DISMISS_AFTER_MS = 7_000;
 
@@ -54,6 +54,7 @@ export const InAppNotificationCenter: React.FC<{
   onOpenMission,
   onAttentionCountChange,
 }) => {
+  const { COMPOSER_FLOW_ENABLED } = useOptionalFeatures();
   const { t } = useTranslation();
   const [notifications, setNotifications] = useState<InAppNotification[]>([]);
   const [history, setHistory] = useState<InAppNotification[]>([]);
@@ -62,6 +63,12 @@ export const InAppNotificationCenter: React.FC<{
   );
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [attentionNeedsCount, setAttentionNeedsCount] = useState(0);
+  useEffect(() => {
+    if (!COMPOSER_FLOW_ENABLED) {
+      setActiveTab((tab) => (tab === 'missions' ? 'radar' : tab));
+      setAttentionNeedsCount(0);
+    }
+  }, [COMPOSER_FLOW_ENABLED]);
   const observed = useRef(new Set<string>());
   const initialized = useRef(false);
 
@@ -87,7 +94,7 @@ export const InAppNotificationCenter: React.FC<{
       window.removeEventListener('focus', loadNeedsCount);
       window.clearInterval(interval);
     };
-  }, [onAttentionCountChange]);
+  }, [onAttentionCountChange, COMPOSER_FLOW_ENABLED]);
 
   const handleExecuteAction = async (action: InAppNotificationAction, notifId: string) => {
     if (!action.sourceRuntimeId) {

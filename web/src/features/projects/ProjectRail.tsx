@@ -1,5 +1,5 @@
 import {
-  COMPOSER_FLOW_ENABLED,
+  useOptionalFeatures,
   isExperimentalComposerFlowSurface,
 } from '../../app/composerFlowFlag';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -82,6 +82,7 @@ export const ProjectRail: React.FC<{
   onNewAISession: _onNewAISession,
   onProjectShell: _onProjectShell,
 }) => {
+  const { COMPOSER_FLOW_ENABLED } = useOptionalFeatures();
   const { t } = useTranslation();
   const outline = useProjectRailOutline();
   const { toggleExpanded } = outline;

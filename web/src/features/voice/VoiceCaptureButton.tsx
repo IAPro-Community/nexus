@@ -9,7 +9,7 @@ import {
 } from './voiceCapture';
 import type { VoiceSettingsView, VoiceTranscribeResult } from './voiceModel';
 import styles from './VoiceCaptureButton.module.scss';
-import { VOICE_ACTIONS_ENABLED } from '../../app/composerFlowFlag';
+import { useOptionalFeatures } from '../../app/composerFlowFlag';
 
 type VoiceContext = 'terminal' | 'nexus';
 
@@ -189,5 +189,7 @@ const EnabledVoiceCaptureButton: React.FC<VoiceCaptureButtonProps> = ({
   );
 };
 
-export const VoiceCaptureButton: React.FC<VoiceCaptureButtonProps> = (props) =>
-  VOICE_ACTIONS_ENABLED ? <EnabledVoiceCaptureButton {...props} /> : null;
+export const VoiceCaptureButton: React.FC<VoiceCaptureButtonProps> = (props) => {
+  const { VOICE_ACTIONS_ENABLED } = useOptionalFeatures();
+  return VOICE_ACTIONS_ENABLED ? <EnabledVoiceCaptureButton {...props} /> : null;
+};

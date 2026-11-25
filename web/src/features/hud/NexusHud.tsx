@@ -53,7 +53,7 @@ import {
 } from './mascotModel';
 import { GuardianMascot } from './GuardianMascot';
 import { NexAssistantPanel } from './NexAssistantPanel';
-import { COMPOSER_FLOW_ENABLED } from '../../app/composerFlowFlag';
+import { useOptionalFeatures } from '../../app/composerFlowFlag';
 import { consumeNexNewCompletion } from './nexCompanionBehavior';
 import {
   shouldRenderHudCompactControl,
@@ -118,6 +118,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
   onOpenSettings,
   nativeAutoStart,
 }) => {
+  const { COMPOSER_FLOW_ENABLED } = useOptionalFeatures();
   const { t } = useTranslation();
   const [prefs, setPrefs] = useState<HudPresentationPreferences>(() => loadHudPreferences());
   const [response, setResponse] = useState<HudResponse | null>(null);
@@ -167,19 +168,24 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       .then((rawNext) => {
         const next = normalizeHudResponse(rawNext);
         setResponse(next);
-        const attentionRequest = ++attentionRequestSequence.current;
-        void nexus
-          .getAttention()
-          .then((group) => {
-            if (attentionRequest === attentionRequestSequence.current) {
-              setAttentionGroup(normalizeAttentionGroup(group));
-            }
-          })
-          .catch(() => {
-            if (attentionRequest === attentionRequestSequence.current) {
-              setAttentionGroup(undefined);
-            }
-          });
+        if (COMPOSER_FLOW_ENABLED) {
+          const attentionRequest = ++attentionRequestSequence.current;
+          void nexus
+            .getAttention()
+            .then((group) => {
+              if (attentionRequest === attentionRequestSequence.current) {
+                setAttentionGroup(normalizeAttentionGroup(group));
+              }
+            })
+            .catch(() => {
+              if (attentionRequest === attentionRequestSequence.current) {
+                setAttentionGroup(undefined);
+              }
+            });
+        } else {
+          attentionRequestSequence.current++;
+          setAttentionGroup(undefined);
+        }
         setOffline(false);
         setLastSuccessAt(Date.now());
         // Presentation reads existing capacity state; it never probes providers.
@@ -202,7 +208,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
       });
     requestInFlight.current = task;
     return task;
-  }, [projectId]);
+  }, [projectId, COMPOSER_FLOW_ENABLED]);
 
   useEffect(() => {
     void refresh();

@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from 'react';
 import {
   createStack,
   type WorkspaceModel,
@@ -7,46 +8,96 @@ import {
 
 import { request } from '../api';
 
-// The authenticated server snapshot is authoritative. Load it before mounting
-// the workspace/HUD; missing or invalid values are never treated as enabled.
-export let OPTIONAL_FEATURES_ENABLED = false;
-export let COMPOSER_FLOW_ENABLED = false;
-export let VOICE_ACTIONS_ENABLED = false;
-export let DESIGN_INSPECT_ENABLED = false;
-export let VISUAL_DIFF_ENABLED = false;
-export let NEX_PROACTIVITY_ENABLED = false;
-export let COMPARISON_LAB_ENABLED = false;
-export let SMART_LAYOUTS_ENABLED = false;
-export let DEVICE_PREVIEW_ENABLED = false;
-
-export function applyOptionalFeatureSnapshot(snapshot: unknown): void {
+// One immutable, observable snapshot per frontend instance. The server remains
+// the only execution authority. Legacy exported bindings are compatibility
+// projections for callers not yet migrated, not independent configuration.
+function parseOptionalFeatures(snapshot: unknown) {
   const record =
     snapshot && typeof snapshot === 'object' ? (snapshot as Record<string, unknown>) : {};
   const features =
     record.features && typeof record.features === 'object'
       ? (record.features as Record<string, unknown>)
       : {};
-  OPTIONAL_FEATURES_ENABLED = record.global === true;
-  const enabled = (name: string) => OPTIONAL_FEATURES_ENABLED && features[name] === true;
-  COMPOSER_FLOW_ENABLED = enabled('COMPOSER') && enabled('FLOW') && enabled('MISSIONS');
-  VOICE_ACTIONS_ENABLED = enabled('VOICE_ACTIONS');
-  DESIGN_INSPECT_ENABLED = enabled('DESIGN_INSPECT');
-  VISUAL_DIFF_ENABLED = enabled('VISUAL_DIFF');
-  NEX_PROACTIVITY_ENABLED = enabled('NEX_PROACTIVITY');
-  COMPARISON_LAB_ENABLED = enabled('COMPARISON_LAB');
-  SMART_LAYOUTS_ENABLED = enabled('SMART_LAYOUTS');
-  DEVICE_PREVIEW_ENABLED = enabled('DEVICE_PREVIEW');
+  const global = record.global === true;
+  const enabled = (name: string) => global && features[name] === true;
+  return Object.freeze({
+    OPTIONAL_FEATURES_ENABLED: global,
+    COMPOSER_FLOW_ENABLED: enabled('COMPOSER') && enabled('FLOW') && enabled('MISSIONS'),
+    VOICE_ACTIONS_ENABLED: enabled('VOICE_ACTIONS'),
+    DESIGN_INSPECT_ENABLED: enabled('DESIGN_INSPECT'),
+    VISUAL_DIFF_ENABLED: enabled('VISUAL_DIFF'),
+    NEX_PROACTIVITY_ENABLED: enabled('NEX_PROACTIVITY'),
+    COMPARISON_LAB_ENABLED: enabled('COMPARISON_LAB'),
+    SMART_LAYOUTS_ENABLED: enabled('SMART_LAYOUTS'),
+    DEVICE_PREVIEW_ENABLED: enabled('DEVICE_PREVIEW'),
+  });
+}
+
+const disabled = parseOptionalFeatures(null);
+let effective = disabled;
+const subscribers = new Set<() => void>();
+let loadGeneration = 0;
+
+export function getOptionalFeatures() {
+  return effective;
+}
+
+export function subscribeOptionalFeatures(listener: () => void) {
+  subscribers.add(listener);
+  return () => {
+    subscribers.delete(listener);
+  };
+}
+
+export function useOptionalFeatures() {
+  return useSyncExternalStore(subscribeOptionalFeatures, getOptionalFeatures, () => disabled);
+}
+
+// Compatibility bindings. New React consumers use the observable snapshot.
+export let {
+  OPTIONAL_FEATURES_ENABLED,
+  COMPOSER_FLOW_ENABLED,
+  VOICE_ACTIONS_ENABLED,
+  DESIGN_INSPECT_ENABLED,
+  VISUAL_DIFF_ENABLED,
+  NEX_PROACTIVITY_ENABLED,
+  COMPARISON_LAB_ENABLED,
+  SMART_LAYOUTS_ENABLED,
+  DEVICE_PREVIEW_ENABLED,
+} = disabled;
+
+function publish(snapshot: unknown) {
+  effective = parseOptionalFeatures(snapshot);
+  ({
+    OPTIONAL_FEATURES_ENABLED,
+    COMPOSER_FLOW_ENABLED,
+    VOICE_ACTIONS_ENABLED,
+    DESIGN_INSPECT_ENABLED,
+    VISUAL_DIFF_ENABLED,
+    NEX_PROACTIVITY_ENABLED,
+    COMPARISON_LAB_ENABLED,
+    SMART_LAYOUTS_ENABLED,
+    DEVICE_PREVIEW_ENABLED,
+  } = effective);
+  for (const listener of subscribers) listener();
+}
+
+export function applyOptionalFeatureSnapshot(snapshot: unknown): void {
+  // Explicit reset/update invalidates older in-flight authentication requests.
+  loadGeneration++;
+  publish(snapshot);
 }
 
 export async function loadOptionalFeatures(): Promise<void> {
-  applyOptionalFeatureSnapshot(null);
+  const generation = ++loadGeneration;
+  publish(null);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 4000);
   try {
     const snapshot = await request<unknown>('/api/v1/system/features', {
       signal: controller.signal,
     });
-    applyOptionalFeatureSnapshot(snapshot);
+    if (generation === loadGeneration) publish(snapshot);
   } catch {
     // Older hosts, unavailable hosts and malformed responses remain OFF.
   } finally {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { nexus } from '../../nexus/api';
+import { useOptionalFeatures } from '../../app/composerFlowFlag';
 import { asArray } from '../../lib/safeArray';
 import type { Agent, AttentionItem, ProjectAgentSummary } from '../../types';
 
@@ -65,6 +66,7 @@ export function summariesByProjectId(
 }
 
 export function useProjectRailOutline() {
+  const { COMPOSER_FLOW_ENABLED } = useOptionalFeatures();
   const [summaries, setSummaries] = useState<ProjectAgentSummary[]>([]);
   const [attentionByProject, setAttentionByProject] = useState<
     Map<string, ProjectOutlineAttention>
@@ -83,17 +85,13 @@ export function useProjectRailOutline() {
   const refreshOutline = useCallback(async () => {
     const [summaryList, attention] = await Promise.all([
       nexus.listProjectSummaries().catch(() => [] as ProjectAgentSummary[]),
-      nexus.getAttention().catch(() => ({
-        needs_you: [],
-        completed: [],
-        failed: [],
-        all_items: [],
-        total_needs: 0,
-      })),
+      COMPOSER_FLOW_ENABLED
+        ? nexus.getAttention().catch(() => ({ needs_you: [], completed: [], failed: [] }))
+        : Promise.resolve({ needs_you: [], completed: [], failed: [] }),
     ]);
     setSummaries(asArray<ProjectAgentSummary>(summaryList));
     setAttentionByProject(groupAttentionByProject(attention));
-  }, []);
+  }, [COMPOSER_FLOW_ENABLED]);
 
   useEffect(() => {
     void refreshOutline();

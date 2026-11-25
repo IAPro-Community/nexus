@@ -15,7 +15,7 @@ import { asArray } from '../../lib/safeArray';
 import { flowRunStateFromMission } from './flowRunModel';
 import { FlowDraftEditor } from './FlowDraftEditor';
 import { ComparisonLabPanel } from './ComparisonLabPanel';
-import { COMPARISON_LAB_ENABLED } from '../../app/composerFlowFlag';
+import { useOptionalFeatures } from '../../app/composerFlowFlag';
 import { ComparisonCampaignPanel } from './ComparisonCampaignPanel';
 import { FeatureTour } from './FeatureTour';
 import { FLOW_DRAFT_KEY } from './WorkSurface';
@@ -49,6 +49,7 @@ export const FlowRunsHistorySurface: React.FC<{
   onOpenRun: (run: MissionRun) => void;
   onOpenComposer?: () => void;
 }> = ({ project, agents = [], onOpenRun, onOpenComposer }) => {
+  const { COMPARISON_LAB_ENABLED } = useOptionalFeatures();
   const { t } = useTranslation();
   const [runs, setRuns] = useState<MissionRun[]>([]);
   const [plans, setPlans] = useState<WorkPlan[]>([]);
@@ -146,7 +147,7 @@ export const FlowRunsHistorySurface: React.FC<{
     } finally {
       if (isLatest()) setLoading(false);
     }
-  }, [project.id, t]);
+  }, [project.id, t, COMPARISON_LAB_ENABLED]);
 
   const toggleComparisonRun = (runId: string) => {
     setSelectedRunIds((current) =>

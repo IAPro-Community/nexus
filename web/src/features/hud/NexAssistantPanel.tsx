@@ -13,7 +13,7 @@ import {
   saveNexAssistantPreferences,
 } from './nexAssistantPreferences';
 import { NexProactivityControls } from './NexProactivityControls';
-import { NEX_PROACTIVITY_ENABLED } from '../../app/composerFlowFlag';
+import { useOptionalFeatures } from '../../app/composerFlowFlag';
 import { NexAssistantActions } from './NexAssistantActions';
 import styles from './NexAssistantPanel.module.scss';
 
@@ -46,6 +46,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
   onOpenSettings,
   onOpenNewAgent,
 }) => {
+  const { NEX_PROACTIVITY_ENABLED } = useOptionalFeatures();
   const { t } = useTranslation();
   const [expanded, setExpanded] = React.useState(false);
   const [overview, setOverview] = React.useState<NexAssistantOverview | null>(null);

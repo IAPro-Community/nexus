@@ -28,11 +28,7 @@ import { asArray } from '../../lib/safeArray';
 import { nexus } from '../../nexus/api';
 import { handoffDesignInspectionToSelectedAgent } from './designInspectHandoff';
 import { VisualDiffPanel } from './VisualDiffPanel';
-import {
-  DESIGN_INSPECT_ENABLED,
-  DEVICE_PREVIEW_ENABLED,
-  VISUAL_DIFF_ENABLED,
-} from '../../app/composerFlowFlag';
+import { useOptionalFeatures } from '../../app/composerFlowFlag';
 import type { VisualDiffRequest, VisualDiffResult } from './visualDiffModel';
 import styles from './BrowserSurface.module.scss';
 import { FeatureTour } from '../work';
@@ -274,6 +270,8 @@ export const BrowserSurface: React.FC<{
   initialUrl?: string;
   onSessionReady?: (id: string) => void;
 }> = ({ projectId, initialSessionId, initialUrl = 'http://localhost:3000', onSessionReady }) => {
+  const { DESIGN_INSPECT_ENABLED, DEVICE_PREVIEW_ENABLED, VISUAL_DIFF_ENABLED } =
+    useOptionalFeatures();
   const { t } = useTranslation();
   const [session, setSession] = useState<NexusBrowserInfo | null>(null);
   const [availableBrowsers, setAvailableBrowsers] = useState<NexusBrowserInfo[]>([]);

@@ -96,9 +96,9 @@ import { formatAttentionPushBody } from '../notifications/attentionPushCopy';
 import { attentionPushKey, isPtyAttentionFocused } from '../notifications/attentionDelivery';
 import { interpretNexusVoiceCommand } from '../features/voice/voiceCommand';
 import {
-  COMPOSER_FLOW_ENABLED,
-  SMART_LAYOUTS_ENABLED,
+  useOptionalFeatures,
   loadOptionalFeatures,
+  applyOptionalFeatureSnapshot,
   isExperimentalComposerFlowSurface,
   isExperimentalRouteBlocked,
   isExperimentalWorkspaceSurfaceBlocked,
@@ -126,6 +126,7 @@ export const NexusWorkspaceApp: React.FC<{
         if (!mounted) return;
         setAuthenticated(rotated.authenticated);
         if (rotated.authenticated) scheduleRotation(rotated);
+        else applyOptionalFeatureSnapshot(null);
       } catch {
         // A temporary network/server failure is not a revoked session.
         // Retry without logging out or creating an unhandled promise.
@@ -141,7 +142,10 @@ export const NexusWorkspaceApp: React.FC<{
       rotationTimer = window.setTimeout(() => void retryRotation(), delay);
     };
     const onExpired = () => {
-      if (mounted) setAuthenticated(false);
+      if (mounted) {
+        setAuthenticated(false);
+        applyOptionalFeatureSnapshot(null);
+      }
     };
     window.addEventListener('nexus:session-expired', onExpired);
     initSession()
@@ -240,6 +244,7 @@ const NexusWorkspaceSession: React.FC<{
   popoutSurface?: WorkspaceSurface;
   initialGlobalSurface?: GlobalSurfaceKind;
 }> = ({ popoutSurface: explicitPopout, initialGlobalSurface }) => {
+  const { COMPOSER_FLOW_ENABLED } = useOptionalFeatures();
   const location = useLocation();
   const navigate = useNavigate();
   const [pendingAttentionFocus, setPendingAttentionFocus] =
@@ -264,7 +269,7 @@ const NexusWorkspaceSession: React.FC<{
       return projectSurface(parsedRoute.projectId, parsedRoute.surface as any);
     }
     return undefined;
-  }, [explicitPopout, parsedRoute]);
+  }, [explicitPopout, parsedRoute, COMPOSER_FLOW_ENABLED]);
 
   useEffect(() => {
     if (
@@ -277,7 +282,7 @@ const NexusWorkspaceSession: React.FC<{
     ) {
       navigate(buildProjectRoute(parsedRoute.projectId, 'overview'), { replace: true });
     }
-  }, [navigate, parsedRoute]);
+  }, [navigate, parsedRoute, COMPOSER_FLOW_ENABLED]);
 
   const routeProjectId =
     parsedRoute.kind === 'project' || parsedRoute.kind === 'popout'
@@ -453,6 +458,7 @@ const WorkspaceCoordinator: React.FC<{
   parsedRoute,
   layoutReady,
 }) => {
+  const { COMPOSER_FLOW_ENABLED, SMART_LAYOUTS_ENABLED } = useOptionalFeatures();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -532,7 +538,7 @@ const WorkspaceCoordinator: React.FC<{
     return () => {
       mounted = false;
     };
-  }, [project.id]);
+  }, [project.id, COMPOSER_FLOW_ENABLED]);
 
   const open = useCallback(
     (surface: WorkspaceSurface, updateUrl = true) => {
@@ -553,7 +559,7 @@ const WorkspaceCoordinator: React.FC<{
         }
       }
     },
-    [workspace, popout, navigate, project.id],
+    [workspace, popout, navigate, project.id, COMPOSER_FLOW_ENABLED],
   );
 
   const requestCloseSurface = (surface: WorkspaceSurface) => setCloseTarget(surface);
@@ -589,7 +595,7 @@ const WorkspaceCoordinator: React.FC<{
       if (!COMPOSER_FLOW_ENABLED && isExperimentalComposerFlowSurface(kind)) return;
       open(projectSurface(project.id, kind as any));
     },
-    [open, project.id],
+    [open, project.id, COMPOSER_FLOW_ENABLED],
   );
   const openTerminals = useCallback(
     () => open(projectSurface(project.id, 'terminals')),
@@ -700,7 +706,7 @@ const WorkspaceCoordinator: React.FC<{
   useEffect(() => {
     workspace.ensure(projectSurface(project.id, 'terminals'));
     if (COMPOSER_FLOW_ENABLED) workspace.ensure(projectSurface(project.id, 'work'));
-  }, [project.id, workspace]);
+  }, [project.id, workspace, COMPOSER_FLOW_ENABLED]);
 
   useEffect(() => {
     const handleNewAgentEvent = () => setNewAgentOpen(true);
@@ -1041,6 +1047,8 @@ const WorkspaceCoordinator: React.FC<{
       executionRoles,
       activeAgentRuntimeId,
       flowRuns,
+      COMPOSER_FLOW_ENABLED,
+      SMART_LAYOUTS_ENABLED,
       t,
       presentation,
       open,

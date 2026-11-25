@@ -12,6 +12,8 @@ import {
   SMART_LAYOUTS_ENABLED,
   DEVICE_PREVIEW_ENABLED,
   applyOptionalFeatureSnapshot,
+  getOptionalFeatures,
+  subscribeOptionalFeatures,
   isExperimentalComposerFlowSurface,
   isExperimentalRouteBlocked,
   isExperimentalWorkspaceSurfaceBlocked,
@@ -54,6 +56,20 @@ describe('Composer/Flow release gate', () => {
     expect(SMART_LAYOUTS_ENABLED).toBe(false);
     applyOptionalFeatureSnapshot(null);
     expect(COMPOSER_FLOW_ENABLED).toBe(false);
+  });
+
+  it('publishes immutable snapshots and notifies consumers', () => {
+    const previous = getOptionalFeatures();
+    const snapshots: ReturnType<typeof getOptionalFeatures>[] = [];
+    const unsubscribe = subscribeOptionalFeatures(() => snapshots.push(getOptionalFeatures()));
+    applyOptionalFeatureSnapshot({ global: true, features: { SMART_LAYOUTS: true } });
+    expect(snapshots).toHaveLength(1);
+    expect(Object.isFrozen(snapshots[0])).toBe(true);
+    expect(snapshots[0].SMART_LAYOUTS_ENABLED).toBe(true);
+    expect(previous.SMART_LAYOUTS_ENABLED).toBe(false);
+    unsubscribe();
+    applyOptionalFeatureSnapshot(null);
+    expect(snapshots).toHaveLength(1);
   });
 
   it('is disabled by default in normal test/build', () => {

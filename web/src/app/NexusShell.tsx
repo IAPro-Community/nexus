@@ -26,7 +26,7 @@ import { ProjectCreateMenu } from '../features/projects/ProjectCreateMenu';
 import type { Agent, AttentionItem, EventRecord, Project, RuntimeSession } from '../types';
 import type { RadarRuntimeItem } from './attentionRadarModel';
 import { VoiceCaptureButton } from '../features/voice/VoiceCaptureButton';
-import { COMPOSER_FLOW_ENABLED, VOICE_ACTIONS_ENABLED } from './composerFlowFlag';
+import { useOptionalFeatures } from './composerFlowFlag';
 import { ProductUpdatesCenter } from './components/ProductUpdatesCenter';
 import styles from './NexusShell.module.scss';
 
@@ -79,6 +79,7 @@ export const NexusShell: React.FC<{
   onOpenMissionAttention,
   onFocusAgent,
 }) => {
+  const { COMPOSER_FLOW_ENABLED, VOICE_ACTIONS_ENABLED } = useOptionalFeatures();
   const { t } = useTranslation();
   const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false);
   const [missionNeedsCount, setMissionNeedsCount] = useState(0);
