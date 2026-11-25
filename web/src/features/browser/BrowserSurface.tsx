@@ -520,6 +520,7 @@ export const BrowserSurface: React.FC<{
     if (!session) return;
     let disposed = false;
     const poll = async () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       try {
         const [status, activeGrants, browserInfo, browsers] = await Promise.all([
           browserAPI.handoffInfo(session.id),
@@ -706,6 +707,7 @@ export const BrowserSurface: React.FC<{
     void refreshImage().catch(() => undefined);
 
     const fallback = window.setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       if (Date.now() - lastFrameAt.current > 3000) {
         void refreshImage().catch(() => undefined);
       }

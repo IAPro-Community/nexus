@@ -72,6 +72,25 @@ describe('Composer/Flow release gate', () => {
     expect(snapshots).toHaveLength(1);
   });
 
+  it('exposes a frozen FLAGS map covering all 11 optional capabilities individually', () => {
+    applyOptionalFeatureSnapshot({
+      global: true,
+      features: {
+        COMPOSER: true,
+        FLOW: false,
+        PARALLEL_CHALLENGE: true,
+      },
+    });
+    const flags = getOptionalFeatures().FLAGS;
+    expect(Object.isFrozen(flags)).toBe(true);
+    expect(Object.keys(flags)).toHaveLength(11);
+    expect(flags.COMPOSER).toBe(true);
+    expect(flags.FLOW).toBe(false);
+    expect(flags.MISSIONS).toBe(false);
+    expect(flags.PARALLEL_CHALLENGE).toBe(true);
+    expect(flags.COMPARISON_LAB).toBe(false);
+  });
+
   it('is disabled by default in normal test/build', () => {
     expect(OPTIONAL_FEATURES_ENABLED).toBe(false);
     expect(COMPOSER_FLOW_ENABLED).toBe(false);

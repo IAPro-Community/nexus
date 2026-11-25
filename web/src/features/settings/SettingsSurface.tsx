@@ -45,6 +45,7 @@ import { CostIntelligenceSettings } from './CostIntelligenceSettings';
 import { HudSettings } from '../hud/HudSettings';
 import { VoiceSettings } from '../voice/VoiceSettings';
 import { useOptionalFeatures } from '../../app/composerFlowFlag';
+import { OptionalFeaturesPanel } from './OptionalFeaturesPanel';
 import type { SystemDoctorReport } from '../../nexus/api';
 import styles from './SettingsSurface.module.scss';
 import { ThemeAccordionSelector } from './ThemeAccordionSelector';
@@ -774,6 +775,7 @@ export const SettingsSurface: React.FC<{
               error={doctorError}
               onRefresh={() => void checkDoctor()}
             />
+            <OptionalFeaturesPanel />
           </>
         )}
 

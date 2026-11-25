@@ -296,7 +296,7 @@ export const NexusHud: React.FC<NexusHudProps> = ({
     // The capsule and popup are independent React trees. Read the controller's
     // authoritative state to recover after blur, Escape, and native hide.
     const timer = window.setInterval(() => {
-      if (active) syncState();
+      if (active && (native || (typeof document !== 'undefined' && !document.hidden))) syncState();
     }, 800);
     window.addEventListener('focus', syncState);
     return () => {

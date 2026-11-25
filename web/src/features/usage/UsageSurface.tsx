@@ -310,9 +310,13 @@ export const UsageSurface: React.FC<{
       if (!document.hidden) void softReload();
     };
     const poll = window.setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       void softReload();
     }, USAGE_POLL_MS);
-    const tick = window.setInterval(() => setNow(Date.now()), FRESHNESS_TICK_MS);
+    const tick = window.setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      setNow(Date.now());
+    }, FRESHNESS_TICK_MS);
     document.addEventListener('visibilitychange', onVisible);
     return () => {
       window.clearInterval(poll);

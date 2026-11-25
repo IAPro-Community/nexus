@@ -78,6 +78,8 @@ make build
 ./nexus web
 ```
 
+O comando `nexus web` inicia a interface de workspace em loopback (`127.0.0.1:13000` e `http://nexus.localhost:13000` via resolução local RFC 6761). Modificações em `/etc/hosts` são estritamente opcionais e desativadas por padrão, exigindo `NEXUS_ENABLE_HOSTS_FILE=1`.
+
 Depois:
 
 1. adicione um projeto;
@@ -101,13 +103,30 @@ classificações diferentes e não substituem certificação de plataforma.
 
 ## Como escolher o modo de trabalho
 
-| Situação | Use |
-| --- | --- |
-| correção pequena, debugging, exploração | **Direct** |
-| ideia ainda precisa de clareza | **Composer** |
-| quer revisar etapas/dependências | **Flow** |
-| trabalho longo, multi-Agent ou com gates | **Mission** |
-| quer metodologia, skills e gates externos | **Maestro** opcional |
+| Situação | Modo | Requisito |
+| --- | --- | --- |
+| correção pequena, debugging, exploração | **Direct** (Core padrão) | Ativo por padrão (sem flags adicionais) |
+| planejamento estruturado / intenção | **Composer** (Avançado) | `NEXUS_FEATURES_ENABLED=true` e `NEXUS_FEATURE_COMPOSER=true` |
+| revisão de etapas e dependências | **Flow** (Avançado) | `NEXUS_FEATURES_ENABLED=true` e `NEXUS_FEATURE_FLOW=true` |
+| execução supervisionada com gates | **Mission** (Avançado) | `NEXUS_FEATURES_ENABLED=true` e `NEXUS_FEATURE_MISSIONS=true` |
+| metodologia, skills e gates externos | **Maestro** (Sidecar) | Opcional (runtime Maestro v1) |
+
+### Transparência de Funcionalidades: Core Direct vs Opt-in Avançado
+
+Por padrão, o Nexus opera em modo **Core Direct**, priorizando estabilidade, terminais supervisionados transparentes e baixa sobrecarga de recursos. Recursos avançados e experimentais exigem ativação explícita com a chave global `NEXUS_FEATURES_ENABLED=true` combinada com cada flag individual `NEXUS_FEATURE_<NOME>=true`:
+
+- **Core Direct (Padrão: ATIVO):** Terminais supervisionados, roteamento de contas inteligente com quotas 5h/semanais, diagnósticos do sistema (`nexus doctor`), HUD companheiro e gerenciamento de projetos.
+- **Opt-in Avançado (`NEXUS_FEATURES_ENABLED=true` + `NEXUS_FEATURE_<NOME>=true`):** Habilita individualmente os módulos de orquestração avançada:
+  - `COMPOSER` (`NEXUS_FEATURE_COMPOSER=true`): Transformação de intenção em planos declarativos de trabalho.
+  - `FLOW` (`NEXUS_FEATURE_FLOW=true`): Projeção visual, edição e dependências do WorkPlan.
+  - `MISSIONS` (`NEXUS_FEATURE_MISSIONS=true`): Execução multi-agente autônoma com gates de evidência e isolamento.
+  - `PARALLEL_CHALLENGE` (`NEXUS_FEATURE_PARALLEL_CHALLENGE=true`) & `COMPARISON_LAB` (`NEXUS_FEATURE_COMPARISON_LAB=true`): Execuções paralelas comparativas entre múltiplos agentes/provedores.
+  - `VOICE_ACTIONS` (`NEXUS_FEATURE_VOICE_ACTIONS=true`): Comandos e interações controladas por voz.
+  - `NEX_PROACTIVITY` (`NEXUS_FEATURE_NEX_PROACTIVITY=true`): Comportamento proativo contextual do mascote NEX.
+  - `DESIGN_INSPECT` (`NEXUS_FEATURE_DESIGN_INSPECT=true`) & `VISUAL_DIFF` (`NEXUS_FEATURE_VISUAL_DIFF=true`): Ferramentas de inspeção de design e diff visual.
+  - `SMART_LAYOUTS` (`NEXUS_FEATURE_SMART_LAYOUTS=true`) & `DEVICE_PREVIEW` (`NEXUS_FEATURE_DEVICE_PREVIEW=true`): Layouts inteligentes e preview de dispositivos.
+
+O status efetivo de cada um dos 11 recursos opcionais pode ser auditado na aba **Atualizações** das Configurações do Workspace ou via endpoint `GET /api/v1/system/features`.
 
 ![Fluxo ponta a ponta](docs/assets/diagrams/nexus-v1-flow.svg)
 

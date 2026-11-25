@@ -119,7 +119,7 @@ export const FlowRunSurface: React.FC<{
       if (!guard.isLatest(seq)) return;
       setError(err instanceof Error ? err.message : String(err));
     }
-  }, [runId, plan?.id]);
+  }, [runId, plan?.id, plan?.current_revision]);
 
   useEffect(() => {
     void refresh();

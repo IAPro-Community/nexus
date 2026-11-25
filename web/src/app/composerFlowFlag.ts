@@ -8,6 +8,22 @@ import {
 
 import { request } from '../api';
 
+export const OPTIONAL_FEATURE_KEYS = [
+  'COMPOSER',
+  'FLOW',
+  'MISSIONS',
+  'PARALLEL_CHALLENGE',
+  'COMPARISON_LAB',
+  'VOICE_ACTIONS',
+  'NEX_PROACTIVITY',
+  'DESIGN_INSPECT',
+  'VISUAL_DIFF',
+  'SMART_LAYOUTS',
+  'DEVICE_PREVIEW',
+] as const;
+
+export type OptionalFeatureKey = (typeof OPTIONAL_FEATURE_KEYS)[number];
+
 // One immutable, observable snapshot per frontend instance. The server remains
 // the only execution authority. Legacy exported bindings are compatibility
 // projections for callers not yet migrated, not independent configuration.
@@ -20,6 +36,12 @@ function parseOptionalFeatures(snapshot: unknown) {
       : {};
   const global = record.global === true;
   const enabled = (name: string) => global && features[name] === true;
+  const flags = Object.freeze(
+    Object.fromEntries(OPTIONAL_FEATURE_KEYS.map((key) => [key, enabled(key)])) as Record<
+      OptionalFeatureKey,
+      boolean
+    >,
+  );
   return Object.freeze({
     OPTIONAL_FEATURES_ENABLED: global,
     COMPOSER_FLOW_ENABLED: enabled('COMPOSER') && enabled('FLOW') && enabled('MISSIONS'),
@@ -30,6 +52,7 @@ function parseOptionalFeatures(snapshot: unknown) {
     COMPARISON_LAB_ENABLED: enabled('COMPARISON_LAB'),
     SMART_LAYOUTS_ENABLED: enabled('SMART_LAYOUTS'),
     DEVICE_PREVIEW_ENABLED: enabled('DEVICE_PREVIEW'),
+    FLAGS: flags,
   });
 }
 

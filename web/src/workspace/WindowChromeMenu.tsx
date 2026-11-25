@@ -1,11 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { LayoutGrid, Paintbrush, RotateCcw } from 'lucide-react';
-import { DropdownMenu, IconButton, type ContextMenuPoint } from '../design-system';
+import { Paintbrush } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { ARRANGE_MENU_PRESETS, type ArrangeMenuPreset } from './arrangePresets';
+import { IconButton, type ContextMenuPoint } from '../design-system';
 
-const WINDOW_ACCENTS = [
+export const WINDOW_ACCENTS = [
   'var(--nx-info)',
   'var(--nx-success)',
   'var(--nx-warning)',
@@ -13,7 +12,7 @@ const WINDOW_ACCENTS = [
   'var(--nx-accent-text)',
   'var(--nx-danger)',
 ];
-const WINDOW_ICONS = ['⌘', '⚡', '◆', '●', '★', '◎'];
+export const WINDOW_ICONS = ['⌘', '⚡', '◆', '●', '★', '◎'];
 
 export const WindowChromeMenu: React.FC<{
   viewId: string;
@@ -34,11 +33,9 @@ export const WindowChromeMenu: React.FC<{
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState(customTitle);
-  const [menuPos, setMenuPos] = useState<{
-    top: number;
-    right?: number;
-    left?: number;
-  } | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; right?: number; left?: number } | null>(
+    null,
+  );
 
   useEffect(() => {
     // Escape discards the draft; reset the suppression when the menu reopens.
@@ -223,72 +220,6 @@ export const WindowChromeMenu: React.FC<{
         <Paintbrush size={13} />
       </IconButton>
       {menu}
-    </div>
-  );
-};
-
-export const ArrangeLayoutMenu: React.FC<{
-  activePreset: ArrangeMenuPreset;
-  onSelect: (preset: ArrangeMenuPreset) => void;
-  onReset?: () => void;
-}> = ({ activePreset, onSelect, onReset }) => {
-  const { t } = useTranslation();
-
-  return (
-    <div className="nx-arrange-menu">
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger asChild>
-          <button
-            type="button"
-            className="nx-arrange-menu__trigger"
-            title={t('workspace.arrangeWindows', 'Arranjar janelas')}
-            aria-label={t('workspace.arrangeWindows', 'Arranjar janelas')}
-          >
-            <LayoutGrid size={12} />
-            <span>{t('workspace.arrange', 'Arranjar')}</span>
-          </button>
-        </DropdownMenu.Trigger>
-
-        <DropdownMenu.Portal>
-          <DropdownMenu.Content
-            className="nx-arrange-menu__panel"
-            aria-label={t('workspace.arrangeWindows', 'Arranjar janelas')}
-            align="end"
-            sideOffset={6}
-            collisionPadding={8}
-          >
-            <DropdownMenu.RadioGroup
-              value={activePreset}
-              onValueChange={(value) => onSelect(value as ArrangeMenuPreset)}
-            >
-              {ARRANGE_MENU_PRESETS.map((preset) => (
-                <DropdownMenu.RadioItem
-                  key={preset.id}
-                  value={preset.id}
-                  className="nx-arrange-menu__item"
-                  data-active={activePreset === preset.id ? 'true' : undefined}
-                >
-                  <span>{preset.label}</span>
-                  <small>{preset.hint}</small>
-                </DropdownMenu.RadioItem>
-              ))}
-            </DropdownMenu.RadioGroup>
-
-            {onReset && (
-              <>
-                <DropdownMenu.Separator className="nx-arrange-menu__separator" />
-                <DropdownMenu.Item className="nx-arrange-menu__item" onSelect={() => onReset()}>
-                  <span className="nx-arrange-menu__reset-label">
-                    <RotateCcw size={12} />
-                    <span>{t('workspace.resetLayout', 'Redefinir layout')}</span>
-                  </span>
-                  <small>{t('workspace.restoreDefault', 'Restaurar padrão')}</small>
-                </DropdownMenu.Item>
-              </>
-            )}
-          </DropdownMenu.Content>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
     </div>
   );
 };

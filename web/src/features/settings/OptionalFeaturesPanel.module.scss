@@ -1,0 +1,81 @@
+.card {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-spacing-4);
+}
+
+.globalStatus {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--nx-spacing-2) var(--nx-spacing-4);
+  background: var(--nx-surface-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  font-size: var(--nx-font-size-sm);
+  color: var(--nx-text);
+}
+
+.featureList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-spacing-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.featureItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nx-spacing-4);
+  padding: var(--nx-spacing-2) var(--nx-spacing-4);
+  background: var(--nx-surface);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+}
+
+.featureInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-spacing-1);
+}
+
+.featureHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nx-spacing-2);
+}
+
+.featureName {
+  font-weight: 600;
+  font-size: var(--nx-font-size-sm);
+  color: var(--nx-text);
+}
+
+.envFlag {
+  font-family: var(--nx-font-mono, ui-monospace, monospace);
+  font-size: var(--nx-font-size-2xs);
+  color: var(--nx-text-muted);
+  background: var(--nx-surface-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-xs);
+  padding: 0 var(--nx-spacing-1);
+}
+
+.featureDesc {
+  margin: 0;
+  font-size: var(--nx-font-size-xs);
+  color: var(--nx-text-muted);
+}
+
+.iconEnabled {
+  color: var(--nx-success);
+}
+
+.iconDisabled {
+  color: var(--nx-subtle);
+}

@@ -135,7 +135,7 @@ export const WorkspaceProvider: React.FC<{
       }
     }
     return selectFeatureLayout(loaded, COMPOSER_FLOW_ENABLED ? 'full' : 'core', fallback);
-  }, [fallback, initialLayout, layoutService, projectId]);
+  }, [fallback, initialLayout, layoutService]);
   const revisionRef = useRef<number>(initialRevision || initialPersisted.revision || 1);
   const saveLayoutRef = useRef(saveLayout);
   saveLayoutRef.current = saveLayout;
