@@ -252,6 +252,19 @@ func (s *CapacityApplicationService) UpdatePreferences(ctx context.Context, pref
 	return prefs, nil
 }
 
+// PatchNotificationCategories changes only popup preferences, preserving the
+// capacity thresholds and monitor settings owned by the separate tab.
+func (s *CapacityApplicationService) PatchNotificationCategories(ctx context.Context, patch store.NotificationCategoryPatch) (store.CapacityPreferences, error) {
+	if err := ctx.Err(); err != nil {
+		return store.CapacityPreferences{}, err
+	}
+	st, err := s.requireStore()
+	if err != nil {
+		return store.CapacityPreferences{}, err
+	}
+	return st.PatchNotificationCategories(patch)
+}
+
 func validateDayTime(v string) error {
 	if _, err := time.Parse("15:04", strings.TrimSpace(v)); err != nil {
 		return err

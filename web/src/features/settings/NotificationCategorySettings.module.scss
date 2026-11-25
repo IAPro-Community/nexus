@@ -1,0 +1,32 @@
+.root {
+  display: grid;
+  gap: var(--nx-space-3, 0.75rem);
+  margin-top: var(--nx-space-4, 1rem);
+  padding-top: var(--nx-space-4, 1rem);
+  border-top: 1px solid var(--nx-border-subtle);
+}
+
+.heading {
+  display: grid;
+  gap: var(--nx-space-1, 0.25rem);
+
+  h3,
+  p {
+    margin: 0;
+  }
+
+  h3 {
+    color: var(--nx-text);
+    font-size: var(--nx-font-size-md, 1rem);
+  }
+
+  p {
+    color: var(--nx-text-muted);
+    font-size: var(--nx-font-size-sm, 0.875rem);
+  }
+}
+
+.categories {
+  display: grid;
+  gap: var(--nx-space-2, 0.5rem);
+}

@@ -80,7 +80,25 @@ type CapacityPreferences struct {
 	BrowserNotificationsEnabled bool      `json:"browser_notifications_enabled"`
 	NativeNotificationsEnabled  bool      `json:"native_notifications_enabled"`
 	LockScreenSafeCopy          bool      `json:"lock_screen_safe_copy"`
+	NotifyActionRequired        bool      `json:"notify_action_required"`
+	NotifyAuthPermission        bool      `json:"notify_auth_permission"`
+	NotifyCriticalFailure       bool      `json:"notify_critical_failure"`
+	NotifyQuotaExhausted        bool      `json:"notify_quota_exhausted"`
+	NotifyQuotaLow              bool      `json:"notify_quota_low"`
+	NotifyCompletionRecovery    bool      `json:"notify_completion_recovery"`
+	NotifyRuntimeConnection     bool      `json:"notify_runtime_connection"`
 	UpdatedAt                   time.Time `json:"updated_at"`
+}
+
+// NotificationCategoryPatch updates popup categories without replacing unrelated quota settings.
+type NotificationCategoryPatch struct {
+	ActionRequired     *bool `json:"notify_action_required,omitempty"`
+	AuthPermission     *bool `json:"notify_auth_permission,omitempty"`
+	CriticalFailure    *bool `json:"notify_critical_failure,omitempty"`
+	QuotaExhausted     *bool `json:"notify_quota_exhausted,omitempty"`
+	QuotaLow           *bool `json:"notify_quota_low,omitempty"`
+	CompletionRecovery *bool `json:"notify_completion_recovery,omitempty"`
+	RuntimeConnection  *bool `json:"notify_runtime_connection,omitempty"`
 }
 
 // DefaultCapacityPreferences returns default safe monitor preferences.
@@ -101,6 +119,13 @@ func DefaultCapacityPreferences() CapacityPreferences {
 		BrowserNotificationsEnabled: true,
 		NativeNotificationsEnabled:  true,
 		LockScreenSafeCopy:          true,
+		NotifyActionRequired:        true,
+		NotifyAuthPermission:        true,
+		NotifyCriticalFailure:       true,
+		NotifyQuotaExhausted:        true,
+		NotifyQuotaLow:              false,
+		NotifyCompletionRecovery:    false,
+		NotifyRuntimeConnection:     false,
 		UpdatedAt:                   time.Now().UTC(),
 	}
 }
@@ -391,17 +416,21 @@ func (s *Store) GetCapacityPreferences() (CapacityPreferences, error) {
 	row := s.db.QueryRow(`
 		SELECT enabled, background_enabled, warning_threshold, critical_threshold, exhausted_threshold, recovery_threshold,
 		       reminder_interval_seconds, quiet_hours_enabled, quiet_hours_start_utc, quiet_hours_end_utc,
-		       exhausted_bypass_quiet_hours, browser_notifications_enabled, native_notifications_enabled, lock_screen_safe_copy, updated_at
+	       exhausted_bypass_quiet_hours, browser_notifications_enabled, native_notifications_enabled, lock_screen_safe_copy,
+	       notify_action_required, notify_auth_permission, notify_critical_failure, notify_quota_exhausted,
+	       notify_quota_low, notify_completion_recovery, notify_runtime_connection, updated_at
 		FROM capacity_preferences WHERE id = 1
 	`)
 
 	var p CapacityPreferences
 	var enabled, bg, quiet, bypass, browser, native, lock int
+	var action, auth, critical, exhausted, low, completion, runtimeConnection int
 	var updatedStr string
 	err := row.Scan(
 		&enabled, &bg, &p.WarningThreshold, &p.CriticalThreshold, &p.ExhaustedThreshold, &p.RecoveryThreshold,
 		&p.ReminderIntervalSeconds, &quiet, &p.QuietHoursStartUTC, &p.QuietHoursEndUTC,
-		&bypass, &browser, &native, &lock, &updatedStr,
+		&bypass, &browser, &native, &lock,
+		&action, &auth, &critical, &exhausted, &low, &completion, &runtimeConnection, &updatedStr,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return DefaultCapacityPreferences(), nil
@@ -416,6 +445,13 @@ func (s *Store) GetCapacityPreferences() (CapacityPreferences, error) {
 	p.BrowserNotificationsEnabled = browser == 1
 	p.NativeNotificationsEnabled = native == 1
 	p.LockScreenSafeCopy = lock == 1
+	p.NotifyActionRequired = action == 1
+	p.NotifyAuthPermission = auth == 1
+	p.NotifyCriticalFailure = critical == 1
+	p.NotifyQuotaExhausted = exhausted == 1
+	p.NotifyQuotaLow = low == 1
+	p.NotifyCompletionRecovery = completion == 1
+	p.NotifyRuntimeConnection = runtimeConnection == 1
 	if p.UpdatedAt, err = parseStoreTime(updatedStr); err != nil {
 		return p, fmt.Errorf("corrupt preferences updated_at: %w", err)
 	}
@@ -439,8 +475,10 @@ func (s *Store) PutCapacityPreferences(prefs CapacityPreferences) error {
 		INSERT INTO capacity_preferences(
 			id, enabled, background_enabled, warning_threshold, critical_threshold, exhausted_threshold, recovery_threshold,
 			reminder_interval_seconds, quiet_hours_enabled, quiet_hours_start_utc, quiet_hours_end_utc,
-			exhausted_bypass_quiet_hours, browser_notifications_enabled, native_notifications_enabled, lock_screen_safe_copy, updated_at
-		) VALUES(1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			exhausted_bypass_quiet_hours, browser_notifications_enabled, native_notifications_enabled, lock_screen_safe_copy,
+			notify_action_required, notify_auth_permission, notify_critical_failure, notify_quota_exhausted,
+			notify_quota_low, notify_completion_recovery, notify_runtime_connection, updated_at
+		) VALUES(1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			enabled = excluded.enabled,
 			background_enabled = excluded.background_enabled,
@@ -456,12 +494,56 @@ func (s *Store) PutCapacityPreferences(prefs CapacityPreferences) error {
 			browser_notifications_enabled = excluded.browser_notifications_enabled,
 			native_notifications_enabled = excluded.native_notifications_enabled,
 			lock_screen_safe_copy = excluded.lock_screen_safe_copy,
+			notify_action_required = excluded.notify_action_required,
+			notify_auth_permission = excluded.notify_auth_permission,
+			notify_critical_failure = excluded.notify_critical_failure,
+			notify_quota_exhausted = excluded.notify_quota_exhausted,
+			notify_quota_low = excluded.notify_quota_low,
+			notify_completion_recovery = excluded.notify_completion_recovery,
+			notify_runtime_connection = excluded.notify_runtime_connection,
 			updated_at = excluded.updated_at
 	`, bToInt(prefs.Enabled), bToInt(prefs.BackgroundEnabled), prefs.WarningThreshold, prefs.CriticalThreshold,
 		prefs.ExhaustedThreshold, prefs.RecoveryThreshold, prefs.ReminderIntervalSeconds, bToInt(prefs.QuietHoursEnabled),
 		prefs.QuietHoursStartUTC, prefs.QuietHoursEndUTC, bToInt(prefs.ExhaustedBypassQuietHours),
-		bToInt(prefs.BrowserNotificationsEnabled), bToInt(prefs.NativeNotificationsEnabled), bToInt(prefs.LockScreenSafeCopy), updatedStr)
+		bToInt(prefs.BrowserNotificationsEnabled), bToInt(prefs.NativeNotificationsEnabled), bToInt(prefs.LockScreenSafeCopy),
+		bToInt(prefs.NotifyActionRequired), bToInt(prefs.NotifyAuthPermission), bToInt(prefs.NotifyCriticalFailure),
+		bToInt(prefs.NotifyQuotaExhausted), bToInt(prefs.NotifyQuotaLow), bToInt(prefs.NotifyCompletionRecovery),
+		bToInt(prefs.NotifyRuntimeConnection), updatedStr)
 	return err
+}
+
+// PatchNotificationCategories updates only popup category choices. The insert
+// uses SQL defaults for older installations without a preferences row.
+func (s *Store) PatchNotificationCategories(patch NotificationCategoryPatch) (CapacityPreferences, error) {
+	now := time.Now().UTC()
+	if _, err := s.db.Exec(`INSERT OR IGNORE INTO capacity_preferences(id, updated_at) VALUES(1, ?)`, formatStoreTime(now)); err != nil {
+		return CapacityPreferences{}, err
+	}
+	boolValue := func(value *bool) any {
+		if value == nil {
+			return nil
+		}
+		if *value {
+			return 1
+		}
+		return 0
+	}
+	_, err := s.db.Exec(`UPDATE capacity_preferences SET
+		notify_action_required = COALESCE(?, notify_action_required),
+		notify_auth_permission = COALESCE(?, notify_auth_permission),
+		notify_critical_failure = COALESCE(?, notify_critical_failure),
+		notify_quota_exhausted = COALESCE(?, notify_quota_exhausted),
+		notify_quota_low = COALESCE(?, notify_quota_low),
+		notify_completion_recovery = COALESCE(?, notify_completion_recovery),
+		notify_runtime_connection = COALESCE(?, notify_runtime_connection),
+		updated_at = ? WHERE id = 1`,
+		boolValue(patch.ActionRequired), boolValue(patch.AuthPermission), boolValue(patch.CriticalFailure),
+		boolValue(patch.QuotaExhausted), boolValue(patch.QuotaLow), boolValue(patch.CompletionRecovery),
+		boolValue(patch.RuntimeConnection), formatStoreTime(now))
+	if err != nil {
+		return CapacityPreferences{}, err
+	}
+	return s.GetCapacityPreferences()
 }
 
 // PruneCapacityHistory removes events and delivery receipts older than before.

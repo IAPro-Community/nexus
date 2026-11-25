@@ -31,11 +31,12 @@ type Store struct {
 // Open opens (creating if needed) the Nexus SQLite database at path and runs
 // all pending schema migrations idempotently.
 func Open(path string) (*Store, error) {
-	dsn := path + "?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)"
+	dsn := path + "?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=foreign_keys(1)"
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open nexus store: %w", err)
 	}
+	db.SetMaxOpenConns(1)
 	if err := db.Ping(); err != nil {
 		_ = db.Close()
 		return nil, fmt.Errorf("ping nexus store: %w", err)
@@ -361,6 +362,13 @@ func (s *Store) repairCapacityMonitorSchema() error {
 			browser_notifications_enabled INTEGER NOT NULL DEFAULT 1,
 			native_notifications_enabled INTEGER NOT NULL DEFAULT 1,
 			lock_screen_safe_copy INTEGER NOT NULL DEFAULT 1,
+			notify_action_required INTEGER NOT NULL DEFAULT 1,
+			notify_auth_permission INTEGER NOT NULL DEFAULT 1,
+			notify_critical_failure INTEGER NOT NULL DEFAULT 1,
+			notify_quota_exhausted INTEGER NOT NULL DEFAULT 1,
+			notify_quota_low INTEGER NOT NULL DEFAULT 0,
+			notify_completion_recovery INTEGER NOT NULL DEFAULT 0,
+			notify_runtime_connection INTEGER NOT NULL DEFAULT 0,
 			updated_at TEXT NOT NULL
 		)`,
 		`CREATE TABLE IF NOT EXISTS capacity_alert_states (

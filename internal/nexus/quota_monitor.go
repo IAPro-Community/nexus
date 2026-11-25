@@ -31,6 +31,7 @@ type QuotaNotificationAction struct {
 	Profile                 string             `json:"profile"`
 	DisplayName             string             `json:"display_name"`
 	Kind                    string             `json:"kind"` // "QUOTA_LOW" | "QUOTA_EXHAUSTED"
+	EpisodeKey              string             `json:"episode_key,omitempty"`
 	RemainingPercent        float64            `json:"remaining_percent"`
 	Group                   string             `json:"group,omitempty"`
 	Window                  string             `json:"window,omitempty"`
@@ -255,6 +256,7 @@ func (m *QuotaDropMonitor) checkWindow(acc ProviderAccount, group string, window
 		m.persistLocked()
 		m.mu.Unlock()
 		action := &QuotaNotificationAction{Provider: acc.Provider, Profile: acc.Profile, AccountScope: acc.Scope, DisplayName: displayName, Group: group, Window: window.Kind, DataStatus: acc.QuotaView.Status, DataAge: quota.FormatFreshness(acc.QuotaView.FetchedAt), Kind: string(events.EventQuotaExhausted), RemainingPercent: 0, ResetDesc: resetDesc, Title: fmt.Sprintf("Nexus · Quota Esgotada: %s", displayName), DeliveredAt: now}
+		action.EpisodeKey = quotaNotificationEpisodeKey(acc, group, window, action.Kind, action.RemainingPercent, now)
 		if alt := findBestAlternative(acc, pool); alt != nil {
 			action.RecommendedProvider = alt.Account.Provider
 			action.RecommendedProfile = alt.Account.Profile
@@ -284,6 +286,7 @@ func (m *QuotaDropMonitor) checkWindow(acc ProviderAccount, group string, window
 			m.persistLocked()
 			m.mu.Unlock()
 			action := &QuotaNotificationAction{Provider: acc.Provider, Profile: acc.Profile, AccountScope: acc.Scope, DisplayName: displayName, Group: group, Window: window.Kind, DataStatus: acc.QuotaView.Status, DataAge: quota.FormatFreshness(acc.QuotaView.FetchedAt), Kind: string(events.EventQuotaLow), RemainingPercent: pct, ResetDesc: resetDesc, Title: fmt.Sprintf("Nexus · Quota Baixa: %s", displayName), DeliveredAt: now}
+			action.EpisodeKey = quotaNotificationEpisodeKey(acc, group, window, action.Kind, action.RemainingPercent, now)
 			action.Body = fmt.Sprintf("A quota de %s (%s · %s) caiu para %.0f%%.", displayName, group, window.Kind, pct)
 			m.dispatch(action)
 			return action
@@ -291,6 +294,15 @@ func (m *QuotaDropMonitor) checkWindow(acc ProviderAccount, group string, window
 	}
 	m.mu.Unlock()
 	return nil
+}
+
+func quotaNotificationEpisodeKey(acc ProviderAccount, group string, window quota.Window, kind string, remaining float64, now time.Time) string {
+	resetCycle := now.UTC().Format(time.RFC3339Nano)
+	if window.ResetTime != nil {
+		resetCycle = window.ResetTime.UTC().Format(time.RFC3339Nano)
+	}
+	return fmt.Sprintf("quota:%s:%s:%s:%s:%s:%s:%.0f", acc.Provider, acc.Profile,
+		group, window.Kind, kind, resetCycle, remaining)
 }
 
 // CheckAccounts processes a slice of accounts and returns all triggered actions.
@@ -337,11 +349,21 @@ func (m *QuotaDropMonitor) dispatch(action *QuotaNotificationAction) {
 		return
 	}
 	if m.notifier != nil {
-		tag := fmt.Sprintf("quota:%s:%s:%s", action.Provider, action.Profile, action.Kind)
+		category := notify.CategoryQuotaLow
+		if action.Kind == string(events.EventQuotaExhausted) {
+			category = notify.CategoryQuotaExhausted
+		}
+		episode := action.EpisodeKey
+		if episode == "" {
+			episode = fmt.Sprintf("quota:%s:%s:%s:%s:%s:%.0f", action.Provider, action.Profile,
+				action.Group, action.Window, action.Kind, action.RemainingPercent)
+		}
 		if err := m.notifier.Notify(notify.Payload{
-			Title: action.Title,
-			Body:  action.Body,
-			Tag:   tag,
+			Title:      action.Title,
+			Body:       action.Body,
+			Tag:        episode,
+			Category:   category,
+			EpisodeKey: episode,
 		}); err != nil {
 			log.Printf("nexus quota native notification unavailable: %v", err)
 			m.mu.Lock()

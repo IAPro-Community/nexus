@@ -91,7 +91,11 @@ import { useTranslation } from 'react-i18next';
 import { shouldMarkUnread, surfaceTitleFromAgent } from '../workspace/surfaceAttention';
 import { KeyboardShortcutRegistry } from '../keyboard/KeyboardShortcutRegistry';
 import { pushNotifications } from '../notifications/PushNotificationManager';
-import { loadNotificationPrefs, playAttentionSound } from '../notifications/notificationPrefs';
+import {
+  cacheCapacityNotificationCategories,
+  loadNotificationPrefs,
+  playAttentionSound,
+} from '../notifications/notificationPrefs';
 import { formatAttentionPushBody } from '../notifications/attentionPushCopy';
 import { attentionPushKey, isPtyAttentionFocused } from '../notifications/attentionDelivery';
 import { interpretNexusVoiceCommand } from '../features/voice/voiceCommand';
@@ -175,6 +179,7 @@ export const NexusWorkspaceApp: React.FC<{
       'localhost',
       '127.0.0.1',
       '[::1]',
+      'nexus.localhost',
       'nexus.dev',
       'wails.localhost',
     ].includes(hostname);
@@ -283,6 +288,21 @@ const NexusWorkspaceSession: React.FC<{
       navigate(buildProjectRoute(parsedRoute.projectId, 'overview'), { replace: true });
     }
   }, [navigate, parsedRoute, COMPOSER_FLOW_ENABLED]);
+
+  useEffect(() => {
+    let active = true;
+    void nexus
+      .getCapacityPreferences()
+      .then((preferences) => {
+        if (active) cacheCapacityNotificationCategories(preferences);
+      })
+      .catch(() => {
+        // The local cache remains usable while the preferences API is offline.
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const routeProjectId =
     parsedRoute.kind === 'project' || parsedRoute.kind === 'popout'
@@ -479,7 +499,7 @@ const WorkspaceCoordinator: React.FC<{
     });
   }, []);
   const [settingsInitialTab, setSettingsInitialTab] = useState<
-    'appearance' | 'accessibility' | 'updates' | 'remote' | 'hud'
+    'appearance' | 'accessibility' | 'updates' | 'remote' | 'hud' | 'notifications'
   >('appearance');
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [maestroControlOpen, setMaestroControlOpen] = useState(false);
@@ -593,6 +613,13 @@ const WorkspaceCoordinator: React.FC<{
   const openKind = useCallback(
     (kind: string) => {
       if (!COMPOSER_FLOW_ENABLED && isExperimentalComposerFlowSurface(kind)) return;
+      if (kind === 'settings-notifications') {
+        open({
+          ...projectSurface(project.id, 'settings'),
+          data: { settingsTab: 'notifications' },
+        });
+        return;
+      }
       open(projectSurface(project.id, kind as any));
     },
     [open, project.id, COMPOSER_FLOW_ENABLED],
@@ -1474,6 +1501,7 @@ const WorkspaceCoordinator: React.FC<{
       if (
         reason !== 'QUESTION' &&
         reason !== 'APPROVAL' &&
+        reason !== 'AUTH' &&
         reason !== 'TASK_COMPLETED' &&
         reason !== 'ERROR'
       ) {

@@ -459,9 +459,11 @@ func (d *AttentionDetector) ProcessChunk(chunk []byte) {
 		))
 	} else if kind == AttentionError && fingerprint != "" && fingerprint != prevFingerprint {
 		_ = notify.Default().Notify(notify.Payload{
-			Title: "Nexus · " + d.projectName,
-			Body:  "Erro no terminal: " + attentionCtx + " — Abra o Nexus para revisar.",
-			Tag:   fingerprint,
+			Title:      "Nexus · " + d.projectName,
+			Body:       "Erro no terminal: " + attentionCtx + " — Abra o Nexus para revisar.",
+			Tag:        fingerprint,
+			Category:   notify.CategoryCriticalFailure,
+			EpisodeKey: fingerprint,
 		})
 	} else if reason == "TASK_COMPLETED" {
 		data := map[string]any{

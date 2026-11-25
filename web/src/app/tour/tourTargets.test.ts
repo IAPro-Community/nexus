@@ -80,6 +80,13 @@ describe('contextual tour target resolution', () => {
     }
   });
 
+  it('keeps notification category discovery inside the Settings surface scope', () => {
+    const selector = '[data-tour="notification-category-settings"]';
+    const categorySettings = target(true);
+    expect(findTourTarget(scope(categorySettings), selector)).toBe(categorySettings);
+    expect(findTourTarget(scope(), selector)).toBeNull();
+  });
+
   it('keeps named workspace snapshot discovery inside the project taskbar scope', () => {
     const selector = '[data-tour="workspace-snapshots"]';
     const snapshotControl = target(true);

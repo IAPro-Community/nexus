@@ -263,18 +263,8 @@ export const CapacityMonitorSettings: React.FC = () => {
           label={t('settings.capacityExhaustedBypass', 'Exhausted alerts bypass quiet hours')}
         />
       </section>
-      <section aria-label={t('settings.capacityChannels', 'Channels')} className={styles.section}>
-        <h3>{t('settings.capacityChannels', 'Channels')}</h3>
-        <Switch
-          checked={prefs.browser_notifications_enabled}
-          onChange={(checked) => patch({ browser_notifications_enabled: checked })}
-          label={t('settings.capacityBrowser', 'Browser notifications')}
-        />
-        <Switch
-          checked={prefs.native_notifications_enabled}
-          onChange={(checked) => patch({ native_notifications_enabled: checked })}
-          label={t('settings.capacityNative', 'Native notifications')}
-        />
+      <section aria-label={t('settings.capacityPrivacy', 'Privacy')} className={styles.section}>
+        <h3>{t('settings.capacityPrivacy', 'Privacy')}</h3>
         <Switch
           checked={prefs.lock_screen_safe_copy}
           onChange={(checked) => patch({ lock_screen_safe_copy: checked })}

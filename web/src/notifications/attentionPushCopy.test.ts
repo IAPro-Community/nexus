@@ -38,4 +38,21 @@ describe('attention push copy', () => {
       }),
     ).toBe(true);
   });
+
+  it('describes authentication and permission requests as urgent attention', () => {
+    expect(
+      formatAttentionPushBody({
+        reason: 'AUTH',
+        context: 'Sign in to continue',
+      }),
+    ).toContain('aguarda autenticação ou permissão');
+    expect(
+      shouldSendBrowserAttentionPush({
+        permission: 'granted',
+        documentHidden: true,
+        reason: 'AUTH',
+        context: 'Sign in to continue',
+      }),
+    ).toBe(true);
+  });
 });

@@ -93,6 +93,13 @@ const DemoCoordinator: React.FC = () => {
   const openKind = useCallback(
     (kind: string) => {
       if (!COMPOSER_FLOW_ENABLED && isExperimentalComposerFlowSurface(kind)) return;
+      if (kind === 'settings-notifications') {
+        workspace.open({
+          ...projectSurface(project.id, 'settings'),
+          data: { settingsTab: 'notifications' },
+        });
+        return;
+      }
       workspace.open(projectSurface(project.id, kind as any));
     },
     [workspace],
@@ -124,7 +131,13 @@ const DemoCoordinator: React.FC = () => {
       );
     if (surface.type === 'work' && COMPOSER_FLOW_ENABLED)
       return <WorkSurface project={project} agents={agents} onDirect={() => openKind('agents')} />;
-    if (surface.type === 'settings') return <SettingsSurface onTour={() => setTour(true)} />;
+    if (surface.type === 'settings')
+      return (
+        <SettingsSurface
+          onTour={() => setTour(true)}
+          initialTab={surface.data?.settingsTab === 'notifications' ? 'notifications' : undefined}
+        />
+      );
     return (
       <div className="nx-surface-scroll">
         <div className="nx-page-header">

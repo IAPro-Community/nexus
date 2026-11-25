@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { en, es, ptBR } from '../../i18n/resources';
 import {
   announcementsForSurface,
   announcementStorageKey,
@@ -30,10 +31,10 @@ const sourcePaths = [
   '../../notifications/FocusQueueSection.tsx',
   '../projects/ProjectManagerSurface.tsx',
   '../settings/RemoteAccessTab.tsx',
+  '../settings/NotificationCategorySettings.tsx',
   '../../workspace/WorkspaceSnapshotsControl.tsx',
 ];
 const uiSources = sourcePaths.map((path) => readFileSync(join(folder, path), 'utf8')).join('\n');
-const localeSource = readFileSync(join(folder, '..', '..', 'i18n', 'resources.ts'), 'utf8');
 
 describe('release-aware contextual feature discovery', () => {
   it('has stable and unique revisioned feature identities', () => {
@@ -76,16 +77,14 @@ describe('release-aware contextual feature discovery', () => {
   });
 
   it('localizes every notice in the three supported languages', () => {
-    const translations = localeSource
-      .split('  discovery: {')
-      .slice(1)
-      .map((block) => block.split('  tour: {')[0]);
+    const translations: Record<string, string>[] = [en.discovery, es.discovery, ptBR.discovery];
     expect(translations).toHaveLength(3);
     for (const item of featureAnnouncements) {
       for (const key of [item.title, item.summary]) {
         const token = key.replace('discovery.', '');
         for (const translation of translations) {
-          expect(new RegExp(`\\b${token}:\\s*['"]`).test(translation), key).toBe(true);
+          expect(typeof translation[token], key).toBe('string');
+          expect(translation[token].trim().length, key).toBeGreaterThan(0);
         }
       }
     }

@@ -1,4 +1,5 @@
-export type AttentionPushReason = 'QUESTION' | 'APPROVAL' | 'ERROR' | 'TASK_COMPLETED' | string;
+export type AttentionPushReason =
+  'QUESTION' | 'APPROVAL' | 'AUTH' | 'ERROR' | 'TASK_COMPLETED' | string;
 
 function truncate(text: string, max = 160): string {
   const clean = text.replace(/\s+/g, ' ').trim();
@@ -35,13 +36,17 @@ export function formatAttentionPushBody(input: {
           ? who
             ? `${who} pede aprovação`
             : 'Um agente pede aprovação'
-          : input.promptKind === 'yn'
+          : input.reason === 'AUTH'
             ? who
-              ? `${who} pede confirmação (Sim/Não)`
-              : 'Um agente pede confirmação (Sim/Não)'
-            : who
-              ? `${who} espera sua resposta`
-              : 'Um agente espera sua resposta';
+              ? `${who} aguarda autenticação ou permissão`
+              : 'Um agente aguarda autenticação ou permissão'
+            : input.promptKind === 'yn'
+              ? who
+                ? `${who} pede confirmação (Sim/Não)`
+                : 'Um agente pede confirmação (Sim/Não)'
+              : who
+                ? `${who} espera sua resposta`
+                : 'Um agente espera sua resposta';
 
   return `${lead}: ${context} — Abra o Nexus e responda no terminal.`;
 }
@@ -61,6 +66,7 @@ export function shouldSendBrowserAttentionPush(opts: {
   if (
     opts.reason !== 'QUESTION' &&
     opts.reason !== 'APPROVAL' &&
+    opts.reason !== 'AUTH' &&
     opts.reason !== 'ERROR' &&
     opts.reason !== 'TASK_COMPLETED'
   ) {

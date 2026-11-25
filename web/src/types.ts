@@ -361,6 +361,13 @@ export interface CapacityPreferences {
   browser_notifications_enabled: boolean;
   native_notifications_enabled: boolean;
   lock_screen_safe_copy: boolean;
+  notify_action_required: boolean;
+  notify_auth_permission: boolean;
+  notify_critical_failure: boolean;
+  notify_quota_exhausted: boolean;
+  notify_quota_low: boolean;
+  notify_completion_recovery: boolean;
+  notify_runtime_connection: boolean;
   updated_at: string;
 }
 

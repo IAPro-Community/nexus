@@ -40,6 +40,7 @@ import { RemoteAccessTab } from './RemoteAccessTab';
 import { FeatureTour } from '../work/FeatureTour';
 import { IntelligenceMemoriesPanel } from './IntelligenceMemoriesPanel';
 import { CapacityMonitorSettings } from './CapacityMonitorSettings';
+import { NotificationCategorySettings } from './NotificationCategorySettings';
 import { CostIntelligenceSettings } from './CostIntelligenceSettings';
 import { HudSettings } from '../hud/HudSettings';
 import { VoiceSettings } from '../voice/VoiceSettings';
@@ -961,6 +962,7 @@ export const SettingsSurface: React.FC<{
                 'Beep curto ao receber atenção. Independente das notificações visuais.',
               )}
             />
+            <NotificationCategorySettings />
           </Card>
         )}
         {activeTab === 'capacity' && (

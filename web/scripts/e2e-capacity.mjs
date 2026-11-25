@@ -66,6 +66,12 @@ async function main() {
       assert.equal(res.status, 401, 'capacity preferences without session must be 401');
     }
     {
+      const res = await api(origin, 'PATCH', '/api/v1/capacity/preferences', {
+        body: { notify_quota_low: true },
+      });
+      assert.equal(res.status, 401, 'notification categories without session must be 401');
+    }
+    {
       const res = await api(origin, 'POST', '/api/v1/capacity/snooze', {
         body: { fingerprint: 'x' },
       });
@@ -114,6 +120,12 @@ async function main() {
       assert.equal(res.status, 403, 'preferences PUT without CSRF must be 403');
     }
     {
+      const res = await api(origin, 'PATCH', '/api/v1/capacity/preferences', {
+        body: { notify_quota_low: true },
+      });
+      assert.equal(res.status, 403, 'notification category PATCH without CSRF must be 403');
+    }
+    {
       const future = new Date(Date.now() + 3600_000).toISOString();
       const res = await api(origin, 'POST', '/api/v1/capacity/snooze', {
         body: { fingerprint: 'alert-e2e-1', until: future },
@@ -130,6 +142,9 @@ async function main() {
       assert.deepEqual(res.data.resources, []);
       assert.equal(res.data.monitored_resources, 0);
       assert.ok(res.data.preferences, 'preferences embedded in status');
+      assert.equal(res.data.preferences.notify_action_required, true);
+      assert.equal(res.data.preferences.notify_quota_exhausted, true);
+      assert.equal(res.data.preferences.notify_quota_low, false);
     }
 
     // 4. History starts empty.
@@ -171,6 +186,23 @@ async function main() {
       assert.equal(ok.data.warning_threshold, 20);
       assert.equal(ok.data.critical_threshold, 10);
       assert.equal(ok.data.background_enabled, false);
+      const categoryPatch = await api(origin, 'PATCH', '/api/v1/capacity/preferences', {
+        csrf,
+        body: { notify_quota_low: true },
+      });
+      assert.equal(categoryPatch.status, 200);
+      assert.equal(categoryPatch.data.notify_quota_low, true);
+      assert.equal(categoryPatch.data.notify_action_required, true);
+      assert.equal(categoryPatch.data.warning_threshold, 20);
+      const preferencesAfterPatch = (
+        await api(origin, 'GET', '/api/v1/capacity/preferences', { csrf })
+      ).data;
+      assert.equal(preferencesAfterPatch.notify_quota_low, true, 'category patch must persist');
+      assert.equal(
+        preferencesAfterPatch.background_enabled,
+        false,
+        'category patch preserves monitor state',
+      );
     }
 
     // 6. Ack lifecycle echoes the fingerprint.

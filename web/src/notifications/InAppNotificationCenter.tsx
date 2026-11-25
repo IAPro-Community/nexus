@@ -27,7 +27,6 @@ import {
   type InAppNotification,
   type InAppNotificationAction,
 } from './inAppNotificationModel';
-import { loadNotificationPrefs } from './notificationPrefs';
 import { MissionAttentionPanel } from './MissionAttentionPanel';
 import { useOptionalFeatures } from '../app/composerFlowFlag';
 
@@ -128,7 +127,6 @@ export const InAppNotificationCenter: React.FC<{
   };
 
   useEffect(() => {
-    if (!loadNotificationPrefs().notificationsEnabled) return;
     const scoped = focusedProjectId
       ? runtimes.filter((runtime) => runtime.project_id === focusedProjectId)
       : [];

@@ -162,6 +162,11 @@ func (n *Nexus) Runner() *runner.MissionRunner {
 // deployments; nil selects the production Nexus-backed executor when Runner is
 // first requested.
 func NewWithStoreAndExecutor(st *store.Store, executor runner.PackageExecutor) *Nexus {
+	if st != nil {
+		if preferences, err := st.GetCapacityPreferences(); err == nil {
+			ApplyNativeNotificationPreferences(preferences)
+		}
+	}
 	n := &Nexus{
 		st:                         st,
 		launcher:                   &prodLauncher{l: launcher.Default()},

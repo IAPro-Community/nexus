@@ -219,7 +219,7 @@ func TestMissionNotificationRetryReachesTransportThroughGlobalThrottle(t *testin
 	}
 }
 
-func TestMissionNotificationsExcludeQuotaAutomationAndKeepCompletionInApp(t *testing.T) {
+func TestMissionNotificationsExcludeQuotaAutomationAndAllowConfiguredCompletion(t *testing.T) {
 	for _, reason := range []string{"QUOTA_EXHAUSTED", "RATE_LIMITED", "RETRY_PENDING", "REMEDIATION_REQUIRED"} {
 		blocked := &runner.MissionRun{
 			ID: "auto-block-" + reason, State: runner.StateBlockedNeedsUser,
@@ -229,7 +229,7 @@ func TestMissionNotificationsExcludeQuotaAutomationAndKeepCompletionInApp(t *tes
 			t.Errorf("internal %s transition must not create an interrupting native notification", reason)
 		}
 	}
-	for _, state := range []runner.State{runner.StateExecuting, runner.StateCompletedVerified, runner.StateFailedNoProgress} {
+	for _, state := range []runner.State{runner.StateExecuting, runner.StateFailedNoProgress} {
 		run := &runner.MissionRun{ID: "mission-" + string(state), State: state}
 		if state == runner.StateFailedNoProgress {
 			run.Contract.EscalateOnFailure = false
@@ -239,6 +239,9 @@ func TestMissionNotificationsExcludeQuotaAutomationAndKeepCompletionInApp(t *tes
 		}
 	}
 	completed := &runner.MissionRun{ID: "mission-completed", State: runner.StateCompletedVerified}
+	if !missionNativeNotificationEligible(completed) {
+		t.Fatal("verified completion should be eligible for its configurable popup category")
+	}
 	if item := runner.AttentionFromRun(completed); item == nil || item.State != runner.StateCompletedVerified {
 		t.Fatalf("verified completion should remain in the in-app Attention projection: %+v", item)
 	}

@@ -127,6 +127,8 @@ func TestCapacityEndpoints(t *testing.T) {
 	t.Run("PUT /api/v1/capacity/preferences applies lifecycle immediately", func(t *testing.T) {
 		prefs := store.DefaultCapacityPreferences()
 		prefs.BackgroundEnabled = true
+		prefs.NotifyActionRequired = false
+		prefs.NotifyQuotaLow = true
 		body, _ := json.Marshal(prefs)
 		resp := putJSON(t, client, csrf, srv.URL()+"/api/v1/capacity/preferences", body)
 		if resp.StatusCode != http.StatusOK {
@@ -142,8 +144,37 @@ func TestCapacityEndpoints(t *testing.T) {
 		if !saved.BackgroundEnabled {
 			t.Error("expected background_enabled persisted true")
 		}
+		if saved.NotifyActionRequired || !saved.NotifyQuotaLow {
+			t.Errorf("expected notification categories persisted, got action=%v quota_low=%v",
+				saved.NotifyActionRequired, saved.NotifyQuotaLow)
+		}
 		if !nexus.Default().CapacityMonitorRunning() {
 			t.Fatal("background opt-in must start capacity monitor without restart")
+		}
+
+		patchBody := []byte(`{"notify_runtime_connection":true}`)
+		patchReq, err := http.NewRequest(http.MethodPatch, srv.URL()+"/api/v1/capacity/preferences", bytes.NewReader(patchBody))
+		if err != nil {
+			t.Fatal(err)
+		}
+		patchReq.Header.Set("Content-Type", "application/json")
+		patchReq.Header.Set("X-CSRF-Token", csrf)
+		patchResp, err := client.Do(patchReq)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if patchResp.StatusCode != http.StatusOK {
+			patchResp.Body.Close()
+			t.Fatalf("category PATCH expected 200, got %d", patchResp.StatusCode)
+		}
+		var patched store.CapacityPreferences
+		if err := json.NewDecoder(patchResp.Body).Decode(&patched); err != nil {
+			patchResp.Body.Close()
+			t.Fatalf("decode category patch: %v", err)
+		}
+		patchResp.Body.Close()
+		if patched.NotifyActionRequired || !patched.NotifyQuotaLow || !patched.NotifyRuntimeConnection || !patched.BackgroundEnabled {
+			t.Fatalf("category patch overwrote unrelated preferences: %+v", patched)
 		}
 
 		saved.BackgroundEnabled = false

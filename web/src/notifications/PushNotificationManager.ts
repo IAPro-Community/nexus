@@ -1,5 +1,11 @@
 import { formatAttentionPushBody, shouldSendBrowserAttentionPush } from './attentionPushCopy';
 import { getPlatformBridge } from '../platform';
+import {
+  clearNotificationEpisode,
+  isNotificationCategoryEnabled,
+  markNotificationEpisodeDelivered,
+} from './attentionNotificationPolicy';
+import { loadNotificationPrefs } from './notificationPrefs';
 
 export interface PushNotificationPayload {
   runtimeId: string;
@@ -16,7 +22,6 @@ export interface PushNotificationPayload {
 class PushNotificationService {
   private permission: NotificationPermission =
     typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default';
-  private notifiedFingerprints = new Set<string>();
 
   public isSupported(): boolean {
     return typeof window !== 'undefined' && 'Notification' in window;
@@ -57,16 +62,7 @@ class PushNotificationService {
     if (!this.isSupported()) return;
 
     const documentHidden = typeof document === 'undefined' ? true : document.hidden;
-    let notificationsEnabled = true;
-    try {
-      const raw = window.localStorage.getItem('iapro:nexus:notification-prefs:v1');
-      if (raw) {
-        const parsed = JSON.parse(raw) as { notificationsEnabled?: boolean };
-        notificationsEnabled = parsed.notificationsEnabled !== false;
-      }
-    } catch {
-      notificationsEnabled = true;
-    }
+    const prefs = loadNotificationPrefs();
 
     if (
       !shouldSendBrowserAttentionPush({
@@ -75,19 +71,17 @@ class PushNotificationService {
         reason: payload.reason,
         context: payload.context,
         promptKind: payload.promptKind,
-        notificationsEnabled,
+        notificationsEnabled: prefs.notificationsEnabled,
       })
     ) {
       return;
     }
+    if (!isNotificationCategoryEnabled(payload.reason, prefs.categories)) return;
 
     const fingerprint =
       payload.fingerprint ||
       `${payload.runtimeId}|${payload.promptKind || ''}|${payload.context.toLowerCase().replace(/\s+/g, ' ')}`;
-    if (this.notifiedFingerprints.has(fingerprint)) {
-      return;
-    }
-    this.notifiedFingerprints.add(fingerprint);
+    if (!markNotificationEpisodeDelivered(fingerprint)) return;
 
     const proj = payload.projectName || 'Projeto';
     const title = payload.reason === 'ERROR' ? `Nexus · ${proj} · erro` : `Nexus · ${proj}`;
@@ -147,7 +141,7 @@ class PushNotificationService {
 
   /** Test helper / recovery when the wait clears. */
   public clearFingerprint(fingerprint: string): void {
-    this.notifiedFingerprints.delete(fingerprint);
+    clearNotificationEpisode(fingerprint);
   }
 }
 

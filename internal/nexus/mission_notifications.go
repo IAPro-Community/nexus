@@ -98,7 +98,16 @@ func (s *MissionNotificationService) DeliverPending(ctx context.Context) error {
 			}
 			continue
 		}
-		err := s.notifier.Notify(notify.Payload{Title: delivery.Title, Body: delivery.Body, Tag: delivery.IntentKey})
+		category := notify.CategoryCriticalFailure
+		if delivery.Kind == missionNotificationKindBlocked {
+			category = notify.CategoryActionRequired
+		} else if delivery.Kind == "MISSION_COMPLETED" {
+			category = notify.CategoryCompletionRecovery
+		}
+		err := s.notifier.Notify(notify.Payload{
+			Title: delivery.Title, Body: delivery.Body, Tag: delivery.IntentKey,
+			Category: category, EpisodeKey: delivery.IntentKey,
+		})
 		now = s.currentTime()
 		if err == nil {
 			if err := s.store.RecordMissionNotificationAttempt(delivery.IntentKey, delivery.Channel,
@@ -170,6 +179,8 @@ func missionNativeNotificationEligible(run *runner.MissionRun) bool {
 		return true
 	case runner.StateFailedNoProgress, runner.StateFailedVerification, runner.StateFailedBudgetExceeded, runner.StateFailed:
 		return run.Contract.EscalateOnFailure
+	case runner.StateCompletedVerified:
+		return true
 	default:
 		return false
 	}

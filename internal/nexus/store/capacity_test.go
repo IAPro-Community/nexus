@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -15,8 +16,8 @@ func TestCapacityMigrationApplied(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SchemaVersion() = %v", err)
 	}
-	if v < 21 {
-		t.Fatalf("schema version = %d, want >= 21 (capacity monitor)", v)
+	if v < 42 {
+		t.Fatalf("schema version = %d, want >= 42 (notification categories)", v)
 	}
 	for _, table := range []string{
 		"capacity_observations", "capacity_states", "capacity_monitor_lease",
@@ -44,11 +45,17 @@ func TestCapacityPreferencesDefaultsAndRoundTrip(t *testing.T) {
 		t.Fatalf("default thresholds = %.1f/%.1f, want %.1f/%.1f",
 			got.WarningThreshold, got.CriticalThreshold, want.WarningThreshold, want.CriticalThreshold)
 	}
+	if !got.NotifyActionRequired || !got.NotifyAuthPermission || !got.NotifyCriticalFailure || !got.NotifyQuotaExhausted ||
+		got.NotifyQuotaLow || got.NotifyCompletionRecovery || got.NotifyRuntimeConnection {
+		t.Fatalf("unexpected notification category defaults: %+v", got)
+	}
 
 	custom := want
 	custom.BackgroundEnabled = true
 	custom.WarningThreshold = 30
 	custom.QuietHoursEnabled = true
+	custom.NotifyActionRequired = false
+	custom.NotifyQuotaLow = true
 	if err := s.PutCapacityPreferences(custom); err != nil {
 		t.Fatalf("PutCapacityPreferences() = %v", err)
 	}
@@ -56,8 +63,71 @@ func TestCapacityPreferencesDefaultsAndRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetCapacityPreferences() after put = %v", err)
 	}
-	if !got.BackgroundEnabled || got.WarningThreshold != 30 || !got.QuietHoursEnabled {
+	if !got.BackgroundEnabled || got.WarningThreshold != 30 || !got.QuietHoursEnabled ||
+		got.NotifyActionRequired || !got.NotifyQuotaLow {
 		t.Fatalf("round-trip prefs mismatch: %+v", got)
+	}
+}
+
+func TestNotificationCategoryMigrationPreservesExistingNativeOptOut(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "legacy-capacity.db")
+	s, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacyPrefs := DefaultCapacityPreferences()
+	if err := s.PutCapacityPreferences(legacyPrefs); err != nil {
+		_ = s.Close()
+		t.Fatal(err)
+	}
+	if _, err := s.db.Exec(`UPDATE capacity_preferences SET native_notifications_enabled=0 WHERE id=1`); err != nil {
+		t.Fatal(err)
+	}
+	columns := []string{
+		"notify_runtime_connection", "notify_completion_recovery", "notify_quota_low",
+		"notify_quota_exhausted", "notify_critical_failure", "notify_auth_permission", "notify_action_required",
+	}
+	for _, column := range columns {
+		if _, err := s.db.Exec(`ALTER TABLE capacity_preferences DROP COLUMN ` + column); err != nil {
+			_ = s.Close()
+			t.Fatalf("drop migration column %s: %v", column, err)
+		}
+	}
+	if _, err := s.db.Exec(`DELETE FROM schema_migrations WHERE version=42`); err != nil {
+		_ = s.Close()
+		t.Fatal(err)
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	migrated, err := Open(path)
+	if err != nil {
+		t.Fatalf("reopen legacy database: %v", err)
+	}
+	defer migrated.Close()
+	prefs, err := migrated.GetCapacityPreferences()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if prefs.NotifyActionRequired || prefs.NotifyAuthPermission || prefs.NotifyCriticalFailure || prefs.NotifyQuotaExhausted {
+		t.Fatalf("legacy native-notification opt-out was not preserved: %+v", prefs)
+	}
+	if prefs.NotifyQuotaLow || prefs.NotifyCompletionRecovery || prefs.NotifyRuntimeConnection {
+		t.Fatalf("routine notification categories should default off: %+v", prefs)
+	}
+}
+
+func TestNotificationCategoryPatchCreatesDefaultPreferencesRow(t *testing.T) {
+	s := openTestStore(t)
+	enabled := true
+	prefs, err := s.PatchNotificationCategories(NotificationCategoryPatch{QuotaLow: &enabled})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !prefs.NotifyQuotaLow || !prefs.NotifyActionRequired || !prefs.NotifyQuotaExhausted ||
+		prefs.NotifyCompletionRecovery || prefs.WarningThreshold != 20 || prefs.BackgroundEnabled {
+		t.Fatalf("category patch did not preserve safe defaults: %+v", prefs)
 	}
 }
 

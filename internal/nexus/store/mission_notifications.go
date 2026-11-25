@@ -32,6 +32,7 @@ type MissionNotificationIntent struct {
 type MissionNotificationDelivery struct {
 	IntentKey     string
 	RunID         string
+	Kind          string
 	Channel       string
 	Title         string
 	Body          string
@@ -126,7 +127,7 @@ func (s *Store) ListPendingMissionNotificationDeliveries(now time.Time, limit in
 	if limit <= 0 || limit > 100 {
 		limit = 50
 	}
-	rows, err := s.db.Query(`SELECT d.intent_key,i.run_id,d.channel,i.title,i.body,d.status,d.attempts,d.last_error,d.next_attempt_at
+	rows, err := s.db.Query(`SELECT d.intent_key,i.run_id,i.kind,d.channel,i.title,i.body,d.status,d.attempts,d.last_error,d.next_attempt_at
 		FROM mission_notification_deliveries d
 		JOIN mission_notification_intents i ON i.intent_key=d.intent_key
 		WHERE d.status=? AND d.next_attempt_at<=?
@@ -139,7 +140,7 @@ func (s *Store) ListPendingMissionNotificationDeliveries(now time.Time, limit in
 	for rows.Next() {
 		var delivery MissionNotificationDelivery
 		var next string
-		if err := rows.Scan(&delivery.IntentKey, &delivery.RunID, &delivery.Channel, &delivery.Title,
+		if err := rows.Scan(&delivery.IntentKey, &delivery.RunID, &delivery.Kind, &delivery.Channel, &delivery.Title,
 			&delivery.Body, &delivery.Status, &delivery.Attempts, &delivery.LastError, &next); err != nil {
 			return nil, err
 		}

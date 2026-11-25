@@ -144,6 +144,16 @@ export const featureAnnouncements: readonly FeatureAnnouncement[] = [
     tourStep: 'follow',
   },
   {
+    id: 'notification-category-preferences',
+    revision: 1,
+    surfaces: ['settings'],
+    openSurface: 'settings-notifications',
+    target: '[data-tour="notification-category-settings"]',
+    title: 'discovery.notificationCategoriesTitle',
+    summary: 'discovery.notificationCategoriesBody',
+    tourStep: 'notification-categories',
+  },
+  {
     id: 'agent-structured-attention-choice',
     revision: 1,
     surfaces: ['agent-terminal'],

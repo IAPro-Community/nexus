@@ -131,6 +131,7 @@ func (h *NexusHandler) handleCapacityPreferences(w http.ResponseWriter, r *http.
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
+		nexus.ApplyNativeNotificationPreferences(saved)
 		// The request context ends when this handler returns, so the hosted
 		// monitor must own its own cancelable lifecycle. Shutdown/disable calls
 		// StopCapacityMonitor explicitly.
@@ -139,6 +140,19 @@ func (h *NexusHandler) handleCapacityPreferences(w http.ResponseWriter, r *http.
 		} else {
 			h.nexus.StopCapacityMonitor()
 		}
+		writeJSON(w, http.StatusOK, saved)
+	case http.MethodPatch:
+		var patch store.NotificationCategoryPatch
+		if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&patch); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid body")
+			return
+		}
+		saved, err := svc.PatchNotificationCategories(r.Context(), patch)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		nexus.ApplyNativeNotificationPreferences(saved)
 		writeJSON(w, http.StatusOK, saved)
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")

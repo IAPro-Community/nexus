@@ -273,6 +273,12 @@ export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
       title: 'tour.remotePushTitle',
       body: 'tour.remotePushBody',
     },
+    {
+      id: 'notification-categories',
+      target: '[data-tour="notification-category-settings"]',
+      title: 'tour.notificationCategoriesTitle',
+      body: 'tour.notificationCategoriesBody',
+    },
   ],
 };
 

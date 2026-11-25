@@ -1167,6 +1167,24 @@ export const nexus = {
       method: 'PUT',
       body: JSON.stringify(prefs),
     }),
+  patchNotificationCategories: (
+    patch: Partial<
+      Pick<
+        import('../types').CapacityPreferences,
+        | 'notify_action_required'
+        | 'notify_auth_permission'
+        | 'notify_critical_failure'
+        | 'notify_quota_exhausted'
+        | 'notify_quota_low'
+        | 'notify_completion_recovery'
+        | 'notify_runtime_connection'
+      >
+    >,
+  ) =>
+    request<import('../types').CapacityPreferences>('/api/v1/capacity/preferences', {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }),
   ackCapacityAlert: (fingerprint: string) =>
     request<import('../types').CapacityAlertState>('/api/v1/capacity/ack', {
       method: 'POST',
