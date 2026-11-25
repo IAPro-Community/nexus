@@ -36,7 +36,7 @@ PID=""
 for candidate in $(pgrep -f 'nexus web' 2>/dev/null || true); do
   RAW=$(ps -p "$candidate" -o args= 2>/dev/null || true)
   case "$RAW" in
-    *"$BIN web"* | "nexus web"*)
+    "$BIN web" | "$BIN web "* | "nexus web" | "nexus web "*)
       PID="$candidate"
       break
       ;;

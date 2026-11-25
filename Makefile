@@ -154,24 +154,24 @@ install-local: build
 	chmod +x $(LOCAL_BIN)/$(BINARY).tmp; \
 	mv -f $(LOCAL_BIN)/$(BINARY).tmp $(LOCAL_BIN)/$(BINARY); \
 	rm -f $(LOCAL_BIN)/ai; \
-	echo "Installed $(BINARY) to $(LOCAL_BIN)/$(BINARY)"; \
-	if [ -x "$(LOCAL_BIN)/nexus-desktop" ]; then \
-		$(MAKE) build-desktop; \
+	echo "Installed $(BINARY) to $(LOCAL_BIN)/$(BINARY)"
+	@if [ -x "$(LOCAL_BIN)/nexus-desktop" ]; then $(MAKE) build-desktop; fi
+	@set -e; if [ -x "$(LOCAL_BIN)/nexus-desktop" ]; then \
 		rm -f $(LOCAL_BIN)/nexus-desktop.tmp; \
 		cp -f nexus-desktop $(LOCAL_BIN)/nexus-desktop.tmp; \
 		chmod +x $(LOCAL_BIN)/nexus-desktop.tmp; \
 		mv -f $(LOCAL_BIN)/nexus-desktop.tmp $(LOCAL_BIN)/nexus-desktop; \
 		echo "Synced nexus-desktop to $(LOCAL_BIN)/nexus-desktop"; \
-	fi; \
-	if [ -x "$(LOCAL_BIN)/nexus-hud" ]; then \
-		$(MAKE) build-hud; \
+	fi
+	@if [ -x "$(LOCAL_BIN)/nexus-hud" ]; then $(MAKE) build-hud; fi
+	@set -e; if [ -x "$(LOCAL_BIN)/nexus-hud" ]; then \
 		rm -f $(LOCAL_BIN)/nexus-hud.tmp; \
 		cp -f nexus-hud $(LOCAL_BIN)/nexus-hud.tmp; \
 		chmod +x $(LOCAL_BIN)/nexus-hud.tmp; \
 		mv -f $(LOCAL_BIN)/nexus-hud.tmp $(LOCAL_BIN)/nexus-hud; \
 		echo "Synced nexus-hud to $(LOCAL_BIN)/nexus-hud"; \
-	fi; \
-	./scripts/restart-web.sh "$(LOCAL_BIN)/$(BINARY)"
+	fi
+	@./scripts/restart-web.sh "$(LOCAL_BIN)/$(BINARY)"
 
 build-desktop: web
 	@set -e; VERSION=$$(cat VERSION 2>/dev/null || echo "dev"); \
