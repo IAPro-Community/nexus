@@ -11,17 +11,14 @@ import {
   toggleMaximize,
   updateSurface,
   listSurfaces,
-  listStacks,
-  surfaceViewId,
   type WorkspaceDirection,
   type WorkspaceModel,
   type WorkspaceSurface,
 } from './model';
-import { WorkspaceLayoutService } from '../services/WorkspaceLayoutService';
+import { WorkspaceLayoutService, selectFeatureLayout } from '../services/WorkspaceLayoutService';
 import {
   COMPOSER_FLOW_ENABLED,
   isExperimentalWorkspaceSurfaceBlocked,
-  withoutExperimentalComposerFlow,
 } from '../app/composerFlowFlag';
 import type { WorkspacePresentationState } from './presentation';
 
@@ -136,14 +133,7 @@ export const WorkspaceProvider: React.FC<{
         loaded = layoutService.load(fallback);
       }
     }
-    if (COMPOSER_FLOW_ENABLED) return loaded;
-    const model = withoutExperimentalComposerFlow(loaded.model, defaultSurface(projectId));
-    return {
-      ...loaded,
-      model,
-      openSurfaceIds: listSurfaces(model.root).map(surfaceViewId),
-      activeSurfaceId: listStacks(model.root)[0]?.activeId,
-    };
+    return selectFeatureLayout(loaded, COMPOSER_FLOW_ENABLED ? 'full' : 'core', fallback);
   }, [fallback, initialLayout, layoutService, projectId]);
   const revisionRef = useRef<number>(initialRevision || initialPersisted.revision || 1);
   const saveLayoutRef = useRef(saveLayout);

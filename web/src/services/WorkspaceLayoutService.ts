@@ -1,4 +1,8 @@
-import { surfaceViewId, type WorkspaceModel } from '../workspace/model';
+import { surfaceViewId, listSurfaces, type WorkspaceModel } from '../workspace/model';
+import {
+  isExperimentalComposerFlowSurface,
+  withoutExperimentalComposerFlow,
+} from '../app/composerFlowFlag';
 import {
   deserializeWorkspace,
   isValidWorkspaceModel,
@@ -13,6 +17,14 @@ import {
 
 export const WORKSPACE_LAYOUT_VERSION = 4;
 
+export type LayoutFeatureProfile = 'core' | 'full';
+
+export interface AlternateFeatureLayout {
+  profile: LayoutFeatureProfile;
+  model: WorkspaceModel;
+  presentation: WorkspacePresentationState;
+}
+
 export interface PersistedWorkbenchLayout {
   version: typeof WORKSPACE_LAYOUT_VERSION;
   workspaceId: string;
@@ -22,6 +34,8 @@ export interface PersistedWorkbenchLayout {
   presentation: WorkspacePresentationState;
   activeSurfaceId?: string;
   openSurfaceIds: string[];
+  featureProfile?: LayoutFeatureProfile;
+  alternateFeatureLayout?: AlternateFeatureLayout;
 }
 
 /**
@@ -38,6 +52,58 @@ export interface WorkspaceNamedSnapshot {
 }
 
 const NAMED_SNAPSHOT_LIMIT = 20;
+
+function validFeatureProfile(value: unknown): value is LayoutFeatureProfile {
+  return value === 'core' || value === 'full';
+}
+
+function normalizeAlternate(value: unknown): AlternateFeatureLayout | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const candidate = value as Partial<AlternateFeatureLayout>;
+  if (!validFeatureProfile(candidate.profile) || !isValidWorkspaceModel(candidate.model)) {
+    return undefined;
+  }
+  return {
+    profile: candidate.profile,
+    model: candidate.model,
+    presentation: migratePresentationState(candidate.presentation),
+  };
+}
+
+/**
+ * Keep two layouts in one versioned envelope. A temporary feature opt-out is
+ * not a close/delete action; both profiles can be restored independently.
+ */
+export function selectFeatureLayout(
+  layout: PersistedWorkbenchLayout,
+  profile: LayoutFeatureProfile,
+  fallback: WorkspaceModel,
+): PersistedWorkbenchLayout {
+  const previous = layout.featureProfile ??
+    (listSurfaces(layout.model.root).some((tab) => isExperimentalComposerFlowSurface(tab.type))
+      ? 'full'
+      : 'core');
+  if (previous === profile) return { ...layout, featureProfile: profile };
+  const other = layout.alternateFeatureLayout;
+  const selected = other?.profile === profile ? other : undefined;
+  const model = selected?.model ??
+    (profile === 'core'
+      ? withoutExperimentalComposerFlow(layout.model, listSurfaces(fallback.root)[0])
+      : layout.model);
+  return {
+    ...layout,
+    featureProfile: profile,
+    model,
+    presentation: selected?.presentation ?? layout.presentation,
+    activeSurfaceId: model.root.kind === 'stack' ? model.root.activeId : undefined,
+    openSurfaceIds: listSurfaces(model.root).map(surfaceViewId),
+    alternateFeatureLayout: {
+      profile: previous,
+      model: layout.model,
+      presentation: layout.presentation,
+    },
+  };
+}
 
 export class WorkspaceLayoutService {
   private readonly projectId: string;
@@ -329,6 +395,10 @@ export class WorkspaceLayoutService {
       presentation,
       activeSurfaceId: candidate.activeSurfaceId,
       openSurfaceIds: Array.isArray(candidate.openSurfaceIds) ? candidate.openSurfaceIds : [],
+      featureProfile: validFeatureProfile(candidate.featureProfile)
+        ? candidate.featureProfile
+        : undefined,
+      alternateFeatureLayout: normalizeAlternate(candidate.alternateFeatureLayout),
     });
   }
 
@@ -361,6 +431,8 @@ export class WorkspaceLayoutService {
       presentation,
       activeSurfaceId,
       openSurfaceIds,
+      featureProfile: validFeatureProfile(layout.featureProfile) ? layout.featureProfile : undefined,
+      alternateFeatureLayout: normalizeAlternate(layout.alternateFeatureLayout),
     };
   }
 

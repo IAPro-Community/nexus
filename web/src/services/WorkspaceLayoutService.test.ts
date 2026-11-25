@@ -1,6 +1,10 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { WorkspaceLayoutService, WORKSPACE_LAYOUT_VERSION } from './WorkspaceLayoutService';
-import { createWorkspace } from '../workspace/model';
+import {
+  selectFeatureLayout,
+  WorkspaceLayoutService,
+  WORKSPACE_LAYOUT_VERSION,
+} from './WorkspaceLayoutService';
+import { createWorkspace, openSurface, splitWithSurface } from '../workspace/model';
 import { createPresentationState, setTerminalSplitRatio } from '../workspace/presentation';
 
 // In Node environment vitest tests, provide mock localStorage on global/window
@@ -37,6 +41,32 @@ describe('WorkspaceLayoutService', () => {
   beforeEach(() => {
     mockLocalStorage.clear();
     service = new WorkspaceLayoutService(projectId);
+  });
+
+  it('preserves optional tabs and split geometry across OFF/ON and core edits', () => {
+    const original = service.load(fallback);
+    original.model = splitWithSurface(
+      original.model,
+      overviewId,
+      { id: 'legacy-mission', type: 'missions', title: 'Mission' },
+      'horizontal',
+    );
+    const fullModel = JSON.parse(JSON.stringify(original.model));
+    const core = selectFeatureLayout(original, 'core', fallback);
+    expect(JSON.stringify(core.model)).not.toContain('legacy-mission');
+    core.model = openSurface(core.model, {
+      id: 'new-terminal',
+      type: 'terminal',
+      title: 'Terminal',
+    });
+    service.save(core);
+    const reloaded = service.load(fallback);
+    const full = selectFeatureLayout(reloaded, 'full', fallback);
+    expect(full.model).toEqual(fullModel);
+    service.save(full);
+    const restoredCore = selectFeatureLayout(service.load(fallback), 'core', fallback);
+    expect(JSON.stringify(restoredCore.model)).toContain('new-terminal');
+    expect(JSON.stringify(restoredCore.model)).not.toContain('legacy-mission');
   });
 
   it('loads fallback when storage is empty', () => {
