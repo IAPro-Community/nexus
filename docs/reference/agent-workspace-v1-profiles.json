@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "baseContract": "agent-workspace-v1.json",
+  "status": "planning-only",
+  "releaseGate": "full-until-signed-profile-evidence",
+  "core": {
+    "features": [
+      "terminal-studio",
+      "agent-command-center",
+      "review-studio",
+      "browser-studio",
+      "remote-companion",
+      "workspace-snapshots",
+      "agent-groups",
+      "quick-switcher",
+      "follow-agent",
+      "floating-inspector",
+      "agent-parking",
+      "attention-radar",
+      "focus-queue",
+      "agent-timeline",
+      "resource-recommendations",
+      "runtime-health",
+      "agent-compare",
+      "review-handoff",
+      "consult-another-agent",
+      "change-radar",
+      "test-matrix",
+      "release-desk",
+      "browser-pane",
+      "live-preview",
+      "browser-automation",
+      "mobile-inbox",
+      "remote-terminal",
+      "workspace-sharing",
+      "contextual-hud",
+      "nex-companion",
+      "workspace-recipes",
+      "change-collision-detector",
+      "device-handoff",
+      "maestro-managed-dependency",
+      "maestro-canonical-memory",
+      "single-execution-owner",
+      "remote-generated-outputs",
+      "two-client-real-e2e",
+      "cross-platform-exact-sha"
+    ],
+    "global": false
+  },
+  "optional": {
+    "features": {
+      "comparison-lab": [
+        "COMPARISON_LAB",
+        "FLOW",
+        "MISSIONS"
+      ],
+      "mission-observatory": [
+        "MISSIONS"
+      ],
+      "smart-layouts": [
+        "SMART_LAYOUTS"
+      ],
+      "design-inspect": [
+        "DESIGN_INSPECT"
+      ],
+      "visual-diff": [
+        "VISUAL_DIFF"
+      ],
+      "device-preview": [
+        "DEVICE_PREVIEW"
+      ],
+      "voice-actions": [
+        "VOICE_ACTIONS"
+      ],
+      "parallel-challenge": [
+        "PARALLEL_CHALLENGE",
+        "FLOW",
+        "MISSIONS"
+      ],
+      "composer-flow-onboarding": [
+        "COMPOSER",
+        "FLOW",
+        "MISSIONS"
+      ]
+    },
+    "global": true
+  },
+  "full": {
+    "features": [
+      "terminal-studio",
+      "agent-command-center",
+      "review-studio",
+      "browser-studio",
+      "comparison-lab",
+      "remote-companion",
+      "mission-observatory",
+      "smart-layouts",
+      "workspace-snapshots",
+      "agent-groups",
+      "quick-switcher",
+      "follow-agent",
+      "floating-inspector",
+      "agent-parking",
+      "attention-radar",
+      "focus-queue",
+      "agent-timeline",
+      "resource-recommendations",
+      "runtime-health",
+      "agent-compare",
+      "review-handoff",
+      "consult-another-agent",
+      "change-radar",
+      "test-matrix",
+      "release-desk",
+      "browser-pane",
+      "design-inspect",
+      "live-preview",
+      "browser-automation",
+      "visual-diff",
+      "device-preview",
+      "mobile-inbox",
+      "remote-terminal",
+      "workspace-sharing",
+      "voice-actions",
+      "contextual-hud",
+      "nex-companion",
+      "workspace-recipes",
+      "parallel-challenge",
+      "change-collision-detector",
+      "device-handoff",
+      "maestro-managed-dependency",
+      "maestro-canonical-memory",
+      "single-execution-owner",
+      "composer-flow-onboarding",
+      "remote-generated-outputs",
+      "two-client-real-e2e",
+      "cross-platform-exact-sha"
+    ],
+    "global": true
+  },
+  "additionalRequiredChecks": [
+    "default-off-runtime",
+    "explicit-opt-in-isolation",
+    "core-layout-roundtrip",
+    "authorization-csrf-control-owner",
+    "two-client-real-device",
+    "cross-platform-exact-sha",
+    "optional-data-retention"
+  ]
+}

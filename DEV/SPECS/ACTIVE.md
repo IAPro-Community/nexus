@@ -12,7 +12,9 @@ Usar o catálogo central em `internal/nexus/feature_flags.go` e o contrato
 - Não reativar funcionalidades para satisfazer screenshots/testes antigos.
 - Não criar outro motor ou transferir complexidade legada para Maestro.
 - Manter o contrato histórico de 48 capacidades e suas evidências intactos;
-  versionar perfil session-first e verificador antes de alterar escopo obrigatório.
+  usar o inventário versionado `docs/reference/agent-workspace-v1-profiles.json` e
+  `node scripts/verify-agent-workspace-profiles.mjs`. O perfil é apenas planejamento;
+  o gate Full assinado permanece obrigatório até evidência vinculada ao perfil e aprovação.
 - Segurança, PTY/ConPTY, continuidade, dispositivos e aceite exato não são dispensados.
 - Status **NO_GO** até CI e homologação do SHA final. Não publicar automaticamente.
 
