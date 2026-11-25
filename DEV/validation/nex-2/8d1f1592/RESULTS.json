@@ -82,6 +82,7 @@
     "DEV/validation/nex-2/8d1f1592/BASELINE.md",
     "DEV/validation/nex-2/8d1f1592/CAPABILITY_LEDGER.md",
     "DEV/validation/nex-2/8d1f1592/PROGRESS.md",
+    "DEV/validation/nex-2/8d1f1592/RENDERER_ADR.md",
     "DEV/validation/nex-2/8d1f1592/GATE_REPORT.md",
     "DEV/validation/nex-2/8d1f1592/RESULTS.json",
     "DEV/validation/nex-2/8d1f1592/e2e-hud/web-hud-desktop.png",
@@ -89,6 +90,40 @@
     "DEV/validation/nex-2/8d1f1592/companion-lab/captures/02-greet.png",
     "DEV/validation/nex-2/8d1f1592/companion-lab/captures/03-look.png",
     "DEV/validation/nex-2/8d1f1592/companion-lab/captures/04-thinking.png",
-    "DEV/validation/nex-2/8d1f1592/companion-lab/captures/05-attention.png"
-  ]
+    "DEV/validation/nex-2/8d1f1592/companion-lab/captures/05-attention.png",
+    "DEV/validation/nex-2/8d1f1592/p1-lab/p1-lab-metrics.json",
+    "DEV/validation/nex-2/8d1f1592/p1-lab/mood-idle.png",
+    "DEV/validation/nex-2/8d1f1592/p1-lab/mood-working.png",
+    "DEV/validation/nex-2/8d1f1592/p1-lab/mood-attention.png",
+    "DEV/validation/nex-2/8d1f1592/p1-lab/mood-critical.png",
+    "DEV/validation/nex-2/8d1f1592/p1-lab/mood-offline.png"
+  ],
+  "gate_g1": {
+    "p0_sha": "fb22bbb777f5cb26eb83954373706664823ae569",
+    "selected_runtime": "wails-v3-isolated-entrypoint",
+    "verdict": {
+      "linux_lab": "PASS",
+      "windows_native": "BLOCKED",
+      "macos_native": "BLOCKED",
+      "owner_visual_approval": "BLOCKED"
+    },
+    "metrics": {
+      "nex_v2_js_kb": 264.4,
+      "nex_v2_css_kb": 7.8,
+      "cold_navigation_to_paint_ms": 329,
+      "rig_first_paint_ms": 155,
+      "idle_target_fps": 20,
+      "interactive_p95_frame_ms": 16.8,
+      "long_stutters_over_100ms": 0,
+      "reduced_motion_frames_delta": 0,
+      "resize_count_delta": 0,
+      "native_xvfb_host_rss_kib": 180148,
+      "native_xvfb_host_pss_kib": 95488,
+      "native_xvfb_webkit_net_rss_kib": 46824,
+      "native_xvfb_webkit_net_pss_kib": 14903,
+      "native_xvfb_webkit_web_rss_kib": 290992,
+      "native_xvfb_webkit_web_pss_kib": 207770,
+      "native_xvfb_total_pss_kib": 318161
+    }
+  }
 }

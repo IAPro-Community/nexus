@@ -1,0 +1,258 @@
+{
+  "coldNavigationToPaintMs": 503,
+  "rigFirstPaintMs": 230.8,
+  "resizeCountDelta": 0,
+  "idleMetrics": {
+    "mode": "idle",
+    "targetFps": 20,
+    "frameCount": 226,
+    "p50FrameMs": 16.7,
+    "p95FrameMs": 16.8,
+    "maxFrameMs": 50,
+    "longStuttersOver100ms": 0
+  },
+  "reducedMotionFramesDelta": 0,
+  "moodResults": {
+    "idle": {
+      "ok": true,
+      "nonZero": 3764,
+      "edgeClip": 0,
+      "width": 192,
+      "height": 192,
+      "metrics": {
+        "firstPaintMs": 230.8,
+        "rigReady": true,
+        "atlasFallback": false,
+        "resizeCount": 0,
+        "viewportWidth": 420,
+        "viewportHeight": 420,
+        "behavior": "ambient",
+        "expression": "ambient",
+        "mood": "idle",
+        "clock": {
+          "mode": "idle",
+          "targetFps": 20,
+          "frameCount": 8,
+          "p50FrameMs": 50,
+          "p95FrameMs": 50.1,
+          "maxFrameMs": 50.1,
+          "longStuttersOver100ms": 0
+        }
+      }
+    },
+    "working": {
+      "ok": true,
+      "nonZero": 3545,
+      "edgeClip": 0,
+      "width": 192,
+      "height": 192,
+      "metrics": {
+        "firstPaintMs": 230.8,
+        "rigReady": true,
+        "atlasFallback": false,
+        "resizeCount": 0,
+        "viewportWidth": 420,
+        "viewportHeight": 420,
+        "behavior": "thinking",
+        "expression": "thinking",
+        "mood": "working",
+        "clock": {
+          "mode": "interactive",
+          "targetFps": 60,
+          "frameCount": 22,
+          "p50FrameMs": 33.4,
+          "p95FrameMs": 50.1,
+          "maxFrameMs": 50.1,
+          "longStuttersOver100ms": 0
+        }
+      }
+    },
+    "attention": {
+      "ok": true,
+      "nonZero": 3535,
+      "edgeClip": 0,
+      "width": 192,
+      "height": 192,
+      "metrics": {
+        "firstPaintMs": 230.8,
+        "rigReady": true,
+        "atlasFallback": false,
+        "resizeCount": 0,
+        "viewportWidth": 420,
+        "viewportHeight": 420,
+        "behavior": "attention",
+        "expression": "attention",
+        "mood": "attention",
+        "clock": {
+          "mode": "interactive",
+          "targetFps": 60,
+          "frameCount": 44,
+          "p50FrameMs": 16.7,
+          "p95FrameMs": 50,
+          "maxFrameMs": 50.1,
+          "longStuttersOver100ms": 0
+        }
+      }
+    },
+    "critical": {
+      "ok": true,
+      "nonZero": 3709,
+      "edgeClip": 0,
+      "width": 192,
+      "height": 192,
+      "metrics": {
+        "firstPaintMs": 230.8,
+        "rigReady": true,
+        "atlasFallback": false,
+        "resizeCount": 0,
+        "viewportWidth": 420,
+        "viewportHeight": 420,
+        "behavior": "error",
+        "expression": "error",
+        "mood": "critical",
+        "clock": {
+          "mode": "interactive",
+          "targetFps": 60,
+          "frameCount": 67,
+          "p50FrameMs": 16.7,
+          "p95FrameMs": 50,
+          "maxFrameMs": 50.1,
+          "longStuttersOver100ms": 0
+        }
+      }
+    },
+    "offline": {
+      "ok": true,
+      "nonZero": 3767,
+      "edgeClip": 0,
+      "width": 192,
+      "height": 192,
+      "metrics": {
+        "firstPaintMs": 230.8,
+        "rigReady": true,
+        "atlasFallback": false,
+        "resizeCount": 0,
+        "viewportWidth": 420,
+        "viewportHeight": 420,
+        "behavior": "rest",
+        "expression": "still",
+        "mood": "offline",
+        "clock": {
+          "mode": "paused",
+          "targetFps": 0,
+          "frameCount": 74,
+          "p50FrameMs": 16.7,
+          "p95FrameMs": 50,
+          "maxFrameMs": 50.1,
+          "longStuttersOver100ms": 0
+        }
+      }
+    }
+  },
+  "behaviorResults": {
+    "ambient": {
+      "behavior": "ambient",
+      "expression": "ambient",
+      "clock": {
+        "mode": "idle",
+        "targetFps": 20,
+        "frameCount": 88,
+        "p50FrameMs": 16.7,
+        "p95FrameMs": 50,
+        "maxFrameMs": 50.1,
+        "longStuttersOver100ms": 0
+      }
+    },
+    "greet": {
+      "behavior": "greet",
+      "expression": "greet",
+      "clock": {
+        "mode": "interactive",
+        "targetFps": 60,
+        "frameCount": 103,
+        "p50FrameMs": 16.7,
+        "p95FrameMs": 50,
+        "maxFrameMs": 50.1,
+        "longStuttersOver100ms": 0
+      }
+    },
+    "look": {
+      "behavior": "look",
+      "expression": "look",
+      "clock": {
+        "mode": "interactive",
+        "targetFps": 60,
+        "frameCount": 121,
+        "p50FrameMs": 16.7,
+        "p95FrameMs": 50,
+        "maxFrameMs": 50.1,
+        "longStuttersOver100ms": 0
+      }
+    },
+    "thinking": {
+      "behavior": "thinking",
+      "expression": "thinking",
+      "clock": {
+        "mode": "interactive",
+        "targetFps": 60,
+        "frameCount": 139,
+        "p50FrameMs": 16.7,
+        "p95FrameMs": 16.8,
+        "maxFrameMs": 50,
+        "longStuttersOver100ms": 0
+      }
+    },
+    "attention": {
+      "behavior": "attention",
+      "expression": "attention",
+      "clock": {
+        "mode": "interactive",
+        "targetFps": 60,
+        "frameCount": 157,
+        "p50FrameMs": 16.7,
+        "p95FrameMs": 16.8,
+        "maxFrameMs": 50,
+        "longStuttersOver100ms": 0
+      }
+    },
+    "error": {
+      "behavior": "error",
+      "expression": "error",
+      "clock": {
+        "mode": "interactive",
+        "targetFps": 60,
+        "frameCount": 173,
+        "p50FrameMs": 16.7,
+        "p95FrameMs": 16.8,
+        "maxFrameMs": 50,
+        "longStuttersOver100ms": 0
+      }
+    },
+    "resolved": {
+      "behavior": "resolved",
+      "expression": "resolved",
+      "clock": {
+        "mode": "interactive",
+        "targetFps": 60,
+        "frameCount": 192,
+        "p50FrameMs": 16.7,
+        "p95FrameMs": 16.8,
+        "maxFrameMs": 50,
+        "longStuttersOver100ms": 0
+      }
+    },
+    "rest": {
+      "behavior": "rest",
+      "expression": "rest",
+      "clock": {
+        "mode": "idle",
+        "targetFps": 20,
+        "frameCount": 209,
+        "p50FrameMs": 16.7,
+        "p95FrameMs": 16.8,
+        "maxFrameMs": 16.8,
+        "longStuttersOver100ms": 0
+      }
+    }
+  }
+}

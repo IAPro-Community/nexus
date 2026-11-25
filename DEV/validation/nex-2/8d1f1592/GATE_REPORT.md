@@ -21,3 +21,24 @@
 1. Hand back for Gate G0 plan review (`enter_plan_mode`).
 2. Proceed to **P1 (NEX-01)**: build the lightweight Wails v3 HUD entrypoint (`DEV` / `NEX_V2` flagged) isolating avatar bounds and animation clock from Workspace OS and fixing the 60 FPS / bubble-resize / startup-race defects.
 3. Address the `NexusHud.tsx:171` attention-fetch decoupling during P2/P3 parity work (or before re-enabling `e2e-hud` in R1).
+
+---
+
+# Gate G1 Report — Phase P1 (NEX-01)
+
+- **P0 Commit SHA:** `fb22bbb777f5cb26eb83954373706664823ae569`
+- **Platform Tested:** Linux (`x86_64`, Ubuntu 25.10, Chromium Playwright lab + isolated `Xvfb :97` / `dbus-run-session` native GTK3/WebKitGTK `2.52.3` run)
+- **Verdict:** **PASS (Linux Lab & ADR)** / **BLOCKED (`Windows`, `macOS` native hardware)** / **BLOCKED (`owner_visual_approval` in `RELEASE_READINESS.json`)**
+
+## Gate G1 Checklist
+
+| Criterion | Status | Evidence |
+|---|---|---|
+| Single selected runtime & reproducible ADR | **PASS** | `RENDERER_ADR.md` selects Wails v3 isolated `/nex-v2.html` entrypoint (`7.8 KB` minified CSS, `264.4 KB` JS, zero Workspace chunks/SW); Qt Quick/QML evaluated and deferred |
+| Approved locked `NEX-ID-v1` artwork & fallback | **PASS** | `NexRigCanvas` renders `/nex/hybrid-v1/` layers with `/nex/hud-32bit/nex-idle-atlas-128.png` fallback; `verify-nex-identity-lock.mjs` PASS (`FROZEN`); `export-nex-art.test.mjs` PASS |
+| Zero clipping over all motions / presets / DPIs | **PASS** | `nexEnvelope.test.ts` sweeps 9 expressions × 24 time samples × orbit blends × presets (`128`/`160`/`192`) × DPI (`1`–`2`); `e2e-nex-v2-lab.mjs` verifies `edgeClip=0` across all 5 moods |
+| Zero movement-driven window resize | **PASS** | Fixed square viewport presets in `nex_v2_geometry.go` + `MinWidth==MaxWidth` in `nex_v2.go`; `e2e-nex-v2-lab.mjs` measured `resizeCountDelta=0` |
+| Motion contract (5 moods, 8 behaviors, single clock, reduced-motion pause) | **PASS** | `nexBehaviorState.test.ts`, `nexMotionClock.test.ts`, and `p1-lab/p1-lab-metrics.json` (`155ms` paint, `20 FPS` idle, `16.8ms` p95 interactive, `0` stutters `>100ms`, `0` frames under reduced-motion) |
+| Baseline benchmark budgets / documented exception | **PASS (with exception)** | `WebKitWebProcess` PSS dropped `353.6 MiB -> 202.9 MiB` (`-43%`); Linux WebKitGTK platform baseline exception (`> 60 MiB`) explicitly documented in `RENDERER_ADR.md` |
+| Native Windows/macOS & final owner visual approval | **BLOCKED** | No physical Windows/macOS devices on this Linux host; `RELEASE_READINESS.json` stays `BLOCKED (2/11)` |
+

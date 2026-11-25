@@ -39,6 +39,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	if desktop.NexV2DesktopEnabled() {
+		runNexV2HUD(backend, linked)
+		return
+	}
+
 	stateManager := desktop.NewHUDWindowStateManager("")
 	windowState := stateManager.Load()
 	desktopApp := desktop.NewAppForWindow(nil, desktop.NewWindowStateManager(""), desktop.HUDWindowName, desktop.BootstrapInfo{

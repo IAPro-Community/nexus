@@ -27,37 +27,39 @@ if (css.status !== 0) process.exit(css.status ?? 1);
 
 const collectedStyles = [];
 
-const sassPlugin = {
-  name: 'sass-modules',
-  setup(buildInstance) {
-    // Global SCSS
-    buildInstance.onLoad({ filter: /\.scss$/ }, (args) => {
-      if (args.path.includes('.module.')) return;
-      const result = sass.compile(args.path);
-      collectedStyles.push({ path: args.path, css: result.css });
-      return {
-        contents: '',
-        loader: 'js',
-      };
-    });
+function createSassPlugin(targetStyles) {
+  return {
+    name: 'sass-modules',
+    setup(buildInstance) {
+      // Global SCSS
+      buildInstance.onLoad({ filter: /\.scss$/ }, (args) => {
+        if (args.path.includes('.module.')) return;
+        const result = sass.compile(args.path);
+        targetStyles.push({ path: args.path, css: result.css });
+        return {
+          contents: '',
+          loader: 'js',
+        };
+      });
 
-    // SCSS Modules and CSS Modules
-    buildInstance.onLoad({ filter: /\.module\.(scss|css)$/ }, (args) => {
-      const isScss = args.path.endsWith('.scss');
-      const compiledCss = isScss ? sass.compile(args.path).css : readFileSync(args.path, 'utf8');
-      // Hash the module's repository-relative identity so builds are stable
-      // when the same checkout is built from a different absolute directory.
-      const moduleIdentity = relative(webDir, args.path).replaceAll('\\', '/');
-      const { css: transformedCss, classMap } = scopeCssModule(compiledCss, moduleIdentity);
-      collectedStyles.push({ path: args.path, css: transformedCss });
+      // SCSS Modules and CSS Modules
+      buildInstance.onLoad({ filter: /\.module\.(scss|css)$/ }, (args) => {
+        const isScss = args.path.endsWith('.scss');
+        const compiledCss = isScss ? sass.compile(args.path).css : readFileSync(args.path, 'utf8');
+        // Hash the module's repository-relative identity so builds are stable
+        // when the same checkout is built from a different absolute directory.
+        const moduleIdentity = relative(webDir, args.path).replaceAll('\\', '/');
+        const { css: transformedCss, classMap } = scopeCssModule(compiledCss, moduleIdentity);
+        targetStyles.push({ path: args.path, css: transformedCss });
 
-      return {
-        contents: `export default ${JSON.stringify(classMap)};`,
-        loader: 'js',
-      };
-    });
-  },
-};
+        return {
+          contents: `export default ${JSON.stringify(classMap)};`,
+          loader: 'js',
+        };
+      });
+    },
+  };
+}
 
 await build({
   absWorkingDir: webDir,
@@ -72,12 +74,42 @@ await build({
   platform: 'browser',
   target: ['es2022'],
   jsx: 'automatic',
-  plugins: [sassPlugin],
+  plugins: [createSassPlugin(collectedStyles)],
   define: {
     'process.env.NODE_ENV': '"production"',
   },
   logLevel: 'info',
 });
+
+// Isolated lightweight Nex 2.0 desktop entrypoint (loads zero Workspace OS
+// chunks, terminal/Flow UI, or service worker).
+const nexV2Styles = [];
+await build({
+  absWorkingDir: webDir,
+  entryPoints: { 'nex-v2': 'src/nex-v2/index.tsx' },
+  outdir: 'dist',
+  bundle: true,
+  splitting: false,
+  treeShaking: true,
+  minify: true,
+  format: 'esm',
+  platform: 'browser',
+  target: ['es2022'],
+  jsx: 'automatic',
+  plugins: [createSassPlugin(nexV2Styles)],
+  define: {
+    'process.env.NODE_ENV': '"production"',
+  },
+  logLevel: 'info',
+});
+const nexV2CssPath = resolve(distDir, 'nex-v2.css');
+const existingNexV2Css = existsSync(nexV2CssPath) ? await readFile(nexV2CssPath, 'utf8') : '';
+const stableNexV2Css = nexV2Styles
+  .toSorted((left, right) => left.path.localeCompare(right.path))
+  .map((entry) => entry.css)
+  .join('\n');
+await writeFile(nexV2CssPath, `${existingNexV2Css}\n${stableNexV2Css}`);
+await cp(resolve(webDir, 'nex-v2.html'), resolve(distDir, 'nex-v2.html'));
 
 // Tailwind's standalone CLI and esbuild do not resolve this package CSS
 // import into the final stylesheet. xterm relies on these rules for its

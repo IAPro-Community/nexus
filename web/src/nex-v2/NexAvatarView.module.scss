@@ -1,0 +1,141 @@
+.root {
+  position: relative;
+  display: grid;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  place-items: center;
+  background: transparent;
+  color: var(--nx-text);
+}
+
+.stage {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  max-width: 192px;
+  max-height: 192px;
+  place-items: center;
+}
+
+.dragHandle {
+  position: absolute;
+  top: var(--nx-space-1);
+  right: var(--nx-space-1);
+  z-index: 2;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  background: var(--nx-surface-raised);
+  color: var(--nx-text-soft);
+  cursor: grab;
+  opacity: 0.72;
+
+  --wails-draggable: drag;
+}
+
+.dragHandle:hover,
+.dragHandle:focus-visible {
+  opacity: 1;
+}
+
+.avatarButton {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: var(--nx-radius-full);
+  background: transparent;
+  cursor: pointer;
+
+  --wails-draggable: no-drag;
+}
+
+.avatarButton:focus-visible,
+.dragHandle:focus-visible,
+.labPanel button:focus-visible {
+  outline: 2px solid var(--nx-focus);
+  outline-offset: 2px;
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.root[data-mood='attention'] .canvas {
+  filter: drop-shadow(0 0 4px var(--nx-warning));
+}
+
+.root[data-mood='critical'] .canvas {
+  filter: drop-shadow(0 0 4px var(--nx-danger));
+}
+
+.root[data-mood='offline'] .canvas,
+.root[data-mood='offline'] .atlasFallback {
+  filter: grayscale(1) opacity(0.55);
+}
+
+.atlasFallback {
+  display: block;
+  width: 96px;
+  height: 96px;
+  background-image: url('/nex/hud-32bit/nex-idle-atlas-128.png');
+  background-position: 0 0;
+  background-repeat: no-repeat;
+  background-size: 800% 1200%;
+  image-rendering: pixelated;
+}
+
+.labPanel {
+  position: fixed;
+  right: var(--nx-space-2);
+  bottom: var(--nx-space-2);
+  z-index: 5;
+  display: grid;
+  gap: var(--nx-space-2);
+  padding: var(--nx-space-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-lg);
+  background: var(--nx-surface);
+  font-size: var(--nx-font-size-xs);
+}
+
+.labRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nx-space-1);
+}
+
+.labChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--nx-space-1);
+}
+
+.labPanel button {
+  padding: var(--nx-space-1) var(--nx-space-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface-2);
+  color: var(--nx-text);
+  cursor: pointer;
+  font-size: var(--nx-font-size-xs);
+}
+
+.labPanel button[aria-pressed='true'] {
+  border-color: var(--nx-accent);
+  background: var(--nx-accent-soft);
+  color: var(--nx-accent-text);
+}
