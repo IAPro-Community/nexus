@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { ensureNexusBinary, fixtureFeatureEnvironment, nexusBinaryPath } from './e2e-platform.mjs';
-import { terminateProcess } from './e2e-fixture.mjs';
+import { cleanupIsolatedHosts, registerServerCleanup, terminateProcess } from './e2e-fixture.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,6 +41,8 @@ async function main() {
   const serverEnv = {
     ...fixtureFeatureEnvironment(process.env),
     NEXUS_DATA_DIR: isolatedDataDir,
+    NEXUS_CONFIG_DIR: path.join(isolatedDataDir, 'config'),
+    NEXUS_STATE_DIR: path.join(isolatedDataDir, 'state'),
     AI_MANAGER_DATA_DIR: isolatedDataDir,
     NEXUS_E2E_PROJECT_PATH: isolatedProjectPath,
   };
@@ -51,6 +53,7 @@ async function main() {
     stdio: ['ignore', 'pipe', 'pipe'],
     env: serverEnv,
   });
+  registerServerCleanup(server, () => cleanupIsolatedHosts(serverEnv, binPath));
 
   let bootstrapUrl = '';
   let urlResolved = false;

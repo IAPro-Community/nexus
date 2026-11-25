@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
@@ -40,14 +39,21 @@ func AccountScope(provider, profileName, authenticatedIdentity string) (model.Ac
 	}
 	path := filepath.Join(root, "account-scope.json")
 	var record scopeRecord
+	fileExisted := false
 	if data, readErr := os.ReadFile(path); readErr == nil {
 		if len(strings.TrimSpace(string(data))) > 0 {
 			if err := json.Unmarshal(data, &record); err != nil {
 				return model.AccountScope{}, fmt.Errorf("read account scope: %w", err)
 			}
+			fileExisted = true
 		}
 	}
-	record.IdentityHistory = normalizeScopeIdentityHistory(record.IdentityHistory)
+	dirty := !fileExisted
+	normalizedHistory := normalizeScopeIdentityHistory(record.IdentityHistory)
+	if len(normalizedHistory) != len(record.IdentityHistory) {
+		dirty = true
+	}
+	record.IdentityHistory = normalizedHistory
 	identity := strings.TrimSpace(authenticatedIdentity)
 	if record.AccountID == "" {
 		var idErr error
@@ -56,25 +62,48 @@ func AccountScope(provider, profileName, authenticatedIdentity string) (model.Ac
 			return model.AccountScope{}, idErr
 		}
 		record.IdentityVersion = "1"
+		dirty = true
 	}
 	if identity != "" && record.Identity != "" && !strings.EqualFold(identity, record.Identity) {
 		record.IdentityHistory = rememberScopeIdentity(record.IdentityHistory, record.Identity)
 		record.IdentityVersion = incrementVersion(record.IdentityVersion)
+		dirty = true
 	}
-	if identity != "" {
+	if identity != "" && identity != record.Identity {
 		record.Identity = identity
+		dirty = true
 	}
-	data, err := json.MarshalIndent(record, "", "  ")
-	if err != nil {
-		return model.AccountScope{}, err
-	}
-	tempPath := filepath.Join(root, fmt.Sprintf("account-scope.tmp.%d", time.Now().UnixNano()))
-	if err := os.WriteFile(tempPath, append(data, '\n'), 0600); err != nil {
-		return model.AccountScope{}, err
-	}
-	if err := os.Rename(tempPath, path); err != nil {
-		_ = os.Remove(tempPath)
-		return model.AccountScope{}, err
+	if dirty {
+		data, err := json.MarshalIndent(record, "", "  ")
+		if err != nil {
+			return model.AccountScope{}, err
+		}
+		tmpFile, err := os.CreateTemp(root, "account-scope.tmp.*")
+		if err != nil {
+			return model.AccountScope{}, err
+		}
+		tempPath := tmpFile.Name()
+		cleanupTemp := true
+		defer func() {
+			if cleanupTemp {
+				_ = os.Remove(tempPath)
+			}
+		}()
+		if err := tmpFile.Chmod(0600); err != nil {
+			_ = tmpFile.Close()
+			return model.AccountScope{}, err
+		}
+		if _, err := tmpFile.Write(append(data, '\n')); err != nil {
+			_ = tmpFile.Close()
+			return model.AccountScope{}, err
+		}
+		if err := tmpFile.Close(); err != nil {
+			return model.AccountScope{}, err
+		}
+		if err := os.Rename(tempPath, path); err != nil {
+			return model.AccountScope{}, err
+		}
+		cleanupTemp = false
 	}
 	// Keep the durable local account id for future registration, but do not
 	// expose an attributable scope until an authenticated identity is known.

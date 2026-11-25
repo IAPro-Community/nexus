@@ -229,11 +229,11 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 	}
 	home, _ := config.ProfileHome(string(a.ID()), p.Name)
 	cwd, _ := os.Getwd()
-	env := runtime.EnvSet(os.Environ(), map[string]string{
+	env := runtime.EnvSet(os.Environ(), runtime.ApplyProfileIsolationEnv(home, map[string]string{
 		"HOME": home, "CURSOR_HOME": home, "CURSOR_CONFIG_DIR": filepath.Join(home, ".cursor"),
 		"AI_PROFILE": p.Name, "AI_PROVIDER": string(a.ID()), "PATH": runtime.EnhancedPATH(filepath.Dir(bin)),
-	})
-	return runtime.RunInteractive(bin, args, env, cwd)
+	}))
+	return runtime.RunInteractive(bin, args, env, cwd, string(a.ID()))
 }
 
 func (a *Adapter) Login(ctx context.Context, p model.Profile) error {
@@ -277,9 +277,9 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 		return info
 	}
 	home, _ := config.ProfileHome(string(a.ID()), p.Name)
-	env := runtime.EnvSet(os.Environ(), map[string]string{
+	env := runtime.EnvSet(os.Environ(), runtime.ApplyProfileIsolationEnv(home, map[string]string{
 		"HOME": home, "CURSOR_HOME": home, "CURSOR_CONFIG_DIR": filepath.Join(home, ".cursor"), "PATH": runtime.EnhancedPATH(filepath.Dir(bin)),
-	})
+	}))
 	statusCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
 	defer cancel()
 	out, err := cursorStatusRun(statusCtx, bin, []string{"status"}, env, "")

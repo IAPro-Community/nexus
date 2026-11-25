@@ -141,7 +141,14 @@ export async function initSession(): Promise<BrowserSession> {
     if (
       !isDesktopApp() &&
       browserLocation?.protocol === 'http:' &&
-      !['localhost', '127.0.0.1', '[::1]', 'nexus.dev', 'wails.localhost'].includes(hostname)
+      ![
+        'localhost',
+        '127.0.0.1',
+        '[::1]',
+        'nexus.localhost',
+        'nexus.dev',
+        'wails.localhost',
+      ].includes(hostname)
     ) {
       return { authenticated: false };
     }

@@ -195,8 +195,8 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 		envMap["SSH_AUTH_SOCK"] = sock
 	}
 
-	env := runtime.EnvSet(os.Environ(), envMap)
-	return runtime.RunInteractive(bin, args, env, cwd)
+	env := runtime.EnvSet(os.Environ(), runtime.ApplyProfileIsolationEnv(home, envMap))
+	return runtime.RunInteractive(bin, args, env, cwd, string(a.ID()))
 }
 
 func (a *Adapter) Login(ctx context.Context, p model.Profile) error {
@@ -223,8 +223,8 @@ func (a *Adapter) Login(ctx context.Context, p model.Profile) error {
 		envMap["SSH_AUTH_SOCK"] = sock
 	}
 
-	env := runtime.EnvSet(os.Environ(), envMap)
-	_, runErr := runtime.RunInteractive(bin, []string{"providers", "login"}, env, cwd)
+	env := runtime.EnvSet(os.Environ(), runtime.ApplyProfileIsolationEnv(home, envMap))
+	_, runErr := runtime.RunInteractive(bin, []string{"providers", "login"}, env, cwd, string(a.ID()))
 	return runErr
 }
 

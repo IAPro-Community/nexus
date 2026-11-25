@@ -8,7 +8,9 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { ensureNexusBinary, fixtureFeatureEnvironment, nexusBinaryPath } from './e2e-platform.mjs';
 import {
+  cleanupIsolatedHosts,
   playwrightExecutablePath,
+  registerServerCleanup,
   terminateProcess,
   terminateProcessOnExit,
 } from './e2e-fixture.mjs';
@@ -39,6 +41,7 @@ const serverEnv = {
   ...fixtureFeatureEnvironment(process.env, { composerFlow: true }),
   NEXUS_DATA_DIR: isolatedDataDir,
   NEXUS_CONFIG_DIR: path.join(isolatedDataDir, 'config'),
+  NEXUS_STATE_DIR: path.join(isolatedDataDir, 'state'),
   AI_CLI_DATA_DIR: isolatedDataDir,
   NEXUS_DOCS_CAPTURE: '1',
 };
@@ -49,6 +52,7 @@ const server = spawn(binPath, ['web', '--port', '0', '--listen', '127.0.0.1', '-
   stdio: ['ignore', 'pipe', 'pipe'],
   env: serverEnv,
 });
+registerServerCleanup(server, () => cleanupIsolatedHosts(serverEnv, binPath));
 
 const waitForUrl = () =>
   new Promise((resolve, reject) => {

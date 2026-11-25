@@ -142,7 +142,7 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 		"PYTHON_KEYRING_BACKEND":           "keyring.backends.null.Keyring",
 	}
 
-	env := runtime.EnvSet(os.Environ(), envOverrides, "DBUS_SESSION_BUS_ADDRESS", "GNOME_KEYRING_CONTROL", "GNOME_KEYRING_PID")
+	env := runtime.EnvSet(os.Environ(), runtime.ApplyProfileIsolationEnv(home, envOverrides), "DBUS_SESSION_BUS_ADDRESS", "GNOME_KEYRING_CONTROL", "GNOME_KEYRING_PID")
 
 	wrappedBin, wrappedArgs := bin, args
 	if agySecretServiceEnabled() {
@@ -157,7 +157,7 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 			"DBUS_SESSION_BUS_ADDRESS": "unix:path=/dev/null",
 		}, "GNOME_KEYRING_CONTROL", "GNOME_KEYRING_PID")
 	}
-	return runtime.RunInteractive(wrappedBin, wrappedArgs, env, cwd)
+	return runtime.RunInteractive(wrappedBin, wrappedArgs, env, cwd, string(a.ID()))
 }
 
 func (a *Adapter) Login(ctx context.Context, p model.Profile) error {
@@ -870,7 +870,7 @@ func (a *Adapter) fetchLiveQuota(ctx context.Context, p model.Profile) (model.Us
 		"BROWSER":                runtime.NoBrowserHelperPath(probeBin),
 		"PYTHON_KEYRING_BACKEND": "keyring.backends.null.Keyring",
 	}
-	env := runtime.DisableSessionSecretService(runtime.EnvSet(os.Environ(), envOverrides))
+	env := runtime.DisableSessionSecretService(runtime.EnvSet(os.Environ(), runtime.ApplyProfileIsolationEnv(home, envOverrides)))
 	args := []string{"--output-format", "text", "--print-timeout", "12s", "--print=/quota"}
 	// Quota probes are deliberately non-interactive and must never initialize
 	// Secret Service or open a browser. Interactive re-login is the only path

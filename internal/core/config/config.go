@@ -13,7 +13,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
-const CurrentConfigVersion = 1
+const CurrentConfigVersion = 2
 
 type IntelligenceMode string
 
@@ -81,11 +81,46 @@ func NewDefaultConfig() Config {
 		StickyTTL:          "30m",
 		IsolationPreset:    model.IsolationDeveloper,
 		Bindings:           make(map[string]map[string]string),
-		AutomaticFallback:  true,
+		AutomaticFallback:  false,
 		MaxConcurrency:     4,
 		Language:           "auto",
 		Intelligence:       IntelligenceConfig{Mode: IntelligenceOff},
 	}
+}
+
+var profileSandboxMarkers = []string{
+	"/.local/share/nexus/profiles",
+	"/.local/share/ai-manager/profiles",
+	"/.local/share/ai-cli/profiles",
+	"/AppData/Local/nexus/profiles",
+	"/AppData/Local/ai-manager/profiles",
+	"/AppData/Local/ai-cli/profiles",
+}
+
+func isProfileSandboxXDG(xdg string) bool {
+	norm := strings.ToLower(filepath.ToSlash(xdg))
+	for _, marker := range profileSandboxMarkers {
+		lowerMarker := strings.ToLower(marker)
+		if idx := strings.Index(norm, lowerMarker); idx != -1 {
+			rest := norm[idx+len(lowerMarker):]
+			if rest == "" || strings.HasPrefix(rest, "/") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// StripProfileSandboxPath removes Nexus/ai-manager/ai-cli profile sandbox
+// suffixes from path when path resolves inside a managed profile directory.
+func StripProfileSandboxPath(path string) string {
+	norm := filepath.ToSlash(path)
+	for _, marker := range profileSandboxMarkers {
+		if idx := strings.Index(norm, marker); idx != -1 {
+			return filepath.FromSlash(norm[:idx])
+		}
+	}
+	return path
 }
 
 func getBaseHome() string {
@@ -100,31 +135,13 @@ func getBaseHome() string {
 		}
 	}
 	if v := os.Getenv("USERPROFILE"); v != "" {
+		v = StripProfileSandboxPath(v)
 		if st, err := os.Stat(v); err == nil && st.IsDir() {
 			return v
 		}
 	}
 	if h, err := os.UserHomeDir(); err == nil && h != "" {
-		norm := filepath.ToSlash(h)
-		if idx := strings.Index(norm, "/.local/share/nexus/profiles"); idx != -1 {
-			return filepath.FromSlash(norm[:idx])
-		}
-		if idx := strings.Index(norm, "/.local/share/ai-manager/profiles"); idx != -1 {
-			return filepath.FromSlash(norm[:idx])
-		}
-		if idx := strings.Index(norm, "/.local/share/ai-cli/profiles"); idx != -1 {
-			return filepath.FromSlash(norm[:idx])
-		}
-		if idx := strings.Index(norm, "/AppData/Local/nexus/profiles"); idx != -1 {
-			return filepath.FromSlash(norm[:idx])
-		}
-		if idx := strings.Index(norm, "/AppData/Local/ai-manager/profiles"); idx != -1 {
-			return filepath.FromSlash(norm[:idx])
-		}
-		if idx := strings.Index(norm, "/AppData/Local/ai-cli/profiles"); idx != -1 {
-			return filepath.FromSlash(norm[:idx])
-		}
-		return h
+		return StripProfileSandboxPath(h)
 	}
 	if d, p := os.Getenv("HOMEDRIVE"), os.Getenv("HOMEPATH"); d != "" && p != "" {
 		full := filepath.Join(d, p)
@@ -176,7 +193,7 @@ func ConfigDir() (string, error) {
 	var candidates []string
 
 	// Check XDG_CONFIG_HOME
-	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" && !strings.Contains(filepath.ToSlash(xdg), "/profiles/") {
+	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" && !isProfileSandboxXDG(xdg) {
 		candidates = append(candidates, filepath.Join(xdg, "nexus"), filepath.Join(xdg, "ai-cli"), filepath.Join(xdg, "ai-manager"))
 	}
 
@@ -228,7 +245,7 @@ func DataDir() (string, error) {
 	var candidates []string
 
 	// Check XDG_DATA_HOME
-	if xdg := os.Getenv("XDG_DATA_HOME"); xdg != "" && !strings.Contains(filepath.ToSlash(xdg), "/profiles/") {
+	if xdg := os.Getenv("XDG_DATA_HOME"); xdg != "" && !isProfileSandboxXDG(xdg) {
 		candidates = append(candidates, filepath.Join(xdg, "nexus"), filepath.Join(xdg, "ai-cli"), filepath.Join(xdg, "ai-manager"))
 	}
 
@@ -281,7 +298,7 @@ func StateDir() (string, error) {
 
 	var candidates []string
 
-	if xdg := os.Getenv("XDG_STATE_HOME"); xdg != "" && !strings.Contains(filepath.ToSlash(xdg), "/profiles/") {
+	if xdg := os.Getenv("XDG_STATE_HOME"); xdg != "" && !isProfileSandboxXDG(xdg) {
 		candidates = append(candidates, filepath.Join(xdg, "nexus"), filepath.Join(xdg, "ai-cli"), filepath.Join(xdg, "ai-manager"))
 	}
 
@@ -360,6 +377,12 @@ func LoadConfig() (Config, error) {
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		return cfg, err
 	}
+	if cfg.ConfigVersion < CurrentConfigVersion {
+		// Version 1 treated automatic account fallback as enabled by default.
+		// That historical default is not evidence of explicit authorization.
+		cfg.AutomaticFallback = false
+		cfg.ConfigVersion = CurrentConfigVersion
+	}
 
 	if cfg.Defaults == nil {
 		cfg.Defaults = make(map[string]string)
@@ -427,6 +450,7 @@ func saveConfigLocked(cfg Config) error {
 	}
 
 	configPath := filepath.Join(dir, "config.json")
+	cfg.ConfigVersion = CurrentConfigVersion
 	if err := checkInstallMemoryBaseline(configPath, cfg); err != nil {
 		return err
 	}

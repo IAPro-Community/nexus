@@ -68,7 +68,7 @@ func IsTrustedDesktopRequest(requestHost, originHeader, refererHeader string) bo
 	reqHost, _ := splitHostPortLoose(requestHost)
 	reqHost = strings.ToLower(strings.TrimSuffix(reqHost, "."))
 
-	isLoopback := reqHost == "wails" || reqHost == "wails.localhost" || reqHost == "localhost" || reqHost == "nexus.dev"
+	isLoopback := reqHost == "wails" || reqHost == "wails.localhost" || reqHost == "localhost" || reqHost == "nexus.localhost" || reqHost == "nexus.dev"
 	if !isLoopback {
 		ip := net.ParseIP(reqHost)
 		isLoopback = ip != nil && ip.IsLoopback()
@@ -109,7 +109,7 @@ func Validate(requestHost, origin string) bool {
 
 	// Allow native desktop WebView origins (Wails) targeting internal loopback or wails hosts.
 	if isDesktopOrigin(u) {
-		if reqHost == "wails" || reqHost == "wails.localhost" || reqHost == "localhost" || reqHost == "nexus.dev" {
+		if reqHost == "wails" || reqHost == "wails.localhost" || reqHost == "localhost" || reqHost == "nexus.localhost" || reqHost == "nexus.dev" {
 			return true
 		}
 		ip := net.ParseIP(reqHost)
@@ -147,7 +147,7 @@ func Validate(requestHost, origin string) bool {
 	if reqPort != "" && reqPort != originPort {
 		return false
 	}
-	if reqHost == "localhost" || reqHost == "nexus.dev" {
+	if reqHost == "localhost" || reqHost == "nexus.localhost" || reqHost == "nexus.dev" {
 		return true
 	}
 	if isAllowedTunnelHost(reqHost) {

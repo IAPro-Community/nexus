@@ -40,6 +40,8 @@ const serverEnv = {
   // Legacy feature-specific documentation captures remain explicit opt-in.
   ...fixtureFeatureEnvironment(process.env, { composerFlow: true }),
   NEXUS_DATA_DIR: dataDir,
+  NEXUS_CONFIG_DIR: path.join(dataDir, 'config'),
+  NEXUS_STATE_DIR: path.join(dataDir, 'state'),
   AI_CLI_DATA_DIR: dataDir,
   NEXUS_DOCS_CAPTURE: '1',
 };

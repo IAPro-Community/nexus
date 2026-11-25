@@ -9,15 +9,15 @@ import (
 )
 
 func TestFormatHostsLine(t *testing.T) {
-	got := formatHostsLine("127.0.0.1", "nexus.dev")
-	if got != "127.0.0.1\tnexus.dev" {
+	got := formatHostsLine("127.0.0.1", "nexus.localhost")
+	if got != "127.0.0.1\tnexus.localhost" {
 		t.Fatalf("formatHostsLine: got %q", got)
 	}
 }
 
 func TestFormatHostsLineRoundTrip(t *testing.T) {
-	line := formatHostsLine("127.0.0.1", "nexus.dev")
-	if !strings.Contains(line, "127.0.0.1") || !strings.Contains(line, "nexus.dev") {
+	line := formatHostsLine("127.0.0.1", "nexus.localhost")
+	if !strings.Contains(line, "127.0.0.1") || !strings.Contains(line, "nexus.localhost") {
 		t.Fatalf("formatHostsLine produced unexpected output: %q", line)
 	}
 	if runtime.GOOS == "windows" {
@@ -33,16 +33,16 @@ func TestHostsEntryMatchUsesTokensAndIgnoresInlineComments(t *testing.T) {
 		line string
 		want bool
 	}{
-		{name: "spaces and aliases", line: "127.0.0.1 localhost nexus.dev", want: true},
-		{name: "tabs and inline comment", line: "127.0.0.1\tlocalhost\tnexus.dev # local", want: true},
-		{name: "case insensitive hostname", line: "127.0.0.1 NEXUS.DEV", want: true},
+		{name: "spaces and aliases", line: "127.0.0.1 localhost nexus.localhost", want: true},
+		{name: "tabs and inline comment", line: "127.0.0.1\tlocalhost\tnexus.localhost # local", want: true},
+		{name: "case insensitive hostname", line: "127.0.0.1 NEXUS.LOCALHOST", want: true},
 		{name: "other address", line: "127.0.1.1 localhost", want: false},
-		{name: "prefix is not a match", line: "127.0.0.1 nexus.development", want: false},
-		{name: "comment is not an entry", line: "# 127.0.0.1 nexus.dev", want: false},
+		{name: "prefix is not a match", line: "127.0.0.1 nexus.localhost.local", want: false},
+		{name: "comment is not an entry", line: "# 127.0.0.1 nexus.localhost", want: false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := hostsEntryMatch(tc.line, "127.0.0.1", "nexus.dev"); got != tc.want {
+			if got := hostsEntryMatch(tc.line, "127.0.0.1", "nexus.localhost"); got != tc.want {
 				t.Errorf("hostsEntryMatch(%q) = %v, want %v", tc.line, got, tc.want)
 			}
 		})
@@ -52,12 +52,12 @@ func TestHostsEntryMatchUsesTokensAndIgnoresInlineComments(t *testing.T) {
 func TestApplyHostsChangePreservesOtherAliasesAndInlineComment(t *testing.T) {
 	lines := []string{
 		"# user comment",
-		"127.0.0.1 localhost nexus.dev # keep this note",
+		"127.0.0.1 localhost nexus.localhost # keep this note",
 		"# IAPro Nexus — local development hostname",
-		"127.0.0.1 nexus.dev",
+		"127.0.0.1 nexus.localhost",
 	}
 
-	got := applyHostsChange(lines, "nexus.dev", "127.0.0.1", false)
+	got := applyHostsChange(lines, "nexus.localhost", "127.0.0.1", false)
 	want := []string{
 		"# user comment",
 		"127.0.0.1\tlocalhost\t# keep this note",
@@ -75,10 +75,10 @@ func TestApplyHostsChangePreservesOtherAliasesAndInlineComment(t *testing.T) {
 func TestApplyHostsChangePreservesInlineCommentWhenRemovingOnlyAlias(t *testing.T) {
 	lines := []string{
 		hostsComment,
-		"127.0.0.1 nexus.dev # user-owned note",
+		"127.0.0.1 nexus.localhost # user-owned note",
 	}
 
-	got := applyHostsChange(lines, "nexus.dev", "127.0.0.1", false)
+	got := applyHostsChange(lines, "nexus.localhost", "127.0.0.1", false)
 	want := []string{"# user-owned note"}
 	if len(got) != len(want) || got[0] != want[0] {
 		t.Fatalf("removed lines = %#v, want %#v", got, want)
@@ -86,23 +86,23 @@ func TestApplyHostsChangePreservesInlineCommentWhenRemovingOnlyAlias(t *testing.
 }
 
 func TestApplyHostsChangeRecognizesAliasesAndPreservesInput(t *testing.T) {
-	lines := []string{"127.0.0.1 localhost\tnexus.dev # user note"}
-	got := applyHostsChange(lines, "nexus.dev", "127.0.0.1", true)
+	lines := []string{"127.0.0.1 localhost\tnexus.localhost # user note"}
+	got := applyHostsChange(lines, "nexus.localhost", "127.0.0.1", true)
 	if len(got) != 1 || got[0] != lines[0] {
 		t.Fatalf("adding an existing alias changed the file: %#v", got)
 	}
-	if !hostsEntryPresent(got, "127.0.0.1", "nexus.dev") {
+	if !hostsEntryPresent(got, "127.0.0.1", "nexus.localhost") {
 		t.Fatal("existing alias was not detected")
 	}
 }
 
 func TestApplyHostsChangeAddsMissingEntryOnce(t *testing.T) {
 	lines := []string{"127.0.0.1 localhost"}
-	added := applyHostsChange(lines, "nexus.dev", "127.0.0.1", true)
+	added := applyHostsChange(lines, "nexus.localhost", "127.0.0.1", true)
 	want := []string{
 		"127.0.0.1 localhost",
 		hostsComment,
-		"127.0.0.1\tnexus.dev",
+		"127.0.0.1\tnexus.localhost",
 	}
 	if len(added) != len(want) {
 		t.Fatalf("added lines = %#v, want %#v", added, want)
@@ -112,7 +112,7 @@ func TestApplyHostsChangeAddsMissingEntryOnce(t *testing.T) {
 			t.Errorf("line %d = %q, want %q", index, added[index], want[index])
 		}
 	}
-	if twice := applyHostsChange(added, "nexus.dev", "127.0.0.1", true); len(twice) != len(want) {
+	if twice := applyHostsChange(added, "nexus.localhost", "127.0.0.1", true); len(twice) != len(want) {
 		t.Fatalf("second add duplicated the mapping: %#v", twice)
 	}
 }
@@ -144,7 +144,7 @@ func TestEnsureAndRemoveIdempotency(t *testing.T) {
 		t.Fatalf("IsHostsEntryPresent: %v", err)
 	}
 	if !present {
-		t.Fatal("nexus.dev should be present after Ensure")
+		t.Fatal("nexus.localhost should be present after Ensure")
 	}
 
 	// Second ensure must be idempotent
@@ -161,7 +161,7 @@ func TestEnsureAndRemoveIdempotency(t *testing.T) {
 		t.Fatalf("IsHostsEntryPresent after remove: %v", err)
 	}
 	if present {
-		t.Fatal("nexus.dev should be absent after Remove")
+		t.Fatal("nexus.localhost should be absent after Remove")
 	}
 
 	// Second remove must be idempotent

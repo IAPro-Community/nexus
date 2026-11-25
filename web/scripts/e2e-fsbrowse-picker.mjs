@@ -62,6 +62,8 @@ async function main() {
   const serverEnv = {
     ...process.env,
     NEXUS_DATA_DIR: dataDir,
+    NEXUS_CONFIG_DIR: path.join(dataDir, 'config'),
+    NEXUS_STATE_DIR: path.join(dataDir, 'state'),
     AI_MANAGER_DATA_DIR: dataDir,
     NEXUS_E2E_PROJECT_PATH: projectPath,
     // Automated runs must never pop the tray HUD companion.

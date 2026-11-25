@@ -244,7 +244,7 @@ func List() ([]model.Profile, error) {
 			return nil, err
 		}
 		for _, e := range entries {
-			if !e.IsDir() {
+			if !e.IsDir() || config.ValidateProfileName(e.Name()) != nil {
 				continue
 			}
 			raw, err := os.ReadFile(filepath.Join(base, provider, e.Name(), "profile.json"))

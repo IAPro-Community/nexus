@@ -15,7 +15,7 @@ var cgnatRange = net.IPNet{
 // ValidateBind enforces the loopback-default binding policy.
 //
 //   - loopback addresses: always allowed
-//   - nexus.dev: always allowed (local development hostname)
+//   - nexus.localhost: always allowed (RFC 6761 loopback hostname)
 //   - unspecified addresses (0.0.0.0, ::): always refused (A8 security requirement)
 //   - private / CGNAT / link-local addresses: allowed only with an explicit
 //     --remote opt-in (strong auth + Origin policy remain enforced)

@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	nexusHostname = "nexus.dev"
+	nexusHostname = "nexus.localhost"
 	nexusIP       = "127.0.0.1"
 	hostsComment  = "# IAPro Nexus — local development hostname"
 )
@@ -241,12 +241,12 @@ func applyHostsChange(lines []string, hostname, ip string, add bool) []string {
 	return updated
 }
 
-// EnsureNexusHostsEntry is a convenience wrapper for the standard nexus.dev entry.
+// EnsureNexusHostsEntry is a convenience wrapper for the standard nexus.localhost entry.
 func EnsureNexusHostsEntry() error {
 	return EnsureHostsEntry(nexusHostname, nexusIP)
 }
 
-// RemoveNexusHostsEntry is a convenience wrapper for the standard nexus.dev entry.
+// RemoveNexusHostsEntry is a convenience wrapper for the standard nexus.localhost entry.
 func RemoveNexusHostsEntry() error {
 	return RemoveHostsEntry(nexusHostname, nexusIP)
 }

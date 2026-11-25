@@ -10,6 +10,7 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/control/protocol"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
+	"github.com/IAPro-Community/nexus/internal/core/config"
 )
 
 // HostProcess is a live SessionHost process discovered on this machine.
@@ -17,6 +18,82 @@ type HostProcess struct {
 	PID        int
 	RuntimeID  string
 	Executable string
+}
+
+var nexusHostBinaryNames = map[string]struct{}{
+	"nexus":         {},
+	"nexus.exe":     {},
+	"nexus-desktop": {},
+	"nexus-hud":     {},
+	"ai-manager":    {},
+	"ai-cli":        {},
+}
+
+func normalizeProcExePath(exe string) string {
+	trimmed := strings.TrimSuffix(strings.TrimSpace(exe), " (deleted)")
+	if resolved, err := filepath.EvalSymlinks(trimmed); err == nil {
+		trimmed = strings.TrimSuffix(strings.TrimSpace(resolved), " (deleted)")
+	}
+	return filepath.Clean(trimmed)
+}
+
+func matchingHostExecutable(selfExecutable, candidateExecutable string) bool {
+	selfClean := normalizeProcExePath(selfExecutable)
+	candClean := normalizeProcExePath(candidateExecutable)
+	if selfClean == "" || candClean == "" || candClean == "." {
+		return false
+	}
+	if candClean == selfClean {
+		return true
+	}
+	_, candIsNexus := nexusHostBinaryNames[strings.ToLower(filepath.Base(candClean))]
+	_, selfIsNexus := nexusHostBinaryNames[strings.ToLower(filepath.Base(selfClean))]
+	return candIsNexus && (selfIsNexus || strings.HasSuffix(strings.ToLower(filepath.Base(selfClean)), ".test"))
+}
+
+type hostEnvScope struct {
+	DataDir  string
+	StateDir string
+}
+
+func parseHostEnvScope(environ []byte) hostEnvScope {
+	var scope hostEnvScope
+	for _, entry := range strings.Split(string(environ), "\x00") {
+		k, v, ok := strings.Cut(entry, "=")
+		if !ok || strings.TrimSpace(v) == "" {
+			continue
+		}
+		switch k {
+		case "NEXUS_DATA_DIR", "AI_MANAGER_DATA_DIR", "AI_CLI_DATA_DIR":
+			if scope.DataDir == "" {
+				scope.DataDir = filepath.Clean(v)
+			}
+		case "NEXUS_STATE_DIR", "AI_MANAGER_STATE_DIR", "AI_CLI_STATE_DIR":
+			if scope.StateDir == "" {
+				scope.StateDir = filepath.Clean(v)
+			}
+		}
+	}
+	return scope
+}
+
+func hostScopeMatches(target hostEnvScope, currentDataDir, currentStateDir string, explicitIsolated bool) bool {
+	if target.DataDir != "" {
+		if currentDataDir != "" && filepath.Clean(target.DataDir) == filepath.Clean(currentDataDir) {
+			return true
+		}
+		_, err := os.Stat(target.DataDir)
+		return os.IsNotExist(err)
+	}
+	if target.StateDir != "" {
+		if currentStateDir != "" && filepath.Clean(target.StateDir) == filepath.Clean(currentStateDir) {
+			return true
+		}
+		_, err := os.Stat(target.StateDir)
+		return os.IsNotExist(err)
+	}
+	// Never reap unlabeled host processes when running inside an explicitly isolated tempdir scope.
+	return !explicitIsolated
 }
 
 func parseControlHostRuntime(cmdline string) (string, bool) {
@@ -66,6 +143,7 @@ func reapLiveHost(host HostProcess) {
 		_, _ = client.SendContext(ctx, protocol.CmdTerminate, nil)
 		_ = client.Close()
 	}
+	killProcessGroup(host.PID)
 	KillProcess(host.PID)
 	_ = os.Remove(protocol.EndpointPath(host.RuntimeID))
 }
@@ -94,9 +172,13 @@ func listControlHostProcesses() []HostProcess {
 	if err != nil {
 		return nil
 	}
-	if resolved, resolveErr := filepath.EvalSymlinks(selfExecutable); resolveErr == nil {
-		selfExecutable = resolved
-	}
+	curDataDir, _ := config.DataDir()
+	curStateDir, _ := config.StateDir()
+	explicitIsolated := strings.TrimSpace(os.Getenv("NEXUS_DATA_DIR")) != "" ||
+		strings.TrimSpace(os.Getenv("NEXUS_STATE_DIR")) != "" ||
+		strings.TrimSpace(os.Getenv("AI_MANAGER_DATA_DIR")) != "" ||
+		strings.TrimSpace(os.Getenv("AI_CLI_DATA_DIR")) != ""
+
 	self := os.Getpid()
 	var hosts []HostProcess
 	for _, entry := range entries {
@@ -107,14 +189,14 @@ func listControlHostProcesses() []HostProcess {
 		if err != nil || pid <= 1 || pid == self {
 			continue
 		}
+		if !processOwnedByCurrentUID(pid) {
+			continue
+		}
 		executable, err := os.Readlink(filepath.Join("/proc", entry.Name(), "exe"))
 		if err != nil {
 			continue
 		}
-		if resolved, resolveErr := filepath.EvalSymlinks(executable); resolveErr == nil {
-			executable = resolved
-		}
-		if filepath.Clean(executable) != filepath.Clean(selfExecutable) {
+		if !matchingHostExecutable(selfExecutable, executable) {
 			continue
 		}
 		data, err := os.ReadFile("/proc/" + entry.Name() + "/cmdline")
@@ -125,7 +207,15 @@ func listControlHostProcesses() []HostProcess {
 		if !ok {
 			continue
 		}
-		hosts = append(hosts, HostProcess{PID: pid, RuntimeID: runtimeID, Executable: executable})
+		if envBytes, envErr := os.ReadFile("/proc/" + entry.Name() + "/environ"); envErr == nil {
+			scope := parseHostEnvScope(envBytes)
+			if !hostScopeMatches(scope, curDataDir, curStateDir, explicitIsolated) {
+				continue
+			}
+		} else if explicitIsolated {
+			continue
+		}
+		hosts = append(hosts, HostProcess{PID: pid, RuntimeID: runtimeID, Executable: normalizeProcExePath(executable)})
 	}
 	return hosts
 }

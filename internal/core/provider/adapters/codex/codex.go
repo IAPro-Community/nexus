@@ -217,9 +217,9 @@ func (a *Adapter) runPrepared(p model.Profile, args []string, expectedAccountID 
 		"XDG_STATE_HOME":                           filepath.Join(home, ".local", "state"),
 		"PATH":                                     runtime.EnhancedPATH(filepath.Dir(bin)),
 	}
-	env := runtime.EnvSet(os.Environ(), envOverrides)
+	env := runtime.EnvSet(os.Environ(), runtime.ApplyProfileIsolationEnv(home, envOverrides))
 	args = spec.CodexInteractiveArgs(home, args)
-	return runtime.RunInteractive(bin, args, env, cwd)
+	return runtime.RunInteractive(bin, args, env, cwd, string(a.ID()))
 }
 
 func (a *Adapter) Login(ctx context.Context, p model.Profile) error {

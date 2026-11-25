@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
@@ -129,11 +130,13 @@ func FindHostHome() string {
 		}
 	}
 	if v := os.Getenv("USERPROFILE"); v != "" {
+		v = config.StripProfileSandboxPath(v)
 		if st, err := os.Stat(v); err == nil && st.IsDir() {
 			return v
 		}
 	}
 	if h, err := os.UserHomeDir(); err == nil && h != "" {
+		h = config.StripProfileSandboxPath(h)
 		if st, err := os.Stat(h); err == nil && st.IsDir() {
 			return h
 		}

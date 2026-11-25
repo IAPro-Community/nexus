@@ -182,7 +182,7 @@ func TrustedOriginAllowsRequest(browserOrigin, requestHost string) bool {
 	if IsTrustedRemoteHost(reqHost) {
 		return true
 	}
-	if reqHost == "localhost" || reqHost == "nexus.dev" {
+	if reqHost == "localhost" || reqHost == "nexus.localhost" || reqHost == "nexus.dev" {
 		return true
 	}
 	ip := net.ParseIP(reqHost)

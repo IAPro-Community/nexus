@@ -3,6 +3,7 @@ package security
 import (
 	"os"
 	"path/filepath"
+	stdruntime "runtime"
 	"strings"
 	"testing"
 	"time"
@@ -362,5 +363,33 @@ func TestFindHostHomeHonorsNexusRealHome(t *testing.T) {
 	t.Setenv("AI_REAL_HOME", t.TempDir())
 	if got := FindHostHome(); got != hostHome {
 		t.Fatalf("FindHostHome() = %q, want NEXUS_REAL_HOME %q", got, hostHome)
+	}
+}
+
+func TestFindHostHomeStripsProfileSandboxPrefix(t *testing.T) {
+	var baseRoot string
+	if stdruntime.GOOS == "windows" {
+		baseRoot = t.TempDir()
+	} else {
+		var err error
+		baseRoot, err = os.MkdirTemp("/tmp", "nexus-host-home-*")
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = os.RemoveAll(baseRoot) })
+	}
+
+	realHome := filepath.Join(baseRoot, "host-user")
+	sandboxHome := filepath.Join(realHome, ".local", "share", "ai-manager", "profiles", "agy", "demo", "home")
+	if err := os.MkdirAll(sandboxHome, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("NEXUS_REAL_HOME", "")
+	t.Setenv("AI_REAL_HOME", "")
+	t.Setenv("USERPROFILE", "")
+	t.Setenv("HOME", sandboxHome)
+
+	if got := FindHostHome(); got != realHome {
+		t.Fatalf("FindHostHome() = %q, want %q", got, realHome)
 	}
 }

@@ -248,7 +248,7 @@ func DisableSessionSecretService(env []string) []string {
 }
 
 // RunInteractive executes an external CLI in full interactive TTY passthrough mode.
-func RunInteractive(bin string, args []string, env []string, cwd string) (model.Failure, error) {
+func RunInteractive(bin string, args []string, env []string, cwd string, providerIDs ...string) (model.Failure, error) {
 	defer GuardInteractiveTerminalKeyboardModes(os.Stdin, os.Stdout)()
 	resolved, err := ResolveCommand(bin)
 	if err != nil {
@@ -263,7 +263,6 @@ func RunInteractive(bin string, args []string, env []string, cwd string) (model.
 	cmd.Env = NormalizeInteractiveEnv(env)
 	cmd.Dir = cwd
 	executil.HideWindow(cmd)
-	cmd.Stdin = os.Stdin
 
 	// Direct provider launches own the caller's TTY just as supervised attach
 	// does. Reset private keyboard modes before Start and restore the captured
@@ -282,17 +281,58 @@ func RunInteractive(bin string, args []string, env []string, cwd string) (model.
 	stdoutTail := &tailBuffer{max: 16 * 1024}
 	output := NewTerminalOutputScrubber(os.Stdout)
 	defer func() { _ = output.Flush() }()
-	cmd.Stdout = io.MultiWriter(output, stdoutTail)
-	cmd.Stderr = io.MultiWriter(output, &errBuf)
+	interactiveTTY := term.IsTerminal(int(os.Stdin.Fd())) && term.IsTerminal(int(os.Stdout.Fd()))
+	var terminalBackend controlterminal.Backend
+	var terminalOutputDone chan error
+	if interactiveTTY {
+		providerID := ""
+		if len(providerIDs) > 0 {
+			providerID = providerIDs[0]
+		}
+		terminalBackend = controlterminal.NewBackendForProvider(providerID)
+		rows, cols := 24, 80
+		if currentCols, currentRows, sizeErr := term.GetSize(int(os.Stdout.Fd())); sizeErr == nil {
+			rows, cols = currentRows, currentCols
+		}
+		if err := terminalBackend.Start(cmd, rows, cols); err != nil {
+			_ = terminalBackend.Close()
+			return model.Failure{Kind: model.FailureCommand, Message: err.Error()}, err
+		}
+		if !terminalBackend.SupportsRawMode() {
+			mechanism := terminalBackend.Mechanism()
+			_ = terminalBackend.Kill()
+			_ = terminalBackend.Wait()
+			_ = terminalBackend.Close()
+			err := fmt.Errorf("interactive terminal unavailable (%s)", mechanism)
+			return model.Failure{Kind: model.FailureCommand, Message: err.Error()}, err
+		}
+		terminalOutputDone = make(chan error, 1)
+		go func() {
+			_, copyErr := io.Copy(io.MultiWriter(output, stdoutTail), terminalBackend)
+			terminalOutputDone <- copyErr
+		}()
+		detachStdin := attachDefaultStdinRelay(terminalBackend)
+		defer detachStdin()
+	} else {
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = io.MultiWriter(output, stdoutTail)
+		cmd.Stderr = io.MultiWriter(output, &errBuf)
+	}
 
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	signals := []os.Signal{syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT}
+	if terminalBackend != nil {
+		signals = append(signals, interactiveResizeSignals()...)
+	}
+	signal.Notify(sigChan, signals...)
 	defer signal.Stop(sigChan)
 	signalDone := make(chan struct{})
 	defer close(signalDone)
 
-	if err := cmd.Start(); err != nil {
-		return model.Failure{Kind: model.FailureCommand, Message: err.Error()}, err
+	if terminalBackend == nil {
+		if err := cmd.Start(); err != nil {
+			return model.Failure{Kind: model.FailureCommand, Message: err.Error()}, err
+		}
 	}
 
 	go func() {
@@ -301,10 +341,18 @@ func RunInteractive(bin string, args []string, env []string, cwd string) (model.
 			case <-signalDone:
 				return
 			case sig := <-sigChan:
+				if isInteractiveResizeSignal(sig) && terminalBackend != nil {
+					if cols, rows, sizeErr := term.GetSize(int(os.Stdout.Fd())); sizeErr == nil {
+						_ = terminalBackend.Resize(rows, cols)
+					}
+					continue
+				}
 				if sig == os.Interrupt {
 					_ = tty.Reassert()
 				}
-				if cmd.Process != nil {
+				if terminalBackend != nil {
+					_ = terminalBackend.Signal(sig)
+				} else if cmd.Process != nil {
 					_ = cmd.Process.Signal(sig)
 				}
 				if sig == syscall.SIGINT {
@@ -314,15 +362,37 @@ func RunInteractive(bin string, args []string, env []string, cwd string) (model.
 		}
 	}()
 
-	err = cmd.Wait()
+	if terminalBackend != nil {
+		if stdruntime.GOOS == "windows" {
+			err = terminalBackend.Wait()
+		} else {
+			err = cmd.Wait()
+		}
+		select {
+		case <-terminalOutputDone:
+		case <-time.After(2 * time.Second):
+			_ = terminalBackend.Close()
+			<-terminalOutputDone
+		}
+		_ = terminalBackend.Close()
+	} else {
+		err = cmd.Wait()
+	}
 	// A provider can leave private modes enabled even after a normal exit or a
 	// SIGINT-mediated cancellation. Reassert before deferred termios restore so
 	// the outer shell always receives a safe terminal.
 	_ = tty.Reassert()
 	if err != nil {
 		var exitErr *exec.ExitError
+		stderrText := errBuf.String()
+		if terminalBackend != nil {
+			stderrText = stdoutTail.String()
+		}
 		if errors.As(err, &exitErr) {
-			return classifyExitFailure(exitErr, errBuf.String(), stdoutTail.String()), err
+			return classifyExitFailure(exitErr, stderrText, stdoutTail.String()), err
+		}
+		if terminalBackend != nil {
+			return classifier.Classify(err, stdoutTail.String()), err
 		}
 		return model.Failure{Kind: model.FailureUnknown, Message: err.Error()}, err
 	}

@@ -1,6 +1,8 @@
 package launcher
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -71,4 +73,39 @@ func TestReapOrphanHostsFromLeavesRunningRegistryHost(t *testing.T) {
 	if !registry.IsProcessAlive(pid) {
 		t.Fatal("registered RUNNING host was killed")
 	}
+}
+
+func TestMatchingHostExecutableHandlesDeletedAndSiblings(t *testing.T) {
+	if !matchingHostExecutable("/usr/local/bin/nexus", "/usr/local/bin/nexus (deleted)") {
+		t.Fatal("deleted self binary should match")
+	}
+	if !matchingHostExecutable("/usr/local/bin/nexus", "/usr/local/bin/nexus-desktop") {
+		t.Fatal("sibling nexus-desktop binary should match")
+	}
+	if matchingHostExecutable("/usr/local/bin/nexus", "/usr/bin/python3") {
+		t.Fatal("unrelated binary must not match")
+	}
+}
+
+func TestHostScopeMatchesGuardsForeignLiveDirectories(t *testing.T) {
+	curData := t.TempDir()
+	foreignLiveData := t.TempDir()
+	foreignDeadData := filepath.Join(t.TempDir(), "removed-e2e-dir")
+
+	if hostScopeMatches(hostEnvScope{DataDir: foreignLiveData}, curData, "", true) {
+		t.Fatal("must not match foreign existing NEXUS_DATA_DIR")
+	}
+	if !hostScopeMatches(hostEnvScope{DataDir: foreignDeadData}, curData, "", true) {
+		t.Fatal("deleted foreign NEXUS_DATA_DIR should be reapable")
+	}
+	if !hostScopeMatches(hostEnvScope{DataDir: curData}, curData, "", true) {
+		t.Fatal("matching NEXUS_DATA_DIR should match")
+	}
+	if hostScopeMatches(hostEnvScope{}, curData, "", true) {
+		t.Fatal("explicitly isolated process must not match unlabeled host")
+	}
+	if !hostScopeMatches(hostEnvScope{}, curData, "", false) {
+		t.Fatal("non-isolated host should match unlabeled sibling host")
+	}
+	_ = os.RemoveAll(foreignDeadData)
 }

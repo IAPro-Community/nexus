@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -46,6 +47,49 @@ func TestConfigLoadSaveBindings(t *testing.T) {
 	}
 	if bound := GetBinding(ws, "codex"); bound != "" {
 		t.Fatalf("expected empty bound profile after unbind, got %s", bound)
+	}
+}
+
+func TestAutomaticFallbackDefaultsDisabledAndCanBeExplicitlyEnabled(t *testing.T) {
+	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
+	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.AutomaticFallback {
+		t.Fatal("automatic account fallback must be disabled by default")
+	}
+
+	cfg.AutomaticFallback = true
+	if err := SaveConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := LoadConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !loaded.AutomaticFallback {
+		t.Fatal("explicit fallback opt-in was not persisted")
+	}
+}
+
+func TestLegacyConfigDefaultDoesNotBecomeFallbackAuthorization(t *testing.T) {
+	configDir := t.TempDir()
+	t.Setenv("AI_CLI_CONFIG_DIR", configDir)
+	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
+	legacy := `{"config_version":1,"automatic_fallback":true}`
+	if err := os.WriteFile(filepath.Join(configDir, "config.json"), []byte(legacy), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.AutomaticFallback || cfg.ConfigVersion != CurrentConfigVersion {
+		t.Fatalf("legacy preference migrated as authorization: automatic_fallback=%t version=%d", cfg.AutomaticFallback, cfg.ConfigVersion)
 	}
 }
 
@@ -123,5 +167,36 @@ func TestValidateProfileNameRejectsFlagLikeNames(t *testing.T) {
 	}
 	if err := ValidateProfileName("kivergmail"); err != nil {
 		t.Fatalf("valid name rejected: %v", err)
+	}
+}
+
+func TestProfileSandboxXDGDetectionPreservesCustomProfilesPath(t *testing.T) {
+	realHome := t.TempDir()
+	customXDG := filepath.Join(string(filepath.Separator), "opt", "nexus-custom", "profiles", "config")
+	t.Setenv("NEXUS_CONFIG_DIR", "")
+	t.Setenv("AI_MANAGER_CONFIG_DIR", "")
+	t.Setenv("AI_CLI_CONFIG_DIR", "")
+	t.Setenv("NEXUS_REAL_HOME", realHome)
+	t.Setenv("AI_REAL_HOME", "")
+	t.Setenv("HOME", realHome)
+	t.Setenv("XDG_CONFIG_HOME", customXDG)
+
+	got, err := ConfigDir()
+	if err != nil {
+		t.Fatalf("ConfigDir: %v", err)
+	}
+	want := filepath.Join(customXDG, "nexus")
+	if got != want {
+		t.Fatalf("expected non-sandbox /profiles/ XDG path %q, got %q", want, got)
+	}
+
+	sandboxXDG := filepath.Join(realHome, ".local", "share", "ai-manager", "profiles", "agy", "demo", "home", ".config")
+	t.Setenv("XDG_CONFIG_HOME", sandboxXDG)
+	got, err = ConfigDir()
+	if err != nil {
+		t.Fatalf("ConfigDir under sandbox: %v", err)
+	}
+	if got == filepath.Join(sandboxXDG, "nexus") {
+		t.Fatalf("sandbox XDG directory must be ignored, got %q", got)
 	}
 }

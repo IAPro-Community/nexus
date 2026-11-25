@@ -4,13 +4,18 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/control/launcher"
+	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/control/web"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/localization"
 	"github.com/IAPro-Community/nexus/internal/nexus"
+	"github.com/IAPro-Community/nexus/internal/nexus/runner"
+	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
 // CoreConfig encapsulates runtime options for the reusable Nexus Core.
@@ -20,7 +25,7 @@ type CoreConfig struct {
 	NoOpen bool
 	Remote bool
 	// DisableHostsFile prevents embedded/native surfaces from requiring
-	// administrator privileges just to register the optional nexus.dev alias.
+	// administrator privileges just to register the optional nexus.localhost alias.
 	DisableHostsFile bool
 	Language         string
 	TunnelHost       string // Cloudflare Quick Tunnel public hostname
@@ -78,6 +83,14 @@ func (c *Core) Start(ctx context.Context) error {
 	c.server = srv
 	close(c.readyChan)
 	c.mu.Unlock()
+
+	if os.Getenv("NEXUS_DISABLE_ORPHAN_REAP") != "1" {
+		go func() {
+			if reg := nexus.Default().RuntimeRegistry(); reg != nil {
+				_ = launcher.ReapOrphanHosts(reg.List())
+			}
+		}()
+	}
 
 	// If a context was provided, wait for context cancellation in background
 	go func() {
@@ -187,5 +200,37 @@ func (c *Core) Stop(ctx context.Context) error {
 
 // HasActiveWork returns true if any agent or mission is actively running.
 func (c *Core) HasActiveWork() (bool, string) {
+	n := nexus.Default()
+	if n == nil {
+		return false, ""
+	}
+	missionsEnabled := nexus.AdvancedFeatureEnabled(nexus.FeatureMissions)
+	var st *store.Store
+	if missionsEnabled {
+		st = n.Store()
+	}
+	return hasActiveWorkIn(n.RuntimeRegistry(), st, missionsEnabled)
+}
+
+func hasActiveWorkIn(reg *registry.Registry, st *store.Store, missionsEnabled bool) (bool, string) {
+	if reg != nil {
+		if active := reg.ListActive(); len(active) > 0 {
+			return true, fmt.Sprintf("%d active agent runtime(s) running", len(active))
+		}
+	}
+	if missionsEnabled && st != nil {
+		if runs, err := st.ListMissionRuns(); err == nil {
+			activeMissions := 0
+			for _, run := range runs {
+				state := runner.State(run.State)
+				if !runner.IsTerminalState(state) && state != runner.StatePaused && state != runner.StateBlockedNeedsUser {
+					activeMissions++
+				}
+			}
+			if activeMissions > 0 {
+				return true, fmt.Sprintf("%d active mission run(s) in progress", activeMissions)
+			}
+		}
+	}
 	return false, ""
 }

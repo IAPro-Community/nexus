@@ -9,13 +9,34 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { ensureNexusBinary, fixtureFeatureEnvironment, nexusBinaryPath } from './e2e-platform.mjs';
-import { terminateProcess } from './process-termination.mjs';
+import { terminateProcess as baseTerminateProcess } from './process-termination.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const webDir = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(webDir, '..');
 const binPath = nexusBinaryPath(repoRoot);
+const serverCleanups = new WeakMap();
+
+export function registerServerCleanup(proc, cleanupFn) {
+  if (proc && typeof cleanupFn === 'function') {
+    serverCleanups.set(proc, cleanupFn);
+  }
+}
+
+export function cleanupIsolatedHosts(env, binary = binPath) {
+  if (!env) return;
+  try {
+    spawnSync(binary, ['control', 'cleanup'], {
+      cwd: repoRoot,
+      env,
+      timeout: 4000,
+      stdio: 'ignore',
+    });
+  } catch (_) {
+    /* best-effort isolated host cleanup */
+  }
+}
 
 export function terminateProcessOnExit(proc) {
   if (!proc || !proc.pid) return;
@@ -27,10 +48,26 @@ export function terminateProcessOnExit(proc) {
     }
   } catch (_) {
     /* best-effort synchronous exit cleanup */
+  } finally {
+    const cleanupFn = serverCleanups.get(proc);
+    if (cleanupFn) {
+      serverCleanups.delete(proc);
+      cleanupFn();
+    }
   }
 }
 
-export { terminateProcess };
+export async function terminateProcess(proc) {
+  try {
+    await baseTerminateProcess(proc);
+  } finally {
+    const cleanupFn = serverCleanups.get(proc);
+    if (cleanupFn) {
+      serverCleanups.delete(proc);
+      cleanupFn();
+    }
+  }
+}
 
 // Fake Maestro Bridge used only by browser fixtures. Nexus talks to the
 // external `orquestrador-maestro bridge --stdio` process; without a Bridge the
@@ -136,6 +173,7 @@ export async function startFixtureServer({ composerFlow = false, features = [] }
     ...fixtureFeatureEnvironment(process.env, { composerFlow, features }),
     NEXUS_DATA_DIR: isolatedDataDir,
     NEXUS_CONFIG_DIR: path.join(isolatedDataDir, 'config'),
+    NEXUS_STATE_DIR: path.join(isolatedDataDir, 'state'),
     AI_MANAGER_DATA_DIR: isolatedDataDir,
     NEXUS_E2E_PROJECT_PATH: isolatedProjectPath,
     PATH: `${fakeBridgeDir}${path.delimiter}${process.env.PATH || ''}`,
@@ -152,6 +190,7 @@ export async function startFixtureServer({ composerFlow = false, features = [] }
     stdio: ['ignore', 'pipe', 'pipe'],
     env: serverEnv,
   });
+  registerServerCleanup(server, () => cleanupIsolatedHosts(serverEnv, binPath));
   const killServer = () => terminateProcess(server);
 
   const bootstrapTimeoutMs = Number(process.env.NEXUS_E2E_TIMEOUT_MS || 12000);
@@ -235,20 +274,27 @@ export function playwrightExecutablePath() {
   return candidates.find((candidate) => existsSync(candidate));
 }
 
-export async function launchFixtureBrowser(bootstrapUrl) {
+export async function launchFixtureBrowser(
+  bootstrapUrl,
+  { clearStorage = true, blockServiceWorkers = false } = {},
+) {
   const browser = await chromium.launch({
     executablePath: playwrightExecutablePath(),
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   });
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  await context.addInitScript(() => {
-    try {
-      window.localStorage.clear();
-      window.sessionStorage.clear();
-    } catch (_) {}
+  const context = await browser.newContext({
+    serviceWorkers: blockServiceWorkers ? 'block' : 'allow',
   });
+  const page = await context.newPage();
+  if (clearStorage) {
+    await context.addInitScript(() => {
+      try {
+        window.localStorage.clear();
+        window.sessionStorage.clear();
+      } catch (_) {}
+    });
+  }
   const collectors = { consoleErrors: [], requestFailures: [], pageErrors: [], responses: [] };
   page.on('pageerror', (error) => collectors.pageErrors.push(String(error?.message || error)));
   page.on('console', (message) => {

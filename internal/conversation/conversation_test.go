@@ -63,8 +63,17 @@ func TestListRecentConversations(t *testing.T) {
 func TestListOtherReadOnlyKeepsLegacyProfilesUntouched(t *testing.T) {
 	data, host := t.TempDir(), t.TempDir()
 	t.Setenv("NEXUS_DATA_DIR", data)
+	t.Setenv("AI_MANAGER_DATA_DIR", data)
+	t.Setenv("AI_CLI_DATA_DIR", data)
 	t.Setenv("NEXUS_REAL_HOME", host)
 	t.Setenv("AI_REAL_HOME", host)
+	t.Setenv("HOME", host)
+	t.Setenv("USERPROFILE", host)
+	t.Setenv("APPDATA", filepath.Join(host, "AppData", "Roaming"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(host, "AppData", "Local"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(host, ".config"))
+	t.Setenv("XDG_DATA_HOME", filepath.Join(host, ".local", "share"))
+	t.Setenv("XDG_CACHE_HOME", filepath.Join(host, ".cache"))
 	legacy := filepath.Join(data, "profiles", "agy", "legacy", "home")
 	if err := os.MkdirAll(legacy, 0700); err != nil {
 		t.Fatal(err)
