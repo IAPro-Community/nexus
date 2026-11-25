@@ -134,10 +134,12 @@ func NewLoopbackBackendHandler(baseURL string, assets fs.FS) (http.Handler, erro
 			// If the static asset exists in embedded assets, serve it with proper content-type
 			if f, err := assets.Open(cleanPath); err == nil {
 				_ = f.Close()
-				w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-				w.Header().Set("Pragma", "no-cache")
-				w.Header().Set("Expires", "0")
+				applyStaticAssetCacheHeaders(w, "/"+cleanPath)
 				fileServer.ServeHTTP(w, req)
+				return
+			}
+			if isStaticAssetPath(req.URL.Path) {
+				http.NotFound(w, req)
 				return
 			}
 

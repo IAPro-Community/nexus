@@ -7,6 +7,7 @@ import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as sass from 'sass';
 import { scopeCssModule } from './css-module-scope.mjs';
+import { serviceWorkerBuildId } from './service-worker-build-id.mjs';
 
 const webDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repoDir = resolve(webDir, '..');
@@ -17,7 +18,11 @@ await rm(distDir, { recursive: true, force: true });
 await mkdir(distDir, { recursive: true });
 
 const tailwindCli = resolve(webDir, 'node_modules/@tailwindcss/cli/dist/index.mjs');
-const css = spawnSync(process.execPath, [tailwindCli, '-i', 'src/index.css', '-o', 'dist/bundle.css', '--minify'], { cwd: webDir, stdio: 'inherit' });
+const css = spawnSync(
+  process.execPath,
+  [tailwindCli, '-i', 'src/index.css', '-o', 'dist/bundle.css', '--minify'],
+  { cwd: webDir, stdio: 'inherit' },
+);
 if (css.status !== 0) process.exit(css.status ?? 1);
 
 const collectedStyles = [];
@@ -122,25 +127,47 @@ const publicDir = resolve(webDir, 'public');
 if (existsSync(publicDir)) {
   await cp(publicDir, distDir, { recursive: true });
 }
+const serviceWorkerPath = resolve(distDir, 'sw.js');
+if (existsSync(serviceWorkerPath)) {
+  const serviceWorker = await readFile(serviceWorkerPath, 'utf8');
+  const buildAssets = await Promise.all(
+    (await readdir(distDir, { recursive: true }))
+      .filter((entry) => typeof entry === 'string' && entry.endsWith('.js'))
+      .map(async (entry) => ({ name: entry, content: await readFile(resolve(distDir, entry)) })),
+  );
+  const buildId = serviceWorkerBuildId(buildAssets);
+  if (!serviceWorker.includes('__NEXUS_BUILD_ID__')) {
+    throw new Error('Service worker is missing the build ID placeholder');
+  }
+  await writeFile(serviceWorkerPath, serviceWorker.replaceAll('__NEXUS_BUILD_ID__', buildId));
+}
 // The HUD renders the locked NEX-ID-v1 hud-32bit idle atlas (see
 // web/src/features/hud/nexIdleAtlas.ts). The previous vector SVG export was
 // retired with the rejected vector direction; the raster asset is the
 // canonical art and must ship byte-a-byte.
 const nexAtlasPath = resolve(distDir, 'nex', 'hud-32bit', 'nex-idle-atlas-128.png');
-const nexAtlasSha =
-  '8256a302fff77996e3563ef42d1e62685b59084c8a17446bb2acb2219e85dfda';
+const nexAtlasSha = '8256a302fff77996e3563ef42d1e62685b59084c8a17446bb2acb2219e85dfda';
 if (!existsSync(nexAtlasPath)) {
-  throw new Error('Locked NEX hud-32bit atlas missing from dist: nex/hud-32bit/nex-idle-atlas-128.png');
+  throw new Error(
+    'Locked NEX hud-32bit atlas missing from dist: nex/hud-32bit/nex-idle-atlas-128.png',
+  );
 }
 const nexAtlasHash = createHash('sha256').update(readFileSync(nexAtlasPath)).digest('hex');
 if (nexAtlasHash !== nexAtlasSha) {
   throw new Error(`Locked NEX hud atlas SHA mismatch in dist: ${nexAtlasHash}`);
 }
-const logo = existsSync(resolve(webDir, 'public/logo.png')) ? resolve(webDir, 'public/logo.png') : resolve(repoDir, 'logo.png');
+const logo = existsSync(resolve(webDir, 'public/logo.png'))
+  ? resolve(webDir, 'public/logo.png')
+  : resolve(repoDir, 'logo.png');
 if (existsSync(logo)) await cp(logo, resolve(distDir, 'logo.png'));
 
 const manifest = {
-  files: ['index.html', 'bundle.css', 'bundle.js', ...(existsSync(resolve(distDir, 'logo.png')) ? ['logo.png'] : [])],
+  files: [
+    'index.html',
+    'bundle.css',
+    'bundle.js',
+    ...(existsSync(resolve(distDir, 'logo.png')) ? ['logo.png'] : []),
+  ],
   builder: 'node+esbuild+tailwind+code-splitting',
 };
 await writeFile(resolve(distDir, 'build-manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
@@ -152,5 +179,6 @@ for (const entry of await readdir(embeddedDir)) {
 await cp(distDir, embeddedDir, { recursive: true });
 
 const index = await readFile(resolve(distDir, 'index.html'), 'utf8');
-if (!index.includes('./bundle.js') || !index.includes('./bundle.css')) throw new Error('index.html is missing bundle references');
+if (!index.includes('./bundle.js') || !index.includes('./bundle.css'))
+  throw new Error('index.html is missing bundle references');
 console.log(`Nexus web build complete: ${distDir}`);

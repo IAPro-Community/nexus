@@ -12,6 +12,33 @@ interface ErrorBoundaryState {
   error?: Error;
 }
 
+const CHUNK_RELOAD_SESSION_KEY = 'nexus:chunk-reload-attempted:v1';
+type SessionStorageLike = Pick<Storage, 'getItem' | 'setItem'>;
+
+export function isDynamicImportError(error: Error): boolean {
+  return /chunkloaderror|loading chunk .* failed|failed to fetch dynamically imported module|importing a module script failed|error loading dynamically imported module/i.test(
+    `${error.name}: ${error.message}`,
+  );
+}
+
+export function reloadForChunkErrorOnce(
+  error: Error,
+  storage: SessionStorageLike,
+  reload: () => void,
+): boolean {
+  if (!isDynamicImportError(error)) return false;
+
+  try {
+    if (storage.getItem(CHUNK_RELOAD_SESSION_KEY) === '1') return false;
+    storage.setItem(CHUNK_RELOAD_SESSION_KEY, '1');
+  } catch {
+    return false;
+  }
+
+  reload();
+  return true;
+}
+
 export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
@@ -24,6 +51,11 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('[ErrorBoundary]', error, errorInfo);
+    try {
+      reloadForChunkErrorOnce(error, window.sessionStorage, () => window.location.reload());
+    } catch {
+      // Keep the error boundary usable when browser storage is unavailable.
+    }
   }
 
   handleReset = () => {

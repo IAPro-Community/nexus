@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'nexus-shell-v2';
+const CACHE_VERSION = 'nexus-shell-__NEXUS_BUILD_ID__';
 const SHELL = [
   '/',
   '/manifest.webmanifest',
@@ -22,7 +22,11 @@ self.addEventListener('activate', (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((key) => key !== CACHE_VERSION).map((key) => caches.delete(key))),
+        Promise.all(
+          keys
+            .filter((key) => key.startsWith('nexus-shell-') && key !== CACHE_VERSION)
+            .map((key) => caches.delete(key)),
+        ),
       )
       .then(() => self.clients.claim()),
   );
@@ -35,6 +39,9 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/')) return;
+  // Workspace URLs are dynamic SPA routes, not cacheable static assets.
+  // Navigations still receive the shell fallback below.
+  if (url.pathname.startsWith('/p/') && request.mode !== 'navigate') return;
 
   if (request.mode === 'navigate') {
     event.respondWith(
@@ -49,13 +56,15 @@ self.addEventListener('fetch', (event) => {
     caches.match(request).then(
       (cached) =>
         cached ||
-        fetch(request).then((response) => {
-          if (response && response.ok) {
-            const copy = response.clone();
-            void caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy));
-          }
-          return response;
-        }),
+        fetch(request)
+          .then((response) => {
+            if (response && response.ok) {
+              const copy = response.clone();
+              void caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy));
+            }
+            return response;
+          })
+          .catch(() => new Response(null, { status: 503, statusText: 'Offline' })),
     ),
   );
 });

@@ -93,9 +93,10 @@ func TestLoopbackBackendHandlerServesLocalSPAForNavigation(t *testing.T) {
 func TestLoopbackBackendHandlerServesStaticAssetsAndFallbackToSPA(t *testing.T) {
 	srv := newStartedTestServer(t)
 	handler, err := NewLoopbackBackendHandler(srv.URL(), fstest.MapFS{
-		"index.html": &fstest.MapFile{Data: []byte("<html>desktop-shell</html>")},
-		"bundle.js":  &fstest.MapFile{Data: []byte("console.log('nexus bundle');")},
-		"bundle.css": &fstest.MapFile{Data: []byte("body { background: #000; }")},
+		"index.html":             &fstest.MapFile{Data: []byte("<html>desktop-shell</html>")},
+		"bundle.js":              &fstest.MapFile{Data: []byte("console.log('nexus bundle');")},
+		"bundle.css":             &fstest.MapFile{Data: []byte("body { background: #000; }")},
+		"chunks/chunk-ABC123.js": &fstest.MapFile{Data: []byte("export const y = 2;")},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -110,6 +111,22 @@ func TestLoopbackBackendHandlerServesStaticAssetsAndFallbackToSPA(t *testing.T) 
 	}
 	if got := respJs.Body.String(); got != "console.log('nexus bundle');" {
 		t.Fatalf("expected bundle.js content, got %q", got)
+	}
+	if cc := respJs.Header().Get("Cache-Control"); cc != "no-cache, no-store, must-revalidate" {
+		t.Fatalf("expected uncached bundle.js, got %q", cc)
+	}
+
+	reqChunk := httptest.NewRequest(http.MethodGet, "/chunks/chunk-ABC123.js", nil)
+	respChunk := httptest.NewRecorder()
+	handler.ServeHTTP(respChunk, reqChunk)
+	if respChunk.Code != http.StatusOK || respChunk.Header().Get("Cache-Control") != "public, max-age=31536000, immutable" {
+		t.Fatalf("expected immutable chunk cache header, got status=%d cc=%q", respChunk.Code, respChunk.Header().Get("Cache-Control"))
+	}
+
+	missingChunk := httptest.NewRecorder()
+	handler.ServeHTTP(missingChunk, httptest.NewRequest(http.MethodGet, "/assets/BrowserSurface-old.js", nil))
+	if missingChunk.Code != http.StatusNotFound {
+		t.Fatalf("expected missing chunk 404, got %d: %s", missingChunk.Code, missingChunk.Body.String())
 	}
 
 	// 2. Static asset: bundle.css must NOT return index.html

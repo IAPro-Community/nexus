@@ -142,39 +142,19 @@ func NewServer(opts ServerOptions) (*Server, error) {
 
 	// Static Files & SPA Routing
 	distFS, distErr := DistFileSystem()
-	var fileServer http.Handler
 	if distErr == nil {
-		fileServer = http.FileServer(distFS)
+		mux.Handle("/", newSPAAssetHandler(distFS))
+	}
+	if distErr != nil {
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/html")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("<h1>IAPro Nexus Workspace OS</h1><p>Web frontend initializing...</p>"))
+		})
 	}
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// 1. Serve static SPA assets
-		if fileServer != nil {
-			// Disable client caching for index.html, bundle.js, bundle.css during development/live use
-			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-			w.Header().Set("Pragma", "no-cache")
-			w.Header().Set("Expires", "0")
-
-			// If file exists serve it, otherwise serve index.html (SPA routing)
-			f, err := distFS.Open(strings.TrimPrefix(r.URL.Path, "/"))
-			if err == nil {
-				_ = f.Close()
-				fileServer.ServeHTTP(w, r)
-				return
-			}
-			// Fallback to index.html
-			r.URL.Path = "/"
-			fileServer.ServeHTTP(w, r)
-			return
-		}
-
-		w.Header().Set("Content-Type", "text/html")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("<h1>IAPro Nexus Workspace OS</h1><p>Web frontend initializing...</p>"))
-	})
-
 	s.httpServer = &http.Server{
-		Handler:     s.withSecurityHeaders(mux),
+		Handler:     s.withSecurityHeaders(withGzip(mux)),
 		ReadTimeout: 15 * time.Second,
 		// Composer auto_plan may take up to ~90s (CLI oneshot); keep headroom for JSON write.
 		WriteTimeout: 120 * time.Second,
@@ -190,13 +170,12 @@ func NewServer(opts ServerOptions) (*Server, error) {
 		fmt.Fprintf(os.Stderr, "nexus web: failed to write listen state: %v\n", err)
 	}
 
-	// Register nexus.dev in the hosts file for local name resolution unless
-	// explicitly disabled. CI/test runners and locked-down enterprise hosts may
-	// not have permission to mutate the system hosts file; that optional
-	// convenience must not affect server correctness.
-	if !opts.DisableHostsFile && os.Getenv("NEXUS_DISABLE_HOSTS_FILE") != "1" {
+	// Register nexus.localhost in /etc/hosts only when explicitly opted in via
+	// NEXUS_ENABLE_HOSTS_FILE=1. Modern systems resolve *.localhost via RFC 6761
+	// natively without requiring root privileges.
+	if !opts.DisableHostsFile && os.Getenv("NEXUS_ENABLE_HOSTS_FILE") == "1" && os.Getenv("NEXUS_DISABLE_HOSTS_FILE") != "1" {
 		if err := EnsureNexusHostsEntry(); err != nil {
-			fmt.Fprintf(os.Stderr, "nexus web: could not register nexus.dev in /etc/hosts: %v\n", err)
+			fmt.Fprintf(os.Stderr, "nexus web: could not register %s in /etc/hosts: %v\n", nexusHostname, err)
 		} else {
 			s.hostname = nexusHostname
 		}
