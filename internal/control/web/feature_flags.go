@@ -19,6 +19,7 @@ const featureVoiceActions = nexus.FeatureVoiceActions
 const featureNexProactivity = nexus.FeatureNexProactivity
 const featureDesignInspect = nexus.FeatureDesignInspect
 const featureVisualDiff = nexus.FeatureVisualDiff
+const featureNexV2 = nexus.FeatureNexV2
 
 func optionalFeatureEnabled(feature string) bool {
 	return nexus.AdvancedFeatureEnabled(feature)

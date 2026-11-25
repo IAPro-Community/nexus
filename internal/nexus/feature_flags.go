@@ -20,12 +20,14 @@ const (
 	FeatureVisualDiff        = "VISUAL_DIFF"
 	FeatureSmartLayouts      = "SMART_LAYOUTS"
 	FeatureDevicePreview     = "DEVICE_PREVIEW"
+	FeatureNexV2             = "NEX_V2"
 )
 
 var advancedFeatures = [...]string{
 	FeatureComposer, FeatureFlow, FeatureMissions, FeatureParallelChallenge,
 	FeatureComparisonLab, FeatureVoiceActions, FeatureNexProactivity,
 	FeatureDesignInspect, FeatureVisualDiff, FeatureSmartLayouts, FeatureDevicePreview,
+	FeatureNexV2,
 }
 
 var ErrAdvancedFeatureDisabled = errors.New("advanced feature disabled")

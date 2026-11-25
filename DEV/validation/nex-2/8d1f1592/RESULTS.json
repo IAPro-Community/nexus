@@ -1,0 +1,94 @@
+{
+  "gate": "G0",
+  "phase": "P0",
+  "task": "NEX-00",
+  "timestamp_utc": "2026-11-25T04:01:00Z",
+  "baseline_sha": "8d1f1592ce8c4b12afa66585232ff2d09bd41d93",
+  "installed_version": "1.0.1",
+  "installed_commit": "bff681fd",
+  "platform": {
+    "os": "Ubuntu 25.10",
+    "kernel": "6.17.0-23-generic",
+    "arch": "x86_64",
+    "compositor": "ubuntu:GNOME (wayland-0 + XWayland :0)",
+    "gpu": "VMware SVGA II Adapter",
+    "webkit2gtk": "2.52.3",
+    "gtk3": "3.24.50",
+    "wails": "v3.0.0-beta.25"
+  },
+  "verdict": {
+    "linux_foundation": "PASS",
+    "windows_native": "BLOCKED",
+    "macos_native": "BLOCKED",
+    "nex_joint_release_readiness": "BLOCKED"
+  },
+  "metrics": {
+    "live_hud_process_tree_rss_kib_min": 727356,
+    "live_hud_process_tree_rss_kib_max": 728532,
+    "live_hud_process_tree_pss_kib": 458148,
+    "live_hud_webkit_web_process_rss_kib_max": 490372,
+    "live_hud_webkit_web_process_pss_kib": 362065,
+    "live_hud_cpu_percent_sum": 0.9,
+    "embedded_bundle_js_bytes": 468000,
+    "embedded_bundle_css_bytes": 495000
+  },
+  "checks": [
+    {
+      "name": "go_test_nex_hud_flags",
+      "status": "PASS",
+      "packages": [
+        "./internal/desktop/...",
+        "./cmd/nexus-hud/...",
+        "./internal/nexus",
+        "./internal/control/web",
+        "./internal/nexus/store"
+      ]
+    },
+    {
+      "name": "web_typecheck",
+      "status": "PASS"
+    },
+    {
+      "name": "web_hud_unit_and_node_tests",
+      "status": "PASS",
+      "vitest_files": 16,
+      "vitest_tests": 97,
+      "node_tests": 8
+    },
+    {
+      "name": "verify_nex_identity_lock",
+      "status": "PASS",
+      "lock_status": "FROZEN",
+      "lock_version": "NEX-ID-v1"
+    },
+    {
+      "name": "verify_nex_release_readiness",
+      "status": "BLOCKED",
+      "passed_gates": 2,
+      "total_gates": 11
+    },
+    {
+      "name": "e2e_hud_baseline",
+      "status": "FAIL",
+      "reason": "e2e-hud.mjs:136 timeout waiting for [data-mascot-attention-list] because NexusHud.tsx:171 gates nexus.getAttention() behind COMPOSER_FLOW_ENABLED (default OFF)"
+    },
+    {
+      "name": "e2e_companion_lab_baseline",
+      "status": "FAIL",
+      "reason": "e2e-companion-lab.mjs:333 assertion error (last=attention, expected=critical) for same COMPOSER_FLOW_ENABLED gate"
+    }
+  ],
+  "artifacts": [
+    "DEV/validation/nex-2/8d1f1592/BASELINE.md",
+    "DEV/validation/nex-2/8d1f1592/CAPABILITY_LEDGER.md",
+    "DEV/validation/nex-2/8d1f1592/PROGRESS.md",
+    "DEV/validation/nex-2/8d1f1592/GATE_REPORT.md",
+    "DEV/validation/nex-2/8d1f1592/RESULTS.json",
+    "DEV/validation/nex-2/8d1f1592/e2e-hud/web-hud-desktop.png",
+    "DEV/validation/nex-2/8d1f1592/companion-lab/captures/01-ambient.png",
+    "DEV/validation/nex-2/8d1f1592/companion-lab/captures/02-greet.png",
+    "DEV/validation/nex-2/8d1f1592/companion-lab/captures/03-look.png",
+    "DEV/validation/nex-2/8d1f1592/companion-lab/captures/04-thinking.png",
+    "DEV/validation/nex-2/8d1f1592/companion-lab/captures/05-attention.png"
+  ]
+}

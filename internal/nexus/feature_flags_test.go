@@ -19,6 +19,13 @@ func TestAdvancedFeatureRegistryRejectsUnknownAndImplicitFlags(t *testing.T) {
 	if !AdvancedFeatureEnabled(FeatureMissions) || !AdvancedFeatureSnapshot().Features[FeatureMissions] {
 		t.Fatal("explicit opt-in must agree with effective snapshot")
 	}
+	if AdvancedFeatureEnabled(FeatureNexV2) || AdvancedFeatureSnapshot().Features[FeatureNexV2] {
+		t.Fatal("NEX_V2 must remain disabled unless explicitly opted in")
+	}
+	t.Setenv("NEXUS_FEATURE_NEX_V2", "true")
+	if !AdvancedFeatureEnabled(FeatureNexV2) || !AdvancedFeatureSnapshot().Features[FeatureNexV2] {
+		t.Fatal("explicit NEX_V2 opt-in must agree with effective snapshot")
+	}
 	t.Setenv("NEXUS_FEATURES_ENABLED", "false")
 	for feature, enabled := range AdvancedFeatureSnapshot().Features {
 		if enabled {
