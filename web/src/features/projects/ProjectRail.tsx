@@ -1,7 +1,4 @@
-import {
-  useOptionalFeatures,
-  isExperimentalComposerFlowSurface,
-} from '../../app/composerFlowFlag';
+import { useOptionalFeatures, isExperimentalComposerFlowSurface } from '../../app/composerFlowFlag';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   Gauge,

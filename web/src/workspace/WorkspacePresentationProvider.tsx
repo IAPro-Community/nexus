@@ -200,7 +200,8 @@ function reducer(state: WorkspacePresentationState, action: Action): WorkspacePr
     case 'rearrange':
       return getOptionalFeatures().SMART_LAYOUTS_ENABLED ? rearrangeSmart(state) : state;
     case 'rearrangePreset':
-      if (action.preset === 'automatic' && !getOptionalFeatures().SMART_LAYOUTS_ENABLED) return state;
+      if (action.preset === 'automatic' && !getOptionalFeatures().SMART_LAYOUTS_ENABLED)
+        return state;
       return applyPreset(state, action.preset);
   }
 }

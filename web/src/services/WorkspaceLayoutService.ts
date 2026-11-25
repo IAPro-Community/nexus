@@ -79,14 +79,16 @@ export function selectFeatureLayout(
   profile: LayoutFeatureProfile,
   fallback: WorkspaceModel,
 ): PersistedWorkbenchLayout {
-  const previous = layout.featureProfile ??
+  const previous =
+    layout.featureProfile ??
     (listSurfaces(layout.model.root).some((tab) => isExperimentalComposerFlowSurface(tab.type))
       ? 'full'
       : 'core');
   if (previous === profile) return { ...layout, featureProfile: profile };
   const other = layout.alternateFeatureLayout;
   const selected = other?.profile === profile ? other : undefined;
-  const model = selected?.model ??
+  const model =
+    selected?.model ??
     (profile === 'core'
       ? withoutExperimentalComposerFlow(layout.model, listSurfaces(fallback.root)[0])
       : layout.model);
@@ -431,7 +433,9 @@ export class WorkspaceLayoutService {
       presentation,
       activeSurfaceId,
       openSurfaceIds,
-      featureProfile: validFeatureProfile(layout.featureProfile) ? layout.featureProfile : undefined,
+      featureProfile: validFeatureProfile(layout.featureProfile)
+        ? layout.featureProfile
+        : undefined,
       alternateFeatureLayout: normalizeAlternate(layout.alternateFeatureLayout),
     };
   }
