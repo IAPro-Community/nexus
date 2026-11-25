@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -89,9 +90,40 @@ func TestProjectReleaseDeskLinksRangeAndBlocksIntegration(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("GET release-desk status=%d", resp.StatusCode)
 	}
-	var report nexus.ReleaseDeskReport
-	if err := json.NewDecoder(resp.Body).Decode(&report); err != nil {
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
 		t.Fatal(err)
+	}
+	var report nexus.ReleaseDeskReport
+	if err := json.Unmarshal(body, &report); err != nil {
+		t.Fatal(err)
+	}
+	var wire map[string]json.RawMessage
+	if err := json.Unmarshal(body, &wire); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"branch", "base_sha", "head_sha", "commits", "pull_requests", "issues", "gates", "approval", "merge_publish_allowed", "block_reasons"} {
+		if _, ok := wire[key]; !ok {
+			t.Errorf("release desk JSON missing frontend field %q", key)
+		}
+	}
+	var commits []map[string]json.RawMessage
+	if err := json.Unmarshal(wire["commits"], &commits); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"sha", "subject", "references"} {
+		if _, ok := commits[0][key]; !ok {
+			t.Errorf("release commit JSON missing frontend field %q", key)
+		}
+	}
+	var gates []map[string]json.RawMessage
+	if err := json.Unmarshal(wire["gates"], &gates); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"name", "verify_command", "status", "evidence"} {
+		if _, ok := gates[0][key]; !ok {
+			t.Errorf("release gate JSON missing frontend field %q", key)
+		}
 	}
 	if report.Branch != "main" || report.BaseSHA != baseSHA || report.HeadSHA != headSHA {
 		t.Fatalf("range mismatch: %+v", report)
@@ -257,8 +289,23 @@ func TestProjectReleaseDeskHonorsSignedApproval(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
-	if err := json.NewDecoder(resp.Body).Decode(&report); err != nil {
+	approvalBody, err := io.ReadAll(resp.Body)
+	if err != nil {
 		t.Fatal(err)
+	}
+	if err := json.Unmarshal(approvalBody, &report); err != nil {
+		t.Fatal(err)
+	}
+	var approvalWire struct {
+		Approval map[string]json.RawMessage `json:"approval"`
+	}
+	if err := json.Unmarshal(approvalBody, &approvalWire); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"approver", "approval_id", "sha", "approved_at"} {
+		if _, ok := approvalWire.Approval[key]; !ok {
+			t.Errorf("release approval JSON missing frontend field %q", key)
+		}
 	}
 	if report.Approval == nil || report.Approval.Approver != "maestro" {
 		t.Fatalf("signed approval must surface in the report: %+v", report.Approval)

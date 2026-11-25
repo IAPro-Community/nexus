@@ -29,6 +29,21 @@ export interface NexAssistantPanelProps {
   onOpenNewAgent?: () => void;
 }
 
+export function normalizeNexConversationTurns(turns: unknown): NexChatTurn[] {
+  if (!Array.isArray(turns)) return [];
+  return turns.flatMap((turn): NexChatTurn[] => {
+    if (!turn || typeof turn !== 'object') return [];
+    const candidate = turn as { role?: unknown; content?: unknown };
+    if (
+      (candidate.role !== 'user' && candidate.role !== 'assistant') ||
+      typeof candidate.content !== 'string'
+    ) {
+      return [];
+    }
+    return [{ role: candidate.role, content: candidate.content }];
+  });
+}
+
 /**
  * Separate from HUD operational presentation: conversations never mutate
  * missions, capacity, agent state, or the character's canonical mood.
@@ -134,12 +149,7 @@ export const NexAssistantPanel: React.FC<NexAssistantPanelProps> = ({
       .getNexConversationHistory(projectId)
       .then((history) => {
         if (!active || inFlight.current) return;
-        setTurns(
-          (history.turns || []).map((turn) => ({
-            role: turn.role,
-            content: turn.content,
-          })),
-        );
+        setTurns(normalizeNexConversationTurns(history.turns));
       })
       .catch(() => {
         if (active) setError('Não foi possível recuperar a conversa armazenada no Nexus.');

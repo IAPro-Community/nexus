@@ -29,6 +29,8 @@ async function main() {
   let collectors;
   const sockets = [];
   const clientFrames = [];
+  let runtimeActive = false;
+  let launchRequests = 0;
   try {
     ({ browser, context, page, collectors } = await launchFixtureBrowser(bootstrapUrl));
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -50,6 +52,36 @@ async function main() {
     assert.equal(createAgent.status(), 201, 'Agent must be created through the real API');
     const agent = await createAgent.json();
     const terminalPath = `/api/v1/agents/${agent.id}/terminal`;
+
+    page.on('request', (request) => {
+      if (request.method() !== 'POST') return;
+      const pathname = new URL(request.url()).pathname;
+      if (/^\/api\/v1\/agents\/[^/]+\/(start|recover|ask)$/.test(pathname)) {
+        launchRequests += 1;
+      }
+      if (pathname === '/api/v1/runtimes') launchRequests += 1;
+    });
+
+    // Model the server's runtime projection so this browser E2E can exercise
+    // live and stopped attach states without starting a real provider process.
+    await page.route('**/api/v1/runtimes*', async (route) => {
+      const runtimes = runtimeActive
+        ? [
+            {
+              runtime_id: 'runtime_e2e_active',
+              agent_id: agent.id,
+              provider_id: 'fake',
+              profile_id: 'default',
+              state: 'RUNNING',
+            },
+          ]
+        : [];
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(runtimes),
+      });
+    });
 
     await page.routeWebSocket(
       (url) => url.pathname === terminalPath,
@@ -84,6 +116,22 @@ async function main() {
       waitUntil: 'domcontentloaded',
       timeout: 15000,
     });
+    await page.locator('.nx-agent-terminal__xterm .xterm').waitFor({
+      state: 'visible',
+      timeout: 15000,
+    });
+    await page
+      .getByText(
+        /Agent runtime disconnected|Runtime do Agente desconectado|Runtime del Agente desconectado/i,
+      )
+      .waitFor({ state: 'visible', timeout: 10000 });
+    assert.equal(sockets.length, 0, 'stopped Agent must not attempt a terminal WebSocket attach');
+    assert.equal(launchRequests, 0, 'viewing a stopped Agent must not launch or recover a runtime');
+
+    // Reload from an inactive generation to a live projection. The first
+    // unmount also exercises xterm teardown before mounting a live terminal.
+    runtimeActive = true;
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 15000 });
     await page.locator('.nx-agent-terminal__xterm .xterm').waitFor({
       state: 'visible',
       timeout: 15000,
@@ -187,7 +235,21 @@ async function main() {
       'reconnect must not silently reacquire the input lease',
     );
 
+    // The ended projection must not reattach or issue any start/recover call.
+    runtimeActive = false;
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 15000 });
+    await page
+      .getByText(
+        /Agent runtime disconnected|Runtime do Agente desconectado|Runtime del Agente desconectado/i,
+      )
+      .waitFor({ state: 'visible', timeout: 10000 });
+    assert.equal(sockets.length, 2, 'ended runtime must not create another terminal WebSocket');
+    assert.equal(launchRequests, 0, 'terminal viewing must not launch or revive a runtime');
+    assert.equal(collectors.pageErrors.length, 0, collectors.pageErrors.join(' | '));
+
     await page.screenshot({ path: path.join(artifacts, 'agent-terminal-follow.png') });
+    console.log('PASS stopped Agent does not attach or launch; live Agent attaches without launch');
+    console.log('PASS ended Agent does not reconnect or revive after terminal teardown');
     console.log('PASS attach is VIEW_ONLY; no lease is requested automatically');
     console.log('PASS explicit pause preserves scroll position and resume follows live output');
     console.log('PASS keyboard input requires explicit lease; revoke/reconnect remains VIEW_ONLY');

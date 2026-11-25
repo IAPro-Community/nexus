@@ -76,6 +76,8 @@ describe('releaseDeskModel', () => {
   it('shortens SHAs for display', () => {
     expect(shortSha('abcdefghij0123456789abcdef0123456789abcd')).toBe('abcdefg');
     expect(shortSha('')).toBe('');
+    expect(shortSha(undefined)).toBe('');
+    expect(shortSha(null)).toBe('');
   });
 
   it('formats approval dates with Intl and never crashes on junk', () => {

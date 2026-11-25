@@ -1,20 +1,23 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
-  TERMINAL_MAX_RECONNECT_ATTEMPTS,
+  TERMINAL_CLIENT_CLOSE_CODE,
   TERMINAL_CONNECT_TIMEOUT_MS,
+  TERMINAL_MAX_RECONNECT_ATTEMPTS,
   agentTerminalWebSocketURL,
+  closeTerminalClientSide,
   isFatalTerminalAttachError,
   isLiveRuntimeState,
-  normalizeInitialPrompt,
-  normalizeTerminalRole,
-  terminalInputEnabled,
+  nextBoundRuntimeId,
   isRecoverAlreadyAlive,
   isRequiredResourceSelection,
+  normalizeInitialPrompt,
+  normalizeTerminalRole,
   runtimeIdFromRecoverResult,
+  shouldAttemptAgentTerminalAttach,
   shouldAutoRecoverAgentTerminal,
-  shouldShowTerminalRecoverOverlay,
   shouldFallbackRecoverToStart,
-  nextBoundRuntimeId,
+  shouldShowTerminalRecoverOverlay,
+  terminalInputEnabled,
   parseRuntimeChangedId,
   terminalAttachFailure,
   terminalReconnectDelay,
@@ -72,12 +75,25 @@ describe('Agent terminal model', () => {
     expect(normalizeInitialPrompt('   ')).toBe('');
   });
   it('keeps the bound runtime when the poll briefly omits or swaps the agent runtime', () => {
+    expect(nextBoundRuntimeId('rt_live', undefined)).toBe('rt_live');
     expect(nextBoundRuntimeId('rt_live', '')).toBe('rt_live');
     expect(nextBoundRuntimeId('rt_live', 'rt_stale')).toBe('rt_live');
     expect(nextBoundRuntimeId('', 'rt_1')).toBe('rt_1');
     expect(nextBoundRuntimeId('rt_live', 'rt_stale', 'rt_preferred')).toBe('rt_live');
     expect(nextBoundRuntimeId('', 'rt_live', 'rt_dead')).toBe('rt_live');
     expect(nextBoundRuntimeId('rt_old', 'rt_preferred', 'rt_preferred')).toBe('rt_preferred');
+  });
+  it('attaches only for a listed live runtime or after an explicit start action', () => {
+    expect(shouldAttemptAgentTerminalAttach(true, false)).toBe(true);
+    expect(shouldAttemptAgentTerminalAttach(false, true)).toBe(true);
+    expect(shouldAttemptAgentTerminalAttach(false, false)).toBe(false);
+  });
+  it('uses a WebSocket close code accepted by browser clients', () => {
+    expect(TERMINAL_CLIENT_CLOSE_CODE).toBeGreaterThanOrEqual(3000);
+    expect(TERMINAL_CLIENT_CLOSE_CODE).toBeLessThanOrEqual(4999);
+    const close = vi.fn();
+    closeTerminalClientSide({ close }, 'runtime attach incompatible');
+    expect(close).toHaveBeenCalledWith(TERMINAL_CLIENT_CLOSE_CODE, 'runtime attach incompatible');
   });
   it('treats only live runtime states as attachable', () => {
     expect(isLiveRuntimeState('RUNNING')).toBe(true);

@@ -6,8 +6,8 @@ import type { ReleaseDeskReport } from '../../types';
  * merge/publish verdict is surfaced exactly as reported.
  */
 
-export function shortSha(sha: string): string {
-  return sha.slice(0, 7);
+export function shortSha(sha: unknown): string {
+  return typeof sha === 'string' ? sha.slice(0, 7) : '';
 }
 
 export interface ReleaseSummary {

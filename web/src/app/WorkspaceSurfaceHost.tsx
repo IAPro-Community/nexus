@@ -130,7 +130,8 @@ export const WorkspaceSurfaceHost: React.FC<{
   updateSurface?: (surfaceId: string, patch: Partial<WorkspaceSurface>) => void;
   closeSurface: (surfaceId: string) => void;
   onTour: () => void;
-  settingsInitialTab?: 'appearance' | 'accessibility' | 'updates' | 'remote' | 'hud';
+  settingsInitialTab?:
+    'appearance' | 'accessibility' | 'updates' | 'remote' | 'hud' | 'notifications';
 }> = ({
   surface,
   project,
@@ -367,18 +368,19 @@ export const WorkspaceSurfaceHost: React.FC<{
             (r) => r.runtime_id === preferredRuntimeId && isLiveRuntimeState(r.state),
           )
         : undefined;
-      const liveRuntime =
-        preferredLive || agentRuntimes.find((r) => isLiveRuntimeState(r.state)) || agentRuntimes[0];
+      const liveRuntime = preferredLive || agentRuntimes.find((r) => isLiveRuntimeState(r.state));
+      const observedRuntime = liveRuntime || agentRuntimes[0];
       return agentId ? (
         <div className="nx-agent-terminal-surface">
           <AgentTerminal
             agentId={agentId}
             projectId={project.id}
+            runtimeAvailable={Boolean(liveRuntime)}
             runtimeId={liveRuntime?.runtime_id}
             preferredRuntimeId={preferredLive?.runtime_id}
             initialPrompt={surface.data?.initialPrompt}
-            provider={liveRuntime?.provider_id || liveRuntime?.provider || 'claude'}
-            profile={liveRuntime?.profile_id || liveRuntime?.profile || 'default'}
+            provider={observedRuntime?.provider_id || observedRuntime?.provider || 'claude'}
+            profile={observedRuntime?.profile_id || observedRuntime?.profile || 'default'}
             agentName={agent?.name || surface.title}
             chrome={terminalChrome}
             liveTitleKey={surfaceViewId(surface)}
@@ -539,7 +541,7 @@ export const WorkspaceSurfaceHost: React.FC<{
           onTour={onTour}
           projectId={project.id}
           initialTab={
-            surface.data?.settingsTab === 'intelligence' ? 'intelligence' : settingsInitialTab
+            isSettingsTab(surface.data?.settingsTab) ? surface.data.settingsTab : settingsInitialTab
           }
         />
       );
@@ -675,3 +677,26 @@ export const WorkspaceSurfaceHost: React.FC<{
     </Suspense>
   );
 };
+
+function isSettingsTab(
+  value: unknown,
+): value is
+  | 'appearance'
+  | 'accessibility'
+  | 'updates'
+  | 'intelligence'
+  | 'capacity'
+  | 'hud'
+  | 'notifications'
+  | 'remote' {
+  return (
+    value === 'appearance' ||
+    value === 'accessibility' ||
+    value === 'updates' ||
+    value === 'intelligence' ||
+    value === 'capacity' ||
+    value === 'hud' ||
+    value === 'notifications' ||
+    value === 'remote'
+  );
+}

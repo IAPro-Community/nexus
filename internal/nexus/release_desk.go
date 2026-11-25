@@ -27,44 +27,44 @@ const (
 
 // ReleaseCommitSummary is one commit in the release range.
 type ReleaseCommitSummary struct {
-	SHA     string
-	Subject string
+	SHA     string `json:"sha"`
+	Subject string `json:"subject"`
 	// References are the #N tokens found in the subject.
-	References []string
+	References []string `json:"references"`
 }
 
 // ReleaseGate is one verifiable check of the release.
 type ReleaseGate struct {
-	Name          string
-	VerifyCommand string
-	Status        string
+	Name          string `json:"name"`
+	VerifyCommand string `json:"verify_command"`
+	Status        string `json:"status"`
 	// Evidence points at the artifact that proves the verified status.
-	Evidence string
+	Evidence string `json:"evidence"`
 }
 
 // ReleaseApproval records the explicit human authorization for one exact SHA.
 type ReleaseApproval struct {
-	Approver   string
-	ApprovalID string
-	SHA        string
-	ApprovedAt time.Time
+	Approver   string    `json:"approver"`
+	ApprovalID string    `json:"approval_id"`
+	SHA        string    `json:"sha"`
+	ApprovedAt time.Time `json:"approved_at"`
 }
 
 // ReleaseDeskReport is the full read-only projection for one release range.
 type ReleaseDeskReport struct {
-	Branch  string
-	BaseSHA string
-	HeadSHA string
-	Commits []ReleaseCommitSummary
+	Branch  string                 `json:"branch"`
+	BaseSHA string                 `json:"base_sha"`
+	HeadSHA string                 `json:"head_sha"`
+	Commits []ReleaseCommitSummary `json:"commits"`
 	// PullRequests come from "(#N)" trailer patterns; Issues from bare #N refs.
-	PullRequests []string
-	Issues       []string
-	Gates        []ReleaseGate
-	Approval     *ReleaseApproval
+	PullRequests []string         `json:"pull_requests"`
+	Issues       []string         `json:"issues"`
+	Gates        []ReleaseGate    `json:"gates"`
+	Approval     *ReleaseApproval `json:"approval"`
 	// MergePublishAllowed is false unless approval + verified gates + SHA
 	// binding all hold. Reasons enumerate every blocker.
-	MergePublishAllowed bool
-	BlockReasons        []string
+	MergePublishAllowed bool     `json:"merge_publish_allowed"`
+	BlockReasons        []string `json:"block_reasons"`
 }
 
 var refTokenPattern = regexp.MustCompile(`#(\d+)`)

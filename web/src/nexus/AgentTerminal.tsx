@@ -29,6 +29,7 @@ import {
   TERMINAL_MAX_RECONNECT_ATTEMPTS,
   TERMINAL_CONNECT_TIMEOUT_MS,
   agentTerminalWebSocketURL,
+  closeTerminalClientSide,
   isFatalTerminalAttachError,
   normalizeInitialPrompt,
   normalizeTerminalRole,
@@ -36,6 +37,7 @@ import {
   nextBoundRuntimeId,
   parseRuntimeChangedId,
   runtimeIdFromRecoverResult,
+  shouldAttemptAgentTerminalAttach,
   shouldShowTerminalRecoverOverlay,
   terminalAttachFailure,
   terminalReconnectDelay,
@@ -102,6 +104,7 @@ export interface AgentTerminalSkill {
 export const AgentTerminal: React.FC<{
   agentId: string;
   projectId?: string;
+  runtimeAvailable: boolean;
   runtimeId?: string;
   /** Authoritative generation from the workspace surface (wins over poll). */
   preferredRuntimeId?: string;
@@ -124,6 +127,7 @@ export const AgentTerminal: React.FC<{
 }> = ({
   agentId,
   projectId,
+  runtimeAvailable,
   runtimeId,
   preferredRuntimeId,
   initialPrompt,
@@ -145,6 +149,8 @@ export const AgentTerminal: React.FC<{
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const runtimeAvailableRef = useRef(runtimeAvailable);
+  const explicitRuntimeStartRef = useRef(false);
   const [connection, setConnection] = useState<
     'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR'
   >('CONNECTING');
@@ -222,6 +228,17 @@ export const AgentTerminal: React.FC<{
   }, [runtimeId, preferredRuntimeId]);
 
   useEffect(() => {
+    const wasAvailable = runtimeAvailableRef.current;
+    runtimeAvailableRef.current = runtimeAvailable;
+    if (runtimeAvailable || wasAvailable !== runtimeAvailable) {
+      explicitRuntimeStartRef.current = false;
+    }
+    if (!wasAvailable && runtimeAvailable && !runtimeId?.trim() && !preferredRuntimeId?.trim()) {
+      (containerRef.current as AgentTerminalHostElement | null)?.__triggerReconnect?.();
+    }
+  }, [runtimeAvailable, runtimeId, preferredRuntimeId]);
+
+  useEffect(() => {
     let active = true;
     setLoadingMode(true);
     void nexus
@@ -261,6 +278,8 @@ export const AgentTerminal: React.FC<{
   const rebindTerminal = (nextRuntimeId?: string) => {
     const trimmed = (nextRuntimeId || '').trim();
     if (trimmed) {
+      explicitRuntimeStartRef.current = true;
+      runtimeAvailableRef.current = true;
       setBoundRuntimeId(trimmed);
       onBoundRuntimeChangeRef.current?.(trimmed);
     }
@@ -525,6 +544,15 @@ export const AgentTerminal: React.FC<{
 
     const connect = async () => {
       if (disposed || stopReconnect) return;
+      if (
+        !shouldAttemptAgentTerminalAttach(
+          runtimeAvailableRef.current,
+          explicitRuntimeStartRef.current,
+        )
+      ) {
+        failPermanently(tRef.current('terminal.recoverNoticeStopped'), 'RUNTIME_NOT_ACTIVE');
+        return;
+      }
       setConnection('CONNECTING');
       if (!openedOnce) setMessage('');
       lastError = '';
@@ -678,7 +706,7 @@ export const AgentTerminal: React.FC<{
             reconnectTimer = undefined;
           }
           try {
-            ws.close(1012, 'runtime generation changed');
+            closeTerminalClientSide(ws, 'runtime generation changed');
           } catch {
             // ignore
           }
@@ -717,7 +745,7 @@ export const AgentTerminal: React.FC<{
           lastError = detail;
           if (code === 'RUNTIME_ATTACH_INCOMPATIBLE') {
             failPermanently(detail, code);
-            ws.close(1011, 'runtime attach incompatible');
+            closeTerminalClientSide(ws, 'runtime attach incompatible');
           } else {
             setMessage(detail);
           }
@@ -726,7 +754,7 @@ export const AgentTerminal: React.FC<{
             // relaunched. Recovery is only performed by the explicit
             // Recover/Start action in the overlay.
             failPermanently(detail);
-            ws.close(1011, 'fatal attach error');
+            closeTerminalClientSide(ws, 'fatal attach error');
           }
         }
       };

@@ -265,12 +265,12 @@
 
 @keyframes tab-attention-pulse {
   0% {
-    box-shadow: 0 0 0 0 var(--nx-accent);
+    transform: scale(0.96);
     opacity: 0.85;
   }
 
   100% {
-    box-shadow: 0 0 6px 1px var(--nx-accent);
+    transform: scale(1.04);
     opacity: 1;
   }
 }

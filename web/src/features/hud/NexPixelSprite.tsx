@@ -56,7 +56,11 @@ export const NexPixelSprite: React.FC<NexPixelSpriteProps> = ({
       data-nex-motion={motionEnabled ? 'on' : 'off'}
       role="presentation"
     >
-      <div className={frameClassName} data-idle-action={idleAction ?? undefined} />
+      <div className={styles.breatheLayer}>
+        <div className={styles.viewport}>
+          <div className={frameClassName} data-idle-action={idleAction ?? undefined} />
+        </div>
+      </div>
     </div>
   );
 };

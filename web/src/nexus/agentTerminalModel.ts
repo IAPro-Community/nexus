@@ -2,6 +2,9 @@ import { shouldAttachWebSocketQueryToken } from '../lib/networkHost';
 
 export type TerminalRole = 'CONTROL' | 'VIEW_ONLY';
 
+/** Browser WebSocket.close accepts 1000 or application codes in the 3000–4999 range. */
+export const TERMINAL_CLIENT_CLOSE_CODE = 4001;
+
 /** Hard stop after this many failed reconnects so the UI is not stuck on "connecting". */
 export const TERMINAL_MAX_RECONNECT_ATTEMPTS = 5;
 /** A blocked WebSocket handshake must never leave CONNECTING indefinitely. */
@@ -71,6 +74,17 @@ export function nextBoundRuntimeId(current: string, incoming?: string, preferred
   if (!cur) return next;
   // Sticky: keep the bound generation. Polls may briefly list a sibling/stale runtime.
   return cur;
+}
+
+export function shouldAttemptAgentTerminalAttach(
+  runtimeAvailable: boolean,
+  explicitlyStarted: boolean,
+): boolean {
+  return runtimeAvailable || explicitlyStarted;
+}
+
+export function closeTerminalClientSide(socket: Pick<WebSocket, 'close'>, reason: string): void {
+  socket.close(TERMINAL_CLIENT_CLOSE_CODE, reason);
 }
 
 export function isLiveRuntimeState(state?: string): boolean {

@@ -1,9 +1,9 @@
 // NEX hud-32bit atlas sprite — locked asset NEX-ID-v1 (see nexIdleAtlas.ts).
 // One 128x128 frame of a 1024x1536 grid is shown per state; CSS steps() walks
-// the 8 frames of the selected row. Only internal layers animate (the frame
-// element), never the anchor wrapper. Reduced motion renders a still frame.
+// the 8 frames of the selected row via GPU-composited transform: translate3d
+// inside an overflow-clipped viewport. Reduced motion renders a still frame.
 
-$mood-warning: #ff8a45; // same treatment colors as the previous vector mood palette
+$mood-warning: #ff8a45;
 $mood-critical: #ff496c;
 
 .sprite {
@@ -14,65 +14,81 @@ $mood-critical: #ff496c;
   overflow: visible;
 }
 
-.frame {
-  position: absolute;
-  inset: 0;
-  background-image: url('/nex/hud-32bit/nex-idle-atlas-128.png');
-  background-repeat: no-repeat;
-
-  // 8 columns x 12 rows of 128x128 frames, scaled with the element size.
-  background-size: 800% 1200%;
-  background-position: 0 var(--nex-row, 0);
+.breatheLayer {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
-// --- Idle action rows (manifest order) -------------------------------------
+.viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 800%;
+  height: 1200%;
+  background-image: url('/nex/hud-32bit/nex-idle-atlas-128.png');
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  transform: translate3d(0, var(--nex-row-y, 0%), 0);
+  will-change: transform;
+  image-rendering: pixelated;
+}
+
+// --- Row offsets (1/12 = 8.333333% of frame height per row) -----------------
 
 .rowHover {
-  --nex-row: 0px;
+  --nex-row-y: 0%;
 }
 
 .rowBlink {
-  --nex-row: -128px;
+  --nex-row-y: -8.3333%;
 }
 
 .rowGlance {
-  --nex-row: -256px;
+  --nex-row-y: -16.6667%;
 }
 
 .rowOrbitBreathe {
-  --nex-row: -384px;
+  --nex-row-y: -25%;
 }
 
 .rowHeadTilt {
-  --nex-row: -512px;
+  --nex-row-y: -33.3333%;
 }
 
 .rowFinTwitch {
-  --nex-row: -640px;
+  --nex-row-y: -41.6667%;
 }
 
 .rowModuleInspect {
-  --nex-row: -768px;
+  --nex-row-y: -50%;
 }
 
 .rowOrbitShuffle {
-  --nex-row: -896px;
+  --nex-row-y: -58.3333%;
 }
 
 .rowCuriosity {
-  --nex-row: -1024px;
+  --nex-row-y: -66.6667%;
 }
 
 .rowMicroStretch {
-  --nex-row: -1152px;
+  --nex-row-y: -75%;
 }
 
 .rowDrowse {
-  --nex-row: -1280px;
+  --nex-row-y: -83.3333%;
 }
 
 .rowWake {
-  --nex-row: -1408px;
+  --nex-row-y: -91.6667%;
 }
 
 // --- Frame playback ---------------------------------------------------------
@@ -95,11 +111,11 @@ $mood-critical: #ff496c;
 
 @keyframes nex-atlas-play {
   from {
-    background-position: 0 var(--nex-row, 0);
+    transform: translate3d(0, var(--nex-row-y, 0%), 0);
   }
 
   to {
-    background-position: -1024px var(--nex-row, 0);
+    transform: translate3d(-100%, var(--nex-row-y, 0%), 0);
   }
 }
 
@@ -131,24 +147,25 @@ $mood-critical: #ff496c;
 }
 
 // Working keeps the hover motion (the atlas has no dedicated working frames);
-// the global working sway rule on the wrapper no longer applies to raster
-// content, so a subtle internal breathing keeps the state visually alive.
-.sprite[data-nex-mood='working'] .frame {
+// the breathing layer animates vertically without conflicting with sprite-sheet
+// frame transforms.
+.sprite[data-nex-mood='working'] .breatheLayer {
   animation: nex-atlas-work-breathe 1.3s ease-in-out infinite;
 }
 
-.sprite[data-nex-motion='off'] .frame {
+.sprite[data-nex-motion='off'] .frame,
+.sprite[data-nex-motion='off'] .breatheLayer {
   animation: none;
 }
 
 @keyframes nex-atlas-work-breathe {
   0%,
   100% {
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
   }
 
   50% {
-    transform: translateY(-2px);
+    transform: translate3d(0, -2px, 0);
   }
 }
 
@@ -158,7 +175,7 @@ $mood-critical: #ff496c;
 @media (prefers-reduced-motion: reduce) {
   .playLoop,
   .playOnce,
-  .sprite[data-nex-mood='working'] .frame {
+  .sprite[data-nex-mood='working'] .breatheLayer {
     animation: none;
   }
 
