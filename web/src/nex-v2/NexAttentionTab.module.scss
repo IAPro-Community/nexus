@@ -1,0 +1,64 @@
+.stack {
+  display: grid;
+  gap: var(--nx-space-2);
+}
+
+.card {
+  display: grid;
+  gap: var(--nx-space-1);
+  padding: var(--nx-space-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  background: var(--nx-surface-raised);
+  font-size: var(--nx-font-size-xs);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nx-space-2);
+}
+
+.statusBadge {
+  display: inline-block;
+  width: fit-content;
+  padding: var(--nx-space-1) var(--nx-space-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface-2);
+  color: var(--nx-text-soft);
+  font-size: var(--nx-font-size-xs);
+  font-weight: 600;
+}
+
+.cardMeta,
+.emptyText {
+  margin: 0;
+  color: var(--nx-text-soft);
+  font-size: var(--nx-font-size-xs);
+}
+
+.cardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--nx-space-1);
+}
+
+.smallBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--nx-space-1);
+  padding: var(--nx-space-1) var(--nx-space-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface-2);
+  color: var(--nx-text);
+  cursor: pointer;
+  font-size: var(--nx-font-size-xs);
+}
+
+.smallBtn:focus-visible {
+  outline: 2px solid var(--nx-focus);
+  outline-offset: 2px;
+}

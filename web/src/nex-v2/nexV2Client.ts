@@ -2,9 +2,11 @@ import { Call } from '@wailsio/runtime';
 import type {
   NexV2ChatResponse,
   NexV2ChatTurn,
+  NexV2EventsPage,
   NexV2HudProvider,
   NexV2HudSnapshotResult,
   NexV2HudState,
+  NexV2ModelCatalogWatchSnapshot,
   NexV2PlatformCapabilities,
   NexV2PresenceState,
   NexV2PresetId,
@@ -59,6 +61,7 @@ export function defaultPresenceState(): NexV2PresenceState {
     showAvatar: true,
     compactBar: false,
     doNotDisturb: false,
+    privacyMode: false,
     paused: false,
     reducedMotion: false,
     hotkey: 'Ctrl+Shift+N',
@@ -213,6 +216,14 @@ export const updateNexV2DoNotDisturb = (enabled: boolean, current: NexV2Presence
     current,
   );
 
+export const updateNexV2PrivacyMode = (enabled: boolean, current: NexV2PresenceState) =>
+  updateBooleanControllerSetting(
+    'SetPrivacyMode',
+    enabled,
+    (prev) => ({ ...prev, privacyMode: enabled }),
+    current,
+  );
+
 export const updateNexV2Paused = (paused: boolean, current: NexV2PresenceState) =>
   updateBooleanControllerSetting('SetPaused', paused, (prev) => ({ ...prev, paused }), current);
 
@@ -322,6 +333,72 @@ export async function fetchNexV2Hud(): Promise<NexV2HudSnapshotResult> {
       state: null,
       error: err instanceof Error ? err.message : 'network error',
     };
+  }
+}
+
+export function computeReconnectBackoffMs(consecutiveFailures: number): number {
+  if (consecutiveFailures <= 0 || !Number.isFinite(consecutiveFailures)) {
+    return 0;
+  }
+  const shift = Math.min(Math.floor(consecutiveFailures) - 1, 3);
+  return Math.min(2000 * 2 ** shift, 15_000);
+}
+
+export async function fetchNexV2Events(since = 0): Promise<NexV2EventsPage> {
+  await ensureSessionAuth();
+  try {
+    const query = since > 0 ? `?since=${encodeURIComponent(String(since))}` : '';
+    const res = await fetch(`/api/v1/nex/events${query}`, {
+      headers: buildHeaders(false),
+      credentials: 'same-origin',
+    });
+    if (res.status >= 500 || !res.ok) {
+      return {
+        offline: res.status >= 500,
+        revision: since,
+        replay_truncated: false,
+        events: [],
+        model_watch_freshness: 'UNKNOWN',
+      };
+    }
+    const payload = (await res.json()) as Partial<NexV2EventsPage>;
+    return {
+      offline: false,
+      revision: typeof payload.revision === 'number' ? payload.revision : since,
+      replay_truncated: Boolean(payload.replay_truncated),
+      events: asSafeArray(payload.events),
+      model_watch_freshness: payload.model_watch_freshness || 'UNKNOWN',
+    };
+  } catch {
+    return {
+      offline: true,
+      revision: since,
+      replay_truncated: false,
+      events: [],
+      model_watch_freshness: 'UNKNOWN',
+    };
+  }
+}
+
+export async function fetchNexV2ModelWatch(): Promise<NexV2ModelCatalogWatchSnapshot> {
+  await ensureSessionAuth();
+  try {
+    const res = await fetch('/api/v1/nex/models/watch', {
+      headers: buildHeaders(false),
+      credentials: 'same-origin',
+    });
+    if (!res.ok) {
+      return { freshness: 'UNKNOWN', entries: [], changes: [] };
+    }
+    const payload = (await res.json()) as Partial<NexV2ModelCatalogWatchSnapshot>;
+    return {
+      freshness: payload.freshness || 'UNKNOWN',
+      observed_at: payload.observed_at,
+      entries: asSafeArray(payload.entries),
+      changes: asSafeArray(payload.changes),
+    };
+  } catch {
+    return { freshness: 'UNKNOWN', entries: [], changes: [] };
   }
 }
 

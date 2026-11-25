@@ -1,0 +1,10 @@
+{
+  "authEventsStatus": 200,
+  "authWatchStatus": 200,
+  "privacyMode": true,
+  "eventRevision": 1,
+  "modelWatchFreshness": "FRESH",
+  "pageErrors": 0,
+  "consoleErrors": 0,
+  "requestFailures": 0
+}

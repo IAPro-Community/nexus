@@ -63,3 +63,22 @@
 | 72h continuous desktop soak | **PENDING_BEFORE_R1_PROMOTION** | Not executed in single-session P2 gate; required before R1 promotion |
 | Native Windows & macOS validation | **BLOCKED** | No physical Windows or macOS hardware on this Linux host |
 
+---
+
+# Gate G3 Report — Phase P3 (NEX-03) & Slice R1 (Foundation + Guardian)
+
+- **P2 Commit SHA:** `ec012135`
+- **Platform Tested:** Linux (`x86_64`, Ubuntu 25.10, Go `-race` test suites + Chromium Playwright against `bin/nexus`)
+- **Verdict:** **PASS (Linux Foundation + Guardian Parity, Zero LLM Required)** / **BLOCKED (`Windows`, `macOS` native hardware)** / **PENDING (`72h soak` before R1 promotion; Legacy retirement remains blocked until P8)**
+
+## Gate G3 & Slice R1 Checklist
+
+| Criterion | Status | Evidence |
+|---|---|---|
+| Canonical read-only Model Catalog Watch (no external CLI probes) | **PASS** | `internal/nexus/model_catalog_watch.go` + `_test.go` (`ADDED`, `REMOVED`, `DEPRECATED`, `DEFAULT_CHANGED`, `UNKNOWN_SOURCE`, idempotent re-observation, persistence reload, `UNKNOWN`/`STALE`/`FRESH`, `-race` PASS) |
+| Cursor-indexed event stream, fingerprint dedupe & notification policy | **PASS** | `internal/nexus/nex_event_stream.go` + `_test.go` (`Since(cursor)` replay & `ReplayTruncated`, DND/quiet-hours suppression, burst cap, `-race` PASS) |
+| Authenticated HTTP endpoints (`/api/v1/nex/events`, `/api/v1/nex/models/watch`) & Privacy Mode persistence | **PASS** | `internal/control/web/handlers_nex_stream.go`, `handlers_nex_stream_test.go`, `routes.go`; `internal/desktop/nex_v2_controller.go` `SetPrivacyMode`; `e2e-nex-v2-guardian.mjs` confirms `401` unauth / `200` auth |
+| Multi-window quotas, resets, honest `UNKNOWN`/`STALE`, Cost evidence & unified Attention parity without LLM | **PASS** | `NexResourcesTab`, `NexAttentionTab`, `NexSettingsDrawer`, `NexNotificationBubble`, `NexPresenceApp`; `NexGuardianParity.test.tsx` (21/21 Vitest files, 113 tests + 8 node-tests PASS) |
+| Guardian Playwright E2E + no regression in P1 Lab or P2 100-cycle suite | **PASS** | `e2e-nex-v2-lab.mjs` PASS (`670ms` load, `328.9ms` paint); `e2e-nex-v2-presence.mjs` 100-cycle PASS (`5.9ms` cold, `1.1ms` warm, `0` errors); `e2e-nex-v2-guardian.mjs` PASS (`privacyMode=true`, `eventRevision=1`, `FRESH`, `0` errors) |
+| 72h continuous desktop soak & native Windows/macOS QA | **PENDING / BLOCKED** | Windows/macOS hardware unavailable (`BLOCKED`); 72h soak required prior to Slice R1 opt-in promotion; legacy HUD remains untouched until P8 |
+

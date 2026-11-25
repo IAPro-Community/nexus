@@ -31,6 +31,8 @@ type NexusHandler struct {
 	comparisons           *nexus.ComparisonApplicationService
 	comparisonCampaigns   *nexus.ComparisonCampaignApplicationService
 	hud                   *nexus.HUDApplicationService
+	modelWatch            *nexus.ModelCatalogWatchService
+	nexEvents             *nexus.NexEventStream
 	voice                 *voice.Service
 	hostFilesystemEnabled bool
 }
@@ -113,6 +115,8 @@ func NewNexusHandler(auth *AuthManager) *NexusHandler {
 		comparisons:           nexus.NewComparisonApplicationService(n),
 		comparisonCampaigns:   nexus.NewComparisonCampaignApplicationService(n, runs),
 		hud:                   nexus.NewHUDApplicationService(n),
+		modelWatch:            nexus.NewModelCatalogWatchService(""),
+		nexEvents:             nexus.NewNexEventStream(256),
 		voice:                 voice.NewService(),
 		hostFilesystemEnabled: true,
 	}

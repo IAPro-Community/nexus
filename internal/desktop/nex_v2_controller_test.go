@@ -163,4 +163,11 @@ func TestNexV2ControllerSurfaceRectTransitions(t *testing.T) {
 	if lastRect.Width != 360 || lastRect.Height != 56 {
 		t.Fatalf("expected 360x56 compact bar rect, got %+v", lastRect)
 	}
+
+	if updated, err := ctrl.SetPrivacyMode(true); err != nil || !updated.PrivacyMode {
+		t.Fatalf("SetPrivacyMode(true) failed: updated=%+v err=%v", updated, err)
+	}
+	if reloaded := ctrl.GetPresenceState(); !reloaded.PrivacyMode {
+		t.Fatalf("expected persisted PrivacyMode=true, got %+v", reloaded)
+	}
 }

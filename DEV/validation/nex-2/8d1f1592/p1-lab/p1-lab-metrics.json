@@ -1,26 +1,26 @@
 {
-  "coldNavigationToPaintMs": 902,
-  "rigFirstPaintMs": 299.4,
+  "coldNavigationToPaintMs": 670,
+  "rigFirstPaintMs": 328.9,
   "resizeCountDelta": 0,
   "idleMetrics": {
     "mode": "idle",
     "targetFps": 20,
-    "frameCount": 235,
+    "frameCount": 271,
     "p50FrameMs": 16.7,
-    "p95FrameMs": 50,
-    "maxFrameMs": 100,
-    "longStuttersOver100ms": 1
+    "p95FrameMs": 33.4,
+    "maxFrameMs": 50.1,
+    "longStuttersOver100ms": 0
   },
   "reducedMotionFramesDelta": 0,
   "moodResults": {
     "idle": {
       "ok": true,
-      "nonZero": 3772,
+      "nonZero": 3768,
       "edgeClip": 0,
       "width": 192,
       "height": 192,
       "metrics": {
-        "firstPaintMs": 299.4,
+        "firstPaintMs": 328.9,
         "rigReady": true,
         "atlasFallback": false,
         "resizeCount": 0,
@@ -32,22 +32,22 @@
         "clock": {
           "mode": "idle",
           "targetFps": 20,
-          "frameCount": 12,
+          "frameCount": 9,
           "p50FrameMs": 50,
-          "p95FrameMs": 133.3,
-          "maxFrameMs": 133.3,
-          "longStuttersOver100ms": 1
+          "p95FrameMs": 66.6,
+          "maxFrameMs": 66.6,
+          "longStuttersOver100ms": 0
         }
       }
     },
     "working": {
       "ok": true,
-      "nonZero": 3529,
+      "nonZero": 3558,
       "edgeClip": 0,
       "width": 192,
       "height": 192,
       "metrics": {
-        "firstPaintMs": 299.4,
+        "firstPaintMs": 328.9,
         "rigReady": true,
         "atlasFallback": false,
         "resizeCount": 0,
@@ -59,22 +59,22 @@
         "clock": {
           "mode": "interactive",
           "targetFps": 60,
-          "frameCount": 29,
+          "frameCount": 24,
           "p50FrameMs": 49.9,
           "p95FrameMs": 50.1,
-          "maxFrameMs": 133.3,
-          "longStuttersOver100ms": 1
+          "maxFrameMs": 66.6,
+          "longStuttersOver100ms": 0
         }
       }
     },
     "attention": {
       "ok": true,
-      "nonZero": 3534,
+      "nonZero": 3515,
       "edgeClip": 0,
       "width": 192,
       "height": 192,
       "metrics": {
-        "firstPaintMs": 299.4,
+        "firstPaintMs": 328.9,
         "rigReady": true,
         "atlasFallback": false,
         "resizeCount": 0,
@@ -86,22 +86,22 @@
         "clock": {
           "mode": "interactive",
           "targetFps": 60,
-          "frameCount": 48,
+          "frameCount": 47,
           "p50FrameMs": 16.7,
           "p95FrameMs": 50,
-          "maxFrameMs": 133.3,
-          "longStuttersOver100ms": 1
+          "maxFrameMs": 66.6,
+          "longStuttersOver100ms": 0
         }
       }
     },
     "critical": {
       "ok": true,
-      "nonZero": 3698,
+      "nonZero": 3709,
       "edgeClip": 0,
       "width": 192,
       "height": 192,
       "metrics": {
-        "firstPaintMs": 299.4,
+        "firstPaintMs": 328.9,
         "rigReady": true,
         "atlasFallback": false,
         "resizeCount": 0,
@@ -113,22 +113,22 @@
         "clock": {
           "mode": "interactive",
           "targetFps": 60,
-          "frameCount": 67,
+          "frameCount": 70,
           "p50FrameMs": 16.7,
           "p95FrameMs": 50,
-          "maxFrameMs": 133.3,
-          "longStuttersOver100ms": 1
+          "maxFrameMs": 66.6,
+          "longStuttersOver100ms": 0
         }
       }
     },
     "offline": {
       "ok": true,
-      "nonZero": 3798,
+      "nonZero": 3768,
       "edgeClip": 0,
       "width": 192,
       "height": 192,
       "metrics": {
-        "firstPaintMs": 299.4,
+        "firstPaintMs": 328.9,
         "rigReady": true,
         "atlasFallback": false,
         "resizeCount": 0,
@@ -140,11 +140,11 @@
         "clock": {
           "mode": "paused",
           "targetFps": 0,
-          "frameCount": 72,
+          "frameCount": 81,
           "p50FrameMs": 16.7,
           "p95FrameMs": 50,
-          "maxFrameMs": 133.3,
-          "longStuttersOver100ms": 1
+          "maxFrameMs": 66.6,
+          "longStuttersOver100ms": 0
         }
       }
     }
@@ -156,11 +156,11 @@
       "clock": {
         "mode": "idle",
         "targetFps": 20,
-        "frameCount": 86,
+        "frameCount": 95,
         "p50FrameMs": 16.7,
         "p95FrameMs": 50,
-        "maxFrameMs": 133.3,
-        "longStuttersOver100ms": 1
+        "maxFrameMs": 66.6,
+        "longStuttersOver100ms": 0
       }
     },
     "greet": {
@@ -169,11 +169,11 @@
       "clock": {
         "mode": "interactive",
         "targetFps": 60,
-        "frameCount": 103,
+        "frameCount": 115,
         "p50FrameMs": 16.7,
         "p95FrameMs": 50,
-        "maxFrameMs": 133.3,
-        "longStuttersOver100ms": 1
+        "maxFrameMs": 66.6,
+        "longStuttersOver100ms": 0
       }
     },
     "look": {
@@ -182,11 +182,11 @@
       "clock": {
         "mode": "interactive",
         "targetFps": 60,
-        "frameCount": 124,
+        "frameCount": 138,
         "p50FrameMs": 16.7,
-        "p95FrameMs": 50,
-        "maxFrameMs": 50.1,
-        "longStuttersOver100ms": 1
+        "p95FrameMs": 16.8,
+        "maxFrameMs": 50,
+        "longStuttersOver100ms": 0
       }
     },
     "thinking": {
@@ -195,11 +195,11 @@
       "clock": {
         "mode": "interactive",
         "targetFps": 60,
-        "frameCount": 143,
+        "frameCount": 172,
         "p50FrameMs": 16.7,
         "p95FrameMs": 33.3,
-        "maxFrameMs": 50.1,
-        "longStuttersOver100ms": 1
+        "maxFrameMs": 50,
+        "longStuttersOver100ms": 0
       }
     },
     "attention": {
@@ -208,11 +208,11 @@
       "clock": {
         "mode": "interactive",
         "targetFps": 60,
-        "frameCount": 159,
+        "frameCount": 194,
         "p50FrameMs": 16.7,
         "p95FrameMs": 33.3,
-        "maxFrameMs": 100,
-        "longStuttersOver100ms": 1
+        "maxFrameMs": 50,
+        "longStuttersOver100ms": 0
       }
     },
     "error": {
@@ -221,11 +221,11 @@
       "clock": {
         "mode": "interactive",
         "targetFps": 60,
-        "frameCount": 179,
+        "frameCount": 219,
         "p50FrameMs": 16.7,
-        "p95FrameMs": 33.3,
-        "maxFrameMs": 100,
-        "longStuttersOver100ms": 1
+        "p95FrameMs": 16.8,
+        "maxFrameMs": 33.4,
+        "longStuttersOver100ms": 0
       }
     },
     "resolved": {
@@ -234,11 +234,11 @@
       "clock": {
         "mode": "interactive",
         "targetFps": 60,
-        "frameCount": 200,
+        "frameCount": 238,
         "p50FrameMs": 16.7,
-        "p95FrameMs": 33.4,
-        "maxFrameMs": 100,
-        "longStuttersOver100ms": 1
+        "p95FrameMs": 16.8,
+        "maxFrameMs": 33.4,
+        "longStuttersOver100ms": 0
       }
     },
     "rest": {
@@ -247,11 +247,11 @@
       "clock": {
         "mode": "idle",
         "targetFps": 20,
-        "frameCount": 218,
+        "frameCount": 255,
         "p50FrameMs": 16.7,
         "p95FrameMs": 16.8,
-        "maxFrameMs": 100,
-        "longStuttersOver100ms": 1
+        "maxFrameMs": 33.4,
+        "longStuttersOver100ms": 0
       }
     }
   }

@@ -160,5 +160,43 @@
       "DEV/validation/nex-2/8d1f1592/p2-presence/p2-presence-offline.png",
       "DEV/validation/nex-2/8d1f1592/p2-presence/summary.json"
     ]
+  },
+  "gate_g3_slice_r1": {
+    "p2_sha": "ec012135",
+    "verdict": {
+      "linux_guardian_slice_r1": "PASS",
+      "windows_native": "BLOCKED",
+      "macos_native": "BLOCKED",
+      "soak_72h": "PENDING_BEFORE_R1_PROMOTION",
+      "legacy_retirement": "DEFERRED_TO_P8"
+    },
+    "metrics": {
+      "nex_v2_js_kb": 219.0,
+      "nex_v2_shared_chunk_kb": 99.1,
+      "nex_v2_lazy_panel_chunk_kb": 11.2,
+      "nex_v2_css_kb": 7.8,
+      "vitest_files": 21,
+      "vitest_tests": 113,
+      "node_tests": 8,
+      "p1_lab_cold_ms": 670,
+      "p1_lab_paint_ms": 328.9,
+      "p2_presence_cold_ms": 5.9,
+      "p2_presence_warm_ms": 1.1,
+      "p2_presence_cycles": 100,
+      "p3_guardian_auth_events_status": 200,
+      "p3_guardian_auth_watch_status": 200,
+      "p3_guardian_event_revision": 1,
+      "p3_guardian_model_watch_freshness": "FRESH",
+      "p3_guardian_privacy_mode": true,
+      "page_errors": 0,
+      "console_errors": 0,
+      "request_failures": 0
+    },
+    "artifacts": [
+      "DEV/validation/nex-2/8d1f1592/p3-guardian/p3-guardian-resources.png",
+      "DEV/validation/nex-2/8d1f1592/p3-guardian/p3-guardian-privacy.png",
+      "DEV/validation/nex-2/8d1f1592/p3-guardian/p3-guardian-attention.png",
+      "DEV/validation/nex-2/8d1f1592/p3-guardian/summary.json"
+    ]
   }
 }

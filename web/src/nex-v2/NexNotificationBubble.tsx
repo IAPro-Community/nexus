@@ -7,6 +7,7 @@ import styles from './NexNotificationBubble.module.scss';
 export interface NexNotificationBubbleProps {
   alert: NexV2HudAlert | null;
   doNotDisturb: boolean;
+  privacyMode?: boolean;
   panelOpen: boolean;
   offline: boolean;
   onDismiss: (fingerprint: string) => void;
@@ -16,6 +17,7 @@ export interface NexNotificationBubbleProps {
 export const NexNotificationBubble: React.FC<NexNotificationBubbleProps> = ({
   alert,
   doNotDisturb,
+  privacyMode = false,
   panelOpen,
   offline,
   onDismiss,
@@ -28,8 +30,9 @@ export const NexNotificationBubble: React.FC<NexNotificationBubbleProps> = ({
   }
 
   const severity = (alert.severity || 'INFO').toUpperCase();
+  const profilePart = privacyMode && alert.profile ? t('nexV2.privacyMasked') : alert.profile;
   const title =
-    [alert.provider, alert.profile].filter(Boolean).join(' · ') || alert.category || 'Nexus';
+    [alert.provider, profilePart].filter(Boolean).join(' · ') || alert.category || 'Nexus';
 
   return (
     <aside

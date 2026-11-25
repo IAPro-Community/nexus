@@ -18,6 +18,7 @@ export interface NexV2PresenceState {
   showAvatar: boolean;
   compactBar: boolean;
   doNotDisturb: boolean;
+  privacyMode: boolean;
   paused: boolean;
   reducedMotion: boolean;
   hotkey: string;
@@ -76,9 +77,15 @@ export interface NexV2HudMission {
   project_id: string;
   state: string;
   current_stage: string;
+  current_task_id?: string;
+  current_task_title?: string;
+  provider?: string;
+  profile?: string;
   completed_packages: number;
   total_packages: number;
   needs_user: boolean;
+  intervention_reason?: string;
+  updated_at?: string;
 }
 
 export interface NexV2HudAlert {
@@ -156,6 +163,57 @@ export interface NexV2ChatResponse {
   };
 }
 
+export interface NexV2ModelCatalogEntry {
+  provider: string;
+  profile: string;
+  model_id: string;
+  is_default: boolean;
+  deprecated: boolean;
+  source: string;
+  observed_at: string;
+}
+
+export interface NexV2ModelCatalogChange {
+  fingerprint: string;
+  kind: 'ADDED' | 'REMOVED' | 'DEPRECATED' | 'DEFAULT_CHANGED' | 'UNKNOWN_SOURCE' | string;
+  provider: string;
+  profile: string;
+  model_id: string;
+  previous_default?: string;
+  new_default?: string;
+  source: string;
+  observed_at: string;
+}
+
+export interface NexV2ModelCatalogWatchSnapshot {
+  freshness: 'FRESH' | 'STALE' | 'UNKNOWN' | string;
+  observed_at?: string;
+  entries: NexV2ModelCatalogEntry[];
+  changes: NexV2ModelCatalogChange[];
+}
+
+export interface NexV2EventEnvelope {
+  revision: number;
+  event_id: string;
+  fingerprint: string;
+  kind: string;
+  severity: string;
+  source: string;
+  title: string;
+  detail?: string;
+  provider?: string;
+  profile?: string;
+  created_at: string;
+}
+
+export interface NexV2EventsPage {
+  offline: boolean;
+  revision: number;
+  replay_truncated: boolean;
+  events: NexV2EventEnvelope[];
+  model_watch_freshness: string;
+}
+
 export interface NexV2PresenceMetricsSnapshot {
   panelOpen: boolean;
   panelOpenColdMs: number | null;
@@ -166,7 +224,11 @@ export interface NexV2PresenceMetricsSnapshot {
   avatarVisible: boolean;
   compactBar: boolean;
   doNotDisturb: boolean;
+  privacyMode: boolean;
   offline: boolean;
   mood: NexOperationalMood;
   chunkLoaded: boolean;
+  eventRevision: number;
+  modelWatchFreshness: string;
+  backoffMs: number;
 }

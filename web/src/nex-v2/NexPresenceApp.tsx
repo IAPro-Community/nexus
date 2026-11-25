@@ -7,9 +7,12 @@ import { NexSettingsDrawer } from './NexSettingsDrawer';
 import type { NexOperationalMood } from './motion/nexBehaviorState';
 import {
   ackCapacityAlert,
+  computeReconnectBackoffMs,
   defaultPlatformCapabilities,
   defaultPresenceState,
+  fetchNexV2Events,
   fetchNexV2Hud,
+  fetchNexV2ModelWatch,
   loadNexV2Presence,
   presetSizePixels,
   snoozeCapacityAlert,
@@ -19,12 +22,15 @@ import {
   updateNexV2PanelOpen,
   updateNexV2Paused,
   updateNexV2Preset,
+  updateNexV2PrivacyMode,
   updateNexV2ReducedMotion,
   updateNexV2ShowAvatar,
 } from './nexV2Client';
 import type {
+  NexV2EventEnvelope,
   NexV2HudAlert,
   NexV2HudState,
+  NexV2ModelCatalogWatchSnapshot,
   NexV2PlatformCapabilities,
   NexV2PresenceMetricsSnapshot,
   NexV2PresenceState,
@@ -73,6 +79,10 @@ export const NexPresenceApp: React.FC = () => {
     defaultPlatformCapabilities(),
   );
   const [hudState, setHudState] = useState<NexV2HudState | null>(null);
+  const [modelWatch, setModelWatch] = useState<NexV2ModelCatalogWatchSnapshot | null>(null);
+  const [events, setEvents] = useState<NexV2EventEnvelope[]>([]);
+  const [eventRevision, setEventRevision] = useState(0);
+  const [backoffMs, setBackoffMs] = useState(0);
   const [offline, setOffline] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -86,14 +96,49 @@ export const NexPresenceApp: React.FC = () => {
   const toggleCountRef = useRef(0);
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const pollInFlightRef = useRef(false);
+  const cursorRef = useRef(0);
+  const failuresRef = useRef(0);
 
   const pollHud = useCallback(async () => {
     if (pollInFlightRef.current) return;
     pollInFlightRef.current = true;
     try {
-      const result = await fetchNexV2Hud();
-      setOffline(result.offline);
-      setHudState(result.state);
+      const [hudRes, evRes, watchRes] = await Promise.all([
+        fetchNexV2Hud(),
+        fetchNexV2Events(cursorRef.current),
+        fetchNexV2ModelWatch(),
+      ]);
+      const isOffline = hudRes.offline || evRes.offline;
+      setOffline(isOffline);
+      if (isOffline) {
+        failuresRef.current += 1;
+        setBackoffMs(computeReconnectBackoffMs(failuresRef.current));
+      } else {
+        failuresRef.current = 0;
+        setBackoffMs(0);
+      }
+      setHudState(hudRes.state);
+      setModelWatch(watchRes);
+      if (!evRes.offline) {
+        if (evRes.revision > cursorRef.current) {
+          cursorRef.current = evRes.revision;
+          setEventRevision(evRes.revision);
+        }
+        if (evRes.events.length > 0) {
+          setEvents((prev) => {
+            const seen = new Set(prev.map((e) => e.fingerprint || e.event_id));
+            const merged = [...prev];
+            for (const ev of evRes.events) {
+              const key = ev.fingerprint || ev.event_id;
+              if (!seen.has(key)) {
+                seen.add(key);
+                merged.push(ev);
+              }
+            }
+            return merged.slice(-64);
+          });
+        }
+      }
     } finally {
       pollInFlightRef.current = false;
     }
@@ -114,13 +159,14 @@ export const NexPresenceApp: React.FC = () => {
 
   useEffect(() => {
     if (presence.paused) return;
-    const intervalMs = hudState?.system.cache_ttl_millis || 15_000;
+    const baseMs = hudState?.system.cache_ttl_millis || 15_000;
+    const intervalMs = backoffMs > 0 ? Math.max(backoffMs, 2000) : baseMs;
     const timer = window.setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
       void pollHud();
     }, intervalMs);
     return () => window.clearInterval(timer);
-  }, [hudState?.system.cache_ttl_millis, pollHud, presence.paused]);
+  }, [backoffMs, hudState?.system.cache_ttl_millis, pollHud, presence.paused]);
 
   const setPanelVisibility = useCallback((nextOpen: boolean, tab?: NexV2TabId) => {
     if (tab) {
@@ -186,19 +232,27 @@ export const NexPresenceApp: React.FC = () => {
         avatarVisible: presence.showAvatar,
         compactBar: presence.compactBar || !presence.showAvatar,
         doNotDisturb: presence.doNotDisturb,
+        privacyMode: presence.privacyMode,
         offline,
         mood,
         chunkLoaded,
+        eventRevision,
+        modelWatchFreshness: modelWatch?.freshness || 'UNKNOWN',
+        backoffMs,
       };
     }
   }, [
     activeTab,
+    backoffMs,
     chunkLoaded,
+    eventRevision,
+    modelWatch?.freshness,
     mood,
     offline,
     panelOpen,
     presence.compactBar,
     presence.doNotDisturb,
+    presence.privacyMode,
     presence.showAvatar,
     settingsOpen,
   ]);
@@ -219,6 +273,9 @@ export const NexPresenceApp: React.FC = () => {
           <LazyNexInteractionPanel
             activeTab={activeTab}
             hudState={hudState}
+            modelWatch={modelWatch}
+            events={events}
+            privacyMode={presence.privacyMode}
             offline={offline}
             onSelectTab={setActiveTab}
             onClose={() => setPanelVisibility(false)}
@@ -249,6 +306,9 @@ export const NexPresenceApp: React.FC = () => {
         onToggleDoNotDisturb={(enabled) =>
           void updateNexV2DoNotDisturb(enabled, presence).then(setPresence)
         }
+        onTogglePrivacyMode={(enabled) =>
+          void updateNexV2PrivacyMode(enabled, presence).then(setPresence)
+        }
         onTogglePaused={(paused) => void updateNexV2Paused(paused, presence).then(setPresence)}
         onToggleReducedMotion={(enabled) =>
           void updateNexV2ReducedMotion(enabled, presence).then(setPresence)
@@ -258,6 +318,7 @@ export const NexPresenceApp: React.FC = () => {
       <NexNotificationBubble
         alert={topAlert}
         doNotDisturb={presence.doNotDisturb}
+        privacyMode={presence.privacyMode}
         panelOpen={panelOpen}
         offline={offline}
         onDismiss={(fp) => setDismissedAlerts((prev) => ({ ...prev, [fp]: true }))}

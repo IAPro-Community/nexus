@@ -1,13 +1,24 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Send, Settings, X } from 'lucide-react';
-import type { NexV2ChatTurn, NexV2HudState, NexV2TabId } from './nexV2Types';
+import type {
+  NexV2ChatTurn,
+  NexV2EventEnvelope,
+  NexV2HudState,
+  NexV2ModelCatalogWatchSnapshot,
+  NexV2TabId,
+} from './nexV2Types';
 import { sendNexV2Chat } from './nexV2Client';
+import { NexAttentionTab } from './NexAttentionTab';
+import { NexResourcesTab } from './NexResourcesTab';
 import styles from './NexInteractionPanel.module.scss';
 
 export interface NexInteractionPanelProps {
   activeTab: NexV2TabId;
   hudState: NexV2HudState | null;
+  modelWatch?: NexV2ModelCatalogWatchSnapshot | null;
+  events?: NexV2EventEnvelope[];
+  privacyMode?: boolean;
   offline: boolean;
   onSelectTab: (tab: NexV2TabId) => void;
   onClose: () => void;
@@ -18,17 +29,12 @@ export interface NexInteractionPanelProps {
 
 const TAB_ORDER: readonly NexV2TabId[] = ['chat', 'resources', 'attention'];
 
-function resolveFreshnessLabel(freshness: string | undefined, t: (key: string) => string): string {
-  const normalized = (freshness || '').toUpperCase();
-  if (normalized === 'STALE') return t('nexV2.resourcesStatusStale');
-  if (normalized === 'UNAVAILABLE') return t('nexV2.resourcesStatusUnavailable');
-  if (!normalized || normalized === 'UNKNOWN') return t('nexV2.resourcesStatusUnknown');
-  return normalized;
-}
-
 export const NexInteractionPanel: React.FC<NexInteractionPanelProps> = ({
   activeTab,
   hudState,
+  modelWatch = null,
+  events = [],
+  privacyMode = false,
   offline,
   onSelectTab,
   onClose,
@@ -94,10 +100,6 @@ export const NexInteractionPanel: React.FC<NexInteractionPanelProps> = ({
       },
     ]);
   };
-
-  const providers = hudState?.providers ?? [];
-  const activeAlerts = (hudState?.alerts ?? []).filter((a) => !a.acked);
-  const runtimeAttention = hudState?.runtime_attention ?? [];
 
   return (
     <section
@@ -207,93 +209,22 @@ export const NexInteractionPanel: React.FC<NexInteractionPanelProps> = ({
         )}
 
         {activeTab === 'resources' && (
-          <div className={styles.stack} data-nex-resources>
-            {offline || providers.length === 0 ? (
-              <div className={styles.card}>
-                <span className={styles.statusBadge}>{t('nexV2.resourcesStatusUnknown')}</span>
-                <p className={styles.emptyText}>{t('nexV2.resourcesEmpty')}</p>
-              </div>
-            ) : (
-              providers.map((provider) => {
-                const pct = provider.limiting_window?.remaining_percent;
-                const freshness = resolveFreshnessLabel(provider.freshness, t);
-                return (
-                  <div key={`${provider.provider}-${provider.profile}`} className={styles.card}>
-                    <div className={styles.cardHeader}>
-                      <strong>{provider.display_name || provider.provider}</strong>
-                      <span className={styles.statusBadge}>{freshness}</span>
-                    </div>
-                    <p className={styles.cardMeta}>
-                      {typeof pct === 'number'
-                        ? t('nexV2.resourcesRemaining', { percent: Math.round(pct) })
-                        : t('nexV2.resourcesQuotaUnknown')}
-                    </p>
-                  </div>
-                );
-              })
-            )}
-
-            <div className={styles.summaryRow}>
-              <span className={styles.summaryChip}>
-                {t('nexV2.resourcesAgentsTitle', { count: hudState?.agents.length ?? 0 })}
-              </span>
-              <span className={styles.summaryChip}>
-                {t('nexV2.resourcesMissionsTitle', { count: hudState?.missions.length ?? 0 })}
-              </span>
-              <span className={styles.summaryChip}>
-                {t('nexV2.resourcesCostTitle', {
-                  level: hudState?.cost?.budget_level || t('nexV2.resourcesStatusUnknown'),
-                })}
-              </span>
-            </div>
-          </div>
+          <NexResourcesTab
+            hudState={hudState}
+            modelWatch={modelWatch}
+            offline={offline}
+            privacyMode={privacyMode}
+          />
         )}
 
         {activeTab === 'attention' && (
-          <div className={styles.stack} data-nex-attention>
-            {activeAlerts.length === 0 && runtimeAttention.length === 0 ? (
-              <p className={styles.emptyText}>{t('nexV2.attentionEmpty')}</p>
-            ) : (
-              <>
-                {activeAlerts.map((alert) => (
-                  <div key={alert.fingerprint} className={styles.card}>
-                    <div className={styles.cardHeader}>
-                      <strong>{alert.provider || alert.category}</strong>
-                      <span className={styles.statusBadge}>{alert.severity || 'INFO'}</span>
-                    </div>
-                    {alert.reason && <p className={styles.cardMeta}>{alert.reason}</p>}
-                    <div className={styles.cardActions}>
-                      <button
-                        type="button"
-                        className={styles.smallBtn}
-                        onClick={() => onAckAlert(alert.fingerprint)}
-                      >
-                        {t('nexV2.attentionAck')}
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.smallBtn}
-                        onClick={() => onSnoozeAlert(alert.fingerprint)}
-                      >
-                        {t('nexV2.attentionSnooze')}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                {runtimeAttention.map((item) => (
-                  <div key={item.fingerprint} className={styles.card}>
-                    <div className={styles.cardHeader}>
-                      <strong>
-                        {t('nexV2.attentionRuntimeLabel', { provider: item.provider })}
-                      </strong>
-                      <span className={styles.statusBadge}>{item.prompt_kind}</span>
-                    </div>
-                    <p className={styles.cardMeta}>{item.reason}</p>
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
+          <NexAttentionTab
+            hudState={hudState}
+            events={events}
+            privacyMode={privacyMode}
+            onAckAlert={onAckAlert}
+            onSnoozeAlert={onSnoozeAlert}
+          />
         )}
       </div>
     </section>

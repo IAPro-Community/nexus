@@ -14,6 +14,7 @@ export interface NexSettingsDrawerProps {
   onToggleCompactBar: (enabled: boolean) => void;
   onToggleAlwaysOnTop: (enabled: boolean) => void;
   onToggleDoNotDisturb: (enabled: boolean) => void;
+  onTogglePrivacyMode?: (enabled: boolean) => void;
   onTogglePaused: (paused: boolean) => void;
   onToggleReducedMotion: (enabled: boolean) => void;
 }
@@ -34,6 +35,7 @@ export const NexSettingsDrawer: React.FC<NexSettingsDrawerProps> = ({
   onToggleCompactBar,
   onToggleAlwaysOnTop,
   onToggleDoNotDisturb,
+  onTogglePrivacyMode,
   onTogglePaused,
   onToggleReducedMotion,
 }) => {
@@ -129,6 +131,18 @@ export const NexSettingsDrawer: React.FC<NexSettingsDrawerProps> = ({
         >
           <span>{t('nexV2.doNotDisturbLabel')}</span>
           <span className={styles.toggleState}>{state.doNotDisturb ? 'ON' : 'OFF'}</span>
+        </button>
+
+        <button
+          type="button"
+          role="switch"
+          aria-checked={state.privacyMode}
+          data-nex-toggle="privacy-mode"
+          className={styles.toggleBtn}
+          onClick={() => onTogglePrivacyMode?.(!state.privacyMode)}
+        >
+          <span>{t('nexV2.privacyModeLabel')}</span>
+          <span className={styles.toggleState}>{state.privacyMode ? 'ON' : 'OFF'}</span>
         </button>
 
         <button

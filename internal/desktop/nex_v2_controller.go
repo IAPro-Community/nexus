@@ -20,6 +20,7 @@ type NexV2PresenceState struct {
 	ShowAvatar        bool                `json:"showAvatar"`
 	CompactBar        bool                `json:"compactBar"`
 	DoNotDisturb      bool                `json:"doNotDisturb"`
+	PrivacyMode       bool                `json:"privacyMode"`
 	Paused            bool                `json:"paused"`
 	ReducedMotion     bool                `json:"reducedMotion"`
 	Hotkey            string              `json:"hotkey"`
@@ -335,6 +336,14 @@ func (c *NexV2Controller) SetDoNotDisturb(enabled bool) (NexV2PresenceState, err
 	defer c.mu.Unlock()
 	state := c.manager.Load()
 	state.DoNotDisturb = enabled
+	return state, c.manager.Save(state)
+}
+
+func (c *NexV2Controller) SetPrivacyMode(enabled bool) (NexV2PresenceState, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	state := c.manager.Load()
+	state.PrivacyMode = enabled
 	return state, c.manager.Save(state)
 }
 
