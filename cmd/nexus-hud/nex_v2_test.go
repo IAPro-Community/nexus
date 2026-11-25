@@ -21,8 +21,8 @@ func TestNexV2WindowOptionsFixedBoundsAndTransparentChrome(t *testing.T) {
 	if !got.Windows.DisableFramelessWindowDecorations || !got.Mac.DisableShadow || !got.Linux.WindowIsTranslucent {
 		t.Fatalf("Nex 2.0 must enforce cross-platform transparent chrome: %+v", got)
 	}
-	if got.Width != 160 || got.Height != 160 || got.MinWidth != 160 || got.MaxWidth != 160 {
-		t.Fatalf("Nex 2.0 production window must lock fixed avatar bounds: %+v", got)
+	if got.Width != 160 || got.Height != 160 || got.MinWidth != 128 || got.MinHeight != 48 || got.MaxWidth != 540 || got.MaxHeight != 620 {
+		t.Fatalf("Nex 2.0 production window bounds mismatch: %+v", got)
 	}
 
 	lab := nexV2WindowOptions(state, rect, true)

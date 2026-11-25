@@ -1,0 +1,62 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: var(--nx-space-2);
+  width: 100%;
+  min-height: 100vh;
+  padding: var(--nx-space-2);
+  background: transparent;
+  color: var(--nx-text);
+}
+
+.offlineBanner {
+  display: grid;
+  gap: var(--nx-space-1);
+  max-width: 360px;
+  padding: var(--nx-space-2) var(--nx-space-3);
+  border: 1px solid var(--nx-danger);
+  border-radius: var(--nx-radius);
+  background: var(--nx-surface-raised);
+  color: var(--nx-text);
+  font-size: var(--nx-font-size-xs);
+
+  --wails-draggable: no-drag;
+}
+
+.offlineBody {
+  margin: 0;
+  color: var(--nx-text-soft);
+}
+
+.loadingFallback {
+  padding: var(--nx-space-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  background: var(--nx-surface);
+  font-size: var(--nx-font-size-xs);
+}
+
+.avatarRow {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--nx-space-1);
+}
+
+.quickSettingsBtn {
+  padding: var(--nx-space-1) var(--nx-space-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface-raised);
+  color: var(--nx-text-soft);
+  cursor: pointer;
+  font-size: var(--nx-font-size-xs);
+
+  --wails-draggable: no-drag;
+}
+
+.quickSettingsBtn:focus-visible {
+  outline: 2px solid var(--nx-focus);
+  outline-offset: 2px;
+}

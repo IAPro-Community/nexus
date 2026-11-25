@@ -15,8 +15,10 @@ func nexV2WindowOptions(state desktop.NexV2PlacementState, rect application.Rect
 	url := "/nex-v2.html"
 	width := rect.Width
 	height := rect.Height
-	maxW := width
-	maxH := height
+	minW := 128
+	minH := 48
+	maxW := 540
+	maxH := 620
 	if labMode {
 		url = "/nex-v2.html?lab=1"
 		if width < 380 {
@@ -25,6 +27,8 @@ func nexV2WindowOptions(state desktop.NexV2PlacementState, rect application.Rect
 		if height < 340 {
 			height = 340
 		}
+		minW = width
+		minH = height
 		maxW = 640
 		maxH = 480
 	}
@@ -33,8 +37,8 @@ func nexV2WindowOptions(state desktop.NexV2PlacementState, rect application.Rect
 		Title:     "Nexus · Nex 2.0",
 		Width:     width,
 		Height:    height,
-		MinWidth:  width,
-		MinHeight: height,
+		MinWidth:  minW,
+		MinHeight: minH,
 		MaxWidth:  maxW,
 		MaxHeight: maxH,
 		URL:       url,
@@ -60,23 +64,87 @@ func nexV2WindowOptions(state desktop.NexV2PlacementState, rect application.Rect
 	}
 }
 
-func runNexV2HUD(backend *desktop.SharedBackend, linked bool) {
+func runNexV2HUD(backend *desktop.SharedBackend, desktopApp *desktop.App, linked bool) {
 	labMode := os.Getenv("NEXUS_HUD_LAB") == "1"
 	instanceID := hudSingleInstanceID
 	if labMode {
 		instanceID = fmt.Sprintf("com.iapro.nexus.hud.lab.p%d", os.Getpid())
 	}
 
-	placement := desktop.DefaultNexV2PlacementState()
-	caps := desktop.DefaultHUDPlatformCapabilities()
+	stateManager := desktop.NewNexV2StateManager("")
+	presence := stateManager.Load()
+	placement := presence.Placement
+	caps := desktop.DefaultNexV2Capabilities()
 	initialRect, _, _ := desktop.ResolveNexV2WindowRect(placement, nil, caps.GlobalPositioning)
 
 	var window application.Window
-	native := application.New(application.Options{
+	var native *application.App
+	collectDisplays := func() []desktop.DisplayDescriptor {
+		if native == nil {
+			return nil
+		}
+		screens := native.Screen.GetAll()
+		primary := native.Screen.GetPrimary()
+		displays := make([]desktop.DisplayDescriptor, 0, len(screens))
+		for _, s := range screens {
+			if s == nil {
+				continue
+			}
+			displays = append(displays, desktop.DisplayDescriptor{
+				ID:          s.ID,
+				WorkArea:    s.WorkArea,
+				ScaleFactor: s.ScaleFactor,
+				Primary:     primary != nil && s.ID == primary.ID,
+			})
+		}
+		return displays
+	}
+	controller := desktop.NewNexV2Controller(stateManager, caps, desktop.NexV2WindowHooks{
+		ApplyRect: func(rect application.Rect) {
+			if window == nil || labMode {
+				return
+			}
+			window.SetSize(rect.Width, rect.Height)
+			if caps.GlobalPositioning {
+				window.SetPosition(rect.X, rect.Y)
+			}
+		},
+		SetAlwaysOnTop: func(enabled bool) {
+			if window != nil {
+				window.SetAlwaysOnTop(enabled)
+			}
+		},
+		SetVisible: func(visible bool) {
+			if window == nil {
+				return
+			}
+			if visible {
+				window.Show()
+				window.Restore()
+			} else {
+				window.Hide()
+			}
+		},
+		GetDisplays: collectDisplays,
+		GetRect: func() application.Rect {
+			if window == nil {
+				return application.Rect{}
+			}
+			x, y := window.Position()
+			w, h := window.Size()
+			return application.Rect{X: x, Y: y, Width: w, Height: h}
+		},
+	})
+
+	native = application.New(application.Options{
 		Name:        "Nexus · Nex 2.0",
 		Description: "Nexus Nex 2.0 desktop presence",
 		Icon:        desktop.NexusAppIcon(),
-		Assets:      application.AssetOptions{Handler: backend.Handler, DisableLogging: true},
+		Services: []application.Service{
+			application.NewService(desktopApp),
+			application.NewService(controller),
+		},
+		Assets: application.AssetOptions{Handler: backend.Handler, DisableLogging: true},
 		SingleInstance: &application.SingleInstanceOptions{
 			UniqueID: instanceID,
 			OnSecondInstanceLaunch: func(_ application.SecondInstanceData) {
@@ -108,7 +176,7 @@ func runNexV2HUD(backend *desktop.SharedBackend, linked bool) {
 	})
 
 	window = native.Window.NewWithOptions(nexV2WindowOptions(placement, initialRect, labMode))
-	desktop.ConfigureNativeTray(native, window, "Nexus · Nex 2.0")
+	configureNexV2Tray(native, window, controller)
 
 	var restorer desktop.NexV2StartupRestorer
 	window.OnWindowEvent(events.Common.WindowShow, func(_ *application.WindowEvent) {
@@ -146,4 +214,38 @@ func runNexV2HUD(backend *desktop.SharedBackend, linked bool) {
 		fmt.Fprintf(os.Stderr, "Nexus Nex 2.0 Wails v3 error: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+func configureNexV2Tray(native *application.App, window application.Window, controller *desktop.NexV2Controller) {
+	tray := desktop.ConfigureNativeTray(native, window, "Nexus · Nex 2.0")
+	if tray == nil || native == nil {
+		return
+	}
+	menu := native.NewMenu()
+	menu.Add("Mostrar / Ocultar Avatar").OnClick(func(_ *application.Context) {
+		st := controller.GetPresenceState()
+		_, _ = controller.SetShowAvatar(!st.ShowAvatar)
+	})
+	menu.Add("Abrir Painel").OnClick(func(_ *application.Context) {
+		_, _ = controller.SetPanelOpen(true)
+		window.Show()
+		window.Restore()
+		window.Focus()
+	})
+	menu.Add("Barra Compacta").OnClick(func(_ *application.Context) {
+		st := controller.GetPresenceState()
+		_, _ = controller.SetCompactBar(!st.CompactBar)
+	})
+	menu.Add("Não Perturbe").OnClick(func(_ *application.Context) {
+		st := controller.GetPresenceState()
+		_, _ = controller.SetDoNotDisturb(!st.DoNotDisturb)
+	})
+	menu.Add("Pausar Movimento").OnClick(func(_ *application.Context) {
+		st := controller.GetPresenceState()
+		_, _ = controller.SetPaused(!st.Paused)
+	})
+	menu.Add("Sair").OnClick(func(_ *application.Context) {
+		native.Quit()
+	})
+	tray.SetMenu(menu)
 }

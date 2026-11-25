@@ -1,0 +1,185 @@
+.panel {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: var(--nx-space-2);
+  width: 408px;
+  height: 360px;
+  padding: var(--nx-space-3);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-xl);
+  background: var(--nx-surface);
+  color: var(--nx-text);
+
+  --wails-draggable: no-drag;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nx-space-2);
+}
+
+.tabList {
+  display: flex;
+  gap: var(--nx-space-1);
+}
+
+.tabBtn {
+  padding: var(--nx-space-1) var(--nx-space-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface-2);
+  color: var(--nx-text-soft);
+  cursor: pointer;
+  font-size: var(--nx-font-size-xs);
+  font-weight: 600;
+}
+
+.tabBtn[aria-selected='true'] {
+  border-color: var(--nx-accent);
+  background: var(--nx-accent-soft);
+  color: var(--nx-accent-text);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--nx-space-1);
+}
+
+.iconBtn,
+.smallBtn,
+.sendBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--nx-space-1);
+  padding: var(--nx-space-1) var(--nx-space-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface-2);
+  color: var(--nx-text);
+  cursor: pointer;
+  font-size: var(--nx-font-size-xs);
+}
+
+.body {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.chatContainer {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: var(--nx-space-2);
+  height: 100%;
+}
+
+.chatMessages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-2);
+  overflow-y: auto;
+}
+
+.chatMessage {
+  display: grid;
+  gap: var(--nx-space-1);
+  padding: var(--nx-space-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  background: var(--nx-surface-2);
+}
+
+.chatRole {
+  color: var(--nx-text-soft);
+  font-size: var(--nx-font-size-xs);
+  font-weight: 600;
+}
+
+.chatText {
+  margin: 0;
+  font-size: var(--nx-font-size-xs);
+  white-space: pre-wrap;
+}
+
+.chatForm {
+  display: flex;
+  gap: var(--nx-space-1);
+}
+
+.chatInput {
+  flex: 1;
+  min-width: 0;
+  padding: var(--nx-space-1) var(--nx-space-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface-2);
+  color: var(--nx-text);
+  font-size: var(--nx-font-size-xs);
+}
+
+.stack {
+  display: grid;
+  gap: var(--nx-space-2);
+}
+
+.card {
+  display: grid;
+  gap: var(--nx-space-1);
+  padding: var(--nx-space-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  background: var(--nx-surface-raised);
+  font-size: var(--nx-font-size-xs);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nx-space-2);
+}
+
+.statusBadge {
+  display: inline-block;
+  width: fit-content;
+  padding: var(--nx-space-1) var(--nx-space-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface-2);
+  color: var(--nx-text-soft);
+  font-size: var(--nx-font-size-xs);
+  font-weight: 600;
+}
+
+.cardMeta,
+.emptyText {
+  margin: 0;
+  color: var(--nx-text-soft);
+  font-size: var(--nx-font-size-xs);
+}
+
+.cardActions,
+.summaryRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--nx-space-1);
+}
+
+.summaryChip {
+  padding: var(--nx-space-1) var(--nx-space-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface-2);
+  font-size: var(--nx-font-size-xs);
+}
+
+.tabBtn:focus-visible,
+.iconBtn:focus-visible,
+.smallBtn:focus-visible,
+.sendBtn:focus-visible,
+.chatInput:focus-visible {
+  outline: 2px solid var(--nx-focus);
+  outline-offset: 2px;
+}

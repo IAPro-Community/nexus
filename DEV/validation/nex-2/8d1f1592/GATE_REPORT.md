@@ -42,3 +42,24 @@
 | Baseline benchmark budgets / documented exception | **PASS (with exception)** | `WebKitWebProcess` PSS dropped `353.6 MiB -> 202.9 MiB` (`-43%`); Linux WebKitGTK platform baseline exception (`> 60 MiB`) explicitly documented in `RENDERER_ADR.md` |
 | Native Windows/macOS & final owner visual approval | **BLOCKED** | No physical Windows/macOS devices on this Linux host; `RELEASE_READINESS.json` stays `BLOCKED (2/11)` |
 
+---
+
+# Gate G2 Report — Phase P2 (NEX-02)
+
+- **P1 Commit SHA:** `f80151e758c4a8237898a78d4c88b9acb57037d9`
+- **Platform Tested:** Linux (`x86_64`, Ubuntu 25.10, Go `-race` unit tests + Chromium Playwright fixture server against `bin/nexus`)
+- **Verdict:** **PASS (Linux Presence & 100-Cycle Stability)** / **BLOCKED (`Windows`, `macOS` native hardware)** / **PENDING (`72h soak` before R1 promotion)**
+
+## Gate G2 Checklist
+
+| Criterion | Status | Evidence |
+|---|---|---|
+| Go lifecycle supervisor, tray menu & state isolation | **PASS** | `internal/desktop/nex_v2_lifecycle.go`, `nex_v2_controller.go`, `cmd/nexus-hud/nex_v2.go`; persists `nex-v2-state.json` without mutating `hud-window-state.json`; `go test -tags=gtk3 -race -count=1 ./internal/desktop/... ./cmd/nexus-hud/...` PASS |
+| Bounded native surface transitions (`panelOpen` / `compactBar` / `preset`) | **PASS** | `ResolveNexV2SurfaceRect` + `TestNexV2ControllerSurfaceRectTransitions` + `TestNexV2WindowOptionsFixedBoundsAndTransparentChrome` PASS (`440x540` panel, `360x56` compact bar, fixed square preset collapsed) |
+| Lazy panel code-splitting & latency budgets | **PASS** | `web/scripts/build.mjs` emits `dist/nex-v2-chunks/NexInteractionPanel-MMPEGD4W.js` (`6.5kb`); `e2e-nex-v2-presence.mjs` verified `initialPanelChunks: 0`, `postOpenPanelChunks: 1`, `panelOpenColdMs: 13.5` (`<= 1500ms`), `panelOpenWarmMs: 0.9` (`<= 500ms`) |
+| 3-tab panel, separate settings, avatar-hidden compact bar & DND | **PASS** | `NexInteractionPanel` (`Chat` \| `Resources` \| `Attention` tabs + `ArrowLeft`/`ArrowRight`/`Escape` focus restore), `NexSettingsDrawer`, `NexCompactBar`, `NexNotificationBubble`; verified in `NexPresenceApp.test.tsx` (6 tests) & Playwright |
+| Honest `UNKNOWN`/`STALE` quota & Core-offline handling | **PASS** | Missing quotas show `UNKNOWN` (never `0%`); HTTP `503` renders `[data-nex-offline-banner]` and switches avatar mood to `offline` |
+| 100-cycle stability without errors or geometry drift | **PASS** | `e2e-nex-v2-presence.mjs` executed 100 cycles (`204` panel toggles, tabs, settings, hide/show avatar, compact bar, DND): `pageErrors: 0`, `consoleErrors: 0`, `requestFailures: 0`, avatar stayed `160x160` |
+| 72h continuous desktop soak | **PENDING_BEFORE_R1_PROMOTION** | Not executed in single-session P2 gate; required before R1 promotion |
+| Native Windows & macOS validation | **BLOCKED** | No physical Windows or macOS hardware on this Linux host |
+

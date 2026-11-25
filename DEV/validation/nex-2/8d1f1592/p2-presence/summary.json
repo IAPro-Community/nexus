@@ -1,0 +1,12 @@
+{
+  "initialPanelChunks": 0,
+  "postOpenPanelChunks": 1,
+  "panelOpenColdMs": 13.5,
+  "panelOpenWarmMs": 0.9,
+  "cyclesCompleted": 100,
+  "panelToggleCount": 204,
+  "pageErrors": 0,
+  "consoleErrors": 0,
+  "requestFailures": 0,
+  "offlineBannerVerified": true
+}

@@ -83,13 +83,15 @@ await build({
 
 // Isolated lightweight Nex 2.0 desktop entrypoint (loads zero Workspace OS
 // chunks, terminal/Flow UI, or service worker).
+await rm(resolve(distDir, 'nex-v2-chunks'), { recursive: true, force: true });
 const nexV2Styles = [];
 await build({
   absWorkingDir: webDir,
   entryPoints: { 'nex-v2': 'src/nex-v2/index.tsx' },
   outdir: 'dist',
+  chunkNames: 'nex-v2-chunks/[name]-[hash]',
   bundle: true,
-  splitting: false,
+  splitting: true,
   treeShaking: true,
   minify: true,
   format: 'esm',

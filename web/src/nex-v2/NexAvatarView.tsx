@@ -34,6 +34,7 @@ declare global {
 export interface NexAvatarViewProps {
   mood?: NexOperationalMood;
   motionEnabled?: boolean;
+  presetSizePx?: number;
   labMode?: boolean;
   onActivate?: () => void;
 }
@@ -59,6 +60,7 @@ const BEHAVIORS: readonly NexBehavior[] = [
 export const NexAvatarView: React.FC<NexAvatarViewProps> = ({
   mood: initialMood = 'idle',
   motionEnabled: initialMotion = true,
+  presetSizePx = 160,
   labMode = false,
   onActivate,
 }) => {
@@ -73,6 +75,18 @@ export const NexAvatarView: React.FC<NexAvatarViewProps> = ({
   const [mood, setMood] = useState<NexOperationalMood>(initialMood);
   const [labBehaviorOverride, setLabBehaviorOverride] = useState<NexBehavior | null>(null);
   const [motionEnabled, setMotionEnabled] = useState<boolean>(initialMotion);
+
+  useEffect(() => {
+    if (!labMode) {
+      setMood(initialMood);
+    }
+  }, [initialMood, labMode]);
+
+  useEffect(() => {
+    if (!labMode) {
+      setMotionEnabled(initialMotion);
+    }
+  }, [initialMotion, labMode]);
   const [reducedMotion, setReducedMotion] = useState<boolean>(() =>
     typeof window !== 'undefined' && typeof window.matchMedia === 'function'
       ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -243,7 +257,13 @@ export const NexAvatarView: React.FC<NexAvatarViewProps> = ({
   return (
     <div
       ref={containerRef}
-      className={styles.root}
+      className={labMode ? `${styles.root} ${styles.rootLab}` : styles.root}
+      style={
+        labMode
+          ? undefined
+          : ({ '--nx-nex-avatar-size': `${presetSizePx}px` } as React.CSSProperties)
+      }
+      data-lab-mode={labMode ? 'true' : 'false'}
       data-mood={mood}
       data-nex-behavior={resolvedState.behavior}
       data-nex-expression={resolvedState.expression}

@@ -39,11 +39,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	if desktop.NexV2DesktopEnabled() {
-		runNexV2HUD(backend, linked)
-		return
-	}
-
 	stateManager := desktop.NewHUDWindowStateManager("")
 	windowState := stateManager.Load()
 	desktopApp := desktop.NewAppForWindow(nil, desktop.NewWindowStateManager(""), desktop.HUDWindowName, desktop.BootstrapInfo{
@@ -51,6 +46,11 @@ func main() {
 		SessionToken: backend.Session.ID,
 		CSRFToken:    backend.Session.CSRFToken,
 	})
+
+	if desktop.NexV2DesktopEnabled() {
+		runNexV2HUD(backend, desktopApp, linked)
+		return
+	}
 	// A fresh installation starts with Guardian Mascot and an independent
 	// popup. Existing user choices are persisted; no environment variable
 	// is required to activate the presentation.
