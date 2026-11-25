@@ -1,3 +1,25 @@
+## 2026-11-25 — Conciliação Track 1 (runtime/web/hardening) + Track 3 (IAPro-SDK)
+
+- **Integração** — Aplicadas em `/projetos/nexus` (`release/v1.0.0` @ `91752a84`) as exclusões (5 specs antigos substituídos) e os 62 arquivos não sobrepostos de `/projetos/worktrees/nexus-iapro-sdk-local` (pin `IAPro-SDK v0.0.0-20261125013959-aa2c954657a2`), preservando intactos `/projetos/worktrees/nex-2-foundation` e `/projetos/IAPro-SDK`.
+- **Resolução de sobreposições** — `internal/app/control_cmd.go`, `internal/core/config/config.go` + `config_test.go`, `internal/core/provider/adapters/codex/app_server_usage.go`, `internal/core/provider/spec/spec.go`, `internal/nexus/memory_migration_test.go` e `DEV/*.md` conciliados manualmente sem perder isolamento de `profileHome`/`NEXUS_REAL_HOME` nem o contrato do `IAPro-SDK` (`AutomaticFallback` default `false`).
+- **Correções de teste** — formatado `web/src/api.ts`; atualizados `web/src/features/work/featureAnnouncements.test.ts` e `web/src/features/work/featureTourAnchors.test.ts` para ler as traduções dos arquivos divididos em `web/src/i18n/locales/`; isolado `USERPROFILE`/`HOME` em `TestListOtherReadOnlyKeepsLegacyProfilesUntouched` (`internal/conversation/conversation_test.go`).
+- **Verificação** — `quality:full` Web (158/1.038 + build), 3 E2Es (`stale-chunks`, `capacity`, `workspace-snapshots`), `go build`/`vet`/`mod verify`/`gofmt`, suíte Go + `-race` focado em 11 pacotes, contratos e gates NEX executados; sem commit, push ou instalação local; release permanece **NO_GO**.
+
+## 2026-11-24 — Conciliação remota e instalação local
+
+- **Git** — rebased o único commit local de `release/v1.0.0` sobre os 25 commits de `origin/release/v1.0.0`; resolvido conteúdo concorrente de handoff preservando ambas as entradas. HEAD resultante `91752a84`, 1 commit à frente do remoto; sem push. Alterações locais rastreadas e não rastreadas reaplicadas, incluindo arquivos fora do escopo.
+- **Verificação após conciliação** — `npm --prefix web run quality:full` PASS (157 arquivos Vitest, 1.035 testes e build); E2E de capacidade PASS; Go direcionado e `go build ./...` PASS; `git diff --check` PASS. ESLint: 2 warnings sem erros (`FlowRunSurface.tsx:122`, `WorkspaceProvider.tsx:138`).
+- **Instalação** — `make install-local` PASS em `/home/desenvolvedor/.local/share/ai-manager/profiles/codex/kivergmail/home/.local/bin/nexus`; versão local `1.0.1`, commit `91752a84`; servidor Web reiniciado (PID `459675`), HTTP local `/` respondeu 200.
+- **Release** — continua **NO_GO**: sem evidência visual publicada no SHA final. Alterações não commitadas permanecem no worktree.
+
+## 2026-11-24 — Categorias e política de notificações nativas
+
+- **Backend** — migração `0042` adiciona preferências para sete categorias, preserva o opt-out global legado, expõe PATCH protegido por sessão/CSRF e aplica allowlist, quiet hours e bypass para eventos prioritários. Deduplicação passou a usar identidade de episódio em vez de janela de 30 segundos.
+- **Web** — configurações por categoria na aba Notificações, cache sincronizado com a API, popups/som respeitam preferências enquanto alertas in-app e a Central de Atenção continuam independentes. Discovery e tour compartilhado adicionados, com escopo `settings-notifications` e i18n PT-BR/EN/ES.
+- **Evidência** — `npm --prefix web run quality:full` PASS: 157 arquivos Vitest, 1.032 testes e build; `npm --prefix web run test:e2e:capacity` PASS; Go focado (notify/store/web/host e testes de categoria/mission) PASS; `go build ./...` PASS; `git diff --check` PASS. ESLint mantém um warning preexistente em `FlowRunSurface.tsx:122`.
+- **Limitação** — a suíte ampla `go test ./internal/nexus` falha em `TestMigrateMemoryHappyPathLatchesGate` e `TestRecoverMemoryMigrationResumesInterruptedOperationWithoutDuplicates`: ambas esperam `InstallCount=1`, mas o ambiente com INSTALL pré-existente retorna 4/5; testes direcionados da mudança passaram.
+- **Release** — E2E visual de SHA publicado não executado; NO_GO para homologação/publicação até evidência visual no SHA exato. Sem commit ou push.
+
 ## 2026-11-24 — Workspace Snapshots nomeados no taskbar do projeto
 
 - **UI** — Taskbar oferece salvar, listar, restaurar e excluir snapshots nomeados, com chave por projeto, diálogos/componentes existentes, SCSS Module, tokens e PT-BR/EN/ES. Feature discovery adicionada ao catálogo e ao ProductTour compartilhado.
@@ -8205,6 +8227,13 @@ Restante vermelho honesto: **Windows release homologation** — exige runner `ne
 - **Incidente de push:** rejeição fast-forward por avanço remoto (`docs(visual)` `c370692f`); resolvido com stash `-u` dos 2 arquivos locais + `git rebase origin/release/v1.0.0` + push limpo. Nenhum hunk alheiro tocado.
 - **Working tree:** hunks alheios preservados (nenhum `git add` global). Release **NO_GO** (CI `c370692f` com "Verify documentation" falho em `8f78fb76` já recapturado a jusante).
 
+## 2026-11-24 — HUD Linux: launcher com ícone institucional e guarda de histórico
+
+- **Ícone/launcher:** adicionado launcher `Nexus HUD` ao instalador Linux. Os archives nativos Desktop/HUD passam a carregar `nexus-icon-256.png`; o `.desktop` usa o ícone institucional Nexus existente, sem promover o sprite do NEX a ícone de sistema. O launcher e o PNG foram instalados no perfil local.
+- **`n.slice`:** a origem direta não foi reproduzida em sessão autenticada. Identificado caminho vulnerável no histórico persistido de Nex Assistant; a UI agora descarta turnos sem `role`/`content` válidos antes da serialização. Teste focal cobre `content: undefined` e registros inválidos.
+- **Build local:** `make build-desktop-wails build-hud-wails` passou no HEAD `bff681fd` com alterações locais. Binários anteriores preservados como `*.before-hud-icon.*`; instâncias já abertas permaneceram intactas e precisam ser reabertas para carregar o build novo.
+- **Git/release:** sem commit/push/tag/publicação. A branch segue em `release/v1.0.0`; o release-readiness NEX permanece **BLOCKED** e `public_site_allowed=false`.
+
 ## 2026-11-24 — Lane A: `smart-layouts` fecha persistência, split e isolamento entre projetos
 
 - **Correção de concorrência:** `WorkspaceProvider` agora serializa gravação remota, mantém o envelope mais recente e só reenvia esse snapshot após `409 REVISION_CONFLICT`; payload antigo não sobrescreve mais layout novo.
@@ -8212,3 +8241,9 @@ Restante vermelho honesto: **Windows release homologation** — exige runner `ne
 - **Provas:** `GOCACHE=/tmp/opencode/go-build GOFLAGS=-mod=readonly npm --prefix web run test:e2e:smart-layouts` PASS; `npm --prefix web run typecheck` PASS; Prettier/ESLint focados limpos; verificadores do contrato e evidence map PASS.
 - **Contrato:** `smart-layouts` agora `present`, ambos os critérios `audited`; Lane A = 34/48 capabilities e 70/97 cláusulas auditadas; contrato = 36 `present` / 11 `partial` / 1 `missing`, 0 certificadas.
 - **Git:** `fc86056f` implementação, `4b60476b` evidence map/contrato, `6a08e9c6` doc de aceite. `origin/release/v1.0.0` = `6a08e9c6`; tag `v1.0.1` não criada. Release **NO_GO**.
+## 2026-11-25 — chunks Web desatualizados
+
+- Versionado o cache do service worker pelo conteúdo JavaScript do build; a ativação limpa somente caches Nexus antigos. Assets ausentes agora retornam 404 no servidor Web e no proxy Desktop, preservando fallback SPA para rotas extensionless. ErrorBoundary recarrega automaticamente uma única vez por sessão diante de erro de import dinâmico.
+- Adicionados testes do fingerprint/limpeza de cache, recuperação do ErrorBoundary e respostas dos servidores, além do E2E com workspace, chunk antigo e exclusão de projeto descartável.
+- Provas: `npm --prefix web run quality:full` (158/1.038 + build), Go Web/Desktop, E2E stale chunks e instalação local com `/` 200 e chunk inexistente 404. Backup do binário: `.local/share/nexus-install-backups/20261125T024000Z/profile/nexus`.
+- Não houve commit ou push. A homologação externa permanece pendente.

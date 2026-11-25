@@ -404,3 +404,6 @@
 - 2026-11-16T17:56:14Z · PASS · release/v1.0.0@6ae54aa1 · failed=[-] · DEV/validation/FRONTEND_2026-11-16T17-56-14Z.md
 - 2026-11-16T18:19:32Z · PASS · release/v1.0.0@4d07d831 · failed=[-] · DEV/validation/FRONTEND_2026-11-16T18-19-32Z.md
 - 2026-11-16T19:00:33Z · PASS · release/v1.0.0@21acb3b5 · failed=[-] · DEV/validation/FRONTEND_2026-11-16T19-00-33Z.md
+- 2026-11-25T03:27:42Z · FAIL · HEAD@8d1f1592 · failed=[format] · DEV/validation/FRONTEND_2026-11-25T03-27-42Z.md
+- 2026-11-25T03:52:51Z · FAIL · HEAD@91752a84 · failed=[format] · DEV/validation/FRONTEND_2026-11-25T03-52-51Z.md
+- 2026-11-25T06:18:48Z · PASS · HEAD@91752a84 · failed=[-] · DEV/validation/FRONTEND_2026-11-25T06-18-48Z.md

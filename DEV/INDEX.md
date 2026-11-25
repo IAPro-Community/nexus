@@ -1,3 +1,11 @@
+## Conciliação Track 1 + Integração IAPro-SDK — 2026-11-25
+
+- Frentes locais (hardening/isolamento/gzip/i18n/chunks) e consumo do `IAPro-SDK` (`v0.0.0-20261125013959-aa2c954657a2`) conciliadas em `/projetos/nexus` (`release/v1.0.0` @ `91752a84`). Detalhes em [HANDOFF](HANDOFF.md), [VERIFY](VERIFY.md), [WORKLOG](WORKLOG.md), [ACTIVE](SPECS/ACTIVE.md) e [auditoria IAPro-SDK](SPECS/IAPRO_SDK_INTEGRATION.md). Estado de release segue **NO_GO**.
+
+## Correção de chunks Web desatualizados — 2026-11-25
+
+- Implementação, regressões e validação local registradas em [HANDOFF](HANDOFF.md), [VERIFY](VERIFY.md) e [WORKLOG](WORKLOG.md). Estado de release continua NO_GO até os gates externos já documentados.
+
 ## Continuidade e finalização — 2026-11-20
 
 - Acesso remoto (Gate 0): o fluxo completo está implementado e o E2E de dois dispositivos em túnel público real está verde (`npm --prefix web run test:e2e:remote-access`). **As duas opções do Gate 0 estão implementadas e verdes**: (A) Named Tunnel por `NEXUS_TUNNEL_TOKEN`+`NEXUS_TUNNEL_HOSTNAME` — cobertura unitária em `internal/control/web/tunnel_named_test.go`; (B) origem privada por `NEXUS_REMOTE_ORIGIN` (tailnet do Tailscale ou DNS interno), que emite convite para esse endereço sem subir o túnel — cobertura em `internal/control/web/private_origin_test.go`. O defeito da origem instável foi medido em execução (a origem muda entre reinícios no Quick Tunnel). Documentos: [ADR da URL estável](../docs/architecture/ADR-remote-access-stable-url.md) e [produto](../docs/product/remote-access.md). A ativação de qualquer uma das opções aguarda a credencial do maestro.

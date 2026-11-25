@@ -1,3 +1,44 @@
+## 2026-11-25 — Conciliação Track 1 + Track 3 (IAPro-SDK)
+
+- **PASS (Web)** — `npm --prefix web run quality:full`: check de estilos, Prettier (incluindo `web/src/api.ts`), ESLint (0 erros, 2 warnings preexistentes em `FlowRunSurface.tsx:122` e `WorkspaceProvider.tsx:138`), Stylelint, TypeScript, Node tests, Vitest 158 arquivos / 1.038 testes (incluindo `featureAnnouncements.test.ts` e `featureTourAnchors.test.ts` atualizados para `web/src/i18n/locales/*.ts`) e build (`web/dist`).
+- **PASS (E2Es)** — `GOCACHE=/tmp/nexus-reconcile-gocache GOFLAGS=-buildvcs=false`: `npm --prefix web run test:e2e:stale-chunks`, `npm --prefix web run test:e2e:capacity` e `npm --prefix web run test:e2e:workspace-snapshots`.
+- **PASS (Go build/vet/tests)** — `go mod verify`, `gofmt -l` vazio em todos os `.go` modificados/novos, `go build ./...`, `go vet ./...`; `go test -count=1 ./...` PASS em todos os pacotes exceto `internal/conversation` (que falhou por leitura de `USERPROFILE` do sandbox do agente) e, após ajuste hermético em `internal/conversation/conversation_test.go`, `go test -count=1 -v ./internal/conversation` PASS (`0.029s`).
+- **PASS (Go -race focado)** — `go test -race -count=1` nos 11 pacotes conciliados (`internal/app`, `internal/core/config`, `internal/core/provider/spec`, `internal/core/provider/adapters/codex`, `internal/core/quota`, `internal/core/scheduler`, `internal/nexus/capacitymonitor`, `internal/nexus/runner`, `internal/control/web`, `internal/runtime`, `internal/profile`).
+- **PASS (contratos & NEX)** — `go run ./scripts/verify-version-contract.go`, `node scripts/verify-release-docs.mjs`, `node scripts/verify-agent-workspace-evidence-map.mjs` (48 capabilities / 97 cláusulas), `node scripts/verify-agent-workspace-v1.mjs`, `node scripts/verify-nex-visual.mjs`, `node scripts/verify-nex-identity-lock.mjs` (`NEX-ID-v1`, `FROZEN`) e `git diff --check`.
+- **BLOCKED / NO_GO** — `node scripts/verify-nex-release-readiness.mjs` reporta `BLOCKED (2/11 gates) ; public site: false`; `docs-verify` segue dependente de recaptura visual no SHA publicado; sem commit/push/instalação.
+
+## 2026-11-25 — chunks Web desatualizados
+
+- **PASS** — `npm --prefix web run quality:full`: check de estilos, Prettier, ESLint (2 warnings preexistentes, 0 erros), Stylelint, TypeScript, Node tests, Vitest 158 arquivos/1.038 testes e build.
+- **PASS** — `GOCACHE=/tmp/nexus-go-cache go test ./internal/control/web ./internal/desktop`; cache compartilhado padrão negou permissão na primeira tentativa, cache isolado passou.
+- **PASS** — `GOCACHE=/tmp/nexus-go-cache go test ./internal/nexus -run TestDeleteProjectWithLiveAgentsRefuses -count=1`; a proteção de exclusão com runtime ativo continua vigente.
+- **PASS** — `GOCACHE=/tmp/nexus-go-cache npm --prefix web run test:e2e:stale-chunks`: recarga de workspace, 404 para hash antigo sem HTML e exclusão de projeto fixture sem runtimes.
+- **PASS (install smoke)** — `make install-local`; versão 1.0.1, metadata `91752a84`; `GET /` = 200; chunk ausente = 404 `text/plain`. Binário anterior preservado em `.local/share/nexus-install-backups/20261125T024000Z/profile/nexus`.
+- **PASS** — `git diff --check`; bundle SW gerado com cache `nexus-shell-fe9410ec3da350c3`.
+- **Limite** — instalação e evidência são locais sobre árvore modificada; não equivalem a homologação no SHA publicado. Release NO_GO permanece.
+
+## 2026-11-24 — Conciliação remota e instalação local
+
+- **PASS (rebase)** — branch local agora contém `origin/release/v1.0.0` até `8d1f1592` mais o commit local de snapshots reaplicado como `91752a84`; divergência final 1/0. Conflitos resolvidos em `DEV/HANDOFF.md` e `DEV/SPECS/ACTIVE.md`; alterações não commitadas foram restauradas do stash de segurança.
+- **PASS (web/go)** — `npm --prefix web run quality:full`: 157 arquivos Vitest, 1.035 testes e build; E2E de capacidade PASS; Go direcionado e `go build ./...` PASS; `git diff --check` PASS. ESLint reportou 2 warnings, sem erros.
+- **PASS (install)** — `make install-local`; binário em `~/.local/bin/nexus`, `version --json` = 1.0.1 / commit `91752a84`; Web reiniciada no PID `459675`; `GET http://127.0.0.1:13000/` respondeu HTTP 200.
+- **NO_GO release** — sem CI/homologação visual vinculada ao SHA publicado; nenhum push realizado.
+
+## 2026-11-24 — Categorias e política de notificações nativas
+
+- **PASS (Web quality/build)** — `npm --prefix web run quality:full`: arquitetura/allowlist de estilos, Prettier, ESLint (0 erros; 1 warning preexistente em `FlowRunSurface.tsx:122`), Stylelint, TypeScript, testes Node, Vitest 157/157 arquivos e 1.032/1.032 testes; build concluído.
+- **PASS (API E2E)** — `GOCACHE=/tmp/nexus-go-build npm --prefix web run test:e2e:capacity`: autenticação, CSRF, preferências de categoria, quota, incidentes e CSV.
+- **PASS (Go)** — `go build ./...`; pacotes `internal/control/notify`, `internal/nexus/store`, `internal/control/web`, `internal/control/host`; testes focados de categorias, PATCH, migração e missão.
+- **KNOWN FAIL (suíte ampla Go)** — `TestMigrateMemoryHappyPathLatchesGate` e `TestRecoverMemoryMigrationResumesInterruptedOperationWithoutDuplicates` falham esperando `InstallCount=1` e recebendo 4/5 devido ao INSTALL já existente no estado local. Sem arquivos de migração de memória alterados; não reproduzido nos testes focados desta tarefa.
+- **NO_GO release** — UI alterada sem E2E visual no SHA publicado; falta recaptura/evidência vinculada ao SHA exato. Sem alegação de homologação.
+
+## 2026-11-24 — Registro de missão e plano de continuidade
+
+- **PASS** — candidato isolado verificado em disco: SHA-256 `38a918264021ec306c5efca4ab4ce16d550ef7f9de7c215ee1f5c7e3f883e945`; `version` reporta Nexus 1.0.0, Linux amd64, Go 1.26.11, metadata `6c322427`.
+- **PASS** — `git diff --check`; plano completo restaurado em `DEV/SPECS/RELEASE_FINALIZATION_PLAN.md`, incluindo ensaio do maestro e fases 2–5. HANDOFF/ACTIVE/INDEX apontam ao documento.
+- **BLOCKED** — `make docs-verify` falha por manifests visuais stale para arquivos Web locais modificados (inclui Workspace Snapshots, `WorkspaceSurfaceHost`, HUD e `AgentTerminal`). Não foram geradas capturas sintéticas para mascarar o estado; requer QA visual e recaptura vinculada ao SHA correto.
+- Sem OAuth confirmado, quota real, geração ou handoff entre duas contas. Release permanece **NO_GO**.
+
 ## 2026-11-24 — Workspace Snapshots UI + restore sem relaunch
 
 - **PASS (focused UI/service)** — Vitest: `WorkspaceLayoutService.test.ts`, `WorkspaceSnapshotsControl.test.tsx`, `featureAnnouncements.test.ts`, `featureReveal.test.ts`, `featureTour.test.ts`, `featureTourAnchors.test.ts` e `tourTargets.test.ts`; 7 arquivos, 51 testes.
@@ -3180,3 +3221,14 @@ Verdict: **PASS**. Relatório completo: [`DEV/validation/FRONTEND_LATEST.md`](va
 - **PASS** — `npm --prefix web run typecheck` exit 0; Prettier focado limpo; ESLint focado sem erros; `git diff --check` limpo.
 - **PASS** — `node scripts/verify-agent-workspace-evidence-map.mjs` exit 0 (48 capabilities, 97 acceptance clauses, nenhuma certificada); `node scripts/verify-agent-workspace-v1.mjs` exit 0.
 - **PENDENTE** — CI e `workspace-acceptance-linux-amd64.json` no SHA exato final; aceite externo por capacidade. Capability `verification: pending`; release **NO_GO**.
+
+## HUD Linux — ícone do launcher e erro `n.slice` — 2026-11-24
+
+- **PASS** — `NexAssistantPanel.test.tsx`: 3/3; turnos persistidos sem conteúdo textual são filtrados antes de `content.slice()`.
+- **PASS** — `GOCACHE=/tmp/opencode/go-build GOFLAGS=-mod=readonly npm --prefix web run test:e2e:hud`.
+- **PASS** — TypeScript, ESLint (0 erros; aviso preexistente em `FlowRunSurface.tsx:122`), Prettier, `check:styles`, Stylelint.
+- **PASS** — `GOCACHE=/tmp/opencode/go-build GOFLAGS=-mod=readonly go test -count=1 ./internal/desktop ./cmd/nexus-hud`.
+- **PASS** — `bash -n install.sh uninstall.sh`; `desktop-file-validate` no launcher instalado; SHA-256 do PNG instalado igual ao source (`fbeef796…8e4638b`); smoke dos archives Desktop/HUD confirmou o binário e o ícone esperado.
+- **PASS estrutural** — `verify-nex-visual.mjs` e `verify-nex-identity-lock.mjs`; nenhuma arte ou lock NEX foi alterada.
+- **BLOQUEADO/PENDENTE** — `verify-nex-release-readiness.mjs`: BLOCKED (2/11 gates), site público não permitido. Não houve inspeção visual nativa pós-restart, pois as instâncias abertas foram preservadas; o erro original não foi reproduzido em sessão autenticada. Verificação externa permanece pending; release **NO_GO**.
+- **Ambiente** — a primeira execução do E2E falhou ao usar `/home/desenvolvedor/.cache/go-build` (permissão negada); a repetição com cache isolado em `/tmp/opencode/go-build` passou.

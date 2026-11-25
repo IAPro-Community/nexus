@@ -1,3 +1,15 @@
+## 2026-11-25 — Conciliação Track 1 + IAPro-SDK consumer integration (NO_GO / partial)
+
+- **Worktree único conciliado:** `/projetos/nexus` (`release/v1.0.0` @ `91752a84`) combina as correções locais de runtime/isolamento/instalação/gzip/i18n/chunks (Track 1) com a integração incremental do `IAPro-SDK` `v0.0.0-20261125013959-aa2c954657a2` (Track 3 — [auditoria e matriz](IAPRO_SDK_INTEGRATION.md)).
+- **Contratos preservados:** isolamento de `profileHome` mantido em `spec.OverlayEnv` e `codex.appServerEnv`; `AutomaticFallback` nasce `false` (`CurrentConfigVersion = 2`, sem migrar legado v1 como consentimento); Nexus retém autoridade de freshness, probes, seleção, handoff, Composer/Flow/MissionRunner/ResourceScheduler, storage, custos, HUD/NEX e Wails.
+- **Limites intactos:** o protótipo `work/durable-file-lease` de `/projetos/IAPro-SDK` não é consumido; NEX segue `NEX-ID-v1 FROZEN` (`BLOCKED 2/11`); sem commit, push ou publicação; status **NO_GO**.
+
+## 2026-11-25 — Correção de chunks desatualizados — implementada localmente
+
+- Cache PWA vinculado ao fingerprint de JS do build; ativação remove versões `nexus-shell-*` antigas.
+- Servidor Web e proxy Desktop deixam de responder `index.html` a assets inexistentes; ErrorBoundary faz uma única tentativa de reload por sessão em falha de import dinâmico.
+- Gates locais PASS: quality:full Web (158/1.038 + build), testes Go Web/Desktop, E2E stale chunks, install smoke HTTP 200/404. Sem commit/push; não altera o NO_GO da release.
+
 ## 2026-11-24 — Escopo vigente: Nexus session-first, opcionais default OFF
 
 **Esta direção supersede as instruções de expansão das 48 capacidades abaixo.**
@@ -20,6 +32,14 @@ Usar o catálogo central em `internal/nexus/feature_flags.go` e o contrato
 
 As entradas históricas a seguir são registro de trabalho anterior, não autorização
 para continuar a expansão de funcionalidades opcionais.
+
+## 2026-11-24 — Preferências por categoria de notificação — ativo
+
+- **Escopo** — substituir o throttle genérico de notificações nativas por categorias configuráveis e deduplicação por episódio, com janela silenciosa para eventos de rotina; manter a Central de Atenção e alertas in-app independentes dos popups nativos.
+- **Implementação** — migração `0042`, persistência e PATCH autenticado/CSRF de categorias; política no backend para prioridade, quiet hours e identidade do episódio; switches em Configurações > Notificações; i18n PT-BR/EN/ES; discovery e ProductTour compartilhado em `settings-notifications`.
+- **Verificação local** — `npm --prefix web run quality:full` PASS (157 arquivos Vitest, 1.032 testes, build incluído); E2E de capacidade PASS; Go focado e `go build ./...` PASS. A suíte ampla de `internal/nexus` mantém duas falhas de migração de memória que esperam `InstallCount=1`, mas observam 4/5 com o INSTALL já existente.
+- **Estado de release** — código local não publicado; gate visual no SHA publicado pendente, portanto **NO_GO** para homologação/publicação. Rebase de `origin/release/v1.0.0` concluída; HEAD `91752a84` está 1 commit à frente, sem push. Alterações locais da tarefa e do worktree restauradas.
+- **Instalação local** — `make install-local` instalado em `~/.local/bin/nexus`; `nexus version --json` confirma `1.0.1`, commit `91752a84`. Web reiniciada (PID `459675`) e `http://127.0.0.1:13000/` respondeu HTTP 200.
 
 ## 2026-11-24 — Lane A: portabilidade hospedada macOS/Windows — ativo
 
@@ -172,6 +192,7 @@ para continuar a expansão de funcionalidades opcionais.
 - PASS — `make PATH="/home/desenvolvedor/go/bin:$PATH" quality-full`: lint Go 0 issues, suíte Go + race, Web 151/959 e `govulncheck` limpo. PASS — `make build build-desktop build-hud`; `nexus version` reporta `1.0.0`, metadata `6c322427`, Go 1.26.11. ESLint mantém warning preexistente em `FlowRunSurface.tsx`.
 - Candidato isolado: `/home/desenvolvedor/.local/share/ai-manager/profiles/codex/kivergmail/home/.local/share/nexus-continuity-check/nexus`, SHA-256 `38a918264021ec306c5efca4ab4ce16d550ef7f9de7c215ee1f5c7e3f883e945`. Backup anterior `nexus.pre-exact-import-20261120T044219Z`, SHA `c84a3614040ed2ef4105908dfb54d17419ad21c09a6ed6d8e29999e72c3998fa`.
 - Não foram executados OAuth, refresh de quota, geração ou handoff real. O ensaio só começa depois que o maestro confirmar identidade upstream distinta e quota recente, medida e positiva; ver [roteiro](RELEASE_FINALIZATION_PLAN.md#teste-do-maestro). Fases 2–5 aguardam o resultado. Release **NO_GO**.
+- O plano completo foi restaurado em [RELEASE_FINALIZATION_PLAN.md](RELEASE_FINALIZATION_PLAN.md). `make docs-verify` está bloqueado por manifests de screenshots stale em mudanças visuais locais; a continuidade não foi homologada visualmente nem em provider real.
 
 ## Estado anterior — preparação do candidato
 

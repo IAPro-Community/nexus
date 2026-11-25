@@ -1,3 +1,24 @@
+## Handoff 2026-11-25 — Conciliação Track 1 (runtime/i18n/web) + Track 3 (IAPro-SDK)
+
+- **Escopo conciliado em `/projetos/nexus` (`release/v1.0.0` @ `91752a84`):** integradas no worktree principal a onda local de hardening/isolamento/gzip/i18n/instalação (Track 1) e a fatia de consumo do `github.com/IAPro-Community/IAPro-SDK` `v0.0.0-20261125013959-aa2c954657a2` (Track 3, a partir de `nexus-iapro-sdk-local`). Worktree de Nex 2.0 (`nex-2-foundation`) e repositório `/projetos/IAPro-SDK` não foram tocados.
+- **Conflitos resolvidos:** mantida a assinatura `overlayEnv(base, profileHome, ...)` em `internal/core/provider/spec/spec.go` sobre o adapter do SDK; preservado `runtime.ApplyProfileIsolationEnv` em `internal/core/provider/adapters/codex/app_server_usage.go` sobre `sdkcodex.StartStdioRPC`; combinados isolamento de sandbox de perfil + `CurrentConfigVersion = 2` (`AutomaticFallback: false` por padrão e migração v1→v2) em `internal/core/config/config.go` e `internal/app/control_cmd.go`; mantido `memory_migration_test.go` mais restrito e ajustados `featureAnnouncements.test.ts`, `featureTourAnchors.test.ts` (split de `web/src/i18n/locales/*.ts`) e `conversation_test.go` (isolamento de `USERPROFILE`/`HOME`).
+- **Provas locais:** `npm --prefix web run quality:full` PASS (158 arquivos / 1.038 testes Vitest + build); E2Es `stale-chunks`, `capacity` e `workspace-snapshots` PASS; Go `build`/`vet`/`mod verify`/`gofmt` limpos; `go test -count=1 ./...` PASS em todos os pacotes (com `internal/conversation` revalidado em seguida após fix hermético); `-race -count=1` PASS nos 11 pacotes conciliados; contratos/versão/evidence-map/NEX lock (`NEX-ID-v1` `FROZEN`) PASS; `verify-nex-release-readiness.mjs` reporta `BLOCKED (2/11)`.
+- **Estado:** sem `git commit`, `git push`, `make install-local` ou `restart-web.sh`. Release permanece **NO_GO** até commit em SHA imutável, recaptura visual / `docs-verify`, CI, revisão independente e gates externos.
+
+## Handoff 2026-11-25 — chunks desatualizados corrigidos localmente
+
+- Service worker recebe cache versionado pelo fingerprint dos JavaScript emitidos e remove caches anteriores `nexus-shell-*` ao ativar.
+- Servidor Web e proxy Desktop retornam 404 para arquivos estáticos ausentes; só caminhos sem extensão recebem fallback SPA. ErrorBoundary identifica falhas de importação dinâmica e tenta uma recarga no máximo uma vez por `sessionStorage`.
+- Verificação: `npm --prefix web run quality:full` PASS (158 arquivos/1.038 testes + build); Go `internal/control/web` e `internal/desktop` PASS; `npm --prefix web run test:e2e:stale-chunks` PASS.
+- Instalação local em `~/.local/bin/nexus`: Nexus 1.0.1, metadata `91752a84`; Web reiniciada no PID `1156180`, HTTP `/` 200 e chunk ausente 404. Backup: `.local/share/nexus-install-backups/20261125T024000Z/profile/nexus`.
+- Sem commit/push. Release permanece NO_GO; próximos passos são revisão do diff e validação no SHA publicado conforme gates existentes.
+
+## Handoff 2026-11-24 — Remoto conciliado; instalação local atualizada
+
+- **Git** — `release/v1.0.0` rebased sobre `origin/release/v1.0.0` até `8d1f1592`; commit local de snapshots reaplicado como `91752a84`. HEAD está 1 commit à frente, sem push. Alterações locais não commitadas foram restauradas e conferidas; stash temporário removido.
+- **Instalação** — `make install-local` colocou Nexus 1.0.1 (`91752a84`) em `~/.local/bin/nexus`; Web reiniciada com PID `459675`, HTTP local retornou 200.
+- **Próximo passo** — se desejado, publicar o commit local após revisão; coletar evidência visual no SHA publicado antes de remover **NO_GO**. Alterações não commitadas permanecem no worktree.
+
 ## Handoff 2026-11-24 — revisão das flags globais
 
 Escopo vigente em `DEV/SPECS/ACTIVE.md` (session-first, default OFF).
@@ -8,6 +29,14 @@ contrato. Não tratar esta integração como homologação: CI e aceite final ai
 exigem evidência no SHA exato. Atualizar o verificador de perfil antes de
 publicar; não enfraquecer gates ou remover evidência anterior. Não usar entradas
 históricas abaixo como autorização para expansão automática.
+
+## Handoff 2026-11-24 — Preferências por categoria de notificação (local, NO_GO)
+
+- **Código** — categorias prioritárias e de rotina configuráveis no backend e em Configurações > Notificações; política respeita quiet hours, bypass prioritário, episódio único e opt-out legado. Popups nativos ficam separados da Central de Atenção/in-app.
+- **Provas** — quality/build Web PASS (157 arquivos, 1.032 testes); API E2E PASS; Go direcionado e build PASS. Suíte ampla `internal/nexus` tem duas falhas conhecidas de migração de memória ligadas ao INSTALL já existente (`InstallCount` 4/5 vs. esperado 1).
+- **Git remoto** — `release/v1.0.0` foi rebaseada sobre `origin/release/v1.0.0` (`8d1f1592`); commit local de snapshots reaplicado como `91752a84`. O worktree local foi restaurado e mantém alterações não commitadas. Sem push.
+- **Próximo passo** — validar o build instalado; recapturar e validar UI no SHA publicado antes de considerar homologação.
+- **Release** — **NO_GO** enquanto faltar E2E visual no SHA exato e evidência de homologação.
 
 ## Handoff 2026-11-24 — Workspace Snapshots nomeados (local, verificação pendente)
 
@@ -3414,3 +3443,10 @@ O controle `Popup independente` agora fica imediatamente abaixo do cabeçalho do
 - **Proximo passo** — (1) push dos lotes (<=2 arquivos por commit) e acompanhamento do CI; (2) recaptura sintetica (a mudanca em `web/src` invalida o manifest visual); (3) coletar `workspace-acceptance-linux-amd64.json` do SHA exato; (4) Lane A: proxima capability `partial` com gap local comprovavel (`remote-terminal`: CSRF no attach/upgrade + token scoped por runtime, ou `contextual-hud`: smoke nativo Windows/macOS); (5) Lane C: aceite visual do owner em HUD+Site atomico.
 - **Bloqueios que exigem o maestro** — aceite visual NEX (HUD+Site atomico) no SHA exato, runners Windows/macOS nativos (#216), chaves ed25519, credencial do Named Tunnel, quota real AGY, hardware fisico de 2 dispositivos, `memory-migrate apply` com Bridge ativo.
 - **Working tree** — ~104 modificacoes alheias preservadas; commits por indice, maximo 2 arquivos por lote.
+
+## Handoff 2026-11-24 — HUD icon/local install follow-up
+
+- **Código local:** `install.sh` empacota/instala o ícone institucional e registra `iapro-nexus-hud.desktop`; `uninstall.sh` remove launcher e ícone. `NexAssistantPanel` valida turnos do histórico persistido antes de usar conteúdo textual. Teste unitário, E2E HUD, typecheck, lint, format, Go desktop/HUD e smoke dos archives passaram; ESLint mantém apenas aviso preexistente em `FlowRunSurface.tsx:122`.
+- **Instalação local:** launcher em `~/.local/share/applications/iapro-nexus-hud.desktop`; PNG 256×256 com SHA `fbeef796…8e4638b`. `nexus-desktop` e `nexus-hud` foram recompilados e trocados atomicamente em `~/.local/bin`; binários anteriores estão preservados com `before-hud-icon.20261124T191120Z`. Instâncias anteriores seguem em execução e não foram reiniciadas; o build novo aplica ao reabrir.
+- **Limites:** o erro `n.slice` original não foi reproduzido autenticado; foi protegida a origem provável em histórico persistido. Sem inspeção visual do HUD após restart. NEX identity/visual verificadores passam; release readiness segue BLOCKED 2/11, `public_site_allowed=false`, sem mudança de lock, NEX art ou gates.
+- **Git/publicação:** HEAD segue `bff681fd` com alterações locais não commitadas; branch `release/v1.0.0` está 1 commit à frente da origem. Não houve push. Esse commit inclui `docs/**` e o workflow `.github/workflows/docs-site.yml` publica GitHub Pages em push; publicação pública requer autorização específica. Nenhuma release/tag foi criada.
