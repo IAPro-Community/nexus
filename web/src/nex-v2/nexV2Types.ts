@@ -147,20 +147,38 @@ export interface NexV2HudSnapshotResult {
 }
 
 export interface NexV2ChatTurn {
+  sequence?: number;
   role: 'user' | 'assistant';
   content: string;
   source?: string;
+  created_at?: string;
+  proposal?: NexV2ActionProposal;
+}
+
+export interface NexV2ActionProposal {
+  id?: string;
+  kind?: string;
+  title?: string;
+  description?: string;
+  target?: string;
+  risk?: string;
+  requires_confirmation?: boolean;
 }
 
 export interface NexV2ChatResponse {
   answer: string;
   source?: string;
-  proposal?: {
-    id?: string;
-    kind?: string;
-    title?: string;
-    description?: string;
-  };
+  proposal?: NexV2ActionProposal;
+}
+
+export interface NexV2PersonalMemoryEntry {
+  id: string;
+  key: string;
+  value: string;
+  scope: string;
+  provenance: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface NexV2ModelCatalogEntry {

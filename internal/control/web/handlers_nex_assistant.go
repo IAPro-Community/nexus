@@ -312,6 +312,18 @@ func (h *NexusHandler) handleNexAssistant(w http.ResponseWriter, r *http.Request
 			return
 		}
 
+		spendDecision := nexus.EvaluateNexSpendGuard(state.Cost, nexus.NexSpendPolicy{}, false)
+		if !spendDecision.Allowed {
+			writeJSON(w, http.StatusPaymentRequired, map[string]any{
+				"error":  spendDecision.Code,
+				"detail": spendDecision.Reason,
+			})
+			return
+		}
+		personalSummary := ""
+		if h.nexMemory != nil {
+			personalSummary = h.nexMemory.BoundedSummary(400)
+		}
 		// Optional static project context comes from the Nexus scanner only.
 		// Scans are never started merely because someone asked a question.
 		projectFacts := []nexProjectFact{}
@@ -328,6 +340,7 @@ func (h *NexusHandler) handleNexAssistant(w http.ResponseWriter, r *http.Request
 			System                  nexus.HUDSystemState `json:"system"`
 			History                 []nexAssistantTurn   `json:"history"`
 			Message                 string               `json:"message"`
+			PersonalSummary         string               `json:"personal_summary,omitempty"`
 			ProjectContextRequested bool                 `json:"project_context_requested"`
 			ProjectFacts            []nexProjectFact     `json:"project_facts"`
 		}{
@@ -335,6 +348,7 @@ func (h *NexusHandler) handleNexAssistant(w http.ResponseWriter, r *http.Request
 			System:                  state.System,
 			History:                 body.History,
 			Message:                 body.Message,
+			PersonalSummary:         personalSummary,
 			ProjectContextRequested: body.IncludeProjectContext,
 			ProjectFacts:            projectFacts,
 		})

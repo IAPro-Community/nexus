@@ -1,0 +1,128 @@
+.chatContainer {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: var(--nx-space-2);
+  height: 100%;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nx-space-1);
+}
+
+.toolbarBtn,
+.smallBtn,
+.sendBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--nx-space-1);
+  padding: var(--nx-space-1) var(--nx-space-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface-2);
+  color: var(--nx-text);
+  cursor: pointer;
+  font-size: var(--nx-font-size-xs);
+}
+
+.memoryBox,
+.proposalBox {
+  display: grid;
+  gap: var(--nx-space-1);
+  padding: var(--nx-space-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  background: var(--nx-surface-raised);
+  font-size: var(--nx-font-size-xs);
+}
+
+.memoryForm,
+.chatForm {
+  display: flex;
+  gap: var(--nx-space-1);
+}
+
+.memoryList {
+  display: grid;
+  gap: var(--nx-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.memoryItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nx-space-2);
+}
+
+.memoryText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.smallInput,
+.chatInput {
+  flex: 1;
+  min-width: 0;
+  padding: var(--nx-space-1) var(--nx-space-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm);
+  background: var(--nx-surface-2);
+  color: var(--nx-text);
+  font-size: var(--nx-font-size-xs);
+}
+
+.chatMessages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-2);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.chatMessage {
+  display: grid;
+  gap: var(--nx-space-1);
+  padding: var(--nx-space-2);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  background: var(--nx-surface-2);
+}
+
+.chatRole {
+  color: var(--nx-text-soft);
+  font-size: var(--nx-font-size-xs);
+  font-weight: 600;
+}
+
+.chatText {
+  margin: 0;
+  font-size: var(--nx-font-size-xs);
+  white-space: pre-wrap;
+}
+
+.proposalActions {
+  display: flex;
+  gap: var(--nx-space-1);
+}
+
+.emptyText {
+  margin: 0;
+  color: var(--nx-text-soft);
+  font-size: var(--nx-font-size-xs);
+}
+
+.toolbarBtn:focus-visible,
+.smallBtn:focus-visible,
+.sendBtn:focus-visible,
+.smallInput:focus-visible,
+.chatInput:focus-visible {
+  outline: 2px solid var(--nx-focus);
+  outline-offset: 2px;
+}

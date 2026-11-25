@@ -7,6 +7,7 @@ import type {
   NexV2HudSnapshotResult,
   NexV2HudState,
   NexV2ModelCatalogWatchSnapshot,
+  NexV2PersonalMemoryEntry,
   NexV2PlatformCapabilities,
   NexV2PresenceState,
   NexV2PresetId,
@@ -433,23 +434,109 @@ export async function snoozeCapacityAlert(fingerprint: string, minutes = 30): Pr
   }
 }
 
+export async function loadNexV2Conversation(projectId = ''): Promise<NexV2ChatTurn[]> {
+  await ensureSessionAuth();
+  try {
+    const q = projectId ? `?project_id=${encodeURIComponent(projectId)}` : '';
+    const res = await fetch(`/api/v1/nex/conversation${q}`, {
+      headers: buildHeaders(false),
+      credentials: 'same-origin',
+    });
+    if (!res.ok) return [];
+    const payload = (await res.json()) as { turns?: NexV2ChatTurn[] };
+    return asSafeArray(payload.turns);
+  } catch {
+    return [];
+  }
+}
+
+export async function clearNexV2Conversation(projectId = ''): Promise<boolean> {
+  await ensureSessionAuth();
+  try {
+    const q = projectId ? `?project_id=${encodeURIComponent(projectId)}` : '';
+    const res = await fetch(`/api/v1/nex/conversation${q}`, {
+      method: 'DELETE',
+      headers: buildHeaders(false),
+      credentials: 'same-origin',
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function loadNexV2Memories(): Promise<NexV2PersonalMemoryEntry[]> {
+  await ensureSessionAuth();
+  try {
+    const res = await fetch('/api/v1/nex/memory', {
+      headers: buildHeaders(false),
+      credentials: 'same-origin',
+    });
+    if (!res.ok) return [];
+    const payload = (await res.json()) as { entries?: NexV2PersonalMemoryEntry[] };
+    return asSafeArray(payload.entries);
+  } catch {
+    return [];
+  }
+}
+
+export async function saveNexV2Memory(
+  key: string,
+  value: string,
+): Promise<NexV2PersonalMemoryEntry | null> {
+  await ensureSessionAuth();
+  try {
+    const res = await fetch('/api/v1/nex/memory', {
+      method: 'POST',
+      headers: buildHeaders(true),
+      credentials: 'same-origin',
+      body: JSON.stringify({ key, value, provenance: 'user_explicit' }),
+    });
+    if (!res.ok) return null;
+    const payload = (await res.json()) as { entry?: NexV2PersonalMemoryEntry };
+    return payload.entry ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteNexV2Memory(id: string): Promise<boolean> {
+  await ensureSessionAuth();
+  try {
+    const res = await fetch(`/api/v1/nex/memory?id=${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: buildHeaders(false),
+      credentials: 'same-origin',
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function sendNexV2Chat(
   message: string,
   history: NexV2ChatTurn[],
   projectId?: string,
-): Promise<NexV2ChatResponse & { offline?: boolean }> {
+  options: { persist?: boolean; requestId?: string; signal?: AbortSignal } = {},
+): Promise<NexV2ChatResponse & { offline?: boolean; aborted?: boolean }> {
   await ensureSessionAuth();
   try {
+    const persist = options.persist ?? false;
+    const requestId =
+      options.requestId || `nex-v2-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
     const res = await fetch('/api/v1/nex/assistant', {
       method: 'POST',
       headers: buildHeaders(true),
       credentials: 'same-origin',
+      signal: options.signal,
       body: JSON.stringify({
         project_id: projectId ?? '',
         message,
         history: history.map((turn) => ({ role: turn.role, content: turn.content })),
         include_project_context: false,
-        persist: false,
+        persist,
+        request_id: persist ? requestId : undefined,
       }),
     });
     const body = (await res.json().catch(() => ({}))) as {
@@ -459,7 +546,7 @@ export async function sendNexV2Chat(
       proposal?: NexV2ChatResponse['proposal'];
     };
     if (!res.ok) {
-      if (res.status === 503 && body.detail) {
+      if ((res.status === 503 || res.status === 402) && body.detail) {
         return { answer: body.detail, source: 'unavailable' };
       }
       return { answer: '', offline: true };
@@ -469,7 +556,10 @@ export async function sendNexV2Chat(
       source: body.source,
       proposal: body.proposal,
     };
-  } catch {
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      return { answer: '', aborted: true };
+    }
     return { answer: '', offline: true };
   }
 }

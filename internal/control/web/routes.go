@@ -147,6 +147,7 @@ func registerSystemRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/nex/conversation", s.authMiddleware(h.handleNexConversation))
 	mux.HandleFunc("/api/v1/nex/events", s.authMiddleware(h.handleNexEvents))
 	mux.HandleFunc("/api/v1/nex/models/watch", s.authMiddleware(h.handleNexModelWatch))
+	mux.HandleFunc("/api/v1/nex/memory", s.authMiddleware(h.handleNexMemory))
 	mux.HandleFunc("/api/v1/nex/proactivity", s.authMiddleware(requireOptionalFeature(featureNexProactivity, h.handleNexProactivity)))
 	mux.HandleFunc("/api/v1/voice/settings", s.authMiddleware(requireOptionalFeature(featureVoiceActions, h.handleVoiceSettings)))
 	mux.HandleFunc("/api/v1/voice/transcribe", s.authMiddleware(requireOptionalFeature(featureVoiceActions, h.handleVoiceTranscribe)))

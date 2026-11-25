@@ -1,15 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Send, Settings, X } from 'lucide-react';
+import { Settings, X } from 'lucide-react';
 import type {
-  NexV2ChatTurn,
   NexV2EventEnvelope,
   NexV2HudState,
   NexV2ModelCatalogWatchSnapshot,
   NexV2TabId,
 } from './nexV2Types';
-import { sendNexV2Chat } from './nexV2Client';
 import { NexAttentionTab } from './NexAttentionTab';
+import { NexChatTab } from './NexChatTab';
 import { NexResourcesTab } from './NexResourcesTab';
 import styles from './NexInteractionPanel.module.scss';
 
@@ -43,9 +42,6 @@ export const NexInteractionPanel: React.FC<NexInteractionPanelProps> = ({
   onSnoozeAlert,
 }) => {
   const { t } = useTranslation();
-  const [input, setInput] = useState('');
-  const [sending, setSending] = useState(false);
-  const [history, setHistory] = useState<NexV2ChatTurn[]>([]);
   const tabRefs = useRef<Record<NexV2TabId, HTMLButtonElement | null>>({
     chat: null,
     resources: null,
@@ -78,27 +74,6 @@ export const NexInteractionPanel: React.FC<NexInteractionPanelProps> = ({
     const targetTab = TAB_ORDER[nextIndex];
     onSelectTab(targetTab);
     tabRefs.current[targetTab]?.focus();
-  };
-
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const trimmed = input.trim();
-    if (!trimmed || sending) return;
-    const userTurn: NexV2ChatTurn = { role: 'user', content: trimmed };
-    const nextHistory = [...history, userTurn];
-    setHistory(nextHistory);
-    setInput('');
-    setSending(true);
-    const reply = await sendNexV2Chat(trimmed, history, hudState?.project_id);
-    setSending(false);
-    setHistory((prev) => [
-      ...prev,
-      {
-        role: 'assistant',
-        content: reply.offline || !reply.answer ? t('nexV2.chatOfflineReply') : reply.answer,
-        source: reply.source,
-      },
-    ]);
   };
 
   return (
@@ -170,42 +145,7 @@ export const NexInteractionPanel: React.FC<NexInteractionPanelProps> = ({
         aria-labelledby={`nex-v2-tab-${activeTab}`}
       >
         {activeTab === 'chat' && (
-          <div className={styles.chatContainer}>
-            <div className={styles.chatMessages}>
-              {history.length === 0 ? (
-                <p className={styles.emptyText}>{t('nexV2.chatEmpty')}</p>
-              ) : (
-                history.map((turn, idx) => (
-                  <div
-                    key={`${turn.role}-${idx}`}
-                    className={styles.chatMessage}
-                    data-role={turn.role}
-                  >
-                    <span className={styles.chatRole}>
-                      {turn.role === 'user'
-                        ? t('nexV2.chatUserRole')
-                        : t('nexV2.chatAssistantRole')}
-                    </span>
-                    <p className={styles.chatText}>{turn.content}</p>
-                  </div>
-                ))
-              )}
-            </div>
-            <form className={styles.chatForm} onSubmit={(e) => void handleSubmit(e)}>
-              <input
-                type="text"
-                className={styles.chatInput}
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                placeholder={t('nexV2.chatPlaceholder')}
-                aria-label={t('nexV2.chatPlaceholder')}
-              />
-              <button type="submit" className={styles.sendBtn} disabled={sending || !input.trim()}>
-                <Send size={14} aria-hidden="true" />
-                <span>{sending ? t('nexV2.chatSending') : t('nexV2.chatSend')}</span>
-              </button>
-            </form>
-          </div>
+          <NexChatTab projectId={hudState?.project_id ?? ''} privacyMode={privacyMode} />
         )}
 
         {activeTab === 'resources' && (

@@ -33,6 +33,7 @@ type NexusHandler struct {
 	hud                   *nexus.HUDApplicationService
 	modelWatch            *nexus.ModelCatalogWatchService
 	nexEvents             *nexus.NexEventStream
+	nexMemory             *nexus.NexPersonalMemoryStore
 	voice                 *voice.Service
 	hostFilesystemEnabled bool
 }
@@ -117,6 +118,7 @@ func NewNexusHandler(auth *AuthManager) *NexusHandler {
 		hud:                   nexus.NewHUDApplicationService(n),
 		modelWatch:            nexus.NewModelCatalogWatchService(""),
 		nexEvents:             nexus.NewNexEventStream(256),
+		nexMemory:             nexus.NewNexPersonalMemoryStore(""),
 		voice:                 voice.NewService(),
 		hostFilesystemEnabled: true,
 	}
