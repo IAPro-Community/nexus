@@ -23,7 +23,7 @@ func TestModelCatalogNeverInventsModels(t *testing.T) {
 	}
 }
 
-func TestExecutionTargetTreatsUnsupportedQuotaAsOpaqueEligible(t *testing.T) {
+func TestExecutionTargetDoesNotAutomaticallyRouteUnsupportedQuota(t *testing.T) {
 	view := quota.QuotaView{Status: string(model.UsageUnsupported)}
 	account := ProviderAccount{
 		Provider:      "opencode",
@@ -36,8 +36,8 @@ func TestExecutionTargetTreatsUnsupportedQuotaAsOpaqueEligible(t *testing.T) {
 	if len(targets) != 1 {
 		t.Fatalf("targets=%d want 1", len(targets))
 	}
-	if !targets[0].RuntimeReady {
-		t.Fatalf("OPAQUE quota must remain eligible: %+v", targets[0])
+	if targets[0].RuntimeReady {
+		t.Fatalf("unsupported quota must not authorize automatic routing: %+v", targets[0])
 	}
 	if targets[0].CapacityEvidence != "OPAQUE" {
 		t.Fatalf("capacity evidence=%q want OPAQUE", targets[0].CapacityEvidence)

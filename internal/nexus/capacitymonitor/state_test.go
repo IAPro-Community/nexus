@@ -23,9 +23,14 @@ func TestEvaluateTransitionTable(t *testing.T) {
 	}{
 		{"nil observation", StateHealthy, nil, false, obs, fresh, StateUnknown},
 		{"zero observedAt", StateHealthy, f64(80), false, time.Time{}, fresh, StateUnknown},
+		{"future observation", StateHealthy, f64(80), false, now.Add(time.Second), fresh, StateUnknown},
 		{"expired", StateHealthy, f64(80), false, obs, now.Add(-time.Second), StateUnknown},
+		{"expires at current instant", StateHealthy, f64(80), false, obs, now, StateUnknown},
+		{"remaining above provider range", StateHealthy, f64(101), false, obs, fresh, StateUnknown},
 		{"exhausted at zero", StateHealthy, f64(0), false, obs, fresh, StateExhausted},
 		{"rate limited at 80", StateHealthy, f64(80), true, obs, fresh, StateExhausted},
+		{"expired rate limit is unknown", StateHealthy, f64(80), true, obs, now.Add(-time.Second), StateUnknown},
+		{"future rate limit is unknown", StateHealthy, f64(80), true, now.Add(time.Second), fresh, StateUnknown},
 		{"critical", StateHealthy, f64(5), false, obs, fresh, StateCritical},
 		{"warning", StateHealthy, f64(15), false, obs, fresh, StateWarning},
 		{"healthy", StateHealthy, f64(80), false, obs, fresh, StateHealthy},
@@ -48,6 +53,9 @@ func TestEvaluateTransitionTable(t *testing.T) {
 				t.Fatal("reason must never be empty")
 			}
 		})
+	}
+	if got, reason := EvaluateTransition(StateHealthy, f64(80), false, obs, fresh, time.Time{}, DefaultThresholds()); got != StateUnknown || strings.TrimSpace(reason) == "" {
+		t.Fatalf("zero current time must fail closed, state=%s reason=%q", got, reason)
 	}
 }
 

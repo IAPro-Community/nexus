@@ -162,7 +162,7 @@ func TestAppServerRejectsForeignCodexHome(t *testing.T) {
 }
 
 func TestAppServerHandlesRPCErrorAndGarbage(t *testing.T) {
-	for _, mode := range []string{"rpc-error", "garbage", "empty-result", "no-primary"} {
+	for _, mode := range []string{"rpc-error", "garbage", "empty-result", "no-primary", "server-request"} {
 		t.Run(mode, func(t *testing.T) {
 			dataDir := codexTestEnv(t)
 			p := gmailProfile(t, dataDir)
@@ -416,6 +416,11 @@ func runFakeAppServer(mode string) {
 		}
 		switch req.Method {
 		case "initialize":
+			if mode == "server-request" {
+				// The quota-only client must reject requests that could invoke
+				// provider-side operations such as workspace mutations.
+				emit(map[string]any{"id": 99, "method": "workspace/applyPatch", "params": map[string]any{}})
+			}
 			if mode == "garbage" {
 				out.WriteString("this is not json\n")
 				out.Flush()

@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	sdkquota "github.com/IAPro-Community/IAPro-SDK/quota"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
@@ -45,36 +46,19 @@ type EligibilityInput struct {
 
 // EvaluateEligibility applies hard gates in a single canonical order.
 func EvaluateEligibility(in EligibilityInput) Eligibility {
-	confidence := confidenceOf(in.View.Status)
-	out := Eligibility{Confidence: confidence, CapacityEvidence: capacityEvidenceOf(in.View.Status)}
-
-	if !in.Authenticated {
-		out.Reason = ReasonNotAuthenticated
-		out.Message = "Conta não autenticada"
-		return out
-	}
-	if in.NetworkError {
-		out.Reason = ReasonNetworkError
-		out.Message = "Erro de rede ao consultar o provedor"
-		return out
-	}
-
-	health := strings.ToLower(strings.TrimSpace(in.Health))
-	switch health {
-	case strings.ToLower(string(model.HealthAuthRequired)), "auth_required":
-		out.Reason = ReasonAuthRequired
-		out.Message = "Autenticação necessária"
-		return out
-	case strings.ToLower(string(model.HealthUnavailable)), "unavailable", "unhealthy":
-		out.Reason = ReasonUnavailable
-		out.Message = "Provedor indisponível"
-		return out
-	}
-
-	if in.InCooldown {
-		out.Reason = ReasonCooldown
-		out.Message = "Conta em cooldown de rate limit"
-		return out
+	// The shared SDK gate owns authentication, provider health, cooldown and
+	// quota eligibility. Probe its operational gates first with a neutral quota
+	// view so Nexus can preserve its established precedence: a stale quota must
+	// not hide a current auth/network/provider failure.
+	preflight := evaluateSharedEligibility(in, sdkquota.QuotaView{
+		Status:    string(model.UsageLive),
+		Available: true,
+	})
+	switch preflight.Reason {
+	case sdkquota.ReasonNotAuthenticated, sdkquota.ReasonNetworkError,
+		sdkquota.ReasonAuthRequired, sdkquota.ReasonRateLimited,
+		sdkquota.ReasonUnavailable, sdkquota.ReasonCooldown:
+		return adaptSharedEligibility(in, preflight)
 	}
 
 	// Display history may outlive its routing validity by weeks. Only recent,
@@ -85,94 +69,59 @@ func EvaluateEligibility(in EligibilityInput) Eligibility {
 	if !in.View.FetchedAt.IsZero() && !strings.EqualFold(in.View.Status, string(model.UsageUnsupported)) {
 		age := time.Since(in.View.FetchedAt)
 		if age < -time.Minute || age > DefaultTTL {
-			out.Reason = ReasonUnknownQuota
-			out.Confidence = "UNKNOWN"
-			out.CapacityEvidence = "UNKNOWN"
-			out.Message = "Quota desatualizada; atualize antes de selecionar automaticamente"
-			return out
-		}
-	}
-
-	status := strings.ToUpper(strings.TrimSpace(in.View.Status))
-	if status == string(model.UsageRateLimited) || in.View.AvailReasons.RateLimited {
-		out.Reason = ReasonRateLimited
-		out.Confidence = "RATE_LIMITED"
-		out.Message = "Conta rate-limited"
-		return out
-	}
-
-	if status == string(model.UsageUnsupported) {
-		// UNSUPPORTED means the provider does not expose a trustworthy capacity
-		// metric. It is not evidence of exhaustion. Keep the resource eligible
-		// when the operational gates above passed, but preserve OPAQUE confidence
-		// so schedulers never score it as measured capacity.
-		out.Eligible = true
-		out.Reason = ReasonUnsupportedQuota
-		out.Confidence = "UNSUPPORTED"
-		out.CapacityEvidence = "OPAQUE"
-		out.Message = "Quota não exposta pelo provedor; recurso operacionalmente elegível sem score de capacidade"
-		return out
-	}
-
-	// QuotaView.Available is the aggregate authority. ExhaustedWindows may
-	// contain partial diagnostics while another independent model group still
-	// has capacity (for example AGY Gemini exhausted, Claude/GPT available).
-	// Reject as exhausted only when no group remains available.
-	if !in.View.Available {
-		if status == string(model.UsageUnknown) || in.View.AvailReasons.UnknownQuota {
-			out.Reason = ReasonUnknownQuota
-			out.Confidence = "UNKNOWN"
-			out.Message = "Quota UNKNOWN — inelegível para alocação automática"
-			if in.ExplicitSelection {
-				// Still reject when Available=false; explicit only relaxes
-				// UNKNOWN-but-available accounts.
-				if in.View.Available {
-					out.Eligible = true
-					out.Message = "Quota não aferida; seleção explícita permitida"
-				}
+			return Eligibility{
+				Reason:           ReasonUnknownQuota,
+				Confidence:       "UNKNOWN",
+				CapacityEvidence: "UNKNOWN",
+				Message:          "Quota desatualizada; atualize antes de selecionar automaticamente",
 			}
-			return out
 		}
-		out.Reason = ReasonExhausted
-		out.Message = "resource unavailable"
-		return out
 	}
 
-	if status == string(model.UsageUnknown) || in.View.AvailReasons.UnknownQuota {
-		out.Reason = ReasonUnknownQuota
-		out.Confidence = "UNKNOWN"
-		out.Message = "Quota UNKNOWN — inelegível para alocação automática"
-		if in.ExplicitSelection {
-			out.Eligible = true
-			out.Message = "Quota não aferida; seleção explícita permitida"
-		}
-		return out
+	view := sdkView(in.View)
+	if strings.EqualFold(in.View.Status, string(model.UsageUnsupported)) {
+		// UNSUPPORTED is opaque evidence, not exhaustion. Normalize the view so
+		// the SDK returns its dedicated unsupported reason; its gate then permits
+		// only explicit selection and never treats the missing quota as measured.
+		view.Available = true
+		view.AvailReasons.ExhaustedWindows = nil
+		view.AvailReasons.UnknownQuota = false
+		view.AvailReasons.AllOK = false
 	}
-	out.Eligible = true
-	out.Reason = ReasonOK
-	return out
+	return adaptSharedEligibility(in, sdkquota.EvaluateEligibility(sdkquota.EligibilityInput{
+		View:              view,
+		Authenticated:     in.Authenticated,
+		Health:            in.Health,
+		NetworkError:      in.NetworkError,
+		InCooldown:        in.InCooldown,
+		ExplicitSelection: in.ExplicitSelection,
+	}))
 }
 
-func confidenceOf(status string) string {
-	switch strings.ToUpper(strings.TrimSpace(status)) {
-	case string(model.UsageLive):
-		return "LIVE"
-	case string(model.UsageCached):
-		return "CACHED"
-	case string(model.UsageEstimated):
-		return "ESTIMATED"
-	case string(model.UsageUnsupported):
-		return "UNSUPPORTED"
-	case string(model.UsageRateLimited):
-		return "RATE_LIMITED"
-	default:
-		return "UNKNOWN"
+func evaluateSharedEligibility(in EligibilityInput, view sdkquota.QuotaView) sdkquota.Eligibility {
+	return sdkquota.EvaluateEligibility(sdkquota.EligibilityInput{
+		View:              view,
+		Authenticated:     in.Authenticated,
+		Health:            in.Health,
+		NetworkError:      in.NetworkError,
+		InCooldown:        in.InCooldown,
+		ExplicitSelection: in.ExplicitSelection,
+	})
+}
+
+func adaptSharedEligibility(in EligibilityInput, shared sdkquota.Eligibility) Eligibility {
+	return Eligibility{
+		Eligible:         shared.Eligible,
+		Reason:           EligibilityReason(shared.Reason),
+		Confidence:       shared.Confidence,
+		CapacityEvidence: capacityEvidenceOf(in.View.Status),
+		Message:          shared.Message,
 	}
 }
 
 func capacityEvidenceOf(status string) string {
 	switch strings.ToUpper(strings.TrimSpace(status)) {
-	case string(model.UsageLive), string(model.UsageCached), string(model.UsageEstimated), string(model.UsageRateLimited):
+	case string(model.UsageLive), string(model.UsageCached), string(model.UsageRateLimited):
 		return "MEASURED"
 	case string(model.UsageUnsupported):
 		return "OPAQUE"

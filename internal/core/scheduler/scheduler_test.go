@@ -357,7 +357,7 @@ func TestAGYBalancedQuotaEvidenceRequiresAttributionSourceAndMeasuredRemaining(t
 	}
 }
 
-func TestBalancedSelectionDoesNotRequireAGYQuotaRulesForOtherProviders(t *testing.T) {
+func TestBalancedSelectionRejectsUnsupportedQuotaForCodex(t *testing.T) {
 	selector, ctx, _, _ := balancedTestInputs(t)
 	profiles := []model.Profile{{Provider: "codex", Name: "codex-a"}}
 	accounts := map[string]model.AccountInfo{
@@ -366,8 +366,8 @@ func TestBalancedSelectionDoesNotRequireAGYQuotaRulesForOtherProviders(t *testin
 		}},
 	}
 	result, err := selector.SelectNextBalancedProfile(ctx, "codex", "/tmp", profiles, accounts, nil)
-	if err != nil || result.SelectedProfile == nil || result.SelectedProfile.Name != "codex-a" {
-		t.Fatalf("non-AGY rotation changed: selected=%+v err=%v", result.SelectedProfile, err)
+	if err == nil || result.SelectedProfile != nil {
+		t.Fatalf("unsupported quota must not authorize automatic Codex rotation: selected=%+v err=%v", result.SelectedProfile, err)
 	}
 }
 
@@ -749,7 +749,7 @@ func TestCodexExhaustedFiveHourLosesToHealthyAccount(t *testing.T) {
 	}
 }
 
-func TestFreshEstimatedQuotaRanksByRemainingWhenNoCurrentEvidence(t *testing.T) {
+func TestFreshEstimatedQuotaCannotAuthorizeAutomaticSelection(t *testing.T) {
 	dataDir := t.TempDir()
 	cfgDir := t.TempDir()
 	stateDir := t.TempDir()
@@ -793,14 +793,8 @@ func TestFreshEstimatedQuotaRanksByRemainingWhenNoCurrentEvidence(t *testing.T) 
 	}
 
 	res, err := selector.SelectBestProfile(ctx, "codex", "/tmp", candidates, accounts, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if res.SelectedProfile == nil || res.SelectedProfile.Name != "z-high" {
-		t.Fatalf("expected 100%% estimated Codex account to win over 40%%, got %+v", res.SelectedProfile)
-	}
-	if !strings.Contains(res.Reason, "estimated quota") {
-		t.Fatalf("selection must disclose estimated evidence, reason=%q", res.Reason)
+	if err == nil || res.SelectedProfile != nil {
+		t.Fatalf("estimated quota must not authorize automatic selection: selected=%+v err=%v", res.SelectedProfile, err)
 	}
 }
 
@@ -954,7 +948,7 @@ func TestSelectorRemainsProviderNeutralForKnownProviders(t *testing.T) {
 	}
 }
 
-func TestUnsupportedQuotaUsesLRUAmongHealthyAccounts(t *testing.T) {
+func TestUnsupportedQuotaCannotAuthorizeAutomaticSelection(t *testing.T) {
 	dataDir := t.TempDir()
 	cfgDir := t.TempDir()
 	stateDir := t.TempDir()
@@ -993,18 +987,12 @@ func TestUnsupportedQuotaUsesLRUAmongHealthyAccounts(t *testing.T) {
 	}
 
 	res, err := selector.SelectBestProfile(context.Background(), "opencode", "/tmp", candidates, accounts, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if res.SelectedProfile == nil || res.SelectedProfile.Name != "a-first" {
-		t.Fatalf("opaque quota should remain routable via deterministic LRU, got %#v", res.SelectedProfile)
-	}
-	if !strings.Contains(res.Reason, "opaque/unmeasured") {
-		t.Fatalf("selection must disclose opaque capacity, reason=%q", res.Reason)
+	if err == nil || res.SelectedProfile != nil {
+		t.Fatalf("opaque quota must not authorize automatic selection: selected=%+v err=%v", res.SelectedProfile, err)
 	}
 	for _, ev := range res.Evaluations {
-		if !ev.Eligible {
-			t.Fatalf("healthy authenticated UNSUPPORTED profile %s must remain operationally eligible: %#v", ev.Profile.Name, ev)
+		if ev.Eligible {
+			t.Fatalf("UNSUPPORTED profile %s must be ineligible for automatic selection: %#v", ev.Profile.Name, ev)
 		}
 	}
 }

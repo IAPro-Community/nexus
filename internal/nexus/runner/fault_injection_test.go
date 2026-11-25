@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -179,19 +177,17 @@ func failoverPackageRun(run *MissionRun, packageID string) *PackageRun {
 	return nil
 }
 
-// TestFaultInjectionQuotaFailoverReallocatesAndKeepsAttribution pins the F2.8
-// runtime model-reassignment contract: a mission whose runtime exhausts quota
-// mid-run is reassigned by the real runner mechanism (typed quota failure ->
-// remediation -> re-entry into StateAllocating -> re-allocation on the
-// remaining healthy resource), and every piece of post-reassignment evidence
-// stays attributed to the reassigned runtime — never to the exhausted one.
-func TestFaultInjectionQuotaFailoverReallocatesAndKeepsAttribution(t *testing.T) {
+// TestFaultInjectionQuotaFailureAfterDispatchProhibitsReplay pins the safe
+// behavior when a provider reports quota exhaustion after receiving a task.
+// Without a provider receipt proving that no output or effects occurred, the
+// runner preserves attribution and blocks instead of allocating another account.
+func TestFaultInjectionQuotaFailureAfterDispatchProhibitsReplay(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	root := t.TempDir()
-	wsProviderA := filepath.Join(root, "workspace-provider-a")
-	wsProviderB := filepath.Join(root, "workspace-provider-b")
-	for _, dir := range []string{wsProviderA, wsProviderB} {
+	workspaceA := filepath.Join(root, "workspace-provider-a")
+	workspaceB := filepath.Join(root, "workspace-provider-b")
+	for _, dir := range []string{workspaceA, workspaceB} {
 		if err := os.MkdirAll(dir, 0o700); err != nil {
 			t.Fatal(err)
 		}
@@ -200,14 +196,14 @@ func TestFaultInjectionQuotaFailoverReallocatesAndKeepsAttribution(t *testing.T)
 	exec := &failoverAttributionExecutor{
 		fakeExecutor: fakeExecutor{reviewOK: true},
 		providers: []failoverResource{
-			{agentID: "agt-provider-a", provider: "provider-a", profile: "profile-a", workspace: wsProviderA},
-			{agentID: "agt-provider-b", provider: "provider-b", profile: "profile-b", workspace: wsProviderB},
+			{agentID: "agt-provider-a", provider: "provider-a", profile: "profile-a", workspace: workspaceA},
+			{agentID: "agt-provider-b", provider: "provider-b", profile: "profile-b", workspace: workspaceB},
 		},
 	}
 	r := NewMissionRunner(NewMemoryRunRepository(), exec)
 	contract := DefaultAutonomyContract()
 	contract.VerificationCommands = []string{verificationSuccessCommand()}
-	plan := PlanSpec{ID: "plan-quota-failover", ProjectID: "proj-1", Revision: 1, Packages: []PackageSpec{
+	plan := PlanSpec{ID: "plan-quota-failure", ProjectID: "proj-1", Revision: 1, Packages: []PackageSpec{
 		{ID: "pkg-1", Title: "First", Goal: "first"},
 		{ID: "pkg-2", Title: "Second", Goal: "second", Dependencies: []string{"pkg-1"}},
 	}}
@@ -216,111 +212,30 @@ func TestFaultInjectionQuotaFailoverReallocatesAndKeepsAttribution(t *testing.T)
 		t.Fatal(err)
 	}
 
-	quotaRemediationObserved := false
-	var stepErr error
-	for step := 0; step < 60 && run.State != StateCompletedVerified; step++ {
-		run, _, stepErr = r.ExecuteNextStep(ctx, run.ID)
+	for step := 0; step < 12 && run.State != StateBlockedNeedsUser; step++ {
+		run, _, _ = r.ExecuteNextStep(ctx, run.ID)
 		if run == nil {
-			t.Fatalf("step %d returned no run: %v", step, stepErr)
-		}
-		if stepErr != nil && run.State == StateBlockedNeedsUser {
-			t.Fatalf("quota failover must stay autonomous, got human blocker: %+v", run.NeedsHuman)
-		}
-		if pkg := failoverPackageRun(run, "pkg-1"); pkg != nil && pkg.State == StateRemediating && pkg.FailureKind == model.FailureQuota {
-			quotaRemediationObserved = true
-			if pkg.RetryFrom != StateAllocating {
-				t.Fatalf("quota failure must re-enter allocation, retries from %s", pkg.RetryFrom)
-			}
-			if pkg.AssignedRuntime != "rt-provider-a" {
-				t.Fatalf("failed attempt must keep the runtime evidence of who failed: %q", pkg.AssignedRuntime)
-			}
-			if pkg.DispatchState != DispatchFailed {
-				t.Fatalf("failed quota dispatch must be recorded as failed, got %s", pkg.DispatchState)
-			}
-			if pkg.Attempt != 1 {
-				t.Fatalf("attempt counter must not advance before remediation, got %d", pkg.Attempt)
-			}
-			if pkg.WorkReceipt != nil {
-				t.Fatalf("quota remediation must not mint a work receipt (only terminal verified/failed states do): %+v", pkg.WorkReceipt)
-			}
+			t.Fatalf("step %d returned no run", step)
 		}
 	}
-	if !quotaRemediationObserved {
-		t.Fatal("injected quota failure never surfaced as a typed quota remediation")
+	if run.State != StateBlockedNeedsUser || run.NeedsHuman == nil {
+		t.Fatalf("post-dispatch quota failure must request reconciliation, got state=%s", run.State)
 	}
-	if run.State != StateCompletedVerified {
-		t.Fatalf("mission must complete after failover, got %s (needs_human=%v)", run.State, run.NeedsHuman != nil)
+	pkg := failoverPackageRun(run, "pkg-1")
+	if pkg == nil {
+		t.Fatalf("missing failed package: %+v", run.PackageRuns)
 	}
-
-	pkg1 := failoverPackageRun(run, "pkg-1")
-	pkg2 := failoverPackageRun(run, "pkg-2")
-	if pkg1 == nil || pkg2 == nil {
-		t.Fatalf("missing package runs: %+v", run.PackageRuns)
+	if pkg.FailureKind != model.FailureQuota || pkg.DispatchState != DispatchFailed || !pkg.ReplayProhibited {
+		t.Fatalf("expected preserved quota failure with replay prohibited: %+v", pkg)
 	}
-
-	// The reassigned runtime owns the final attribution of pkg-1.
-	if pkg1.Attempt != 2 {
-		t.Fatalf("expected exactly one reallocation, attempt=%d", pkg1.Attempt)
+	if pkg.AssignedRuntime != "rt-provider-a" || pkg.Attempt != 1 {
+		t.Fatalf("failed attempt attribution must remain with provider-a: %+v", pkg)
 	}
-	if pkg1.Provider != "provider-b" || pkg1.Profile != "profile-b" {
-		t.Fatalf("post-failover attribution must point at provider-b, got %s:%s", pkg1.Provider, pkg1.Profile)
+	if len(exec.allocations) != 1 || exec.allocations[0] != "pkg-1->provider-a" {
+		t.Fatalf("ambiguous provider failure must not trigger reallocation: %v", exec.allocations)
 	}
-	if pkg1.AssignedAgent != "agt-provider-b" || pkg1.AssignedRuntime != "rt-provider-b" {
-		t.Fatalf("completion evidence must be bound to the reassigned runtime: agent=%q runtime=%q", pkg1.AssignedAgent, pkg1.AssignedRuntime)
-	}
-	if pkg1.Workspace != wsProviderB {
-		t.Fatalf("post-failover execution must happen in provider-b workspace, got %q", pkg1.Workspace)
-	}
-
-	// Receipt/evidence is bound to provider-b; no provider-a evidence leaks in.
-	if pkg1.WorkReceipt == nil || pkg1.WorkReceipt.Status != "VERIFIED" {
-		t.Fatalf("verified package must carry a verified receipt: %+v", pkg1.WorkReceipt)
-	}
-	if pkg1.WorkReceipt.AgentID != "agt-provider-b" || pkg1.WorkReceipt.RunID != run.ID || pkg1.WorkReceipt.StepID != "pkg-1" {
-		t.Fatalf("receipt attribution must follow the reassigned runtime: %+v", pkg1.WorkReceipt)
-	}
-	if len(pkg1.Verifications) == 0 {
-		t.Fatal("post-failover verification evidence is missing")
-	}
-
-	// The quota failure stays in the history as a failure; it was not
-	// relabeled as success and the verified outcome came from provider-b only.
-	if !strings.Contains(pkg1.LastFailureSignature, "quota") {
-		t.Fatalf("quota failure signature must remain in the package history: %q", pkg1.LastFailureSignature)
-	}
-	if pkg1.RetryFrom != StateAllocating {
-		t.Fatalf("failover path must remain recorded as re-allocation, got %s", pkg1.RetryFrom)
-	}
-	if pkg1.NoProgressCount != 1 || pkg1.StrategyVariant != "ALTERNATE_APPROACH" {
-		t.Fatalf("single quota remediation expected, got no_progress=%d strategy=%s", pkg1.NoProgressCount, pkg1.StrategyVariant)
-	}
-
-	// The dependent package is allocated directly on the healthy resource and
-	// never touches the exhausted provider.
-	if pkg2.Attempt != 1 || pkg2.Provider != "provider-b" || pkg2.AssignedAgent != "agt-provider-b" {
-		t.Fatalf("dependent package must execute on the reassigned resource: attempt=%d provider=%s agent=%s", pkg2.Attempt, pkg2.Provider, pkg2.AssignedAgent)
-	}
-	if pkg2.WorkReceipt == nil || pkg2.WorkReceipt.AgentID != "agt-provider-b" {
-		t.Fatalf("dependent package receipt must be bound to provider-b: %+v", pkg2.WorkReceipt)
-	}
-	if pkg2.ContextCapsule != nil {
-		for _, dep := range pkg2.ContextCapsule.DependencyReceipts {
-			if dep.AgentID != "agt-provider-b" {
-				t.Fatalf("dependency evidence leaked from the exhausted provider: %+v", dep)
-			}
-		}
-	}
-
-	// Per-attempt attribution ledger: each execution ran under the provider
-	// attributed to the package at that moment; provider-a's only execution is
-	// the typed quota failure.
-	wantAllocations := []string{"pkg-1->provider-a", "pkg-1->provider-b", "pkg-2->provider-b"}
-	if !reflect.DeepEqual(exec.allocations, wantAllocations) {
-		t.Fatalf("unexpected allocation ledger: %v", exec.allocations)
-	}
-	wantExecutions := []string{"pkg-1@provider-a:rt-provider-a", "pkg-1@provider-b:rt-provider-b", "pkg-2@provider-b:rt-provider-b"}
-	if !reflect.DeepEqual(exec.executions, wantExecutions) {
-		t.Fatalf("unexpected execution attribution ledger: %v", exec.executions)
+	if len(exec.executions) != 1 || exec.executions[0] != "pkg-1@provider-a:rt-provider-a" {
+		t.Fatalf("ambiguous provider failure must not be replayed: %v", exec.executions)
 	}
 }
 

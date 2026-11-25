@@ -431,6 +431,12 @@ func TestValidateCoordinationRequestRejectsOversizedPayload(t *testing.T) {
 	if err := ValidateCoordinationRequest(req); err == nil {
 		t.Fatal("oversized coordination capability list must fail closed")
 	}
+
+	req.RequiredCapabilities = nil
+	req.RunID = strings.Repeat("r", 1025)
+	if err := ValidateCoordinationRequest(req); err == nil {
+		t.Fatal("oversized coordination identity must fail closed")
+	}
 }
 
 func TestMissionRunnerRejectsCoordinationFanOutBeforeMaterializingChildren(t *testing.T) {

@@ -3,10 +3,11 @@ package spec
 import (
 	"path/filepath"
 
+	sdkprovider "github.com/IAPro-Community/IAPro-SDK/providers/spec"
 	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
-var zcodeSpec = Spec{
+var zcodeSpec = Spec{Spec: sdkprovider.Spec{
 	ClearLine:        "\x15",
 	ID:               "zcode",
 	BinaryCandidates: []string{"zcode"},
@@ -31,4 +32,4 @@ var zcodeSpec = Spec{
 	ReviewMode:    []string{"--mode", "guarded"},
 	Quota:         QuotaUnsupported,
 	KnownVersions: []string{"3.17.2-44"},
-}
+}}

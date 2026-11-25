@@ -1,5 +1,21 @@
 # Changelog
 
+## IAPro-SDK consumer follow-up — 2026-11-25
+
+- Require explicit `nexus config fallback enable` authorization before the CLI switches to another account for a busy supervised profile. New and legacy configurations default to disabled; `nexus config fallback disable` revokes authorization.
+- Permit opted-in switching only before dispatch for a busy profile; MissionRunner and CLI execution never replay a provider operation after dispatch without evidence that output and external effects are absent.
+- Keep strict recent quota eligibility even when account switching is enabled.
+
+## IAPro-SDK consumer slice — 2026-11-24 (source, NO_GO)
+
+- Pin Nexus to immutable IAPro-SDK pseudo-version `v0.0.0-20261125013959-aa2c954657a2` with `go.sum` checksums.
+- Share neutral account, provider, failure, usage and capability model contracts; share routing reason values and the coordination request envelope/ID/equality/clone helpers.
+- Consume shared quota-group contracts, scoring, expiry and eligibility from the SDK. Automatic selection now requires recent LIVE/CACHED quota evidence; UNKNOWN, ERROR, ESTIMATED and UNSUPPORTED evidence is rejected, while explicit user binding/selection paths retain their disclosed policy.
+- Use the SDK's bounded Codex JSON-RPC transport for quota-only app-server reads, retaining Nexus profile isolation and account attribution checks.
+- Keep Nexus-only Codex/AGY classifier compatibility and all product-owned quota, provider runtime, routing, handoff, MissionRunner, capacity scheduling, cost ledger, AI Control, HUD, storage, budgets, credentials, Maestro and Wails behavior in the Nexus host.
+- No user-visible feature or optional default was enabled. Integration matrix and rollback: [IAPro-SDK integration audit](DEV/SPECS/IAPRO_SDK_INTEGRATION.md).
+- SDK exact-SHA CI is green; Nexus local/full platform and exact-SHA CI, independent review, legal provenance review, and provider homologation remain outstanding. This source adendum does not certify or publish a release.
+
 ## 1.0.0-beta.11 — melhorias de descoberta e tours — 2026-10-27 (source, não homologado)
 
 Estas alterações foram integradas à `release/v1.0.0`, mas não representam uma

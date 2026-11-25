@@ -2,106 +2,17 @@ package spec
 
 import (
 	"strings"
+
+	sdkprovider "github.com/IAPro-Community/IAPro-SDK/providers/spec"
 )
 
-// CanonicalAlias defines the flag mapping per provider.
-type CanonicalAlias struct {
-	Description   string
-	TakesValue    bool
-	ProviderFlags map[string][]string
-}
+type CanonicalAlias = sdkprovider.CanonicalAlias
 
-// BuiltinAliases defines universal aliases shared across AI CLI tools.
-var BuiltinAliases = map[string]CanonicalAlias{
-	"--yolo": {
-		Description: "Bypass permission prompts and approval checks",
-		ProviderFlags: map[string][]string{
-			"agy":    {"--dangerously-skip-permissions"},
-			"claude": {"--dangerously-skip-permissions"},
-			"codex":  {"--dangerously-bypass-approvals-and-sandbox"},
-		},
-	},
-	"-y": {
-		Description: "Short alias for --yolo",
-		ProviderFlags: map[string][]string{
-			"agy":    {"--dangerously-skip-permissions"},
-			"claude": {"--dangerously-skip-permissions"},
-			"codex":  {"--dangerously-bypass-approvals-and-sandbox"},
-		},
-	},
-	"--continue": {
-		Description: "Continue the most recent conversation session",
-		ProviderFlags: map[string][]string{
-			"agy":    {"--continue"},
-			"claude": {"--continue"},
-			"codex":  {"resume", "--last"},
-		},
-	},
-	"-c": {
-		Description: "Short alias for --continue (AGY/Claude only; Codex uses native -c/--config)",
-		ProviderFlags: map[string][]string{
-			"agy":    {"--continue"},
-			"claude": {"--continue"},
-		},
-	},
-	"--resume": {
-		Description: "Resume a specific session by ID",
-		TakesValue:  true,
-		ProviderFlags: map[string][]string{
-			"agy":    {"--conversation={value}"},
-			"claude": {"--resume", "{value}"},
-			"codex":  {"resume", "{value}"},
-		},
-	},
-	"-r": {
-		Description: "Short alias for --resume",
-		TakesValue:  true,
-		ProviderFlags: map[string][]string{
-			"agy":    {"--conversation={value}"},
-			"claude": {"--resume", "{value}"},
-			"codex":  {"resume", "{value}"},
-		},
-	},
-	"--print": {
-		Description: "Run prompt non-interactively and print response",
-		ProviderFlags: map[string][]string{
-			"agy":    {"--print"},
-			"claude": {"--print"},
-			"codex":  {"exec"},
-		},
-	},
-	"-p": {
-		Description: "Short alias for --print (AGY/Claude only; Codex uses native -p/--profile)",
-		ProviderFlags: map[string][]string{
-			"agy":    {"--print"},
-			"claude": {"--print"},
-		},
-	},
-	"--effort": {
-		Description: "Model reasoning effort (low, medium, high)",
-		TakesValue:  true,
-		ProviderFlags: map[string][]string{
-			"agy":   {"--effort", "{value}"},
-			"codex": {"-c", `model_reasoning_effort="{value}"`},
-		},
-	},
-	"--plan": {
-		Description: "Start agent in planning mode",
-		ProviderFlags: map[string][]string{
-			"agy": {"--mode", "plan"},
-		},
-	},
-	"--accept-edits": {
-		Description: "Start agent in accept edits mode",
-		ProviderFlags: map[string][]string{
-			"agy": {"--mode", "accept-edits"},
-		},
-	},
-}
+var BuiltinAliases = sdkprovider.BuiltinAliases
 
 // Normalize maps recognized aliases to provider-native flags.
 func Normalize(provider string, args []string, userAliases map[string]map[string][]string) []string {
-	return normalize(provider, args, userAliases, false)
+	return sdkprovider.Normalize(provider, args, userAliases)
 }
 
 // NormalizePreservingRepeatedArgs maps aliases while retaining repeated

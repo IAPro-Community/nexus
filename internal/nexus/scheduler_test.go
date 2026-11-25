@@ -196,7 +196,7 @@ func TestSchedulerRejectsUnknownQuota(t *testing.T) {
 	}
 }
 
-func TestSchedulerAllowsUnsupportedQuotaAsOpaqueResource(t *testing.T) {
+func TestSchedulerRejectsUnsupportedQuotaForAutomaticSelection(t *testing.T) {
 	accounts := []ProviderAccount{
 		{
 			ID:            "opencode:default",
@@ -214,8 +214,8 @@ func TestSchedulerAllowsUnsupportedQuotaAsOpaqueResource(t *testing.T) {
 		},
 	}
 	decision := NewResourceScheduler(accounts, PolicyBalanced).Select("", "", "", nil)
-	if decision.Selected.ID != "opencode:default" {
-		t.Fatalf("opaque quota resource must remain operationally eligible, got %q", decision.Selected.ID)
+	if decision.Selected.ID != "" {
+		t.Fatalf("unsupported quota must not authorize automatic selection, got %q", decision.Selected.ID)
 	}
 }
 

@@ -69,19 +69,11 @@ func TestFallbackAllFailBounded(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected all-fail error")
 	}
-	if attempts != 3 {
-		t.Fatalf("bound violated: attempts=%d order=%v want 3", attempts, order)
+	if attempts != 1 {
+		t.Fatalf("ambiguous provider result must not be replayed, attempts=%d order=%v", attempts, order)
 	}
-	if !errors.Is(err, ErrFallbackRateLimited) && !errors.Is(err, ErrFallbackExhausted) {
+	if !errors.Is(err, ErrFallbackRateLimited) || !errors.Is(err, ErrFallbackUnsafeReplay) {
 		t.Fatalf("typed rate-limit cause lost: %v", err)
-	}
-	// Anti ping-pong: no repeats.
-	seen := map[string]bool{}
-	for _, n := range order {
-		if seen[n] {
-			t.Fatalf("ping-pong repeat: %v", order)
-		}
-		seen[n] = true
 	}
 }
 
@@ -106,7 +98,7 @@ func TestFallbackSingleResourceBound(t *testing.T) {
 	}
 }
 
-func TestFallbackRecoverySucceeds(t *testing.T) {
+func TestFallbackDoesNotReplayAfterRateLimit(t *testing.T) {
 	exec, _, _ := testSetup(t)
 	candidates := profiles("codex", "a", "b")
 	accounts := liveAccounts("a", "b")
@@ -119,11 +111,11 @@ func TestFallbackRecoverySucceeds(t *testing.T) {
 		}
 		return model.Failure{Kind: model.FailureNone}, nil
 	})
-	if err != nil {
-		t.Fatalf("recovery must succeed: %v", err)
+	if !errors.Is(err, ErrFallbackUnsafeReplay) {
+		t.Fatalf("expected ambiguous replay refusal, got: %v", err)
 	}
-	if attempts != 2 {
-		t.Fatalf("expected 2 attempts, got %d", attempts)
+	if attempts != 1 {
+		t.Fatalf("expected one provider dispatch, attempts=%d", attempts)
 	}
 }
 
@@ -143,6 +135,23 @@ func TestFallbackQuotaExhaustedPreservesCause(t *testing.T) {
 	}
 	if errors.Is(err, ErrFallbackRateLimited) {
 		t.Fatalf("quota must not be reported as rate limit: %v", err)
+	}
+}
+
+func TestFallbackRequiresAuthorization(t *testing.T) {
+	exec, _, _ := testSetup(t)
+	candidates := profiles("codex", "a", "b")
+	accounts := liveAccounts("a", "b")
+	attempts := 0
+	err := exec.RunWithFallback(context.Background(), "codex", "/tmp", "a", candidates, accounts, false, func(model.Profile) (model.Failure, error) {
+		attempts++
+		return model.Failure{Kind: model.FailureRateLimit, Message: "HTTP 429"}, errors.New("exit 1")
+	})
+	if err == nil {
+		t.Fatal("expected the original failure when account fallback is not authorized")
+	}
+	if attempts != 1 {
+		t.Fatalf("attempts=%d; a second account must not be started without authorization", attempts)
 	}
 }
 
@@ -222,10 +231,13 @@ func TestFallbackAntiPingPongThreeNodes(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected exhaustion")
 	}
-	if len(order) != 3 {
-		t.Fatalf("expected exactly 3 attempts, got %v", order)
+	if len(order) != 1 {
+		t.Fatalf("ambiguous provider outcome must not cycle through accounts, got %v", order)
 	}
-	// Must be a permutation of a,b,c with no A→B→C→A cycle back to A.
+	if !errors.Is(err, ErrFallbackUnsafeReplay) {
+		t.Fatalf("expected unsafe replay refusal, got %v", err)
+	}
+	// No A→B→C retries are permitted without provider proof of no effects.
 	if order[0] != "a" {
 		t.Fatalf("must start at requested a, got %v", order)
 	}

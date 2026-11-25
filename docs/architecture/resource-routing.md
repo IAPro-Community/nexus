@@ -11,17 +11,19 @@ processo, não uma segunda implementação de scheduler.
 cooldown, indisponibilidade, rate limit e exaustão conhecida. Quota e
 capacidade operacional são dimensões distintas:
 
-- `LIVE`/`CACHED` com medida confiável podem sustentar disponibilidade.
-- `UNKNOWN` exige tratamento explícito e não pode virar porcentagem zero.
-- `UNSUPPORTED` permite um recurso saudável e autenticado elegível com
-  capacidade `OPAQUE`, sem fabricar porcentagens.
+- `LIVE`/`CACHED` com medida confiável e recente podem sustentar seleção automática.
+- `UNKNOWN`, `ERROR`, `ESTIMATED` e `UNSUPPORTED` não autorizam escolha automática nem podem virar porcentagem zero.
+- `ESTIMATED` ou `UNSUPPORTED` não autorizam seleção automática; uma seleção
+  explicitamente vinculada pelo usuário pode seguir sem ranking de capacidade,
+  mantendo a evidência `UNKNOWN` ou `OPAQUE`.
 - `PIN` é um requisito do usuário, não uma preferência flexível; `PREFER`
   admite alternativas elegíveis.
 - Só selecionar provider mais barato **depois** de satisfazer especialidade,
   requisitos e risco de execução.
 
-Sem quota mensurável, recursos elegíveis seguem seleção limitada e
-determinística, não uma pontuação de capacidade inventada.
+Sem quota mensurável recente, o scheduler não escolhe uma conta arbitrária.
+Uma conta default ou workspace binding só pode ser usada como fallback
+explícito e sem pontuação de capacidade.
 
 ## ExecutionTarget, CapacityDomain e ModelCatalog (beta.10)
 

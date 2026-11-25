@@ -398,7 +398,7 @@ func executeProviderWithSmartSelection(provName, explicitProfile string, args []
 	cwd, _ := os.Getwd()
 	ctx := context.Background()
 
-	return exec.RunWithFallbackStrategy(ctx, provName, cwd, explicitProfile, candidates, accounts, true, balanced, func(p model.Profile) (model.Failure, error) {
+	return exec.RunWithFallbackStrategy(ctx, provName, cwd, explicitProfile, candidates, accounts, cfg.AutomaticFallback, balanced, func(p model.Profile) (model.Failure, error) {
 		accInfo := accounts[p.Name]
 		accEmail := accInfo.Email
 		if accEmail == "" {
@@ -1795,6 +1795,25 @@ func configCmd(args []string) error {
 		}
 		localization.Set(localization.Resolve("", value))
 		fmt.Println(localization.T("config.language_saved", map[string]any{"Language": value}))
+		return nil
+	}
+	if args[0] == "fallback" {
+		if len(args) != 2 || (args[1] != "enable" && args[1] != "disable") {
+			return errors.New(localization.T("error.config_usage"))
+		}
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			return err
+		}
+		cfg.AutomaticFallback = args[1] == "enable"
+		if err := config.SaveConfig(cfg); err != nil {
+			return err
+		}
+		if cfg.AutomaticFallback {
+			fmt.Println(localization.T("config.fallback_enabled"))
+		} else {
+			fmt.Println(localization.T("config.fallback_disabled"))
+		}
 		return nil
 	}
 	return errors.New(localization.T("error.config_usage"))

@@ -41,3 +41,5 @@ Usage metrics are cached per profile in `usage.json` with timestamps:
 - **Default TTL**: 5 minutes (configurable).
 - **Staleness Indication**: Displayed in CLI and TUI (e.g. `LIVE · updated 8s ago` or `CACHED · updated 4m ago`).
 - **Bounded Concurrency**: Quota refreshes across multiple profiles are executed in parallel using a bounded worker pool (default: 4 concurrent probes).
+
+Automatic account switching is disabled by default. Explicitly authorize pre-dispatch switching from a busy profile with `nexus config fallback enable`; revoke it with `nexus config fallback disable`. Once a provider process has started, Nexus does not replay a quota/rate-limited operation with ambiguous output or side effects. Recent eligible quota evidence is required in either path.

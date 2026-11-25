@@ -6,81 +6,50 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"slices"
 	"strings"
 	"time"
 
+	sdkcoordination "github.com/IAPro-Community/IAPro-SDK/coordination"
 	"github.com/IAPro-Community/nexus/internal/control/ids"
 )
 
 // CoordinationOperation is a closed set of requests an executing Agent may
 // submit to the Mission. Agents never spawn providers or mutate the Flow
 // directly; MissionRunner remains the execution authority.
-type CoordinationOperation string
+type CoordinationOperation = sdkcoordination.CoordinationOperation
 
 const (
-	CoordinationNeedInfo        CoordinationOperation = "NEED_INFO"
-	CoordinationDelegate        CoordinationOperation = "DELEGATE"
-	CoordinationArtifactRequest CoordinationOperation = "ARTIFACT_REQUEST"
-	CoordinationReviewRequest   CoordinationOperation = "REVIEW_REQUEST"
+	CoordinationNeedInfo        = sdkcoordination.CoordinationNeedInfo
+	CoordinationDelegate        = sdkcoordination.CoordinationDelegate
+	CoordinationArtifactRequest = sdkcoordination.CoordinationArtifactRequest
+	CoordinationReviewRequest   = sdkcoordination.CoordinationReviewRequest
 )
 
 // CoordinationStatus is the durable lifecycle of a coordination request.
-type CoordinationStatus string
+type CoordinationStatus = sdkcoordination.CoordinationStatus
 
 const (
-	CoordinationPending  CoordinationStatus = "PENDING"
-	CoordinationResolved CoordinationStatus = "RESOLVED"
-	CoordinationRejected CoordinationStatus = "REJECTED"
-	CoordinationFailed   CoordinationStatus = "FAILED"
-	CoordinationCanceled CoordinationStatus = "CANCELED"
+	CoordinationPending  = sdkcoordination.CoordinationPending
+	CoordinationResolved = sdkcoordination.CoordinationResolved
+	CoordinationRejected = sdkcoordination.CoordinationRejected
+	CoordinationFailed   = sdkcoordination.CoordinationFailed
+	CoordinationCanceled = sdkcoordination.CoordinationCanceled
 
 	// These are safety ceilings, not a competing delegation policy. The
 	// canonical planner still decides whether delegation is useful; the runner
 	// merely prevents provider output from exploding into unbounded child work.
-	maxCoordinationRequestsPerTurn    = 3
-	maxCoordinationRequestsPerMission = 12
+	maxCoordinationRequestsPerTurn    = sdkcoordination.MaxRequestsPerTurn
+	maxCoordinationRequestsPerMission = sdkcoordination.MaxRequestsPerRun
 	maxCoordinationSubjectBytes       = 1024
-	maxCoordinationObjectiveBytes     = 8192
-	maxCoordinationPreferenceBytes    = 256
 	maxCoordinationListItems          = 16
-	maxCoordinationListItemBytes      = 1024
 )
 
 // CoordinationRequest is a Mission-owned request raised by an executing Agent.
 // It is intentionally provider-neutral: source/target are Agent/task concepts,
 // while provider/profile/model selection stays with ResourceScheduler.
-type CoordinationRequest struct {
-	ID                   string                `json:"id"`
-	RunID                string                `json:"run_id"`
-	SourcePackageID      string                `json:"source_package_id"`
-	SourceAgentID        string                `json:"source_agent_id,omitempty"`
-	Operation            CoordinationOperation `json:"operation"`
-	Subject              string                `json:"subject"`
-	Objective            string                `json:"objective,omitempty"`
-	PreferredRole        string                `json:"preferred_role,omitempty"`
-	PreferredProvider    string                `json:"preferred_provider,omitempty"`
-	RequiredCapabilities []string              `json:"required_capabilities,omitempty"`
-	ArtifactRefs         []string              `json:"artifact_refs,omitempty"`
-	Status               CoordinationStatus    `json:"status"`
-	ChildPackageID       string                `json:"child_package_id,omitempty"`
-	MaterializedAt       *time.Time            `json:"materialized_at,omitempty"`
-	CreatedAt            time.Time             `json:"created_at"`
-	ResolvedAt           *time.Time            `json:"resolved_at,omitempty"`
-	ResultReceiptID      string                `json:"result_receipt_id,omitempty"`
-	ResolutionSummary    string                `json:"resolution_summary,omitempty"`
-}
-
-func validateCoordinationString(name, value string, maxBytes int) error {
-	value = strings.TrimSpace(value)
-	if len(value) > maxBytes {
-		return fmt.Errorf("coordination %s exceeds %d bytes", name, maxBytes)
-	}
-	if isCoordinationTemplatePlaceholder(value) {
-		return fmt.Errorf("coordination %s must contain a concrete value, not a template placeholder", name)
-	}
-	return nil
-}
+// CoordinationRequest is the shared envelope. Nexus retains durable storage,
+// authorization, lineage and MissionRunner materialization.
+type CoordinationRequest = sdkcoordination.CoordinationRequest
 
 func isCoordinationTemplatePlaceholder(value string) bool {
 	normalized := strings.ToLower(strings.TrimSpace(value))
@@ -92,43 +61,11 @@ func isCoordinationTemplatePlaceholder(value string) bool {
 		(strings.HasPrefix(normalized, "{{") && strings.HasSuffix(normalized, "}}"))
 }
 
-func validateCoordinationList(name string, values []string) error {
-	if len(values) > maxCoordinationListItems {
-		return fmt.Errorf("coordination %s exceeds %d items", name, maxCoordinationListItems)
-	}
-	for _, value := range values {
-		if len(strings.TrimSpace(value)) > maxCoordinationListItemBytes {
-			return fmt.Errorf("coordination %s item exceeds %d bytes", name, maxCoordinationListItemBytes)
-		}
-		if isCoordinationTemplatePlaceholder(value) {
-			return fmt.Errorf("coordination %s must contain concrete values, not template placeholders", name)
-		}
-	}
-	return nil
-}
-
 // ValidateCoordinationRequest enforces the architectural boundary before a
 // request can become durable Mission state.
 func ValidateCoordinationRequest(req CoordinationRequest) error {
-	if strings.TrimSpace(req.ID) == "" {
-		return fmt.Errorf("coordination request id is required")
-	}
-	if strings.TrimSpace(req.RunID) == "" {
-		return fmt.Errorf("coordination run_id is required")
-	}
-	if strings.TrimSpace(req.SourcePackageID) == "" {
-		return fmt.Errorf("coordination source_package_id is required")
-	}
-	switch req.Operation {
-	case CoordinationNeedInfo, CoordinationDelegate, CoordinationArtifactRequest, CoordinationReviewRequest:
-	default:
-		return fmt.Errorf("unsupported coordination operation %q", req.Operation)
-	}
-	if strings.TrimSpace(req.Subject) == "" {
-		return fmt.Errorf("coordination subject is required")
-	}
-	if req.Operation == CoordinationDelegate && strings.TrimSpace(req.Objective) == "" {
-		return fmt.Errorf("DELEGATE coordination requires objective")
+	if err := sdkcoordination.ValidateCoordinationRequest(req); err != nil {
+		return err
 	}
 	for name, value := range map[string]string{
 		"subject":            req.Subject,
@@ -136,74 +73,36 @@ func ValidateCoordinationRequest(req CoordinationRequest) error {
 		"preferred_role":     req.PreferredRole,
 		"preferred_provider": req.PreferredProvider,
 	} {
-		limit := maxCoordinationPreferenceBytes
-		switch name {
-		case "subject":
-			limit = maxCoordinationSubjectBytes
-		case "objective":
-			limit = maxCoordinationObjectiveBytes
-		}
-		if err := validateCoordinationString(name, value, limit); err != nil {
-			return err
+		if isCoordinationTemplatePlaceholder(value) {
+			return fmt.Errorf("coordination %s must contain a concrete value, not a template placeholder", name)
 		}
 	}
-	if err := validateCoordinationList("required_capabilities", req.RequiredCapabilities); err != nil {
-		return err
-	}
-	if err := validateCoordinationList("artifact_refs", req.ArtifactRefs); err != nil {
-		return err
-	}
-	switch req.Status {
-	case CoordinationPending, CoordinationResolved, CoordinationRejected, CoordinationFailed, CoordinationCanceled:
-	default:
-		return fmt.Errorf("unsupported coordination status %q", req.Status)
+	for name, values := range map[string][]string{
+		"required_capabilities": req.RequiredCapabilities,
+		"artifact_refs":         req.ArtifactRefs,
+	} {
+		for _, value := range values {
+			if isCoordinationTemplatePlaceholder(value) {
+				return fmt.Errorf("coordination %s must contain concrete values, not template placeholders", name)
+			}
+		}
 	}
 	return nil
 }
 
 func coordinationSemanticallyEqual(left, right CoordinationRequest) bool {
-	return left.RunID == right.RunID &&
-		left.SourcePackageID == right.SourcePackageID &&
-		left.SourceAgentID == right.SourceAgentID &&
-		left.Operation == right.Operation &&
-		left.Subject == right.Subject &&
-		left.Objective == right.Objective &&
-		left.PreferredRole == right.PreferredRole &&
-		left.PreferredProvider == right.PreferredProvider &&
-		slices.Equal(left.RequiredCapabilities, right.RequiredCapabilities) &&
-		slices.Equal(left.ArtifactRefs, right.ArtifactRefs)
+	return sdkcoordination.SemanticallyEqual(left, right)
 }
 
 func cloneCoordinationRequest(in CoordinationRequest) CoordinationRequest {
-	out := in
-	out.RequiredCapabilities = append([]string(nil), in.RequiredCapabilities...)
-	out.ArtifactRefs = append([]string(nil), in.ArtifactRefs...)
-	return out
+	return sdkcoordination.CloneRequest(in)
 }
 
 // SubmitCoordinationRequest durably appends a validated request to the owning
 // MissionRun. Replaying the same request ID is idempotent only when the
 // semantic request is unchanged.
 func coordinationRequestID(req CoordinationRequest) string {
-	payload, _ := json.Marshal(struct {
-		RunID                string                `json:"run_id"`
-		SourcePackageID      string                `json:"source_package_id"`
-		SourceAgentID        string                `json:"source_agent_id,omitempty"`
-		Operation            CoordinationOperation `json:"operation"`
-		Subject              string                `json:"subject"`
-		Objective            string                `json:"objective,omitempty"`
-		PreferredRole        string                `json:"preferred_role,omitempty"`
-		PreferredProvider    string                `json:"preferred_provider,omitempty"`
-		RequiredCapabilities []string              `json:"required_capabilities,omitempty"`
-		ArtifactRefs         []string              `json:"artifact_refs,omitempty"`
-	}{
-		RunID: req.RunID, SourcePackageID: req.SourcePackageID, SourceAgentID: req.SourceAgentID,
-		Operation: req.Operation, Subject: strings.TrimSpace(req.Subject), Objective: strings.TrimSpace(req.Objective),
-		PreferredRole: strings.TrimSpace(req.PreferredRole), PreferredProvider: strings.TrimSpace(req.PreferredProvider),
-		RequiredCapabilities: req.RequiredCapabilities, ArtifactRefs: req.ArtifactRefs,
-	})
-	sum := sha256.Sum256(payload)
-	return "coordreq_" + hex.EncodeToString(sum[:8])
+	return sdkcoordination.RequestID(req)
 }
 
 func appendCoordinationRequestInRun(run *MissionRun, req CoordinationRequest) (*CoordinationRequest, error) {

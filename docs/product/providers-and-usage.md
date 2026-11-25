@@ -45,7 +45,7 @@ Não confundir **quota**, saúde de autenticação, incidentes do serviço, cons
 - `PREFER`: tenta a escolha preferida, permitindo fallback quando a política o autoriza.
 - `AUTO`: considera os recursos elegíveis, com tratamento próprio para quota opaca; não fabrica percentuais.
 
-Veja [resource routing](../architecture/resource-routing.md). `UNKNOWN` deve permanecer distinto de `UNSUPPORTED`, que pode permitir execução quando o recurso está saudável e a política admite capacidade opaca.
+Veja [resource routing](../architecture/resource-routing.md). `UNKNOWN` e `UNSUPPORTED` continuam distintos para diagnóstico. Ambos, assim como `ERROR` e `ESTIMATED`, impedem seleção automática sem evidência confiável; uma escolha explícita permanece sujeita às políticas de saúde e autorização.
 
 ## Monitor de capacidade e previsão
 

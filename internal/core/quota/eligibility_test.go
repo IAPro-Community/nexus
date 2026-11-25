@@ -1,6 +1,7 @@
 package quota
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -31,6 +32,16 @@ func TestEvaluateEligibilityGates(t *testing.T) {
 			ok:   false,
 		},
 		{
+			name: "current authentication gate takes precedence over stale quota",
+			in: EligibilityInput{
+				View:          QuotaView{Status: "LIVE", Available: true, FetchedAt: time.Now().Add(-25 * 24 * time.Hour)},
+				Authenticated: false,
+				Health:        "healthy",
+			},
+			want: ReasonNotAuthenticated,
+			ok:   false,
+		},
+		{
 			name: "outdated official rate limit is no longer a current block",
 			in: EligibilityInput{
 				View:          QuotaView{Status: "RATE_LIMITED", Available: false, FetchedAt: time.Now().Add(-25 * 24 * time.Hour), AvailReasons: AvailReasons{RateLimited: true}},
@@ -41,14 +52,14 @@ func TestEvaluateEligibilityGates(t *testing.T) {
 			ok:   false,
 		},
 		{
-			name: "fresh estimate still eligible when all other gates pass",
+			name: "fresh estimate does not authorize automatic routing",
 			in: EligibilityInput{
 				View:          QuotaView{Status: "ESTIMATED", Available: true, FetchedAt: time.Now().Add(-1 * time.Minute)},
 				Authenticated: true,
 				Health:        "healthy",
 			},
-			want: ReasonOK,
-			ok:   true,
+			want: ReasonUnknownQuota,
+			ok:   false,
 		},
 		{
 			name: "unknown auto",
@@ -100,14 +111,35 @@ func TestEvaluateEligibilityGates(t *testing.T) {
 			ok:   true,
 		},
 		{
-			name: "unsupported auto remains operationally eligible",
+			name: "unsupported quota cannot authorize automatic routing",
 			in: EligibilityInput{
 				View:          QuotaView{Status: "UNSUPPORTED", Available: false, AvailReasons: AvailReasons{UnknownQuota: true}},
 				Authenticated: true,
 				Health:        "healthy",
 			},
 			want: ReasonUnsupportedQuota,
+			ok:   false,
+		},
+		{
+			name: "unsupported quota allows explicit selection",
+			in: EligibilityInput{
+				View:              QuotaView{Status: "UNSUPPORTED", Available: false, AvailReasons: AvailReasons{UnknownQuota: true}},
+				Authenticated:     true,
+				Health:            "healthy",
+				ExplicitSelection: true,
+			},
+			want: ReasonUnsupportedQuota,
 			ok:   true,
+		},
+		{
+			name: "auth-required reason overrides unsupported quota",
+			in: EligibilityInput{
+				View:          QuotaView{Status: "UNSUPPORTED", Available: false, AvailReasons: AvailReasons{AuthRequired: true, UnknownQuota: true}},
+				Authenticated: true,
+				Health:        "healthy",
+			},
+			want: ReasonUnavailable,
+			ok:   false,
 		},
 		{
 			name: "unavailable",
@@ -126,6 +158,22 @@ func TestEvaluateEligibilityGates(t *testing.T) {
 			ok:   false,
 		},
 		{
+			name: "rate-limited health blocks measured quota",
+			in:   EligibilityInput{View: live, Authenticated: true, Health: "rate_limited"},
+			want: ReasonRateLimited,
+			ok:   false,
+		},
+		{
+			name: "error status cannot be routed despite cached availability",
+			in: EligibilityInput{
+				View:          QuotaView{Status: "ERROR", Available: true, FetchedAt: time.Now()},
+				Authenticated: true,
+				Health:        "healthy",
+			},
+			want: ReasonUnavailable,
+			ok:   false,
+		},
+		{
 			name: "degraded still eligible",
 			in:   EligibilityInput{View: live, Authenticated: true, Health: "degraded"},
 			want: ReasonOK,
@@ -139,8 +187,11 @@ func TestEvaluateEligibilityGates(t *testing.T) {
 			if got.Reason != tc.want || got.Eligible != tc.ok {
 				t.Fatalf("got eligible=%v reason=%s want eligible=%v reason=%s", got.Eligible, got.Reason, tc.ok, tc.want)
 			}
-			if tc.name == "unsupported auto remains operationally eligible" && got.CapacityEvidence != "OPAQUE" {
+			if strings.Contains(tc.name, "unsupported quota") && got.CapacityEvidence != "OPAQUE" {
 				t.Fatalf("unsupported capacity evidence=%q want OPAQUE", got.CapacityEvidence)
+			}
+			if strings.Contains(tc.name, "fresh estimate") && got.CapacityEvidence != "UNKNOWN" {
+				t.Fatalf("estimated capacity evidence=%q want UNKNOWN", got.CapacityEvidence)
 			}
 			if tc.name == "unknown auto" && got.CapacityEvidence != "UNKNOWN" {
 				t.Fatalf("unknown capacity evidence=%q want UNKNOWN", got.CapacityEvidence)

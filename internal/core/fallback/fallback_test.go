@@ -3,7 +3,6 @@ package fallback
 import (
 	"context"
 	"errors"
-	"strings"
 	"testing"
 	"time"
 
@@ -83,12 +82,12 @@ func TestFallbackExecution(t *testing.T) {
 	if err2 == nil {
 		t.Fatalf("expected error when all candidates fail")
 	}
-	if !strings.Contains(err2.Error(), "no fallback profiles available") && !strings.Contains(err2.Error(), "exhausted") && !strings.Contains(err2.Error(), "no usable codex profiles") {
+	if !errors.Is(err2, ErrFallbackUnsafeReplay) || !errors.Is(err2, ErrFallbackRateLimited) {
 		t.Fatalf("unexpected error message: %v", err2)
 	}
 }
 
-func TestRunWithFallbackStrategyRotatesAfterQuotaFailure(t *testing.T) {
+func TestRunWithFallbackStrategyRefusesAmbiguousQuotaReplay(t *testing.T) {
 	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
 	t.Setenv("AI_CLI_DATA_DIR", t.TempDir())
 	t.Setenv("AI_CLI_STATE_DIR", t.TempDir())
@@ -121,10 +120,10 @@ func TestRunWithFallbackStrategyRotatesAfterQuotaFailure(t *testing.T) {
 		}
 		return model.Failure{Kind: model.FailureNone}, nil
 	})
-	if err != nil {
-		t.Fatal(err)
+	if !errors.Is(err, ErrFallbackUnsafeReplay) || !errors.Is(err, ErrFallbackQuotaExhausted) {
+		t.Fatalf("expected quota retry refusal with typed cause, got %v", err)
 	}
-	if len(attempted) != 2 || attempted[0] != "account-a" || attempted[1] != "account-b" {
-		t.Fatalf("balanced fallback order = %v, want [account-a account-b]", attempted)
+	if len(attempted) != 1 || attempted[0] != "account-a" {
+		t.Fatalf("provider operation must be dispatched once, got %v", attempted)
 	}
 }

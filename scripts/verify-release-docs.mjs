@@ -32,6 +32,9 @@ const windows = read('.github/workflows/windows-beta10-homologation.yml').match(
 if (!windows || !platform.includes('`' + windows[1] + '`')) errors.push('Windows workflow Go version is not documented');
 const linux = read('.github/workflows/ci.yml').match(/go-version:\s*'([\d.]+)'/);
 if (!linux || !platform.includes('`' + linux[1] + '`')) errors.push('Linux CI Go version is not documented');
+const sdk = go.match(/github\.com\/IAPro-Community\/IAPro-SDK\s+(\S+)/);
+if (sdk && !notices.includes('| `github.com/IAPro-Community/IAPro-SDK` | `' + sdk[1] + '` |')) errors.push('IAPro-SDK pin missing from third party notices');
+if (sdk && !notices.includes('revisão `aa2c954657a2853a3ca7cfc0c7ff64d29b5c9f18`')) errors.push('IAPro-SDK license/NOTICE evidence missing');
 if (!hud.includes('release/v1.0.0')) errors.push('HUD doc must reference canonical release branch');
 if (web.version !== read('VERSION').trim()) errors.push('Web/source VERSION mismatch');
 if (read('README.md').includes('O repositório continua privado')) errors.push('README has stale repository visibility claim');

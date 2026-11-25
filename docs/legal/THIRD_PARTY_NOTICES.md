@@ -13,6 +13,7 @@
 
 | Módulo | Versão |
 | --- | --- |
+| `github.com/IAPro-Community/IAPro-SDK` | `v0.0.0-20261125013959-aa2c954657a2` |
 | `github.com/Microsoft/go-winio` | `v0.6.2` |
 | `github.com/Xuanwo/go-locale` | `v1.1.3` |
 | `github.com/charmbracelet/bubbles` | `v0.21.1` |
@@ -27,6 +28,12 @@
 | `golang.org/x/term` | `v0.45.0` |
 | `golang.org/x/text` | `v0.41.0` |
 | `modernc.org/sqlite` | `v1.57.0` |
+
+**IAPro-SDK:** o módulo fixado declara MIT e inclui `LICENSE` e `NOTICE` no
+source da revisão `aa2c954657a2853a3ca7cfc0c7ff64d29b5c9f18`. O `NOTICE`
+atribui os trechos compartilhados ao Nexus e mantém aberta a revisão de
+procedência (#74). Este inventário registra a dependência; não substitui a
+inclusão dos avisos exigidos nos artefatos distribuídos nem aprovação jurídica.
 
 **Wails atual:** `github.com/wailsapp/wails/v3 v3.0.0-beta.25` (não Wails v2). O conjunto de bibliotecas transitorias, bindings nativos e demais obrigações deve ser revisto a partir do lock/build do SHA final.
 

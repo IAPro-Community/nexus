@@ -124,7 +124,7 @@ SUBCOMMANDS:
   web [--port <port>] [--no-open] [--listen <ip>] [--remote]
                                 Open browser-based Web Workspace OS
                                 Default port: 13000 (override with NEXUS_WEB_PORT env var)
-                                Registers nexus.dev in /etc/hosts for local name resolution
+                                Serves loopback UI (nexus.localhost alias; optional /etc/hosts with NEXUS_ENABLE_HOSTS_FILE=1)
   web open                      Reopen the running Web UI from any terminal
   web url                       Print the current Web UI URL (with auth token if needed)
 
@@ -480,6 +480,7 @@ func controlStartCmd(args []string) error {
 		accounts,
 		launcher.LaunchOptions{Args: extraArgs},
 		os.Stderr,
+		cfg.AutomaticFallback,
 		balanced,
 	)
 	if err != nil {

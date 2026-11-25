@@ -19,10 +19,14 @@ the actual provider/profile/model when durable routing evidence is available.
 
 ## Normal unattended behavior
 
-Provider quota/rate-limit failure may select a fallback resource without
-changing the Agent identity or desired affinity. Review changes are normal
-remediation, not `NEEDS_YOU`. Restart resumes persisted phase/package state;
-completed packages are not dispatched again.
+Provider quota/rate-limit failure reported after dispatch does not trigger an
+automatic retry or account switch: the provider may have emitted partial work
+or external effects, and Nexus currently has no provider receipt proving
+otherwise. The run pauses for reconciliation while retaining runtime and
+dispatch evidence. Only a failure proven to occur before dispatch may enter
+automatic account selection. Review changes are normal remediation, not
+`NEEDS_YOU`. Restart resumes persisted phase/package state; completed packages
+are not dispatched again.
 
 ## Human attention
 

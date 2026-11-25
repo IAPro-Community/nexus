@@ -68,7 +68,8 @@ are not treated as the sandbox boundary.
 Semantics:
 
 - `UNKNOWN` → missing/untrusted evidence; ineligible for automatic allocation. Explicit/manual may proceed with a warning when the caller intentionally overrides the uncertainty.
-- `UNSUPPORTED` → the provider does not expose a trustworthy quota metric. If authentication, health, cooldown and rate-limit gates pass, the resource remains operationally eligible with `capacity_evidence=OPAQUE`; it receives no synthetic capacity percentage and ranks below measured positive capacity.
+- `UNSUPPORTED` → the provider does not expose a trustworthy quota metric. Automatic selection rejects the account because quota availability cannot be verified. A user may explicitly select it where the product flow permits, with `capacity_evidence=OPAQUE`; it receives no synthetic capacity percentage.
+- `ESTIMATED` → a recent estimate remains useful for display, but does not authorize automatic account selection. Explicit selection remains available where the product flow permits and is labeled as estimated.
 - Missing percent never becomes synthetic `0%` or `100%`.
 
 ## Eligibility

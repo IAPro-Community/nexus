@@ -173,6 +173,7 @@ func executeProviderSupervised(provName, explicitProfile string, args []string, 
 			Labels:     supervisedRuntimeLabels(args),
 		},
 		os.Stderr,
+		cfg.AutomaticFallback,
 		balanced,
 	)
 	if err != nil {

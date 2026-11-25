@@ -1197,7 +1197,13 @@ func (r *MissionRunner) executeOne(ctx context.Context, run *MissionRun, pkg *Pa
 		if outcome.RuntimeID != "" && outcome.Failure.Kind != model.FailureNone {
 			pkg.AssignedRuntime = outcome.RuntimeID
 			finishDispatch(pkg, DispatchFailed)
-			return fmt.Errorf("execution failed: %w", err)
+			pkg.ReplayProhibited = true
+			message := fmt.Sprintf("provider %s reported %s after dispatch, but supplied no evidence that output and external effects were absent; automatic replay is prohibited: %v", outcome.RuntimeID, outcome.Failure.Kind, err)
+			pkg.ErrorMessage = message
+			r.blockNeedsHuman(run, pkg, "PROVIDER_FAILURE_REPLAY_UNPROVEN", message,
+				"Reconcile the provider and workspace outcome before deciding whether to continue.",
+				[]string{"Inspect provider runtime and workspace", "Confirm whether external effects occurred", "Resume only with an explicit recovery plan"})
+			return fmt.Errorf("%w: %s", ErrDispatchOutcomeUnknown, message)
 		}
 		finishDispatch(pkg, dispatchOutcome(err))
 		if pkg.DispatchState == DispatchUnknownExternalOutcome {
@@ -1316,12 +1322,14 @@ func (r *MissionRunner) executeParallelGroup(ctx context.Context, run *MissionRu
 			if res.outcome.RuntimeID != "" && res.outcome.Failure.Kind != model.FailureNone {
 				pkg.AssignedRuntime = res.outcome.RuntimeID
 				finishDispatch(pkg, DispatchFailed)
-				retryFrom := StateCompiling
-				if isQuotaOrRateLimitFailure(pkg.FailureKind) {
-					retryFrom = StateAllocating
-				}
-				if err := r.markRemediation(run, pkg, retryFrom, "Execution failed: "+res.err.Error()); err != nil && firstErr == nil {
-					firstErr = err
+				pkg.ReplayProhibited = true
+				message := fmt.Sprintf("provider %s reported %s after dispatch, but supplied no evidence that output and external effects were absent; automatic replay is prohibited: %v", res.outcome.RuntimeID, res.outcome.Failure.Kind, res.err)
+				pkg.ErrorMessage = message
+				r.blockNeedsHuman(run, pkg, "PROVIDER_FAILURE_REPLAY_UNPROVEN", message,
+					"Reconcile the provider and workspace outcome before deciding whether to continue.",
+					[]string{"Inspect provider runtime and workspace", "Confirm whether external effects occurred", "Resume only with an explicit recovery plan"})
+				if firstErr == nil {
+					firstErr = fmt.Errorf("%w: %s", ErrDispatchOutcomeUnknown, message)
 				}
 				continue
 			}

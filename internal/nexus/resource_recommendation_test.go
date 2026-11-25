@@ -524,7 +524,7 @@ func TestAccountSupportsHeadlessReview(t *testing.T) {
 	}
 }
 
-func TestResourceRecommendation_UnsupportedQuotaRemainsOpaqueCandidate(t *testing.T) {
+func TestResourceRecommendation_RejectsUnsupportedQuotaForAutomaticChoice(t *testing.T) {
 	opaque := ProviderAccount{
 		ID:            "opencode-default",
 		Provider:      "opencode",
@@ -541,13 +541,10 @@ func TestResourceRecommendation_UnsupportedQuotaRemainsOpaqueCandidate(t *testin
 		Health:       "healthy",
 	}
 	res := RecommendResources([]ProviderAccount{opaque}, TaskRequirements{TaskKind: "coding"}, PolicyBalanced)
-	if res.Recommended == nil || res.Recommended.Account.ID != opaque.ID {
-		t.Fatalf("healthy authenticated opaque resource must remain recommendable, got %#v", res.Recommended)
+	if res.Recommended != nil {
+		t.Fatalf("unsupported quota must not authorize automatic recommendation: %+v", res.Recommended)
 	}
-	if res.Recommended.Confidence != "UNSUPPORTED" {
-		t.Fatalf("opaque resource confidence=%q want UNSUPPORTED", res.Recommended.Confidence)
-	}
-	if got := res.Recommended.ScoreBreakdown["quota"]; got != 5 {
-		t.Fatalf("opaque resource quota score=%v want 5 (bounded below measured capacity)", got)
+	if len(res.Candidates) != 1 || res.Candidates[0].Eligible || !strings.Contains(res.Candidates[0].RejectionReason, "Quota não suportada") {
+		t.Fatalf("expected explicit unsupported-quota rejection, got %+v", res.Candidates)
 	}
 }

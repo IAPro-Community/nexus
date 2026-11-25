@@ -11,7 +11,6 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/cooldown"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
-	"github.com/IAPro-Community/nexus/internal/core/telemetry"
 )
 
 // CandidateEvaluation holds the scoring breakdown for a single candidate profile.
@@ -184,47 +183,9 @@ func (s *Selector) SelectBestProfile(ctx context.Context, provider string, works
 		}, fmt.Errorf("no usable %s profiles available: %s", provider, strings.Join(rejectSummaries, ", "))
 	}
 
-	// Prefer current provider evidence, but do not discard attributable
-	// ESTIMATED observations. When every healthy account only has a last-known
-	// estimate, ranking those estimates is more informative than unrelated LRU.
-	// Opaque UNSUPPORTED quota remains operationally eligible but has no
-	// capacity meaning. When every eligible account lacks measured evidence,
-	// use LRU instead of inventing a percentage. UNKNOWN remains fail-closed
-	// in quota.EvaluateEligibility.
-	hasCurrentQuotaEvidence := false
-	hasEstimatedQuotaEvidence := false
-	for _, ev := range eligible {
-		if len(ev.Usage.Windows) == 0 {
-			continue
-		}
-		switch quotaEvidenceRank(ev.Usage.Status) {
-		case 2:
-			hasCurrentQuotaEvidence = true
-		case 1:
-			hasEstimatedQuotaEvidence = true
-		}
-	}
-	if !hasCurrentQuotaEvidence && !hasEstimatedQuotaEvidence {
-		lastUsed := selectedAt(provider)
-		sort.SliceStable(eligible, func(i, j int) bool {
-			left, right := lastUsed[eligible[i].Profile.Name], lastUsed[eligible[j].Profile.Name]
-			if !left.Equal(right) {
-				return left.Before(right)
-			}
-			return eligible[i].Profile.Name < eligible[j].Profile.Name
-		})
-		best := eligible[0]
-		return &SelectionResult{SelectedProfile: &best.Profile, Reason: "quota opaque/unmeasured; LRU among healthy authenticated profiles", Evaluations: evals}, nil
-	}
-
-	// Evidence freshness is a hard ordering dimension: LIVE/CACHED always beats
-	// ESTIMATED, then the existing capacity/priority score decides within a tier.
+	// Only recent LIVE/CACHED quota observations can reach this automatic
+	// ranking. Capacity and existing priority determine ranking within that tier.
 	sort.Slice(eligible, func(i, j int) bool {
-		iRank := quotaEvidenceRank(eligible[i].Usage.Status)
-		jRank := quotaEvidenceRank(eligible[j].Usage.Status)
-		if iRank != jRank {
-			return iRank > jRank
-		}
 		if eligible[i].Score != eligible[j].Score {
 			return eligible[i].Score > eligible[j].Score
 		}
@@ -236,42 +197,11 @@ func (s *Selector) SelectBestProfile(ctx context.Context, provider string, works
 	if reason == "" {
 		reason = "highest available score"
 	}
-	if !hasCurrentQuotaEvidence && hasEstimatedQuotaEvidence {
-		reason = "estimated quota; " + reason
-	}
-
 	return &SelectionResult{
 		SelectedProfile: &best.Profile,
 		Reason:          reason,
 		Evaluations:     evals,
 	}, nil
-}
-
-func quotaEvidenceRank(status model.UsageStatus) int {
-	switch status {
-	case model.UsageLive, model.UsageCached:
-		return 2
-	case model.UsageEstimated:
-		return 1
-	default:
-		return 0
-	}
-}
-
-func selectedAt(provider string) map[string]time.Time {
-	result := make(map[string]time.Time)
-	events, err := telemetry.ReadRecentEvents(0)
-	if err != nil {
-		return result
-	}
-	for _, ev := range events {
-		if ev.Type == telemetry.EventProfileSelected && ev.ProviderID == provider {
-			if old, ok := result[ev.ProfileID]; !ok || ev.Timestamp.After(old) {
-				result[ev.ProfileID] = ev.Timestamp
-			}
-		}
-	}
-	return result
 }
 
 // EvaluateAll scores all candidate profiles for a provider.

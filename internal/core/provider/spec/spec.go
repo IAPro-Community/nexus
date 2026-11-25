@@ -4,123 +4,128 @@ import (
 	"fmt"
 	"strings"
 
+	sdkprovider "github.com/IAPro-Community/IAPro-SDK/providers/spec"
 	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
-// QuotaSource describes how a provider obtains attributable usage data.
-type QuotaSource string
-type IsolationGuarantee string
+type QuotaSource = sdkprovider.QuotaSource
+type IsolationGuarantee = sdkprovider.IsolationGuarantee
 
 const (
-	IsolationUnverified              IsolationGuarantee = "UNVERIFIED"
-	IsolationWorkspaceWriteNoNetwork IsolationGuarantee = "WORKSPACE_WRITE_NO_NETWORK"
-	IsolationReadOnlyNoNetwork       IsolationGuarantee = "READ_ONLY_NO_NETWORK"
+	IsolationUnverified              = sdkprovider.IsolationUnverified
+	IsolationWorkspaceWriteNoNetwork = sdkprovider.IsolationWorkspaceWriteNoNetwork
+	IsolationReadOnlyNoNetwork       = sdkprovider.IsolationReadOnlyNoNetwork
 
-	QuotaLiveHTTP    QuotaSource = "LIVE_HTTP"
-	QuotaLiveRPC     QuotaSource = "LIVE_RPC"
-	QuotaLiveCLI     QuotaSource = "LIVE_CLI"
-	QuotaUnsupported QuotaSource = "UNSUPPORTED"
+	QuotaLiveHTTP    = sdkprovider.QuotaLiveHTTP
+	QuotaLiveRPC     = sdkprovider.QuotaLiveRPC
+	QuotaLiveCLI     = sdkprovider.QuotaLiveCLI
+	QuotaUnsupported = sdkprovider.QuotaUnsupported
 )
 
-// FlagTable maps canonical Nexus aliases to provider-native flags.
-type FlagTable map[string]CanonicalAlias
+type FlagTable = sdkprovider.FlagTable
 
-// Spec is the single source of truth for a provider's binary, env, flags and
-// mission launch contracts. Adapters, drivers and mission execution must derive
-// from Spec instead of maintaining parallel tables.
+// Spec embeds the SDK contract. Its methods below preserve Nexus's injectable
+// executable lookup and host-specific environment isolation.
 type Spec struct {
-	ID                  string
-	BinaryCandidates    []string
-	EnvKeys             func(profileHome, binDir, profileName string) map[string]string
-	EnvDelete           []string
-	Flags               FlagTable
-	Kickoff             func(prompt string) []string
-	Resume              func(sessionID string) []string
-	AutoApproval        []string
-	ReviewMode          []string
-	AutonomousIsolation IsolationGuarantee
-	ReviewIsolation     IsolationGuarantee
-	// ClearLine is the provider-native control sequence used before a prompt
-	// promoted from an interactive terminal is replaced by Nexus' banner.
-	ClearLine     string
-	Quota         QuotaSource
-	KnownVersions []string
+	sdkprovider.Spec
 }
 
-var registry = map[string]Spec{
-	"agy":      agySpec,
-	"claude":   claudeSpec,
-	"codex":    codexSpec,
-	"cursor":   cursorSpec,
-	"gemini":   geminiSpec,
-	"opencode": opencodeSpec,
-	"zcode":    zcodeSpec,
-}
+// BinaryLookPath remains injectable for hermetic adapter tests.
+var BinaryLookPath = runtime.LookPath
 
-var orderedIDs = []string{"agy", "claude", "codex", "cursor", "gemini", "opencode", "zcode"}
-
-func (s Spec) AutonomousIsolationLevel() IsolationGuarantee {
-	if s.AutonomousIsolation == "" {
-		return IsolationUnverified
+func adaptSDKSpec(source sdkprovider.Spec) Spec {
+	originalEnv := source.EnvKeys
+	source.EnvKeys = func(profileHome, binDir, profileName string) map[string]string {
+		env := originalEnv(profileHome, binDir, profileName)
+		if source.ID == "agy" {
+			internalBin, _ := runtime.InternalBinDir()
+			pathBins := make([]string, 0, 2)
+			if strings.TrimSpace(internalBin) != "" {
+				pathBins = append(pathBins, internalBin)
+			}
+			if strings.TrimSpace(binDir) != "" {
+				pathBins = append(pathBins, binDir)
+			}
+			env["PATH"] = runtime.EnhancedPATH(pathBins...)
+			if strings.TrimSpace(internalBin) != "" {
+				env["BROWSER"] = runtime.BrowserHelperPath(internalBin)
+			} else if strings.TrimSpace(binDir) != "" {
+				env["BROWSER"] = runtime.BrowserHelperPath(binDir)
+			}
+		} else {
+			env["PATH"] = runtime.EnhancedPATH(binDir)
+		}
+		if source.ID == "codex" {
+			env[runtime.EnvCodexDisableKeyboardEnhancement] = "1"
+		}
+		return env
 	}
-	return s.AutonomousIsolation
+	return Spec{Spec: source}
 }
 
-func (s Spec) ReviewIsolationLevel() IsolationGuarantee {
-	if s.ReviewIsolation == "" {
-		return IsolationUnverified
-	}
-	return s.ReviewIsolation
-}
-
-// Get returns the Spec for a provider id.
 func Get(id string) (Spec, bool) {
-	value, ok := registry[strings.ToLower(strings.TrimSpace(id))]
-	return value, ok
+	id = strings.ToLower(strings.TrimSpace(id))
+	if id == "zcode" {
+		return cloneLocalSpec(zcodeSpec), true
+	}
+	shared, ok := sdkprovider.Get(id)
+	if !ok {
+		return Spec{}, false
+	}
+	return adaptSDKSpec(shared), true
 }
 
-// MustGet returns the Spec or panics.
 func MustGet(id string) Spec {
-	value, ok := Get(id)
+	spec, ok := Get(id)
 	if !ok {
 		panic(fmt.Sprintf("unknown provider spec %q", id))
 	}
-	return value
+	return spec
 }
 
-// All returns Specs in stable order.
 func All() []Spec {
-	result := make([]Spec, 0, len(orderedIDs))
-	for _, id := range orderedIDs {
-		result = append(result, registry[id])
+	shared := sdkprovider.All()
+	result := make([]Spec, 0, len(shared)+1)
+	for _, item := range shared {
+		result = append(result, adaptSDKSpec(item))
 	}
+	result = append(result, cloneLocalSpec(zcodeSpec))
 	return result
 }
 
-// BinaryLookPath resolves provider binaries. It defaults to the
-// PATH-plus-developer-dirs lookup and is a variable (not a direct call) so
-// tests can stub binary presence without depending on host state.
-var BinaryLookPath = runtime.LookPath
+func (s Spec) AutonomousIsolationLevel() IsolationGuarantee {
+	return s.Spec.AutonomousIsolationLevel()
+}
 
-// ResolveBinary tries BinaryCandidates via BinaryLookPath.
+func (s Spec) ReviewIsolationLevel() IsolationGuarantee {
+	return s.Spec.ReviewIsolationLevel()
+}
+
 func (s Spec) ResolveBinary() (string, error) {
 	for _, candidate := range s.BinaryCandidates {
-		if bin, err := BinaryLookPath(candidate); err == nil {
-			return bin, nil
+		if path, err := BinaryLookPath(candidate); err == nil {
+			return path, nil
 		}
 	}
 	return "", fmt.Errorf("%s binary not found (tried %s)", s.ID, strings.Join(s.BinaryCandidates, ", "))
 }
 
-// OverlayEnv applies Spec env keys and deletions onto base.
 func (s Spec) OverlayEnv(base []string, profileHome, binDir, profileName string) []string {
 	if s.EnvKeys == nil {
 		return append([]string(nil), base...)
 	}
-	return overlayEnv(base, s.EnvKeys(profileHome, binDir, profileName), s.EnvDelete)
+	return overlayEnv(base, profileHome, s.EnvKeys(profileHome, binDir, profileName), s.EnvDelete)
 }
 
-// NormalizeFlags maps canonical aliases for this provider.
 func (s Spec) NormalizeFlags(args []string) []string {
 	return Normalize(s.ID, args, nil)
+}
+
+func cloneLocalSpec(spec Spec) Spec {
+	spec.BinaryCandidates = append([]string(nil), spec.BinaryCandidates...)
+	spec.EnvDelete = append([]string(nil), spec.EnvDelete...)
+	spec.AutoApproval = append([]string(nil), spec.AutoApproval...)
+	spec.ReviewMode = append([]string(nil), spec.ReviewMode...)
+	spec.KnownVersions = append([]string(nil), spec.KnownVersions...)
+	return spec
 }

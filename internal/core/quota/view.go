@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	sdkquota "github.com/IAPro-Community/IAPro-SDK/quota"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
@@ -36,120 +37,43 @@ type AvailReasons struct {
 // ModelGroup clusters usage windows by model family.
 // A provider like AGY exposes two groups (Gemini, Claude/GPT).
 // Simpler providers have a single unnamed group.
-type ModelGroup struct {
-	Key     string   `json:"key,omitempty"` // stable identity: gemini, claude_gpt, …
-	Name    string   `json:"name"`
-	Windows []Window `json:"windows"`
-}
+type ModelGroup = sdkquota.ModelGroup
 
 // Window is a display-ready usage window within a model group.
-type Window struct {
-	Kind      string     `json:"kind"`
-	Label     string     `json:"label"`
-	Remaining float64    `json:"remaining"`
-	ResetDesc string     `json:"reset_desc"`
-	ResetTime *time.Time `json:"reset_time,omitempty"`
-	Status    string     `json:"status"`
-	Bar       string     `json:"bar"`
-}
+type Window = sdkquota.Window
 
 // Bottleneck returns the minimum remaining percentage across ALL windows and groups.
 // The second return value identifies the bottleneck window kind.
 // This is the tightest window for warnings ("Gemini 5h 0%"), not the account score.
 // Prefer BestGroupRemaining for scheduling / quota_remaining.
 func (qv *QuotaView) Bottleneck() (float64, string) {
-	minPct := 100.0
-	var bottleneckKind string
-	found := false
-	now := time.Now()
-	for _, g := range qv.ModelGroups {
-		for _, w := range g.Windows {
-			if w.Kind == "unknown" || windowExpired(w, now) {
-				continue
-			}
-			found = true
-			if bottleneckKind == "" || w.Remaining < minPct {
-				minPct = w.Remaining
-				bottleneckKind = w.Kind
-			}
-		}
-	}
-	if !found {
-		return 0, ""
-	}
-	return minPct, bottleneckKind
+	shared := sdkView(*qv)
+	return shared.Bottleneck()
 }
 
 // GroupRemaining returns the capacity of one model group: min of its known
 // windows (5h and weekly stack in the same pool). ok is false when the group
 // has no scorable windows. Windows whose reset time is already past are ignored
 // (the quota window has rolled over; stale used% must not look like exhaustion).
-func (g ModelGroup) GroupRemaining() (remaining float64, ok bool) {
-	minPct := 100.0
-	found := false
-	now := time.Now()
-	for _, w := range g.Windows {
-		if w.Kind == "unknown" || windowExpired(w, now) {
-			continue
-		}
-		found = true
-		if w.Remaining < minPct {
-			minPct = w.Remaining
-		}
-	}
-	if !found {
-		return 0, false
-	}
-	return minPct, true
-}
-
-func windowExpired(w Window, now time.Time) bool {
-	return w.ResetTime != nil && w.ResetTime.Before(now)
-}
-
 // BestGroupRemaining returns the best usable pool capacity: max of each
 // group's GroupRemaining. Independent families (AGY Gemini vs Claude) do not
 // cancel each other; a single-pool provider (Codex) collapses to min(5h, weekly).
 func (qv *QuotaView) BestGroupRemaining() (remaining float64, ok bool) {
-	best := 0.0
-	found := false
-	for _, g := range qv.ModelGroups {
-		rem, groupOK := g.GroupRemaining()
-		if !groupOK {
-			continue
-		}
-		if !found || rem > best {
-			best = rem
-			found = true
-		}
-	}
-	return best, found
+	shared := sdkView(*qv)
+	return shared.BestGroupRemaining()
 }
 
 // UsableGroupCount returns how many model groups still have capacity (> 0).
 func (qv *QuotaView) UsableGroupCount() int {
-	n := 0
-	for _, g := range qv.ModelGroups {
-		rem, ok := g.GroupRemaining()
-		if ok && rem > 0 {
-			n++
-		}
-	}
-	return n
+	shared := sdkView(*qv)
+	return shared.UsableGroupCount()
 }
 
 // TotalGroupRemaining sums each group's GroupRemaining (zeros included when
 // the group has scorable windows). Used with UsableGroupCount for scheduling.
 func (qv *QuotaView) TotalGroupRemaining() (total float64, groups int) {
-	for _, g := range qv.ModelGroups {
-		rem, ok := g.GroupRemaining()
-		if !ok {
-			continue
-		}
-		total += rem
-		groups++
-	}
-	return total, groups
+	shared := sdkView(*qv)
+	return shared.TotalGroupRemaining()
 }
 
 // EffectiveCapacityScore encodes "most available" for scheduling:
@@ -157,38 +81,16 @@ func (qv *QuotaView) TotalGroupRemaining() (total float64, groups int) {
 // Formula: usableGroups*100 + totalGroupRemaining/max(numGroups,1)
 // so AGY with 2 live families always beats AGY with 1 live family at 100%.
 func (qv *QuotaView) EffectiveCapacityScore() (score float64, ok bool) {
-	total, groups := qv.TotalGroupRemaining()
-	if groups == 0 {
-		return 0, false
-	}
-	avg := total / float64(groups)
-	return float64(qv.UsableGroupCount())*100.0 + avg, true
+	shared := sdkView(*qv)
+	return shared.EffectiveCapacityScore()
 }
 
 // EffectiveCapacityRatio normalizes the internal multi-pool ranking signal
 // to 0-1. It is not literal remaining quota and must not back public
 // quota_remaining fields; use BestGroupRemaining for that contract.
 func (qv *QuotaView) EffectiveCapacityRatio() (ratio float64, ok bool) {
-	score, ok := qv.EffectiveCapacityScore()
-	if !ok {
-		return 0, false
-	}
-	_, groups := qv.TotalGroupRemaining()
-	if groups == 0 {
-		return 0, false
-	}
-	maxScore := float64(groups)*100.0 + 100.0
-	if maxScore <= 0 {
-		return 0, false
-	}
-	ratio = score / maxScore
-	if ratio < 0 {
-		ratio = 0
-	}
-	if ratio > 1 {
-		ratio = 1
-	}
-	return ratio, true
+	shared := sdkView(*qv)
+	return shared.EffectiveCapacityRatio()
 }
 
 // CompactGroupSummary lists each group's capacity for compact UIs
@@ -295,80 +197,11 @@ func (qv *QuotaView) AvailabilityLabel() string {
 
 // ComputeAvailability analyzes all windows and sets Available + AvailReasons.
 func (qv *QuotaView) ComputeAvailability() {
-	var exhausted []string
-	qv.Available = true
-	qv.AvailReasons = AvailReasons{}
+	qv.computeAvailabilityAt(time.Now())
+}
 
-	// Check rate-limited status — hard filter.
-	if qv.Status == string(model.UsageRateLimited) {
-		qv.Available = false
-		qv.AvailReasons.RateLimited = true
-		return
-	}
-
-	// Check auth required — hard filter.
-	if qv.Status == "auth_required" {
-		qv.Available = false
-		qv.AvailReasons.AuthRequired = true
-		return
-	}
-
-	// Check UNKNOWN quota — hard gate for autopilot allocation.
-	if qv.Status == string(model.UsageUnknown) {
-		qv.Available = false
-		qv.AvailReasons.UnknownQuota = true
-		return
-	}
-
-	// Model groups are independent capacity pools. One usable group keeps the
-	// profile eligible; an AGY account with Gemini quota remains usable for a
-	// Gemini request even when its Claude/GPT pool is exhausted. The exhausted
-	// group is still exposed in AvailReasons for honest UI feedback.
-	usableGroup := false
-	now := time.Now()
-	for _, g := range qv.ModelGroups {
-		groupExhausted := false
-		hasScorable := false
-		onlyUnknownWindows := true
-		for _, w := range g.Windows {
-			if w.Kind == "unknown" {
-				continue
-			}
-			onlyUnknownWindows = false
-			if windowExpired(w, now) {
-				continue
-			}
-			hasScorable = true
-			if w.Remaining <= 0.0 {
-				exhausted = append(exhausted, w.Kind)
-				groupExhausted = true
-			}
-		}
-		if hasScorable && !groupExhausted {
-			usableGroup = true
-		}
-		// A group whose only measured windows have rolled over is treated as
-		// still usable (we lack current evidence of exhaustion). Pure unknown
-		// windows are not capacity evidence.
-		if !hasScorable && !onlyUnknownWindows {
-			usableGroup = true
-		}
-	}
-
-	if !usableGroup && len(exhausted) > 0 {
-		qv.Available = false
-		qv.AvailReasons.ExhaustedWindows = exhausted
-		return
-	}
-	if !usableGroup {
-		qv.Available = false
-		qv.AvailReasons.UnknownQuota = true
-		return
-	}
-
-	// Keep partial exhaustion visible even when another model group is usable.
-	qv.AvailReasons.ExhaustedWindows = exhausted
-	qv.AvailReasons.AllOK = len(exhausted) == 0
+func (qv *QuotaView) computeAvailabilityAt(now time.Time) {
+	applySDKAvailability(qv, now)
 }
 
 // RenderBar renders a progress bar for a given remaining percentage.

@@ -1,204 +1,109 @@
 package classifier
 
 import (
+	"errors"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	sdkclassifier "github.com/IAPro-Community/IAPro-SDK/classifier"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 var (
-	rateLimitPatterns = []*regexp.Regexp{
-		regexp.MustCompile(`(?i)\b(rate[ -]?limit(ed)?|too many requests|http 429|status 429)\b`),
-		regexp.MustCompile(`(?i)\b(quota exceeded|usage limit reached|exceeded your current quota)\b`),
-		regexp.MustCompile(`(?i)\b(capacity reached|temporarily rate-limited)\b`),
+	// Provider-specific diagnostics absent from the current shared classifier.
+	// Keep this compatibility layer small and remove entries after SDK parity.
+	providerRateLimitPatterns = []*regexp.Regexp{
 		regexp.MustCompile(`(?i)\bresource_exhausted\b`),
-		// Codex TUI limit screen, evidence-backed by the supervised host
-		// watcher (internal/control/host/quota_pattern.go): keep the exit
-		// classifier aligned so a direct launch classifies identically.
 		regexp.MustCompile(`(?i)\byou'?ve (?:hit|reached) your usage limit\b`),
 		regexp.MustCompile(`(?i)\blimit will reset (?:at|in)\b`),
 	}
-
-	authPatterns = []*regexp.Regexp{
-		regexp.MustCompile(`(?i)\b(auth(entication)? required|unauthorized|http 401|status 401)\b`),
-		regexp.MustCompile(`(?i)\b(token expired|session expired|invalid token|invalid api key)\b`),
-		regexp.MustCompile(`(?i)\b(please login|run .*login|not logged in)\b`),
-		regexp.MustCompile(`(?i)\b(access denied|permission denied|forbidden|http 403)\b`),
-	}
-
-	quotaExhaustedPatterns = []*regexp.Regexp{
-		regexp.MustCompile(`(?i)\b(insufficient credits|out of credits|balance too low|billing limit)\b`),
-		regexp.MustCompile(`(?i)\b(credit balance is too low|plan quota exhausted)\b`),
-		// AGY (Gemini CLI) weekly/individual quota: "Individual quota reached.
-		// Please upgrade your subscription to increase your limits." — without
-		// this the failure classifies as Unknown and failover never rotates.
+	providerQuotaPatterns = []*regexp.Regexp{
 		regexp.MustCompile(`(?i)\bindividual quota reached\b`),
 		regexp.MustCompile(`(?i)\bplease upgrade your subscription\b`),
 	}
-
-	networkPatterns = []*regexp.Regexp{
-		regexp.MustCompile(`(?i)\b(connection refused|network unreachable|dial tcp|no route to host)\b`),
-		regexp.MustCompile(`(?i)\b(tls handshake timeout|i/o timeout|connection reset by peer)\b`),
-	}
-
-	providerErrorPatterns = []*regexp.Regexp{
-		regexp.MustCompile(`(?i)\b(internal server error|http 500|http 502|http 503|http 504)\b`),
-		regexp.MustCompile(`(?i)\b(service unavailable|bad gateway|gateway timeout|model overloaded)\b`),
-	}
-
-	retrySecondsRegex = regexp.MustCompile(`(?i)(?:retry|try again|wait)\s+(?:in|after)?\s*(\d+)\s*(?:s|sec|seconds)`)
-	retryMinutesRegex = regexp.MustCompile(`(?i)(?:retry|try again|wait)\s+(?:in|after)?\s*(\d+)\s*(?:m|min|minutes)`)
-	retryHoursRegex   = regexp.MustCompile(`(?i)(?:retry|try again|wait)\s+(?:in|after)?\s*(\d+)\s*(?:h|hr|hours)`)
-	// AGY weekly reset: "Resets in 167h58m45s" (also "58m45s", "45s").
-	resetCompoundRegex = regexp.MustCompile(`(?i)resets?\s+in\s+(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?`)
-	// Codex/Claude-style absolute reset: "Your limit will reset at 5pm",
-	// "reset at 9:30am", "reset at 17:00". Parsed to the next occurrence of
-	// that wall-clock time in the local timezone.
+	resetCompoundRegex     = regexp.MustCompile(`(?i)resets?\s+in\s+((?:\d+h)?(?:\d+m)?(?:\d+s)?)`)
 	resetAbsoluteTimeRegex = regexp.MustCompile(`(?i)resets?\s+(?:at|@)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?`)
 )
 
-// Classify inspects an error and output log to determine the failure kind and retry parameters.
+// Classify delegates common failure semantics to IAPro-SDK. Nexus-specific
+// terminal diagnostics remain in this adapter until they are added upstream.
 func Classify(err error, output string) model.Failure {
-	combined := ""
-	if err != nil {
-		combined += err.Error() + "\n"
-	}
-	combined += output
-
-	if strings.TrimSpace(combined) == "" {
+	if err == nil && strings.TrimSpace(output) == "" {
 		return model.Failure{Kind: model.FailureNone}
 	}
+	if err == nil {
+		// The SDK accepts trusted diagnostics only with a process failure. Existing
+		// Nexus call sites also classify captured terminal output without an error.
+		err = errors.New("provider process returned diagnostic output")
+	}
+	combined := err.Error() + "\n" + output
 
-	// 1. Check Rate Limit
-	for _, p := range rateLimitPatterns {
-		if p.MatchString(combined) {
-			dur := ExtractRetryDuration(combined)
-			var resetAt *time.Time
-			if dur > 0 {
-				t := time.Now().Add(dur)
-				resetAt = &t
-			}
-			return model.Failure{
-				Kind:       model.FailureRateLimit,
-				Message:    "Rate limit exceeded on provider",
-				RetryAfter: &dur,
-				ResetAt:    resetAt,
+	classified := sdkclassifier.Classify(err, output)
+	if classified.Kind == model.FailureUnknown {
+		for _, pattern := range providerRateLimitPatterns {
+			if pattern.MatchString(combined) {
+				classified.Kind = model.FailureRateLimit
+				classified.Message = "Rate limit exceeded on provider"
+				break
 			}
 		}
 	}
-
-	// 2. Check Quota Exhaustion
-	for _, p := range quotaExhaustedPatterns {
-		if p.MatchString(combined) {
-			// Quota windows carry their own reset (e.g. AGY weekly "Resets in
-			// 167h58m45s"): surface it so cooldown keeps the account out of
-			// automatic rotation until the provider reopens the window.
-			dur := ExtractRetryDuration(combined)
-			var resetAt *time.Time
-			if dur > 0 {
-				t := time.Now().Add(dur)
-				resetAt = &t
-			}
-			return model.Failure{
-				Kind:       model.FailureQuota,
-				Message:    "Account quota / credit limit reached",
-				RetryAfter: &dur,
-				ResetAt:    resetAt,
+	if classified.Kind == model.FailureUnknown {
+		for _, pattern := range providerQuotaPatterns {
+			if pattern.MatchString(combined) {
+				classified.Kind = model.FailureQuota
+				classified.Message = "Account quota / credit limit reached"
+				break
 			}
 		}
 	}
-
-	// 3. Check Auth Failure
-	for _, p := range authPatterns {
-		if p.MatchString(combined) {
-			return model.Failure{
-				Kind:    model.FailureAuth,
-				Message: "Authentication required or credentials expired",
-			}
+	if classified.Kind == model.FailureRateLimit || classified.Kind == model.FailureQuota {
+		duration := ExtractRetryDuration(combined)
+		classified.RetryAfter = &duration
+		if duration > 0 {
+			resetAt := time.Now().Add(duration)
+			classified.ResetAt = &resetAt
 		}
 	}
-
-	// 4. Check Network Failure
-	for _, p := range networkPatterns {
-		if p.MatchString(combined) {
-			return model.Failure{
-				Kind:    model.FailureNetwork,
-				Message: "Network connection failure to AI provider",
-			}
-		}
-	}
-
-	// 5. Check Provider Transient Error
-	for _, p := range providerErrorPatterns {
-		if p.MatchString(combined) {
-			return model.Failure{
-				Kind:    model.FailureProvider,
-				Message: "AI provider service unavailable or overloaded",
-			}
-		}
-	}
-
-	return model.Failure{
-		Kind:    model.FailureUnknown,
-		Message: "CLI command returned non-zero exit",
-	}
+	return classified
 }
 
-// ExtractRetryDuration attempts to parse retry cooldown intervals from error messages.
+// ExtractRetryDuration keeps Nexus's provider reset formats and delegates
+// ordinary retry hints to the SDK's overflow-safe parser.
 func ExtractRetryDuration(s string) time.Duration {
-	// Provider reset signals (e.g. AGY "Resets in 167h58m45s") are the most
-	// authoritative duration hint: they state when the quota window itself
-	// reopens, not when to retry a transient request.
-	if m := resetCompoundRegex.FindStringSubmatch(s); len(m) > 1 {
-		hours, _ := strconv.Atoi(m[1])
-		minutes, _ := strconv.Atoi(m[2])
-		seconds, _ := strconv.Atoi(m[3])
-		if total := time.Duration(hours)*time.Hour + time.Duration(minutes)*time.Minute + time.Duration(seconds)*time.Second; total > 0 {
-			return total
+	if match := resetCompoundRegex.FindStringSubmatch(s); len(match) > 1 && strings.TrimSpace(match[1]) != "" {
+		if duration, err := time.ParseDuration(match[1]); err == nil && duration > 0 {
+			return duration
 		}
 	}
-	if m := resetAbsoluteTimeRegex.FindStringSubmatch(s); len(m) > 1 {
-		hour, _ := strconv.Atoi(m[1])
-		minute := 0
-		if m[2] != "" {
-			minute, _ = strconv.Atoi(m[2])
+	if match := resetAbsoluteTimeRegex.FindStringSubmatch(s); len(match) > 1 {
+		hour, hourErr := strconv.Atoi(match[1])
+		minute, minuteErr := 0, error(nil)
+		if match[2] != "" {
+			minute, minuteErr = strconv.Atoi(match[2])
 		}
-		switch strings.ToLower(m[3]) {
-		case "pm":
-			if hour < 12 {
-				hour += 12
+		if hourErr == nil && minuteErr == nil {
+			switch strings.ToLower(match[3]) {
+			case "pm":
+				if hour < 12 {
+					hour += 12
+				}
+			case "am":
+				if hour == 12 {
+					hour = 0
+				}
 			}
-		case "am":
-			if hour == 12 {
-				hour = 0
+			if hour >= 0 && hour < 24 && minute >= 0 && minute < 60 {
+				now := time.Now()
+				candidate := time.Date(now.Year(), now.Month(), now.Day(), hour, minute, 0, 0, now.Location())
+				if !candidate.After(now) {
+					candidate = candidate.Add(24 * time.Hour)
+				}
+				return time.Until(candidate)
 			}
 		}
-		if hour >= 0 && hour < 24 && minute >= 0 && minute < 60 {
-			now := time.Now()
-			candidate := time.Date(now.Year(), now.Month(), now.Day(), hour, minute, 0, 0, now.Location())
-			if !candidate.After(now) {
-				candidate = candidate.Add(24 * time.Hour)
-			}
-			return time.Until(candidate)
-		}
 	}
-	if m := retrySecondsRegex.FindStringSubmatch(s); len(m) > 1 {
-		if val, err := strconv.Atoi(m[1]); err == nil && val > 0 {
-			return time.Duration(val) * time.Second
-		}
-	}
-	if m := retryMinutesRegex.FindStringSubmatch(s); len(m) > 1 {
-		if val, err := strconv.Atoi(m[1]); err == nil && val > 0 {
-			return time.Duration(val) * time.Minute
-		}
-	}
-	if m := retryHoursRegex.FindStringSubmatch(s); len(m) > 1 {
-		if val, err := strconv.Atoi(m[1]); err == nil && val > 0 {
-			return time.Duration(val) * time.Hour
-		}
-	}
-	return 0
+	return sdkclassifier.ExtractRetryDuration(s)
 }

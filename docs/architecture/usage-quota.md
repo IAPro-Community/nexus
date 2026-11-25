@@ -50,13 +50,7 @@ A model-specific scheduler must still validate the requested pool.
 
 ## Routing freshness
 
-Automatic selection uses evidence tiers:
-
-1. `LIVE` / trustworthy `CACHED`;
-2. `ESTIMATED` attributable last-known evidence;
-3. no measured evidence.
-
-Fresh evidence always outranks an estimate. When every eligible profile only has `ESTIMATED` evidence, Nexus ranks those measured estimates instead of discarding them and rotating by unrelated LRU. LRU is reserved for the absence of measured quota evidence.
+Automatic selection requires recent `LIVE` or trustworthy `CACHED` quota evidence. `ESTIMATED`, `UNKNOWN`, `ERROR`, and `UNSUPPORTED` remain display/diagnostic states and cannot authorize an automatic account choice. Explicit user bindings and selections follow their dedicated policy path; they are never scored as measured quota.
 
 ## Live sources
 

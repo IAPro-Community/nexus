@@ -1,12 +1,10 @@
 package codex
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -14,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	sdkcodex "github.com/IAPro-Community/IAPro-SDK/providers/codex"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
@@ -23,17 +22,6 @@ import (
 
 // appServerTimeout bounds the whole quota probe: spawn, handshake and read.
 const appServerTimeout = 8 * time.Second
-
-// appServerMaxLine bounds a single JSON-RPC message so a malformed or hostile
-// stream cannot exhaust memory.
-const appServerMaxLine = 4 * 1024 * 1024
-
-// appServerMaxStderr bounds how much diagnostic stderr we retain.
-const appServerMaxStderr = 8 * 1024
-
-// appServerMaxMessages bounds how many unrelated notifications we skip while
-// waiting for our response.
-const appServerMaxMessages = 512
 
 // appServerClientName identifies Nexus to the Codex app-server.
 const appServerClientName = "nexus_workspace_os"
@@ -83,16 +71,6 @@ type getAccountRateLimitsResponse struct {
 // initializeResult mirrors the fields of InitializeResponse that Nexus verifies.
 type initializeResult struct {
 	CodexHome string `json:"codexHome"`
-}
-
-type jsonrpcEnvelope struct {
-	ID     *json.RawMessage `json:"id"`
-	Method string           `json:"method"`
-	Result json.RawMessage  `json:"result"`
-	Error  *struct {
-		Code    int    `json:"code"`
-		Message string `json:"message"`
-	} `json:"error"`
 }
 
 // fetchUsageFromAppServer reads official quota through the Codex app-server for
@@ -306,58 +284,23 @@ func runAppServerRateLimits(ctx context.Context, codexHome string) (*getAccountR
 	}
 	defer func() { _ = probeLock.Release() }()
 
-	cmd, err := appServerCommand(ctx, codexHome)
+	// The SDK bounds JSONL messages, serializes request/response matching,
+	// refuses server-initiated requests, discards stderr, and cancels/reaps the
+	// transient subprocess. Host isolation and identity checks remain here.
+	rpc, err := sdkcodex.StartStdioRPC(ctx, func(runCtx context.Context) (*exec.Cmd, error) {
+		return appServerCommand(runCtx, codexHome)
+	})
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = rpc.Close() }()
 
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		return nil, err
-	}
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		return nil, err
-	}
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-
-	// Always reap the subprocess: a leaked app-server would hold the profile's
-	// SQLite locks and keep polling the backend.
-	defer func() {
-		_ = stdin.Close()
-		if cmd.Process != nil {
-			_ = cmd.Process.Kill()
-		}
-		_ = cmd.Wait()
-	}()
-
-	// Drain stderr with a hard cap so the pipe never blocks the child. Content
-	// is intentionally discarded: it may echo request context.
-	go drainCapped(stderr, appServerMaxStderr)
-
-	reader := bufio.NewReaderSize(stdout, 64*1024)
-
-	if err := writeRPC(stdin, map[string]any{
-		"jsonrpc": "2.0",
-		"id":      1,
-		"method":  "initialize",
-		"params": map[string]any{
-			"clientInfo": map[string]any{
-				"name":    appServerClientName,
-				"version": appServerClientVersion(),
-			},
+	initRaw, err := rpc.Call(ctx, "initialize", map[string]any{
+		"clientInfo": map[string]any{
+			"name":    appServerClientName,
+			"version": appServerClientVersion(),
 		},
-	}); err != nil {
-		return nil, err
-	}
-
-	initRaw, err := awaitResult(ctx, reader, 1)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -374,25 +317,12 @@ func runAppServerRateLimits(ctx context.Context, codexHome string) (*getAccountR
 	}
 
 	// The handshake is only complete after the `initialized` notification.
-	if err := writeRPC(stdin, map[string]any{
-		"jsonrpc": "2.0",
-		"method":  "initialized",
-	}); err != nil {
+	if err := rpc.Notify(ctx, "initialized", nil); err != nil {
 		return nil, err
 	}
-
-	if err := writeRPC(stdin, map[string]any{
-		"jsonrpc": "2.0",
-		"id":      2,
-		"method":  appServerRateLimitsMethod,
-		"params": map[string]any{
-			"excludeResetCreditDetails": true,
-		},
-	}); err != nil {
-		return nil, err
-	}
-
-	raw, err := awaitResult(ctx, reader, 2)
+	raw, err := rpc.Call(ctx, appServerRateLimitsMethod, map[string]any{
+		"excludeResetCreditDetails": true,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -407,7 +337,7 @@ func runAppServerRateLimits(ctx context.Context, codexHome string) (*getAccountR
 // write to is confined to the profile home, including the local thread SQLite
 // it may create or migrate on startup.
 func appServerEnv(bin, codexHome string) []string {
-	return runtime.EnvSet(os.Environ(), map[string]string{
+	return runtime.EnvSet(os.Environ(), runtime.ApplyProfileIsolationEnv(codexHome, map[string]string{
 		"HOME":             codexHome,
 		"CODEX_HOME":       codexHome,
 		"CODEX_CONFIG_DIR": codexHome,
@@ -417,7 +347,7 @@ func appServerEnv(bin, codexHome string) []string {
 		"XDG_STATE_HOME":   filepath.Join(codexHome, ".local", "state"),
 		"PATH":             runtime.EnhancedPATH(filepath.Dir(bin)),
 		"NO_COLOR":         "1",
-	}, "OPENAI_API_KEY")
+	}), "OPENAI_API_KEY")
 }
 
 func appServerClientVersion() string {
@@ -425,107 +355,4 @@ func appServerClientVersion() string {
 		return v
 	}
 	return "1.0.0"
-}
-
-func writeRPC(w io.Writer, payload map[string]any) error {
-	data, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
-	data = append(data, '\n')
-	_, err = w.Write(data)
-	return err
-}
-
-// awaitResult reads messages until the response matching wantID arrives,
-// skipping unrelated notifications and server requests.
-func awaitResult(ctx context.Context, reader *bufio.Reader, wantID int64) (json.RawMessage, error) {
-	for i := 0; i < appServerMaxMessages; i++ {
-		if err := ctx.Err(); err != nil {
-			return nil, err
-		}
-		line, err := readLimitedLine(reader, appServerMaxLine)
-		if err != nil {
-			return nil, err
-		}
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		var env jsonrpcEnvelope
-		if json.Unmarshal([]byte(line), &env) != nil {
-			continue
-		}
-		// Notifications and server-initiated requests carry a method; only a
-		// response to our request has an id without a method.
-		if env.Method != "" || env.ID == nil {
-			continue
-		}
-		id, ok := numericRequestID(*env.ID)
-		if !ok || id != wantID {
-			continue
-		}
-		if env.Error != nil {
-			return nil, fmt.Errorf("app-server rpc error %d", env.Error.Code)
-		}
-		if len(env.Result) == 0 {
-			return nil, errors.New("app-server returned empty result")
-		}
-		return env.Result, nil
-	}
-	return nil, errors.New("app-server response not found")
-}
-
-func numericRequestID(raw json.RawMessage) (int64, bool) {
-	var n int64
-	if json.Unmarshal(raw, &n) == nil {
-		return n, true
-	}
-	var s string
-	if json.Unmarshal(raw, &s) == nil {
-		var parsed int64
-		if _, err := fmt.Sscanf(s, "%d", &parsed); err == nil {
-			return parsed, true
-		}
-	}
-	return 0, false
-}
-
-// readLimitedLine reads one newline-terminated message, failing instead of
-// buffering without bound.
-func readLimitedLine(reader *bufio.Reader, limit int) (string, error) {
-	var sb strings.Builder
-	for {
-		chunk, err := reader.ReadString('\n')
-		sb.WriteString(chunk)
-		if sb.Len() > limit {
-			return "", errors.New("app-server message exceeds limit")
-		}
-		if err != nil {
-			if err == io.EOF && sb.Len() > 0 {
-				return sb.String(), nil
-			}
-			return "", err
-		}
-		if strings.HasSuffix(chunk, "\n") {
-			return sb.String(), nil
-		}
-	}
-}
-
-func drainCapped(r io.Reader, limit int) {
-	buf := make([]byte, 4096)
-	total := 0
-	for {
-		n, err := r.Read(buf)
-		total += n
-		if err != nil {
-			return
-		}
-		if total > limit {
-			// Keep reading to avoid blocking the child, but stop accounting.
-			_, _ = io.Copy(io.Discard, r)
-			return
-		}
-	}
 }

@@ -2,12 +2,14 @@
   "config.valid": "A configuração é válida.",
   "config.issues": "Foram encontrados problemas na configuração:",
   "config.language_saved": "Preferência de idioma salva: {{.Language}}",
+  "config.fallback_enabled": "Troca entre contas antes da execução quando um perfil está ocupado habilitada. Quota recente e elegível continua obrigatória.",
+  "config.fallback_disabled": "Troca automática entre contas desabilitada.",
   "error.lang_value": "--lang exige um idioma (pt-BR, en ou es)",
   "error.unsupported_language": "idioma %q não suportado; opções: pt-BR, en, es, auto",
-  "error.config_usage": "uso: nexus config <show|validate|language <auto|pt-BR|en|es>>",
+  "error.config_usage": "uso: nexus config <show|validate|language <auto|pt-BR|en|es>|fallback <enable|disable>>",
   "help.header": "IAPro Nexus {{.Version}} - Workspace OS para Coding Agents",
   "help.usage": "Uso:",
-  "help.language": "  nexus --lang <idioma>              Substitui o idioma nesta execução\n  nexus config language <idioma>     Salva o idioma (auto, pt-BR, en, es)",
+  "help.language": "  nexus --lang <idioma>              Substitui o idioma nesta execução\n  nexus config language <idioma>     Salva o idioma (auto, pt-BR, en, es)\n  nexus config fallback <enable|disable> Autoriza ou bloqueia troca automática entre contas",
   "tui.title": "IAPro Nexus", "tui.workspace": "Espaço de trabalho: {{.Name}}", "tui.providers": "Provedores", "tui.accounts": "Contas ({{.Provider}})", "tui.sessions": "Sessões recentes (índice universal)",
   "tui.refreshed": "Execuções atualizadas", "tui.handoff": "Para transferir, conecte ([a]) e digite: /nexus handoff <perfil>", "tui.unknown": "desconhecido", "tui.now": "agora", "tui.yesterday": "ontem", "tui.minutes_ago": "há {{.Count}} min", "tui.hours_ago": "há {{.Count}} h", "tui.days_ago": "há {{.Count}} dias"
 }

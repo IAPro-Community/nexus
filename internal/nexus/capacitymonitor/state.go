@@ -3,8 +3,9 @@ package capacitymonitor
 import (
 	"crypto/sha256"
 	"fmt"
-	"math"
 	"time"
+
+	sdkcapacity "github.com/IAPro-Community/IAPro-SDK/capacity"
 )
 
 // EvaluateTransition evaluates the current capacity observation against thresholds
@@ -20,44 +21,7 @@ func EvaluateTransition(
 	now time.Time,
 	thresholds Thresholds,
 ) (State, string) {
-	if rateLimited {
-		return StateExhausted, "rate limit active"
-	}
-
-	if remaining == nil || observedAt.IsZero() {
-		return StateUnknown, "no valid observation"
-	}
-
-	if math.IsNaN(*remaining) || math.IsInf(*remaining, 0) {
-		return StateUnknown, "non-finite observation"
-	}
-
-	if !expiresAt.IsZero() && now.After(expiresAt) {
-		return StateUnknown, "observation expired"
-	}
-
-	rem := *remaining
-
-	// Negative remaining is over-quota debt reported by the provider, not
-	// corrupt data: the quota is gone, so it is exhausted.
-	if rem <= thresholds.Exhausted {
-		return StateExhausted, fmt.Sprintf("quota exhausted (%.0f%% remaining <= %.0f%%)", rem, thresholds.Exhausted)
-	}
-
-	if rem <= thresholds.Critical {
-		return StateCritical, fmt.Sprintf("quota critical (%.0f%% remaining <= %.0f%%)", rem, thresholds.Critical)
-	}
-
-	if rem <= thresholds.Warning {
-		return StateWarning, fmt.Sprintf("quota warning (%.0f%% remaining <= %.0f%%)", rem, thresholds.Warning)
-	}
-
-	// Above Warning threshold:
-	if (previous == StateWarning || previous == StateCritical || previous == StateExhausted) && rem >= thresholds.Recovery {
-		return StateRecovered, fmt.Sprintf("quota recovered (%.0f%% remaining >= %.0f%%)", rem, thresholds.Recovery)
-	}
-
-	return StateHealthy, fmt.Sprintf("quota healthy (%.0f%% remaining)", rem)
+	return sdkcapacity.EvaluateTransition(previous, remaining, rateLimited, observedAt, expiresAt, now, thresholds)
 }
 
 // DeriveFingerprint computes a stable fingerprint for an alert based on canonical

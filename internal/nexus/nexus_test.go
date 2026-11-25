@@ -65,6 +65,9 @@ func openTestNexus(t *testing.T) *Nexus {
 	t.Helper()
 	dir := t.TempDir()
 	t.Setenv("AI_CLI_DATA_DIR", dir)
+	// Keep config/profile reads hermetic even when the developer environment
+	// defines NEXUS_REAL_HOME to a populated Nexus installation.
+	t.Setenv("NEXUS_REAL_HOME", dir)
 	st, err := store.Open(filepath.Join(dir, "nexus.db"))
 	if err != nil {
 		t.Fatalf("open store: %v", err)

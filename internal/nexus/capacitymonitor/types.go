@@ -2,68 +2,35 @@ package capacitymonitor
 
 import (
 	"crypto/rand"
-	"errors"
 	"math"
 	"math/big"
 	"time"
 
+	sdkcapacity "github.com/IAPro-Community/IAPro-SDK/capacity"
 	"github.com/IAPro-Community/nexus/internal/control/events"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
 
-// State represents the capacity health state of a profile/group/window.
-type State string
+// State is the shared SDK health state for a provider/account/group/window.
+type State = sdkcapacity.State
 
 const (
-	StateUnknown   State = "UNKNOWN"
-	StateHealthy   State = "HEALTHY"
-	StateWarning   State = "WARNING"
-	StateCritical  State = "CRITICAL"
-	StateExhausted State = "EXHAUSTED"
-	StateRecovered State = "RECOVERED"
+	StateUnknown   = sdkcapacity.StateUnknown
+	StateHealthy   = sdkcapacity.StateHealthy
+	StateWarning   = sdkcapacity.StateWarning
+	StateCritical  = sdkcapacity.StateCritical
+	StateExhausted = sdkcapacity.StateExhausted
+	StateRecovered = sdkcapacity.StateRecovered
 )
 
-// Thresholds defines capacity boundaries for warning, critical, exhausted, and recovery.
-type Thresholds struct {
-	Warning   float64 `json:"warning"`
-	Critical  float64 `json:"critical"`
-	Exhausted float64 `json:"exhausted"`
-	Recovery  float64 `json:"recovery"`
-}
+// Thresholds is the shared SDK capacity threshold contract.
+type Thresholds = sdkcapacity.Thresholds
 
 // DefaultThresholds returns official standard Nexus thresholds (percent remaining).
 func DefaultThresholds() Thresholds {
-	return Thresholds{
-		Warning:   20.0,
-		Critical:  10.0,
-		Exhausted: 0.0,
-		Recovery:  25.0,
-	}
-}
-
-// Validate ensures 0 <= exhausted < critical < warning < recovery <= 100
-// with finite values. NaN passes every comparison, so it is rejected explicitly.
-func (t Thresholds) Validate() error {
-	for _, v := range []float64{t.Warning, t.Critical, t.Exhausted, t.Recovery} {
-		if math.IsNaN(v) || math.IsInf(v, 0) {
-			return errors.New("invalid thresholds: values must be finite")
-		}
-	}
-	if t.Exhausted < 0 || t.Exhausted >= t.Critical {
-		return errors.New("invalid thresholds: exhausted must be >= 0 and < critical")
-	}
-	if t.Critical >= t.Warning {
-		return errors.New("invalid thresholds: critical must be < warning")
-	}
-	if t.Warning >= t.Recovery {
-		return errors.New("invalid thresholds: warning must be < recovery")
-	}
-	if t.Recovery > 100 {
-		return errors.New("invalid thresholds: recovery must be <= 100")
-	}
-	return nil
+	return sdkcapacity.DefaultThresholds()
 }
 
 // Clock abstracts time measurement for deterministic testing.

@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	sdkmodel "github.com/IAPro-Community/IAPro-SDK/model"
+)
 
 // Execution owner constants identify the single runtime allowed to supervise a
 // Mission run. NEXUS runs are executed by the local MissionRunner; MAESTRO
@@ -13,146 +17,94 @@ const (
 // AccountScope is the identity boundary for account-owned state. Provider and
 // profile names are routing labels, not sufficient identities: one profile can
 // be re-authenticated and two accounts may have the same display email.
-type AccountScope struct {
-	ProviderID      string `json:"provider_id"`
-	ProfileID       string `json:"profile_id"`
-	AccountID       string `json:"account_id"`
-	IdentityVersion string `json:"identity_version"`
-	CredentialScope string `json:"credential_scope,omitempty"`
-}
-
-// Key returns the single canonical key representation for account-owned maps.
-func (s AccountScope) Key() string {
-	return s.ProviderID + "/" + s.AccountID + "/" + s.IdentityVersion
-}
-
-// Verifiable reports whether this scope can safely own persisted account data.
-func (s AccountScope) Verifiable() bool {
-	return s.ProviderID != "" && s.ProfileID != "" && s.AccountID != "" && s.IdentityVersion != ""
-}
+// AccountScope is the SDK's canonical provider account identity contract.
+type AccountScope = sdkmodel.AccountScope
 
 // ProviderID identifies a supported AI CLI provider (e.g. "codex", "agy", "claude", "opencode", "gemini", "cursor").
-type ProviderID string
+type ProviderID = sdkmodel.ProviderID
 
 const (
-	ProviderCodex    ProviderID = "codex"
-	ProviderAGY      ProviderID = "agy"
-	ProviderClaude   ProviderID = "claude"
-	ProviderOpenCode ProviderID = "opencode"
-	ProviderGemini   ProviderID = "gemini"
-	ProviderCursor   ProviderID = "cursor"
-	ProviderZCode    ProviderID = "zcode"
+	ProviderCodex               = sdkmodel.ProviderCodex
+	ProviderAGY                 = sdkmodel.ProviderAGY
+	ProviderClaude              = sdkmodel.ProviderClaude
+	ProviderOpenCode            = sdkmodel.ProviderOpenCode
+	ProviderGemini              = sdkmodel.ProviderGemini
+	ProviderCursor              = sdkmodel.ProviderCursor
+	ProviderZCode    ProviderID = "zcode" // Nexus-only provider; not yet in the shared catalog.
 )
 
 // FailureKind categorizes the cause of a CLI execution failure.
-type FailureKind string
+type FailureKind = sdkmodel.FailureKind
 
 const (
-	FailureNone      FailureKind = "NONE"
-	FailureAuth      FailureKind = "AUTH_FAILURE"
-	FailureQuota     FailureKind = "QUOTA_FAILURE"
-	FailureRateLimit FailureKind = "RATE_LIMIT_FAILURE"
-	FailureNetwork   FailureKind = "NETWORK_FAILURE"
-	FailureProvider  FailureKind = "PROVIDER_FAILURE"
-	FailureCommand   FailureKind = "COMMAND_FAILURE"
-	FailureUser      FailureKind = "USER_FAILURE"
-	FailureUnknown   FailureKind = "UNKNOWN_FAILURE"
+	FailureNone      = sdkmodel.FailureNone
+	FailureAuth      = sdkmodel.FailureAuth
+	FailureQuota     = sdkmodel.FailureQuota
+	FailureRateLimit = sdkmodel.FailureRateLimit
+	FailureNetwork   = sdkmodel.FailureNetwork
+	FailureProvider  = sdkmodel.FailureProvider
+	FailureCommand   = sdkmodel.FailureCommand
+	FailureUser      = sdkmodel.FailureUser
+	FailureUnknown   = sdkmodel.FailureUnknown
 )
 
 // UsageStatus represents the state and confidence of quota/usage data.
-type UsageStatus string
+type UsageStatus = sdkmodel.UsageStatus
 
 const (
-	UsageLive        UsageStatus = "LIVE"
-	UsageCached      UsageStatus = "CACHED"
-	UsageEstimated   UsageStatus = "ESTIMATED"
-	UsageUnknown     UsageStatus = "UNKNOWN"
-	UsageUnsupported UsageStatus = "UNSUPPORTED"
-	UsageRateLimited UsageStatus = "RATE_LIMITED"
-	UsageError       UsageStatus = "ERROR"
+	UsageLive        = sdkmodel.UsageLive
+	UsageCached      = sdkmodel.UsageCached
+	UsageEstimated   = sdkmodel.UsageEstimated
+	UsageUnknown     = sdkmodel.UsageUnknown
+	UsageUnsupported = sdkmodel.UsageUnsupported
+	UsageRateLimited = sdkmodel.UsageRateLimited
+	UsageError       = sdkmodel.UsageError
 )
 
 // UsageSource represents the origin of usage data.
-type UsageSource string
+type UsageSource = sdkmodel.UsageSource
 
 const (
-	SourceOfficialAPI    UsageSource = "OFFICIAL_API"
-	SourceCLIOutput      UsageSource = "CLI_OUTPUT"
-	SourceLocalFiles     UsageSource = "LOCAL_FILES"
-	SourceResponseHeader UsageSource = "RESPONSE_HEADERS"
-	SourceObservation    UsageSource = "OBSERVATION"
-	SourceNone           UsageSource = "NONE"
+	SourceOfficialAPI    = sdkmodel.SourceOfficialAPI
+	SourceCLIOutput      = sdkmodel.SourceCLIOutput
+	SourceLocalFiles     = sdkmodel.SourceLocalFiles
+	SourceResponseHeader = sdkmodel.SourceResponseHeader
+	SourceObservation    = sdkmodel.SourceObservation
+	SourceNone           = sdkmodel.SourceNone
 )
 
 // UsageConfidence describes how strongly Nexus can support an observation.
-type UsageConfidence string
+type UsageConfidence = sdkmodel.UsageConfidence
 
 const (
-	UsageConfidenceHigh    UsageConfidence = "HIGH"
-	UsageConfidenceMedium  UsageConfidence = "MEDIUM"
-	UsageConfidenceLow     UsageConfidence = "LOW"
-	UsageConfidenceUnknown UsageConfidence = "UNKNOWN"
+	UsageConfidenceHigh    = sdkmodel.UsageConfidenceHigh
+	UsageConfidenceMedium  = sdkmodel.UsageConfidenceMedium
+	UsageConfidenceLow     = sdkmodel.UsageConfidenceLow
+	UsageConfidenceUnknown = sdkmodel.UsageConfidenceUnknown
 )
 
 // ProviderHealth represents the operational health of a provider or profile.
-type ProviderHealth string
+type ProviderHealth = sdkmodel.ProviderHealth
 
 const (
-	HealthHealthy      ProviderHealth = "HEALTHY"
-	HealthDegraded     ProviderHealth = "DEGRADED"
-	HealthUnavailable  ProviderHealth = "UNAVAILABLE"
-	HealthAuthRequired ProviderHealth = "AUTH_REQUIRED"
-	HealthRateLimited  ProviderHealth = "RATE_LIMITED"
-	HealthUnknown      ProviderHealth = "UNKNOWN"
+	HealthHealthy      = sdkmodel.HealthHealthy
+	HealthDegraded     = sdkmodel.HealthDegraded
+	HealthUnavailable  = sdkmodel.HealthUnavailable
+	HealthAuthRequired = sdkmodel.HealthAuthRequired
+	HealthRateLimited  = sdkmodel.HealthRateLimited
+	HealthUnknown      = sdkmodel.HealthUnknown
 )
 
 // UsageWindow represents usage metrics for a specific time window (e.g. 5h, weekly).
 // Group clusters windows by model family when a provider exposes separate quotas
 // (e.g. AGY: "gemini" for Gemini models, "claude_gpt" for Claude/GPT models).
-type UsageWindow struct {
-	Kind  string `json:"kind"`
-	Group string `json:"group,omitempty"`
-	// Absolute values are optional because providers may expose only ratios.
-	// Nil means unknown; zero is a measured zero.
-	Limit            *float64   `json:"limit,omitempty"`
-	Used             *float64   `json:"used,omitempty"`
-	Remaining        *float64   `json:"remaining,omitempty"`
-	Unit             string     `json:"unit,omitempty"`
-	UsedPercent      *float64   `json:"used_percent,omitempty"`
-	RemainingPercent *float64   `json:"remaining_percent,omitempty"`
-	ResetTime        *time.Time `json:"reset_time,omitempty"`
-	ResetDescription string     `json:"reset_description,omitempty"`
-}
+type UsageWindow = sdkmodel.UsageWindow
 
 // UsageSnapshot captures point-in-time usage metrics for a profile.
-type UsageSnapshot struct {
-	ProviderID   string          `json:"provider_id"`
-	ProfileID    string          `json:"profile_id"`
-	Status       UsageStatus     `json:"status"`
-	Source       UsageSource     `json:"source"`
-	Confidence   UsageConfidence `json:"confidence,omitempty"`
-	FetchedAt    time.Time       `json:"fetched_at"`
-	ExpiresAt    *time.Time      `json:"expires_at,omitempty"`
-	Windows      []UsageWindow   `json:"windows"`
-	ModelName    string          `json:"model_name,omitempty"`
-	Account      string          `json:"account,omitempty"`
-	Plan         string          `json:"plan,omitempty"`
-	Error        string          `json:"error,omitempty"`
-	AccountScope AccountScope    `json:"account_scope,omitempty"`
-}
+type UsageSnapshot = sdkmodel.UsageSnapshot
 
 // Capabilities declares supported features for a provider adapter.
-type Capabilities struct {
-	Login              bool `json:"login"`
-	Logout             bool `json:"logout"`
-	Usage              bool `json:"usage"`
-	Conversations      bool `json:"conversations"`
-	Resume             bool `json:"resume"`
-	CrossAccountResume bool `json:"cross_account_resume"`
-	HotAccountSwitch   bool `json:"hot_account_switch"`
-	IsolatedRuntime    bool `json:"isolated_runtime"`
-	ProjectBinding     bool `json:"project_binding"`
-}
+type Capabilities = sdkmodel.Capabilities
 
 // Profile represents a local profile entity.
 type Profile struct {
@@ -232,12 +184,7 @@ type DetectionResult struct {
 }
 
 // Failure classifies an execution failure.
-type Failure struct {
-	Kind       FailureKind    `json:"kind"`
-	Message    string         `json:"message"`
-	RetryAfter *time.Duration `json:"retry_after,omitempty"`
-	ResetAt    *time.Time     `json:"reset_at,omitempty"`
-}
+type Failure = sdkmodel.Failure
 
 // IsolationPreset defines security isolation level.
 type IsolationPreset string

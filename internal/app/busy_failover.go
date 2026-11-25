@@ -181,12 +181,13 @@ func launchWithBusyFailover(
 	accounts map[string]model.AccountInfo,
 	base launcher.LaunchOptions,
 	stderr io.Writer,
+	automaticFallback bool,
 	balanced ...bool,
 ) (*registry.RuntimeSession, string, error) {
 	if stderr == nil {
 		stderr = os.Stderr
 	}
-	allowFailover := strings.TrimSpace(explicit) == ""
+	allowFailover := automaticFallback && strings.TrimSpace(explicit) == ""
 	var excluded []string
 	var lastBusy string
 	attempted := map[string]bool{}

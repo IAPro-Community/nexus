@@ -8,7 +8,7 @@
 - **Local Control Plane**: Provide a single, unified entry point and control plane (`ai`) for developer AI coding CLIs (Codex, AGY / Antigravity, Claude Code, OpenCode, Gemini CLI) while maintaining the official CLI as the source of truth for authentication.
 - **Reliable Quota Engine**: Eliminate fabricated 100% quota assumptions. Use a cascading probe strategy with explicit usage states (`LIVE`, `CACHED`, `ESTIMATED`, `UNKNOWN`, `UNSUPPORTED`, `RATE_LIMITED`, `ERROR`), freshness timestamps, and TTL-aware caching.
 - **Smart Account Selection & Scheduling**: Select the healthiest, highest-capacity available account automatically when running commands (e.g., `ai codex` or `ai claude`) based on a deterministic scoring function, hard filters, project bindings, and sticky affinities.
-- **Automatic Fallback & Cooldown**: Classify CLI errors into structured categories (`QuotaFailure`, `RateLimitFailure`, `AuthFailure`, etc.) and automatically fallback to next-best accounts for rate-limited/quota failures without infinite loops.
+- **Safe Account Fallback & Cooldown**: Classify CLI errors into structured categories (`QuotaFailure`, `RateLimitFailure`, `AuthFailure`, etc.). Account switching requires explicit authorization, verified identity and model-compatible fresh quota. A busy profile may switch only before dispatch; a quota/rate-limit result after dispatch cannot be replayed unless a provider proves there was no output or external effect.
 - **Session Continuity & Handoff**: Provide a universal session index across all providers, provider-specific session resumption (e.g. `codex resume <id>`, `claude --resume <id>`), and cross-account handoff where technically supported.
 - **Security & Runtime Isolation**: Isolate credentials per profile without creating unvetted symlinks to machine-wide secrets (`~/.ssh`, `~/.git-credentials`, `~/.kube`, `~/.docker`). Implement configurable isolation presets (`strict`, `developer`, `compat`).
 - **Professional TUI & Scriptable CLI**: Deliver a high-performance Bubble Tea interactive interface (mouse/keyboard, responsive layout, search, modal inspectors) alongside a scriptable CLI with structured `--json` output and standardized exit codes.
@@ -16,7 +16,7 @@
 ### Non-Goals
 - **No Central OAuth Proxy / Token Router**: The tool will not store, decrypt, or proxy OAuth refresh tokens or passwords into a central database.
 - **No Machine Sandbox Simulation**: Profile isolation isolates per-profile configurations, keyrings, and CLI state; it is not a virtualization/container hypervisor.
-- **No Fabricated Data**: If quota or usage cannot be determined reliably, the system reports `UNKNOWN` and falls back to LRU/least-recently-used heuristics rather than guessing percentages.
+- **No Fabricated Data**: If quota or usage cannot be determined reliably, the system reports `UNKNOWN`; automatic account selection rejects unknown quota rather than treating it as available.
 
 ---
 
@@ -125,10 +125,10 @@ Score(Profile P) =
 4. Not currently in active cooldown (`CooldownTracker.IsActive(provider, profile) == false`).
 
 ### Unknown Quota Resolution:
-When exact percentages are `UNKNOWN`:
-1. Healthy accounts without rate limits are filtered.
-2. Least-Recently-Used (LRU) or round-robin rotation distributes load evenly.
-3. UI clearly displays `UNKNOWN · HEALTHY`, never arbitrary progress bars.
+When exact percentages are `UNKNOWN`, automatic account selection excludes the
+account until a fresh, supported observation is available. Explicitly pinned
+account execution remains governed by the product's authorization and runtime
+policy. The UI displays `UNKNOWN`, never fabricated progress bars.
 
 ---
 

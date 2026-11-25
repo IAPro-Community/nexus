@@ -184,7 +184,7 @@ func (q *quotaFailExecutor) Execute(ctx context.Context, run *MissionRun, pkg *P
 	return q.fakeExecutor.Execute(ctx, run, pkg, prompt)
 }
 
-func TestMissionRunner_QuotaErrorRoutesToAllocatingForFailover(t *testing.T) {
+func TestMissionRunner_QuotaErrorAfterDispatchBlocksUnsafeReplay(t *testing.T) {
 	repo := NewMemoryRunRepository()
 	exec := &quotaFailExecutor{
 		fakeExecutor: fakeExecutor{reviewOK: true},
@@ -207,34 +207,29 @@ func TestMissionRunner_QuotaErrorRoutesToAllocatingForFailover(t *testing.T) {
 	run, _, _ = r.ExecuteNextStep(context.Background(), run.ID)
 	// 3. Compiling -> Executing
 	run, _, _ = r.ExecuteNextStep(context.Background(), run.ID)
-	// 4. Executing -> 429 error! Must route to StateAllocating via StateRemediating
-	run, _, _ = r.ExecuteNextStep(context.Background(), run.ID)
+	// 4. A typed quota error after dispatch has no proof that output or external
+	// effects were absent, so the runner must fail closed.
+	run, _, err = r.ExecuteNextStep(context.Background(), run.ID)
+	if err == nil {
+		t.Fatal("expected post-dispatch quota failure to block automatic retry")
+	}
 
 	pkg := run.PackageRuns[0]
-	if pkg.State != StateRemediating {
-		t.Fatalf("expected StateRemediating, got %s", pkg.State)
+	if run.State != StateBlockedNeedsUser || pkg.State != StateExecuting {
+		t.Fatalf("expected blocked run retaining failed execution state, run=%s pkg=%s", run.State, pkg.State)
 	}
-	if pkg.RetryFrom != StateAllocating {
-		t.Fatalf("expected RetryFrom StateAllocating for 429 quota error, got %s", pkg.RetryFrom)
+	if pkg.DispatchState != DispatchFailed || !pkg.ReplayProhibited || pkg.AssignedRuntime != "runtime-classified-failure" {
+		t.Fatalf("failed dispatch evidence must be preserved and replay prohibited: %+v", pkg)
 	}
 	if pkg.FailureKind != model.FailureRateLimit {
 		t.Fatalf("expected typed failure to be persisted, got %s", pkg.FailureKind)
 	}
-
-	// 5. Remediating -> routes to StateAllocating
-	run, _, _ = r.ExecuteNextStep(context.Background(), run.ID)
-	if run.PackageRuns[0].State != StateAllocating {
-		t.Fatalf("expected package to return to StateAllocating for failover, got %s", run.PackageRuns[0].State)
-	}
-
-	// 6. Allocating re-runs! (allocateCount should now be 2)
-	_, _, _ = r.ExecuteNextStep(context.Background(), run.ID)
-	if exec.allocateCount != 2 {
-		t.Fatalf("expected 2 allocations due to failover, got %d", exec.allocateCount)
+	if exec.allocateCount != 1 {
+		t.Fatalf("post-dispatch quota failure must not allocate another account, got %d allocations", exec.allocateCount)
 	}
 }
 
-func TestMissionRunner_QuotaWordDoesNotTriggerFailoverWithoutTypedFailure(t *testing.T) {
+func TestMissionRunner_UnknownFailureAfterDispatchBlocksReplay(t *testing.T) {
 	repo := NewMemoryRunRepository()
 	exec := &quotaFailExecutor{
 		fakeExecutor: fakeExecutor{reviewOK: true},
@@ -259,10 +254,10 @@ func TestMissionRunner_QuotaWordDoesNotTriggerFailoverWithoutTypedFailure(t *tes
 	if pkg.FailureKind != model.FailureUnknown {
 		t.Fatalf("expected unknown typed failure, got %s", pkg.FailureKind)
 	}
-	if pkg.RetryFrom != StateCompiling {
-		t.Fatalf("generic error mentioning quota must not trigger failover, got retry from %s", pkg.RetryFrom)
+	if run.State != StateBlockedNeedsUser || pkg.DispatchState != DispatchFailed || !pkg.ReplayProhibited {
+		t.Fatalf("unknown post-dispatch failure must be reconciled before replay: run=%s pkg=%+v", run.State, pkg)
 	}
 	if exec.allocateCount != 1 {
-		t.Fatalf("generic quota text must not reallocate, got %d allocations", exec.allocateCount)
+		t.Fatalf("unknown post-dispatch failure must not reallocate, got %d allocations", exec.allocateCount)
 	}
 }

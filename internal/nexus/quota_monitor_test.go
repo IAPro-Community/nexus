@@ -357,7 +357,8 @@ func TestQuotaDropMonitor_FailoverRecommendationAndAffectedRuntime(t *testing.T)
 		QuotaRemaining: 0.0,
 		QuotaTotal:     1.0,
 		QuotaView: &quota.QuotaView{
-			Status: "OK",
+			Status:    "LIVE",
+			Available: true,
 		},
 	}
 
@@ -372,7 +373,8 @@ func TestQuotaDropMonitor_FailoverRecommendationAndAffectedRuntime(t *testing.T)
 		QuotaTotal:     1.0,
 		Capabilities:   map[string]string{"headless": "supported", "submit_prompt": "supported"},
 		QuotaView: &quota.QuotaView{
-			Status: "OK",
+			Status:    "LIVE",
+			Available: true,
 		},
 	}
 

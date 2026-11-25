@@ -316,8 +316,8 @@ func TestAttentionHTTPMultiMissionQuotaRecoverySurvivesRestart(t *testing.T) {
 	}
 	runB := advanceToExecuting(newRun(fixtures[1], 3))
 	runC := advanceToExecuting(newRun(fixtures[2], 3))
-	if quotaRun, quotaErr := step(runC.ID); quotaErr != nil || quotaRun.State != runner.StateExecuting || quotaRun.PackageRuns[0].State != runner.StateRemediating || quotaRun.PackageRuns[0].RetryFrom != runner.StateAllocating {
-		t.Fatalf("mission C quota failure did not persist a failover checkpoint: run=%+v err=%v", quotaRun, quotaErr)
+	if quotaRun, quotaErr := step(runC.ID); quotaErr == nil || quotaRun.State != runner.StateBlockedNeedsUser || quotaRun.PackageRuns[0].DispatchState != runner.DispatchFailed || !quotaRun.PackageRuns[0].ReplayProhibited {
+		t.Fatalf("mission C post-dispatch quota failure must persist a reconciliation blocker: run=%+v err=%v", quotaRun, quotaErr)
 	}
 	runD := advanceToTerminal(advanceToExecuting(newRun(fixtures[3], 3)))
 	if runD.State != runner.StateCompletedVerified {
@@ -344,7 +344,7 @@ func TestAttentionHTTPMultiMissionQuotaRecoverySurvivesRestart(t *testing.T) {
 	client := firstServer.Client()
 	assertMultiMissionAttentionBeforeRestart(t, client, firstServer.URL, session.ID, runA.ID, runB.ID, runC.ID, runD.ID, runE.ID)
 	if allocates, executions := executor.counts("pkg-c"); allocates != 1 || executions != 1 {
-		t.Fatalf("mission C should have one initial allocation/attempt before restart, got allocations=%d executions=%d", allocates, executions)
+		t.Fatalf("mission C must not replay before restart, got allocations=%d executions=%d", allocates, executions)
 	}
 
 	firstServer.Close()
@@ -390,14 +390,14 @@ func TestAttentionHTTPMultiMissionQuotaRecoverySurvivesRestart(t *testing.T) {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	if recoveredB.State != runner.StateCompletedVerified || recoveredC.State != runner.StateCompletedVerified {
-		t.Fatalf("B/C did not continue from durable checkpoints: B=%s C=%s", recoveredB.State, recoveredC.State)
+	if recoveredB.State != runner.StateCompletedVerified || recoveredC.State != runner.StateBlockedNeedsUser {
+		t.Fatalf("restart must resume B while retaining C's reconciliation blocker: B=%s C=%s", recoveredB.State, recoveredC.State)
 	}
 	if allocates, executions := executor.counts("pkg-b"); allocates != 1 || executions != 1 {
 		t.Fatalf("B replayed completed allocation/provider work unexpectedly: allocations=%d executions=%d", allocates, executions)
 	}
-	if allocates, executions := executor.counts("pkg-c"); allocates != 2 || executions != 2 {
-		t.Fatalf("C quota recovery did not reallocate and resume exactly once: allocations=%d executions=%d", allocates, executions)
+	if allocates, executions := executor.counts("pkg-c"); allocates != 1 || executions != 1 {
+		t.Fatalf("C ambiguous quota failure was replayed after restart: allocations=%d executions=%d", allocates, executions)
 	}
 	assertMultiMissionAttentionAfterRestart(t, secondServer.Client(), secondServer.URL, session.ID, runA.ID, runB.ID, runC.ID, runD.ID, runE.ID)
 	if err := secondService.ShutdownContext(ctx); err != nil {
@@ -412,16 +412,16 @@ func assertMultiMissionAttentionBeforeRestart(t *testing.T, client *http.Client,
 	if status != http.StatusOK {
 		t.Fatalf("multi-mission attention HTTP status=%d, want 200", status)
 	}
-	if len(group.AllItems) != 3 || len(group.NeedsYou) != 1 || len(group.Completed) != 1 || len(group.Failed) != 1 {
+	if len(group.AllItems) != 4 || len(group.NeedsYou) != 2 || len(group.Completed) != 1 || len(group.Failed) != 1 {
 		t.Fatalf("pre-restart attention categories are incorrect: needs=%d completed=%d failed=%d", len(group.NeedsYou), len(group.Completed), len(group.Failed))
 	}
 	ids := attentionMissionIDs(group)
-	for _, id := range []string{expectedIDs[0], expectedIDs[3], expectedIDs[4]} {
+	for _, id := range []string{expectedIDs[0], expectedIDs[2], expectedIDs[3], expectedIDs[4]} {
 		if !ids[id] {
 			t.Errorf("attention projection is missing expected mission %s", id)
 		}
 	}
-	for _, id := range []string{expectedIDs[1], expectedIDs[2]} {
+	for _, id := range []string{expectedIDs[1]} {
 		if ids[id] {
 			t.Errorf("active mission %s incorrectly generated an attention item", id)
 		}
@@ -434,7 +434,7 @@ func assertMultiMissionAttentionAfterRestart(t *testing.T, client *http.Client, 
 	if status != http.StatusOK {
 		t.Fatalf("restarted multi-mission attention HTTP status=%d, want 200", status)
 	}
-	if len(group.AllItems) != 5 || len(group.NeedsYou) != 1 || len(group.Completed) != 3 || len(group.Failed) != 1 {
+	if len(group.AllItems) != 5 || len(group.NeedsYou) != 2 || len(group.Completed) != 2 || len(group.Failed) != 1 {
 		t.Fatalf("post-restart attention categories are incorrect: needs=%d completed=%d failed=%d", len(group.NeedsYou), len(group.Completed), len(group.Failed))
 	}
 	states := make(map[string]runner.State, len(group.AllItems))
@@ -444,7 +444,7 @@ func assertMultiMissionAttentionAfterRestart(t *testing.T, client *http.Client, 
 	want := map[string]runner.State{
 		expectedIDs[0]: runner.StateBlockedNeedsUser,
 		expectedIDs[1]: runner.StateCompletedVerified,
-		expectedIDs[2]: runner.StateCompletedVerified,
+		expectedIDs[2]: runner.StateBlockedNeedsUser,
 		expectedIDs[3]: runner.StateCompletedVerified,
 		expectedIDs[4]: runner.StateFailedNoProgress,
 	}

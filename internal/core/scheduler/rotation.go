@@ -25,8 +25,8 @@ type rotationState struct {
 
 // balanceCandidate pairs an eligible evaluation with its measured quota
 // availability so the rotation can rank accounts by remaining balance.
-// measured=false means the provider exposes no trustworthy capacity metric
-// (OPAQUE); such accounts never outrank measured positive quota.
+// measured=false means quota evidence is not current and verified; such
+// accounts are rejected by EvaluateAll before rotation ranking.
 type balanceCandidate struct {
 	evaluation *CandidateEvaluation
 	measured   bool
@@ -82,9 +82,7 @@ func (s *Selector) SelectNextBalancedProfile(
 		return &SelectionResult{Evaluations: evaluations}, err
 	}
 
-	// Rank by measured availability (most remaining first). Opaque/unmeasured
-	// capacity is a separate, lower tier: it must never outrank a resource
-	// backed by measured positive quota. Ties fall back to the name order so
+	// Rank measured availability (most remaining first). Ties fall back to the name order so
 	// the cursor rotation below stays deterministic.
 	sort.SliceStable(eligible, func(i, j int) bool {
 		if eligible[i].measured != eligible[j].measured {
@@ -151,9 +149,7 @@ func (s *Selector) SelectNextBalancedProfile(
 		return &SelectionResult{Evaluations: evaluations}, err
 	}
 	reason := "selected the eligible account with the most measured quota remaining"
-	if !leaders[0].measured {
-		reason = "no measured quota evidence; balanced rotation among operationally eligible accounts"
-	} else if leaderCount > 1 {
+	if leaderCount > 1 {
 		reason = "balanced rotation among equally available eligible accounts"
 	}
 	return &SelectionResult{

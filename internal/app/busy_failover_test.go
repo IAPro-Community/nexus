@@ -49,7 +49,7 @@ func TestLaunchWithBusyFailoverUsesBalancedSelectionMode(t *testing.T) {
 	runtimeLauncher := &stubLauncher{busy: map[string]bool{"first": true}}
 	_, selected, err := launchWithBusyFailover(
 		context.Background(), runtimeLauncher, selector, "agy", "", "/tmp", "", candidates,
-		map[string]model.AccountInfo{}, launcher.LaunchOptions{}, &bytes.Buffer{}, true,
+		map[string]model.AccountInfo{}, launcher.LaunchOptions{}, &bytes.Buffer{}, true, true,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -118,6 +118,7 @@ func TestLaunchWithBusyFailoverFallsBackWhenAutoSelecting(t *testing.T) {
 		accounts,
 		launcher.LaunchOptions{Timeout: 1},
 		&stderr,
+		true,
 	)
 	if err != nil {
 		t.Fatalf("launch: %v", err)
@@ -130,6 +131,23 @@ func TestLaunchWithBusyFailoverFallsBackWhenAutoSelecting(t *testing.T) {
 	}
 	if !bytes.Contains(stderr.Bytes(), []byte("busy")) {
 		t.Fatalf("expected fallback warning, got %q", stderr.String())
+	}
+}
+
+func TestLaunchWithBusyFailoverRequiresExplicitOptIn(t *testing.T) {
+	candidates := []model.Profile{{Name: "busy", Provider: "codex"}, {Name: "free", Provider: "codex"}}
+	l := &stubLauncher{busy: map[string]bool{"busy": true}}
+
+	_, selected, err := launchWithBusyFailover(
+		context.Background(), l, &stubSelector{order: []string{"busy", "free"}},
+		"codex", "", "/tmp", "", candidates, map[string]model.AccountInfo{},
+		launcher.LaunchOptions{}, &bytes.Buffer{}, false,
+	)
+	if !errors.Is(err, codex.ErrTUIBusy) {
+		t.Fatalf("err=%v want ErrTUIBusy while fallback opt-in is disabled", err)
+	}
+	if selected != "busy" || len(l.launched) != 1 || l.launched[0] != "busy" {
+		t.Fatalf("selected=%q launched=%v; a second account must not be tried without opt-in", selected, l.launched)
 	}
 }
 
@@ -149,6 +167,7 @@ func TestLaunchWithBusyFailoverExplicitProfileDoesNotFallback(t *testing.T) {
 		map[string]model.AccountInfo{},
 		launcher.LaunchOptions{},
 		&bytes.Buffer{},
+		false,
 	)
 	if !errors.Is(err, codex.ErrTUIBusy) {
 		t.Fatalf("err=%v want ErrTUIBusy", err)
@@ -180,6 +199,7 @@ func TestLaunchWithBusyFailoverDoesNotUseDefaultWhenAutoSelectionFails(t *testin
 		map[string]model.AccountInfo{},
 		launcher.LaunchOptions{},
 		&bytes.Buffer{},
+		false,
 	)
 	if err == nil {
 		t.Fatal("expected automatic selection error")
@@ -211,6 +231,7 @@ func TestLaunchWithBusyFailoverExhaustsCandidates(t *testing.T) {
 		map[string]model.AccountInfo{},
 		launcher.LaunchOptions{},
 		&bytes.Buffer{},
+		true,
 	)
 	if err == nil {
 		t.Fatal("expected exhausted profiles error")
@@ -275,6 +296,7 @@ func TestLaunchWithBusyFailoverRescuesStaleQuotaWithRefreshRetry(t *testing.T) {
 		accounts,
 		launcher.LaunchOptions{},
 		&stderr,
+		true,
 	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -318,6 +340,7 @@ func TestLaunchWithBusyFailoverFallsBackToHealthyProfileWhenStaleAndCannotRefres
 		accounts,
 		launcher.LaunchOptions{},
 		&stderr,
+		true,
 	)
 	if err == nil {
 		t.Fatalf("unverified quota must fail closed without override; selected=%q stderr=%q", selected, stderr.String())
@@ -359,6 +382,7 @@ func TestLaunchWithBusyFailoverDoesNotFallbackWhenAccountIsRateLimited(t *testin
 		accounts,
 		launcher.LaunchOptions{},
 		&stderr,
+		false,
 	)
 	if err == nil {
 		t.Fatal("expected error for rate limited profile")

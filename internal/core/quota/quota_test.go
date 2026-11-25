@@ -511,3 +511,39 @@ func TestAvailabilityLabelExhaustedFiveHour(t *testing.T) {
 		t.Fatalf("AvailabilityLabel=%q want QUOTA ESGOTADA", got)
 	}
 }
+
+func TestExpiredQuotaWindowsDoNotAuthorizeAutomaticCapacity(t *testing.T) {
+	now := time.Date(2026, time.November, 25, 12, 0, 0, 0, time.UTC)
+	remaining := 100.0
+	qv := &QuotaView{
+		Status: string(model.UsageCached),
+		ModelGroups: []ModelGroup{{
+			Key: "codex",
+			Windows: []Window{{
+				Kind:      "5h",
+				Remaining: remaining,
+				ResetTime: &now,
+			}},
+		}},
+	}
+
+	qv.computeAvailabilityAt(now)
+	if qv.Available || !qv.AvailReasons.UnknownQuota {
+		t.Fatalf("quota at its reset boundary must be unknown until refreshed: available=%v reasons=%+v", qv.Available, qv.AvailReasons)
+	}
+}
+
+func TestErrorQuotaSnapshotCannotBeAvailable(t *testing.T) {
+	remaining := 90.0
+	qv := &QuotaView{
+		Status: string(model.UsageError),
+		ModelGroups: []ModelGroup{{
+			Windows: []Window{{Kind: "5h", Remaining: remaining}},
+		}},
+	}
+
+	qv.ComputeAvailability()
+	if qv.Available || !qv.AvailReasons.UnknownQuota {
+		t.Fatalf("ERROR quota snapshot must fail closed: available=%v reasons=%+v", qv.Available, qv.AvailReasons)
+	}
+}
