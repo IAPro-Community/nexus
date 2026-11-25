@@ -42,6 +42,8 @@ rm -rf "$PREFIX/lib/nexus" "$PREFIX/lib/ai-manager"
 
 # Linux desktop integration created by install.sh.
 remove_file "$HOME/.local/share/applications/iapro-nexus.desktop"
+remove_file "$HOME/.local/share/applications/iapro-nexus-hud.desktop"
+remove_file "$HOME/.local/share/icons/hicolor/256x256/apps/iapro-nexus.png"
 remove_file "$HOME/Desktop/IAPro Nexus.desktop"
 
 # macOS user-local Wails app bundle.

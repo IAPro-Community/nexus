@@ -8,10 +8,20 @@
 
 set -euo pipefail
 
+REAL_HOME="${NEXUS_REAL_HOME:-$HOME}"
+REAL_HOME="$(printf '%s' "$REAL_HOME" | sed -e 's|/.local/share/nexus/profiles/.*||' -e 's|/.local/share/ai-manager/profiles/.*||' -e 's|/.local/share/ai-cli/profiles/.*||')"
+
 BIN="${1:-}"
 if [ -z "$BIN" ]; then
-  BIN="$(command -v nexus 2>/dev/null || echo "$HOME/.local/bin/nexus")"
+  BIN="$(command -v nexus 2>/dev/null || echo "$REAL_HOME/.local/bin/nexus")"
 fi
+
+case "$BIN" in
+  */profiles/*)
+    echo "✗  refusing to use profile-sandboxed nexus binary: $BIN" >&2
+    exit 1
+    ;;
+esac
 
 if [ ! -x "$BIN" ]; then
   echo "✗  nexus binary not found or not executable: $BIN" >&2

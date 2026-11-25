@@ -5,6 +5,7 @@
 #   ./install.sh --version=latest
 #   ./install.sh --build-from-source [--yes]
 set -euo pipefail
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source code and signed binaries share the same public GitHub repository.
 # NEXUS_RELEASE_REPO overrides it for internal/dev distributions.
@@ -489,6 +490,21 @@ install_linux_desktop() {
     local desktop_target="${TARGET_DIR}/nexus-desktop"
     install -m 0755 "$source_binary" "$desktop_target"
 
+    local icon_dir="${HOME}/.local/share/icons/hicolor/256x256/apps"
+    local icon_target="${icon_dir}/iapro-nexus.png"
+    local icon_source="${TMP_DIR}/nexus-icon-256.png"
+    if [ ! -f "$icon_source" ]; then
+        icon_source="${SCRIPT_DIR}/internal/desktop/assets/brand/nexus-icon-256.png"
+    fi
+    local icon_value="application-x-executable"
+    if [ -f "$icon_source" ]; then
+        mkdir -p "$icon_dir"
+        install -m 0644 "$icon_source" "$icon_target"
+        icon_value="$icon_target"
+    else
+        echo "⚠️  Nexus icon asset not found; desktop launcher will use the generic icon." >&2
+    fi
+
     local applications_dir="${HOME}/.local/share/applications"
     mkdir -p "$applications_dir"
     local desktop_entry="${applications_dir}/iapro-nexus.desktop"
@@ -499,7 +515,7 @@ Version=1.0
 Name=IAPro Nexus
 Comment=IAPro Nexus Workspace OS
 Exec=${desktop_target}
-Icon=application-x-executable
+Icon=${icon_value}
 Terminal=false
 Categories=Development;
 EOF
@@ -519,6 +535,41 @@ EOF
     chmod +x "${desktop_dir}/IAPro Nexus.desktop"
     echo "✓ Native Desktop installed to ${desktop_target}"
     echo "✓ Launcher created at ${desktop_dir}/IAPro Nexus.desktop"
+}
+
+install_linux_hud_launcher() {
+    local hud_target="$1"
+    local applications_dir="${HOME}/.local/share/applications"
+    local icon_target="${HOME}/.local/share/icons/hicolor/256x256/apps/iapro-nexus.png"
+    local icon_value="application-x-executable"
+    if [ -f "$icon_target" ]; then
+        icon_value="$icon_target"
+    fi
+
+    mkdir -p "$applications_dir"
+    local desktop_entry="${applications_dir}/iapro-nexus-hud.desktop"
+    cat > "$desktop_entry" <<EOF
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Nexus HUD
+Name[pt_BR]=Nexus HUD
+Name[es]=Nexus HUD
+Comment=IAPro Nexus operational HUD
+Comment[pt_BR]=HUD operacional do IAPro Nexus
+Comment[es]=HUD operativo de IAPro Nexus
+Exec="${hud_target}"
+Icon=${icon_value}
+Terminal=false
+Categories=Utility;
+StartupNotify=false
+StartupWMClass=com.iapro.nexus.hud
+EOF
+    chmod +x "$desktop_entry"
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        update-desktop-database "$applications_dir" >/dev/null 2>&1 || true
+    fi
+    echo "✓ Nexus HUD launcher created at ${desktop_entry}"
 }
 
 warn_webkitgtk() {
@@ -578,6 +629,7 @@ if [ "$INSTALL_DESKTOP" = true ] && [ -n "$VERSION_PLAIN" ] && [ "$DESKTOP_SUPPO
                 fi
                 install_linux_desktop "$DESKTOP_BINARY"
                 install -m 0755 "$HUD_BINARY" "${TARGET_DIR}/nexus-hud"
+                install_linux_hud_launcher "${TARGET_DIR}/nexus-hud"
                 echo "✓ Linked HUD installed to ${TARGET_DIR}/nexus-hud"
                 warn_webkitgtk
             else
@@ -589,6 +641,9 @@ if [ "$INSTALL_DESKTOP" = true ] && [ -n "$VERSION_PLAIN" ] && [ "$DESKTOP_SUPPO
         for source_desktop in "./nexus-desktop" "./cmd/nexus-desktop/build/bin/nexus-desktop"; do
             if [ -x "$source_desktop" ]; then
                 install_linux_desktop "$source_desktop"
+                if [ -x "${TARGET_DIR}/nexus-hud" ]; then
+                    install_linux_hud_launcher "${TARGET_DIR}/nexus-hud"
+                fi
                 warn_webkitgtk
                 break
             fi

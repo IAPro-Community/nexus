@@ -1,6 +1,7 @@
 BINARY=nexus
 MODULE=github.com/IAPro-Community/nexus
-LOCAL_BIN ?= $(HOME)/.local/bin
+REAL_HOME ?= $(shell printf '%s' "$${NEXUS_REAL_HOME:-$$HOME}" | sed -e 's|/.local/share/nexus/profiles/.*||' -e 's|/.local/share/ai-manager/profiles/.*||' -e 's|/.local/share/ai-cli/profiles/.*||')
+LOCAL_BIN ?= $(REAL_HOME)/.local/bin
 DESKTOP_TAGS = production
 GO_TAGS ?=
 WAILS_VERSION ?= v3.0.0-beta.25
@@ -154,6 +155,22 @@ install-local: build
 	mv -f $(LOCAL_BIN)/$(BINARY).tmp $(LOCAL_BIN)/$(BINARY); \
 	rm -f $(LOCAL_BIN)/ai; \
 	echo "Installed $(BINARY) to $(LOCAL_BIN)/$(BINARY)"; \
+	if [ -x "$(LOCAL_BIN)/nexus-desktop" ]; then \
+		$(MAKE) build-desktop; \
+		rm -f $(LOCAL_BIN)/nexus-desktop.tmp; \
+		cp -f nexus-desktop $(LOCAL_BIN)/nexus-desktop.tmp; \
+		chmod +x $(LOCAL_BIN)/nexus-desktop.tmp; \
+		mv -f $(LOCAL_BIN)/nexus-desktop.tmp $(LOCAL_BIN)/nexus-desktop; \
+		echo "Synced nexus-desktop to $(LOCAL_BIN)/nexus-desktop"; \
+	fi; \
+	if [ -x "$(LOCAL_BIN)/nexus-hud" ]; then \
+		$(MAKE) build-hud; \
+		rm -f $(LOCAL_BIN)/nexus-hud.tmp; \
+		cp -f nexus-hud $(LOCAL_BIN)/nexus-hud.tmp; \
+		chmod +x $(LOCAL_BIN)/nexus-hud.tmp; \
+		mv -f $(LOCAL_BIN)/nexus-hud.tmp $(LOCAL_BIN)/nexus-hud; \
+		echo "Synced nexus-hud to $(LOCAL_BIN)/nexus-hud"; \
+	fi; \
 	./scripts/restart-web.sh "$(LOCAL_BIN)/$(BINARY)"
 
 build-desktop: web

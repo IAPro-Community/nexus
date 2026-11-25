@@ -613,8 +613,18 @@ jobs:
           cat "$metrics"
       - name: Package Linux desktop surfaces
         run: |
-          tar -C cmd/nexus-desktop/build/bin -czf "$RUNNER_TEMP/nexus-desktop_Linux_x86_64.tar.gz" nexus-desktop
-          tar -C cmd/nexus-hud/build/bin -czf "$RUNNER_TEMP/nexus-hud_Linux_x86_64.tar.gz" nexus-hud
+          set -euo pipefail
+          desktop_package="$RUNNER_TEMP/nexus-desktop-package"
+          hud_package="$RUNNER_TEMP/nexus-hud-package"
+          mkdir -p "$desktop_package" "$hud_package"
+          install -m 0755 cmd/nexus-desktop/build/bin/nexus-desktop "$desktop_package/nexus-desktop"
+          install -m 0755 cmd/nexus-hud/build/bin/nexus-hud "$hud_package/nexus-hud"
+          install -m 0644 internal/desktop/assets/brand/nexus-icon-256.png "$desktop_package/nexus-icon-256.png"
+          install -m 0644 internal/desktop/assets/brand/nexus-icon-256.png "$hud_package/nexus-icon-256.png"
+          tar -C "$desktop_package" -czf "$RUNNER_TEMP/nexus-desktop_Linux_x86_64.tar.gz" nexus-desktop nexus-icon-256.png
+          tar -C "$hud_package" -czf "$RUNNER_TEMP/nexus-hud_Linux_x86_64.tar.gz" nexus-hud nexus-icon-256.png
+          tar -tzf "$RUNNER_TEMP/nexus-desktop_Linux_x86_64.tar.gz" | grep -Fxq nexus-icon-256.png
+          tar -tzf "$RUNNER_TEMP/nexus-hud_Linux_x86_64.tar.gz" | grep -Fxq nexus-icon-256.png
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-linux-${{ github.sha }}
