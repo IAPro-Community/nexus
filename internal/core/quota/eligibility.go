@@ -110,9 +110,15 @@ func evaluateSharedEligibility(in EligibilityInput, view sdkquota.QuotaView) sdk
 }
 
 func adaptSharedEligibility(in EligibilityInput, shared sdkquota.Eligibility) Eligibility {
+	// Map SDK's ReasonStaleQuota to Nexus's ReasonUnknownQuota to preserve
+	// existing Nexus routing/scheduler gate expectations.
+	reason := EligibilityReason(shared.Reason)
+	if shared.Reason == sdkquota.ReasonStaleQuota {
+		reason = ReasonUnknownQuota
+	}
 	return Eligibility{
 		Eligible:         shared.Eligible,
-		Reason:           EligibilityReason(shared.Reason),
+		Reason:           reason,
 		Confidence:       shared.Confidence,
 		CapacityEvidence: capacityEvidenceOf(in.View.Status),
 		Message:          shared.Message,

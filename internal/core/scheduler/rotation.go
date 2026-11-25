@@ -181,6 +181,7 @@ func agyBalancedQuotaEvidenceReason(snapshot model.UsageSnapshot, profile string
 
 	groups := make(map[string]bool)
 	fiveHour := make(map[string]bool)
+	weekly := make(map[string]bool)
 	for _, window := range snapshot.Windows {
 		group, ok := agyQuotaGroup(window.Group, window.Kind)
 		if !ok {
@@ -190,12 +191,18 @@ func agyBalancedQuotaEvidenceReason(snapshot model.UsageSnapshot, profile string
 		if agyFiveHourKind(group, window.Kind) && validAGYRemainingPercent(window.RemainingPercent) {
 			fiveHour[group] = true
 		}
+		if agyWeeklyKind(group, window.Kind) && validAGYRemainingPercent(window.RemainingPercent) {
+			weekly[group] = true
+		}
 	}
 	if len(groups) == 0 {
 		return "AGY 5h quota evidence is missing"
 	}
 	for group := range groups {
 		if !fiveHour[group] {
+			if weekly[group] {
+				return fmt.Sprintf("AGY 5h quota evidence is missing for model group %s (only weekly window reported; refresh quota or select profile explicitly)", group)
+			}
 			return fmt.Sprintf("AGY 5h quota evidence is missing for model group %s", group)
 		}
 	}
@@ -228,6 +235,14 @@ func agyFiveHourKind(group, rawKind string) bool {
 		return kind == "claude_5h" || kind == "claude_five_hour"
 	}
 	return kind == "5h" || kind == "five_hour"
+}
+
+func agyWeeklyKind(group, rawKind string) bool {
+	kind := strings.ToLower(strings.TrimSpace(rawKind))
+	if group == "claude_gpt" {
+		return kind == "claude_weekly" || strings.Contains(kind, "weekly")
+	}
+	return kind == "weekly" || strings.Contains(kind, "weekly")
 }
 
 func validAGYRemainingPercent(value *float64) bool {

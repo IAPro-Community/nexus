@@ -80,8 +80,8 @@ func TestListRecoversProfileRootWithoutMetadata(t *testing.T) {
 	t.Setenv("AI_CLI_DATA_DIR", data)
 	t.Setenv("AI_CLI_CONFIG_DIR", cfg)
 
-	// A profile root created before profile.json was written (interrupted
-	// creation, legacy `use` command) must not hide the account from listings.
+	// Listing profiles never auto-repairs unverified directories on disk;
+	// explicit RecoverLegacyProfile rebuilds metadata when targeted.
 	root := filepath.Join(data, "profiles", "codex", "work")
 	if err := os.MkdirAll(filepath.Join(root, "home"), 0700); err != nil {
 		t.Fatal(err)
@@ -94,11 +94,26 @@ func TestListRecoversProfileRootWithoutMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if len(ps) != 0 {
+		t.Fatalf("read-only List() must not auto-recover unverified root: got %+v", ps)
+	}
+	if Exists("codex", "work") {
+		t.Fatal("unrecovered profile without profile.json must not appear in Exists before explicit recovery")
+	}
+
+	if err := RecoverLegacyProfile("codex", "work"); err != nil {
+		t.Fatal(err)
+	}
+
+	ps, err = List()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(ps) != 1 || ps[0].Provider != "codex" || ps[0].Name != "work" {
 		t.Fatalf("recovered profiles = %+v, want codex:work", ps)
 	}
 	if !Exists("codex", "work") {
-		t.Fatal("recovered profile must be visible to Exists after List")
+		t.Fatal("recovered profile must be visible to Exists after RecoverLegacyProfile")
 	}
 }
 

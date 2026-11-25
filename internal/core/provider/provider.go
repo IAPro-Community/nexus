@@ -41,6 +41,11 @@ type UsageProvider interface {
 	GetUsage(ctx context.Context, p model.Profile) model.UsageSnapshot
 }
 
+// UsageRefresher performs a live quota refresh for an isolated profile.
+type UsageRefresher interface {
+	RefreshUsage(ctx context.Context, p model.Profile) model.UsageSnapshot
+}
+
 // ConversationProvider lists previous sessions and resumes them.
 type ConversationProvider interface {
 	ListConversations(ctx context.Context, p model.Profile, workspace string) ([]model.Session, error)

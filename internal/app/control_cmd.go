@@ -116,9 +116,9 @@ SUBCOMMANDS:
   attach <runtime-id>           Connect terminal to running session
   stop <runtime-id>             Gracefully stop a runtime
   handoff <runtime-id> <provider:profile>
-                                Same-provider account handoff
+                                Same-provider account handoff (Codex native session transfer)
   continue <runtime-id> --with <provider[:profile]>
-                                Cross-provider context handoff
+                                Cross-provider context handoff (WorkCheckpoint, all providers)
   cleanup                       Clean up stale runtime records and dead sockets
   doctor [--json] [--repair]     Audit control runtime environment and drivers
   web [--port <port>] [--no-open] [--listen <ip>] [--remote]
@@ -991,7 +991,7 @@ func controlStopCmd(args []string) error {
 
 func controlHandoffCmd(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: %s handoff <runtime-id> <provider:profile>", progName())
+		return fmt.Errorf("usage: %s handoff <runtime-id> <provider:profile>\n  Same-provider account handoff (e.g. Codex native session transfer)", progName())
 	}
 	runtimeID := args[0]
 	target := args[1]
@@ -1007,7 +1007,7 @@ func controlHandoffCmd(args []string) error {
 
 func controlContinueCmd(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: %s continue <runtime-id> --with <provider[:profile]>", progName())
+		return fmt.Errorf("usage: %s continue <runtime-id> --with <provider[:profile]>\n  Cross-provider context handoff using WorkCheckpoint (supported across all providers)", progName())
 	}
 	runtimeID := args[0]
 	var targetProvider, targetProfile string

@@ -10,6 +10,12 @@ import (
 
 type QuotaSource = sdkprovider.QuotaSource
 type IsolationGuarantee = sdkprovider.IsolationGuarantee
+type GroupTier = sdkprovider.GroupTier
+type ModelGroupSpec = sdkprovider.ModelGroupSpec
+type AuthKind = sdkprovider.AuthKind
+type QuotaPolicy = sdkprovider.QuotaPolicy
+type HistorySyncMode = sdkprovider.HistorySyncMode
+type HistorySyncPolicy = sdkprovider.HistorySyncPolicy
 
 const (
 	IsolationUnverified              = sdkprovider.IsolationUnverified
@@ -20,7 +26,33 @@ const (
 	QuotaLiveRPC     = sdkprovider.QuotaLiveRPC
 	QuotaLiveCLI     = sdkprovider.QuotaLiveCLI
 	QuotaUnsupported = sdkprovider.QuotaUnsupported
+
+	GroupTierPrimary   = sdkprovider.GroupTierPrimary
+	GroupTierAuxiliary = sdkprovider.GroupTierAuxiliary
+
+	AuthKindOAuthCLI    = sdkprovider.AuthKindOAuthCLI
+	AuthKindAPIKey      = sdkprovider.AuthKindAPIKey
+	AuthKindHostSession = sdkprovider.AuthKindHostSession
+
+	HistorySyncNone            = sdkprovider.HistorySyncNone
+	HistorySyncLink            = sdkprovider.HistorySyncLink
+	HistorySyncIncrementalCopy = sdkprovider.HistorySyncIncrementalCopy
 )
+
+// Register registers a product-specific or test provider specification in the shared SDK registry.
+func Register(s Spec) error {
+	return sdkprovider.Register(s.Spec)
+}
+
+// Extend updates an existing specification in the shared SDK registry.
+func Extend(id string, fn func(*sdkprovider.Spec)) error {
+	return sdkprovider.Extend(id, fn)
+}
+
+// Unregister removes a registered specification from the shared SDK registry.
+func Unregister(id string) {
+	sdkprovider.Unregister(id)
+}
 
 type FlagTable = sdkprovider.FlagTable
 
@@ -65,9 +97,6 @@ func adaptSDKSpec(source sdkprovider.Spec) Spec {
 
 func Get(id string) (Spec, bool) {
 	id = strings.ToLower(strings.TrimSpace(id))
-	if id == "zcode" {
-		return cloneLocalSpec(zcodeSpec), true
-	}
 	shared, ok := sdkprovider.Get(id)
 	if !ok {
 		return Spec{}, false
@@ -85,11 +114,10 @@ func MustGet(id string) Spec {
 
 func All() []Spec {
 	shared := sdkprovider.All()
-	result := make([]Spec, 0, len(shared)+1)
+	result := make([]Spec, 0, len(shared))
 	for _, item := range shared {
 		result = append(result, adaptSDKSpec(item))
 	}
-	result = append(result, cloneLocalSpec(zcodeSpec))
 	return result
 }
 
@@ -119,13 +147,4 @@ func (s Spec) OverlayEnv(base []string, profileHome, binDir, profileName string)
 
 func (s Spec) NormalizeFlags(args []string) []string {
 	return Normalize(s.ID, args, nil)
-}
-
-func cloneLocalSpec(spec Spec) Spec {
-	spec.BinaryCandidates = append([]string(nil), spec.BinaryCandidates...)
-	spec.EnvDelete = append([]string(nil), spec.EnvDelete...)
-	spec.AutoApproval = append([]string(nil), spec.AutoApproval...)
-	spec.ReviewMode = append([]string(nil), spec.ReviewMode...)
-	spec.KnownVersions = append([]string(nil), spec.KnownVersions...)
-	return spec
 }

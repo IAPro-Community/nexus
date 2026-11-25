@@ -10,6 +10,9 @@ import (
 var zcodeSpec = Spec{Spec: sdkprovider.Spec{
 	ClearLine:        "\x15",
 	ID:               "zcode",
+	DisplayName:      "Z Code",
+	ShortBadge:       "ZCD",
+	AuthKind:         sdkprovider.AuthKindAPIKey,
 	BinaryCandidates: []string{"zcode"},
 	EnvKeys: func(profileHome, binDir, profileName string) map[string]string {
 		return map[string]string{
@@ -32,4 +35,11 @@ var zcodeSpec = Spec{Spec: sdkprovider.Spec{
 	ReviewMode:    []string{"--mode", "guarded"},
 	Quota:         QuotaUnsupported,
 	KnownVersions: []string{"3.17.2-44"},
+	HistorySyncPolicy: sdkprovider.HistorySyncPolicy{
+		Mode: sdkprovider.HistorySyncNone,
+	},
 }}
+
+func init() {
+	_ = sdkprovider.Register(zcodeSpec.Spec)
+}

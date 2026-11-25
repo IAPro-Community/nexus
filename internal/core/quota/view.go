@@ -81,16 +81,38 @@ func (qv *QuotaView) TotalGroupRemaining() (total float64, groups int) {
 // Formula: usableGroups*100 + totalGroupRemaining/max(numGroups,1)
 // so AGY with 2 live families always beats AGY with 1 live family at 100%.
 func (qv *QuotaView) EffectiveCapacityScore() (score float64, ok bool) {
-	shared := sdkView(*qv)
-	return shared.EffectiveCapacityScore()
+	total, groups := qv.TotalGroupRemaining()
+	if groups == 0 {
+		return 0, false
+	}
+	avg := total / float64(groups)
+	return float64(qv.UsableGroupCount())*100.0 + avg, true
 }
 
 // EffectiveCapacityRatio normalizes the internal multi-pool ranking signal
 // to 0-1. It is not literal remaining quota and must not back public
 // quota_remaining fields; use BestGroupRemaining for that contract.
 func (qv *QuotaView) EffectiveCapacityRatio() (ratio float64, ok bool) {
-	shared := sdkView(*qv)
-	return shared.EffectiveCapacityRatio()
+	score, ok := qv.EffectiveCapacityScore()
+	if !ok {
+		return 0, false
+	}
+	_, groups := qv.TotalGroupRemaining()
+	if groups == 0 {
+		return 0, false
+	}
+	maxScore := float64(groups)*100.0 + 100.0
+	if maxScore <= 0 {
+		return 0, false
+	}
+	ratio = score / maxScore
+	if ratio < 0 {
+		ratio = 0
+	}
+	if ratio > 1 {
+		ratio = 1
+	}
+	return ratio, true
 }
 
 // CompactGroupSummary lists each group's capacity for compact UIs

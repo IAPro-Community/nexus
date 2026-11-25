@@ -99,9 +99,10 @@ func (s *MissionNotificationService) DeliverPending(ctx context.Context) error {
 			continue
 		}
 		category := notify.CategoryCriticalFailure
-		if delivery.Kind == missionNotificationKindBlocked {
+		switch delivery.Kind {
+		case missionNotificationKindBlocked:
 			category = notify.CategoryActionRequired
-		} else if delivery.Kind == "MISSION_COMPLETED" {
+		case "MISSION_COMPLETED":
 			category = notify.CategoryCompletionRecovery
 		}
 		err := s.notifier.Notify(notify.Payload{

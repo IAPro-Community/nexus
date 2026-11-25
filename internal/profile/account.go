@@ -6,13 +6,7 @@ import (
 	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/core/model"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/agy"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/claude"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/cursor"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/gemini"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/opencode"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/zcode"
+	coreprovider "github.com/IAPro-Community/nexus/internal/core/provider"
 )
 
 type AccountInfo = model.AccountInfo
@@ -33,22 +27,17 @@ func GetAccountInfoContext(ctx context.Context, providerName, name string) (mode
 	}
 	p := model.Profile{Provider: providerName, Name: name}
 	var info model.AccountInfo
-	switch providerName {
-	case "codex":
-		info = codex.New().InspectAuth(ctx, p)
-	case "agy":
-		info = agy.New().InspectAuth(ctx, p)
-	case "claude":
-		info = claude.New().InspectAuth(ctx, p)
-	case "opencode":
-		info = opencode.New().InspectAuth(ctx, p)
-	case "gemini":
-		info = gemini.New().InspectAuth(ctx, p)
-	case "cursor":
-		info = cursor.New().InspectAuth(ctx, p)
-	case "zcode":
-		info = zcode.New().InspectAuth(ctx, p)
-	default:
+	if adapter, ok := Registry().Get(providerName); ok {
+		if authProv, ok := any(adapter).(coreprovider.AuthProvider); ok {
+			info = authProv.InspectAuth(ctx, p)
+		} else {
+			info = model.AccountInfo{
+				Status:        "Authentication inspection unsupported",
+				Health:        model.HealthUnknown,
+				Authenticated: false,
+			}
+		}
+	} else {
 		info = model.AccountInfo{
 			Status:        "Unknown provider",
 			Health:        model.HealthUnknown,

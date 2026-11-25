@@ -53,11 +53,9 @@ func ImportHostSessions(ctx context.Context) ([]HostSessionImportResult, error) 
 	if err != nil {
 		return nil, err
 	}
-	providers := []coreprovider.Provider{
-		codex.New(), claude.New(), gemini.New(), agy.New(), opencode.New(), cursor.New(), zcode.New(),
-	}
-	results := make([]HostSessionImportResult, 0, len(providers))
-	for _, adapter := range providers {
+	coreProviders := Registry().List()
+	results := make([]HostSessionImportResult, 0, len(coreProviders))
+	for _, adapter := range coreProviders {
 		result, updatedProfiles := importHostSession(ctx, adapter, profiles)
 		results = append(results, result)
 		profiles = updatedProfiles

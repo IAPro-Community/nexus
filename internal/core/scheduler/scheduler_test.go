@@ -344,6 +344,10 @@ func TestAGYBalancedQuotaEvidenceRequiresAttributionSourceAndMeasuredRemaining(t
 		{name: "unknown source", mutate: func(s *model.UsageSnapshot) { s.Source = model.SourceNone }, wantErr: "source is unknown"},
 		{name: "estimated status", mutate: func(s *model.UsageSnapshot) { s.Status = model.UsageEstimated }, wantErr: "live or recently cached"},
 		{name: "missing measured remaining", mutate: func(s *model.UsageSnapshot) { s.Windows[0].RemainingPercent = nil }, wantErr: "quota evidence is missing for model group"},
+		{name: "weekly only without 5h", mutate: func(s *model.UsageSnapshot) {
+			pct := 80.0
+			s.Windows = []model.UsageWindow{{Group: "gemini", Kind: "weekly", RemainingPercent: &pct}}
+		}, wantErr: "only weekly window reported; refresh quota or select profile explicitly"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

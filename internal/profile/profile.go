@@ -43,17 +43,23 @@ func ValidateName(s string) error {
 }
 
 func ValidateProvider(p string) error {
-	switch strings.ToLower(p) {
-	case "codex", "agy", "claude", "opencode", "gemini", "cursor", "zcode":
-		return nil
-	case "omp":
+	id := strings.ToLower(strings.TrimSpace(p))
+	if id == "omp" {
 		if os.Getenv("NEXUS_EXPERIMENTAL_HARNESSES") == "1" {
 			return nil
 		}
 		return fmt.Errorf("OMP requires NEXUS_EXPERIMENTAL_HARNESSES=1 while issue #98 remains experimental")
-	default:
-		return fmt.Errorf("unsupported provider %q (supported: codex, agy, claude, opencode, gemini, cursor, zcode; experimental: omp)", p)
 	}
+	if _, ok := spec.Get(id); ok {
+		return nil
+	}
+	specs := spec.All()
+	supported := make([]string, 0, len(specs))
+	for _, s := range specs {
+		supported = append(supported, s.ID)
+	}
+	sort.Strings(supported)
+	return fmt.Errorf("unsupported provider %q (supported: %s; experimental: omp)", p, strings.Join(supported, ", "))
 }
 
 func Exists(provider, name string) bool {
@@ -176,6 +182,13 @@ func Rename(provider, oldName, newName string) error {
 	return nil
 }
 
+// RecoverLegacyProfile rebuilds profile.json for a legacy profile root that
+// was explicitly targeted for recovery. Listing profiles never auto-repairs
+// unverified directories on disk.
+func RecoverLegacyProfile(provider, name string) error {
+	return recoverLegacyProfile(provider, name)
+}
+
 // recoverLegacyProfile rebuilds profile.json for a profile root that was left
 // without metadata, for example when the process stopped between creating the
 // isolated home and writing the profile. The directory only exists because a
@@ -228,9 +241,19 @@ func List() ([]model.Profile, error) {
 	}
 	base := filepath.Join(data, "profiles")
 	var out []model.Profile
-	providers := []string{"agy", "codex", "claude", "cursor", "opencode", "gemini", "zcode"}
+	specs := spec.All()
+	providers := make([]string, 0, len(specs)+1)
+	seenProviders := make(map[string]struct{}, len(specs)+1)
+	for _, s := range specs {
+		if _, exists := seenProviders[s.ID]; !exists {
+			providers = append(providers, s.ID)
+			seenProviders[s.ID] = struct{}{}
+		}
+	}
 	if os.Getenv("NEXUS_EXPERIMENTAL_HARNESSES") == "1" {
-		providers = append(providers, "omp")
+		if _, exists := seenProviders["omp"]; !exists {
+			providers = append(providers, "omp")
+		}
 	}
 
 	cfg, _ := config.LoadConfig()
@@ -249,32 +272,32 @@ func List() ([]model.Profile, error) {
 			}
 			raw, err := os.ReadFile(filepath.Join(base, provider, e.Name(), "profile.json"))
 			if err != nil {
-				if repairErr := recoverLegacyProfile(provider, e.Name()); repairErr != nil {
-					continue
-				}
-				raw, err = os.ReadFile(filepath.Join(base, provider, e.Name(), "profile.json"))
-				if err != nil {
-					continue
-				}
+				// Strictly exclude unverified/ghost directories without explicit profile.json.
+				continue
 			}
 			var p model.Profile
-			if json.Unmarshal(raw, &p) == nil {
-				// Backfill the opaque scope for legacy profile.json files. This is
-				// metadata-only and does not attribute any old quota snapshot.
-				if scope, scopeErr := AccountScope(p.Provider, p.Name, ""); scopeErr == nil {
-					p.AccountScope = scope
-				}
-				if cfg.Disabled[p.Provider] != nil && cfg.Disabled[p.Provider][p.Name] {
-					p.Disabled = true
-				}
-				if cfg.Priorities[p.Provider] != nil {
-					p.Priority = cfg.Priorities[p.Provider][p.Name]
-				}
-				if cfg.Labels[p.Provider] != nil {
-					p.Labels = cfg.Labels[p.Provider][p.Name]
-				}
-				out = append(out, p)
+			if json.Unmarshal(raw, &p) != nil {
+				continue
 			}
+			if !strings.EqualFold(strings.TrimSpace(p.Provider), provider) || strings.TrimSpace(p.Name) != e.Name() {
+				continue
+			}
+			p.Provider = provider
+			// Backfill the opaque scope for legacy profile.json files. This is
+			// metadata-only and does not attribute any old quota snapshot.
+			if scope, scopeErr := AccountScope(p.Provider, p.Name, ""); scopeErr == nil {
+				p.AccountScope = scope
+			}
+			if cfg.Disabled[p.Provider] != nil && cfg.Disabled[p.Provider][p.Name] {
+				p.Disabled = true
+			}
+			if cfg.Priorities[p.Provider] != nil {
+				p.Priority = cfg.Priorities[p.Provider][p.Name]
+			}
+			if cfg.Labels[p.Provider] != nil {
+				p.Labels = cfg.Labels[p.Provider][p.Name]
+			}
+			out = append(out, p)
 		}
 	}
 
