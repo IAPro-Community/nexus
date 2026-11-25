@@ -115,8 +115,22 @@ process.stdin.on('data', function (chunk) {
 });
 `;
 
-export async function startFixtureServer({ composerFlow = false } = {}) {
-  ensureNexusBinary(repoRoot, { composerFlow });
+export function fixtureFeatureEnvironment(source, { composerFlow = false, features = [] } = {}) {
+  // Test processes never inherit accidental host opt-ins.
+  const env = Object.fromEntries(
+    Object.entries(source).filter(([key]) => !key.startsWith('NEXUS_FEATURE_') && key !== 'NEXUS_FEATURES_ENABLED'),
+  );
+  const enabled = new Set(features);
+  if (composerFlow) {
+    for (const key of ['COMPOSER', 'FLOW', 'MISSIONS']) enabled.add(key);
+  }
+  env.NEXUS_FEATURES_ENABLED = enabled.size > 0 ? 'true' : 'false';
+  for (const key of enabled) env[`NEXUS_FEATURE_${key}`] = 'true';
+  return env;
+}
+
+export async function startFixtureServer({ composerFlow = false, features = [] } = {}) {
+  ensureNexusBinary(repoRoot);
   const isolatedDataDir =
     process.env.NEXUS_E2E_DATA_DIR || path.join(tmpdir(), `nexus-surface-e2e-${process.pid}`);
   const isolatedProjectPath =
@@ -133,7 +147,7 @@ export async function startFixtureServer({ composerFlow = false } = {}) {
     mode: 0o755,
   });
   const serverEnv = {
-    ...process.env,
+    ...fixtureFeatureEnvironment(process.env, { composerFlow, features }),
     NEXUS_DATA_DIR: isolatedDataDir,
     NEXUS_CONFIG_DIR: path.join(isolatedDataDir, 'config'),
     AI_MANAGER_DATA_DIR: isolatedDataDir,

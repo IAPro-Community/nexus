@@ -50,7 +50,9 @@ function attentionGroup(items) {
 
 async function main() {
   console.log('=== Mission Attention browser E2E ===');
-  const { server, bootstrapUrl, isolatedProjectPath, getOutput } = await startFixtureServer();
+  const { server, bootstrapUrl, isolatedProjectPath, getOutput } = await startFixtureServer({
+    composerFlow: true,
+  });
   let browser;
   let context;
   let page;

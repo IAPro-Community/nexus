@@ -32,7 +32,9 @@ const jpeg =
 
 async function main() {
   console.log('=== Device preview E2E (single session, Axe per preset) ===');
-  const { server, bootstrapUrl, isolatedProjectPath, getOutput } = await startFixtureServer();
+  const { server, bootstrapUrl, isolatedProjectPath, getOutput } = await startFixtureServer({
+    features: ['DEVICE_PREVIEW'],
+  });
   let browser;
   let context;
   let page;

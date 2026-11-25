@@ -12,6 +12,10 @@ import (
 )
 
 func TestComparisonCampaignCreatesTwoFrozenVariantsFromOneCleanBase(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_COMPARISON_LAB", "true")
+	t.Setenv("NEXUS_FEATURE_FLOW", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	dataDir := t.TempDir()
 	t.Setenv("NEXUS_DATA_DIR", dataDir)
 	st, err := store.Open(filepath.Join(dataDir, "nexus.db"))
@@ -110,6 +114,10 @@ func TestComparisonCampaignCreatesTwoFrozenVariantsFromOneCleanBase(t *testing.T
 }
 
 func TestComparisonCampaignRejectsDirtyCheckoutAndInvalidVariant(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_COMPARISON_LAB", "true")
+	t.Setenv("NEXUS_FEATURE_FLOW", "true")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
 	dataDir := t.TempDir()
 	t.Setenv("NEXUS_DATA_DIR", dataDir)
 	st, err := store.Open(filepath.Join(dataDir, "nexus.db"))
@@ -167,4 +175,19 @@ func comparisonGit(t *testing.T, repo string, args ...string) string {
 		t.Fatalf("git %v: %v: %s", args, err, strings.TrimSpace(string(out)))
 	}
 	return strings.TrimSpace(string(out))
+}
+
+func TestCampaignRejectsDisabledDependenciesBeforeStorage(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_COMPARISON_LAB", "true")
+	t.Setenv("NEXUS_FEATURE_FLOW", "false")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "false")
+	svc := &ComparisonCampaignApplicationService{}
+	if _, err := svc.Create(context.Background(), CreateComparisonCampaignRequest{}); err == nil || !strings.Contains(err.Error(), "FLOW") {
+		t.Fatalf("campaign creation must reject disabled Flow first: %v", err)
+	}
+	t.Setenv("NEXUS_FEATURE_FLOW", "true")
+	if _, err := svc.Launch(context.Background(), "legacy", LaunchComparisonCampaignRequest{}); err == nil || !strings.Contains(err.Error(), "MISSIONS") {
+		t.Fatalf("campaign launch must reject disabled Missions first: %v", err)
+	}
 }

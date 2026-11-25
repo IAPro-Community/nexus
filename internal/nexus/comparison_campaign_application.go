@@ -145,6 +145,12 @@ func (s *ComparisonCampaignApplicationService) baseReady(ctx context.Context) (*
 }
 
 func (s *ComparisonCampaignApplicationService) Create(ctx context.Context, req CreateComparisonCampaignRequest) (*ComparisonCampaignView, error) {
+	if err := RequireAdvancedFeature(FeatureComparisonLab); err != nil {
+		return nil, err
+	}
+	if err := RequireAdvancedFeature(FeatureFlow); err != nil {
+		return nil, err
+	}
 	st, err := s.ready(ctx)
 	if err != nil {
 		return nil, err
@@ -377,6 +383,15 @@ func (s *ComparisonCampaignApplicationService) view(ctx context.Context, campaig
 }
 
 func (s *ComparisonCampaignApplicationService) Launch(ctx context.Context, id string, approval LaunchComparisonCampaignRequest) (*ComparisonCampaignView, error) {
+	if err := RequireAdvancedFeature(FeatureComparisonLab); err != nil {
+		return nil, err
+	}
+	if err := RequireAdvancedFeature(FeatureFlow); err != nil {
+		return nil, err
+	}
+	if err := RequireAdvancedFeature(FeatureMissions); err != nil {
+		return nil, err
+	}
 	st, err := s.ready(ctx)
 	if err != nil {
 		return nil, err

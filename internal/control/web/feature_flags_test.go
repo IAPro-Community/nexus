@@ -94,3 +94,22 @@ func TestEffectiveAdvancedFeaturesEndpointIsReadOnlyAndNotCached(t *testing.T) {
 		t.Fatalf("feature writes must be rejected, got %d", rec.Code)
 	}
 }
+
+func TestCrossFeatureOperationsRejectDisabledDestination(t *testing.T) {
+	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
+	t.Setenv("NEXUS_FEATURE_COMPOSER", "true")
+	t.Setenv("NEXUS_FEATURE_FLOW", "false")
+	t.Setenv("NEXUS_FEATURE_MISSIONS", "true")
+	h := &NexusHandler{}
+	rec := httptest.NewRecorder()
+	h.handlePromptArtifact(rec, httptest.NewRequest(http.MethodPost, "/api/v1/prompt-artifacts/legacy/flow", nil))
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("materialize disabled Flow: %d", rec.Code)
+	}
+	t.Setenv("NEXUS_FEATURE_COMPOSER", "false")
+	rec = httptest.NewRecorder()
+	h.handleRunPlanningReview(rec, httptest.NewRequest(http.MethodPost, "/api/v1/runs/legacy/planning-review", nil), "legacy")
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("create disabled Composer: %d", rec.Code)
+	}
+}

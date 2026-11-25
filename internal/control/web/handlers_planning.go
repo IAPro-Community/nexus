@@ -366,6 +366,9 @@ func (h *NexusHandler) handlePromptArtifact(w http.ResponseWriter, r *http.Reque
 		writeError(w, http.StatusNotFound, "prompt artifact flow materialization not found")
 		return
 	}
+	if optionalFeatureMutationBlocked(w, r, featureFlow) {
+		return
+	}
 	id := strings.TrimSuffix(path, "/flow")
 	id = strings.Trim(id, "/")
 	if id == "" {
@@ -672,6 +675,9 @@ func (h *NexusHandler) handlePlanRun(w http.ResponseWriter, r *http.Request) {
 func (h *NexusHandler) handleRunPlanningReview(w http.ResponseWriter, r *http.Request, runID string) {
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "POST required")
+		return
+	}
+	if optionalFeatureMutationBlocked(w, r, featureComposer) {
 		return
 	}
 	run, err := h.runs.Get(r.Context(), runID)

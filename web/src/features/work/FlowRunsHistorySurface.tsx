@@ -610,7 +610,11 @@ export const FlowRunsHistorySurface: React.FC<{
                 onReasonChange={setComparisonReason}
                 onDecide={(decision) => void decideComparison(decision)}
               />
-              <ComparisonCampaignPanel project={project} plans={plans} onLaunched={() => void load()} />
+              <ComparisonCampaignPanel
+                project={project}
+                plans={plans}
+                onLaunched={() => void load()}
+              />
             </>
           )}
         </>
