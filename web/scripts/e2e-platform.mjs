@@ -20,11 +20,27 @@ function run(command, args, options, label) {
   }
 }
 
-export function createNexusE2EBuildEnv(sourceEnv, { composerFlow = false } = {}) {
-  return {
-    ...sourceEnv,
-    NEXUS_EXPERIMENTAL_COMPOSER_FLOW: composerFlow ? '1' : '0',
-  };
+// The bundle is profile-independent. Server fixtures alone opt in to features.
+export function createNexusE2EBuildEnv(sourceEnv) {
+  return Object.fromEntries(
+    Object.entries(sourceEnv).filter(
+      ([key]) =>
+        !key.startsWith('NEXUS_FEATURE_') &&
+        key !== 'NEXUS_FEATURES_ENABLED' &&
+        key !== 'NEXUS_EXPERIMENTAL_COMPOSER_FLOW',
+    ),
+  );
+}
+
+export function fixtureFeatureEnvironment(source, { composerFlow = false, features = [] } = {}) {
+  const env = createNexusE2EBuildEnv(source);
+  const enabled = new Set(features);
+  if (composerFlow) {
+    for (const key of ['COMPOSER', 'FLOW', 'MISSIONS']) enabled.add(key);
+  }
+  env.NEXUS_FEATURES_ENABLED = enabled.size > 0 ? 'true' : 'false';
+  for (const key of enabled) env[`NEXUS_FEATURE_${key}`] = 'true';
+  return env;
 }
 
 export function buildNexusForE2E(repoRoot, options = {}) {

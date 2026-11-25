@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
-import { ensureNexusBinary, nexusBinaryPath } from './e2e-platform.mjs';
+import { ensureNexusBinary, fixtureFeatureEnvironment, nexusBinaryPath } from './e2e-platform.mjs';
 import { terminateProcess } from './e2e-fixture.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -39,7 +39,7 @@ async function main() {
     assert.equal(gitInit.status, 0, `browser E2E fixture git init failed: ${gitInit.stderr || ''}`);
   }
   const serverEnv = {
-    ...process.env,
+    ...fixtureFeatureEnvironment(process.env),
     NEXUS_DATA_DIR: isolatedDataDir,
     AI_MANAGER_DATA_DIR: isolatedDataDir,
     NEXUS_E2E_PROJECT_PATH: isolatedProjectPath,

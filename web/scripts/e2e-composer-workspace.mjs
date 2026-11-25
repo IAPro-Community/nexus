@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { ensureNexusBinary, nexusBinaryPath } from './e2e-platform.mjs';
+import { ensureNexusBinary, fixtureFeatureEnvironment, nexusBinaryPath } from './e2e-platform.mjs';
 import {
   playwrightExecutablePath,
   terminateProcess,
@@ -22,7 +22,7 @@ const outDir = path.resolve(repoRoot, 'DEV/validation/composer-workspace');
 
 mkdirSync(outDir, { recursive: true });
 
-ensureNexusBinary(repoRoot, { composerFlow: true });
+ensureNexusBinary(repoRoot);
 assert.ok(existsSync(binPath), `nexus binary missing at ${binPath}`);
 
 let browser;
@@ -36,7 +36,7 @@ writeFileSync(path.join(projectPath, 'README.md'), '# Composer E2E fixture\n');
 spawnSync('git', ['init', '-q', projectPath], { stdio: 'ignore' });
 
 const serverEnv = {
-  ...process.env,
+  ...fixtureFeatureEnvironment(process.env, { composerFlow: true }),
   NEXUS_DATA_DIR: isolatedDataDir,
   NEXUS_CONFIG_DIR: path.join(isolatedDataDir, 'config'),
   AI_CLI_DATA_DIR: isolatedDataDir,

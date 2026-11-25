@@ -87,7 +87,7 @@ function openTerminalsAndDesktop(page) {
 
 async function main() {
   console.log('=== Smart Layouts browser E2E ===');
-  const { server, bootstrapUrl, isolatedProjectPath, getOutput } = await startFixtureServer();
+  const { server, bootstrapUrl, isolatedProjectPath, getOutput } = await startFixtureServer({ features: ['SMART_LAYOUTS'] });
   let browser;
   let context;
   let page;

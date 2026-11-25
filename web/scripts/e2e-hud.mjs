@@ -23,7 +23,7 @@ async function main() {
   console.log('=== Nexus HUD Web E2E ===');
   process.env.NEXUS_ENABLE_HUD = '1';
   const { server, bootstrapUrl, isolatedProjectPath, isolatedDataDir, getOutput } =
-    await startFixtureServer();
+    await startFixtureServer({ features: ['NEX_PROACTIVITY'] });
 
   let browser;
   let context;

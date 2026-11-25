@@ -13,7 +13,7 @@ import {
 import os from 'node:os';
 import path from 'node:path';
 import { chromium } from 'playwright';
-import { ensureNexusBinary, nexusBinaryPath } from './e2e-platform.mjs';
+import { ensureNexusBinary, fixtureFeatureEnvironment, nexusBinaryPath } from './e2e-platform.mjs';
 import { terminateProcess, terminateProcessOnExit } from './e2e-fixture.mjs';
 import { dumpWorkspaceStateInPage } from './workspace-state.mjs';
 
@@ -37,7 +37,8 @@ writeFileSync(
 );
 
 const serverEnv = {
-  ...process.env,
+  // Legacy feature-specific documentation captures remain explicit opt-in.
+  ...fixtureFeatureEnvironment(process.env, { composerFlow: true }),
   NEXUS_DATA_DIR: dataDir,
   AI_CLI_DATA_DIR: dataDir,
   NEXUS_DOCS_CAPTURE: '1',

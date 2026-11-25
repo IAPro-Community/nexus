@@ -8,7 +8,7 @@ import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { ensureNexusBinary, nexusBinaryPath } from './e2e-platform.mjs';
+import { ensureNexusBinary, fixtureFeatureEnvironment, nexusBinaryPath } from './e2e-platform.mjs';
 import { terminateProcess } from './process-termination.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -114,20 +114,6 @@ process.stdin.on('data', function (chunk) {
   }
 });
 `;
-
-export function fixtureFeatureEnvironment(source, { composerFlow = false, features = [] } = {}) {
-  // Test processes never inherit accidental host opt-ins.
-  const env = Object.fromEntries(
-    Object.entries(source).filter(([key]) => !key.startsWith('NEXUS_FEATURE_') && key !== 'NEXUS_FEATURES_ENABLED'),
-  );
-  const enabled = new Set(features);
-  if (composerFlow) {
-    for (const key of ['COMPOSER', 'FLOW', 'MISSIONS']) enabled.add(key);
-  }
-  env.NEXUS_FEATURES_ENABLED = enabled.size > 0 ? 'true' : 'false';
-  for (const key of enabled) env[`NEXUS_FEATURE_${key}`] = 'true';
-  return env;
-}
 
 export async function startFixtureServer({ composerFlow = false, features = [] } = {}) {
   ensureNexusBinary(repoRoot);

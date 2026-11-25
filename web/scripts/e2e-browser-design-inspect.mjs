@@ -22,7 +22,7 @@ const jpeg =
 async function main() {
   console.log('=== Browser design-inspect UI handoff E2E (API fixtures) ===');
   const { server, bootstrapUrl, isolatedDataDir, isolatedProjectPath, getOutput } =
-    await startFixtureServer();
+    await startFixtureServer({ features: ['DESIGN_INSPECT'] });
   let browser;
   let context;
   let page;
