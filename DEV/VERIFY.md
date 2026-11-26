@@ -1,3 +1,29 @@
+## 2026-11-25 — Roteamento de provedores só por instrução explícita
+
+- **PASS — Suítes Go relacionadas:** `unset NEXUS_REAL_HOME AI_REAL_HOME USERPROFILE CODEX_HOME; go test ./internal/nexus ./internal/app ./internal/control/web -count=1` — `internal/nexus` (116,550s), `internal/app` (22,794s) e `internal/control/web` (75,077s).
+- **PASS — Lint Go direcionado:** `golangci-lint run --build-tags=gtk3 ./internal/nexus ./internal/app ./internal/control/web` — 0 issues.
+- **PASS — Formatação/diff:** `gofmt` nos dois arquivos Go alterados e `git diff --check` sem erros.
+- **Cobertura de regressão:** casos de menção incidental, escolha de ferramenta em primeira pessoa, negação e instrução explícita (“I want you to use Cursor”) em `registered_provider_routing_test.go`.
+- **Escopo da evidência:** validação local do código; não houve instalação, commit ou publicação.
+
+## 2026-11-26 — Quotas (tiering + `:balanced` paralelo), catálogo único, histórico cross-account e paridade CLI/TUI/Web
+
+- **PASS — Web (`quality:full` + E2E):** `npm --prefix web run quality:full` PASS (`check:styles` 6/6 + allowlist + 485 tokens, `format:check` Prettier limpo, ESLint 0 erros, Stylelint limpo, `tsc --noEmit`, 10 testes Node, Vitest **166/166 arquivos / 1.069/1.069 testes** incluindo novos testes de tiering/ranking em `usageModel.test.ts` e `directSessionModel.test.ts`, e `node scripts/build.mjs`). `npm --prefix web run test:e2e:capacity` PASS (`auth, CSRF, quota, incidents, external usage, CSV`).
+- **PASS — Governança e higiene:** `node scripts/verify-release-docs.mjs`, `node scripts/verify-agent-workspace-evidence-map.mjs` (48 capabilities, 97 cláusulas), `node scripts/verify-agent-workspace-v1.mjs` e `git diff --check` PASS.
+- **PASS — Go (`go vet` + `-race` direcionado):** `go vet ./...` limpo; `go test -race -count=1` (com `NEXUS_REAL_HOME=""`, `GOCACHE=/tmp/nexus-quota-gocache`, `GOFLAGS=-buildvcs=false`) PASS em `./internal/core/provider/...`, `./internal/core/historysync/...`, `./internal/core/quota/...`, `./internal/core/scheduler/...`, `./internal/profile/...`, `./internal/app/...`, `./internal/control/driver/...`, `./internal/control/web/...`, `./internal/tui/...`, `./internal/core/provider/adapters/{agy,claude,codex,cursor,gemini,opencode}` e `-run "TestUsageCatalogAndProjectionParityExcludesGhosts|TestRecommend" ./internal/nexus`.
+- **HISTÓRICO — Suíte ampla `go test -count=1 ./...`:** a execução anterior identificou falso positivo em `TestResolveRegisteredProviderPreferenceDoesNotRouteIncidentalOrNegatedProviderMentions`; o caso foi corrigido e validado nesta entrega (seção 2026-11-25 acima). Na execução paralela combinada com `-race`, `internal/nexus` também atingiu o timeout de 10m em `TestEffectiveAgentState` (validado isoladamente em `-count=1` e nos testes focados `-race`).
+- **Estado:** sem `git commit`, `git push`, `make install-local` ou reinício do servidor Web/Desktop/HUD; release permanece **NO_GO**.
+
+## 2026-11-25 — Continuidade de histórico entre homes
+
+- **PASS — `make quality`:** `format-check`, ESLint/Stylelint/TypeScript, `golangci-lint` (0 issues), suíte Go completa, Vitest 166/166 arquivos e 1.067/1.067 testes, contrato de versão.
+- **PASS — build isolado:** Web de `HEAD` limpo mais somente os patches de continuidade e binário Nexus v1.0.1 concluídos, sem empacotar as alterações NEX 2.0 não relacionadas do worktree.
+- **PASS — testes direcionados:** descoberta AGY no SQLite read-only e fallback, leitura de chats Cursor, integração dos chats Cursor nos agregadores, seleção de sessão por harness/perfil, retomada Codex e seleção TUI.
+- **PASS — integridade:** `gofmt` nos arquivos Go alterados e `git diff --check` sem erros após validação final.
+- **PASS COM LIMITE — validação nativa:** `--continue` em `kiveromegasistemas` e `kivervinicius-gmail` abriu a mesma sessão do workspace `/projetos/nexus`. O CLI do segundo perfil avisou que a conversa já estava aberta em outra instância. Nenhum prompt foi enviado; os processos iniciados para o teste foram encerrados.
+- **PASS — instalação CLI local:** instalado atomicamente em `/home/desenvolvedor/.local/bin/nexus` e no caminho prioritário `/home/desenvolvedor/.local/share/ai-manager/profiles/codex/kivergmail/home/.local/bin/nexus`; ambos reportam v1.0.1 @ `9afd68d2`, SHA-256 `154b094d868f69db7ee65dbe07d76fe8a4b4b4ce9f8690eb86f74d5eff260985`. Backups ficam em `/home/desenvolvedor/.local/share/nexus-install-backups/20261126/session-continuity/`. Desktop/HUD não foram atualizados.
+- **Estado:** sem commit ou push; build e instalação local não certificam homologação/publicação.
+
 ## 2026-11-25 — Fix Browser E2E + Nex 2.0 (default true) + IAPro-SDK main + #229/#230/#231
 
 - **PASS (5 Browser E2Es do CI fix em `3c85e7af`):** `test:e2e:surface`, `test:e2e:composer-spine`, `test:e2e:composer-vague-spine`, `test:e2e:composer-themes` e `test:e2e:device-preview` PASS.

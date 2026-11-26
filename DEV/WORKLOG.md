@@ -1,3 +1,26 @@
+## 2026-11-25 — Bloqueio de delegação por menção incidental a Cursor
+
+- A causa estava na heurística de proximidade: verbos genéricos próximos ao nome de um provedor eram interpretados como instrução, mesmo quando o texto só citava Cursor como editor ou preferência pessoal.
+- `internal/nexus/registered_provider_routing.go` agora exige relação explícita de destino ou de tarefa com o provedor e separa frases de escolha pessoal (`I want to use Cursor`, `Eu quero usar Cursor`) de instruções dirigidas ao agente (`I want you to use Cursor`).
+- Testes de regressão cobrem menções incidentais/negadas e exemplos explícitos em inglês e português. Ver evidências em [VERIFY.md](VERIFY.md).
+
+## 2026-11-26 — Controle de quotas, catálogo único, histórico cross-account e paridade CLI/TUI/Web
+
+- **Quotas & `:balanced`:** `internal/core/quota/{view,sdk_adapter,view_builder,eligibility}.go` e `internal/core/scheduler/{rotation,scheduler}.go` passaram a delegar ranking, tiering (`primary` vs `auxiliary`) e `QuotaProjection` ao `IAPro-SDK`. `internal/profile/usage.go` adicionou `RefreshUsageBatch` (`sdkproviders.UsageCoordinator`) com classificação de erros (`ProbeCode`) e `internal/app/{provider_supervised,busy_failover}.go` passaram a revalidar em paralelo todas as contas autenticadas que precisam de refresh durante seleção automática/`:balanced`.
+- **Registry & Catálogo único:** `internal/core/provider/{provider,registry}.go`, `internal/core/provider/spec/{spec,zcode,cursor_ext}.go`, `internal/profile/{registry,account,host_auth_import,profile}.go` e `internal/nexus/resource_discovery.go` unificaram registro/detecção paralela e mantiveram `profile.List()` estritamente somente leitura sobre perfis válidos com `profile.json`.
+- **Histórico compartilhado:** `internal/core/historysync/` (+ `internal/profile/history_sync.go`) implementou merge não destrutivo e link seguro com bloqueio de `CredentialPaths` para `agy`, `claude`, `gemini`, `opencode` e `cursor` em `Prepare` e `driver/bootstrap.go`; `codex/cross_account_sessions.go` passou a sincronizar rollouts incrementalmente de forma atômica.
+- **Paridade CLI/TUI/Web:** `handlers_resources.go`, `handlers_api.go`, `internal/app/app.go`, `internal/tui/{usage_table,usage_table_rows}.go` e `web/src/{types.ts,features/work/directSessionModel.ts,features/usage/{usageModel.ts,UsageAccountCard.tsx},i18n/locales/{pt-BR,en,es}.ts}` passaram a consumir `QuotaProjection`, metadata do `spec`, e badges de tier/diagnóstico.
+
+## 2026-11-25 — Continuidade de histórico por harness
+
+- AGY agora lê `conversation_summaries.db` em modo SQLite read-only, valida a existência do banco individual da conversa e mantém `history.jsonl` como fallback. Cursor CLI agora descobre chats em `meta.json` e aparece nos agregadores usados por `nexus resume` e `--continue`.
+- A seleção encaminha o perfil de origem; `--continue` resolve o ID nativo mais recente do harness no workspace atual, respeita perfil explícito e, sem perfil, considera sessões de todos os perfis. Codex conserva a descoberta unificada e a validação de identidade existentes.
+- Motivo: homes isolados não apresentavam nem retomavam todo o histórico que o provedor já mantém.
+- Verificação: `make quality` PASS (lint/format, Go completo e 166 arquivos / 1.067 testes Web); `make build` PASS; testes focados de AGY, Cursor, app, conversas, Codex e TUI PASS; `git diff --check` limpo.
+- Retomada nativa: `./nexus agy:kiveromegasistemas --continue` e `./nexus agy:kivervinicius-gmail --continue` abriram a mesma sessão no workspace `/projetos/nexus`. O segundo CLI avisou que a conversa já estava aberta por outra instância; encerrei os dois sem enviar prompts. Runtimes anteriores foram preservados.
+- Instalação: CLI 1.0.1 @ `9afd68d2` instalado atomicamente em `/home/desenvolvedor/.local/bin/nexus` e no caminho `nexus` prioritário do perfil Codex. SHA-256 de ambos: `154b094d868f69db7ee65dbe07d76fe8a4b4b4ce9f8690eb86f74d5eff260985`. Backups em `/home/desenvolvedor/.local/share/nexus-install-backups/20261126/session-continuity/`. Desktop/HUD/Web não foram sincronizados.
+- Limite: sem commit/push; a integração local ainda não está homologada/publicada. Não continuar a mesma conversa em duas instâncias AGY simultâneas.
+
 ## 2026-11-25 — Fix Browser E2E + Nex 2.0 default-on + Limpeza + IAPro-SDK main + #229/#230/#231
 
 - **CI `Browser E2E` (`3c85e7af`):** validados e commitados os 4 fixes (`wailsV3.ts`, `desktopEvents.ts`, `01-foundation.css`, `07-topbar-and-dialogs.css`), destravando os 5 E2Es que falhavam no run `45677777756`.

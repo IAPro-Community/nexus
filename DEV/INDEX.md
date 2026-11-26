@@ -1,3 +1,7 @@
+## Controle de quotas, `:balanced` paralelo e histórico compartilhado — 2026-11-26
+
+- Integrados tiering primário/auxiliar (`QuotaProjection`), `RefreshUsageBatch` paralelo, `DefaultRegistry()`, catálogo único sem contas fantasmas, histórico compartilhado não destrutivo em `agy`/`claude`/`gemini`/`opencode`/`cursor` + sync incremental Codex, e paridade CLI/TUI/Web. Detalhes em [HANDOFF](HANDOFF.md), [VERIFY](VERIFY.md), [WORKLOG](WORKLOG.md) e [ACTIVE](SPECS/ACTIVE.md). Estado de release segue **NO_GO**.
+
 ## Conciliação Track 1 + Integração IAPro-SDK — 2026-11-25
 
 - Frentes locais (hardening/isolamento/gzip/i18n/chunks) e consumo do `IAPro-SDK` (`v0.0.0-20261125013959-aa2c954657a2`) conciliadas em `/projetos/nexus` (`release/v1.0.0` @ `91752a84`). Detalhes em [HANDOFF](HANDOFF.md), [VERIFY](VERIFY.md), [WORKLOG](WORKLOG.md), [ACTIVE](SPECS/ACTIVE.md) e [auditoria IAPro-SDK](SPECS/IAPRO_SDK_INTEGRATION.md). Estado de release segue **NO_GO**.

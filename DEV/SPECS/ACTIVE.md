@@ -1,3 +1,21 @@
+## 2026-11-25 — Roteamento entre provedores somente com instrução explícita
+
+- **Contrato ativo:** mencionar `Cursor` ou outro provedor no texto, ou aproximar seu nome de um verbo genérico, não autoriza delegação. Exigir uma construção clara ligada ao provedor (`use Cursor to review`, `delegate ... to Cursor`). Declarações de escolha pessoal como `I want to use Cursor` permanecem na sessão atual; pedidos dirigidos ao agente como `I want you to use Cursor` continuam válidos.
+- **Escopo:** ajustar o reconhecimento compartilhado usado por Flow, single-turn e promoção; preservar registro de perfis, provedor atual e seletores de execução. Sem instalação, commit ou publicação.
+
+## 2026-11-26 — Controle de quotas (tiering + `:balanced` paralelo), catálogo único e histórico cross-account
+
+- **Contratos ativos:** `QuotaProjection` (`internal/core/quota/view.go`), `sdkrouting.RankAndSelect` (`internal/core/scheduler/rotation.go`), `RefreshUsageBatch` (`internal/profile/usage.go`), `provider.DefaultRegistry()` + `spec.Register`/`Extend` (`internal/core/provider/`), `profile.List()` estritamente somente leitura (`internal/profile/profile.go`), e `historysync.SyncProviderHistory` (`internal/core/historysync/history_sync.go`).
+- **Invariantes:** cotas auxiliares (`claude_gpt` no AGY) nunca superam cotas primárias (`gemini`); credenciais permanecem estritamente isoladas por perfil (`CredentialPaths` guard); `profile.List()` não ressuscita diretórios sem `profile.json` ou nomes inválidos; release segue **NO_GO** (sem commit/push/instalação).
+
+## 2026-11-25 — Histórico de sessões compartilhado por harness
+
+- Implementado localmente: descobrir sessões por provedor em homes locais; ler `conversation_summaries.db` do AGY e `meta.json` do Cursor CLI; integrar Cursor nos seletores universais; preservar perfil ao selecionar resume; resolver `--continue` para o ID mais recente do mesmo harness, aplicando o perfil quando informado.
+- Limites: browsing de histórico somente leitura; Codex mantém atribuição de conta e cópia de rollout existente; autenticação e artefatos de perfis permanecem isolados.
+- Verificação: `make quality` e build isolado passaram. Retomada nativa real validada em `kiveromegasistemas` e `kivervinicius-gmail`: ambos abriram a mesma conversa no workspace `/projetos/nexus`; o segundo CLI avisou que ela já estava aberta em outra instância. Nenhuma mensagem foi enviada.
+- Instalação local: CLI 1.0.1 @ `9afd68d2` atualizado atomicamente nos dois diretórios `nexus` usados pelo PATH. Backups em `/home/desenvolvedor/.local/share/nexus-install-backups/20261126/session-continuity/`. Desktop/HUD/Web não foram instalados nem reiniciados.
+- Limite: não usar o mesmo ID simultaneamente em dois processos AGY; o CLI nativo mostrou aviso de sessão já aberta. Sem commit/push ou homologação/publicação.
+
 ## 2026-11-25 — Nex 2.0 (default true) + IAPro-SDK main + Higiene de Release (`NO_GO`)
 
 - **Base atual em `release/v1.0.0`:** inclui fix do CI `Browser E2E` (`3c85e7af`), Nex 2.0 P0–P5 com `NEX_V2` default `true` (`NexV2Enabled()`, rollback imediato via `NEXUS_FEATURE_NEX_V2=false`), pin da `main` do `IAPro-SDK` (`8e5bf0f9`), correções/testes `#229`, `#230` e `#231`, e worktrees/branches/stashes higienizados.
