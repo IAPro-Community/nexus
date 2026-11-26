@@ -185,3 +185,26 @@ func TestImportHostAuthCopiesOAuthWithoutTouchingSource(t *testing.T) {
 		t.Fatalf("host Claude credentials changed: err=%v", err)
 	}
 }
+
+func TestLoginInvokesAuthLoginSubcommand(t *testing.T) {
+	setupClaudeProfile(t, "login-test")
+	binDir := t.TempDir()
+	argsFile := filepath.Join(t.TempDir(), "claude-args.txt")
+	t.Setenv("CLAUDE_TEST_ARGS_FILE", argsFile)
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	script := "#!/bin/sh\nprintf '%s\n' \"$*\" > \"$CLAUDE_TEST_ARGS_FILE\"\n"
+	if err := os.WriteFile(filepath.Join(binDir, "claude"), []byte(script), 0o700); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := New().Login(t.Context(), model.Profile{Provider: "claude", Name: "login-test"}); err != nil {
+		t.Fatalf("Login failed: %v", err)
+	}
+	got, err := os.ReadFile(argsFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.TrimSpace(string(got)) != "auth login" {
+		t.Fatalf("claude invoked with %q, want %q", strings.TrimSpace(string(got)), "auth login")
+	}
+}
