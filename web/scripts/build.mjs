@@ -1,4 +1,4 @@
-import { build } from 'esbuild';
+import { build, transform } from 'esbuild';
 import { createHash } from 'node:crypto';
 import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
@@ -27,6 +27,46 @@ if (css.status !== 0) process.exit(css.status ?? 1);
 
 const collectedStyles = [];
 
+// Contract/reference artwork that must never ship inside the runtime bundle:
+// these bytes are the NEX-ID-v1 reference sources kept under web/public/nex/
+// for human and automated comparison, not runtime assets. They are filtered
+// only on the public -> dist copy; the source tree stays byte-identical.
+const NON_RUNTIME_PUBLIC_PATHS = new Set([
+  'nex/hybrid-v1/nex_source_original.png',
+  'nex/hybrid-v1/reconstructed_idle.png',
+  'nex/nex-site-hero.svg',
+]);
+
+// esbuild never rewrites declaration values that carry a custom property
+// (`--x: 1px`), which is where the expanded Sass and Tailwind layers keep
+// their spacing. Every non-comment stretch outside strings is collapsed to a
+// single space; strings and quoted URLs are skipped so their bytes survive.
+const compressCss = (source) =>
+  source
+    .replace(/\/\*(?![!])[\s\S]*?\*\//g, '')
+    .split(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/)
+    .map((chunk, index) => (index % 2 === 1 ? chunk : chunk.replace(/\s+/g, ' ')))
+    .join('')
+    .replace(/ ?([{};,>]) ?/g, '$1')
+    .replace(/ ?\) ?/g, ')')
+    .replace(/\( ?/g, '(');
+
+// Sass and the Tailwind CLI keep a space after the colon of a declaration and
+// esbuild leaves values untouched when the rule carries a custom property, so
+// the declaration delimiter is normalized after serialization.
+const compressDeclarations = (css) => css.replace(/: /g, ':');
+
+const minifyCss = async (source) =>
+  compressDeclarations(
+    (await transform(compressCss(source), { loader: 'css', minify: true })).code,
+  );
+
+// The scoped-module pass re-serializes CSS through PostCSS, which re-expands
+// compressed Sass output. Minifying each fragment *before* scoping keeps the
+// concatenated bundle free of expanded formatting without touching rule order.
+const scopeCssModuleMinified = async (compiledCss, moduleIdentity) =>
+  scopeCssModule(await minifyCss(compiledCss), moduleIdentity);
+
 function createSassPlugin(targetStyles) {
   return {
     name: 'sass-modules',
@@ -34,7 +74,7 @@ function createSassPlugin(targetStyles) {
       // Global SCSS
       buildInstance.onLoad({ filter: /\.scss$/ }, (args) => {
         if (args.path.includes('.module.')) return;
-        const result = sass.compile(args.path);
+        const result = sass.compile(args.path, { style: 'compressed' });
         targetStyles.push({ path: args.path, css: result.css });
         return {
           contents: '',
@@ -43,13 +83,18 @@ function createSassPlugin(targetStyles) {
       });
 
       // SCSS Modules and CSS Modules
-      buildInstance.onLoad({ filter: /\.module\.(scss|css)$/ }, (args) => {
+      buildInstance.onLoad({ filter: /\.module\.(scss|css)$/ }, async (args) => {
         const isScss = args.path.endsWith('.scss');
-        const compiledCss = isScss ? sass.compile(args.path).css : readFileSync(args.path, 'utf8');
+        const compiledCss = isScss
+          ? sass.compile(args.path, { style: 'compressed' }).css
+          : readFileSync(args.path, 'utf8');
         // Hash the module's repository-relative identity so builds are stable
         // when the same checkout is built from a different absolute directory.
         const moduleIdentity = relative(webDir, args.path).replaceAll('\\', '/');
-        const { css: transformedCss, classMap } = scopeCssModule(compiledCss, moduleIdentity);
+        const { css: transformedCss, classMap } = await scopeCssModuleMinified(
+          compiledCss,
+          moduleIdentity,
+        );
         targetStyles.push({ path: args.path, css: transformedCss });
 
         return {
@@ -110,7 +155,7 @@ const stableNexV2Css = nexV2Styles
   .toSorted((left, right) => left.path.localeCompare(right.path))
   .map((entry) => entry.css)
   .join('\n');
-await writeFile(nexV2CssPath, `${existingNexV2Css}\n${stableNexV2Css}`);
+await writeFile(nexV2CssPath, await minifyCss(`${existingNexV2Css}\n${stableNexV2Css}`));
 await cp(resolve(webDir, 'nex-v2.html'), resolve(distDir, 'nex-v2.html'));
 
 // Tailwind's standalone CLI and esbuild do not resolve this package CSS
@@ -119,10 +164,14 @@ await cp(resolve(webDir, 'nex-v2.html'), resolve(distDir, 'nex-v2.html'));
 // over the terminal and keyboard input is rendered as stray characters. Keep
 // the vendor stylesheet in the generated bundle so Web, Desktop and the
 // embedded UI share the same terminal contract.
-const xtermCss = await readFile(resolve(webDir, 'node_modules/xterm/css/xterm.css'), 'utf8');
+// The vendor file starts with an MIT banner; strip leading comments so the
+// bundle stays a single valid stylesheet that can be minified as a whole.
+const xtermCss = (
+  await readFile(resolve(webDir, 'node_modules/xterm/css/xterm.css'), 'utf8')
+).replace(/^\s*(?:\/\*[\s\S]*?\*\/\s*)+/, '');
 const generatedCssPath = resolve(distDir, 'bundle.css');
 const generatedCss = await readFile(generatedCssPath, 'utf8');
-await writeFile(generatedCssPath, `${generatedCss}\n${xtermCss}`);
+await writeFile(generatedCssPath, await minifyCss(`${generatedCss}\n${xtermCss}`));
 
 if (collectedStyles.length > 0) {
   const currentBundleCss = await readFile(resolve(distDir, 'bundle.css'), 'utf8');
@@ -130,7 +179,10 @@ if (collectedStyles.length > 0) {
     .toSorted((left, right) => left.path.localeCompare(right.path))
     .map((entry) => entry.css)
     .join('\n');
-  await writeFile(resolve(distDir, 'bundle.css'), currentBundleCss + '\n' + stableStyles);
+  await writeFile(
+    resolve(distDir, 'bundle.css'),
+    await minifyCss(currentBundleCss + '\n' + stableStyles),
+  );
 }
 
 // Global sections live in the index.css graph while SCSS modules live in the
@@ -159,7 +211,13 @@ await cp(resolve(webDir, 'index.html'), resolve(distDir, 'index.html'));
 // and Windows homologation verify a clean source worktree.
 const publicDir = resolve(webDir, 'public');
 if (existsSync(publicDir)) {
-  await cp(publicDir, distDir, { recursive: true });
+  await cp(publicDir, distDir, {
+    recursive: true,
+    filter: (src) => {
+      if (src === publicDir) return true;
+      return !NON_RUNTIME_PUBLIC_PATHS.has(relative(publicDir, src).replaceAll('\\', '/'));
+    },
+  });
 }
 const serviceWorkerPath = resolve(distDir, 'sw.js');
 if (existsSync(serviceWorkerPath)) {

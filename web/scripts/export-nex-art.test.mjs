@@ -10,9 +10,7 @@ import { fileURLToPath } from 'node:url';
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const source = (relative) => resolve(repoRoot, relative);
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
-const manifest = JSON.parse(
-  readFileSync(source('docs/design/NEX_VISUAL_MANIFEST.json'), 'utf8'),
-);
+const manifest = JSON.parse(readFileSync(source('docs/design/NEX_VISUAL_MANIFEST.json'), 'utf8'));
 
 test('locked NEX first-paint atlas is byte-for-byte identical to the visual contract', () => {
   const atlas = manifest.animation.spriteSheet;
@@ -40,7 +38,9 @@ test('the owner-approved procedural rig modules match the immutable manifest', (
 
 test('production builder only verifies copied art, never rewrites NEX source assets', () => {
   const builder = readFileSync(source('web/scripts/build.mjs'), 'utf8');
-  const copyAt = builder.indexOf('await cp(publicDir, distDir, { recursive: true })');
+  // The public -> dist copy filters contract-only reference art; the copy call
+  // itself (and the ordering guarantee) stays the same.
+  const copyAt = builder.indexOf('await cp(publicDir, distDir, {');
   const verifyAt = builder.indexOf('const nexAtlasPath = resolve(distDir');
   assert.ok(copyAt >= 0, 'build must copy approved public assets to dist');
   assert.ok(verifyAt > copyAt, 'hash validation must happen after copy into dist');
