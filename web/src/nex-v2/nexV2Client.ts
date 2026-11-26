@@ -1,5 +1,6 @@
 import type {
   AutoConfigureIntelligencePayload,
+  NexV2ChatRecovery,
   NexV2ChatResponse,
   NexV2ChatSetupAssistance,
   NexV2ActionReceipt,
@@ -21,6 +22,7 @@ const DESKTOP_PKG = 'github.com/IAPro-Community/nexus/internal/desktop';
 let desktopToken = '';
 let cachedCsrfToken = '';
 let sessionInitDone = false;
+let sessionInitPromise: Promise<void> | null = null;
 
 export function asSafeArray<T>(value: T[] | null | undefined): T[] {
   return Array.isArray(value) ? value : [];
@@ -284,9 +286,28 @@ export const updateNexV2ReducedMotion = (enabled: boolean, current: NexV2Presenc
     current,
   );
 
-async function ensureSessionAuth(): Promise<void> {
-  if (sessionInitDone) return;
-  sessionInitDone = true;
+function readBootstrapFragmentToken(): string {
+  if (typeof window === 'undefined' || !window.location?.hash) return '';
+  const hash = window.location.hash.replace(/^#/, '');
+  const params = new URLSearchParams(hash);
+  return params.get('nexus_bootstrap')?.trim() ?? '';
+}
+
+function clearBootstrapFragment(): void {
+  if (typeof window === 'undefined' || !window.location?.hash) return;
+  if (!window.location.hash.includes('nexus_bootstrap=')) return;
+  try {
+    window.history?.replaceState?.(
+      null,
+      '',
+      `${window.location.pathname}${window.location.search}`,
+    );
+  } catch {
+    // Ignore read-only location errors.
+  }
+}
+
+async function performSessionAuth(): Promise<void> {
   if (isDesktopShell()) {
     try {
       const info = await invokeDesktop<{
@@ -298,7 +319,35 @@ async function ensureSessionAuth(): Promise<void> {
     } catch {
       // Keep unauthenticated probe path; HUD poll will surface status cleanly.
     }
+  } else {
+    const fragmentToken = readBootstrapFragmentToken();
+    if (fragmentToken) {
+      try {
+        const bootRes = await fetch('/api/v1/auth/bootstrap', {
+          method: 'POST',
+          headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ token: fragmentToken }),
+        });
+        if (bootRes.ok) {
+          const bootPayload = (await bootRes.json()) as {
+            authenticated?: boolean;
+            csrf_token?: string;
+          };
+          if (bootPayload.csrf_token) {
+            cachedCsrfToken = bootPayload.csrf_token;
+          }
+          clearBootstrapFragment();
+          if (bootPayload.authenticated) {
+            return;
+          }
+        }
+      } catch {
+        // Fall through to normal session probe.
+      }
+    }
   }
+
   try {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (desktopToken) {
@@ -306,14 +355,59 @@ async function ensureSessionAuth(): Promise<void> {
     }
     const res = await fetch('/api/v1/session', { headers, credentials: 'same-origin' });
     if (res.ok) {
-      const payload = (await res.json()) as { csrf_token?: string };
+      const payload = (await res.json()) as {
+        authenticated?: boolean;
+        csrf_token?: string;
+      };
       if (payload.csrf_token) {
         cachedCsrfToken = payload.csrf_token;
+      }
+      if (payload.authenticated) {
+        return;
+      }
+    }
+    if (isDesktopShell()) {
+      try {
+        const refreshed = await invokeDesktop<{
+          sessionToken?: string;
+          csrfToken?: string;
+        } | null>(`${DESKTOP_PKG}.App.RefreshBootstrapFromCore`);
+        if (refreshed?.sessionToken) desktopToken = refreshed.sessionToken;
+        if (refreshed?.csrfToken) cachedCsrfToken = refreshed.csrfToken;
+      } catch {
+        // Offline handled by callers.
+      }
+    } else {
+      const reauthRes = await fetch('/api/v1/auth/loopback-reauth', {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+      });
+      if (reauthRes.ok) {
+        const reauthPayload = (await reauthRes.json()) as { csrf_token?: string };
+        if (reauthPayload.csrf_token) {
+          cachedCsrfToken = reauthPayload.csrf_token;
+        }
       }
     }
   } catch {
     // Offline handled by callers.
   }
+}
+
+async function ensureSessionAuth(forceRefresh = false): Promise<void> {
+  if (forceRefresh) {
+    sessionInitDone = false;
+    sessionInitPromise = null;
+  }
+  if (sessionInitDone) return;
+  if (!sessionInitPromise) {
+    sessionInitPromise = performSessionAuth().finally(() => {
+      sessionInitDone = true;
+      sessionInitPromise = null;
+    });
+  }
+  await sessionInitPromise;
 }
 
 function buildHeaders(includeJson = false): Record<string, string> {
@@ -322,6 +416,75 @@ function buildHeaders(includeJson = false): Record<string, string> {
   if (desktopToken) headers.Authorization = `Bearer ${desktopToken}`;
   if (cachedCsrfToken) headers['X-CSRF-Token'] = cachedCsrfToken;
   return headers;
+}
+
+async function authedFetch(
+  input: string,
+  options: { method?: string; includeJson?: boolean; body?: string; signal?: AbortSignal } = {},
+): Promise<Response> {
+  await ensureSessionAuth();
+  let res = await fetch(input, {
+    method: options.method ?? 'GET',
+    headers: buildHeaders(options.includeJson ?? false),
+    credentials: 'same-origin',
+    signal: options.signal,
+    body: options.body,
+  });
+  if (res.status === 401 || res.status === 403) {
+    await ensureSessionAuth(true);
+    res = await fetch(input, {
+      method: options.method ?? 'GET',
+      headers: buildHeaders(options.includeJson ?? false),
+      credentials: 'same-origin',
+      signal: options.signal,
+      body: options.body,
+    });
+  }
+  return res;
+}
+
+export async function ensureNexCoreConnection(): Promise<{
+  ok: boolean;
+  error?: string;
+}> {
+  if (isDesktopShell()) {
+    try {
+      const info = await invokeDesktop<{
+        sessionToken?: string;
+        csrfToken?: string;
+      } | null>(`${DESKTOP_PKG}.App.EnsureLocalCoreRunning`);
+      if (info?.sessionToken) desktopToken = info.sessionToken;
+      if (info?.csrfToken) cachedCsrfToken = info.csrfToken;
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : undefined,
+      };
+    }
+  }
+  await ensureSessionAuth(true);
+  try {
+    const res = await fetch('/api/v1/session', {
+      headers: buildHeaders(false),
+      credentials: 'same-origin',
+    });
+    if (!res.ok) {
+      return { ok: false, error: `HTTP ${res.status}` };
+    }
+    const payload = (await res.json()) as {
+      authenticated?: boolean;
+      csrf_token?: string;
+    };
+    if (payload.csrf_token) {
+      cachedCsrfToken = payload.csrf_token;
+    }
+    return payload.authenticated ? { ok: true } : { ok: false, error: 'authentication required' };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : undefined,
+    };
+  }
 }
 
 function normalizeProvider(p: NexV2HudProvider): NexV2HudProvider {
@@ -357,12 +520,8 @@ export function normalizeHudState(
 }
 
 export async function fetchNexV2Hud(): Promise<NexV2HudSnapshotResult> {
-  await ensureSessionAuth();
   try {
-    const res = await fetch('/api/v1/hud', {
-      headers: buildHeaders(false),
-      credentials: 'same-origin',
-    });
+    const res = await authedFetch('/api/v1/hud');
     if (res.status >= 500) {
       return { offline: true, enabled: false, state: null, error: `HTTP ${res.status}` };
     }
@@ -394,13 +553,9 @@ export function computeReconnectBackoffMs(consecutiveFailures: number): number {
 }
 
 export async function fetchNexV2Events(since = 0): Promise<NexV2EventsPage> {
-  await ensureSessionAuth();
   try {
     const query = since > 0 ? `?since=${encodeURIComponent(String(since))}` : '';
-    const res = await fetch(`/api/v1/nex/events${query}`, {
-      headers: buildHeaders(false),
-      credentials: 'same-origin',
-    });
+    const res = await authedFetch(`/api/v1/nex/events${query}`);
     if (res.status >= 500 || !res.ok) {
       return {
         offline: res.status >= 500,
@@ -430,12 +585,8 @@ export async function fetchNexV2Events(since = 0): Promise<NexV2EventsPage> {
 }
 
 export async function fetchNexV2ModelWatch(): Promise<NexV2ModelCatalogWatchSnapshot> {
-  await ensureSessionAuth();
   try {
-    const res = await fetch('/api/v1/nex/models/watch', {
-      headers: buildHeaders(false),
-      credentials: 'same-origin',
-    });
+    const res = await authedFetch('/api/v1/nex/models/watch');
     if (!res.ok) {
       return { freshness: 'UNKNOWN', entries: [], changes: [] };
     }
@@ -452,12 +603,10 @@ export async function fetchNexV2ModelWatch(): Promise<NexV2ModelCatalogWatchSnap
 }
 
 export async function ackCapacityAlert(fingerprint: string): Promise<boolean> {
-  await ensureSessionAuth();
   try {
-    const res = await fetch('/api/v1/capacity/ack', {
+    const res = await authedFetch('/api/v1/capacity/ack', {
       method: 'POST',
-      headers: buildHeaders(true),
-      credentials: 'same-origin',
+      includeJson: true,
       body: JSON.stringify({ fingerprint }),
     });
     return res.ok;
@@ -467,13 +616,11 @@ export async function ackCapacityAlert(fingerprint: string): Promise<boolean> {
 }
 
 export async function snoozeCapacityAlert(fingerprint: string, minutes = 30): Promise<boolean> {
-  await ensureSessionAuth();
   try {
     const until = new Date(Date.now() + minutes * 60_000).toISOString();
-    const res = await fetch('/api/v1/capacity/snooze', {
+    const res = await authedFetch('/api/v1/capacity/snooze', {
       method: 'POST',
-      headers: buildHeaders(true),
-      credentials: 'same-origin',
+      includeJson: true,
       body: JSON.stringify({ fingerprint, until }),
     });
     return res.ok;
@@ -483,13 +630,9 @@ export async function snoozeCapacityAlert(fingerprint: string, minutes = 30): Pr
 }
 
 export async function loadNexV2Conversation(projectId = ''): Promise<NexV2ChatTurn[]> {
-  await ensureSessionAuth();
   try {
     const q = projectId ? `?project_id=${encodeURIComponent(projectId)}` : '';
-    const res = await fetch(`/api/v1/nex/conversation${q}`, {
-      headers: buildHeaders(false),
-      credentials: 'same-origin',
-    });
+    const res = await authedFetch(`/api/v1/nex/conversation${q}`);
     if (!res.ok) return [];
     const payload = (await res.json()) as { turns?: NexV2ChatTurn[] };
     return asSafeArray(payload.turns);
@@ -499,13 +642,10 @@ export async function loadNexV2Conversation(projectId = ''): Promise<NexV2ChatTu
 }
 
 export async function clearNexV2Conversation(projectId = ''): Promise<boolean> {
-  await ensureSessionAuth();
   try {
     const q = projectId ? `?project_id=${encodeURIComponent(projectId)}` : '';
-    const res = await fetch(`/api/v1/nex/conversation${q}`, {
+    const res = await authedFetch(`/api/v1/nex/conversation${q}`, {
       method: 'DELETE',
-      headers: buildHeaders(false),
-      credentials: 'same-origin',
     });
     return res.ok;
   } catch {
@@ -514,12 +654,8 @@ export async function clearNexV2Conversation(projectId = ''): Promise<boolean> {
 }
 
 export async function loadNexV2Memories(): Promise<NexV2PersonalMemoryEntry[]> {
-  await ensureSessionAuth();
   try {
-    const res = await fetch('/api/v1/nex/memory', {
-      headers: buildHeaders(false),
-      credentials: 'same-origin',
-    });
+    const res = await authedFetch('/api/v1/nex/memory');
     if (!res.ok) return [];
     const payload = (await res.json()) as { entries?: NexV2PersonalMemoryEntry[] };
     return asSafeArray(payload.entries);
@@ -532,12 +668,10 @@ export async function saveNexV2Memory(
   key: string,
   value: string,
 ): Promise<NexV2PersonalMemoryEntry | null> {
-  await ensureSessionAuth();
   try {
-    const res = await fetch('/api/v1/nex/memory', {
+    const res = await authedFetch('/api/v1/nex/memory', {
       method: 'POST',
-      headers: buildHeaders(true),
-      credentials: 'same-origin',
+      includeJson: true,
       body: JSON.stringify({ key, value, provenance: 'user_explicit' }),
     });
     if (!res.ok) return null;
@@ -549,12 +683,9 @@ export async function saveNexV2Memory(
 }
 
 export async function deleteNexV2Memory(id: string): Promise<boolean> {
-  await ensureSessionAuth();
   try {
-    const res = await fetch(`/api/v1/nex/memory?id=${encodeURIComponent(id)}`, {
+    const res = await authedFetch(`/api/v1/nex/memory?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
-      headers: buildHeaders(false),
-      credentials: 'same-origin',
     });
     return res.ok;
   } catch {
@@ -568,15 +699,13 @@ export async function sendNexV2Chat(
   projectId?: string,
   options: { persist?: boolean; requestId?: string; signal?: AbortSignal } = {},
 ): Promise<NexV2ChatResponse & { offline?: boolean; aborted?: boolean }> {
-  await ensureSessionAuth();
   try {
     const persist = options.persist ?? false;
     const requestId =
       options.requestId || `nex-v2-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
-    const res = await fetch('/api/v1/nex/assistant', {
+    const res = await authedFetch('/api/v1/nex/assistant', {
       method: 'POST',
-      headers: buildHeaders(true),
-      credentials: 'same-origin',
+      includeJson: true,
       signal: options.signal,
       body: JSON.stringify({
         project_id: projectId ?? '',
@@ -589,6 +718,7 @@ export async function sendNexV2Chat(
     });
     const body = (await res.json().catch(() => ({}))) as {
       answer?: string;
+      error?: string;
       detail?: string;
       source?: string;
       proposal?: NexV2ChatResponse['proposal'];
@@ -602,7 +732,19 @@ export async function sendNexV2Chat(
           setup_assistance: body.setup_assistance,
         };
       }
-      return { answer: '', offline: true };
+      const kind: NexV2ChatRecovery['kind'] =
+        res.status === 401 || res.status === 403 ? 'auth_required' : 'core_error';
+      return {
+        answer: body.detail || body.error || '',
+        offline: true,
+        recovery: {
+          kind,
+          status: res.status,
+          detail: body.detail || body.error,
+          command: kind === 'auth_required' ? 'nexus web open' : 'nexus web',
+          canStartCore: isDesktopShell(),
+        },
+      };
     }
     return {
       answer: body.answer ?? '',
@@ -613,19 +755,25 @@ export async function sendNexV2Chat(
     if (err instanceof DOMException && err.name === 'AbortError') {
       return { answer: '', aborted: true };
     }
-    return { answer: '', offline: true };
+    return {
+      answer: '',
+      offline: true,
+      recovery: {
+        kind: 'core_offline',
+        command: 'nexus web',
+        canStartCore: isDesktopShell(),
+      },
+    };
   }
 }
 
 export async function autoConfigureNexIntelligence(
   payload: AutoConfigureIntelligencePayload,
 ): Promise<{ ok: boolean; error?: string }> {
-  await ensureSessionAuth();
   try {
-    const res = await fetch('/api/v1/nex/intelligence/auto-configure', {
+    const res = await authedFetch('/api/v1/nex/intelligence/auto-configure', {
       method: 'POST',
-      headers: buildHeaders(true),
-      credentials: 'same-origin',
+      includeJson: true,
       body: JSON.stringify(payload),
     });
     if (res.ok) {
@@ -639,12 +787,8 @@ export async function autoConfigureNexIntelligence(
 }
 
 export async function loadNexV2Receipts(): Promise<NexV2ActionReceipt[]> {
-  await ensureSessionAuth();
   try {
-    const res = await fetch('/api/v1/nex/actions', {
-      headers: buildHeaders(false),
-      credentials: 'same-origin',
-    });
+    const res = await authedFetch('/api/v1/nex/actions');
     if (!res.ok) return [];
     const payload = (await res.json()) as { receipts?: NexV2ActionReceipt[] };
     return asSafeArray(payload.receipts);
@@ -660,21 +804,18 @@ export async function runNexV2Action(
   params: Record<string, string> = {},
   approved = true,
 ): Promise<NexV2ActionReceipt | null> {
-  await ensureSessionAuth();
   try {
-    const proposeRes = await fetch('/api/v1/nex/actions/propose', {
+    const proposeRes = await authedFetch('/api/v1/nex/actions/propose', {
       method: 'POST',
-      headers: buildHeaders(true),
-      credentials: 'same-origin',
+      includeJson: true,
       body: JSON.stringify({ action_id: actionId, params }),
     });
     if (!proposeRes.ok) return null;
     const proposed = (await proposeRes.json()) as { receipt?: NexV2ActionReceipt };
     if (!proposed.receipt) return null;
-    const confirmRes = await fetch('/api/v1/nex/actions/confirm', {
+    const confirmRes = await authedFetch('/api/v1/nex/actions/confirm', {
       method: 'POST',
-      headers: buildHeaders(true),
-      credentials: 'same-origin',
+      includeJson: true,
       body: JSON.stringify({ receipt_id: proposed.receipt.receipt_id, approved }),
     });
     if (!confirmRes.ok) return proposed.receipt;

@@ -180,6 +180,24 @@ const resources = {
         setupValidationMissing: 'Informe Base URL e Modelo para salvar.',
         setupFailed: 'Não foi possível aplicar a configuração.',
         setupCompleted: 'Configuração aplicada. Você já pode perguntar ao Nex.',
+        chatAuthErrorReply:
+          'A sessão entre o HUD/navegador e o Core Nexus precisou ser revalidada.',
+        chatCoreErrorReply: 'O Core Nexus respondeu com erro ao processar sua pergunta.',
+        recoveryTitle: 'Como resolver agora',
+        recoveryHintOffline:
+          'O serviço local do Nexus não respondeu. Clique abaixo para iniciar/reconectar automaticamente ou execute o comando no terminal:',
+        recoveryHintAuth:
+          'Sua sessão expirou ou o token CSRF precisava ser atualizado. Reconecte com 1 clique ou reabra pelo comando:',
+        recoveryHintError:
+          'O Core retornou HTTP {{status}} ({{detail}}). Tente reconectar ou verifique o serviço local:',
+        recoveryCopyCmdBtn: 'Copiar',
+        recoveryCopied: 'Copiado',
+        recoveryStartCoreBtn: 'Iniciar / Reconectar Nexus',
+        recoveryReconnectBtn: 'Reconectar e tentar de novo',
+        recoveryRetryOnlyBtn: 'Tentar novamente',
+        recoveryWorking: 'Conectando...',
+        recoveryStillOffline:
+          'Ainda não foi possível conectar. Execute `{{cmd}}` em um terminal e clique em Tentar novamente.',
       },
     },
   },
@@ -360,6 +378,24 @@ const resources = {
         setupValidationMissing: 'Provide Base URL and Model before saving.',
         setupFailed: 'Could not apply configuration.',
         setupCompleted: 'Configuration applied. You can ask Nex now.',
+        chatAuthErrorReply:
+          'The session between the HUD/browser and Nexus Core needed revalidation.',
+        chatCoreErrorReply: 'Nexus Core returned an error while processing your request.',
+        recoveryTitle: 'How to fix it now',
+        recoveryHintOffline:
+          'Local Nexus service did not respond. Click below to start/reconnect automatically or run in terminal:',
+        recoveryHintAuth:
+          'Your session expired or CSRF token needed refresh. Reconnect in 1 click or reopen via:',
+        recoveryHintError:
+          'Core returned HTTP {{status}} ({{detail}}). Reconnect or check the local service:',
+        recoveryCopyCmdBtn: 'Copy',
+        recoveryCopied: 'Copied',
+        recoveryStartCoreBtn: 'Start / Reconnect Nexus',
+        recoveryReconnectBtn: 'Reconnect and retry',
+        recoveryRetryOnlyBtn: 'Retry',
+        recoveryWorking: 'Connecting...',
+        recoveryStillOffline:
+          'Still unable to connect. Run `{{cmd}}` in a terminal and click Retry.',
       },
     },
   },
@@ -540,6 +576,24 @@ const resources = {
         setupValidationMissing: 'Indica Base URL y Modelo antes de guardar.',
         setupFailed: 'No se pudo aplicar la configuración.',
         setupCompleted: 'Configuración aplicada. Ya puedes preguntar a Nex.',
+        chatAuthErrorReply:
+          'La sesión entre el HUD/navegador y el Core de Nexus necesitó revalidarse.',
+        chatCoreErrorReply: 'El Core de Nexus devolvió un error al procesar tu consulta.',
+        recoveryTitle: 'Cómo resolver ahora',
+        recoveryHintOffline:
+          'El servicio local de Nexus no respondió. Haz clic abajo para iniciar/reconectar automáticamente o ejecuta en terminal:',
+        recoveryHintAuth:
+          'Tu sesión expiró o el token CSRF necesitó renovarse. Reconecta en 1 clic o reabre con:',
+        recoveryHintError:
+          'El Core devolvió HTTP {{status}} ({{detail}}). Reconecta o verifica el servicio local:',
+        recoveryCopyCmdBtn: 'Copiar',
+        recoveryCopied: 'Copiado',
+        recoveryStartCoreBtn: 'Iniciar / Reconectar Nexus',
+        recoveryReconnectBtn: 'Reconectar y reintentar',
+        recoveryRetryOnlyBtn: 'Reintentar',
+        recoveryWorking: 'Conectando...',
+        recoveryStillOffline:
+          'Aún no se pudo conectar. Ejecuta `{{cmd}}` en una terminal y pulsa Reintentar.',
       },
     },
   },

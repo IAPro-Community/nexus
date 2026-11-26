@@ -9,6 +9,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -105,15 +106,67 @@ func NewLoopbackBackendHandler(baseURL string, assets fs.FS) (http.Handler, erro
 		return nil, err
 	}
 
-	proxy := httputil.NewSingleHostReverseProxy(target)
-	director := proxy.Director
-	proxy.Director = func(req *http.Request) {
-		director(req)
-		req.Host = target.Host
-		// Wails sends its own origin (wails://wails). The backend is loopback
-		// and must validate the proxied request against its actual host.
-		req.Header.Set("Origin", target.Scheme+"://"+target.Host)
+	buildProxy := func(nextTarget *url.URL) *httputil.ReverseProxy {
+		p := httputil.NewSingleHostReverseProxy(nextTarget)
+		baseDirector := p.Director
+		p.Director = func(req *http.Request) {
+			baseDirector(req)
+			req.Host = nextTarget.Host
+			// Wails sends its own origin (wails://wails). The backend is loopback
+			// and must validate the proxied request against its actual host.
+			req.Header.Set("Origin", nextTarget.Scheme+"://"+nextTarget.Host)
+		}
+		return p
 	}
+
+	var mu sync.RWMutex
+	currentTarget := target
+	currentProxy := buildProxy(target)
+
+	resolveProxy := func() *httputil.ReverseProxy {
+		mu.RLock()
+		p := currentProxy
+		mu.RUnlock()
+		return p
+	}
+	refreshProxyIfMoved := func() *httputil.ReverseProxy {
+		state, readErr := ReadListenState()
+		if readErr != nil {
+			return nil
+		}
+		if _, valErr := validatedLoopbackURL(state.URL); valErr != nil {
+			return nil
+		}
+		parsed, parseErr := url.Parse(state.URL)
+		if parseErr != nil {
+			return nil
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if currentTarget.String() != parsed.String() {
+			currentTarget = parsed
+			currentProxy = buildProxy(parsed)
+		}
+		return currentProxy
+	}
+	// Set ErrorHandler on the initial proxy (and refreshed proxies cleanly below).
+	attachErrorHandler := func(p *httputil.ReverseProxy) {
+		p.ErrorHandler = func(w http.ResponseWriter, req *http.Request, proxyErr error) {
+			if nextProxy := refreshProxyIfMoved(); nextProxy != nil && nextProxy != p {
+				nextProxy.ServeHTTP(w, req)
+				return
+			}
+			writeError(w, http.StatusBadGateway, "nexus core unreachable")
+		}
+	}
+	baseBuildProxy := buildProxy
+	buildProxy = func(nextTarget *url.URL) *httputil.ReverseProxy {
+		p := baseBuildProxy(nextTarget)
+		attachErrorHandler(p)
+		return p
+	}
+	attachErrorHandler(currentProxy)
+
 	var fileServer http.Handler
 	if assets != nil {
 		fileServer = http.FileServer(http.FS(assets))
@@ -121,7 +174,7 @@ func NewLoopbackBackendHandler(baseURL string, assets fs.FS) (http.Handler, erro
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if strings.HasPrefix(req.URL.Path, "/api/") {
-			proxy.ServeHTTP(w, req)
+			resolveProxy().ServeHTTP(w, req)
 			return
 		}
 
@@ -156,7 +209,7 @@ func NewLoopbackBackendHandler(baseURL string, assets fs.FS) (http.Handler, erro
 			}
 		}
 
-		proxy.ServeHTTP(w, req)
+		resolveProxy().ServeHTTP(w, req)
 	}), nil
 }
 

@@ -179,6 +179,14 @@ export interface AutoConfigureIntelligencePayload {
   api_key_file?: string;
 }
 
+export interface NexV2ChatRecovery {
+  kind: 'core_offline' | 'auth_required' | 'core_error';
+  status?: number;
+  detail?: string;
+  command: string;
+  canStartCore: boolean;
+}
+
 export interface NexV2ChatTurn {
   sequence?: number;
   role: 'user' | 'assistant';
@@ -187,6 +195,7 @@ export interface NexV2ChatTurn {
   created_at?: string;
   proposal?: NexV2ActionProposal;
   setup_assistance?: NexV2ChatSetupAssistance;
+  recovery?: NexV2ChatRecovery;
 }
 
 export interface NexV2ActionProposal {
@@ -204,6 +213,7 @@ export interface NexV2ChatResponse {
   source?: string;
   proposal?: NexV2ActionProposal;
   setup_assistance?: NexV2ChatSetupAssistance;
+  recovery?: NexV2ChatRecovery;
 }
 
 export interface NexV2PersonalMemoryEntry {

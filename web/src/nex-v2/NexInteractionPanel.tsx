@@ -35,6 +35,7 @@ export interface NexInteractionPanelProps {
   onSnoozeAlert: (fingerprint: string) => void;
   onSendingChange?: (sending: boolean) => void;
   onReplyResolved?: () => void;
+  onCoreReconnected?: () => void;
 }
 
 const TAB_ORDER: readonly NexV2TabId[] = ['resources', 'attention', 'chat'];
@@ -54,6 +55,7 @@ export const NexInteractionPanel: React.FC<NexInteractionPanelProps> = ({
   onSnoozeAlert,
   onSendingChange,
   onReplyResolved,
+  onCoreReconnected,
 }) => {
   const handleConfirmProposal = (proposal: NexV2ActionProposal) => {
     switch (proposal.target) {
@@ -225,6 +227,7 @@ export const NexInteractionPanel: React.FC<NexInteractionPanelProps> = ({
             onReplyResolved={onReplyResolved}
             onOpenResources={() => onSelectTab('resources')}
             onOpenSettings={onOpenSettings}
+            onCoreReconnected={onCoreReconnected}
           />
         )}
 

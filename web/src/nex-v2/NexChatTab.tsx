@@ -17,6 +17,7 @@ import {
   saveNexV2Memory,
   sendNexV2Chat,
 } from './nexV2Client';
+import { NexChatRecoveryCard } from './NexChatRecoveryCard';
 import { NexChatSetupCard } from './NexChatSetupCard';
 import { NexReceiptsPanel } from './NexReceiptsPanel';
 import styles from './NexChatTab.module.scss';
@@ -33,6 +34,7 @@ export interface NexChatTabProps {
   onReplyResolved?: () => void;
   onOpenResources?: () => void;
   onOpenSettings?: () => void;
+  onCoreReconnected?: () => void;
 }
 
 export const NexChatTab: React.FC<NexChatTabProps> = ({
@@ -47,6 +49,7 @@ export const NexChatTab: React.FC<NexChatTabProps> = ({
   onReplyResolved,
   onOpenResources,
   onOpenSettings,
+  onCoreReconnected,
 }) => {
   const { t } = useTranslation();
   const [input, setInput] = useState('');
@@ -114,18 +117,25 @@ export const NexChatTab: React.FC<NexChatTabProps> = ({
         onReplyResolved?.();
       }
 
+      const replyContent = reply.aborted
+        ? t('nexV2.chatAbortedReply')
+        : reply.recovery?.kind === 'auth_required'
+          ? t('nexV2.chatAuthErrorReply')
+          : reply.recovery?.kind === 'core_error'
+            ? reply.answer || t('nexV2.chatCoreErrorReply')
+            : reply.offline || !reply.answer
+              ? t('nexV2.chatOfflineReply')
+              : reply.answer;
+
       setHistory((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content: reply.aborted
-            ? t('nexV2.chatAbortedReply')
-            : reply.offline || !reply.answer
-              ? t('nexV2.chatOfflineReply')
-              : reply.answer,
+          content: replyContent,
           source: reply.source,
           proposal: reply.proposal,
           setup_assistance: reply.setup_assistance,
+          recovery: reply.recovery,
         },
       ]);
     },
@@ -394,6 +404,22 @@ export const NexChatTab: React.FC<NexChatTabProps> = ({
                           : item,
                       ),
                     );
+                    return undefined;
+                  }}
+                />
+              )}
+              {turn.recovery && (
+                <NexChatRecoveryCard
+                  recovery={turn.recovery}
+                  onRecovered={() => {
+                    onCoreReconnected?.();
+                    const retryText = [...history.slice(0, idx)]
+                      .reverse()
+                      .find((item) => item.role === 'user')?.content;
+                    if (retryText) {
+                      const trimmedHistory = history.slice(0, Math.max(0, idx - 1));
+                      return submitMessage(retryText, trimmedHistory);
+                    }
                     return undefined;
                   }}
                 />

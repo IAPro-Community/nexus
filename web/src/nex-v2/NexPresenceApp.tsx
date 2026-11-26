@@ -11,6 +11,7 @@ import {
   computeReconnectBackoffMs,
   defaultPlatformCapabilities,
   defaultPresenceState,
+  ensureNexCoreConnection,
   fetchNexV2Events,
   fetchNexV2Hud,
   fetchNexV2ModelWatch,
@@ -323,7 +324,7 @@ export const NexPresenceApp: React.FC<NexPresenceAppProps> = ({
               className={styles.offlineRetryBtn}
               data-nex-offline-retry
               onClick={() => {
-                void pollHud();
+                void ensureNexCoreConnection().then(() => pollHud());
               }}
             >
               {t('nexV2.offlineRetryBtn')}
@@ -352,6 +353,7 @@ export const NexPresenceApp: React.FC<NexPresenceAppProps> = ({
             onSnoozeAlert={(fp) => void snoozeCapacityAlert(fp, 30).then(() => pollHud())}
             onSendingChange={setChatThinking}
             onReplyResolved={() => setChatResolvedTick((count) => count + 1)}
+            onCoreReconnected={() => void pollHud()}
           />
         </Suspense>
       )}

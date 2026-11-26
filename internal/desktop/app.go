@@ -5,13 +5,17 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/IAPro-Community/nexus/internal/browser"
 	controlnotify "github.com/IAPro-Community/nexus/internal/control/notify"
+	"github.com/IAPro-Community/nexus/internal/control/web"
 	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -128,6 +132,80 @@ func (a *App) GetBootstrapInfo() BootstrapInfo {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	return a.bootstrap
+}
+
+// RefreshBootstrapFromCore re-attaches to any live loopback Web Core and updates
+// cached session/CSRF tokens when the external Core restarted or rotated auth.
+func (a *App) RefreshBootstrapFromCore() (BootstrapInfo, error) {
+	state, err := web.ReadListenState()
+	if err != nil {
+		return a.GetBootstrapInfo(), err
+	}
+	sess, err := web.AttachLoopbackSession(state)
+	if err != nil {
+		return a.GetBootstrapInfo(), err
+	}
+	next := BootstrapInfo{
+		ServerURL:    state.URL,
+		SessionToken: sess.ID,
+		CSRFToken:    sess.CSRFToken,
+	}
+	a.mu.Lock()
+	a.bootstrap = next
+	a.mu.Unlock()
+	return next, nil
+}
+
+// EnsureLocalCoreRunning reuses a live loopback Core or launches `nexus web --no-open`
+// in the background so Desktop/HUD surfaces can recover from offline Core state in 1 click.
+func (a *App) EnsureLocalCoreRunning() (BootstrapInfo, error) {
+	if refreshed, err := a.RefreshBootstrapFromCore(); err == nil && refreshed.SessionToken != "" {
+		return refreshed, nil
+	}
+	bin := resolveNexusCLIBinary()
+	if bin == "" {
+		return a.GetBootstrapInfo(), fmt.Errorf("nexus CLI binary not found")
+	}
+	cmd := exec.Command(bin, "web", "--no-open")
+	devNull, err := os.OpenFile(os.DevNull, os.O_RDWR, 0)
+	if err == nil {
+		cmd.Stdin = devNull
+		cmd.Stdout = devNull
+		cmd.Stderr = devNull
+		defer func() { _ = devNull.Close() }()
+	}
+	if err := cmd.Start(); err != nil {
+		return a.GetBootstrapInfo(), fmt.Errorf("start nexus web: %w", err)
+	}
+	if cmd.Process != nil {
+		_ = cmd.Process.Release()
+	}
+
+	deadline := time.Now().Add(8 * time.Second)
+	for time.Now().Before(deadline) {
+		if refreshed, attachErr := a.RefreshBootstrapFromCore(); attachErr == nil && refreshed.SessionToken != "" {
+			return refreshed, nil
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	return a.GetBootstrapInfo(), fmt.Errorf("timeout waiting for nexus web core")
+}
+
+func resolveNexusCLIBinary() string {
+	name := "nexus"
+	if runtime.GOOS == "windows" {
+		name = "nexus.exe"
+	}
+	if exe, err := os.Executable(); err == nil {
+		candidate := filepath.Join(filepath.Dir(exe), name)
+		if info, statErr := os.Stat(candidate); statErr == nil && !info.IsDir() {
+			return candidate
+		}
+	}
+	if found, err := exec.LookPath(name); err == nil {
+		return found
+	}
+	return ""
 }
 
 // GetCapabilities returns capabilities proven by the current native shell.

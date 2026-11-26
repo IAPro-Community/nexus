@@ -207,4 +207,59 @@ describe('Nex 2.0 P4/P5 Assistant, Personal Memory & Audited Receipts', () => {
     expect(manualHtml).toContain('data-nex-setup-form="true"');
     expect(manualHtml).toContain('data-nex-setup-submit="true"');
   });
+
+  it('renders actionable NexChatRecoveryCard when Core is offline or auth fails', () => {
+    const offlineTurns: NexV2ChatTurn[] = [
+      { role: 'user', content: 'Como estão minhas cotas?' },
+      {
+        role: 'assistant',
+        content: 'O Core local está desligado ou inacessível.',
+        recovery: {
+          kind: 'core_offline',
+          command: 'nexus web',
+          canStartCore: true,
+        },
+      },
+    ];
+    const offlineHtml = renderToStaticMarkup(
+      <NexChatTab
+        projectId="prj-demo"
+        privacyMode={false}
+        initialHistory={offlineTurns}
+        initialMemories={[]}
+        initialReceipts={[]}
+      />,
+    );
+    expect(offlineHtml).toContain('data-nex-chat-recovery="core_offline"');
+    expect(offlineHtml).toContain('data-nex-recovery-start="true"');
+    expect(offlineHtml).toContain('data-nex-recovery-copy="true"');
+    expect(offlineHtml).toContain('data-nex-recovery-cmd="true"');
+    expect(offlineHtml).toContain('nexus web');
+
+    const authTurns: NexV2ChatTurn[] = [
+      { role: 'user', content: 'Status' },
+      {
+        role: 'assistant',
+        content: 'Sessão expirada.',
+        recovery: {
+          kind: 'auth_required',
+          status: 403,
+          detail: 'invalid CSRF token',
+          command: 'nexus web open',
+          canStartCore: false,
+        },
+      },
+    ];
+    const authHtml = renderToStaticMarkup(
+      <NexChatTab
+        projectId="prj-demo"
+        privacyMode={false}
+        initialHistory={authTurns}
+        initialMemories={[]}
+        initialReceipts={[]}
+      />,
+    );
+    expect(authHtml).toContain('data-nex-chat-recovery="auth_required"');
+    expect(authHtml).toContain('nexus web open');
+  });
 });
