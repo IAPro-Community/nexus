@@ -94,6 +94,7 @@ export type ProjectLiveAgentInfo = {
   id: string;
   name: string;
   provider?: string;
+  profile?: string;
   runtime_id: string;
   status?: string;
 };

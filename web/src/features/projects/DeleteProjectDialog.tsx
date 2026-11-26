@@ -21,6 +21,26 @@ export interface DeleteProjectDialogProps {
   initialBlockedAgents?: ProjectLiveAgentInfo[] | null;
 }
 
+export function formatLiveAgentDisplay(
+  t: TFunction,
+  agent: ProjectLiveAgentInfo,
+): { title: string; meta: string; fullRuntimeId: string } {
+  const providerProfile = [agent.provider, agent.profile].filter(Boolean).join(':');
+  const isCliLead = agent.name === 'Nexus Interactive Lead' && Boolean(providerProfile);
+  const title = isCliLead
+    ? t('projectDelete.cliSessionLabel', { target: providerProfile })
+    : agent.name || agent.id;
+
+  const shortRuntime =
+    agent.runtime_id.length > 14 ? `…${agent.runtime_id.slice(-8)}` : agent.runtime_id;
+  const metaParts = [isCliLead ? '' : providerProfile, shortRuntime, agent.status].filter(Boolean);
+  return {
+    title,
+    meta: metaParts.join(' · '),
+    fullRuntimeId: agent.runtime_id,
+  };
+}
+
 export function formatProjectDeleteSummary(
   t: TFunction,
   projectName: string,
@@ -122,14 +142,17 @@ export const DeleteProjectDialog: React.FC<DeleteProjectDialogProps> = ({
             <p className={styles.hint}>{t('projectDelete.cliOriginHint')}</p>
             {blockedAgents.length > 0 && (
               <ul className={styles.agentList} data-nex-delete-live-agents>
-                {blockedAgents.map((agent) => (
-                  <li key={agent.id || agent.runtime_id} className={styles.agentItem}>
-                    <span className={styles.agentName}>{agent.name || agent.id}</span>
-                    <span className={styles.agentMeta}>
-                      {[agent.provider, agent.runtime_id].filter(Boolean).join(' · ')}
-                    </span>
-                  </li>
-                ))}
+                {blockedAgents.map((agent) => {
+                  const display = formatLiveAgentDisplay(t, agent);
+                  return (
+                    <li key={agent.id || agent.runtime_id} className={styles.agentItem}>
+                      <span className={styles.agentName}>{display.title}</span>
+                      <span className={styles.agentMeta} title={display.fullRuntimeId}>
+                        {display.meta}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </>

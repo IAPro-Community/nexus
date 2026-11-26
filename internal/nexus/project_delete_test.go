@@ -25,19 +25,17 @@ func TestDeleteProjectWithOptionsDetachKeepsLiveRuntime(t *testing.T) {
 	if !errors.As(err, &blocked) {
 		t.Fatalf("expected *ProjectDeleteBlockedError, got %v", err)
 	}
-	if len(blocked.LiveAgents) != 1 || blocked.LiveAgents[0].ID != agent.ID || blocked.LiveAgents[0].Provider != "fake" {
+	if len(blocked.LiveAgents) != 1 || blocked.LiveAgents[0].ID != agent.ID || blocked.LiveAgents[0].Provider != "fake" || blocked.LiveAgents[0].Profile != "default" {
 		t.Fatalf("unexpected LiveAgents metadata: %+v", blocked.LiveAgents)
 	}
-
-	// Detach mode removes project metadata while leaving the runtime untouched.
-	res, err := n.DeleteProjectWithOptions(context.Background(), proj.ID, ProjectDeleteOptions{
+	if res, err := n.DeleteProjectWithOptions(context.Background(), proj.ID, ProjectDeleteOptions{
 		Mode: ProjectDeleteDetachOnly,
-	})
-	if err != nil {
+	}); err != nil {
 		t.Fatalf("DeleteProjectWithOptions(detach): %v", err)
-	}
-	if res.Mode != "detach" || len(res.DetachedAgents) != 1 {
-		t.Fatalf("unexpected detach result: %+v", res)
+	} else {
+		if res.Mode != "detach" || len(res.DetachedAgents) != 1 || res.DetachedAgents[0] != "AGY Lead (fake:default)" {
+			t.Fatalf("unexpected detach result: %+v", res)
+		}
 	}
 	if _, getErr := st.GetProject(proj.ID); getErr == nil {
 		t.Fatal("expected project to be removed after detach delete")

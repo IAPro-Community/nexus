@@ -1637,16 +1637,23 @@ export const es = {
   projectDelete: {
     diskSafeHint:
       'Solo se eliminan el registro y metadatos en Nexus; tus archivos en disco permanecen intactos.',
-    activeAgentsDetected:
-      'Hay {{count}} agente(s)/sesión(es) activa(s) vinculada(s) a “{{name}}”. Elige cómo continuar:',
+    activeAgentsDetected_one:
+      'Hay {{count}} sesión o agente activo vinculado a “{{name}}”. Elige cómo continuar:',
+    activeAgentsDetected_other:
+      'Hay {{count}} sesiones o agentes activos vinculados a “{{name}}”. Elige cómo continuar:',
     cliOriginHint:
-      'Estos vínculos suelen venir de sesiones lanzadas desde terminal (como `nexus agy`, `nexus codex` o `nexus claude`). Puedes eliminar solo el proyecto manteniendo las sesiones vivas, o detener los agentes ahora.',
-    detachBtn: 'Eliminar proyecto y mantener sesiones',
+      'Estos vínculos suelen venir de sesiones lanzadas desde terminal (como nexus agy, nexus codex o nexus claude). Eliminar manteniendo sesiones evita detenerlas; si abres nuevas sesiones CLI en esta carpeta luego, el proyecto puede volver a registrarse.',
+    cliSessionLabel: 'Sesión CLI · {{target}}',
+    detachBtn: 'Mantener sesiones y eliminar',
     stopAndDeleteBtn: 'Detener agentes y eliminar',
     summaryClean: 'Proyecto “{{name}}” eliminado de Nexus.',
-    summaryDetached:
-      'Proyecto “{{name}}” eliminado. {{count}} sesión(es) activa(s) siguen en ejecución: {{agents}}.',
-    summaryStopped: 'Proyecto “{{name}}” eliminado y {{count}} agente(s) detenido(s): {{agents}}.',
+    summaryDetached_one:
+      'Proyecto “{{name}}” eliminado. {{count}} sesión activa sigue en ejecución: {{agents}}.',
+    summaryDetached_other:
+      'Proyecto “{{name}}” eliminado. {{count}} sesiones activas siguen en ejecución: {{agents}}.',
+    summaryStopped_one: 'Proyecto “{{name}}” eliminado y {{count}} agente detenido: {{agents}}.',
+    summaryStopped_other:
+      'Proyecto “{{name}}” eliminado y {{count}} agentes detenidos: {{agents}}.',
   },
   surfaces: {
     terminalUnavailable: 'Terminal del Agente no disponible',

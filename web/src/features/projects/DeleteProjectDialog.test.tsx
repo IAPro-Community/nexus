@@ -3,7 +3,11 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import i18n from '../../i18n';
 import type { Project } from '../../types';
-import { DeleteProjectDialog, formatProjectDeleteSummary } from './DeleteProjectDialog';
+import {
+  DeleteProjectDialog,
+  formatLiveAgentDisplay,
+  formatProjectDeleteSummary,
+} from './DeleteProjectDialog';
 
 const SAMPLE_PROJECT: Project = {
   id: 'prj-123',
@@ -22,10 +26,31 @@ const SAMPLE_PROJECT: Project = {
 };
 
 describe('DeleteProjectDialog & Outcome Reporting', () => {
-  it('renders live agent resolution choices and CLI origin context when blocked', () => {
-    // Radix Dialog Portal renders null in static SSR markup unless tested cleanly or inspect helper;
-    // ensure formatProjectDeleteSummary clearly distinguishes clean, detach, and stop_agents outcomes.
+  it('formats CLI profile labels, pluralized outcomes, and renders blocked agents cleanly', () => {
     const t = i18n.t.bind(i18n);
+
+    const cliDisplay = formatLiveAgentDisplay(t, {
+      id: 'ag-1',
+      name: 'Nexus Interactive Lead',
+      provider: 'agy',
+      profile: 'omega-edu',
+      runtime_id: 'agy-06H1JNW2YJ7BMCP4A2J9HTWC04',
+      status: 'WORKING',
+    });
+    expect(cliDisplay.title).toContain('agy:omega-edu');
+    expect(cliDisplay.meta).toContain('…J9HTWC04');
+    expect(cliDisplay.meta).toContain('WORKING');
+    expect(cliDisplay.fullRuntimeId).toBe('agy-06H1JNW2YJ7BMCP4A2J9HTWC04');
+
+    const customDisplay = formatLiveAgentDisplay(t, {
+      id: 'ag-2',
+      name: 'QA Reviewer',
+      provider: 'codex',
+      profile: 'work',
+      runtime_id: 'rt-123',
+    });
+    expect(customDisplay.title).toBe('QA Reviewer');
+    expect(customDisplay.meta).toContain('codex:work');
 
     expect(
       formatProjectDeleteSummary(t, 'Nexus Workspace', {
@@ -35,25 +60,24 @@ describe('DeleteProjectDialog & Outcome Reporting', () => {
       }),
     ).toContain('Nexus Workspace');
 
-    const detached = formatProjectDeleteSummary(t, 'Nexus Workspace', {
+    const detachedMany = formatProjectDeleteSummary(t, 'Nexus Workspace', {
       status: 'deleted',
       project_id: 'prj-123',
       mode: 'detach',
-      detached_agents: ['AGY Lead (agy)', 'Codex (codex)'],
+      detached_agents: ['AGY Lead (agy:omega-edu)', 'Codex (codex:work)'],
     });
-    expect(detached).toContain('2');
-    expect(detached).toContain('AGY Lead (agy), Codex (codex)');
+    expect(detachedMany).toContain('2');
+    expect(detachedMany).toContain('sessões ativas preservadas');
 
-    const stopped = formatProjectDeleteSummary(t, 'Nexus Workspace', {
+    const stoppedOne = formatProjectDeleteSummary(t, 'Nexus Workspace', {
       status: 'deleted',
       project_id: 'prj-123',
       mode: 'stop_agents',
-      stopped_agents: ['AGY Lead (agy)'],
+      stopped_agents: ['AGY Lead (agy:omega-edu)'],
     });
-    expect(stopped).toContain('1');
-    expect(stopped).toContain('AGY Lead (agy)');
+    expect(stoppedOne).toContain('1');
+    expect(stoppedOne).toContain('agente encerrado');
 
-    // Component renders cleanly with blocked agents without throwing.
     const markup = renderToStaticMarkup(
       <DeleteProjectDialog
         project={SAMPLE_PROJECT}
@@ -61,8 +85,9 @@ describe('DeleteProjectDialog & Outcome Reporting', () => {
         initialBlockedAgents={[
           {
             id: 'ag-1',
-            name: 'AGY Lead',
+            name: 'Nexus Interactive Lead',
             provider: 'agy',
+            profile: 'omega-edu',
             runtime_id: 'rt-agy-1',
             status: 'WORKING',
           },

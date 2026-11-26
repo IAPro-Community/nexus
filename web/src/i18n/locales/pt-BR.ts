@@ -1631,16 +1631,22 @@ export const ptBR = {
   projectDelete: {
     diskSafeHint:
       'Apenas o cadastro e metadados no Nexus serão removidos; seus arquivos no disco permanecem intactos.',
-    activeAgentsDetected:
-      'Há {{count}} agente(s)/sessão(ões) ativa(s) vinculada(s) a “{{name}}”. Escolha como prosseguir:',
+    activeAgentsDetected_one:
+      'Há {{count}} sessão ou agente ativo vinculado a “{{name}}”. Escolha como prosseguir:',
+    activeAgentsDetected_other:
+      'Há {{count}} sessões ou agentes ativos vinculados a “{{name}}”. Escolha como prosseguir:',
     cliOriginHint:
-      'Esses vínculos costumam vir de sessões iniciadas no terminal (como `nexus agy`, `nexus codex` ou `nexus claude`). Você pode remover apenas o projeto e manter as sessões rodando, ou encerrar os agentes agora.',
-    detachBtn: 'Remover projeto e manter sessões',
+      'Esses vínculos costumam vir de sessões abertas pelo terminal (como nexus agy, nexus codex ou nexus claude). Remover agora mantendo as sessões evita encerrá-las — se novas sessões CLI forem abertas nessa pasta depois, o projeto volta a aparecer.',
+    cliSessionLabel: 'Sessão CLI · {{target}}',
+    detachBtn: 'Manter sessões e remover',
     stopAndDeleteBtn: 'Encerrar agentes e remover',
     summaryClean: 'Projeto “{{name}}” removido do Nexus.',
-    summaryDetached:
-      'Projeto “{{name}}” removido. {{count}} sessão(ões) ativa(s) preservada(s) em execução: {{agents}}.',
-    summaryStopped: 'Projeto “{{name}}” removido e {{count}} agente(s) encerrado(s): {{agents}}.',
+    summaryDetached_one:
+      'Projeto “{{name}}” removido. {{count}} sessão ativa preservada em execução: {{agents}}.',
+    summaryDetached_other:
+      'Projeto “{{name}}” removido. {{count}} sessões ativas preservadas em execução: {{agents}}.',
+    summaryStopped_one: 'Projeto “{{name}}” removido e {{count}} agente encerrado: {{agents}}.',
+    summaryStopped_other: 'Projeto “{{name}}” removido e {{count}} agentes encerrados: {{agents}}.',
   },
   surfaces: {
     terminalUnavailable: 'Terminal do Agente indisponível',

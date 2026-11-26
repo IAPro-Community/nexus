@@ -1289,6 +1289,7 @@ type ProjectLiveAgentInfo struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
 	Provider  string `json:"provider,omitempty"`
+	Profile   string `json:"profile,omitempty"`
 	RuntimeID string `json:"runtime_id"`
 	Status    string `json:"status,omitempty"`
 }
@@ -1318,10 +1319,14 @@ type ProjectDeleteResult struct {
 }
 
 func projectAgentLabel(info ProjectLiveAgentInfo) string {
-	if info.Provider != "" {
+	switch {
+	case info.Provider != "" && info.Profile != "":
+		return fmt.Sprintf("%s (%s:%s)", info.Name, info.Provider, info.Profile)
+	case info.Provider != "":
 		return fmt.Sprintf("%s (%s)", info.Name, info.Provider)
+	default:
+		return info.Name
 	}
-	return info.Name
 }
 
 // DeleteProject safely removes a project. If any agent in the project has a
@@ -1356,6 +1361,7 @@ func (n *Nexus) DeleteProjectWithOptions(ctx context.Context, projectID string, 
 				ID:        a.ID,
 				Name:      a.Name,
 				Provider:  gen.Provider,
+				Profile:   gen.Profile,
 				RuntimeID: gen.RuntimeID,
 				Status:    a.Status,
 			})

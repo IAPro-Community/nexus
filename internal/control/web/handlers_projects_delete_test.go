@@ -84,7 +84,7 @@ func TestHandleProjectDeleteConflictAndResolutionModes(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &conflictPayload); err != nil {
 		t.Fatalf("decode 409 payload: %v", err)
 	}
-	if conflictPayload.Code != "project_has_live_agents" || len(conflictPayload.LiveAgents) != 1 || conflictPayload.LiveAgents[0].Provider != "agy" {
+	if conflictPayload.Code != "project_has_live_agents" || len(conflictPayload.LiveAgents) != 1 || conflictPayload.LiveAgents[0].Provider != "agy" || conflictPayload.LiveAgents[0].Profile != "default" {
 		t.Fatalf("unexpected conflict payload: %+v", conflictPayload)
 	}
 

@@ -1623,16 +1623,22 @@ export const en = {
   projectDelete: {
     diskSafeHint:
       'Only Nexus registration and metadata are removed; your local files on disk remain untouched.',
-    activeAgentsDetected:
-      'There are {{count}} active agent(s)/session(s) linked to “{{name}}”. Choose how to proceed:',
+    activeAgentsDetected_one:
+      'There is {{count}} active session or agent linked to “{{name}}”. Choose how to proceed:',
+    activeAgentsDetected_other:
+      'There are {{count}} active sessions or agents linked to “{{name}}”. Choose how to proceed:',
     cliOriginHint:
-      'These links often come from CLI sessions launched from a terminal (such as `nexus agy`, `nexus codex`, or `nexus claude`). You can remove only the project while keeping sessions running, or stop the agents now.',
-    detachBtn: 'Remove project & keep sessions',
+      'These links often come from terminal CLI sessions (such as nexus agy, nexus codex, or nexus claude). Removing while keeping sessions avoids killing them — opening a new CLI session in this folder later may re-register the project.',
+    cliSessionLabel: 'CLI session · {{target}}',
+    detachBtn: 'Keep sessions & remove',
     stopAndDeleteBtn: 'Stop agents & remove',
     summaryClean: 'Project “{{name}}” removed from Nexus.',
-    summaryDetached:
-      'Project “{{name}}” removed. {{count}} active session(s) kept running: {{agents}}.',
-    summaryStopped: 'Project “{{name}}” removed and {{count}} agent(s) stopped: {{agents}}.',
+    summaryDetached_one:
+      'Project “{{name}}” removed. {{count}} active session kept running: {{agents}}.',
+    summaryDetached_other:
+      'Project “{{name}}” removed. {{count}} active sessions kept running: {{agents}}.',
+    summaryStopped_one: 'Project “{{name}}” removed and {{count}} agent stopped: {{agents}}.',
+    summaryStopped_other: 'Project “{{name}}” removed and {{count}} agents stopped: {{agents}}.',
   },
   surfaces: {
     terminalUnavailable: 'Agent terminal unavailable',
