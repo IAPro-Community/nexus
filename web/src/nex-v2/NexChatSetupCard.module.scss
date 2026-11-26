@@ -1,0 +1,101 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-2);
+  margin-top: var(--nx-space-1);
+  padding: var(--nx-space-2);
+  border: 1px solid color-mix(in srgb, var(--nx-accent) 40%, transparent);
+  border-radius: var(--nx-radius);
+  background: color-mix(in srgb, var(--nx-surface-2) 85%, transparent);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nx-space-1);
+}
+
+.title {
+  color: var(--nx-text);
+  font-size: var(--nx-font-size-xs);
+  font-weight: 700;
+}
+
+.hint {
+  margin: 0;
+  color: var(--nx-text-soft);
+  font-size: var(--nx-font-size-caption);
+  line-height: 1.35;
+}
+
+.actionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--nx-space-1);
+}
+
+.primaryBtn,
+.secondaryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--nx-space-1);
+  padding: var(--nx-space-1) var(--nx-space-2);
+  border-radius: var(--nx-radius);
+  cursor: pointer;
+  font-size: var(--nx-font-size-xs);
+  font-weight: 600;
+}
+
+.primaryBtn {
+  border: 1px solid color-mix(in srgb, var(--nx-accent) 55%, transparent);
+  background: var(--nx-accent-soft);
+  color: var(--nx-accent-text);
+}
+
+.primaryBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.secondaryBtn {
+  border: 1px solid color-mix(in srgb, var(--nx-border) 50%, transparent);
+  background: transparent;
+  color: var(--nx-text-soft);
+}
+
+.secondaryBtn:hover {
+  background: var(--nx-surface);
+  color: var(--nx-text);
+}
+
+.form {
+  display: grid;
+  gap: var(--nx-space-1);
+}
+
+.fieldRow {
+  display: grid;
+  gap: 2px;
+}
+
+.fieldLabel {
+  color: var(--nx-text-soft);
+  font-size: var(--nx-font-size-caption);
+  font-weight: 600;
+}
+
+.input {
+  padding: var(--nx-space-1) var(--nx-space-2);
+  border: 1px solid color-mix(in srgb, var(--nx-border) 55%, transparent);
+  border-radius: var(--nx-radius);
+  background: var(--nx-surface);
+  color: var(--nx-text);
+  font-size: var(--nx-font-size-xs);
+}
+
+.error {
+  margin: 0;
+  color: var(--nx-danger);
+  font-size: var(--nx-font-size-caption);
+}

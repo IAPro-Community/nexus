@@ -22,6 +22,7 @@ export interface NexBehaviorInput {
   localInteraction: 'none' | 'greet' | 'look';
   idleAction: NexIdleActionId | null;
   resolvedActive: boolean;
+  thinkingActive?: boolean;
 }
 
 export interface NexBehaviorResolution {
@@ -49,7 +50,7 @@ export function resolveNexBehaviorState(input: NexBehaviorInput): NexBehaviorRes
     behavior = 'error';
   } else if (input.mood === 'attention') {
     behavior = 'attention';
-  } else if (input.mood === 'working') {
+  } else if (input.mood === 'working' || input.thinkingActive) {
     behavior = 'thinking';
   } else if (input.resolvedActive) {
     behavior = 'resolved';
@@ -59,13 +60,19 @@ export function resolveNexBehaviorState(input: NexBehaviorInput): NexBehaviorRes
     behavior = 'look';
   } else if (input.idleAction === 'idle_drowse') {
     behavior = 'rest';
+  } else if (input.idleAction === 'idle_glance') {
+    behavior = 'look';
+  } else if (input.idleAction === 'idle_head_tilt' || input.idleAction === 'idle_fin_twitch') {
+    behavior = 'greet';
   }
 
+  const orbitMode: 'idle' | 'orbit' =
+    input.mood === 'working' || input.thinkingActive ? 'orbit' : 'idle';
   if (!motionAllowed) {
     return {
       behavior,
       expression: 'still',
-      orbitMode: input.mood === 'working' ? 'orbit' : 'idle',
+      orbitMode,
       animated: false,
     };
   }
@@ -84,7 +91,7 @@ export function resolveNexBehaviorState(input: NexBehaviorInput): NexBehaviorRes
   return {
     behavior,
     expression: expressionMap[behavior],
-    orbitMode: input.mood === 'working' ? 'orbit' : 'idle',
+    orbitMode,
     animated: true,
   };
 }

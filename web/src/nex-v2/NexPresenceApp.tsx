@@ -102,6 +102,8 @@ export const NexPresenceApp: React.FC<NexPresenceAppProps> = ({
   const [activeTab, setActiveTab] = useState<NexV2TabId>('resources');
   const [dismissedAlerts, setDismissedAlerts] = useState<Record<string, boolean>>({});
   const [chunkLoaded, setChunkLoaded] = useState(false);
+  const [chatThinking, setChatThinking] = useState(false);
+  const [chatResolvedTick, setChatResolvedTick] = useState(0);
 
   const userSelectedTabRef = useRef(false);
   const hudStateRef = useRef<NexV2HudState | null>(null);
@@ -315,6 +317,18 @@ export const NexPresenceApp: React.FC<NexPresenceAppProps> = ({
         <section className={styles.offlineBanner} role="alert" data-nex-offline-banner>
           <strong>{t('nexV2.offlineBannerTitle')}</strong>
           <p className={styles.offlineBody}>{t('nexV2.offlineBannerBody')}</p>
+          <div className={styles.offlineActions}>
+            <button
+              type="button"
+              className={styles.offlineRetryBtn}
+              data-nex-offline-retry
+              onClick={() => {
+                void pollHud();
+              }}
+            >
+              {t('nexV2.offlineRetryBtn')}
+            </button>
+          </div>
         </section>
       )}
 
@@ -336,6 +350,8 @@ export const NexPresenceApp: React.FC<NexPresenceAppProps> = ({
             onOpenSettings={() => setSettingsVisibility(true)}
             onAckAlert={(fp) => void ackCapacityAlert(fp).then(() => pollHud())}
             onSnoozeAlert={(fp) => void snoozeCapacityAlert(fp, 30).then(() => pollHud())}
+            onSendingChange={setChatThinking}
+            onReplyResolved={() => setChatResolvedTick((count) => count + 1)}
           />
         </Suspense>
       )}
@@ -412,6 +428,8 @@ export const NexPresenceApp: React.FC<NexPresenceAppProps> = ({
             mood={mood}
             motionEnabled={!presence.paused && !presence.reducedMotion}
             presetSizePx={presetPx}
+            thinkingActive={chatThinking}
+            resolvedSignal={chatResolvedTick}
             onActivate={() => setPanelVisibility(!panelOpen)}
           />
           {!showCompactBar && showAvatarControls && (

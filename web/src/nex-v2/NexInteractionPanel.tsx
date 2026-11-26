@@ -9,6 +9,7 @@ import {
   resolveMoodTranslationKey,
 } from './nexV2HudHelpers';
 import type {
+  NexV2ActionProposal,
   NexV2EventEnvelope,
   NexV2HudState,
   NexV2ModelCatalogWatchSnapshot,
@@ -32,6 +33,8 @@ export interface NexInteractionPanelProps {
   onOpenSettings: () => void;
   onAckAlert: (fingerprint: string) => void;
   onSnoozeAlert: (fingerprint: string) => void;
+  onSendingChange?: (sending: boolean) => void;
+  onReplyResolved?: () => void;
 }
 
 const TAB_ORDER: readonly NexV2TabId[] = ['resources', 'attention', 'chat'];
@@ -49,7 +52,28 @@ export const NexInteractionPanel: React.FC<NexInteractionPanelProps> = ({
   onOpenSettings,
   onAckAlert,
   onSnoozeAlert,
+  onSendingChange,
+  onReplyResolved,
 }) => {
+  const handleConfirmProposal = (proposal: NexV2ActionProposal) => {
+    switch (proposal.target) {
+      case 'usage':
+      case 'alerts':
+      case 'resources':
+        onSelectTab('resources');
+        break;
+      case 'attention':
+      case 'missions':
+        onSelectTab('attention');
+        break;
+      case 'settings':
+      case 'intelligence':
+        onOpenSettings();
+        break;
+      default:
+        break;
+    }
+  };
   const { t } = useTranslation();
   const tabRefs = useRef<Record<NexV2TabId, HTMLButtonElement | null>>({
     resources: null,
@@ -193,7 +217,15 @@ export const NexInteractionPanel: React.FC<NexInteractionPanelProps> = ({
         aria-labelledby={`nex-v2-tab-${activeTab}`}
       >
         {activeTab === 'chat' && (
-          <NexChatTab projectId={hudState?.project_id ?? ''} privacyMode={privacyMode} />
+          <NexChatTab
+            projectId={hudState?.project_id ?? ''}
+            privacyMode={privacyMode}
+            onConfirmProposal={handleConfirmProposal}
+            onSendingChange={onSendingChange}
+            onReplyResolved={onReplyResolved}
+            onOpenResources={() => onSelectTab('resources')}
+            onOpenSettings={onOpenSettings}
+          />
         )}
 
         {activeTab === 'resources' && (

@@ -20,6 +20,7 @@ type CLIProvider struct {
 	profile             string
 	capabilityValidated bool
 	run                 CLIPromptRunner
+	readOnlyRun         CLIPromptRunner
 }
 
 // HeadlessPromptArgs returns the verified non-interactive invocation contract for
@@ -41,6 +42,18 @@ func NewCLIProvider(providerID, profile string, capabilityValidated bool, run CL
 	return &CLIProvider{providerID: strings.TrimSpace(providerID), profile: strings.TrimSpace(profile), capabilityValidated: capabilityValidated, run: run}
 }
 
+// NewCLIProviderWithReadOnly attaches a verified read-only sandbox runner used
+// exclusively for read-only Nex assistant conversations.
+func NewCLIProviderWithReadOnly(providerID, profile string, capabilityValidated bool, run, readOnlyRun CLIPromptRunner) *CLIProvider {
+	return &CLIProvider{
+		providerID:          strings.TrimSpace(providerID),
+		profile:             strings.TrimSpace(profile),
+		capabilityValidated: capabilityValidated,
+		run:                 run,
+		readOnlyRun:         readOnlyRun,
+	}
+}
+
 func (p *CLIProvider) Name() string {
 	if p.profile == "" {
 		return "cli:" + p.providerID
@@ -50,6 +63,12 @@ func (p *CLIProvider) Name() string {
 
 func (p *CLIProvider) Available(context.Context) bool {
 	return p != nil && p.providerID != "" && p.profile != "" && p.capabilityValidated && p.run != nil
+}
+
+// SupportsNexReadOnly reports whether this CLI provider was constructed with
+// a verified read-only sandbox runner safe for Nex conversations.
+func (p *CLIProvider) SupportsNexReadOnly() bool {
+	return p != nil && p.readOnlyRun != nil
 }
 
 func (p *CLIProvider) AnalyzeIntent(ctx context.Context, input string, contextData map[string]any) (*IntentAnalysis, error) {

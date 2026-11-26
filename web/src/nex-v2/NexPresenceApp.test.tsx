@@ -257,4 +257,21 @@ describe('Nex 2.0 presence shell and modular surfaces', () => {
     expect(normalized?.alerts).toEqual([]);
     expect(deriveNexV2Mood(normalized, true)).toBe('offline');
   });
+
+  it('wires NexPresenceApp reconnect action when Core is offline', () => {
+    const html = renderToStaticMarkup(
+      <NexInteractionPanel
+        activeTab="chat"
+        hudState={null}
+        offline={true}
+        onSelectTab={noop}
+        onClose={noop}
+        onOpenSettings={noop}
+        onAckAlert={noop}
+        onSnoozeAlert={noop}
+      />,
+    );
+    expect(html).toContain('data-nex-chat="true"');
+    expect(html).toContain('data-nex-quick-prompts="true"');
+  });
 });

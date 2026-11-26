@@ -17,6 +17,7 @@ import {
   saveNexV2Memory,
   sendNexV2Chat,
 } from './nexV2Client';
+import { NexChatSetupCard } from './NexChatSetupCard';
 import { NexReceiptsPanel } from './NexReceiptsPanel';
 import styles from './NexChatTab.module.scss';
 
@@ -28,6 +29,10 @@ export interface NexChatTabProps {
   initialReceipts?: NexV2ActionReceipt[];
   initialReceiptsOpen?: boolean;
   onConfirmProposal?: (proposal: NexV2ActionProposal) => void;
+  onSendingChange?: (sending: boolean) => void;
+  onReplyResolved?: () => void;
+  onOpenResources?: () => void;
+  onOpenSettings?: () => void;
 }
 
 export const NexChatTab: React.FC<NexChatTabProps> = ({
@@ -38,6 +43,10 @@ export const NexChatTab: React.FC<NexChatTabProps> = ({
   initialReceipts,
   initialReceiptsOpen = false,
   onConfirmProposal,
+  onSendingChange,
+  onReplyResolved,
+  onOpenResources,
+  onOpenSettings,
 }) => {
   const { t } = useTranslation();
   const [input, setInput] = useState('');
@@ -74,21 +83,23 @@ export const NexChatTab: React.FC<NexChatTabProps> = ({
     return () => {
       active = false;
       abortRef.current?.abort();
+      onSendingChange?.(false);
     };
-  }, [initialHistory, initialMemories, initialReceipts, projectId]);
+  }, [initialHistory, initialMemories, initialReceipts, onSendingChange, projectId]);
 
   const submitMessage = useCallback(
-    async (rawText: string) => {
+    async (rawText: string, baseHistory?: NexV2ChatTurn[]) => {
       const trimmed = rawText.trim();
       if (!trimmed || sending) return;
 
       const controller = new AbortController();
       abortRef.current = controller;
       const userTurn: NexV2ChatTurn = { role: 'user', content: trimmed };
-      const priorHistory = history;
+      const priorHistory = baseHistory ?? history;
       setHistory([...priorHistory, userTurn]);
       setInput('');
       setSending(true);
+      onSendingChange?.(true);
 
       const reply = await sendNexV2Chat(trimmed, priorHistory, projectId, {
         persist: true,
@@ -98,6 +109,11 @@ export const NexChatTab: React.FC<NexChatTabProps> = ({
         abortRef.current = null;
       }
       setSending(false);
+      onSendingChange?.(false);
+      if (!reply.aborted && !reply.offline && reply.source !== 'unavailable' && reply.answer) {
+        onReplyResolved?.();
+      }
+
       setHistory((prev) => [
         ...prev,
         {
@@ -109,10 +125,11 @@ export const NexChatTab: React.FC<NexChatTabProps> = ({
               : reply.answer,
           source: reply.source,
           proposal: reply.proposal,
+          setup_assistance: reply.setup_assistance,
         },
       ]);
     },
-    [history, projectId, sending, t],
+    [history, onReplyResolved, onSendingChange, projectId, sending, t],
   );
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -353,6 +370,34 @@ export const NexChatTab: React.FC<NexChatTabProps> = ({
                 {turn.role === 'user' ? t('nexV2.chatUserRole') : t('nexV2.chatAssistantRole')}
               </span>
               <p className={styles.chatText}>{turn.content}</p>
+              {turn.setup_assistance && (
+                <NexChatSetupCard
+                  assistance={turn.setup_assistance}
+                  onOpenResources={onOpenResources}
+                  onOpenSettings={onOpenSettings}
+                  onConfigured={() => {
+                    const retryText = [...history.slice(0, idx)]
+                      .reverse()
+                      .find((item) => item.role === 'user')?.content;
+                    if (retryText) {
+                      const trimmedHistory = history.slice(0, Math.max(0, idx - 1));
+                      return submitMessage(retryText, trimmedHistory);
+                    }
+                    setHistory((prev) =>
+                      prev.map((item, itemIdx) =>
+                        itemIdx === idx
+                          ? {
+                              ...item,
+                              content: t('nexV2.setupCompleted'),
+                              setup_assistance: undefined,
+                            }
+                          : item,
+                      ),
+                    );
+                    return undefined;
+                  }}
+                />
+              )}
               {turn.proposal && (
                 <div className={styles.proposalBox} data-nex-proposal={turn.proposal.id || 'item'}>
                   <strong>{turn.proposal.title}</strong>

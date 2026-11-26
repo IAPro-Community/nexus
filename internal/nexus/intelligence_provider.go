@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sort"
 	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/control/driver"
 	"github.com/IAPro-Community/nexus/internal/core/classifier"
 	coreconfig "github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
 	"github.com/IAPro-Community/nexus/internal/profile"
@@ -31,6 +33,17 @@ type IntelligenceStatus struct {
 
 func intelligenceCLICapable(caps driver.EffectiveCapabilities) bool {
 	return caps.Headless.IsSupportedAndTested() && caps.SubmitPrompt.IsSupportedAndTested()
+}
+
+func readOnlyReviewSpec(providerID string, caps driver.EffectiveCapabilities) (spec.Spec, bool) {
+	if !caps.ReadOnlyReview.IsSupportedAndTested() {
+		return spec.Spec{}, false
+	}
+	providerSpec, ok := spec.Get(strings.ToLower(strings.TrimSpace(providerID)))
+	if !ok || providerSpec.ReviewIsolationLevel() != spec.IsolationReadOnlyNoNetwork || len(providerSpec.ReviewMode) == 0 {
+		return spec.Spec{}, false
+	}
+	return providerSpec, true
 }
 
 // GetIntelligenceConfig returns persisted non-secret configuration.
@@ -205,37 +218,364 @@ func (n *Nexus) cliIntelligenceProvider(ctx context.Context, projectID string, c
 		if err != nil {
 			return "", err
 		}
-		var lastErr error
-		for i, cand := range candidates {
-			bin, builtArgs, env, err := d.BuildCommand(runCtx, cand, args)
+		return executeCLIProfileFailover(runCtx, d, providerID, cwd, candidates, args)
+	}
+
+	if providerSpec, ok := readOnlyReviewSpec(providerID, caps); ok {
+		readOnlyRunner := func(runCtx context.Context, prompt string) (string, error) {
+			args, err := readOnlyNexPromptArgs(providerID, cfg.Model, prompt, providerSpec)
 			if err != nil {
-				lastErr = fmt.Errorf("profile %s:%s build command: %w", providerID, cand.Name, err)
-				continue
+				return "", err
 			}
-			out, err := runtime.RunCommandCapture(runCtx, bin, builtArgs, env, cwd)
-			if err == nil {
-				trimmed := strings.TrimSpace(out)
-				failure := classifier.Classify(nil, trimmed)
-				if trimmed != "" && failure.Kind != model.FailureQuota && failure.Kind != model.FailureRateLimit {
-					return out, nil
-				}
-				if trimmed == "" {
-					lastErr = fmt.Errorf("profile %s:%s returned empty output", providerID, cand.Name)
-				} else {
-					lastErr = fmt.Errorf("profile %s:%s reported quota/limit: %s", providerID, cand.Name, trimmed)
-				}
-			} else {
-				lastErr = fmt.Errorf("profile %s:%s error: %w", providerID, cand.Name, err)
-			}
-			slog.Warn("intelligence profile execution failed, attempting failover",
-				"provider", providerID,
-				"profile", cand.Name,
-				"error", lastErr,
-				"has_more_candidates", i+1 < len(candidates))
+			return executeCLIProfileFailover(runCtx, d, providerID, cwd, candidates, args)
 		}
-		return "", lastErr
+		return intelligence.NewCLIProviderWithReadOnly(providerID, profileName, true, runner, readOnlyRunner), nil
 	}
 	return intelligence.NewCLIProvider(providerID, profileName, true, runner), nil
+}
+
+func readOnlyNexPromptArgs(providerID, modelName, prompt string, providerSpec spec.Spec) ([]string, error) {
+	args, err := intelligence.HeadlessPromptArgs(providerID, prompt)
+	if err != nil {
+		return nil, err
+	}
+	if strings.EqualFold(strings.TrimSpace(providerID), "codex") && len(args) >= 2 && args[0] == "exec" {
+		// Codex expects sandbox/approval flags before the exec subcommand and model flags before the positional prompt.
+		out := append([]string(nil), providerSpec.ReviewMode...)
+		out = append(out, "exec")
+		if trimmedModel := strings.TrimSpace(modelName); trimmedModel != "" {
+			out = append(out, "--model", trimmedModel)
+		}
+		out = append(out, args[1:]...)
+		return out, nil
+	}
+	args, err = driver.ApplyLaunchConfiguration(providerID, modelName, nil, args)
+	if err != nil {
+		return nil, err
+	}
+	return append(args, providerSpec.ReviewMode...), nil
+}
+
+func executeCLIProfileFailover(
+	runCtx context.Context,
+	d driver.ControlDriver,
+	providerID string,
+	cwd string,
+	candidates []model.Profile,
+	args []string,
+) (string, error) {
+	var lastErr error
+	for i, cand := range candidates {
+		bin, builtArgs, env, err := d.BuildCommand(runCtx, cand, args)
+		if err != nil {
+			lastErr = fmt.Errorf("profile %s:%s build command: %w", providerID, cand.Name, err)
+			continue
+		}
+		out, err := runtime.RunCommandCapture(runCtx, bin, builtArgs, env, cwd)
+		if err == nil {
+			trimmed := strings.TrimSpace(out)
+			failure := classifier.Classify(nil, trimmed)
+			if trimmed != "" && failure.Kind != model.FailureQuota && failure.Kind != model.FailureRateLimit {
+				return out, nil
+			}
+			if trimmed == "" {
+				lastErr = fmt.Errorf("profile %s:%s returned empty output", providerID, cand.Name)
+			} else {
+				lastErr = fmt.Errorf("profile %s:%s reported quota/limit: %s", providerID, cand.Name, trimmed)
+			}
+		} else {
+			lastErr = fmt.Errorf("profile %s:%s error: %w", providerID, cand.Name, err)
+		}
+		slog.Warn("intelligence profile execution failed, attempting failover",
+			"provider", providerID,
+			"profile", cand.Name,
+			"error", lastErr,
+			"has_more_candidates", i+1 < len(candidates))
+	}
+	return "", lastErr
+}
+
+// NexChatSetupCandidate describes an inspected local CLI or endpoint candidate for Nex chat.
+type NexChatSetupCandidate struct {
+	Mode          coreconfig.IntelligenceMode `json:"mode"`
+	Provider      string                      `json:"provider"`
+	Profile       string                      `json:"profile,omitempty"`
+	Model         string                      `json:"model,omitempty"`
+	Ready         bool                        `json:"ready"`
+	ReadOnly      bool                        `json:"read_only"`
+	Installed     bool                        `json:"installed"`
+	Authenticated bool                        `json:"authenticated"`
+	QuotaOK       bool                        `json:"quota_ok"`
+	Reason        string                      `json:"reason,omitempty"`
+}
+
+// NexChatSetupAssistance returns actionable zero-friction setup hints when Nex
+// does not have a live chat model ready yet.
+type NexChatSetupAssistance struct {
+	Reason              string                  `json:"reason"`
+	CanAutoConfigure    bool                    `json:"can_auto_configure"`
+	RecommendedMode     string                  `json:"recommended_mode,omitempty"`
+	RecommendedProvider string                  `json:"recommended_provider,omitempty"`
+	RecommendedProfile  string                  `json:"recommended_profile,omitempty"`
+	RecommendedAction   string                  `json:"recommended_action,omitempty"`
+	Candidates          []NexChatSetupCandidate `json:"candidates,omitempty"`
+}
+
+// AutoConfigureIntelligenceRequest drives 1-click or inline Nex setup without secrets in the body.
+type AutoConfigureIntelligenceRequest struct {
+	Mode       coreconfig.IntelligenceMode `json:"mode,omitempty"`
+	Provider   string                      `json:"provider,omitempty"`
+	Profile    string                      `json:"profile,omitempty"`
+	BaseURL    string                      `json:"base_url,omitempty"`
+	Model      string                      `json:"model,omitempty"`
+	APIKeyEnv  string                      `json:"api_key_env,omitempty"`
+	APIKeyFile string                      `json:"api_key_file,omitempty"`
+}
+
+// ResolveNexChatProvider returns a configured OpenAI/read-only CLI provider,
+// automatically falls back to a ready read-only CLI profile when possible, or
+// returns structured setup assistance so the UI can guide/auto-fix configuration.
+func (n *Nexus) ResolveNexChatProvider(ctx context.Context, projectID string) (intelligence.IntelligenceProvider, string, *NexChatSetupAssistance, error) {
+	if n != nil && n.intelligenceProviderForTest != nil {
+		return n.intelligenceProviderForTest, "configured_model", nil, nil
+	}
+	cfg, err := n.GetIntelligenceConfig()
+	if err != nil {
+		return nil, "", n.InspectNexSetupAssistance(ctx, "intelligence_config_unreadable"), err
+	}
+
+	switch cfg.Mode {
+	case coreconfig.IntelligenceOpenAICompatible:
+		provider, provErr := intelligence.ProviderFromConfig(cfg)
+		if provErr == nil && provider != nil && provider.Available(ctx) {
+			return provider, "configured_model", nil, nil
+		}
+		return nil, "", n.InspectNexSetupAssistance(ctx, "openai_config_invalid"), firstError(provErr, intelligence.ErrIntelligenceUnavailable)
+
+	case coreconfig.IntelligenceCLI:
+		provider, provErr := n.cliIntelligenceProvider(ctx, projectID, cfg)
+		if provErr == nil && provider != nil {
+			if cliProv, ok := provider.(*intelligence.CLIProvider); ok && cliProv.SupportsNexReadOnly() {
+				return cliProv, "configured_model", nil, nil
+			}
+		}
+		if fallback, found := n.findReadyNexCLIProvider(ctx, projectID, cfg.Model); found {
+			return fallback, "auto_cli_readonly", nil, nil
+		}
+		reason := "cli_missing_readonly_sandbox"
+		if provErr != nil {
+			reason = "configured_cli_unavailable"
+		}
+		return nil, "", n.InspectNexSetupAssistance(ctx, reason), firstError(provErr, intelligence.ErrNexChatRequiresReadOnly)
+
+	case "", coreconfig.IntelligenceOff:
+		if autoProv, found := n.findReadyNexCLIProvider(ctx, projectID, cfg.Model); found {
+			return autoProv, "auto_cli_readonly", nil, nil
+		}
+		return nil, "", n.InspectNexSetupAssistance(ctx, "intelligence_unconfigured"), intelligence.ErrIntelligenceUnavailable
+
+	default:
+		return nil, "", n.InspectNexSetupAssistance(ctx, "unsupported_intelligence_mode"), fmt.Errorf("unsupported intelligence mode %q", cfg.Mode)
+	}
+}
+
+func firstError(primary, fallback error) error {
+	if primary != nil {
+		return primary
+	}
+	return fallback
+}
+
+func (n *Nexus) findReadyNexCLIProvider(ctx context.Context, projectID, modelName string) (intelligence.IntelligenceProvider, bool) {
+	candidates := n.inspectNexCLICandidates(ctx)
+	for _, cand := range candidates {
+		if !cand.Ready || !cand.ReadOnly {
+			continue
+		}
+		prov, err := n.cliIntelligenceProvider(ctx, projectID, coreconfig.IntelligenceConfig{
+			Mode:     coreconfig.IntelligenceCLI,
+			Provider: cand.Provider,
+			Profile:  cand.Profile,
+			Model:    strings.TrimSpace(modelName),
+		})
+		if err != nil {
+			continue
+		}
+		if cliProv, ok := prov.(*intelligence.CLIProvider); ok && cliProv.SupportsNexReadOnly() {
+			return cliProv, true
+		}
+	}
+	return nil, false
+}
+
+// InspectNexSetupAssistance inspects local CLI profiles and returns safe,
+// secret-free guidance explaining what can be auto-activated or configured.
+func (n *Nexus) InspectNexSetupAssistance(ctx context.Context, reason string) *NexChatSetupAssistance {
+	candidates := n.inspectNexCLICandidates(ctx)
+	assistance := &NexChatSetupAssistance{
+		Reason:            strings.TrimSpace(reason),
+		RecommendedAction: "configure_openai_or_cli",
+		Candidates:        candidates,
+	}
+	if assistance.Reason == "" {
+		assistance.Reason = "intelligence_unconfigured"
+	}
+	for _, cand := range candidates {
+		if cand.Ready && cand.ReadOnly {
+			assistance.CanAutoConfigure = true
+			assistance.RecommendedMode = string(coreconfig.IntelligenceCLI)
+			assistance.RecommendedProvider = cand.Provider
+			assistance.RecommendedProfile = cand.Profile
+			assistance.RecommendedAction = "auto_enable_readonly_cli"
+			return assistance
+		}
+	}
+	for _, cand := range candidates {
+		if cand.Installed && cand.ReadOnly && !cand.Authenticated {
+			assistance.RecommendedMode = string(coreconfig.IntelligenceCLI)
+			assistance.RecommendedProvider = cand.Provider
+			assistance.RecommendedProfile = cand.Profile
+			assistance.RecommendedAction = "authenticate_cli_profile"
+			return assistance
+		}
+	}
+	return assistance
+}
+
+// AutoConfigureNexIntelligence configures Nex intelligence either from the best
+// ready read-only CLI profile ("AUTO"), a specific CLI profile, or an OpenAI-compatible URL.
+func (n *Nexus) AutoConfigureNexIntelligence(ctx context.Context, req AutoConfigureIntelligenceRequest) (IntelligenceStatus, error) {
+	mode := coreconfig.IntelligenceMode(strings.ToUpper(strings.TrimSpace(string(req.Mode))))
+	switch mode {
+	case "", "AUTO":
+		candidates := n.inspectNexCLICandidates(ctx)
+		for _, cand := range candidates {
+			if cand.Ready && cand.ReadOnly {
+				next := coreconfig.IntelligenceConfig{
+					Mode:     coreconfig.IntelligenceCLI,
+					Provider: cand.Provider,
+					Profile:  cand.Profile,
+					Model:    strings.TrimSpace(req.Model),
+				}
+				if err := n.SetIntelligenceConfig(next); err != nil {
+					return IntelligenceStatus{}, err
+				}
+				return n.IntelligenceStatus(ctx, ""), nil
+			}
+		}
+		return IntelligenceStatus{}, fmt.Errorf("no authenticated read-only CLI profile ready for auto-configuration")
+
+	case coreconfig.IntelligenceCLI:
+		providerID := strings.ToLower(strings.TrimSpace(req.Provider))
+		profileName := strings.TrimSpace(req.Profile)
+		if providerID != "" && profileName == "" {
+			for _, cand := range n.inspectNexCLICandidates(ctx) {
+				if cand.Provider == providerID && cand.Ready {
+					profileName = cand.Profile
+					break
+				}
+			}
+		}
+		next := coreconfig.IntelligenceConfig{
+			Mode:     coreconfig.IntelligenceCLI,
+			Provider: providerID,
+			Profile:  profileName,
+			Model:    strings.TrimSpace(req.Model),
+		}
+		if err := n.SetIntelligenceConfig(next); err != nil {
+			return IntelligenceStatus{}, err
+		}
+		return n.IntelligenceStatus(ctx, ""), nil
+
+	case coreconfig.IntelligenceOpenAICompatible:
+		next := coreconfig.IntelligenceConfig{
+			Mode:       coreconfig.IntelligenceOpenAICompatible,
+			BaseURL:    strings.TrimSpace(req.BaseURL),
+			Model:      strings.TrimSpace(req.Model),
+			APIKeyEnv:  strings.TrimSpace(req.APIKeyEnv),
+			APIKeyFile: strings.TrimSpace(req.APIKeyFile),
+		}
+		if _, err := intelligence.ProviderFromConfig(next); err != nil {
+			return IntelligenceStatus{}, fmt.Errorf("openai-compatible intelligence requires valid base_url and model: %w", err)
+		}
+		if err := n.SetIntelligenceConfig(next); err != nil {
+			return IntelligenceStatus{}, err
+		}
+		return n.IntelligenceStatus(ctx, ""), nil
+
+	default:
+		return IntelligenceStatus{}, fmt.Errorf("unsupported auto-configure mode %q", req.Mode)
+	}
+}
+
+func (n *Nexus) inspectNexCLICandidates(ctx context.Context) []NexChatSetupCandidate {
+	profiles, err := profile.List()
+	if err != nil {
+		return nil
+	}
+	detections := make(map[string]model.DetectionResult)
+	drivers := n.controlDrivers()
+	out := make([]NexChatSetupCandidate, 0, len(profiles))
+	for _, prof := range profiles {
+		if prof.Disabled {
+			continue
+		}
+		providerID := strings.ToLower(strings.TrimSpace(prof.Provider))
+		d, err := drivers.Get(providerID)
+		if err != nil {
+			continue
+		}
+		det, ok := detections[providerID]
+		if !ok {
+			det, _ = d.Detect(ctx)
+			detections[providerID] = det
+		}
+		cand := NexChatSetupCandidate{
+			Mode:      coreconfig.IntelligenceCLI,
+			Provider:  providerID,
+			Profile:   prof.Name,
+			Installed: det.Installed,
+		}
+		if !det.Installed {
+			cand.Reason = "cli_not_installed"
+			out = append(out, cand)
+			continue
+		}
+		caps := d.EffectiveCaps(ctx, prof)
+		if !intelligenceCLICapable(caps) {
+			cand.Reason = "headless_unsupported"
+			out = append(out, cand)
+			continue
+		}
+		_, cand.ReadOnly = readOnlyReviewSpec(providerID, caps)
+		cand.Authenticated = profile.GetAccountInfo(providerID, prof.Name).Authenticated
+		cand.QuotaOK = !isProfileQuotaExhausted(providerID, prof.Name)
+		cand.Ready = cand.Installed && cand.ReadOnly && cand.Authenticated && cand.QuotaOK
+		switch {
+		case !cand.ReadOnly:
+			cand.Reason = "missing_readonly_sandbox"
+		case !cand.Authenticated:
+			cand.Reason = "not_authenticated"
+		case !cand.QuotaOK:
+			cand.Reason = "quota_exhausted"
+		default:
+			cand.Reason = "ready"
+		}
+		out = append(out, cand)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if (out[i].Ready && out[i].ReadOnly) != (out[j].Ready && out[j].ReadOnly) {
+			return out[i].Ready && out[i].ReadOnly
+		}
+		if (out[i].Provider == "codex") != (out[j].Provider == "codex") {
+			return out[i].Provider == "codex"
+		}
+		if out[i].Provider != out[j].Provider {
+			return out[i].Provider < out[j].Provider
+		}
+		return out[i].Profile < out[j].Profile
+	})
+	return out
 }
 
 func isProfileQuotaExhausted(provider, profileName string) bool {

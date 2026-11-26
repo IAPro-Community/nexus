@@ -34,6 +34,8 @@ declare global {
 export interface NexAvatarViewProps {
   mood?: NexOperationalMood;
   motionEnabled?: boolean;
+  thinkingActive?: boolean;
+  resolvedSignal?: number;
   presetSizePx?: number;
   labMode?: boolean;
   onActivate?: () => void;
@@ -60,6 +62,8 @@ const BEHAVIORS: readonly NexBehavior[] = [
 export const NexAvatarView: React.FC<NexAvatarViewProps> = ({
   mood: initialMood = 'idle',
   motionEnabled: initialMotion = true,
+  thinkingActive = false,
+  resolvedSignal = 0,
   presetSizePx = 160,
   labMode = false,
   onActivate,
@@ -132,6 +136,7 @@ export const NexAvatarView: React.FC<NexAvatarViewProps> = ({
       localInteraction,
       idleAction,
       resolvedActive,
+      thinkingActive,
     });
   }, [
     idleAction,
@@ -142,6 +147,7 @@ export const NexAvatarView: React.FC<NexAvatarViewProps> = ({
     motionEnabled,
     reducedMotion,
     resolvedActive,
+    thinkingActive,
     visible,
   ]);
 
@@ -160,6 +166,61 @@ export const NexAvatarView: React.FC<NexAvatarViewProps> = ({
       document.removeEventListener('visibilitychange', onVisChange);
     };
   }, []);
+
+  useEffect(() => {
+    if (
+      labMode ||
+      labBehaviorOverride ||
+      !motionEnabled ||
+      reducedMotion ||
+      !visible ||
+      mood !== 'idle' ||
+      localInteraction !== 'none' ||
+      thinkingActive ||
+      resolvedActive
+    ) {
+      return;
+    }
+    const sequence: readonly NexIdleActionId[] = [
+      'idle_glance',
+      'idle_head_tilt',
+      'idle_fin_twitch',
+      'idle_orbit_breathe',
+    ];
+    let step = 0;
+    let holdTimer: number | null = null;
+    const interval = window.setInterval(() => {
+      const nextAction = sequence[step % sequence.length];
+      step += 1;
+      setIdleAction(nextAction);
+      holdTimer = window.setTimeout(() => {
+        setIdleAction((current) => (current === nextAction ? null : current));
+      }, 1350);
+    }, 4200);
+    return () => {
+      window.clearInterval(interval);
+      if (holdTimer !== null) window.clearTimeout(holdTimer);
+    };
+  }, [
+    labBehaviorOverride,
+    labMode,
+    localInteraction,
+    mood,
+    motionEnabled,
+    reducedMotion,
+    resolvedActive,
+    thinkingActive,
+    visible,
+  ]);
+
+  useEffect(() => {
+    if (resolvedSignal <= 0 || !motionEnabled || reducedMotion || !visible || mood === 'offline') {
+      return;
+    }
+    setResolvedActive(true);
+    const timer = window.setTimeout(() => setResolvedActive(false), 1250);
+    return () => window.clearTimeout(timer);
+  }, [mood, motionEnabled, reducedMotion, resolvedSignal, visible]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

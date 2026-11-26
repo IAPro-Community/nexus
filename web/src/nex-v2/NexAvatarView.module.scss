@@ -111,6 +111,30 @@
   image-rendering: pixelated;
 }
 
+.root[data-nex-motion='on'] .atlasFallback {
+  animation: nex-atlas-fallback-loop 1s steps(8, end) infinite;
+}
+
+.root[data-nex-motion='off'] .atlasFallback {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root .atlasFallback {
+    animation: none;
+  }
+}
+
+@keyframes nex-atlas-fallback-loop {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 100% 0;
+  }
+}
+
 .labPanel {
   position: fixed;
   right: var(--nx-space-2);

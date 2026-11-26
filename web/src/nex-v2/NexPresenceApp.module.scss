@@ -49,6 +49,29 @@
   color: var(--nx-text-soft);
 }
 
+.offlineActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--nx-space-1);
+}
+
+.offlineRetryBtn {
+  padding: var(--nx-space-1) var(--nx-space-2);
+  border: 1px solid color-mix(in srgb, var(--nx-border) 55%, transparent);
+  border-radius: var(--nx-radius);
+  background: var(--nx-surface-2);
+  color: var(--nx-text);
+  cursor: pointer;
+  font-size: var(--nx-font-size-caption);
+  font-weight: 600;
+}
+
+.offlineRetryBtn:hover {
+  border-color: color-mix(in srgb, var(--nx-accent) 55%, transparent);
+  background: var(--nx-accent-soft);
+  color: var(--nx-accent-text);
+}
+
 .loadingFallback {
   padding: var(--nx-space-2);
   border-radius: var(--nx-radius-lg);

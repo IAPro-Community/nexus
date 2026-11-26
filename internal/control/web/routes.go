@@ -144,6 +144,7 @@ func registerSystemRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/cost/preferences", s.authMiddleware(h.handleCostPreferences))
 	mux.HandleFunc("/api/v1/hud", s.authMiddleware(h.handleHUDState))
 	mux.HandleFunc("/api/v1/nex/assistant", s.authMiddleware(h.handleNexAssistant))
+	mux.HandleFunc("/api/v1/nex/intelligence/auto-configure", s.authMiddleware(h.handleNexIntelligenceAutoConfigure))
 	mux.HandleFunc("/api/v1/nex/conversation", s.authMiddleware(h.handleNexConversation))
 	mux.HandleFunc("/api/v1/nex/events", s.authMiddleware(h.handleNexEvents))
 	mux.HandleFunc("/api/v1/nex/models/watch", s.authMiddleware(h.handleNexModelWatch))

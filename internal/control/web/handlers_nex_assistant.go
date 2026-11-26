@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	coreconfig "github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/security"
 	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/IAPro-Community/nexus/internal/nexus/intelligence"
@@ -164,13 +163,146 @@ type nexAssistantChatRequest struct {
 }
 
 func nexDeterministicReply(message string, view nexAssistantOverview) (string, bool) {
-	switch strings.ToLower(strings.TrimSpace(message)) {
-	case "ajuda", "help", "o que você faz?", "o que voce faz?":
-		return "Posso resumir a atividade do Nexus, explicar alertas e ajudar a encontrar agentes ou execuções. Para análises abertas, configure uma inteligência OpenAI-compatible em Configurações.", true
-	case "status", "resumo", "resumo do nexus", "situação do nexus", "situacao do nexus":
+	return nexDeterministicReplyWithState(message, nexus.HUDState{}, view)
+}
+
+func nexDeterministicReplyWithState(message string, state nexus.HUDState, view nexAssistantOverview) (string, bool) {
+	switch normalizeNexIntent(message) {
+	case "ajuda", "help", "o que voce faz":
+		return "Posso resumir cotas das contas, explicar pendências e alertas, listar agentes ativos e ajudar a navegar pelo Nexus. Para perguntas abertas, uso automaticamente um modelo OpenAI-compatible configurado ou um perfil CLI read-only pronto.", true
+	case "status", "resumo", "resumo do nexus", "situacao do nexus":
 		return fmt.Sprintf("No último snapshot: %d agentes ativos, %d execuções não terminais, %d pendências de decisão e %d alertas não reconhecidos. Consulte as respectivas áreas para detalhes.", view.AgentCount, view.RunCount, view.NeedsUser, view.Alerts), true
+	case "como estao minhas cotas", "como estao as cotas", "cotas", "resumo de cotas", "status das cotas",
+		"what are my quotas", "how are my quotas", "quota status", "cual es mi cuota", "como estan mis cuotas":
+		return formatNexQuotaReply(state), true
+	case "o que precisa da minha atencao", "precisa de atencao", "o que precisa de atencao", "pendencias",
+		"what needs my attention", "needs attention", "que necesita mi atencion":
+		return formatNexAttentionReply(state, view), true
+	case "resumo dos agentes ativos", "agentes ativos", "como estao os agentes",
+		"active agents summary", "active agents", "resumen de agentes activos":
+		return formatNexAgentsReply(state, view), true
 	}
 	return "", false
+}
+
+func formatNexQuotaReply(state nexus.HUDState) string {
+	if len(state.Providers) == 0 {
+		return "Nenhuma conta de provedor está conectada neste snapshot. Abra Recursos para conectar uma conta e monitorar cotas."
+	}
+	rateLimited := 0
+	lowQuota := 0
+	highlights := make([]string, 0, 4)
+	for _, p := range state.Providers {
+		if p.RateLimited || strings.EqualFold(p.Availability, "RATE_LIMITED") || strings.EqualFold(p.Availability, "UNAVAILABLE") {
+			rateLimited++
+		}
+		pct := ""
+		if p.LimitingWindow != nil && p.LimitingWindow.RemainingPercent != nil {
+			remaining := *p.LimitingWindow.RemainingPercent
+			if remaining <= 20 {
+				lowQuota++
+			}
+			pct = fmt.Sprintf("%.0f%%", remaining)
+		} else if p.CapacityState != "" {
+			pct = p.CapacityState
+		} else if p.Availability != "" {
+			pct = p.Availability
+		} else {
+			pct = p.Health
+		}
+		if len(highlights) < 4 {
+			name := p.Provider
+			if p.Profile != "" {
+				name = p.Provider + ":" + p.Profile
+			}
+			highlights = append(highlights, fmt.Sprintf("%s (%s)", name, pct))
+		}
+	}
+	return fmt.Sprintf(
+		"Cotas de %d conta(s): [%s]; %d limitada(s) ou indisponível(is), %d com cota baixa (<=20%%).",
+		len(state.Providers),
+		strings.Join(highlights, ", "),
+		rateLimited,
+		lowQuota,
+	)
+}
+
+func formatNexAttentionReply(state nexus.HUDState, view nexAssistantOverview) string {
+	runtimeCount := len(state.RuntimeAttention)
+	if view.NeedsUser == 0 && view.Alerts == 0 && runtimeCount == 0 {
+		return "Nada bloqueando sua atenção neste snapshot: 0 decisões pendentes, 0 alertas ativos e 0 avisos de runtime."
+	}
+	parts := []string{
+		fmt.Sprintf("%d decisão(ões) de missão", view.NeedsUser),
+		fmt.Sprintf("%d alerta(s) operacional(is)", view.Alerts),
+	}
+	if runtimeCount > 0 {
+		parts = append(parts, fmt.Sprintf("%d evento(s) de runtime aguardando revisão", runtimeCount))
+	}
+	return "Itens que pedem atenção agora: " + strings.Join(parts, ", ") + ". Use a aba Atenção ou Alertas para revisar."
+}
+
+func formatNexAgentsReply(state nexus.HUDState, view nexAssistantOverview) string {
+	total := len(state.Agents)
+	if total == 0 {
+		return "Não há agentes registrados no snapshot atual."
+	}
+	activeNames := make([]string, 0, 4)
+	for _, agent := range state.Agents {
+		if strings.EqualFold(agent.Status, "WORKING") || strings.EqualFold(agent.Status, "RUNNING") {
+			if len(activeNames) < 4 {
+				label := agent.Name
+				if label == "" {
+					label = agent.ID
+				}
+				if agent.Provider != "" {
+					label += " [" + agent.Provider + "]"
+				}
+				activeNames = append(activeNames, label)
+			}
+		}
+	}
+	if view.AgentCount == 0 {
+		return fmt.Sprintf("Há %d agente(s) registrado(s), mas nenhum em execução ativa neste momento.", total)
+	}
+	return fmt.Sprintf("Agentes: %d ativo(s) de %d registrado(s) (%s).", view.AgentCount, total, strings.Join(activeNames, ", "))
+}
+
+type nexProviderSummary struct {
+	Provider         string   `json:"provider"`
+	Profile          string   `json:"profile,omitempty"`
+	Health           string   `json:"health,omitempty"`
+	Availability     string   `json:"availability,omitempty"`
+	CapacityState    string   `json:"capacity_state,omitempty"`
+	RateLimited      bool     `json:"rate_limited,omitempty"`
+	RemainingPercent *float64 `json:"remaining_percent,omitempty"`
+}
+
+func boundedNexProviders(providers []nexus.HUDProvider) []nexProviderSummary {
+	if len(providers) == 0 {
+		return nil
+	}
+	limit := len(providers)
+	if limit > 8 {
+		limit = 8
+	}
+	out := make([]nexProviderSummary, 0, limit)
+	for _, p := range providers[:limit] {
+		var rem *float64
+		if p.LimitingWindow != nil {
+			rem = p.LimitingWindow.RemainingPercent
+		}
+		out = append(out, nexProviderSummary{
+			Provider:         p.Provider,
+			Profile:          p.Profile,
+			Health:           p.Health,
+			Availability:     p.Availability,
+			CapacityState:    p.CapacityState,
+			RateLimited:      p.RateLimited,
+			RemainingPercent: rem,
+		})
+	}
+	return out
 }
 
 // handleNexAssistant provides read-only context and optional conversation.
@@ -275,7 +407,7 @@ func (h *NexusHandler) handleNexAssistant(w http.ResponseWriter, r *http.Request
 			})
 			return
 		}
-		if answer, matched := nexDeterministicReply(body.Message, overview); matched {
+		if answer, matched := nexDeterministicReplyWithState(body.Message, state, overview); matched {
 			if persistExchange != nil {
 				saved, saveErr := persistExchange(answer, "nexus_snapshot")
 				if saveErr != nil {
@@ -288,27 +420,28 @@ func (h *NexusHandler) handleNexAssistant(w http.ResponseWriter, r *http.Request
 			return
 		}
 
-		cfg, err := h.nexus.GetIntelligenceConfig()
-		if err != nil || cfg.Mode != coreconfig.IntelligenceOpenAICompatible {
-			writeJSON(w, http.StatusServiceUnavailable, map[string]any{
-				"error":  "nex_model_unavailable",
-				"detail": "Configure uma inteligência OpenAI-compatible; chat via CLI exige um perfil read-only homologado.",
-			})
-			return
-		}
 		ctx, cancel := context.WithTimeout(r.Context(), 35*time.Second)
 		defer cancel()
-		provider, err := h.nexus.ConfiguredIntelligenceProvider(ctx, body.ProjectID)
+		provider, replySource, setupAssistance, err := h.nexus.ResolveNexChatProvider(ctx, body.ProjectID)
 		if err != nil {
+			detail := "Nenhum provedor de IA pronto para perguntas abertas. Use as opções abaixo para ativar automaticamente ou configurar um endpoint."
+			if setupAssistance != nil && setupAssistance.CanAutoConfigure {
+				detail = "Encontrei um perfil CLI read-only pronto; ative com 1 clique abaixo ou configure outro modelo."
+			}
 			writeJSON(w, http.StatusServiceUnavailable, map[string]any{
-				"error":  "nex_model_unavailable",
-				"detail": "O modelo configurado não está disponível.",
+				"error":            "nex_model_unavailable",
+				"detail":           detail,
+				"setup_assistance": setupAssistance,
 			})
 			return
 		}
 		chat, ok := provider.(intelligence.NexChatProvider)
 		if !ok {
-			writeError(w, http.StatusNotImplemented, "Nex chat unsupported by configured provider")
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+				"error":            "nex_model_unavailable",
+				"detail":           "O provedor selecionado não suporta chat read-only seguro do Nex.",
+				"setup_assistance": h.nexus.InspectNexSetupAssistance(ctx, "chat_unsupported"),
+			})
 			return
 		}
 
@@ -338,6 +471,7 @@ func (h *NexusHandler) handleNexAssistant(w http.ResponseWriter, r *http.Request
 		data, _ := json.Marshal(struct {
 			Overview                nexAssistantOverview `json:"overview"`
 			System                  nexus.HUDSystemState `json:"system"`
+			Providers               []nexProviderSummary `json:"providers,omitempty"`
 			History                 []nexAssistantTurn   `json:"history"`
 			Message                 string               `json:"message"`
 			PersonalSummary         string               `json:"personal_summary,omitempty"`
@@ -346,6 +480,7 @@ func (h *NexusHandler) handleNexAssistant(w http.ResponseWriter, r *http.Request
 		}{
 			Overview:                overview,
 			System:                  state.System,
+			Providers:               boundedNexProviders(state.Providers),
 			History:                 body.History,
 			Message:                 body.Message,
 			PersonalSummary:         personalSummary,
@@ -365,15 +500,18 @@ func (h *NexusHandler) handleNexAssistant(w http.ResponseWriter, r *http.Request
 			})
 			return
 		}
+		if replySource == "" {
+			replySource = "configured_model"
+		}
 		if persistExchange != nil {
-			saved, saveErr := persistExchange(answer, "configured_model")
+			saved, saveErr := persistExchange(answer, replySource)
 			if saveErr != nil {
 				writeError(w, http.StatusServiceUnavailable, "Nex conversation not saved")
 				return
 			}
 			answer = saved
 		}
-		writeJSON(w, http.StatusOK, map[string]any{"answer": answer, "source": "configured_model"})
+		writeJSON(w, http.StatusOK, map[string]any{"answer": answer, "source": replySource})
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}

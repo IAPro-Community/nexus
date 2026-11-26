@@ -1,5 +1,7 @@
 import type {
+  AutoConfigureIntelligencePayload,
   NexV2ChatResponse,
+  NexV2ChatSetupAssistance,
   NexV2ActionReceipt,
   NexV2ChatTurn,
   NexV2EventsPage,
@@ -590,10 +592,15 @@ export async function sendNexV2Chat(
       detail?: string;
       source?: string;
       proposal?: NexV2ChatResponse['proposal'];
+      setup_assistance?: NexV2ChatSetupAssistance;
     };
     if (!res.ok) {
-      if ((res.status === 503 || res.status === 402) && body.detail) {
-        return { answer: body.detail, source: 'unavailable' };
+      if ((res.status === 503 || res.status === 402) && (body.detail || body.setup_assistance)) {
+        return {
+          answer: body.detail ?? '',
+          source: 'unavailable',
+          setup_assistance: body.setup_assistance,
+        };
       }
       return { answer: '', offline: true };
     }
@@ -607,6 +614,27 @@ export async function sendNexV2Chat(
       return { answer: '', aborted: true };
     }
     return { answer: '', offline: true };
+  }
+}
+
+export async function autoConfigureNexIntelligence(
+  payload: AutoConfigureIntelligencePayload,
+): Promise<{ ok: boolean; error?: string }> {
+  await ensureSessionAuth();
+  try {
+    const res = await fetch('/api/v1/nex/intelligence/auto-configure', {
+      method: 'POST',
+      headers: buildHeaders(true),
+      credentials: 'same-origin',
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      return { ok: true };
+    }
+    const body = (await res.json().catch(() => ({}))) as { detail?: string; error?: string };
+    return { ok: false, error: body.detail || body.error || `HTTP ${res.status}` };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'network error' };
   }
 }
 

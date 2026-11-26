@@ -44,6 +44,23 @@ describe('Nex 2.0 behavior precedence and completion tracking', () => {
       localInteraction: 'none',
     });
     expect(rest.behavior).toBe('rest');
+
+    const chatThinking = resolveNexBehaviorState({
+      ...base,
+      mood: 'idle',
+      thinkingActive: true,
+    });
+    expect(chatThinking.behavior).toBe('thinking');
+    expect(chatThinking.orbitMode).toBe('orbit');
+
+    const idleGlance = resolveNexBehaviorState({
+      ...base,
+      mood: 'idle',
+      resolvedActive: false,
+      localInteraction: 'none',
+      idleAction: 'idle_glance',
+    });
+    expect(idleGlance.behavior).toBe('look');
   });
 
   it('freezes motion immediately under reduced-motion or hidden state', () => {

@@ -67,14 +67,19 @@ func resolveNexActionIntent(message string) (NexActionProposal, bool) {
 	n := normalizeNexIntent(message)
 	key := ""
 	switch n {
-	case "abrir agentes", "abra agentes", "mostrar agentes", "mostre agentes", "ver agentes", "meus agentes":
+	case "abrir agentes", "abra agentes", "mostrar agentes", "mostre agentes", "ver agentes", "meus agentes",
+		"open agents", "show agents":
 		key = "agentes"
 	case "abrir missoes", "abra missoes", "mostrar missoes", "mostre missoes", "ver missoes",
-		"abrir execucoes", "abra execucoes", "mostrar execucoes", "ver execucoes":
+		"abrir execucoes", "abra execucoes", "mostrar execucoes", "ver execucoes",
+		"open missions", "show missions":
 		key = "missoes"
-	case "abrir alertas", "mostrar alertas", "mostre alertas", "ver alertas", "ver recursos":
+	case "abrir alertas", "mostrar alertas", "mostre alertas", "ver alertas", "ver recursos",
+		"abrir recursos", "abrir contas", "ver contas", "ver cotas", "abrir cotas", "abrir atencao", "open usage", "show alerts":
 		key = "alertas"
-	case "abrir configuracoes", "abra configuracoes", "mostrar configuracoes", "ver configuracoes":
+	case "abrir configuracoes", "abra configuracoes", "mostrar configuracoes", "ver configuracoes",
+		"abrir inteligencia", "configurar inteligencia", "configurar modelo",
+		"open settings", "open intelligence":
 		key = "configuracoes"
 	case "criar agente", "novo agente", "cadastrar agente", "adicionar agente":
 		key = "novo-agente"

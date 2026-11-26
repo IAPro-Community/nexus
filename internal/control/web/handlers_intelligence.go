@@ -36,6 +36,29 @@ func (h *NexusHandler) handleIntelligence(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// handleNexIntelligenceAutoConfigure POST /api/v1/nex/intelligence/auto-configure configures
+// Intelligence automatically from a verified local CLI profile or explicit non-secret endpoint fields.
+func (h *NexusHandler) handleNexIntelligenceAutoConfigure(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	var body nexus.AutoConfigureIntelligenceRequest
+	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body); err != nil && !errors.Is(err, io.EOF) {
+		writeError(w, http.StatusBadRequest, "invalid body")
+		return
+	}
+	status, err := h.nexus.AutoConfigureNexIntelligence(r.Context(), body)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{
+			"error":  "auto_configure_failed",
+			"detail": err.Error(),
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, status)
+}
+
 // handleIntelligenceProbe POST /api/v1/intelligence/probe runs a short round-trip
 // so Composer can refuse Refinar before a long auto_plan hang.
 func (h *NexusHandler) handleIntelligenceProbe(w http.ResponseWriter, r *http.Request) {

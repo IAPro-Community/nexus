@@ -146,4 +146,65 @@ describe('Nex 2.0 P4/P5 Assistant, Personal Memory & Audited Receipts', () => {
     expect(html).toContain('data-receipt-status="EXECUTED"');
     expect(html).toContain('data-receipt-status="UNAVAILABLE"');
   });
+
+  it('renders zero-friction NexChatSetupCard inside chat turns when setup_assistance is returned', () => {
+    const autoTurn: NexV2ChatTurn[] = [
+      { role: 'user', content: 'Explique o erro atual' },
+      {
+        role: 'assistant',
+        content: 'Encontrei um perfil CLI read-only pronto.',
+        source: 'unavailable',
+        setup_assistance: {
+          reason: 'intelligence_unconfigured',
+          can_auto_configure: true,
+          recommended_mode: 'CLI',
+          recommended_provider: 'codex',
+          recommended_profile: 'work',
+          recommended_action: 'auto_enable_readonly_cli',
+        },
+      },
+    ];
+    const autoHtml = renderToStaticMarkup(
+      <NexChatTab
+        projectId="prj-demo"
+        privacyMode={false}
+        initialHistory={autoTurn}
+        initialMemories={[]}
+        initialReceipts={[]}
+        onOpenResources={noop}
+        onOpenSettings={noop}
+      />,
+    );
+    expect(autoHtml).toContain('data-nex-chat-setup="intelligence_unconfigured"');
+    expect(autoHtml).toContain('data-nex-setup-auto="true"');
+    expect(autoHtml).toContain('Ativar codex:work agora');
+    expect(autoHtml).toContain('data-nex-setup-open-resources="true"');
+    expect(autoHtml).toContain('data-nex-setup-open-settings="true"');
+
+    const manualTurn: NexV2ChatTurn[] = [
+      { role: 'user', content: 'Analise esta falha' },
+      {
+        role: 'assistant',
+        content: 'Nenhum provedor pronto.',
+        source: 'unavailable',
+        setup_assistance: {
+          reason: 'intelligence_unconfigured',
+          can_auto_configure: false,
+          recommended_action: 'configure_openai_or_cli',
+        },
+      },
+    ];
+    const manualHtml = renderToStaticMarkup(
+      <NexChatTab
+        projectId="prj-demo"
+        privacyMode={false}
+        initialHistory={manualTurn}
+        initialMemories={[]}
+        initialReceipts={[]}
+      />,
+    );
+    expect(manualHtml).not.toContain('data-nex-setup-auto="true"');
+    expect(manualHtml).toContain('data-nex-setup-form="true"');
+    expect(manualHtml).toContain('data-nex-setup-submit="true"');
+  });
 });

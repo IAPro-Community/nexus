@@ -69,24 +69,24 @@ export interface IdlePose {
 
 export function idlePose(timeSec: number): IdlePose {
   return {
-    bob: Math.sin(timeSec * 1.23) * 5.4 + Math.sin(timeSec * 0.53 + 1) * 1.6,
-    swayDeg: Math.sin(timeSec * 0.64) * 0.55,
-    breathing: 1 + Math.sin(timeSec * 1.18) * 0.0035,
-    coreLight: 0.58 + Math.sin(timeSec * 1.3 - 0.5) * 0.17,
+    bob: Math.sin(timeSec * 1.45) * 18 + Math.sin(timeSec * 0.62 + 1) * 5,
+    swayDeg: Math.sin(timeSec * 0.72) * 1.6,
+    breathing: 1 + Math.sin(timeSec * 1.35) * 0.012,
+    coreLight: 0.65 + Math.sin(timeSec * 1.6 - 0.5) * 0.3,
   };
 }
 
 export function blinkScale(timeSec: number): number {
-  const segment = (((timeSec + 1.4) % 13.8) + 13.8) % 13.8;
+  const segment = (((timeSec + 0.9) % 5.2) + 5.2) % 5.2;
   const windows: readonly (readonly [number, number])[] = [
-    [3.4, 3.65],
-    [8.9, 9.17],
-    [9.41, 9.61],
+    [1.6, 1.84],
+    [3.8, 4.04],
+    [4.22, 4.42],
   ];
   for (const [start, end] of windows) {
     if (segment >= start && segment <= end) {
       const progress = (segment - start) / (end - start);
-      return 1 - Math.pow(Math.sin(Math.PI * progress), 1.15) * 0.9;
+      return 1 - Math.pow(Math.sin(Math.PI * progress), 1.15) * 0.92;
     }
   }
   return 1;
@@ -95,10 +95,10 @@ export function blinkScale(timeSec: number): number {
 export function idleModulePose(index: number, timeSec: number) {
   const phase = (index * Math.PI) / 2 + 0.4;
   return {
-    dx: Math.sin(timeSec * 0.91 + phase) * 3.2,
-    dy: Math.sin(timeSec * 1.13 + phase) * 4.4,
-    rotation: Math.sin(timeSec * 0.62 + phase) * 0.018,
-    scale: 1 + Math.sin(timeSec * 1.02 + phase) * 0.007,
+    dx: Math.sin(timeSec * 1.15 + phase) * 14,
+    dy: Math.sin(timeSec * 1.42 + phase) * 18,
+    rotation: Math.sin(timeSec * 0.85 + phase) * 0.08,
+    scale: 1 + Math.sin(timeSec * 1.25 + phase) * 0.03,
   };
 }
 

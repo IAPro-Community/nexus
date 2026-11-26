@@ -146,6 +146,39 @@ export interface NexV2HudSnapshotResult {
   error?: string;
 }
 
+export interface NexV2ChatSetupCandidate {
+  mode: string;
+  provider: string;
+  profile?: string;
+  model?: string;
+  ready: boolean;
+  read_only: boolean;
+  installed: boolean;
+  authenticated: boolean;
+  quota_ok: boolean;
+  reason?: string;
+}
+
+export interface NexV2ChatSetupAssistance {
+  reason: string;
+  can_auto_configure: boolean;
+  recommended_mode?: string;
+  recommended_provider?: string;
+  recommended_profile?: string;
+  recommended_action?: string;
+  candidates?: NexV2ChatSetupCandidate[];
+}
+
+export interface AutoConfigureIntelligencePayload {
+  mode: 'AUTO' | 'CLI' | 'OPENAI_COMPATIBLE';
+  provider?: string;
+  profile?: string;
+  base_url?: string;
+  model?: string;
+  api_key_env?: string;
+  api_key_file?: string;
+}
+
 export interface NexV2ChatTurn {
   sequence?: number;
   role: 'user' | 'assistant';
@@ -153,6 +186,7 @@ export interface NexV2ChatTurn {
   source?: string;
   created_at?: string;
   proposal?: NexV2ActionProposal;
+  setup_assistance?: NexV2ChatSetupAssistance;
 }
 
 export interface NexV2ActionProposal {
@@ -169,6 +203,7 @@ export interface NexV2ChatResponse {
   answer: string;
   source?: string;
   proposal?: NexV2ActionProposal;
+  setup_assistance?: NexV2ChatSetupAssistance;
 }
 
 export interface NexV2PersonalMemoryEntry {
