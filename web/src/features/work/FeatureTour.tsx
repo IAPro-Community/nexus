@@ -44,7 +44,8 @@ const readProgress = (key: string, length: number): number => {
 export const FeatureTour: React.FC<{
   projectId: string;
   surface: FeatureTourSurface;
-}> = ({ projectId, surface }) => {
+  compact?: boolean;
+}> = ({ projectId, surface, compact = false }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const hostRef = useRef<HTMLDivElement>(null);
@@ -200,11 +201,21 @@ export const FeatureTour: React.FC<{
   const first = unread[0];
   return (
     <>
-      <div ref={hostRef} className={styles.root} data-feature-discovery={surface}>
+      <div
+        ref={hostRef}
+        className={styles.root}
+        data-feature-discovery={surface}
+        data-compact={compact ? 'true' : 'false'}
+      >
         <Tooltip content={t('discovery.helpHint', 'Passo a passo interativo desta área')}>
-          <Button size="sm" onClick={() => begin()}>
-            <Compass size={14} aria-hidden="true" />
-            {t('tour.featureOpen', 'Conhecer esta área')}
+          <Button
+            size="sm"
+            className={compact ? styles.compactIconBtn : undefined}
+            aria-label={t('tour.featureOpen', 'Conhecer esta área')}
+            onClick={() => begin()}
+          >
+            <Compass size={compact ? 13 : 14} aria-hidden="true" />
+            {!compact && t('tour.featureOpen', 'Conhecer esta área')}
           </Button>
         </Tooltip>
         {updates.length > 0 && (
@@ -214,10 +225,19 @@ export const FeatureTour: React.FC<{
             }}
           >
             <DropdownMenu.Trigger asChild>
-              <Button size="sm" aria-label={t('discovery.updates', 'Novidades desta área')}>
-                <Bell size={14} aria-hidden="true" />
-                {t('discovery.updates', 'Novidades')}
-                {unread.length > 0 && <Badge tone="brand">{unread.length}</Badge>}
+              <Button
+                size="sm"
+                className={compact ? styles.compactIconBtn : undefined}
+                aria-label={t('discovery.updates', 'Novidades desta área')}
+              >
+                <Bell size={compact ? 13 : 14} aria-hidden="true" />
+                {!compact && t('discovery.updates', 'Novidades')}
+                {unread.length > 0 &&
+                  (compact ? (
+                    <span className={styles.compactUnreadDot} aria-hidden="true" />
+                  ) : (
+                    <Badge tone="brand">{unread.length}</Badge>
+                  ))}
               </Button>
             </DropdownMenu.Trigger>
             <DropdownMenu.Portal>
@@ -255,7 +275,7 @@ export const FeatureTour: React.FC<{
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
         )}
-        {first && (
+        {!compact && first && (
           <div className={styles.notice} role="status">
             <Sparkles size={14} aria-hidden="true" />
             <span>{t(first.title)}</span>

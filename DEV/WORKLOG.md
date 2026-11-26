@@ -1,3 +1,11 @@
+## 2026-11-26 — Compactação da barra de ferramentas do AgentTerminal & correção do controle de zoom
+
+- **Barra de ferramentas compacta no modo janela (`web/src/features/work/FeatureTour*`, `web/src/nexus/ExecutionRoleSelector*`, `web/src/nexus/AgentTerminal*`, `web/src/app/workspace-styles/05-terminal-and-panels.css`, `web/src/i18n/locales/`):**
+  - `FeatureTour.tsx` (+ `FeatureTour.module.scss`, `FeatureTour.test.tsx`): adicionado `compact?: boolean` (padrão `false`) que renderiza botões icônicos (`Compass` e `Bell` com indicador `.compactUnreadDot`), preserva `aria-label` e `<Tooltip>`, e suprime a pílula inline `.notice` na barra compacta (`featureAnnouncements.ts` inalterado — ajuste visual de controles existentes).
+  - `ExecutionRoleSelector.tsx` (+ `.module.scss`): adicionado `compact?: boolean` (padrão `false`) ocultando visualmente o rótulo `"PAPEL"` em `.srOnlyLabel` sem perder associação acessível do `<label>`, e compactando altura/largura do `<select>` e badge.
+  - `05-terminal-and-panels.css`, `AgentTerminal.tsx`, `AgentTerminal.module.scss` e `locales/{pt-BR,en,es}.ts`: escopado `.nx-agent-terminal__controls > button` para não sobrescrever os botões internos de `.zoomGroup` (corrigindo o corte à direita no botão `+`), aplicada barra `.compactToolbar` de linha única (`~32px`) agrupando seletor de papel e modo `Safe | YOLO` à esquerda e controles compactos à direita com rótulo curto `terminal.prepareInstructionShort` em `windowChrome`.
+- **Verificação:** `format:check`, `lint`, `lint:styles`, `check:styles` (com `--nx-font-size-caption` validado), `typecheck`, 168 arquivos / 1.075 testes Vitest, `npm --prefix web run build`, `go build ./...` e `git diff --check` aprovados.
+
 ## 2026-11-26 — Recuperação offline/auth zero-atrito no NEX & remoção assistida de projetos com agentes ativos
 
 - **Recuperação offline/auth no NEX 2.0 (`internal/control/web/desktop_attach.go`, `internal/desktop/app.go`, `web/src/nex-v2/`):**

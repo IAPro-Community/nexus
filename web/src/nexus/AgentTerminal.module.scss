@@ -431,21 +431,25 @@
 .zoomGroup {
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
   border: 1px solid var(--nx-border);
   border-radius: var(--nx-radius-sm);
   background: var(--nx-surface-2);
   overflow: hidden;
-  height: 22px;
+  height: 24px;
 }
 
 .zoomBtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   border: none;
   background: transparent;
   color: var(--nx-text-soft);
   padding: 0 5px;
+  min-width: 20px;
+  min-height: 22px;
   height: 100%;
   cursor: pointer;
   transition:
@@ -468,10 +472,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   border: none;
   background: transparent;
   color: var(--nx-text-soft);
   padding: 0 4px;
+  min-height: 22px;
   height: 100%;
   font-size: 0.714rem;
   font-family: var(--nx-font-mono);
@@ -482,6 +488,71 @@
   &:hover {
     color: var(--nx-accent);
   }
+}
+
+.compactToolbar {
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 4px 8px;
+  min-height: 32px;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  :global(.nx-agent-terminal__modes) {
+    gap: 2px;
+    padding: 2px;
+    flex-shrink: 0;
+  }
+
+  :global(.nx-agent-terminal__controls) {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 5px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  :global(.nx-agent-terminal__controls > button),
+  :global(.nx-agent-terminal__ask-btn) {
+    min-height: 24px;
+    padding: 0 7px;
+    font-size: var(--nx-font-size-caption);
+    white-space: nowrap;
+  }
+
+  :global(.nx-agent-terminal__controls) > .followBtn {
+    width: 24px;
+    min-width: 24px;
+    height: 24px;
+    min-height: 24px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+}
+
+.toolbarLeft {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.followBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .scrollToBottomBtn {

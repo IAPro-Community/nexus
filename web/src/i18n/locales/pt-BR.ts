@@ -2940,6 +2940,8 @@ export const ptBR = {
     runtimeAttachIncompatible:
       'O Nexus não pode anexar este runtime com segurança. Em Agentes, encerre esta execução e inicie uma nova antes de reabrir o terminal. Os processos existentes foram mantidos em execução.',
     startNewTerminal: 'Iniciar novo terminal',
+    prepareInstruction: 'Preparar instrução para o Agente',
+    prepareInstructionShort: 'Instrução',
     skills: 'Skills',
     skillsTooltip: 'Abrir catálogo de skills e ferramentas do Maestro',
     skillsDrawerTitle: 'Skills do Maestro',

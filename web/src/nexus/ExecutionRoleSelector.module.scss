@@ -52,6 +52,29 @@
   text-decoration: underline;
 }
 
+.root[data-compact='true'] {
+  gap: 0.25rem;
+}
+
+.root[data-compact='true'] .select {
+  min-height: 24px;
+  max-width: 7.5rem;
+  padding: 0 1.25rem 0 0.42rem;
+  font-size: var(--nx-font-size-caption);
+}
+
+.root[data-compact='true'] .badge {
+  padding: 0.08rem 0.3rem;
+  font-size: 0.58rem;
+}
+
+.root[data-compact='true'] .certify {
+  min-height: 24px;
+  padding-inline: 0.35rem;
+  font-size: 0.64rem;
+}
+
+.srOnlyLabel,
 .status {
   position: absolute;
   width: 1px;

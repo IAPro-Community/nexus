@@ -2950,6 +2950,8 @@ export const es = {
     runtimeAttachIncompatible:
       'Nexus no puede conectar este runtime de forma segura. En Agentes, detenga esta ejecución e inicie una nueva antes de volver a abrir el terminal. Los procesos existentes siguen en ejecución.',
     startNewTerminal: 'Iniciar nuevo terminal',
+    prepareInstruction: 'Preparar instrucción para el Agente',
+    prepareInstructionShort: 'Instrucción',
     skills: 'Skills',
     skillsTooltip: 'Abrir catálogo de skills y herramientas de Maestro',
     skillsDrawerTitle: 'Skills de Maestro',

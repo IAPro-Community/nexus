@@ -2921,6 +2921,8 @@ export const en = {
     runtimeAttachIncompatible:
       'Nexus cannot safely attach this runtime. In Agents, stop it and start a new runtime before reopening the terminal. The existing processes were left running.',
     startNewTerminal: 'Start new terminal',
+    prepareInstruction: 'Prepare agent instruction',
+    prepareInstructionShort: 'Instruction',
     skills: 'Skills',
     skillsTooltip: 'Open Maestro skills catalog and tools',
     skillsDrawerTitle: 'Maestro Skills & Tools',

@@ -386,14 +386,14 @@
   background: var(--nx-bg-elevated);
 }
 .nx-agent-terminal__mode {
-  min-height: 25px;
-  padding: 0 8px;
+  min-height: 22px;
+  padding: 0 7px;
   border: 1px solid transparent;
   border-radius: 5px;
   background: transparent;
   color: var(--nx-muted);
   cursor: pointer;
-  font-size: 0.786rem;
+  font-size: var(--nx-font-size-caption);
   font-weight: 600;
 }
 .nx-agent-terminal__mode[data-active="true"] {
@@ -454,7 +454,7 @@
   white-space: nowrap;
   color: var(--nx-warning) !important;
 }
-.nx-agent-terminal__controls button {
+.nx-agent-terminal__controls > button {
   min-height: 27px;
   padding: 0 7px;
   border: 1px solid var(--nx-border);
@@ -465,7 +465,7 @@
   font-size: 0.786rem;
   white-space: nowrap;
 }
-.nx-agent-terminal__controls button:hover {
+.nx-agent-terminal__controls > button:hover {
   border-color: var(--nx-border-strong);
   color: var(--nx-text);
 }

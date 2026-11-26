@@ -1219,7 +1219,7 @@ export const AgentTerminal: React.FC<{
 
       <button
         type="button"
-        className={styles.zoomBtn}
+        className={styles.followBtn}
         data-tour="agent-terminal-follow"
         aria-label={t(followsOutput ? 'terminal.pauseFollowing' : 'terminal.resumeFollowing')}
         aria-pressed={followsOutput}
@@ -1228,7 +1228,9 @@ export const AgentTerminal: React.FC<{
       >
         {followsOutput ? <Pause size={12} /> : <Play size={12} />}
       </button>
-      {projectId && <FeatureTour projectId={projectId} surface="agent-terminal" />}
+      {projectId && (
+        <FeatureTour projectId={projectId} surface="agent-terminal" compact={windowChrome} />
+      )}
 
       {role === 'CONTROL' ? null : (
         <>
@@ -1279,6 +1281,7 @@ export const AgentTerminal: React.FC<{
         <button
           type="button"
           className="nx-agent-terminal__ask-btn"
+          aria-label={t('terminal.prepareInstruction', 'Preparar instrução para o Agente')}
           onClick={() => {
             const next = !askOpen;
             setPreparationOpen(next);
@@ -1288,7 +1291,11 @@ export const AgentTerminal: React.FC<{
           }}
         >
           <Sparkles size={13} />
-          <span>{t('terminal.prepareInstruction', 'Preparar instrução para o Agente')}</span>
+          <span>
+            {windowChrome
+              ? t('terminal.prepareInstructionShort', 'Instrução')
+              : t('terminal.prepareInstruction', 'Preparar instrução para o Agente')}
+          </span>
           {availableSkills.length > 0 && (
             <span className={styles.skillsCountBadge}>{availableSkills.length}</span>
           )}
@@ -1347,15 +1354,18 @@ export const AgentTerminal: React.FC<{
       )}
       {windowChrome && (
         <div
-          className="nx-agent-terminal__toolbar nx-agent-terminal__toolbar--actions"
+          className={`nx-agent-terminal__toolbar nx-agent-terminal__toolbar--actions ${styles.compactToolbar}`}
           aria-label="Terminal actions"
         >
-          <ExecutionRoleSelector
-            runtimeId={boundRuntimeId}
-            provider={provider}
-            disabled={!boundRuntimeId || connection === 'CONNECTING'}
-          />
-          {modeButtons}
+          <div className={styles.toolbarLeft}>
+            <ExecutionRoleSelector
+              runtimeId={boundRuntimeId}
+              provider={provider}
+              compact
+              disabled={!boundRuntimeId || connection === 'CONNECTING'}
+            />
+            {modeButtons}
+          </div>
           {terminalActions}
         </div>
       )}

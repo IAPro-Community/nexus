@@ -8,8 +8,31 @@
   min-width: 0;
 }
 
+.root[data-compact='true'] {
+  flex-wrap: nowrap;
+  gap: var(--nx-space-1);
+}
+
 .root > button {
   white-space: nowrap;
+}
+
+.compactIconBtn {
+  position: relative;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0 5px;
+}
+
+.compactUnreadDot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  background: var(--nx-accent);
+  border-radius: var(--nx-radius-full);
+  pointer-events: none;
 }
 
 .notice {
