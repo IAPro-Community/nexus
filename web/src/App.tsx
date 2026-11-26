@@ -1,11 +1,25 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { NexusWorkspaceApp } from './app/NexusWorkspaceApp';
-import { NexusDemoApp } from './app/NexusDemoApp';
-import { ConversationSpikePage } from './app/ConversationSpikePage';
+import { isDesktopHudApp } from './app/desktopHudDetect';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { DesktopHudApp, isDesktopHudApp } from './app/DesktopHudApp';
+import { SurfaceLoadingFallback } from './app/SurfaceLoadingFallback';
 import type { WorkspaceSurface } from './workspace/model';
+
+// Secondary surfaces stay out of the boot chunk: the workspace is the only
+// route every session needs, while the demo, the spike page and the native HUD
+// window are loaded on demand so their chunks are never parsed at startup.
+const NexusWorkspaceApp = React.lazy(() =>
+  import('./app/NexusWorkspaceApp').then((m) => ({ default: m.NexusWorkspaceApp })),
+);
+const NexusDemoApp = React.lazy(() =>
+  import('./app/NexusDemoApp').then((m) => ({ default: m.NexusDemoApp })),
+);
+const ConversationSpikePage = React.lazy(() =>
+  import('./app/ConversationSpikePage').then((m) => ({ default: m.ConversationSpikePage })),
+);
+const DesktopHudApp = React.lazy(() =>
+  import('./app/DesktopHudApp').then((m) => ({ default: m.DesktopHudApp })),
+);
 
 function isWorkspaceSurface(obj: unknown): obj is WorkspaceSurface {
   if (typeof obj !== 'object' || obj === null) return false;
@@ -62,20 +76,30 @@ export const AppRoutes: React.FC = () => {
 
 export const App: React.FC = () => {
   if (isDesktopHudApp()) {
-    return <DesktopHudApp />;
+    return (
+      <Suspense fallback={null}>
+        <DesktopHudApp />
+      </Suspense>
+    );
   }
 
   if (
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('demo') === '1'
   ) {
-    return <NexusDemoApp />;
+    return (
+      <Suspense fallback={<SurfaceLoadingFallback />}>
+        <NexusDemoApp />
+      </Suspense>
+    );
   }
 
   return (
     <BrowserRouter>
       <ErrorBoundary>
-        <AppRoutes />
+        <Suspense fallback={<SurfaceLoadingFallback />}>
+          <AppRoutes />
+        </Suspense>
       </ErrorBoundary>
     </BrowserRouter>
   );

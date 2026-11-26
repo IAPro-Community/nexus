@@ -10,13 +10,12 @@ import type { HudRuntimeAttention } from '../features/hud/hudModel';
 import type { MascotAttention } from '../features/hud/mascotModel';
 import { mascotAttentionRoute, hudAttentionRoute } from '../features/hud/attentionNavigation';
 import { useHudHitRegions } from '../features/hud/useHudHitRegions';
-import { getPlatformBridge, hudV3, isDesktopApp } from '../platform';
+import { getPlatformBridge, hudV3 } from '../platform';
 import styles from './DesktopHudApp.module.scss';
 
-export const isDesktopHudApp = () => {
-  if (typeof window === 'undefined' || !isDesktopApp()) return false;
-  return new URLSearchParams(window.location.search).get('nativeHud') === '1';
-};
+// Re-exported for callers that already depend on this module; the detector
+// itself lives in a leaf module so the boot chunk never imports the HUD.
+export { isDesktopHudApp } from './desktopHudDetect';
 
 export const DesktopHudApp: React.FC = () => {
   const { t } = useTranslation();

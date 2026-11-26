@@ -31,7 +31,6 @@ import {
 import { serializeWorkspace } from '../workspace/state';
 import { ProjectRail } from '../features/projects/ProjectRail';
 import { ProjectHub } from '../features/projects/ProjectHub';
-import { NexusHud } from '../features/hud/NexusHud';
 import { subscribeDesktopCommand } from '../platform/desktopEvents';
 import type { NexusCommand } from './commands/registry';
 import type { DirectSessionRequest } from '../features/work/DirectSessionLauncher';
@@ -53,6 +52,11 @@ const MaestroControlModal = React.lazy(() =>
 );
 const NewAgentModal = React.lazy(() =>
   import('../features/agents/NewAgentModal').then((m) => ({ default: m.NewAgentModal })),
+);
+// The floating HUD lives in its own lazy chunk: it mounts after the workspace
+// paints and never blocks the first render of the project shell.
+const NexusHud = React.lazy(() =>
+  import('../features/hud/NexusHud').then((m) => ({ default: m.NexusHud })),
 );
 const DirectSessionLauncher = React.lazy(() =>
   import('../features/work/DirectSessionLauncher').then((m) => ({
@@ -1692,17 +1696,19 @@ const WorkspaceCoordinator: React.FC<{
         </div>
       </NexusShell>
 
-      <NexusHud
-        projectId={project.id}
-        onOpenUsage={() => openKind('resources')}
-        onOpenAgents={() => openKind('agents')}
-        onOpenNewAgent={() => setNewAgentOpen(true)}
-        onOpenMissions={COMPOSER_FLOW_ENABLED ? () => openKind('missions') : undefined}
-        onOpenSettings={() => {
-          setSettingsInitialTab('hud');
-          openKind('settings');
-        }}
-      />
+      <React.Suspense fallback={null}>
+        <NexusHud
+          projectId={project.id}
+          onOpenUsage={() => openKind('resources')}
+          onOpenAgents={() => openKind('agents')}
+          onOpenNewAgent={() => setNewAgentOpen(true)}
+          onOpenMissions={COMPOSER_FLOW_ENABLED ? () => openKind('missions') : undefined}
+          onOpenSettings={() => {
+            setSettingsInitialTab('hud');
+            openKind('settings');
+          }}
+        />
+      </React.Suspense>
 
       {palette && (
         <React.Suspense fallback={null}>
