@@ -1,3 +1,8 @@
+## 2026-11-25 — Nex 2.0 (default true) + IAPro-SDK main + Higiene de Release (`NO_GO`)
+
+- **Base atual em `release/v1.0.0`:** inclui fix do CI `Browser E2E` (`3c85e7af`), Nex 2.0 P0–P5 com `NEX_V2` default `true` (`NexV2Enabled()`, rollback imediato via `NEXUS_FEATURE_NEX_V2=false`), pin da `main` do `IAPro-SDK` (`8e5bf0f9`), correções/testes `#229`, `#230` e `#231`, e worktrees/branches/stashes higienizados.
+- **Invariantes preservados:** as 11 flags experimentais de `internal/nexus/feature_flags.go` permanecem strict default-OFF; `NEX-ID-v1` segue `FROZEN` e `RELEASE_READINESS.json` segue `BLOCKED (2/11)`, `public_site_allowed: false`; release permanece **NO_GO** até runners Win/macOS, assinatura, ensaios reais e aceite NEX.
+
 ## 2026-11-25 — Conciliação Track 1 + IAPro-SDK consumer integration (NO_GO / partial)
 
 - **Worktree único conciliado:** `/projetos/nexus` (`release/v1.0.0` @ `91752a84`) combina as correções locais de runtime/isolamento/instalação/gzip/i18n/chunks (Track 1) com a integração incremental do `IAPro-SDK` `v0.0.0-20261125013959-aa2c954657a2` (Track 3 — [auditoria e matriz](IAPRO_SDK_INTEGRATION.md)).
