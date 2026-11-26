@@ -26,7 +26,6 @@ import {
 import {
   Button,
   Card,
-  ConfirmDialog,
   Dialog,
   EmptyState,
   IconButton,
@@ -41,6 +40,7 @@ import { toast } from 'sonner';
 import { nexus } from '../../nexus/api';
 import type { Agent, Project } from '../../types';
 import { AddProjectModal } from './AddProjectModal';
+import { DeleteProjectDialog } from './DeleteProjectDialog';
 import { DirectoryBrowserModal } from './DirectoryBrowserModal';
 import { ProjectScanModal } from './ProjectScanModal';
 import { ReleaseDeskCard } from './ReleaseDeskCard';
@@ -191,18 +191,6 @@ export const ProjectManagerSurface: React.FC<{
 
   const handleDelete = (p: Project) => {
     setProjectToDelete(p);
-  };
-
-  const executeDelete = async () => {
-    if (!projectToDelete) return;
-    const p = projectToDelete;
-    setProjectToDelete(null);
-    try {
-      await nexus.deleteProject(p.id);
-      window.location.reload();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    }
   };
 
   const handleOpenOS = (p: Project, action: 'filemanager' | 'terminal' | 'editor') => {
@@ -697,12 +685,13 @@ export const ProjectManagerSurface: React.FC<{
         }}
       />
 
-      <ConfirmDialog
-        open={Boolean(projectToDelete)}
-        title={t('projectManager.confirmRemoveTitle', 'Excluir Projeto')}
-        description={t('projectManager.confirmRemove')}
-        onConfirm={executeDelete}
-        onCancel={() => setProjectToDelete(null)}
+      <DeleteProjectDialog
+        project={projectToDelete}
+        onClose={() => setProjectToDelete(null)}
+        onDeleted={() => {
+          setProjectToDelete(null);
+          window.setTimeout(() => window.location.reload(), 600);
+        }}
       />
     </div>
   );

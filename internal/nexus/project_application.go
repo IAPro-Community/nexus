@@ -109,6 +109,13 @@ func (s *ProjectApplicationService) Delete(ctx context.Context, id string) error
 	return s.nexus.DeleteProject(id)
 }
 
+func (s *ProjectApplicationService) DeleteWithOptions(ctx context.Context, id string, opts ProjectDeleteOptions) (ProjectDeleteResult, error) {
+	if err := ctx.Err(); err != nil {
+		return ProjectDeleteResult{}, err
+	}
+	return s.nexus.DeleteProjectWithOptions(ctx, id, opts)
+}
+
 func (s *ProjectApplicationService) Events(ctx context.Context, id, agentID string, limit int) ([]store.EventMetadata, error) {
 	st, err := s.store(ctx)
 	if err != nil {

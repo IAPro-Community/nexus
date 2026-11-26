@@ -1269,22 +1269,148 @@ func (n *Nexus) DeleteAgent(agentID, projectID string) error {
 	return st.DeleteAgent(agentID, projectID)
 }
 
+// ProjectDeleteMode controls how DeleteProjectWithOptions handles agents whose
+// runtimes are currently alive inside the project.
+type ProjectDeleteMode string
+
+const (
+	ProjectDeleteRefuseLive ProjectDeleteMode = ""
+	ProjectDeleteDetachOnly ProjectDeleteMode = "detach"
+	ProjectDeleteStopAgents ProjectDeleteMode = "stop_agents"
+)
+
+// ProjectDeleteOptions parameterizes project deletion behavior.
+type ProjectDeleteOptions struct {
+	Mode ProjectDeleteMode `json:"mode,omitempty"`
+}
+
+// ProjectLiveAgentInfo describes an active agent blocking plain project deletion.
+type ProjectLiveAgentInfo struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Provider  string `json:"provider,omitempty"`
+	RuntimeID string `json:"runtime_id"`
+	Status    string `json:"status,omitempty"`
+}
+
+// ProjectDeleteBlockedError reports which live agents prevented plain deletion.
+type ProjectDeleteBlockedError struct {
+	ProjectID  string
+	LiveAgents []ProjectLiveAgentInfo
+}
+
+func (e *ProjectDeleteBlockedError) Error() string {
+	if e == nil || len(e.LiveAgents) == 0 {
+		return "cannot delete project: active agents detected"
+	}
+	first := e.LiveAgents[0]
+	return fmt.Sprintf("cannot delete project: agent %q has live runtime %s (stop all agents first)", first.Name, first.RuntimeID)
+}
+
+// ProjectDeleteResult reports the exact disposition of project deletion and any
+// linked active agents.
+type ProjectDeleteResult struct {
+	Status         string   `json:"status"`
+	ProjectID      string   `json:"project_id"`
+	Mode           string   `json:"mode"`
+	StoppedAgents  []string `json:"stopped_agents,omitempty"`
+	DetachedAgents []string `json:"detached_agents,omitempty"`
+}
+
+func projectAgentLabel(info ProjectLiveAgentInfo) string {
+	if info.Provider != "" {
+		return fmt.Sprintf("%s (%s)", info.Name, info.Provider)
+	}
+	return info.Name
+}
+
 // DeleteProject safely removes a project. If any agent in the project has a
 // live runtime, the deletion is refused.
 func (n *Nexus) DeleteProject(projectID string) error {
+	_, err := n.DeleteProjectWithOptions(context.Background(), projectID, ProjectDeleteOptions{
+		Mode: ProjectDeleteRefuseLive,
+	})
+	return err
+}
+
+// DeleteProjectWithOptions removes a project and either refuses, detaches, or
+// stops any agents with live runtimes according to opts.Mode.
+func (n *Nexus) DeleteProjectWithOptions(ctx context.Context, projectID string, opts ProjectDeleteOptions) (ProjectDeleteResult, error) {
+	if err := ctx.Err(); err != nil {
+		return ProjectDeleteResult{}, err
+	}
 	st, err := n.OpenProject()
 	if err != nil {
-		return err
+		return ProjectDeleteResult{}, err
 	}
 	agents, err := st.ListAgents(projectID)
 	if err != nil {
-		return err
+		return ProjectDeleteResult{}, err
 	}
+
+	var liveAgents []ProjectLiveAgentInfo
 	for _, a := range agents {
 		gen, gerr := st.CurrentGeneration(a.ID)
-		if gerr == nil && n.runtimeAlive(gen.RuntimeID) {
-			return fmt.Errorf("cannot delete project: agent %q has live runtime %s (stop all agents first)", a.Name, gen.RuntimeID)
+		if gerr == nil && gen.RuntimeID != "" && n.runtimeAlive(gen.RuntimeID) {
+			liveAgents = append(liveAgents, ProjectLiveAgentInfo{
+				ID:        a.ID,
+				Name:      a.Name,
+				Provider:  gen.Provider,
+				RuntimeID: gen.RuntimeID,
+				Status:    a.Status,
+			})
 		}
 	}
-	return st.DeleteProject(projectID)
+
+	if len(liveAgents) == 0 {
+		if err := st.DeleteProject(projectID); err != nil {
+			return ProjectDeleteResult{}, err
+		}
+		return ProjectDeleteResult{
+			Status:    "deleted",
+			ProjectID: projectID,
+			Mode:      "clean",
+		}, nil
+	}
+
+	switch opts.Mode {
+	case ProjectDeleteRefuseLive:
+		return ProjectDeleteResult{}, &ProjectDeleteBlockedError{
+			ProjectID:  projectID,
+			LiveAgents: liveAgents,
+		}
+	case ProjectDeleteDetachOnly:
+		detached := make([]string, 0, len(liveAgents))
+		for _, la := range liveAgents {
+			detached = append(detached, projectAgentLabel(la))
+		}
+		if err := st.DeleteProject(projectID); err != nil {
+			return ProjectDeleteResult{}, err
+		}
+		return ProjectDeleteResult{
+			Status:         "deleted",
+			ProjectID:      projectID,
+			Mode:           string(ProjectDeleteDetachOnly),
+			DetachedAgents: detached,
+		}, nil
+	case ProjectDeleteStopAgents:
+		stopped := make([]string, 0, len(liveAgents))
+		for _, la := range liveAgents {
+			if err := n.StopAgent(ctx, la.ID); err != nil {
+				return ProjectDeleteResult{}, fmt.Errorf("stop active agent %q: %w", la.Name, err)
+			}
+			stopped = append(stopped, projectAgentLabel(la))
+		}
+		if err := st.DeleteProject(projectID); err != nil {
+			return ProjectDeleteResult{}, err
+		}
+		return ProjectDeleteResult{
+			Status:        "deleted",
+			ProjectID:     projectID,
+			Mode:          string(ProjectDeleteStopAgents),
+			StoppedAgents: stopped,
+		}, nil
+	default:
+		return ProjectDeleteResult{}, fmt.Errorf("unsupported project delete mode %q", opts.Mode)
+	}
 }

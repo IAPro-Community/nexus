@@ -88,6 +88,24 @@ export type NexusErrorPayload = {
   [key: string]: unknown;
 };
 
+export type ProjectDeleteMode = 'detach' | 'stop_agents';
+
+export type ProjectLiveAgentInfo = {
+  id: string;
+  name: string;
+  provider?: string;
+  runtime_id: string;
+  status?: string;
+};
+
+export type ProjectDeleteResult = {
+  status: string;
+  project_id: string;
+  mode: string;
+  stopped_agents?: string[];
+  detached_agents?: string[];
+};
+
 export function setNexusCSRF(token: string) {
   setCSRFToken(token);
 }
@@ -206,8 +224,10 @@ export const nexus = {
     request<{ project: Project; layout: string; revision?: number }>(`/api/v1/projects/${id}`),
   updateProject: (id: string, data: Partial<Project>) =>
     request<Project>(`/api/v1/projects/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-  deleteProject: (id: string) =>
-    request<{ status: string }>(`/api/v1/projects/${id}`, { method: 'DELETE' }),
+  deleteProject: (id: string, options?: { mode?: ProjectDeleteMode }) => {
+    const query = options?.mode ? `?mode=${encodeURIComponent(options.mode)}` : '';
+    return request<ProjectDeleteResult>(`/api/v1/projects/${id}${query}`, { method: 'DELETE' });
+  },
   getLayout: (projectId: string) =>
     request<{ layout: string; revision?: number; record?: unknown }>(
       `/api/v1/projects/${projectId}/layout`,

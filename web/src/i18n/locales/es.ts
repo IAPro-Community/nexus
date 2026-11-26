@@ -1634,6 +1634,20 @@ export const es = {
     deleteBlocked: 'No se puede eliminar este proyecto mientras haya agentes activos.',
     deleteError: 'No se pudo eliminar el proyecto.',
   },
+  projectDelete: {
+    diskSafeHint:
+      'Solo se eliminan el registro y metadatos en Nexus; tus archivos en disco permanecen intactos.',
+    activeAgentsDetected:
+      'Hay {{count}} agente(s)/sesión(es) activa(s) vinculada(s) a “{{name}}”. Elige cómo continuar:',
+    cliOriginHint:
+      'Estos vínculos suelen venir de sesiones lanzadas desde terminal (como `nexus agy`, `nexus codex` o `nexus claude`). Puedes eliminar solo el proyecto manteniendo las sesiones vivas, o detener los agentes ahora.',
+    detachBtn: 'Eliminar proyecto y mantener sesiones',
+    stopAndDeleteBtn: 'Detener agentes y eliminar',
+    summaryClean: 'Proyecto “{{name}}” eliminado de Nexus.',
+    summaryDetached:
+      'Proyecto “{{name}}” eliminado. {{count}} sesión(es) activa(s) siguen en ejecución: {{agents}}.',
+    summaryStopped: 'Proyecto “{{name}}” eliminado y {{count}} agente(s) detenido(s): {{agents}}.',
+  },
   surfaces: {
     terminalUnavailable: 'Terminal del Agente no disponible',
     resourcesEyebrow: 'Inteligencia de recursos',

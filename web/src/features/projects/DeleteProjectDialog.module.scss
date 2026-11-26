@@ -1,0 +1,57 @@
+.body {
+  display: grid;
+  gap: var(--nx-space-3, 12px);
+}
+
+.description {
+  margin: 0;
+  color: var(--nx-text);
+  font-size: var(--nx-font-size-sm, 0.875rem);
+  line-height: 1.45;
+}
+
+.hint {
+  margin: 0;
+  color: var(--nx-muted);
+  font-size: var(--nx-font-size-xs, 0.75rem);
+  line-height: 1.45;
+}
+
+.agentList {
+  display: grid;
+  gap: var(--nx-space-1, 6px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.agentItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nx-space-2, 8px);
+  padding: var(--nx-space-2, 8px);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-sm, 6px);
+  background: var(--nx-surface);
+}
+
+.agentName {
+  color: var(--nx-text);
+  font-size: var(--nx-font-size-xs, 0.75rem);
+  font-weight: 600;
+}
+
+.agentMeta {
+  color: var(--nx-muted);
+  font-family: var(--nx-font-mono);
+  font-size: var(--nx-font-size-caption, 0.7rem);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--nx-space-2, 8px);
+  padding-top: var(--nx-space-2, 8px);
+}

@@ -99,11 +99,43 @@ func (h *NexusHandler) handleProjectDetail(w http.ResponseWriter, r *http.Reques
 		writeJSON(w, http.StatusOK, proj)
 
 	case http.MethodDelete:
-		if err := h.projects.Delete(r.Context(), id); err != nil {
+		deleteMode := nexus.ProjectDeleteRefuseLive
+		rawMode := strings.TrimSpace(r.URL.Query().Get("mode"))
+		switch rawMode {
+		case "":
+			switch {
+			case r.URL.Query().Get("stop_agents") == "true":
+				deleteMode = nexus.ProjectDeleteStopAgents
+			case r.URL.Query().Get("detach_agents") == "true":
+				deleteMode = nexus.ProjectDeleteDetachOnly
+			}
+		case string(nexus.ProjectDeleteDetachOnly):
+			deleteMode = nexus.ProjectDeleteDetachOnly
+		case string(nexus.ProjectDeleteStopAgents):
+			deleteMode = nexus.ProjectDeleteStopAgents
+		default:
+			writeError(w, http.StatusBadRequest, "invalid project delete mode")
+			return
+		}
+
+		res, err := h.projects.DeleteWithOptions(r.Context(), id, nexus.ProjectDeleteOptions{
+			Mode: deleteMode,
+		})
+		if err != nil {
+			var blocked *nexus.ProjectDeleteBlockedError
+			if errors.As(err, &blocked) {
+				writeJSON(w, http.StatusConflict, map[string]any{
+					"error":       blocked.Error(),
+					"code":        "project_has_live_agents",
+					"project_id":  id,
+					"live_agents": blocked.LiveAgents,
+				})
+				return
+			}
 			writeError(w, http.StatusConflict, err.Error())
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+		writeJSON(w, http.StatusOK, res)
 
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")

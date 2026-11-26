@@ -21,19 +21,18 @@ import {
   IconButton,
   ContextMenu,
   Dialog,
-  ConfirmDialog,
   Input,
   InlineAlert,
   type ContextMenuPoint,
 } from '../../design-system';
 import { AddProjectModal } from './AddProjectModal';
+import { DeleteProjectDialog } from './DeleteProjectDialog';
 import { ProjectTreeItem } from './ProjectTreeItem';
 import { useProjectRailOutline } from './useProjectRailOutline';
 import type { Agent, AttentionItem, Project } from '../../types';
 import { useTranslation } from 'react-i18next';
-import { nexus, NexusAPIError } from '../../nexus/api';
+import { nexus } from '../../nexus/api';
 import styles from './ProjectRail.module.scss';
-import { toast } from 'sonner';
 
 export const ProjectRail: React.FC<{
   projects: Project[];
@@ -89,7 +88,6 @@ export const ProjectRail: React.FC<{
   const [renameBusy, setRenameBusy] = useState(false);
   const [renameError, setRenameError] = useState<string | null>(null);
   const [deleteProject, setDeleteProject] = useState<Project | null>(null);
-  const [deleteBusy, setDeleteBusy] = useState(false);
   const [railMenu, setRailMenu] = useState<
     | { kind: 'project'; project: Project; point: ContextMenuPoint }
     | { kind: 'agent'; agent: Agent; point: ContextMenuPoint }
@@ -229,25 +227,6 @@ export const ProjectRail: React.FC<{
       setRenameError(error instanceof Error ? error.message : t('rail.renameError'));
     } finally {
       setRenameBusy(false);
-    }
-  };
-
-  const executeDelete = async () => {
-    if (!deleteProject) return;
-    setDeleteBusy(true);
-    try {
-      await nexus.deleteProject(deleteProject.id);
-      onProjectDeleted?.(deleteProject);
-      setDeleteProject(null);
-    } catch (error) {
-      setDeleteProject(null);
-      const message =
-        error instanceof NexusAPIError && error.status === 409
-          ? t('rail.deleteBlocked')
-          : t('rail.deleteError');
-      toast.error(message);
-    } finally {
-      setDeleteBusy(false);
     }
   };
 
@@ -497,15 +476,13 @@ export const ProjectRail: React.FC<{
         </form>
       </Dialog>
 
-      <ConfirmDialog
-        open={Boolean(deleteProject)}
-        title={t('rail.deleteTitle')}
-        description={t('rail.deleteDescription', {
-          name: deleteProject?.name || deleteProject?.id,
-        })}
-        confirmLabel={deleteBusy ? t('rail.deleting') : t('rail.delete')}
-        onCancel={() => setDeleteProject(null)}
-        onConfirm={() => void executeDelete()}
+      <DeleteProjectDialog
+        project={deleteProject}
+        onClose={() => setDeleteProject(null)}
+        onDeleted={(removed) => {
+          onProjectDeleted?.(removed);
+          setDeleteProject(null);
+        }}
       />
     </>
   );
