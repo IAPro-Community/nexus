@@ -1,3 +1,5 @@
+import { isDesktopApp } from './index';
+
 /**
  * Desktop command bridge.
  *
@@ -22,6 +24,7 @@ interface WailsEventLike {
 export function subscribeDesktopCommand(
   handler: (action: DesktopCommandAction) => void,
 ): () => void {
+  if (!isDesktopApp()) return () => undefined;
   let disposed = false;
   let unsubscribe: (() => void) | undefined;
 

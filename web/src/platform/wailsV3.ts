@@ -1,4 +1,3 @@
-import { Call } from '@wailsio/runtime';
 import type {
   DesktopBootstrapInfo,
   FilePickerOptions,
@@ -62,8 +61,10 @@ export interface HudHitRegion {
 
 type WailsV3Invoker = (methodName: string, ...args: unknown[]) => Promise<unknown>;
 
-const runtimeInvoker: WailsV3Invoker = async (methodName, ...args) =>
-  await Call.ByName(methodName, ...args);
+const runtimeInvoker: WailsV3Invoker = async (methodName, ...args) => {
+  const { Call } = await import('@wailsio/runtime');
+  return await Call.ByName(methodName, ...args);
+};
 
 let activeInvoker: WailsV3Invoker = runtimeInvoker;
 

@@ -152,6 +152,12 @@
   background: var(--nx-bg-elevated);
   font-size: 0.821rem;
   color: var(--nx-subtle);
+  overflow: hidden;
+}
+.nx-workspace-statusbar .nx-button[data-size="sm"] {
+  min-height: 22px;
+  height: 22px;
+  padding: 0 8px;
 }
 .nx-statusbar-left,
 .nx-statusbar-center,
