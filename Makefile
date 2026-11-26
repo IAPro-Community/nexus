@@ -171,6 +171,20 @@ install-local: build
 		mv -f $(LOCAL_BIN)/nexus-hud.tmp $(LOCAL_BIN)/nexus-hud; \
 		echo "Synced nexus-hud to $(LOCAL_BIN)/nexus-hud"; \
 	fi
+	@set -e; \
+	for profiles_root in "$(REAL_HOME)/.local/share/ai-manager/profiles" "$(REAL_HOME)/.local/share/nexus/profiles" "$(REAL_HOME)/.local/share/ai-cli/profiles"; do \
+		[ -d "$$profiles_root" ] || continue; \
+		for bin_dir in "$$profiles_root"/*/*/home/.local/bin; do \
+			[ -d "$$bin_dir" ] || continue; \
+			[ "$$bin_dir" != "$(LOCAL_BIN)" ] || continue; \
+			for target in "$$bin_dir/nexus" "$$bin_dir/nexus-desktop" "$$bin_dir/nexus-hud" "$$bin_dir/ai" "$$bin_dir"/nexus.backup-*; do \
+				if [ -e "$$target" ] || [ -L "$$target" ]; then \
+					rm -f "$$target"; \
+					echo "Pruned shadowed profile binary: $$target"; \
+				fi; \
+			done; \
+		done; \
+	done
 	@./scripts/restart-web.sh "$(LOCAL_BIN)/$(BINARY)"
 
 build-desktop: web

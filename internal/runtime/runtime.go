@@ -131,35 +131,50 @@ func LookPath(name string) (string, error) {
 	return "", exec.ErrNotFound
 }
 
+func appendHomeToolPaths(candidates []string, dir string) []string {
+	dir = strings.TrimSpace(dir)
+	if dir == "" {
+		return candidates
+	}
+	candidates = append(candidates,
+		filepath.Join(dir, ".local", "bin"),
+		filepath.Join(dir, ".bun", "bin"),
+		filepath.Join(dir, ".cargo", "bin"),
+		filepath.Join(dir, ".local", "share", "pnpm"),
+	)
+
+	// Include all installed NVM node versions (most recent first)
+	nvmPattern := filepath.Join(dir, ".nvm", "versions", "node", "*", "bin")
+	if matches, err := filepath.Glob(nvmPattern); err == nil && len(matches) > 0 {
+		for i := len(matches) - 1; i >= 0; i-- {
+			candidates = append(candidates, matches[i])
+		}
+	}
+
+	// Also check fnm and asdf shims
+	candidates = append(candidates,
+		filepath.Join(dir, ".fnm", "current", "bin"),
+		filepath.Join(dir, ".asdf", "shims"),
+	)
+	return candidates
+}
+
 // EnhancedPATH builds a robust, prioritized and deduplicated PATH string
 // including the provider binary directory, active developer toolchains (Node/NVM, Bun, Cargo, PNPM),
 // user directories, and standard system paths.
 func EnhancedPATH(extraDirs ...string) string {
 	home, _ := os.UserHomeDir()
+	realHome := strings.TrimSpace(config.BaseHome())
 	var candidates []string
 	candidates = append(candidates, extraDirs...)
 
-	if home != "" {
-		candidates = append(candidates,
-			filepath.Join(home, ".local", "bin"),
-			filepath.Join(home, ".bun", "bin"),
-			filepath.Join(home, ".cargo", "bin"),
-			filepath.Join(home, ".local", "share", "pnpm"),
-		)
-
-		// Include all installed NVM node versions (most recent first)
-		nvmPattern := filepath.Join(home, ".nvm", "versions", "node", "*", "bin")
-		if matches, err := filepath.Glob(nvmPattern); err == nil && len(matches) > 0 {
-			for i := len(matches) - 1; i >= 0; i-- {
-				candidates = append(candidates, matches[i])
-			}
-		}
-
-		// Also check fnm and asdf shims
-		candidates = append(candidates,
-			filepath.Join(home, ".fnm", "current", "bin"),
-			filepath.Join(home, ".asdf", "shims"),
-		)
+	// Prioritize real host toolchains (e.g. ~/.local/bin/nexus) ahead of an isolated
+	// profile HOME so host-installed Nexus binaries are never shadowed by stale copies.
+	if realHome != "" {
+		candidates = appendHomeToolPaths(candidates, realHome)
+	}
+	if home != "" && (realHome == "" || filepath.Clean(home) != filepath.Clean(realHome)) {
+		candidates = appendHomeToolPaths(candidates, home)
 	}
 
 	candidates = append(candidates,

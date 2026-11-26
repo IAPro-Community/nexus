@@ -1,7 +1,9 @@
 package runtime
 
 import (
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -36,5 +38,41 @@ func TestApplyProfileIsolationEnvConfinesXDGAndPreservesRealHome(t *testing.T) {
 	}
 	if _, hasGOPATH := env["GOPATH"]; hasGOPATH {
 		t.Fatalf("GOPATH should remain inherited from host, got override %q", env["GOPATH"])
+	}
+}
+
+func TestEnhancedPATHPrioritizesRealHomeLocalBinOverProfileHome(t *testing.T) {
+	realHome := filepath.Join(t.TempDir(), "host-home")
+	profileHome := filepath.Join(realHome, ".local", "share", "ai-manager", "profiles", "codex", "work", "home")
+	wantReal := filepath.Join(realHome, ".local", "bin")
+	wantProfile := filepath.Join(profileHome, ".local", "bin")
+	if err := os.MkdirAll(wantReal, 0o755); err != nil {
+		t.Fatalf("mkdir %q: %v", wantReal, err)
+	}
+	if err := os.MkdirAll(wantProfile, 0o755); err != nil {
+		t.Fatalf("mkdir %q: %v", wantProfile, err)
+	}
+
+	t.Setenv("NEXUS_REAL_HOME", realHome)
+	t.Setenv("HOME", profileHome)
+	t.Setenv("PATH", "/usr/bin:/bin")
+
+	pathVal := EnhancedPATH()
+	parts := strings.Split(pathVal, string(os.PathListSeparator))
+
+	realIdx, profileIdx := -1, -1
+	for i, part := range parts {
+		if part == wantReal && realIdx == -1 {
+			realIdx = i
+		}
+		if part == wantProfile && profileIdx == -1 {
+			profileIdx = i
+		}
+	}
+	if realIdx == -1 || profileIdx == -1 {
+		t.Fatalf("expected both %q (idx=%d) and %q (idx=%d) in PATH %q", wantReal, realIdx, wantProfile, profileIdx, pathVal)
+	}
+	if realIdx >= profileIdx {
+		t.Fatalf("expected real host %q (idx=%d) strictly before profile %q (idx=%d) in PATH %q", wantReal, realIdx, wantProfile, profileIdx, pathVal)
 	}
 }
