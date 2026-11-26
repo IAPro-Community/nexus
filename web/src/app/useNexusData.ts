@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import { nexus } from '../nexus/api';
+import { asArray } from '../lib/safeArray';
 import type {
   Agent,
   EventRecord,
@@ -10,6 +11,11 @@ import type {
   RuntimeSession,
   Workspace,
 } from '../types';
+
+/** Runtime/event cadence: sessions react to agent work in progress. */
+export const FAST_POLL_MS = 5000;
+/** Metadata cadence: projects, workspaces, providers and profiles. */
+export const METADATA_POLL_MS = 30000;
 
 function sameProjectSnapshot(a: Project[], b: Project[]): boolean {
   if (a.length !== b.length) return false;
@@ -51,6 +57,23 @@ function sameRuntimeSnapshot(a: RuntimeSession[], b: RuntimeSession[]): boolean 
   return true;
 }
 
+function sameEventSnapshot(a: EventRecord[], b: EventRecord[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    const left = a[i];
+    const right = b[i];
+    if (
+      left.id !== right.id ||
+      left.type !== right.type ||
+      left.timestamp !== right.timestamp ||
+      left.summary !== right.summary
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function sameIdList<T extends { id?: string }>(a: T[], b: T[], pick: (item: T) => string): boolean {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i += 1) {
@@ -58,6 +81,23 @@ function sameIdList<T extends { id?: string }>(a: T[], b: T[], pick: (item: T) =
   }
   return true;
 }
+
+/**
+ * Shared promise wrapper for the two polling lanes: concurrent callers reuse the
+ * request already in flight, and the slot is cleared once it settles so the
+ * next tick starts a fresh one.
+ */
+const runDeduped = <T>(
+  slot: { current: Promise<T> | null },
+  task: () => Promise<T>,
+): Promise<T> => {
+  if (slot.current) return slot.current;
+  const request = task().finally(() => {
+    slot.current = null;
+  });
+  slot.current = request;
+  return request;
+};
 
 export function useNexusData() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -71,37 +111,54 @@ export function useNexusData() {
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const refreshInFlight = useRef<Promise<{ runtimes: RuntimeSession[] }> | null>(null);
+  const fastInFlight = useRef<Promise<{ runtimes: RuntimeSession[] }> | null>(null);
+  const metadataInFlight = useRef<Promise<void> | null>(null);
 
-  const refreshGlobal = useCallback(async () => {
-    if (refreshInFlight.current) return refreshInFlight.current;
-
-    const request = (async () => {
+  // Fast lane (5s): runtime/session state and the event feed change while an
+  // agent works, so they stay on the short cadence.
+  const refreshFast = useCallback(() => {
+    return runDeduped(fastInFlight, async () => {
       try {
-        const [projectList, workspaceList, runtimeList, providerList, profileList, eventList] =
-          await Promise.all([
-            nexus.listProjects(),
-            api.getWorkspaces(),
-            api.getRuntimes(),
-            api.getProviders(),
-            api.getProfiles(),
-            api.getEvents(),
-          ]);
-        const nextProjects = Array.isArray(projectList) ? projectList : [];
-        const nextWorkspaces = Array.isArray(workspaceList) ? workspaceList : [];
-        const nextRuntimes = Array.isArray(runtimeList) ? runtimeList : [];
-        const nextProviders = Array.isArray(providerList) ? providerList : [];
-        const nextProfiles = Array.isArray(profileList) ? profileList : [];
-        const nextEvents = Array.isArray(eventList) ? eventList : [];
+        const [runtimeList, eventList] = await Promise.all([api.getRuntimes(), api.getEvents()]);
+        const nextRuntimes = asArray<RuntimeSession>(runtimeList);
+        const nextEvents = asArray<EventRecord>(eventList);
+        setRuntimes((current) =>
+          sameRuntimeSnapshot(current, nextRuntimes) ? current : nextRuntimes,
+        );
+        setEvents((current) => (sameEventSnapshot(current, nextEvents) ? current : nextEvents));
+        setError('');
+        return { runtimes: nextRuntimes };
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Unable to load Nexus data');
+        return { runtimes: [] };
+      } finally {
+        setLoading(false);
+      }
+    });
+  }, []);
+
+  // Metadata lane (30s): projects, workspaces, providers and profiles only
+  // change after an explicit user action, and those actions call refreshGlobal()
+  // so the slow lane is synchronous there too.
+  const refreshMetadata = useCallback(() => {
+    return runDeduped(metadataInFlight, async () => {
+      try {
+        const [projectList, workspaceList, providerList, profileList] = await Promise.all([
+          nexus.listProjects(),
+          api.getWorkspaces(),
+          api.getProviders(),
+          api.getProfiles(),
+        ]);
+        const nextProjects = asArray<Project>(projectList);
+        const nextWorkspaces = asArray<Workspace>(workspaceList);
+        const nextProviders = asArray<ProviderInfo>(providerList);
+        const nextProfiles = asArray<ProfileInfo>(profileList);
 
         setProjects((current) =>
           sameProjectSnapshot(current, nextProjects) ? current : nextProjects,
         );
         setWorkspaces((current) =>
           sameIdList(current, nextWorkspaces, (item) => item.id || '') ? current : nextWorkspaces,
-        );
-        setRuntimes((current) =>
-          sameRuntimeSnapshot(current, nextRuntimes) ? current : nextRuntimes,
         );
         setProviders((current) =>
           sameIdList(current, nextProviders, (item) => item.id || '') ? current : nextProviders,
@@ -119,22 +176,22 @@ export function useNexusData() {
           }
           return current;
         });
-        setEvents((current) =>
-          sameIdList(current, nextEvents, (item) => item.id || '') ? current : nextEvents,
-        );
         setError('');
-        return { runtimes: nextRuntimes };
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : 'Unable to load Nexus data');
-        return { runtimes: [] };
       } finally {
         setLoading(false);
-        refreshInFlight.current = null;
       }
-    })();
-    refreshInFlight.current = request;
-    return request;
+    });
   }, []);
+
+  // Public entry point used by user actions (create/remove project, login,
+  // explicit reloads): both lanes run in parallel and the fast result is
+  // returned, so callers keep the previous `{ runtimes }` contract.
+  const refreshGlobal = useCallback(async () => {
+    const [, runtimes] = await Promise.all([refreshMetadata(), refreshFast()]);
+    return runtimes;
+  }, [refreshFast, refreshMetadata]);
 
   const refreshAgents = useCallback(async (projectId?: string | null) => {
     if (!projectId) {
@@ -170,15 +227,22 @@ export function useNexusData() {
   useEffect(() => {
     void refreshGlobal();
     const refreshWhenVisible = () => {
-      if (!document.hidden) void refreshGlobal();
+      if (!document.hidden) void refreshFast();
     };
-    const timer = window.setInterval(refreshWhenVisible, 5000);
+    const refreshMetadataWhenVisible = () => {
+      if (!document.hidden) void refreshMetadata();
+    };
+    const fastTimer = window.setInterval(refreshWhenVisible, FAST_POLL_MS);
+    const metadataTimer = window.setInterval(refreshMetadataWhenVisible, METADATA_POLL_MS);
     document.addEventListener('visibilitychange', refreshWhenVisible);
+    document.addEventListener('visibilitychange', refreshMetadataWhenVisible);
     return () => {
-      window.clearInterval(timer);
+      window.clearInterval(fastTimer);
+      window.clearInterval(metadataTimer);
       document.removeEventListener('visibilitychange', refreshWhenVisible);
+      document.removeEventListener('visibilitychange', refreshMetadataWhenVisible);
     };
-  }, [refreshGlobal]);
+  }, [refreshFast, refreshGlobal, refreshMetadata]);
 
   return {
     projects,
