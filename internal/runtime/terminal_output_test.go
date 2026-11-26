@@ -525,3 +525,39 @@ func TestTerminalInputScrubberAllowMouseStillDropsFocus(t *testing.T) {
 		t.Fatalf("upstream mouse/keyboard data changed: got %q want %q", got, want)
 	}
 }
+
+func TestAGYStartupQueriesAndResponsesPassThroughScrubbers(t *testing.T) {
+	var outgoing bytes.Buffer
+	output := NewTerminalOutputScrubber(&outgoing)
+	defer func() { _ = output.Close() }()
+
+	// Captured agy startup preamble: capability queries + alt screen + keyboard negotiation + TUI banner.
+	const agyStartup = "\x1b[?2026$p\x1b[?2027$p\x1b]11;?\x07\x1b]7501;?\x07\x1b[>4m\x1b[?1049h\x1b[?25l\x1b[?5W\x1b[?2004h\x1b[>4;2m\x1b[>5u\x1b[?u\x1b[H\x1b[2JWelcome to Antigravity CLI!"
+	if _, err := output.Write([]byte(agyStartup)); err != nil {
+		t.Fatal(err)
+	}
+	if err := output.Flush(); err != nil {
+		t.Fatal(err)
+	}
+
+	const wantOut = "\x1b[?2026$p\x1b[?2027$p\x1b]11;?\x07\x1b]7501;?\x07\x1b[?1049h\x1b[?25l\x1b[?5W\x1b[?2004h\x1b[?u\x1b[H\x1b[2JWelcome to Antigravity CLI!"
+	if got := outgoing.String(); got != wantOut {
+		t.Fatalf("output scrubber altered agy startup: got %q, want %q", got, wantOut)
+	}
+
+	var incoming bytes.Buffer
+	input := NewTerminalInputScrubberAllowMouse(&incoming)
+	defer func() { _ = input.Close() }()
+
+	// xterm.js capability replies (DECRPM + OSC 11 background rgb) must reach agy intact.
+	const xtermReplies = "\x1b[?2026;0$y\x1b[?2027;0$y\x1b]11;rgb:0b0b/1010/2020\x1b\\"
+	if _, err := input.Write([]byte(xtermReplies)); err != nil {
+		t.Fatal(err)
+	}
+	if err := input.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	if got := incoming.String(); got != xtermReplies {
+		t.Fatalf("input scrubber stripped xterm capability reply: got %q, want %q", got, xtermReplies)
+	}
+}
