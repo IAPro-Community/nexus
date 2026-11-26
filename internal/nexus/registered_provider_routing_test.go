@@ -62,6 +62,15 @@ func TestResolveRegisteredProviderPreferenceDoesNotRouteIncidentalOrNegatedProvi
 		"don't use Cursor for this task",
 		"não use Cursor nesta tarefa",
 		"never delegate to Cursor",
+		"I'm using Cursor as my editor while asking for a local fix",
+		"I use Cursor for editing, but keep this task in the current session",
+		"I want to use Cursor for editing, but keep this task in the current session",
+		"I'm going to use Cursor to inspect the screenshots; fix this issue here",
+		"Estou usando o Cursor como editor enquanto peço um ajuste local",
+		"Eu uso Cursor para editar, mas mantenha esta tarefa na sessão atual",
+		"Eu quero usar Cursor para editar, mas mantenha esta tarefa na sessão atual",
+		"Cursor is installed; use the terminal to run the tests",
+		"O Cursor está instalado; use o terminal para executar os testes",
 	} {
 		provider, ok := resolveRegisteredProviderPreference(prompt, []string{"cursor"})
 		if ok {
@@ -72,6 +81,8 @@ func TestResolveRegisteredProviderPreferenceDoesNotRouteIncidentalOrNegatedProvi
 
 func TestResolveRegisteredProviderPreferenceRoutesProviderNamedWithAction(t *testing.T) {
 	for _, prompt := range []string{
+		"please use Cursor to review this file",
+		"I want you to use Cursor to review this file",
 		"peça ao Cursor para revisar este arquivo",
 		"use o Cursor para revisar este arquivo",
 		"delegue esta revisão ao Cursor",
@@ -103,6 +114,15 @@ func TestResolveExplicitProviderDelegateKeepsStickyLeadByDefault(t *testing.T) {
 		"analise a documentação do Codex",
 		"compare Codex com Claude",
 		"corrija o teste unitário",
+		"I'm using Cursor as my editor while asking for a local fix",
+		"I use Cursor for editing, but keep this task in the current session",
+		"I want to use Cursor for editing, but keep this task in the current session",
+		"I'm going to use Cursor to inspect the screenshots; fix this issue here",
+		"Estou usando o Cursor como editor enquanto peço um ajuste local",
+		"Eu uso Cursor para editar, mas mantenha esta tarefa na sessão atual",
+		"Eu quero usar Cursor para editar, mas mantenha esta tarefa na sessão atual",
+		"Cursor is installed; use the terminal to run the tests",
+		"O Cursor está instalado; use o terminal para executar os testes",
 	} {
 		provider, delegated, err = n.ResolveExplicitProviderDelegate(prompt)
 		if err != nil || delegated || provider != "" {

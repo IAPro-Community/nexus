@@ -108,40 +108,107 @@ func providerBoundToRoutingAction(tokens []string, provider string) bool {
 			providerEnd++
 		}
 		for action := range tokens {
-			distance := abs(action - providerEnd)
-			connectedByPreposition := providerRoutingPreposition(tokens, providerStart) && distance <= 6
-			if !isProviderRoutingVerb(tokens[action]) || (distance > 3 && !connectedByPreposition) {
+			if action >= providerStart || !isProviderRoutingVerb(tokens[action]) || providerRequestNegated(tokens, action) || providerRequestIsDescriptive(tokens, action) {
 				continue
 			}
-			if providerRequestNegated(tokens, action) {
-				continue
+			// A provider mention only routes when the request names it as the
+			// destination ("delegate ... to Cursor") or gives it a task
+			// ("use Cursor to review"). General proximity between an action
+			// elsewhere in the sentence and a provider name is not intent.
+			if providerRoutingDestination(tokens, providerStart) && providerStart-action <= 7 {
+				return true
 			}
+			if providerRoutingPurpose(tokens, providerEnd) && providerStart-action <= 3 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func providerRequestIsDescriptive(tokens []string, action int) bool {
+	if action == 0 {
+		return false
+	}
+	switch tokens[action-1] {
+	case "i", "we", "eu", "nos", "nós", "vou", "vamos", "irei", "iremos":
+		return true
+	}
+	if tokens[action] != "use" && tokens[action] != "usar" {
+		return false
+	}
+	// First-person tool-choice statements such as “I want to use Cursor” are
+	// descriptive. A second-person subject keeps explicit instructions such as
+	// “I want you to use Cursor” routable.
+	start := action - 5
+	if start < 0 {
+		start = 0
+	}
+	for subject := start; subject < action; subject++ {
+		if !isFirstPersonProviderSubject(tokens[subject]) {
+			continue
+		}
+		selfIntent, addressedToAgent := false, false
+		for i := subject + 1; i < action; i++ {
+			switch tokens[i] {
+			case "you", "your", "tu", "voce", "você", "voces", "vocês":
+				addressedToAgent = true
+			case "want", "need", "plan", "intend", "hope", "like", "prefer", "will", "would", "could", "can", "should", "going", "m", "am",
+				"quero", "preciso", "planejo", "pretendo", "gostaria", "posso", "poderia", "devo", "vou":
+				selfIntent = true
+			}
+		}
+		if selfIntent && !addressedToAgent {
 			return true
 		}
 	}
 	return false
 }
 
-func providerRoutingPreposition(tokens []string, providerStart int) bool {
-	start := providerStart - 2
-	if start < 0 {
-		start = 0
+func isFirstPersonProviderSubject(token string) bool {
+	switch token {
+	case "i", "we", "eu", "nos", "nós":
+		return true
+	default:
+		return false
 	}
-	for _, token := range tokens[start:providerStart] {
-		switch token {
-		case "a", "ao", "para", "to", "for":
-			return true
-		}
+}
+
+func providerRoutingDestination(tokens []string, providerStart int) bool {
+	if providerStart > 0 && isProviderDestinationPreposition(tokens[providerStart-1]) {
+		return true
 	}
-	return false
+	return providerStart > 1 && isProviderArticle(tokens[providerStart-1]) && isProviderDestinationPreposition(tokens[providerStart-2])
+}
+
+func providerRoutingPurpose(tokens []string, providerEnd int) bool {
+	return providerEnd+1 < len(tokens) && isProviderDestinationPreposition(tokens[providerEnd+1])
+}
+
+func isProviderDestinationPreposition(token string) bool {
+	switch token {
+	case "a", "ao", "para", "pra", "to", "for", "via":
+		return true
+	default:
+		return false
+	}
+}
+
+func isProviderArticle(token string) bool {
+	switch token {
+	case "o", "a", "the":
+		return true
+	default:
+		return false
+	}
 }
 
 func isProviderRoutingVerb(token string) bool {
 	switch token {
-	case "chame", "chamar", "chama", "use", "usar", "usando", "rode", "rodar",
+	case "chame", "chamar", "chama", "use", "usar", "rode", "rodar",
 		"execute", "executar", "delegue", "delegar", "encaminhe", "encaminhar",
 		"prefira", "preferir", "peca", "peça", "pedir", "mande", "mandar",
-		"call", "ask", "run", "delegate", "route", "using", "via":
+		"call", "ask", "run", "delegate", "route":
 		return true
 	default:
 		return false
@@ -165,13 +232,6 @@ func providerRequestNegated(tokens []string, action int) bool {
 		}
 	}
 	return false
-}
-
-func abs(value int) int {
-	if value < 0 {
-		return -value
-	}
-	return value
 }
 
 func providerPromptTerms(prompt string) map[string]struct{} {
@@ -206,10 +266,10 @@ func providerPromptTokens(prompt string) []string {
 func providerRoutingRequested(prompt string) bool {
 	terms := providerPromptTerms(prompt)
 	for _, verb := range []string{
-		"chame", "chamar", "chama", "use", "usar", "usando", "rode", "rodar",
+		"chame", "chamar", "chama", "use", "usar", "rode", "rodar",
 		"execute", "executar", "delegue", "delegar", "encaminhe", "encaminhar",
 		"prefira", "preferir", "peça", "peca", "pedir", "mande", "mandar",
-		"call", "ask", "run", "delegate", "route", "using", "via",
+		"call", "ask", "run", "delegate", "route",
 	} {
 		if _, ok := terms[normalizeRegisteredProviderID(verb)]; ok {
 			return true
