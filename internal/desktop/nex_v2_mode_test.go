@@ -5,30 +5,32 @@ import (
 	"testing"
 )
 
-func TestNexV2DesktopFlagDefaultsOffAndMutualExclusion(t *testing.T) {
+func TestNexV2DesktopFlagDefaultsOnWithOptOutAndMutualExclusion(t *testing.T) {
 	t.Setenv("NEXUS_FEATURES_ENABLED", "")
 	t.Setenv("NEXUS_FEATURE_NEX_V2", "")
+	if !NexV2DesktopEnabled() {
+		t.Fatal("Nex 2.0 desktop flag must default on")
+	}
+	if got := ActiveHUDPresenter(); got != HUDPresenterNexV2 {
+		t.Fatalf("default presenter=%q, want %q", got, HUDPresenterNexV2)
+	}
+
+	t.Setenv("NEXUS_FEATURES_ENABLED", "false")
+	if !NexV2DesktopEnabled() {
+		t.Fatal("NEX_V2 must remain enabled independently of NEXUS_FEATURES_ENABLED")
+	}
+
+	t.Setenv("NEXUS_FEATURE_NEX_V2", "false")
 	if NexV2DesktopEnabled() {
-		t.Fatal("Nex 2.0 desktop flag must default off")
+		t.Fatal("NEXUS_FEATURE_NEX_V2=false must roll back to legacy HUD")
 	}
 	if got := ActiveHUDPresenter(); got != HUDPresenterLegacy {
-		t.Fatalf("default presenter=%q, want %q", got, HUDPresenterLegacy)
-	}
-
-	t.Setenv("NEXUS_FEATURE_NEX_V2", "true")
-	if NexV2DesktopEnabled() {
-		t.Fatal("NEX_V2 without global switch must remain disabled")
-	}
-
-	t.Setenv("NEXUS_FEATURES_ENABLED", "true")
-	t.Setenv("NEXUS_FEATURE_NEX_V2", "1")
-	if NexV2DesktopEnabled() {
-		t.Fatal("only explicit true is accepted for NEX_V2")
+		t.Fatalf("opt-out presenter=%q, want %q", got, HUDPresenterLegacy)
 	}
 
 	t.Setenv("NEXUS_FEATURE_NEX_V2", "true")
 	if !NexV2DesktopEnabled() {
-		t.Fatal("explicit global + NEX_V2 opt-in must enable Nex 2.0 presenter")
+		t.Fatal("explicit NEX_V2=true must keep Nex 2.0 presenter enabled")
 	}
 	if got := ActiveHUDPresenter(); got != HUDPresenterNexV2 {
 		t.Fatalf("enabled presenter=%q, want %q", got, HUDPresenterNexV2)

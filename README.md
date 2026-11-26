@@ -115,7 +115,7 @@ classificações diferentes e não substituem certificação de plataforma.
 
 Por padrão, o Nexus opera em modo **Core Direct**, priorizando estabilidade, terminais supervisionados transparentes e baixa sobrecarga de recursos. Recursos avançados e experimentais exigem ativação explícita com a chave global `NEXUS_FEATURES_ENABLED=true` combinada com cada flag individual `NEXUS_FEATURE_<NOME>=true`:
 
-- **Core Direct (Padrão: ATIVO):** Terminais supervisionados, roteamento de contas inteligente com quotas 5h/semanais, diagnósticos do sistema (`nexus doctor`), HUD companheiro e gerenciamento de projetos.
+- **Core Direct (Padrão: ATIVO):** Terminais supervisionados, roteamento de contas inteligente com quotas 5h/semanais, diagnósticos do sistema (`nexus doctor`), HUD desktop Nex 2.0 (reversível para o HUD legado com `NEXUS_FEATURE_NEX_V2=false`) e gerenciamento de projetos.
 - **Opt-in Avançado (`NEXUS_FEATURES_ENABLED=true` + `NEXUS_FEATURE_<NOME>=true`):** Habilita individualmente os módulos de orquestração avançada:
   - `COMPOSER` (`NEXUS_FEATURE_COMPOSER=true`): Transformação de intenção em planos declarativos de trabalho.
   - `FLOW` (`NEXUS_FEATURE_FLOW=true`): Projeção visual, edição e dependências do WorkPlan.

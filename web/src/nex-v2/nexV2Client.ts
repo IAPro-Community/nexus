@@ -1,4 +1,3 @@
-import { Call } from '@wailsio/runtime';
 import type {
   NexV2ChatResponse,
   NexV2ActionReceipt,
@@ -117,8 +116,13 @@ function writeLocalState(state: NexV2PresenceState): NexV2PresenceState {
   return state;
 }
 
+async function invokeDesktop<T>(fullMethod: string, ...args: unknown[]): Promise<T> {
+  const { Call } = await import('@wailsio/runtime');
+  return (await Call.ByName(fullMethod, ...args)) as T;
+}
+
 async function callController<T>(method: string, ...args: unknown[]): Promise<T> {
-  return (await Call.ByName(`${DESKTOP_PKG}.NexV2Controller.${method}`, ...args)) as T;
+  return invokeDesktop<T>(`${DESKTOP_PKG}.NexV2Controller.${method}`, ...args);
 }
 
 export async function loadNexV2Presence(): Promise<{
@@ -242,10 +246,10 @@ async function ensureSessionAuth(): Promise<void> {
   sessionInitDone = true;
   if (isDesktopShell()) {
     try {
-      const info = (await Call.ByName(`${DESKTOP_PKG}.App.GetBootstrapInfo`)) as {
+      const info = await invokeDesktop<{
         sessionToken?: string;
         csrfToken?: string;
-      } | null;
+      } | null>(`${DESKTOP_PKG}.App.GetBootstrapInfo`);
       if (info?.sessionToken) desktopToken = info.sessionToken;
       if (info?.csrfToken) cachedCsrfToken = info.csrfToken;
     } catch {

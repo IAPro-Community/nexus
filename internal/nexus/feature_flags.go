@@ -27,7 +27,13 @@ var advancedFeatures = [...]string{
 	FeatureComposer, FeatureFlow, FeatureMissions, FeatureParallelChallenge,
 	FeatureComparisonLab, FeatureVoiceActions, FeatureNexProactivity,
 	FeatureDesignInspect, FeatureVisualDiff, FeatureSmartLayouts, FeatureDevicePreview,
-	FeatureNexV2,
+}
+
+// NexV2Enabled reports whether the Nex 2.0 desktop HUD shell is enabled.
+// Nex 2.0 is promoted to default-on; operators can revert instantly to the
+// legacy desktop HUD by setting NEXUS_FEATURE_NEX_V2=false.
+func NexV2Enabled() bool {
+	return os.Getenv("NEXUS_FEATURE_NEX_V2") != "false"
 }
 
 var ErrAdvancedFeatureDisabled = errors.New("advanced feature disabled")

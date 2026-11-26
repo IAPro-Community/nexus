@@ -85,7 +85,7 @@ func TestEffectiveAdvancedFeaturesEndpointIsReadOnlyAndNotCached(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
 		t.Fatal(err)
 	}
-	if payload.Global || payload.Features["MISSIONS"] || payload.Features[featureNexV2] {
+	if payload.Global || payload.Features["MISSIONS"] {
 		t.Fatal("global off must override individual opt-in")
 	}
 	rec = httptest.NewRecorder()
