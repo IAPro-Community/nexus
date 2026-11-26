@@ -2,6 +2,7 @@ package agy
 
 import (
 	"context"
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -10,7 +11,10 @@ import (
 	"testing"
 	"time"
 
+	_ "modernc.org/sqlite"
+
 	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/historysync"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
@@ -29,6 +33,53 @@ func TestEmailFromIDTokenReadsURLSafeClaimsWithoutExposingToken(t *testing.T) {
 	}
 	if got := emailFromIDToken([]byte(`{"id_token":"not-a-jwt"}`)); got != "" {
 		t.Fatalf("malformed token must return empty email, got %q", got)
+	}
+}
+
+func TestListConversationsReadsSharedNativeSummaryDatabase(t *testing.T) {
+	dataDir, hostHome := t.TempDir(), t.TempDir()
+	t.Setenv("AI_CLI_DATA_DIR", dataDir)
+	t.Setenv("AI_MANAGER_DATA_DIR", dataDir)
+	t.Setenv("NEXUS_DATA_DIR", dataDir)
+	t.Setenv("AI_REAL_HOME", hostHome)
+	t.Setenv("NEXUS_REAL_HOME", hostHome)
+	t.Setenv("HOME", hostHome)
+	t.Setenv("USERPROFILE", hostHome)
+	conversationDir := filepath.Join(hostHome, ".gemini", "antigravity-cli", "conversations")
+	if err := os.MkdirAll(conversationDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	databasePath := filepath.Join(hostHome, ".gemini", "antigravity-cli", "conversation_summaries.db")
+	db, err := sql.Open("sqlite", databasePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec(`CREATE TABLE conversation_summaries (conversation_id TEXT, title TEXT, last_modified_time TEXT, workspace_uris TEXT)`)
+	if err == nil {
+		_, err = db.Exec(`INSERT INTO conversation_summaries VALUES (?, ?, ?, ?)`, "shared-chat-id", "Shared AGY chat", "2026-11-25 10:00:00.000000000+00:00", `["/workspace/shared"]`)
+	}
+	if err == nil {
+		_, err = db.Exec(`INSERT INTO conversation_summaries VALUES (?, ?, ?, ?)`, "../outside", "Invalid path", "2026-11-25 10:00:00.000000000+00:00", `[]`)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Create(filepath.Join(conversationDir, "shared-chat-id.db")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Create(filepath.Join(filepath.Dir(conversationDir), "outside.db")); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := New().ListConversations(context.Background(), model.Profile{Provider: "agy", Name: "agy2"}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].ID != "shared-chat-id" || got[0].ProfileID != "agy2" || got[0].Title != "Shared AGY chat" || got[0].Workspace != "/workspace/shared" {
+		t.Fatalf("shared conversation = %+v", got)
 	}
 }
 
@@ -86,7 +137,11 @@ func TestImportHostAuthCopiesOnlyAGYOAuthToken(t *testing.T) {
 }
 
 func TestLinkSharedAgyItemsDoesNotOverwriteProfileSettings(t *testing.T) {
-	host := t.TempDir()
+	hostHome := t.TempDir()
+	host := filepath.Join(hostHome, ".gemini")
+	t.Setenv("NEXUS_REAL_HOME", hostHome)
+	t.Setenv("AI_REAL_HOME", hostHome)
+	t.Setenv("HOME", hostHome)
 	profile := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(host, "antigravity-cli"), 0700); err != nil {
 		t.Fatal(err)
@@ -103,7 +158,9 @@ func TestLinkSharedAgyItemsDoesNotOverwriteProfileSettings(t *testing.T) {
 		}
 	}
 
-	linkSharedAgyItems(profile, host)
+	if err := historysync.SyncProviderHistory("agy", "test", profile); err != nil {
+		t.Fatalf("SyncProviderHistory failed: %v", err)
+	}
 
 	if _, err := os.Stat(filepath.Join(profile, ".gemini", "antigravity-cli", "settings.json")); !os.IsNotExist(err) {
 		t.Fatalf("profile settings must remain profile-owned, stat error=%v", err)

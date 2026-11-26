@@ -2,11 +2,14 @@ package cursor
 
 import (
 	"context"
+	"encoding/json"
+	"os"
 	"path/filepath"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 )
@@ -48,6 +51,44 @@ func TestInspectAuthMemoizesStatusProbe(t *testing.T) {
 	}
 	if calls.Load() != 0 {
 		t.Fatalf("cached InspectAuth must not spawn status probe, calls=%d", calls.Load())
+	}
+}
+
+func TestListConversationsReadsCursorChatMetadata(t *testing.T) {
+	dataDir, hostHome := t.TempDir(), t.TempDir()
+	t.Setenv("AI_CLI_DATA_DIR", dataDir)
+	t.Setenv("AI_MANAGER_DATA_DIR", dataDir)
+	t.Setenv("NEXUS_DATA_DIR", dataDir)
+	t.Setenv("AI_REAL_HOME", hostHome)
+	t.Setenv("NEXUS_REAL_HOME", hostHome)
+	t.Setenv("HOME", hostHome)
+	t.Setenv("USERPROFILE", hostHome)
+	home, err := config.ProfileHome("cursor", "cursor2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	chatID := "f8ebf955-eda8-482d-bbda-cefee4bfdb32"
+	chatDir := filepath.Join(home, ".cursor", "chats", "workspace-hash", chatID)
+	if err := os.MkdirAll(chatDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	meta, err := json.Marshal(map[string]any{"schemaVersion": 1, "createdAtMs": int64(1790000000000), "updatedAtMs": int64(1790000001000), "hasConversation": true, "title": "Cursor shared chat", "cwd": "/workspace/cursor"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(chatDir, "meta.json"), meta, 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := New().ListConversations(context.Background(), model.Profile{Provider: "cursor", Name: "cursor2"}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].ID != chatID || got[0].ProfileID != "cursor2" || got[0].Title != "Cursor shared chat" || got[0].Workspace != "/workspace/cursor" {
+		t.Fatalf("Cursor conversations = %+v", got)
+	}
+	if !New().Capabilities().Conversations {
+		t.Fatal("Cursor conversation discovery must be exposed as a supported capability")
 	}
 }
 

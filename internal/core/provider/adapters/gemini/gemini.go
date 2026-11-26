@@ -12,6 +12,7 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/core/classifier"
 	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/historysync"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/provider/authcopy"
 	"github.com/IAPro-Community/nexus/internal/core/provider/oauthutil"
@@ -83,7 +84,11 @@ func (a *Adapter) Prepare(ctx context.Context, p model.Profile) error {
 
 	cfgObj, _ := config.LoadConfig()
 	policy := security.GetPolicy(cfgObj.IsolationPreset)
-	return security.ApplyIsolation(home, policy)
+	if err := security.ApplyIsolation(home, policy); err != nil {
+		return err
+	}
+	_ = historysync.SyncProviderHistory(string(a.ID()), p.Name, home)
+	return nil
 }
 
 // ensureOAuthAuthSettings selects Gemini OAuth for an imported session only

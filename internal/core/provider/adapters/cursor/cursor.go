@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/core/classifier"
 	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/historysync"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/provider/authcopy"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
@@ -30,7 +32,7 @@ func (a *Adapter) Name() string         { return "Cursor CLI" }
 
 func (a *Adapter) Capabilities() model.Capabilities {
 	return model.Capabilities{
-		Login: true, Logout: true, Usage: false, Conversations: false, Resume: true,
+		Login: true, Logout: true, Usage: false, Conversations: true, Resume: true,
 		CrossAccountResume: false, HotAccountSwitch: false, IsolatedRuntime: true, ProjectBinding: true,
 	}
 }
@@ -216,7 +218,11 @@ func (a *Adapter) Prepare(ctx context.Context, p model.Profile) error {
 		return err
 	}
 	cfg, _ := config.LoadConfig()
-	return security.ApplyIsolation(home, security.GetPolicy(cfg.IsolationPreset))
+	if err := security.ApplyIsolation(home, security.GetPolicy(cfg.IsolationPreset)); err != nil {
+		return err
+	}
+	_ = historysync.SyncProviderHistory(string(a.ID()), p.Name, home)
+	return nil
 }
 
 func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (model.Failure, error) {
@@ -330,9 +336,61 @@ func (a *Adapter) RefreshUsage(ctx context.Context, p model.Profile) model.Usage
 }
 
 func (a *Adapter) ListConversations(ctx context.Context, p model.Profile, workspace string) ([]model.Session, error) {
-	// Cursor exposes `agent ls` as an interactive picker. Until Cursor exposes a
-	// stable machine-readable list contract, Nexus does not scrape terminal UI.
-	return nil, nil
+	homes := make([]string, 0, 2)
+	if home, err := config.ProfileHome(string(a.ID()), p.Name); err == nil {
+		homes = append(homes, home)
+	}
+	if host := security.FindHostHome(); host != "" {
+		homes = append(homes, host)
+	}
+	seen := make(map[string]bool)
+	var sessions []model.Session
+	for _, home := range homes {
+		root := filepath.Join(home, ".cursor", "chats")
+		_ = filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			if walkErr != nil || entry == nil || entry.IsDir() || entry.Name() != "meta.json" || entry.Type()&fs.ModeSymlink != 0 {
+				return nil
+			}
+			chatID := filepath.Base(filepath.Dir(path))
+			if seen[chatID] {
+				return nil
+			}
+			var meta struct {
+				HasConversation bool   `json:"hasConversation"`
+				Title           string `json:"title"`
+				CWD             string `json:"cwd"`
+				UpdatedAtMS     int64  `json:"updatedAtMs"`
+				CreatedAtMS     int64  `json:"createdAtMs"`
+			}
+			raw, err := os.ReadFile(path)
+			if err != nil || json.Unmarshal(raw, &meta) != nil || !meta.HasConversation {
+				return nil
+			}
+			seen[chatID] = true
+			updated := meta.UpdatedAtMS
+			if updated <= 0 {
+				updated = meta.CreatedAtMS
+			}
+			modified := time.Time{}
+			if updated > 0 {
+				modified = time.UnixMilli(updated)
+			}
+			sessionWorkspace := meta.CWD
+			if sessionWorkspace == "" {
+				sessionWorkspace = workspace
+			}
+			title := meta.Title
+			if title == "" {
+				title = "Cursor Chat " + chatID[:min(len(chatID), 8)]
+			}
+			sessions = append(sessions, model.Session{ProviderID: string(a.ID()), ProfileID: p.Name, ID: chatID, Title: title, Workspace: sessionWorkspace, CreatedAt: modified, UpdatedAt: modified, ResumeSupported: true})
+			return nil
+		})
+	}
+	return sessions, ctx.Err()
 }
 
 func (a *Adapter) Resume(ctx context.Context, p model.Profile, sessionID string, args []string) (model.Failure, error) {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/core/classifier"
 	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/historysync"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/provider/authcopy"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
@@ -93,7 +94,11 @@ func (a *Adapter) Prepare(ctx context.Context, p model.Profile) error {
 	if err := security.ApplyIsolationPreservingConfigDirs(home, policy, "opencode"); err != nil {
 		return err
 	}
-	return os.MkdirAll(filepath.Join(home, ".config", "opencode"), 0700)
+	if err := os.MkdirAll(filepath.Join(home, ".config", "opencode"), 0700); err != nil {
+		return err
+	}
+	_ = historysync.SyncProviderHistory(string(a.ID()), p.Name, home)
+	return nil
 }
 
 // DetectHostAuth inspects the host machine for OpenCode credentials and installation.

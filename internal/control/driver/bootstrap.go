@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/historysync"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
 	"github.com/IAPro-Community/nexus/internal/core/security"
@@ -33,19 +34,13 @@ func bootstrapProfile(provider string, p model.Profile) (string, error) {
 		return "", isolationErr
 	}
 	hostHome := security.FindHostHome()
-	if hostHome == "" {
-		if provider == "codex" {
-			// Still run Prepare for CrossAccountResume seed across Nexus profiles.
-			_ = codex.New().Prepare(context.Background(), p)
-			home, _ = config.ProfileHome(provider, p.Name)
-		}
-		return home, nil
-	}
 	switch provider {
 	case "codex":
-		linkConversationArtifacts(home, filepath.Join(hostHome, ".codex"), []string{
-			"rules", "skills", "customizations",
-		})
+		if hostHome != "" {
+			linkConversationArtifacts(home, filepath.Join(hostHome, ".codex"), []string{
+				"rules", "skills", "customizations",
+			})
+		}
 		// Ensure isolated session dirs exist (do not symlink host sessions).
 		_ = os.MkdirAll(filepath.Join(home, "sessions"), 0700)
 		// Supervised launches previously skipped adapter.Prepare, so
@@ -57,14 +52,8 @@ func bootstrapProfile(provider string, p model.Profile) (string, error) {
 		if err != nil {
 			return "", err
 		}
-	case "agy":
-		linkConversationArtifacts(filepath.Join(home, ".gemini"), filepath.Join(hostHome, ".gemini"), []string{
-			"antigravity-cli/history.jsonl", "antigravity-cli/conversation_summaries.db",
-		})
-	case "opencode":
-		linkConversationArtifacts(filepath.Join(home, ".local", "share", "opencode"), filepath.Join(hostHome, ".local", "share", "opencode"), []string{
-			"session", "sessions", "storage/session", "storage/message",
-		})
+	default:
+		_ = historysync.SyncProviderHistory(provider, p.Name, home)
 	}
 	return home, nil
 }

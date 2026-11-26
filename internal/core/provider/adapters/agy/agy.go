@@ -3,11 +3,13 @@ package agy
 import (
 	"bufio"
 	"context"
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -17,6 +19,7 @@ import (
 
 	"github.com/IAPro-Community/nexus/internal/core/classifier"
 	"github.com/IAPro-Community/nexus/internal/core/config"
+	"github.com/IAPro-Community/nexus/internal/core/historysync"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/provider/authcopy"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
@@ -24,6 +27,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/core/security"
 	"github.com/IAPro-Community/nexus/internal/runtime"
+	_ "modernc.org/sqlite"
 )
 
 var emailRegex = regexp.MustCompile(`[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}`)
@@ -97,14 +101,8 @@ func (a *Adapter) Prepare(ctx context.Context, p model.Profile) error {
 		return err
 	}
 
-	// Link shared non-credential artifacts
-	hostHome := security.FindHostHome()
-	if hostHome != "" {
-		hostGemini := filepath.Join(hostHome, ".gemini")
-		if _, err := os.Stat(hostGemini); err == nil {
-			linkSharedAgyItems(home, hostGemini)
-		}
-	}
+	// Synchronize shared non-credential conversation history artifacts.
+	_ = historysync.SyncProviderHistory(string(a.ID()), p.Name, home)
 
 	return nil
 }
@@ -1032,6 +1030,12 @@ func (a *Adapter) ListConversations(ctx context.Context, p model.Profile, worksp
 
 	seen := make(map[string]bool)
 	for _, h := range homeCandidates {
+		databasePath := filepath.Join(h, ".gemini", "antigravity-cli", "conversation_summaries.db")
+		if err := appendAGYSummarySessions(ctx, databasePath, p.Name, workspace, seen, &sessions); err != nil && ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+	}
+	for _, h := range homeCandidates {
 		histCandidates := []string{
 			filepath.Join(h, ".gemini", "antigravity-cli", "history.jsonl"),
 			filepath.Join(h, "antigravity-cli", "history.jsonl"),
@@ -1088,6 +1092,60 @@ func (a *Adapter) ListConversations(ctx context.Context, p model.Profile, worksp
 	return sessions, nil
 }
 
+// appendAGYSummarySessions reads the provider's native session index without
+// opening it for writes. history.jsonl remains the fallback for older AGY CLI
+// installations and entries that have not reached the summary database yet.
+func appendAGYSummarySessions(ctx context.Context, path, profileName, workspace string, seen map[string]bool, sessions *[]model.Session) error {
+	uriPath := filepath.ToSlash(path)
+	if !strings.HasPrefix(uriPath, "/") {
+		uriPath = "/" + uriPath
+	}
+	uri := (&url.URL{Scheme: "file", Path: uriPath, RawQuery: "mode=ro"}).String()
+	db, err := sql.Open("sqlite", uri)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	rows, err := db.QueryContext(ctx, `SELECT conversation_id, title, last_modified_time, workspace_uris FROM conversation_summaries`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id string
+		var title, modified, workspaceURIs sql.NullString
+		if err := rows.Scan(&id, &title, &modified, &workspaceURIs); err != nil || id == "" || id == "." || id == ".." || strings.ContainsAny(id, `/\\`) || seen[id] {
+			continue
+		}
+		if info, err := os.Lstat(filepath.Join(filepath.Dir(path), "conversations", id+".db")); err != nil || !info.Mode().IsRegular() {
+			continue
+		}
+		seen[id] = true
+		updatedAt := parseAGYTimestamp(modified.String)
+		ws := workspace
+		var uris []string
+		if json.Unmarshal([]byte(workspaceURIs.String), &uris) == nil && len(uris) > 0 {
+			ws = strings.TrimPrefix(uris[0], "file://")
+		}
+		label := title.String
+		if label == "" {
+			label = "AGY Session " + id[:min(len(id), 8)]
+		}
+		*sessions = append(*sessions, model.Session{ProviderID: "agy", ProfileID: profileName, ID: id, Title: label, Workspace: ws, CreatedAt: updatedAt, UpdatedAt: updatedAt, ResumeSupported: true})
+	}
+	return rows.Err()
+}
+
+func parseAGYTimestamp(raw string) time.Time {
+	if parsed, err := time.Parse(time.RFC3339Nano, raw); err == nil {
+		return parsed
+	}
+	if parsed, err := time.Parse("2006-01-02 15:04:05.999999999-07:00", raw); err == nil {
+		return parsed
+	}
+	return time.Time{}
+}
+
 func (a *Adapter) Resume(ctx context.Context, p model.Profile, sessionID string, args []string) (model.Failure, error) {
 	resumeArgs := []string{"--conversation=" + sessionID}
 	resumeArgs = append(resumeArgs, args...)
@@ -1096,24 +1154,4 @@ func (a *Adapter) Resume(ctx context.Context, p model.Profile, sessionID string,
 
 func (a *Adapter) ClassifyError(err error, output string) model.Failure {
 	return classifier.Classify(err, output)
-}
-
-func linkSharedAgyItems(profileHome, hostGemini string) {
-	items := []string{
-		"antigravity-cli/history.jsonl",
-		"antigravity-cli/conversation_summaries.db",
-		"antigravity-cli/installed_extensions.json",
-		"antigravity-cli/customizations",
-	}
-
-	for _, item := range items {
-		src := filepath.Join(hostGemini, item)
-		dst := filepath.Join(profileHome, ".gemini", item)
-
-		if _, err := os.Stat(src); err != nil {
-			continue
-		}
-
-		_ = security.SafeLinkOrCopy(src, dst)
-	}
 }

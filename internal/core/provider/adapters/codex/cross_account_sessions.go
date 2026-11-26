@@ -98,12 +98,31 @@ func hardlinkOrCopy(src, dst string) error {
 	if err := os.MkdirAll(filepath.Dir(dst), 0700); err != nil {
 		return err
 	}
-	if _, err := os.Lstat(dst); err == nil {
-		return nil
+	srcInfo, srcErr := os.Stat(src)
+	if srcErr != nil {
+		return srcErr
 	}
-	// Copy only: hardlinking would share an inode across accounts so a resume
-	// in one profile could mutate/truncate another account's rollout history.
-	return copyFile(src, dst)
+	if dstInfo, err := os.Lstat(dst); err == nil {
+		if dstInfo.Mode()&os.ModeSymlink == 0 &&
+			dstInfo.Size() >= srcInfo.Size() &&
+			!srcInfo.ModTime().After(dstInfo.ModTime()) {
+			return nil
+		}
+	}
+	// Copy atomically via temp file + rename: never hardlink across accounts
+	// and never expose a half-written rollout while another session reads it.
+	tmp, err := os.CreateTemp(filepath.Dir(dst), ".rollout-sync-*.tmp")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	_ = tmp.Close()
+	defer os.Remove(tmpName)
+	if err := copyFile(src, tmpName); err != nil {
+		return err
+	}
+	_ = os.Chtimes(tmpName, srcInfo.ModTime(), srcInfo.ModTime())
+	return os.Rename(tmpName, dst)
 }
 
 func adoptSessionIntoProfile(profileName, sessionID string) error {
@@ -207,11 +226,6 @@ func seedCrossAccountSessions(profileName string) error {
 	destRoot := filepath.Join(home, "sessions")
 	if err := os.MkdirAll(destRoot, 0700); err != nil {
 		return err
-	}
-	// Profiles that already have local sessions skip the expensive sibling/host
-	// walk on the hot launch path. Explicit adopt/resume still seeds on demand.
-	if destHasRollouts(destRoot) {
-		return nil
 	}
 
 	deadline := time.Now().Add(crossAccountSeedBudget)
@@ -355,22 +369,6 @@ collect:
 		}
 	}
 	return nil
-}
-
-func destHasRollouts(destRoot string) bool {
-	found := false
-	_ = filepath.WalkDir(destRoot, func(path string, d os.DirEntry, err error) error {
-		if err != nil || d == nil || d.IsDir() {
-			return nil
-		}
-		name := d.Name()
-		if strings.HasPrefix(name, "rollout-") && strings.HasSuffix(name, ".jsonl") {
-			found = true
-			return io.EOF
-		}
-		return nil
-	})
-	return found
 }
 
 // shouldMarkCrossAccount reports whether an imported rollout must be excluded

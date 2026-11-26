@@ -1,5 +1,17 @@
 # Session continuity
 
+## Histórico entre homes locais
+
+O índice `nexus resume` agrega sessões pelo harness e mantém o perfil associado
+à conversa selecionada. `--continue` resolve a sessão mais recente do harness
+no workspace atual e encaminha seu ID nativo ao perfil que a contém. Codex usa
+a descoberta unificada, incluindo validação de identidade. AGY combina
+`conversation_summaries.db` somente leitura com `history.jsonl` legado e exige
+o arquivo de conversa correspondente. Cursor CLI descobre sessões via
+`~/.cursor/chats/**/meta.json` nos homes dos perfis e do host. A listagem não
+altera os bancos dos providers; disponibilidade de retomada ainda depende dos
+artefatos locais e da autenticação do perfil escolhido.
+
 A continuidade de uma sessão supervisionada **não** significa que dois providers
 compartilham a mesma conversa nativa. O Nexus distingue reattach do mesmo runtime,
 resume nativo verificável, handoff de conta, handoff de contexto e abertura de
