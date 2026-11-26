@@ -108,6 +108,10 @@ export interface EffectiveCapabilities {
 
 export interface ProviderInfo {
   id: string;
+  display_name?: string;
+  short_badge?: string;
+  install_guide_url?: string;
+  auth_kind?: string;
   installed: boolean;
   version: string;
   registration_state?: string;
@@ -257,11 +261,37 @@ export interface ProviderAccount {
     confidence: string;
     message?: string;
   };
+  quota_projection?: {
+    truth_state:
+      | 'confirmed'
+      | 'stale'
+      | 'exhausted'
+      | 'rate_limited'
+      | 'unknown'
+      | 'unauthenticated'
+      | 'unsupported';
+    available: boolean;
+    primary_available: boolean;
+    auxiliary_only: boolean;
+    active_tier?: 'primary' | 'auxiliary';
+    primary_remaining?: number;
+    auxiliary_remaining?: number;
+    effective_remaining?: number;
+    bottleneck_kind?: string;
+    compact_summary?: string;
+    diagnostic_code?: string;
+    diagnostic_message?: string;
+    freshness_seconds?: number;
+    needs_reset_reprobe?: boolean;
+    rank_score: number;
+  };
   quota_view?: {
     status?: string;
     source?: string;
     plan?: string;
     account?: string;
+    diagnostic_code?: string;
+    diagnostic_message?: string;
     fetched_at?: string;
     available?: boolean;
     avail_reasons?: {
@@ -274,6 +304,7 @@ export interface ProviderAccount {
     model_groups?: Array<{
       key?: string;
       name?: string;
+      tier?: 'primary' | 'auxiliary';
       windows?: Array<{
         kind?: string;
         label?: string;

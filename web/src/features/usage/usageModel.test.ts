@@ -7,6 +7,7 @@ import {
   filterAccounts,
   formatResetDescription,
   getQuotaProgressTone,
+  groupAccountsByProvider,
   groupHasCapacity,
   installedProvidersWithoutAccounts,
   isAccountAuthRequired,
@@ -200,5 +201,36 @@ describe('usageModel', () => {
     expect(filterAccounts(fleet, { provider: 'agy' })).toHaveLength(1);
     expect(filterAccounts(fleet, { status: 'auth_required' })).toHaveLength(1);
     expect(filterAccounts(fleet, { status: 'usable' })).toHaveLength(2);
+  });
+
+  it('orders accounts within a provider by quota_projection rank_score (primary beats auxiliary)', () => {
+    const grouped = groupAccountsByProvider([
+      base({
+        id: 'agy:aux',
+        profile: 'aux',
+        quota_projection: {
+          truth_state: 'confirmed',
+          available: true,
+          primary_available: false,
+          auxiliary_only: true,
+          active_tier: 'auxiliary',
+          rank_score: 100,
+        },
+      }),
+      base({
+        id: 'agy:prim',
+        profile: 'prim',
+        quota_projection: {
+          truth_state: 'confirmed',
+          available: true,
+          primary_available: true,
+          auxiliary_only: false,
+          active_tier: 'primary',
+          rank_score: 1050,
+        },
+      }),
+    ]);
+    expect(grouped[0].accounts.map((a) => a.profile)).toEqual(['prim', 'aux']);
+    expect(accountQuotaState(grouped[0].accounts[0])).toBe('confirmed');
   });
 });

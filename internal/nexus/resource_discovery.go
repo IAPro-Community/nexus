@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/control/driver"
@@ -49,94 +50,120 @@ func (n *Nexus) ListResourcesContext(ctx context.Context) ([]ProviderAccount, er
 		caps      map[string]string
 	}
 	detectCache := map[string]providerDetect{}
-	detectionFor := func(provider string) providerDetect {
-		if cached, ok := detectCache[provider]; ok {
-			return cached
-		}
-		out := providerDetect{caps: map[string]string{}}
-		d, derr := n.controlDrivers().Get(provider)
-		if derr != nil {
-			detectCache[provider] = out
-			return out
-		}
-		out.ok = true
-		if det, detectErr := d.Detect(ctx); detectErr == nil {
-			out.installed = det.Installed
-		}
-		// EffectiveCaps is profile-specific; filled per profile below.
-		detectCache[provider] = out
-		return out
-	}
-
-	accounts := make([]ProviderAccount, 0, len(profiles))
+	var detectMu sync.Mutex
+	var detectWG sync.WaitGroup
+	uniqueProviders := make(map[string]struct{}, len(profiles))
 	for _, p := range profiles {
-		id := p.Provider + ":" + p.Name
-		displayName := p.Provider + " (" + p.Name + ")"
-
-		acc := profile.GetAccountInfo(p.Provider, p.Name)
-		authenticated := false
-		health := strings.ToLower(string(acc.Health))
-		if health == "" {
-			health = "unknown"
-		}
-
-		capabilities := map[string]string{}
-		det := detectionFor(p.Provider)
-		if det.ok {
-			authenticated = det.installed && acc.Authenticated
-			if !det.installed {
-				health = "unavailable"
-			} else if !acc.Authenticated {
-				health = "auth_required"
-			}
-			if d, derr := n.controlDrivers().Get(p.Provider); derr == nil {
-				capabilities = effectiveCapabilityMap(d.EffectiveCaps(ctx, p))
-			}
-		} else {
-			health = "unavailable"
-		}
-
-		isDefault := false
-		if cfgErr == nil {
-			isDefault = cfg.Defaults[p.Provider] == p.Name
-		}
-
-		// Get quota view with availability. quota_remaining has one stable
-		// semantic across providers: the best currently usable pool's literal
-		// remaining quota, normalized to 0..1. Multi-pool breadth belongs to the
-		// scheduler ranking and must never be encoded into this public field.
-		usageSnapshot := profile.GetSanitizedUsageSnapshot(p.Provider, p.Name, acc.Email)
-		qv := profile.GetQuotaView(p.Provider, p.Name, acc.Plan, acc.Email)
-		available := reconcileResourceAvailability(&qv, det.ok, det.installed, authenticated)
-		quotaRemaining := quotaRemainingRatio(qv)
-		quotaTotal := quotaTotalRatio(qv)
-		resourceChannels := subscriptionResourceChannels(usageSnapshot)
-
-		accounts = append(accounts, ProviderAccount{
-			ID:               id,
-			Provider:         p.Provider,
-			Profile:          p.Name,
-			DisplayName:      displayName,
-			Authenticated:    authenticated,
-			Health:           health,
-			IsDefault:        isDefault,
-			Available:        available,
-			AvailReasons:     &qv.AvailReasons,
-			QuotaView:        &qv,
-			Capabilities:     capabilities,
-			ResourceChannels: resourceChannels,
-			QuotaRemaining:   quotaRemaining,
-			QuotaTotal:       quotaTotal,
-			RateLimited:      qv.Status == "RATE_LIMITED",
-			NetworkError:     strings.EqualFold(strings.TrimSpace(qv.Status), "ERROR"),
-			Scope:            acc.AccountScope,
-			LastChecked:      time.Now(),
-		})
-		accIdx := len(accounts) - 1
-		attachCredentialProvenance(&accounts[accIdx], p.Provider, p.Name, authenticated, acc.ExternalAccountID)
-		elig := quota.EvaluateEligibility(accountEligibilityInput(accounts[accIdx], false))
-		accounts[accIdx].Eligibility = &elig
+		uniqueProviders[p.Provider] = struct{}{}
 	}
+	for prov := range uniqueProviders {
+		detectWG.Add(1)
+		go func(provider string) {
+			defer detectWG.Done()
+			out := providerDetect{caps: map[string]string{}}
+			d, derr := n.controlDrivers().Get(provider)
+			if derr == nil {
+				out.ok = true
+				pctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+				if det, detectErr := d.Detect(pctx); detectErr == nil {
+					out.installed = det.Installed
+				}
+				cancel()
+			}
+			detectMu.Lock()
+			detectCache[provider] = out
+			detectMu.Unlock()
+		}(prov)
+	}
+	detectWG.Wait()
+
+	accounts := make([]ProviderAccount, len(profiles))
+	sem := make(chan struct{}, 6)
+	var accWG sync.WaitGroup
+	now := time.Now()
+	for i, prof := range profiles {
+		accWG.Add(1)
+		go func(idx int, p model.Profile) {
+			defer accWG.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			id := p.Provider + ":" + p.Name
+			displayName := p.Provider + " (" + p.Name + ")"
+
+			acc, _ := profile.GetAccountInfoContext(ctx, p.Provider, p.Name)
+			authenticated := false
+			health := strings.ToLower(string(acc.Health))
+			if health == "" {
+				health = "unknown"
+			}
+
+			capabilities := map[string]string{}
+			det := detectCache[p.Provider]
+			if det.ok {
+				authenticated = det.installed && acc.Authenticated
+				if !det.installed {
+					health = "unavailable"
+				} else if !acc.Authenticated {
+					health = "auth_required"
+				}
+				if d, derr := n.controlDrivers().Get(p.Provider); derr == nil {
+					capabilities = effectiveCapabilityMap(d.EffectiveCaps(ctx, p))
+				}
+			} else {
+				health = "unavailable"
+			}
+
+			isDefault := false
+			if cfgErr == nil {
+				isDefault = cfg.Defaults[p.Provider] == p.Name
+			}
+
+			usageSnapshot := profile.GetSanitizedUsageSnapshot(p.Provider, p.Name, acc.Email)
+			qv := profile.GetQuotaView(p.Provider, p.Name, acc.Plan, acc.Email)
+			available := reconcileResourceAvailability(&qv, det.ok, det.installed, authenticated)
+			proj := qv.ProjectionAt(now, quota.DefaultTTL, authenticated, health)
+			quotaRemaining := quotaRemainingRatio(qv)
+			if proj.EffectiveRemaining != nil {
+				ratio := *proj.EffectiveRemaining / 100.0
+				if ratio < 0 {
+					ratio = 0
+				} else if ratio > 1 {
+					ratio = 1
+				}
+				quotaRemaining = ratio
+			}
+			quotaTotal := quotaTotalRatio(qv)
+			resourceChannels := subscriptionResourceChannels(usageSnapshot)
+
+			item := ProviderAccount{
+				ID:               id,
+				Provider:         p.Provider,
+				Profile:          p.Name,
+				DisplayName:      displayName,
+				Authenticated:    authenticated,
+				Health:           health,
+				IsDefault:        isDefault,
+				Available:        available,
+				AvailReasons:     &qv.AvailReasons,
+				QuotaView:        &qv,
+				QuotaProjection:  &proj,
+				Capabilities:     capabilities,
+				ResourceChannels: resourceChannels,
+				QuotaRemaining:   quotaRemaining,
+				QuotaTotal:       quotaTotal,
+				RateLimited:      qv.Status == "RATE_LIMITED",
+				NetworkError:     strings.EqualFold(strings.TrimSpace(qv.Status), "ERROR"),
+				Scope:            acc.AccountScope,
+				LastChecked:      now,
+			}
+			attachCredentialProvenance(&item, p.Provider, p.Name, authenticated, acc.ExternalAccountID)
+			elig := quota.EvaluateEligibility(accountEligibilityInput(item, false))
+			item.Eligibility = &elig
+			accounts[idx] = item
+		}(i, prof)
+	}
+	accWG.Wait()
 
 	sort.Slice(accounts, func(i, j int) bool {
 		if accounts[i].Provider != accounts[j].Provider {

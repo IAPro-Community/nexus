@@ -234,4 +234,19 @@ describe('effective Direct scheduler context', () => {
       preferProvider: '',
     });
   });
+
+  it('prefers primary tier over auxiliary tier in bestGroupRemainingFromQuotaView', () => {
+    expect(
+      bestGroupRemainingFromQuotaView({
+        model_groups: [
+          { key: 'gemini', tier: 'primary', windows: [{ kind: '5h', remaining: 5 }] },
+          {
+            key: 'claude_gpt',
+            tier: 'auxiliary',
+            windows: [{ kind: 'claude_5h', remaining: 100 }],
+          },
+        ],
+      }),
+    ).toBe(5);
+  });
 });

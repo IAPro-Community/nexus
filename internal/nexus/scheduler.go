@@ -20,6 +20,7 @@ type ProviderAccount struct {
 	Available        bool                         `json:"available"`
 	AvailReasons     *quota.AvailReasons          `json:"avail_reasons,omitempty"`
 	QuotaView        *quota.QuotaView             `json:"quota_view,omitempty"`
+	QuotaProjection  *quota.QuotaProjection       `json:"quota_projection,omitempty"`
 	Eligibility      *quota.Eligibility           `json:"eligibility,omitempty"`
 	Capabilities     map[string]string            `json:"capabilities,omitempty"`
 	ResourceChannels []model.ResourceChannelState `json:"resource_channels,omitempty"`

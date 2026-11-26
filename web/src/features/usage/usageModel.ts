@@ -143,6 +143,16 @@ export function filterAccounts(
 }
 
 export function accountQuotaState(account: ProviderAccount): QuotaTruthState {
+  if (account.quota_projection?.truth_state) {
+    switch (account.quota_projection.truth_state) {
+      case 'rate_limited':
+        return 'blocked';
+      case 'unsupported':
+        return 'unknown';
+      default:
+        return account.quota_projection.truth_state;
+    }
+  }
   const best = bestGroupRemainingFromQuotaView(account.quota_view);
   const base = quotaTruthState(account);
   // Independent pools: if any group still has capacity and account is available,
@@ -320,5 +330,13 @@ export function groupAccountsByProvider(
   }
   return [...map.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([provider, items]) => ({ provider, accounts: items }));
+    .map(([provider, items]) => ({
+      provider,
+      accounts: [...items].sort((left, right) => {
+        const leftScore = left.quota_projection?.rank_score ?? (left.quota_remaining || 0) * 100;
+        const rightScore = right.quota_projection?.rank_score ?? (right.quota_remaining || 0) * 100;
+        if (leftScore !== rightScore) return rightScore - leftScore;
+        return (left.profile || '').localeCompare(right.profile || '');
+      }),
+    }));
 }

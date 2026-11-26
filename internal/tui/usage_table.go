@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	sdkproviders "github.com/IAPro-Community/IAPro-SDK/providers"
 	"github.com/IAPro-Community/nexus/internal/conversation"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
@@ -102,6 +104,8 @@ type UsageTableRow struct {
 	FetchedAt      time.Time
 	IsUnconfigured bool
 	IsDefault      bool
+	Projection     quota.QuotaProjection
+	HasProjection  bool
 }
 
 // UnifiedUsageOptions holds all context needed to run the unified TUI.
@@ -335,32 +339,22 @@ func refreshAccountCmd(provider, profileName string, defaults map[string]string)
 // refreshAllCmd forces a live refresh of every configured profile concurrently.
 func refreshAllCmd(profiles []model.Profile, defaults map[string]string) tea.Cmd {
 	return func() tea.Msg {
-		var (
-			mu      sync.Mutex
-			wg      sync.WaitGroup
-			results []accountRefreshedMsg
-			sem     = make(chan struct{}, 4)
-		)
+		_ = profile.RefreshUsageBatch(context.Background(), profiles, sdkproviders.BatchOptions{
+			MaxConcurrency:  4,
+			PerProbeTimeout: 8 * time.Second,
+			GlobalTimeout:   10 * time.Second,
+		})
+		results := make([]accountRefreshedMsg, 0, len(profiles))
 		for _, p := range profiles {
-			wg.Add(1)
-			go func(p model.Profile) {
-				defer wg.Done()
-				sem <- struct{}{}
-				defer func() { <-sem }()
-				profile.RefreshUsageSnapshot(p.Provider, p.Name)
-				acc := profile.GetAccountInfo(p.Provider, p.Name)
-				qv := profile.GetQuotaView(p.Provider, p.Name, acc.Plan, acc.Email)
-				mu.Lock()
-				results = append(results, accountRefreshedMsg{
-					provider: p.Provider,
-					profile:  p.Name,
-					rows:     buildUsageRows(p.Provider, p.Name, qv, acc, defaults),
-					acc:      acc,
-				})
-				mu.Unlock()
-			}(p)
+			acc := profile.GetAccountInfo(p.Provider, p.Name)
+			qv := profile.GetQuotaView(p.Provider, p.Name, acc.Plan, acc.Email)
+			results = append(results, accountRefreshedMsg{
+				provider: p.Provider,
+				profile:  p.Name,
+				rows:     buildUsageRows(p.Provider, p.Name, qv, acc, defaults),
+				acc:      acc,
+			})
 		}
-		wg.Wait()
 		return accountsRefreshedMsg{results: results}
 	}
 }
@@ -373,6 +367,7 @@ func BuildUsageRowsForTest(provider, profileName string, qv quota.QuotaView, acc
 
 func buildUsageRows(provider, profileName string, qv quota.QuotaView, acc model.AccountInfo, defaults map[string]string) []UsageTableRow {
 	isDefault := defaults[provider] == profileName
+	proj := qv.ProjectionAt(time.Now(), quota.DefaultTTL, acc.Authenticated, string(acc.Health))
 	if len(qv.ModelGroups) == 0 {
 		status := "SEM DADOS"
 		if !acc.Authenticated {
@@ -384,7 +379,7 @@ func buildUsageRows(provider, profileName string, qv quota.QuotaView, acc model.
 			Provider: provider, Profile: profileName, Account: acc.Email, Plan: acc.Plan,
 			FiveHour: "—", Weekly: "—", Status: status, ModelName: "—",
 			Source: qv.Source, SnapshotStatus: qv.Status, FetchedAt: qv.FetchedAt,
-			IsDefault: isDefault,
+			IsDefault: isDefault, Projection: proj, HasProjection: true,
 		}}
 	}
 	rows := make([]UsageTableRow, 0, len(qv.ModelGroups))
@@ -408,7 +403,7 @@ func buildUsageRows(provider, profileName string, qv quota.QuotaView, acc model.
 			Group: group.Name, FiveHour: fiveHour, Weekly: weekly,
 			Status: formatGroupStatus(group, qv.Status), ModelName: modelName,
 			LastUpdated: lastUpdated, Source: qv.Source, SnapshotStatus: qv.Status,
-			FetchedAt: qv.FetchedAt, IsDefault: isDefault,
+			FetchedAt: qv.FetchedAt, IsDefault: isDefault, Projection: proj, HasProjection: true,
 		})
 	}
 	if !acc.Authenticated {
@@ -1275,7 +1270,7 @@ func (m usageTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.chosenResult = &SelectionResult{
 						Action:         ActionResumeConversation,
 						Provider:       sess.Provider,
-						ProfileName:    "",
+						ProfileName:    sess.Profile,
 						ConversationID: sess.ID,
 						Args:           flags,
 					}

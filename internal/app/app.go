@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	sdkproviders "github.com/IAPro-Community/IAPro-SDK/providers"
 	"github.com/IAPro-Community/nexus/internal/buildinfo"
 	"github.com/IAPro-Community/nexus/internal/control/flags"
 	"github.com/IAPro-Community/nexus/internal/conversation"
@@ -22,13 +23,8 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/fallback"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/provider"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/agy"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/claude"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/cursor"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/gemini"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/opencode"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/zcode"
+	providerspec "github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/core/scheduler"
 	"github.com/IAPro-Community/nexus/internal/core/security"
@@ -44,22 +40,8 @@ import (
 	"github.com/IAPro-Community/nexus/internal/tui"
 )
 
-var globalRegistry *provider.Registry
-
 func initRegistry() *provider.Registry {
-	if globalRegistry != nil {
-		return globalRegistry
-	}
-	reg := provider.NewRegistry()
-	_ = reg.Register(codex.New())
-	_ = reg.Register(agy.New())
-	_ = reg.Register(claude.New())
-	_ = reg.Register(opencode.New())
-	_ = reg.Register(gemini.New())
-	_ = reg.Register(cursor.New())
-	_ = reg.Register(zcode.New())
-	globalRegistry = reg
-	return reg
+	return profile.Registry()
 }
 
 func progName() string {
@@ -294,6 +276,15 @@ func executeProviderWithSmartSelection(provName, explicitProfile string, args []
 		}
 		return executeOMPPreview(explicitProfile, args)
 	}
+	if hasProviderLaunchFlag(args, "--continue") {
+		cwd := mustWorkingDirectory()
+		resolvedProfile, resumeArgs, err := resolveContinueSession(provName, explicitProfile, cwd)
+		if err != nil {
+			return err
+		}
+		explicitProfile = resolvedProfile
+		args = append(removeProviderLaunchFlag(args, "--continue"), resumeArgs...)
+	}
 	resolver := NewLaunchModeResolver(LaunchModeInput{
 		Args:       args,
 		StdinIsTTY: IsTerminal(),
@@ -307,7 +298,6 @@ func executeProviderWithSmartSelection(provName, explicitProfile string, args []
 	case LaunchModeDirect:
 		args = resolver.StripControlFlags()
 	}
-
 	fmt.Fprintf(os.Stderr, "⚡ [nexus] iniciando %s…\n", provName)
 
 	// Keep quota monitoring alive for the lifetime of direct provider commands,
@@ -449,6 +439,85 @@ func executeProviderWithSmartSelection(provName, explicitProfile string, args []
 		}
 		return fail, runErr
 	})
+}
+
+func sessionWorkspaceMatches(sessionWorkspace, currentWorkspace string) bool {
+	if sessionWorkspace == "" || currentWorkspace == "" {
+		return true
+	}
+	return sessionWorkspace == currentWorkspace || strings.HasPrefix(currentWorkspace, sessionWorkspace+string(os.PathSeparator))
+}
+
+func resolveContinueSession(providerID, profileName, workspace string) (string, []string, error) {
+	if providerID == "codex" {
+		items, err := codex.ListUnifiedResumeSessions(context.Background())
+		if err != nil {
+			return "", nil, err
+		}
+		var selected codex.UnifiedResumeSession
+		for _, item := range items {
+			if (profileName != "" && item.Profile != profileName) || item.UnavailableReason != "" || !sessionWorkspaceMatches(item.Workspace, workspace) {
+				continue
+			}
+			if selected.ID == "" || item.UpdatedAt.After(selected.UpdatedAt) {
+				selected = item
+			}
+		}
+		if selected.ID == "" {
+			return "", nil, fmt.Errorf("no recent codex session found for profile %s", profileName)
+		}
+		return buildProviderResumeArgs(providerID, selected.Profile, selected.ID)
+	}
+	var items []conversation.Conversation
+	if profileName != "" {
+		adapter, ok := initRegistry().Get(providerID)
+		if !ok {
+			return "", nil, fmt.Errorf("provider %s is not registered", providerID)
+		}
+		reader, ok := adapter.(provider.ConversationProvider)
+		if !ok {
+			return "", nil, fmt.Errorf("provider %s does not support session history", providerID)
+		}
+		sessions, err := reader.ListConversations(context.Background(), model.Profile{Provider: providerID, Name: profileName}, workspace)
+		if err != nil {
+			return "", nil, err
+		}
+		for _, item := range sessions {
+			items = append(items, conversation.Conversation{ID: item.ID, Title: item.Title, Provider: item.ProviderID, Profile: item.ProfileID, Workspace: item.Workspace, LastModified: item.UpdatedAt})
+		}
+	} else {
+		items = conversation.ListRecent(0, workspace)
+	}
+	latest := latestConversationForProfile(items, providerID, profileName, workspace)
+	if latest.ID == "" {
+		return "", nil, fmt.Errorf("no recent %s session found for profile %s", providerID, profileName)
+	}
+	if latest.Profile == "" {
+		cfg, _ := config.LoadConfig()
+		latest.Profile = cfg.Defaults[providerID]
+	}
+	return buildProviderResumeArgs(providerID, latest.Profile, latest.ID)
+}
+
+func buildProviderResumeArgs(providerID, profileName, sessionID string) (string, []string, error) {
+	spec, ok := providerspec.Get(providerID)
+	if !ok || spec.Resume == nil {
+		return "", nil, fmt.Errorf("provider %s does not support session resume", providerID)
+	}
+	return profileName, spec.Resume(sessionID), nil
+}
+
+func latestConversationForProfile(conversations []conversation.Conversation, providerID, profileName, workspace string) conversation.Conversation {
+	var latest conversation.Conversation
+	for _, item := range conversations {
+		if item.Provider != providerID || (profileName != "" && item.Profile != "" && item.Profile != profileName) || !sessionWorkspaceMatches(item.Workspace, workspace) {
+			continue
+		}
+		if latest.ID == "" || item.LastModified.After(latest.LastModified) {
+			latest = item
+		}
+	}
+	return latest
 }
 
 func resolveProfileSelection(value string) (profileName string, balanced bool) {
@@ -1156,10 +1225,11 @@ func statusCmd(args []string) error {
 // CLI surfaces can agree on the same fixture.
 type usageJSONRow struct {
 	model.UsageSnapshot
-	QuotaView     quota.QuotaView      `json:"quota_view"`
-	Eligibility   quota.Eligibility    `json:"eligibility"`
-	Health        model.ProviderHealth `json:"health"`
-	Authenticated bool                 `json:"authenticated"`
+	QuotaView       quota.QuotaView        `json:"quota_view"`
+	QuotaProjection *quota.QuotaProjection `json:"quota_projection,omitempty"`
+	Eligibility     quota.Eligibility      `json:"eligibility"`
+	Health          model.ProviderHealth   `json:"health"`
+	Authenticated   bool                   `json:"authenticated"`
 	// Unconfigured marks a provider that is installed but has no profile yet;
 	// it stays visible on purpose so tooling never hides an installed CLI.
 	Unconfigured bool `json:"unconfigured,omitempty"`
@@ -1233,14 +1303,12 @@ func usageCmd(args []string) error {
 		}
 	}
 	if refresh && isJSON {
-		// JSON consumers need the data before marshaling, so this path stays
-		// synchronous. The interactive TUI path refreshes live inside the
-		// interface (ForceLiveRefresh) instead of blocking the open here.
-		fmt.Fprintln(os.Stderr, "Atualizando quotas ao vivo…")
-		for _, p := range ps {
-			fmt.Fprintf(os.Stderr, "  • %s:%s\n", p.Provider, p.Name)
-			_ = profile.RefreshUsageSnapshot(p.Provider, p.Name)
-		}
+		fmt.Fprintln(os.Stderr, "Atualizando quotas ao vivo em paralelo…")
+		_ = profile.RefreshUsageBatch(context.Background(), ps, sdkproviders.BatchOptions{
+			MaxConcurrency:  4,
+			PerProbeTimeout: 8 * time.Second,
+			GlobalTimeout:   10 * time.Second,
+		})
 	}
 
 	// Detect installed CLIs across the system so both the TUI and the
@@ -1272,22 +1340,25 @@ func usageCmd(args []string) error {
 	}
 
 	if isJSON {
+		now := time.Now()
 		list := make([]usageJSONRow, 0, len(ps))
 		for _, p := range ps {
 			snap := profile.GetUsageSnapshot(p.Provider, p.Name)
 			acc := profile.GetAccountInfo(p.Provider, p.Name)
 			qv := quota.BuildQuotaView(snap, acc.Email, acc.Plan)
+			proj := qv.ProjectionAt(now, quota.DefaultTTL, acc.Authenticated, string(acc.Health))
 			elig := quota.EvaluateEligibility(quota.EligibilityInput{
 				View:          qv,
 				Authenticated: acc.Authenticated,
 				Health:        string(acc.Health),
 			})
 			list = append(list, usageJSONRow{
-				UsageSnapshot: snap,
-				QuotaView:     qv,
-				Eligibility:   elig,
-				Health:        acc.Health,
-				Authenticated: acc.Authenticated,
+				UsageSnapshot:   snap,
+				QuotaView:       qv,
+				QuotaProjection: &proj,
+				Eligibility:     elig,
+				Health:          acc.Health,
+				Authenticated:   acc.Authenticated,
 			})
 		}
 		list = append(list, unconfiguredUsageRows(unconfiguredCLIs)...)
@@ -1992,10 +2063,14 @@ func resumeCmd(args []string) error {
 			}
 			key := c.Provider + "\x00" + c.ID
 			times[key] = c.LastModified
-			values := []string{when, strings.ToUpper(c.Provider), c.Title, c.Workspace, "perfil padrão"}
+			account := c.Profile
+			if account == "" {
+				account = "perfil padrão"
+			}
+			values := []string{when, strings.ToUpper(c.Provider), c.Title, c.Workspace, account}
 			rows = append(rows, tui.DataTableRow{Key: key, Values: values,
 				SearchText: strings.Join(append(values, c.ID, c.Profile), " "),
-				Detail:     fmt.Sprintf("Provedor: %s · Projeto: %s · Sessão: %s · perfil padrão", c.Provider, c.Workspace, c.ID),
+				Detail:     fmt.Sprintf("Provedor: %s · Perfil: %s · Projeto: %s · Sessão: %s", c.Provider, account, c.Workspace, c.ID),
 			})
 		}
 		sort.SliceStable(rows, func(i, j int) bool { return times[rows[i].Key].After(times[rows[j].Key]) })
@@ -2021,7 +2096,7 @@ func resumeCmd(args []string) error {
 		}
 		for _, c := range others {
 			if c.Provider+"\x00"+c.ID == selected {
-				return executeResume(c.Provider, "", c.ID, nil)
+				return executeResume(c.Provider, c.Profile, c.ID, nil)
 			}
 		}
 		return errors.New("sessão selecionada não encontrada")

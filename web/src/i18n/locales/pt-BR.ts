@@ -1953,6 +1953,9 @@ export const ptBR = {
     hostSessionDesc:
       'Esta conta ({{email}}) será conectada automaticamente sem necessidade de novo login.',
     addAnotherProfileCta: 'Adicionar outro perfil',
+    auxiliaryFallbackBadge: 'Fallback auxiliar',
+    tierPrimary: 'Principal',
+    tierAuxiliary: 'Auxiliar',
     loginCta: 'Fazer login',
     openTerminalCta: 'Abrir terminal',
     refreshAccountCta: 'Atualizar esta cota',

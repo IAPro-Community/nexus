@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/conversation"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/localization"
 )
 
@@ -50,6 +51,26 @@ func sortUsageRows(rows []UsageTableRow) {
 func rowAvailability(row UsageTableRow) float64 {
 	if row.IsUnconfigured || row.Status == "OFF" {
 		return -5
+	}
+	if row.HasProjection {
+		switch row.Projection.TruthState {
+		case quota.TruthUnknown, quota.TruthUnauthenticated:
+			return -4
+		case quota.TruthRateLimited:
+			return -3.5
+		case quota.TruthExhausted:
+			return -3
+		case quota.TruthUnsupported:
+			return -2
+		case quota.TruthConfirmed, quota.TruthStale:
+			if row.Projection.PrimaryAvailable && row.Projection.PrimaryRemaining != nil && *row.Projection.PrimaryRemaining > 0 {
+				return 1000 + *row.Projection.PrimaryRemaining
+			}
+			if row.Projection.AuxiliaryOnly && row.Projection.AuxiliaryRemaining != nil && *row.Projection.AuxiliaryRemaining > 0 {
+				return *row.Projection.AuxiliaryRemaining
+			}
+			return 50
+		}
 	}
 	switch row.Status {
 	case "SEM DADOS":

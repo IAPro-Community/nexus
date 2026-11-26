@@ -1945,6 +1945,9 @@ export const en = {
     hostSessionDesc:
       'This account ({{email}}) will be connected automatically without needing to log in again.',
     addAnotherProfileCta: 'Add another profile',
+    auxiliaryFallbackBadge: 'Auxiliary fallback',
+    tierPrimary: 'Primary',
+    tierAuxiliary: 'Auxiliary',
     loginCta: 'Log in',
     openTerminalCta: 'Open terminal',
     refreshAccountCta: 'Refresh this quota',

@@ -19,7 +19,27 @@ export function quotaTruthState(resource: {
   rate_limited?: boolean;
   avail_reasons?: { unknown_quota?: boolean; exhausted_windows?: string[]; rate_limited?: boolean };
   quota_view?: { status?: string; model_groups?: QuotaGroupLike[] };
+  quota_projection?: {
+    truth_state?:
+      | 'confirmed'
+      | 'stale'
+      | 'exhausted'
+      | 'rate_limited'
+      | 'unknown'
+      | 'unauthenticated'
+      | 'unsupported';
+  };
 }): QuotaTruthState {
+  if (resource.quota_projection?.truth_state) {
+    switch (resource.quota_projection.truth_state) {
+      case 'rate_limited':
+        return 'blocked';
+      case 'unsupported':
+        return 'unknown';
+      default:
+        return resource.quota_projection.truth_state;
+    }
+  }
   // Unauthenticated accounts (e.g. expired token) must never show confirmed quota.
   if (resource.authenticated === false) return 'unauthenticated';
   if (resource.rate_limited || resource.avail_reasons?.rate_limited) return 'blocked';
@@ -40,6 +60,7 @@ export interface QuotaWindowLike {
 export interface QuotaGroupLike {
   key?: string;
   name?: string;
+  tier?: 'primary' | 'auxiliary';
   windows?: QuotaWindowLike[];
 }
 
@@ -91,17 +112,30 @@ export function bottleneckRemainingFromQuotaView(view?: {
   return min == null ? null : Math.round(min);
 }
 
-/** Max of per-group mins — independent pools (AGY) do not cancel each other. */
+/** Tier-first group remaining: primary pools always take precedence over auxiliary pools. */
 export function bestGroupRemainingFromQuotaView(view?: {
   model_groups?: QuotaGroupLike[];
 }): number | null {
-  let best: number | null = null;
-  for (const group of asArray<QuotaGroupLike>(view?.model_groups)) {
+  const groups = asArray<QuotaGroupLike>(view?.model_groups);
+  let bestPrimary: number | null = null;
+  let bestAux: number | null = null;
+  for (const group of groups) {
     const rem = groupRemaining(group);
     if (rem == null) continue;
-    best = best == null ? rem : Math.max(best, rem);
+    if (group.tier === 'auxiliary') {
+      bestAux = bestAux == null ? rem : Math.max(bestAux, rem);
+    } else {
+      bestPrimary = bestPrimary == null ? rem : Math.max(bestPrimary, rem);
+    }
   }
-  return best == null ? null : Math.round(best);
+  if (bestPrimary != null && bestPrimary > 0) {
+    return Math.round(bestPrimary);
+  }
+  if (bestAux != null && bestAux > 0) {
+    return Math.round(bestAux);
+  }
+  if (bestPrimary != null) return Math.round(bestPrimary);
+  return bestAux == null ? null : Math.round(bestAux);
 }
 
 function shortGroupLabel(group: QuotaGroupLike): string {

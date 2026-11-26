@@ -235,6 +235,14 @@ export const UsageAccountCard: React.FC<UsageAccountCardProps> = ({
                             ? t('resources.stale')
                             : t('resources.unknown')}
                 </Badge>
+                {account.quota_projection?.auxiliary_only ? (
+                  <Badge tone="warning">
+                    {t('usage.auxiliaryFallbackBadge', 'Fallback auxiliar')}
+                  </Badge>
+                ) : null}
+                {account.quota_projection?.diagnostic_code ? (
+                  <Badge tone="danger">{account.quota_projection.diagnostic_code}</Badge>
+                ) : null}
                 {linkedFromHost ? (
                   <span className={styles.linkedBadge} title={linkedFromHostHint}>
                     <Badge tone="info">
@@ -412,6 +420,13 @@ export const UsageAccountCard: React.FC<UsageAccountCardProps> = ({
                   {multi && (groupLabelKey || group.name) ? (
                     <div className={styles.groupHeading}>
                       <span>{groupLabelKey ? t(groupLabelKey) : group.name}</span>
+                      {group.tier ? (
+                        <Badge tone={group.tier === 'auxiliary' ? 'default' : 'info'}>
+                          {group.tier === 'auxiliary'
+                            ? t('usage.tierAuxiliary', 'Auxiliar')
+                            : t('usage.tierPrimary', 'Principal')}
+                        </Badge>
+                      ) : null}
                       <Badge tone={groupHasCapacity(group) ? 'success' : 'danger'}>
                         {groupHasCapacity(group)
                           ? t('usage.groupAvailable')

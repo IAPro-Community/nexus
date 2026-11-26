@@ -22,6 +22,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	coreprovider "github.com/IAPro-Community/nexus/internal/core/provider"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/core/security"
 	"github.com/IAPro-Community/nexus/internal/nexus"
@@ -548,6 +549,10 @@ func (h *APIHandler) handleProviders(w http.ResponseWriter, r *http.Request) {
 	}
 	type ProviderView struct {
 		ID                string                       `json:"id"`
+		DisplayName       string                       `json:"display_name,omitempty"`
+		ShortBadge        string                       `json:"short_badge,omitempty"`
+		InstallGuideURL   string                       `json:"install_guide_url,omitempty"`
+		AuthKind          string                       `json:"auth_kind,omitempty"`
 		Installed         bool                         `json:"installed"`
 		Version           string                       `json:"version"`
 		ControlLevel      registry.ControlLevel        `json:"control_level"`
@@ -606,6 +611,12 @@ func (h *APIHandler) handleProviders(w http.ResponseWriter, r *http.Request) {
 				ControlLevel: caps.ControlLevel,
 				Capabilities: caps,
 				BinaryPath:   det.BinaryPath,
+			}
+			if provSpec, ok := spec.Get(drv.ProviderID()); ok {
+				res[idx].DisplayName = provSpec.DisplayName
+				res[idx].ShortBadge = provSpec.ShortBadge
+				res[idx].InstallGuideURL = provSpec.InstallGuideURL
+				res[idx].AuthKind = string(provSpec.AuthKind)
 			}
 			// Discovery is an explicit experimental declaration, not a claim
 			// that the installed CLI version passed authenticated E2E.

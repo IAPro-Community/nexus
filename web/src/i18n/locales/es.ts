@@ -1959,6 +1959,9 @@ export const es = {
     hostSessionDesc:
       'Esta cuenta ({{email}}) se conectará automáticamente sin necesidad de iniciar sesión nuevamente.',
     addAnotherProfileCta: 'Agregar otro perfil',
+    auxiliaryFallbackBadge: 'Respaldo auxiliar',
+    tierPrimary: 'Principal',
+    tierAuxiliary: 'Auxiliar',
     loginCta: 'Iniciar sesión',
     openTerminalCta: 'Abrir terminal',
     refreshAccountCta: 'Actualizar esta cuota',

@@ -5,7 +5,10 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
+	sdkproviders "github.com/IAPro-Community/IAPro-SDK/providers"
+	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/desktopcmd"
 	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/IAPro-Community/nexus/internal/profile"
@@ -54,16 +57,43 @@ func (h *NexusHandler) handleResourcesRefresh(w http.ResponseWriter, r *http.Req
 		targetName = strings.TrimSpace(r.URL.Query().Get("profile"))
 	}
 
+	var probeDiagnostics []map[string]any
 	if targetProv != "" && targetName != "" {
-		_ = profile.RefreshUsageSnapshot(targetProv, targetName)
+		outcomes := profile.RefreshUsageBatch(r.Context(), []model.Profile{{Provider: targetProv, Name: targetName}}, sdkproviders.BatchOptions{
+			MaxConcurrency:  1,
+			PerProbeTimeout: 8 * time.Second,
+			GlobalTimeout:   10 * time.Second,
+		})
+		for _, out := range outcomes {
+			if out.Code != "" {
+				probeDiagnostics = append(probeDiagnostics, map[string]any{
+					"provider": out.Account.Scope.ProviderID,
+					"profile":  out.Account.Scope.ProfileID,
+					"code":     string(out.Code),
+					"message":  out.Snapshot.Error,
+				})
+			}
+		}
 	} else {
 		profiles, err := profile.List()
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		for _, p := range profiles {
-			_ = profile.RefreshUsageSnapshot(p.Provider, p.Name)
+		outcomes := profile.RefreshUsageBatch(r.Context(), profiles, sdkproviders.BatchOptions{
+			MaxConcurrency:  4,
+			PerProbeTimeout: 8 * time.Second,
+			GlobalTimeout:   10 * time.Second,
+		})
+		for _, out := range outcomes {
+			if out.Code != "" {
+				probeDiagnostics = append(probeDiagnostics, map[string]any{
+					"provider": out.Account.Scope.ProviderID,
+					"profile":  out.Account.Scope.ProfileID,
+					"code":     string(out.Code),
+					"message":  out.Snapshot.Error,
+				})
+			}
 		}
 	}
 	accounts, err := h.resources.List(r.Context())
@@ -75,9 +105,10 @@ func (h *NexusHandler) handleResourcesRefresh(w http.ResponseWriter, r *http.Req
 		accounts = []nexus.ProviderAccount{}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"accounts":  accounts,
-		"policy":    "BALANCED",
-		"refreshed": true,
+		"accounts":          accounts,
+		"policy":            "BALANCED",
+		"refreshed":         true,
+		"probe_diagnostics": probeDiagnostics,
 	})
 }
 
