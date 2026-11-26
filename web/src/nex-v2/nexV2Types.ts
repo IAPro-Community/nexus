@@ -250,3 +250,15 @@ export interface NexV2PresenceMetricsSnapshot {
   modelWatchFreshness: string;
   backoffMs: number;
 }
+
+export interface NexV2ActionReceipt {
+  receipt_id: string;
+  action_id: string;
+  risk: string;
+  owner: string;
+  status: 'PROPOSED' | 'DENIED' | 'EXECUTED' | 'FAILED' | 'UNAVAILABLE' | string;
+  summary?: string;
+  params?: Record<string, string>;
+  created_at: string;
+  completed_at?: string;
+}

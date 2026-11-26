@@ -1,8 +1,8 @@
 {
   "initialPanelChunks": 0,
   "postOpenPanelChunks": 1,
-  "panelOpenColdMs": 5.9,
-  "panelOpenWarmMs": 1.1,
+  "panelOpenColdMs": 4,
+  "panelOpenWarmMs": 1,
   "cyclesCompleted": 100,
   "panelToggleCount": 204,
   "pageErrors": 0,

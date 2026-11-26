@@ -1,15 +1,23 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Send, Trash2, X } from 'lucide-react';
-import type { NexV2ActionProposal, NexV2ChatTurn, NexV2PersonalMemoryEntry } from './nexV2Types';
+import type {
+  NexV2ActionProposal,
+  NexV2ActionReceipt,
+  NexV2ChatTurn,
+  NexV2PersonalMemoryEntry,
+} from './nexV2Types';
 import {
   clearNexV2Conversation,
   deleteNexV2Memory,
   loadNexV2Conversation,
   loadNexV2Memories,
+  loadNexV2Receipts,
+  runNexV2Action,
   saveNexV2Memory,
   sendNexV2Chat,
 } from './nexV2Client';
+import { NexReceiptsPanel } from './NexReceiptsPanel';
 import styles from './NexChatTab.module.scss';
 
 export interface NexChatTabProps {
@@ -17,6 +25,8 @@ export interface NexChatTabProps {
   privacyMode: boolean;
   initialHistory?: NexV2ChatTurn[];
   initialMemories?: NexV2PersonalMemoryEntry[];
+  initialReceipts?: NexV2ActionReceipt[];
+  initialReceiptsOpen?: boolean;
   onConfirmProposal?: (proposal: NexV2ActionProposal) => void;
 }
 
@@ -25,6 +35,8 @@ export const NexChatTab: React.FC<NexChatTabProps> = ({
   privacyMode,
   initialHistory,
   initialMemories,
+  initialReceipts,
+  initialReceiptsOpen = false,
   onConfirmProposal,
 }) => {
   const { t } = useTranslation();
@@ -35,6 +47,9 @@ export const NexChatTab: React.FC<NexChatTabProps> = ({
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [memKey, setMemKey] = useState('');
   const [memValue, setMemValue] = useState('');
+  const [receipts, setReceipts] = useState<NexV2ActionReceipt[]>(initialReceipts ?? []);
+  const [receiptsOpen, setReceiptsOpen] = useState(initialReceiptsOpen);
+  const [runningAction, setRunningAction] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -51,11 +66,16 @@ export const NexChatTab: React.FC<NexChatTabProps> = ({
         if (active) setMemories(entries);
       });
     }
+    if (initialReceipts === undefined) {
+      void loadNexV2Receipts().then((items) => {
+        if (active) setReceipts(items);
+      });
+    }
     return () => {
       active = false;
       abortRef.current?.abort();
     };
-  }, [initialHistory, initialMemories, projectId]);
+  }, [initialHistory, initialMemories, initialReceipts, projectId]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -117,10 +137,56 @@ export const NexChatTab: React.FC<NexChatTabProps> = ({
     }
   };
 
-  const dismissProposal = (index: number) => {
+  const recordReceipt = useCallback((receipt: NexV2ActionReceipt | null) => {
+    if (!receipt) return;
+    setReceipts((prev) => {
+      const idx = prev.findIndex((item) => item.receipt_id === receipt.receipt_id);
+      if (idx >= 0) {
+        return prev.map((item, i) => (i === idx ? receipt : item));
+      }
+      return [...prev, receipt];
+    });
+  }, []);
+
+  const handleRunReadHud = useCallback(async () => {
+    setRunningAction(true);
+    try {
+      const receipt = await runNexV2Action(
+        'read_hud_summary',
+        projectId ? { project_id: projectId } : {},
+        true,
+      );
+      recordReceipt(receipt);
+    } finally {
+      setRunningAction(false);
+    }
+  }, [projectId, recordReceipt]);
+
+  const clearTurnProposal = (index: number) => {
     setHistory((prev) =>
       prev.map((turn, idx) => (idx === index ? { ...turn, proposal: undefined } : turn)),
     );
+  };
+
+  const handleConfirmProposal = async (index: number, proposal: NexV2ActionProposal) => {
+    onConfirmProposal?.(proposal);
+    clearTurnProposal(index);
+    const receipt = await runNexV2Action(
+      'open_nexus_surface',
+      proposal.target ? { target: proposal.target } : {},
+      true,
+    );
+    recordReceipt(receipt);
+  };
+
+  const handleDismissProposal = async (index: number, proposal: NexV2ActionProposal) => {
+    clearTurnProposal(index);
+    const receipt = await runNexV2Action(
+      'open_nexus_surface',
+      proposal.target ? { target: proposal.target } : {},
+      false,
+    );
+    recordReceipt(receipt);
   };
 
   return (
@@ -134,6 +200,15 @@ export const NexChatTab: React.FC<NexChatTabProps> = ({
           onClick={() => setMemoryOpen((prev) => !prev)}
         >
           {t('nexV2.memoryToggleLabel')} ({memories.length})
+        </button>
+        <button
+          type="button"
+          className={styles.toolbarBtn}
+          aria-expanded={receiptsOpen}
+          data-nex-receipts-toggle
+          onClick={() => setReceiptsOpen((prev) => !prev)}
+        >
+          {t('nexV2.receiptsToggleLabel')} ({receipts.length})
         </button>
         {history.length > 0 && (
           <button
@@ -200,6 +275,15 @@ export const NexChatTab: React.FC<NexChatTabProps> = ({
         </section>
       )}
 
+      {receiptsOpen && (
+        <NexReceiptsPanel
+          receipts={receipts}
+          privacyMode={privacyMode}
+          runningAction={runningAction}
+          onRunReadHud={() => void handleRunReadHud()}
+        />
+      )}
+
       <div className={styles.chatMessages} data-nex-chat-messages>
         {history.length === 0 ? (
           <p className={styles.emptyText}>{t('nexV2.chatEmpty')}</p>
@@ -220,14 +304,16 @@ export const NexChatTab: React.FC<NexChatTabProps> = ({
                     <button
                       type="button"
                       className={styles.smallBtn}
-                      onClick={() => onConfirmProposal?.(turn.proposal!)}
+                      data-nex-proposal-confirm
+                      onClick={() => void handleConfirmProposal(idx, turn.proposal!)}
                     >
                       {t('nexV2.proposalConfirmBtn')}
                     </button>
                     <button
                       type="button"
                       className={styles.smallBtn}
-                      onClick={() => dismissProposal(idx)}
+                      data-nex-proposal-dismiss
+                      onClick={() => void handleDismissProposal(idx, turn.proposal!)}
                     >
                       {t('nexV2.proposalDismissBtn')}
                     </button>

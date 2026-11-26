@@ -1,6 +1,7 @@
 import { Call } from '@wailsio/runtime';
 import type {
   NexV2ChatResponse,
+  NexV2ActionReceipt,
   NexV2ChatTurn,
   NexV2EventsPage,
   NexV2HudProvider,
@@ -561,5 +562,52 @@ export async function sendNexV2Chat(
       return { answer: '', aborted: true };
     }
     return { answer: '', offline: true };
+  }
+}
+
+export async function loadNexV2Receipts(): Promise<NexV2ActionReceipt[]> {
+  await ensureSessionAuth();
+  try {
+    const res = await fetch('/api/v1/nex/actions', {
+      headers: buildHeaders(false),
+      credentials: 'same-origin',
+    });
+    if (!res.ok) return [];
+    const payload = (await res.json()) as { receipts?: NexV2ActionReceipt[] };
+    return asSafeArray(payload.receipts);
+  } catch {
+    return [];
+  }
+}
+
+// Runs one allowlisted action through propose -> explicit confirm. The server
+// executes through the canonical owner and returns the audited receipt.
+export async function runNexV2Action(
+  actionId: string,
+  params: Record<string, string> = {},
+  approved = true,
+): Promise<NexV2ActionReceipt | null> {
+  await ensureSessionAuth();
+  try {
+    const proposeRes = await fetch('/api/v1/nex/actions/propose', {
+      method: 'POST',
+      headers: buildHeaders(true),
+      credentials: 'same-origin',
+      body: JSON.stringify({ action_id: actionId, params }),
+    });
+    if (!proposeRes.ok) return null;
+    const proposed = (await proposeRes.json()) as { receipt?: NexV2ActionReceipt };
+    if (!proposed.receipt) return null;
+    const confirmRes = await fetch('/api/v1/nex/actions/confirm', {
+      method: 'POST',
+      headers: buildHeaders(true),
+      credentials: 'same-origin',
+      body: JSON.stringify({ receipt_id: proposed.receipt.receipt_id, approved }),
+    });
+    if (!confirmRes.ok) return proposed.receipt;
+    const done = (await confirmRes.json()) as { receipt?: NexV2ActionReceipt };
+    return done.receipt ?? proposed.receipt;
+  } catch {
+    return null;
   }
 }

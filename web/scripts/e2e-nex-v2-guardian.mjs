@@ -31,7 +31,11 @@ async function main() {
   let unauthApi;
   try {
     ({ browser, context, page, collectors } = await launchFixtureBrowser(bootstrapUrl));
-    const { apiOrigin } = await seedFixtureProject(context, bootstrapUrl, isolatedProjectPath);
+    const { project, apiOrigin } = await seedFixtureProject(
+      context,
+      bootstrapUrl,
+      isolatedProjectPath,
+    );
 
     // 1. Verify authentication gate and valid read-only schemas on real server
     unauthApi = await pwRequest.newContext();
@@ -76,7 +80,7 @@ async function main() {
       rollout: 'experimental',
       state: {
         generated_at: '2026-11-25T13:00:00Z',
-        project_id: 'prj-guardian-fixture',
+        project_id: project.id,
         providers: [
           {
             provider: 'claude',
@@ -112,13 +116,11 @@ async function main() {
             ],
           },
         ],
-        agents: [
-          { id: 'ag-1', project_id: 'prj-guardian-fixture', name: 'Coder', status: 'WORKING' },
-        ],
+        agents: [{ id: 'ag-1', project_id: project.id, name: 'Coder', status: 'WORKING' }],
         missions: [
           {
             run_id: 'run-1',
-            project_id: 'prj-guardian-fixture',
+            project_id: project.id,
             state: 'BLOCKED_NEEDS_USER',
             current_stage: 'review',
             current_task_title: 'Confirm schema migration',
@@ -143,7 +145,7 @@ async function main() {
         runtime_attention: [
           {
             runtime_id: 'rt-1',
-            project_id: 'prj-guardian-fixture',
+            project_id: project.id,
             project_name: 'Guardian Demo',
             provider: 'codex',
             reason: 'Approve test command',

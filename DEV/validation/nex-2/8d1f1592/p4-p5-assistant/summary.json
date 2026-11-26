@@ -1,0 +1,13 @@
+{
+  "authVerified": true,
+  "csrfEnforced": true,
+  "forbiddenBlocked": 3,
+  "idempotentConfirmVerified": true,
+  "durableChatVerified": true,
+  "personalMemoryCrudVerified": true,
+  "receiptsVerified": 4,
+  "privacyMaskingVerified": true,
+  "pageErrors": 0,
+  "consoleErrors": 0,
+  "requestFailures": 0
+}

@@ -1,8 +1,9 @@
 .chatContainer {
-  display: grid;
-  grid-template-rows: auto auto 1fr auto;
+  display: flex;
+  flex-direction: column;
   gap: var(--nx-space-2);
   height: 100%;
+  min-height: 0;
 }
 
 .toolbar {
@@ -80,6 +81,7 @@
 
 .chatMessages {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: var(--nx-space-2);
   min-height: 0;

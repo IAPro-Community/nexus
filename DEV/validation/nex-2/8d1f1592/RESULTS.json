@@ -198,5 +198,48 @@
       "DEV/validation/nex-2/8d1f1592/p3-guardian/p3-guardian-attention.png",
       "DEV/validation/nex-2/8d1f1592/p3-guardian/summary.json"
     ]
+  },
+  "gate_g4_g5_slice_r2": {
+    "p4_sha": "4e0a3afe",
+    "p5_sha": "pending-commit",
+    "verdict": {
+      "linux_assistant_actions_slice_r2": "PASS",
+      "windows_native": "BLOCKED",
+      "macos_native": "BLOCKED",
+      "legacy_retirement": "DEFERRED_TO_P8"
+    },
+    "metrics": {
+      "nex_v2_js_kb": 220.5,
+      "nex_v2_shared_chunk_kb": 101.5,
+      "nex_v2_lazy_panel_chunk_kb": 17.5,
+      "nex_v2_css_kb": 7.8,
+      "vitest_files": 159,
+      "vitest_tests": 1032,
+      "p2_presence_initial_panel_chunks": 0,
+      "p2_presence_post_open_panel_chunks": 1,
+      "p2_presence_cold_ms": 4,
+      "p2_presence_warm_ms": 1,
+      "p2_presence_cycles": 100,
+      "p2_presence_toggle_count": 204,
+      "p3_guardian_privacy_mode": true,
+      "p3_guardian_event_revision": 1,
+      "p3_guardian_model_watch_freshness": "FRESH",
+      "p4_p5_auth_verified": true,
+      "p4_p5_csrf_enforced": true,
+      "p4_p5_forbidden_blocked": 3,
+      "p4_p5_idempotent_confirm_verified": true,
+      "p4_p5_durable_chat_verified": true,
+      "p4_p5_personal_memory_crud_verified": true,
+      "p4_p5_receipts_verified": 4,
+      "p4_p5_privacy_masking_verified": true,
+      "page_errors": 0,
+      "console_errors": 0,
+      "request_failures": 0
+    },
+    "artifacts": [
+      "DEV/validation/nex-2/8d1f1592/p4-p5-assistant/p4-p5-assistant-receipts.png",
+      "DEV/validation/nex-2/8d1f1592/p4-p5-assistant/p4-p5-assistant-privacy.png",
+      "DEV/validation/nex-2/8d1f1592/p4-p5-assistant/summary.json"
+    ]
   }
 }

@@ -82,3 +82,39 @@
 | Guardian Playwright E2E + no regression in P1 Lab or P2 100-cycle suite | **PASS** | `e2e-nex-v2-lab.mjs` PASS (`670ms` load, `328.9ms` paint); `e2e-nex-v2-presence.mjs` 100-cycle PASS (`5.9ms` cold, `1.1ms` warm, `0` errors); `e2e-nex-v2-guardian.mjs` PASS (`privacyMode=true`, `eventRevision=1`, `FRESH`, `0` errors) |
 | 72h continuous desktop soak & native Windows/macOS QA | **PENDING / BLOCKED** | Windows/macOS hardware unavailable (`BLOCKED`); 72h soak required prior to Slice R1 opt-in promotion; legacy HUD remains untouched until P8 |
 
+---
+
+# Gate G4 Report — Phase P4 (NEX-04)
+
+- **P4 Commit SHA:** `4e0a3afe`
+- **Platform Tested:** Linux (`x86_64`, Ubuntu 25.10, Go `-race` + Chromium Playwright against rebuilt `./nexus`)
+- **Verdict:** **PASS (Linux Assistant, `@personal` Memory & Spend Guard)** / **BLOCKED (`Windows`, `macOS` native hardware)**
+
+## Gate G4 Checklist
+
+| Criterion | Status | Evidence |
+|---|---|---|
+| Bounded assistant context & fail-closed spend guard | **PASS** | `internal/nexus/nex_assistant_context.go`, `nex_spend_guard.go` + `_test.go` (`TestBuildNexContextSummary`, `TestEvaluateNexSpendGuard` `-race` PASS) |
+| Isolated `@personal` memory store & authenticated endpoints | **PASS** | `internal/nexus/nex_personal_memory.go`, `internal/control/web/handlers_nex_memory.go`, `handlers_nex_assistant.go`, `routes.go` (`/api/v1/nex/memory` `401` unauth, CRUD + reload persistence verified in Go `-race` & `e2e-nex-v2-assistant.mjs`) |
+| Durable chat & personal memory UI in `NexChatTab` | **PASS** | `web/src/nex-v2/NexChatTab.tsx`, `NexChatTab.module.scss`, `nexV2Client.ts`, `i18n.ts`; `e2e-nex-v2-assistant.mjs` verifies reload persistence (`durableChatVerified: true`, `personalMemoryCrudVerified: true`) |
+
+---
+
+# Gate G5 Report — Phase P5 (NEX-05) & Slice R2 (Assistant + Audited Actions)
+
+- **P5 Commit SHA:** `pending-commit` (over P4 `4e0a3afe`)
+- **Platform Tested:** Linux (`x86_64`, Ubuntu 25.10, Go `-race` + Vitest/node-test + Chromium Playwright against rebuilt `./nexus`)
+- **Verdict:** **PASS (Linux Slice R2 Assistant + Audited Actions)** / **BLOCKED (`Windows`, `macOS` native hardware)** / **DEFERRED (`Legacy HUD retirement` until P8)**
+
+## Gate G5 & Slice R2 Checklist
+
+| Criterion | Status | Evidence |
+|---|---|---|
+| Allowlisted typed action registry, single-use confirmation & redacted receipts | **PASS** | `internal/nexus/nex_actions.go` + `_test.go` (6 allowlisted actions, `shell`/`exec`/`push`/`deploy`/`delete_repo`/`paid_fallback` forbidden, single-use `Confirm`, `security.Redact`, disk reload persistence; `-race` PASS) |
+| Authenticated HTTP endpoints & canonical owner routing | **PASS** | `internal/control/web/handlers_nex_actions.go` + `_test.go`, `handlers_nexus.go`, `routes.go` (`/api/v1/nex/actions`, `/propose`, `/confirm`; `401` unauth, `403` missing CSRF / forbidden action, `UNAVAILABLE` honest delegation; `-race` PASS) |
+| Audited receipts UI (`NexReceiptsPanel`) & proposal wiring (`NexChatTab`) | **PASS** | `web/src/nex-v2/NexReceiptsPanel.tsx`, `NexReceiptsPanel.module.scss`, `NexChatTab.tsx`, `NexChatTab.module.scss`, `NexAssistantActions.test.tsx`; Privacy Mode masks summaries (`•••`) |
+| Web formatting, lint, stylelint, style allowlist, typecheck, unit tests & bundle build | **PASS** | `format:check`, `lint`, `lint:styles`, `check:styles`, `typecheck`, `test` (`159/159` Vitest files / `1032` tests + node-tests), `build` (`dist/nex-v2.js` `220.5kb`, lazy `NexInteractionPanel-*.js` `17.5kb`, `nex-v2.css` `7.8kb`) |
+| Go `-race` test suites | **PASS (Scoped)** | `go test -tags=gtk3 -race -count=1` PASS on `./internal/control/web/...`, `./internal/desktop/...`, `./cmd/nexus-hud/...`, all `./internal/nexus/...` subpackages, and targeted `TestNex|TestModelCatalog|TestHUD|TestEvaluateNexSpendGuard` in `./internal/nexus`. Full `./internal/nexus` has 7 pre-existing non-P5 failures (`5` `seedCodexExecutionFixture` tests hitting `error obtaining VCS status: exit status 128` in worktree without `-buildvcs=false`, and `2` `memory_migration_test.go` tests seeing `InstallCount` `4`/`5` vs `1` on this host) |
+| Playwright E2E (`p4-p5-assistant`, `p3-guardian`, `p2-presence` 100-cycle) | **PASS** | `e2e-nex-v2-assistant.mjs` PASS (`receiptsVerified: 4`, `privacyMaskingVerified: true`, `0` errors); `e2e-nex-v2-guardian.mjs` PASS (`authEventsStatus: 200`, `authWatchStatus: 200`, `privacyMode: true`, `FRESH`, `0` errors); `e2e-nex-v2-presence.mjs` PASS (`initialPanelChunks: 0`, `postOpenPanelChunks: 1`, `panelOpenColdMs: 4`, `panelOpenWarmMs: 1`, `100` cycles / `204` toggles, `0` errors) |
+| Native Windows/macOS QA & Legacy HUD retirement | **BLOCKED / DEFERRED** | Windows/macOS native hardware unavailable (`BLOCKED`); legacy HUD remains untouched until P8 |
+
