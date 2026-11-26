@@ -185,20 +185,22 @@ func TestCodexSinglePoolMinOfWindows(t *testing.T) {
 }
 
 func TestBottleneckScorePrefersMoreUsableFamilies(t *testing.T) {
-	// omega: Gemini 5h dead, Claude full → 1 usable family
+	// omega: Gemini 5h dead, Claude full → auxiliary only
 	omega := QuotaView{
-		Status: string(model.UsageCached),
+		Provider: "agy",
+		Status:   string(model.UsageCached),
 		ModelGroups: []ModelGroup{
-			{Key: "gemini", Windows: []Window{{Kind: "5h", Remaining: 0}, {Kind: "weekly", Remaining: 66}}},
-			{Key: "claude_gpt", Windows: []Window{{Kind: "claude_5h", Remaining: 100}, {Kind: "claude_weekly", Remaining: 100}}},
+			{Key: "gemini", Tier: GroupTierPrimary, Windows: []Window{{Kind: "5h", Remaining: 0}, {Kind: "weekly", Remaining: 66}}},
+			{Key: "claude_gpt", Tier: GroupTierAuxiliary, Windows: []Window{{Kind: "claude_5h", Remaining: 100}, {Kind: "claude_weekly", Remaining: 100}}},
 		},
 	}
-	// gmail: both families live
+	// gmail: primary live
 	gmail := QuotaView{
-		Status: string(model.UsageCached),
+		Provider: "agy",
+		Status:   string(model.UsageCached),
 		ModelGroups: []ModelGroup{
-			{Key: "gemini", Windows: []Window{{Kind: "5h", Remaining: 90}, {Kind: "weekly", Remaining: 94}}},
-			{Key: "claude_gpt", Windows: []Window{{Kind: "claude_5h", Remaining: 40}, {Kind: "claude_weekly", Remaining: 80}}},
+			{Key: "gemini", Tier: GroupTierPrimary, Windows: []Window{{Kind: "5h", Remaining: 90}, {Kind: "weekly", Remaining: 94}}},
+			{Key: "claude_gpt", Tier: GroupTierAuxiliary, Windows: []Window{{Kind: "claude_5h", Remaining: 40}, {Kind: "claude_weekly", Remaining: 80}}},
 		},
 	}
 	omegaEff, omegaKind, _ := BottleneckScore(&omega)
@@ -206,23 +208,61 @@ func TestBottleneckScorePrefersMoreUsableFamilies(t *testing.T) {
 	if omegaKind != "5h" {
 		t.Fatalf("omega bottleneck kind=%q want 5h", omegaKind)
 	}
-	// omega: usable=1, avg=(0+100)/2=50 → 150
-	// gmail: usable=2, avg=(90+40)/2=65 → 265
-	if omegaEff < 149 || omegaEff > 151 {
-		t.Fatalf("omega effective=%v want ~150", omegaEff)
+	if omegaEff < 99 || omegaEff > 101 {
+		t.Fatalf("omega effective=%v want ~100 (auxiliary only)", omegaEff)
 	}
-	if gmailEff < 264 || gmailEff > 266 {
-		t.Fatalf("gmail effective=%v want ~265", gmailEff)
+	if gmailEff < 1899 || gmailEff > 1901 {
+		t.Fatalf("gmail effective=%v want ~1900.04 (primary tier)", gmailEff)
 	}
 	if gmailEff <= omegaEff {
-		t.Fatalf("gmail (%v) must beat omega (%v) — more usable model families", gmailEff, omegaEff)
+		t.Fatalf("gmail (%v) must beat omega (%v) — primary tier beats auxiliary", gmailEff, omegaEff)
 	}
 	omegaRatio, ok := omega.EffectiveCapacityRatio()
 	gmailRatio, ok2 := gmail.EffectiveCapacityRatio()
-	if !ok || !ok2 || gmailRatio <= omegaRatio {
-		t.Fatalf("ratios omega=%v gmail=%v — gmail must rank higher", omegaRatio, gmailRatio)
+	if !ok || !ok2 || omegaRatio != 1.0 || gmailRatio != 0.9 {
+		t.Fatalf("ratios omega=%v gmail=%v — want active-tier literal ratios 1.0 and 0.9", omegaRatio, gmailRatio)
 	}
 }
+
+func TestTierFirstScoringPrimaryAlwaysBeatsAuxiliary(t *testing.T) {
+	// Account A has 100% Gemini (primary) and 0% Claude (auxiliary).
+	// Account B has 5% Gemini (primary) and 100% Claude (auxiliary).
+	// Primary quota must always win over auxiliary quota.
+	accA := BuildQuotaView(model.UsageSnapshot{
+		ProviderID: "agy",
+		ProfileID:  "a",
+		Status:     model.UsageLive,
+		Source:     model.SourceLocalFiles,
+		FetchedAt:  time.Now(),
+		Windows: []model.UsageWindow{
+			{Kind: "5h", Group: "gemini", RemainingPercent: floatPtr(100)},
+			{Kind: "claude_5h", Group: "claude_gpt", RemainingPercent: floatPtr(0)},
+		},
+	}, "a@example.com", "Pro")
+	accB := BuildQuotaView(model.UsageSnapshot{
+		ProviderID: "agy",
+		ProfileID:  "b",
+		Status:     model.UsageLive,
+		Source:     model.SourceLocalFiles,
+		FetchedAt:  time.Now(),
+		Windows: []model.UsageWindow{
+			{Kind: "5h", Group: "gemini", RemainingPercent: floatPtr(5)},
+			{Kind: "claude_5h", Group: "claude_gpt", RemainingPercent: floatPtr(100)},
+		},
+	}, "b@example.com", "Pro")
+
+	scoreA, okA := accA.EffectiveCapacityScore()
+	scoreB, okB := accB.EffectiveCapacityScore()
+	if !okA || !okB || scoreA <= scoreB {
+		t.Fatalf("primary 100%% (%.2f) must outrank primary 5%% + aux 100%% (%.2f)", scoreA, scoreB)
+	}
+	projA := accA.ProjectionAt(time.Now(), 5*time.Minute, true, "healthy")
+	if projA.AuxiliaryOnly || projA.ActiveTier != GroupTierPrimary {
+		t.Fatalf("expected primary active tier for accA, got %+v", projA)
+	}
+}
+
+func floatPtr(v float64) *float64 { return &v }
 
 func TestStaleCachedSnapshotMarkedEstimatedByTrustworthy(t *testing.T) {
 	engine := NewEngine(5 * time.Minute)

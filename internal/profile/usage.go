@@ -11,14 +11,12 @@ import (
 	"strings"
 	"time"
 
+	sdkproviders "github.com/IAPro-Community/IAPro-SDK/providers"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/agy"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/claude"
+	coreprovider "github.com/IAPro-Community/nexus/internal/core/provider"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/cursor"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/gemini"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/opencode"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 )
 
@@ -193,14 +191,14 @@ func loadUsageSnapshot(ctx context.Context, providerName, name string, refresh, 
 			return lastKnown
 		}
 		// Cache miss with no last-known: UNSUPPORTED providers stay honest.
-		switch providerName {
-		case "cursor", "opencode":
+		if provSpec, ok := spec.Get(providerName); ok && provSpec.Quota == spec.QuotaUnsupported {
 			return model.UsageSnapshot{
-				ProviderID: providerName,
-				ProfileID:  name,
-				Status:     model.UsageUnsupported,
-				Source:     model.SourceNone,
-				FetchedAt:  time.Now(),
+				ProviderID:     providerName,
+				ProfileID:      name,
+				Status:         model.UsageUnsupported,
+				Source:         model.SourceNone,
+				DiagnosticCode: string(sdkproviders.ProbeUnsupported),
+				FetchedAt:      time.Now(),
 			}
 		}
 		return model.UsageSnapshot{
@@ -218,20 +216,20 @@ func loadUsageSnapshot(ctx context.Context, providerName, name string, refresh, 
 	probeCtx, cancel := context.WithTimeout(ctx, usageRefreshTimeout)
 	defer cancel()
 	p := model.Profile{Provider: providerName, Name: name, AccountScope: scope}
-	switch providerName {
-	case "codex":
-		snap = codex.New().RefreshUsage(probeCtx, p)
-	case "agy":
-		snap = agy.New().RefreshUsage(probeCtx, p)
-	case "claude":
-		snap = claude.New().RefreshUsage(probeCtx, p)
-	case "opencode":
-		snap = opencode.New().RefreshUsage(probeCtx, p)
-	case "gemini":
-		snap = gemini.New().RefreshUsage(probeCtx, p)
-	case "cursor":
-		snap = cursor.New().RefreshUsage(probeCtx, p)
-	default:
+	if adapter, ok := Registry().Get(providerName); ok {
+		if refresher, ok := any(adapter).(coreprovider.UsageRefresher); ok {
+			snap = refresher.RefreshUsage(probeCtx, p)
+		} else {
+			snap = model.UsageSnapshot{
+				ProviderID:     providerName,
+				ProfileID:      name,
+				Status:         model.UsageUnsupported,
+				Source:         model.SourceNone,
+				DiagnosticCode: string(sdkproviders.ProbeUnsupported),
+				FetchedAt:      time.Now(),
+			}
+		}
+	} else {
 		snap = model.UsageSnapshot{
 			ProviderID: providerName,
 			ProfileID:  name,
@@ -239,6 +237,9 @@ func loadUsageSnapshot(ctx context.Context, providerName, name string, refresh, 
 			Source:     model.SourceNone,
 			FetchedAt:  time.Now(),
 		}
+	}
+	if snap.DiagnosticCode == "" {
+		snap.DiagnosticCode = string(classifySnapshotProbeCode(snap, probeCtx.Err()))
 	}
 	if scopeOK && !snap.AccountScope.Verifiable() {
 		snap.AccountScope = scope
@@ -577,20 +578,92 @@ func GetQuotaView(providerName, name, plan, email string) quota.QuotaView {
 
 // defaultModelName returns a fallback model name for providers that don't set one.
 func defaultModelName(provider string) string {
-	switch provider {
-	case "codex":
-		return "gpt-5.6-sol"
-	case "agy":
-		return "Gemini 2.5 Flash / Pro"
-	case "claude":
-		return "Claude 3.7 Sonnet"
-	case "opencode":
-		return "OpenCode Provider"
-	case "gemini":
-		return "Gemini Pro"
-	default:
-		return provider
+	if s, ok := spec.Get(provider); ok {
+		if len(s.ModelGroups) > 0 && strings.TrimSpace(s.ModelGroups[0].DisplayName) != "" {
+			return s.ModelGroups[0].DisplayName
+		}
+		if strings.TrimSpace(s.DisplayName) != "" {
+			return s.DisplayName
+		}
 	}
+	return provider
+}
+
+// RefreshUsageBatch executes bounded parallel live quota refreshes using the
+// shared SDK UsageCoordinator and returns typed diagnostic outcomes.
+func RefreshUsageBatch(ctx context.Context, targets []model.Profile, opts sdkproviders.BatchOptions) []sdkproviders.ProbeOutcome {
+	if len(targets) == 0 {
+		return nil
+	}
+	if opts.MaxConcurrency <= 0 {
+		opts.MaxConcurrency = 4
+	}
+	if opts.PerProbeTimeout <= 0 {
+		opts.PerProbeTimeout = 8 * time.Second
+	}
+	if opts.GlobalTimeout <= 0 {
+		opts.GlobalTimeout = 10 * time.Second
+	}
+	coord, err := sdkproviders.NewDirectCoordinator(func(probeCtx context.Context, acc sdkproviders.Account) (model.UsageSnapshot, error) {
+		snap := RefreshUsageSnapshotContext(probeCtx, acc.Scope.ProviderID, acc.Scope.ProfileID)
+		code := classifySnapshotProbeCode(snap, probeCtx.Err())
+		if code != sdkproviders.ProbeOK {
+			snap.DiagnosticCode = string(code)
+			return snap, &sdkproviders.ProbeError{Code: code, Message: snap.Error}
+		}
+		return snap, nil
+	})
+	if err != nil {
+		return nil
+	}
+	accounts := make([]sdkproviders.Account, 0, len(targets))
+	for _, p := range targets {
+		scope := p.AccountScope
+		if scope.ProviderID == "" {
+			scope.ProviderID = p.Provider
+		}
+		if scope.ProfileID == "" {
+			scope.ProfileID = p.Name
+		}
+		accounts = append(accounts, sdkproviders.Account{
+			Scope: scope,
+		})
+	}
+	return coord.RefreshBatch(ctx, accounts, opts)
+}
+
+func classifySnapshotProbeCode(snap model.UsageSnapshot, ctxErr error) sdkproviders.ProbeCode {
+	if ctxErr == context.DeadlineExceeded {
+		return sdkproviders.ProbeTimeout
+	}
+	switch snap.Status {
+	case model.UsageLive, model.UsageCached:
+		return sdkproviders.ProbeOK
+	case model.UsageRateLimited:
+		return sdkproviders.ProbeRateLimited
+	case model.UsageUnsupported:
+		return sdkproviders.ProbeUnsupported
+	}
+	lower := strings.ToLower(snap.Error)
+	switch {
+	case strings.Contains(lower, "timeout") || strings.Contains(lower, "deadline"):
+		return sdkproviders.ProbeTimeout
+	case strings.Contains(lower, "lock") || strings.Contains(lower, "ocupado") || strings.Contains(lower, "tui"):
+		return sdkproviders.ProbeProfileLocked
+	case strings.Contains(lower, "auth") || strings.Contains(lower, "login") || strings.Contains(lower, "token") || strings.Contains(lower, "mismatch"):
+		return sdkproviders.ProbeAuthExpired
+	case strings.Contains(lower, "not found") || strings.Contains(lower, "não encontrado") || strings.Contains(lower, "binary"):
+		return sdkproviders.ProbeBinaryMissing
+	case strings.Contains(lower, "parse") || strings.Contains(lower, "json"):
+		return sdkproviders.ProbeParseFailed
+	case strings.Contains(lower, "network") || strings.Contains(lower, "connection") || strings.Contains(lower, "http"):
+		return sdkproviders.ProbeNetworkError
+	case snap.Status == model.UsageError || snap.Status == model.UsageUnknown:
+		if snap.Error != "" {
+			return sdkproviders.ProbeUnknownError
+		}
+	}
+	return sdkproviders.ProbeOK
 }
 
 // RenderBar generates a clean progress bar.

@@ -7,11 +7,15 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
+	sdkproviders "github.com/IAPro-Community/IAPro-SDK/providers"
 	"github.com/IAPro-Community/nexus/internal/control/launcher"
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/core/scheduler"
 	"github.com/IAPro-Community/nexus/internal/profile"
 )
@@ -43,13 +47,16 @@ func resolveLaunchProfile(ctx context.Context, provider, explicit, workspace, co
 		return "", fmt.Errorf("no usable %s profiles remaining", provider)
 	}
 	var selectionErr error
+	var lastResult *scheduler.SelectionResult
+	isBalanced := len(balanced) > 0 && balanced[0]
 	selected := profile.ResolveDefault(provider, explicit, names, configuredDefault, func() (string, error) {
 		if selector == nil {
 			selectionErr = fmt.Errorf("profile selector unavailable")
 			return "", selectionErr
 		}
 		remaining := remainingProfiles(candidates, excluded)
-		result, err := selectLaunchProfile(ctx, selector, provider, workspace, remaining, accounts, nil, len(balanced) > 0 && balanced[0])
+		result, err := selectLaunchProfile(ctx, selector, provider, workspace, remaining, accounts, nil, isBalanced)
+		lastResult = result
 		if err != nil {
 			selectionErr = err
 			return "", err
@@ -60,37 +67,34 @@ func resolveLaunchProfile(ctx context.Context, provider, explicit, workspace, co
 		}
 		return result.SelectedProfile.Name, nil
 	})
-	// Automatic routing must fail closed when accounts are exhausted or unavailable.
-	// However, if the selector rejected candidates solely because quota evidence was
-	// stale or unverified, treat the exception by refreshing remaining authenticated
-	// candidates in real time.
+	// Refresh any stale/unknown authenticated candidates in parallel when automatic
+	// selection ran (even if another candidate had fresh cache, so :balanced never
+	// picks a wrong leader because a sibling's cache expired or rolled over).
+	if strings.TrimSpace(explicit) == "" && selector != nil && lastResult != nil && len(lastResult.NeedsRefresh) > 0 {
+		if refreshScopesInParallel(ctx, provider, lastResult.NeedsRefresh, candidates, accounts, stderr) {
+			remaining := remainingProfiles(candidates, excluded)
+			if result, err := selectLaunchProfile(ctx, selector, provider, workspace, remaining, accounts, nil, isBalanced); err == nil && result != nil && result.SelectedProfile != nil {
+				lastResult = result
+				selectionErr = nil
+				selected = result.SelectedProfile.Name
+			} else if err != nil {
+				selectionErr = err
+				lastResult = result
+			}
+		}
+	}
 	if strings.TrimSpace(explicit) == "" && selectionErr != nil {
 		if isStaleOrUnknownQuotaError(selectionErr) {
 			remaining := remainingProfiles(candidates, excluded)
-			refreshedAny := false
-			for _, cand := range remaining {
-				acc, ok := accounts[cand.Name]
-				if !ok || !acc.Authenticated {
-					continue
-				}
-				fmt.Fprintf(stderr, "⚡ [nexus] quota desatualizada em %s:%s; consultando atualização oficial…\n", provider, cand.Name)
-				_ = profile.RefreshUsageSnapshotContext(ctx, provider, cand.Name)
-				acc.Usage = profile.GetSanitizedUsageSnapshot(provider, cand.Name, acc.Email)
-				accounts[cand.Name] = acc
-				refreshedAny = true
-			}
-			if refreshedAny && selector != nil {
-				result, err := selectLaunchProfile(ctx, selector, provider, workspace, remaining, accounts, nil, len(balanced) > 0 && balanced[0])
+			if refreshLaunchCandidates(ctx, provider, explicit, remaining, accounts, stderr) && selector != nil {
+				result, err := selectLaunchProfile(ctx, selector, provider, workspace, remaining, accounts, nil, isBalanced)
 				if err == nil && result != nil && result.SelectedProfile != nil {
+					if result.UsedAuxiliaryFallback {
+						fmt.Fprintf(stderr, "⚠ [nexus] %s: todas as quotas principais chegaram a 0%%; usando fallback auxiliar (%s)\n", provider, result.SelectedProfile.Name)
+					}
 					return result.SelectedProfile.Name, nil
 				}
 			}
-			// Fail closed on unverified capacity: a healthy auth state says
-			// nothing about remaining quota. Launching the default (or any
-			// arbitrary account) with UNKNOWN/stale evidence is how
-			// `nexus codex` ended up on an exhausted account. Automatic
-			// selection requires either fresh evidence after the refresh above
-			// or an explicit user override.
 			if fallback := findHealthyFallbackProfile(names, configuredDefault, accounts); fallback != "" {
 				if launchProfileOverrideRequested() {
 					fmt.Fprintf(stderr, "⚠ [nexus] quotas em tempo real indisponíveis; iniciando com %s:%s por decisão explícita (fallback resiliente)\n", provider, fallback)
@@ -105,6 +109,9 @@ func resolveLaunchProfile(ctx context.Context, provider, explicit, workspace, co
 	}
 	if !containsProfileName(names, selected) {
 		return "", fmt.Errorf("profile %q is not configured for provider %s", selected, provider)
+	}
+	if lastResult != nil && lastResult.UsedAuxiliaryFallback {
+		fmt.Fprintf(stderr, "⚠ [nexus] %s: todas as quotas principais chegaram a 0%%; usando fallback auxiliar (%s)\n", provider, selected)
 	}
 	return selected, nil
 }
@@ -124,10 +131,97 @@ func isStaleOrUnknownQuotaError(err error) bool {
 	if err == nil {
 		return false
 	}
-	msg := err.Error()
-	return strings.Contains(msg, "desatualizada") ||
-		strings.Contains(msg, "atualize antes de selecionar automaticamente") ||
-		(strings.Contains(msg, "UNKNOWN") && strings.Contains(msg, "inelegível para alocação automática"))
+	lower := strings.ToLower(err.Error())
+	return strings.Contains(lower, "desatualizada") ||
+		strings.Contains(lower, "stale") ||
+		strings.Contains(lower, "unknown") ||
+		strings.Contains(lower, "needs refresh") ||
+		strings.Contains(lower, "5h quota") ||
+		strings.Contains(lower, "atualize antes de selecionar automaticamente") ||
+		strings.Contains(lower, "inelegível para alocação automática")
+}
+
+func refreshLaunchCandidates(ctx context.Context, providerName, explicitProfile string, candidates []model.Profile, accounts map[string]model.AccountInfo, stderr io.Writer) bool {
+	if strings.TrimSpace(explicitProfile) != "" {
+		return false
+	}
+	if s, ok := spec.Get(providerName); ok && s.Quota == spec.QuotaUnsupported {
+		return false
+	}
+	now := time.Now()
+	var toProbe []model.Profile
+	for _, p := range candidates {
+		acc, ok := accounts[p.Name]
+		if !ok || !acc.Authenticated {
+			continue
+		}
+		qv := quota.BuildQuotaView(acc.Usage, acc.Email, acc.Plan)
+		proj := qv.ProjectionAt(now, quota.DefaultTTL, acc.Authenticated, string(acc.Health))
+		if proj.TruthState == quota.TruthStale || proj.TruthState == quota.TruthUnknown || proj.NeedsResetReprobe {
+			toProbe = append(toProbe, p)
+		}
+	}
+	if len(toProbe) == 0 {
+		return false
+	}
+	if stderr != nil {
+		fmt.Fprintf(stderr, "⚡ [nexus] atualizando %d conta(s) de %s em paralelo…\n", len(toProbe), providerName)
+	}
+	outcomes := profile.RefreshUsageBatch(ctx, toProbe, sdkproviders.BatchOptions{
+		MaxConcurrency:  4,
+		PerProbeTimeout: 8 * time.Second,
+		GlobalTimeout:   10 * time.Second,
+	})
+	refreshed := false
+	for _, out := range outcomes {
+		name := out.Account.Scope.ProfileID
+		acc, ok := accounts[name]
+		if !ok {
+			continue
+		}
+		acc.Usage = profile.GetSanitizedUsageSnapshot(providerName, name, acc.Email)
+		accounts[name] = acc
+		refreshed = true
+	}
+	return refreshed
+}
+
+func refreshScopesInParallel(ctx context.Context, providerName string, scopes []model.AccountScope, candidates []model.Profile, accounts map[string]model.AccountInfo, stderr io.Writer) bool {
+	wanted := make(map[string]bool, len(scopes))
+	for _, sc := range scopes {
+		if sc.ProfileID != "" {
+			wanted[sc.ProfileID] = true
+		}
+	}
+	var toProbe []model.Profile
+	for _, p := range candidates {
+		if wanted[p.Name] {
+			if acc, ok := accounts[p.Name]; ok && acc.Authenticated {
+				toProbe = append(toProbe, p)
+			}
+		}
+	}
+	if len(toProbe) == 0 {
+		return false
+	}
+	if stderr != nil {
+		fmt.Fprintf(stderr, "⚡ [nexus] revalidando %d conta(s) %s desatualizada(s) em paralelo…\n", len(toProbe), providerName)
+	}
+	outcomes := profile.RefreshUsageBatch(ctx, toProbe, sdkproviders.BatchOptions{
+		MaxConcurrency:  4,
+		PerProbeTimeout: 8 * time.Second,
+		GlobalTimeout:   10 * time.Second,
+	})
+	refreshed := false
+	for _, out := range outcomes {
+		name := out.Account.Scope.ProfileID
+		if acc, ok := accounts[name]; ok {
+			acc.Usage = profile.GetSanitizedUsageSnapshot(providerName, name, acc.Email)
+			accounts[name] = acc
+			refreshed = true
+		}
+	}
+	return refreshed
 }
 
 func findHealthyFallbackProfile(names []string, configuredDefault string, accounts map[string]model.AccountInfo) string {

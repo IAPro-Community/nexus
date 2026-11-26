@@ -14,6 +14,7 @@ type EligibilityReason string
 const (
 	ReasonOK               EligibilityReason = "OK"
 	ReasonUnknownQuota     EligibilityReason = "UNKNOWN_QUOTA"
+	ReasonStaleQuota       EligibilityReason = EligibilityReason(sdkquota.ReasonStaleQuota)
 	ReasonUnsupportedQuota EligibilityReason = "UNSUPPORTED_QUOTA"
 	ReasonExhausted        EligibilityReason = "EXHAUSTED"
 	ReasonRateLimited      EligibilityReason = "RATE_LIMITED"

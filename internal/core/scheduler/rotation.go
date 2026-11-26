@@ -3,18 +3,15 @@ package scheduler
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"math"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 
+	sdkrouting "github.com/IAPro-Community/IAPro-SDK/routing"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
-	"github.com/IAPro-Community/nexus/internal/core/quota"
 )
 
 const rotationStateFile = "account-rotation.json"
@@ -23,22 +20,9 @@ type rotationState struct {
 	LastSelected map[string]string `json:"last_selected"`
 }
 
-// balanceCandidate pairs an eligible evaluation with its measured quota
-// availability so the rotation can rank accounts by remaining balance.
-// measured=false means quota evidence is not current and verified; such
-// accounts are rejected by EvaluateAll before rotation ranking.
-type balanceCandidate struct {
-	evaluation *CandidateEvaluation
-	measured   bool
-	remaining  float64
-}
-
-// SelectNextBalancedProfile selects the eligible account with the most
-// measured quota remaining and persists the cursor under a cross-process
-// lock. Accounts tied at the same availability rotate fairly through the
-// cursor, so equal accounts still share usage deterministically.
-// EvaluateAll remains the authority for authentication, health, quota,
-// cooldown and disabled gates.
+// SelectNextBalancedProfile delegates tier-aware :balanced ranking and cursor
+// rotation to the shared IAPro-SDK routing engine, persisting the rotation
+// cursor under a cross-process file lock.
 func (s *Selector) SelectNextBalancedProfile(
 	ctx context.Context,
 	provider string,
@@ -47,206 +31,178 @@ func (s *Selector) SelectNextBalancedProfile(
 	accounts map[string]model.AccountInfo,
 	excludeProfiles []string,
 ) (*SelectionResult, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	provider = strings.ToLower(strings.TrimSpace(provider))
-	evaluations := s.EvaluateAll(provider, workspace, candidates, accounts, excludeProfiles)
-	eligible := make([]balanceCandidate, 0, len(evaluations))
-	var rejected []string
-	for i := range evaluations {
-		evaluation := &evaluations[i]
-		if provider == string(model.ProviderAGY) && evaluation.Eligible {
-			if reason := agyBalancedQuotaEvidenceReason(evaluation.Usage, evaluation.Profile.Name, time.Now()); reason != "" {
-				evaluation.Eligible = false
-				evaluation.RejectReason = reason
+	boundProfile := config.GetBinding(workspace, provider)
+	defaultProfile := s.cfg.Defaults[provider]
+
+	excludedSet := make(map[string]bool, len(excludeProfiles))
+	for _, ex := range excludeProfiles {
+		excludedSet[ex] = true
+	}
+
+	profileByName := make(map[string]model.Profile, len(candidates))
+	routingCandidates := make([]sdkrouting.SelectionCandidate, 0, len(candidates))
+	for _, p := range candidates {
+		if !strings.EqualFold(strings.TrimSpace(p.Provider), provider) {
+			continue
+		}
+		profileByName[p.Name] = p
+		acc, hasAcc := accounts[p.Name]
+		if !hasAcc {
+			acc = model.AccountInfo{
+				Authenticated: false,
+				Health:        model.HealthUnknown,
 			}
 		}
-		if evaluation.Eligible {
-			view := quota.BuildQuotaView(evaluation.Usage, evaluation.Account.Email, evaluation.Account.Plan)
-			remaining, measured := view.BestGroupRemaining()
-			eligible = append(eligible, balanceCandidate{
-				evaluation: evaluation,
-				measured:   measured,
-				remaining:  remaining,
-			})
-		} else {
-			rejected = append(rejected, fmt.Sprintf("%s (%s)", evaluation.Profile.Name, evaluation.RejectReason))
+		snap := acc.Usage
+		scope := p.AccountScope
+		if !scope.Verifiable() {
+			scope = acc.AccountScope
 		}
-	}
-	if len(eligible) == 0 {
-		message := fmt.Sprintf("no eligible %s profiles for balanced rotation", provider)
-		if len(rejected) > 0 {
-			message += ": " + strings.Join(rejected, ", ")
+		if (snap.ProviderID == "" || snap.ProfileID == "") && s.quotaEng != nil {
+			if scope.Verifiable() {
+				snap, _ = s.quotaEng.GetCachedUsageForScope(scope)
+			} else {
+				snap, _ = s.quotaEng.GetCachedUsage(provider, p.Name)
+			}
 		}
-		return &SelectionResult{Evaluations: evaluations}, errors.New(message)
+		if (snap.ProfileID != "" && snap.ProfileID != p.Name) ||
+			(snap.ProviderID != "" && !strings.EqualFold(snap.ProviderID, provider)) ||
+			(snap.Source == model.SourceNone && snap.Status != model.UsageUnsupported && snap.Status != "") {
+			snap = model.UsageSnapshot{
+				ProviderID: provider,
+				ProfileID:  p.Name,
+				Status:     model.UsageUnknown,
+				Source:     model.SourceNone,
+			}
+		}
+		var isLimited bool
+		if s.cooldown != nil {
+			if scope.Verifiable() {
+				isLimited, _ = s.cooldown.IsRateLimitedForScope(scope)
+			} else {
+				isLimited, _ = s.cooldown.IsRateLimited(provider, p.Name)
+			}
+		}
+		priority := p.Priority
+		if s.cfg.Priorities[provider] != nil {
+			priority = s.cfg.Priorities[provider][p.Name]
+		}
+		disabled := p.Disabled || (s.cfg.Disabled[provider] != nil && s.cfg.Disabled[provider][p.Name])
+
+		routingCandidates = append(routingCandidates, sdkrouting.SelectionCandidate{
+			Scope:         scope,
+			ProviderID:    provider,
+			ProfileID:     p.Name,
+			Account:       acc.Email,
+			Plan:          acc.Plan,
+			Authenticated: acc.Authenticated,
+			Disabled:      disabled,
+			Excluded:      excludedSet[p.Name],
+			InCooldown:    isLimited,
+			Health:        string(acc.Health),
+			Priority:      priority,
+			IsDefault:     defaultProfile == p.Name,
+			IsBound:       boundProfile == p.Name,
+			Snapshot:      snap,
+		})
 	}
+
+	now := time.Now()
+	req := sdkrouting.SelectionRequest{
+		ProviderID: provider,
+		Balanced:   true,
+		TieEpsilon: 0.01,
+		Now:        now,
+	}
+	decision := sdkrouting.RankAndSelect(req, routingCandidates)
+
 	if err := ctx.Err(); err != nil {
-		return &SelectionResult{Evaluations: evaluations}, err
+		return buildBalancedSelectionResult(decision, profileByName, accounts), err
 	}
-
-	// Rank measured availability (most remaining first). Ties fall back to the name order so
-	// the cursor rotation below stays deterministic.
-	sort.SliceStable(eligible, func(i, j int) bool {
-		if eligible[i].measured != eligible[j].measured {
-			return eligible[i].measured
-		}
-		if eligible[i].measured && eligible[i].remaining != eligible[j].remaining {
-			return eligible[i].remaining > eligible[j].remaining
-		}
-		return eligible[i].evaluation.Profile.Name < eligible[j].evaluation.Profile.Name
-	})
-
-	// The leader tier is the set of accounts tied at the top availability;
-	// the persisted cursor rotates among them for fair reuse. An account that
-	// is strictly behind on measured quota is never selected while a leader
-	// has balance left.
-	leaderCount := 1
-	for i := 1; i < len(eligible); i++ {
-		tied := eligible[i].measured == eligible[0].measured &&
-			(!eligible[0].measured || eligible[i].remaining == eligible[0].remaining)
-		if !tied {
-			break
-		}
-		leaderCount++
+	if decision.Selected == nil {
+		res := buildBalancedSelectionResult(decision, profileByName, accounts)
+		return res, fmt.Errorf("no eligible %s profiles for balanced rotation: %s", provider, decision.Explanation)
 	}
-	leaders := eligible[:leaderCount]
 
 	stateDir, err := config.StateDir()
 	if err != nil {
-		return &SelectionResult{Evaluations: evaluations}, fmt.Errorf("resolve account rotation state: %w", err)
+		return buildBalancedSelectionResult(decision, profileByName, accounts), fmt.Errorf("resolve account rotation state: %w", err)
 	}
 	if err := os.MkdirAll(stateDir, 0700); err != nil {
-		return &SelectionResult{Evaluations: evaluations}, fmt.Errorf("create account rotation state: %w", err)
+		return buildBalancedSelectionResult(decision, profileByName, accounts), fmt.Errorf("create account rotation state: %w", err)
 	}
 	statePath := filepath.Join(stateDir, rotationStateFile)
 	unlock, err := acquireRotationLock(statePath + ".lock")
 	if err != nil {
-		return &SelectionResult{Evaluations: evaluations}, err
+		return buildBalancedSelectionResult(decision, profileByName, accounts), err
 	}
 	defer func() { _ = unlock() }()
 
 	state := rotationState{LastSelected: make(map[string]string)}
 	if data, readErr := os.ReadFile(statePath); readErr == nil {
 		if err := json.Unmarshal(data, &state); err != nil {
-			return &SelectionResult{Evaluations: evaluations}, fmt.Errorf("decode account rotation state: %w", err)
+			return buildBalancedSelectionResult(decision, profileByName, accounts), fmt.Errorf("decode account rotation state: %w", err)
 		}
 		if state.LastSelected == nil {
 			state.LastSelected = make(map[string]string)
 		}
 	} else if !os.IsNotExist(readErr) {
-		return &SelectionResult{Evaluations: evaluations}, fmt.Errorf("read account rotation state: %w", readErr)
+		return buildBalancedSelectionResult(decision, profileByName, accounts), fmt.Errorf("read account rotation state: %w", err)
 	}
 
-	last := state.LastSelected[provider]
-	selectedIndex := 0
-	for i, candidate := range leaders {
-		if candidate.evaluation.Profile.Name == last {
-			selectedIndex = (i + 1) % len(leaders)
-			break
-		}
+	req.LastSelectedID = state.LastSelected[provider]
+	decision = sdkrouting.RankAndSelect(req, routingCandidates)
+	if decision.Selected == nil {
+		res := buildBalancedSelectionResult(decision, profileByName, accounts)
+		return res, fmt.Errorf("no eligible %s profiles for balanced rotation: %s", provider, decision.Explanation)
 	}
-	selected := leaders[selectedIndex].evaluation
-	state.LastSelected[provider] = selected.Profile.Name
+
+	state.LastSelected[provider] = decision.Selected.ProfileID
 	if err := writeRotationState(statePath, state); err != nil {
-		return &SelectionResult{Evaluations: evaluations}, err
+		return buildBalancedSelectionResult(decision, profileByName, accounts), err
 	}
-	reason := "selected the eligible account with the most measured quota remaining"
-	if leaderCount > 1 {
-		reason = "balanced rotation among equally available eligible accounts"
+	return buildBalancedSelectionResult(decision, profileByName, accounts), nil
+}
+
+func buildBalancedSelectionResult(
+	decision sdkrouting.SelectionDecision,
+	profileByName map[string]model.Profile,
+	accounts map[string]model.AccountInfo,
+) *SelectionResult {
+	evals := make([]CandidateEvaluation, 0, len(decision.Evaluations))
+	for _, out := range decision.Evaluations {
+		p := profileByName[out.ProfileID]
+		acc := accounts[out.ProfileID]
+		evals = append(evals, CandidateEvaluation{
+			Profile:        p,
+			Account:        acc,
+			Usage:          acc.Usage,
+			Score:          out.Score,
+			Eligible:       out.Eligible,
+			RejectReason:   out.RejectReason,
+			ScoreBreakdown: out.ScoreBreakdown,
+			ActiveTier:     out.ActiveTier,
+			NeedsRefresh:   out.NeedsRefresh,
+			Projection:     out.Projection,
+		})
+	}
+	var selected *model.Profile
+	if decision.Selected != nil {
+		p := profileByName[decision.Selected.ProfileID]
+		selected = &p
 	}
 	return &SelectionResult{
-		SelectedProfile: &selected.Profile,
-		Reason:          reason,
-		Evaluations:     evaluations,
-	}, nil
-}
-
-// agyBalancedQuotaEvidenceReason makes 5-hour quota proof a hard precondition
-// for AGY automatic rotation. The generic quota gate establishes that the
-// account is operationally available; this gate prevents weekly-only or
-// unattributed snapshots from consuming an account whose short-window state
-// is unknown.
-func agyBalancedQuotaEvidenceReason(snapshot model.UsageSnapshot, profile string, now time.Time) string {
-	if !strings.EqualFold(strings.TrimSpace(snapshot.ProviderID), string(model.ProviderAGY)) ||
-		strings.TrimSpace(snapshot.ProfileID) != profile {
-		return "AGY quota evidence is not attributable to this profile"
+		SelectedProfile:       selected,
+		Reason:                decision.Explanation,
+		Evaluations:           evals,
+		ActiveTier:            decision.ActiveTier,
+		UsedAuxiliaryFallback: decision.UsedAuxiliaryFallback,
+		NeedsRefresh:          decision.NeedsRefresh,
 	}
-	if snapshot.Status != model.UsageLive && snapshot.Status != model.UsageCached {
-		return "AGY 5h quota requires live or recently cached evidence"
-	}
-	if snapshot.Source == model.SourceNone {
-		return "AGY quota evidence source is unknown"
-	}
-	if snapshot.FetchedAt.IsZero() || now.Sub(snapshot.FetchedAt) < -time.Minute || now.Sub(snapshot.FetchedAt) > quota.DefaultTTL {
-		return "AGY 5h quota evidence is missing or stale"
-	}
-
-	groups := make(map[string]bool)
-	fiveHour := make(map[string]bool)
-	weekly := make(map[string]bool)
-	for _, window := range snapshot.Windows {
-		group, ok := agyQuotaGroup(window.Group, window.Kind)
-		if !ok {
-			return "AGY quota evidence contains an unrecognized model group"
-		}
-		groups[group] = true
-		if agyFiveHourKind(group, window.Kind) && validAGYRemainingPercent(window.RemainingPercent) {
-			fiveHour[group] = true
-		}
-		if agyWeeklyKind(group, window.Kind) && validAGYRemainingPercent(window.RemainingPercent) {
-			weekly[group] = true
-		}
-	}
-	if len(groups) == 0 {
-		return "AGY 5h quota evidence is missing"
-	}
-	for group := range groups {
-		if !fiveHour[group] {
-			if weekly[group] {
-				return fmt.Sprintf("AGY 5h quota evidence is missing for model group %s (only weekly window reported; refresh quota or select profile explicitly)", group)
-			}
-			return fmt.Sprintf("AGY 5h quota evidence is missing for model group %s", group)
-		}
-	}
-	return ""
-}
-
-func agyQuotaGroup(rawGroup, rawKind string) (string, bool) {
-	group := strings.ToLower(strings.TrimSpace(rawGroup))
-	switch {
-	case group == "gemini" || strings.Contains(group, "gemini"):
-		return "gemini", true
-	case group == "claude_gpt" || strings.Contains(group, "claude") || strings.Contains(group, "gpt"):
-		return "claude_gpt", true
-	case group != "":
-		return "", false
-	}
-	kind := strings.ToLower(strings.TrimSpace(rawKind))
-	if kind == "claude_5h" || kind == "claude_five_hour" || kind == "claude_weekly" {
-		return "claude_gpt", true
-	}
-	if kind == "5h" || kind == "five_hour" || kind == "weekly" {
-		return "gemini", true
-	}
-	return "", false
-}
-
-func agyFiveHourKind(group, rawKind string) bool {
-	kind := strings.ToLower(strings.TrimSpace(rawKind))
-	if group == "claude_gpt" {
-		return kind == "claude_5h" || kind == "claude_five_hour"
-	}
-	return kind == "5h" || kind == "five_hour"
-}
-
-func agyWeeklyKind(group, rawKind string) bool {
-	kind := strings.ToLower(strings.TrimSpace(rawKind))
-	if group == "claude_gpt" {
-		return kind == "claude_weekly" || strings.Contains(kind, "weekly")
-	}
-	return kind == "weekly" || strings.Contains(kind, "weekly")
-}
-
-func validAGYRemainingPercent(value *float64) bool {
-	return value != nil && !math.IsNaN(*value) && !math.IsInf(*value, 0) && *value >= 0 && *value <= 100
 }
 
 func writeRotationState(path string, state rotationState) error {

@@ -11,14 +11,16 @@ import (
 // product APIs and must not acquire new identity fields through this adapter.
 func sdkView(view QuotaView) sdkquota.QuotaView {
 	result := sdkquota.QuotaView{
-		Provider:  view.Provider,
-		Profile:   view.Profile,
-		Account:   view.Account,
-		Plan:      view.Plan,
-		Status:    view.Status,
-		Source:    view.Source,
-		FetchedAt: view.FetchedAt,
-		Available: view.Available,
+		Provider:          view.Provider,
+		Profile:           view.Profile,
+		Account:           view.Account,
+		Plan:              view.Plan,
+		Status:            view.Status,
+		Source:            view.Source,
+		DiagnosticCode:    view.DiagnosticCode,
+		DiagnosticMessage: view.DiagnosticMessage,
+		FetchedAt:         view.FetchedAt,
+		Available:         view.Available,
 		AvailReasons: sdkquota.AvailReasons{
 			ExhaustedWindows: append([]string(nil), view.AvailReasons.ExhaustedWindows...),
 			RateLimited:      view.AvailReasons.RateLimited,

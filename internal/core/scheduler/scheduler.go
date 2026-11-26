@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	sdkrouting "github.com/IAPro-Community/IAPro-SDK/routing"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/cooldown"
 	"github.com/IAPro-Community/nexus/internal/core/model"
@@ -15,22 +16,28 @@ import (
 
 // CandidateEvaluation holds the scoring breakdown for a single candidate profile.
 type CandidateEvaluation struct {
-	Profile        model.Profile       `json:"profile"`
-	Account        model.AccountInfo   `json:"account"`
-	Usage          model.UsageSnapshot `json:"usage"`
-	Score          float64             `json:"score"`
-	Eligible       bool                `json:"eligible"`
-	RejectReason   string              `json:"reject_reason,omitempty"`
-	ScoreBreakdown []string            `json:"score_breakdown"`
-	Bound          bool                `json:"bound"`
-	IsDefault      bool                `json:"is_default"`
+	Profile        model.Profile         `json:"profile"`
+	Account        model.AccountInfo     `json:"account"`
+	Usage          model.UsageSnapshot   `json:"usage"`
+	Score          float64               `json:"score"`
+	Eligible       bool                  `json:"eligible"`
+	RejectReason   string                `json:"reject_reason,omitempty"`
+	ScoreBreakdown []string              `json:"score_breakdown"`
+	Bound          bool                  `json:"bound"`
+	IsDefault      bool                  `json:"is_default"`
+	ActiveTier     quota.GroupTier       `json:"active_tier,omitempty"`
+	NeedsRefresh   bool                  `json:"needs_refresh,omitempty"`
+	Projection     quota.QuotaProjection `json:"projection,omitempty"`
 }
 
 // SelectionResult represents the outcome of the smart account selection algorithm.
 type SelectionResult struct {
-	SelectedProfile *model.Profile        `json:"selected_profile,omitempty"`
-	Reason          string                `json:"reason"`
-	Evaluations     []CandidateEvaluation `json:"evaluations"`
+	SelectedProfile       *model.Profile        `json:"selected_profile,omitempty"`
+	Reason                string                `json:"reason"`
+	Evaluations           []CandidateEvaluation `json:"evaluations"`
+	ActiveTier            quota.GroupTier       `json:"active_tier,omitempty"`
+	UsedAuxiliaryFallback bool                  `json:"used_auxiliary_fallback,omitempty"`
+	NeedsRefresh          []model.AccountScope  `json:"needs_refresh,omitempty"`
 }
 
 // Selector scores and picks the optimal account for an execution request.
@@ -197,12 +204,33 @@ func (s *Selector) SelectBestProfile(ctx context.Context, provider string, works
 	if reason == "" {
 		reason = "highest available score"
 	}
+	var needsRefresh []model.AccountScope
+	for _, ev := range evals {
+		if ev.NeedsRefresh {
+			scope := ev.Profile.AccountScope
+			if !scope.Verifiable() {
+				scope = ev.Account.AccountScope
+			}
+			if scope.ProviderID == "" {
+				scope.ProviderID = provider
+			}
+			if scope.ProfileID == "" {
+				scope.ProfileID = ev.Profile.Name
+			}
+			needsRefresh = append(needsRefresh, scope)
+		}
+	}
 	return &SelectionResult{
-		SelectedProfile: &best.Profile,
-		Reason:          reason,
-		Evaluations:     evals,
+		SelectedProfile:       &best.Profile,
+		Reason:                reason,
+		Evaluations:           evals,
+		ActiveTier:            best.ActiveTier,
+		UsedAuxiliaryFallback: best.Projection.AuxiliaryOnly,
+		NeedsRefresh:          needsRefresh,
 	}, nil
 }
+
+var _ = sdkrouting.RankAndSelect
 
 // EvaluateAll scores all candidate profiles for a provider.
 func (s *Selector) EvaluateAll(provider string, workspace string, candidates []model.Profile, accounts map[string]model.AccountInfo, excludeProfiles []string) []CandidateEvaluation {
@@ -283,6 +311,9 @@ func (s *Selector) EvaluateAll(provider string, workspace string, candidates []m
 			isLimited, rec = s.cooldown.IsRateLimited(provider, p.Name)
 		}
 		qv := quota.BuildQuotaView(snap, acc.Email, acc.Plan)
+		proj := qv.ProjectionAt(time.Now(), quota.DefaultTTL, acc.Authenticated, string(acc.Health))
+		ev.Projection = proj
+		ev.ActiveTier = proj.ActiveTier
 		elig := quota.EvaluateEligibility(quota.EligibilityInput{
 			View:          qv,
 			Authenticated: acc.Authenticated,
@@ -291,6 +322,9 @@ func (s *Selector) EvaluateAll(provider string, workspace string, candidates []m
 		})
 		if !elig.Eligible {
 			ev.Eligible = false
+			if acc.Authenticated && !isLimited && (elig.Reason == quota.ReasonUnknownQuota || elig.Reason == quota.ReasonStaleQuota || proj.NeedsResetReprobe) {
+				ev.NeedsRefresh = true
+			}
 			if elig.Reason == quota.ReasonCooldown && rec != nil {
 				ev.RejectReason = fmt.Sprintf("rate limited until %s (%s)", rec.ResetAt.Format("15:04"), rec.Reason)
 			} else if elig.Message != "" {
@@ -300,6 +334,9 @@ func (s *Selector) EvaluateAll(provider string, workspace string, candidates []m
 			}
 			evals = append(evals, ev)
 			continue
+		}
+		if proj.NeedsResetReprobe {
+			ev.NeedsRefresh = true
 		}
 
 		ev.Eligible = true

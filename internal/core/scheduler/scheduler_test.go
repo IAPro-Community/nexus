@@ -156,7 +156,7 @@ func TestBalancedSelectionPrefersMostAvailableAccount(t *testing.T) {
 		if result.SelectedProfile.Name != "account-full" {
 			t.Fatalf("selection %d = %q; the account with most remaining quota must win", i, result.SelectedProfile.Name)
 		}
-		if result.Reason != "selected the eligible account with the most measured quota remaining" {
+		if !strings.Contains(result.Reason, "balanced selected highest remaining") {
 			t.Fatalf("selection %d reason = %q", i, result.Reason)
 		}
 	}
@@ -208,7 +208,7 @@ func TestBalancedSelectionRotatesAmongTiedAvailability(t *testing.T) {
 		if result.SelectedProfile.Name != expected {
 			t.Fatalf("tied selection %d = %q, want %q", i, result.SelectedProfile.Name, expected)
 		}
-		if result.Reason != "balanced rotation among equally available eligible accounts" {
+		if !strings.Contains(result.Reason, "balanced rotation") {
 			t.Fatalf("tied selection %d reason = %q", i, result.Reason)
 		}
 	}
@@ -305,11 +305,11 @@ func TestBalancedAGYSelectionRequiresFreshAttributableEvidenceForEveryKnownGroup
 	}
 	for _, evaluation := range result.Evaluations {
 		if evaluation.Profile.Name == "account-a" &&
-			(!strings.Contains(evaluation.RejectReason, "model group claude_gpt") || evaluation.Eligible) {
+			(!strings.Contains(evaluation.RejectReason, "5h quota evidence is missing") || evaluation.Eligible) {
 			t.Fatalf("missing Claude/GPT 5h evidence evaluation = eligible:%v reason:%q", evaluation.Eligible, evaluation.RejectReason)
 		}
 		if evaluation.Profile.Name == "account-c" &&
-			(!strings.Contains(evaluation.RejectReason, "desatualizada") || evaluation.Eligible) {
+			(!strings.Contains(strings.ToLower(evaluation.RejectReason), "stale") || evaluation.Eligible) {
 			t.Fatalf("stale evidence evaluation = eligible:%v reason:%q", evaluation.Eligible, evaluation.RejectReason)
 		}
 	}
@@ -332,32 +332,100 @@ func TestBalancedAGYSelectionFailsClosedWhenNoProfileHasCurrentFiveHourEvidence(
 }
 
 func TestAGYBalancedQuotaEvidenceRequiresAttributionSourceAndMeasuredRemaining(t *testing.T) {
+	selector, ctx, _, accounts := balancedTestInputs(t)
 	valid := agyLiveAccount("account-a",
 		model.UsageWindow{Kind: "5h", Group: "gemini", RemainingPercent: floatPtr(80)},
 	)
 	tests := []struct {
-		name    string
-		mutate  func(*model.UsageSnapshot)
-		wantErr string
+		name   string
+		mutate func(*model.UsageSnapshot)
 	}{
-		{name: "mismatched profile", mutate: func(s *model.UsageSnapshot) { s.ProfileID = "another-profile" }, wantErr: "not attributable"},
-		{name: "unknown source", mutate: func(s *model.UsageSnapshot) { s.Source = model.SourceNone }, wantErr: "source is unknown"},
-		{name: "estimated status", mutate: func(s *model.UsageSnapshot) { s.Status = model.UsageEstimated }, wantErr: "live or recently cached"},
-		{name: "missing measured remaining", mutate: func(s *model.UsageSnapshot) { s.Windows[0].RemainingPercent = nil }, wantErr: "quota evidence is missing for model group"},
+		{name: "mismatched profile", mutate: func(s *model.UsageSnapshot) { s.ProfileID = "another-profile" }},
+		{name: "unknown source", mutate: func(s *model.UsageSnapshot) { s.Source = model.SourceNone }},
+		{name: "estimated status", mutate: func(s *model.UsageSnapshot) { s.Status = model.UsageEstimated }},
+		{name: "missing measured remaining", mutate: func(s *model.UsageSnapshot) { s.Windows[0].RemainingPercent = nil }},
 		{name: "weekly only without 5h", mutate: func(s *model.UsageSnapshot) {
 			pct := 80.0
 			s.Windows = []model.UsageWindow{{Group: "gemini", Kind: "weekly", RemainingPercent: &pct}}
-		}, wantErr: "only weekly window reported; refresh quota or select profile explicitly"},
+		}},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			snapshot := valid.Usage
 			snapshot.Windows = append([]model.UsageWindow(nil), valid.Usage.Windows...)
 			tc.mutate(&snapshot)
-			if reason := agyBalancedQuotaEvidenceReason(snapshot, "account-a", time.Now()); !strings.Contains(reason, tc.wantErr) {
-				t.Fatalf("reason=%q, want substring %q", reason, tc.wantErr)
+			acc := valid
+			acc.Usage = snapshot
+			accounts["account-a"] = acc
+			res, err := selector.SelectNextBalancedProfile(ctx, "agy", "/tmp", []model.Profile{{Provider: "agy", Name: "account-a"}}, accounts, nil)
+			if err == nil || (res != nil && res.SelectedProfile != nil) {
+				t.Fatalf("expected balanced selection to reject %s, got selected=%+v err=%v", tc.name, res.SelectedProfile, err)
 			}
 		})
+	}
+}
+
+func TestBalancedAGYTieringPrimaryFirstAuxiliaryFallbackAndNeedsRefresh(t *testing.T) {
+	selector, ctx, _, _ := balancedTestInputs(t)
+	candidates := []model.Profile{
+		{Provider: "agy", Name: "acc-primary-low-aux-full"},
+		{Provider: "agy", Name: "acc-primary-high-aux-zero"},
+		{Provider: "agy", Name: "acc-stale"},
+	}
+	accounts := map[string]model.AccountInfo{
+		"acc-primary-low-aux-full": agyLiveAccount("acc-primary-low-aux-full",
+			model.UsageWindow{Kind: "5h", Group: "gemini", RemainingPercent: floatPtr(5)},
+			model.UsageWindow{Kind: "claude_5h", Group: "claude_gpt", RemainingPercent: floatPtr(100)},
+		),
+		"acc-primary-high-aux-zero": agyLiveAccount("acc-primary-high-aux-zero",
+			model.UsageWindow{Kind: "5h", Group: "gemini", RemainingPercent: floatPtr(85)},
+			model.UsageWindow{Kind: "claude_5h", Group: "claude_gpt", RemainingPercent: floatPtr(0)},
+		),
+		"acc-stale": {
+			Authenticated: true,
+			Health:        model.HealthHealthy,
+			Usage: model.UsageSnapshot{
+				ProviderID: "agy",
+				ProfileID:  "acc-stale",
+				Status:     model.UsageEstimated,
+				Source:     model.SourceLocalFiles,
+				FetchedAt:  time.Now().Add(-30 * time.Minute),
+			},
+		},
+	}
+
+	res, err := selector.SelectNextBalancedProfile(ctx, "agy", "/tmp", candidates, accounts, nil)
+	if err != nil {
+		t.Fatalf("SelectNextBalancedProfile failed: %v", err)
+	}
+	if res.SelectedProfile == nil || res.SelectedProfile.Name != "acc-primary-high-aux-zero" {
+		t.Fatalf("expected acc-primary-high-aux-zero (primary 85%%), got %+v", res.SelectedProfile)
+	}
+	if res.UsedAuxiliaryFallback {
+		t.Fatal("UsedAuxiliaryFallback must be false when primary quota is available")
+	}
+	if len(res.NeedsRefresh) != 1 || res.NeedsRefresh[0].ProfileID != "acc-stale" {
+		t.Fatalf("expected NeedsRefresh=[acc-stale] even with fresh candidates, got %+v", res.NeedsRefresh)
+	}
+
+	// Now exhaust primary on both measured accounts -> auxiliary fallback must activate.
+	accounts["acc-primary-low-aux-full"] = agyLiveAccount("acc-primary-low-aux-full",
+		model.UsageWindow{Kind: "5h", Group: "gemini", RemainingPercent: floatPtr(0)},
+		model.UsageWindow{Kind: "claude_5h", Group: "claude_gpt", RemainingPercent: floatPtr(100)},
+	)
+	accounts["acc-primary-high-aux-zero"] = agyLiveAccount("acc-primary-high-aux-zero",
+		model.UsageWindow{Kind: "5h", Group: "gemini", RemainingPercent: floatPtr(0)},
+		model.UsageWindow{Kind: "claude_5h", Group: "claude_gpt", RemainingPercent: floatPtr(0)},
+	)
+	resAux, err := selector.SelectNextBalancedProfile(ctx, "agy", "/tmp", candidates[:2], accounts, nil)
+	if err != nil {
+		t.Fatalf("SelectNextBalancedProfile auxiliary fallback failed: %v", err)
+	}
+	if resAux.SelectedProfile == nil || resAux.SelectedProfile.Name != "acc-primary-low-aux-full" {
+		t.Fatalf("expected auxiliary fallback acc-primary-low-aux-full, got %+v", resAux.SelectedProfile)
+	}
+	if !resAux.UsedAuxiliaryFallback {
+		t.Fatal("expected UsedAuxiliaryFallback=true when all primary quotas are 0%%")
 	}
 }
 

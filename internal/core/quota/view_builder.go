@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	sdkspec "github.com/IAPro-Community/IAPro-SDK/providers/spec"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
@@ -18,13 +19,15 @@ func BuildQuotaView(snap model.UsageSnapshot, account, plan string) QuotaView {
 		snap.Windows = nil
 	}
 	qv := QuotaView{
-		Provider:  snap.ProviderID,
-		Profile:   snap.ProfileID,
-		Account:   account,
-		Plan:      plan,
-		Status:    string(snap.Status),
-		Source:    string(snap.Source),
-		FetchedAt: snap.FetchedAt,
+		Provider:          snap.ProviderID,
+		Profile:           snap.ProfileID,
+		Account:           account,
+		Plan:              plan,
+		Status:            string(snap.Status),
+		Source:            string(snap.Source),
+		DiagnosticCode:    snap.DiagnosticCode,
+		DiagnosticMessage: snap.Error,
+		FetchedAt:         snap.FetchedAt,
 	}
 
 	if len(snap.Windows) == 0 {
@@ -90,6 +93,8 @@ func BuildQuotaView(snap model.UsageSnapshot, account, plan string) QuotaView {
 		groupedWindows[gKey] = append(groupedWindows[gKey], appended)
 	}
 
+	provSpec, hasSpec := sdkspec.Get(snap.ProviderID)
+
 	// Build ModelGroups in stable order.
 	for _, gKey := range groupKeys {
 		displayName := GroupDisplayName(gKey)
@@ -105,9 +110,16 @@ func BuildQuotaView(snap model.UsageSnapshot, account, plan string) QuotaView {
 		if !multiGroup && gKey == "" && snap.ModelName != "" {
 			displayName = snap.ModelName
 		}
+		tier := sdkspec.GroupTierPrimary
+		if hasSpec {
+			tier = provSpec.GroupTierFor(gKey)
+		} else if gKey == "claude_gpt" && snap.ProviderID == "agy" {
+			tier = sdkspec.GroupTierAuxiliary
+		}
 		qv.ModelGroups = append(qv.ModelGroups, ModelGroup{
 			Key:     gKey,
 			Name:    displayName,
+			Tier:    tier,
 			Windows: groupedWindows[gKey],
 		})
 	}

@@ -6,23 +6,45 @@ import (
 	"strings"
 	"time"
 
+	sdkspec "github.com/IAPro-Community/IAPro-SDK/providers/spec"
 	sdkquota "github.com/IAPro-Community/IAPro-SDK/quota"
 	"github.com/IAPro-Community/nexus/internal/core/model"
+)
+
+// QuotaProjection, QuotaTruthState, and GroupTier re-export canonical SDK types
+// so CLI, TUI, Web, and Scheduler consume one shared quota truth contract.
+type QuotaProjection = sdkquota.QuotaProjection
+type QuotaTruthState = sdkquota.QuotaTruthState
+type GroupTier = sdkspec.GroupTier
+
+const (
+	GroupTierPrimary   = sdkspec.GroupTierPrimary
+	GroupTierAuxiliary = sdkspec.GroupTierAuxiliary
+
+	TruthConfirmed       = sdkquota.TruthConfirmed
+	TruthStale           = sdkquota.TruthStale
+	TruthUnknown         = sdkquota.TruthUnknown
+	TruthUnsupported     = sdkquota.TruthUnsupported
+	TruthRateLimited     = sdkquota.TruthRateLimited
+	TruthExhausted       = sdkquota.TruthExhausted
+	TruthUnauthenticated = sdkquota.TruthUnauthenticated
 )
 
 // QuotaView is the omnibus view model for quota display and scoring.
 // Consumed by TUI, Web API, CLI, and Scheduler.
 type QuotaView struct {
-	Provider     string       `json:"provider"`
-	Profile      string       `json:"profile"`
-	Account      string       `json:"account"`
-	Plan         string       `json:"plan"`
-	Status       string       `json:"status"`
-	Source       string       `json:"source"`
-	ModelGroups  []ModelGroup `json:"model_groups"`
-	FetchedAt    time.Time    `json:"fetched_at"`
-	Available    bool         `json:"available"`
-	AvailReasons AvailReasons `json:"avail_reasons"`
+	Provider          string       `json:"provider"`
+	Profile           string       `json:"profile"`
+	Account           string       `json:"account"`
+	Plan              string       `json:"plan"`
+	Status            string       `json:"status"`
+	Source            string       `json:"source"`
+	DiagnosticCode    string       `json:"diagnostic_code,omitempty"`
+	DiagnosticMessage string       `json:"diagnostic_message,omitempty"`
+	ModelGroups       []ModelGroup `json:"model_groups"`
+	FetchedAt         time.Time    `json:"fetched_at"`
+	Available         bool         `json:"available"`
+	AvailReasons      AvailReasons `json:"avail_reasons"`
 }
 
 // AvailReasons holds structured reasons for availability status.
@@ -76,43 +98,43 @@ func (qv *QuotaView) TotalGroupRemaining() (total float64, groups int) {
 	return shared.TotalGroupRemaining()
 }
 
-// EffectiveCapacityScore encodes "most available" for scheduling:
-// primary = usable group count, secondary = average group remaining.
-// Formula: usableGroups*100 + totalGroupRemaining/max(numGroups,1)
-// so AGY with 2 live families always beats AGY with 1 live family at 100%.
+// EffectiveCapacityScore encodes tier-first availability for scheduling:
+// primary quotas always outrank auxiliary-only quotas.
 func (qv *QuotaView) EffectiveCapacityScore() (score float64, ok bool) {
-	total, groups := qv.TotalGroupRemaining()
-	if groups == 0 {
-		return 0, false
-	}
-	avg := total / float64(groups)
-	return float64(qv.UsableGroupCount())*100.0 + avg, true
+	shared := sdkView(*qv)
+	return shared.EffectiveCapacityScore()
 }
 
 // EffectiveCapacityRatio normalizes the internal multi-pool ranking signal
 // to 0-1. It is not literal remaining quota and must not back public
 // quota_remaining fields; use BestGroupRemaining for that contract.
 func (qv *QuotaView) EffectiveCapacityRatio() (ratio float64, ok bool) {
-	score, ok := qv.EffectiveCapacityScore()
-	if !ok {
-		return 0, false
-	}
-	_, groups := qv.TotalGroupRemaining()
-	if groups == 0 {
-		return 0, false
-	}
-	maxScore := float64(groups)*100.0 + 100.0
-	if maxScore <= 0 {
-		return 0, false
-	}
-	ratio = score / maxScore
-	if ratio < 0 {
-		ratio = 0
-	}
-	if ratio > 1 {
-		ratio = 1
-	}
-	return ratio, true
+	shared := sdkView(*qv)
+	return shared.EffectiveCapacityRatio()
+}
+
+// PrimaryGroupRemaining returns the minimum remaining percentage across primary groups.
+func (qv *QuotaView) PrimaryGroupRemaining() (float64, bool) {
+	shared := sdkView(*qv)
+	return shared.PrimaryGroupRemaining()
+}
+
+// AuxiliaryGroupRemaining returns the best remaining percentage across auxiliary groups.
+func (qv *QuotaView) AuxiliaryGroupRemaining() (float64, bool) {
+	shared := sdkView(*qv)
+	return shared.AuxiliaryGroupRemaining()
+}
+
+// NeedsResetReprobe returns true when any tracked window has passed its reset time.
+func (qv *QuotaView) NeedsResetReprobe() bool {
+	shared := sdkView(*qv)
+	return shared.NeedsResetReprobeAt(time.Now())
+}
+
+// ProjectionAt computes the canonical tier-aware QuotaProjection shared across CLI, TUI, and Web.
+func (qv *QuotaView) ProjectionAt(now time.Time, ttl time.Duration, authenticated bool, health string) QuotaProjection {
+	shared := sdkView(*qv)
+	return shared.ProjectionAt(now, ttl, authenticated, health)
 }
 
 // CompactGroupSummary lists each group's capacity for compact UIs
