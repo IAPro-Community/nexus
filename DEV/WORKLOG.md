@@ -1,3 +1,13 @@
+## 2026-11-26 — /resume multi-conta (AGY, Claude, Codex), remoção do Gemini CLI & fechamento Nex 2.0 HUD
+
+- **Histórico multi-conta (`historysync`, `spec/providers_ext.go`, `agy.go`, `claude.go`, `driver/bootstrap.go`):**
+  - Estendido o AGY para compartilhar `antigravity-cli/{annotations,implicit}` e `antigravity/{conversations,brain,annotations,implicit}`, mantendo `jetski_state.pbtxt`, `antigravity_state.pbtxt`, `installation_id` e tokens OAuth isolados.
+  - Adicionada guarda contra diretórios SQLite com sidecars ativos (`ErrActiveSQLiteSession`), merge semântico de `.pbtxt` (`mergeAnnotationPBTXT`, preservando `title` + `plan_execute:true`), invalidação de `jetbox_summaries_proto.pb`/`agyhub_summaries_proto.pb` stale, invalidação segura de `sessions-index.json` em conflitos no Claude e tolerância a symlinks quebrados em `mergePathInto`.
+  - Habilitado `CrossAccountResume: true` para `agy`, `claude` e `codex`; `cursor` e `opencode` permanecem single-account (`HistorySyncNone`) com `opencode.db` bloqueado em `CredentialPaths`.
+- **Remoção do harness `gemini` CLI:** desregistrado via `sdkprovider.Unregister("gemini")`, removidos `internal/core/provider/adapters/gemini/`, `internal/control/driver/gemini_driver.go`, fixtures CLI do Gemini e todo wiring/UI/i18n de provider `gemini` CLI (preservando o grupo de cotas/modelos `"gemini"` do AGY e `~/.gemini/antigravity-cli`).
+- **Nex 2.0 HUD/Desktop (`cmd/nexus-hud/nex_v2.go`, `internal/desktop/nex_v2_controller*`, `web/src/nex-v2/*`):** consolidada geometria dinâmica `ResolveNexV2SurfaceRectForState` (avatar, barra compacta, overlay e settings) e controles de presença/recursos no HUD isolado (`nex-v2.html`, sem alterar `featureAnnouncements.ts`).
+- **Verificação:** Go `-race` (`historysync`, `provider/spec`, `adapters/{agy,claude,codex}`, `control/driver`, `control/launcher`, `control/desktop`/`cmd/nexus-hud`, `nexus/intelligence`, `profile`, `nexus/...`), `go vet -tags=gtk3 ./...`, `go build ./...`, Web completo (`format:check`, `lint`, `lint:styles`, `check:styles`, `typecheck`, 10 Node + 166 Vitest / 1069 testes, `build`), `verify-nex-visual.mjs`, `verify-nex-identity-lock.mjs`, `verify-nex-release-readiness.mjs` e `make install-local` com sync real dos 3 perfis AGY.
+
 ## 2026-11-25 — Bloqueio de delegação por menção incidental a Cursor
 
 - A causa estava na heurística de proximidade: verbos genéricos próximos ao nome de um provedor eram interpretados como instrução, mesmo quando o texto só citava Cursor como editor ou preferência pessoal.
