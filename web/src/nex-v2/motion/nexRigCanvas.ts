@@ -39,6 +39,10 @@ export interface NexRigCanvasOptions {
 
 const STATIC_POSE_SEC = 1.37;
 const EXPRESSION_BLEND_SEC = 0.22;
+/** Safety margin over the logical-artboard scale for breathing/sway/zoom. */
+const PRESCALE_HEADROOM = 1.25;
+/** Highest source-pixel bake the HUD ever needs (256 CSS px at DPR 2). */
+const PRESCALE_MAX_PX = 512;
 
 const loadImage = async (src: string): Promise<HTMLImageElement> => {
   const img = new Image();
@@ -46,6 +50,54 @@ const loadImage = async (src: string): Promise<HTMLImageElement> => {
   img.src = src;
   await img.decode();
   return img;
+};
+
+/**
+ * Scale ratio for baked layer surfaces. Keeps logical geometry unchanged:
+ * `drawImage(surface, box)` maps the baked bitmap onto the artboard box.
+ */
+export const prescaleRatio = (backingSizePx: number): number => {
+  const safeBacking = Math.max(1, Number.isFinite(backingSizePx) ? backingSizePx : 1);
+  const ratio = (safeBacking / ART_CANVAS_SIZE) * PRESCALE_HEADROOM;
+  return Math.min(1, Math.max(1 / 32, ratio));
+};
+
+export const prescaleTargetPx = (sourcePx: number, ratio: number): number =>
+  Math.max(1, Math.min(PRESCALE_MAX_PX, Math.ceil(sourcePx * ratio)));
+
+/**
+ * Bakes a decoded bitmap down to the active viewport scale so every frame
+ * blits a small surface instead of resampling the 1254x1254 original.
+ * Falls back to the source bitmap when no 2D context is available (tests/SSR).
+ */
+export const prescaleLayer = (
+  source: CanvasImageSource,
+  sourceWidth: number,
+  sourceHeight: number,
+  ratio: number,
+): HTMLCanvasElement | CanvasImageSource => {
+  const targetWidth = prescaleTargetPx(sourceWidth, ratio);
+  const targetHeight = prescaleTargetPx(sourceHeight, ratio);
+  if (targetWidth >= Math.ceil(sourceWidth) && targetHeight >= Math.ceil(sourceHeight)) {
+    return source;
+  }
+  if (typeof document === 'undefined') return source;
+  const surface = document.createElement('canvas');
+  surface.width = targetWidth;
+  surface.height = targetHeight;
+  const ctx = surface.getContext('2d');
+  if (!ctx) return source;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(source, 0, 0, targetWidth, targetHeight);
+  return surface;
+};
+
+const releaseSurface = (surface: CanvasImageSource | null | undefined): void => {
+  if (surface && typeof HTMLCanvasElement !== 'undefined' && surface instanceof HTMLCanvasElement) {
+    surface.width = 0;
+    surface.height = 0;
+  }
 };
 
 /**
@@ -64,6 +116,9 @@ export class NexRigCanvas {
   private destroyed = false;
   private baseImage: HTMLImageElement | null = null;
   private layerImages: Record<string, HTMLImageElement> = {};
+  private baseSurface: CanvasImageSource | null = null;
+  private layerSurfaces: Record<string, CanvasImageSource> = {};
+  private surfaceScale = 0;
   private modules: ManifestLayer[] = [];
   private eyes: ManifestLayer[] = [];
   private fins: ManifestLayer[] = [];
@@ -120,6 +175,7 @@ export class NexRigCanvas {
       this.fins = manifest.layers.filter((l) => l.role === 'fin-glint');
       this.loaded = true;
       this.resize();
+      this.bakeSurfaces();
       this.syncClock();
       this.render(!this.animated);
       this.options.onReady?.();
@@ -143,8 +199,37 @@ export class NexRigCanvas {
       this.canvas.height = backingSizePx;
     }
     if (this.loaded) {
+      this.bakeSurfaces();
       this.render(!this.animated);
     }
+  }
+
+  /**
+   * Bakes every decoded layer at the current viewport scale. Re-bakes only when
+   * the viewport outgrows the existing bake; the original bitmaps stay reachable
+   * solely as the bake source (they are never drawn per frame).
+   */
+  private bakeSurfaces(): void {
+    const ratio = prescaleRatio(this.canvas.width);
+    if (this.surfaceScale > 0 && ratio <= this.surfaceScale * 1.01) return;
+    this.releaseSurfaces();
+    this.baseSurface = this.baseImage
+      ? prescaleLayer(this.baseImage, this.baseImage.width, this.baseImage.height, ratio)
+      : null;
+    const surfaced: Record<string, CanvasImageSource> = {};
+    for (const [file, image] of Object.entries(this.layerImages)) {
+      surfaced[file] = prescaleLayer(image, image.width, image.height, ratio);
+    }
+    this.layerSurfaces = surfaced;
+    this.surfaceScale = ratio;
+  }
+
+  private releaseSurfaces(): void {
+    releaseSurface(this.baseSurface);
+    for (const surface of Object.values(this.layerSurfaces)) releaseSurface(surface);
+    this.baseSurface = null;
+    this.layerSurfaces = {};
+    this.surfaceScale = 0;
   }
 
   updatePresentation(next: {
@@ -209,7 +294,7 @@ export class NexRigCanvas {
     pose: { x?: number; y?: number; rotation?: number; scale?: number } | null,
     alpha = 1,
   ): void {
-    const image = this.layerImages[layer.file];
+    const image = this.layerSurfaces[layer.file];
     if (!image) return;
     const cx = pose?.x ?? layer.anchor[0];
     const cy = pose?.y ?? layer.anchor[1];
@@ -230,7 +315,7 @@ export class NexRigCanvas {
   }
 
   render(still: boolean): void {
-    if (!this.loaded || !this.baseImage) return;
+    if (!this.loaded || !this.baseSurface) return;
     const ctx = this.ctx;
     const sizePx = this.canvas.width;
     const { scale, offsetX, offsetY } = computeContainTransform(sizePx, sizePx, 1);
@@ -300,7 +385,9 @@ export class NexRigCanvas {
       if (behindAlpha > 0.001) this.paintLayer(layer, motion, behindAlpha);
     }
 
-    ctx.drawImage(this.baseImage, 0, 0, ART_CANVAS_SIZE, ART_CANVAS_SIZE);
+    if (this.baseSurface) {
+      ctx.drawImage(this.baseSurface, 0, 0, ART_CANVAS_SIZE, ART_CANVAS_SIZE);
+    }
 
     const blink = still ? 1 : blinkScale(t);
     for (const eye of this.eyes) {
@@ -309,8 +396,13 @@ export class NexRigCanvas {
       ctx.save();
       ctx.translate(eye.anchor[0] + lookX, eye.anchor[1] + lookY);
       ctx.scale(1, blink * fx.eyeScaleY);
+      const eyeSurface = this.layerSurfaces[eye.file];
+      if (!eyeSurface) {
+        ctx.restore();
+        continue;
+      }
       ctx.drawImage(
-        this.layerImages[eye.file],
+        eyeSurface,
         eye.x - eye.anchor[0],
         eye.y - eye.anchor[1],
         eye.width,
@@ -347,6 +439,7 @@ export class NexRigCanvas {
   destroy(): void {
     this.destroyed = true;
     this.clock.destroy();
+    this.releaseSurfaces();
     this.baseImage = null;
     this.layerImages = {};
   }
