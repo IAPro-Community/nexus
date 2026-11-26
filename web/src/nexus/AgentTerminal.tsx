@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { handleTerminalZoomKey } from './terminalZoomKey';
+import {
+  createTerminalKeyEventHandler,
+  createWrappedUrlLinkProvider,
+} from '../components/terminalLinks';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowDown,
@@ -343,7 +346,8 @@ export const AgentTerminal: React.FC<{
     termInstance = term;
     termRef.current = term;
 
-    term.attachCustomKeyEventHandler(handleTerminalZoomKey);
+    term.attachCustomKeyEventHandler(createTerminalKeyEventHandler(term));
+    const linkProviderDisposable = term.registerLinkProvider(createWrappedUrlLinkProvider(term));
 
     const scrollListener = term.onScroll(() => {
       if (disposed) return;
@@ -871,6 +875,11 @@ export const AgentTerminal: React.FC<{
       }
       try {
         resizeListener.dispose();
+      } catch {
+        // ignore
+      }
+      try {
+        linkProviderDisposable.dispose();
       } catch {
         // ignore
       }

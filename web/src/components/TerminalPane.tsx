@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { handleTerminalZoomKey } from '../nexus/terminalZoomKey';
+import { createTerminalKeyEventHandler, createWrappedUrlLinkProvider } from './terminalLinks';
 import { useTranslation } from 'react-i18next';
 import { Terminal } from 'xterm';
 import { resolveTerminalFontFamily, watchTerminalFontMetrics } from '../nexus/terminalFont';
@@ -163,7 +163,8 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       scrollback: DEFAULT_TERMINAL_SCROLLBACK,
     });
 
-    term.attachCustomKeyEventHandler(handleTerminalZoomKey);
+    term.attachCustomKeyEventHandler(createTerminalKeyEventHandler(term));
+    const linkProviderDisposable = term.registerLinkProvider(createWrappedUrlLinkProvider(term));
 
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
@@ -502,6 +503,11 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({
       }
       try {
         resizeListener.dispose();
+      } catch {
+        // ignore
+      }
+      try {
+        linkProviderDisposable.dispose();
       } catch {
         // ignore
       }
