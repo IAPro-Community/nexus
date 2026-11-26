@@ -10,6 +10,21 @@ export interface NexReceiptsPanelProps {
   onRunReadHud: () => void;
 }
 
+function resolveReceiptStatusLabel(status: string, t: (k: string) => string): string {
+  switch (status.toUpperCase()) {
+    case 'EXECUTED':
+      return t('nexV2.receiptStatusExecuted');
+    case 'DENIED':
+      return t('nexV2.receiptStatusDenied');
+    case 'UNAVAILABLE':
+      return t('nexV2.receiptStatusUnavailable');
+    case 'PROPOSED':
+      return t('nexV2.receiptStatusPending');
+    default:
+      return status;
+  }
+}
+
 export const NexReceiptsPanel: React.FC<NexReceiptsPanelProps> = ({
   receipts,
   privacyMode,
@@ -50,8 +65,10 @@ export const NexReceiptsPanel: React.FC<NexReceiptsPanelProps> = ({
             >
               <div className={styles.receiptHeader}>
                 <strong>{receipt.action_id}</strong>
-                <span className={styles.statusBadge}>
-                  {t('nexV2.receiptStatusLabel', { status: receipt.status })}
+                <span className={styles.statusBadge} data-status={receipt.status}>
+                  {t('nexV2.receiptStatusLabel', {
+                    status: resolveReceiptStatusLabel(receipt.status, t),
+                  })}
                 </span>
               </div>
               {receipt.summary && (

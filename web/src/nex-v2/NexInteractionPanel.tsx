@@ -1,6 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Settings, X } from 'lucide-react';
+import type { NexOperationalMood } from './motion/nexBehaviorState';
+import {
+  countAttentionItems,
+  hasCriticalAttention,
+  resolveLowestQuotaPercent,
+  resolveMoodTranslationKey,
+} from './nexV2HudHelpers';
 import type {
   NexV2EventEnvelope,
   NexV2HudState,
@@ -14,6 +21,7 @@ import styles from './NexInteractionPanel.module.scss';
 
 export interface NexInteractionPanelProps {
   activeTab: NexV2TabId;
+  mood?: NexOperationalMood;
   hudState: NexV2HudState | null;
   modelWatch?: NexV2ModelCatalogWatchSnapshot | null;
   events?: NexV2EventEnvelope[];
@@ -26,10 +34,11 @@ export interface NexInteractionPanelProps {
   onSnoozeAlert: (fingerprint: string) => void;
 }
 
-const TAB_ORDER: readonly NexV2TabId[] = ['chat', 'resources', 'attention'];
+const TAB_ORDER: readonly NexV2TabId[] = ['resources', 'attention', 'chat'];
 
 export const NexInteractionPanel: React.FC<NexInteractionPanelProps> = ({
   activeTab,
+  mood = 'idle',
   hudState,
   modelWatch = null,
   events = [],
@@ -43,9 +52,9 @@ export const NexInteractionPanel: React.FC<NexInteractionPanelProps> = ({
 }) => {
   const { t } = useTranslation();
   const tabRefs = useRef<Record<NexV2TabId, HTMLButtonElement | null>>({
-    chat: null,
     resources: null,
     attention: null,
+    chat: null,
   });
 
   useEffect(() => {
@@ -76,6 +85,25 @@ export const NexInteractionPanel: React.FC<NexInteractionPanelProps> = ({
     tabRefs.current[targetTab]?.focus();
   };
 
+  const attentionCount = countAttentionItems(hudState);
+  const criticalAttention = hasCriticalAttention(hudState);
+  const lowestQuota = resolveLowestQuotaPercent(hudState);
+  const agentCount = hudState?.agents.length ?? 0;
+
+  let summaryText = t('nexV2.statusSummaryOffline');
+  if (!offline) {
+    if (attentionCount > 0) {
+      summaryText = t('nexV2.statusSummaryUrgent', { count: attentionCount });
+    } else if (lowestQuota !== null) {
+      summaryText = t('nexV2.statusSummaryHealthy', {
+        agents: agentCount,
+        quota: `${lowestQuota}%`,
+      });
+    } else {
+      summaryText = t('nexV2.statusSummaryAgentsOnly', { agents: agentCount });
+    }
+  }
+
   return (
     <section
       className={styles.panel}
@@ -84,6 +112,38 @@ export const NexInteractionPanel: React.FC<NexInteractionPanelProps> = ({
       data-active-tab={activeTab}
     >
       <header className={styles.header}>
+        <div className={styles.statusStrip} data-mood={mood}>
+          <div className={styles.statusLead} data-wails-draggable="true">
+            <span className={styles.statusDot} aria-hidden="true" />
+            <span className={styles.statusMood}>{t(resolveMoodTranslationKey(mood))}</span>
+            <span className={styles.statusDivider} aria-hidden="true">
+              ·
+            </span>
+            <span className={styles.statusSummary}>{summaryText}</span>
+          </div>
+
+          <div className={styles.headerActions}>
+            <button
+              type="button"
+              className={styles.iconBtn}
+              aria-label={t('nexV2.openSettingsLabel')}
+              data-nex-panel-settings
+              onClick={onOpenSettings}
+            >
+              <Settings size={14} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className={styles.iconBtn}
+              aria-label={t('nexV2.closePanelLabel')}
+              data-nex-panel-close
+              onClick={onClose}
+            >
+              <X size={14} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+
         <div className={styles.tabList} role="tablist" aria-label={t('nexV2.tabsLabel')}>
           {TAB_ORDER.map((tab, idx) => {
             const labelKey =
@@ -110,31 +170,19 @@ export const NexInteractionPanel: React.FC<NexInteractionPanelProps> = ({
                 onClick={() => onSelectTab(tab)}
                 onKeyDown={(event) => handleTabKeyDown(event, idx)}
               >
-                {t(labelKey)}
+                <span>{t(labelKey)}</span>
+                {tab === 'attention' && attentionCount > 0 && (
+                  <span
+                    className={styles.tabBadge}
+                    data-severity={criticalAttention ? 'CRITICAL' : 'WARNING'}
+                    data-nex-tab-badge={attentionCount}
+                  >
+                    {attentionCount}
+                  </span>
+                )}
               </button>
             );
           })}
-        </div>
-
-        <div className={styles.headerActions}>
-          <button
-            type="button"
-            className={styles.iconBtn}
-            aria-label={t('nexV2.openSettingsLabel')}
-            data-nex-panel-settings
-            onClick={onOpenSettings}
-          >
-            <Settings size={14} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className={styles.iconBtn}
-            aria-label={t('nexV2.closePanelLabel')}
-            data-nex-panel-close
-            onClick={onClose}
-          >
-            <X size={14} aria-hidden="true" />
-          </button>
         </div>
       </header>
 

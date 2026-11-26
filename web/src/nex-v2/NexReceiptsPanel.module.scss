@@ -1,10 +1,9 @@
 .receiptsBox {
   display: grid;
-  gap: var(--nx-space-1);
+  gap: var(--nx-space-2);
   padding: var(--nx-space-2);
-  border: 1px solid var(--nx-border);
-  border-radius: var(--nx-radius);
-  background: var(--nx-surface-raised);
+  border-radius: var(--nx-radius-lg);
+  background: var(--nx-surface-2);
   font-size: var(--nx-font-size-xs);
 }
 
@@ -20,12 +19,13 @@
   align-items: center;
   gap: var(--nx-space-1);
   padding: var(--nx-space-1) var(--nx-space-2);
-  border: 1px solid var(--nx-border);
-  border-radius: var(--nx-radius-sm);
-  background: var(--nx-surface-2);
-  color: var(--nx-text);
+  border: 1px solid color-mix(in srgb, var(--nx-accent) 55%, transparent);
+  border-radius: var(--nx-radius);
+  background: var(--nx-accent-soft);
+  color: var(--nx-accent-text);
   cursor: pointer;
-  font-size: var(--nx-font-size-xs);
+  font-size: var(--nx-font-size-caption);
+  font-weight: 600;
 }
 
 .actionBtn:disabled {
@@ -47,7 +47,7 @@
 .receiptList {
   display: grid;
   gap: var(--nx-space-1);
-  max-height: 140px;
+  max-height: 120px;
   margin: 0;
   padding: 0;
   overflow-y: auto;
@@ -58,27 +58,45 @@
   display: grid;
   gap: var(--nx-space-1);
   padding: var(--nx-space-1) var(--nx-space-2);
-  border: 1px solid var(--nx-border);
-  border-radius: var(--nx-radius-sm);
-  background: var(--nx-surface-2);
+  border-radius: var(--nx-radius);
+  background: var(--nx-surface-raised);
 }
 
 .receiptHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--nx-space-1);
+  gap: var(--nx-space-2);
 }
 
 .statusBadge {
+  padding: 0 var(--nx-space-2);
+  border-radius: var(--nx-radius-full);
+  background: var(--nx-surface-3);
   color: var(--nx-text-soft);
-  font-size: var(--nx-font-size-xs);
+  font-size: var(--nx-font-size-caption);
+  font-weight: 600;
+}
+
+.statusBadge[data-status='EXECUTED'] {
+  background: var(--nx-success-soft);
+  color: var(--nx-success);
+}
+
+.statusBadge[data-status='DENIED'] {
+  background: var(--nx-danger-soft);
+  color: var(--nx-danger);
+}
+
+.statusBadge[data-status='UNAVAILABLE'] {
+  background: var(--nx-warning-soft);
+  color: var(--nx-warning);
 }
 
 .receiptSummary {
   margin: 0;
   color: var(--nx-text-soft);
-  font-size: var(--nx-font-size-xs);
+  font-size: var(--nx-font-size-caption);
   white-space: pre-wrap;
   word-break: break-word;
 }

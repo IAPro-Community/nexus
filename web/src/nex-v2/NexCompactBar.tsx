@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { BellOff, Settings } from 'lucide-react';
 import type { NexOperationalMood } from './motion/nexBehaviorState';
+import { countAttentionItems, hasCriticalAttention } from './nexV2HudHelpers';
 import type { NexV2HudState } from './nexV2Types';
 import styles from './NexCompactBar.module.scss';
 
@@ -12,6 +13,7 @@ export interface NexCompactBarProps {
   doNotDisturb: boolean;
   panelOpen: boolean;
   onTogglePanel: () => void;
+  onOpenAttention?: () => void;
   onOpenSettings: () => void;
 }
 
@@ -41,29 +43,41 @@ export const NexCompactBar: React.FC<NexCompactBarProps> = ({
   doNotDisturb,
   panelOpen,
   onTogglePanel,
+  onOpenAttention,
   onOpenSettings,
 }) => {
   const { t } = useTranslation();
-  const quotaText = resolveCompactQuotaLabel(hudState, offline);
-  const activeAlerts = hudState ? hudState.alerts.filter((a) => !a.acked).length : 0;
+  const quotaCode = resolveCompactQuotaLabel(hudState, offline);
+  const quotaKnown = quotaCode !== 'UNKNOWN';
+  const quotaDisplay = quotaKnown ? quotaCode : t('nexV2.resourcesStatusUnknown');
+  const attentionCount = countAttentionItems(hudState);
+  const critical = hasCriticalAttention(hudState);
 
   return (
     <nav className={styles.bar} data-mood={mood} aria-label={t('nexV2.compactBarNavLabel')}>
       <span className={styles.statusDot} aria-hidden="true" />
-      <span className={styles.quota}>
-        {t('nexV2.compactQuotaLabel')}: {quotaText}
+      <span className={styles.quota} data-quota-state={quotaKnown ? 'KNOWN' : 'UNKNOWN'}>
+        {t('nexV2.compactQuotaLabel')}: {quotaDisplay}
       </span>
-      {activeAlerts > 0 && (
-        <span className={styles.badge}>
-          {t('nexV2.compactAlertsCount', { count: activeAlerts })}
-        </span>
+
+      {attentionCount > 0 && (
+        <button
+          type="button"
+          className={styles.alertPill}
+          data-severity={critical ? 'CRITICAL' : 'WARNING'}
+          onClick={onOpenAttention ?? onTogglePanel}
+        >
+          {t('nexV2.compactAttentionBadge', { count: attentionCount })}
+        </button>
       )}
+
       {doNotDisturb && (
         <span className={styles.badge} title={t('nexV2.doNotDisturbLabel')}>
           <BellOff size={12} aria-hidden="true" />
           {t('nexV2.dndActiveBadge')}
         </span>
       )}
+
       <div className={styles.actions}>
         <button
           type="button"
@@ -72,7 +86,7 @@ export const NexCompactBar: React.FC<NexCompactBarProps> = ({
           data-nex-compact-open
           onClick={onTogglePanel}
         >
-          {panelOpen ? t('nexV2.closePanelLabel') : t('nexV2.tabChat')}
+          {panelOpen ? t('nexV2.closePanelLabel') : t('nexV2.bubbleOpen')}
         </button>
         <button
           type="button"

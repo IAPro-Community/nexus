@@ -2,8 +2,11 @@
   position: relative;
   display: grid;
   flex: 0 0 auto;
-  width: var(--nx-nex-avatar-size, 160px);
-  height: var(--nx-nex-avatar-size, 160px);
+  width: min(var(--nx-nex-avatar-size, 160px), 100vw);
+  height: min(var(--nx-nex-avatar-size, 160px), 100vh);
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 1 / 1;
   overflow: hidden;
   place-items: center;
   background: transparent;
@@ -18,10 +21,8 @@
 .stage {
   position: relative;
   display: grid;
-  width: var(--nx-nex-avatar-size, 100%);
-  height: var(--nx-nex-avatar-size, 100%);
-  max-width: var(--nx-nex-avatar-size, 192px);
-  max-height: var(--nx-nex-avatar-size, 192px);
+  width: 100%;
+  height: 100%;
   place-items: center;
 }
 
@@ -31,16 +32,17 @@
   right: var(--nx-space-1);
   z-index: 2;
   display: grid;
-  width: 22px;
-  height: 22px;
+  width: var(--nx-space-6);
+  height: var(--nx-space-6);
   padding: 0;
   place-items: center;
-  border: 1px solid var(--nx-border);
+  border: 1px solid color-mix(in srgb, var(--nx-border) 60%, transparent);
   border-radius: var(--nx-radius);
   background: var(--nx-surface-raised);
   color: var(--nx-text-soft);
   cursor: grab;
-  opacity: 0.72;
+  opacity: 0.45;
+  transition: opacity 0.15s ease;
 
   --wails-draggable: drag;
 }
@@ -77,6 +79,12 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+.canvasHidden {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
 }
 
 .root[data-mood='attention'] .canvas {

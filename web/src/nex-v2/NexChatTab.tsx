@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Send, Trash2, X } from 'lucide-react';
+import { Bookmark, History, Send, Sparkles, Trash2, X } from 'lucide-react';
 import type {
   NexV2ActionProposal,
   NexV2ActionReceipt,
@@ -77,40 +77,47 @@ export const NexChatTab: React.FC<NexChatTabProps> = ({
     };
   }, [initialHistory, initialMemories, initialReceipts, projectId]);
 
+  const submitMessage = useCallback(
+    async (rawText: string) => {
+      const trimmed = rawText.trim();
+      if (!trimmed || sending) return;
+
+      const controller = new AbortController();
+      abortRef.current = controller;
+      const userTurn: NexV2ChatTurn = { role: 'user', content: trimmed };
+      const priorHistory = history;
+      setHistory([...priorHistory, userTurn]);
+      setInput('');
+      setSending(true);
+
+      const reply = await sendNexV2Chat(trimmed, priorHistory, projectId, {
+        persist: true,
+        signal: controller.signal,
+      });
+      if (abortRef.current === controller) {
+        abortRef.current = null;
+      }
+      setSending(false);
+      setHistory((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: reply.aborted
+            ? t('nexV2.chatAbortedReply')
+            : reply.offline || !reply.answer
+              ? t('nexV2.chatOfflineReply')
+              : reply.answer,
+          source: reply.source,
+          proposal: reply.proposal,
+        },
+      ]);
+    },
+    [history, projectId, sending, t],
+  );
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    const trimmed = input.trim();
-    if (!trimmed || sending) return;
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-    const userTurn: NexV2ChatTurn = { role: 'user', content: trimmed };
-    const priorHistory = history;
-    setHistory([...priorHistory, userTurn]);
-    setInput('');
-    setSending(true);
-
-    const reply = await sendNexV2Chat(trimmed, priorHistory, projectId, {
-      persist: true,
-      signal: controller.signal,
-    });
-    if (abortRef.current === controller) {
-      abortRef.current = null;
-    }
-    setSending(false);
-    setHistory((prev) => [
-      ...prev,
-      {
-        role: 'assistant',
-        content: reply.aborted
-          ? t('nexV2.chatAbortedReply')
-          : reply.offline || !reply.answer
-            ? t('nexV2.chatOfflineReply')
-            : reply.answer,
-        source: reply.source,
-        proposal: reply.proposal,
-      },
-    ]);
+    await submitMessage(input);
   };
 
   const handleClear = useCallback(async () => {
@@ -189,27 +196,60 @@ export const NexChatTab: React.FC<NexChatTabProps> = ({
     recordReceipt(receipt);
   };
 
+  const toggleMemory = () => {
+    setMemoryOpen((prev) => {
+      const next = !prev;
+      if (next) setReceiptsOpen(false);
+      return next;
+    });
+  };
+
+  const toggleReceipts = () => {
+    setReceiptsOpen((prev) => {
+      const next = !prev;
+      if (next) setMemoryOpen(false);
+      return next;
+    });
+  };
+
+  const quickPrompts = [
+    t('nexV2.chatPromptQuotas'),
+    t('nexV2.chatPromptAttention'),
+    t('nexV2.chatPromptAgents'),
+  ];
+
   return (
     <div className={styles.chatContainer} data-nex-chat>
       <div className={styles.toolbar}>
-        <button
-          type="button"
-          className={styles.toolbarBtn}
-          aria-expanded={memoryOpen}
-          data-nex-memory-toggle
-          onClick={() => setMemoryOpen((prev) => !prev)}
-        >
-          {t('nexV2.memoryToggleLabel')} ({memories.length})
-        </button>
-        <button
-          type="button"
-          className={styles.toolbarBtn}
-          aria-expanded={receiptsOpen}
-          data-nex-receipts-toggle
-          onClick={() => setReceiptsOpen((prev) => !prev)}
-        >
-          {t('nexV2.receiptsToggleLabel')} ({receipts.length})
-        </button>
+        <div className={styles.toolbarGroup}>
+          <button
+            type="button"
+            className={styles.toolbarBtn}
+            aria-expanded={memoryOpen}
+            aria-label={t('nexV2.memoryToggleLabel')}
+            data-nex-memory-toggle
+            onClick={toggleMemory}
+          >
+            <Bookmark size={12} aria-hidden="true" />
+            <span>
+              {t('nexV2.memoryToggleShort')} ({memories.length})
+            </span>
+          </button>
+          <button
+            type="button"
+            className={styles.toolbarBtn}
+            aria-expanded={receiptsOpen}
+            aria-label={t('nexV2.receiptsToggleLabel')}
+            data-nex-receipts-toggle
+            onClick={toggleReceipts}
+          >
+            <History size={12} aria-hidden="true" />
+            <span>
+              {t('nexV2.receiptsToggleShort')} ({receipts.length})
+            </span>
+          </button>
+        </div>
+
         {history.length > 0 && (
           <button
             type="button"
@@ -245,7 +285,7 @@ export const NexChatTab: React.FC<NexChatTabProps> = ({
               aria-label={t('nexV2.memoryValuePlaceholder')}
               data-nex-memory-value
             />
-            <button type="submit" className={styles.smallBtn} data-nex-memory-save>
+            <button type="submit" className={styles.primarySmallBtn} data-nex-memory-save>
               {t('nexV2.memorySaveBtn')}
             </button>
           </form>
@@ -286,7 +326,26 @@ export const NexChatTab: React.FC<NexChatTabProps> = ({
 
       <div className={styles.chatMessages} data-nex-chat-messages>
         {history.length === 0 ? (
-          <p className={styles.emptyText}>{t('nexV2.chatEmpty')}</p>
+          <div className={styles.welcomeBox}>
+            <div className={styles.welcomeHeader}>
+              <Sparkles size={14} className={styles.welcomeIcon} aria-hidden="true" />
+              <strong className={styles.welcomeTitle}>{t('nexV2.chatWelcomeTitle')}</strong>
+            </div>
+            <p className={styles.emptyText}>{t('nexV2.chatEmpty')}</p>
+            <div className={styles.promptChips} data-nex-quick-prompts>
+              {quickPrompts.map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  className={styles.promptChip}
+                  disabled={sending}
+                  onClick={() => void submitMessage(prompt)}
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          </div>
         ) : (
           history.map((turn, idx) => (
             <div key={`${turn.role}-${idx}`} className={styles.chatMessage} data-role={turn.role}>
@@ -303,7 +362,7 @@ export const NexChatTab: React.FC<NexChatTabProps> = ({
                   <div className={styles.proposalActions}>
                     <button
                       type="button"
-                      className={styles.smallBtn}
+                      className={styles.primarySmallBtn}
                       data-nex-proposal-confirm
                       onClick={() => void handleConfirmProposal(idx, turn.proposal!)}
                     >
@@ -350,7 +409,7 @@ export const NexChatTab: React.FC<NexChatTabProps> = ({
             disabled={!input.trim()}
             data-nex-chat-send
           >
-            <Send size={14} aria-hidden="true" />
+            <Send size={13} aria-hidden="true" />
             <span>{t('nexV2.chatSend')}</span>
           </button>
         )}

@@ -89,9 +89,9 @@ describe('Nex 2.0 P4/P5 Assistant, Personal Memory & Audited Receipts', () => {
     );
 
     expect(html).toContain('data-nex-memory-toggle="true"');
-    expect(html).toContain('(1)');
+    expect(html).toContain('Memória (1)');
     expect(html).toContain('data-nex-receipts-toggle="true"');
-    expect(html).toContain('(3)');
+    expect(html).toContain('Atividade (3)');
     expect(html).toContain('data-nex-proposal="nexus.open.agents"');
     expect(html).toContain('data-nex-proposal-confirm="true"');
     expect(html).toContain('data-nex-proposal-dismiss="true"');

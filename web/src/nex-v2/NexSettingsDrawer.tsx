@@ -1,17 +1,19 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { X } from 'lucide-react';
+import { ArrowLeft, X } from 'lucide-react';
 import type { NexV2PlatformCapabilities, NexV2PresenceState, NexV2PresetId } from './nexV2Types';
 import styles from './NexSettingsDrawer.module.scss';
 
 export interface NexSettingsDrawerProps {
   open: boolean;
+  canGoBack?: boolean;
   state: NexV2PresenceState;
   capabilities: NexV2PlatformCapabilities;
   onClose: () => void;
   onPresetChange: (presetId: NexV2PresetId) => void;
-  onToggleShowAvatar: (visible: boolean) => void;
-  onToggleCompactBar: (enabled: boolean) => void;
+  onDisplayModeChange?: (showAvatar: boolean, compactBar: boolean) => void;
+  onToggleShowAvatar?: (visible: boolean) => void;
+  onToggleCompactBar?: (enabled: boolean) => void;
   onToggleAlwaysOnTop: (enabled: boolean) => void;
   onToggleDoNotDisturb: (enabled: boolean) => void;
   onTogglePrivacyMode?: (enabled: boolean) => void;
@@ -19,18 +21,39 @@ export interface NexSettingsDrawerProps {
   onToggleReducedMotion: (enabled: boolean) => void;
 }
 
+type DisplayMode = 'avatar' | 'bar' | 'both';
+
 const PRESETS: readonly { id: NexV2PresetId; labelKey: string }[] = [
-  { id: 'compact', labelKey: 'nexV2.presetCompact' },
-  { id: 'standard', labelKey: 'nexV2.presetStandard' },
-  { id: 'large', labelKey: 'nexV2.presetLarge' },
+  { id: 'compact', labelKey: 'nexV2.presetCompactShort' },
+  { id: 'standard', labelKey: 'nexV2.presetStandardShort' },
+  { id: 'large', labelKey: 'nexV2.presetLargeShort' },
 ];
+
+const DISPLAY_MODES: readonly {
+  id: DisplayMode;
+  labelKey: string;
+  showAvatar: boolean;
+  compactBar: boolean;
+}[] = [
+  { id: 'avatar', labelKey: 'nexV2.displayModeAvatar', showAvatar: true, compactBar: false },
+  { id: 'bar', labelKey: 'nexV2.displayModeBar', showAvatar: false, compactBar: true },
+  { id: 'both', labelKey: 'nexV2.displayModeBoth', showAvatar: true, compactBar: true },
+];
+
+function resolveCurrentDisplayMode(state: NexV2PresenceState): DisplayMode {
+  if (state.showAvatar && state.compactBar) return 'both';
+  if (!state.showAvatar) return 'bar';
+  return 'avatar';
+}
 
 export const NexSettingsDrawer: React.FC<NexSettingsDrawerProps> = ({
   open,
+  canGoBack = false,
   state,
   capabilities,
   onClose,
   onPresetChange,
+  onDisplayModeChange,
   onToggleShowAvatar,
   onToggleCompactBar,
   onToggleAlwaysOnTop,
@@ -45,6 +68,62 @@ export const NexSettingsDrawer: React.FC<NexSettingsDrawerProps> = ({
     return null;
   }
 
+  const currentMode = resolveCurrentDisplayMode(state);
+  const isWayland = !capabilities.globalPositioning || capabilities.session === 'wayland';
+
+  const handleSelectMode = (showAvatar: boolean, compactBar: boolean) => {
+    if (onDisplayModeChange) {
+      onDisplayModeChange(showAvatar, compactBar);
+      return;
+    }
+    if (showAvatar !== state.showAvatar) onToggleShowAvatar?.(showAvatar);
+    if (compactBar !== state.compactBar) onToggleCompactBar?.(compactBar);
+  };
+
+  const behaviorRows: readonly {
+    key: string;
+    label: string;
+    desc: string;
+    checked: boolean;
+    onToggle: () => void;
+  }[] = [
+    {
+      key: 'always-on-top',
+      label: t('nexV2.alwaysOnTopLabel'),
+      desc: t('nexV2.alwaysOnTopDesc'),
+      checked: state.placement.alwaysOnTop,
+      onToggle: () => onToggleAlwaysOnTop(!state.placement.alwaysOnTop),
+    },
+    {
+      key: 'dnd',
+      label: t('nexV2.doNotDisturbLabel'),
+      desc: t('nexV2.doNotDisturbDesc'),
+      checked: state.doNotDisturb,
+      onToggle: () => onToggleDoNotDisturb(!state.doNotDisturb),
+    },
+    {
+      key: 'privacy-mode',
+      label: t('nexV2.privacyModeLabel'),
+      desc: t('nexV2.privacyModeDesc'),
+      checked: state.privacyMode,
+      onToggle: () => onTogglePrivacyMode?.(!state.privacyMode),
+    },
+    {
+      key: 'paused',
+      label: t('nexV2.pauseMotionLabel'),
+      desc: t('nexV2.pauseMotionDesc'),
+      checked: state.paused,
+      onToggle: () => onTogglePaused(!state.paused),
+    },
+    {
+      key: 'reduced-motion',
+      label: t('nexV2.reducedMotionLabel'),
+      desc: t('nexV2.reducedMotionDesc'),
+      checked: state.reducedMotion,
+      onToggle: () => onToggleReducedMotion(!state.reducedMotion),
+    },
+  ];
+
   return (
     <section
       className={styles.drawer}
@@ -54,10 +133,23 @@ export const NexSettingsDrawer: React.FC<NexSettingsDrawerProps> = ({
       data-nex-settings
     >
       <header className={styles.header}>
-        <h2 className={styles.title}>{t('nexV2.settingsTitle')}</h2>
+        <div className={styles.titleRow}>
+          {canGoBack && (
+            <button
+              type="button"
+              className={styles.iconBtn}
+              aria-label={t('nexV2.settingsBackLabel')}
+              data-nex-settings-back
+              onClick={onClose}
+            >
+              <ArrowLeft size={14} aria-hidden="true" />
+            </button>
+          )}
+          <h2 className={styles.title}>{t('nexV2.settingsTitle')}</h2>
+        </div>
         <button
           type="button"
-          className={styles.closeBtn}
+          className={styles.iconBtn}
           aria-label={t('nexV2.closeSettingsLabel')}
           data-nex-settings-close
           onClick={onClose}
@@ -66,121 +158,89 @@ export const NexSettingsDrawer: React.FC<NexSettingsDrawerProps> = ({
         </button>
       </header>
 
-      <div className={styles.group}>
-        <label className={styles.selectLabel} htmlFor="nex-v2-preset-select">
-          <span>{t('nexV2.presetLabel')}</span>
-          <select
-            id="nex-v2-preset-select"
-            className={styles.select}
-            value={state.placement.presetId}
-            onChange={(event) => onPresetChange(event.target.value as NexV2PresetId)}
-          >
-            {PRESETS.map((preset) => (
-              <option key={preset.id} value={preset.id}>
-                {t(preset.labelKey)}
-              </option>
+      <div className={styles.body}>
+        <section className={styles.section}>
+          <h3 className={styles.sectionTitle}>{t('nexV2.settingsSectionDisplay')}</h3>
+
+          <div className={styles.fieldRow}>
+            <span className={styles.fieldLabel}>{t('nexV2.displayModeLabel')}</span>
+            <div className={styles.segmented} role="group" aria-label={t('nexV2.displayModeLabel')}>
+              {DISPLAY_MODES.map((mode) => {
+                const active = currentMode === mode.id;
+                return (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    className={styles.segmentBtn}
+                    aria-pressed={active}
+                    data-nex-display-mode={mode.id}
+                    onClick={() => handleSelectMode(mode.showAvatar, mode.compactBar)}
+                  >
+                    {t(mode.labelKey)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className={styles.fieldRow}>
+            <span className={styles.fieldLabel}>{t('nexV2.presetLabel')}</span>
+            <div className={styles.segmented} role="group" aria-label={t('nexV2.presetLabel')}>
+              {PRESETS.map((preset) => {
+                const active = state.placement.presetId === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    className={styles.segmentBtn}
+                    disabled={!state.showAvatar}
+                    aria-pressed={active}
+                    data-nex-preset={preset.id}
+                    onClick={() => onPresetChange(preset.id)}
+                  >
+                    {t(preset.labelKey)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <h3 className={styles.sectionTitle}>{t('nexV2.settingsSectionBehavior')}</h3>
+          <div className={styles.switchList}>
+            {behaviorRows.map((row) => (
+              <div key={row.key} className={styles.switchRow}>
+                <div className={styles.switchCopy}>
+                  <span className={styles.switchLabel}>{row.label}</span>
+                  <span className={styles.switchDesc}>{row.desc}</span>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-label={row.label}
+                  aria-checked={row.checked}
+                  data-nex-toggle={row.key}
+                  className={styles.switchTrack}
+                  onClick={row.onToggle}
+                >
+                  <span className={styles.switchThumb} aria-hidden="true" />
+                </button>
+              </div>
             ))}
-          </select>
-        </label>
-      </div>
+          </div>
+        </section>
 
-      <div className={styles.toggles}>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={state.showAvatar}
-          data-nex-toggle="show-avatar"
-          className={styles.toggleBtn}
-          onClick={() => onToggleShowAvatar(!state.showAvatar)}
-        >
-          <span>{t('nexV2.showAvatarLabel')}</span>
-          <span className={styles.toggleState}>{state.showAvatar ? 'ON' : 'OFF'}</span>
-        </button>
-
-        <button
-          type="button"
-          role="switch"
-          aria-checked={state.compactBar}
-          data-nex-toggle="compact-bar"
-          className={styles.toggleBtn}
-          onClick={() => onToggleCompactBar(!state.compactBar)}
-        >
-          <span>{t('nexV2.compactBarLabel')}</span>
-          <span className={styles.toggleState}>{state.compactBar ? 'ON' : 'OFF'}</span>
-        </button>
-
-        <button
-          type="button"
-          role="switch"
-          aria-checked={state.placement.alwaysOnTop}
-          data-nex-toggle="always-on-top"
-          className={styles.toggleBtn}
-          onClick={() => onToggleAlwaysOnTop(!state.placement.alwaysOnTop)}
-        >
-          <span>{t('nexV2.alwaysOnTopLabel')}</span>
-          <span className={styles.toggleState}>{state.placement.alwaysOnTop ? 'ON' : 'OFF'}</span>
-        </button>
-
-        <button
-          type="button"
-          role="switch"
-          aria-checked={state.doNotDisturb}
-          data-nex-toggle="dnd"
-          className={styles.toggleBtn}
-          onClick={() => onToggleDoNotDisturb(!state.doNotDisturb)}
-        >
-          <span>{t('nexV2.doNotDisturbLabel')}</span>
-          <span className={styles.toggleState}>{state.doNotDisturb ? 'ON' : 'OFF'}</span>
-        </button>
-
-        <button
-          type="button"
-          role="switch"
-          aria-checked={state.privacyMode}
-          data-nex-toggle="privacy-mode"
-          className={styles.toggleBtn}
-          onClick={() => onTogglePrivacyMode?.(!state.privacyMode)}
-        >
-          <span>{t('nexV2.privacyModeLabel')}</span>
-          <span className={styles.toggleState}>{state.privacyMode ? 'ON' : 'OFF'}</span>
-        </button>
-
-        <button
-          type="button"
-          role="switch"
-          aria-checked={state.paused}
-          data-nex-toggle="paused"
-          className={styles.toggleBtn}
-          onClick={() => onTogglePaused(!state.paused)}
-        >
-          <span>{t('nexV2.pauseMotionLabel')}</span>
-          <span className={styles.toggleState}>{state.paused ? 'ON' : 'OFF'}</span>
-        </button>
-
-        <button
-          type="button"
-          role="switch"
-          aria-checked={state.reducedMotion}
-          data-nex-toggle="reduced-motion"
-          className={styles.toggleBtn}
-          onClick={() => onToggleReducedMotion(!state.reducedMotion)}
-        >
-          <span>{t('nexV2.reducedMotionLabel')}</span>
-          <span className={styles.toggleState}>{state.reducedMotion ? 'ON' : 'OFF'}</span>
-        </button>
-      </div>
-
-      <div className={styles.capabilities}>
-        <strong className={styles.capTitle}>
-          {t('nexV2.capabilityNoticeTitle', { platform: capabilities.platform })}
-        </strong>
-        {(!capabilities.globalPositioning || capabilities.session === 'wayland') && (
-          <p className={styles.capText}>{t('nexV2.capabilityWaylandNotice')}</p>
-        )}
-        <p className={styles.capText}>
-          {t('nexV2.capabilityHotkeyNotice', { hotkey: state.hotkey })}
-          {capabilities.globalHotkeyReason ? ` · ${capabilities.globalHotkeyReason}` : ''}
-        </p>
+        <section className={styles.capabilities}>
+          <strong className={styles.capTitle}>
+            {t('nexV2.capabilityNoticeTitle', { platform: capabilities.platform })}
+          </strong>
+          {isWayland && <p className={styles.capText}>{t('nexV2.capabilityWaylandNotice')}</p>}
+          <p className={styles.capText}>
+            {t('nexV2.capabilityHotkeyNotice', { hotkey: state.hotkey })} ·{' '}
+            {isWayland ? t('nexV2.capabilityHotkeyWayland') : t('nexV2.capabilityHotkeyDefault')}
+          </p>
+        </section>
       </div>
     </section>
   );

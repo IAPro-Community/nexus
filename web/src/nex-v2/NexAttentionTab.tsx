@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { CheckCircle2 } from 'lucide-react';
 import type { NexV2EventEnvelope, NexV2HudState } from './nexV2Types';
 import styles from './NexAttentionTab.module.scss';
 
@@ -11,6 +12,28 @@ export interface NexAttentionTabProps {
   onSnoozeAlert: (fingerprint: string) => void;
 }
 
+function resolveSeverityLabel(severity: string | undefined, t: (k: string) => string): string {
+  const norm = (severity || 'INFO').toUpperCase();
+  if (norm === 'CRITICAL') return t('nexV2.severityCritical');
+  if (norm === 'WARNING') return t('nexV2.severityWarning');
+  return t('nexV2.severityInfo');
+}
+
+function resolvePromptKindLabel(promptKind: string | undefined, t: (k: string) => string): string {
+  const norm = (promptKind || '').toLowerCase();
+  if (norm === 'yn' || norm === 'yes_no') return t('nexV2.promptKindYn');
+  if (norm === 'input' || norm === 'text') return t('nexV2.promptKindInput');
+  return t('nexV2.promptKindDefault');
+}
+
+function resolveModelEventLabel(kind: string, t: (k: string) => string): string {
+  const norm = kind.toUpperCase();
+  if (norm === 'MODEL_CATALOG_ADDED') return t('nexV2.modelChangeAdded');
+  if (norm === 'MODEL_CATALOG_DEPRECATED') return t('nexV2.modelChangeDeprecated');
+  if (norm === 'MODEL_CATALOG_REMOVED') return t('nexV2.modelChangeRemoved');
+  return kind;
+}
+
 export const NexAttentionTab: React.FC<NexAttentionTabProps> = ({
   hudState,
   events,
@@ -19,7 +42,10 @@ export const NexAttentionTab: React.FC<NexAttentionTabProps> = ({
   onSnoozeAlert,
 }) => {
   const { t } = useTranslation();
-  const activeAlerts = (hudState?.alerts ?? []).filter((a) => !a.acked);
+  const activeAlerts = [...(hudState?.alerts ?? []).filter((a) => !a.acked)].sort((a, b) => {
+    const rank = (s?: string) => ((s || '').toUpperCase() === 'CRITICAL' ? 0 : 1);
+    return rank(a.severity) - rank(b.severity);
+  });
   const runtimeAttention = hudState?.runtime_attention ?? [];
   const missionsNeedingUser = (hudState?.missions ?? []).filter((m) => m.needs_user);
 
@@ -37,92 +63,118 @@ export const NexAttentionTab: React.FC<NexAttentionTabProps> = ({
     return true;
   });
 
-  const hasItems =
-    activeAlerts.length > 0 ||
-    runtimeAttention.length > 0 ||
-    missionsNeedingUser.length > 0 ||
-    modelEvents.length > 0;
+  const hasUrgentItems =
+    activeAlerts.length > 0 || runtimeAttention.length > 0 || missionsNeedingUser.length > 0;
+  const hasAnyItems = hasUrgentItems || modelEvents.length > 0;
 
   return (
     <div className={styles.stack} data-nex-attention>
-      {!hasItems ? (
-        <p className={styles.emptyText}>{t('nexV2.attentionEmpty')}</p>
+      {!hasAnyItems ? (
+        <div className={styles.emptyState}>
+          <CheckCircle2 size={24} className={styles.emptyIcon} aria-hidden="true" />
+          <strong className={styles.emptyTitle}>{t('nexV2.attentionEmptyTitle')}</strong>
+          <p className={styles.emptyText}>{t('nexV2.attentionEmpty')}</p>
+        </div>
       ) : (
         <>
-          {activeAlerts.map((alert) => {
-            const label =
-              privacyMode && alert.profile
-                ? `${alert.provider || alert.category} · ${t('nexV2.privacyMasked')}`
-                : [alert.provider || alert.category, alert.profile].filter(Boolean).join(' · ');
-            return (
-              <div key={alert.fingerprint} className={styles.card}>
-                <div className={styles.cardHeader}>
-                  <strong>{label}</strong>
-                  <span className={styles.statusBadge}>{alert.severity || 'INFO'}</span>
+          {hasUrgentItems && (
+            <section className={styles.group}>
+              <h3 className={styles.sectionLabel}>{t('nexV2.sectionActionRequired')}</h3>
+
+              {activeAlerts.map((alert) => {
+                const severityNorm = (alert.severity || 'INFO').toUpperCase();
+                const label =
+                  privacyMode && alert.profile
+                    ? `${alert.provider || alert.category} · ${t('nexV2.privacyMasked')}`
+                    : [alert.provider || alert.category, alert.profile].filter(Boolean).join(' · ');
+                return (
+                  <div key={alert.fingerprint} className={styles.card} data-severity={severityNorm}>
+                    <div className={styles.cardHeader}>
+                      <strong>{label}</strong>
+                      <span className={styles.severityPill} data-severity={severityNorm}>
+                        {resolveSeverityLabel(severityNorm, t)}
+                      </span>
+                    </div>
+                    {alert.reason && <p className={styles.cardMeta}>{alert.reason}</p>}
+                    <div className={styles.cardActions}>
+                      <button
+                        type="button"
+                        className={styles.primaryBtn}
+                        onClick={() => onAckAlert(alert.fingerprint)}
+                      >
+                        {t('nexV2.attentionAck')}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.secondaryBtn}
+                        onClick={() => onSnoozeAlert(alert.fingerprint)}
+                      >
+                        {t('nexV2.attentionSnooze')}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {runtimeAttention.map((item) => (
+                <div key={item.fingerprint} className={styles.card} data-severity="WARNING">
+                  <div className={styles.cardHeader}>
+                    <strong>{t('nexV2.attentionRuntimeLabel', { provider: item.provider })}</strong>
+                    <span
+                      className={styles.severityPill}
+                      data-severity="WARNING"
+                      data-prompt-kind={item.prompt_kind}
+                    >
+                      {resolvePromptKindLabel(item.prompt_kind, t)}
+                    </span>
+                  </div>
+                  <p className={styles.cardMeta}>
+                    {privacyMode
+                      ? t('nexV2.privacyMasked')
+                      : item.project_name || item.project_id || ''}
+                    {item.reason ? ` · ${item.reason}` : ''}
+                  </p>
                 </div>
-                {alert.reason && <p className={styles.cardMeta}>{alert.reason}</p>}
-                <div className={styles.cardActions}>
-                  <button
-                    type="button"
-                    className={styles.smallBtn}
-                    onClick={() => onAckAlert(alert.fingerprint)}
-                  >
-                    {t('nexV2.attentionAck')}
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.smallBtn}
-                    onClick={() => onSnoozeAlert(alert.fingerprint)}
-                  >
-                    {t('nexV2.attentionSnooze')}
-                  </button>
+              ))}
+
+              {missionsNeedingUser.map((mission) => (
+                <div key={mission.run_id} className={styles.card} data-severity="WARNING">
+                  <div className={styles.cardHeader}>
+                    <strong>
+                      {privacyMode
+                        ? t('nexV2.privacyMasked')
+                        : mission.current_task_title || mission.run_id}
+                    </strong>
+                    <span className={styles.severityPill} data-severity="WARNING">
+                      {t('nexV2.missionNeedsUserBadge')}
+                    </span>
+                  </div>
+                  {mission.intervention_reason && (
+                    <p className={styles.cardMeta}>{mission.intervention_reason}</p>
+                  )}
                 </div>
-              </div>
-            );
-          })}
+              ))}
+            </section>
+          )}
 
-          {runtimeAttention.map((item) => (
-            <div key={item.fingerprint} className={styles.card}>
-              <div className={styles.cardHeader}>
-                <strong>{t('nexV2.attentionRuntimeLabel', { provider: item.provider })}</strong>
-                <span className={styles.statusBadge}>{item.prompt_kind}</span>
-              </div>
-              <p className={styles.cardMeta}>
-                {privacyMode
-                  ? t('nexV2.privacyMasked')
-                  : item.project_name || item.project_id || ''}
-                {item.reason ? ` · ${item.reason}` : ''}
-              </p>
-            </div>
-          ))}
-
-          {missionsNeedingUser.map((mission) => (
-            <div key={mission.run_id} className={styles.card}>
-              <div className={styles.cardHeader}>
-                <strong>
-                  {privacyMode
-                    ? t('nexV2.privacyMasked')
-                    : mission.current_task_title || mission.run_id}
-                </strong>
-                <span className={styles.statusBadge}>{t('nexV2.missionNeedsUserBadge')}</span>
-              </div>
-              {mission.intervention_reason && (
-                <p className={styles.cardMeta}>{mission.intervention_reason}</p>
-              )}
-            </div>
-          ))}
-
-          {modelEvents.map((ev) => (
-            <div key={ev.fingerprint} className={styles.card}>
-              <div className={styles.cardHeader}>
-                <strong>
-                  {privacyMode ? `${ev.provider || ''} · ${t('nexV2.privacyMasked')}` : ev.title}
-                </strong>
-                <span className={styles.statusBadge}>{ev.kind}</span>
-              </div>
-              {ev.detail && <p className={styles.cardMeta}>{ev.detail}</p>}
-            </div>
-          ))}
+          {modelEvents.length > 0 && (
+            <section className={styles.group}>
+              <h3 className={styles.sectionLabel}>{t('nexV2.sectionUpdates')}</h3>
+              {modelEvents.map((ev) => (
+                <div key={ev.fingerprint} className={styles.updateRow} data-event-kind={ev.kind}>
+                  <div className={styles.cardHeader}>
+                    <span className={styles.updateTitle}>
+                      {privacyMode
+                        ? `${ev.provider || ''} · ${t('nexV2.privacyMasked')}`
+                        : ev.title}
+                    </span>
+                    <span className={styles.infoPill}>{resolveModelEventLabel(ev.kind, t)}</span>
+                  </div>
+                  {ev.detail && <p className={styles.cardMeta}>{ev.detail}</p>}
+                </div>
+              ))}
+            </section>
+          )}
         </>
       )}
     </div>

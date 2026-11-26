@@ -157,6 +157,28 @@ export async function updateNexV2PanelOpen(open: boolean): Promise<boolean> {
   return open;
 }
 
+export async function updateNexV2SettingsOpen(open: boolean): Promise<boolean> {
+  if (isDesktopShell()) {
+    try {
+      return await callController<boolean>('SetSettingsOpen', open);
+    } catch {
+      return open;
+    }
+  }
+  return open;
+}
+
+export async function updateNexV2OverlayVisible(visible: boolean): Promise<boolean> {
+  if (isDesktopShell()) {
+    try {
+      return await callController<boolean>('SetOverlayVisible', visible);
+    } catch {
+      return visible;
+    }
+  }
+  return visible;
+}
+
 export async function updateNexV2Preset(
   presetId: NexV2PresetId,
   current: NexV2PresenceState,
@@ -205,6 +227,25 @@ export const updateNexV2CompactBar = (enabled: boolean, current: NexV2PresenceSt
     (prev) => ({ ...prev, compactBar: enabled }),
     current,
   );
+
+export async function updateNexV2DisplayMode(
+  showAvatar: boolean,
+  compactBar: boolean,
+  current: NexV2PresenceState,
+): Promise<NexV2PresenceState> {
+  if (isDesktopShell()) {
+    try {
+      return await callController<NexV2PresenceState>('SetDisplayMode', showAvatar, compactBar);
+    } catch {
+      // Fallback below
+    }
+  }
+  return writeLocalState({
+    ...current,
+    showAvatar,
+    compactBar,
+  });
+}
 
 export const updateNexV2AlwaysOnTop = (enabled: boolean, current: NexV2PresenceState) =>
   updateBooleanControllerSetting(

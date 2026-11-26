@@ -163,12 +163,14 @@ type NexV2WindowHooks struct {
 // NexV2Controller manages Nex 2.0 shell presence, geometry, and settings
 // separately from React model updates.
 type NexV2Controller struct {
-	mu        sync.Mutex
-	manager   *NexV2StateManager
-	caps      NexV2PlatformCapabilities
-	panelOpen bool
-	focused   bool
-	hooks     NexV2WindowHooks
+	mu           sync.Mutex
+	manager      *NexV2StateManager
+	caps         NexV2PlatformCapabilities
+	panelOpen    bool
+	settingsOpen bool
+	overlayOpen  bool
+	focused      bool
+	hooks        NexV2WindowHooks
 }
 
 func NewNexV2Controller(manager *NexV2StateManager, caps NexV2PlatformCapabilities, hooks NexV2WindowHooks) *NexV2Controller {
@@ -204,22 +206,70 @@ func (c *NexV2Controller) GetPanelOpen() bool {
 	return c.panelOpen
 }
 
-// ResolveNexV2SurfaceRect computes the bounded native window rect across all
-// Nex 2.0 shell states (collapsed square avatar, compact bar, or expanded panel).
+// ResolveNexV2SurfaceRect computes the bounded native window rect for collapsed,
+// compact-bar, or expanded-panel states.
 func ResolveNexV2SurfaceRect(
 	state NexV2PresenceState,
 	panelOpen bool,
 	displays []DisplayDescriptor,
 	globalPositioning bool,
 ) application.Rect {
+	return ResolveNexV2SurfaceRectForState(state, panelOpen, false, false, displays, globalPositioning)
+}
+
+// ResolveNexV2SurfaceRectForState computes the bounded native window rect across
+// all Nex 2.0 shell states (collapsed square avatar, compact bar, overlay
+// banner/notification, settings drawer, or expanded panel).
+func ResolveNexV2SurfaceRectForState(
+	state NexV2PresenceState,
+	panelOpen bool,
+	settingsOpen bool,
+	overlayOpen bool,
+	displays []DisplayDescriptor,
+	globalPositioning bool,
+) application.Rect {
 	baseRect, display, _ := ResolveNexV2WindowRect(state.Placement, displays, globalPositioning)
-	if !panelOpen && !state.CompactBar {
+	effectiveCompactBar := state.CompactBar || !state.ShowAvatar
+	hasOverlay := overlayOpen && state.ShowAvatar
+	if !panelOpen && !settingsOpen && !effectiveCompactBar && !hasOverlay {
 		return baseRect
 	}
-	targetW, targetH := 360, 56
-	if panelOpen {
+
+	var targetW, targetH int
+	switch {
+	case panelOpen || settingsOpen:
 		targetW, targetH = 440, 540
+		if state.ShowAvatar && baseRect.Height > 160 {
+			targetH += baseRect.Height - 160
+		}
+		if state.ShowAvatar && state.CompactBar {
+			targetH += 48
+		}
+		if targetH > 620 {
+			targetH = 620
+		}
+	case effectiveCompactBar:
+		targetW = 360
+		if state.ShowAvatar {
+			targetH = baseRect.Height + 64
+		} else {
+			targetH = 56
+		}
+	default:
+		// Collapsed avatar with notification bubble or offline banner.
+		targetW = 360
+		targetH = baseRect.Height + 96
 	}
+
+	if !globalPositioning {
+		return application.Rect{
+			X:      0,
+			Y:      0,
+			Width:  targetW,
+			Height: targetH,
+		}
+	}
+
 	work := display.WorkArea
 	x := baseRect.X
 	y := baseRect.Y
@@ -245,17 +295,48 @@ func ResolveNexV2SurfaceRect(
 	}, work)
 }
 
+func (c *NexV2Controller) applySurfaceRectLocked(state NexV2PresenceState, displays []DisplayDescriptor) {
+	if c.hooks.ApplyRect == nil {
+		return
+	}
+	rect := ResolveNexV2SurfaceRectForState(
+		state,
+		c.panelOpen,
+		c.settingsOpen,
+		c.overlayOpen,
+		displays,
+		c.caps.GlobalPositioning,
+	)
+	c.hooks.ApplyRect(rect)
+}
+
 // SetPanelOpen serializes panel open/close requests to prevent toggle races.
 func (c *NexV2Controller) SetPanelOpen(open bool) (bool, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.panelOpen = open
-	if c.hooks.ApplyRect != nil {
-		state := c.manager.Load()
-		rect := ResolveNexV2SurfaceRect(state, open, c.currentDisplaysLocked(), c.caps.GlobalPositioning)
-		c.hooks.ApplyRect(rect)
-	}
+	c.applySurfaceRectLocked(c.manager.Load(), c.currentDisplaysLocked())
 	return c.panelOpen, nil
+}
+
+// SetSettingsOpen expands or restores the native surface when the Nex 2.0
+// settings drawer opens or closes.
+func (c *NexV2Controller) SetSettingsOpen(open bool) (bool, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.settingsOpen = open
+	c.applySurfaceRectLocked(c.manager.Load(), c.currentDisplaysLocked())
+	return c.settingsOpen, nil
+}
+
+// SetOverlayVisible expands or restores the collapsed surface for transient
+// overlays (notification bubbles or offline banners).
+func (c *NexV2Controller) SetOverlayVisible(visible bool) (bool, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.overlayOpen = visible
+	c.applySurfaceRectLocked(c.manager.Load(), c.currentDisplaysLocked())
+	return c.overlayOpen, nil
 }
 
 func (c *NexV2Controller) SetPreset(presetID string) (NexV2PresenceState, error) {
@@ -267,21 +348,20 @@ func (c *NexV2Controller) SetPreset(presetID string) (NexV2PresenceState, error)
 	state := c.manager.Load()
 	displays := c.currentDisplaysLocked()
 	currentRect, display, _ := ResolveNexV2WindowRect(state.Placement, displays, c.caps.GlobalPositioning)
-	if c.hooks.GetRect != nil {
+	collapsedAvatar := !c.panelOpen && !c.settingsOpen && !c.overlayOpen && !state.CompactBar && state.ShowAvatar
+	if collapsedAvatar && c.hooks.GetRect != nil {
 		r := c.hooks.GetRect()
 		if r.Width > 0 && r.Height > 0 {
 			currentRect = r
 		}
 	}
-	nextRect, nextPlacement, _ := SwitchNexV2Preset(currentRect, presetID, display, c.caps.GlobalPositioning)
+	_, nextPlacement, _ := SwitchNexV2Preset(currentRect, presetID, display, c.caps.GlobalPositioning)
 	nextPlacement.AlwaysOnTop = state.Placement.AlwaysOnTop
 	state.Placement = nextPlacement
 	if err := c.manager.Save(state); err != nil {
 		return state, err
 	}
-	if c.hooks.ApplyRect != nil {
-		c.hooks.ApplyRect(nextRect)
-	}
+	c.applySurfaceRectLocked(state, displays)
 	return state, nil
 }
 
@@ -307,8 +387,9 @@ func (c *NexV2Controller) SetShowAvatar(visible bool) (NexV2PresenceState, error
 	if err := c.manager.Save(state); err != nil {
 		return state, err
 	}
+	c.applySurfaceRectLocked(state, c.currentDisplaysLocked())
 	if c.hooks.SetVisible != nil {
-		c.hooks.SetVisible(visible || state.CompactBar)
+		c.hooks.SetVisible(visible || state.CompactBar || c.panelOpen || c.settingsOpen)
 	}
 	return state, nil
 }
@@ -321,12 +402,28 @@ func (c *NexV2Controller) SetCompactBar(enabled bool) (NexV2PresenceState, error
 	if err := c.manager.Save(state); err != nil {
 		return state, err
 	}
-	if c.hooks.ApplyRect != nil {
-		rect := ResolveNexV2SurfaceRect(state, c.panelOpen, c.currentDisplaysLocked(), c.caps.GlobalPositioning)
-		c.hooks.ApplyRect(rect)
-	}
+	c.applySurfaceRectLocked(state, c.currentDisplaysLocked())
 	if c.hooks.SetVisible != nil {
-		c.hooks.SetVisible(state.ShowAvatar || enabled)
+		c.hooks.SetVisible(state.ShowAvatar || enabled || c.panelOpen || c.settingsOpen)
+	}
+	return state, nil
+}
+
+// SetDisplayMode atomically switches between Avatar (showAvatar=true, compactBar=false),
+// Bar (showAvatar=false, compactBar=true), and Both (showAvatar=true, compactBar=true)
+// without an intermediate hidden frame or size mismatch.
+func (c *NexV2Controller) SetDisplayMode(showAvatar bool, compactBar bool) (NexV2PresenceState, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	state := c.manager.Load()
+	state.ShowAvatar = showAvatar
+	state.CompactBar = compactBar
+	if err := c.manager.Save(state); err != nil {
+		return state, err
+	}
+	c.applySurfaceRectLocked(state, c.currentDisplaysLocked())
+	if c.hooks.SetVisible != nil {
+		c.hooks.SetVisible(state.ShowAvatar || state.CompactBar || c.panelOpen || c.settingsOpen)
 	}
 	return state, nil
 }
@@ -405,9 +502,7 @@ func (c *NexV2Controller) HandleDisplayChange(displays []DisplayDescriptor) NexV
 		state.Placement.OffsetY = rect.Y - display.WorkArea.Y
 	}
 	_ = c.manager.Save(state)
-	if c.hooks.ApplyRect != nil {
-		c.hooks.ApplyRect(rect)
-	}
+	c.applySurfaceRectLocked(state, displays)
 	return state
 }
 

@@ -207,14 +207,29 @@ export const NexAvatarView: React.FC<NexAvatarViewProps> = ({
     };
     window.addEventListener('resize', onWindowResize);
 
+    const observer =
+      typeof ResizeObserver !== 'undefined' && containerRef.current
+        ? new ResizeObserver(() => {
+            rig.resize();
+          })
+        : null;
+    if (observer && containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
     return () => {
       disposed = true;
       window.removeEventListener('resize', onWindowResize);
+      observer?.disconnect();
       rig.destroy();
       rigRef.current = null;
     };
     // Boot rig once per mount; behavior updates stream via updatePresentation below.
   }, []);
+
+  useEffect(() => {
+    rigRef.current?.resize();
+  }, [presetSizePx, rigReady]);
 
   useEffect(() => {
     const rig = rigRef.current;
@@ -304,7 +319,10 @@ export const NexAvatarView: React.FC<NexAvatarViewProps> = ({
           onFocus={() => setLocalInteraction('greet')}
           onBlur={() => setLocalInteraction('none')}
         >
-          <canvas ref={canvasRef} className={styles.canvas} hidden={!rigReady} />
+          <canvas
+            ref={canvasRef}
+            className={rigReady ? styles.canvas : `${styles.canvas} ${styles.canvasHidden}`}
+          />
           {!rigReady && (
             <span className={styles.atlasFallback} role="img" aria-label={t('nexV2.atlasAlt')} />
           )}

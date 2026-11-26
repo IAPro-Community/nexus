@@ -1,5 +1,6 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Settings } from 'lucide-react';
 import { NexAvatarView } from './NexAvatarView';
 import { NexCompactBar } from './NexCompactBar';
 import { NexNotificationBubble } from './NexNotificationBubble';
@@ -18,14 +19,22 @@ import {
   snoozeCapacityAlert,
   updateNexV2AlwaysOnTop,
   updateNexV2CompactBar,
+  updateNexV2DisplayMode,
   updateNexV2DoNotDisturb,
+  updateNexV2OverlayVisible,
   updateNexV2PanelOpen,
   updateNexV2Paused,
   updateNexV2Preset,
   updateNexV2PrivacyMode,
   updateNexV2ReducedMotion,
+  updateNexV2SettingsOpen,
   updateNexV2ShowAvatar,
 } from './nexV2Client';
+import {
+  countAttentionItems,
+  hasCriticalAttention,
+  resolveDefaultNexV2Tab,
+} from './nexV2HudHelpers';
 import type {
   NexV2EventEnvelope,
   NexV2HudAlert,
@@ -53,14 +62,10 @@ export function deriveNexV2Mood(
 ): NexOperationalMood {
   if (offline) return 'offline';
   if (!hudState) return 'idle';
-  if (hudState.alerts.some((a) => !a.acked && (a.severity || '').toUpperCase() === 'CRITICAL')) {
+  if (hasCriticalAttention(hudState)) {
     return 'critical';
   }
-  if (
-    hudState.alerts.some((a) => !a.acked) ||
-    hudState.runtime_attention.length > 0 ||
-    hudState.missions.some((m) => m.needs_user)
-  ) {
+  if (countAttentionItems(hudState) > 0) {
     return 'attention';
   }
   if (
@@ -72,7 +77,15 @@ export function deriveNexV2Mood(
   return 'idle';
 }
 
-export const NexPresenceApp: React.FC = () => {
+export interface NexPresenceAppProps {
+  initialPanelOpen?: boolean;
+  initialSettingsOpen?: boolean;
+}
+
+export const NexPresenceApp: React.FC<NexPresenceAppProps> = ({
+  initialPanelOpen = false,
+  initialSettingsOpen = false,
+}) => {
   const { t } = useTranslation();
   const [presence, setPresence] = useState<NexV2PresenceState>(() => defaultPresenceState());
   const [capabilities, setCapabilities] = useState<NexV2PlatformCapabilities>(() =>
@@ -84,11 +97,15 @@ export const NexPresenceApp: React.FC = () => {
   const [eventRevision, setEventRevision] = useState(0);
   const [backoffMs, setBackoffMs] = useState(0);
   const [offline, setOffline] = useState(false);
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<NexV2TabId>('chat');
+  const [panelOpen, setPanelOpen] = useState(initialPanelOpen);
+  const [settingsOpen, setSettingsOpen] = useState(initialSettingsOpen);
+  const [activeTab, setActiveTab] = useState<NexV2TabId>('resources');
   const [dismissedAlerts, setDismissedAlerts] = useState<Record<string, boolean>>({});
   const [chunkLoaded, setChunkLoaded] = useState(false);
+
+  const userSelectedTabRef = useRef(false);
+  const hudStateRef = useRef<NexV2HudState | null>(null);
+  hudStateRef.current = hudState;
 
   const coldOpenMsRef = useRef<number | null>(null);
   const warmOpenMsRef = useRef<number | null>(null);
@@ -170,7 +187,10 @@ export const NexPresenceApp: React.FC = () => {
 
   const setPanelVisibility = useCallback((nextOpen: boolean, tab?: NexV2TabId) => {
     if (tab) {
+      userSelectedTabRef.current = true;
       setActiveTab(tab);
+    } else if (nextOpen && !userSelectedTabRef.current) {
+      setActiveTab(resolveDefaultNexV2Tab(hudStateRef.current));
     }
     setPanelOpen((prev) => {
       if (prev === nextOpen) return prev;
@@ -187,6 +207,11 @@ export const NexPresenceApp: React.FC = () => {
       return nextOpen;
     });
     void updateNexV2PanelOpen(nextOpen);
+  }, []);
+
+  const setSettingsVisibility = useCallback((nextOpen: boolean) => {
+    setSettingsOpen(nextOpen);
+    void updateNexV2SettingsOpen(nextOpen);
   }, []);
 
   useEffect(() => {
@@ -215,6 +240,9 @@ export const NexPresenceApp: React.FC = () => {
 
   const mood = useMemo(() => deriveNexV2Mood(hudState, offline), [hudState, offline]);
   const presetPx = presetSizePixels(presence.placement.presetId);
+  const attentionCount = useMemo(() => countAttentionItems(hudState), [hudState]);
+  const criticalAttention = useMemo(() => hasCriticalAttention(hudState), [hudState]);
+
   const topAlert: NexV2HudAlert | null = useMemo(() => {
     if (!hudState) return null;
     return hudState.alerts.find((a) => !a.acked && !dismissedAlerts[a.fingerprint]) ?? null;
@@ -258,28 +286,54 @@ export const NexPresenceApp: React.FC = () => {
   ]);
 
   const showCompactBar = presence.compactBar || !presence.showAvatar;
+  const hasCollapsedOverlay =
+    !panelOpen &&
+    !settingsOpen &&
+    presence.showAvatar &&
+    (offline || Boolean(topAlert && !presence.doNotDisturb));
+
+  useEffect(() => {
+    void updateNexV2OverlayVisible(hasCollapsedOverlay);
+  }, [hasCollapsedOverlay]);
+
+  const isAvatarOnly =
+    presence.showAvatar && !showCompactBar && !panelOpen && !settingsOpen && !hasCollapsedOverlay;
+  const isCompactBarOnly =
+    !presence.showAvatar && showCompactBar && !panelOpen && !settingsOpen && !hasCollapsedOverlay;
+
+  const shellClassName = isAvatarOnly
+    ? `${styles.shell} ${styles.shellAvatarOnly}`
+    : isCompactBarOnly
+      ? `${styles.shell} ${styles.shellCompactBarOnly}`
+      : styles.shell;
+
+  const showAvatarControls = !panelOpen && !settingsOpen;
 
   return (
-    <main className={styles.shell} aria-label={t('nexV2.presenceShellLabel')} data-nex-presence>
-      {offline && (
+    <main className={shellClassName} aria-label={t('nexV2.presenceShellLabel')} data-nex-presence>
+      {offline && !panelOpen && !settingsOpen && presence.showAvatar && (
         <section className={styles.offlineBanner} role="alert" data-nex-offline-banner>
           <strong>{t('nexV2.offlineBannerTitle')}</strong>
           <p className={styles.offlineBody}>{t('nexV2.offlineBannerBody')}</p>
         </section>
       )}
 
-      {panelOpen && (
+      {panelOpen && !settingsOpen && (
         <Suspense fallback={<div className={styles.loadingFallback}>...</div>}>
           <LazyNexInteractionPanel
             activeTab={activeTab}
+            mood={mood}
             hudState={hudState}
             modelWatch={modelWatch}
             events={events}
             privacyMode={presence.privacyMode}
             offline={offline}
-            onSelectTab={setActiveTab}
+            onSelectTab={(tab) => {
+              userSelectedTabRef.current = true;
+              setActiveTab(tab);
+            }}
             onClose={() => setPanelVisibility(false)}
-            onOpenSettings={() => setSettingsOpen((prev) => !prev)}
+            onOpenSettings={() => setSettingsVisibility(true)}
             onAckAlert={(fp) => void ackCapacityAlert(fp).then(() => pollHud())}
             onSnoozeAlert={(fp) => void snoozeCapacityAlert(fp, 30).then(() => pollHud())}
           />
@@ -288,11 +342,15 @@ export const NexPresenceApp: React.FC = () => {
 
       <NexSettingsDrawer
         open={settingsOpen}
+        canGoBack={panelOpen}
         state={presence}
         capabilities={capabilities}
-        onClose={() => setSettingsOpen(false)}
+        onClose={() => setSettingsVisibility(false)}
         onPresetChange={(presetId: NexV2PresetId) =>
           void updateNexV2Preset(presetId, presence).then(setPresence)
+        }
+        onDisplayModeChange={(showAvatar, compactBar) =>
+          void updateNexV2DisplayMode(showAvatar, compactBar, presence).then(setPresence)
         }
         onToggleShowAvatar={(visible) =>
           void updateNexV2ShowAvatar(visible, presence).then(setPresence)
@@ -319,7 +377,7 @@ export const NexPresenceApp: React.FC = () => {
         alert={topAlert}
         doNotDisturb={presence.doNotDisturb}
         privacyMode={presence.privacyMode}
-        panelOpen={panelOpen}
+        panelOpen={panelOpen || settingsOpen || !presence.showAvatar}
         offline={offline}
         onDismiss={(fp) => setDismissedAlerts((prev) => ({ ...prev, [fp]: true }))}
         onOpenAttention={() => setPanelVisibility(true, 'attention')}
@@ -333,27 +391,38 @@ export const NexPresenceApp: React.FC = () => {
           doNotDisturb={presence.doNotDisturb}
           panelOpen={panelOpen}
           onTogglePanel={() => setPanelVisibility(!panelOpen)}
-          onOpenSettings={() => setSettingsOpen((prev) => !prev)}
+          onOpenAttention={() => setPanelVisibility(true, 'attention')}
+          onOpenSettings={() => setSettingsVisibility(!settingsOpen)}
         />
       )}
 
       {presence.showAvatar && (
         <div className={styles.avatarRow}>
+          {showAvatarControls && attentionCount > 0 && !presence.doNotDisturb && (
+            <span
+              className={styles.avatarBadge}
+              data-severity={criticalAttention ? 'CRITICAL' : 'WARNING'}
+              data-nex-avatar-badge={attentionCount}
+              aria-label={t('nexV2.statusSummaryUrgent', { count: attentionCount })}
+            >
+              {attentionCount}
+            </span>
+          )}
           <NexAvatarView
             mood={mood}
             motionEnabled={!presence.paused && !presence.reducedMotion}
             presetSizePx={presetPx}
             onActivate={() => setPanelVisibility(!panelOpen)}
           />
-          {!showCompactBar && (
+          {!showCompactBar && showAvatarControls && (
             <button
               type="button"
               className={styles.quickSettingsBtn}
               aria-label={t('nexV2.openSettingsLabel')}
               data-nex-quick-settings
-              onClick={() => setSettingsOpen((prev) => !prev)}
+              onClick={() => setSettingsVisibility(true)}
             >
-              ...
+              <Settings size={12} aria-hidden="true" />
             </button>
           )}
         </div>

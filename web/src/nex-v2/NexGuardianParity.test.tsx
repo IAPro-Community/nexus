@@ -147,13 +147,18 @@ describe('Nex 2.0 P3 Guardian operational parity', () => {
     expect(html).toContain('secret-work-profile');
     expect(html).toContain('42%');
     expect(html).toContain('em 2h');
-    expect(html).toContain('UNKNOWN');
+    expect(html).toContain('data-quota-state="UNKNOWN"');
+    expect(html).toContain('Sem leitura');
     expect(html).not.toContain('0%');
-    expect(html).toContain('STALE');
-    expect(html).toContain('PARTIAL');
+    expect(html).toContain('data-freshness="STALE"');
+    expect(html).toContain('Desatualizado');
+    expect(html).toContain('data-evidence="PARTIAL"');
+    expect(html).toContain('Parcial');
     expect(html).toContain('4.25');
-    expect(html).toContain('ADDED');
-    expect(html).toContain('DEPRECATED');
+    expect(html).toContain('data-change-kind="ADDED"');
+    expect(html).toContain('Novo modelo');
+    expect(html).toContain('data-change-kind="DEPRECATED"');
+    expect(html).toContain('Descontinuado');
   });
 
   it('masks profiles, project names, and spend amounts under privacyMode', () => {

@@ -75,7 +75,7 @@ func runNexV2HUD(backend *desktop.SharedBackend, desktopApp *desktop.App, linked
 	presence := stateManager.Load()
 	placement := presence.Placement
 	caps := desktop.DefaultNexV2Capabilities()
-	initialRect, _, _ := desktop.ResolveNexV2WindowRect(placement, nil, caps.GlobalPositioning)
+	initialRect := desktop.ResolveNexV2SurfaceRect(presence, false, nil, caps.GlobalPositioning)
 
 	var window application.Window
 	var native *application.App
@@ -195,7 +195,8 @@ func runNexV2HUD(backend *desktop.SharedBackend, desktopApp *desktop.App, linked
 					Primary:     primary != nil && s.ID == primary.ID,
 				})
 			}
-			resolved, _, _ := desktop.ResolveNexV2WindowRect(placement, displays, caps.GlobalPositioning)
+			currentPresence := stateManager.Load()
+			resolved := desktop.ResolveNexV2SurfaceRect(currentPresence, controller.GetPanelOpen(), displays, caps.GlobalPositioning)
 			if labMode {
 				return
 			}

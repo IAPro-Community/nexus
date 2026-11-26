@@ -160,8 +160,84 @@ func TestNexV2ControllerSurfaceRectTransitions(t *testing.T) {
 	if _, err := ctrl.SetCompactBar(true); err != nil {
 		t.Fatalf("SetCompactBar(true) failed: %v", err)
 	}
+	if lastRect.Width != 360 || lastRect.Height != 224 {
+		t.Fatalf("expected 360x224 stacked avatar+compact bar rect, got %+v", lastRect)
+	}
+
+	if _, err := ctrl.SetShowAvatar(false); err != nil {
+		t.Fatalf("SetShowAvatar(false) failed: %v", err)
+	}
 	if lastRect.Width != 360 || lastRect.Height != 56 {
-		t.Fatalf("expected 360x56 compact bar rect, got %+v", lastRect)
+		t.Fatalf("expected 360x56 bar-only rect when avatar hidden, got %+v", lastRect)
+	}
+
+	if _, err := ctrl.SetCompactBar(false); err != nil {
+		t.Fatalf("SetCompactBar(false) failed: %v", err)
+	}
+	if lastRect.Width != 360 || lastRect.Height != 56 {
+		t.Fatalf("expected 360x56 fallback compact bar rect when avatar hidden and compactBar=false, got %+v", lastRect)
+	}
+
+	if _, err := ctrl.SetShowAvatar(true); err != nil {
+		t.Fatalf("SetShowAvatar(true) failed: %v", err)
+	}
+	if lastRect.Width != 160 || lastRect.Height != 160 {
+		t.Fatalf("expected 160x160 collapsed avatar rect after restoring avatar, got %+v", lastRect)
+	}
+
+	if open, err := ctrl.SetSettingsOpen(true); err != nil || !open {
+		t.Fatalf("SetSettingsOpen(true) failed: open=%v err=%v", open, err)
+	}
+	if lastRect.Width != 440 || lastRect.Height != 540 {
+		t.Fatalf("expected 440x540 settings rect, got %+v", lastRect)
+	}
+
+	if _, err := ctrl.SetPreset("large"); err != nil {
+		t.Fatalf("SetPreset(large) while settings open failed: %v", err)
+	}
+	if lastRect.Width != 440 || lastRect.Height != 572 {
+		t.Fatalf("expected SetPreset(large) while settings open to keep expanded 440x572 rect, got %+v", lastRect)
+	}
+
+	if open, err := ctrl.SetSettingsOpen(false); err != nil || open {
+		t.Fatalf("SetSettingsOpen(false) failed: open=%v err=%v", open, err)
+	}
+	if lastRect.Width != 192 || lastRect.Height != 192 {
+		t.Fatalf("expected 192x192 collapsed large avatar rect after closing settings, got %+v", lastRect)
+	}
+
+	if shown, err := ctrl.SetOverlayVisible(true); err != nil || !shown {
+		t.Fatalf("SetOverlayVisible(true) failed: shown=%v err=%v", shown, err)
+	}
+	if lastRect.Width != 360 || lastRect.Height != 192+96 {
+		t.Fatalf("expected 360x288 overlay rect for large avatar, got %+v", lastRect)
+	}
+
+	if shown, err := ctrl.SetOverlayVisible(false); err != nil || shown {
+		t.Fatalf("SetOverlayVisible(false) failed: shown=%v err=%v", shown, err)
+	}
+	if lastRect.Width != 192 || lastRect.Height != 192 {
+		t.Fatalf("expected 192x192 rect after clearing overlay, got %+v", lastRect)
+	}
+
+	// Atomic display mode switches: Avatar -> Bar -> Both.
+	if st, err := ctrl.SetDisplayMode(false, true); err != nil || st.ShowAvatar || !st.CompactBar {
+		t.Fatalf("SetDisplayMode(false, true) failed: st=%+v err=%v", st, err)
+	}
+	if lastRect.Width != 360 || lastRect.Height != 56 {
+		t.Fatalf("expected 360x56 bar-only rect after SetDisplayMode(false, true), got %+v", lastRect)
+	}
+	if st, err := ctrl.SetDisplayMode(true, true); err != nil || !st.ShowAvatar || !st.CompactBar {
+		t.Fatalf("SetDisplayMode(true, true) failed: st=%+v err=%v", st, err)
+	}
+	if lastRect.Width != 360 || lastRect.Height != 192+64 {
+		t.Fatalf("expected 360x256 both-mode rect for large avatar, got %+v", lastRect)
+	}
+	if st, err := ctrl.SetDisplayMode(true, false); err != nil || !st.ShowAvatar || st.CompactBar {
+		t.Fatalf("SetDisplayMode(true, false) failed: st=%+v err=%v", st, err)
+	}
+	if lastRect.Width != 192 || lastRect.Height != 192 {
+		t.Fatalf("expected 192x192 avatar-only rect after SetDisplayMode(true, false), got %+v", lastRect)
 	}
 
 	if updated, err := ctrl.SetPrivacyMode(true); err != nil || !updated.PrivacyMode {
