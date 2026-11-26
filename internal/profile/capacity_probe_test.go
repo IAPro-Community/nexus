@@ -11,7 +11,7 @@ import (
 
 func TestCapacityProbeRegistryExposesOnlyProductionCollectors(t *testing.T) {
 	registry := NewCapacityProbeRegistry()
-	want := []string{"codex", "agy", "claude", "gemini"}
+	want := []string{"codex", "agy", "claude"}
 	if got := registry.Providers(); !reflect.DeepEqual(got, want) {
 		t.Fatalf("providers=%v, want %v", got, want)
 	}

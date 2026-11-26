@@ -204,7 +204,7 @@ func runCommand(args []string) error {
 		return tunnelCmd(args[1:])
 	case "__control-host":
 		return controlHostCmd(args[1:])
-	case "codex", "agy", "claude", "opencode", "gemini", "cursor", "zcode", "omp":
+	case "codex", "agy", "claude", "opencode", "cursor", "zcode", "omp":
 		prov := args[0]
 		if flags.IsHelpFlag(args[1:]) {
 			if prov == "omp" {
@@ -240,7 +240,7 @@ func runCommand(args []string) error {
 
 func isSupportedProvider(p string) bool {
 	switch strings.ToLower(p) {
-	case "codex", "agy", "claude", "opencode", "gemini", "cursor", "zcode", "omp":
+	case "codex", "agy", "claude", "opencode", "cursor", "zcode", "omp":
 		return true
 	default:
 		return false
@@ -1150,7 +1150,7 @@ func useCmd(args []string) error {
 }
 
 func currentCmd(args []string) error {
-	providers := []string{"codex", "agy", "claude", "opencode", "gemini", "cursor", "zcode"}
+	providers := []string{"codex", "agy", "claude", "opencode", "cursor", "zcode"}
 	if len(args) >= 1 && args[0] != "--json" {
 		providers = []string{args[0]}
 	}
@@ -1313,8 +1313,7 @@ func usageCmd(args []string) error {
 
 	// Detect installed CLIs across the system so both the TUI and the
 	// machine-readable surface can show configured profiles plus installed
-	// tools that are awaiting configuration (e.g. Claude Code, Gemini CLI,
-	// Cursor CLI, OpenCode).
+	// tools that are awaiting configuration (e.g. Claude Code, Cursor CLI, OpenCode).
 	reg := initRegistry()
 	ctx := context.Background()
 	detections := reg.DetectAll(ctx)
@@ -2148,7 +2147,7 @@ func completionCmd(args []string) error {
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="web start stop ps running attach handoff continue resume tunnel control ui providers profiles add remove login logout use status usage inspect sessions workspaces bind unbind bindings explain doctor security history stats config update maestro completion version release codex agy claude opencode gemini cursor omp --supervised --direct --lead --yolo --continue --resume"
+    opts="web start stop ps running attach handoff continue resume tunnel control ui providers profiles add remove login logout use status usage inspect sessions workspaces bind unbind bindings explain doctor security history stats config update maestro completion version release codex agy claude opencode cursor omp --supervised --direct --lead --yolo --continue --resume"
     COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
     return 0
 }
@@ -2191,8 +2190,8 @@ _nexus() {
 _nexus "$@"
 `)
 	case "fish":
-		fmt.Print(`complete -c nexus -f -a "web start stop ps running attach handoff continue resume tunnel control ui providers profiles add remove login logout use status usage inspect sessions workspaces bind unbind bindings explain doctor security history stats config update maestro completion version release codex agy claude opencode gemini cursor omp --supervised --direct --lead --yolo --continue --resume"
-complete -c ai -f -a "web start stop ps running attach handoff continue resume tunnel control ui providers profiles add remove login logout use status usage inspect sessions workspaces bind unbind bindings explain doctor security history stats config update maestro completion version release codex agy claude opencode gemini cursor omp --supervised --direct --lead --yolo --continue --resume"
+		fmt.Print(`complete -c nexus -f -a "web start stop ps running attach handoff continue resume tunnel control ui providers profiles add remove login logout use status usage inspect sessions workspaces bind unbind bindings explain doctor security history stats config update maestro completion version release codex agy claude opencode cursor omp --supervised --direct --lead --yolo --continue --resume"
+complete -c ai -f -a "web start stop ps running attach handoff continue resume tunnel control ui providers profiles add remove login logout use status usage inspect sessions workspaces bind unbind bindings explain doctor security history stats config update maestro completion version release codex agy claude opencode cursor omp --supervised --direct --lead --yolo --continue --resume"
 `)
 	case "powershell", "pwsh":
 		fmt.Print(`Register-ArgumentCompleter -Native -CommandName @('nexus', 'ai') -ScriptBlock {
@@ -2202,7 +2201,7 @@ complete -c ai -f -a "web start stop ps running attach handoff continue resume t
         'tunnel', 'control', 'ui', 'providers', 'profiles', 'add', 'remove', 'login', 'logout', 'use',
         'status', 'usage', 'inspect', 'sessions', 'workspaces', 'bind', 'unbind', 'bindings',
         'explain', 'doctor', 'security', 'history', 'stats', 'config', 'update', 'completion', 'version', 'release',
-        'codex', 'agy', 'claude', 'opencode', 'gemini', 'cursor', '--supervised', '--direct', '--lead', '--yolo', '--continue', '--resume'
+        'codex', 'agy', 'claude', 'opencode', 'cursor', '--supervised', '--direct', '--lead', '--yolo', '--continue', '--resume'
     )
     $commands | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
         [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)

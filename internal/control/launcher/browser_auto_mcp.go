@@ -27,7 +27,7 @@ func configureBrowserMCP(opts LaunchOptions, env []string, args []string) ([]str
 	}
 	provider := strings.ToLower(opts.ProviderID)
 	switch provider {
-	case "codex", "opencode", "agy", "claude", "gemini", "cursor":
+	case "codex", "opencode", "agy", "claude", "cursor":
 	default:
 		return args, env, nil
 	}
@@ -70,7 +70,7 @@ func configureBrowserMCP(opts LaunchOptions, env []string, args []string) ([]str
 			}
 		}
 		env = append(result, "OPENCODE_CONFIG_CONTENT="+string(out))
-	case "agy", "claude", "gemini", "cursor":
+	case "agy", "claude", "cursor":
 		bridge := resolveBrowserBridgeBinary()
 		if bridge == "" {
 			return cleanup(fmt.Errorf("nexus CLI binary unavailable for %s browser MCP bridge", provider))
@@ -83,19 +83,6 @@ func configureBrowserMCP(opts LaunchOptions, env []string, args []string) ([]str
 				return cleanup(err)
 			}
 			args = append([]string{"--mcp-config", f}, args...)
-		case "gemini":
-			// Gemini's explicitly documented per-invocation settings path.
-			home := environmentValue(env, "GEMINI_CLI_HOME")
-			if home == "" {
-				home = environmentValue(env, "HOME")
-			}
-			if home == "" {
-				return cleanup(fmt.Errorf("gemini profile has no isolated HOME"))
-			}
-			target := filepath.Join(home, ".gemini", "settings.json")
-			if err := mergeMCPProviderConfig(target, server); err != nil {
-				return cleanup(err)
-			}
 		case "agy":
 			home := environmentValue(env, "HOME")
 			if home == "" {

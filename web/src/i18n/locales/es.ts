@@ -1325,7 +1325,7 @@ export const es = {
     loading: 'Cargando cuentas…',
     empty: 'Ninguna cuenta de IA utilizable',
     emptyHint:
-      'Instale y autentique Codex, Claude, Gemini, AGY, OpenCode u otro proveedor compatible antes de iniciar una sesión.',
+      'Instale y autentique Codex, Claude, AGY, OpenCode u otro proveedor compatible antes de iniciar una sesión.',
     remaining: '{{value}}% restante',
     remainingLabel: '{{value}} restante',
     quotaUnknown: 'Cuota desconocida',
@@ -1997,7 +1997,6 @@ export const es = {
     loginInstCodex: 'Codex iniciará el flujo oficial de inicio de sesión de ChatGPT Plus / OpenAI.',
     loginInstAgy: 'AGY solicitará inicio de sesión con su cuenta de Google en el navegador.',
     loginInstClaude: 'Claude Code abrirá la URL de autenticación de Anthropic.',
-    loginInstGemini: 'Gemini CLI solicitará inicio de sesión de cuenta de Google o clave de API.',
     loginInstOpencode: 'OpenCode utiliza autenticación por proveedor configurado en el entorno.',
     loginInstCursor: 'Cursor Agent conectará su sesión al agente Cursor.',
     configProvidersCta: 'Gestionar proveedores',
@@ -2505,7 +2504,7 @@ export const es = {
     tabSystem: 'Sistema y Versiones',
     overviewTitle: '¿Qué es IAPro Nexus?',
     overviewP1:
-      'IAPro Nexus es un espacio de control local diseñado para coding agents de IA (Codex, Claude Code, Gemini CLI, OpenCode, AGY, Cursor Agent).',
+      'IAPro Nexus es un espacio de control local diseñado para coding agents de IA (Codex, Claude Code, OpenCode, AGY, Cursor Agent).',
     overviewP2:
       'Maestro es una capa opcional de metodología de ingeniería: skills, puertas de calidad y evaluación de riesgos sin tomar posesión de la ejecución.',
     honestyModel:
@@ -2770,7 +2769,7 @@ export const es = {
     continueDesc:
       'Captura el git status, diff y archivos modificados con secretos redactados, e inicia un hilo limpio en el CLI de destino.',
     noOtherClis:
-      'No se detectaron otros CLI de codificación instalados. Instale Claude, Codex, Gemini o OpenCode para continuar entre proveedores.',
+      'No se detectaron otros CLI de codificación instalados. Instale Claude, Codex, AGY o OpenCode para continuar entre proveedores.',
     destProvider: 'Proveedor de Destino:',
     startContinuedSession: 'Iniciar Sesión Continuada',
     startingContinuedSession: 'Iniciando Sesión Continuada...',

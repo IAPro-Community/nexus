@@ -36,13 +36,6 @@ var KnownCLICatalog = []KnownCLISignature{
 		Tier:        1,
 	},
 	{
-		ID:          "gemini",
-		Name:        "Google Gemini CLI",
-		Binaries:    []string{"gemini"},
-		ConfigPaths: []string{".gemini"},
-		Tier:        1,
-	},
-	{
 		ID:          "agy",
 		Name:        "Antigravity CLI",
 		Binaries:    []string{"agy"},

@@ -187,8 +187,6 @@ func formatProviderBadge(p string) string {
 		return "CLAUDE"
 	case "opencode":
 		return "OPENCD"
-	case "gemini":
-		return "GEMINI"
 	case "cursor":
 		return "CURSOR"
 	default:

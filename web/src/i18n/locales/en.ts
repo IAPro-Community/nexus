@@ -1309,7 +1309,7 @@ export const en = {
     loading: 'Loading accounts…',
     empty: 'No usable AI account',
     emptyHint:
-      'Install and authenticate Codex, Claude, Gemini, AGY, OpenCode or another supported provider before starting a session.',
+      'Install and authenticate Codex, Claude, AGY, OpenCode or another supported provider before starting a session.',
     remaining: '{{value}}% remaining',
     remainingLabel: '{{value}} remaining',
     quotaUnknown: 'Quota unknown',
@@ -1980,7 +1980,6 @@ export const en = {
     loginInstCodex: 'Codex will initiate official ChatGPT Plus / OpenAI OAuth login.',
     loginInstAgy: 'AGY will prompt for Google Account login in your browser.',
     loginInstClaude: 'Claude Code will open Anthropic authentication in browser.',
-    loginInstGemini: 'Gemini CLI will prompt for Google Account or API key.',
     loginInstOpencode: 'OpenCode authenticates via configured provider in environment.',
     loginInstCursor: 'Cursor Agent connects your session to Cursor.',
     configProvidersCta: 'Manage providers',
@@ -2743,7 +2742,7 @@ export const en = {
     continueDesc:
       'Captures current git status, diff stats, and modified files with sensitive secrets redacted, and boots a clean agent thread in the target CLI.',
     noOtherClis:
-      'No other installed coding CLIs detected. Install Claude, Codex, Gemini, or OpenCode to continue across providers.',
+      'No other installed coding CLIs detected. Install Claude, Codex, AGY, or OpenCode to continue across providers.',
     destProvider: 'Destination Provider:',
     startContinuedSession: 'Start Continued Session',
     startingContinuedSession: 'Starting Continued Session...',

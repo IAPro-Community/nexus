@@ -13,7 +13,7 @@ func TestDriverRegistryAndCapabilities(t *testing.T) {
 	reg := DefaultRegistry()
 	ctx := context.Background()
 
-	providers := []string{"codex", "agy", "claude", "opencode", "gemini", "fake"}
+	providers := []string{"codex", "agy", "claude", "opencode", "cursor", "fake"}
 	for _, p := range providers {
 		d, err := reg.Get(p)
 		if err != nil {
@@ -114,7 +114,6 @@ func TestHeadlessKickoffArgsMatchProviderCLIContracts(t *testing.T) {
 	}{
 		{name: "claude", d: NewClaudeDriver(), want: []string{"-p", "ship it"}},
 		{name: "agy", d: NewAGYDriver(), want: []string{"-p", "ship it"}},
-		{name: "gemini", d: NewGeminiDriver(), want: []string{"-p", "ship it"}},
 		{name: "opencode", d: NewOpenCodeDriver(), want: []string{"run", "ship it"}},
 		{name: "cursor", d: NewCursorDriver(), want: []string{"-p", "ship it", "--output-format", "text"}},
 	}

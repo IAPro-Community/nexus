@@ -57,14 +57,12 @@ func (a *Adapter) Name() string {
 
 func (a *Adapter) Capabilities() model.Capabilities {
 	return model.Capabilities{
-		Login:         true,
-		Logout:        true,
-		Usage:         true,
-		Conversations: true,
-		Resume:        true,
-		// Host history may be linked, but there is no sibling-profile adopt/seed
-		// path equivalent to Codex CrossAccountResume.
-		CrossAccountResume: false,
+		Login:              true,
+		Logout:             true,
+		Usage:              true,
+		Conversations:      true,
+		Resume:             true,
+		CrossAccountResume: true,
 		HotAccountSwitch:   false,
 		IsolatedRuntime:    true,
 		ProjectBinding:     true,
@@ -102,7 +100,9 @@ func (a *Adapter) Prepare(ctx context.Context, p model.Profile) error {
 	}
 
 	// Synchronize shared non-credential conversation history artifacts.
-	_ = historysync.SyncProviderHistory(string(a.ID()), p.Name, home)
+	if err := historysync.SyncProviderHistory(string(a.ID()), p.Name, home); err != nil {
+		slog.Warn("AGY history sync warning", "profile", p.Name, "err", err)
+	}
 
 	return nil
 }
@@ -1117,7 +1117,7 @@ func appendAGYSummarySessions(ctx context.Context, path, profileName, workspace 
 		if err := rows.Scan(&id, &title, &modified, &workspaceURIs); err != nil || id == "" || id == "." || id == ".." || strings.ContainsAny(id, `/\\`) || seen[id] {
 			continue
 		}
-		if info, err := os.Lstat(filepath.Join(filepath.Dir(path), "conversations", id+".db")); err != nil || !info.Mode().IsRegular() {
+		if info, err := os.Stat(filepath.Join(filepath.Dir(path), "conversations", id+".db")); err != nil || !info.Mode().IsRegular() {
 			continue
 		}
 		seen[id] = true

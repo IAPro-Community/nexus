@@ -20,7 +20,7 @@ const (
 // AccountScope is the SDK's canonical provider account identity contract.
 type AccountScope = sdkmodel.AccountScope
 
-// ProviderID identifies a supported AI CLI provider (e.g. "codex", "agy", "claude", "opencode", "gemini", "cursor").
+// ProviderID identifies a supported AI CLI provider (e.g. "codex", "agy", "claude", "opencode", "cursor").
 type ProviderID = sdkmodel.ProviderID
 
 const (

@@ -25,7 +25,6 @@ func DefaultRegistry() *Registry {
 		defaultRegistry.Register(NewAGYDriver())
 		defaultRegistry.Register(NewClaudeDriver())
 		defaultRegistry.Register(NewOpenCodeDriver())
-		defaultRegistry.Register(NewGeminiDriver())
 		defaultRegistry.Register(NewCursorDriver())
 		defaultRegistry.Register(NewZCodeDriver())
 		defaultRegistry.Register(NewShellDriver())

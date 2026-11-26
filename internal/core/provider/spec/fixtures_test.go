@@ -31,21 +31,6 @@ func TestCanonicalQuotaFixtures(t *testing.T) {
 		}
 		assertByteEqual(t, "quota/claude/oauth_usage_v1.json", filepath.Join("..", "adapters", "claude", "testdata", "oauth_usage_v1.json"))
 	})
-	t.Run("gemini retrieveUserQuota", func(t *testing.T) {
-		var payload struct {
-			Buckets []map[string]any `json:"buckets"`
-		}
-		if err := json.Unmarshal(readFixture(t, "quota/gemini/retrieve_user_quota_v1.json"), &payload); err != nil {
-			t.Fatal(err)
-		}
-		if len(payload.Buckets) == 0 {
-			t.Fatal("gemini fixture has no buckets")
-		}
-		if payload.Buckets[0]["remainingFraction"] == nil && payload.Buckets[0]["remainingAmount"] == nil {
-			t.Fatal("gemini bucket missing remainingFraction/remainingAmount")
-		}
-		assertByteEqual(t, "quota/gemini/retrieve_user_quota_v1.json", filepath.Join("..", "adapters", "gemini", "testdata", "retrieve_user_quota_v1.json"))
-	})
 	t.Run("codex rateLimits/read", func(t *testing.T) {
 		var payload struct {
 			RateLimits struct {

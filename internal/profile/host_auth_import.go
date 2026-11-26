@@ -16,7 +16,6 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/claude"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/cursor"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/gemini"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/opencode"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/zcode"
 	"github.com/IAPro-Community/nexus/internal/core/provider/authcopy"
@@ -258,8 +257,6 @@ func DetectHostAuth(ctx context.Context, providerID string) (model.HostAuthDetec
 		adapter = claude.New()
 	case "codex":
 		adapter = codex.New()
-	case "gemini":
-		adapter = gemini.New()
 	case "agy":
 		adapter = agy.New()
 	case "opencode":
@@ -281,7 +278,7 @@ func DetectHostAuth(ctx context.Context, providerID string) (model.HostAuthDetec
 // DetectAllHostAuth inspects all registered native providers and returns all host detections.
 func DetectAllHostAuth(ctx context.Context) []model.HostAuthDetection {
 	providers := []coreprovider.Provider{
-		codex.New(), claude.New(), gemini.New(), agy.New(), opencode.New(), cursor.New(), zcode.New(),
+		codex.New(), claude.New(), agy.New(), opencode.New(), cursor.New(), zcode.New(),
 	}
 	var detections []model.HostAuthDetection
 	for _, p := range providers {

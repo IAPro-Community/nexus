@@ -61,8 +61,6 @@ export const AccountLoginModal: React.FC<AccountLoginModalProps> = ({
         return t('usage.loginInstAgy');
       case 'claude':
         return t('usage.loginInstClaude');
-      case 'gemini':
-        return t('usage.loginInstGemini');
       case 'opencode':
         return t('usage.loginInstOpencode');
       case 'cursor':

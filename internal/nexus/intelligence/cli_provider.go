@@ -26,7 +26,7 @@ type CLIProvider struct {
 // coding-agent CLIs that currently advertise both Headless and SubmitPrompt support.
 func HeadlessPromptArgs(providerID, prompt string) ([]string, error) {
 	switch strings.ToLower(strings.TrimSpace(providerID)) {
-	case "claude", "agy", "gemini", "cursor":
+	case "claude", "agy", "cursor":
 		return []string{"-p", prompt}, nil
 	case "codex":
 		return []string{"exec", prompt}, nil

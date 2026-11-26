@@ -92,7 +92,7 @@ func TestBrowserAutomaticMCPStdioProviders(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
-	for _, provider := range []string{"claude", "gemini", "agy", "cursor"} {
+	for _, provider := range []string{"claude", "agy", "cursor"} {
 		t.Run(provider, func(t *testing.T) {
 			home := t.TempDir()
 			opts := LaunchOptions{RuntimeID: "test-" + provider, ProjectID: "project-a", ProviderID: provider}
@@ -105,11 +105,6 @@ func TestBrowserAutomaticMCPStdioProviders(t *testing.T) {
 			}
 			if provider == "claude" && len(args) != 2 {
 				t.Fatalf("claude args: %v", args)
-			}
-			if provider == "gemini" {
-				if _, err := os.Stat(filepath.Join(home, ".gemini", "settings.json")); err != nil {
-					t.Fatal(err)
-				}
 			}
 			if provider == "agy" {
 				if _, err := os.Stat(filepath.Join(home, ".gemini", "config", "mcp_config.json")); err != nil {

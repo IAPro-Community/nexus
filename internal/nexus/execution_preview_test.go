@@ -326,7 +326,7 @@ func TestExecutionPreviewAdmissionUsesApprovedAutonomyContract(t *testing.T) {
 		t.Fatal(err)
 	}
 	accounts := []ProviderAccount{{
-		ID: "gemini-main", Provider: "gemini", Profile: "default", DisplayName: "Gemini",
+		ID: "cursor-main", Provider: "cursor", Profile: "default", DisplayName: "Cursor",
 		Authenticated: true, Available: true, Health: "healthy",
 		QuotaView: &quota.QuotaView{Status: "LIVE"}, QuotaRemaining: 0.8,
 		Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED"},

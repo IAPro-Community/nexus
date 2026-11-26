@@ -1317,7 +1317,7 @@ export const ptBR = {
     loading: 'Carregando contas…',
     empty: 'Nenhuma conta de IA utilizável',
     emptyHint:
-      'Instale e autentique Codex, Claude, Gemini, AGY, OpenCode ou outro provedor suportado antes de iniciar uma sessão.',
+      'Instale e autentique Codex, Claude, AGY, OpenCode ou outro provedor suportado antes de iniciar uma sessão.',
     remaining: '{{value}}% restante',
     remainingLabel: '{{value}} restante',
     quotaUnknown: 'Cota desconhecida',
@@ -1990,7 +1990,6 @@ export const ptBR = {
     loginInstCodex: 'O Codex iniciará o fluxo oficial de login do ChatGPT Plus / OpenAI.',
     loginInstAgy: 'O AGY solicitará login com sua Conta Google no navegador.',
     loginInstClaude: 'O Claude Code abrirá a URL de autenticação da Anthropic.',
-    loginInstGemini: 'O Gemini CLI solicitará login da Conta Google ou chave de API.',
     loginInstOpencode: 'O OpenCode utiliza autenticação por provedor configurado no ambiente.',
     loginInstCursor: 'O Cursor Agent conectará sua sessão ao agente Cursor.',
     configProvidersCta: 'Gerenciar provedores',
@@ -2761,7 +2760,7 @@ export const ptBR = {
     continueDesc:
       'Captura o git status, diff e arquivos modificados com segredos mascarados, e inicia um tópico limpo na CLI de destino.',
     noOtherClis:
-      'Nenhuma outra CLI instalada detectada. Instale Claude, Codex, Gemini ou OpenCode para continuar entre provedores.',
+      'Nenhuma outra CLI instalada detectada. Instale Claude, Codex, AGY ou OpenCode para continuar entre provedores.',
     destProvider: 'Provedor de Destino:',
     startContinuedSession: 'Iniciar Sessão Continuada',
     startingContinuedSession: 'Iniciando Sessão Continuada...',

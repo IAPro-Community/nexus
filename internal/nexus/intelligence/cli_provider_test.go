@@ -65,7 +65,7 @@ func TestHeadlessPromptArgsMatchSupportedProviderCLIs(t *testing.T) {
 		provider string
 		want0    string
 	}{
-		{"claude", "-p"}, {"agy", "-p"}, {"gemini", "-p"}, {"cursor", "-p"}, {"opencode", "run"}, {"codex", "exec"},
+		{"claude", "-p"}, {"agy", "-p"}, {"cursor", "-p"}, {"opencode", "run"}, {"codex", "exec"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.provider, func(t *testing.T) {

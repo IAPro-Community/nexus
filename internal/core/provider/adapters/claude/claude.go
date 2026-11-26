@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -36,7 +37,7 @@ func (a *Adapter) Capabilities() model.Capabilities {
 		Usage:              true,
 		Conversations:      true,
 		Resume:             true,
-		CrossAccountResume: false,
+		CrossAccountResume: true,
 		HotAccountSwitch:   false,
 		IsolatedRuntime:    true,
 		ProjectBinding:     true,
@@ -79,7 +80,9 @@ func (a *Adapter) Prepare(ctx context.Context, p model.Profile) error {
 	if err := security.ApplyIsolation(home, policy); err != nil {
 		return err
 	}
-	_ = historysync.SyncProviderHistory(string(a.ID()), p.Name, home)
+	if err := historysync.SyncProviderHistory(string(a.ID()), p.Name, home); err != nil {
+		slog.Warn("Claude history sync warning", "profile", p.Name, "err", err)
+	}
 	return nil
 }
 

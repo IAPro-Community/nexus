@@ -26,7 +26,6 @@ func NewCapacityProbeRegistry() *CapacityProbeRegistry {
 		"codex":  newObservedUsageProbe("codex", []model.UsageSource{model.SourceOfficialAPI, model.SourceObservation}),
 		"agy":    newObservedUsageProbe("agy", []model.UsageSource{model.SourceCLIOutput, model.SourceLocalFiles}),
 		"claude": newObservedUsageProbe("claude", []model.UsageSource{model.SourceOfficialAPI, model.SourceLocalFiles}),
-		"gemini": newObservedUsageProbe("gemini", []model.UsageSource{model.SourceOfficialAPI, model.SourceLocalFiles}),
 	}}
 }
 
@@ -43,7 +42,7 @@ func (r *CapacityProbeRegistry) Providers() []string {
 		return nil
 	}
 	// Keep the order stable for diagnostics and tests.
-	order := []string{"codex", "agy", "claude", "gemini"}
+	order := []string{"codex", "agy", "claude"}
 	out := make([]string, 0, len(order))
 	for _, provider := range order {
 		if _, ok := r.probes[provider]; ok {

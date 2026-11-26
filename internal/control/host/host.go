@@ -1470,7 +1470,7 @@ func refreshUsageAfterSession(providerID, profileID string) {
 		return
 	}
 	switch strings.ToLower(providerID) {
-	case "codex", "agy", "claude", "gemini", "opencode":
+	case "codex", "agy", "claude", "opencode":
 	default:
 		return
 	}

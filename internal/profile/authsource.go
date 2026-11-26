@@ -14,7 +14,6 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/claude"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/cursor"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/gemini"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/opencode"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/zcode"
 )
@@ -108,8 +107,6 @@ func AdoptHostAuth(ctx context.Context, p model.Profile) (model.AuthSource, bool
 	switch p.Provider {
 	case "claude":
 		adapter = claude.New()
-	case "gemini":
-		adapter = gemini.New()
 	case "agy":
 		adapter = agy.New()
 	case "opencode":

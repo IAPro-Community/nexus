@@ -401,7 +401,7 @@ func missionProviderArgs(provider string, args []string, policy agentPromptPolic
 		return nil, fmt.Errorf("%s autonomous coding requires allow_tool_auto_approval", provider)
 	}
 	switch provider {
-	case "agy", "claude", "codex", "gemini":
+	case "agy", "claude", "codex":
 		// Codex parses exec options before its positional prompt. Appending
 		// approval flags after the prompt makes current Codex releases report
 		// "unexpected argument" and prevents the autonomous runtime from

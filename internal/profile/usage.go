@@ -452,8 +452,6 @@ func GetQuotaDetails(providerName, name, plan, email string) QuotaDetails {
 			q.ModelName = "Claude 3.7 Sonnet"
 		case "opencode":
 			q.ModelName = "OpenCode Provider"
-		case "gemini":
-			q.ModelName = "Gemini Pro"
 		}
 	}
 

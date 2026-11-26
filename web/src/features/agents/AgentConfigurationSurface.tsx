@@ -13,7 +13,7 @@ export const AgentConfigurationSurface: React.FC<{ agent?: Agent; onApplied?: ()
 
   const providers = useMemo(
     () =>
-      ['', 'codex', 'claude', 'gemini', 'opencode', 'agy', 'cursor'].map((value) => ({
+      ['', 'codex', 'claude', 'opencode', 'agy', 'cursor'].map((value) => ({
         value,
         label: value || t('agentConfig.automatic', 'Automatic'),
       })),

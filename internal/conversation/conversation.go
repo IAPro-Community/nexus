@@ -14,7 +14,6 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/claude"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/cursor"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/gemini"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/opencode"
 	"github.com/IAPro-Community/nexus/internal/core/session"
 	"github.com/IAPro-Community/nexus/internal/profile"
@@ -37,10 +36,10 @@ func ListOtherReadOnly(ctx context.Context) ([]Conversation, error) {
 		return nil, err
 	}
 	adapters := map[string]provider.ConversationProvider{
-		"agy": agy.New(), "claude": claude.New(), "cursor": cursor.New(), "opencode": opencode.New(), "gemini": gemini.New(),
+		"agy": agy.New(), "claude": claude.New(), "cursor": cursor.New(), "opencode": opencode.New(),
 	}
 	var sessions []model.Session
-	for _, name := range []string{"agy", "claude", "cursor", "opencode", "gemini"} {
+	for _, name := range []string{"agy", "claude", "cursor", "opencode"} {
 		adapter := adapters[name]
 		entries, readErr := os.ReadDir(filepath.Join(data, "profiles", name))
 		if readErr != nil && !os.IsNotExist(readErr) {
@@ -86,7 +85,6 @@ func ListRecent(limit int, workspaceFilter string) []Conversation {
 	claudeAdapter := claude.New()
 	cursorAdapter := cursor.New()
 	opencodeAdapter := opencode.New()
-	geminiAdapter := gemini.New()
 
 	for _, p := range profs {
 		switch p.Provider {
@@ -110,10 +108,6 @@ func ListRecent(limit int, workspaceFilter string) []Conversation {
 			if list, err := opencodeAdapter.ListConversations(ctx, p, workspaceFilter); err == nil {
 				allSessions = append(allSessions, list...)
 			}
-		case "gemini":
-			if list, err := geminiAdapter.ListConversations(ctx, p, workspaceFilter); err == nil {
-				allSessions = append(allSessions, list...)
-			}
 		}
 	}
 
@@ -132,9 +126,6 @@ func ListRecent(limit int, workspaceFilter string) []Conversation {
 		allSessions = append(allSessions, list...)
 	}
 	if list, err := opencodeAdapter.ListConversations(ctx, dummyProf, workspaceFilter); err == nil {
-		allSessions = append(allSessions, list...)
-	}
-	if list, err := geminiAdapter.ListConversations(ctx, dummyProf, workspaceFilter); err == nil {
 		allSessions = append(allSessions, list...)
 	}
 

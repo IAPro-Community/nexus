@@ -103,7 +103,7 @@ export const ContinueModal: React.FC<ContinueModalProps> = ({
           >
             {t(
               'legacy.noOtherClis',
-              'No other installed coding CLIs detected. Install Claude, Codex, Gemini, or OpenCode to continue across providers.',
+              'No other installed coding CLIs detected. Install Claude, Codex, AGY, or OpenCode to continue across providers.',
             )}
           </div>
         ) : (

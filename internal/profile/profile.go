@@ -455,9 +455,6 @@ func Inspect(provider, name string) (*ProfileInfo, error) {
 	case "opencode":
 		info.IsolationVars["HOME"] = home
 		info.IsolationVars["OPENCODE_CONFIG_DIR"] = filepath.Join(home, ".config", "opencode")
-	case "gemini":
-		info.IsolationVars["HOME"] = home
-		info.IsolationVars["GEMINI_CLI_HOME"] = home
 	}
 
 	return info, nil

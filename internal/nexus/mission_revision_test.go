@@ -307,10 +307,10 @@ func TestAutonomousResourceReadinessHonorsIsolationContract(t *testing.T) {
 		Capabilities: map[string]string{"headless": "SUPPORTED", "submit_prompt": "SUPPORTED"},
 	}
 
-	gemini := base
-	gemini.ID = "gemini-default"
-	gemini.Provider = "gemini"
-	if hasAutonomousResourceForContract([]ProviderAccount{gemini}, runner.DefaultAutonomyContract()) {
+	cursor := base
+	cursor.ID = "cursor-default"
+	cursor.Provider = "cursor"
+	if hasAutonomousResourceForContract([]ProviderAccount{cursor}, runner.DefaultAutonomyContract()) {
 		t.Fatal("WHEN_RESOURCES must not claim for an unverified isolation provider")
 	}
 
@@ -328,7 +328,7 @@ func TestAutonomousResourceReadinessHonorsIsolationContract(t *testing.T) {
 	unrestricted.AllowExternalNetwork = true
 	unrestricted.AllowSecretAccess = true
 	unrestricted.AllowPaidServices = true
-	if !hasAutonomousResourceForContract([]ProviderAccount{gemini}, unrestricted) {
+	if !hasAutonomousResourceForContract([]ProviderAccount{cursor}, unrestricted) {
 		t.Fatal("explicit unrestricted contract should not require verified containment")
 	}
 }

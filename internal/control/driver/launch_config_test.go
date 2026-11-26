@@ -13,7 +13,6 @@ func TestApplyLaunchConfigurationModelFlags(t *testing.T) {
 	}{
 		{"codex", "gpt-5.6-sol", []string{"--model", "gpt-5.6-sol"}},
 		{"claude", "opus", []string{"--model", "opus"}},
-		{"gemini", "gemini-2.5-pro", []string{"--model", "gemini-2.5-pro"}},
 		{"opencode", "ollama/deepseek-r1", []string{"--model", "ollama/deepseek-r1"}},
 		{"agy", "claude-sonnet-4-20250514", []string{"--model", "claude-sonnet-4-20250514"}},
 	}

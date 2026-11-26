@@ -2,6 +2,7 @@ package driver
 
 import (
 	"context"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -53,7 +54,9 @@ func bootstrapProfile(provider string, p model.Profile) (string, error) {
 			return "", err
 		}
 	default:
-		_ = historysync.SyncProviderHistory(provider, p.Name, home)
+		if err := historysync.SyncProviderHistory(provider, p.Name, home); err != nil {
+			slog.Warn("provider history sync warning", "provider", provider, "profile", p.Name, "err", err)
+		}
 	}
 	return home, nil
 }
