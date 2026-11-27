@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	sdkproviders "github.com/IAPro-Community/IAPro-SDK/providers"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
@@ -41,22 +42,7 @@ type DuplicateAccountGroup struct {
 // CanonicalAccountIdentity returns a stable provider-scoped account key used to
 // prevent duplicating the same login across multiple profiles of one provider.
 func CanonicalAccountIdentity(providerName string, info model.AccountInfo) string {
-	if !info.Authenticated {
-		return ""
-	}
-	prov := strings.ToLower(strings.TrimSpace(providerName))
-	email := strings.ToLower(strings.TrimSpace(info.Email))
-	extID := strings.ToLower(strings.TrimSpace(info.ExternalAccountID))
-	if prov == "codex" || prov == "cursor" {
-		if extID != "" {
-			return extID
-		}
-		return email
-	}
-	if email != "" {
-		return email
-	}
-	return extID
+	return sdkproviders.DuplicateIdentityHint(providerName, info.Email, info.ExternalAccountID, info.Authenticated)
 }
 
 func accountDisplayLabel(info model.AccountInfo) string {
