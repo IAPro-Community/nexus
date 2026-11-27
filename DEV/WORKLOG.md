@@ -1,3 +1,17 @@
+## 2026-11-27 — Investigação estratégica, auditoria de performance, otimizações P0/P1 e benchmarks reproduzíveis
+
+- **Auditoria competitiva, arquitetural e plano de evolução (`docs/evolution/`):**
+  - Criada documentação consolidada em [README.md](file:///projetos/nexus/docs/evolution/README.md), [01-DIAGNOSIS-AND-COMPETITIVE-ANALYSIS.md](file:///projetos/nexus/docs/evolution/01-DIAGNOSIS-AND-COMPETITIVE-ANALYSIS.md), [02-PERFORMANCE-AND-USABILITY-AUDIT.md](file:///projetos/nexus/docs/evolution/02-PERFORMANCE-AND-USABILITY-AUDIT.md), [03-TARGET-ARCHITECTURE-AND-PROPOSALS.md](file:///projetos/nexus/docs/evolution/03-TARGET-ARCHITECTURE-AND-PROPOSALS.md) e [04-EXECUTABLE-PLAN-AND-VERIFICATION.md](file:///projetos/nexus/docs/evolution/04-EXECUTABLE-PLAN-AND-VERIFICATION.md) cobrindo fronteiras (`Nexus` / `IAPro-SDK` / `Maestro`), matriz comparativa (26 critérios, pesquisa datada de `2026-11-27`), roadmap `P0`–`P3` e backlog.
+- **Otimizações P0/P1 implementadas e benchmarked:**
+  - `68613acb` — Cache fingerprint `(mtime, size)` + `singleflight` em `internal/core/provider/versionprobe/versionprobe.go`, consolidação via `detectProviderCLI` nos drivers (`internal/control/driver/`) e adapters (`claude`, `cursor`, `opencode`, `zcode`), além de cache 60s para fallback `cursor-agent status` em `DetectHostAuth`.
+  - `8902f745` — `internal/nexus/quota_monitor_service.go` passa a ignorar provedores `QuotaUnsupported` e reutilizar snapshots frescos (`< quota.DefaultTTL`) para perfis ociosos sem runtime ativo.
+  - `92bddaaf` — Fast path zero-subprocesso `.git/HEAD` (`readGitBranchFast` + `?summary=1`) em `internal/control/web/handlers_git.go` e cadência 30s em `WorkspaceTaskbar.tsx` + `web/src/nexus/api.ts`.
+  - `926fb01c` — Desacoplamento de `/api/v1/providers` para 5 minutos (`PROVIDERS_POLL_MS`) em `web/src/app/useNexusData.ts` e atalhos de teclado (`switch-git-branch`, `refresh-workspace-state`) na Command Palette em `NexusWorkspaceSession.tsx` (PT-BR/EN/ES).
+  - `11e5cfba` — Suite reproduzível `scripts/benchmark-nexus-evolution.py` + `internal/control/web/benchmark_evolution_test.go`.
+- **Resultados ao vivo ANTES (`4c381001`) vs DEPOIS (`11e5cfba`) e verificação:**
+  - `GET /api/v1/providers`: **`2,299.34 ms` -> `4.23 ms`** (**543.6x**; Go microbenchmark `0.366 ms/op`); `GET /api/v1/resources`: **`1,795.04 ms` -> `7.67 ms`** (**234x**); `GET /api/v1/hud`: **`330.30 ms` -> `0.51 ms`**; `?summary=1`: **`38.93 ms` -> `0.49 ms`**; CLI cold start `14.88 ms` -> **`7.12 ms`**; CPU idle (janela 3s `/proc/stat`): **`0.00%`** em `nexus`, `desktop` e `hud`.
+  - `gofmt`, `go vet -tags=gtk3 ./...`, suítes `-race` (`versionprobe`, `claude/cursor/opencode/zcode`, `driver`, `nexus`, `web`), Web completo (`prettier`, `eslint`, `stylelint`, `check:styles`, `tsc --noEmit`, 172/172 arquivos / 1.089/1.089 testes Vitest, build dentro dos orçamentos) e instalação/reinício local aprovados.
+
 ## 2026-11-26 — Centralização de notificações pelo NEX com fallback automático
 
 - **Hub de notificação NEX no backend (`internal/control/notify/`, `internal/control/web/`):**
