@@ -263,6 +263,16 @@ export const featureAnnouncements: readonly FeatureAnnouncement[] = [
     summary: 'discovery.remotePushBody',
     tourStep: 'remote-push',
   },
+  {
+    id: 'agents-git-diff-review',
+    revision: 1,
+    surfaces: ['agents'],
+    openSurface: 'agents',
+    target: '[data-tour="project-diff-review"]',
+    title: 'discovery.agentsDiffReviewTitle',
+    summary: 'discovery.agentsDiffReviewBody',
+    tourStep: 'diff-review',
+  },
 ] as const;
 
 export const announcementStorageKey = (id: string) => `iapro:nexus:feature-announcement:v1:${id}`;

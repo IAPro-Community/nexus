@@ -766,6 +766,26 @@ export const es = {
     groupsName: 'Nombre del grupo',
     groupsTask: 'Tarea',
     groupsWorktree: 'Worktree',
+    reviewDiff: 'Diff Git',
+    worktreeQuick: 'Worktree aislado',
+    worktreeQuickDefaultName: 'wt-dev',
+    diffDialog: {
+      title: 'Revisión de Diff Git y Comentario al Agente',
+      filesCount: '{{count}} archivo(s)',
+      truncated: 'Diff truncado (256 KiB)',
+      worktreeLabel: 'Seleccionar worktree',
+      primaryWorktree: 'Workspace principal',
+      cleanTitle: 'Working tree limpio',
+      cleanHint: 'No hay cambios locales pendientes en este repositorio o worktree.',
+      filesLabel: 'Archivos modificados',
+      untrackedOnly: 'Solo hay archivos aún no rastreados por Git.',
+      agentLabel: 'Agente de destino',
+      commentLabel: 'Comentario de revisión',
+      commentPlaceholder:
+        'Haga clic en un archivo para referenciarlo y escriba el ajuste para enviarlo al agente…',
+      sendToAgent: 'Enviar comentario al agente',
+      sentToast: 'Comentario enviado a {{name}}',
+    },
     collisions: {
       title: 'Conflictos de edición',
       refresh: 'Reescanear worktrees',
@@ -978,6 +998,12 @@ export const es = {
     noAttention: 'No hay decisiones pendientes',
     noRecentWork: 'Nada activo todavía',
     noRecentWorkHint: 'Inicie una sesión o abra el terminal del proyecto para comenzar.',
+    startOfDayTitle: 'Resumen del día',
+    startOfDayWorking: '{{count}} en ejecución',
+    startOfDayAttention: '{{count}} pendiente(s)',
+    startOfDayModified: '{{count}} archivo(s) modificados en Git',
+    startOfDayClean: 'Git limpio',
+    reviewGitDiff: 'Revisar Diff Git',
   },
   conversation: {
     empty: 'Comience la conversación.',
@@ -1452,6 +1478,9 @@ export const es = {
     remotePushTitle: 'Notificaciones en el móvil para lo que depende de ti',
     remotePushBody:
       'Activa las notificaciones y este dispositivo recibe el aviso en el instante en que una ejecución necesita una respuesta, incluso con Nexus cerrado. El payload va cifrado para el dispositivo que se suscribió.',
+    agentsDiffReviewTitle: 'Revisión de Diff Git directa al agente',
+    agentsDiffReviewBody:
+      'Inspeccione cambios del repositorio o worktree desde el panel y envíe comentarios dirigidos directamente al agente elegido.',
   },
   tour: {
     featureOpen: 'Conocer esta área',
@@ -1488,6 +1517,9 @@ export const es = {
     agentGroupsTitle: 'Agrupe agentes persistentes',
     agentGroupsBody:
       'Organice identidades estables de agentes por tarea, worktree y feature. Los filtros y el orden manual conservan sus sesiones existentes.',
+    agentDiffReviewTitle: 'Revise diffs y comente directo al agente',
+    agentDiffReviewBody:
+      'Abra el diff local del proyecto o worktree, haga clic en un archivo para referenciar su ruta y envíe instrucciones directas al agente.',
     agentTimelineTitle: 'Inspeccione la línea de tiempo del ciclo del Agent',
     agentTimelineBody:
       'Abra Director Mode para seguir lanzamiento, conexión, cuota, transferencia y recuperación con origen durable, generación del runtime y metadatos de correlación.',

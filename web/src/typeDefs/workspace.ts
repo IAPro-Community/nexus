@@ -153,6 +153,23 @@ export interface GitCheckoutResult {
   error?: string;
 }
 
+export interface GitDiffFile {
+  path: string;
+  status: 'modified' | 'added' | 'deleted' | 'renamed' | 'untracked' | string;
+  additions: number;
+  deletions: number;
+}
+
+export interface GitDiffResult {
+  project_id: string;
+  dir: string;
+  branch: string;
+  files: GitDiffFile[];
+  diff_text: string;
+  truncated: boolean;
+  is_clean: boolean;
+}
+
 export type ContextReadinessState = 'MISSING' | 'HYDRATING' | 'READY' | 'STALE' | 'FAILED';
 
 export interface ContextFingerprint {

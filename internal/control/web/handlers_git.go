@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -8,12 +9,35 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/IAPro-Community/nexus/internal/executil"
 	"github.com/IAPro-Community/nexus/internal/nexus"
 	"github.com/IAPro-Community/nexus/internal/nexus/store"
 )
+
+const maxGitDiffBytes = 256 * 1024
+
+// ProjectGitDiffFile summarizes one changed path in a repository or worktree.
+type ProjectGitDiffFile struct {
+	Path      string `json:"path"`
+	Status    string `json:"status"`
+	Additions int    `json:"additions"`
+	Deletions int    `json:"deletions"`
+}
+
+// ProjectGitDiffResponse is returned by GET /api/v1/projects/:id/git/diff.
+type ProjectGitDiffResponse struct {
+	ProjectID string               `json:"project_id"`
+	Dir       string               `json:"dir"`
+	Branch    string               `json:"branch"`
+	Files     []ProjectGitDiffFile `json:"files"`
+	DiffText  string               `json:"diff_text"`
+	Truncated bool                 `json:"truncated"`
+	IsClean   bool                 `json:"is_clean"`
+}
 
 // ProjectGitBranchesResponse is returned by GET /api/v1/projects/:id/git/branches
 type ProjectGitBranchesResponse struct {
@@ -218,6 +242,162 @@ func (h *NexusHandler) handleProjectGitCheckout(w http.ResponseWriter, r *http.R
 		"success":        true,
 		"current_branch": targetBranch,
 		"output":         strings.TrimSpace(string(out)),
+	})
+}
+
+func resolveAllowedGitDiffDir(ctx context.Context, canonicalPath, requestedWorktree string) (string, error) {
+	base := filepath.Clean(canonicalPath)
+	raw := strings.TrimSpace(requestedWorktree)
+	if raw == "" {
+		return base, nil
+	}
+	candidate := filepath.Clean(raw)
+	if candidate == base {
+		return base, nil
+	}
+	worktrees, err := listProjectGitWorktrees(ctx, base)
+	if err == nil {
+		for _, wt := range worktrees {
+			if filepath.Clean(wt.Path) == candidate {
+				return candidate, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("worktree %q is not registered for this project", raw)
+}
+
+func classifyGitPorcelainStatus(xy string) string {
+	switch {
+	case xy == "??":
+		return "untracked"
+	case strings.Contains(xy, "R"):
+		return "renamed"
+	case strings.Contains(xy, "A"):
+		return "added"
+	case strings.Contains(xy, "D"):
+		return "deleted"
+	default:
+		return "modified"
+	}
+}
+
+func parseGitNumstat(output string) map[string][2]int {
+	stats := make(map[string][2]int)
+	for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		parts := strings.SplitN(line, "\t", 3)
+		if len(parts) < 3 {
+			continue
+		}
+		add, _ := strconv.Atoi(strings.TrimSpace(parts[0]))
+		delCount, _ := strconv.Atoi(strings.TrimSpace(parts[1]))
+		path := strings.TrimSpace(parts[2])
+		if path != "" {
+			stats[path] = [2]int{add, delCount}
+		}
+	}
+	return stats
+}
+
+// handleProjectGitDiff GET /api/v1/projects/{projectID}/git/diff
+func (h *NexusHandler) handleProjectGitDiff(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	st, err := h.nexus.OpenProject()
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, err.Error())
+		return
+	}
+	projectID := projectIDFromPath(r.URL.Path)
+	if projectID == "" {
+		writeError(w, http.StatusNotFound, "missing project id")
+		return
+	}
+	proj, err := st.GetProject(projectID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "project not found")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	targetDir, err := resolveAllowedGitDiffDir(ctx, proj.CanonicalPath, r.URL.Query().Get("worktree"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	branch := readGitBranchFast(targetDir)
+	if branch == "" {
+		branch = getGitBranch(targetDir)
+	}
+	if branch == "" {
+		branch = proj.DefaultBranch
+	}
+
+	statusOut, err := executil.CommandContext(ctx, "git", "-C", targetDir, "status", "--porcelain=v1", "-uall").Output()
+	if err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("git status failed: %v", err))
+		return
+	}
+
+	numstatOut, err := executil.CommandContext(ctx, "git", "-C", targetDir, "diff", "--numstat", "HEAD").Output()
+	if err != nil {
+		numstatOut, _ = executil.CommandContext(ctx, "git", "-C", targetDir, "diff", "--numstat").Output()
+	}
+	numstats := parseGitNumstat(string(numstatOut))
+
+	files := make([]ProjectGitDiffFile, 0)
+	seen := make(map[string]struct{})
+	for _, line := range strings.Split(strings.TrimRight(string(statusOut), "\n"), "\n") {
+		if len(line) < 4 {
+			continue
+		}
+		xy := line[:2]
+		path := strings.TrimSpace(line[3:])
+		if idx := strings.Index(path, " -> "); idx >= 0 {
+			path = strings.TrimSpace(path[idx+4:])
+		}
+		path = strings.Trim(path, `"`)
+		if path == "" {
+			continue
+		}
+		if _, dup := seen[path]; dup {
+			continue
+		}
+		seen[path] = struct{}{}
+		counts := numstats[path]
+		files = append(files, ProjectGitDiffFile{
+			Path:      path,
+			Status:    classifyGitPorcelainStatus(xy),
+			Additions: counts[0],
+			Deletions: counts[1],
+		})
+	}
+
+	diffOut, diffErr := executil.CommandContext(ctx, "git", "-C", targetDir, "diff", "--no-color", "HEAD").Output()
+	if diffErr != nil {
+		diffOut, _ = executil.CommandContext(ctx, "git", "-C", targetDir, "diff", "--no-color").Output()
+	}
+	truncated := false
+	if len(diffOut) > maxGitDiffBytes {
+		diffOut = diffOut[:maxGitDiffBytes]
+		truncated = true
+	}
+
+	writeJSON(w, http.StatusOK, ProjectGitDiffResponse{
+		ProjectID: proj.ID,
+		Dir:       targetDir,
+		Branch:    branch,
+		Files:     files,
+		DiffText:  string(diffOut),
+		Truncated: truncated,
+		IsClean:   len(files) == 0 && len(diffOut) == 0,
 	})
 }
 

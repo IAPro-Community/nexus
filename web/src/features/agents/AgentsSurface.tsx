@@ -8,6 +8,8 @@ import {
   Code2,
   Compass,
   EyeOff,
+  FileDiff,
+  GitBranch,
   Layers3,
   MessageSquareText,
   Play,
@@ -39,6 +41,7 @@ import { useWorkspace } from '../../workspace/WorkspaceProvider';
 import { listSurfaces } from '../../workspace/model';
 import { DirectorAgentPanel } from './DirectorAgentPanel';
 import { DirectorFleetPanel } from './DirectorFleetPanel';
+import { ProjectDiffDialog } from './ProjectDiffDialog';
 import { formatOpenedAgo } from '../projects/projectRailRelativeTime';
 import { FeatureTour } from '../work/FeatureTour';
 import {
@@ -94,6 +97,7 @@ export const AgentsSurface: React.FC<{
   const [groupWorktree, setGroupWorktree] = useState('');
   const [groupFeature, setGroupFeature] = useState('');
   const [groupToDelete, setGroupToDelete] = useState<AgentGroup | null>(null);
+  const [diffDialogOpen, setDiffDialogOpen] = useState(false);
 
   useEffect(() => {
     let current = true;
@@ -117,6 +121,34 @@ export const AgentsSurface: React.FC<{
       await nexus.createAgent(project.id, name.trim(), selectedRole);
       setName('');
       await refresh();
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const createIsolatedWorktree = async () => {
+    setBusy('create-worktree');
+    setError('');
+    try {
+      const targetName =
+        name.trim() ||
+        `${t('agents.worktreeQuickDefaultName', 'wt-dev')}-${Date.now().toString(36).slice(-4)}`;
+      const created = await nexus.createAgent(project.id, targetName, selectedRole);
+      setName('');
+      try {
+        const cfgRes = await nexus.getAgentConfig(created.id);
+        await nexus.applyAgentConfig(created.id, {
+          ...cfgRes.config,
+          isolation: 'worktree',
+        });
+        await refresh();
+        onTerminal(created);
+      } catch {
+        await refresh();
+        onConfigure(created);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy('');
     }
@@ -318,6 +350,14 @@ export const AgentsSurface: React.FC<{
             </p>
           </div>
           <div className={styles.cardActions}>
+            <Button
+              size="sm"
+              tone="ghost"
+              data-tour="project-diff-review"
+              onClick={() => setDiffDialogOpen(true)}
+            >
+              <FileDiff size={13} /> {t('agents.reviewDiff', 'Diff Git')}
+            </Button>
             <Button size="sm" tone="ghost" onClick={() => setDirectorFleetOpen(true)}>
               <Layers3 size={13} /> {t('director.fleetOpen', 'Direção geral')}
             </Button>
@@ -407,6 +447,13 @@ export const AgentsSurface: React.FC<{
             </div>
             <Button tone="brand" disabled={!name.trim() || busy === 'create'} onClick={create}>
               <Plus size={14} /> {t('agents.create', 'Criar Agente')}
+            </Button>
+            <Button
+              tone="default"
+              disabled={Boolean(busy)}
+              onClick={() => void createIsolatedWorktree()}
+            >
+              <GitBranch size={14} /> {t('agents.worktreeQuick', 'Worktree isolado')}
             </Button>
           </div>
 
@@ -843,6 +890,16 @@ export const AgentsSurface: React.FC<{
           description={t('agents.groupsDeleteConfirm', { name: groupToDelete?.name || '' })}
           onConfirm={deleteGroup}
           onCancel={() => setGroupToDelete(null)}
+        />
+        <ProjectDiffDialog
+          open={diffDialogOpen}
+          onClose={() => setDiffDialogOpen(false)}
+          project={project}
+          agents={agents}
+          onSentToAgent={(agent) => {
+            void refresh();
+            onTerminal(agent);
+          }}
         />
         <FeatureTour projectId={project.id} surface="agents" compact />
       </div>

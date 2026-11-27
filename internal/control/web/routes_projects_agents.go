@@ -86,6 +86,8 @@ func (s *Server) routeProject(h *NexusHandler) http.HandlerFunc {
 			h.handleProjectOpenOS(w, r)
 		case strings.HasSuffix(r.URL.Path, "/git/branches"):
 			h.handleProjectGitBranches(w, r)
+		case strings.HasSuffix(r.URL.Path, "/git/diff"):
+			h.handleProjectGitDiff(w, r)
 		case strings.Contains(r.URL.Path, "/shares/"):
 			h.handleProjectShares(w, r)
 		case strings.HasSuffix(r.URL.Path, "/shares"):

@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowUpCircle, Play, RotateCcw, Square, TerminalSquare } from 'lucide-react';
+import { ArrowUpCircle, FileDiff, Play, RotateCcw, Square, TerminalSquare } from 'lucide-react';
 import { Badge, Button, Card, Dialog, EmptyState } from '../../design-system';
 import { api } from '../../api';
 import { nexus } from '../../nexus/api';
 import { runtimeIdFromRecoverResult } from '../../nexus/agentTerminalModel';
 import { ResourcePicker } from '../../nexus/ResourcePicker';
 import { ProjectCreateActions } from '../projects/ProjectCreateActions';
-import type { Agent, MissionRun, Project, RuntimeSession } from '../../types';
+import { ProjectDiffDialog } from '../agents/ProjectDiffDialog';
+import type { Agent, GitDiffResult, MissionRun, Project, RuntimeSession } from '../../types';
 import { translateStatus } from '../../i18n';
 import { useTranslation } from 'react-i18next';
 import styles from './ProjectOverviewSurface.module.scss';
@@ -64,6 +65,8 @@ export const ProjectOverviewSurface: React.FC<{
   const [busy, setBusy] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [resourceAgent, setResourceAgent] = useState<Agent | null>(null);
+  const [diffDialogOpen, setDiffDialogOpen] = useState(false);
+  const [gitDiffSummary, setGitDiffSummary] = useState<GitDiffResult | null>(null);
   const [updateInfo, setUpdateInfo] = useState<{
     nexus_version: string;
     maestro_version: string;
@@ -84,6 +87,21 @@ export const ProjectOverviewSurface: React.FC<{
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    void nexus
+      .getProjectGitDiff(project.id)
+      .then((diff) => {
+        if (active) setGitDiffSummary(diff);
+      })
+      .catch(() => {
+        if (active) setGitDiffSummary(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [project.id]);
 
   const agentList = Array.isArray(agents) ? agents : [];
   const resumeItems = buildOverviewResume(project.id, runtimes, agentList);
@@ -214,6 +232,28 @@ export const ProjectOverviewSurface: React.FC<{
       </div>
 
       {onOpenResources && <ProviderReadinessBanner onOpenAccounts={onOpenResources} />}
+
+      <section className={styles.startOfDayStrip} aria-label={t('overview.startOfDayTitle')}>
+        <div className={styles.startOfDayStats}>
+          <span className={styles.startOfDayTitle}>{t('overview.startOfDayTitle')}</span>
+          <Badge tone={working > 0 ? 'success' : 'default'}>
+            {t('overview.startOfDayWorking', { count: working })}
+          </Badge>
+          <Badge tone={needsYou.length + degraded > 0 ? 'warning' : 'default'}>
+            {t('overview.startOfDayAttention', { count: needsYou.length + degraded })}
+          </Badge>
+          {gitDiffSummary ? (
+            <span className={styles.startOfDayMetric}>
+              {gitDiffSummary.files.length > 0
+                ? t('overview.startOfDayModified', { count: gitDiffSummary.files.length })
+                : t('overview.startOfDayClean')}
+            </span>
+          ) : null}
+        </div>
+        <Button size="sm" tone="ghost" onClick={() => setDiffDialogOpen(true)}>
+          <FileDiff size={13} /> {t('overview.reviewGitDiff')}
+        </Button>
+      </section>
 
       <section className={styles.resumePanel} aria-labelledby="overview-resume-title">
         <div className={styles.resumeHeader}>
@@ -524,6 +564,16 @@ export const ProjectOverviewSurface: React.FC<{
       >
         <ResourcePicker agentId={resourceAgent?.id} onSelected={allocateAndStart} />
       </Dialog>
+      <ProjectDiffDialog
+        open={diffDialogOpen}
+        onClose={() => setDiffDialogOpen(false)}
+        project={project}
+        agents={agentList}
+        onSentToAgent={(agent) => {
+          void refreshAgents?.();
+          onOpenAgent(agent);
+        }}
+      />
     </div>
   );
 };

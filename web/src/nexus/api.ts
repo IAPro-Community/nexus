@@ -717,6 +717,12 @@ export const nexus = {
     request<import('../types').GitBranchesResult>(
       `/api/v1/projects/${projectId}/git/branches${options?.summary ? '?summary=1' : ''}`,
     ),
+  getProjectGitDiff: (projectId: string, worktree?: string) => {
+    const query = worktree ? `?worktree=${encodeURIComponent(worktree)}` : '';
+    return request<import('../types').GitDiffResult>(
+      `/api/v1/projects/${encodeURIComponent(projectId)}/git/diff${query}`,
+    );
+  },
   getProjectChangeCollisions: (projectId: string) =>
     request<import('../types').ChangeCollisionsReport>(
       `/api/v1/projects/${projectId}/change-collisions`,

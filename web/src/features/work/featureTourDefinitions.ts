@@ -201,6 +201,12 @@ export const featureTourSteps: Record<FeatureTourSurface, TourStep[]> = {
       title: 'tour.agentGroupsTitle',
       body: 'tour.agentGroupsBody',
     },
+    {
+      id: 'diff-review',
+      target: '[data-tour="project-diff-review"]',
+      title: 'tour.agentDiffReviewTitle',
+      body: 'tour.agentDiffReviewBody',
+    },
   ],
   'agent-terminal': [
     {

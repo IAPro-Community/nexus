@@ -754,6 +754,26 @@ export const en = {
     groupsName: 'Group name',
     groupsTask: 'Task',
     groupsWorktree: 'Worktree',
+    reviewDiff: 'Git Diff',
+    worktreeQuick: 'Isolated Worktree',
+    worktreeQuickDefaultName: 'wt-dev',
+    diffDialog: {
+      title: 'Git Diff Review & Comment to Agent',
+      filesCount: '{{count}} file(s)',
+      truncated: 'Diff truncated (256 KiB)',
+      worktreeLabel: 'Select worktree',
+      primaryWorktree: 'Primary workspace',
+      cleanTitle: 'Working tree is clean',
+      cleanHint: 'No pending local changes in this repository or worktree.',
+      filesLabel: 'Changed files',
+      untrackedOnly: 'Only untracked files exist in this working tree.',
+      agentLabel: 'Target agent',
+      commentLabel: 'Review comment',
+      commentPlaceholder:
+        'Click any file to reference it and write instructions to send to the agent…',
+      sendToAgent: 'Send comment to agent',
+      sentToast: 'Comment sent to {{name}}',
+    },
     collisions: {
       title: 'Edit collisions',
       refresh: 'Rescan worktrees',
@@ -964,6 +984,12 @@ export const en = {
     noAttention: 'No pending decisions',
     noRecentWork: 'Nothing active yet',
     noRecentWorkHint: 'Start a session or open the project terminal to begin.',
+    startOfDayTitle: 'Start of day',
+    startOfDayWorking: '{{count}} running',
+    startOfDayAttention: '{{count}} needing attention',
+    startOfDayModified: '{{count}} Git file(s) changed',
+    startOfDayClean: 'Clean Git tree',
+    reviewGitDiff: 'Review Git Diff',
   },
   conversation: {
     empty: 'Start the conversation.',
@@ -1438,6 +1464,9 @@ export const en = {
     remotePushTitle: 'Phone notifications for pending work',
     remotePushBody:
       'Turn on Web Push and this phone is alerted the moment a run needs your answer, even with Nexus closed. The payload is encrypted for the device that subscribed.',
+    agentsDiffReviewTitle: 'Inline Git diff review to agent',
+    agentsDiffReviewBody:
+      'Inspect repository or worktree changes inline and send focused review feedback directly to the selected agent.',
   },
   tour: {
     featureOpen: 'Explore this area',
@@ -1477,6 +1506,9 @@ export const en = {
     agentGroupsTitle: 'Group persistent Agents',
     agentGroupsBody:
       'Organize stable Agent identities by task, worktree, and feature. Filtering and manual order keep their existing sessions attached.',
+    agentDiffReviewTitle: 'Review diffs and comment directly to an Agent',
+    agentDiffReviewBody:
+      'Open the repository or worktree diff, click a file to reference its path, and send actionable review instructions straight to the Agent.',
     focusQueueTitle: 'Work through the focus queue',
     focusQueueBody:
       'Rows are ordered by severity, then by wait time. Clicking a row opens that exact runtime; answered rows leave the queue.',

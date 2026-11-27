@@ -238,3 +238,34 @@
   padding-top: 8px;
   border-top: 1px solid var(--nx-border);
 }
+
+.startOfDayStrip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--nx-space-3);
+  margin-bottom: var(--nx-space-4);
+  padding: var(--nx-space-3) var(--nx-space-4);
+  background: var(--nx-bg-elevated);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-md);
+}
+
+.startOfDayStats {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--nx-space-3);
+}
+
+.startOfDayTitle {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--nx-text);
+}
+
+.startOfDayMetric {
+  font-size: 0.8125rem;
+  color: var(--nx-text-muted);
+}
