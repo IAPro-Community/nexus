@@ -11,7 +11,6 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/core/security"
-	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 // CursorDriver controls the Cursor CLI Agent (cursor-agent / agent).
@@ -25,34 +24,7 @@ func (d *CursorDriver) ProviderID() string { return "cursor" }
 
 // Detect checks if cursor-agent or agent is installed in PATH or developer paths.
 func (d *CursorDriver) Detect(ctx context.Context) (model.DetectionResult, error) {
-	bin, err := spec.MustGet("cursor").ResolveBinary()
-	if err != nil {
-		return model.DetectionResult{Installed: false, Error: "cursor-agent binary not found in PATH"}, nil
-	}
-
-	out, err := runtime.RunCommandCapture(ctx, bin, []string{"--version"}, os.Environ(), "")
-	if err != nil || strings.Contains(out, "No such file or directory") {
-		return model.DetectionResult{
-			Installed:  false,
-			BinaryPath: bin,
-			Error:      strings.TrimSpace(out),
-		}, nil
-	}
-
-	lines := strings.Split(strings.TrimSpace(out), "\n")
-	var version string
-	for _, l := range lines {
-		l = strings.TrimSpace(l)
-		if !strings.HasPrefix(l, "Tip:") && l != "" {
-			version = l
-			break
-		}
-	}
-	return model.DetectionResult{
-		Installed:  true,
-		BinaryPath: bin,
-		Version:    version,
-	}, nil
+	return detectProviderCLI(ctx, "cursor", "cursor-agent binary not found in PATH", "--version")
 }
 
 // EffectiveCaps returns the live capability matrix for Cursor.

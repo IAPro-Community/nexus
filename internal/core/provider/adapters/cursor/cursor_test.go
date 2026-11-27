@@ -254,3 +254,45 @@ func TestInspectAuthExtractsIdentityFromCLIConfigAndJWT(t *testing.T) {
 		t.Fatalf("expected JWT sub identity, got %+v", got2)
 	}
 }
+
+func TestDetectHostAuthMemoizesStatusProbe(t *testing.T) {
+	hostHome := t.TempDir()
+	t.Setenv("NEXUS_REAL_HOME", hostHome)
+	t.Setenv("HOME", hostHome)
+	invalidateCursorHostAuthCache()
+
+	binDir := t.TempDir()
+	fakeBin := filepath.Join(binDir, "cursor-agent")
+	if err := os.WriteFile(fakeBin, []byte("#!/bin/sh\necho 2026.08.11\n"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	prevLook := spec.BinaryLookPath
+	spec.BinaryLookPath = func(name string) (string, error) {
+		if name == "cursor-agent" || name == "agent" {
+			return fakeBin, nil
+		}
+		return prevLook(name)
+	}
+	t.Cleanup(func() {
+		spec.BinaryLookPath = prevLook
+		invalidateCursorHostAuthCache()
+	})
+
+	var calls atomic.Int32
+	prevStatus := cursorStatusRun
+	cursorStatusRun = func(ctx context.Context, bin string, args []string, env []string, cwd string) (string, error) {
+		calls.Add(1)
+		return "Not logged in", nil
+	}
+	t.Cleanup(func() { cursorStatusRun = prevStatus })
+
+	a := New()
+	_, ok1 := a.DetectHostAuth(context.Background())
+	_, ok2 := a.DetectHostAuth(context.Background())
+	if ok1 || ok2 {
+		t.Fatalf("expected unauthenticated host probe, got ok1=%v ok2=%v", ok1, ok2)
+	}
+	if calls.Load() != 1 {
+		t.Fatalf("expected second DetectHostAuth call to reuse cached status probe (calls=1), got %d", calls.Load())
+	}
+}

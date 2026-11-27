@@ -18,6 +18,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/provider/authcopy"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
+	"github.com/IAPro-Community/nexus/internal/core/provider/versionprobe"
 	"github.com/IAPro-Community/nexus/internal/core/security"
 	"github.com/IAPro-Community/nexus/internal/runtime"
 )
@@ -38,18 +39,34 @@ func (a *Adapter) Capabilities() model.Capabilities {
 	}
 }
 
-const cursorAuthCacheTTL = 3 * time.Minute
+const (
+	cursorAuthCacheTTL     = 3 * time.Minute
+	cursorHostAuthCacheTTL = 60 * time.Second
+)
 
 type cursorAuthCacheEntry struct {
 	info      model.AccountInfo
 	fetchedAt time.Time
 }
 
+type cursorHostAuthCacheEntry struct {
+	det       model.HostAuthDetection
+	ok        bool
+	fetchedAt time.Time
+}
+
 var (
-	cursorAuthCache   = map[string]cursorAuthCacheEntry{}
-	cursorAuthCacheMu sync.Mutex
-	cursorStatusRun   = runtime.RunCommandCapture
+	cursorAuthCache     = map[string]cursorAuthCacheEntry{}
+	cursorHostAuthCache = map[string]cursorHostAuthCacheEntry{}
+	cursorAuthCacheMu   sync.Mutex
+	cursorStatusRun     = runtime.RunCommandCapture
 )
+
+func invalidateCursorHostAuthCache() {
+	cursorAuthCacheMu.Lock()
+	clear(cursorHostAuthCache)
+	cursorAuthCacheMu.Unlock()
+}
 
 func cursorStatusAuthenticated(output string) bool {
 	text := strings.ToLower(strings.TrimSpace(output))
@@ -166,12 +183,7 @@ func (a *Adapter) Detect(ctx context.Context) model.DetectionResult {
 	if err != nil {
 		return model.DetectionResult{Installed: false, Error: "agent/cursor-agent binary not found in PATH"}
 	}
-	out, runErr := runtime.RunCommandCapture(ctx, bin, []string{"--version"}, os.Environ(), "")
-	version := strings.TrimSpace(out)
-	if runErr != nil && version == "" {
-		version = "unknown"
-	}
-	return model.DetectionResult{Installed: true, BinaryPath: bin, Version: version}
+	return versionprobe.Detect(ctx, bin)
 }
 
 type cursorCLIConfig struct {
@@ -222,6 +234,14 @@ func (a *Adapter) DetectHostAuth(ctx context.Context) (model.HostAuthDetection, 
 	if det.Installed {
 		bin, err := cursorBinary()
 		if err == nil {
+			cacheKey := hostHome + "\x00" + bin
+			cursorAuthCacheMu.Lock()
+			if entry, ok := cursorHostAuthCache[cacheKey]; ok && time.Since(entry.fetchedAt) < cursorHostAuthCacheTTL {
+				cursorAuthCacheMu.Unlock()
+				return entry.det, entry.ok
+			}
+			cursorAuthCacheMu.Unlock()
+
 			statusCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 			defer cancel()
 			out, err := cursorStatusRun(statusCtx, bin, []string{"status"}, os.Environ(), "")
@@ -229,6 +249,17 @@ func (a *Adapter) DetectHostAuth(ctx context.Context) (model.HostAuthDetection, 
 				det.Available = true
 				det.AuthType = "session"
 				det.Plan = "Cursor"
+			}
+			if statusCtx.Err() == nil && ctx.Err() == nil {
+				cursorAuthCacheMu.Lock()
+				cursorHostAuthCache[cacheKey] = cursorHostAuthCacheEntry{
+					det:       det,
+					ok:        det.Available,
+					fetchedAt: time.Now(),
+				}
+				cursorAuthCacheMu.Unlock()
+			}
+			if det.Available {
 				return det, true
 			}
 		}
@@ -257,6 +288,7 @@ func (a *Adapter) ImportHostAuth(ctx context.Context, p model.Profile) (bool, er
 		return copied, err
 	}
 	invalidateCursorAuthCache(p.Name)
+	invalidateCursorHostAuthCache()
 	return a.InspectAuth(ctx, p).Authenticated, nil
 }
 

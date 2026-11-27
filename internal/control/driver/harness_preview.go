@@ -10,6 +10,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/control/registry"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/versionprobe"
 	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
@@ -32,11 +33,11 @@ func (d *PreviewHarnessDriver) Detect(ctx context.Context) (model.DetectionResul
 	if err != nil {
 		return model.DetectionResult{Installed: false, Error: d.id + " executable not found"}, nil
 	}
-	output, err := runtime.RunCommandCapture(ctx, binary, []string{"--version"}, os.Environ(), "")
-	if err != nil {
-		return model.DetectionResult{Installed: false, BinaryPath: binary, Error: strings.TrimSpace(output)}, nil
+	res := versionprobe.Detect(ctx, binary)
+	if res.Error != "" {
+		return model.DetectionResult{Installed: false, BinaryPath: binary, Error: res.Error}, nil
 	}
-	lines := strings.Split(strings.TrimSpace(output), "\n")
+	lines := strings.Split(strings.TrimSpace(res.Version), "\n")
 	return model.DetectionResult{Installed: true, BinaryPath: binary, Version: lines[0]}, nil
 }
 func (d *PreviewHarnessDriver) EffectiveCaps(ctx context.Context, _ model.Profile) EffectiveCapabilities {

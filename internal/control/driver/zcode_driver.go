@@ -12,7 +12,6 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/core/security"
-	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 type ZCodeDriver struct{}
@@ -22,24 +21,7 @@ func NewZCodeDriver() *ZCodeDriver { return &ZCodeDriver{} }
 func (d *ZCodeDriver) ProviderID() string { return "zcode" }
 
 func (d *ZCodeDriver) Detect(ctx context.Context) (model.DetectionResult, error) {
-	bin, err := spec.MustGet("zcode").ResolveBinary()
-	if err != nil {
-		return model.DetectionResult{Installed: false, Error: "zcode binary not found in PATH"}, nil
-	}
-	out, err := runtime.RunCommandCapture(ctx, bin, []string{"version"}, os.Environ(), "")
-	if err != nil || strings.Contains(out, "No such file or directory") {
-		return model.DetectionResult{
-			Installed:  false,
-			BinaryPath: bin,
-			Error:      strings.TrimSpace(out),
-		}, nil
-	}
-	lines := strings.Split(strings.TrimSpace(out), "\n")
-	return model.DetectionResult{
-		Installed:  true,
-		BinaryPath: bin,
-		Version:    lines[0],
-	}, nil
+	return detectProviderCLI(ctx, "zcode", "zcode binary not found in PATH", "version")
 }
 
 func (d *ZCodeDriver) EffectiveCaps(ctx context.Context, p model.Profile) EffectiveCapabilities {

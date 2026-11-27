@@ -14,7 +14,6 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
-	"github.com/IAPro-Community/nexus/internal/runtime"
 )
 
 type CodexDriver struct{}
@@ -24,24 +23,7 @@ func NewCodexDriver() *CodexDriver { return &CodexDriver{} }
 func (d *CodexDriver) ProviderID() string { return "codex" }
 
 func (d *CodexDriver) Detect(ctx context.Context) (model.DetectionResult, error) {
-	bin, err := spec.MustGet("codex").ResolveBinary()
-	if err != nil {
-		return model.DetectionResult{Installed: false, Error: "codex binary not found in PATH"}, nil
-	}
-	out, err := runtime.RunCommandCapture(ctx, bin, []string{"--version"}, os.Environ(), "")
-	if err != nil || strings.Contains(out, "No such file or directory") {
-		return model.DetectionResult{
-			Installed:  false,
-			BinaryPath: bin,
-			Error:      strings.TrimSpace(out),
-		}, nil
-	}
-	lines := strings.Split(strings.TrimSpace(out), "\n")
-	return model.DetectionResult{
-		Installed:  true,
-		BinaryPath: bin,
-		Version:    lines[0],
-	}, nil
+	return detectProviderCLI(ctx, "codex", "codex binary not found in PATH", "--version")
 }
 
 func (d *CodexDriver) EffectiveCaps(ctx context.Context, p model.Profile) EffectiveCapabilities {

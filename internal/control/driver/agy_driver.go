@@ -20,24 +20,7 @@ func NewAGYDriver() *AGYDriver { return &AGYDriver{} }
 func (d *AGYDriver) ProviderID() string { return "agy" }
 
 func (d *AGYDriver) Detect(ctx context.Context) (model.DetectionResult, error) {
-	bin, err := spec.MustGet("agy").ResolveBinary()
-	if err != nil {
-		return model.DetectionResult{Installed: false, Error: "agy binary not found in PATH"}, nil
-	}
-	out, err := runtime.RunCommandCapture(ctx, bin, []string{"--version"}, os.Environ(), "")
-	if err != nil || strings.Contains(out, "No such file or directory") {
-		return model.DetectionResult{
-			Installed:  false,
-			BinaryPath: bin,
-			Error:      strings.TrimSpace(out),
-		}, nil
-	}
-	lines := strings.Split(strings.TrimSpace(out), "\n")
-	return model.DetectionResult{
-		Installed:  true,
-		BinaryPath: bin,
-		Version:    lines[0],
-	}, nil
+	return detectProviderCLI(ctx, "agy", "agy binary not found in PATH", "--version")
 }
 
 func (d *AGYDriver) EffectiveCaps(ctx context.Context, p model.Profile) EffectiveCapabilities {
