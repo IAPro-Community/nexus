@@ -257,7 +257,7 @@ export const DirectSessionLauncher: React.FC<{
       wide
     >
       <div data-feature-tour-scope={`direct-session-${project.id}`}>
-        {open && <FeatureTour projectId={project.id} surface="direct-session" />}
+        {open && <FeatureTour projectId={project.id} surface="direct-session" compact />}
         <div className="nx-form-stack">
           <Input
             value={name}

@@ -513,7 +513,7 @@ export const UsageSurface: React.FC<{
           ))}
         </div>
       ) : null}
-      <FeatureTour projectId={projectId} surface="resources" />
+      <FeatureTour projectId={projectId} surface="resources" compact />
       {hostSessionImportError ? (
         <p className="nx-inline-error" role="alert">
           {hostSessionImportError}

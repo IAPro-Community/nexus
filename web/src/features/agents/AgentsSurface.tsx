@@ -844,7 +844,7 @@ export const AgentsSurface: React.FC<{
           onConfirm={deleteGroup}
           onCancel={() => setGroupToDelete(null)}
         />
-        <FeatureTour projectId={project.id} surface="agents" />
+        <FeatureTour projectId={project.id} surface="agents" compact />
       </div>
     </div>
   );

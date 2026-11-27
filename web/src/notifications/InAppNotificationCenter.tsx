@@ -472,7 +472,7 @@ export const InAppNotificationCenter: React.FC<{
             )}
 
             {focusedProjectId && (
-              <FeatureTour projectId={focusedProjectId} surface="notifications" />
+              <FeatureTour projectId={focusedProjectId} surface="notifications" compact />
             )}
           </div>
         </ContextDrawer>

@@ -311,7 +311,7 @@ export const FlowRunsHistorySurface: React.FC<{
           <Badge tone="default">{track === 'drafts' ? draftPlans.length : runs.length}</Badge>
         </div>
         <div className={styles.actions}>
-          <FeatureTour projectId={project.id} surface="flow-library" />
+          <FeatureTour projectId={project.id} surface="flow-library" compact />
           <div
             className={styles.trackToggle}
             data-tour="flow-tracks"

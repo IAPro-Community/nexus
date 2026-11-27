@@ -299,7 +299,7 @@ export const FlowRunSurface: React.FC<{
       data-feature-tour-scope
     >
       <div className={styles.tourRow}>
-        <FeatureTour projectId={project.id} surface="flow-run" />
+        <FeatureTour projectId={project.id} surface="flow-run" compact />
       </div>
       <div className="nx-page-header" data-tour="flow-run-status">
         <div>

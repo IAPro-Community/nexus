@@ -1210,7 +1210,7 @@ export const BrowserSurface: React.FC<{
       data-feature-tour-scope={`browser-${projectId}-${session?.id ?? 'pending'}`}
       aria-label={t('browser.title', 'Navegador Nexus')}
     >
-      <FeatureTour projectId={projectId} surface="browser-inspector" />
+      <FeatureTour projectId={projectId} surface="browser-inspector" compact />
       {/* Linha 1: Tab Bar Nativa */}
       {availableBrowsers.length > 0 && (
         <div
