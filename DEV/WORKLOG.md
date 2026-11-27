@@ -8394,3 +8394,11 @@ Execução integral de `DEV/plans/2026-11-26-memory-visual-organization-plan.md`
 - `nexus doctor --json` instalado: `processes.supported=true`, 17 processos, 806 MB RSS somado, 9 zumbis pré-existentes do `gnome-session` (não Nexus).
 - Product Discovery: nenhuma mudança funcional visível → `featureAnnouncements.ts` inalterado (justificado nos commits).
 - Release permanece **NO_GO**.
+## 2026-11-26 — CLI não registra mais projeto implicitamente
+
+Causa: `nexus <harness>` (modo supervised) registrava o diretório de trabalho como projeto sem passar pela interface. Dois caminhos em `internal/app/provider_supervised.go`: o `browserProjectID` (quando o Browser MCP estava ativo) e o `prepareInteractiveLead` (STICKY_LEAD), ambos fazendo `CreateProject` no CWD. Rodando de `~`, `/tmp`, submódulos e worktrees, cada execução deixava uma linha permanente em `projects`.
+
+- **Criação implícita removida:** os dois caminhos agora só buscam (`GetProjectByPath`). O Browser MCP continua injetado, mas sem project scope para CWD não registrado; o Lead degrada para TTY provider-native com a mensagem explicando `nexus projects add`. Registro continua explícito (CLI `nexus projects add` ou diálogo do app).
+- **`nexus projects prune`** (novo): lista projetos sem evidência de uso (nunca aberto, sem agentes, sem layout, sem eventos) com `--json`; dry-run por padrão, remoção só com `--apply`, e `--include-opened` para incluir os já abertos. Cada linha é re-verificada antes do delete, então uma evidência criada durante o prune impede a remoção.
+- **Testes:** store (`ListProjectPruneCandidates`, `DeleteProjectRow`, contagem de eventos/layout), serviço (`PruneProjects` respeitando evidência e opt-in) e app (`prepareInteractiveLead` recusa CWD não registrado). Smoke real com data dir temporário: dry-run manteve os 3 projetos, `--apply` removeu os 3 e o `--json` reportou `removed`.
+- **Pendências alheias:** `internal/nexus` tem 5 falhas pré-existentes (memórias pendentes, `WhenResources`, preferência de provider, sticky lead explícito, paridade de catálogo de uso) que reproduzem com estas mudanças em stash; `internal/control/web/handlers_nex_hub_test.go` (workstream de notificações) referencia `nexus.NewWithStore`, ausente no HEAD, e por isso `go vet ./...` ainda acusa aquela suíte. Nenhum arquivo desses workstreams foi tocado.

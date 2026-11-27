@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -137,19 +136,17 @@ func executeProviderSupervised(provName, explicitProfile string, args []string, 
 	selector := scheduler.NewSelector(cfg, quotaEngine, cooldown.NewTracker())
 	workspace := mustWorkingDirectory()
 	// Supervised standalone CLI invocations have no Agent/Project binding yet.
-	// Resolve the workspace to the same project used by Web/Desktop so their
-	// lazy Browser sessions are visible in the Agent Workspace.
+	// Reuse the project the user already registered for this workspace so lazy
+	// Browser sessions stay visible in the Agent Workspace. An unregistered
+	// working directory must NOT be registered here: `nexus <harness>` runs from
+	// arbitrary folders (/, $HOME, temp dirs) and those rows became permanent
+	// project noise. Registration stays an explicit `nexus projects add` or the
+	// Web/Desktop project dialog.
 	browserProjectID := ""
 	if browsercontrol.DiscoverBrowserEndpoint() != "" {
 		if st, openErr := nexus.Default().OpenProject(); openErr == nil {
 			if canonical, canonErr := store.CanonicalPath(workspace); canonErr == nil {
-				project, projectErr := st.GetProjectByPath(canonical)
-				if errors.Is(projectErr, store.ErrNotFound) {
-					project, projectErr = st.CreateProject(store.Project{
-						Name: filepath.Base(canonical), CanonicalPath: canonical,
-					})
-				}
-				if projectErr == nil {
+				if project, projectErr := st.GetProjectByPath(canonical); projectErr == nil {
 					browserProjectID = project.ID
 				}
 			}
@@ -247,12 +244,16 @@ func prepareInteractiveLead(n *nexus.Nexus, workspace, provider, profileName str
 	if err != nil {
 		return nexus.InteractiveLeadBinding{}, fmt.Errorf("canonicalize workspace: %w", err)
 	}
+	// Only an already registered project can own the interactive Lead. A
+	// working directory that was never added through the UI/CLI stays
+	// unregistered: creating it here silently (from any folder the user happens
+	// to run `nexus <harness>` in) is what accumulated stale project rows.
 	project, err := st.GetProjectByPath(canonical)
 	if errors.Is(err, store.ErrNotFound) {
-		project, err = st.CreateProject(store.Project{
-			Name:          filepath.Base(canonical),
-			CanonicalPath: canonical,
-		})
+		return nexus.InteractiveLeadBinding{}, fmt.Errorf(
+			"%s is not a registered Nexus project; run `nexus projects add %s` (or add it in the app) to use STICKY_LEAD",
+			canonical, canonical,
+		)
 	}
 	if err != nil {
 		return nexus.InteractiveLeadBinding{}, fmt.Errorf("resolve project: %w", err)

@@ -232,7 +232,95 @@ func projectsCmd(args []string) error {
 		return nil
 	}
 
+	if args[0] == "prune" {
+		return projectsPruneCmd(args[1:])
+	}
+
 	return fmt.Errorf("subcomando de projeto desconhecido: %s", args[0])
+}
+
+// projectsPruneCmd removes project rows that carry no user evidence (no agent,
+// no saved layout, no events and never opened from the UI). These rows were
+// created by CLI launches registering their working directory implicitly; the
+// launch path no longer does that. Dry run by default: deletion requires
+// --apply, so nothing disappears without the operator seeing the list.
+func projectsPruneCmd(args []string) error {
+	jsonOutput := false
+	apply := false
+	includeOpened := false
+	for _, arg := range args {
+		switch arg {
+		case "--json":
+			jsonOutput = true
+		case "--apply":
+			apply = true
+		case "--include-opened":
+			includeOpened = true
+		default:
+			return fmt.Errorf("opção desconhecida: %s (use --apply, --include-opened ou --json)", arg)
+		}
+	}
+
+	n := nexus.Default()
+	defer nexus.ReleaseDefault()
+	service := nexus.NewProjectApplicationService(n)
+	ctx := context.Background()
+
+	var result nexus.ProjectPruneResult
+	if apply {
+		applied, err := service.PruneProjects(ctx, includeOpened)
+		if err != nil {
+			return err
+		}
+		result = applied
+	} else {
+		candidates, err := service.ListProjectsToPrune(ctx)
+		if err != nil {
+			return err
+		}
+		result = nexus.ProjectPruneResult{
+			IncludeOpen: includeOpened,
+			Candidates:  candidates,
+			Removed:     []store.ProjectPruneCandidate{},
+			Skipped:     []store.ProjectPruneCandidate{},
+		}
+	}
+
+	if jsonOutput {
+		b, _ := json.MarshalIndent(result, "", "  ")
+		fmt.Println(string(b))
+		return nil
+	}
+
+	fmt.Printf("=== Projetos sem evidência de uso (%d) ===\n", len(result.Candidates))
+	for _, candidate := range result.Candidates {
+		marker := "?"
+		if candidate.Reason != "" {
+			marker = "-"
+		}
+		fmt.Printf("%s [%s] %s (%s) — %s\n", marker, candidate.ID, candidate.Name, candidate.CanonicalPath, pruneReasonLabel(candidate))
+	}
+	if len(result.Candidates) == 0 {
+		fmt.Println("nada a remover")
+		return nil
+	}
+	if apply {
+		fmt.Printf("\nRemovidos: %d\n", len(result.Removed))
+		if len(result.Skipped) > 0 {
+			fmt.Printf("Mantidos (evidência apareceu durante o prune): %d\n", len(result.Skipped))
+		}
+		return nil
+	}
+	fmt.Println("\nDry run: nada foi removido. Revise a lista e rode `nexus projects prune --apply`.")
+	return nil
+}
+
+func pruneReasonLabel(candidate store.ProjectPruneCandidate) string {
+	if candidate.Reason != "" {
+		return candidate.Reason
+	}
+	return fmt.Sprintf("mantido: %d agente(s), layout=%v, %d evento(s), aberto=%v",
+		candidate.AgentCount, candidate.LayoutSaved, candidate.EventCount, candidate.LastOpenedAt != nil)
 }
 
 type projectAddOptions struct {
