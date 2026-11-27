@@ -804,8 +804,10 @@ func (h *NexusHandler) handleProjectOpenOS(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if cmd != nil {
-		_ = cmd.Start() // Non-blocking background launch
+	if cmd != nil && cmd.Start() == nil {
+		// Non-blocking background launch: Reap collects the child so the web
+		// core never accumulates <defunct> processes from editor/browser opens.
+		go func() { _ = cmd.Wait() }()
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"status": "launched", "action": body.Action, "path": path})

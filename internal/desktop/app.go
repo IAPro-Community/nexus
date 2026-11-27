@@ -305,7 +305,17 @@ func (a *App) OpenExternal(raw string) error {
 	default:
 		return browser.OpenAppWindow(parsed.String())
 	}
-	return exec.Command(cmd, args...).Start()
+	return startDetached(exec.Command(cmd, args...))
+}
+
+// startDetached launches a fire-and-forget child and reaps it so a launcher
+// that exits before its parent never leaves a <defunct> entry behind.
+func startDetached(cmd *exec.Cmd) error {
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	go func() { _ = cmd.Wait() }()
+	return nil
 }
 
 // GetSystemTheme detects the OS dark/light mode preference.

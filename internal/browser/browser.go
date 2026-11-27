@@ -66,10 +66,10 @@ func Open(args []string) error {
 
 	switch stdruntime.GOOS {
 	case "darwin":
-		return exec.Command("open", url).Start()
+		return startDetached(exec.Command("open", url))
 	case "windows":
 		// Avoid cmd.exe/start so URL characters are never reparsed as shell syntax.
-		return exec.Command("rundll32.exe", "url.dll,FileProtocolHandler", url).Start()
+		return startDetached(exec.Command("rundll32.exe", "url.dll,FileProtocolHandler", url))
 	}
 
 	// When running as a browser helper, skip "xdg-open" in the candidate
@@ -108,7 +108,18 @@ func startBrowser(path, url string) error {
 	c.Stdin = os.Stdin
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
-	return c.Start()
+	return startDetached(c)
+}
+
+// startDetached starts a launcher process and reaps it once it exits: the
+// browser inherits the session, while the launcher itself must not linger as a
+// zombie child of the long-running Nexus process.
+func startDetached(cmd *exec.Cmd) error {
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	go func() { _ = cmd.Wait() }()
+	return nil
 }
 
 // OpenAppWindow opens the URL in a dedicated Chromium-style app window when
@@ -159,7 +170,7 @@ func OpenAppWindow(url string) error {
 		if hostBus := os.Getenv("AI_HOST_DBUS_SESSION_BUS_ADDRESS"); hostBus != "" {
 			c.Env = append(os.Environ(), "DBUS_SESSION_BUS_ADDRESS="+hostBus)
 		}
-		if err := c.Start(); err == nil {
+		if err := startDetached(c); err == nil {
 			return nil
 		}
 	}

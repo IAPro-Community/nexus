@@ -812,9 +812,9 @@ func (s *Server) Shutdown(ctx context.Context) error {
 func OpenBrowser(url string) error {
 	switch runtime.GOOS {
 	case "windows":
-		return exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+		return startDetached(exec.Command("rundll32", "url.dll", "FileProtocolHandler", url))
 	case "darwin":
-		return exec.Command("open", "-n", "-a", "Google Chrome", "--args", "--app="+url).Start()
+		return startDetached(exec.Command("open", "-n", "-a", "Google Chrome", "--args", "--app="+url))
 	default:
 		// Chromium --app= reuses the existing app window by origin and drops the
 		// URL fragment. Bootstrap tokens live in #nexus_bootstrap=…, so auth
@@ -824,4 +824,14 @@ func OpenBrowser(url string) error {
 		}
 		return browser.OpenAppWindow(url)
 	}
+}
+
+// startDetached launches a fire-and-forget launcher and reaps it, so the web
+// core never accumulates zombie children from browser handoffs.
+func startDetached(cmd *exec.Cmd) error {
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	go func() { _ = cmd.Wait() }()
+	return nil
 }
