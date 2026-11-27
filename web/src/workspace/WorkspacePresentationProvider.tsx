@@ -266,3 +266,14 @@ export function useWorkspacePresentation(): ContextValue {
     throw new Error('useWorkspacePresentation must be used inside WorkspacePresentationProvider');
   return value;
 }
+
+/**
+ * Whether `viewId` is mounted but minimized in the desktop/mosaic shell. Used by
+ * surfaces that must stop layout work while hidden (fit/timers) without
+ * unmounting the terminal or closing its PTY.
+ */
+export function useWorkspaceViewHidden(viewId?: string): boolean {
+  const value = useContext(WorkspacePresentationContext);
+  if (!value || !viewId) return false;
+  return value.state.windows[viewId]?.minimized === true;
+}

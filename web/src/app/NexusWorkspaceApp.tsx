@@ -1263,35 +1263,63 @@ const WorkspaceCoordinator: React.FC<{
     }
   };
 
+  // Stable callback identity keeps the memoized WorkspaceRenderer (and every
+  // mounted surface inside it) from re-rendering when only window chrome or
+  // z-index changes.
+  const renderSurface = useCallback(
+    (surface: WorkspaceSurface) => (
+      <WorkspaceSurfaceHost
+        surface={surface}
+        project={project}
+        projects={data.projects}
+        agents={data.agents}
+        workspaces={data.workspaces}
+        runtimes={data.runtimes}
+        flowRuns={allFlowRuns.filter((run) => !run.project_id || run.project_id === project.id)}
+        providers={data.providers}
+        profiles={data.profiles}
+        events={data.events}
+        refreshAgents={() => data.refreshAgents(project.id)}
+        refreshGlobal={data.refreshGlobal}
+        onSelectProject={setProject}
+        onProjectCreated={(created) => {
+          data.setProjects((current) => [created, ...current]);
+          setProject(created);
+        }}
+        onProjectUpdated={handleProjectUpdated}
+        openSurface={open}
+        updateSurface={workspace.updateSurface}
+        closeSurface={workspace.close}
+        onTour={() => setWelcomeOpen(true)}
+        settingsInitialTab={settingsInitialTab}
+      />
+    ),
+    // ``data`` is a fresh hook result object every render, but every field it
+    // exposes here is listed individually; setProject is the state setter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      project,
+      data.projects,
+      data.agents,
+      data.workspaces,
+      data.runtimes,
+      data.providers,
+      data.profiles,
+      data.events,
+      data.refreshAgents,
+      data.refreshGlobal,
+      allFlowRuns,
+      handleProjectUpdated,
+      open,
+      workspace.updateSurface,
+      workspace.close,
+      settingsInitialTab,
+    ],
+  );
+
   const renderer = (
     <WorkspaceRenderer
-      renderSurface={(surface) => (
-        <WorkspaceSurfaceHost
-          surface={surface}
-          project={project}
-          projects={data.projects}
-          agents={data.agents}
-          workspaces={data.workspaces}
-          runtimes={data.runtimes}
-          flowRuns={allFlowRuns.filter((run) => !run.project_id || run.project_id === project.id)}
-          providers={data.providers}
-          profiles={data.profiles}
-          events={data.events}
-          refreshAgents={() => data.refreshAgents(project.id)}
-          refreshGlobal={data.refreshGlobal}
-          onSelectProject={setProject}
-          onProjectCreated={(created) => {
-            data.setProjects((current) => [created, ...current]);
-            setProject(created);
-          }}
-          onProjectUpdated={handleProjectUpdated}
-          openSurface={open}
-          updateSurface={workspace.updateSurface}
-          closeSurface={workspace.close}
-          onTour={() => setWelcomeOpen(true)}
-          settingsInitialTab={settingsInitialTab}
-        />
-      )}
+      renderSurface={renderSurface}
       onRequestClose={requestCloseSurface}
       onActivateSurface={open}
       createActions={{

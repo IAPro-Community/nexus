@@ -95,12 +95,26 @@ function useCompactViewport(): boolean {
   return compact;
 }
 
-export const WorkspaceRenderer: React.FC<{
+interface WorkspaceRendererProps {
   renderSurface: (surface: WorkspaceSurface) => React.ReactNode;
   onRequestClose?: (surface: WorkspaceSurface) => void;
   onActivateSurface?: (surface: WorkspaceSurface) => void;
   createActions?: WorkspaceCreateActions;
-}> = ({ renderSurface, onRequestClose, onActivateSurface, createActions }) => {
+}
+
+/**
+ * Memoized on a shallow comparison: the renderer re-renders on every
+ * presentation change (z-index, drag, focus), and an inline `renderSurface`
+ * from the app shell would otherwise invalidate every mounted surface on each
+ * of those updates. The callback identity only changes with its own
+ * dependencies, so a shallow compare is enough here.
+ */
+const WorkspaceRendererImpl: React.FC<WorkspaceRendererProps> = ({
+  renderSurface,
+  onRequestClose,
+  onActivateSurface,
+  createActions,
+}) => {
   const workspace = useWorkspace();
   const presentation = useWorkspacePresentation();
   const compact = useCompactViewport();
@@ -133,6 +147,8 @@ export const WorkspaceRenderer: React.FC<{
     </div>
   );
 };
+
+export const WorkspaceRenderer = React.memo(WorkspaceRendererImpl);
 
 const WorkspaceStackView: React.FC<{
   stack: WorkspaceStack;

@@ -77,6 +77,7 @@ import { TaskPreparationDialog } from '../components/TaskPreparationDialog';
 import type { RuntimeSession } from '../types';
 import { consumePtyOutputForChrome, extractOscTitle } from '../workspace/ptyLiveChrome';
 import { usePtyLiveChromeOptional } from '../workspace/PtyLiveChromeContext';
+import { useWorkspaceViewHidden } from '../workspace/WorkspacePresentationProvider';
 import {
   canFitTerminal,
   canRunTerminalFrame,
@@ -197,6 +198,12 @@ export const AgentTerminal: React.FC<{
   const onBoundRuntimeChangeRef = useRef(onBoundRuntimeChange);
   onBoundRuntimeChangeRef.current = onBoundRuntimeChange;
   const ptyChromeRef = useRef({ title: '', questionnaire: false });
+  // Minimized desktop/mosaic windows stay mounted (PTY and WebSocket alive) but
+  // must not run layout work: fits, redraw pulses and the connecting timer pause
+  // while hidden and a single clean fit runs once the window is restored.
+  const surfaceHidden = useWorkspaceViewHidden(liveTitleKey);
+  const surfaceHiddenRef = useRef(surfaceHidden);
+  surfaceHiddenRef.current = surfaceHidden;
   const [fontSize, setFontSize] = useState<number>(() => getStoredTerminalFontSize());
   const initialFontSizeRef = useRef(fontSize);
   const [isScrolledUp, setIsScrolledUp] = useState(false);
@@ -269,14 +276,14 @@ export const AgentTerminal: React.FC<{
   }, [liveTitleKey]);
 
   useEffect(() => {
-    if (connection !== 'CONNECTING' || recovering) {
+    if (connection !== 'CONNECTING' || recovering || surfaceHidden) {
       setConnectingForMs(0);
       return;
     }
     const started = Date.now();
     const timer = window.setInterval(() => setConnectingForMs(Date.now() - started), 200);
     return () => window.clearInterval(timer);
-  }, [connection, recovering]);
+  }, [connection, recovering, surfaceHidden]);
 
   const rebindTerminal = (nextRuntimeId?: string) => {
     const trimmed = (nextRuntimeId || '').trim();
@@ -415,6 +422,9 @@ export const AgentTerminal: React.FC<{
     };
 
     const fitAndResize = (force = false) => {
+      // A minimized window keeps its last valid grid: measuring a hidden node
+      // costs a forced layout and never produces a usable size.
+      if (surfaceHiddenRef.current) return;
       if (panel && panel.dataset.active !== 'true') return;
       if (
         !canFitTerminal({
@@ -447,7 +457,7 @@ export const AgentTerminal: React.FC<{
     });
 
     const stopWatchingFonts = watchTerminalFontMetrics(() => {
-      if (disposed) return;
+      if (disposed || surfaceHiddenRef.current) return;
       const family = resolveTerminalFontFamily(container);
       if (term.options.fontFamily !== family) term.options.fontFamily = family;
       // Preserve the visible grid until the panel is activated.
@@ -471,6 +481,7 @@ export const AgentTerminal: React.FC<{
       refreshTerminalAfterActivation(term, isPanelActive, () => disposed);
 
     const scheduleRedrawPulse = () => {
+      if (surfaceHiddenRef.current) return;
       // After history replay, TUI agents need a second SIGWINCH-sized pulse
       // or the screen stays on a stale "thinking" frame from the ring buffer.
       redrawTimers.push(window.setTimeout(() => fitAndResize(true), 120));
@@ -838,9 +849,12 @@ export const AgentTerminal: React.FC<{
       : null;
     if (panel)
       panelObserver?.observe(panel, { attributes: true, attributeFilter: ['data-active'] });
-    const stopObservingContainer = observeTerminalPaneResize(container, () => fitAndResize());
+    const stopObservingContainer = observeTerminalPaneResize(container, () => {
+      if (!surfaceHiddenRef.current) fitAndResize();
+    });
     const visibility = () => {
-      if (!document.hidden) window.requestAnimationFrame(() => fitAndResize());
+      if (document.hidden) return;
+      window.requestAnimationFrame(() => fitAndResize());
     };
     document.addEventListener('visibilitychange', visibility);
 
@@ -908,6 +922,31 @@ export const AgentTerminal: React.FC<{
       }
     };
   }, [agentId, boundRuntimeId, initialPrompt, connectNonce]);
+
+  // A minimized window pauses layout work; the first moment it becomes visible
+  // again, one clean fit brings the PTY grid back to the real geometry.
+  useEffect(() => {
+    if (surfaceHidden) return;
+    const container = containerRef.current;
+    const term = termRef.current;
+    if (!container || !term) return;
+    let inner = 0;
+    const outer = window.requestAnimationFrame(() => {
+      inner = window.requestAnimationFrame(() => {
+        if (container.clientWidth === 0 || container.clientHeight === 0) return;
+        try {
+          fitAddonRef.current?.fit();
+        } catch {
+          return;
+        }
+        if (followsOutputRef.current) term.scrollToBottom();
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(outer);
+      if (inner) window.cancelAnimationFrame(inner);
+    };
+  }, [surfaceHidden]);
 
   const handleManualStartOrRecover = async () => {
     setRecovering(true);
