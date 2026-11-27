@@ -63,7 +63,7 @@ de automatizar.
 | `nexus status [provider[:profile]]` | mostra saúde/plano do perfil |
 | `nexus usage [--json] [--refresh]` | consulta quota/capacidade |
 | `nexus inspect <provider> <name>` | inspeciona configuração de perfil |
-| `nexus projects [list\|add]` | lista ou registra workspaces |
+| `nexus projects [list\|add\|prune]` | lista, registra ou remove workspaces sem evidência de uso |
 | `nexus agents [project-id]` | lista Agents persistentes de um projeto |
 | `nexus plan [list\|create\|show\|compile\|run]` | gerencia WorkPlans |
 | `nexus sessions [search] [--json]` | consulta índice universal de sessões |
@@ -101,6 +101,26 @@ continuam bloqueados se o Agent fixado não for worktree-safe.
 
 O nome posicional legado continua aceito; `--isolation` aceita `project`,
 `worktree` ou `none`.
+
+Lançar um harness (`nexus codex`, `nexus agy`, ...) **não** registra o diretório
+atual como projeto: a sessão só reutiliza um workspace já adicionado. Fora de um
+projeto registrado, o Browser MCP fica sem project scope e o `STICKY_LEAD` cai
+para o TTY nativo com um aviso; adicione o diretório com `nexus projects add .`
+para ter ambos.
+
+### Limpeza de projetos sem evidência
+
+```bash
+nexus projects prune                  # dry run: lista o que seria removido
+nexus projects prune --json           # mesma lista em JSON
+nexus projects prune --apply          # remove os candidatos
+nexus projects prune --apply --include-opened   # inclui projetos já abertos
+```
+
+Um projeto só é candidato quando nunca foi aberto na interface **e** não tem
+Agents, layout salvo nem eventos. Cada linha é re-verificada imediatamente antes
+da remoção, então nada com uso real é apagado. `GET /api/v1/projects/prune-candidates`
+expõe a mesma lista (somente leitura) para a interface.
 
 ## Sintaxe de provider
 
