@@ -26,15 +26,90 @@ func doctorCmd(args []string) error {
 	if len(args) > 0 && args[0] == "terminal" {
 		return terminalDoctorCmd(args[1:])
 	}
+	jsonOutput := false
+	bundleOutput := false
+	storageOnly := false
+	pruneCaches := false
+	applyPrune := false
+	for _, arg := range args {
+		switch arg {
+		case "--json":
+			jsonOutput = true
+		case "--bundle":
+			bundleOutput = true
+		case "--storage":
+			storageOnly = true
+		case "--prune-caches":
+			pruneCaches = true
+		case "--apply":
+			applyPrune = true
+		}
+	}
+
+	if storageOnly || pruneCaches {
+		dataDir, err := config.DataDir()
+		if err != nil {
+			return fmt.Errorf("resolve data dir: %w", err)
+		}
+		var rep diagnostic.StorageReport
+		if pruneCaches {
+			rep, err = diagnostic.PruneProfileStorage(dataDir, diagnostic.PruneOptions{
+				DryRun:               !applyPrune,
+				IncludeGhostProfiles: true,
+				MinTempAge:           time.Hour,
+			})
+		} else {
+			rep, err = diagnostic.InspectProfileStorage(dataDir)
+		}
+		if err != nil {
+			return err
+		}
+		if jsonOutput {
+			b, _ := json.MarshalIndent(rep, "", "  ")
+			fmt.Println(string(b))
+			return nil
+		}
+		mode := "AUDIT (dry-run)"
+		if !rep.DryRun {
+			mode = "APPLIED"
+		}
+		fmt.Printf("=== Nexus Profile Storage [%s] ===\n", mode)
+		fmt.Printf("Data dir:    %s\n", rep.DataDir)
+		fmt.Printf("Total:       %.2f MiB (Reclaimable: %.2f MiB, Freed: %.2f MiB)\n",
+			float64(rep.TotalBytes)/(1024*1024),
+			float64(rep.ReclaimableBytes)/(1024*1024),
+			float64(rep.FreedBytes)/(1024*1024),
+		)
+		for _, p := range rep.Profiles {
+			flag := ""
+			if !p.ValidName {
+				flag = " [INVALID/GHOST]"
+			}
+			fmt.Printf("  - %-10s %-26s %8.2f MiB (reclaimable: %7.2f MiB, symlinks: %d)%s\n",
+				p.Provider, p.Profile,
+				float64(p.TotalBytes)/(1024*1024),
+				float64(p.Reclaimable)/(1024*1024),
+				p.SymlinksFound, flag)
+		}
+		fmt.Printf("Candidates (%d):\n", len(rep.Candidates))
+		for _, c := range rep.Candidates {
+			status := "would-remove"
+			if c.Removed {
+				status = "removed"
+			} else if c.Skipped != "" {
+				status = "skipped: " + c.Skipped
+			}
+			fmt.Printf("  - [%s] %-14s %8.2f MiB %s\n", status, c.Kind, float64(c.Bytes)/(1024*1024), c.Path)
+		}
+		if pruneCaches && !applyPrune && len(rep.Candidates) > 0 {
+			fmt.Println("\nDry-run only. Re-run with --prune-caches --apply to reclaim disk space safely.")
+		}
+		return nil
+	}
+
 	reg := initRegistry()
 	ctx := context.Background()
 	detections := reg.DetectAll(ctx)
-	jsonOutput := false
-	bundleOutput := false
-	for _, arg := range args {
-		jsonOutput = jsonOutput || arg == "--json"
-		bundleOutput = bundleOutput || arg == "--bundle"
-	}
 	report := diagnostic.BuildReport(buildinfo.Version, detections, nexusruntime.DefaultCredentialIsolator().Capability())
 	if bundleOutput {
 		path := filepath.Join(os.TempDir(), fmt.Sprintf("nexus-doctor-%d.zip", time.Now().UnixNano()))
