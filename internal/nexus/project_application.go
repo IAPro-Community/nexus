@@ -140,6 +140,11 @@ func (s *ProjectApplicationService) SaveLayout(ctx context.Context, id, layout s
 	return st.SaveLayoutWithRevision(id, layout, revision)
 }
 
+// PruneCandidates lists projects without usage evidence and performs no write.
+func (s *ProjectApplicationService) PruneCandidates(ctx context.Context) ([]store.ProjectPruneCandidate, error) {
+	return s.ListProjectsToPrune(ctx)
+}
+
 // ValidateProjectDirectory is shared by Web, CLI and Desktop project creation.
 // It rejects missing paths and regular files before writing project state.
 func ValidateProjectDirectory(path string) (string, error) {
