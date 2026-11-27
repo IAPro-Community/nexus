@@ -2,6 +2,7 @@ package codex
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -64,11 +65,13 @@ func (a *Adapter) fetchUsageFromAppServer(ctx context.Context, p model.Profile) 
 	}
 	snap, err := runAppServerRateLimits(ctx, home, localScope)
 	if err != nil {
-		if sdkproviders.ClassifyProbeError(err) == sdkproviders.ProbeAuthExpired {
+		var diagnostic *sdkproviders.ProbeError
+		if errors.As(err, &diagnostic) && sdkproviders.ClassifyProbeError(err) == sdkproviders.ProbeAuthExpired {
 			return model.UsageSnapshot{
 				ProviderID:     string(a.ID()),
 				ProfileID:      p.Name,
 				Account:        expected,
+				AccountScope:   localScope,
 				Status:         model.UsageError,
 				Source:         model.SourceOfficialAPI,
 				Confidence:     model.UsageConfidenceHigh,
@@ -86,7 +89,6 @@ func (a *Adapter) fetchUsageFromAppServer(ctx context.Context, p model.Profile) 
 	// The SDK verifies exact local credential generation and remote account.
 	// Nexus still binds that observation to its durable host account scope.
 	snap.Account = expected
-	snap.AccountScope = model.AccountScope{}
 	if snap.Plan != "" && snap.Plan != "unknown" {
 		snap.Plan = "ChatGPT " + titlePlan(snap.Plan)
 	} else {

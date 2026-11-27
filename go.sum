@@ -1,7 +1,7 @@
 github.com/BurntSushi/toml v1.6.0 h1:dRaEfpa2VI55EwlIW72hMRHdWouJeRF7TPYhI+AUQjk=
 github.com/BurntSushi/toml v1.6.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
-github.com/IAPro-Community/IAPro-SDK v0.0.0-20261127234402-2b78728e4d48 h1:KVFCuXSgxfOkFmDAABx+CEdWKGUt0tzPeY2dT1g82Xs=
-github.com/IAPro-Community/IAPro-SDK v0.0.0-20261127234402-2b78728e4d48/go.mod h1:SLKQqo08JxcQgDi8pcuQdvy+HJWoJ5AI/Cgp6khgutg=
+github.com/IAPro-Community/IAPro-SDK v0.0.0-20261127234706-ce1d3a7b9ea2 h1:ryx4LDtkd0KbdKArZWaLJPIlznW8eEPp2X7OPpRdtf0=
+github.com/IAPro-Community/IAPro-SDK v0.0.0-20261127234706-ce1d3a7b9ea2/go.mod h1:SLKQqo08JxcQgDi8pcuQdvy+HJWoJ5AI/Cgp6khgutg=
 github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
 github.com/Xuanwo/go-locale v1.1.3 h1:EWZZJJt5rqPHHbqPRH1zFCn5D7xHjjebODctA4aUO3A=
