@@ -204,7 +204,47 @@ func writeListenState(state ListenState) error {
 	if err != nil {
 		return err
 	}
-	return atomicWriteFile(listenStatePath(dir, state.PID), data)
+	if err := atomicWriteFile(listenStatePath(dir, state.PID), data); err != nil {
+		return err
+	}
+	pruneStaleListenStates(dir, state.PID)
+	return nil
+}
+
+// pruneStaleListenStates removes dead-PID listen-*.json markers while leaving
+// active Nexus servers and keepPID untouched.
+func pruneStaleListenStates(dir string, keepPID int) {
+	if strings.TrimSpace(dir) == "" {
+		return
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	for _, entry := range entries {
+		name := entry.Name()
+		if !strings.HasPrefix(name, listenFilePrefix) || !strings.HasSuffix(name, listenFileSuffix) {
+			continue
+		}
+		path := filepath.Join(dir, name)
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		var state ListenState
+		if json.Unmarshal(data, &state) != nil {
+			if info, statErr := entry.Info(); statErr == nil && time.Since(info.ModTime()) > 10*time.Second {
+				_ = os.Remove(path)
+			}
+			continue
+		}
+		if state.PID <= 0 || state.PID == keepPID {
+			continue
+		}
+		if !processAlive(state.PID) {
+			_ = os.Remove(path)
+		}
+	}
 }
 
 func listenStatePath(dir string, pid int) string {
@@ -246,6 +286,7 @@ func ReadListenState() (ListenState, error) {
 	if dir == "" {
 		return ListenState{}, os.ErrNotExist
 	}
+	pruneStaleListenStates(dir, 0)
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return ListenState{}, err

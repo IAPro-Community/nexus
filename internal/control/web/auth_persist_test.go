@@ -92,6 +92,32 @@ func TestIdlePersistedSessionIsDropped(t *testing.T) {
 	}
 }
 
+func TestPruneStaleListenStatesRemovesDeadPIDsOnly(t *testing.T) {
+	dir := t.TempDir()
+	livePID := os.Getpid()
+	deadPID := 999999
+
+	livePayload, _ := json.Marshal(ListenState{URL: "http://127.0.0.1:13000", PID: livePID, Loopback: true})
+	deadPayload, _ := json.Marshal(ListenState{URL: "http://127.0.0.1:13001", PID: deadPID, Loopback: true})
+	livePath := listenStatePath(dir, livePID)
+	deadPath := listenStatePath(dir, deadPID)
+	if err := os.WriteFile(livePath, livePayload, webAuthFileMode); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(deadPath, deadPayload, webAuthFileMode); err != nil {
+		t.Fatal(err)
+	}
+
+	pruneStaleListenStates(dir, 0)
+
+	if _, err := os.Stat(livePath); err != nil {
+		t.Fatalf("live listen file must be preserved: %v", err)
+	}
+	if _, err := os.Stat(deadPath); !os.IsNotExist(err) {
+		t.Fatalf("dead PID listen file should have been removed, stat err=%v", err)
+	}
+}
+
 func TestExpiredPersistedSessionIsDropped(t *testing.T) {
 	dir := t.TempDir()
 	auth, _, err := NewAuthManagerWithStore("127.0.0.1", "13000", dir)
