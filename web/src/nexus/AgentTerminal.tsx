@@ -6,22 +6,15 @@ import {
 import { useTranslation } from 'react-i18next';
 import {
   ArrowDown,
-  Check,
-  Copy,
-  CornerDownLeft,
-  MessageSquare,
   Minus,
   Pause,
   Play,
   Plus,
   RefreshCw,
-  Search,
-  Send,
   ShieldAlert,
   Sparkles,
   Trash2,
   Unplug,
-  X,
 } from 'lucide-react';
 import { Terminal } from 'xterm';
 import { resolveTerminalFontFamily, watchTerminalFontMetrics } from './terminalFont';
@@ -72,7 +65,7 @@ import {
   stripEmbeddedTerminalMetadata,
   terminalTraceShape,
 } from './terminalInput';
-import { ConfirmDialog, ContextDrawer, Tooltip } from '../design-system';
+import { ConfirmDialog, Tooltip } from '../design-system';
 import { TaskPreparationDialog } from '../components/TaskPreparationDialog';
 import type { RuntimeSession } from '../types';
 import { consumePtyOutputForChrome, extractOscTitle } from '../workspace/ptyLiveChrome';
@@ -84,6 +77,8 @@ import {
   shouldSendAuthorizedTerminalResize,
 } from './terminalFitModel';
 import { observeTerminalPaneResize } from '../components/terminalPaneResize';
+import { AgentTerminalSkillsDrawer } from './AgentTerminalSkillsDrawer';
+import type { AgentTerminalSkill } from './agentTerminalTypes';
 import { VoiceCaptureButton } from '../features/voice/VoiceCaptureButton';
 import { sendVoiceTranscriptToTerminal } from '../features/voice/terminalVoice';
 import { ExecutionRoleSelector } from './ExecutionRoleSelector';
@@ -95,15 +90,7 @@ interface AgentTerminalHostElement extends HTMLDivElement {
   __takeControl?: () => void;
 }
 
-export interface AgentTerminalSkill {
-  id: string;
-  name?: string;
-  description?: string;
-  category?: string;
-  risk?: string;
-  triggers?: string[];
-  aliases?: string[];
-}
+export type { AgentTerminalSkill } from './agentTerminalTypes';
 
 export const AgentTerminal: React.FC<{
   agentId: string;
@@ -1062,21 +1049,6 @@ export const AgentTerminal: React.FC<{
     return ['all', ...Array.from(cats)];
   }, [availableSkills]);
 
-  const filteredSkills = useMemo(() => {
-    const q = skillsSearch.trim().toLowerCase();
-    return availableSkills.filter((s) => {
-      const matchCat =
-        selectedSkillCategory === 'all' ||
-        (s.category && s.category.toLowerCase() === selectedSkillCategory.toLowerCase());
-      if (!matchCat) return false;
-      if (!q) return true;
-      const name = (s.name || s.id).toLowerCase();
-      const desc = (s.description || '').toLowerCase();
-      const trigs = (s.triggers || []).join(' ').toLowerCase();
-      return name.includes(q) || desc.includes(q) || trigs.includes(q);
-    });
-  }, [availableSkills, skillsSearch, selectedSkillCategory]);
-
   const handleSendPrompt = async () => {
     if (!askPrompt.trim() || asking) return;
     setAsking(true);
@@ -1408,190 +1380,28 @@ export const AgentTerminal: React.FC<{
           {terminalActions}
         </div>
       )}
-      <ContextDrawer
-        open={askOpen}
-        onClose={() => setAskOpen(false)}
-        title={t('terminal.skillsDrawerTitle', 'Skills do Maestro')}
-        description={t(
-          'terminal.skillsDrawerDesc',
-          'Catálogo de capacidades e automações integradas',
-        )}
-        width={420}
-      >
-        <div className={styles.skillsDrawerBody}>
-          <div className={styles.skillsSearchBar}>
-            <Search size={14} className="nx-text-muted" />
-            <input
-              type="text"
-              placeholder={t(
-                'terminal.skillsSearchPlaceholder',
-                'Buscar por nome, comando ou descrição...',
-              )}
-              value={skillsSearch}
-              onChange={(e) => setSkillsSearch(e.target.value)}
-            />
-            {skillsSearch && (
-              <button
-                type="button"
-                className={styles.closeButton}
-                onClick={() => setSkillsSearch('')}
-                title={t('common.clear', 'Limpar')}
-              >
-                <X size={12} />
-              </button>
-            )}
-          </div>
-
-          {skillCategories.length > 1 && (
-            <div className={styles.skillsCategoryBar}>
-              {skillCategories.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  className={styles.categoryChip}
-                  data-active={selectedSkillCategory === cat ? 'true' : 'false'}
-                  onClick={() => setSelectedSkillCategory(cat)}
-                >
-                  {cat === 'all' ? t('common.all', 'Todas') : cat}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className={styles.skillsList}>
-            {filteredSkills.length === 0 ? (
-              <div className="nx-text-muted nx-p-4 nx-text-center nx-text-sm">
-                {availableSkills.length === 0
-                  ? t('terminal.skillsLoading', 'Carregando catálogo dinâmico de skills...')
-                  : t('terminal.skillsEmpty', 'Nenhuma skill encontrada para o filtro atual.')}
-              </div>
-            ) : (
-              filteredSkills.map((skill) => {
-                const active = selectedSkills.includes(skill.id);
-                const isCopied = copiedSkillId === skill.id;
-                return (
-                  <div key={skill.id} className={styles.skillCard}>
-                    <div className={styles.skillCardHeader}>
-                      <span className={styles.skillCardName}>
-                        <Sparkles size={12} className="nx-text-accent" />
-                        {skill.name || skill.id}
-                      </span>
-                      <div className={styles.skillBadges}>
-                        {skill.category && (
-                          <span className={styles.skillCategoryBadge}>{skill.category}</span>
-                        )}
-                        <span className={styles.skillRiskBadge} data-risk={skill.risk || 'safe'}>
-                          {skill.risk || 'safe'}
-                        </span>
-                      </div>
-                    </div>
-                    {skill.description && (
-                      <p className={styles.skillCardDesc}>{skill.description}</p>
-                    )}
-                    {skill.triggers && skill.triggers.length > 0 && (
-                      <div className={styles.skillTriggers}>
-                        {skill.triggers.map((trig) => (
-                          <span key={trig} className={styles.skillTriggerTag}>
-                            {trig}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    <div className={styles.skillCardActions}>
-                      <button
-                        type="button"
-                        className={styles.skillActionBtn}
-                        onClick={() => handleCopySkill(skill)}
-                        title={t('terminal.copySkillTitle', 'Copiar comando')}
-                      >
-                        {isCopied ? (
-                          <Check size={11} className="text-[var(--nx-success)]" />
-                        ) : (
-                          <Copy size={11} />
-                        )}
-                        <span>
-                          {isCopied
-                            ? t('terminal.copied', 'Copiado')
-                            : t('terminal.copy', 'Copiar')}
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.skillActionBtn}
-                        data-primary="true"
-                        onClick={() => handleInsertSkillToTerminal(skill)}
-                        title={t('terminal.insertSkillTitle', 'Inserir comando no terminal')}
-                      >
-                        <CornerDownLeft size={11} />
-                        <span>{t('terminal.insert', 'Inserir')}</span>
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.skillActionBtn}
-                        onClick={() => handleToggleSkill(skill.id)}
-                        data-active={active ? 'true' : 'false'}
-                        title={t('terminal.selectForPrompt', 'Vincular para prompt (máx 3)')}
-                      >
-                        {active ? '✓ ' + t('terminal.selected', 'Prompt') : '+ Prompt'}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          <div className={styles.skillsDrawerFooter}>
-            <div className={styles.composerHeader}>
-              <span className={styles.composerTitle}>
-                <MessageSquare size={13} /> {t('terminal.sendInstructionTitle')}
-              </span>
-              {selectedSkills.length > 0 && (
-                <span className={styles.skillsLabel}>
-                  {selectedSkills.length}/3 {t('terminal.skillsSelected', 'selecionadas')}
-                </span>
-              )}
-            </div>
-            <div className={styles.composerRow}>
-              <input
-                type="text"
-                className={`nx-input ${styles.composerInput}`}
-                placeholder={t('terminal.sendInstructionPlaceholder')}
-                value={askPrompt}
-                onChange={(e) => setAskPrompt(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    void handleSendPrompt();
-                  }
-                }}
-              />
-              <button
-                type="button"
-                className="nx-button"
-                data-tone="brand"
-                data-size="sm"
-                disabled={asking || !askPrompt.trim()}
-                onClick={() => void handleSendPrompt()}
-              >
-                <Send size={12} />
-                <span>{asking ? t('terminal.sending') : t('terminal.send')}</span>
-              </button>
-            </div>
-            {askFeedback && (
-              <span
-                className={
-                  askFeedback.includes('erro') || askFeedback.includes('failed')
-                    ? styles.feedbackAlert
-                    : styles.feedbackSuccess
-                }
-              >
-                {askFeedback}
-              </span>
-            )}
-          </div>
-        </div>
-      </ContextDrawer>
+      {askOpen && (
+        <AgentTerminalSkillsDrawer
+          open={askOpen}
+          onClose={() => setAskOpen(false)}
+          skills={availableSkills}
+          skillsSearch={skillsSearch}
+          onSearch={setSkillsSearch}
+          selectedCategory={selectedSkillCategory}
+          onCategory={setSelectedSkillCategory}
+          categories={skillCategories}
+          selectedSkills={selectedSkills}
+          onToggleSkill={handleToggleSkill}
+          onInsertSkill={handleInsertSkillToTerminal}
+          onCopySkill={handleCopySkill}
+          copiedSkillId={copiedSkillId}
+          askPrompt={askPrompt}
+          onAskPrompt={setAskPrompt}
+          onSend={() => void handleSendPrompt()}
+          asking={asking}
+          askFeedback={askFeedback}
+        />
+      )}
       <TaskPreparationDialog
         open={preparationOpen}
         agentId={agentId}
