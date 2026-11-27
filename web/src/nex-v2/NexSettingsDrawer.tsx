@@ -1,7 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, X } from 'lucide-react';
-import type { NexV2PlatformCapabilities, NexV2PresenceState, NexV2PresetId } from './nexV2Types';
+import type {
+  NexV2NotificationCooldownSec,
+  NexV2NotificationLevel,
+  NexV2PlatformCapabilities,
+  NexV2PresenceState,
+  NexV2PresetId,
+} from './nexV2Types';
 import styles from './NexSettingsDrawer.module.scss';
 
 export interface NexSettingsDrawerProps {
@@ -19,9 +25,29 @@ export interface NexSettingsDrawerProps {
   onTogglePrivacyMode?: (enabled: boolean) => void;
   onTogglePaused: (paused: boolean) => void;
   onToggleReducedMotion: (enabled: boolean) => void;
+  onNotificationLevelChange?: (level: NexV2NotificationLevel) => void;
+  onNotificationCooldownChange?: (seconds: NexV2NotificationCooldownSec) => void;
+  onToggleHudMemoryMode?: (onDemand: boolean) => void;
 }
 
 type DisplayMode = 'avatar' | 'bar' | 'both';
+
+const NOTIFICATION_LEVELS: readonly { id: NexV2NotificationLevel; labelKey: string }[] = [
+  { id: 'all', labelKey: 'nexV2.notifLevelAll' },
+  { id: 'important', labelKey: 'nexV2.notifLevelImportant' },
+  { id: 'critical', labelKey: 'nexV2.notifLevelCritical' },
+  { id: 'quiet', labelKey: 'nexV2.notifLevelQuiet' },
+];
+
+const NOTIFICATION_COOLDOWNS: readonly {
+  seconds: NexV2NotificationCooldownSec;
+  labelKey: string;
+}[] = [
+  { seconds: 0, labelKey: 'nexV2.cooldownImmediate' },
+  { seconds: 30, labelKey: 'nexV2.cooldown30s' },
+  { seconds: 120, labelKey: 'nexV2.cooldown2m' },
+  { seconds: 300, labelKey: 'nexV2.cooldown5m' },
+];
 
 const PRESETS: readonly { id: NexV2PresetId; labelKey: string }[] = [
   { id: 'compact', labelKey: 'nexV2.presetCompactShort' },
@@ -61,6 +87,9 @@ export const NexSettingsDrawer: React.FC<NexSettingsDrawerProps> = ({
   onTogglePrivacyMode,
   onTogglePaused,
   onToggleReducedMotion,
+  onNotificationLevelChange,
+  onNotificationCooldownChange,
+  onToggleHudMemoryMode,
 }) => {
   const { t } = useTranslation();
 
@@ -121,6 +150,13 @@ export const NexSettingsDrawer: React.FC<NexSettingsDrawerProps> = ({
       desc: t('nexV2.reducedMotionDesc'),
       checked: state.reducedMotion,
       onToggle: () => onToggleReducedMotion(!state.reducedMotion),
+    },
+    {
+      key: 'hud-ondemand',
+      label: t('nexV2.hudOnDemandLabel'),
+      desc: t('nexV2.hudOnDemandDesc'),
+      checked: state.hudMemoryMode === 'ondemand',
+      onToggle: () => onToggleHudMemoryMode?.(state.hudMemoryMode !== 'ondemand'),
     },
   ];
 
@@ -199,6 +235,59 @@ export const NexSettingsDrawer: React.FC<NexSettingsDrawerProps> = ({
                     onClick={() => onPresetChange(preset.id)}
                   >
                     {t(preset.labelKey)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <h3 className={styles.sectionTitle}>{t('nexV2.settingsSectionNotifications')}</h3>
+          <div className={styles.fieldRow}>
+            <span className={styles.fieldLabel}>{t('nexV2.notifLevelLabel')}</span>
+            <div
+              className={`${styles.segmented} ${styles.segmented4}`}
+              role="group"
+              aria-label={t('nexV2.notifLevelLabel')}
+            >
+              {NOTIFICATION_LEVELS.map((opt) => {
+                const active = state.notificationLevel === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    className={styles.segmentBtn}
+                    aria-pressed={active}
+                    data-nex-notif-level={opt.id}
+                    onClick={() => onNotificationLevelChange?.(opt.id)}
+                  >
+                    {t(opt.labelKey)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className={styles.fieldRow}>
+            <span className={styles.fieldLabel}>{t('nexV2.cooldownLabel')}</span>
+            <div
+              className={`${styles.segmented} ${styles.segmented4}`}
+              role="group"
+              aria-label={t('nexV2.cooldownLabel')}
+            >
+              {NOTIFICATION_COOLDOWNS.map((opt) => {
+                const active = state.notificationCooldownSec === opt.seconds;
+                return (
+                  <button
+                    key={opt.seconds}
+                    type="button"
+                    className={styles.segmentBtn}
+                    aria-pressed={active}
+                    data-nex-notif-cooldown={opt.seconds}
+                    onClick={() => onNotificationCooldownChange?.(opt.seconds)}
+                  >
+                    {t(opt.labelKey)}
                   </button>
                 );
               })}

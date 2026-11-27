@@ -96,6 +96,10 @@
   background: var(--nx-surface-2);
 }
 
+.segmented4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .segmentBtn {
   padding: var(--nx-space-1) var(--nx-space-2);
   border: 1px solid transparent;

@@ -124,6 +124,41 @@ func TestNexV2ControllerConcurrentTogglesAndWaylandFallback(t *testing.T) {
 	_ = ctrl.GetPresenceState()
 }
 
+func TestNexV2ControllerNotificationAndMemoryControls(t *testing.T) {
+	ctrl := NewNexV2Controller(
+		NewNexV2StateManager(filepath.Join(t.TempDir(), "nex-v2-state.json")),
+		NexV2PlatformCapabilities{Tray: true, Platform: "linux"},
+		NexV2WindowHooks{},
+	)
+	initial := ctrl.GetPresenceState()
+	if initial.NotificationLevel != NexV2NotifLevelImportant || initial.NotificationCooldownSec != 30 || initial.HudMemoryMode != NexV2HudMemoryOnDemand {
+		t.Fatalf("unexpected defaults: %+v", initial)
+	}
+
+	st, err := ctrl.SetNotificationLevel("CRITICAL")
+	if err != nil || st.NotificationLevel != NexV2NotifLevelCritical {
+		t.Fatalf("SetNotificationLevel failed: st=%+v err=%v", st, err)
+	}
+	st, err = ctrl.SetNotificationLevel("bogus")
+	if err != nil || st.NotificationLevel != NexV2NotifLevelImportant {
+		t.Fatalf("expected invalid level to normalize to important, got %+v", st)
+	}
+
+	st, err = ctrl.SetNotificationCooldown(120)
+	if err != nil || st.NotificationCooldownSec != 120 {
+		t.Fatalf("SetNotificationCooldown(120) failed: st=%+v err=%v", st, err)
+	}
+	st, err = ctrl.SetNotificationCooldown(0)
+	if err != nil || st.NotificationCooldownSec != 0 {
+		t.Fatalf("SetNotificationCooldown(0) must be preserved, got %+v", st)
+	}
+
+	st, err = ctrl.SetHudMemoryMode("persistent")
+	if err != nil || st.HudMemoryMode != NexV2HudMemoryPersistent {
+		t.Fatalf("SetHudMemoryMode failed: st=%+v err=%v", st, err)
+	}
+}
+
 func TestNexV2ControllerSurfaceRectTransitions(t *testing.T) {
 	displays := []DisplayDescriptor{
 		{

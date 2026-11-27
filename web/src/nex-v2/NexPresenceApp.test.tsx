@@ -8,11 +8,16 @@ import { NexNotificationBubble } from './NexNotificationBubble';
 import { NexPresenceApp, deriveNexV2Mood } from './NexPresenceApp';
 import { NexSettingsDrawer } from './NexSettingsDrawer';
 import {
+  buildNexHubHeaders,
   defaultPlatformCapabilities,
   defaultPresenceState,
   normalizeHudState,
 } from './nexV2Client';
-import { resolveDefaultNexV2Tab, resolveTopNexBubbleAlert } from './nexV2HudHelpers';
+import {
+  alertQualifiesForNotificationLevel,
+  resolveDefaultNexV2Tab,
+  resolveTopNexBubbleAlert,
+} from './nexV2HudHelpers';
 import type { NexV2HudState } from './nexV2Types';
 
 const noop = () => {};
@@ -244,6 +249,9 @@ describe('Nex 2.0 presence shell and modular surfaces', () => {
     expect(html).toContain('data-nex-display-mode="avatar"');
     expect(html).toContain('data-nex-display-mode="bar"');
     expect(html).toContain('data-nex-display-mode="both"');
+    expect(html).toContain('data-nex-notif-level="important"');
+    expect(html).toContain('data-nex-notif-cooldown="30"');
+    expect(html).toContain('data-nex-toggle="hud-ondemand"');
     expect(html).toContain('Wayland');
 
     const normalized = normalizeHudState({
@@ -363,5 +371,43 @@ describe('Nex 2.0 presence shell and modular surfaces', () => {
     });
     expect(third.totalPending).toBe(2);
     expect(third.alert?.fingerprint).toBe('mission:run-1:review');
+
+    // Notification intensity filtering preserves totalPending count for the badge
+    // while keeping NEX Hub active to avoid OS fallback popup floods.
+    const quiet = resolveTopNexBubbleAlert(hud, {}, undefined, 'quiet');
+    expect(quiet.alert).toBeNull();
+    expect(quiet.totalPending).toBe(4);
+
+    const criticalOnly = resolveTopNexBubbleAlert(hud, { 'crit-1': true }, undefined, 'critical');
+    expect(criticalOnly.alert).toBeNull();
+    expect(criticalOnly.totalPending).toBe(3);
+
+    const gentleQuotaAlert = {
+      fingerprint: 'warn-25',
+      category: 'quota',
+      severity: 'WARNING',
+      remaining_percent: 25,
+      acked: false,
+      last_observed_at: '2026-11-26T23:00:00Z',
+    };
+    expect(alertQualifiesForNotificationLevel(gentleQuotaAlert, 'all')).toBe(true);
+    expect(alertQualifiesForNotificationLevel(gentleQuotaAlert, 'important')).toBe(false);
+    expect(
+      alertQualifiesForNotificationLevel(
+        { ...gentleQuotaAlert, remaining_percent: 10 },
+        'important',
+      ),
+    ).toBe(true);
+
+    expect(
+      buildNexHubHeaders({
+        ...defaultPresenceState(),
+        notificationLevel: 'quiet',
+        hudMemoryMode: 'ondemand',
+      }),
+    ).toEqual({
+      'X-Nexus-Nex-Hub': 'active',
+      'X-Nexus-Nex-Dnd': '1',
+    });
   });
 });

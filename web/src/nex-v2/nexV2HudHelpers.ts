@@ -1,5 +1,10 @@
 import type { NexOperationalMood } from './motion/nexBehaviorState';
-import type { NexV2HudAlert, NexV2HudState, NexV2TabId } from './nexV2Types';
+import type {
+  NexV2HudAlert,
+  NexV2HudState,
+  NexV2NotificationLevel,
+  NexV2TabId,
+} from './nexV2Types';
 
 export function countAttentionItems(hudState: NexV2HudState | null): number {
   if (!hudState) return 0;
@@ -65,10 +70,27 @@ export function resolveMoodTranslationKey(mood: NexOperationalMood): string {
   }
 }
 
+export function alertQualifiesForNotificationLevel(
+  alert: NexV2HudAlert,
+  level: NexV2NotificationLevel = 'important',
+): boolean {
+  if (level === 'quiet') return false;
+  const severity = (alert.severity || '').toUpperCase();
+  if (severity === 'CRITICAL') return true;
+  if (level === 'critical') return false;
+  if (level === 'all') return true;
+  // Balanced ("important") mode: work-blocking attention, blocked missions, or <15% remaining quota.
+  if (alert.category === 'runtime_attention' || alert.category === 'mission_attention') {
+    return true;
+  }
+  return typeof alert.remaining_percent === 'number' && alert.remaining_percent < 15;
+}
+
 export function resolveTopNexBubbleAlert(
   hudState: NexV2HudState | null,
   dismissedAlerts: Record<string, boolean>,
   labels?: { missionNeedsUserFallback?: string },
+  notificationLevel: NexV2NotificationLevel = 'important',
 ): { alert: NexV2HudAlert | null; totalPending: number } {
   if (!hudState) return { alert: null, totalPending: 0 };
   const alerts = (hudState.alerts ?? []).filter((a) => !a.acked && !dismissedAlerts[a.fingerprint]);
@@ -103,5 +125,6 @@ export function resolveTopNexBubbleAlert(
     .filter((a) => !dismissedAlerts[a.fingerprint]);
 
   const queue = [...criticalAlerts, ...runtimeAlerts, ...missionAlerts, ...standardAlerts];
-  return { alert: queue[0] ?? null, totalPending: queue.length };
+  const visible = queue.filter((a) => alertQualifiesForNotificationLevel(a, notificationLevel));
+  return { alert: visible[0] ?? null, totalPending: queue.length };
 }

@@ -2,6 +2,9 @@ import type { NexOperationalMood } from './motion/nexBehaviorState';
 
 export type NexV2PresetId = 'compact' | 'standard' | 'large';
 export type NexV2TabId = 'chat' | 'resources' | 'attention';
+export type NexV2NotificationLevel = 'all' | 'important' | 'critical' | 'quiet';
+export type NexV2NotificationCooldownSec = 0 | 30 | 120 | 300;
+export type NexV2HudMemoryMode = 'ondemand' | 'persistent';
 
 export interface NexV2PlacementState {
   displayId: string;
@@ -23,6 +26,9 @@ export interface NexV2PresenceState {
   reducedMotion: boolean;
   hotkey: string;
   respectFullscreen: boolean;
+  notificationLevel: NexV2NotificationLevel;
+  notificationCooldownSec: NexV2NotificationCooldownSec;
+  hudMemoryMode: NexV2HudMemoryMode;
 }
 
 export interface NexV2PlatformCapabilities {

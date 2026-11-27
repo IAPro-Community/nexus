@@ -16,16 +16,29 @@ import (
 // NexV2PresenceState persists user preferences for the Nex 2.0 shell in its
 // own file (nex-v2-state.json), never mutating legacy hud-window-state.json.
 type NexV2PresenceState struct {
-	Placement         NexV2PlacementState `json:"placement"`
-	ShowAvatar        bool                `json:"showAvatar"`
-	CompactBar        bool                `json:"compactBar"`
-	DoNotDisturb      bool                `json:"doNotDisturb"`
-	PrivacyMode       bool                `json:"privacyMode"`
-	Paused            bool                `json:"paused"`
-	ReducedMotion     bool                `json:"reducedMotion"`
-	Hotkey            string              `json:"hotkey"`
-	RespectFullscreen bool                `json:"respectFullscreen"`
+	Placement               NexV2PlacementState `json:"placement"`
+	ShowAvatar              bool                `json:"showAvatar"`
+	CompactBar              bool                `json:"compactBar"`
+	DoNotDisturb            bool                `json:"doNotDisturb"`
+	PrivacyMode             bool                `json:"privacyMode"`
+	Paused                  bool                `json:"paused"`
+	ReducedMotion           bool                `json:"reducedMotion"`
+	Hotkey                  string              `json:"hotkey"`
+	RespectFullscreen       bool                `json:"respectFullscreen"`
+	NotificationLevel       string              `json:"notificationLevel"`
+	NotificationCooldownSec int                 `json:"notificationCooldownSec"`
+	HudMemoryMode           string              `json:"hudMemoryMode"`
 }
+
+const (
+	NexV2NotifLevelAll       = "all"
+	NexV2NotifLevelImportant = "important"
+	NexV2NotifLevelCritical  = "critical"
+	NexV2NotifLevelQuiet     = "quiet"
+
+	NexV2HudMemoryOnDemand   = "ondemand"
+	NexV2HudMemoryPersistent = "persistent"
+)
 
 // NexV2PlatformCapabilities reports honest OS/compositor capabilities so the UI
 // adapts cleanly on Wayland without invasive hacks.
@@ -42,15 +55,49 @@ type NexV2PlatformCapabilities struct {
 }
 
 func DefaultNexV2PresenceState() NexV2PresenceState {
+	memMode := NexV2HudMemoryOnDemand
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("NEXUS_HUD_MODE")), NexV2HudMemoryPersistent) {
+		memMode = NexV2HudMemoryPersistent
+	}
 	return NexV2PresenceState{
-		Placement:         DefaultNexV2PlacementState(),
-		ShowAvatar:        true,
-		CompactBar:        false,
-		DoNotDisturb:      false,
-		Paused:            false,
-		ReducedMotion:     false,
-		Hotkey:            "Ctrl+Shift+N",
-		RespectFullscreen: true,
+		Placement:               DefaultNexV2PlacementState(),
+		ShowAvatar:              true,
+		CompactBar:              false,
+		DoNotDisturb:            false,
+		Paused:                  false,
+		ReducedMotion:           false,
+		Hotkey:                  "Ctrl+Shift+N",
+		RespectFullscreen:       true,
+		NotificationLevel:       NexV2NotifLevelImportant,
+		NotificationCooldownSec: 30,
+		HudMemoryMode:           memMode,
+	}
+}
+
+func NormalizeNotificationLevel(level string) string {
+	switch strings.ToLower(strings.TrimSpace(level)) {
+	case NexV2NotifLevelAll, NexV2NotifLevelImportant, NexV2NotifLevelCritical, NexV2NotifLevelQuiet:
+		return strings.ToLower(strings.TrimSpace(level))
+	default:
+		return NexV2NotifLevelImportant
+	}
+}
+
+func NormalizeNotificationCooldown(seconds int) int {
+	switch seconds {
+	case 0, 30, 120, 300:
+		return seconds
+	default:
+		return 30
+	}
+}
+
+func NormalizeHudMemoryMode(mode string) string {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case NexV2HudMemoryPersistent:
+		return NexV2HudMemoryPersistent
+	default:
+		return NexV2HudMemoryOnDemand
 	}
 }
 
@@ -66,6 +113,18 @@ func normalizeNexV2PresenceState(state NexV2PresenceState) NexV2PresenceState {
 	state.Placement.ScaleFactor = NormalizeScaleFactor(state.Placement.ScaleFactor)
 	if strings.TrimSpace(state.Hotkey) == "" {
 		state.Hotkey = "Ctrl+Shift+N"
+	}
+	state.NotificationLevel = NormalizeNotificationLevel(state.NotificationLevel)
+	// Preserve explicit 0 ("immediate"), normalize invalid negative or unconfigured values.
+	switch state.NotificationCooldownSec {
+	case 0, 30, 120, 300:
+	default:
+		state.NotificationCooldownSec = 30
+	}
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("NEXUS_HUD_MODE")), NexV2HudMemoryPersistent) {
+		state.HudMemoryMode = NexV2HudMemoryPersistent
+	} else {
+		state.HudMemoryMode = NormalizeHudMemoryMode(state.HudMemoryMode)
 	}
 	return state
 }
@@ -329,6 +388,13 @@ func (c *NexV2Controller) SetSettingsOpen(open bool) (bool, error) {
 	return c.settingsOpen, nil
 }
 
+// GetSettingsOpen reports whether the Nex 2.0 settings drawer is currently open.
+func (c *NexV2Controller) GetSettingsOpen() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.settingsOpen
+}
+
 // SetOverlayVisible expands or restores the collapsed surface for transient
 // overlays (notification bubbles or offline banners).
 func (c *NexV2Controller) SetOverlayVisible(visible bool) (bool, error) {
@@ -457,6 +523,30 @@ func (c *NexV2Controller) SetReducedMotion(enabled bool) (NexV2PresenceState, er
 	defer c.mu.Unlock()
 	state := c.manager.Load()
 	state.ReducedMotion = enabled
+	return state, c.manager.Save(state)
+}
+
+func (c *NexV2Controller) SetNotificationLevel(level string) (NexV2PresenceState, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	state := c.manager.Load()
+	state.NotificationLevel = NormalizeNotificationLevel(level)
+	return state, c.manager.Save(state)
+}
+
+func (c *NexV2Controller) SetNotificationCooldown(seconds int) (NexV2PresenceState, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	state := c.manager.Load()
+	state.NotificationCooldownSec = NormalizeNotificationCooldown(seconds)
+	return state, c.manager.Save(state)
+}
+
+func (c *NexV2Controller) SetHudMemoryMode(mode string) (NexV2PresenceState, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	state := c.manager.Load()
+	state.HudMemoryMode = NormalizeHudMemoryMode(mode)
 	return state, c.manager.Save(state)
 }
 

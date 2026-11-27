@@ -30,10 +30,10 @@ type HUDTrayAppearanceActions struct {
 	MascotAvailable bool
 }
 
-// ConfigureNativeTray installs one cross-platform recovery path for a native
-// Nexus window. Closing the window hides it; Quit in the tray is authoritative.
-func ConfigureNativeTray(app *application.App, window application.Window, tooltip string, guardian ...HUDTrayAppearanceActions) *application.SystemTray {
-	if app == nil || window == nil {
+// NewNativeTray creates and brands the platform system tray without requiring
+// an initial WebView window (safe for lazy / on-demand HUD hibernation).
+func NewNativeTray(app *application.App, tooltip string) *application.SystemTray {
+	if app == nil {
 		return nil
 	}
 	tray := app.SystemTray.New()
@@ -48,6 +48,19 @@ func ConfigureNativeTray(app *application.App, window application.Window, toolti
 		tray.SetDarkModeIcon(icons.SystrayLight)
 	}
 	tray.SetTooltip(tooltip)
+	return tray
+}
+
+// ConfigureNativeTray installs one cross-platform recovery path for a native
+// Nexus window. Closing the window hides it; Quit in the tray is authoritative.
+func ConfigureNativeTray(app *application.App, window application.Window, tooltip string, guardian ...HUDTrayAppearanceActions) *application.SystemTray {
+	if app == nil || window == nil {
+		return nil
+	}
+	tray := NewNativeTray(app, tooltip)
+	if tray == nil {
+		return nil
+	}
 
 	menu := app.NewMenu()
 	show := func() {

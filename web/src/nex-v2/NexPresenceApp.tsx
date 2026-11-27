@@ -15,6 +15,7 @@ import {
   fetchNexV2Events,
   fetchNexV2Hud,
   fetchNexV2ModelWatch,
+  isDesktopShell,
   loadNexV2Presence,
   presetSizePixels,
   reportNexHubStatus,
@@ -23,6 +24,9 @@ import {
   updateNexV2CompactBar,
   updateNexV2DisplayMode,
   updateNexV2DoNotDisturb,
+  updateNexV2HudMemoryMode,
+  updateNexV2NotificationCooldown,
+  updateNexV2NotificationLevel,
   updateNexV2OverlayVisible,
   updateNexV2PanelOpen,
   updateNexV2Paused,
@@ -40,7 +44,6 @@ import {
 } from './nexV2HudHelpers';
 import type {
   NexV2EventEnvelope,
-  NexV2HudAlert,
   NexV2HudState,
   NexV2ModelCatalogWatchSnapshot,
   NexV2PlatformCapabilities,
@@ -122,6 +125,7 @@ export const NexPresenceApp: React.FC<NexPresenceAppProps> = ({
   const pollInFlightRef = useRef(false);
   const cursorRef = useRef(0);
   const failuresRef = useRef(0);
+  const cooldownUntilRef = useRef(0);
 
   const pollHud = useCallback(async () => {
     if (pollInFlightRef.current) return;
@@ -182,11 +186,33 @@ export const NexPresenceApp: React.FC<NexPresenceAppProps> = ({
   }, [pollHud]);
 
   useEffect(() => {
-    void reportNexHubStatus(presence, offline);
-  }, [offline, presence.compactBar, presence.doNotDisturb, presence.paused, presence.showAvatar]);
+    void reportNexHubStatus(
+      {
+        paused: presence.paused,
+        showAvatar: presence.showAvatar,
+        compactBar: presence.compactBar,
+        doNotDisturb: presence.doNotDisturb,
+        notificationLevel: presence.notificationLevel,
+        hudMemoryMode: presence.hudMemoryMode,
+      },
+      offline,
+    );
+  }, [
+    offline,
+    presence.compactBar,
+    presence.doNotDisturb,
+    presence.hudMemoryMode,
+    presence.notificationLevel,
+    presence.paused,
+    presence.showAvatar,
+  ]);
 
   useEffect(() => {
     const release = () => {
+      // When Wails HUD hibernates in on-demand mode, the Go tray watcher keeps the hub lease alive.
+      if (isDesktopShell() && presenceRef.current.hudMemoryMode === 'ondemand') {
+        return;
+      }
       void reportNexHubStatus({ ...presenceRef.current, paused: true }, true, true);
     };
     window.addEventListener('pagehide', release);
@@ -266,13 +292,31 @@ export const NexPresenceApp: React.FC<NexPresenceAppProps> = ({
   const attentionCount = useMemo(() => countAttentionItems(hudState), [hudState]);
   const criticalAttention = useMemo(() => hasCriticalAttention(hudState), [hudState]);
 
-  const { alert: topAlert, totalPending: pendingBubbleCount } = useMemo(
+  const { alert: rawTopAlert, totalPending: pendingBubbleCount } = useMemo(
     () =>
-      resolveTopNexBubbleAlert(hudState, dismissedAlerts, {
-        missionNeedsUserFallback: t('nexV2.missionNeedsUserBadge'),
-      }),
-    [dismissedAlerts, hudState, t],
+      resolveTopNexBubbleAlert(
+        hudState,
+        dismissedAlerts,
+        {
+          missionNeedsUserFallback: t('nexV2.missionNeedsUserBadge'),
+        },
+        presence.notificationLevel,
+      ),
+    [dismissedAlerts, hudState, presence.notificationLevel, t],
   );
+
+  const topAlert = useMemo(() => {
+    if (!rawTopAlert) return null;
+    const isCritical = (rawTopAlert.severity || '').toUpperCase() === 'CRITICAL';
+    if (
+      !isCritical &&
+      presence.notificationCooldownSec > 0 &&
+      Date.now() < cooldownUntilRef.current
+    ) {
+      return null;
+    }
+    return rawTopAlert;
+  }, [presence.notificationCooldownSec, rawTopAlert]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -412,6 +456,17 @@ export const NexPresenceApp: React.FC<NexPresenceAppProps> = ({
         onToggleReducedMotion={(enabled) =>
           void updateNexV2ReducedMotion(enabled, presence).then(setPresence)
         }
+        onNotificationLevelChange={(level) =>
+          void updateNexV2NotificationLevel(level, presence).then(setPresence)
+        }
+        onNotificationCooldownChange={(seconds) =>
+          void updateNexV2NotificationCooldown(seconds, presence).then(setPresence)
+        }
+        onToggleHudMemoryMode={(onDemand) =>
+          void updateNexV2HudMemoryMode(onDemand ? 'ondemand' : 'persistent', presence).then(
+            setPresence,
+          )
+        }
       />
 
       <NexNotificationBubble
@@ -421,7 +476,12 @@ export const NexPresenceApp: React.FC<NexPresenceAppProps> = ({
         privacyMode={presence.privacyMode}
         panelOpen={panelOpen || settingsOpen || !presence.showAvatar}
         offline={offline}
-        onDismiss={(fp) => setDismissedAlerts((prev) => ({ ...prev, [fp]: true }))}
+        onDismiss={(fp) => {
+          if (presence.notificationCooldownSec > 0) {
+            cooldownUntilRef.current = Date.now() + presence.notificationCooldownSec * 1000;
+          }
+          setDismissedAlerts((prev) => ({ ...prev, [fp]: true }));
+        }}
         onOpenAttention={() => setPanelVisibility(true, 'attention')}
       />
 

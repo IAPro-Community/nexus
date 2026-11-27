@@ -6,10 +6,13 @@ import type {
   NexV2ActionReceipt,
   NexV2ChatTurn,
   NexV2EventsPage,
+  NexV2HudMemoryMode,
   NexV2HudProvider,
   NexV2HudSnapshotResult,
   NexV2HudState,
   NexV2ModelCatalogWatchSnapshot,
+  NexV2NotificationCooldownSec,
+  NexV2NotificationLevel,
   NexV2PersonalMemoryEntry,
   NexV2PlatformCapabilities,
   NexV2PresenceState,
@@ -71,6 +74,9 @@ export function defaultPresenceState(): NexV2PresenceState {
     reducedMotion: false,
     hotkey: 'Ctrl+Shift+N',
     respectFullscreen: true,
+    notificationLevel: 'important',
+    notificationCooldownSec: 30,
+    hudMemoryMode: 'ondemand',
   };
 }
 
@@ -286,6 +292,51 @@ export const updateNexV2ReducedMotion = (enabled: boolean, current: NexV2Presenc
     current,
   );
 
+export async function updateNexV2NotificationLevel(
+  level: NexV2NotificationLevel,
+  current: NexV2PresenceState,
+): Promise<NexV2PresenceState> {
+  if (isDesktopShell()) {
+    try {
+      const updated = await callController<NexV2PresenceState>('SetNotificationLevel', level);
+      return writeLocalState(updated);
+    } catch {
+      // Fallback to localStorage below.
+    }
+  }
+  return writeLocalState({ ...current, notificationLevel: level });
+}
+
+export async function updateNexV2NotificationCooldown(
+  seconds: NexV2NotificationCooldownSec,
+  current: NexV2PresenceState,
+): Promise<NexV2PresenceState> {
+  if (isDesktopShell()) {
+    try {
+      const updated = await callController<NexV2PresenceState>('SetNotificationCooldown', seconds);
+      return writeLocalState(updated);
+    } catch {
+      // Fallback to localStorage below.
+    }
+  }
+  return writeLocalState({ ...current, notificationCooldownSec: seconds });
+}
+
+export async function updateNexV2HudMemoryMode(
+  mode: NexV2HudMemoryMode,
+  current: NexV2PresenceState,
+): Promise<NexV2PresenceState> {
+  if (isDesktopShell()) {
+    try {
+      const updated = await callController<NexV2PresenceState>('SetHudMemoryMode', mode);
+      return writeLocalState(updated);
+    } catch {
+      // Fallback to localStorage below.
+    }
+  }
+  return writeLocalState({ ...current, hudMemoryMode: mode });
+}
+
 function readBootstrapFragmentToken(): string {
   if (typeof window === 'undefined' || !window.location?.hash) return '';
   const hash = window.location.hash.replace(/^#/, '');
@@ -455,36 +506,37 @@ async function authedFetch(
   return res;
 }
 
-export function buildNexHubHeaders(
-  presence?: Pick<NexV2PresenceState, 'paused' | 'showAvatar' | 'compactBar' | 'doNotDisturb'>,
-): Record<string, string> {
+type NexV2HubPresenceInput = Pick<
+  NexV2PresenceState,
+  'paused' | 'showAvatar' | 'compactBar' | 'doNotDisturb'
+> &
+  Partial<Pick<NexV2PresenceState, 'notificationLevel' | 'hudMemoryMode'>>;
+
+export function buildNexHubHeaders(presence?: NexV2HubPresenceInput): Record<string, string> {
   if (!presence) return {};
-  const hub = presence.paused
-    ? 'paused'
-    : presence.showAvatar || presence.compactBar
-      ? 'active'
-      : 'hidden';
+  // Keep NEX active across quiet/critical/important/on-demand modes so OS native popups stay suppressed.
+  const hub = presence.paused ? 'paused' : 'active';
+  const dnd = presence.doNotDisturb || presence.notificationLevel === 'quiet';
   return {
     'X-Nexus-Nex-Hub': hub,
-    'X-Nexus-Nex-Dnd': presence.doNotDisturb ? '1' : '0',
+    'X-Nexus-Nex-Dnd': dnd ? '1' : '0',
   };
 }
 
 export async function reportNexHubStatus(
-  presence: Pick<NexV2PresenceState, 'paused' | 'showAvatar' | 'compactBar' | 'doNotDisturb'>,
+  presence: NexV2HubPresenceInput,
   offline: boolean,
   keepalive = false,
 ): Promise<void> {
-  const canNotify = !offline && !presence.paused && (presence.showAvatar || presence.compactBar);
+  const canNotify = !offline && !presence.paused;
+  const effectiveDnd = presence.doNotDisturb || presence.notificationLevel === 'quiet';
   const reason = offline
     ? 'nex_offline'
     : presence.paused
       ? 'nex_paused'
-      : !presence.showAvatar && !presence.compactBar
-        ? 'nex_hidden'
-        : presence.doNotDisturb
-          ? 'nex_dnd'
-          : 'nex_active';
+      : effectiveDnd
+        ? 'nex_dnd'
+        : 'nex_active';
   try {
     await authedFetch('/api/v1/nex/hub-status', {
       method: 'POST',
@@ -492,7 +544,7 @@ export async function reportNexHubStatus(
       keepalive,
       body: JSON.stringify({
         can_notify: canNotify,
-        do_not_disturb: presence.doNotDisturb,
+        do_not_disturb: effectiveDnd,
         reason,
       }),
     });
@@ -578,7 +630,7 @@ export function normalizeHudState(
 }
 
 export async function fetchNexV2Hud(
-  presence?: Pick<NexV2PresenceState, 'paused' | 'showAvatar' | 'compactBar' | 'doNotDisturb'>,
+  presence?: NexV2HubPresenceInput,
 ): Promise<NexV2HudSnapshotResult> {
   try {
     const res = await authedFetch('/api/v1/hud', {
@@ -616,7 +668,7 @@ export function computeReconnectBackoffMs(consecutiveFailures: number): number {
 
 export async function fetchNexV2Events(
   since = 0,
-  presence?: Pick<NexV2PresenceState, 'paused' | 'showAvatar' | 'compactBar' | 'doNotDisturb'>,
+  presence?: NexV2HubPresenceInput,
 ): Promise<NexV2EventsPage> {
   try {
     const query = since > 0 ? `?since=${encodeURIComponent(String(since))}` : '';
