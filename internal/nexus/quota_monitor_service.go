@@ -14,6 +14,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/profile"
 )
@@ -183,6 +184,10 @@ func (s *QuotaMonitorService) check() {
 		if p.Disabled {
 			continue
 		}
+		if provSpec, ok := spec.Get(p.Provider); ok && provSpec.Quota == spec.QuotaUnsupported {
+			s.clearDegraded(p.Provider + ":" + p.Name)
+			continue
+		}
 		account := profile.GetAccountInfo(p.Provider, p.Name)
 		if !account.Authenticated {
 			// Emit a degraded event so the UI and notifications surface
@@ -190,12 +195,23 @@ func (s *QuotaMonitorService) check() {
 			s.emitDegraded(p.Provider+":"+p.Name, fmt.Sprintf("account not authenticated: %s", account.Status))
 			continue
 		}
+		// Match GetAccountInfo: Codex scopes by chatgpt_account_id, others by email.
+		identity := account.Email
+		if p.Provider == "codex" && strings.TrimSpace(account.ExternalAccountID) != "" {
+			identity = account.ExternalAccountID
+		}
+		accScope, scopeErr := profile.AccountScope(p.Provider, p.Name, identity)
 		var snapshot model.UsageSnapshot
 		if profileTUIBusy(p.Provider, p.Name) {
 			// Never race an interactive Codex TUI with a live app-server probe.
 			snapshot = profile.PeekUsageSnapshot(p.Provider, p.Name)
 		} else {
-			snapshot = profile.RefreshUsageSnapshotContext(ctx, p.Provider, p.Name)
+			peek := profile.PeekUsageSnapshot(p.Provider, p.Name)
+			if findActiveRuntime(p.Provider, p.Name, accScope) == "" && isFreshIdleMonitorSnapshot(peek, time.Now()) {
+				snapshot = peek
+			} else {
+				snapshot = profile.RefreshUsageSnapshotContext(ctx, p.Provider, p.Name)
+			}
 		}
 		// RATE_LIMITED is an accurate reading, not a failed one: the provider
 		// told us the account is blocked. Alerting on it is the monitor's job.
@@ -214,18 +230,13 @@ func (s *QuotaMonitorService) check() {
 		}
 		s.clearDegraded(p.Provider + ":" + p.Name)
 		view := quota.BuildQuotaView(snapshot, account.Email, account.Plan)
-		// Match GetAccountInfo: Codex scopes by chatgpt_account_id, others by email.
-		identity := account.Email
-		if p.Provider == "codex" && strings.TrimSpace(account.ExternalAccountID) != "" {
-			identity = account.ExternalAccountID
-		}
 		acc := ProviderAccount{Provider: p.Provider, Profile: p.Name, DisplayName: account.Email, Authenticated: true, QuotaView: &view, QuotaRemaining: 0, QuotaTotal: 1, LastChecked: time.Now()}
 		if view.AvailReasons.RateLimited || snapshot.Status == model.UsageRateLimited {
 			acc.RateLimited = true
 			acc.Available = false
 		}
-		if scope, scopeErr := profile.AccountScope(p.Provider, p.Name, identity); scopeErr == nil {
-			acc.Scope = scope
+		if scopeErr == nil {
+			acc.Scope = accScope
 		}
 		attachCredentialProvenance(&acc, p.Provider, p.Name, true, account.ExternalAccountID)
 		if acc.AccountWarning == AccountWarningHostChanged {
@@ -252,6 +263,22 @@ func (s *QuotaMonitorService) check() {
 				handler(ctx, action.AffectedRuntimeID, reason)
 			}
 		}
+	}
+}
+
+func isFreshIdleMonitorSnapshot(snap model.UsageSnapshot, now time.Time) bool {
+	if snap.FetchedAt.IsZero() {
+		return false
+	}
+	age := now.Sub(snap.FetchedAt)
+	if age < -time.Minute || age >= quota.DefaultTTL {
+		return false
+	}
+	switch snap.Status {
+	case model.UsageLive, model.UsageCached, model.UsageRateLimited:
+		return len(snap.Windows) > 0 || snap.Status == model.UsageRateLimited
+	default:
+		return false
 	}
 }
 
