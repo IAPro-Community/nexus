@@ -1,3 +1,19 @@
+## 2026-11-27 — Execução de Prontidão para Produção (`release/v1.0.0`): Higiene de Disco, NEX On-Demand e DX Diária
+
+- **Milestone 1 — Estabilidade, Cache Compartilhado e Recuperação de 24 GiB (`cf43d192`, `c0c78a43`, `36f03bf1`):**
+  - `auth_store.go`: limpeza automática de arquivos `listen-*.json` órfãos de PIDs encerrados.
+  - `internal/core/provider/spec/env.go`: compartilhamento seguro de caches não-credenciais (`GOCACHE`, `GOMODCACHE`, `NPM_CONFIG_CACHE`, `YARN_CACHE_FOLDER`, `PLAYWRIGHT_BROWSERS_PATH`, `CYPRESS_CACHE_FOLDER`) em `~/.cache/nexus-toolchains/` (opt-out `NEXUS_ISOLATE_BUILD_CACHES=1`), preservando `HOME` e credenciais isolados.
+  - `internal/doctor/storage.go` + `cmd_doctor.go`: `nexus doctor --storage` e `--prune-caches` com `os.Lstat` estrito e allowlist; executado ao vivo no host após inspeção do dry-run (`0` symlinks, `0` credenciais tocadas), recuperando **`24,395.29 MiB`** (`46,984.04 MiB -> 22,588.98 MiB`) e removendo `3` diretórios fantasma não referenciados + `27` `listen-*.json` obsoletos.
+- **Milestone 2 — NEX 2.0 On-Demand, Controle de Notificações e Polling por Visibilidade (`15c2a120`, `a2c4572d`, `49e69291`):**
+  - `internal/desktop/` (`native_shell.go`, `nex_v2_controller.go`), `cmd/nexus-hud/` (`nex_v2.go`, `nex_v2_watcher.go`) e `web/src/nex-v2/`: controle de intensidade (`all`/`important`/`critical`/`quiet`), cooldown (`0`/`30s`/`120s`/`300s`), modo padrão `ondemand` (hiberna WebKitGTK mantendo tray + watcher Go + `X-Nexus-Nex-Hub: active`, suprimindo pop-ups nativos do SO exceto em erro real de abertura do WebView com `ForceFallback: true`), e proteção em `OnSecondInstanceLaunch` para `--linked` de `nexus-desktop`/`nexus web`.
+  - Ao vivo após reinício (`49e69291`): **`nexus-hud --linked` em `72.68 MB RSS`** (vs `662.42 MB` antes — **-89%** e `0` processos WebKitGTK), `nexus web` **`37.75 MB RSS`**, CPU em idle **`0.00%`**, `/api/v1/nex/hub-status` `active: true`, `/providers` **`4.31 ms`**, `/resources` **`8.03 ms`**, `/hud` **`0.61 ms`**.
+  - `web/src/lib/useVisibilityInterval.ts`: migrado polling de `OutputsSurface`, `MissionAttentionPanel`, `InAppNotificationCenter` e `UsageSurface`.
+- **Milestone 3 — Fluxo Diário (`c0428975`):**
+  - `GET /api/v1/projects/{id}/git/diff` (validação estrita de `?worktree=` e limite 256 KiB), `ProjectDiffDialog` com ação **"Enviar comentário ao agente"**, criação rápida **"Worktree isolado"** em `AgentsSurface`, faixa **Resumo do dia** em `ProjectOverviewSurface` e atualização de `featureAnnouncements.ts` / `featureTourDefinitions.ts` / locales PT-BR/EN/ES.
+- **Verificação e Pendências de Release (`NO_GO` público até execução em runners/owner):**
+  - Aprovados localmente: `gofmt`, `go vet -tags=gtk3 ./...`, todas as suítes `-race` (`internal/control/...`, `internal/core/provider/...`, `internal/doctor/...`, `internal/desktop/...`, `cmd/nexus-hud/...`, `internal/nexus/...`), `prettier`, `eslint`, `stylelint`, `check:styles`, `tsc --noEmit`, `174` arquivos / `1.091` testes Vitest, `web build` (`dist/ 7288.3 KB / 8000.0 KB`), `version-check`, `verify-update`, `docs-verify.mjs --links-only`, `verify-agent-workspace-v1.mjs`, `verify-release-docs.mjs`.
+  - Pendentes fora deste ambiente Linux local: `git push` para CI, recaptura visual (`docs/assets/screenshots/manifest.json`), `gitleaks` (`audit-publication.sh`), certificação nativa Windows/macOS no SHA exato, soak 8h e assinatura Ed25519 de produção.
+
 ## 2026-11-27 — Investigação estratégica, auditoria de performance, otimizações P0/P1 e benchmarks reproduzíveis
 
 - **Auditoria competitiva, arquitetural e plano de evolução (`docs/evolution/`):**

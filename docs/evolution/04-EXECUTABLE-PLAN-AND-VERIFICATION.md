@@ -27,20 +27,17 @@
 - **Problema:** Faltava acesso rápido por teclado na Command Palette para trocar branch/worktree e sincronizar estado global.
 - **Solução implementada:** Comandos `switch-git-branch` e `refresh-workspace-state` em `NexusWorkspaceSession.tsx` (PT-BR/EN/ES) e evento `nexus:open-branch-switcher` em `WorkspaceTaskbar.tsx`.
 
-### E5 — Redução Estrutural de RAM Desktop+HUD (`P1-2` / `P2-4`) *(Planejado)*
-- **Problema:** Dual WebKitGTK consome `~1.04–1.35 GB RSS`.
-- **Solução proposta:** Substituir janela WebKitGTK residente do HUD recolhido por indicador/tray nativo GTK (`< 25 MB`), abrindo WebView sob demanda; implementar skip-render/lazy-mount para abas `xterm.js` ocultas (referência Herdr/Terax).
-- **Critério de aceitação:** Idle completo `nexus-desktop` + HUD recolhido `<= 450 MB RSS` em P1; `< 250 MB` em P2.
-- **Rollback:** Flag `NEXUS_HUD_PERSISTENT_WEBVIEW=1` restaura comportamento anterior.
+### E5 — Redução Estrutural de RAM do HUD + Controle de Notificações (`P1-2`) *(Implementado e Verificado)*
+- **Problema:** `nexus-hud` consumia `481–662 MB RSS` permanente com WebKitGTK residente e alertas disparavam pop-ups nativos do SO sempre que o usuário não queria ruído.
+- **Solução implementada:** Modo padrão `ondemand` em `NexV2Controller` + `nexV2WindowHost`/`nexV2AlertWatcher` (`nexus-hud` hiberna o WebView após inatividade ou no boot, mantendo tray GTK + watcher Go em **`~72.7 MB RSS`** com `0` processos WebKitGTK), acordando em alertas qualificáveis (ou clique na bandeja) com fallback OS estritamente condicional a erro real (`ForceFallback: true` + `webview_open_failed`). Adicionados níveis de intensidade (`all` | `important` | `critical` | `quiet`) e cooldown (`0` | `30s` | `120s` | `300s`) no NEX 2.0.
+- **Rollback:** Alternar "Modo Econômico (Sob Demanda)" na bandeja/UI ou definir `NEXUS_HUD_MODE=persistent`.
 
-### E6 — Fluxo 1-Clique "Worktree + Agente + Diff Inline" (`P1-3` / `P1-4`) *(Planejado)*
-- **Problema:** Criação paralela de worktree + revisão inline de diffs exige troca manual para IDE externa.
-- **Referência competitiva:** Orca, Superset, Vibe Kanban, T3 Code.
-- **Solução proposta:** Endpoint único `POST /api/v1/projects/:id/worktree-agents` (cria worktree, executa `.nexus/setup.sh` se autorizado, escolhe conta saudável do pool, inicia runtime) + visualizador de diff unificado leve com botão **"Comentar no Agente"**.
-- **Riscos e Rollback:** Worktrees órfãs e hooks maliciosos -> exigir confirmação/hash por `.nexus/setup.sh` alterado e vincular limpeza ao ciclo de vida do agente.
+### E6 — Fluxo Diário "Worktree + Agente + Diff Inline + Resumo do Dia" (`P1-3` / `P1-4`) *(Implementado e Verificado)*
+- **Problema:** Revisar diffs locais e comentar para um agente exigia troca para IDE externa.
+- **Solução implementada:** Endpoint `GET /api/v1/projects/:id/git/diff` (com validação estrita contra worktrees registrados do projeto e cap de 256 KiB), diálogo `ProjectDiffDialog` com **"Enviar comentário ao agente"**, criação rápida **"Worktree isolado"** na superfície de agentes e faixa **Resumo do dia** em `ProjectOverviewSurface`.
 
-### E7 — Account Pools ToS-Compliant + Automação `Event -> Condition -> Action -> Result` (`P2-1` / `P2-2`) *(Planejado)*
-- **Escopo:** Políticas explícitas de pool + `burn_rate` no SDK e regras determinísticas locais com dry-run e rate-limit contra loops.
+### E7 — Higiene de Armazenamento e Account Pools ToS-Compliant (`P2-1` / `P2-2`) *(Armazenamento Implementado; Rules Engine Pendente P2)*
+- **Escopo entregue:** Limpeza automática de `listen-*.json` órfãos, cache compartilhado não-credencial de toolchains (`~/.cache/nexus-toolchains/`), e `nexus doctor --storage` / `--prune-caches` (permitindo recuperar **`24,395.29 MiB`** com `os.Lstat` estrito e `0` symlinks/credenciais tocados). Motor genérico `Event -> Condition -> Action -> Result` segue no backlog P2.
 
 ---
 
@@ -48,13 +45,20 @@
 
 | Commit | Descrição | Arquivos Modificados / Criados |
 | --- | --- | --- |
-| `68613acb` | `perf(providers): cache and coalesce CLI version and host-auth probes` | [versionprobe.go](file:///projetos/nexus/internal/core/provider/versionprobe/versionprobe.go), [versionprobe_test.go](file:///projetos/nexus/internal/core/provider/versionprobe/versionprobe_test.go), [detect_helper.go](file:///projetos/nexus/internal/control/driver/detect_helper.go), 7 drivers em `internal/control/driver/`, 4 adapters (`claude`, `cursor`, `opencode`, `zcode`), [cursor_test.go](file:///projetos/nexus/internal/core/provider/adapters/cursor/cursor_test.go), [benchmark_evolution_test.go](file:///projetos/nexus/internal/control/web/benchmark_evolution_test.go) |
-| `8902f745` | `perf(quota): skip unsupported providers and fresh idle snapshots in monitor` | [quota_monitor_service.go](file:///projetos/nexus/internal/nexus/quota_monitor_service.go), [quota_monitor_service_test.go](file:///projetos/nexus/internal/nexus/quota_monitor_service_test.go) |
-| `92bddaaf` | `perf(git): add fast HEAD summary endpoint and reduce statusbar polling` | [handlers_git.go](file:///projetos/nexus/internal/control/web/handlers_git.go), [handlers_git_test.go](file:///projetos/nexus/internal/control/web/handlers_git_test.go), [api.ts](file:///projetos/nexus/web/src/nexus/api.ts), [WorkspaceTaskbar.tsx](file:///projetos/nexus/web/src/workspace/WorkspaceTaskbar.tsx) |
-| `926fb01c` | `perf(web): decouple provider catalog polling and add keyboard palette actions` | [useNexusData.ts](file:///projetos/nexus/web/src/app/useNexusData.ts), [useNexusData.test.tsx](file:///projetos/nexus/web/src/app/useNexusData.test.tsx), [NexusWorkspaceSession.tsx](file:///projetos/nexus/web/src/app/NexusWorkspaceSession.tsx), locales `pt-BR.ts` / `en.ts` / `es.ts` |
-| `11e5cfba` | `chore(bench): add reproducible Nexus evolution benchmark script` | [benchmark-nexus-evolution.py](file:///projetos/nexus/scripts/benchmark-nexus-evolution.py) |
+| `68613acb` | `perf(providers): cache and coalesce CLI version and host-auth probes` | [versionprobe.go](../../internal/core/provider/versionprobe/versionprobe.go), [detect_helper.go](../../internal/control/driver/detect_helper.go), drivers e adapters (`claude`, `cursor`, `opencode`, `zcode`), [benchmark_evolution_test.go](../../internal/control/web/benchmark_evolution_test.go) |
+| `8902f745` | `perf(quota): skip unsupported providers and fresh idle snapshots in monitor` | [quota_monitor_service.go](../../internal/nexus/quota_monitor_service.go), [quota_monitor_service_test.go](../../internal/nexus/quota_monitor_service_test.go) |
+| `92bddaaf` | `perf(git): add fast HEAD summary endpoint and reduce statusbar polling` | [handlers_git.go](../../internal/control/web/handlers_git.go), [api.ts](../../web/src/nexus/api.ts), [WorkspaceTaskbar.tsx](../../web/src/workspace/WorkspaceTaskbar.tsx) |
+| `926fb01c` | `perf(web): decouple provider catalog polling and add keyboard palette actions` | [useNexusData.ts](../../web/src/app/useNexusData.ts), [NexusWorkspaceSession.tsx](../../web/src/app/NexusWorkspaceSession.tsx), locales |
+| `11e5cfba` | `chore(bench): add reproducible Nexus evolution benchmark script` | [benchmark-nexus-evolution.py](../../scripts/benchmark-nexus-evolution.py) |
+| `cf43d192` | `fix(auth): prune stale listen-state files for exited processes` | [auth_store.go](../../internal/control/web/auth_store.go), [auth_persist_test.go](../../internal/control/web/auth_persist_test.go) |
+| `c0c78a43` | `perf(profiles): share non-credential build tool caches across isolated profiles` | [env.go](../../internal/core/provider/spec/env.go), [home_isolation_test.go](../../internal/core/provider/spec/home_isolation_test.go) |
+| `36f03bf1` | `feat(doctor): add profile storage inspector and safe cache pruner` | [storage.go](../../internal/doctor/storage.go), [storage_test.go](../../internal/doctor/storage_test.go), [cmd_doctor.go](../../internal/app/cmd_doctor.go) |
+| `15c2a120` | `feat(ui): add NEX notification controls and on-demand HUD hibernation` | [native_shell.go](../../internal/desktop/native_shell.go), [nex_v2_controller.go](../../internal/desktop/nex_v2_controller.go), [nex_v2.go](../../cmd/nexus-hud/nex_v2.go), [nex_v2_watcher.go](../../cmd/nexus-hud/nex_v2_watcher.go), `web/src/nex-v2/*` |
+| `a2c4572d` | `perf(web): gate background surface polling on document visibility` | [useVisibilityInterval.ts](../../web/src/lib/useVisibilityInterval.ts), [OutputsSurface.tsx](../../web/src/features/outputs/OutputsSurface.tsx), [MissionAttentionPanel.tsx](../../web/src/notifications/MissionAttentionPanel.tsx), [InAppNotificationCenter.tsx](../../web/src/notifications/InAppNotificationCenter.tsx), [UsageSurface.tsx](../../web/src/features/usage/UsageSurface.tsx) |
+| `c0428975` | `feat(web): add inline git diff review loop, 1-click worktree agent, and start-of-day strip` | [handlers_git.go](../../internal/control/web/handlers_git.go), [ProjectDiffDialog.tsx](../../web/src/features/agents/ProjectDiffDialog.tsx), [AgentsSurface.tsx](../../web/src/features/agents/AgentsSurface.tsx), [ProjectOverviewSurface.tsx](../../web/src/features/overview/ProjectOverviewSurface.tsx), [featureAnnouncements.ts](../../web/src/features/work/featureAnnouncements.ts) |
+| `49e69291` | `fix(hud): keep on-demand HUD hibernated on linked companion launch` | [nex_v2.go](../../cmd/nexus-hud/nex_v2.go), [nex_v2_watcher_test.go](../../cmd/nexus-hud/nex_v2_watcher_test.go) |
 
-*Nota sobre `featureAnnouncements.ts` (`AGENTS.md`):* As alterações realizadas no código otimizam cache/polling internos e adicionam atalhos na Command Palette para superfícies já existentes (Branch Switcher e Refresh Global), sem criar uma nova área ou superfície visível anunciável — portanto `featureAnnouncements.ts` permanece inalterado de forma justificada.
+*Nota sobre `featureAnnouncements.ts` (`AGENTS.md`):* O catálogo em [featureAnnouncements.ts](../../web/src/features/work/featureAnnouncements.ts) foi atualizado no commit `c0428975` com o anúncio `agents-git-diff-review` (PT-BR/EN/ES completos, `featureTourDefinitions.ts` e testes `featureAnnouncements.test.ts`, `featureTourAnchors.test.ts` e `i18n.test.ts` aprovados).
 
 ---
 

@@ -2,7 +2,7 @@
 
 > **Data de consulta e verificação:** `2026-11-27`
 >
-> **Escopo:** Repositório `/projetos/nexus` (branch `release/v1.0.0`, commit base `4c381001`) comparado com ferramentas de mercado pesquisadas em fontes oficiais e repositórios abertos.
+> **Escopo:** Repositório **IAPro Nexus** (branch `release/v1.0.0`, commit base `4c381001`) comparado com ferramentas de mercado pesquisadas em fontes oficiais e repositórios abertos.
 
 ---
 
@@ -12,13 +12,13 @@ Ao contrário da hipótese inicial de um monorepo Nx/Node, o **IAPro Nexus** é 
 
 | Camada | Tecnologia / Versão Real Verificada | Evidência no Repositório |
 | --- | --- | --- |
-| Backend / CLI / Daemon | Go `1.26.11` (`github.com/IAPro-Community/nexus`, `580` arquivos `.go` não-teste em `internal/`) | [go.mod](file:///projetos/nexus/go.mod) |
-| Frontend Web | React `19`, TypeScript `5.9`, React Router `7`, Zustand `5`, Tailwind CSS `v4` (`@tailwindcss/vite`), Vite `7`, esbuild | [web/package.json](file:///projetos/nexus/web/package.json) |
-| Estilização | SCSS Modules (`*.module.scss`) + CSS Custom Properties (`--nx-*`), sem `.css` local | [AGENTS.md](file:///projetos/nexus/AGENTS.md) |
-| Desktop & HUD Nativos | **Wails `v3.0.0-beta.25`** sobre WebKitGTK (`4.1` no Linux), tag `gtk3` | [go.mod](file:///projetos/nexus/go.mod), [Makefile](file:///projetos/nexus/Makefile) |
+| Backend / CLI / Daemon | Go `1.26.11` (`github.com/IAPro-Community/nexus`, `580` arquivos `.go` não-teste em `internal/`) | [go.mod](../../go.mod) |
+| Frontend Web | React `19`, TypeScript `5.9`, React Router `7`, Zustand `5`, Tailwind CSS `v4` (`@tailwindcss/vite`), Vite `7`, esbuild | [web/package.json](../../web/package.json) |
+| Estilização | SCSS Modules (`*.module.scss`) + CSS Custom Properties (`--nx-*`), sem `.css` local | [AGENTS.md](../../AGENTS.md) |
+| Desktop & HUD Nativos | **Wails `v3.0.0-beta.25`** sobre WebKitGTK (`4.1` no Linux), tag `gtk3` | [go.mod](../../go.mod), [Makefile](../../Makefile) |
 | Banco Local | SQLite (`modernc.org/sqlite`) em WAL mode (`busy_timeout=5000`, `synchronous=NORMAL`, `MaxOpenConns=1`) | `~/.local/share/ai-manager/nexus.db` |
-| Contratos Compartilhados | `github.com/IAPro-Community/IAPro-SDK v0.0.0` (com `replace => ../IAPro-SDK`) | [go.mod](file:///projetos/nexus/go.mod), [ADR-iapro-sdk-consumer.md](file:///projetos/nexus/docs/architecture/ADR-iapro-sdk-consumer.md) |
-| Runtime Autônomo Externo | **Orquestrador Maestro** como autoridade externa (governança/memória/ledger) | [MAESTRO_EXTERNAL_AUTHORITY_ADR.md](file:///projetos/nexus/docs/architecture/MAESTRO_EXTERNAL_AUTHORITY_ADR.md) |
+| Contratos Compartilhados | `github.com/IAPro-Community/IAPro-SDK v0.0.0` (com `replace => ../IAPro-SDK`) | [go.mod](../../go.mod), [ADR-iapro-sdk-consumer.md](../architecture/ADR-iapro-sdk-consumer.md) |
+| Runtime Autônomo Externo | **Orquestrador Maestro** como autoridade externa (governança/memória/ledger) | [MAESTRO_EXTERNAL_AUTHORITY_ADR.md](../architecture/MAESTRO_EXTERNAL_AUTHORITY_ADR.md) |
 
 ---
 

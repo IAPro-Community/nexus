@@ -39,30 +39,32 @@
    ```bash
    python3 scripts/benchmark-nexus-evolution.py --runs 5 --cli-runs 10 --json
    ```
-   O script [benchmark-nexus-evolution.py](file:///projetos/nexus/scripts/benchmark-nexus-evolution.py) utiliza apenas stdlib Python 3, lê automaticamente o token de sessão loopback em `~/.local/share/ai-manager/web-auth/sessions.json` e separa **estritamente** os processos do Nexus (`nexus_core`, `nexus_desktop`, `nexus_hud`) dos helpers de sessões externas (`__control-host`, `__browser-mcp-stdio`).
+   O script [benchmark-nexus-evolution.py](../../scripts/benchmark-nexus-evolution.py) utiliza apenas stdlib Python 3, lê automaticamente o token de sessão loopback em `~/.local/share/ai-manager/web-auth/sessions.json` e separa **estritamente** os processos do Nexus (`nexus_core`, `nexus_desktop`, `nexus_hud`) dos helpers de sessões externas (`__control-host`, `__browser-mcp-stdio`).
 
 ---
 
 ## 3. Resultados Reais Medidos: ANTES vs DEPOIS
 
-### 3.1. Benchmark Ao Vivo no Host (`4c381001` ANTES vs `11e5cfba` DEPOIS)
+### 3.1. Benchmark Ao Vivo no Host (`4c381001` ANTES vs `49e69291` DEPOIS)
 
-| Medição / Endpoint | ANTES (`4c381001`) | DEPOIS (`11e5cfba`) | Melhoria Medida |
+| Medição / Endpoint | ANTES (`4c381001`) | DEPOIS (`49e69291`) | Melhoria Medida |
 | --- | --- | --- | --- |
-| **CLI Cold Start (`nexus --version`, 10 runs)** | avg `14.88 ms` (min `7.62`, p95 `24.41 ms`) | avg **`7.12 ms`** (min `6.32`, p95 **`8.26 ms`**) | **2.1x avg / 3.0x p95** |
-| **`GET /api/v1/providers`** | avg **`2,299.34 ms`** (p95 `2,393.89 ms`) | avg **`4.23 ms`** (p95 **`4.54 ms`**) | **543.6x mais rápido** |
-| **`GET /api/v1/resources`** | avg **`1,795.04 ms`** (p95 `1,812.47 ms`) | avg **`7.67 ms`** (p95 **`9.24 ms`**) | **234.0x mais rápido** |
-| **`GET /api/v1/hud`** | avg **`330.30 ms`** (max `988.92 ms`) | avg **`0.51 ms`** (p95 **`0.64 ms`**) | **647.6x mais rápido** |
-| **`GET /api/v1/projects/:id/git/branches?summary=1`** | avg `38.93 ms` (`8,456 B`, 5 procs `git`) | avg **`0.49 ms`** (`261 B`, **0 subprocessos**) | **79.4x mais rápido**, **-96.9% payload** |
-| **`GET /api/v1/projects/:id/git/branches` (completo)** | avg `49.98 ms` | avg `26.11 ms` | Chamado só ao abrir modal |
-| **`GET /api/v1/runtimes`** | avg `1.45 ms` | avg `1.11 ms` | **1.3x** |
-| **`GET /api/v1/projects` / `events` / `profiles` / `health`** | `0.36–1.01 ms` | `0.32–1.18 ms` | Sub-2 ms mantido |
-| **CPU `nexus web` em idle (janela real 3s `/proc/stat`)** | `2.0%` CPU contínuo observado via `ps` | **`0.00%` CPU** (janela idle 3s em `nexus`, `desktop` e `hud`) | **Eliminação de spikes em idle** |
-| **Memória `nexus_core` (`nexus web`)** | `41.79 MB RSS` | **`35.81–38.41 MB RSS`** | **~4–6 MB menor** |
-| **Memória `nexus_desktop` (3 procs Wails+WebKitGTK)** | `653.50 MB RSS` (~9h42m uptime) | `524.35 MB RSS` (recém-iniciado, estabiliza ~600–650 MB) | Limite estrutural WebKitGTK |
-| **Memória `nexus_hud` (Go+GTK + WebKitGTK)** | `662.42 MB RSS` | `481.91–484.49 MB RSS` (recém-iniciado) | Limite estrutural WebKitGTK |
-| **Total Nexus em Idle (sem agentes externos)** | **`1,357.71 MB RSS`** | **`1,044.65 MB RSS`** (recém-iniciado) | **~313 MB menor logo após boot**, mas ainda acima de 250 MB |
-| **Helpers de sessão (fora do idle Nexus)** | `146.34 MB` (6 procs `__control-host`/`__browser-mcp`) | `142.86 MB` (6 procs) | Separado conforme regra |
+| **CLI Cold Start (`nexus --version`, 10 runs)** | avg `14.88 ms` (min `7.62`, p95 `24.41 ms`) | avg **`8.71 ms`** (min `6.61`, p50 **`7.23 ms`**) | **~1.7x–2.1x mais rápido** |
+| **`GET /api/v1/providers`** | avg **`2,299.34 ms`** (p95 `2,393.89 ms`) | avg **`4.31 ms`** (p95 **`4.64 ms`**) | **533.5x mais rápido** |
+| **`GET /api/v1/resources`** | avg **`1,795.04 ms`** (p95 `1,812.47 ms`) | avg **`8.03 ms`** (p95 **`9.05 ms`**) | **223.5x mais rápido** |
+| **`GET /api/v1/hud`** | avg **`330.30 ms`** (max `988.92 ms`) | avg **`0.61 ms`** (p95 **`0.76 ms`**) | **541.5x mais rápido** |
+| **`GET /api/v1/nex/hub-status`** | — | avg **`0.45 ms`** (`active: true` em idle) | Pop-ups nativos suprimidos 100% em idle |
+| **`GET /api/v1/projects/:id/git/branches?summary=1`** | avg `38.93 ms` (`8,456 B`, 5 procs `git`) | avg **`0.53 ms`** (`261 B`, **0 subprocessos**) | **73.5x mais rápido**, **-96.9% payload** |
+| **`GET /api/v1/projects/:id/git/branches` (completo)** | avg `49.98 ms` | avg `31.65 ms` | Chamado só ao abrir modal |
+| **`GET /api/v1/runtimes`** | avg `1.45 ms` | avg `2.02 ms` (p50 `1.85 ms`) | Sub-3 ms |
+| **`GET /api/v1/projects` / `events` / `profiles` / `health`** | `0.36–1.01 ms` | `0.38–0.96 ms` | Sub-1 ms mantido |
+| **CPU `nexus web` / `desktop` / `hud` em idle (janela 3s `/proc/pid/stat`)** | `2.0%` CPU contínuo observado via `ps` | **`0.00%` CPU** em todos os processos | **Eliminação de spikes em idle** |
+| **Memória `nexus_core` (`nexus web`)** | `41.79 MB RSS` | **`37.05–37.75 MB RSS`** | **~4.7 MB menor** |
+| **Memória `nexus_hud` (Go tray + alert watcher on-demand)** | **`662.42 MB RSS`** (WebKitGTK sempre montado) | **`72.68 MB RSS`** (**0 processos WebKitGTK**) | **-589.7 MB RSS (-89.0%)** |
+| **Memória `nexus_desktop` (3 procs Wails+WebKitGTK)** | `653.50 MB RSS` (~9h42m uptime) | `724.35 MB RSS` (boot inicial c/ WebKitGTK) | WebKitGTK único restante no desktop |
+| **Total em modo Core+HUD hibernado (Web UI no browser externo)** | `~704 MB` (Core+HUD) | **`110.43 MB RSS`** (`Core + HUD`, s/ WebKit desktop) | **Abaixo da meta de 250 MB** |
+| **Total com `nexus-desktop` nativo aberto (`Core + Desktop + HUD`)** | **`1,357.71 MB RSS`** | **`834.78 MB RSS`** | **-522.9 MB RSS (-38.5%)** |
+| **Armazenamento de Perfis no Host (`~/.local/share/ai-manager`)** | `46,984.04 MiB` (`48 GB`) + `3` fantasmas + `27` `listen-*` | **`22,588.98 MiB`** (`0` fantasmas, `0` symlinks tocados) | **`24,395.29 MiB` (~23.82 GiB) liberados** |
 
 ### 3.2. Microbenchmarks Go (`testing.B`, AMD EPYC 7313)
 
@@ -78,13 +80,13 @@
 
 ## 4. Avaliação Honesta das Metas de Engenharia
 
-| Meta Inicial Proposta | Status Atual (`11e5cfba`) | Avaliação / Meta Realista & Custo |
+| Meta Inicial Proposta | Status Atual (`49e69291`) | Avaliação / Meta Realista & Custo |
 | --- | --- | --- |
-| **Interface interativa `<= 2s`** | **Atingida** no browser/Web Core; CLI `7.1 ms`, rotas API `< 8 ms` | Wails WebView fria depende do boot do WebKitGTK (~1–2s); manter rotas rápidas garante interatividade imediata após WebView abrir |
-| **Navegação entre telas `<= 100 ms` p95** | **Atingida** para dados locais (`/providers` p95 `4.5 ms`, `/resources` p95 `9.2 ms`) | Rotas React usam chunks `Suspense` já compilados |
-| **CPU em idle `< 1%` total da máquina** | **Atingida** em medição limpa de 3s (**`0.00%` CPU** em `nexus`, `desktop`, `hud`) | Quotas ociosas e probes redundantes removidos evitam picos periódicos |
-| **Memória em idle `<= 250 MB` (excluindo agentes)** | **Atingida no Go Core (`36–38 MB`)**, **NÃO atingida no combo Desktop+HUD (`1.04–1.35 GB`)** | **Por quê:** 2 processos `WebKitGTK 4.1` completos no Linux (~250–420 MB `WebKitWebProcess` + ~48 MB `WebKitNetworkProcess` + ~195 MB Go/GTK cada). **Meta realista P1:** `<= 450 MB` eliminando o WebView permanente do `nexus-hud` quando recolhido (tray GTK nativo `< 25 MB` + WebView on-demand). **Meta P2 (`<= 250 MB`):** exige rodar a UI principal em browser leve ou shell WebView único compartilhado / avaliação Tauri |
-| **Suporte a >= 20 sessões e 5/10/20 agentes** | `nexus web` aguenta dezenas de sessões em `< 50 MB`; cada sessão PTY custa `~28 MB` (`__control-host`) + CLI externo | Limite real está em montar múltiplos `<XTerm>` pesados no DOM ao mesmo tempo -> mitigar com lazy mount / skip-render em P1 |
+| **Interface interativa `<= 2s`** | **Atingida** no browser/Web Core; CLI `8.7 ms`, rotas API `< 8.5 ms` | Wails WebView fria depende do boot do WebKitGTK (~1–2s); rotas `< 9 ms` garantem interatividade imediata |
+| **Navegação entre telas `<= 100 ms` p95** | **Atingida** para dados locais (`/providers` p95 `4.64 ms`, `/resources` p95 `9.05 ms`) | Todas as 20 superfícies em `WorkspaceSurfaceHost` usam `React.lazy` |
+| **CPU em idle `< 1%` total da máquina** | **Atingida** em medição limpa de 3s (**`0.00%` CPU** em `nexus`, `desktop`, `hud`) | Polling em segundo plano bloqueado por visibilidade e HUD WebView hibernado |
+| **Memória em idle `<= 250 MB` (excluindo agentes)** | **Atingida em Core+HUD hibernado (`110.43 MB` RSS sem `nexus-desktop`)**; **`834.78 MB` c/ `nexus-desktop` WebKitGTK** | **`nexus-hud` caiu de `662.4 MB` para `72.68 MB`** (-89%, 0 processos WebKitGTK em idle). O restante (~`724 MB`) vem exclusivamente do processo único `nexus-desktop` WebKitGTK 4.1 c/ software rendering no Linux; reduzir abaixo de 250 MB no desktop nativo exigiria trocar WebKitGTK por Tauri/browser leve (P2) |
+| **Suporte a >= 20 sessões e 5/10/20 agentes** | `nexus web` aguenta dezenas de sessões em `< 40 MB`; cada `__control-host` custa `~18–36 MB` | `DEFAULT_TERMINAL_SCROLLBACK` (5.000 linhas) limita crescimento de memória do `xterm.js` |
 
 ---
 

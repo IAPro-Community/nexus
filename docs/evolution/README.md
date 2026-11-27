@@ -10,22 +10,22 @@
 
 ## Índice dos Documentos
 
-1. [01 — Diagnóstico Atual e Análise Competitiva](file:///projetos/nexus/docs/evolution/01-DIAGNOSIS-AND-COMPETITIVE-ANALYSIS.md) — inventário real do código, funcionalidades subdescobertas, pesquisa de mercado (`2026-11-27`) e matriz comparativa de 26 critérios.
-2. [02 — Auditoria de Performance, Benchmarks Reproduzíveis e UX Diária](file:///projetos/nexus/docs/evolution/02-PERFORMANCE-AND-USABILITY-AUDIT.md) — medições ao vivo **ANTES vs DEPOIS**, análise honesta da meta de 250 MB em WebKitGTK, auditoria de polling/armazenamento e melhorias de experiência diária.
-3. [03 — Arquitetura Alvo e Propostas de Evolução](file:///projetos/nexus/docs/evolution/03-TARGET-ARCHITECTURE-AND-PROPOSALS.md) — propostas para Multi-Conta + Pools ToS-compliant, Capacity Monitor, Execução Paralela + Worktrees + Diff Comments, Automação `Event -> Condition -> Action -> Result`, e Atenção/NEX HUD.
-4. [04 — Plano Executável, Registro de Melhorias, Cenários e Code Review](file:///projetos/nexus/docs/evolution/04-EXECUTABLE-PLAN-AND-VERIFICATION.md) — plano executável completo, registro das entregas P0/P1 realizadas, matriz de validação A–I e code review final.
+1. [01 — Diagnóstico Atual e Análise Competitiva](./01-DIAGNOSIS-AND-COMPETITIVE-ANALYSIS.md) — inventário real do código, funcionalidades subdescobertas, pesquisa de mercado (`2026-11-27`) e matriz comparativa de 26 critérios.
+2. [02 — Auditoria de Performance, Benchmarks Reproduzíveis e UX Diária](./02-PERFORMANCE-AND-USABILITY-AUDIT.md) — medições ao vivo **ANTES vs DEPOIS**, análise honesta da meta de 250 MB em WebKitGTK, auditoria de polling/armazenamento e melhorias de experiência diária.
+3. [03 — Arquitetura Alvo e Propostas de Evolução](./03-TARGET-ARCHITECTURE-AND-PROPOSALS.md) — propostas para Multi-Conta + Pools ToS-compliant, Capacity Monitor, Execução Paralela + Worktrees + Diff Comments, Automação `Event -> Condition -> Action -> Result`, e Atenção/NEX HUD.
+4. [04 — Plano Executável, Registro de Melhorias, Cenários e Code Review](./04-EXECUTABLE-PLAN-AND-VERIFICATION.md) — plano executável completo, registro das entregas P0/P1 realizadas, matriz de validação A–I e code review final.
 
 ---
 
 ## Avaliação das Fronteiras do Ecossistema (`Nexus` vs `IAPro-SDK` vs `Orquestrador Maestro`)
 
-Consistente com [ADR-iapro-sdk-consumer.md](file:///projetos/nexus/docs/architecture/ADR-iapro-sdk-consumer.md) e [MAESTRO_EXTERNAL_AUTHORITY_ADR.md](file:///projetos/nexus/docs/architecture/MAESTRO_EXTERNAL_AUTHORITY_ADR.md):
+Consistente com [ADR-iapro-sdk-consumer.md](../architecture/ADR-iapro-sdk-consumer.md) e [MAESTRO_EXTERNAL_AUTHORITY_ADR.md](../architecture/MAESTRO_EXTERNAL_AUTHORITY_ADR.md):
 
 | Responsabilidade | Dono Correto | O que hoje está duplicado / deve migrar | O que permanece estritamente fora do Nexus |
 | --- | --- | --- | --- |
-| **Contratos puros de provedor (`Spec`, capacidades, modelos), parsing JSONL, motor puro de `quota`/`eligibility`/`routing`/`capacity`/`cost`, componentes UI headless base** | **IAPro-SDK** (`/projetos/IAPro-SDK`) | Tipos e cálculos duplicados entre `internal/core/{provider,quota,scheduler}` e `/projetos/IAPro-SDK/{quota,routing,capacity,providers}` devem convergir gradualmente para o SDK após testes de paridade | Lógica específica de banco local, systemd/daemon ou janela Wails |
-| **Ambiente diário do desenvolvedor:** gerenciamento de projetos/worktrees, terminais PTY (`__control-host`), isolamento de diretórios/credenciais por perfil, daemon HTTP/WS, Wails Desktop + NEX HUD, central de atenção e automações locais | **IAPro Nexus** (`/projetos/nexus`) | Consolidar um único contrato de `versionprobe` e `Detect` entre `internal/core/provider/adapters/*` e `internal/control/driver/*` (**progresso real em P0-1**) | Nunca reimplementar runtime autônomo próprio, nem proxy OAuth |
-| **Governança autônoma, memória durável, ledger de missões longas e orquestração estratégica multi-agente** | **Orquestrador Maestro** (`/projetos/ORQUESTRADOR_MAESTRO_DOSSIER.md`) | Nexus exibe estado observado e despacha/supervisiona sessões autorizadas sem duplicar memória nem ledger de runtime | Motor de planejamento/memória profundo do Maestro |
+| **Contratos puros de provedor (`Spec`, capacidades, modelos), parsing JSONL, motor puro de `quota`/`eligibility`/`routing`/`capacity`/`cost`, componentes UI headless base** | **IAPro-SDK** (`../IAPro-SDK`) | Tipos e cálculos duplicados entre `internal/core/{provider,quota,scheduler}` e o SDK compartilhado (`quota`, `routing`, `capacity`, `providers`) devem convergir gradualmente para o SDK após testes de paridade | Lógica específica de banco local, systemd/daemon ou janela Wails |
+| **Ambiente diário do desenvolvedor:** gerenciamento de projetos/worktrees, terminais PTY (`__control-host`), isolamento de diretórios/credenciais por perfil, daemon HTTP/WS, Wails Desktop + NEX HUD, central de atenção e automações locais | **IAPro Nexus** (este repositório) | Consolidar um único contrato de `versionprobe` e `Detect` entre `internal/core/provider/adapters/*` e `internal/control/driver/*` (**progresso real em P0-1**) | Nunca reimplementar runtime autônomo próprio, nem proxy OAuth |
+| **Governança autônoma, memória durável, ledger de missões longas e orquestração estratégica multi-agente** | **Orquestrador Maestro** (autoridade externa) | Nexus exibe estado observado e despacha/supervisiona sessões autorizadas sem duplicar memória nem ledger de runtime | Motor de planejamento/memória profundo do Maestro |
 
 ---
 
