@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/desktop"
+	"github.com/IAPro-Community/nexus/internal/hudlink"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
 )
@@ -201,6 +202,13 @@ func (h *nexV2WindowHost) Close() error {
 	return nil
 }
 
+func shouldOpenNexV2OnSecondInstance(args []string, mode string, labMode bool) bool {
+	if !labMode && desktop.NormalizeHudMemoryMode(mode) == desktop.NexV2HudMemoryOnDemand && hudlink.Linked(args, nil) {
+		return false
+	}
+	return true
+}
+
 func runNexV2HUD(backend *desktop.SharedBackend, desktopApp *desktop.App, linked bool) {
 	labMode := os.Getenv("NEXUS_HUD_LAB") == "1"
 	instanceID := hudSingleInstanceID
@@ -293,8 +301,10 @@ func runNexV2HUD(backend *desktop.SharedBackend, desktopApp *desktop.App, linked
 		Assets: application.AssetOptions{Handler: backend.Handler, DisableLogging: true},
 		SingleInstance: &application.SingleInstanceOptions{
 			UniqueID: instanceID,
-			OnSecondInstanceLaunch: func(_ application.SecondInstanceData) {
-				_ = host.EnsureOpen()
+			OnSecondInstanceLaunch: func(data application.SecondInstanceData) {
+				if shouldOpenNexV2OnSecondInstance(data.Args, stateManager.Load().HudMemoryMode, labMode) {
+					_ = host.EnsureOpen()
+				}
 			},
 		},
 		Mac: application.MacOptions{

@@ -257,3 +257,15 @@ func TestNexV2AlertWatcherIdleHibernateRespectsInteraction(t *testing.T) {
 		t.Fatalf("expected clean hibernation after idle timeout (open=%v closes=%d)", host.IsOpen(), host.closeCalls)
 	}
 }
+
+func TestShouldOpenNexV2OnSecondInstance(t *testing.T) {
+	if shouldOpenNexV2OnSecondInstance([]string{"--linked"}, desktop.NexV2HudMemoryOnDemand, false) {
+		t.Fatal("linked companion respawn in on-demand mode must stay hibernated")
+	}
+	if !shouldOpenNexV2OnSecondInstance(nil, desktop.NexV2HudMemoryOnDemand, false) {
+		t.Fatal("direct user launch in on-demand mode should open HUD window")
+	}
+	if !shouldOpenNexV2OnSecondInstance([]string{"--linked"}, desktop.NexV2HudMemoryPersistent, false) {
+		t.Fatal("persistent mode should show window on second instance launch")
+	}
+}
