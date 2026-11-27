@@ -24,8 +24,15 @@ func TestDriverRegistryAndCapabilities(t *testing.T) {
 		}
 
 		effCaps := d.EffectiveCaps(ctx, model.Profile{Name: "default"})
-		if effCaps.Process.Status != CapabilitySupported || effCaps.Terminal.Status != CapabilitySupported {
-			t.Errorf("driver %s expected Process and Terminal supported, got %+v", p, effCaps)
+		wantStatus := CapabilitySupported
+		if p == "cursor" {
+			detection, _ := d.Detect(ctx)
+			if !detection.Installed {
+				wantStatus = CapabilityUnsupported
+			}
+		}
+		if effCaps.Process.Status != wantStatus || effCaps.Terminal.Status != wantStatus {
+			t.Errorf("driver %s expected Process and Terminal to match actual discovery, got %+v", p, effCaps)
 		}
 		if p == "opencode" && effCaps.Terminal.Mechanism != terminal.BackendMechanismForProvider(p) {
 			t.Errorf("OpenCode terminal mechanism = %q, want provider-specific %q", effCaps.Terminal.Mechanism, terminal.BackendMechanismForProvider(p))

@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"os"
 	"sync"
+
+	sdk "github.com/IAPro-Community/IAPro-SDK/providers"
 )
 
 // Registry manages registered provider control drivers.
 type Registry struct {
-	mu      sync.RWMutex
-	drivers map[string]ControlDriver
+	mu       sync.Mutex
+	bindings *sdk.Bindings[ControlDriver]
 }
 
 var (
@@ -44,7 +46,7 @@ func DefaultRegistry() *Registry {
 // NewRegistry creates a new driver registry.
 func NewRegistry() *Registry {
 	return &Registry{
-		drivers: make(map[string]ControlDriver),
+		bindings: sdk.NewBindings[ControlDriver](),
 	}
 }
 
@@ -52,29 +54,28 @@ func NewRegistry() *Registry {
 func (r *Registry) Register(d ControlDriver) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.drivers[d.ProviderID()] = d
+	// Preserve replacement behavior for explicit driver overrides.
+	r.bindings.Unregister(d.ProviderID())
+	_ = r.bindings.Register(d.ProviderID(), d)
 }
 
-// Get returns the driver for a provider ID.
 func (r *Registry) Get(providerID string) (ControlDriver, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	d, ok := r.drivers[providerID]
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	d, ok := r.bindings.Get(providerID)
 	if !ok {
 		return nil, fmt.Errorf("no control driver registered for provider %q", providerID)
 	}
 	return d, nil
 }
 
-// List returns all registered drivers.
 func (r *Registry) List() []ControlDriver {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	var list []ControlDriver
-	for _, d := range r.drivers {
-		list = append(list, d)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	entries := r.bindings.List()
+	out := make([]ControlDriver, 0, len(entries))
+	for _, entry := range entries {
+		out = append(out, entry.Value)
 	}
-	return list
+	return out
 }
