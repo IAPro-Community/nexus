@@ -305,6 +305,10 @@ export const en = {
     },
     nexusLatestVersion: 'Latest Nexus version',
     nexusUpdateUnavailable: 'Nexus update status unavailable',
+    nexusChannelNotPublishedTitle: 'No signed release published on this channel yet',
+    nexusChannelNotPublishedDescription:
+      'The "{{channel}}" channel does not have an official signed release manifest on GitHub Releases yet. Local install is on v{{version}}.',
+    viewReleasesOnGitHub: 'View releases on GitHub',
     updateAvailable: 'Update available',
     updateAvailableDescription: 'A newer Nexus or Maestro version is available ({{version}}).',
     nexusUpdateAction: 'Use this action to update Nexus: {{action}}.',

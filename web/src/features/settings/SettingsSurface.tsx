@@ -103,6 +103,8 @@ export const SettingsSurface: React.FC<{
     nexus_latest_version?: string;
     nexus_latest_sha?: string;
     nexus_update_available?: boolean;
+    nexus_update_status?:
+      'up_to_date' | 'update_available' | 'channel_not_published' | 'unavailable';
     nexus_update_error?: string;
     nexus_update_instruction?: string;
     nexus_installer_url?: string;
@@ -157,11 +159,11 @@ export const SettingsSurface: React.FC<{
     });
   };
 
-  const checkUpdates = async () => {
+  const checkUpdates = async (refresh = false) => {
     try {
       setCheckingUpdates(true);
       setUpdateError('');
-      const data = await nexus.getSystemUpdates();
+      const data = await nexus.getSystemUpdates({ refresh });
       setUpdateInfo(data);
     } catch (error) {
       setUpdateInfo(null);
@@ -692,7 +694,15 @@ export const SettingsSurface: React.FC<{
                       v{updateInfo.maestro_version}
                     </Badge>
                   </div>
-                  {updateInfo.nexus_update_error ? (
+                  {updateInfo.nexus_update_status === 'channel_not_published' ? (
+                    <InlineAlert tone="info" title={t('settings.nexusChannelNotPublishedTitle')}>
+                      {t('settings.nexusChannelNotPublishedDescription', {
+                        channel: updateInfo.channel || 'stable',
+                        version: updateInfo.nexus_version,
+                      })}
+                    </InlineAlert>
+                  ) : updateInfo.nexus_update_error ||
+                    updateInfo.nexus_update_status === 'unavailable' ? (
                     <InlineAlert tone="warning" title={t('settings.nexusUpdateUnavailable')}>
                       {updateInfo.nexus_update_error}
                     </InlineAlert>
@@ -720,6 +730,14 @@ export const SettingsSurface: React.FC<{
                       {t('settings.upToDateDescription')}
                     </InlineAlert>
                   )}
+                  {updateInfo.nexus_update_status === 'channel_not_published' &&
+                    updateInfo.update_available && (
+                      <InlineAlert tone="warning" title={t('settings.updateAvailable')}>
+                        {t('settings.updateAvailableDescription', {
+                          version: updateInfo.maestro_latest_version || t('settings.newBuild'),
+                        })}
+                      </InlineAlert>
+                    )}
                 </div>
               )}
               {updateError && (
@@ -745,10 +763,26 @@ export const SettingsSurface: React.FC<{
                 </InlineAlert>
               )}
               <div className={styles.btnGroup}>
-                <Button onClick={() => void checkUpdates()} disabled={checkingUpdates || updating}>
+                <Button
+                  onClick={() => void checkUpdates(true)}
+                  disabled={checkingUpdates || updating}
+                >
                   <RefreshCw size={14} className={checkingUpdates ? 'nx-spin' : ''} />
                   {checkingUpdates ? 'Verificando…' : 'Verificar Atualizações Agora'}
                 </Button>
+                {updateInfo?.nexus_update_status === 'channel_not_published' &&
+                  updateInfo.nexus_release_url && (
+                    <Button
+                      tone="ghost"
+                      onClick={() =>
+                        void getPlatformBridge().openExternal(updateInfo.nexus_release_url!)
+                      }
+                      disabled={checkingUpdates || updating}
+                    >
+                      <ArrowUpCircle size={14} />
+                      {t('settings.viewReleasesOnGitHub')}
+                    </Button>
+                  )}
                 {updateInfo?.nexus_update_available && (
                   <Button
                     tone="brand"

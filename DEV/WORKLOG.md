@@ -1,3 +1,11 @@
+## 2026-11-27 — Classificação honesta de canal de atualização não publicado + cache TTL + chave pública em builds locais
+
+- **`internal/update/` (`manifest.go`, `service.go`, `service_test.go`):** adicionado sentinela `ErrManifestNotPublished` no HTTP 404 do manifesto sem quebrar fail-closed.
+- **`internal/control/web/` (`handlers_nexus.go`, `handlers_maestro.go`, `handlers_nexus_test.go`):** `GET /api/v1/system/updates` agora retorna `nexus_update_status` (`channel_not_published` quando `404` no canal, sem erro técnico cru nem versão falsa em `nexus_latest_version`) e usa cache TTL de 5 minutos com bypass via `?refresh=1`.
+- **`internal/app/` (`update.go`, `app_test.go`):** `nexus update check` (e `--json`) trata `ErrManifestNotPublished` com saída limpa; `nexus update` (aplicação) permanece fail-closed.
+- **`web/src/` + `Makefile`:** [SettingsSurface.tsx](file:///projetos/nexus/web/src/features/settings/SettingsSurface.tsx) e locales PT-BR/EN/ES exibem aviso informativo com link oficial para Releases no GitHub; [Makefile](file:///projetos/nexus/Makefile) usa [UPDATE_PUBLIC_KEY](file:///projetos/nexus/UPDATE_PUBLIC_KEY) quando `NEXUS_UPDATE_PUBLIC_KEY` não estiver no ambiente.
+- **Verificação:** `go vet -tags=gtk3`, `-race` em `internal/update`, `internal/app` e `internal/control/web`, `format:check`, `eslint`, `stylelint`, `check:styles`, `tsc --noEmit`, `i18n.test.ts` + `versionHonesty.test.ts`, `web run build`, `version-check` e `verify-update` aprovados.
+
 ## 2026-11-27 — Execução de Prontidão para Produção (`release/v1.0.0`): Higiene de Disco, NEX On-Demand e DX Diária
 
 - **Milestone 1 — Estabilidade, Cache Compartilhado e Recuperação de 24 GiB (`cf43d192`, `c0c78a43`, `36f03bf1`):**

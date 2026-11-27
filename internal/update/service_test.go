@@ -471,3 +471,21 @@ func TestServiceAcceptsDetachedManifestSignature(t *testing.T) {
 		t.Fatalf("detached signature should be accepted: %v", err)
 	}
 }
+
+func TestServiceCheckClassifiesHTTP404AsUnpublishedChannel(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.NotFound(w, nil)
+	}))
+	defer ts.Close()
+
+	svc := NewService(ServiceConfig{
+		RegistryURL: ts.URL + "/update-manifest.json",
+		CurrentVer:  "1.0.1",
+		Channel:     "stable",
+		Method:      MethodStandalone,
+	})
+	_, err := svc.Check(context.Background())
+	if !errors.Is(err, ErrManifestNotPublished) {
+		t.Fatalf("expected ErrManifestNotPublished on 404, got %v", err)
+	}
+}

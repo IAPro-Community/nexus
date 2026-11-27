@@ -141,7 +141,8 @@ build: web
 	@set -e; VERSION=$$(cat VERSION 2>/dev/null || echo "dev"); \
 	COMMIT=$$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
 	BUILDDATE=$$(date -u +%Y-%m-%dT%H:%M:%SZ); \
-	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE -X $(MODULE)/internal/update.ProductionTrustRootHex=$${NEXUS_UPDATE_PUBLIC_KEY:-}"; \
+	PUBLIC_KEY="$${NEXUS_UPDATE_PUBLIC_KEY:-$$(tr -d '\r\n[:space:]' < UPDATE_PUBLIC_KEY 2>/dev/null || true)}"; \
+	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE -X $(MODULE)/internal/update.ProductionTrustRootHex=$$PUBLIC_KEY"; \
 	echo "Building $(BINARY) v$$VERSION (commit: $$COMMIT)..."; \
 	go build -trimpath -buildvcs=false -ldflags="$$LDFLAGS" -o $(BINARY) ./cmd/nexus; \
 	echo "Built $(BINARY) v$$VERSION at ./$(BINARY)"
@@ -191,7 +192,8 @@ build-desktop: web
 	@set -e; VERSION=$$(cat VERSION 2>/dev/null || echo "dev"); \
 	COMMIT=$$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
 	BUILDDATE=$$(date -u +%Y-%m-%dT%H:%M:%SZ); \
-	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE -X $(MODULE)/internal/update.ProductionTrustRootHex=$${NEXUS_UPDATE_PUBLIC_KEY:-}"; \
+	PUBLIC_KEY="$${NEXUS_UPDATE_PUBLIC_KEY:-$$(tr -d '\r\n[:space:]' < UPDATE_PUBLIC_KEY 2>/dev/null || true)}"; \
+	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE -X $(MODULE)/internal/update.ProductionTrustRootHex=$$PUBLIC_KEY"; \
 	echo "Building nexus-desktop v$$VERSION (commit: $$COMMIT)..."; \
 	go build -trimpath -buildvcs=false -tags "$(DESKTOP_TAGS)" -ldflags="$$LDFLAGS" -o nexus-desktop ./cmd/nexus-desktop
 
@@ -199,7 +201,8 @@ build-desktop-wails: web
 	@set -e; VERSION=$$(cat VERSION 2>/dev/null || echo "dev"); \
 	COMMIT=$$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
 	BUILDDATE=$$(date -u +%Y-%m-%dT%H:%M:%SZ); \
-	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE -X $(MODULE)/internal/update.ProductionTrustRootHex=$${NEXUS_UPDATE_PUBLIC_KEY:-}"; \
+	PUBLIC_KEY="$${NEXUS_UPDATE_PUBLIC_KEY:-$$(tr -d '\r\n[:space:]' < UPDATE_PUBLIC_KEY 2>/dev/null || true)}"; \
+	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE -X $(MODULE)/internal/update.ProductionTrustRootHex=$$PUBLIC_KEY"; \
 	mkdir -p cmd/nexus-desktop/build/bin; GOTOOLCHAIN=auto GOFLAGS="-mod=readonly" go build -trimpath -buildvcs=false -tags "$(DESKTOP_TAGS)" -ldflags="$$LDFLAGS" -o cmd/nexus-desktop/build/bin/nexus-desktop ./cmd/nexus-desktop
 
 
@@ -207,7 +210,8 @@ build-hud: web
 	@set -e; VERSION=$$(cat VERSION 2>/dev/null || echo "dev"); \
 	COMMIT=$$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
 	BUILDDATE=$$(date -u +%Y-%m-%dT%H:%M:%SZ); \
-	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE -X $(MODULE)/internal/update.ProductionTrustRootHex=$${NEXUS_UPDATE_PUBLIC_KEY:-}"; \
+	PUBLIC_KEY="$${NEXUS_UPDATE_PUBLIC_KEY:-$$(tr -d '\r\n[:space:]' < UPDATE_PUBLIC_KEY 2>/dev/null || true)}"; \
+	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE -X $(MODULE)/internal/update.ProductionTrustRootHex=$$PUBLIC_KEY"; \
 	echo "Building nexus-hud v$$VERSION (commit: $$COMMIT)..."; \
 	go build -trimpath -buildvcs=false -tags "$(DESKTOP_TAGS)" -ldflags="$$LDFLAGS" -o nexus-hud ./cmd/nexus-hud
 
@@ -215,7 +219,8 @@ build-hud-wails: web
 	@set -e; VERSION=$$(cat VERSION 2>/dev/null || echo "dev"); \
 	COMMIT=$$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
 	BUILDDATE=$$(date -u +%Y-%m-%dT%H:%M:%SZ); \
-	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE -X $(MODULE)/internal/update.ProductionTrustRootHex=$${NEXUS_UPDATE_PUBLIC_KEY:-}"; \
+	PUBLIC_KEY="$${NEXUS_UPDATE_PUBLIC_KEY:-$$(tr -d '\r\n[:space:]' < UPDATE_PUBLIC_KEY 2>/dev/null || true)}"; \
+	LDFLAGS="-s -w -X $(MODULE)/internal/buildinfo.Version=$$VERSION -X $(MODULE)/internal/buildinfo.Commit=$$COMMIT -X $(MODULE)/internal/buildinfo.BuildDate=$$BUILDDATE -X $(MODULE)/internal/update.ProductionTrustRootHex=$$PUBLIC_KEY"; \
 	mkdir -p cmd/nexus-hud/build/bin; GOTOOLCHAIN=auto GOFLAGS="-mod=readonly" go build -trimpath -buildvcs=false -tags "$(DESKTOP_TAGS)" -ldflags="$$LDFLAGS" -o cmd/nexus-hud/build/bin/nexus-hud ./cmd/nexus-hud
 
 release-local:

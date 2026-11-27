@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -1361,6 +1362,79 @@ func TestBetaKeepsNewerBetaWithoutConsultingStable(t *testing.T) {
 	}
 	if payload.Channel != "beta" || payload.Version != "1.0.0-beta.11" {
 		t.Fatalf("beta update unexpectedly replaced by stable: %+v", payload)
+	}
+}
+
+func TestSystemUpdatesClassifiesUnpublishedChannelAndCachesWithRefreshBypass(t *testing.T) {
+	calls := 0
+	previous := checkNexusUpdate
+	checkNexusUpdate = func(_ context.Context) (*update.CheckResult, error) {
+		calls++
+		if calls == 1 {
+			return &update.CheckResult{
+				CurrentVersion:     "1.0.1",
+				Channel:            "stable",
+				InstallationMethod: update.MethodStandalone,
+			}, fmt.Errorf("%w %q yet (registry returned HTTP 404)", update.ErrManifestNotPublished, "stable")
+		}
+		return &update.CheckResult{
+			CurrentVersion:     "1.0.1",
+			LatestVersion:      "1.0.1",
+			Channel:            "stable",
+			InstallationMethod: update.MethodStandalone,
+		}, nil
+	}
+	t.Cleanup(func() { checkNexusUpdate = previous })
+
+	client, srv, _ := csrfClient(t)
+
+	// First call: HTTP 404 -> channel_not_published without raw error string
+	resp, err := client.Get(srv.URL() + "/api/v1/system/updates")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var first struct {
+		Status        string `json:"nexus_update_status"`
+		LatestVersion string `json:"nexus_latest_version"`
+		UpdateError   string `json:"nexus_update_error"`
+		ReleaseURL    string `json:"nexus_release_url"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&first); err != nil {
+		t.Fatal(err)
+	}
+	if first.Status != "channel_not_published" || first.LatestVersion != "" || first.UpdateError != "" {
+		t.Fatalf("unexpected unpublished channel payload: %+v", first)
+	}
+	if first.ReleaseURL != "https://github.com/IAPro-Community/nexus/releases" {
+		t.Fatalf("expected official releases URL, got %q", first.ReleaseURL)
+	}
+
+	// Second call within TTL hits cache without calling checkNexusUpdate again
+	resp2, err := client.Get(srv.URL() + "/api/v1/system/updates")
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp2.Body.Close()
+	if calls != 1 {
+		t.Fatalf("expected second request within TTL to use cache, got %d checks", calls)
+	}
+
+	// ?refresh=1 bypasses cache
+	resp3, err := client.Get(srv.URL() + "/api/v1/system/updates?refresh=1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp3.Body.Close()
+	var refreshed struct {
+		Status        string `json:"nexus_update_status"`
+		LatestVersion string `json:"nexus_latest_version"`
+	}
+	if err := json.NewDecoder(resp3.Body).Decode(&refreshed); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 2 || refreshed.Status != "up_to_date" || refreshed.LatestVersion != "1.0.1" {
+		t.Fatalf("expected ?refresh=1 to bypass cache (calls=%d payload=%+v)", calls, refreshed)
 	}
 }
 

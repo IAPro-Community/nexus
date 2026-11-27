@@ -306,6 +306,10 @@ export const ptBR = {
     },
     nexusLatestVersion: 'Versão mais recente do Nexus',
     nexusUpdateUnavailable: 'Status de atualização do Nexus indisponível',
+    nexusChannelNotPublishedTitle: 'Nenhuma release assinada publicada neste canal ainda',
+    nexusChannelNotPublishedDescription:
+      'O canal "{{channel}}" ainda não possui manifesto oficial assinado publicado no GitHub Releases. Instalação local em v{{version}}.',
+    viewReleasesOnGitHub: 'Ver releases no GitHub',
     updateAvailable: 'Atualização disponível',
     updateAvailableDescription:
       'Há uma nova versão do Nexus ou do Maestro disponível ({{version}}).',

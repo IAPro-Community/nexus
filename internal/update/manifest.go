@@ -82,6 +82,7 @@ var (
 	ErrManifestTarget        = errors.New("update manifest has no artifact for target")
 	ErrManifestArtifact      = errors.New("update manifest artifact is invalid")
 	ErrManifestUnsigned      = errors.New("update manifest signature is missing")
+	ErrManifestNotPublished  = errors.New("no update manifest published for channel")
 )
 
 // Validate applies local policy before an artifact can be downloaded or installed.

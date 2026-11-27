@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
 	"os/exec"
@@ -132,6 +133,8 @@ func (h *NexusHandler) handleMaestroVerify(w http.ResponseWriter, r *http.Reques
 	writeJSON(w, http.StatusOK, response)
 }
 
+const systemUpdatesCacheTTL = 5 * time.Minute
+
 // handleSystemUpdates GET /api/v1/system/updates — returns signed Nexus Update
 // Service status plus explicit Maestro maintenance status. The POST endpoint
 // below remains Maestro-only and never replaces the Nexus binary.
@@ -140,6 +143,18 @@ func (h *NexusHandler) handleSystemUpdates(w http.ResponseWriter, r *http.Reques
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
+	forceRefresh := r.URL.Query().Get("refresh") == "1"
+	if !forceRefresh {
+		h.systemUpdatesMu.Lock()
+		if h.systemUpdatesCache != nil && time.Since(h.systemUpdatesCachedAt) < systemUpdatesCacheTTL {
+			cached := maps.Clone(h.systemUpdatesCache)
+			h.systemUpdatesMu.Unlock()
+			writeJSON(w, http.StatusOK, cached)
+			return
+		}
+		h.systemUpdatesMu.Unlock()
+	}
+
 	client := nexus.NewMaestroClient()
 	mStatus := client.Status()
 	maestroVer := "unknown"
@@ -174,53 +189,65 @@ func (h *NexusHandler) handleSystemUpdates(w http.ResponseWriter, r *http.Reques
 			nexusCheck, nexusErr = stableCheck, nil
 		}
 	}
-	nexusLatestVersion := buildinfo.Version
+	nexusLatestVersion := ""
 	var nexusLatestSHA string
 	nexusUpdateAvailable := false
 	nexusInstallationMethod := update.MethodUnknown
 	nexusAllowsSelfUpdate := false
 	nexusChannel := "stable"
+	nexusUpdateStatus := "up_to_date"
 	var nexusUpdateInstruction string
 	var nexusUpdateError string
 	var nexusInstallerURL string
 	var nexusReleaseURL string
 	if nexusCheck != nil {
-		nexusLatestVersion = nexusCheck.LatestVersion
-		nexusLatestSHA = nexusCheck.LatestSHA
-		nexusUpdateAvailable = nexusCheck.UpdateAvailable
 		nexusInstallationMethod = nexusCheck.InstallationMethod
 		nexusAllowsSelfUpdate = nexusCheck.AllowsSelfUpdate
 		nexusUpdateInstruction = nexusCheck.Instruction
-		if nexusCheck.Channel == "stable" && strings.Contains(buildinfo.Version, "-beta.") &&
-			nexusCheck.InstallationMethod == update.MethodStandalone {
-			nexusUpdateInstruction = "nexus update --channel=stable"
-		}
 		if nexusCheck.Channel != "" {
 			nexusChannel = nexusCheck.Channel
 		}
-		if nexusCheck.UpdateAvailable {
-			// Only advertise links after the signed manifest validates. Downloads
-			// outside the public canonical repository are not presented as an
-			// "official installer", even when a custom registry was configured.
-			nexusReleaseURL = "https://github.com/IAPro-Community/nexus/releases/tag/" +
-				update.ChannelPointerTag(nexusChannel)
-			if nexusCheck.InstallerArtifact != nil &&
-				isOfficialNexusInstallerURL(nexusCheck.InstallerArtifact.URL) {
-				nexusInstallerURL = nexusCheck.InstallerArtifact.URL
+		if nexusErr == nil {
+			nexusLatestVersion = nexusCheck.LatestVersion
+			nexusLatestSHA = nexusCheck.LatestSHA
+			nexusUpdateAvailable = nexusCheck.UpdateAvailable
+			if nexusCheck.Channel == "stable" && strings.Contains(buildinfo.Version, "-beta.") &&
+				nexusCheck.InstallationMethod == update.MethodStandalone {
+				nexusUpdateInstruction = "nexus update --channel=stable"
+			}
+			if nexusUpdateAvailable {
+				nexusUpdateStatus = "update_available"
+				// Only advertise links after the signed manifest validates. Downloads
+				// outside the public canonical repository are not presented as an
+				// "official installer", even when a custom registry was configured.
+				nexusReleaseURL = "https://github.com/IAPro-Community/nexus/releases/tag/" +
+					update.ChannelPointerTag(nexusChannel)
+				if nexusCheck.InstallerArtifact != nil &&
+					isOfficialNexusInstallerURL(nexusCheck.InstallerArtifact.URL) {
+					nexusInstallerURL = nexusCheck.InstallerArtifact.URL
+				}
 			}
 		}
 	}
 	if nexusErr != nil {
-		nexusUpdateError = nexusErr.Error()
+		nexusLatestVersion = ""
+		if errors.Is(nexusErr, update.ErrManifestNotPublished) {
+			nexusUpdateStatus = "channel_not_published"
+			nexusReleaseURL = "https://github.com/IAPro-Community/nexus/releases"
+		} else {
+			nexusUpdateStatus = "unavailable"
+			nexusUpdateError = nexusErr.Error()
+		}
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{
+	payload := map[string]any{
 		"nexus_version":             buildinfo.Version,
 		"nexus_commit":              buildinfo.Commit,
 		"nexus_build_date":          buildinfo.BuildDate,
 		"nexus_latest_version":      nexusLatestVersion,
 		"nexus_latest_sha":          nexusLatestSHA,
 		"nexus_update_available":    nexusUpdateAvailable,
+		"nexus_update_status":       nexusUpdateStatus,
 		"nexus_update_error":        nexusUpdateError,
 		"nexus_update_instruction":  nexusUpdateInstruction,
 		"nexus_installer_url":       nexusInstallerURL,
@@ -234,7 +261,14 @@ func (h *NexusHandler) handleSystemUpdates(w http.ResponseWriter, r *http.Reques
 		"maestro_latest_version":    latestMaestroVer,
 		"maestro_available":         mStatus.Available,
 		"update_available":          updateAvailable,
-	})
+	}
+
+	h.systemUpdatesMu.Lock()
+	h.systemUpdatesCache = maps.Clone(payload)
+	h.systemUpdatesCachedAt = time.Now()
+	h.systemUpdatesMu.Unlock()
+
+	writeJSON(w, http.StatusOK, payload)
 }
 
 // isOfficialNexusInstallerURL prevents the native app's external-link action

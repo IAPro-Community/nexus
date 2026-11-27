@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -62,6 +63,26 @@ func updateCmd(args []string) error {
 	if subcmd == "check" {
 		res, err := svc.Check(ctx)
 		if err != nil {
+			if errors.Is(err, update.ErrManifestNotPublished) {
+				if asJSON {
+					b, _ := json.MarshalIndent(map[string]any{
+						"current_version":     res.CurrentVersion,
+						"channel":             res.Channel,
+						"installation_method": res.InstallationMethod,
+						"update_available":    false,
+						"status":              "channel_not_published",
+						"release_url":         "https://github.com/IAPro-Community/nexus/releases",
+					}, "", "  ")
+					fmt.Println(string(b))
+					return nil
+				}
+				fmt.Println("=== IAPro Nexus Update Check ===")
+				fmt.Printf("Installed:           %s\n", res.CurrentVersion)
+				fmt.Printf("Channel:             %s\n", res.Channel)
+				fmt.Printf("Installation Method: %s\n", res.InstallationMethod)
+				fmt.Printf("Status:              No signed release published for channel %q yet.\n", res.Channel)
+				return nil
+			}
 			return fmt.Errorf("update check failed: %w", err)
 		}
 		if asJSON {

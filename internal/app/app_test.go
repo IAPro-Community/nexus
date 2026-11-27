@@ -116,6 +116,29 @@ func TestUpdateCheckFailsClosedWhenRegistryUnavailable(t *testing.T) {
 	}
 }
 
+func TestUpdateCheckHandlesUnpublishedChannelCleanlyWhileApplyFailsClosed(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.NotFound(w, nil)
+	}))
+	defer ts.Close()
+
+	t.Setenv("NEXUS_UPDATE_REGISTRY_URL", ts.URL+"/update-manifest.json")
+	t.Setenv("NEXUS_INSTALL_METHOD", "STANDALONE")
+
+	out, err := captureStdout(func() error { return updateCmd([]string{"check", "--json"}) })
+	if err != nil {
+		t.Fatalf("update check on unpublished channel should succeed cleanly, got %v", err)
+	}
+	if !strings.Contains(out, `"status": "channel_not_published"`) {
+		t.Fatalf("expected channel_not_published status in JSON output, got %s", out)
+	}
+
+	_, applyErr := captureStdout(func() error { return updateCmd(nil) })
+	if applyErr == nil || !strings.Contains(applyErr.Error(), "update could not be applied") {
+		t.Fatalf("update apply must fail closed on 404, got %v", applyErr)
+	}
+}
+
 func TestUpdateCommandValidatesExplicitChannelArguments(t *testing.T) {
 	for _, args := range [][]string{
 		{"--channel"},

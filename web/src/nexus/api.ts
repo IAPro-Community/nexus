@@ -648,7 +648,7 @@ export const nexus = {
   // System Updates
   getSystemInfo: () => request<NexusSystemInfo>('/api/v1/system/info'),
   getSystemDoctor: () => request<SystemDoctorReport>('/api/v1/system/doctor'),
-  getSystemUpdates: () =>
+  getSystemUpdates: (options?: { refresh?: boolean }) =>
     request<{
       nexus_version: string;
       nexus_commit?: string;
@@ -656,6 +656,8 @@ export const nexus = {
       nexus_latest_version?: string;
       nexus_latest_sha?: string;
       nexus_update_available?: boolean;
+      nexus_update_status?:
+        'up_to_date' | 'update_available' | 'channel_not_published' | 'unavailable';
       nexus_update_error?: string;
       nexus_update_instruction?: string;
       nexus_installer_url?: string;
@@ -669,7 +671,7 @@ export const nexus = {
       maestro_latest_version?: string;
       maestro_available: boolean;
       update_available: boolean;
-    }>('/api/v1/system/updates'),
+    }>(`/api/v1/system/updates${options?.refresh ? '?refresh=1' : ''}`),
   performSystemUpdate: () =>
     request<{
       nexus_updated: boolean;

@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"os"
 	stdruntime "runtime"
+	"sync"
+	"time"
 
 	"github.com/IAPro-Community/nexus/internal/buildinfo"
 	"github.com/IAPro-Community/nexus/internal/control/driver"
@@ -37,6 +39,9 @@ type NexusHandler struct {
 	nexActions            *nexus.NexActionService
 	voice                 *voice.Service
 	hostFilesystemEnabled bool
+	systemUpdatesMu       sync.Mutex
+	systemUpdatesCachedAt time.Time
+	systemUpdatesCache    map[string]any
 }
 
 // checkNexusUpdate is injectable so Web API tests never depend on the remote
