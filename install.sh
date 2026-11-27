@@ -518,8 +518,12 @@ Exec=${desktop_target}
 Icon=${icon_value}
 Terminal=false
 Categories=Development;
+StartupWMClass=com.iapro.nexus.desktop
 EOF
     chmod +x "$desktop_entry"
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        update-desktop-database "$applications_dir" >/dev/null 2>&1 || true
+    fi
 
     local desktop_dir
     if command -v xdg-user-dir >/dev/null 2>&1; then
@@ -540,10 +544,23 @@ EOF
 install_linux_hud_launcher() {
     local hud_target="$1"
     local applications_dir="${HOME}/.local/share/applications"
-    local icon_target="${HOME}/.local/share/icons/hicolor/256x256/apps/iapro-nexus.png"
+    local icon_dir="${HOME}/.local/share/icons/hicolor/256x256/apps"
+    local hud_icon_target="${icon_dir}/iapro-nexus-hud.png"
+    local hud_icon_source="${TMP_DIR}/nex-hud-icon-256.png"
+    if [ ! -f "$hud_icon_source" ]; then
+        hud_icon_source="${SCRIPT_DIR}/internal/desktop/assets/brand/nex-hud-icon-256.png"
+    fi
+    if [ -f "$hud_icon_source" ]; then
+        mkdir -p "$icon_dir"
+        install -m 0644 "$hud_icon_source" "$hud_icon_target"
+    fi
+
+    local fallback_icon_target="${icon_dir}/iapro-nexus.png"
     local icon_value="application-x-executable"
-    if [ -f "$icon_target" ]; then
-        icon_value="$icon_target"
+    if [ -f "$hud_icon_target" ]; then
+        icon_value="$hud_icon_target"
+    elif [ -f "$fallback_icon_target" ]; then
+        icon_value="$fallback_icon_target"
     fi
 
     mkdir -p "$applications_dir"

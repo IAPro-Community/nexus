@@ -1,3 +1,15 @@
+## 2026-11-27 — Ícone oficial do NEX no HUD desktop e alinhamento de WMClass no Linux
+
+- **Ícones Oficiais do NEX (`internal/desktop/assets/brand/`):** gerados `nex-hud-icon-256.png` e `nex-hud-icon-32.png` derivados em alta definição do asset travado (`web/public/nex/hybrid-v1/nex_source_original.png`, `NEX-ID-v1`, `FROZEN`) sem qualquer alteração aos arquivos locked.
+- **Native Shell e HUD (`internal/desktop/native_shell.go`, `cmd/nexus-hud/`):** adicionados `NexHUDAppIcon()` e `NexHUDTrayIcon()`, `NewNexHUDTray()`, e configurados `cmd/nexus-hud/nex_v2.go` e `cmd/nexus-hud/main.go` para utilizar o ícone do mascote robô NEX na janela e no tray nativo.
+- **Instalador, Desinstalador, CI e Makefile (`install.sh`, `uninstall.sh`, `.github/workflows/ci.yml`, `Makefile`):**
+  - `install.sh`: adicionado `StartupWMClass=com.iapro.nexus.desktop` ao launcher desktop; `install_linux_hud_launcher` instala e consome `iapro-nexus-hud.png` (com fallback limpo).
+  - `uninstall.sh`: limpa `iapro-nexus-hud.png`.
+  - `.github/workflows/ci.yml`: empacota `nex-hud-icon-256.png` junto ao `nexus-hud_Linux_x86_64.tar.gz`.
+  - `Makefile`: `install-local` sincroniza `iapro-nexus.png` e `iapro-nexus-hud.png` diretamente para `~/.local/share/icons/hicolor/256x256/apps/`.
+- **Desktop e Autostart do Host:** atualizados `/home/desenvolvedor/.local/share/applications/iapro-nexus-hud.desktop`, `/home/desenvolvedor/.local/share/applications/nexus.desktop`, `/home/desenvolvedor/Área de trabalho/nexus.desktop` e `/home/desenvolvedor/.config/autostart/nexus-hud.desktop` com ícone dedicado e `StartupWMClass` correto (`com.iapro.nexus.desktop` e `com.iapro.nexus.hud`).
+- **Verificação:** `go vet -tags=gtk3`, `go test -tags=gtk3 -race` (`internal/desktop`, `cmd/nexus-hud`, `internal/release`), `bash -n`, `verify-nex-identity-lock.mjs` (`FROZEN`) e `verify-nex-visual.mjs` (`PASS`).
+
 ## 2026-11-27 — Classificação honesta de canal de atualização não publicado + cache TTL + chave pública em builds locais
 
 - **`internal/update/` (`manifest.go`, `service.go`, `service_test.go`):** adicionado sentinela `ErrManifestNotPublished` no HTTP 404 do manifesto sem quebrar fail-closed.

@@ -1,6 +1,8 @@
 package desktop
 
 import (
+	"bytes"
+	"image/png"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -138,5 +140,38 @@ func TestAutoStartOptionsHaveIndependentIdentity(t *testing.T) {
 	}
 	if got := sanitizeAutoStartID(" unsafe/id "); got != "unsafe-id" {
 		t.Fatalf("sanitizeAutoStartID=%q", got)
+	}
+}
+
+func TestEmbeddedBrandAndHUDIcons(t *testing.T) {
+	nexusApp := NexusAppIcon()
+	hudApp := NexHUDAppIcon()
+	hudTray := NexHUDTrayIcon()
+
+	nexusCfg, err := png.DecodeConfig(bytes.NewReader(nexusApp))
+	if err != nil {
+		t.Fatalf("decode NexusAppIcon: %v", err)
+	}
+	if nexusCfg.Width != 256 || nexusCfg.Height != 256 {
+		t.Fatalf("NexusAppIcon dimensions = %dx%d, want 256x256", nexusCfg.Width, nexusCfg.Height)
+	}
+
+	hudAppCfg, err := png.DecodeConfig(bytes.NewReader(hudApp))
+	if err != nil {
+		t.Fatalf("decode NexHUDAppIcon: %v", err)
+	}
+	if hudAppCfg.Width != 256 || hudAppCfg.Height != 256 {
+		t.Fatalf("NexHUDAppIcon dimensions = %dx%d, want 256x256", hudAppCfg.Width, hudAppCfg.Height)
+	}
+	if bytes.Equal(nexusApp, hudApp) {
+		t.Fatal("NexHUDAppIcon must use the NEX agent icon, not NexusAppIcon")
+	}
+
+	hudTrayCfg, err := png.DecodeConfig(bytes.NewReader(hudTray))
+	if err != nil {
+		t.Fatalf("decode NexHUDTrayIcon: %v", err)
+	}
+	if hudTrayCfg.Width != 32 || hudTrayCfg.Height != 32 {
+		t.Fatalf("NexHUDTrayIcon dimensions = %dx%d, want 32x32", hudTrayCfg.Width, hudTrayCfg.Height)
 	}
 }

@@ -162,6 +162,8 @@ install-local: build
 		cp -f nexus-desktop $(LOCAL_BIN)/nexus-desktop.tmp; \
 		chmod +x $(LOCAL_BIN)/nexus-desktop.tmp; \
 		mv -f $(LOCAL_BIN)/nexus-desktop.tmp $(LOCAL_BIN)/nexus-desktop; \
+		mkdir -p "$(REAL_HOME)/.local/share/icons/hicolor/256x256/apps"; \
+		install -m 0644 internal/desktop/assets/brand/nexus-icon-256.png "$(REAL_HOME)/.local/share/icons/hicolor/256x256/apps/iapro-nexus.png"; \
 		echo "Synced nexus-desktop to $(LOCAL_BIN)/nexus-desktop"; \
 	fi
 	@if [ -x "$(LOCAL_BIN)/nexus-hud" ]; then $(MAKE) build-hud; fi
@@ -170,6 +172,8 @@ install-local: build
 		cp -f nexus-hud $(LOCAL_BIN)/nexus-hud.tmp; \
 		chmod +x $(LOCAL_BIN)/nexus-hud.tmp; \
 		mv -f $(LOCAL_BIN)/nexus-hud.tmp $(LOCAL_BIN)/nexus-hud; \
+		mkdir -p "$(REAL_HOME)/.local/share/icons/hicolor/256x256/apps"; \
+		install -m 0644 internal/desktop/assets/brand/nex-hud-icon-256.png "$(REAL_HOME)/.local/share/icons/hicolor/256x256/apps/iapro-nexus-hud.png"; \
 		echo "Synced nexus-hud to $(LOCAL_BIN)/nexus-hud"; \
 	fi
 	@set -e; \

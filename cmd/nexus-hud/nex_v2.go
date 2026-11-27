@@ -293,7 +293,7 @@ func runNexV2HUD(backend *desktop.SharedBackend, desktopApp *desktop.App, linked
 	native = application.New(application.Options{
 		Name:        "Nexus · Nex 2.0",
 		Description: "Nexus Nex 2.0 desktop presence",
-		Icon:        desktop.NexusAppIcon(),
+		Icon:        desktop.NexHUDAppIcon(),
 		Services: []application.Service{
 			application.NewService(desktopApp),
 			application.NewService(controller),
@@ -364,7 +364,7 @@ func runNexV2HUD(backend *desktop.SharedBackend, desktopApp *desktop.App, linked
 }
 
 func configureNexV2Tray(native *application.App, host *nexV2WindowHost, controller *desktop.NexV2Controller) {
-	tray := desktop.NewNativeTray(native, "Nexus · Nex 2.0")
+	tray := desktop.NewNexHUDTray(native, "Nexus · Nex 2.0")
 	if tray == nil || native == nil {
 		return
 	}

@@ -621,10 +621,12 @@ jobs:
           install -m 0755 cmd/nexus-hud/build/bin/nexus-hud "$hud_package/nexus-hud"
           install -m 0644 internal/desktop/assets/brand/nexus-icon-256.png "$desktop_package/nexus-icon-256.png"
           install -m 0644 internal/desktop/assets/brand/nexus-icon-256.png "$hud_package/nexus-icon-256.png"
+          install -m 0644 internal/desktop/assets/brand/nex-hud-icon-256.png "$hud_package/nex-hud-icon-256.png"
           tar -C "$desktop_package" -czf "$RUNNER_TEMP/nexus-desktop_Linux_x86_64.tar.gz" nexus-desktop nexus-icon-256.png
-          tar -C "$hud_package" -czf "$RUNNER_TEMP/nexus-hud_Linux_x86_64.tar.gz" nexus-hud nexus-icon-256.png
+          tar -C "$hud_package" -czf "$RUNNER_TEMP/nexus-hud_Linux_x86_64.tar.gz" nexus-hud nexus-icon-256.png nex-hud-icon-256.png
           tar -tzf "$RUNNER_TEMP/nexus-desktop_Linux_x86_64.tar.gz" | grep -Fxq nexus-icon-256.png
           tar -tzf "$RUNNER_TEMP/nexus-hud_Linux_x86_64.tar.gz" | grep -Fxq nexus-icon-256.png
+          tar -tzf "$RUNNER_TEMP/nexus-hud_Linux_x86_64.tar.gz" | grep -Fxq nex-hud-icon-256.png
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-linux-${{ github.sha }}

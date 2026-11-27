@@ -15,10 +15,27 @@ var nexusTrayIcon []byte
 //go:embed assets/brand/nexus-icon-256.png
 var nexusAppIcon []byte
 
+//go:embed assets/brand/nex-hud-icon-32.png
+var nexHudTrayIcon []byte
+
+//go:embed assets/brand/nex-hud-icon-256.png
+var nexHudAppIcon []byte
+
 // NexusAppIcon returns the Nexus brand mark for native shell surfaces (about
 // dialogs, Linux application icons and window managers).
 func NexusAppIcon() []byte {
 	return nexusAppIcon
+}
+
+// NexHUDAppIcon returns the NEX agent mascot icon for Nexus HUD native window
+// and desktop surfaces.
+func NexHUDAppIcon() []byte {
+	return nexHudAppIcon
+}
+
+// NexHUDTrayIcon returns the NEX agent mascot icon sized for system trays.
+func NexHUDTrayIcon() []byte {
+	return nexHudTrayIcon
 }
 
 // HUDTrayAppearanceActions optionally adds Guardian modes to the native tray.
@@ -33,16 +50,28 @@ type HUDTrayAppearanceActions struct {
 // NewNativeTray creates and brands the platform system tray without requiring
 // an initial WebView window (safe for lazy / on-demand HUD hibernation).
 func NewNativeTray(app *application.App, tooltip string) *application.SystemTray {
+	return NewNativeTrayWithIcon(app, tooltip, nexusTrayIcon)
+}
+
+// NewNexHUDTray creates and brands the Nexus HUD system tray using the NEX
+// agent mascot icon.
+func NewNexHUDTray(app *application.App, tooltip string) *application.SystemTray {
+	return NewNativeTrayWithIcon(app, tooltip, nexHudTrayIcon)
+}
+
+// NewNativeTrayWithIcon creates and brands the platform system tray with the
+// provided PNG icon bytes.
+func NewNativeTrayWithIcon(app *application.App, tooltip string, iconBytes []byte) *application.SystemTray {
 	if app == nil {
 		return nil
 	}
 	tray := app.SystemTray.New()
 	if runtime.GOOS == "darwin" {
 		tray.SetTemplateIcon(icons.SystrayMacTemplate)
-	} else if len(nexusTrayIcon) > 0 {
+	} else if len(iconBytes) > 0 {
 		// Brand mark: legible on both light and dark taskbars.
-		tray.SetIcon(nexusTrayIcon)
-		tray.SetDarkModeIcon(nexusTrayIcon)
+		tray.SetIcon(iconBytes)
+		tray.SetDarkModeIcon(iconBytes)
 	} else {
 		tray.SetIcon(icons.SystrayDark)
 		tray.SetDarkModeIcon(icons.SystrayLight)
@@ -57,7 +86,12 @@ func ConfigureNativeTray(app *application.App, window application.Window, toolti
 	if app == nil || window == nil {
 		return nil
 	}
-	tray := NewNativeTray(app, tooltip)
+	var tray *application.SystemTray
+	if len(guardian) > 0 {
+		tray = NewNexHUDTray(app, tooltip)
+	} else {
+		tray = NewNativeTray(app, tooltip)
+	}
 	if tray == nil {
 		return nil
 	}

@@ -72,7 +72,7 @@ func main() {
 	native := application.New(application.Options{
 		Name:        "Nexus HUD",
 		Description: "Nexus operational HUD",
-		Icon:        desktop.NexusAppIcon(),
+		Icon:        desktop.NexHUDAppIcon(),
 		Services: []application.Service{
 			application.NewService(desktopApp),
 			application.NewService(hudController),
