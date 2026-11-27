@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/IAPro-Community/nexus/internal/executil"
@@ -46,12 +48,31 @@ func (h *NexusHandler) handleProjectGitBranches(w http.ResponseWriter, r *http.R
 	}
 
 	dir := proj.CanonicalPath
-	current := getGitBranch(dir)
+	current := readGitBranchFast(dir)
+	if current == "" {
+		current = getGitBranch(dir)
+	}
 	if current == "" {
 		current = proj.DefaultBranch
 	}
 	if current == "" {
 		current = "main"
+	}
+
+	if r.URL.Query().Get("summary") == "1" {
+		writeJSON(w, http.StatusOK, ProjectGitBranchesResponse{
+			ProjectID:          proj.ID,
+			CanonicalPath:      proj.CanonicalPath,
+			CurrentBranch:      current,
+			DefaultBranch:      proj.DefaultBranch,
+			Branches:           []string{current},
+			RemoteBranches:     []string{},
+			IsClean:            true,
+			ModifiedCount:      0,
+			Worktrees:          []ProjectGitWorktree{},
+			WorktreesAvailable: false,
+		})
+		return
 	}
 
 	// 1. List local branches
@@ -198,4 +219,46 @@ func (h *NexusHandler) handleProjectGitCheckout(w http.ResponseWriter, r *http.R
 		"current_branch": targetBranch,
 		"output":         strings.TrimSpace(string(out)),
 	})
+}
+
+// readGitBranchFast resolves the checked-out Git branch (or short detached SHA)
+// directly from `.git/HEAD` (including linked worktree `gitdir:` files) without
+// spawning a `git` subprocess.
+func readGitBranchFast(dir string) string {
+	dotGit := filepath.Join(dir, ".git")
+	info, err := os.Stat(dotGit)
+	if err != nil {
+		return ""
+	}
+	gitDir := dotGit
+	if !info.IsDir() {
+		raw, err := os.ReadFile(dotGit)
+		if err != nil {
+			return ""
+		}
+		line := strings.TrimSpace(string(raw))
+		if !strings.HasPrefix(line, "gitdir:") {
+			return ""
+		}
+		target := strings.TrimSpace(strings.TrimPrefix(line, "gitdir:"))
+		if target == "" {
+			return ""
+		}
+		if !filepath.IsAbs(target) {
+			target = filepath.Join(dir, target)
+		}
+		gitDir = filepath.Clean(target)
+	}
+	data, err := os.ReadFile(filepath.Join(gitDir, "HEAD"))
+	if err != nil {
+		return ""
+	}
+	content := strings.TrimSpace(string(data))
+	if strings.HasPrefix(content, "ref: refs/heads/") {
+		return strings.TrimPrefix(content, "ref: refs/heads/")
+	}
+	if len(content) >= 7 {
+		return content[:7]
+	}
+	return content
 }

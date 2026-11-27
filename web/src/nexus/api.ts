@@ -713,8 +713,10 @@ export const nexus = {
         body: JSON.stringify({ action }),
       },
     ),
-  getProjectBranches: (projectId: string) =>
-    request<import('../types').GitBranchesResult>(`/api/v1/projects/${projectId}/git/branches`),
+  getProjectBranches: (projectId: string, options?: { summary?: boolean }) =>
+    request<import('../types').GitBranchesResult>(
+      `/api/v1/projects/${projectId}/git/branches${options?.summary ? '?summary=1' : ''}`,
+    ),
   getProjectChangeCollisions: (projectId: string) =>
     request<import('../types').ChangeCollisionsReport>(
       `/api/v1/projects/${projectId}/change-collisions`,

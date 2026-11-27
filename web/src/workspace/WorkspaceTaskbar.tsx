@@ -50,7 +50,7 @@ export const WorkspaceTaskbar: React.FC<{
       inFlight = true;
       try {
         // default_branch is project configuration, NOT the checked-out Git HEAD.
-        const result = await nexus.getProjectBranches(project.id);
+        const result = await nexus.getProjectBranches(project.id, { summary: true });
         if (!cancelled) setCurrentBranch(result.current_branch || '');
       } catch {
         if (!cancelled) setCurrentBranch('');
@@ -59,18 +59,21 @@ export const WorkspaceTaskbar: React.FC<{
       }
     };
     void refreshBranch();
-    // git switch can run inside the PTY or an external IDE.
-    const interval = window.setInterval(() => void refreshBranch(), 10000);
+    // git switch can run inside the PTY or an external IDE. Focus/visibility handlers cover immediate switches.
+    const interval = window.setInterval(() => void refreshBranch(), 30000);
     const onFocus = () => void refreshBranch();
     const onVisibility = () => {
       if (!document.hidden) void refreshBranch();
     };
+    const onOpenSwitcher = () => setBranchModalOpen(true);
     window.addEventListener('focus', onFocus);
+    window.addEventListener('nexus:open-branch-switcher', onOpenSwitcher);
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
       window.removeEventListener('focus', onFocus);
+      window.removeEventListener('nexus:open-branch-switcher', onOpenSwitcher);
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [project?.id]);
