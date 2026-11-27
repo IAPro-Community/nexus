@@ -188,8 +188,8 @@
   gap: var(--nx-space-2);
 }
 
-/* Doubled class keeps this declaration above the base section without
-   !important, where the comment below explains the flex allocation. */
+/* Doubled class keeps this declaration above the base section through
+   specificity; the comment below explains the flex allocation. */
 .nx-topbar__context.nx-topbar__context {
   display: flex;
   align-items: center;
