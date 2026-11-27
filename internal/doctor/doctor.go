@@ -43,6 +43,9 @@ type Report struct {
 	Checks      []Check                           `json:"checks"`
 	Providers   map[string]model.DetectionResult  `json:"providers"`
 	Credentials nexusruntime.CredentialCapability `json:"credentials"`
+	// Processes reports local Nexus/WebKit RSS and reaped-vs-zombie state.
+	// Read-only; absent only when the platform cannot inspect processes.
+	Processes *ProcessReport `json:"processes,omitempty"`
 }
 
 // BuildReport is read-only. It inspects existing state and never creates a
@@ -59,6 +62,18 @@ func BuildReport(version string, detections map[string]model.DetectionResult, ca
 	}
 	report.Checks = append(report.Checks, checkDirectory("data_directory", config.DataDir), checkDirectory("config_directory", config.ConfigDir), checkDirectory("state_directory", config.StateDir))
 	report.Checks = append(report.Checks, Check{ID: "credentials.capability", Status: capabilityStatus(capability.Status), Summary: string(capability.Status) + " — " + capability.Mechanism, Remediation: capability.Reason})
+
+	processes := InspectProcesses()
+	report.Processes = &processes
+	if processes.Supported {
+		status := Pass
+		summary := fmt.Sprintf("%d process(es), %s RSS", len(processes.Processes), formatMiB(processes.TotalRSSBytes))
+		if processes.DefunctCount > 0 {
+			status = Warn
+			summary += fmt.Sprintf(", %d defunct child process(es): %s", processes.DefunctCount, strings.Join(processes.DefunctNames, ", "))
+		}
+		report.Checks = append(report.Checks, Check{ID: "process.memory", Status: status, Summary: summary, Remediation: "Restart the affected surface and run 'nexus doctor --json' again to confirm the child is reaped."})
+	}
 
 	inContainer := runningInContainer()
 	if inContainer {
