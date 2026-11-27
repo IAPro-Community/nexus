@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { clearDesktopAuth, setDesktopAuth } from '../api';
 import {
   isNexHubActive,
   refreshNexHubStatus,
@@ -8,6 +9,7 @@ import {
 
 describe('nexHubRouting', () => {
   afterEach(() => {
+    clearDesktopAuth();
     setNexHubStatusForTest(null);
     vi.restoreAllMocks();
   });
@@ -62,5 +64,29 @@ describe('nexHubRouting', () => {
     expect(fallbackStatus.active).toBe(false);
     expect(fallbackStatus.reason).toBe('nex_offline');
     expect(isNexHubActive()).toBe(false);
+  });
+
+  it('forwards the desktop bearer token when present', async () => {
+    setDesktopAuth('desktop-tok', 'http://127.0.0.1:13000');
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        active: true,
+        can_notify: true,
+        do_not_disturb: false,
+        reason: 'nex_active',
+      }),
+    } as Response);
+
+    const status = await refreshNexHubStatus();
+    expect(status.active).toBe(true);
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/api/v1/nex/hub-status',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer desktop-tok',
+        }),
+      }),
+    );
   });
 });

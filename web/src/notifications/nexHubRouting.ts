@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getDesktopAuthToken } from '../api';
 
 export interface NexHubStatus {
   active: boolean;
@@ -21,6 +22,7 @@ const POLL_INTERVAL_MS = 15_000;
 let testOverride: NexHubStatus | null = null;
 let currentStatus: NexHubStatus = { ...DEFAULT_NEX_HUB_STATUS };
 let pollTimer: number | null = null;
+let retryTimer: number | null = null;
 let focusListener: (() => void) | null = null;
 let inFlight = false;
 const listeners = new Set<(status: NexHubStatus) => void>();
@@ -45,12 +47,28 @@ export async function refreshNexHubStatus(): Promise<NexHubStatus> {
   inFlight = true;
   const previousSig = statusSignature(currentStatus);
   try {
+    const headers: Record<string, string> = { Accept: 'application/json' };
+    const desktopToken = getDesktopAuthToken();
+    if (desktopToken) {
+      headers.Authorization = `Bearer ${desktopToken}`;
+    }
     const res = await fetch('/api/v1/nex/hub-status', {
       credentials: 'same-origin',
-      headers: { Accept: 'application/json' },
+      headers,
     });
     if (!res.ok) {
       currentStatus = { ...DEFAULT_NEX_HUB_STATUS };
+      if (
+        res.status === 401 &&
+        listeners.size > 0 &&
+        retryTimer === null &&
+        typeof window !== 'undefined'
+      ) {
+        retryTimer = window.setTimeout(() => {
+          retryTimer = null;
+          void refreshNexHubStatus();
+        }, 1_500);
+      }
     } else {
       const payload = (await res.json()) as Partial<NexHubStatus>;
       const active = Boolean(payload.active);
@@ -94,6 +112,10 @@ export function subscribeNexHubStatus(listener: (status: NexHubStatus) => void):
       if (pollTimer !== null) {
         window.clearInterval(pollTimer);
         pollTimer = null;
+      }
+      if (retryTimer !== null) {
+        window.clearTimeout(retryTimer);
+        retryTimer = null;
       }
       if (focusListener !== null) {
         window.removeEventListener('focus', focusListener);
