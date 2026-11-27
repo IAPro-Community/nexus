@@ -68,6 +68,7 @@ func registerNexusRoutes(mux *http.ServeMux, deps routeDependencies) {
 	s, h := deps.server, deps.nexusHandler
 	mux.HandleFunc("/api/v1/projects", s.authMiddleware(h.handleProjectsList))
 	mux.HandleFunc("/api/v1/projects/summaries", s.authMiddleware(h.handleProjectSummaries))
+	mux.HandleFunc("/api/v1/projects/prune-candidates", s.authMiddleware(h.handleProjectPruneCandidates))
 	mux.HandleFunc("/api/v1/projects/", s.routeProject(h))
 	mux.HandleFunc("/api/v1/agent-modes", s.authMiddleware(h.handleAgentModes))
 	mux.HandleFunc("/api/v1/execution-roles", s.authMiddleware(h.handleExecutionRoles))
@@ -147,6 +148,7 @@ func registerSystemRoutes(mux *http.ServeMux, deps routeDependencies) {
 	mux.HandleFunc("/api/v1/nex/intelligence/auto-configure", s.authMiddleware(h.handleNexIntelligenceAutoConfigure))
 	mux.HandleFunc("/api/v1/nex/conversation", s.authMiddleware(h.handleNexConversation))
 	mux.HandleFunc("/api/v1/nex/events", s.authMiddleware(h.handleNexEvents))
+	mux.HandleFunc("/api/v1/nex/hub-status", s.authMiddleware(h.handleNexHubStatus))
 	mux.HandleFunc("/api/v1/nex/models/watch", s.authMiddleware(h.handleNexModelWatch))
 	mux.HandleFunc("/api/v1/nex/memory", s.authMiddleware(h.handleNexMemory))
 	mux.HandleFunc("/api/v1/nex/actions", s.authMiddleware(h.handleNexActions))

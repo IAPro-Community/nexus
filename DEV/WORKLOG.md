@@ -1,3 +1,14 @@
+## 2026-11-26 — Centralização de notificações pelo NEX com fallback automático
+
+- **Hub de notificação NEX no backend (`internal/control/notify/`, `internal/control/web/`):**
+  - `nex_hub.go` e `notify.go`: criado contrato de lease (`DefaultNexHubLeaseTTL = 45s`) via `ReportNexHubHeartbeat`, `ClearNexHub`, `CurrentNexHubStatus` e `ShouldSuppressFallback`, além do opt-out explícito `ForceFallback` no `Payload`. Enquanto o NEX estiver ativo (`nex_active` / `nex_dnd`), o `throttledNotifier` e o watcher de Web Push (`push_attention.go`) suprimem pop-ups redundantes do SO/navegador, retomando o fallback automaticamente se o NEX ficar offline, pausado, oculto ou expirar o TTL.
+  - `handlers_nex_hub.go`, `handlers_hud.go`, `handlers_nex_stream.go`, `routes.go`: adicionado `GET/POST /api/v1/nex/hub-status` e renovação automática de lease via headers `X-Nexus-Nex-Hub` e `X-Nexus-Nex-Dnd` nas sondagens do NEX 2.0.
+- **NEX 2.0 unificado como hub central (`web/src/nex-v2/`):**
+  - `nexV2HudHelpers.ts`, `NexNotificationBubble.tsx` (+ `.module.scss`), `nexV2Client.ts`, `NexPresenceApp.tsx`: unificados alertas de capacidade, esperas de atenção de runtime (`runtime_attention`) e missões bloqueadas (`needs_user`) em `resolveTopNexBubbleAlert` com prioridade crítica e indicador `+N`, renovando o heartbeat do hub e liberando o lease ao fechar (`pagehide`/`beforeunload`).
+- **Supressão segura e status transparente na Workspace Web (`web/src/notifications/`, `web/src/components/`, `web/src/app/`, `web/src/features/settings/`, `web/src/i18n/locales/`):**
+  - `nexHubRouting.ts` (+ `nexHubRouting.test.ts`), `NexusWorkspaceSession.tsx`, `AttentionNotificationManager.tsx`, `InAppNotificationCenter.tsx`: hook compartilhado `useNexHubStatus()` (com fallback padrão `active: false` em offline/erro) suprime `pushNotifications.sendPush`, beep de alerta, cartões flutuantes Sonner e toasts transitórios enquanto o NEX está ativo, preservando o histórico completo na gaveta e exibindo aviso do estado de roteamento em `NotificationCategorySettings.tsx` (PT-BR/EN/ES; `featureAnnouncements.ts` inalterado — roteamento de notificações existentes).
+- **Verificação:** `prettier`, `eslint`, `stylelint`, `check:styles`, `tsc --noEmit`, 171 arquivos / 1.086 testes Vitest, `web/dist` + `nex-v2` dentro do orçamento de tamanho, `go vet -tags=gtk3 ./...`, `-race` em `notify`, `control/web`, `desktop` e `nexus`.
+
 ## 2026-11-26 — Remoção automática de contas duplicadas por provedor & identidade canônica do Cursor
 
 - **Extração de identidade do Cursor (`internal/core/provider/adapters/cursor/cursor.go`, `cursor_test.go`):**

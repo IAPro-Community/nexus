@@ -12,7 +12,7 @@ import {
   defaultPresenceState,
   normalizeHudState,
 } from './nexV2Client';
-import { resolveDefaultNexV2Tab } from './nexV2HudHelpers';
+import { resolveDefaultNexV2Tab, resolveTopNexBubbleAlert } from './nexV2HudHelpers';
 import type { NexV2HudState } from './nexV2Types';
 
 const noop = () => {};
@@ -273,5 +273,95 @@ describe('Nex 2.0 presence shell and modular surfaces', () => {
     );
     expect(html).toContain('data-nex-chat="true"');
     expect(html).toContain('data-nex-quick-prompts="true"');
+  });
+
+  it('unifies alerts, runtime attention waits, and blocked missions in resolveTopNexBubbleAlert and renders +N badge', () => {
+    const hud: NexV2HudState = {
+      generated_at: '2026-11-26T23:00:00Z',
+      providers: [],
+      agents: [],
+      missions: [
+        {
+          run_id: 'run-1',
+          project_id: 'proj-1',
+          state: 'BLOCKED_NEEDS_USER',
+          current_stage: 'review',
+          current_task_title: 'Review API',
+          provider: 'codex',
+          completed_packages: 1,
+          total_packages: 2,
+          needs_user: true,
+          intervention_reason: 'Confirm migration',
+        },
+      ],
+      alerts: [
+        {
+          fingerprint: 'warn-1',
+          category: 'quota',
+          severity: 'WARNING',
+          provider: 'claude',
+          reason: 'Quota low',
+          acked: false,
+          last_observed_at: '2026-11-26T23:00:00Z',
+        },
+        {
+          fingerprint: 'crit-1',
+          category: 'quota',
+          severity: 'CRITICAL',
+          provider: 'codex',
+          reason: 'Quota exhausted',
+          acked: false,
+          last_observed_at: '2026-11-26T23:00:00Z',
+        },
+      ],
+      runtime_attention: [
+        {
+          runtime_id: 'rt-1',
+          project_name: 'Nexus',
+          provider: 'codex',
+          reason: 'QUESTION',
+          prompt_kind: 'yn',
+          fingerprint: 'fp-rt-1',
+          updated_at: '2026-11-26T23:00:00Z',
+        },
+      ],
+      primary: { kind: 'ALERT', id: 'crit-1' },
+      system: {
+        capacity: 'OK',
+        resources: 'OK',
+        agents: 'OK',
+        missions: 'OK',
+        cost: 'UNKNOWN',
+        cache_ttl_millis: 8_000,
+      },
+    };
+
+    const first = resolveTopNexBubbleAlert(hud, {});
+    expect(first.totalPending).toBe(4);
+    expect(first.alert?.fingerprint).toBe('crit-1');
+
+    const bubbleHtml = renderToStaticMarkup(
+      <NexNotificationBubble
+        alert={first.alert}
+        pendingCount={first.totalPending}
+        doNotDisturb={false}
+        panelOpen={false}
+        offline={false}
+        onDismiss={noop}
+        onOpenAttention={noop}
+      />,
+    );
+    expect(bubbleHtml).toContain('+3');
+
+    const second = resolveTopNexBubbleAlert(hud, { 'crit-1': true });
+    expect(second.totalPending).toBe(3);
+    expect(second.alert?.fingerprint).toBe('runtime:rt-1:fp-rt-1');
+
+    const third = resolveTopNexBubbleAlert(hud, {
+      'crit-1': true,
+      'runtime:rt-1:fp-rt-1': true,
+    });
+    expect(third.totalPending).toBe(2);
+    expect(third.alert?.fingerprint).toBe('mission:run-1:review');
   });
 });

@@ -17,6 +17,7 @@ import {
   fetchNexV2ModelWatch,
   loadNexV2Presence,
   presetSizePixels,
+  reportNexHubStatus,
   snoozeCapacityAlert,
   updateNexV2AlwaysOnTop,
   updateNexV2CompactBar,
@@ -35,6 +36,7 @@ import {
   countAttentionItems,
   hasCriticalAttention,
   resolveDefaultNexV2Tab,
+  resolveTopNexBubbleAlert,
 } from './nexV2HudHelpers';
 import type {
   NexV2EventEnvelope,
@@ -109,6 +111,8 @@ export const NexPresenceApp: React.FC<NexPresenceAppProps> = ({
   const userSelectedTabRef = useRef(false);
   const hudStateRef = useRef<NexV2HudState | null>(null);
   hudStateRef.current = hudState;
+  const presenceRef = useRef(presence);
+  presenceRef.current = presence;
 
   const coldOpenMsRef = useRef<number | null>(null);
   const warmOpenMsRef = useRef<number | null>(null);
@@ -124,8 +128,8 @@ export const NexPresenceApp: React.FC<NexPresenceAppProps> = ({
     pollInFlightRef.current = true;
     try {
       const [hudRes, evRes, watchRes] = await Promise.all([
-        fetchNexV2Hud(),
-        fetchNexV2Events(cursorRef.current),
+        fetchNexV2Hud(presenceRef.current),
+        fetchNexV2Events(cursorRef.current, presenceRef.current),
         fetchNexV2ModelWatch(),
       ]);
       const isOffline = hudRes.offline || evRes.offline;
@@ -178,8 +182,24 @@ export const NexPresenceApp: React.FC<NexPresenceAppProps> = ({
   }, [pollHud]);
 
   useEffect(() => {
+    void reportNexHubStatus(presence, offline);
+  }, [offline, presence.compactBar, presence.doNotDisturb, presence.paused, presence.showAvatar]);
+
+  useEffect(() => {
+    const release = () => {
+      void reportNexHubStatus({ ...presenceRef.current, paused: true }, true, true);
+    };
+    window.addEventListener('pagehide', release);
+    window.addEventListener('beforeunload', release);
+    return () => {
+      window.removeEventListener('pagehide', release);
+      window.removeEventListener('beforeunload', release);
+    };
+  }, []);
+
+  useEffect(() => {
     if (presence.paused) return;
-    const baseMs = hudState?.system.cache_ttl_millis || 15_000;
+    const baseMs = Math.min(hudState?.system.cache_ttl_millis || 8_000, 8_000);
     const intervalMs = backoffMs > 0 ? Math.max(backoffMs, 2000) : baseMs;
     const timer = window.setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
@@ -246,10 +266,13 @@ export const NexPresenceApp: React.FC<NexPresenceAppProps> = ({
   const attentionCount = useMemo(() => countAttentionItems(hudState), [hudState]);
   const criticalAttention = useMemo(() => hasCriticalAttention(hudState), [hudState]);
 
-  const topAlert: NexV2HudAlert | null = useMemo(() => {
-    if (!hudState) return null;
-    return hudState.alerts.find((a) => !a.acked && !dismissedAlerts[a.fingerprint]) ?? null;
-  }, [dismissedAlerts, hudState]);
+  const { alert: topAlert, totalPending: pendingBubbleCount } = useMemo(
+    () =>
+      resolveTopNexBubbleAlert(hudState, dismissedAlerts, {
+        missionNeedsUserFallback: t('nexV2.missionNeedsUserBadge'),
+      }),
+    [dismissedAlerts, hudState, t],
+  );
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -393,6 +416,7 @@ export const NexPresenceApp: React.FC<NexPresenceAppProps> = ({
 
       <NexNotificationBubble
         alert={topAlert}
+        pendingCount={pendingBubbleCount}
         doNotDisturb={presence.doNotDisturb}
         privacyMode={presence.privacyMode}
         panelOpen={panelOpen || settingsOpen || !presence.showAvatar}

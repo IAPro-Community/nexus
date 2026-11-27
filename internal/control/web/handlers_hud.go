@@ -45,6 +45,7 @@ func (h *NexusHandler) handleHUDState(w http.ResponseWriter, r *http.Request) {
 	state.RuntimeAttention = nexus.BuildHUDRuntimeAttention(
 		registry.DefaultRegistry().List(), strings.TrimSpace(r.URL.Query().Get("project_id")),
 	)
+	recordNexHubFromRequest(r)
 	writeJSON(w, http.StatusOK, hudResponse{
 		Enabled: true,
 		Rollout: "experimental",

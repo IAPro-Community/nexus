@@ -13,11 +13,12 @@ import (
 
 // Payload is a desktop notification request from the Nexus host process.
 type Payload struct {
-	Title      string
-	Body       string
-	Tag        string
-	Category   Category
-	EpisodeKey string
+	Title         string
+	Body          string
+	Tag           string
+	Category      Category
+	EpisodeKey    string
+	ForceFallback bool
 }
 
 // Category classifies a native popup for the installation-wide notification policy.
@@ -76,6 +77,9 @@ func NewThrottled(inner Notifier, _ time.Duration) Notifier {
 
 func (t *throttledNotifier) Notify(payload Payload) error {
 	if !CategoryEnabled(payload.Category) {
+		return nil
+	}
+	if !payload.ForceFallback && ShouldSuppressFallback(payload.Category) {
 		return nil
 	}
 	key := strings.TrimSpace(payload.EpisodeKey)

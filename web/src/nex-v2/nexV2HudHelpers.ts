@@ -1,5 +1,5 @@
 import type { NexOperationalMood } from './motion/nexBehaviorState';
-import type { NexV2HudState, NexV2TabId } from './nexV2Types';
+import type { NexV2HudAlert, NexV2HudState, NexV2TabId } from './nexV2Types';
 
 export function countAttentionItems(hudState: NexV2HudState | null): number {
   if (!hudState) return 0;
@@ -63,4 +63,45 @@ export function resolveMoodTranslationKey(mood: NexOperationalMood): string {
     default:
       return 'nexV2.moodIdle';
   }
+}
+
+export function resolveTopNexBubbleAlert(
+  hudState: NexV2HudState | null,
+  dismissedAlerts: Record<string, boolean>,
+  labels?: { missionNeedsUserFallback?: string },
+): { alert: NexV2HudAlert | null; totalPending: number } {
+  if (!hudState) return { alert: null, totalPending: 0 };
+  const alerts = (hudState.alerts ?? []).filter((a) => !a.acked && !dismissedAlerts[a.fingerprint]);
+  const criticalAlerts = alerts.filter((a) => (a.severity || '').toUpperCase() === 'CRITICAL');
+  const standardAlerts = alerts.filter((a) => (a.severity || '').toUpperCase() !== 'CRITICAL');
+
+  const runtimeAlerts: NexV2HudAlert[] = (hudState.runtime_attention ?? [])
+    .map((r) => ({
+      fingerprint: `runtime:${r.runtime_id}:${r.fingerprint}`,
+      category: 'runtime_attention',
+      severity: (r.reason || '').toUpperCase() === 'ERROR' ? 'CRITICAL' : 'WARNING',
+      provider: r.provider,
+      profile: r.project_name || r.project_id,
+      reason: [r.reason, r.prompt_kind].filter(Boolean).join(' · ') || undefined,
+      acked: false,
+      last_observed_at: r.updated_at || hudState.generated_at,
+    }))
+    .filter((a) => !dismissedAlerts[a.fingerprint]);
+
+  const missionAlerts: NexV2HudAlert[] = (hudState.missions ?? [])
+    .filter((m) => m.needs_user)
+    .map((m) => ({
+      fingerprint: `mission:${m.run_id}:${m.current_stage}`,
+      category: 'mission_attention',
+      severity: 'WARNING',
+      provider: m.provider || 'Mission',
+      profile: m.current_task_title || m.run_id,
+      reason: m.intervention_reason || labels?.missionNeedsUserFallback || 'Intervenção necessária',
+      acked: false,
+      last_observed_at: m.updated_at || hudState.generated_at,
+    }))
+    .filter((a) => !dismissedAlerts[a.fingerprint]);
+
+  const queue = [...criticalAlerts, ...runtimeAlerts, ...missionAlerts, ...standardAlerts];
+  return { alert: queue[0] ?? null, totalPending: queue.length };
 }

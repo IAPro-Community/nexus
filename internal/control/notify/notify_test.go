@@ -154,7 +154,7 @@ func TestNativeNotificationScriptDoesNotInterpolatePayload(t *testing.T) {
 		{Title: "normal", Body: `$(whoami)`},
 	} {
 		if strings.Contains(windowsToastScript, payload.Title) || strings.Contains(windowsToastScript, payload.Body) {
-			t.Fatalf("Windows notification script must not contain payload data: %q", payload)
+			t.Fatalf("Windows notification script must not contain payload data: %+v", payload)
 		}
 	}
 	if !strings.Contains(windowsToastScript, "$Title") || !strings.Contains(windowsToastScript, "$Body") {

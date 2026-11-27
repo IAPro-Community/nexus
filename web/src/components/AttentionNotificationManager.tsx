@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom';
 import { toast, Toaster } from 'sonner';
 import type { RuntimeSession } from '../types';
+import { useNexHubStatus } from '../notifications/nexHubRouting';
 import { attentionToastKey } from './attentionToastModel';
 import { AttentionNotificationCard, shouldRenderAttentionCard } from './AttentionNotificationCard';
 
@@ -15,22 +16,27 @@ export const AttentionNotificationManager: React.FC<AttentionNotificationManager
   runtimes,
   onFocusRuntime,
 }) => {
+  const nexHubStatus = useNexHubStatus();
   const [dismissedFingerprints, setDismissedFingerprints] = useState<string[]>([]);
   const activeToastIds = useRef<Map<string, { id: string | number; key: string }>>(new Map());
   const toastSequence = useRef(0);
 
   // Universal attention delivery: all honest needs_user waits across all projects.
-  // Delivery operates independently of the currently active tab or focused project.
+  // When NEX is actively running as the centralized notification hub, suppress
+  // redundant floating workspace cards so the user receives one clean signal in NEX.
   const attentionRuntimes = useMemo(
     () =>
-      runtimes.filter((runtime) => {
-        if (!shouldRenderAttentionCard(runtime)) return false;
-        if ((runtime.provider_id || runtime.provider || '').toLowerCase() === 'shell') return false;
-        const key = attentionToastKey(runtime);
-        if (dismissedFingerprints.includes(key)) return false;
-        return true;
-      }),
-    [runtimes, dismissedFingerprints],
+      nexHubStatus.active
+        ? []
+        : runtimes.filter((runtime) => {
+            if (!shouldRenderAttentionCard(runtime)) return false;
+            if ((runtime.provider_id || runtime.provider || '').toLowerCase() === 'shell')
+              return false;
+            const key = attentionToastKey(runtime);
+            if (dismissedFingerprints.includes(key)) return false;
+            return true;
+          }),
+    [runtimes, dismissedFingerprints, nexHubStatus.active],
   );
 
   // Each runtime requiring intervention gets its own distinct, correlated card.

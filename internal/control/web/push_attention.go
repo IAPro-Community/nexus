@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/control/notify"
 	"github.com/IAPro-Community/nexus/internal/nexus/runner"
 )
 
@@ -146,6 +147,9 @@ func (s *Server) pollAttention(ctx context.Context, tracker *attentionTracker) i
 	}
 	fresh := tracker.Diff(pending)
 	if len(fresh) == 0 {
+		return 0
+	}
+	if notify.ShouldSuppressFallback(notify.CategoryActionRequired) {
 		return 0
 	}
 	payload := attentionPushPayload(fresh)

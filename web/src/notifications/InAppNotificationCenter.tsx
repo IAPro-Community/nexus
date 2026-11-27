@@ -28,6 +28,7 @@ import {
   type InAppNotificationAction,
 } from './inAppNotificationModel';
 import { MissionAttentionPanel } from './MissionAttentionPanel';
+import { useNexHubStatus } from './nexHubRouting';
 import { useOptionalFeatures } from '../app/composerFlowFlag';
 
 const DISMISS_AFTER_MS = 7_000;
@@ -54,6 +55,7 @@ export const InAppNotificationCenter: React.FC<{
   onAttentionCountChange,
 }) => {
   const { COMPOSER_FLOW_ENABLED } = useOptionalFeatures();
+  const nexHubStatus = useNexHubStatus();
   const { t } = useTranslation();
   const [notifications, setNotifications] = useState<InAppNotification[]>([]);
   const [history, setHistory] = useState<InAppNotification[]>([]);
@@ -179,9 +181,17 @@ export const InAppNotificationCenter: React.FC<{
     const fresh = next.filter((notification) => !observed.current.has(notification.id));
     if (fresh.length === 0) return;
     fresh.forEach((notification) => observed.current.add(notification.id));
-    setNotifications((current) => [...fresh, ...current].slice(0, 3));
+    if (!nexHubStatus.active) {
+      setNotifications((current) => [...fresh, ...current].slice(0, 3));
+    }
     setHistory((current) => [...fresh, ...current].slice(0, 30));
-  }, [runtimes, events, focusedProjectId, t]);
+  }, [runtimes, events, focusedProjectId, t, nexHubStatus.active]);
+
+  useEffect(() => {
+    if (nexHubStatus.active) {
+      setNotifications([]);
+    }
+  }, [nexHubStatus.active]);
 
   useEffect(() => {
     if (notifications.length === 0) return;

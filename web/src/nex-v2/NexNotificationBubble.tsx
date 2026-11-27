@@ -6,6 +6,7 @@ import styles from './NexNotificationBubble.module.scss';
 
 export interface NexNotificationBubbleProps {
   alert: NexV2HudAlert | null;
+  pendingCount?: number;
   doNotDisturb: boolean;
   privacyMode?: boolean;
   panelOpen: boolean;
@@ -16,6 +17,7 @@ export interface NexNotificationBubbleProps {
 
 export const NexNotificationBubble: React.FC<NexNotificationBubbleProps> = ({
   alert,
+  pendingCount = 0,
   doNotDisturb,
   privacyMode = false,
   panelOpen,
@@ -43,7 +45,10 @@ export const NexNotificationBubble: React.FC<NexNotificationBubbleProps> = ({
       aria-label={t('nexV2.bubbleLabel')}
     >
       <div className={styles.content}>
-        <span className={styles.title}>{title}</span>
+        <div className={styles.titleRow}>
+          <span className={styles.title}>{title}</span>
+          {pendingCount > 1 && <span className={styles.moreBadge}>+{pendingCount - 1}</span>}
+        </div>
         {alert.reason && <p className={styles.reason}>{alert.reason}</p>}
       </div>
       <div className={styles.actions}>

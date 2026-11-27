@@ -359,6 +359,12 @@ export const ptBR = {
     notificationQuotaLow: 'Quota baixa',
     notificationCompletionRecovery: 'Conclusão ou recuperação',
     notificationRuntimeConnection: 'Conexão e estado do runtime',
+    notificationNexHubActiveTitle: 'NEX está centralizando as notificações',
+    notificationNexHubActiveBody:
+      'Pop-ups do sistema, do navegador e toasts ficam pausados enquanto o NEX estiver ativo. Se você fechar, pausar ou ocultar o NEX, esses pop-ups retornam automaticamente.',
+    notificationNexHubFallbackTitle: 'Pop-ups de contingência ativos (NEX indisponível)',
+    notificationNexHubFallbackBody:
+      'Como o NEX está offline, fechado, pausado ou oculto, os pop-ups habilitados abaixo entregam os avisos automaticamente.',
     themeCategory_dark_modern_title: 'Temas Escuros & Noturnos',
     themeCategory_dark_modern_desc:
       'Paletas modernas com contraste equilibrado para ambientes com pouca luz',

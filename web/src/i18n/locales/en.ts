@@ -357,6 +357,12 @@ export const en = {
     notificationQuotaLow: 'Quota running low',
     notificationCompletionRecovery: 'Completion or recovery',
     notificationRuntimeConnection: 'Connection and runtime status',
+    notificationNexHubActiveTitle: 'NEX is centralizing notifications',
+    notificationNexHubActiveBody:
+      'System, browser and toast pop-ups stay paused while NEX is active. Closing, pausing or hiding NEX restores these pop-ups automatically.',
+    notificationNexHubFallbackTitle: 'Fallback pop-ups are active (NEX unavailable)',
+    notificationNexHubFallbackBody:
+      'Because NEX is offline, closed, paused or hidden, enabled pop-ups below deliver alerts automatically.',
     themeCategory_dark_modern_title: 'Dark & Night Themes',
     themeCategory_dark_modern_desc: 'Modern balanced-contrast palettes for low-light environments',
     themeCategory_light_clean_title: 'Light & Clean Themes',

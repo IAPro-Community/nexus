@@ -4,6 +4,7 @@ import { InlineAlert, Switch } from '../../design-system';
 import { nexus } from '../../nexus/api';
 import type { CapacityPreferences } from '../../types';
 import { cacheNotificationCategories } from '../../notifications/notificationPrefs';
+import { useNexHubStatus } from '../../notifications/nexHubRouting';
 import styles from './NotificationCategorySettings.module.scss';
 
 const categoryFields = [
@@ -20,6 +21,7 @@ type CategoryField = (typeof categoryFields)[number][0];
 
 export const NotificationCategorySettings: React.FC = () => {
   const { t } = useTranslation();
+  const nexHubStatus = useNexHubStatus();
   const [preferences, setPreferences] = useState<CapacityPreferences | null>(null);
   const [error, setError] = useState('');
   const [savingField, setSavingField] = useState<CategoryField | null>(null);
@@ -86,6 +88,27 @@ export const NotificationCategorySettings: React.FC = () => {
           )}
         </p>
       </div>
+      <InlineAlert
+        tone={nexHubStatus.active ? 'info' : 'warning'}
+        title={
+          nexHubStatus.active
+            ? t('settings.notificationNexHubActiveTitle', 'NEX is centralizing notifications')
+            : t(
+                'settings.notificationNexHubFallbackTitle',
+                'Fallback pop-ups are active (NEX unavailable)',
+              )
+        }
+      >
+        {nexHubStatus.active
+          ? t(
+              'settings.notificationNexHubActiveBody',
+              'System, browser and toast pop-ups are paused while NEX is active. Closing or hiding NEX restores these pop-ups automatically.',
+            )
+          : t(
+              'settings.notificationNexHubFallbackBody',
+              'Because NEX is offline, closed, paused or hidden, enabled pop-ups below will deliver alerts automatically.',
+            )}
+      </InlineAlert>
       {error ? (
         <InlineAlert tone="danger" title={t('common.error', 'Error')}>
           {error}

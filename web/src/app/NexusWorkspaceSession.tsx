@@ -102,6 +102,7 @@ import {
 } from '../notifications/notificationPrefs';
 import { formatAttentionPushBody } from '../notifications/attentionPushCopy';
 import { attentionPushKey, isPtyAttentionFocused } from '../notifications/attentionDelivery';
+import { useNexHubStatus } from '../notifications/nexHubRouting';
 import { interpretNexusVoiceCommand } from '../features/voice/voiceCommand';
 import {
   useOptionalFeatures,
@@ -1515,6 +1516,7 @@ const WorkspaceCoordinator: React.FC<{
   ]);
 
   // Universal attention delivery across all projects (radar remains global).
+  const nexHubStatus = useNexHubStatus();
   useEffect(() => {
     const prefs = prefsRef.current;
     if (!prefs.notificationsEnabled && !prefs.soundEnabled) return;
@@ -1586,25 +1588,27 @@ const WorkspaceCoordinator: React.FC<{
       });
       if (!body) continue;
 
-      if (prefs.soundEnabled) playAttentionSound();
+      if (!nexHubStatus.active) {
+        if (prefs.soundEnabled) playAttentionSound();
 
-      if (prefs.notificationsEnabled) {
-        pushNotifications.sendPush({
-          runtimeId: runtime.runtime_id,
-          projectName: projName,
-          agentName,
-          reason,
-          context: runtime.attention_context || runtime.last_task_summary || body,
-          dynamicTitle: runtime.dynamic_title,
-          fingerprint,
-          promptKind: runtime.prompt_kind,
-          onClick: () =>
-            handleFocusAttention({
-              runtimeId: runtime.runtime_id,
-              projectId: runtime.project_id,
-              agentId: runtime.agent_id,
-            }),
-        });
+        if (prefs.notificationsEnabled) {
+          pushNotifications.sendPush({
+            runtimeId: runtime.runtime_id,
+            projectName: projName,
+            agentName,
+            reason,
+            context: runtime.attention_context || runtime.last_task_summary || body,
+            dynamicTitle: runtime.dynamic_title,
+            fingerprint,
+            promptKind: runtime.prompt_kind,
+            onClick: () =>
+              handleFocusAttention({
+                runtimeId: runtime.runtime_id,
+                projectId: runtime.project_id,
+                agentId: runtime.agent_id,
+              }),
+          });
+        }
       }
     }
   }, [
@@ -1616,6 +1620,7 @@ const WorkspaceCoordinator: React.FC<{
     workspace.model.root,
     presentation.state.activePtyViewId,
     handleFocusAttention,
+    nexHubStatus.active,
   ]);
 
   if (popout) return <div className="nx-popout-shell">{renderer}</div>;

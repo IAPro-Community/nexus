@@ -31,11 +31,29 @@
   min-width: 0;
 }
 
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--nx-space-1);
+  min-width: 0;
+}
+
 .title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: var(--nx-font-size-xs);
+  font-weight: 600;
+}
+
+.moreBadge {
+  flex-shrink: 0;
+  padding: 0 var(--nx-space-1);
+  border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius);
+  background: var(--nx-surface-2);
+  color: var(--nx-text-soft);
+  font-size: var(--nx-font-size-caption);
   font-weight: 600;
 }
 

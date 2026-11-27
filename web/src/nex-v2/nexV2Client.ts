@@ -410,8 +410,11 @@ async function ensureSessionAuth(forceRefresh = false): Promise<void> {
   await sessionInitPromise;
 }
 
-function buildHeaders(includeJson = false): Record<string, string> {
-  const headers: Record<string, string> = { Accept: 'application/json' };
+function buildHeaders(
+  includeJson = false,
+  extraHeaders?: Record<string, string>,
+): Record<string, string> {
+  const headers: Record<string, string> = { Accept: 'application/json', ...extraHeaders };
   if (includeJson) headers['Content-Type'] = 'application/json';
   if (desktopToken) headers.Authorization = `Bearer ${desktopToken}`;
   if (cachedCsrfToken) headers['X-CSRF-Token'] = cachedCsrfToken;
@@ -420,27 +423,82 @@ function buildHeaders(includeJson = false): Record<string, string> {
 
 async function authedFetch(
   input: string,
-  options: { method?: string; includeJson?: boolean; body?: string; signal?: AbortSignal } = {},
+  options: {
+    method?: string;
+    includeJson?: boolean;
+    body?: string;
+    signal?: AbortSignal;
+    extraHeaders?: Record<string, string>;
+    keepalive?: boolean;
+  } = {},
 ): Promise<Response> {
   await ensureSessionAuth();
   let res = await fetch(input, {
     method: options.method ?? 'GET',
-    headers: buildHeaders(options.includeJson ?? false),
+    headers: buildHeaders(options.includeJson ?? false, options.extraHeaders),
     credentials: 'same-origin',
     signal: options.signal,
     body: options.body,
+    keepalive: options.keepalive,
   });
   if (res.status === 401 || res.status === 403) {
     await ensureSessionAuth(true);
     res = await fetch(input, {
       method: options.method ?? 'GET',
-      headers: buildHeaders(options.includeJson ?? false),
+      headers: buildHeaders(options.includeJson ?? false, options.extraHeaders),
       credentials: 'same-origin',
       signal: options.signal,
       body: options.body,
+      keepalive: options.keepalive,
     });
   }
   return res;
+}
+
+export function buildNexHubHeaders(
+  presence?: Pick<NexV2PresenceState, 'paused' | 'showAvatar' | 'compactBar' | 'doNotDisturb'>,
+): Record<string, string> {
+  if (!presence) return {};
+  const hub = presence.paused
+    ? 'paused'
+    : presence.showAvatar || presence.compactBar
+      ? 'active'
+      : 'hidden';
+  return {
+    'X-Nexus-Nex-Hub': hub,
+    'X-Nexus-Nex-Dnd': presence.doNotDisturb ? '1' : '0',
+  };
+}
+
+export async function reportNexHubStatus(
+  presence: Pick<NexV2PresenceState, 'paused' | 'showAvatar' | 'compactBar' | 'doNotDisturb'>,
+  offline: boolean,
+  keepalive = false,
+): Promise<void> {
+  const canNotify = !offline && !presence.paused && (presence.showAvatar || presence.compactBar);
+  const reason = offline
+    ? 'nex_offline'
+    : presence.paused
+      ? 'nex_paused'
+      : !presence.showAvatar && !presence.compactBar
+        ? 'nex_hidden'
+        : presence.doNotDisturb
+          ? 'nex_dnd'
+          : 'nex_active';
+  try {
+    await authedFetch('/api/v1/nex/hub-status', {
+      method: 'POST',
+      includeJson: true,
+      keepalive,
+      body: JSON.stringify({
+        can_notify: canNotify,
+        do_not_disturb: presence.doNotDisturb,
+        reason,
+      }),
+    });
+  } catch {
+    // Offline or closing windows rely on backend TTL lease expiration as fail-safe.
+  }
 }
 
 export async function ensureNexCoreConnection(): Promise<{
@@ -519,9 +577,13 @@ export function normalizeHudState(
   };
 }
 
-export async function fetchNexV2Hud(): Promise<NexV2HudSnapshotResult> {
+export async function fetchNexV2Hud(
+  presence?: Pick<NexV2PresenceState, 'paused' | 'showAvatar' | 'compactBar' | 'doNotDisturb'>,
+): Promise<NexV2HudSnapshotResult> {
   try {
-    const res = await authedFetch('/api/v1/hud');
+    const res = await authedFetch('/api/v1/hud', {
+      extraHeaders: buildNexHubHeaders(presence),
+    });
     if (res.status >= 500) {
       return { offline: true, enabled: false, state: null, error: `HTTP ${res.status}` };
     }
@@ -552,10 +614,15 @@ export function computeReconnectBackoffMs(consecutiveFailures: number): number {
   return Math.min(2000 * 2 ** shift, 15_000);
 }
 
-export async function fetchNexV2Events(since = 0): Promise<NexV2EventsPage> {
+export async function fetchNexV2Events(
+  since = 0,
+  presence?: Pick<NexV2PresenceState, 'paused' | 'showAvatar' | 'compactBar' | 'doNotDisturb'>,
+): Promise<NexV2EventsPage> {
   try {
     const query = since > 0 ? `?since=${encodeURIComponent(String(since))}` : '';
-    const res = await authedFetch(`/api/v1/nex/events${query}`);
+    const res = await authedFetch(`/api/v1/nex/events${query}`, {
+      extraHeaders: buildNexHubHeaders(presence),
+    });
     if (res.status >= 500 || !res.ok) {
       return {
         offline: res.status >= 500,

@@ -51,6 +51,7 @@ func (h *NexusHandler) handleNexEvents(w http.ResponseWriter, r *http.Request) {
 
 	page := h.nexEvents.Since(cursor)
 	snap := h.modelWatch.Snapshot(now)
+	recordNexHubFromRequest(r)
 	writeJSON(w, http.StatusOK, nexEventsResponse{
 		Revision:            page.Revision,
 		ReplayTruncated:     page.ReplayTruncated,
