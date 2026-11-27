@@ -8327,3 +8327,45 @@ Restante vermelho honesto: **Windows release homologation** — exige runner `ne
 - Adicionados testes do fingerprint/limpeza de cache, recuperação do ErrorBoundary e respostas dos servidores, além do E2E com workspace, chunk antigo e exclusão de projeto descartável.
 - Provas: `npm --prefix web run quality:full` (158/1.038 + build), Go Web/Desktop, E2E stale chunks e instalação local com `/` 200 e chunk inexistente 404. Backup do binário: `.local/share/nexus-install-backups/20261125T024000Z/profile/nexus`.
 - Não houve commit ou push. A homologação externa permanece pendente.
+
+## 2026-11-26 — plano de memória, performance, visual e organização (release/v1.0.0)
+
+Execução integral de `DEV/plans/2026-11-26-memory-visual-organization-plan.md` (base `3c896aab`), um commit por bloco, todos na `release/v1.0.0`. Sem push, sem PR, sem tag.
+
+### Commits
+`80d99043` T1.1 rig pré-escala · `81172d82` T1.2 build slim + CSS minificado · `95e57cf9` T1.3 lazy boot · `d1148d9c` T1.4 polling em camadas · `a19f506a` T1.5 janelas minimizadas + memo · `418101b6` T1.6 reap de launchers · `167cf5e1` T2.1 taskbar compact + i18n · `e1b4a7bd` T2.2 FeatureTour compact · `781689d0` + `0a388120` T2.3 `!important` zero em 15 · `9e0acb06` T3.1 types por domínio · `307f4b8c` T3.2 skills drawer + workspace shell · `b1ed8ce7` T3.3 app/host por arquivo · `653f1214` T4.1 budget de tamanho · `da56f858` T4.2 `nexus doctor` processos · `7f1f3341` nota de especificidade.
+
+### Antes vs Depois (medido)
+| Artefato | Antes (`3c896aab`) | Depois |
+| --- | ---: | ---: |
+| `web/dist` (embutido 3× nos binários) | 11 MB (11.534.336 B) | 7,26 MB (7.260.429 B) |
+| `web/dist/bundle.css` | 502.822 B | 440.418 B |
+| `web/dist/bundle.js` | 462.723 B | 184.992 B |
+| `web/dist/nex-v2.css` | 52.060 B | 45.391 B |
+| `web/dist/nex-v2.js` | 243.028 B | 243.028 B |
+| `~/.local/bin/nexus` | 34 MB | 31.588.617 B |
+| `~/.local/bin/nexus-desktop` | 36 MB | 34.263.192 B |
+| `~/.local/bin/nexus-hud` | 36 MB | 34.415.128 B |
+| `!important` em `web/src` | 147 | 40 (0 em `15-context-and-responsive.css`) |
+| Tokens ratchet (`entries`) | 269 entradas / 485 literais | 269 / 484 |
+| Testes Vitest | 1.079 | 1.082 |
+| Testes `node:test` do frontend | 10 | 10 |
+
+### Mudanças de comportamento/infra
+- `NexRigCanvas` agora pré-escala de fato (bake em canvas ≤512 px, 1,25× de margem) e libera os backing stores em `destroy()`; geometria lógica intacta e `NEX-ID-v1` inalterado (`web/public/nex/*` e `identity-lock.json` sem diff).
+- Build remove do `dist` apenas `nex/hybrid-v1/{nex_source_original,reconstructed_idle}.png` e `nex/nex-site-hero.svg` (ativos de contrato, não-runtime) e minifica CSS; `--check-budget` falha acima de dist 8 MB / bundle.css 500 KB / bundle.js 220 KB / nex-v2 270 KB / 50 KB.
+- Boot: rotas e `NexusHud` em `React.lazy`; `isDesktopHudApp` isolado em `app/desktopHudDetect.ts`.
+- Polling: 2 requisições/5 s + 4/30 s (antes 6/5 s), deduplicado e pausado com `document.hidden`.
+- Janelas minimizadas: `AgentTerminal` mantém PTY/WebSocket, pausa fit/ResizeObserver/font-watch/redraw/timer e faz um fit limpo ao restaurar; `WorkspaceRenderer` memoizado com `renderSurface` estável.
+- Go: `startDetached` (Start + `go Wait`) em desktop/browser/web; `nexus doctor --json` ganha `processes` (RSS por papel, zumbis) e o check `process.memory`.
+- Decomposição: `types.ts` → `src/typeDefs/*` (barrel; 220 → 220 exports), `AgentTerminalSkillsDrawer`, `NexusWorkspaceApp` (container 24 linhas) + `NexusWorkspaceSession`, `internal/app/cmd_usage.go` + `cmd_doctor.go`, `internal/control/host/control_rpc.go`. Contratos CLI/`--json`/protocolo inalterados.
+
+### Gates
+- Web: `format:check`, `lint`, `lint:styles`, `check:styles`, `typecheck`, `test` (1.082), `build:check-budget` — todos exit 0.
+- NEX: `verify-nex-visual`, `verify-nex-identity-lock` (FROZEN), `verify-nex-release-readiness` (BLOCKED 2/11, inalterado) — exit 0.
+- Go: `gofmt -l`, `go vet -tags=gtk3 ./...`, `go build ./...` exit 0; `go test -race` desktop/hudlink/control/web/host verdes, `internal/doctor` verde.
+- **Pendente herdado:** `internal/app` reprova `TestResolveLaunchProfileFailsClosedOnUnverifiedQuota` e `TestResolveLaunchProfileOverrideAcceptsFallback` — reproduz com todas as mudanças deste lote em stash, portanto anterior a ele; a correção em andamento (`internal/core/quota/eligibility.go`, `codex`, `tui`, não commitada) é de outro workstream e não foi tocada.
+- `make install-local` OK; smoke: `/` 200, chunk inexistente 404, `nex_source_original.png` 404, atlas travado e `body_base.png` 200.
+- `nexus doctor --json` instalado: `processes.supported=true`, 17 processos, 806 MB RSS somado, 9 zumbis pré-existentes do `gnome-session` (não Nexus).
+- Product Discovery: nenhuma mudança funcional visível → `featureAnnouncements.ts` inalterado (justificado nos commits).
+- Release permanece **NO_GO**.
