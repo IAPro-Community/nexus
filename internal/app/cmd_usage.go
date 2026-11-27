@@ -14,6 +14,7 @@ import (
 	"github.com/IAPro-Community/nexus/internal/buildinfo"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
+	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 	"github.com/IAPro-Community/nexus/internal/core/telemetry"
 	"github.com/IAPro-Community/nexus/internal/localization"
@@ -58,10 +59,17 @@ func usageCmd(args []string) error {
 	}
 	if refresh && isJSON {
 		fmt.Fprintln(os.Stderr, "Atualizando quotas ao vivo em paralelo…")
-		_ = profile.RefreshUsageBatch(context.Background(), ps, sdkproviders.BatchOptions{
-			MaxConcurrency:  4,
-			PerProbeTimeout: 8 * time.Second,
-			GlobalTimeout:   10 * time.Second,
+		var quotaTargets []model.Profile
+		for _, candidate := range ps {
+			if s, ok := spec.Get(candidate.Provider); ok && s.Quota == spec.QuotaUnsupported {
+				continue
+			}
+			quotaTargets = append(quotaTargets, candidate)
+		}
+		_ = profile.RefreshUsageBatch(context.Background(), quotaTargets, sdkproviders.BatchOptions{
+			MaxConcurrency:  6,
+			PerProbeTimeout: 10 * time.Second,
+			GlobalTimeout:   25 * time.Second,
 		})
 	}
 

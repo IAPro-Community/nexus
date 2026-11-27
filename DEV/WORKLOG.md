@@ -1,3 +1,18 @@
+## 2026-11-26 — Fidelidade de quotas Codex sob lock de TUI, batch refresh resiliente e prevenção de contas duplicadas
+
+- **Isolamento de sonda de quota Codex & tratamento de sessão expirada (`internal/core/provider/adapters/codex/`, `internal/core/quota/`, `internal/tui/`):**
+  - `app_server_usage.go` e `codex.go`: implementado isolamento de leitura de quota em diretório efêmero `.quota-probe-*` (`0700`) temporário com `auth.json` (`0600`), permitindo executar `codex app-server --stdio` mesmo quando uma sessão interativa da TUI do Codex detém `nexus-tui.lock`. Implementado `codexStdioRPC` local preservando respostas JSON-RPC para mapear `401 Unauthorized` / `invalid_jwt` diretamente como `AUTH_REQUIRED`.
+  - `quota.go`, `view.go`, `eligibility.go` e `usage_table.go`: preservado o status `AUTH_REQUIRED` no cache de quota sem descarte por contagem nula de janelas e sem retrocesso a arquivos defasados em disco; propagada a razão `ReasonAuthRequired` para a tabela de uso, exibindo com precisão o estado `LOGIN EXP.`.
+- **Resiliência do lote de quotas & deduplicação no startup (`internal/profile/usage.go`, `internal/app/cmd_usage.go`, `internal/app/busy_failover.go`, `internal/app/provider_supervised.go`):**
+  - `usage.go`: corrigida a construção de contas em `RefreshUsageBatch`, garantindo que `AccountScope` seja resolvido a partir do perfil quando ausente e que `OwnerID` seja sempre preenchido com o ID da conta ou perfil canônico, eliminando a rejeição silenciosa de todos os alvos pelo SDK. Dimensionado o timeout global proporcionalmente ao número de ondas concorrentes.
+  - `cmd_usage.go`: pré-filtrados perfis `QuotaUnsupported` antes do despacho em lote para evitar chamadas de refresh infrutíferas.
+  - `busy_failover.go` e `provider_supervised.go`: adicionado rastreamento de perfis já atualizados (`attemptedRefresh`) no ciclo de lançamento supervisionado, evitando recargas duplicadas consecutivas no startup.
+- **Prevenção de contas duplicadas por provedor (`internal/profile/duplicate.go`, `internal/profile/authsource.go`, `internal/app/app.go`):**
+  - `duplicate.go` (+ `duplicate_test.go`): criadas rotinas canônicas de identificação (`CanonicalAccountIdentity`), verificação (`ValidateNoDuplicateAccount`) e agrupamento (`FindDuplicateAccountGroups`).
+  - `authsource.go`: `AdoptHostAuth` passa a recusar a importação de credenciais do host se a conta canônica já estiver registrada em outro perfil do mesmo provedor.
+  - `app.go`: comandos `login`, `add` e `providers register` impedem o cadastro de contas duplicadas para o mesmo provedor e descartam perfis órfãos recém-criados em caso de conflito. O comando `nexus profiles` exibe aviso estruturado ao final da listagem informando perfis duplicados pré-existentes com recomendação de limpeza (`nexus remove`).
+- **Verificação:** `gofmt`, `go vet -tags=gtk3 ./...`, suítes com `-race` (`codex`, `quota`, `scheduler`, `profile`, `tui`, `app`, `web`), `make install-local`, validação ao vivo no host com `nexus usage --json --refresh`, `nexus usage --refresh` e `nexus profiles` (comprovando quotas reais no `kivergmail`, `LOGIN EXP.` nos perfis expirados e aviso de duplicatas), e reinicialização limpa dos serviços `nexus web`, `nexus-desktop` e `nexus-hud` (`200 OK`).
+
 ## 2026-11-26 — Compactação da barra de ferramentas do AgentTerminal & correção do controle de zoom
 
 - **Barra de ferramentas compacta no modo janela (`web/src/features/work/FeatureTour*`, `web/src/nexus/ExecutionRoleSelector*`, `web/src/nexus/AgentTerminal*`, `web/src/app/workspace-styles/05-terminal-and-panels.css`, `web/src/i18n/locales/`):**

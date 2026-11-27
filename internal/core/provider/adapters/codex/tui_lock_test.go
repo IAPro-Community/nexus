@@ -7,10 +7,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/testutil"
 )
@@ -73,32 +73,41 @@ func TestMaintenanceLockBlocksNewTUILeases(t *testing.T) {
 	}
 }
 
-func TestRunAppServerRateLimitsRespectsTUILock(t *testing.T) {
-	home := t.TempDir()
+func TestRunAppServerRateLimitsUsesIsolatedHomeWhileTUILocked(t *testing.T) {
+	profileDir := t.TempDir()
+	home := filepath.Join(profileDir, "home")
+	writeAuth(t, filepath.Join(home, "auth.json"), "acct-lock", "lock@example.test")
+
 	lock, err := AcquireTUILock(home)
 	if err != nil {
 		t.Fatalf("AcquireTUILock: %v", err)
 	}
 	defer func() { _ = lock.Release() }()
 
-	var spawned atomic.Int32
+	var receivedHome string
 	prev := appServerCommand
 	t.Cleanup(func() { appServerCommand = prev })
 	appServerCommand = func(ctx context.Context, codexHome string) (*exec.Cmd, error) {
-		spawned.Add(1)
-		return prev(ctx, codexHome)
+		receivedHome = codexHome
+		return nil, errors.New("probe stopped in test")
 	}
 
 	_, err = runAppServerRateLimits(context.Background(), home)
-	if err == nil || !strings.Contains(err.Error(), "TUI") {
-		t.Fatalf("expected TUI busy error, got %v", err)
+	if err == nil {
+		t.Fatal("expected probe error from test stub")
 	}
-	if spawned.Load() != 0 {
-		t.Fatalf("must not spawn app-server under TUI lock; spawned=%d", spawned.Load())
+	if receivedHome == "" {
+		t.Fatal("expected app-server probe to receive ephemeral CODEX_HOME")
+	}
+	if config.FilesystemPathsEquivalent(receivedHome, home) {
+		t.Fatalf("app-server must not use live TUI home %q", home)
+	}
+	if leftovers, _ := filepath.Glob(filepath.Join(profileDir, ".quota-probe-*")); len(leftovers) != 0 {
+		t.Fatalf("ephemeral probe dirs leaked: %v", leftovers)
 	}
 }
 
-func TestGetUsageSkipsMigrationAndAppServerWhileTUILocked(t *testing.T) {
+func TestGetUsageSkipsMutationAndIsolatesAppServerWhileTUILocked(t *testing.T) {
 	data := t.TempDir()
 	t.Setenv("AI_CLI_DATA_DIR", data)
 	t.Setenv("AI_MANAGER_DATA_DIR", data)
@@ -128,17 +137,19 @@ func TestGetUsageSkipsMigrationAndAppServerWhileTUILocked(t *testing.T) {
 	}
 	defer func() { _ = lock.Release() }()
 
-	var spawned atomic.Int32
+	var seenHomes []string
 	prev := appServerCommand
 	t.Cleanup(func() { appServerCommand = prev })
 	appServerCommand = func(ctx context.Context, codexHome string) (*exec.Cmd, error) {
-		spawned.Add(1)
+		seenHomes = append(seenHomes, codexHome)
 		return prev(ctx, codexHome)
 	}
 
 	snap := New().GetUsage(context.Background(), model.Profile{Provider: "codex", Name: profileName})
-	if spawned.Load() != 0 {
-		t.Fatalf("app-server must not spawn while TUI lock is held; spawned=%d", spawned.Load())
+	for _, seen := range seenHomes {
+		if config.FilesystemPathsEquivalent(seen, home) {
+			t.Fatalf("app-server must never touch locked live home %q", home)
+		}
 	}
 	if len(snap.Windows) == 0 {
 		t.Fatalf("expected rollout windows while TUI locked, got %+v", snap)

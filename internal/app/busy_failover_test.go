@@ -15,6 +15,7 @@ import (
 
 type stubSelector struct {
 	order         []string
+	needsRefresh  []model.AccountScope
 	contexts      []context.Context
 	balancedCalls int
 	err           error
@@ -30,12 +31,15 @@ func (s *stubSelector) SelectBestProfile(ctx context.Context, _ string, _ string
 		if skip[name] {
 			continue
 		}
-		return &scheduler.SelectionResult{SelectedProfile: &model.Profile{Name: name, Provider: "codex"}}, nil
+		return &scheduler.SelectionResult{
+			SelectedProfile: &model.Profile{Name: name, Provider: "codex"},
+			NeedsRefresh:    s.needsRefresh,
+		}, nil
 	}
 	if s.err != nil {
-		return &scheduler.SelectionResult{}, s.err
+		return &scheduler.SelectionResult{NeedsRefresh: s.needsRefresh}, s.err
 	}
-	return &scheduler.SelectionResult{}, errors.New("no usable codex profiles available")
+	return &scheduler.SelectionResult{NeedsRefresh: s.needsRefresh}, errors.New("no usable codex profiles available")
 }
 
 func (s *stubSelector) SelectNextBalancedProfile(ctx context.Context, provider, workspace string, candidates []model.Profile, accounts map[string]model.AccountInfo, excluded []string) (*scheduler.SelectionResult, error) {
@@ -389,5 +393,45 @@ func TestLaunchWithBusyFailoverDoesNotFallbackWhenAccountIsRateLimited(t *testin
 	}
 	if session != nil || selected != "" {
 		t.Fatalf("rate limited account must not be launched: session=%+v, selected=%s", session, selected)
+	}
+}
+
+func TestResolveLaunchProfileDoesNotDoubleRefreshSameProfiles(t *testing.T) {
+	candidates := []model.Profile{
+		{Name: "p1", Provider: "codex"},
+		{Name: "p2", Provider: "codex"},
+	}
+	accounts := map[string]model.AccountInfo{
+		"p1": {Authenticated: true, Health: model.HealthHealthy},
+		"p2": {Authenticated: true, Health: model.HealthHealthy},
+	}
+	selector := &stubSelector{
+		order:        []string{"p1"},
+		needsRefresh: []model.AccountScope{{ProviderID: "codex", ProfileID: "p2"}},
+	}
+	attempted := map[string]bool{"p1": true, "p2": true}
+	var stderr bytes.Buffer
+
+	selected, err := resolveLaunchProfileTracked(
+		context.Background(),
+		"codex",
+		"",
+		"/tmp",
+		"",
+		candidates,
+		accounts,
+		selector,
+		nil,
+		&stderr,
+		attempted,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if selected != "p1" {
+		t.Fatalf("selected=%q want p1", selected)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected no duplicate refresh output when already attempted, got %q", stderr.String())
 	}
 }

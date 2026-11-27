@@ -132,7 +132,8 @@ func executeProviderSupervised(provName, explicitProfile string, args []string, 
 	// The TTY default is supervised. Refresh any missing, stale, or rollover
 	// candidates concurrently across all quota-capable providers so :balanced and
 	// automatic selection use current evidence. Explicit profile launches remain immediate.
-	refreshLaunchCandidates(context.Background(), provName, explicitProfile, candidates, accounts, os.Stderr)
+	attemptedRefresh := map[string]bool{}
+	refreshLaunchCandidatesTracked(context.Background(), provName, explicitProfile, candidates, accounts, os.Stderr, attemptedRefresh)
 	selector := scheduler.NewSelector(cfg, quotaEngine, cooldown.NewTracker())
 	workspace := mustWorkingDirectory()
 	// Supervised standalone CLI invocations have no Agent/Project binding yet.
@@ -154,7 +155,7 @@ func executeProviderSupervised(provName, explicitProfile string, args []string, 
 			}
 		}
 	}
-	session, selected, err := launchWithBusyFailover(
+	session, selected, err := launchWithBusyFailoverTracked(
 		context.Background(),
 		launcher.Default(),
 		selector,
@@ -174,6 +175,7 @@ func executeProviderSupervised(provName, explicitProfile string, args []string, 
 		},
 		os.Stderr,
 		cfg.AutomaticFallback,
+		attemptedRefresh,
 		balanced,
 	)
 	if err != nil {

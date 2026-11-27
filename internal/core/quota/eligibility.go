@@ -62,6 +62,15 @@ func EvaluateEligibility(in EligibilityInput) Eligibility {
 		return adaptSharedEligibility(in, preflight)
 	}
 
+	if strings.EqualFold(strings.TrimSpace(in.View.DiagnosticCode), "AUTH_REQUIRED") {
+		return Eligibility{
+			Reason:           ReasonAuthRequired,
+			Confidence:       "LIVE",
+			CapacityEvidence: capacityEvidenceOf(in.View.Status),
+			Message:          "Sessão expirada — faça login novamente",
+		}
+	}
+
 	// Display history may outlive its routing validity by weeks. Only recent,
 	// attributable observations can drive automatic capacity decisions. A
 	// stale RATE_LIMITED signal must likewise not block an account forever.

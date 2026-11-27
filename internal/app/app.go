@@ -736,6 +736,10 @@ func providerRegisterCmd(args []string) error {
 		return nil
 	}
 	if err := loginCmd([]string{providerID, profileName}); err != nil {
+		var dupErr *profile.DuplicateAccountError
+		if errors.As(err, &dupErr) {
+			_ = profile.Delete(providerID, profileName)
+		}
 		fmt.Printf("Authentication pending for %s:%s: %v\n", providerID, profileName, err)
 		return err
 	}
@@ -793,6 +797,17 @@ func profilesCmd(args []string) error {
 			email = email[:24] + ".."
 		}
 		fmt.Printf("%-10s %-18s %-28s %-16s %-12s %s\n", p.Provider, p.Name, email, acc.Plan, acc.Status, star)
+	}
+	if dups := profile.FindDuplicateAccountGroups(context.Background(), ps); len(dups) > 0 {
+		fmt.Println("\n⚠ Contas duplicadas detectadas no mesmo provedor:")
+		for _, grp := range dups {
+			label := grp.AccountLabel
+			if label == "" {
+				label = grp.Identity
+			}
+			fmt.Printf("  • %s (%s): %s\n", grp.Provider, label, strings.Join(grp.Profiles, ", "))
+		}
+		fmt.Printf("  Use `%s remove <provider> <perfil>` para limpar duplicatas antigas.\n", progName())
 	}
 	return nil
 }
@@ -867,7 +882,13 @@ func addCmd(args []string) error {
 	}
 	fmt.Printf("Starting official authentication flow for %s:%s...\n", providerName, name)
 	if authProv, ok := pAdapter.(provider.AuthProvider); ok {
-		return authProv.Login(context.Background(), p)
+		if err := loginProfileCheckingDuplicate(context.Background(), authProv, p); err != nil {
+			var dupErr *profile.DuplicateAccountError
+			if errors.As(err, &dupErr) {
+				_ = profile.Delete(providerName, name)
+			}
+			return err
+		}
 	}
 	return nil
 }
@@ -971,9 +992,21 @@ func loginCmd(args []string) error {
 	}
 	p := model.Profile{Provider: prov, Name: name}
 	if authProv, ok := pAdapter.(provider.AuthProvider); ok {
-		return authProv.Login(context.Background(), p)
+		return loginProfileCheckingDuplicate(context.Background(), authProv, p)
 	}
 	return fmt.Errorf("provider %s does not support login", prov)
+}
+
+func loginProfileCheckingDuplicate(ctx context.Context, authProv provider.AuthProvider, p model.Profile) error {
+	if err := authProv.Login(ctx, p); err != nil {
+		return err
+	}
+	if dupErr := profile.ValidateNoDuplicateAccount(ctx, p.Provider, p.Name); dupErr != nil {
+		_ = authProv.Logout(ctx, p)
+		_ = profile.SuppressHostAuthLink(p.Provider, p.Name)
+		return dupErr
+	}
+	return nil
 }
 
 // resolveProfileArgs accepts "<provider> <name>" and, when the provider has a

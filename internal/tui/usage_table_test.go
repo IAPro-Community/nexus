@@ -1217,3 +1217,29 @@ func TestRenderAccountCellsCompactRepeatsUseGroupOnly(t *testing.T) {
 		t.Fatalf("repeat row should be marked as same account, got %q", repeatIdentity)
 	}
 }
+
+func TestBuildUsageRowsMarksExpiredAuthAsLoginExpired(t *testing.T) {
+	view := quota.BuildQuotaView(model.UsageSnapshot{
+		ProviderID:     "codex",
+		ProfileID:      "codex",
+		Status:         model.UsageError,
+		Source:         model.SourceOfficialAPI,
+		FetchedAt:      time.Now(),
+		DiagnosticCode: "AUTH_REQUIRED",
+		Error:          "sessão expirada",
+	}, "kiver@omegasistemas.net.br", "ChatGPT Plus")
+
+	rows := buildUsageRows("codex", "codex", view, model.AccountInfo{
+		Authenticated: true,
+		Email:         "kiver@omegasistemas.net.br",
+		Plan:          "ChatGPT Plus",
+		Health:        model.HealthHealthy,
+	}, nil)
+
+	if len(rows) != 1 {
+		t.Fatalf("rows=%d want 1", len(rows))
+	}
+	if rows[0].Status != "LOGIN EXP." {
+		t.Fatalf("status=%q want LOGIN EXP.", rows[0].Status)
+	}
+}

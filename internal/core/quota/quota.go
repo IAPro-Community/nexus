@@ -70,6 +70,11 @@ func (e *Engine) Trustworthy(snap model.UsageSnapshot) bool {
 	return trustworthy
 }
 
+func isAuthExpiredSnapshot(snap model.UsageSnapshot) bool {
+	return snap.Status == model.UsageError &&
+		strings.EqualFold(strings.TrimSpace(snap.DiagnosticCode), "AUTH_REQUIRED")
+}
+
 // GetCachedUsage returns the cached snapshot for a profile without triggering external requests.
 func (e *Engine) GetCachedUsage(provider, profileName string) (model.UsageSnapshot, bool) {
 	cacheMu.RLock()
@@ -123,7 +128,7 @@ func (e *Engine) GetCachedUsage(provider, profileName string) (model.UsageSnapsh
 	// A previous Nexus version could have persisted an UNKNOWN result after a
 	// failed refresh. If the profile still has a legacy quota.json, use it as
 	// the last-known source instead of losing the only usable observation.
-	if sourceFile == quotaFile && (snap.Status == model.UsageUnknown || snap.Status == "" || len(snap.Windows) == 0) {
+	if sourceFile == quotaFile && !isAuthExpiredSnapshot(snap) && (snap.Status == model.UsageUnknown || snap.Status == "" || len(snap.Windows) == 0) {
 		legacyFile := filepath.Join(root, "quota.json")
 		if legacyData, legacyErr := os.ReadFile(legacyFile); legacyErr == nil {
 			data = legacyData
@@ -131,6 +136,17 @@ func (e *Engine) GetCachedUsage(provider, profileName string) (model.UsageSnapsh
 			snap = model.UsageSnapshot{}
 			_ = json.Unmarshal(data, &snap)
 		}
+	}
+
+	if isAuthExpiredSnapshot(snap) {
+		age := time.Since(snap.FetchedAt)
+		if snap.FetchedAt.IsZero() || age < -time.Minute || age > e.ttl {
+			snap.Status = model.UsageUnknown
+			snap.Source = model.SourceNone
+			snap.Windows = nil
+			return snap, false
+		}
+		return snap, true
 	}
 
 	// A cache file is not evidence of current capacity after the trust window.

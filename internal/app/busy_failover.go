@@ -33,8 +33,15 @@ type balancedProfileSelector interface {
 }
 
 func resolveLaunchProfile(ctx context.Context, provider, explicit, workspace, configuredDefault string, candidates []model.Profile, accounts map[string]model.AccountInfo, selector profileSelector, excluded []string, stderr io.Writer, balanced ...bool) (string, error) {
+	return resolveLaunchProfileTracked(ctx, provider, explicit, workspace, configuredDefault, candidates, accounts, selector, excluded, stderr, nil, balanced...)
+}
+
+func resolveLaunchProfileTracked(ctx context.Context, provider, explicit, workspace, configuredDefault string, candidates []model.Profile, accounts map[string]model.AccountInfo, selector profileSelector, excluded []string, stderr io.Writer, attemptedRefresh map[string]bool, balanced ...bool) (string, error) {
 	if stderr == nil {
 		stderr = os.Stderr
+	}
+	if attemptedRefresh == nil {
+		attemptedRefresh = map[string]bool{}
 	}
 	names := make([]string, 0, len(candidates))
 	for _, candidate := range candidates {
@@ -71,7 +78,7 @@ func resolveLaunchProfile(ctx context.Context, provider, explicit, workspace, co
 	// selection ran (even if another candidate had fresh cache, so :balanced never
 	// picks a wrong leader because a sibling's cache expired or rolled over).
 	if strings.TrimSpace(explicit) == "" && selector != nil && lastResult != nil && len(lastResult.NeedsRefresh) > 0 {
-		if refreshScopesInParallel(ctx, provider, lastResult.NeedsRefresh, candidates, accounts, stderr) {
+		if refreshScopesInParallelTracked(ctx, provider, lastResult.NeedsRefresh, candidates, accounts, stderr, attemptedRefresh) {
 			remaining := remainingProfiles(candidates, excluded)
 			if result, err := selectLaunchProfile(ctx, selector, provider, workspace, remaining, accounts, nil, isBalanced); err == nil && result != nil && result.SelectedProfile != nil {
 				lastResult = result
@@ -86,7 +93,7 @@ func resolveLaunchProfile(ctx context.Context, provider, explicit, workspace, co
 	if strings.TrimSpace(explicit) == "" && selectionErr != nil {
 		if isStaleOrUnknownQuotaError(selectionErr) {
 			remaining := remainingProfiles(candidates, excluded)
-			if refreshLaunchCandidates(ctx, provider, explicit, remaining, accounts, stderr) && selector != nil {
+			if refreshLaunchCandidatesTracked(ctx, provider, explicit, remaining, accounts, stderr, attemptedRefresh) && selector != nil {
 				result, err := selectLaunchProfile(ctx, selector, provider, workspace, remaining, accounts, nil, isBalanced)
 				if err == nil && result != nil && result.SelectedProfile != nil {
 					if result.UsedAuxiliaryFallback {
@@ -142,6 +149,10 @@ func isStaleOrUnknownQuotaError(err error) bool {
 }
 
 func refreshLaunchCandidates(ctx context.Context, providerName, explicitProfile string, candidates []model.Profile, accounts map[string]model.AccountInfo, stderr io.Writer) bool {
+	return refreshLaunchCandidatesTracked(ctx, providerName, explicitProfile, candidates, accounts, stderr, nil)
+}
+
+func refreshLaunchCandidatesTracked(ctx context.Context, providerName, explicitProfile string, candidates []model.Profile, accounts map[string]model.AccountInfo, stderr io.Writer, attempted map[string]bool) bool {
 	if strings.TrimSpace(explicitProfile) != "" {
 		return false
 	}
@@ -151,14 +162,23 @@ func refreshLaunchCandidates(ctx context.Context, providerName, explicitProfile 
 	now := time.Now()
 	var toProbe []model.Profile
 	for _, p := range candidates {
+		if attempted != nil && attempted[p.Name] {
+			continue
+		}
 		acc, ok := accounts[p.Name]
 		if !ok || !acc.Authenticated {
+			continue
+		}
+		if acc.Usage.Status == model.UsageError && strings.EqualFold(strings.TrimSpace(acc.Usage.DiagnosticCode), "AUTH_REQUIRED") {
 			continue
 		}
 		qv := quota.BuildQuotaView(acc.Usage, acc.Email, acc.Plan)
 		proj := qv.ProjectionAt(now, quota.DefaultTTL, acc.Authenticated, string(acc.Health))
 		if proj.TruthState == quota.TruthStale || proj.TruthState == quota.TruthUnknown || proj.NeedsResetReprobe {
 			toProbe = append(toProbe, p)
+			if attempted != nil {
+				attempted[p.Name] = true
+			}
 		}
 	}
 	if len(toProbe) == 0 {
@@ -169,8 +189,8 @@ func refreshLaunchCandidates(ctx context.Context, providerName, explicitProfile 
 	}
 	outcomes := profile.RefreshUsageBatch(ctx, toProbe, sdkproviders.BatchOptions{
 		MaxConcurrency:  4,
-		PerProbeTimeout: 8 * time.Second,
-		GlobalTimeout:   10 * time.Second,
+		PerProbeTimeout: 10 * time.Second,
+		GlobalTimeout:   15 * time.Second,
 	})
 	refreshed := false
 	for _, out := range outcomes {
@@ -186,10 +206,10 @@ func refreshLaunchCandidates(ctx context.Context, providerName, explicitProfile 
 	return refreshed
 }
 
-func refreshScopesInParallel(ctx context.Context, providerName string, scopes []model.AccountScope, candidates []model.Profile, accounts map[string]model.AccountInfo, stderr io.Writer) bool {
+func refreshScopesInParallelTracked(ctx context.Context, providerName string, scopes []model.AccountScope, candidates []model.Profile, accounts map[string]model.AccountInfo, stderr io.Writer, attempted map[string]bool) bool {
 	wanted := make(map[string]bool, len(scopes))
 	for _, sc := range scopes {
-		if sc.ProfileID != "" {
+		if sc.ProfileID != "" && (attempted == nil || !attempted[sc.ProfileID]) {
 			wanted[sc.ProfileID] = true
 		}
 	}
@@ -197,7 +217,13 @@ func refreshScopesInParallel(ctx context.Context, providerName string, scopes []
 	for _, p := range candidates {
 		if wanted[p.Name] {
 			if acc, ok := accounts[p.Name]; ok && acc.Authenticated {
+				if acc.Usage.Status == model.UsageError && strings.EqualFold(strings.TrimSpace(acc.Usage.DiagnosticCode), "AUTH_REQUIRED") {
+					continue
+				}
 				toProbe = append(toProbe, p)
+				if attempted != nil {
+					attempted[p.Name] = true
+				}
 			}
 		}
 	}
@@ -209,8 +235,8 @@ func refreshScopesInParallel(ctx context.Context, providerName string, scopes []
 	}
 	outcomes := profile.RefreshUsageBatch(ctx, toProbe, sdkproviders.BatchOptions{
 		MaxConcurrency:  4,
-		PerProbeTimeout: 8 * time.Second,
-		GlobalTimeout:   10 * time.Second,
+		PerProbeTimeout: 10 * time.Second,
+		GlobalTimeout:   15 * time.Second,
 	})
 	refreshed := false
 	for _, out := range outcomes {
@@ -278,8 +304,27 @@ func launchWithBusyFailover(
 	automaticFallback bool,
 	balanced ...bool,
 ) (*registry.RuntimeSession, string, error) {
+	return launchWithBusyFailoverTracked(ctx, l, selector, provider, explicit, workspace, configuredDefault, candidates, accounts, base, stderr, automaticFallback, nil, balanced...)
+}
+
+func launchWithBusyFailoverTracked(
+	ctx context.Context,
+	l runtimeLauncher,
+	selector profileSelector,
+	provider, explicit, workspace, configuredDefault string,
+	candidates []model.Profile,
+	accounts map[string]model.AccountInfo,
+	base launcher.LaunchOptions,
+	stderr io.Writer,
+	automaticFallback bool,
+	attemptedRefresh map[string]bool,
+	balanced ...bool,
+) (*registry.RuntimeSession, string, error) {
 	if stderr == nil {
 		stderr = os.Stderr
+	}
+	if attemptedRefresh == nil {
+		attemptedRefresh = map[string]bool{}
 	}
 	allowFailover := automaticFallback && strings.TrimSpace(explicit) == ""
 	var excluded []string
@@ -287,7 +332,7 @@ func launchWithBusyFailover(
 	attempted := map[string]bool{}
 
 	for {
-		selected, err := resolveLaunchProfile(ctx, provider, explicit, workspace, configuredDefault, candidates, accounts, selector, excluded, stderr, balanced...)
+		selected, err := resolveLaunchProfileTracked(ctx, provider, explicit, workspace, configuredDefault, candidates, accounts, selector, excluded, stderr, attemptedRefresh, balanced...)
 		if err != nil {
 			if lastBusy != "" {
 				return nil, lastBusy, fmt.Errorf("%s profile %s is busy and no fallback profiles are available", provider, lastBusy)

@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	sdkproviders "github.com/IAPro-Community/IAPro-SDK/providers"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
@@ -723,5 +724,90 @@ func TestRefreshUsageSnapshotDiscardsMidFlightAccountSwitch(t *testing.T) {
 	}
 	if snapshotBelongsToProfile(foreign, "agy", "swap", "a@example.test") {
 		t.Fatal("a snapshot identified as account B must be rejected for a profile resolved as A")
+	}
+}
+
+func TestLoadUsageSnapshotPreservesAuthRequiredCacheAndProbeCode(t *testing.T) {
+	tempData := t.TempDir()
+	t.Setenv("AI_CLI_DATA_DIR", tempData)
+	t.Setenv("NEXUS_DATA_DIR", tempData)
+	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
+	t.Setenv("NEXUS_REAL_HOME", t.TempDir())
+	t.Setenv("NEXUS_CODEX_APP_SERVER", "0")
+
+	if _, err := Create("codex", "expired"); err != nil {
+		t.Fatal(err)
+	}
+	home, _ := Home("codex", "expired")
+	writeFakeCodexAuth(t, filepath.Join(home, "auth.json"), "acct-exp", "expired@example.com")
+
+	scope, err := AccountScope("codex", "expired", "acct-exp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	eng := quota.NewEngine(5 * time.Minute)
+	if err := eng.SaveUsageForScope(scope, model.UsageSnapshot{
+		ProviderID:     "codex",
+		ProfileID:      "expired",
+		Account:        "acct-exp",
+		Status:         model.UsageError,
+		Source:         model.SourceOfficialAPI,
+		FetchedAt:      time.Now(),
+		DiagnosticCode: "AUTH_REQUIRED",
+		Error:          "sessão expirada — faça login novamente",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	got := loadUsageSnapshot(t.Context(), "codex", "expired", false, true)
+	if got.Status != model.UsageError || got.DiagnosticCode != "AUTH_REQUIRED" {
+		t.Fatalf("expected fresh AUTH_REQUIRED cache entry, got %+v", got)
+	}
+	if code := classifySnapshotProbeCode(got, nil); code != "AUTH_EXPIRED" {
+		t.Fatalf("classifySnapshotProbeCode=%q want AUTH_EXPIRED", code)
+	}
+}
+
+func TestRefreshUsageBatchPopulatesOwnerIDAndVerifiableScope(t *testing.T) {
+	tempData := t.TempDir()
+	t.Setenv("AI_CLI_DATA_DIR", tempData)
+	t.Setenv("NEXUS_DATA_DIR", tempData)
+	t.Setenv("AI_CLI_CONFIG_DIR", t.TempDir())
+	t.Setenv("NEXUS_REAL_HOME", t.TempDir())
+	t.Setenv("NEXUS_CODEX_APP_SERVER", "0")
+
+	if _, err := Create("codex", "batch-check"); err != nil {
+		t.Fatal(err)
+	}
+	home, _ := Home("codex", "batch-check")
+	writeFakeCodexAuth(t, filepath.Join(home, "auth.json"), "acct-batch", "batch@example.com")
+
+	scope, err := AccountScope("codex", "batch-check", "acct-batch")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := quota.NewEngine(5*time.Minute).SaveUsageForScope(scope, model.UsageSnapshot{
+		ProviderID:     "codex",
+		ProfileID:      "batch-check",
+		Account:        "acct-batch",
+		Status:         model.UsageError,
+		Source:         model.SourceOfficialAPI,
+		FetchedAt:      time.Now(),
+		DiagnosticCode: "AUTH_REQUIRED",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Pass an in-memory Profile lacking AccountScope/OwnerID (mirrors legacy
+	// profile.json entries without persisted scope).
+	outcomes := RefreshUsageBatch(t.Context(), []model.Profile{{Provider: "codex", Name: "batch-check"}}, sdkproviders.BatchOptions{})
+	if len(outcomes) != 1 {
+		t.Fatalf("outcomes=%d want 1", len(outcomes))
+	}
+	if outcomes[0].Err != nil && strings.Contains(outcomes[0].Err.Error(), "identity") {
+		t.Fatalf("RefreshUsageBatch rejected profile due to missing OwnerID/Scope: %+v", outcomes[0])
+	}
+	if outcomes[0].Account.OwnerID == "" || !outcomes[0].Account.Scope.Verifiable() {
+		t.Fatalf("expected non-empty OwnerID and verifiable Scope, got %+v", outcomes[0].Account)
 	}
 }

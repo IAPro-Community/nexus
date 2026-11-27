@@ -368,12 +368,15 @@ func BuildUsageRowsForTest(provider, profileName string, qv quota.QuotaView, acc
 func buildUsageRows(provider, profileName string, qv quota.QuotaView, acc model.AccountInfo, defaults map[string]string) []UsageTableRow {
 	isDefault := defaults[provider] == profileName
 	proj := qv.ProjectionAt(time.Now(), quota.DefaultTTL, acc.Authenticated, string(acc.Health))
+	authExpired := qv.AvailReasons.AuthRequired || strings.EqualFold(strings.TrimSpace(qv.DiagnosticCode), "AUTH_REQUIRED")
 	if len(qv.ModelGroups) == 0 {
 		status := "SEM DADOS"
 		if !acc.Authenticated {
 			// Distinguish "not logged in yet" from "logged in but the provider
 			// returned no quota": the first has an actionable next step.
 			status = "SEM LOGIN"
+		} else if authExpired {
+			status = "LOGIN EXP."
 		}
 		return []UsageTableRow{{
 			Provider: provider, Profile: profileName, Account: acc.Email, Plan: acc.Plan,
@@ -412,6 +415,12 @@ func buildUsageRows(provider, profileName string, qv quota.QuotaView, acc model.
 		for i := range rows {
 			if rows[i].Status == "SEM DADOS" {
 				rows[i].Status = "SEM LOGIN"
+			}
+		}
+	} else if authExpired {
+		for i := range rows {
+			if rows[i].Status == "SEM DADOS" {
+				rows[i].Status = "LOGIN EXP."
 			}
 		}
 	}

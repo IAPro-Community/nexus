@@ -1,0 +1,169 @@
+package profile
+
+import (
+	"context"
+	"encoding/base64"
+	"encoding/json"
+	"errors"
+	"os"
+	"path/filepath"
+	"testing"
+	"time"
+
+	"github.com/IAPro-Community/nexus/internal/core/model"
+)
+
+func writeFakeCodexAuth(t *testing.T, authPath, accountID, email string) {
+	t.Helper()
+	payload, err := json.Marshal(map[string]any{
+		"email":                       email,
+		"https://api.openai.com/auth": map[string]string{"chatgpt_account_id": accountID, "chatgpt_plan_type": "plus"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	jwt := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"none"}`)) + "." +
+		base64.RawURLEncoding.EncodeToString(payload) + ".sig"
+	raw, err := json.Marshal(map[string]any{
+		"auth_mode": "chatgpt",
+		"tokens": map[string]string{
+			"id_token":      jwt,
+			"access_token":  "access",
+			"refresh_token": "refresh",
+			"account_id":    accountID,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(authPath), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(authPath, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAdoptHostAuthSkipsWhenAccountAlreadyOwnedByAnotherProfile(t *testing.T) {
+	dataDir := t.TempDir()
+	cfgDir := t.TempDir()
+	hostHome := t.TempDir()
+	t.Setenv("NEXUS_DATA_DIR", dataDir)
+	t.Setenv("AI_CLI_DATA_DIR", dataDir)
+	t.Setenv("AI_MANAGER_DATA_DIR", dataDir)
+	t.Setenv("NEXUS_CONFIG_DIR", cfgDir)
+	t.Setenv("AI_CLI_CONFIG_DIR", cfgDir)
+	t.Setenv("AI_MANAGER_CONFIG_DIR", cfgDir)
+	t.Setenv("NEXUS_REAL_HOME", hostHome)
+	t.Setenv("HOME", hostHome)
+
+	writeFakeCodexAuth(t, filepath.Join(hostHome, ".codex", "auth.json"), "acct-shared-1", "owner@example.com")
+
+	if _, err := Create("codex", "first"); err != nil {
+		t.Fatalf("Create first: %v", err)
+	}
+	firstInfo := GetAccountInfo("codex", "first")
+	if !firstInfo.Authenticated {
+		t.Fatalf("first profile should adopt host auth, got %+v", firstInfo)
+	}
+
+	if _, err := Create("codex", "second"); err != nil {
+		t.Fatalf("Create second: %v", err)
+	}
+	secondInfo := GetAccountInfo("codex", "second")
+	if secondInfo.Authenticated {
+		t.Fatalf("second profile must NOT duplicate already-registered host account, got %+v", secondInfo)
+	}
+}
+
+func TestValidateNoDuplicateAccountDetectsSameCodexAccountAndEmail(t *testing.T) {
+	dataDir := t.TempDir()
+	cfgDir := t.TempDir()
+	t.Setenv("NEXUS_DATA_DIR", dataDir)
+	t.Setenv("AI_CLI_DATA_DIR", dataDir)
+	t.Setenv("AI_MANAGER_DATA_DIR", dataDir)
+	t.Setenv("NEXUS_CONFIG_DIR", cfgDir)
+	t.Setenv("AI_CLI_CONFIG_DIR", cfgDir)
+	t.Setenv("AI_MANAGER_CONFIG_DIR", cfgDir)
+	t.Setenv("NEXUS_REAL_HOME", t.TempDir())
+
+	if _, err := Create("codex", "alpha"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Create("codex", "beta"); err != nil {
+		t.Fatal(err)
+	}
+	alphaHome, _ := Home("codex", "alpha")
+	betaHome, _ := Home("codex", "beta")
+	writeFakeCodexAuth(t, filepath.Join(alphaHome, "auth.json"), "acct-dup", "same@example.com")
+	writeFakeCodexAuth(t, filepath.Join(betaHome, "auth.json"), "acct-dup", "same@example.com")
+
+	err := ValidateNoDuplicateAccount(context.Background(), "codex", "beta")
+	var dupErr *DuplicateAccountError
+	if !errors.As(err, &dupErr) {
+		t.Fatalf("expected DuplicateAccountError, got %v", err)
+	}
+	if dupErr.ExistingProfile != "alpha" {
+		t.Fatalf("ExistingProfile=%q want alpha", dupErr.ExistingProfile)
+	}
+
+	// Non-Codex email matching is case-insensitive.
+	if _, err := Create("agy", "work"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Create("agy", "clone"); err != nil {
+		t.Fatal(err)
+	}
+	workHome, _ := Home("agy", "work")
+	cloneHome, _ := Home("agy", "clone")
+	future := time.Now().Add(time.Hour).UTC().Format(time.RFC3339Nano)
+	writeAGY := func(home, email string) {
+		tokenDir := filepath.Join(home, ".gemini", "antigravity-cli")
+		_ = os.MkdirAll(tokenDir, 0o700)
+		_ = os.WriteFile(filepath.Join(home, ".gemini", "google_accounts.json"), []byte(`{"active":"`+email+`"}`), 0o600)
+		_ = os.WriteFile(filepath.Join(tokenDir, "antigravity-oauth-token"), []byte(`{"token":{"access_token":"ya29.x","refresh_token":"1//r","expiry":"`+future+`"}}`), 0o600)
+	}
+	writeAGY(workHome, "User@Example.COM")
+	writeAGY(cloneHome, "user@example.com")
+
+	err = ValidateNoDuplicateAccount(context.Background(), "agy", "clone")
+	if !errors.As(err, &dupErr) || dupErr.ExistingProfile != "work" {
+		t.Fatalf("expected AGY DuplicateAccountError referencing work, got %v", err)
+	}
+}
+
+func TestFindDuplicateAccountGroups(t *testing.T) {
+	dataDir := t.TempDir()
+	cfgDir := t.TempDir()
+	t.Setenv("NEXUS_DATA_DIR", dataDir)
+	t.Setenv("AI_CLI_DATA_DIR", dataDir)
+	t.Setenv("AI_MANAGER_DATA_DIR", dataDir)
+	t.Setenv("NEXUS_CONFIG_DIR", cfgDir)
+	t.Setenv("AI_CLI_CONFIG_DIR", cfgDir)
+	t.Setenv("AI_MANAGER_CONFIG_DIR", cfgDir)
+	t.Setenv("NEXUS_REAL_HOME", t.TempDir())
+
+	for _, name := range []string{"a", "b", "c"} {
+		if _, err := Create("codex", name); err != nil {
+			t.Fatal(err)
+		}
+	}
+	aHome, _ := Home("codex", "a")
+	bHome, _ := Home("codex", "b")
+	cHome, _ := Home("codex", "c")
+	writeFakeCodexAuth(t, filepath.Join(aHome, "auth.json"), "acct-1", "dup@example.com")
+	writeFakeCodexAuth(t, filepath.Join(bHome, "auth.json"), "acct-1", "dup@example.com")
+	writeFakeCodexAuth(t, filepath.Join(cHome, "auth.json"), "acct-2", "other@example.com")
+
+	groups := FindDuplicateAccountGroups(context.Background(), []model.Profile{
+		{Provider: "codex", Name: "b"},
+		{Provider: "codex", Name: "a"},
+		{Provider: "codex", Name: "c"},
+	})
+	if len(groups) != 1 {
+		t.Fatalf("groups=%d want 1 (%+v)", len(groups), groups)
+	}
+	if len(groups[0].Profiles) != 2 || groups[0].Profiles[0] != "a" || groups[0].Profiles[1] != "b" {
+		t.Fatalf("unexpected duplicate profiles: %+v", groups[0].Profiles)
+	}
+}

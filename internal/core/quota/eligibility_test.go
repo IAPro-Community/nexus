@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
 func TestEvaluateEligibilityGates(t *testing.T) {
@@ -197,5 +199,39 @@ func TestEvaluateEligibilityGates(t *testing.T) {
 				t.Fatalf("unknown capacity evidence=%q want UNKNOWN", got.CapacityEvidence)
 			}
 		})
+	}
+}
+
+func TestBuildQuotaViewAndEligibilityPropagateAuthRequired(t *testing.T) {
+	view := BuildQuotaView(model.UsageSnapshot{
+		ProviderID:     "codex",
+		ProfileID:      "codex",
+		Status:         model.UsageError,
+		Source:         model.SourceOfficialAPI,
+		FetchedAt:      time.Now(),
+		DiagnosticCode: "AUTH_REQUIRED",
+		Error:          "sessão expirada — faça login novamente",
+	}, "user@example.com", "ChatGPT Plus")
+
+	if view.Available {
+		t.Fatal("expected view.Available=false when DiagnosticCode=AUTH_REQUIRED")
+	}
+	if !view.AvailReasons.AuthRequired {
+		t.Fatal("expected AvailReasons.AuthRequired=true")
+	}
+	if view.AvailReasons.UnknownQuota {
+		t.Fatal("expected AvailReasons.UnknownQuota=false when DiagnosticCode=AUTH_REQUIRED")
+	}
+
+	elig := EvaluateEligibility(EligibilityInput{
+		View:          view,
+		Authenticated: true,
+		Health:        string(model.HealthHealthy),
+	})
+	if elig.Eligible {
+		t.Fatal("expected eligible=false for AUTH_REQUIRED snapshot")
+	}
+	if elig.Reason != ReasonAuthRequired {
+		t.Fatalf("reason=%s want %s", elig.Reason, ReasonAuthRequired)
 	}
 }

@@ -246,6 +246,11 @@ func (qv *QuotaView) ComputeAvailability() {
 
 func (qv *QuotaView) computeAvailabilityAt(now time.Time) {
 	applySDKAvailability(qv, now)
+	if strings.EqualFold(strings.TrimSpace(qv.DiagnosticCode), "AUTH_REQUIRED") {
+		qv.Available = false
+		qv.AvailReasons.AuthRequired = true
+		qv.AvailReasons.UnknownQuota = false
+	}
 }
 
 // RenderBar renders a progress bar for a given remaining percentage.

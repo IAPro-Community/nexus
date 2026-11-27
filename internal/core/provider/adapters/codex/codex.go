@@ -401,17 +401,15 @@ func (a *Adapter) usage(ctx context.Context, p model.Profile, force bool) model.
 	if h, err := config.ProfileHome(string(a.ID()), p.Name); err == nil {
 		home = h
 	}
-	tuiBusy := home != "" && IsTUILocked(home)
 
-	// Never mutate session stores from the quota hot path: a concurrent TUI
-	// may own thread_history / sessions under this CODEX_HOME.
-	if !tuiBusy {
-		// 1. Official quota read. Works for any authenticated account without a
-		// session, a prompt or quota consumption.
-		if apiSnap, ok := a.appServerUsage(ctx, p, force); ok {
-			return apiSnap
-		}
+	// 1. Official quota read runs in an isolated ephemeral CODEX_HOME so a live
+	// TUI holding nexus-tui.lock on the profile home does not block capacity
+	// monitoring. Still never emit an error snapshot here unless auth expired.
+	if apiSnap, ok := a.appServerUsage(ctx, p, force); ok {
+		return apiSnap
 	}
+
+	tuiBusy := home != "" && IsTUILocked(home)
 
 	// 2. Rollout evidence written by this profile's own sessions.
 	if rollSnap, ok := a.getUsageFromRollouts(ctx, p); ok {
@@ -432,11 +430,7 @@ func (a *Adapter) usage(ctx context.Context, p model.Profile, force bool) model.
 		if snap.Account == "" {
 			snap.Account = info.Email
 		}
-		if tuiBusy {
-			snap.Error = "cota oficial adiada: TUI Codex ativo neste perfil"
-		} else {
-			snap.Error = "cota oficial indisponível e nenhuma sessão isolada registrada"
-		}
+		snap.Error = "cota oficial indisponível e nenhuma sessão isolada registrada"
 	}
 
 	// Persisted observations are loaded by profile.GetUsageSnapshot through the

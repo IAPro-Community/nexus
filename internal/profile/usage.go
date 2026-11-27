@@ -15,7 +15,6 @@ import (
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	coreprovider "github.com/IAPro-Community/nexus/internal/core/provider"
-	"github.com/IAPro-Community/nexus/internal/core/provider/adapters/codex"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
 	"github.com/IAPro-Community/nexus/internal/core/quota"
 )
@@ -153,21 +152,12 @@ func loadUsageSnapshot(ctx context.Context, providerName, name string, refresh, 
 		}
 	}
 
-	useCache := !refresh && found && len(snap.Windows) > 0 && snap.Status != model.UsageUnknown && qEng.Trustworthy(snap)
-	// While an interactive Codex TUI owns this profile home, prefer last-known
-	// official quota as CACHED instead of spawning a competing app-server.
-	if !useCache && !refresh && providerName == "codex" {
-		if home, err := config.ProfileHome("codex", name); err == nil && codex.IsTUILocked(home) {
-			if found && snap.Source == model.SourceOfficialAPI && len(snap.Windows) > 0 {
-				snap.Status = model.UsageCached
-				useCache = true
-			} else if hasLastKnown && lastKnown.Source == model.SourceOfficialAPI && len(lastKnown.Windows) > 0 && !quota.CodexEvidenceExpired(lastKnown, time.Now()) {
-				lastKnown.Status = model.UsageCached
-				lastKnown.Error = "TUI Codex ativo; usando última cota oficial"
-				return lastKnown
-			}
-		}
-	}
+	authExpiredCache := !refresh && found &&
+		snap.Status == model.UsageError &&
+		strings.EqualFold(strings.TrimSpace(snap.DiagnosticCode), "AUTH_REQUIRED") &&
+		!snap.FetchedAt.IsZero() &&
+		time.Since(snap.FetchedAt) <= quota.DefaultTTL
+	useCache := authExpiredCache || (!refresh && found && len(snap.Windows) > 0 && snap.Status != model.UsageUnknown && qEng.Trustworthy(snap))
 	if debug {
 		slog.Debug("loadUsageSnapshot: cache decision", "provider", providerName, "profile", name, "useCache", useCache, "trustworthy", qEng.Trustworthy(snap))
 	}
@@ -250,6 +240,17 @@ func loadUsageSnapshot(ctx context.Context, providerName, name string, refresh, 
 
 	if debug {
 		slog.Debug("loadUsageSnapshot: after adapter", "provider", providerName, "profile", name, "status", snap.Status, "source", snap.Source, "fetchedAt", snap.FetchedAt, "windows", len(snap.Windows), "account", snap.Account)
+	}
+
+	if snap.Status == model.UsageError && strings.EqualFold(strings.TrimSpace(snap.DiagnosticCode), "AUTH_REQUIRED") {
+		if scopeOK {
+			snap.AccountScope = scope
+			_ = qEng.SaveUsageForScope(scope, snap)
+		}
+		if debug {
+			slog.Debug("loadUsageSnapshot: preserving AUTH_REQUIRED error", "provider", providerName, "profile", name)
+		}
+		return snap
 	}
 
 	// Reject stale snapshots from adapters: a quota file older than the
@@ -600,7 +601,15 @@ func RefreshUsageBatch(ctx context.Context, targets []model.Profile, opts sdkpro
 		opts.PerProbeTimeout = 8 * time.Second
 	}
 	if opts.GlobalTimeout <= 0 {
-		opts.GlobalTimeout = 10 * time.Second
+		waves := (len(targets) + opts.MaxConcurrency - 1) / opts.MaxConcurrency
+		globalTimeout := time.Duration(waves)*opts.PerProbeTimeout + 4*time.Second
+		if globalTimeout < 12*time.Second {
+			globalTimeout = 12 * time.Second
+		}
+		if globalTimeout > 30*time.Second {
+			globalTimeout = 30 * time.Second
+		}
+		opts.GlobalTimeout = globalTimeout
 	}
 	coord, err := sdkproviders.NewDirectCoordinator(func(probeCtx context.Context, acc sdkproviders.Account) (model.UsageSnapshot, error) {
 		snap := RefreshUsageSnapshotContext(probeCtx, acc.Scope.ProviderID, acc.Scope.ProfileID)
@@ -623,8 +632,18 @@ func RefreshUsageBatch(ctx context.Context, targets []model.Profile, opts sdkpro
 		if scope.ProfileID == "" {
 			scope.ProfileID = p.Name
 		}
+		if !scope.Verifiable() {
+			if resolved, scopeErr := AccountScope(p.Provider, p.Name, expectedProfileAccount(p.Provider, p.Name)); scopeErr == nil && resolved.Verifiable() {
+				scope = resolved
+			}
+		}
+		ownerID := strings.TrimSpace(scope.AccountID)
+		if ownerID == "" {
+			ownerID = scope.ProviderID + ":" + scope.ProfileID
+		}
 		accounts = append(accounts, sdkproviders.Account{
-			Scope: scope,
+			OwnerID: ownerID,
+			Scope:   scope,
 		})
 	}
 	return coord.RefreshBatch(ctx, accounts, opts)
@@ -633,6 +652,9 @@ func RefreshUsageBatch(ctx context.Context, targets []model.Profile, opts sdkpro
 func classifySnapshotProbeCode(snap model.UsageSnapshot, ctxErr error) sdkproviders.ProbeCode {
 	if ctxErr == context.DeadlineExceeded {
 		return sdkproviders.ProbeTimeout
+	}
+	if strings.EqualFold(strings.TrimSpace(snap.DiagnosticCode), "AUTH_REQUIRED") {
+		return sdkproviders.ProbeAuthExpired
 	}
 	switch snap.Status {
 	case model.UsageLive, model.UsageCached:

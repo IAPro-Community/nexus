@@ -376,6 +376,57 @@ func TestAppServerWinsOverRollout(t *testing.T) {
 	}
 }
 
+func TestAppServerReadsQuotaWhileTUILockIsHeld(t *testing.T) {
+	dataDir := codexTestEnv(t)
+	p := gmailProfile(t, dataDir)
+	fakeAppServer(t, "ok")
+
+	home := filepath.Join(dataDir, "profiles", "codex", "kivergmail", "home")
+	lease, err := AcquireTUILease(home)
+	if err != nil {
+		t.Fatalf("AcquireTUILease: %v", err)
+	}
+	defer func() { _ = lease.Release() }()
+
+	if !IsTUILocked(home) {
+		t.Fatal("expected IsTUILocked=true while TUI lease is active")
+	}
+
+	snap := New().GetUsage(context.Background(), p)
+	if snap.Source != model.SourceOfficialAPI {
+		t.Fatalf("source=%s want OFFICIAL_API even when TUI holds nexus-tui.lock", snap.Source)
+	}
+	if snap.Status != model.UsageLive {
+		t.Fatalf("status=%s want LIVE", snap.Status)
+	}
+
+	leftovers, _ := filepath.Glob(filepath.Join(filepath.Dir(home), ".quota-probe-*"))
+	if len(leftovers) != 0 {
+		t.Fatalf("ephemeral probe dirs leaked: %v", leftovers)
+	}
+}
+
+func TestAppServerMapsInvalidJWTToAuthRequired(t *testing.T) {
+	dataDir := codexTestEnv(t)
+	p := gmailProfile(t, dataDir)
+	fakeAppServer(t, "auth-401")
+
+	home := filepath.Join(dataDir, "profiles", "codex", "kivergmail", "home")
+	now := time.Now()
+	writeRollout(t, filepath.Join(home, "sessions", "rollout-stale.jsonl"), 10, 10, now.Add(time.Hour).Unix(), now, "")
+
+	snap := New().GetUsage(context.Background(), p)
+	if snap.Source != model.SourceOfficialAPI {
+		t.Fatalf("source=%s want OFFICIAL_API (must not fall back to stale rollout on 401)", snap.Source)
+	}
+	if snap.Status != model.UsageError {
+		t.Fatalf("status=%s want ERROR", snap.Status)
+	}
+	if snap.DiagnosticCode != "AUTH_REQUIRED" {
+		t.Fatalf("DiagnosticCode=%q want AUTH_REQUIRED", snap.DiagnosticCode)
+	}
+}
+
 // --- fake server ---
 
 func runFakeAppServer(mode string) {
@@ -439,6 +490,8 @@ func runFakeAppServer(mode string) {
 			switch mode {
 			case "rpc-error":
 				emit(map[string]any{"id": req.ID, "error": map[string]any{"code": -32601, "message": "method not found"}})
+			case "auth-401":
+				emit(map[string]any{"id": req.ID, "error": map[string]any{"code": -32603, "message": "failed to fetch codex rate limits: GET https://chatgpt.com/backend-api/wham/usage failed: 401 Unauthorized (invalid_jwt)"}})
 			case "empty-result":
 				emit(map[string]any{"id": req.ID})
 			case "noisy":

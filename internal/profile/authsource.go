@@ -100,6 +100,14 @@ func AdoptHostAuth(ctx context.Context, p model.Profile) (model.AuthSource, bool
 		return src, false
 	}
 	if p.Provider == "codex" {
+		if hostID := codex.HostAuthAccountID(); hostID != "" {
+			if _, _, dup := FindDuplicateAccount(ctx, "codex", p.Name, model.AccountInfo{
+				Authenticated:     true,
+				ExternalAccountID: hostID,
+			}); dup {
+				return src, false
+			}
+		}
 		return codex.AdoptHostAuth(ctx, p)
 	}
 
@@ -132,6 +140,10 @@ func AdoptHostAuth(ctx context.Context, p model.Profile) (model.AuthSource, bool
 
 	acc := authProv.InspectAuth(ctx, p)
 	if !acc.Authenticated {
+		return src, false
+	}
+	if _, _, dup := FindDuplicateAccount(ctx, p.Provider, p.Name, acc); dup {
+		_ = authProv.Logout(ctx, p)
 		return src, false
 	}
 
