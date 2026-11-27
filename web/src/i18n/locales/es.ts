@@ -2709,7 +2709,8 @@ export const es = {
     degraded_other: '{{count}} Degradados',
     statusAriaLabel: 'Barra de estado del sistema Nexus',
     focusDegradedTooltip: 'Haga clic para enfocar el agente con error o atención',
-    intelligenceActive: 'Inteligencia Nexus activa: {{provider}}',
+    coreRuntimeTooltip: 'Runtime de Nexus Core',
+    intelligenceActiveTooltip: 'Inteligencia Nexus activa: {{provider}}',
   },
   auth: {
     sessionExpired: 'Sesión Expirada o No Autorizada',

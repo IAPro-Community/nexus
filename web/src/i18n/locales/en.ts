@@ -2683,7 +2683,8 @@ export const en = {
     degraded_other: '{{count}} Degraded',
     statusAriaLabel: 'Nexus System Status Bar',
     focusDegradedTooltip: 'Click to focus agent with error or attention',
-    intelligenceActive: 'Nexus Intelligence active: {{provider}}',
+    coreRuntimeTooltip: 'Nexus Core runtime',
+    intelligenceActiveTooltip: 'Nexus Intelligence active: {{provider}}',
   },
   auth: {
     sessionExpired: 'Session Expired or Unauthorized',

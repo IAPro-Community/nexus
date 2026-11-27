@@ -130,7 +130,7 @@ export const WorkspaceTaskbar: React.FC<{
       {/* Center: Agents status */}
       <div className="nx-statusbar-center">
         {degraded > 0 ? (
-          <Tooltip content="Clique para focar no agente com erro ou atenção" side="top">
+          <Tooltip content={t('statusBar.focusDegradedTooltip')} side="top">
             <button
               type="button"
               className={`nx-statusbar-item nx-statusbar-btn ${styles.degradedButton}`}
@@ -162,14 +162,16 @@ export const WorkspaceTaskbar: React.FC<{
 
       {/* Right: Versions & Connection */}
       <div className="nx-statusbar-right">
-        <Tooltip content="Nexus Core Runtime" side="top">
+        <Tooltip content={t('statusBar.coreRuntimeTooltip')} side="top">
           <span className="nx-statusbar-item nx-statusbar-version">
             <strong>Nexus</strong> v{sysInfo?.nexus_version || 'unknown'}
           </span>
         </Tooltip>
         {intelligence?.available && (
           <Tooltip
-            content={`Inteligência Nexus ativa: ${intelligence.provider || 'default'}`}
+            content={t('statusBar.intelligenceActiveTooltip', {
+              provider: intelligence.provider || 'default',
+            })}
             side="top"
           >
             <span className={`nx-statusbar-item ${styles.intelligenceStatus}`}>
@@ -182,7 +184,7 @@ export const WorkspaceTaskbar: React.FC<{
           <Wifi size={11} />
           <span>{t('statusBar.local')}</span>
         </span>
-        {project?.id && <FeatureTour projectId={project.id} surface="workspace" />}
+        {project?.id && <FeatureTour projectId={project.id} surface="workspace" compact />}
       </div>
     </div>
   );
