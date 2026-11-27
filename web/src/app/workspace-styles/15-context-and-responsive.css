@@ -188,7 +188,9 @@
   gap: var(--nx-space-2);
 }
 
-.nx-topbar__context {
+/* Doubled class keeps this declaration above the base section without
+   !important, where the comment below explains the flex allocation. */
+.nx-topbar__context.nx-topbar__context {
   display: flex;
   align-items: center;
   /* Context owns its intrinsic controls. Let the status cluster consume the
