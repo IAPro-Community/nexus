@@ -14,6 +14,7 @@ import {
   ZoomIn,
 } from 'lucide-react';
 import { getDesktopAuthToken, request } from '../../api';
+import { useVisibilityInterval } from '../../lib/useVisibilityInterval';
 import styles from './OutputsSurface.module.scss';
 
 export type OutputItem = {
@@ -288,9 +289,9 @@ export const OutputsSurface: React.FC<{ projectId: string }> = ({ projectId }) =
   useEffect(() => {
     setLoading(true);
     void refresh();
-    const timer = window.setInterval(() => void refresh(), 8000);
-    return () => window.clearInterval(timer);
   }, [refresh]);
+
+  useVisibilityInterval(() => void refresh(), 8000, { refreshOnVisible: true });
   const items = useMemo(
     () =>
       (listing?.items || []).filter((item) =>

@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { nexus } from '../nexus/api';
 import { asArray } from '../lib/safeArray';
+import { useVisibilityInterval } from '../lib/useVisibilityInterval';
 import type { AttentionGroup, AttentionItem, Project } from '../types';
 import { sanitizeAttentionText } from '../components/attentionText';
 import {
@@ -41,31 +42,28 @@ export const MissionAttentionPanel: React.FC<{
     [missionId, projectId],
   );
 
-  useEffect(() => {
-    let active = true;
-    const refresh = async (initial: boolean) => {
+  const fetchAttention = useCallback(
+    async (initial: boolean) => {
       if (initial) setLoading(true);
       try {
         const result = await nexus.getAttention(filter);
-        if (!active) return;
         setAttention(result);
         setError('');
       } catch (cause) {
-        if (!active) return;
         setAttention(null);
         setError(cause instanceof Error ? cause.message : String(cause));
       } finally {
-        if (active && initial) setLoading(false);
+        if (initial) setLoading(false);
       }
-    };
+    },
+    [filter],
+  );
 
-    void refresh(true);
-    const interval = window.setInterval(() => void refresh(false), 15_000);
-    return () => {
-      active = false;
-      window.clearInterval(interval);
-    };
-  }, [filter]);
+  useEffect(() => {
+    void fetchAttention(true);
+  }, [fetchAttention]);
+
+  useVisibilityInterval(() => void fetchAttention(false), 15_000, { refreshOnVisible: true });
 
   const sections = missionAttentionSections(attention);
   const missionOptions = asArray<AttentionItem>(attention?.all_items);

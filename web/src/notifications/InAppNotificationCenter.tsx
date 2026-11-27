@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -13,6 +13,7 @@ import {
 import type { AttentionItem, EventRecord, RuntimeSession } from '../types';
 import { api } from '../api';
 import { nexus } from '../nexus/api';
+import { useVisibilityInterval } from '../lib/useVisibilityInterval';
 import { sanitizeAttentionText } from '../components/attentionText';
 import { Button, IconButton } from '../design-system';
 import { ContextDrawer } from '../design-system/primitives/ContextDrawer';
@@ -73,29 +74,30 @@ export const InAppNotificationCenter: React.FC<{
   const observed = useRef(new Set<string>());
   const initialized = useRef(false);
 
+  const loadNeedsCount = useCallback(() => {
+    if (!COMPOSER_FLOW_ENABLED) return;
+    void nexus
+      .getAttention()
+      .then((group) => {
+        const count = Number.isFinite(group.total_needs) ? group.total_needs : 0;
+        setAttentionNeedsCount(count);
+        onAttentionCountChange?.(count);
+      })
+      .catch(() => undefined);
+  }, [onAttentionCountChange, COMPOSER_FLOW_ENABLED]);
+
   useEffect(() => {
     if (!COMPOSER_FLOW_ENABLED) return;
-    let active = true;
-    const loadNeedsCount = () => {
-      void nexus
-        .getAttention()
-        .then((group) => {
-          if (!active) return;
-          const count = Number.isFinite(group.total_needs) ? group.total_needs : 0;
-          setAttentionNeedsCount(count);
-          onAttentionCountChange?.(count);
-        })
-        .catch(() => undefined);
-    };
     loadNeedsCount();
     window.addEventListener('focus', loadNeedsCount);
-    const interval = window.setInterval(loadNeedsCount, 30_000);
     return () => {
-      active = false;
       window.removeEventListener('focus', loadNeedsCount);
-      window.clearInterval(interval);
     };
-  }, [onAttentionCountChange, COMPOSER_FLOW_ENABLED]);
+  }, [loadNeedsCount, COMPOSER_FLOW_ENABLED]);
+
+  useVisibilityInterval(loadNeedsCount, COMPOSER_FLOW_ENABLED ? 30_000 : null, {
+    refreshOnVisible: true,
+  });
 
   const handleExecuteAction = async (action: InAppNotificationAction, notifId: string) => {
     if (!action.sourceRuntimeId) {

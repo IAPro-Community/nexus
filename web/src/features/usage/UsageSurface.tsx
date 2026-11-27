@@ -25,6 +25,7 @@ import type {
   RecommendationResult,
 } from '../../types';
 import { asArray } from '../../lib/safeArray';
+import { useVisibilityInterval } from '../../lib/useVisibilityInterval';
 import {
   summarizeHostSessionImports,
   type HostSessionImportSummary,
@@ -305,25 +306,8 @@ export const UsageSurface: React.FC<{
     void load();
   }, [load]);
 
-  useEffect(() => {
-    const onVisible = () => {
-      if (!document.hidden) void softReload();
-    };
-    const poll = window.setInterval(() => {
-      if (typeof document !== 'undefined' && document.hidden) return;
-      void softReload();
-    }, USAGE_POLL_MS);
-    const tick = window.setInterval(() => {
-      if (typeof document !== 'undefined' && document.hidden) return;
-      setNow(Date.now());
-    }, FRESHNESS_TICK_MS);
-    document.addEventListener('visibilitychange', onVisible);
-    return () => {
-      window.clearInterval(poll);
-      window.clearInterval(tick);
-      document.removeEventListener('visibilitychange', onVisible);
-    };
-  }, [softReload]);
+  useVisibilityInterval(() => void softReload(), USAGE_POLL_MS, { refreshOnVisible: true });
+  useVisibilityInterval(() => setNow(Date.now()), FRESHNESS_TICK_MS);
 
   const summary = useMemo(() => summarizeAccounts(accounts), [accounts]);
 
