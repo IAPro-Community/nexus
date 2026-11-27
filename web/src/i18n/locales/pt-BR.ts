@@ -605,6 +605,8 @@ export const ptBR = {
     help: 'Ajuda',
     newAiSession: 'Nova Sessão de IA',
     newTerminal: 'Novo Terminal',
+    switchGitBranch: 'Trocar branch Git / worktree',
+    refreshWorkspaceState: 'Atualizar provedores, contas e sessões',
     openComposer: 'Abrir Composer',
     openFlowRuns: 'Abrir histórico de Flow Runs',
     switchExecutionRole: 'Trocar papel de execução: {{role}}',

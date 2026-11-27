@@ -794,6 +794,23 @@ const WorkspaceCoordinator: React.FC<{
         run: () => void shell(),
       },
       {
+        id: 'switch-git-branch',
+        label: t('commands.switchGitBranch'),
+        group: t('commands.project'),
+        keywords: ['git', 'branch', 'worktree', 'checkout', 'switch'],
+        run: () => window.dispatchEvent(new CustomEvent('nexus:open-branch-switcher')),
+      },
+      {
+        id: 'refresh-workspace-state',
+        label: t('commands.refreshWorkspaceState'),
+        group: 'Nexus',
+        keywords: ['refresh', 'sync', 'quota', 'providers', 'accounts', 'sessions'],
+        run: async () => {
+          await data.refreshGlobal();
+          await data.refreshAgents(project.id);
+        },
+      },
+      {
         id: 'outputs',
         label: 'Abrir Outputs · galeria e arquivos',
         group: t('commands.project'),
@@ -1072,8 +1089,8 @@ const WorkspaceCoordinator: React.FC<{
       },
     ],
     [
-      data.agents,
-      data.projects,
+      data,
+      project.id,
       setProject,
       workspace.model.root,
       executionRoles,

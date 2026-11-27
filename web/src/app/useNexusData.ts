@@ -14,8 +14,10 @@ import type {
 
 /** Runtime/event cadence: sessions react to agent work in progress. */
 export const FAST_POLL_MS = 5000;
-/** Metadata cadence: projects, workspaces, providers and profiles. */
+/** Metadata cadence: projects, workspaces and profiles. */
 export const METADATA_POLL_MS = 30000;
+/** Provider binary discovery cadence: installed CLIs rarely change mid-session. */
+export const PROVIDERS_POLL_MS = 300000;
 
 function sameProjectSnapshot(a: Project[], b: Project[]): boolean {
   if (a.length !== b.length) return false;
@@ -113,6 +115,7 @@ export function useNexusData() {
   const [error, setError] = useState('');
   const fastInFlight = useRef<Promise<{ runtimes: RuntimeSession[] }> | null>(null);
   const metadataInFlight = useRef<Promise<void> | null>(null);
+  const providersInFlight = useRef<Promise<void> | null>(null);
 
   // Fast lane (5s): runtime/session state and the event feed change while an
   // agent works, so they stay on the short cadence.
@@ -137,21 +140,18 @@ export function useNexusData() {
     });
   }, []);
 
-  // Metadata lane (30s): projects, workspaces, providers and profiles only
-  // change after an explicit user action, and those actions call refreshGlobal()
-  // so the slow lane is synchronous there too.
+  // Metadata lane (30s): projects, workspaces and profiles. Provider binary
+  // discovery is decoupled onto PROVIDERS_POLL_MS to avoid background probe churn.
   const refreshMetadata = useCallback(() => {
     return runDeduped(metadataInFlight, async () => {
       try {
-        const [projectList, workspaceList, providerList, profileList] = await Promise.all([
+        const [projectList, workspaceList, profileList] = await Promise.all([
           nexus.listProjects(),
           api.getWorkspaces(),
-          api.getProviders(),
           api.getProfiles(),
         ]);
         const nextProjects = asArray<Project>(projectList);
         const nextWorkspaces = asArray<Workspace>(workspaceList);
-        const nextProviders = asArray<ProviderInfo>(providerList);
         const nextProfiles = asArray<ProfileInfo>(profileList);
 
         setProjects((current) =>
@@ -159,9 +159,6 @@ export function useNexusData() {
         );
         setWorkspaces((current) =>
           sameIdList(current, nextWorkspaces, (item) => item.id || '') ? current : nextWorkspaces,
-        );
-        setProviders((current) =>
-          sameIdList(current, nextProviders, (item) => item.id || '') ? current : nextProviders,
         );
         setProfiles((current) => {
           if (current.length !== nextProfiles.length) return nextProfiles;
@@ -185,13 +182,31 @@ export function useNexusData() {
     });
   }, []);
 
+  const refreshProviders = useCallback(() => {
+    return runDeduped(providersInFlight, async () => {
+      try {
+        const providerList = await api.getProviders();
+        const nextProviders = asArray<ProviderInfo>(providerList);
+        setProviders((current) =>
+          sameIdList(current, nextProviders, (item) => item.id || '') ? current : nextProviders,
+        );
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Unable to load Nexus data');
+      }
+    });
+  }, []);
+
   // Public entry point used by user actions (create/remove project, login,
-  // explicit reloads): both lanes run in parallel and the fast result is
+  // explicit reloads): all lanes run in parallel and the fast result is
   // returned, so callers keep the previous `{ runtimes }` contract.
   const refreshGlobal = useCallback(async () => {
-    const [, runtimes] = await Promise.all([refreshMetadata(), refreshFast()]);
+    const [, , runtimes] = await Promise.all([
+      refreshMetadata(),
+      refreshProviders(),
+      refreshFast(),
+    ]);
     return runtimes;
-  }, [refreshFast, refreshMetadata]);
+  }, [refreshFast, refreshMetadata, refreshProviders]);
 
   const refreshAgents = useCallback(async (projectId?: string | null) => {
     if (!projectId) {
@@ -232,17 +247,22 @@ export function useNexusData() {
     const refreshMetadataWhenVisible = () => {
       if (!document.hidden) void refreshMetadata();
     };
+    const refreshProvidersWhenVisible = () => {
+      if (!document.hidden) void refreshProviders();
+    };
     const fastTimer = window.setInterval(refreshWhenVisible, FAST_POLL_MS);
     const metadataTimer = window.setInterval(refreshMetadataWhenVisible, METADATA_POLL_MS);
+    const providersTimer = window.setInterval(refreshProvidersWhenVisible, PROVIDERS_POLL_MS);
     document.addEventListener('visibilitychange', refreshWhenVisible);
     document.addEventListener('visibilitychange', refreshMetadataWhenVisible);
     return () => {
       window.clearInterval(fastTimer);
       window.clearInterval(metadataTimer);
+      window.clearInterval(providersTimer);
       document.removeEventListener('visibilitychange', refreshWhenVisible);
       document.removeEventListener('visibilitychange', refreshMetadataWhenVisible);
     };
-  }, [refreshFast, refreshGlobal, refreshMetadata]);
+  }, [refreshFast, refreshGlobal, refreshMetadata, refreshProviders]);
 
   return {
     projects,

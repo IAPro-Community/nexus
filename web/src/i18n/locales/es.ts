@@ -613,6 +613,8 @@ export const es = {
     help: 'Ayuda',
     newAiSession: 'Nueva Sesión de IA',
     newTerminal: 'Nuevo Terminal',
+    switchGitBranch: 'Cambiar rama Git / worktree',
+    refreshWorkspaceState: 'Actualizar proveedores, cuentas y sesiones',
     openComposer: 'Abrir Composer',
     openFlowRuns: 'Abrir historial de Flow Runs',
     switchExecutionRole: 'Cambiar rol de ejecución: {{role}}',

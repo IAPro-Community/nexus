@@ -11,7 +11,7 @@ declare global {
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 import { api } from '../api';
 import { nexus } from '../nexus/api';
-import { FAST_POLL_MS, METADATA_POLL_MS, useNexusData } from './useNexusData';
+import { FAST_POLL_MS, METADATA_POLL_MS, PROVIDERS_POLL_MS, useNexusData } from './useNexusData';
 
 const renderHook = <T,>(hook: () => T) => {
   const container = document.createElement('div');
@@ -80,11 +80,17 @@ describe('useNexusData polling lanes', () => {
     expect(api.getRuntimes).toHaveBeenCalledTimes(3);
     expect(nexus.listProjects).toHaveBeenCalledTimes(1);
 
-    // 15s: the metadata lane still has not fired a second time.
+    // 30s: metadata ticks without re-running expensive provider binary probes.
     await wait(METADATA_POLL_MS - 2 * FAST_POLL_MS);
     expect(api.getRuntimes).toHaveBeenCalledTimes(7);
     expect(api.getWorkspaces).toHaveBeenCalledTimes(2);
     expect(nexus.listProjects).toHaveBeenCalledTimes(2);
+    expect(api.getProfiles).toHaveBeenCalledTimes(2);
+    expect(api.getProviders).toHaveBeenCalledTimes(1);
+
+    // 5m: provider binary discovery refreshes on its dedicated cadence.
+    await wait(PROVIDERS_POLL_MS - METADATA_POLL_MS);
+    expect(api.getProviders).toHaveBeenCalledTimes(2);
     hook.unmount();
   });
 
@@ -124,6 +130,7 @@ describe('useNexusData polling lanes', () => {
     });
     expect(api.getRuntimes).toHaveBeenCalledTimes(1);
     expect(nexus.listProjects).toHaveBeenCalledTimes(1);
+    expect(api.getProviders).toHaveBeenCalledTimes(2);
     // Go encodes empty slices as null; the hook must normalize to [].
     expect(snapshot).toEqual({ runtimes: [] });
     expect(hook.result.current.runtimes).toEqual([]);

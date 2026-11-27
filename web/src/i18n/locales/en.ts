@@ -601,6 +601,8 @@ export const en = {
     help: 'Help',
     newAiSession: 'New AI Session',
     newTerminal: 'New Terminal',
+    switchGitBranch: 'Switch Git branch / worktree',
+    refreshWorkspaceState: 'Refresh providers, accounts and sessions',
     openComposer: 'Open Composer',
     openFlowRuns: 'Open Flow Runs history',
     switchExecutionRole: 'Switch execution role: {{role}}',
