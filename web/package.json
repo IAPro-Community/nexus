@@ -17,6 +17,7 @@
     "build:css": "node node_modules/@tailwindcss/cli/dist/index.mjs -i src/index.css -o dist/bundle.css --minify",
     "build:js": "node scripts/build.mjs",
     "build": "node scripts/build.mjs",
+    "build:check-budget": "node scripts/build.mjs --check-budget",
     "verify": "node scripts/verify-report.mjs",
     "test:e2e": "node scripts/e2e-hardening-verify.mjs",
     "test:e2e:remote-access": "node scripts/e2e-remote-access.mjs",

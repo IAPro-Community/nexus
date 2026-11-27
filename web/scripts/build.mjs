@@ -1,6 +1,6 @@
 import { build, transform } from 'esbuild';
 import { createHash } from 'node:crypto';
-import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, relative, resolve } from 'node:path';
@@ -273,4 +273,53 @@ await cp(distDir, embeddedDir, { recursive: true });
 const index = await readFile(resolve(distDir, 'index.html'), 'utf8');
 if (!index.includes('./bundle.js') || !index.includes('./bundle.css'))
   throw new Error('index.html is missing bundle references');
+
+// Size budget: the whole dist is embedded in three Go binaries, so a quiet
+// regression here multiplies by three. The ceilings sit ~10% above the
+// measured release numbers; `--check-budget` makes a breach fail the build
+// (CI uses it), while the default build only reports the table.
+const SIZE_BUDGET = {
+  distTotal: 8_000_000,
+  bundleCss: 500_000,
+  bundleJs: 220_000,
+  nexV2Js: 270_000,
+  nexV2Css: 50_000,
+};
+const dirSize = async (dir) => {
+  let total = 0;
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const path = resolve(dir, entry.name);
+    total += entry.isDirectory() ? await dirSize(path) : (await stat(path)).size;
+  }
+  return total;
+};
+const fileSize = async (name) => {
+  const path = resolve(distDir, name);
+  return existsSync(path) ? (await stat(path)).size : 0;
+};
+const kb = (bytes) => `${(bytes / 1000).toFixed(1)} KB`;
+const sizeRows = [
+  ['dist/', await dirSize(distDir), SIZE_BUDGET.distTotal],
+  ['bundle.css', await fileSize('bundle.css'), SIZE_BUDGET.bundleCss],
+  ['bundle.js', await fileSize('bundle.js'), SIZE_BUDGET.bundleJs],
+  ['nex-v2.js', await fileSize('nex-v2.js'), SIZE_BUDGET.nexV2Js],
+  ['nex-v2.css', await fileSize('nex-v2.css'), SIZE_BUDGET.nexV2Css],
+];
+const breached = sizeRows.filter(([, size, limit]) => size > limit);
+console.log('Web build size budget:');
+for (const [name, size, limit] of sizeRows) {
+  const headroom = Math.round((1 - size / limit) * 100);
+  console.log(
+    `  ${name.padEnd(12)} ${kb(size).padStart(10)} / ${kb(limit).padStart(10)}  ${size > limit ? 'EXCEEDED' : `${headroom}% headroom`}`,
+  );
+}
+if (breached.length > 0) {
+  const detail = breached
+    .map(([name, size, limit]) => `${name} ${kb(size)} > ${kb(limit)}`)
+    .join(', ');
+  if (process.argv.includes('--check-budget')) {
+    throw new Error(`Web build exceeds the size budget: ${detail}`);
+  }
+  console.warn(`WARNING: web build exceeds the size budget: ${detail}`);
+}
 console.log(`Nexus web build complete: ${distDir}`);
