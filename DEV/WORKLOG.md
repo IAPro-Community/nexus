@@ -1,3 +1,13 @@
+## 2026-11-26 — Remoção automática de contas duplicadas por provedor & identidade canônica do Cursor
+
+- **Extração de identidade do Cursor (`internal/core/provider/adapters/cursor/cursor.go`, `cursor_test.go`):**
+  - Adicionado `enrichCursorIdentity` em `InspectAuth` para extrair `email` e `authId` de `.cursor/cli-config.json` e fallback do claim `sub` do JWT em `.config/cursor/auth.json` sem vazar bytes de token; testes isolados garantem `HOME`/`NEXUS_REAL_HOME` em `t.TempDir()`.
+- **Deduplicação automática segura (`internal/profile/duplicate.go`, `host_auth_import.go`, `duplicate_test.go`):**
+  - Estendido `CanonicalAccountIdentity` para tratar `cursor` preferindo `ExternalAccountID`; adicionados `HasDuplicateAccounts` e `DeduplicateAccounts` preservando preferencialmente o perfil saudável, padrão (`default`), em uso por lock de TUI (`SkippedLocked`) ou com e-mail, migrando `Defaults` e `Bindings` antes da remoção; `importHostSession` também rejeita duplicatas.
+- **Integração nas superfícies CLI e Web (`internal/app/{cmd_usage.go,app.go}`, `internal/nexus/resource_discovery.go`):**
+  - `usageCmd`, `profilesCmd` (incluindo `nexus profiles dedupe`) e `ListResourcesContext` executam a limpeza automática e gravam avisos exclusivamente em `os.Stderr` para manter saídas `--json` válidas (`featureAnnouncements.ts` inalterado — deduplicação interna de contas).
+- **Verificação:** `gofmt`, `go vet -tags=gtk3 ./...`, suítes `-race` (`cursor`, `codex`, `profile`, `nexus`, `app`, `control/web`) aprovadas e limpeza validada ao vivo no host.
+
 ## 2026-11-26 — Fidelidade de quotas Codex sob lock de TUI, batch refresh resiliente e prevenção de contas duplicadas
 
 - **Isolamento de sonda de quota Codex & tratamento de sessão expirada (`internal/core/provider/adapters/codex/`, `internal/core/quota/`, `internal/tui/`):**

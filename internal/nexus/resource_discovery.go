@@ -78,6 +78,8 @@ func (n *Nexus) ListResourcesContext(ctx context.Context) ([]ProviderAccount, er
 	detectWG.Wait()
 
 	accounts := make([]ProviderAccount, len(profiles))
+	accountInfoByKey := make(map[string]model.AccountInfo, len(profiles))
+	var accInfoMu sync.Mutex
 	sem := make(chan struct{}, 6)
 	var accWG sync.WaitGroup
 	now := time.Now()
@@ -92,6 +94,9 @@ func (n *Nexus) ListResourcesContext(ctx context.Context) ([]ProviderAccount, er
 			displayName := p.Provider + " (" + p.Name + ")"
 
 			acc, _ := profile.GetAccountInfoContext(ctx, p.Provider, p.Name)
+			accInfoMu.Lock()
+			accountInfoByKey[id] = acc
+			accInfoMu.Unlock()
 			authenticated := false
 			health := strings.ToLower(string(acc.Health))
 			if health == "" {
@@ -164,6 +169,26 @@ func (n *Nexus) ListResourcesContext(ctx context.Context) ([]ProviderAccount, er
 		}(i, prof)
 	}
 	accWG.Wait()
+
+	if profile.HasDuplicateAccounts(profiles, accountInfoByKey) {
+		if cleaned, _ := profile.DeduplicateAccounts(ctx); len(cleaned) > 0 {
+			removed := make(map[string]struct{})
+			for _, item := range cleaned {
+				for _, removedProfile := range item.RemovedProfiles {
+					removed[item.Provider+":"+removedProfile] = struct{}{}
+				}
+			}
+			if len(removed) > 0 {
+				filtered := make([]ProviderAccount, 0, len(accounts))
+				for _, acc := range accounts {
+					if _, drop := removed[acc.ID]; !drop {
+						filtered = append(filtered, acc)
+					}
+				}
+				accounts = filtered
+			}
+		}
+	}
 
 	sort.Slice(accounts, func(i, j int) bool {
 		if accounts[i].Provider != accounts[j].Provider {

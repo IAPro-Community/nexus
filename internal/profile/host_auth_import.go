@@ -163,6 +163,14 @@ func importHostSession(
 		result.Status = HostSessionLoginRequired
 		return result, profiles
 	}
+	if existingName, _, dup := FindDuplicateAccount(providerCtx, providerID, target.Name, account); dup {
+		if created {
+			_ = Delete(providerID, target.Name)
+		}
+		result.Profile = existingName
+		result.Status = HostSessionAlreadyAuthenticated
+		return result, profiles
+	}
 	identity := account.Email
 	if providerID == "codex" && account.ExternalAccountID != "" {
 		identity = account.ExternalAccountID

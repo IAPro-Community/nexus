@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	sdkproviders "github.com/IAPro-Community/IAPro-SDK/providers"
@@ -35,6 +36,23 @@ func usageCmd(args []string) error {
 			fmt.Fprintf(os.Stderr,
 				"Conta %s vinculada ao perfil %s:%s a partir do login do terminal (%s).\n",
 				src.Plan, p.Provider, p.Name, p.Provider)
+		}
+	}
+	if cleaned, _ := profile.DeduplicateAccounts(context.Background()); len(cleaned) > 0 {
+		for _, item := range cleaned {
+			if len(item.RemovedProfiles) == 0 {
+				continue
+			}
+			label := item.AccountLabel
+			if label == "" {
+				label = item.Identity
+			}
+			fmt.Fprintf(os.Stderr,
+				"Contas duplicadas removidas em %s (%s): %s (mantido %s).\n",
+				item.Provider, label, strings.Join(item.RemovedProfiles, ", "), item.KeptProfile)
+		}
+		if refreshed, listErr := profile.List(); listErr == nil {
+			ps = refreshed
 		}
 	}
 
@@ -356,7 +374,7 @@ func usage() {
   %s usage [--json] [--refresh]   Searchable quota table; --json for integrations; --refresh for live CLI fetch
   %s inspect <provider> <name>    Inspect profile configuration details
 
-  %s projects [list|add]          Register and list project workspaces
+  %s projects [list|add|prune]    Register, list and prune project workspaces (prune is dry-run unless --apply)
   %s agents [project-id]          List persistent agents for a project
   %s plan [list|create|show|compile|run]
                                   Manage, compile and run WorkPlans

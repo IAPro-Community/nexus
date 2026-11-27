@@ -2,6 +2,7 @@ package cursor
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"io/fs"
@@ -104,6 +105,56 @@ func cursorStatusUnauthenticated(output string) bool {
 		}
 	}
 	return false
+}
+
+func enrichCursorIdentity(home string, info *model.AccountInfo) {
+	if home == "" || info == nil {
+		return
+	}
+	if data, err := os.ReadFile(filepath.Join(home, ".cursor", "cli-config.json")); err == nil {
+		var cfg cursorCLIConfig
+		if json.Unmarshal(data, &cfg) == nil {
+			if info.Email == "" {
+				if email := strings.TrimSpace(cfg.AuthInfo.Email); email != "" {
+					info.Email = email
+				}
+			}
+			if info.ExternalAccountID == "" {
+				if authID := strings.TrimSpace(cfg.AuthInfo.AuthID); authID != "" {
+					info.ExternalAccountID = authID
+				}
+			}
+		}
+	}
+	if info.ExternalAccountID != "" {
+		return
+	}
+	authBytes, err := os.ReadFile(filepath.Join(home, ".config", "cursor", "auth.json"))
+	if err != nil {
+		return
+	}
+	var authPayload struct {
+		AccessToken string `json:"accessToken"`
+	}
+	if json.Unmarshal(authBytes, &authPayload) != nil || authPayload.AccessToken == "" {
+		return
+	}
+	parts := strings.Split(authPayload.AccessToken, ".")
+	if len(parts) != 3 {
+		return
+	}
+	claimsBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return
+	}
+	var claims struct {
+		Sub string `json:"sub"`
+	}
+	if json.Unmarshal(claimsBytes, &claims) == nil {
+		if sub := strings.TrimSpace(claims.Sub); sub != "" {
+			info.ExternalAccountID = sub
+		}
+	}
 }
 
 func cursorBinary() (string, error) {
@@ -308,6 +359,7 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 				}
 			}
 		}
+		enrichCursorIdentity(home, &info)
 	}
 	if !info.Authenticated && !cursorStatusUnauthenticated(out) {
 		info.Status = "Authentication status could not be verified"

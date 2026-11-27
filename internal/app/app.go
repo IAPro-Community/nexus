@@ -747,6 +747,46 @@ func providerRegisterCmd(args []string) error {
 }
 
 func profilesCmd(args []string) error {
+	if len(args) > 0 && args[0] == "dedupe" {
+		cleaned, err := profile.DeduplicateAccounts(context.Background())
+		if err != nil {
+			return err
+		}
+		removedAny := false
+		for _, item := range cleaned {
+			label := item.AccountLabel
+			if label == "" {
+				label = item.Identity
+			}
+			if len(item.RemovedProfiles) > 0 {
+				removedAny = true
+				fmt.Printf("✓ %s (%s): removidos [%s], mantido %s\n",
+					item.Provider, label, strings.Join(item.RemovedProfiles, ", "), item.KeptProfile)
+			}
+			if len(item.SkippedLocked) > 0 {
+				fmt.Printf("⚠ %s (%s): perfis em uso não removidos [%s]\n",
+					item.Provider, label, strings.Join(item.SkippedLocked, ", "))
+			}
+		}
+		if !removedAny && len(cleaned) == 0 {
+			fmt.Println("Nenhuma conta duplicada encontrada.")
+		}
+		return nil
+	}
+	if cleaned, _ := profile.DeduplicateAccounts(context.Background()); len(cleaned) > 0 {
+		for _, item := range cleaned {
+			if len(item.RemovedProfiles) == 0 {
+				continue
+			}
+			label := item.AccountLabel
+			if label == "" {
+				label = item.Identity
+			}
+			fmt.Fprintf(os.Stderr,
+				"Contas duplicadas removidas em %s (%s): %s (mantido %s).\n",
+				item.Provider, label, strings.Join(item.RemovedProfiles, ", "), item.KeptProfile)
+		}
+	}
 	ps, err := profile.List()
 	if err != nil {
 		return err

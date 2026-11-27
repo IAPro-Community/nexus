@@ -2,6 +2,7 @@ package cursor
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -172,5 +173,84 @@ func TestCursorStatusAuthenticationRequiresPositiveSignal(t *testing.T) {
 				t.Fatalf("cursorStatusAuthenticated(%q) = %t, want %t", test.output, got, test.want)
 			}
 		})
+	}
+}
+
+func TestInspectAuthExtractsIdentityFromCLIConfigAndJWT(t *testing.T) {
+	dataDir := t.TempDir()
+	cfgDir := t.TempDir()
+	hostHome := t.TempDir()
+	t.Setenv("AI_CLI_DATA_DIR", dataDir)
+	t.Setenv("AI_MANAGER_DATA_DIR", dataDir)
+	t.Setenv("NEXUS_DATA_DIR", dataDir)
+	t.Setenv("AI_CLI_CONFIG_DIR", cfgDir)
+	t.Setenv("AI_MANAGER_CONFIG_DIR", cfgDir)
+	t.Setenv("NEXUS_CONFIG_DIR", cfgDir)
+	t.Setenv("AI_REAL_HOME", hostHome)
+	t.Setenv("NEXUS_REAL_HOME", hostHome)
+	t.Setenv("HOME", hostHome)
+	t.Setenv("USERPROFILE", hostHome)
+
+	prevStatusRun := cursorStatusRun
+	cursorStatusRun = func(context.Context, string, []string, []string, string) (string, error) {
+		return "Authenticated", nil
+	}
+	t.Cleanup(func() { cursorStatusRun = prevStatusRun })
+
+	prevLookPath := spec.BinaryLookPath
+	spec.BinaryLookPath = func(name string) (string, error) {
+		return filepath.Join(t.TempDir(), name), nil
+	}
+	t.Cleanup(func() { spec.BinaryLookPath = prevLookPath })
+
+	a := New()
+
+	// Case 1: cli-config.json provides email and authId
+	p1 := model.Profile{Provider: "cursor", Name: "cfg-ident"}
+	invalidateCursorAuthCache(p1.Name)
+	if err := a.Prepare(t.Context(), p1); err != nil {
+		t.Fatal(err)
+	}
+	home1, err := config.ProfileHome("cursor", p1.Name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cliCfg := map[string]any{
+		"authInfo": map[string]string{
+			"email":  "user@company.example",
+			"authId": "auth0|user_from_config",
+		},
+	}
+	cfgBytes, _ := json.Marshal(cliCfg)
+	if err := os.WriteFile(filepath.Join(home1, ".cursor", "cli-config.json"), cfgBytes, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got1 := a.InspectAuth(t.Context(), p1)
+	if !got1.Authenticated || got1.Email != "user@company.example" || got1.ExternalAccountID != "auth0|user_from_config" {
+		t.Fatalf("expected cli-config identity, got %+v", got1)
+	}
+
+	// Case 2: auth.json JWT sub provides ExternalAccountID when cli-config has no authInfo
+	p2 := model.Profile{Provider: "cursor", Name: "jwt-ident"}
+	invalidateCursorAuthCache(p2.Name)
+	if err := a.Prepare(t.Context(), p2); err != nil {
+		t.Fatal(err)
+	}
+	home2, err := config.ProfileHome("cursor", p2.Name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(home2, ".config", "cursor"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	payload := base64.RawURLEncoding.EncodeToString([]byte(`{"sub":"auth0|user_from_jwt"}`))
+	jwtToken := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"HS256"}`)) + "." + payload + ".sig"
+	authBytes, _ := json.Marshal(map[string]string{"accessToken": jwtToken})
+	if err := os.WriteFile(filepath.Join(home2, ".config", "cursor", "auth.json"), authBytes, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got2 := a.InspectAuth(t.Context(), p2)
+	if !got2.Authenticated || got2.ExternalAccountID != "auth0|user_from_jwt" {
+		t.Fatalf("expected JWT sub identity, got %+v", got2)
 	}
 }
