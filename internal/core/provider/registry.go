@@ -3,11 +3,10 @@ package provider
 import (
 	"context"
 	"fmt"
-	"sort"
-	"strings"
 	"sync"
 	"time"
 
+	sdk "github.com/IAPro-Community/IAPro-SDK/providers"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
@@ -15,8 +14,7 @@ const defaultDetectTimeout = 5 * time.Second
 
 // Registry manages registered provider adapters in a thread-safe manner.
 type Registry struct {
-	mu        sync.RWMutex
-	providers map[string]Provider
+	bindings *sdk.Bindings[Provider]
 }
 
 var (
@@ -28,7 +26,7 @@ var (
 // NewRegistry creates a new Provider Registry.
 func NewRegistry() *Registry {
 	return &Registry{
-		providers: make(map[string]Provider),
+		bindings: sdk.NewBindings[Provider](),
 	}
 }
 
@@ -80,79 +78,24 @@ func (r *Registry) Register(p Provider) error {
 	if p == nil {
 		return fmt.Errorf("provider is required")
 	}
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	id := strings.ToLower(strings.TrimSpace(string(p.ID())))
-	if id == "" {
-		return fmt.Errorf("provider id is required")
-	}
-	if _, exists := r.providers[id]; exists {
-		return fmt.Errorf("provider %q already registered", id)
-	}
-	r.providers[id] = p
-	return nil
+	return r.bindings.Register(string(p.ID()), p)
 }
 
-// Unregister removes a provider adapter by ID (primarily for tests).
-func (r *Registry) Unregister(id string) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	delete(r.providers, strings.ToLower(strings.TrimSpace(id)))
-}
+func (r *Registry) Unregister(id string) { r.bindings.Unregister(id) }
 
-// Get looks up a provider by ID.
-func (r *Registry) Get(id string) (Provider, bool) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+func (r *Registry) Get(id string) (Provider, bool) { return r.bindings.Get(id) }
 
-	p, exists := r.providers[strings.ToLower(strings.TrimSpace(id))]
-	return p, exists
-}
-
-// List returns all registered providers sorted by ID.
 func (r *Registry) List() []Provider {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	var list []Provider
-	for _, p := range r.providers {
-		list = append(list, p)
+	bindings := r.bindings.List()
+	out := make([]Provider, 0, len(bindings))
+	for _, entry := range bindings {
+		out = append(out, entry.Value)
 	}
-	sort.Slice(list, func(i, j int) bool {
-		return list[i].ID() < list[j].ID()
-	})
-	return list
+	return out
 }
 
-// DetectAll queries installation and version status for all registered providers
-// concurrently, bounding each probe with defaultDetectTimeout.
 func (r *Registry) DetectAll(ctx context.Context) map[string]model.DetectionResult {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	r.mu.RLock()
-	snapshot := make(map[string]Provider, len(r.providers))
-	for id, p := range r.providers {
-		snapshot[id] = p
-	}
-	r.mu.RUnlock()
-
-	results := make(map[string]model.DetectionResult, len(snapshot))
-	var resMu sync.Mutex
-	var wg sync.WaitGroup
-	for id, p := range snapshot {
-		wg.Add(1)
-		go func(provID string, prov Provider) {
-			defer wg.Done()
-			probeCtx, cancel := context.WithTimeout(ctx, defaultDetectTimeout)
-			defer cancel()
-			det := prov.Detect(probeCtx)
-			resMu.Lock()
-			results[provID] = det
-			resMu.Unlock()
-		}(id, p)
-	}
-	wg.Wait()
-	return results
+	return sdk.DetectBindings(ctx, r.bindings.List(), defaultDetectTimeout, 4, func(ctx context.Context, p Provider) model.DetectionResult {
+		return p.Detect(ctx)
+	})
 }

@@ -2,9 +2,9 @@ package cursor
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	sdkcursor "github.com/IAPro-Community/IAPro-SDK/providers/cursor"
 	"github.com/IAPro-Community/nexus/internal/core/classifier"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/historysync"
@@ -128,50 +129,35 @@ func enrichCursorIdentity(home string, info *model.AccountInfo) {
 	if home == "" || info == nil {
 		return
 	}
-	if data, err := os.ReadFile(filepath.Join(home, ".cursor", "cli-config.json")); err == nil {
-		var cfg cursorCLIConfig
-		if json.Unmarshal(data, &cfg) == nil {
-			if info.Email == "" {
-				if email := strings.TrimSpace(cfg.AuthInfo.Email); email != "" {
-					info.Email = email
-				}
-			}
-			if info.ExternalAccountID == "" {
-				if authID := strings.TrimSpace(cfg.AuthInfo.AuthID); authID != "" {
-					info.ExternalAccountID = authID
-				}
-			}
-		}
+	configBytes := readCursorIdentityMetadata(filepath.Join(home, ".cursor", "cli-config.json"))
+	defer clear(configBytes)
+	hints := sdkcursor.IdentityFromMetadata(configBytes, nil)
+	if info.Email == "" {
+		info.Email = hints.Email
+	}
+	if info.ExternalAccountID == "" {
+		info.ExternalAccountID = hints.ExternalID
 	}
 	if info.ExternalAccountID != "" {
 		return
 	}
-	authBytes, err := os.ReadFile(filepath.Join(home, ".config", "cursor", "auth.json"))
+	authBytes := readCursorIdentityMetadata(filepath.Join(home, ".config", "cursor", "auth.json"))
+	defer clear(authBytes)
+	info.ExternalAccountID = sdkcursor.IdentityFromMetadata(nil, authBytes).ExternalID
+}
+
+func readCursorIdentityMetadata(path string) []byte {
+	f, err := os.Open(path)
 	if err != nil {
-		return
+		return nil
 	}
-	var authPayload struct {
-		AccessToken string `json:"accessToken"`
+	defer f.Close()
+	raw, err := io.ReadAll(io.LimitReader(f, 4*1024*1024+1))
+	if err != nil || len(raw) > 4*1024*1024 {
+		clear(raw)
+		return nil
 	}
-	if json.Unmarshal(authBytes, &authPayload) != nil || authPayload.AccessToken == "" {
-		return
-	}
-	parts := strings.Split(authPayload.AccessToken, ".")
-	if len(parts) != 3 {
-		return
-	}
-	claimsBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
-	if err != nil {
-		return
-	}
-	var claims struct {
-		Sub string `json:"sub"`
-	}
-	if json.Unmarshal(claimsBytes, &claims) == nil {
-		if sub := strings.TrimSpace(claims.Sub); sub != "" {
-			info.ExternalAccountID = sub
-		}
-	}
+	return raw
 }
 
 func cursorBinary() (string, error) {
@@ -327,13 +313,13 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 
 func (a *Adapter) Login(ctx context.Context, p model.Profile) error {
 	invalidateCursorAuthCache(p.Name)
-	_, err := a.Run(ctx, p, []string{"login"})
+	_, err := a.Run(ctx, p, spec.MustGet("cursor").LoginCommand())
 	return err
 }
 
 func (a *Adapter) Logout(ctx context.Context, p model.Profile) error {
 	invalidateCursorAuthCache(p.Name)
-	_, err := a.Run(ctx, p, []string{"logout"})
+	_, err := a.Run(ctx, p, spec.MustGet("cursor").LogoutCommand())
 	return err
 }
 

@@ -2,122 +2,102 @@ package codex
 
 import (
 	"context"
-	"strings"
-	"sync"
+	"crypto/sha256"
+	"encoding/hex"
 	"time"
 
+	sdkproviders "github.com/IAPro-Community/IAPro-SDK/providers"
+	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 )
 
-// appServerProbeTTL bounds how often a profile may spawn an app-server probe.
-// The TUI, the quota monitor and the scheduler all read usage independently, so
-// without this the same account would start several subprocesses per second.
 const appServerProbeTTL = 60 * time.Second
-
-// appServerFailureTTL is the cooldown after a failed probe. Shorter than the
-// success TTL so a login or a network recovery is picked up quickly, long enough
-// that a permanently unavailable app-server does not spawn a process per render.
 const appServerFailureTTL = 20 * time.Second
 
-type probeResult struct {
-	snap model.UsageSnapshot
-	ok   bool
-	at   time.Time
+type quotaCacheAdapter struct{}
+
+func quotaAccount(home, profile string) (sdkproviders.Account, error) {
+	scope, err := readProfileScope(home, profile)
+	if err != nil {
+		return sdkproviders.Account{}, err
+	}
+	// Scope the local observation cache to the host's authorized profile
+	// location; this is not the owner ID of a cross-product lease.
+	owner := sha256.Sum256([]byte(home))
+	return sdkproviders.Account{OwnerID: hex.EncodeToString(owner[:]), Scope: scope}, nil
 }
 
-type probeSlot struct {
-	// mu serializes probes for one profile so concurrent readers coalesce onto
-	// a single subprocess instead of racing.
-	mu     sync.Mutex
-	result probeResult
+func (quotaCacheAdapter) InspectAuth(ctx context.Context, account sdkproviders.Account) (sdkproviders.Authentication, error) {
+	if err := ctx.Err(); err != nil {
+		return sdkproviders.Authentication{}, err
+	}
+	home, err := config.ProfileHome(account.Scope.ProviderID, account.Scope.ProfileID)
+	if err != nil {
+		return sdkproviders.Authentication{}, sdkproviders.ErrIdentityMismatch
+	}
+	current, err := quotaAccount(home, account.Scope.ProfileID)
+	if err != nil || current != account {
+		return sdkproviders.Authentication{}, sdkproviders.ErrIdentityMismatch
+	}
+	info := New().InspectAuth(ctx, model.Profile{Provider: account.Scope.ProviderID, Name: account.Scope.ProfileID})
+	if !info.Authenticated || info.ExternalAccountID != account.Scope.AccountID {
+		return sdkproviders.Authentication{}, sdkproviders.ErrIdentityMismatch
+	}
+	return sdkproviders.Authentication{Scope: current.Scope, Authenticated: true, ObservedAt: time.Now()}, nil
 }
 
-var (
-	probeSlotsMu sync.Mutex
-	probeSlots   = map[string]*probeSlot{}
-)
-
-func probeSlotFor(key string) *probeSlot {
-	probeSlotsMu.Lock()
-	defer probeSlotsMu.Unlock()
-	slot, ok := probeSlots[key]
+func (quotaCacheAdapter) GetUsage(ctx context.Context, account sdkproviders.Account) (model.UsageSnapshot, error) {
+	snap, ok := New().fetchUsageFromAppServer(ctx, model.Profile{Provider: account.Scope.ProviderID, Name: account.Scope.ProfileID})
 	if !ok {
-		slot = &probeSlot{}
-		probeSlots[key] = slot
+		return model.UsageSnapshot{}, sdkproviders.ErrProbeFailed
 	}
-	return slot
+	if snap.AccountScope != account.Scope {
+		return model.UsageSnapshot{}, sdkproviders.ErrIdentityMismatch
+	}
+	return snap, nil
 }
 
-func (r probeResult) fresh(now time.Time) bool {
-	if r.at.IsZero() {
-		return false
+func newAppServerUsageCache() *sdkproviders.UsageCache {
+	adapter := quotaCacheAdapter{}
+	cache, err := sdkproviders.NewUsageCache(adapter, adapter, appServerProbeTTL, appServerFailureTTL, 256, time.Now)
+	if err != nil {
+		panic(err) // static configuration; not dependent on runtime credentials
 	}
-	ttl := appServerProbeTTL
-	if !r.ok {
-		ttl = appServerFailureTTL
-	}
-	return now.Sub(r.at) < ttl
+	return cache
 }
 
-// appServerUsage returns the official quota snapshot for a profile, reusing a
-// recent probe when possible. Concurrent callers for the same profile wait for
-// the in-flight probe rather than starting another one.
+var appServerUsageCache = newAppServerUsageCache()
+
+// appServerUsage delegates coalescing, TTL, backoff, explicit refresh and
+// defensive snapshot copies to IAPro-SDK.
 func (a *Adapter) appServerUsage(ctx context.Context, p model.Profile, force bool) (model.UsageSnapshot, bool) {
-	key := string(a.ID()) + "/" + p.Name
-	slot := probeSlotFor(key)
-
-	if !force {
-		slot.mu.Lock()
-		cached := slot.result
-		slot.mu.Unlock()
-		if cached.fresh(time.Now()) {
-			return a.serveProbeCache(ctx, p, cached)
-		}
-	}
-
-	slot.mu.Lock()
-	defer slot.mu.Unlock()
-
-	// A concurrent caller may have just refreshed while we waited for the lock.
-	if cached := slot.result; cached.fresh(time.Now()) && !cached.at.IsZero() {
-		if !force || cached.at.After(time.Now().Add(-time.Second)) {
-			return a.serveProbeCache(ctx, p, cached)
-		}
-	}
-
-	snap, ok := a.fetchUsageFromAppServer(ctx, p)
-	slot.result = probeResult{snap: snap, ok: ok, at: time.Now()}
-	return snap, ok
-}
-
-// serveProbeCache revalidates auth before returning a memoized LIVE reading as
-// CACHED. Logout or identity change must not keep serving another account's
-// quota under this profile.
-func (a *Adapter) serveProbeCache(ctx context.Context, p model.Profile, cached probeResult) (model.UsageSnapshot, bool) {
-	if !cached.ok {
+	if !appServerEnabled() {
 		return model.UsageSnapshot{}, false
 	}
-	info := a.InspectAuth(ctx, p)
-	if !info.Authenticated {
+	home, err := config.ProfileHome(string(a.ID()), p.Name)
+	if err != nil {
 		return model.UsageSnapshot{}, false
 	}
-	expected := strings.TrimSpace(info.ExternalAccountID)
-	if expected == "" {
+	account, err := quotaAccount(home, p.Name)
+	if err != nil {
 		return model.UsageSnapshot{}, false
 	}
-	if snapAccount := strings.TrimSpace(cached.snap.Account); snapAccount != "" && !strings.EqualFold(snapAccount, expected) {
+	var snap model.UsageSnapshot
+	if force {
+		snap, err = appServerUsageCache.RefreshUsage(ctx, account, time.Second)
+	} else {
+		snap, err = appServerUsageCache.GetUsage(ctx, account)
+	}
+	if err != nil {
 		return model.UsageSnapshot{}, false
 	}
-	snap := cached.snap
-	if snap.Status == model.UsageLive {
-		snap.Status = model.UsageCached
-	}
+	// The SDK cache has already verified the local scope. The Nexus profile
+	// layer binds it to its own persisted account identity, as before.
+	snap.AccountScope = model.AccountScope{}
 	return snap, true
 }
 
-// resetAppServerProbeCache clears memoized probes. Tests only.
+// Test-only reset; callers install fake servers before starting readers.
 func resetAppServerProbeCache() {
-	probeSlotsMu.Lock()
-	defer probeSlotsMu.Unlock()
-	probeSlots = map[string]*probeSlot{}
+	appServerUsageCache = newAppServerUsageCache()
 }

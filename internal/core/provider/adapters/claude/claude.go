@@ -7,10 +7,10 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/core/classifier"
+	sdkclaude "github.com/IAPro-Community/IAPro-SDK/providers/claude"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/historysync"
 	"github.com/IAPro-Community/nexus/internal/core/model"
@@ -105,7 +105,7 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 }
 
 func (a *Adapter) Login(ctx context.Context, p model.Profile) error {
-	_, err := a.Run(ctx, p, []string{"auth", "login"})
+	_, err := a.Run(ctx, p, spec.MustGet("claude").LoginCommand())
 	return err
 }
 
@@ -198,7 +198,7 @@ func (a *Adapter) DetectHostAuth(ctx context.Context) (model.HostAuthDetection, 
 		return model.HostAuthDetection{}, false
 	}
 	cred, ok := readClaudeCredentials(hostHome)
-	if !ok || (strings.TrimSpace(cred.AccessToken) == "" && strings.TrimSpace(cred.RefreshToken) == "") {
+	if !ok || (!cred.HasAccess && !cred.HasRefresh) {
 		return model.HostAuthDetection{}, false
 	}
 	email := cred.Email
@@ -234,7 +234,7 @@ func (a *Adapter) DetectHostAuth(ctx context.Context) (model.HostAuthDetection, 
 
 func validHostClaudeAuth(data []byte) bool {
 	credential, ok := parseClaudeCredentialsJSON(data)
-	if !ok || (strings.TrimSpace(credential.AccessToken) == "" && strings.TrimSpace(credential.RefreshToken) == "") {
+	if !ok || (!credential.HasAccess && !credential.HasRefresh) {
 		return false
 	}
 	info := model.AccountInfo{}
@@ -294,7 +294,7 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 	if cred.Email != "" {
 		info.Email = cred.Email
 	}
-	hasToken := cred.AccessToken != "" || cred.RefreshToken != ""
+	hasToken := cred.HasAccess || cred.HasRefresh
 	if !hasToken {
 		return info
 	}
@@ -303,13 +303,7 @@ func (a *Adapter) InspectAuth(ctx context.Context, p model.Profile) model.Accoun
 	return info
 }
 
-type claudeCredentialBlob struct {
-	Email        string
-	AccessToken  string
-	RefreshToken string
-	ExpiresAt    time.Time
-	HasExpiry    bool
-}
+type claudeCredentialBlob = sdkclaude.CredentialHints
 
 func readClaudeCredentials(home string) (claudeCredentialBlob, bool) {
 	candidates := []string{
@@ -329,94 +323,11 @@ func readClaudeCredentials(home string) (claudeCredentialBlob, bool) {
 }
 
 func parseClaudeCredentialsJSON(data []byte) (claudeCredentialBlob, bool) {
-	// Flat schema used by older Nexus writes / some Claude builds.
-	var flat struct {
-		OAuthAccount struct {
-			Email string `json:"email"`
-		} `json:"oauthAccount"`
-		AccessToken  string `json:"accessToken"`
-		RefreshToken string `json:"refreshToken"`
-		Email        string `json:"email"`
-		ExpiresAt    any    `json:"expiresAt"`
-		Expiry       any    `json:"expiry"`
-	}
-	if json.Unmarshal(data, &flat) == nil {
-		email := strings.TrimSpace(flat.OAuthAccount.Email)
-		if email == "" {
-			email = strings.TrimSpace(flat.Email)
-		}
-		access := strings.TrimSpace(flat.AccessToken)
-		refresh := strings.TrimSpace(flat.RefreshToken)
-		exp, hasExp := parseClaudeExpiry(flat.ExpiresAt)
-		if !hasExp {
-			exp, hasExp = parseClaudeExpiry(flat.Expiry)
-		}
-		if email != "" || access != "" || refresh != "" {
-			return claudeCredentialBlob{
-				Email: email, AccessToken: access, RefreshToken: refresh,
-				ExpiresAt: exp, HasExpiry: hasExp,
-			}, true
-		}
-	}
-
-	// Nested Claude Code schema: { "claudeAiOauth": { ... } }
-	var nested struct {
-		ClaudeAiOauth struct {
-			AccessToken  string `json:"accessToken"`
-			RefreshToken string `json:"refreshToken"`
-			ExpiresAt    any    `json:"expiresAt"`
-			Email        string `json:"email"`
-		} `json:"claudeAiOauth"`
-	}
-	if json.Unmarshal(data, &nested) == nil {
-		access := strings.TrimSpace(nested.ClaudeAiOauth.AccessToken)
-		refresh := strings.TrimSpace(nested.ClaudeAiOauth.RefreshToken)
-		email := strings.TrimSpace(nested.ClaudeAiOauth.Email)
-		exp, hasExp := parseClaudeExpiry(nested.ClaudeAiOauth.ExpiresAt)
-		if email != "" || access != "" || refresh != "" {
-			return claudeCredentialBlob{
-				Email: email, AccessToken: access, RefreshToken: refresh,
-				ExpiresAt: exp, HasExpiry: hasExp,
-			}, true
-		}
-	}
-	return claudeCredentialBlob{}, false
+	return sdkclaude.ParseCredentialHints(data)
 }
 
 func parseClaudeExpiry(raw any) (time.Time, bool) {
-	switch v := raw.(type) {
-	case nil:
-		return time.Time{}, false
-	case float64:
-		// Claude Code commonly stores epoch milliseconds.
-		if v > 1e12 {
-			return time.UnixMilli(int64(v)).UTC(), true
-		}
-		if v > 1e9 {
-			return time.Unix(int64(v), 0).UTC(), true
-		}
-		return time.Time{}, false
-	case string:
-		s := strings.TrimSpace(v)
-		if s == "" {
-			return time.Time{}, false
-		}
-		if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
-			return t.UTC(), true
-		}
-		if t, err := time.Parse(time.RFC3339, s); err == nil {
-			return t.UTC(), true
-		}
-		return time.Time{}, false
-	case json.Number:
-		f, err := v.Float64()
-		if err != nil {
-			return time.Time{}, false
-		}
-		return parseClaudeExpiry(f)
-	default:
-		return time.Time{}, false
-	}
+	return sdkclaude.ParseCredentialExpiry(raw)
 }
 
 func applyClaudeTokenExpiry(info *model.AccountInfo, cred claudeCredentialBlob) {
@@ -435,7 +346,7 @@ func applyClaudeTokenExpiry(info *model.AccountInfo, cred claudeCredentialBlob) 
 		return
 	}
 	info.ExpiresAt = cred.ExpiresAt
-	if strings.TrimSpace(cred.RefreshToken) != "" {
+	if cred.HasRefresh {
 		info.Authenticated = true
 		info.Status = "Token expired (refreshable by Claude CLI)"
 		info.Health = model.HealthDegraded

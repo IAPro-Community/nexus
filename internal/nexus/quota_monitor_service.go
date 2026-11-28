@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	sdkproviders "github.com/IAPro-Community/IAPro-SDK/providers"
 	"github.com/IAPro-Community/nexus/internal/control/events"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
@@ -267,19 +268,7 @@ func (s *QuotaMonitorService) check() {
 }
 
 func isFreshIdleMonitorSnapshot(snap model.UsageSnapshot, now time.Time) bool {
-	if snap.FetchedAt.IsZero() {
-		return false
-	}
-	age := now.Sub(snap.FetchedAt)
-	if age < -time.Minute || age >= quota.DefaultTTL {
-		return false
-	}
-	switch snap.Status {
-	case model.UsageLive, model.UsageCached, model.UsageRateLimited:
-		return len(snap.Windows) > 0 || snap.Status == model.UsageRateLimited
-	default:
-		return false
-	}
+	return sdkproviders.ReusableIdleObservation(snap, now, quota.DefaultTTL)
 }
 
 func profileTUIBusy(provider, name string) bool {

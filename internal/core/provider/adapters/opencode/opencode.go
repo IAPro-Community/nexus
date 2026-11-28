@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/IAPro-Community/nexus/internal/core/classifier"
+	sdkopencode "github.com/IAPro-Community/IAPro-SDK/providers/opencode"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/historysync"
 	"github.com/IAPro-Community/nexus/internal/core/model"
@@ -156,16 +157,7 @@ func (a *Adapter) ImportHostAuth(ctx context.Context, p model.Profile) (bool, er
 }
 
 func validHostOpenCodeAuth(data []byte) bool {
-	var auth openCodeAuthFile
-	if json.Unmarshal(data, &auth) != nil {
-		return false
-	}
-	for _, entry := range auth {
-		if firstNonEmpty(entry.Key, entry.Token, entry.Access) != "" {
-			return true
-		}
-	}
-	return false
+	return sdkopencode.HasCredentialMetadata(data)
 }
 
 func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (model.Failure, error) {
@@ -221,7 +213,7 @@ func (a *Adapter) Login(ctx context.Context, p model.Profile) error {
 	}
 
 	env := runtime.EnvSet(os.Environ(), runtime.ApplyProfileIsolationEnv(home, envMap))
-	_, runErr := runtime.RunInteractive(bin, []string{"providers", "login"}, env, cwd, string(a.ID()))
+	_, runErr := runtime.RunInteractive(bin, spec.MustGet("opencode").LoginCommand(), env, cwd, string(a.ID()))
 	return runErr
 }
 

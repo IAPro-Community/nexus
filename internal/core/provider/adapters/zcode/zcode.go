@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	sdkzcode "github.com/IAPro-Community/IAPro-SDK/providers/zcode"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/provider/authcopy"
@@ -104,7 +105,7 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 }
 
 func (a *Adapter) Login(ctx context.Context, p model.Profile) error {
-	_, err := a.Run(ctx, p, []string{"login", "zai"})
+	_, err := a.Run(ctx, p, spec.MustGet("zcode").LoginCommand())
 	return err
 }
 
@@ -119,16 +120,7 @@ func (a *Adapter) Logout(ctx context.Context, p model.Profile) error {
 }
 
 func validZCodeCredentials(data []byte) bool {
-	var m map[string]any
-	if json.Unmarshal(data, &m) != nil {
-		return false
-	}
-	for _, key := range []string{"oauth:active_provider", "oauth:zai:access_token", "zcodejwttoken"} {
-		if val, ok := m[key]; ok && val != nil && val != "" {
-			return true
-		}
-	}
-	return false
+	return sdkzcode.HasCredentialMetadata(data)
 }
 
 // DetectHostAuth inspects the host machine for active ZCode credentials.

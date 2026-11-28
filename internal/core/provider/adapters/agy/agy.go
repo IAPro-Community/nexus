@@ -159,7 +159,7 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 }
 
 func (a *Adapter) Login(ctx context.Context, p model.Profile) error {
-	_, err := a.Run(ctx, p, nil)
+	_, err := a.Run(ctx, p, spec.MustGet("agy").LoginCommand())
 	return err
 }
 

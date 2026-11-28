@@ -92,7 +92,11 @@ func TestRunAppServerRateLimitsUsesIsolatedHomeWhileTUILocked(t *testing.T) {
 		return nil, errors.New("probe stopped in test")
 	}
 
-	_, err = runAppServerRateLimits(context.Background(), home)
+	scope, err := readProfileScope(home, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = runAppServerRateLimits(context.Background(), home, scope)
 	if err == nil {
 		t.Fatal("expected probe error from test stub")
 	}
