@@ -224,7 +224,7 @@ func TestHasDuplicateAccounts(t *testing.T) {
 	}
 }
 
-func TestDeduplicateAccountsKeepsHealthyDefaultAndMigratesBindings(t *testing.T) {
+func TestDeduplicateAccountsRecommendsHealthyDefaultWithoutMutation(t *testing.T) {
 	setupIsolatedProfileEnv(t)
 
 	for _, name := range []string{"old", "keeper", "expired"} {
@@ -260,10 +260,10 @@ func TestDeduplicateAccountsKeepsHealthyDefaultAndMigratesBindings(t *testing.T)
 	if err != nil {
 		t.Fatalf("DeduplicateAccounts: %v", err)
 	}
-	if len(cleaned) != 1 || cleaned[0].KeptProfile != "keeper" || len(cleaned[0].RemovedProfiles) != 2 {
+	if len(cleaned) != 1 || cleaned[0].KeptProfile != "keeper" || len(cleaned[0].RemovedProfiles) != 0 || len(cleaned[0].SuggestedProfiles) != 2 {
 		t.Fatalf("unexpected cleanup result: %+v", cleaned)
 	}
-	if Exists("codex", "old") || Exists("codex", "expired") || !Exists("codex", "keeper") {
+	if !Exists("codex", "old") || !Exists("codex", "expired") || !Exists("codex", "keeper") {
 		t.Fatalf("unexpected surviving profiles after dedupe")
 	}
 	def, _ := config.GetDefaultProfile("codex")
@@ -271,8 +271,8 @@ func TestDeduplicateAccountsKeepsHealthyDefaultAndMigratesBindings(t *testing.T)
 		t.Fatalf("default profile=%q want keeper", def)
 	}
 	bound := config.GetBinding("/work/proj", "codex")
-	if bound != "keeper" {
-		t.Fatalf("binding=%q want keeper", bound)
+	if bound != "old" {
+		t.Fatalf("binding=%q want old (advisory must not mutate bindings)", bound)
 	}
 }
 

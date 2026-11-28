@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"sync"
 
 	sdkproviders "github.com/IAPro-Community/IAPro-SDK/providers"
 	"github.com/IAPro-Community/nexus/internal/core/config"
@@ -124,95 +123,59 @@ func ValidateNoDuplicateAccount(ctx context.Context, providerName, profileName s
 
 // FindDuplicateAccountGroups returns groups of active profiles within the same
 // provider that currently point to the same authenticated account.
+func duplicateHints(ctx context.Context, profiles []model.Profile) []sdkproviders.DuplicateHint {
+	hints := make([]sdkproviders.DuplicateHint, 0, len(profiles))
+	for _, p := range profiles {
+		if p.Disabled || ctx.Err() != nil {
+			continue
+		}
+		info, _ := GetAccountInfoContext(ctx, p.Provider, p.Name)
+		hints = append(hints, sdkproviders.DuplicateHint{
+			OwnerID: "local", ProviderID: p.Provider, ProfileID: p.Name,
+			Identity: CanonicalAccountIdentity(p.Provider, info), AccountLabel: accountDisplayLabel(info),
+		})
+	}
+	return hints
+}
+
 func FindDuplicateAccountGroups(ctx context.Context, profiles []model.Profile) []DuplicateAccountGroup {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	type groupKey struct {
-		provider string
-		identity string
+	groups := sdkproviders.GroupDuplicateHints(duplicateHints(ctx, profiles))
+	out := make([]DuplicateAccountGroup, 0, len(groups))
+	for _, g := range groups {
+		out = append(out, DuplicateAccountGroup{Provider: g.ProviderID, Identity: g.Identity, AccountLabel: g.AccountLabel, Profiles: g.Profiles})
 	}
-	grouped := map[groupKey]*DuplicateAccountGroup{}
-	for _, p := range profiles {
-		if p.Disabled {
-			continue
-		}
-		info, _ := GetAccountInfoContext(ctx, p.Provider, p.Name)
-		identity := CanonicalAccountIdentity(p.Provider, info)
-		if identity == "" {
-			continue
-		}
-		key := groupKey{provider: p.Provider, identity: identity}
-		grp, ok := grouped[key]
-		if !ok {
-			grp = &DuplicateAccountGroup{
-				Provider:     p.Provider,
-				Identity:     identity,
-				AccountLabel: accountDisplayLabel(info),
-			}
-			grouped[key] = grp
-		}
-		if grp.AccountLabel == "" {
-			grp.AccountLabel = accountDisplayLabel(info)
-		}
-		grp.Profiles = append(grp.Profiles, p.Name)
-	}
-	var out []DuplicateAccountGroup
-	for _, grp := range grouped {
-		if len(grp.Profiles) > 1 {
-			sort.Strings(grp.Profiles)
-			out = append(out, *grp)
-		}
-	}
-	sort.Slice(out, func(i, j int) bool {
-		if out[i].Provider != out[j].Provider {
-			return out[i].Provider < out[j].Provider
-		}
-		return out[i].AccountLabel < out[j].AccountLabel
-	})
 	return out
 }
 
-var dedupeMu sync.Mutex
-
-// DuplicateCleanupResult describes automatic deduplication performed for a
-// provider account shared across multiple active profiles.
+// DuplicateCleanupResult describes a non-destructive duplicate advisory.
+// RemovedProfiles remains for wire compatibility and is always empty here.
 type DuplicateCleanupResult struct {
 	Provider        string   `json:"provider"`
 	Identity        string   `json:"identity"`
 	AccountLabel    string   `json:"account_label,omitempty"`
 	KeptProfile     string   `json:"kept_profile"`
-	RemovedProfiles []string `json:"removed_profiles,omitempty"`
+	RemovedProfiles   []string `json:"removed_profiles,omitempty"`
+	SuggestedProfiles []string `json:"suggested_profiles,omitempty"`
 	SkippedLocked   []string `json:"skipped_locked,omitempty"`
 }
 
 // HasDuplicateAccounts checks in-memory account info for multiple non-disabled
 // profiles of the same provider sharing one canonical account identity.
 func HasDuplicateAccounts(profiles []model.Profile, accounts map[string]model.AccountInfo) bool {
-	type key struct {
-		provider string
-		identity string
-	}
-	seen := make(map[key]struct{}, len(profiles))
+	hints := make([]sdkproviders.DuplicateHint, 0, len(profiles))
 	for _, p := range profiles {
-		if p.Disabled {
-			continue
-		}
 		info, ok := accounts[p.Provider+":"+p.Name]
-		if !ok {
-			continue
+		if ok {
+			hints = append(hints, sdkproviders.DuplicateHint{
+				OwnerID: "local", ProviderID: p.Provider, ProfileID: p.Name, Disabled: p.Disabled,
+				Identity: CanonicalAccountIdentity(p.Provider, info),
+			})
 		}
-		ident := CanonicalAccountIdentity(p.Provider, info)
-		if ident == "" {
-			continue
-		}
-		k := key{provider: p.Provider, identity: ident}
-		if _, dup := seen[k]; dup {
-			return true
-		}
-		seen[k] = struct{}{}
 	}
-	return false
+	return len(sdkproviders.GroupDuplicateHints(hints)) > 0
 }
 
 func isAuthExpiredCached(provider, profileName string) bool {
@@ -220,144 +183,74 @@ func isAuthExpiredCached(provider, profileName string) bool {
 	return snap.Status == model.UsageError && strings.EqualFold(strings.TrimSpace(snap.DiagnosticCode), "AUTH_REQUIRED")
 }
 
-// DeduplicateAccounts removes redundant non-disabled profiles that point to the
-// same canonical account within a provider, migrating defaults and bindings to
-// the kept profile and leaving any TUI-locked Codex profiles untouched.
+// DeduplicateAccounts is retained as a compatibility entry point. Passive
+// duplicate discovery must never delete accounts, credentials or bindings.
+// Existing local hints can only recommend a profile for explicit user review.
 func DeduplicateAccounts(ctx context.Context) ([]DuplicateCleanupResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	dedupeMu.Lock()
-	defer dedupeMu.Unlock()
-
 	profiles, err := List()
 	if err != nil {
 		return nil, err
 	}
 	cfg, cfgErr := config.LoadConfig()
-
-	type candidate struct {
-		profile      model.Profile
-		healthy      bool
-		isDefault    bool
-		locked       bool
-		hasEmail     bool
-		explicitName bool
-		label        string
-	}
-	type groupKey struct {
-		provider string
-		identity string
-	}
-	groups := make(map[groupKey][]candidate)
-	for _, p := range profiles {
-		if p.Disabled {
-			continue
-		}
-		acc, _ := GetAccountInfoContext(ctx, p.Provider, p.Name)
-		identity := CanonicalAccountIdentity(p.Provider, acc)
-		if identity == "" {
-			continue
-		}
-		locked := false
-		if p.Provider == "codex" {
-			if home, homeErr := Home(p.Provider, p.Name); homeErr == nil && codex.IsTUILocked(home) {
-				locked = true
-			}
-		}
-		c := candidate{
-			profile:      p,
-			healthy:      acc.Authenticated && acc.Health != model.HealthAuthRequired && !isAuthExpiredCached(p.Provider, p.Name),
-			isDefault:    cfgErr == nil && cfg.Defaults[p.Provider] == p.Name,
-			locked:       locked,
-			hasEmail:     strings.TrimSpace(acc.Email) != "",
-			explicitName: !strings.EqualFold(p.Name, p.Provider) && !strings.EqualFold(p.Name, "default"),
-			label:        accountDisplayLabel(acc),
-		}
-		k := groupKey{provider: p.Provider, identity: identity}
-		groups[k] = append(groups[k], c)
-	}
-
+	groups := FindDuplicateAccountGroups(ctx, profiles)
 	var results []DuplicateCleanupResult
-	for k, cands := range groups {
-		if len(cands) <= 1 {
-			continue
+	for _, group := range groups {
+		if err := ctx.Err(); err != nil {
+			return nil, err
 		}
-		sort.Slice(cands, func(i, j int) bool {
-			if cands[i].healthy != cands[j].healthy {
-				return cands[i].healthy
-			}
-			if cands[i].isDefault != cands[j].isDefault {
-				return cands[i].isDefault
-			}
-			if cands[i].locked != cands[j].locked {
-				return cands[i].locked
-			}
-			if cands[i].hasEmail != cands[j].hasEmail {
-				return cands[i].hasEmail
-			}
-			if cands[i].explicitName != cands[j].explicitName {
-				return cands[i].explicitName
-			}
-			return cands[i].profile.Name < cands[j].profile.Name
-		})
-
-		keeper := cands[0]
-		label := keeper.label
-		if label == "" {
-			for _, c := range cands[1:] {
-				if c.label != "" {
-					label = c.label
-					break
-				}
-			}
+		type candidate struct {
+			name    string
+			healthy bool
+			pinned  bool
+			locked  bool
 		}
-		res := DuplicateCleanupResult{
-			Provider:     k.provider,
-			Identity:     k.identity,
-			AccountLabel: label,
-			KeptProfile:  keeper.profile.Name,
-		}
-		for _, dup := range cands[1:] {
-			if dup.locked {
-				res.SkippedLocked = append(res.SkippedLocked, dup.profile.Name)
+		candidates := make([]candidate, 0, len(group.Profiles))
+		for _, name := range group.Profiles {
+			info, _ := GetAccountInfoContext(ctx, group.Provider, name)
+			if CanonicalAccountIdentity(group.Provider, info) != group.Identity {
 				continue
 			}
-			if cfgErr == nil {
-				cfgDirty := false
-				if cfg.Defaults != nil && cfg.Defaults[k.provider] == dup.profile.Name {
-					cfg.Defaults[k.provider] = keeper.profile.Name
-					cfgDirty = true
-				}
-				for _, bindings := range cfg.Bindings {
-					if bindings != nil && bindings[k.provider] == dup.profile.Name {
-						bindings[k.provider] = keeper.profile.Name
-						cfgDirty = true
-					}
-				}
-				if cfgDirty {
-					_ = config.SaveConfig(cfg)
+			locked := false
+			if group.Provider == "codex" {
+				if home, err := Home(group.Provider, name); err == nil {
+					locked = codex.IsTUILocked(home)
 				}
 			}
-			if delErr := Delete(dup.profile.Provider, dup.profile.Name); delErr == nil {
-				res.RemovedProfiles = append(res.RemovedProfiles, dup.profile.Name)
+			candidates = append(candidates, candidate{
+				name: name, healthy: info.Authenticated && info.Health != model.HealthAuthRequired && !isAuthExpiredCached(group.Provider, name),
+				pinned: cfgErr == nil && cfg.Defaults[group.Provider] == name, locked: locked,
+			})
+		}
+		if len(candidates) < 2 {
+			continue
+		}
+		sort.Slice(candidates, func(i, j int) bool {
+			a, b := candidates[i], candidates[j]
+			if a.healthy != b.healthy {
+				return a.healthy
+			}
+			if a.pinned != b.pinned {
+				return a.pinned
+			}
+			if a.locked != b.locked {
+				return a.locked
+			}
+			return a.name < b.name
+		})
+		res := DuplicateCleanupResult{Provider: group.Provider, Identity: group.Identity, AccountLabel: group.AccountLabel, KeptProfile: candidates[0].name}
+		for _, c := range candidates[1:] {
+			if c.locked {
+				res.SkippedLocked = append(res.SkippedLocked, c.name)
+			} else {
+				res.SuggestedProfiles = append(res.SuggestedProfiles, c.name)
 			}
 		}
-		if len(res.RemovedProfiles) > 0 || len(res.SkippedLocked) > 0 {
-			sort.Strings(res.RemovedProfiles)
-			sort.Strings(res.SkippedLocked)
-			results = append(results, res)
-		}
+		sort.Strings(res.SuggestedProfiles)
+		sort.Strings(res.SkippedLocked)
+		results = append(results, res)
 	}
-
-	sort.Slice(results, func(i, j int) bool {
-		if results[i].Provider != results[j].Provider {
-			return results[i].Provider < results[j].Provider
-		}
-		if results[i].AccountLabel != results[j].AccountLabel {
-			return results[i].AccountLabel < results[j].AccountLabel
-		}
-		return results[i].KeptProfile < results[j].KeptProfile
-	})
-	return results, nil
+	return results, ctx.Err()
 }

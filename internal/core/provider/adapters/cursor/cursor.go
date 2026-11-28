@@ -313,13 +313,13 @@ func (a *Adapter) Run(ctx context.Context, p model.Profile, args []string) (mode
 
 func (a *Adapter) Login(ctx context.Context, p model.Profile) error {
 	invalidateCursorAuthCache(p.Name)
-	_, err := a.Run(ctx, p, []string{"login"})
+	_, err := a.Run(ctx, p, spec.MustGet("cursor").LoginCommand())
 	return err
 }
 
 func (a *Adapter) Logout(ctx context.Context, p model.Profile) error {
 	invalidateCursorAuthCache(p.Name)
-	_, err := a.Run(ctx, p, []string{"logout"})
+	_, err := a.Run(ctx, p, spec.MustGet("cursor").LogoutCommand())
 	return err
 }
 

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	sdkproviders "github.com/IAPro-Community/IAPro-SDK/providers"
 	"github.com/IAPro-Community/nexus/internal/core/config"
 	"github.com/IAPro-Community/nexus/internal/core/model"
 	"github.com/IAPro-Community/nexus/internal/core/provider/spec"
@@ -72,13 +73,23 @@ func Exists(provider, name string) bool {
 }
 
 func Create(provider, name string) (model.Profile, error) {
+	req := sdkproviders.ProfileRegistration{OwnerID: "local", ProviderID: provider, Label: name}
+	p, err := sdkproviders.RegisterProfile(context.Background(), req, ValidateProvider, ValidateName, createProfileRecord)
+	if err != nil {
+		return p, err
+	}
+	// Compatibility: Nexus still owns its existing host-login adoption policy.
+	// The SDK registration operation never imports or copies credentials.
+	_, _ = AdoptHostAuth(context.Background(), p)
+	return p, nil
+}
+
+func createProfileRecord(ctx context.Context, req sdkproviders.ProfileRegistration) (model.Profile, error) {
 	var p model.Profile
-	if err := ValidateProvider(provider); err != nil {
+	if err := ctx.Err(); err != nil {
 		return p, err
 	}
-	if err := ValidateName(name); err != nil {
-		return p, err
-	}
+	provider, name := req.ProviderID, req.Label
 	if Exists(provider, name) {
 		return p, fmt.Errorf("profile %s:%s already exists", provider, name)
 	}
@@ -104,10 +115,6 @@ func Create(provider, name string) (model.Profile, error) {
 			return p, err
 		}
 	}
-	// A profile born without a credential adopts the host CLI login once, so
-	// the first run does not end in an unexplained "awaiting authentication"
-	// state. Quota probes still validate the account identity per profile.
-	_, _ = AdoptHostAuth(context.Background(), p)
 	return p, nil
 }
 

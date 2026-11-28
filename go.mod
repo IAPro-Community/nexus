@@ -7,7 +7,7 @@ go 1.25.0
 toolchain go1.26.11
 
 require (
-	github.com/IAPro-Community/IAPro-SDK v0.0.0-20261127235303-beb56ec21712
+	github.com/IAPro-Community/IAPro-SDK v0.0.0-20261127235909-94e05c07c1e8
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/Xuanwo/go-locale v1.1.3
 	github.com/charmbracelet/bubbles v0.21.1

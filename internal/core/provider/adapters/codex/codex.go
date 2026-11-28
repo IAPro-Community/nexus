@@ -223,7 +223,7 @@ func (a *Adapter) runPrepared(p model.Profile, args []string, expectedAccountID 
 }
 
 func (a *Adapter) Login(ctx context.Context, p model.Profile) error {
-	_, err := a.Run(ctx, p, []string{"login"})
+	_, err := a.Run(ctx, p, spec.MustGet("codex").LoginCommand())
 	return err
 }
 
